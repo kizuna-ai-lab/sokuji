@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox is at capacity right now. Please try again shortly.",
     "sonioxBudgetExhausted": "Your session balance is used up. Top up your balance to keep translating.",
     "sonioxTtsFailed": "Spoken translation has stopped. Transcription and text translation are still running.",
+    "sonioxTtsSegmentLost": "Part of the spoken translation could not be played. Transcription and text translation are unaffected.",
     "sonioxSegmentEnded": "This segment has ended — tap Start Session to continue.",
     "sonioxConnectionLost": "The connection was interrupted — tap Start Session in a moment to continue.",
     "sonioxVoiceClipMissing": "This device has no voice recording, so this session uses a built-in voice. Record one in Settings to speak in your own voice here.",

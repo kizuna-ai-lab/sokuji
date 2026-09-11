@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox on juuri nyt täydessä kapasiteetissa. Yritä pian uudelleen.",
     "sonioxBudgetExhausted": "Istuntosi saldo on käytetty loppuun. Lataa saldoasi jatkaaksesi kääntämistä.",
     "sonioxTtsFailed": "Puhuttu käännös on pysähtynyt. Litterointi ja tekstikäännös toimivat edelleen.",
+    "sonioxTtsSegmentLost": "Osaa puhutusta käännöksestä ei voitu toistaa. Litterointi ja tekstikäännös toimivat edelleen.",
     "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla ”Aloita istunto”.",
     "sonioxConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”.",
     "sonioxVoiceClipMissing": "Tällä laitteella ei ole äänitallennetta, joten tämä istunto käyttää esiasetettua ääntä. Äänitä sellainen asetuksista, jotta voit puhua täällä omalla äänelläsi.",

@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox 目前容量已滿。請稍後再試一次。",
     "sonioxBudgetExhausted": "您的工作階段餘額已用盡。請儲值以繼續翻譯。",
     "sonioxTtsFailed": "語音翻譯已停止。轉錄與文字翻譯仍在繼續。",
+    "sonioxTtsSegmentLost": "有一段語音翻譯未能播放。轉錄和文字翻譯不受影響。",
     "sonioxSegmentEnded": "此段落已結束——點一下「開始」以繼續。",
     "sonioxConnectionLost": "連線已中斷——請稍候點一下「開始」以繼續。",
     "sonioxVoiceClipMissing": "此裝置沒有語音錄音，因此本次工作階段使用預設語音。請在設定中錄製一段，以便在此使用您自己的聲音。",

@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox ist derzeit ausgelastet. Bitte versuchen Sie es in Kürze erneut.",
     "sonioxBudgetExhausted": "Ihr Sitzungsguthaben ist aufgebraucht. Laden Sie Ihr Guthaben auf, um weiter zu übersetzen.",
     "sonioxTtsFailed": "Die gesprochene Übersetzung wurde beendet. Transkription und Textübersetzung laufen weiter.",
+    "sonioxTtsSegmentLost": "Ein Teil der gesprochenen Übersetzung konnte nicht wiedergegeben werden. Transkription und Textübersetzung sind nicht betroffen.",
     "sonioxSegmentEnded": "Dieser Abschnitt ist beendet — tippen Sie auf „Sitzung starten“, um fortzufahren.",
     "sonioxConnectionLost": "Die Verbindung wurde unterbrochen — tippen Sie gleich auf „Sitzung starten“, um fortzufahren.",
     "sonioxVoiceClipMissing": "Auf diesem Gerät liegt keine Sprachaufnahme vor, daher verwendet diese Sitzung eine voreingestellte Stimme. Nehmen Sie eine in den Einstellungen auf, um hier mit Ihrer eigenen Stimme zu sprechen.",

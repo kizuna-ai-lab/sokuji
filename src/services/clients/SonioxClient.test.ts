@@ -35,11 +35,15 @@ class MockStt {
 
 const ttsInstances: MockTts[] = [];
 class MockTts {
-  handlers: { onAudio?: (a: Int16Array) => void; onError?: (c: string, m: string, hadActiveStream: boolean) => void } = {};
+  handlers: {
+    onAudio?: (a: Int16Array) => void;
+    onError?: (c: string, m: string, hadActiveStream: boolean, scope?: 'stream' | 'connection') => void;
+  } = {};
   options: unknown;
-  prewarmed: string[] = [];
   sent: Array<{ text: string; language: string }> = [];
   utteranceEnds = 0;
+  /** sendText / endUtterance in call order, for ordering assertions. */
+  ops: string[] = [];
   closed = false;
   static failConnect = false;
   static gate: Promise<void> | null = null; // when set, connect() awaits it (race tests)
@@ -49,9 +53,8 @@ class MockTts {
     if (MockTts.failConnect) return Promise.reject(new Error('boom'));
     return MockTts.gate ? MockTts.gate.then(() => undefined) : Promise.resolve();
   }
-  prewarm(lang: string) { this.prewarmed.push(lang); }
-  sendText(text: string, language: string) { this.sent.push({ text, language }); }
-  endUtterance() { this.utteranceEnds += 1; }
+  sendText(text: string, language: string) { this.sent.push({ text, language }); this.ops.push(`text:${text}`); }
+  endUtterance() { this.utteranceEnds += 1; this.ops.push('end'); }
   close() { this.closed = true; }
   isOpen() { return !this.closed; }
 }
@@ -125,12 +128,11 @@ describe('SonioxClient connect', () => {
     expect(stt.config!.translation).toEqual({ type: 'one_way', target_language: 'en' });
   });
 
-  it('textOnly skips TTS entirely; otherwise TTS connects (no prewarm — a config-only stream 408s)', async () => {
+  it('textOnly skips TTS entirely; otherwise TTS connects', async () => {
     const a = await connectedClient({ textOnly: true });
     expect(a.tts).toBeUndefined();
     const b = await connectedClient({ textOnly: false });
     expect(b.tts).toBeDefined();
-    expect(b.tts!.prewarmed).toEqual([]); // prewarm removed — opens the stream on first text instead
   });
 
   it('TTS connect failure degrades to text-only without failing connect', async () => {
@@ -779,14 +781,14 @@ describe('SonioxClient compact debug logging', () => {
   });
 });
 
-describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', () => {
+describe('SonioxClient TTS reconnect-on-demand (socket dies mid-session)', () => {
   it('reconnects a dead TTS socket on the next translation and flushes buffered text + end in order', async () => {
     const client = new SonioxClient(byokCredentials('key', 'us'));
     client.setEventHandlers({});
     await client.connect({ ...BASE_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en', textOnly: false });
     const stt = sttInstances.at(-1)!;
     const tts0 = ttsInstances.at(-1)!;
-    // Simulate the idle TTS socket having been closed by the server (~5.3s, 408).
+    // Simulate the TTS socket having dropped between utterances.
     tts0.closed = true;
     expect(tts0.isOpen()).toBe(false);
     // A translation arrives, then <end> — both must land on a fresh stream.
@@ -849,6 +851,78 @@ describe('SonioxClient TTS reconnect-on-demand (idle socket dies mid-session)', 
     expect(errors).toHaveLength(1);
     expect(errors[0].code).toMatch(/^tts_/);
     expect(errors[0].message).toMatch(/spoken translation has stopped/i);
+  });
+});
+
+describe('SonioxClient TTS feeding', () => {
+  const tr = (text: string, extra: object = {}) =>
+    tok(text, { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh', ...extra });
+
+  it('feeds the final translation tokens of one STT message to TTS as one chunk', async () => {
+    // Soniox delivers a translation as one clause-sized burst of final tokens;
+    // one frame per burst (as Soniox's own soniox-compare does) keeps the
+    // segmenter judging sentence ends at the burst's end, not mid-burst.
+    const { stt, tts } = await connectedClient({ textOnly: false });
+    stt.emit({ tokens: [tr('Good'), tr(' morning'), tr(', everyone.')] });
+    expect(tts!.sent).toEqual([{ text: 'Good morning, everyone.', language: 'en' }]);
+  });
+
+  it('flushes the chunk before <end> and starts a fresh one after it, within one message', async () => {
+    const { stt, tts } = await connectedClient({ textOnly: false });
+    stt.emit({ tokens: [tr('Thanks'), tr('.'), tok('<end>', { is_final: true, translation_status: 'none' }), tr('Next')] });
+    expect(tts!.ops).toEqual(['text:Thanks.', 'end', 'text:Next']);
+  });
+
+  it('never feeds non-final translation tokens', async () => {
+    const { stt, tts } = await connectedClient({ textOnly: false });
+    stt.emit({ tokens: [tr('Hel', { is_final: false })] });
+    expect(tts!.sent).toEqual([]);
+  });
+});
+
+describe('SonioxClient stream-level TTS failures', () => {
+  const tr = (text: string) =>
+    tok(text, { is_final: true, translation_status: 'translation', language: 'en', source_language: 'zh' });
+
+  async function speaking() {
+    const client = new SonioxClient(byokCredentials('key', 'us'));
+    const errors: Array<{ code: string; message: string; rawMessage?: string }> = [];
+    client.setEventHandlers({ onError: (e: any) => errors.push(e) });
+    await client.connect({ ...BASE_CONFIG, textOnly: false });
+    const stt = sttInstances.at(-1)!;
+    const tts = ttsInstances.at(-1)!;
+    stt.emit({ tokens: [tr('Hello')] });
+    return { errors, tts };
+  }
+
+  it('a killed segment (socket still up) says part of the speech was lost — not that speech stopped', async () => {
+    // The socket survives a stream-level 408 and the next segment speaks, so
+    // "spoken translation has stopped" would be false.
+    const { errors, tts } = await speaking();
+    tts.handlers.onError!('408', 'Request timeout', true, 'stream');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].code).toBe('tts_408');
+    expect(errors[0].message).toMatch(/could not be played/i);
+    expect(errors[0].message).not.toMatch(/has stopped/i);
+    expect(errors[0].rawMessage).toBe('Request timeout');
+  });
+
+  it('a connection-level failure still says spoken translation has stopped', async () => {
+    const { errors, tts } = await speaking();
+    tts.handlers.onError!('socket_closed', 'Soniox TTS socket closed unexpectedly', true, 'connection');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toMatch(/spoken translation has stopped/i);
+  });
+
+  it('reports once while speech stays down, and again after it resumed', async () => {
+    const { errors, tts } = await speaking();
+    tts.handlers.onError!('408', 'Request timeout', true, 'stream');
+    tts.handlers.onError!('408', 'Request timeout', true, 'stream');
+    expect(errors).toHaveLength(1);
+    tts.handlers.onAudio!(new Int16Array([1, 2])); // a later segment speaks again
+    tts.handlers.onError!('408', 'Stream killed: no audio output within timeout', true, 'stream');
+    expect(errors).toHaveLength(2);
+    expect(errors[1].rawMessage).toBe('Stream killed: no audio output within timeout');
   });
 });
 

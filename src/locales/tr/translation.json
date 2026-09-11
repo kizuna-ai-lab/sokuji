@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
     "sonioxBudgetExhausted": "Oturum bakiyeniz tükendi. Çeviriye devam etmek için bakiyenizi yükleyin.",
     "sonioxTtsFailed": "Sesli çeviri durdu. Deşifre ve metin çevirisi çalışmaya devam ediyor.",
+    "sonioxTtsSegmentLost": "Sesli çevirinin bir kısmı oynatılamadı. Deşifre ve metin çevirisi etkilenmedi.",
     "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için “Oturumu başlat”a dokunun.",
     "sonioxConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun.",
     "sonioxVoiceClipMissing": "Bu cihazda ses kaydı yok, bu yüzden bu oturum hazır bir ses kullanıyor. Burada kendi sesinizle konuşmak için Ayarlar'dan bir kayıt yapın.",

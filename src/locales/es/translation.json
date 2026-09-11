@@ -613,6 +613,7 @@
     "sonioxServiceBusy": "Soniox está a plena capacidad en este momento. Inténtalo de nuevo en breve.",
     "sonioxBudgetExhausted": "Se ha agotado el saldo de la sesión. Recarga tu saldo para seguir traduciendo.",
     "sonioxTtsFailed": "La traducción hablada se ha detenido. La transcripción y la traducción de texto siguen funcionando.",
+    "sonioxTtsSegmentLost": "No se pudo reproducir una parte de la traducción hablada. La transcripción y la traducción de texto no se ven afectadas.",
     "sonioxSegmentEnded": "Este segmento ha terminado — toca «Iniciar sesión» para continuar.",
     "sonioxConnectionLost": "Se interrumpió la conexión — toca «Iniciar sesión» en un momento para continuar.",
     "sonioxVoiceClipMissing": "Este dispositivo no tiene ninguna grabación de voz, así que esta sesión usa una voz integrada. Graba una en Configuración para hablar aquí con tu propia voz.",

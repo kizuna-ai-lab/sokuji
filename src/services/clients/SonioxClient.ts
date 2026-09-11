@@ -10,7 +10,7 @@ import {
 } from '../interfaces/IClient';
 import { Provider, ProviderType } from '../../types/Provider';
 import { SonioxSttStream, SonioxSttMessage, SonioxToken, SonioxTranslationConfig, SonioxSttConfig } from './SonioxSttStream';
-import { SonioxTtsStream } from './SonioxTtsStream';
+import { SonioxTtsStream, type SonioxTtsErrorScope } from './SonioxTtsStream';
 import { SonioxBudgetSnapshot } from './SonioxCostMeter';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
 import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
@@ -157,12 +157,11 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   // Text fed to TTS for the current utterance, accumulated for the tts.speak
   // debug-timeline event (reset each utterance).
   private ttsSpokenText = '';
-  // Reconnect-on-demand: the server closes an idle TTS socket with no active
-  // stream after ~5.3 s (408: "Request timeout") regardless of keep_alive —
-  // measured live; well inside the 20 s keepalive interval, so keep_alive
-  // never gets a chance to save it — so between/before utterances the socket
-  // often dies. When feedTts finds it closed it queues the text/end here and
-  // re-establishes the socket; the queue is flushed in order once connected.
+  // Reconnect-on-demand: when feedTts finds the TTS socket closed (a network
+  // drop, or Soniox closing a connection that has produced no audio for a
+  // while) it queues the text/end here and re-establishes the socket; the
+  // queue is flushed in order once connected. Soniox's ~5 s 408s kill a
+  // STREAM, not the socket — SonioxTtsStream keeps its streams short instead.
   private ttsConnecting = false;
   private ttsPending: Array<{ kind: 'text'; text: string; language: string } | { kind: 'end' }> = [];
 
@@ -380,12 +379,10 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
         // discard the socket instead of installing it (would leak + speak after Stop).
         if (gen !== this.generation) { stream.close(); return; }
         this.tts = stream;
-        // No prewarm: a config-only TTS stream with no text — and, the same
-        // way, an idle socket with no active stream at all — is closed by the
-        // server after ~5.3 s (408: "Request timeout"; measured live) regardless
-        // of keep_alive, so this socket may die during a long silence before
-        // the first translation. feedTts detects a closed socket and
-        // reconnects on demand (see ensureTts).
+        // No prewarm: a stream opened before there is text to speak is killed
+        // by Soniox ~5.2 s later (408), keep_alive or not. SonioxTtsStream
+        // opens one per segment on first text; if the socket itself drops
+        // meanwhile, feedTts reconnects on demand (see ensureTts).
       } catch (error) {
         // Best-effort: never fail the session because TTS is unavailable.
         // feedTts will retry the connection on the first translation.
@@ -828,11 +825,25 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     // Partials are re-sent in full on every message: rebuild them each time.
     let userPartial = '';
     let assistantPartial = '';
+    // Soniox delivers a translation as one clause-sized burst of FINAL tokens
+    // (measured: never non-final). Each burst goes to TTS as one chunk — as
+    // Soniox's own soniox-compare feeds it — so SonioxTtsStream judges where a
+    // sentence ends at the burst's end, and a burst holding several sentences
+    // stays in one segment. Flushed before <end> so it lands in its utterance.
+    let ttsChunk = '';
+    let ttsChunkToken: SonioxToken | null = null;
+    const flushTtsChunk = () => {
+      if (!ttsChunkToken) return;
+      this.feedTts(ttsChunk, ttsChunkToken);
+      ttsChunk = '';
+      ttsChunkToken = null;
+    };
 
     for (const token of tokens) {
       const text = token.text ?? '';
       if (text === '<fin>') continue;
       if (text === '<end>') {
+        flushTtsChunk();
         this.finishUtterance();
         continue;
       }
@@ -858,7 +869,8 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
         if (token.language) this.assistantLanguage = token.language; // translated-into language
         if (token.is_final) {
           this.assistantFinal += text;
-          this.feedTts(text, token);
+          ttsChunk += text;
+          ttsChunkToken ??= token;
         } else {
           assistantPartial += text;
         }
@@ -871,6 +883,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
         }
       }
     }
+    flushTtsChunk();
 
     this.emitTextUpdate('user', this.userFinal, userPartial);
     this.emitTextUpdate('assistant', this.assistantFinal, assistantPartial);
@@ -901,17 +914,16 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     });
     stream.setHandlers({
       onAudio: (audio) => this.emitAssistantAudio(audio),
-      onError: (code, message, hadActiveStream) => this.handleTtsError(code, message, hadActiveStream),
+      onError: (code, message, hadActiveStream, scope) => this.handleTtsError(code, message, hadActiveStream, scope),
     });
     return stream;
   }
 
   /**
    * (Re)establish the TTS socket when it is closed, then flush any text/end
-   * markers queued while it was down. Idle TTS sockets are closed by the
-   * server (~5.3 s, 408: "Request timeout"; measured live) between
-   * utterances — almost every conversational pause — so this runs whenever a
-   * translation needs speaking but the socket is not open.
+   * markers queued while it was down. Runs whenever a translation needs
+   * speaking but the socket is not open — a network drop, or Soniox closing
+   * a connection that has produced no audio for a while.
    */
   private async ensureTts(): Promise<void> {
     if (this.ttsConnecting) return;
@@ -1112,6 +1124,9 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     // Debug-timeline: TTS audio arriving from the server (grouped by logStore
     // into a single counted `tts.audio (N)` entry).
     this.emitRealtime('server', 'tts.audio', { bytes: audio.length });
+    // Speech is flowing again, so a later TTS failure is a new episode and
+    // must be reported (handleTtsError reports once per episode).
+    this.ttsFailedOnce = false;
     // Pure-audio edge case that shouldn't happen in practice (audio always
     // follows feedTts, which sets audioItemId) — fall back to minting (and
     // listing) rather than dropping the chunk.
@@ -1283,17 +1298,18 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     this.eventHandlers.onError?.({ code, message: text, rawMessage: message });
   }
 
-  private handleTtsError(code: string, message: string, hadActiveStream: boolean): void {
+  private handleTtsError(
+    code: string,
+    message: string,
+    hadActiveStream: boolean,
+    scope: SonioxTtsErrorScope = 'connection',
+  ): void {
     // hadActiveStream — not the wire code — decides whether this is worth
-    // surfacing. A drop with no active/draining stream (nothing was actually
-    // being spoken) is an idle-timeout: expected server behavior (~5.3 s,
-    // measured live) recovered silently the next time ensureTts reconnects,
-    // no matter whether the wire reports it as 408 "Request timeout",
-    // socket_error, or a plain close. Only a drop that hit an in-flight
-    // utterance, or a reconnect attempt that itself failed (ensureTts's
-    // catch, which always passes true) — i.e. "we tried to resume speech and
-    // could not", not "the socket closed" — means spoken output has
-    // genuinely stopped.
+    // surfacing. A drop with no active/draining stream (nothing was being
+    // spoken) cost no speech: it is recovered silently the next time ensureTts
+    // reconnects, whatever the wire called it. Only a drop that hit an
+    // in-flight utterance, or a reconnect attempt that itself failed
+    // (ensureTts's catch, which always passes true), cost spoken output.
     if (!hadActiveStream) return;
     // TTS errors are non-fatal to the SESSION — transcription and text
     // translation carry on — but they are not invisible to the USER: spoken
@@ -1303,21 +1319,32 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     // announceSessionOutcome use, which puts a system bubble in the
     // conversation and a session.error entry in the LogsPanel.
     //
-    // Reported ONCE per failure episode: ttsFailedOnce is reset on a successful
-    // reconnect, so a later genuine failure reports again. The condition for
-    // raising the error is deliberately unchanged — only its visibility is.
+    // `scope` says how much was lost. 'stream': Soniox killed one segment (one
+    // of its 408s — see SonioxTtsStream) and the socket is still up, so the
+    // next segment speaks; "spoken translation has stopped" would be false.
+    // 'connection': the socket, or its reconnect, failed — speech is down
+    // until a reconnect works.
+    //
+    // Reported ONCE per failure episode: ttsFailedOnce is re-armed when audio
+    // arrives again (emitAssistantAudio) or a reconnect succeeds, so a later
+    // failure reports again.
     if (!this.ttsFailedOnce) {
       this.ttsFailedOnce = true;
       // No log line: the tts.degraded event below is the panel row.
-      this.emitRealtime('client', 'tts.degraded', { code, message });
+      this.emitRealtime('client', 'tts.degraded', { code, message, scope });
       this.eventHandlers.onError?.({
         // Namespaced so a UI branching on `code` cannot confuse a degraded-TTS
         // report with the STT error of the same wire code.
         code: `tts_${code}`,
-        message: i18n.t(
-          'mainPanel.sonioxTtsFailed',
-          'Spoken translation has stopped. Transcription and text translation are still running.'
-        ),
+        message: scope === 'stream'
+          ? i18n.t(
+            'mainPanel.sonioxTtsSegmentLost',
+            'Part of the spoken translation could not be played. Transcription and text translation are unaffected.'
+          )
+          : i18n.t(
+            'mainPanel.sonioxTtsFailed',
+            'Spoken translation has stopped. Transcription and text translation are still running.'
+          ),
         // The localized sentence above is for the user; analytics needs what
         // actually broke. Degraded TTS is a silent quality regression, so
         // being able to count it by cause is the whole point of measuring it.

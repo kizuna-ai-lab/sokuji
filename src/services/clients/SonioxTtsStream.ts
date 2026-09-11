@@ -6,27 +6,41 @@
  * (text, language) event stream from ANY source, which is the seam for
  * future cross-provider composition (e.g. another STT → Soniox TTS).
  *
- * Stream model (mirrors the official soniox_examples STS demo):
- * - One TTS stream per utterance over a single WebSocket, identified by
- *   stream_id. A stream is opened lazily by the first text of an utterance
- *   (config message), fed {text, text_end:false} chunks, and closed with
- *   {text:"", text_end:true}.
- * - Streams that produced audio are serialized: we wait for the server's
- *   {terminated} of the previous stream before opening the next, so audio
- *   chunks never interleave between utterances. Text arriving meanwhile is
- *   queued.
- * - prewarm() pre-opens a stream so the first utterance skips the config
- *   round-trip (~400 ms). A prewarmed stream with the wrong language (only
- *   possible in two_way mode) is discarded immediately — it produced no
- *   audio, so no serialization wait is needed.
- * - {keep_alive:true} every 20 s (NOTE: different shape from the STT
- *   keepalive {"type":"keepalive"}). Does NOT prevent the server from closing
- *   a socket with no active stream — measured live at ~5.3 s with a 408
- *   ("Request timeout") error, well inside this 20 s interval — so
- *   SonioxClient's reconnect-on-demand (ensureTts) is what actually keeps
- *   speech flowing across a silence, not this. Every onError report carries
- *   `hadActiveStream` so the caller can tell this ordinary idle drop (no
- *   stream was carrying content) apart from one that hit real speech.
+ * Stream model:
+ * - Streams are multiplexed over one WebSocket by stream_id. A stream is opened
+ *   lazily by the first text that needs one (config message), fed
+ *   {text, text_end:false} chunks, and closed with {text:"", text_end:true}.
+ * - tts-rt-v2 kills a stream that lives too long, always as a 408 followed by
+ *   {terminated} (measured live 2026-09-11; every language behaves alike):
+ *     · "Request timeout" ~5.2 s after the stream's last TEXT frame — even
+ *       while it is producing audio, and whatever it had not spoken yet is lost;
+ *     · "no audio output within timeout" ~10–12 s after it opened, when the
+ *       server has not started speaking (it holds short text until text_end);
+ *     · "output audio rate below minimum" when its audio lags its age.
+ *   {keep_alive} prevents none of them. So an utterance is spoken as a run of
+ *   short SEGMENTS, one stream each (`utt-<utterance>-<segment>`), and a
+ *   segment ends at the first of:
+ *     1. a chunk that ends a sentence (classifyChunkEnd → 'sentence');
+ *     2. a chunk that ends a clause, followed by clauseWaitMs with no new text
+ *        while the server has produced no audio for the segment — it is
+ *        holding the text, so hand it over rather than let the next clause
+ *        pile on (a slow speaker otherwise hears one late lump);
+ *     3. idleMs with no new text, unconditionally — guards the 5.2 s kill;
+ *     4. maxAgeMs after the segment's first text ARRIVED (queued or not) —
+ *        guards the no-audio kill;
+ *     5. endUtterance().
+ *   Translation arrives one clause-sized burst at a time, so every cut lands
+ *   on a burst boundary. Once text_end is sent a stream only has to finish.
+ * - Segments are serialized: the next opens only after the previous one's
+ *   {terminated}, so audio never interleaves and at most one stream is open —
+ *   one `tts_concurrent` slot per session. Text arriving meanwhile is queued.
+ * - Frames sent to a stream before its 408 arrived come back as 400 "Stream …
+ *   not found". Errors about a stream already dropped are ignored: its failure
+ *   was reported once, when it died.
+ * - {keep_alive:true} every 20 s keeps the CONNECTION open between utterances
+ *   (NOTE: a different shape from the STT keepalive {"type":"keepalive"}). A
+ *   socket with no stream on it is not closed by the server on its own; the
+ *   caller still reconnects on demand for genuine drops.
  */
 import { SONIOX_REDUCE_SILENCE } from '../../lib/soniox/ttsCatalog';
 import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
@@ -48,22 +62,66 @@ export interface SonioxTtsOptions {
   clientReferenceId?: string;
 }
 
+/**
+ * 'stream': the server killed one stream and the socket is still up — the next
+ * segment will speak. 'connection': the socket itself failed, or the error
+ * named no stream.
+ */
+export type SonioxTtsErrorScope = 'stream' | 'connection';
+
 export interface SonioxTtsStreamHandlers {
   onAudio?: (audio: Int16Array) => void;
-  // hadActiveStream: whether a stream carrying real utterance content (active
-  // or still draining its final audio) existed at the moment of this
-  // error/close, as opposed to a socket that was genuinely idle (no stream
-  // ever opened, or already fully drained) — e.g. the ~5.3 s "no active
-  // stream" 408 idle-timeout. The caller (SonioxClient.handleTtsError) uses
-  // this, not the wire code, to decide whether a drop is expected (silently
-  // recovered by ensureTts) or a genuine loss of spoken output.
-  onError?: (code: string, message: string, hadActiveStream: boolean) => void;
+  // hadActiveStream: whether a stream carrying utterance text (active or still
+  // draining its final audio) existed at the moment of this error/close, as
+  // opposed to a socket that was genuinely idle. The caller
+  // (SonioxClient.handleTtsError) uses it to decide whether a drop cost any
+  // spoken output at all, and `scope` to say how much.
+  onError?: (code: string, message: string, hadActiveStream: boolean, scope: SonioxTtsErrorScope) => void;
+}
+
+/** Segment timing, measured against tts-rt-v2's kill timers (see the header). */
+export const TTS_SEGMENT_TIMING = {
+  /** After a clause end, how long to wait for more text before handing a held segment over. */
+  clauseWaitMs: 1500,
+  /** No new text for this long ends the segment — 2.2 s inside the 5.2 s kill. */
+  idleMs: 3000,
+  /** A segment's first text is never held longer — ~2.4 s inside the earliest no-audio kill. */
+  maxAgeMs: 8000,
+} as const;
+
+// Sentence ends of every script tts-rt-v2 speaks, plus a few from scripts it
+// does not (Ethiopic, Myanmar, Khmer, Armenian) that cannot occur by accident.
+// U+037E is the Greek question mark; Greek text written with an ASCII ';'
+// falls under CLAUSE_END instead, where a wrong guess costs only clauseWaitMs.
+// U+037E and U+0387 (Greek ano teleia) are written as escapes because NFC —
+// and many editors — fold them into ';' and U+00B7; CLAUSE_END lists both dots.
+const SENTENCE_END = new Set([...'.!?…‼⁇⁈⁉‽。！？．｡؟۔।॥።፧။។։⋯', '\u037E']);
+const CLAUSE_END = new Set([...',،؛;:、，；：፣၊', '\u00B7', '\u0387']);
+// Quotes and brackets that may follow a sentence end: 「…です。」, "yes."
+const CLOSERS = new Set([...'"\'”’»›)]}」』）］】〉》〕〗｣']);
+// A period after a digit may be a decimal point split across two chunks
+// ("3." + "5") — treated as a clause end, so the next chunk can still join.
+const DECIMAL_POINTS = new Set(['.', '．']);
+
+/** How a translation chunk ends: a full sentence, a clause, or neither. */
+export function classifyChunkEnd(text: string): 'sentence' | 'clause' | null {
+  const chars = [...text];
+  let i = chars.length - 1;
+  while (i >= 0 && (CLOSERS.has(chars[i]) || /\s/u.test(chars[i]))) i--;
+  if (i < 0) return null;
+  const last = chars[i];
+  if (DECIMAL_POINTS.has(last) && i > 0 && /\p{Nd}/u.test(chars[i - 1])) return 'clause';
+  if (SENTENCE_END.has(last)) return 'sentence';
+  if (CLAUSE_END.has(last)) return 'clause';
+  return null;
 }
 
 interface QueuedItem {
   kind: 'text' | 'end';
   text?: string;
   language?: string;
+  /** When the text arrived — the segment's age counts from here even if it waited. */
+  at?: number;
 }
 
 const CONNECTION_TIMEOUT_MS = 15000;
@@ -75,14 +133,18 @@ export class SonioxTtsStream {
   private handlers: SonioxTtsStreamHandlers = {};
   private keepaliveTimer: ReturnType<typeof setInterval> | null = null;
 
-  // Active stream state
+  // Active segment state
   private activeStreamId: string | null = null;
   private activeLanguage: string | null = null;
-  private activeStreamUsed = false;     // has the active stream received any text?
-  private drainingStreamId: string | null = null; // used stream closed, terminated pending
+  private activeHasAudio = false;       // has the server started speaking this segment?
+  private drainingStreamId: string | null = null; // ended segment, terminated pending
   private queue: QueuedItem[] = [];
   private utteranceCounter = 0;
-  private prewarmCounter = 0;
+  private segmentCounter = 0;
+  private utteranceOpen = false;        // the next segment continues the current utterance
+  private clauseTimer: ReturnType<typeof setTimeout> | null = null;
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private maxAgeTimer: ReturnType<typeof setTimeout> | null = null;
   private intentionalClose = false;
 
   constructor(options: SonioxTtsOptions) {
@@ -123,23 +185,27 @@ export class SonioxTtsStream {
         } catch {
           return;
         }
+        const id = data.stream_id;
+        const isLive = id === this.activeStreamId || id === this.drainingStreamId;
         if (data.error_code != null) {
-          // Snapshot BEFORE handleStreamFailure clears it — this is the seam
-          // the caller uses to tell an idle-timeout drop from a genuine one.
-          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
-          this.handlers.onError?.(String(data.error_code), data.error_message ?? '', hadActiveStream);
-          this.handleStreamFailure(data.stream_id);
-        } else if (data.audio && (data.stream_id === this.activeStreamId || data.stream_id === this.drainingStreamId)) {
+          // An error about a stream already dropped is a frame that was in
+          // flight when it died — its failure was reported then.
+          if (id == null || isLive) {
+            // Snapshot BEFORE handleStreamFailure clears it.
+            const hadActiveStream = this.hasLiveStream();
+            this.handlers.onError?.(String(data.error_code), data.error_message ?? '', hadActiveStream, id == null ? 'connection' : 'stream');
+            this.handleStreamFailure(id);
+          }
+        } else if (data.audio && isLive) {
+          if (id === this.activeStreamId) this.activeHasAudio = true;
           this.handlers.onAudio?.(this.base64ToInt16(data.audio));
         }
         // terminated must always be processed, even when the same message also
         // carried an error — otherwise a combined error+terminated frame would
         // leave drainingStreamId set and wedge the queue forever.
-        if (data.terminated) {
-          if (data.stream_id === this.drainingStreamId) {
-            this.drainingStreamId = null;
-            this.flushQueue();
-          }
+        if (data.terminated && id === this.drainingStreamId) {
+          this.drainingStreamId = null;
+          this.flushQueue();
         }
       };
 
@@ -148,8 +214,7 @@ export class SonioxTtsStream {
         if (!opened) {
           reject(error instanceof Error ? error : new Error('Soniox TTS connection failed'));
         } else {
-          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
-          this.handlers.onError?.('socket_error', String(error), hadActiveStream);
+          this.handlers.onError?.('socket_error', String(error), this.hasLiveStream(), 'connection');
         }
       };
 
@@ -165,33 +230,22 @@ export class SonioxTtsStream {
         }
         if (!this.intentionalClose) {
           // Snapshot BEFORE clearing — same seam as the error branch above.
-          const hadActiveStream = (this.activeStreamId !== null && this.activeStreamUsed) || this.drainingStreamId !== null;
-          this.activeStreamId = null;
-          this.activeLanguage = null;
-          this.activeStreamUsed = false;
-          this.drainingStreamId = null;
-          this.queue = [];
-          this.handlers.onError?.('socket_closed', 'Soniox TTS socket closed unexpectedly', hadActiveStream);
+          const hadActiveStream = this.hasLiveStream();
+          this.resetStreams();
+          this.handlers.onError?.('socket_closed', 'Soniox TTS socket closed unexpectedly', hadActiveStream, 'connection');
         }
       };
     });
   }
 
-  /** Pre-open a stream so the first utterance skips the config round-trip. */
-  prewarm(language: string): void {
-    if (!this.isOpen() || this.activeStreamId || this.drainingStreamId) return;
-    this.prewarmCounter += 1;
-    const streamId = `prewarm-${this.prewarmCounter}`;
-    this.openStream(streamId, language);
-  }
-
   sendText(text: string, language: string): void {
     if (!this.isOpen()) return;
+    const item: QueuedItem = { kind: 'text', text, language, at: Date.now() };
     if (this.drainingStreamId) {
-      this.queue.push({ kind: 'text', text, language });
+      this.queue.push(item);
       return;
     }
-    this.doSendText(text, language);
+    this.doSendText(item);
   }
 
   endUtterance(): void {
@@ -206,10 +260,11 @@ export class SonioxTtsStream {
   close(): void {
     this.intentionalClose = true;
     this.stopKeepalive();
+    this.clearSegmentTimers();
     this.queue = [];
     if (this.ws) {
       // Best-effort close of the active stream so the server frees it.
-      if (this.activeStreamId && this.activeStreamUsed) {
+      if (this.activeStreamId) {
         try {
           this.ws.send(JSON.stringify({ stream_id: this.activeStreamId, text: '', text_end: true }));
         } catch { /* closing anyway */ }
@@ -217,80 +272,65 @@ export class SonioxTtsStream {
       this.ws.close();
       this.ws = null;
     }
-    this.activeStreamId = null;
-    this.activeLanguage = null;
-    this.activeStreamUsed = false;
-    this.drainingStreamId = null;
+    this.resetStreams();
   }
 
   isOpen(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
-  private doSendText(text: string, language: string): void {
-    // Unused stream (prewarm) with wrong language: discard immediately.
-    // It produced no audio, so there is nothing to serialize against.
-    if (this.activeStreamId && !this.activeStreamUsed && this.activeLanguage !== language) {
-      this.ws!.send(JSON.stringify({ stream_id: this.activeStreamId, text: '', text_end: true }));
-      this.activeStreamId = null;
-      this.activeLanguage = null;
+  private hasLiveStream(): boolean {
+    return this.activeStreamId !== null || this.drainingStreamId !== null;
+  }
+
+  private doSendText(item: QueuedItem): void {
+    if (this.activeStreamId && this.activeLanguage !== item.language) {
+      // A stream speaks one language: finish this segment, speak the new text
+      // in the next. Put it back at the FRONT — flushQueue may hold later items.
+      this.endSegment();
+      this.queue.unshift(item);
+      return;
     }
-    if (!this.activeStreamId) {
-      this.utteranceCounter += 1;
-      this.openStream(`utt-${this.utteranceCounter}`, language);
-    }
-    this.ws!.send(JSON.stringify({ stream_id: this.activeStreamId, text, text_end: false }));
-    this.activeStreamUsed = true;
+    if (!this.activeStreamId) this.openSegment(item.language!, item.at!);
+    this.ws!.send(JSON.stringify({ stream_id: this.activeStreamId, text: item.text, text_end: false }));
+    this.scheduleSegmentEnd(item.text!);
   }
 
   private doEndUtterance(): void {
-    if (!this.activeStreamId || !this.activeStreamUsed) return;
-    this.ws!.send(JSON.stringify({ stream_id: this.activeStreamId, text: '', text_end: true }));
-    // The stream produced audio: serialize the next one behind its terminated.
-    this.drainingStreamId = this.activeStreamId;
-    this.activeStreamId = null;
-    this.activeLanguage = null;
-    this.activeStreamUsed = false;
+    this.endSegment();
+    this.utteranceOpen = false;
   }
 
-  /**
-   * Reset stream state after a wire error so a wedged component never results:
-   * the failing stream (whichever role it held) is forgotten, and anything
-   * queued behind a draining stream is released.
-   */
-  private handleStreamFailure(streamId?: string): void {
-    if (streamId === undefined) {
-      // Connection-level error: no specific stream named, clear everything.
-      this.activeStreamId = null;
-      this.activeLanguage = null;
-      this.activeStreamUsed = false;
-      this.drainingStreamId = null;
-      this.flushQueue();
+  /** Apply rules 1–3 of the header after a chunk was sent. */
+  private scheduleSegmentEnd(text: string): void {
+    this.clearTimer('clauseTimer');
+    this.clearTimer('idleTimer');
+    const end = classifyChunkEnd(text);
+    if (end === 'sentence') {
+      this.endSegment();
       return;
     }
-    if (streamId === this.activeStreamId) {
-      this.activeStreamId = null;
-      this.activeLanguage = null;
-      this.activeStreamUsed = false;
+    const id = this.activeStreamId;
+    if (end === 'clause') {
+      this.clauseTimer = setTimeout(() => {
+        this.clauseTimer = null;
+        if (this.activeStreamId === id && !this.activeHasAudio) this.endSegment();
+      }, TTS_SEGMENT_TIMING.clauseWaitMs);
     }
-    if (streamId === this.drainingStreamId) {
-      this.drainingStreamId = null;
-      this.flushQueue();
-    }
+    this.idleTimer = setTimeout(() => {
+      this.idleTimer = null;
+      if (this.activeStreamId === id) this.endSegment();
+    }, TTS_SEGMENT_TIMING.idleMs);
   }
 
-  private flushQueue(): void {
-    while (this.queue.length > 0 && !this.drainingStreamId) {
-      const item = this.queue.shift()!;
-      if (item.kind === 'text') {
-        this.doSendText(item.text!, item.language!);
-      } else {
-        this.doEndUtterance();
-      }
+  private openSegment(language: string, firstTextAt: number): void {
+    if (!this.utteranceOpen) {
+      this.utteranceCounter += 1;
+      this.segmentCounter = 0;
+      this.utteranceOpen = true;
     }
-  }
-
-  private openStream(streamId: string, language: string): void {
+    this.segmentCounter += 1;
+    const streamId = `utt-${this.utteranceCounter}-${this.segmentCounter}`;
     this.ws!.send(JSON.stringify({
       api_key: this.options.apiKey,
       stream_id: streamId,
@@ -309,7 +349,89 @@ export class SonioxTtsStream {
     }));
     this.activeStreamId = streamId;
     this.activeLanguage = language;
-    this.activeStreamUsed = false;
+    this.activeHasAudio = false;
+    // Rule 4. Counted from ARRIVAL: text that waited behind a draining segment
+    // has already spent part of its budget.
+    const left = Math.max(0, firstTextAt + TTS_SEGMENT_TIMING.maxAgeMs - Date.now());
+    this.maxAgeTimer = setTimeout(() => {
+      this.maxAgeTimer = null;
+      if (this.activeStreamId === streamId) this.endSegment();
+    }, left);
+  }
+
+  /** text_end the active segment; the next one waits for its terminated. */
+  private endSegment(): void {
+    if (!this.activeStreamId) return;
+    this.clearSegmentTimers();
+    this.ws!.send(JSON.stringify({ stream_id: this.activeStreamId, text: '', text_end: true }));
+    this.drainingStreamId = this.activeStreamId;
+    this.activeStreamId = null;
+    this.activeLanguage = null;
+    this.activeHasAudio = false;
+  }
+
+  /**
+   * Reset stream state after a wire error so a wedged component never results:
+   * the failing stream (whichever role it held) is forgotten, and anything
+   * queued behind a draining stream is released. The utterance stays open, so
+   * its next text opens the next segment of the same utterance.
+   */
+  private handleStreamFailure(streamId?: string): void {
+    if (streamId === undefined) {
+      // Connection-level error: no specific stream named, clear everything.
+      this.clearSegmentTimers();
+      this.activeStreamId = null;
+      this.activeLanguage = null;
+      this.activeHasAudio = false;
+      this.drainingStreamId = null;
+      this.flushQueue();
+      return;
+    }
+    if (streamId === this.activeStreamId) {
+      this.clearSegmentTimers();
+      this.activeStreamId = null;
+      this.activeLanguage = null;
+      this.activeHasAudio = false;
+    }
+    if (streamId === this.drainingStreamId) {
+      this.drainingStreamId = null;
+      this.flushQueue();
+    }
+  }
+
+  private flushQueue(): void {
+    while (this.queue.length > 0 && !this.drainingStreamId) {
+      const item = this.queue.shift()!;
+      if (item.kind === 'text') {
+        this.doSendText(item);
+      } else {
+        this.doEndUtterance();
+      }
+    }
+  }
+
+  private resetStreams(): void {
+    this.clearSegmentTimers();
+    this.activeStreamId = null;
+    this.activeLanguage = null;
+    this.activeHasAudio = false;
+    this.drainingStreamId = null;
+    this.queue = [];
+    this.utteranceOpen = false;
+  }
+
+  private clearTimer(which: 'clauseTimer' | 'idleTimer' | 'maxAgeTimer'): void {
+    const timer = this[which];
+    if (timer) {
+      clearTimeout(timer);
+      this[which] = null;
+    }
+  }
+
+  private clearSegmentTimers(): void {
+    this.clearTimer('clauseTimer');
+    this.clearTimer('idleTimer');
+    this.clearTimer('maxAgeTimer');
   }
 
   private base64ToInt16(b64: string): Int16Array {
