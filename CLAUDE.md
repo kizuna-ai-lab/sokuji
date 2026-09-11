@@ -239,8 +239,8 @@ than at each call site:
 never with `console.error` / `console.warn`.** One call writes both surfaces: the
 console line fires synchronously with the raw `cause` (developer surface, keeps
 the stack), and a redacted one-sentence message reaches LogsPanel one microtask
-later (user-diagnostic surface — advanced mode only, English, pasted into bug
-reports). The deferral makes it safe to call from any stack, including a Zustand
+later (user-diagnostic surface — only while diagnostic logs are switched on in
+Help, which they are not by default; English, pasted into bug reports). The deferral makes it safe to call from any stack, including a Zustand
 getter React reaches during render.
 
 ```typescript
@@ -258,8 +258,9 @@ reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.mi
   line. The caught value goes in `cause`, which never leaves the console. Use
   `describeCause(err)` for one readable sentence from any thrown shape.
 - **`report()` never shows UI.** A failure the user must act on becomes state on
-  the owning store and a component renders it — LogsPanel is closed outside
-  advanced mode, so it is never the basic-mode surface.
+  the owning store and a component renders it — LogsPanel exists only while
+  diagnostic logs are on (Help, off by default; `logStore` records nothing
+  otherwise), so it is never the surface a user relies on.
 - **Don't record the same failure twice.** If it already reaches the panel by
   another route (`handlers.onError`, `onRealtimeEvent`, a rethrow into MainPanel's
   session-start catch, `validationMessage`, descriptor `notices`), add nothing.

@@ -62,6 +62,9 @@ vi.mock('../../stores/settingsStore', () => ({
   useSetUIMode: () => vi.fn(),
   useSettingsNavigationTarget: () => null,
   useSubtitleModeActive: () => false,
+  // The logs button exists only while diagnostic logs are on, and these tests
+  // switch between the settings and logs panels.
+  useDiagnosticLogs: () => true,
 }));
 
 describe('MainLayout panel keep-alive', () => {

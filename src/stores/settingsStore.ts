@@ -16,6 +16,7 @@ import { type NativeReadinessReason } from '../lib/local-inference/native/native
 import { useNativeModelStore } from './nativeModelStore';
 import useSessionStore from './sessionStore';
 import useAudioStore, { speakerChannelInScope } from './audioStore';
+import useLogStore from './logStore';
 import { effectiveTextOnly } from '../utils/effectiveTextOnly';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
 import { canEnterSubtitleMode } from '../components/Subtitle/subtitleEnterGate';
@@ -110,6 +111,7 @@ export interface CommonSettings {
   participantSystemInstructions: string;
   textOnly: boolean;
   keepReplayAudio: boolean;
+  diagnosticLogs: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 }
@@ -135,6 +137,7 @@ const defaultCommonSettings: CommonSettings = {
   uiMode: 'basic',
   textOnly: false,
   keepReplayAudio: false,
+  diagnosticLogs: false,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -263,6 +266,10 @@ export interface SettingsStore {
   // on the next session.
   keepReplayAudio: boolean;
 
+  // Diagnostic logs (Help). Opt-in: while off, logStore records nothing and
+  // the title bar offers no logs button.
+  diagnosticLogs: boolean;
+
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
@@ -283,6 +290,7 @@ export interface SettingsStore {
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
+  setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   enterSubtitleMode: () => Promise<void>;
@@ -724,6 +732,18 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    // The log store follows this switch. Applied before the write so the
+    // panel reacts at once, and rolled back with it if the write fails.
+    setDiagnosticLogs: async (diagnosticLogs) => {
+      const previous = get().diagnosticLogs;
+      set({diagnosticLogs});
+      useLogStore.getState().setEnabled(diagnosticLogs);
+      if (!await persistSetting('settings.common.diagnosticLogs', diagnosticLogs)) {
+        set({diagnosticLogs: previous});
+        useLogStore.getState().setEnabled(previous);
+      }
+    },
+
     setSpeakerDisplayMode: async (speakerDisplayMode) => {
       const previous = get().speakerDisplayMode;
       set({speakerDisplayMode});
@@ -1117,6 +1137,13 @@ const useSettingsStore = create<SettingsStore>()(
       try {
         const service = ServiceFactory.getSettingsService();
 
+        // The diagnostic logs switch comes first. Every read below can report a
+        // warning, and nothing may be recorded before the user's choice is
+        // known. The log store starts off, so if even this read fails it stays
+        // off, which is the default.
+        const diagnosticLogs = await service.getSetting('settings.common.diagnosticLogs', defaultCommonSettings.diagnosticLogs);
+        useLogStore.getState().setEnabled(diagnosticLogs);
+
         // Load common settings
         const persistedProvider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
         // Migrate legacy realtime 'kizunaai' to the relay-managed Translate twin
@@ -1190,6 +1217,7 @@ const useSettingsStore = create<SettingsStore>()(
           participantSystemInstructions,
           textOnly,
           keepReplayAudio,
+          diagnosticLogs,
           speakerDisplayMode,
           participantDisplayMode,
           ...loadedSlices,
@@ -1404,6 +1432,8 @@ export const useSettingsLoaded = () => useSettingsStore((state) => state.setting
 // Actions
 export const useTextOnly = () => useSettingsStore((state) => state.textOnly);
 export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepReplayAudio);
+export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
+export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
 
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);

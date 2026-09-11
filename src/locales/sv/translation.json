@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini genererar ljudsvar för den andras ljud som kastas bort, vilket ger extra tokenanvändning.",
     "help": "Hjälp",
     "helpEmailTooltip": "Rapportera fel eller få hjälp",
+    "diagnosticLogs": "Diagnostikloggar",
+    "diagnosticLogsTooltip": "Loggar vad appen gör så att du kan bifoga det till en felrapport. Av som standard. När det är på visas knappen ”Loggar” i namnlisten, och inställningen förblir på efter en omstart.",
     "helpDiscussions": "Diskussioner",
     "helpDiscussionsTooltip": "Funktionsförslag, feedback och communitydiskussioner",
     "auto": "Auto",

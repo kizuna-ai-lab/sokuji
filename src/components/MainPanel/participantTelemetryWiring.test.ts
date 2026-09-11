@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildChannelTelemetryHandlers } from './participantTelemetry';
 import { settleReports } from '../../lib/diagnostics/report';
 import useLogStore from '../../stores/logStore';
@@ -49,6 +49,12 @@ function makeWorld() {
     getRenderedIsReconnecting: () => renderedIsReconnecting,
   };
 }
+
+// These tests assert what reaches the log store, which records nothing unless
+// diagnostic logs are switched on (they are off by default in the app).
+beforeEach(() => {
+  useLogStore.getState().setEnabled(true);
+});
 
 describe('per-channel telemetry handlers', () => {
   it('sends the participant leg\'s error to api_error tagged as participant', () => {

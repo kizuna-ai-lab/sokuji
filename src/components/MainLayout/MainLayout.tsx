@@ -8,10 +8,10 @@ import SetupWizard from '../SetupWizard/SetupWizard';
 import TitleBar from '../TitleBar/TitleBar';
 import PanelResizer from './PanelResizer';
 import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_MIN_WIDTH } from './panelWidth';
-import { useCloseLogsOutsideAdvanced } from './useCloseLogsOutsideAdvanced';
+import { useCloseLogsWhenDisabled } from './useCloseLogsWhenDisabled';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
-import { useProvider, useUIMode, useSetProvider, useSettingsNavigationTarget, useSubtitleModeActive } from '../../stores/settingsStore';
+import { useProvider, useUIMode, useSetProvider, useSettingsNavigationTarget, useSubtitleModeActive, useDiagnosticLogs } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
 import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen } from '../../stores/layoutStore';
 import SubtitleApp from '../Subtitle/SubtitleApp';
@@ -26,6 +26,7 @@ const MainLayout: React.FC = () => {
   const { trackEvent } = useAnalytics();
   const provider = useProvider();
   const uiMode = useUIMode();
+  const diagnosticLogs = useDiagnosticLogs();
   const setProvider = useSetProvider();
   const settingsNavigationTarget = useSettingsNavigationTarget();
   const setupLoaded = useSetupLoaded();
@@ -107,8 +108,9 @@ const MainLayout: React.FC = () => {
   };
 
 
-  // The logs button only exists in advanced mode, so a panel left open across
-  // a switch to basic would have nothing to close it with.
+  // The logs button only exists while diagnostic logs are on (Help), so a
+  // panel left open when they are switched off would have nothing to close it
+  // with.
   // Closing means all three of these, not just the state: the persisted flag
   // would otherwise reopen the panel next session, and skipping trackPanelView
   // would leave the analytics believing logs were still on screen and charge
@@ -119,12 +121,13 @@ const MainLayout: React.FC = () => {
     trackPanelView(null);
   }, [trackPanelView]);
 
-  useCloseLogsOutsideAdvanced(uiMode, showLogs, closeLogsPanel);
+  useCloseLogsWhenDisabled(diagnosticLogs, showLogs, closeLogsPanel);
 
   // Visibility is derived, not just persisted. showLogs is restored from
-  // sessionStorage during the first render, so a panel saved in advanced mode
-  // would flash once in basic before the effect above could close it.
-  const logsVisible = showLogs && uiMode === 'advanced';
+  // sessionStorage during the first render, so a panel saved while diagnostic
+  // logs were on would flash once after they were switched off, before the
+  // effect above could close it.
+  const logsVisible = showLogs && diagnosticLogs;
 
   // Re-clamp the saved/active width when the window shrinks so a wide panel
   // can never strand MainPanel below its minimum.
@@ -217,7 +220,7 @@ const MainLayout: React.FC = () => {
       <TitleBar
         showSettings={showSettings}
         showLogs={logsVisible}
-        showLogsButton={uiMode === 'advanced'}
+        showLogsButton={diagnosticLogs}
         onToggleSettings={toggleSettings}
         onToggleLogs={toggleLogs}
       />

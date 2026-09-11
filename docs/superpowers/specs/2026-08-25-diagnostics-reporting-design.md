@@ -235,6 +235,8 @@ Net: ~55 deleted with no replacement (each justified by a named surviving record
 
 LogsPanel is closed outside advanced mode by construction (`useCloseLogsOutsideAdvanced.ts:20`), so the panel is never the basic-mode surface. Rule (decision 3): **UI is state on the owning store; `report()` never renders.** The repo already has four working surfaces and every gap the maps found fits one:
 
+> **Amendment (2026-09-11):** diagnostic logs are now opt-in — a switch in Help, off by default. LogsPanel and its title-bar button exist only while it is on, in either UI mode (`useCloseLogsWhenDisabled.ts` replaced `useCloseLogsOutsideAdvanced.ts`), and `logStore` records nothing while it is off, so `report()`'s panel write is dropped and only its console line remains. Decision 3 is unchanged: the panel is still never the surface a user relies on.
+
 | Gap | Surface (existing) | Change |
 |---|---|---|
 | No-channel Start (`MainPanel.tsx:1885-1890`, panel-only today) | speaker error bubble (`MainPanel.tsx:1430-1442`) | append the bubble with the existing `mainPanel.noChannelConfigured` key — one line |

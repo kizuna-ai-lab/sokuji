@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini erzeugt für das Audio des Gegenübers Audioantworten, die verworfen werden, was zu zusätzlichem Token-Verbrauch führt.",
     "help": "Hilfe",
     "helpEmailTooltip": "Fehler melden oder Hilfe erhalten",
+    "diagnosticLogs": "Diagnoseprotokolle",
+    "diagnosticLogsTooltip": "Zeichnet auf, was die App tut, damit Sie es einem Fehlerbericht beifügen können. Standardmäßig aus. Solange es aktiv ist, erscheint in der Titelleiste die Schaltfläche „Protokolle“, und die Einstellung bleibt auch nach einem Neustart aktiv.",
     "helpDiscussions": "Diskussionen",
     "helpDiscussionsTooltip": "Funktionswünsche, Feedback und Community-Diskussionen",
     "auto": "Auto",

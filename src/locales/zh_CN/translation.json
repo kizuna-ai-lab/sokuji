@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini 会为对方音频生成音频响应但只使用文本转录，导致额外的 token 消耗。",
     "help": "帮助",
     "helpEmailTooltip": "报告问题或获取帮助",
+    "diagnosticLogs": "诊断日志",
+    "diagnosticLogsTooltip": "记录应用的运行情况，方便附在问题反馈里。默认关闭；打开后标题栏会出现“日志”按钮，重启后仍保持打开。",
     "helpDiscussions": "讨论区",
     "helpDiscussionsTooltip": "功能建议、反馈与社区讨论",
     "auto": "自动",

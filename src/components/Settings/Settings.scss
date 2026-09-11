@@ -2085,6 +2085,46 @@
   font-size: vars.$font-caption;
 }
 
+// Diagnostic logs: a help link carrying a switch track scaled to the row, the
+// shape every other switch in Settings has (ToggleSwitch), so its state reads
+// at a glance — a line-art toggle icon only moved a dot from side to side.
+// The track keeps its own colours on hover: hover tints the label, as on every
+// link in the row, and must never look like "on".
+.help-link__switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 20px;
+  height: 11px;
+  border-radius: 6px;
+  background: vars.$toggle-bg-off;
+  transition: background-color vars.$transition-fast;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: vars.$text-secondary;
+    transition: transform vars.$transition-fast, background-color vars.$transition-fast;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &, &::before { transition: none; }
+  }
+}
+
+.help-link--toggle.is-on .help-link__switch {
+  background: vars.$toggle-bg-on;
+
+  &::before {
+    transform: translateX(9px);
+    background: vars.$text-primary;
+  }
+}
+
 .help-link {
   display: inline-flex;
   align-items: center;

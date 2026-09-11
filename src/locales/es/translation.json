@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini genera para el audio del otro respuestas de audio que se descartan, lo que produce un uso adicional de tokens.",
     "help": "Ayuda",
     "helpEmailTooltip": "Informa de errores u obtén ayuda",
+    "diagnosticLogs": "Registros de diagnóstico",
+    "diagnosticLogsTooltip": "Registra lo que hace la aplicación para que puedas adjuntarlo a un informe de errores. Desactivado de forma predeterminada. Mientras esté activado, aparece un botón «Registros» en la barra de título, y la opción sigue activada tras reiniciar.",
     "helpDiscussions": "Discusiones",
     "helpDiscussionsTooltip": "Solicitudes de funciones, comentarios y discusiones de la comunidad",
     "auto": "Auto",

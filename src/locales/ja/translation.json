@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini は相手の音声に対して音声応答を生成しますが破棄されるため、追加のトークン消費が発生します。",
     "help": "ヘルプ",
     "helpEmailTooltip": "バグの報告やヘルプの取得",
+    "diagnosticLogs": "診断ログ",
+    "diagnosticLogsTooltip": "アプリの動作を記録し、不具合報告に添付できるようにします。既定ではオフです。オンにするとタイトルバーに「ログ」ボタンが表示され、再起動後もオンのままです。",
     "helpDiscussions": "ディスカッション",
     "helpDiscussionsTooltip": "機能リクエスト、フィードバック、コミュニティでの議論",
     "auto": "自動",

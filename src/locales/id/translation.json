@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini menghasilkan respons audio untuk audio lawan bicara yang dibuang, sehingga menimbulkan penggunaan token tambahan.",
     "help": "Bantuan",
     "helpEmailTooltip": "Laporkan bug atau dapatkan bantuan",
+    "diagnosticLogs": "Log diagnostik",
+    "diagnosticLogsTooltip": "Mencatat apa yang dilakukan aplikasi agar Anda dapat melampirkannya ke laporan bug. Nonaktif secara default. Saat aktif, tombol “Log” muncul di bilah judul, dan pengaturan tetap aktif setelah dimulai ulang.",
     "helpDiscussions": "Diskusi",
     "helpDiscussionsTooltip": "Permintaan fitur, masukan, dan diskusi komunitas",
     "auto": "Otomatis",

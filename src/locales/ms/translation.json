@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini menjana respons audio untuk audio pihak lain yang dibuang, menyebabkan penggunaan token tambahan.",
     "help": "Bantuan",
     "helpEmailTooltip": "Laporkan pepijat atau dapatkan bantuan",
+    "diagnosticLogs": "Log diagnostik",
+    "diagnosticLogsTooltip": "Merekod perkara yang dilakukan oleh aplikasi supaya anda boleh melampirkannya pada laporan pepijat. Dimatikan secara lalai. Apabila dihidupkan, butang “Log” muncul di bar tajuk, dan tetapan kekal hidup selepas dimulakan semula.",
     "helpDiscussions": "Perbincangan",
     "helpDiscussionsTooltip": "Permintaan ciri, maklum balas dan perbincangan komuniti",
     "auto": "Automatik",
