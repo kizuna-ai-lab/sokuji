@@ -59,6 +59,18 @@ const ABBREVIATIONS = new Set([
 const CLAUSE_MARKS = ',，、;；:：—–';
 /** Punctuation and whitespace at the head of a delta belong to the text before it. */
 const LEADING_PUNCT_RE = /^[\s。．！？!?.,，、;；:：—–"'”’」』）)\]]+/;
+/**
+ * Output frames at or below this RMS are the stream's noise floor, not speech.
+ *
+ * The translate API's heartbeat frames are exactly zero, so that client tests
+ * `rms === 0`. Live's are not: a real session's between-utterance frames
+ * measured 1.3e-5 to 5.8e-4 (peak 1-27 of 32768, i.e. -61 dBFS and below),
+ * which passed an exact-zero test and opened an empty assistant item on every
+ * session. Content frames measure 0.03-0.08, so this sits roughly 3x above the
+ * observed floor and 15x below the quietest speech.
+ */
+const OUTPUT_SILENCE_RMS = 0.002;
+
 /** Slack after a sentence's `end_ms` before its audio is considered delivered. */
 const AUDIO_HANDOFF_MARGIN_MS = 300;
 /** A gap this long between consecutive input deltas on the session timeline is a real pause. */
@@ -739,9 +751,10 @@ export class OpenAILiveClient implements IClient {
 
   private handleServerEvent(event: any): void {
     // Decode + measure output audio once so the log carries the frame's RMS and
-    // the case below reuses the buffer. Live streams zero-amplitude frames
-    // continuously between utterances (like the translate API's heartbeat);
-    // those are noise for the timeline and for the conversation.
+    // the case below reuses the buffer. Live streams near-silent frames
+    // continuously between utterances (like the translate API's heartbeat, but
+    // dithered rather than exactly zero); those are noise for the timeline and
+    // for the conversation.
     let decodedAudio: Int16Array | null = null;
     let audioRms: number | null = null;
     if (event.type === 'session.output_audio.delta' && event.delta) {
@@ -749,7 +762,8 @@ export class OpenAILiveClient implements IClient {
       audioRms = computeRms(decodedAudio);
       event.rms = audioRms;
     }
-    const isSilentAudioFrame = event.type === 'session.output_audio.delta' && audioRms === 0;
+    const isSilentAudioFrame = event.type === 'session.output_audio.delta'
+      && audioRms !== null && audioRms <= OUTPUT_SILENCE_RMS;
     if (!isSilentAudioFrame) {
       this.eventHandlers.onRealtimeEvent?.({
         source: 'server',
@@ -827,7 +841,7 @@ export class OpenAILiveClient implements IClient {
 
       case 'session.output_audio.delta': {
         if (!event.delta || !decodedAudio) break;
-        if (audioRms === 0) break;
+        if (audioRms === null || audioRms <= OUTPUT_SILENCE_RMS) break;
         const audioData = decodedAudio;
 
         const assistantItemId = this.audioTargetItemId();

@@ -351,6 +351,9 @@ function makePcmDelta(samples: number, value: number): string {
   return btoa(binary);
 }
 const SILENT_DELTA = makePcmDelta(2400, 0);
+/** Peak 19/32768 → rms ≈ 5.8e-4: the loudest between-utterance frame measured
+ *  in a real Live session, which an exact-zero test let through. */
+const NEAR_SILENT_DELTA = makePcmDelta(2400, 19);
 const VOICED_DELTA = makePcmDelta(2400, 1000);
 
 describe('OpenAILiveClient state machine', () => {
@@ -392,6 +395,14 @@ describe('OpenAILiveClient state machine', () => {
 
   it('drops zero-amplitude output audio frames and does not open an assistant item for them', () => {
     feed({ type: 'session.output_audio.delta', delta: SILENT_DELTA });
+    expect(client.getConversationItems()).toHaveLength(0);
+    expect(realtimeEvents.some(e => e.event.type === 'session.output_audio.delta')).toBe(false);
+  });
+
+  it('drops the near-silent frames Live streams between utterances, so no empty translation appears', () => {
+    // A real session opened with four of these and no transcript at all: they
+    // used to open an assistant item that finished with empty text.
+    for (let i = 0; i < 4; i++) feed({ type: 'session.output_audio.delta', delta: NEAR_SILENT_DELTA });
     expect(client.getConversationItems()).toHaveLength(0);
     expect(realtimeEvents.some(e => e.event.type === 'session.output_audio.delta')).toBe(false);
   });
