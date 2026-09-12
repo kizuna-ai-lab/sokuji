@@ -456,8 +456,8 @@
       "description": "Google की AI तकनफ0940क"
     },
     "openaiCompatible": {
-      "name": "OpenAI संगत API",
-      "description": "कस्टम OpenAI-संगत एंडपॉइंट",
+      "name": "OpenAI संगत (लीगेसी Realtime)",
+      "description": "OpenAI के पुराने beta Realtime प्रोटोकॉल का उपयोग करने वाला थर्ड-पार्टी एंडपॉइंट। OpenAI के लिए नहीं।",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

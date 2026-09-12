@@ -456,8 +456,8 @@
       "description": "Google 的 AI 技術"
     },
     "openaiCompatible": {
-      "name": "OpenAI 相容 API",
-      "description": "自訂 OpenAI 相容端點",
+      "name": "OpenAI 相容（舊版 Realtime）",
+      "description": "使用 OpenAI 舊版 beta Realtime 協定的第三方端點。不適用於 OpenAI 官方。",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
