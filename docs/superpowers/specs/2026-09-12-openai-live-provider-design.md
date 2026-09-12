@@ -159,6 +159,10 @@ Nothing in `MainPanel.tsx`, `IClient` handler shapes, `electron/main.js` or the 
        "audio": { "format": { "type": "audio/pcm", "rate": 24000 }, "output": { "voice": "<voice>" } },
        "delegation": { "type": "client" } } }
    ```
+   A `disconnect()` that lands while the header registration is in flight finds no socket to
+   tear down, so the generation is re-checked right after the registration resolves: a changed
+   generation clears the just-registered rule and throws `session superseded during connect`
+   before any socket exists (a cancelled Start must never bill a session).
 5. `waitForSessionStarted()` — same shape as translate's `waitForSessionCreated` (30 s timeout, `error` frame rejects with its message, other frames forwarded to the regular handler). Record `session.id` and `expires_at` from `session.started` and log them as a `session.opened` client event.
 6. Clear the upgrade header (both platforms, when the session generation is unchanged — see step 2), mark connected, fire `onOpen`.
 
@@ -201,6 +205,8 @@ Reaction:
 2. Second unexpected end within 60 s of a reconnect, or a reconnect that fails to reach `session.started`: push a client-held `role: 'system', type: 'error'` `ConversationItem` with `i18n.t('mainPanel.openaiLiveConnectionLost')`, `onConversationUpdated`, then `onError(cause)` (keeps the `api_error` analytics event) and `onClose`. The raw close code / reason stays on the realtime log as `session.connection_lost`. This is the Soniox recoverable-outage seam, unchanged.
 
 Both legs of a Both session reconnect independently; the upgrade gate in §1.1 keeps their header registrations from colliding.
+
+`connected` is false from the moment a reconnect starts until the replacement handshake completes, and `appendInputAudio` drops frames while not connected, so nothing reaches the new socket ahead of its `session.start` being acknowledged. A reconnect that gives up between `connect()` resolving and MainPanel's `setIsSessionActive(true)` reports `onClose` while the session is still inactive; MainPanel records that (`speakerStreamEndedRef`, the speaker twin of `participantStreamEndedRef`) and its pre-activation check tears the pass down instead of activating a dead client.
 
 `reason: 'content'` (safety filter ended the session) is treated the same as any other unexpected end: one reconnect, then the notice. A `content` cut that only stops the current audio arrives as an `error` frame without a close and is handled by the `error` row above.
 

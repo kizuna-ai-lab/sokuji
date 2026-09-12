@@ -439,6 +439,13 @@ export class OpenAILiveClient implements IClient {
     let ws: WebSocket | null = null;
     try {
       await this.registerUpgradeHeader();
+      // Stop pressed while the registration round-trip was in flight: there was
+      // no socket for disconnect() to tear down, so this check is the only
+      // thing between a cancelled Start and a billed session nobody sees.
+      if (generation !== this.generation) {
+        this.clearUpgradeHeader();
+        throw new Error('session superseded during connect');
+      }
       this.closedReceived = false;
       const socket = new WebSocket(LIVE_WS_URL);
       ws = socket;
@@ -667,6 +674,10 @@ export class OpenAILiveClient implements IClient {
 
     this.reconnecting = true;
     this.teardownSocket();
+    // Not connected until the replacement handshake completes: appendInputAudio
+    // reads this, so no frame reaches the new socket ahead of its session.start
+    // being acknowledged.
+    this.connected = false;
     this.logClientEvent('session.reconnecting', { provider: 'openai_live', cause, timestamp: Date.now() });
     this.eventHandlers.onReconnecting?.();
     const generation = this.generation;
@@ -1240,7 +1251,9 @@ export class OpenAILiveClient implements IClient {
   }
 
   appendInputAudio(audioData: Int16Array): void {
-    if (!this.ws || this.ws.readyState !== 1) return;
+    // `connected` is false during a reconnect's handshake even though the
+    // replacement socket may already be open.
+    if (!this.connected || !this.ws || this.ws.readyState !== 1) return;
     const payload = {
       type: 'session.input_audio.append' as const,
       audio: int16ArrayToBase64(audioData),

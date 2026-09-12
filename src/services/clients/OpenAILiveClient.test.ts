@@ -117,6 +117,29 @@ describe('OpenAILiveClient connect (Electron header injection)', () => {
     expect(client.isConnected()).toBe(true);
   });
 
+  it('a Stop during the header registration ends the attempt before any socket is opened', async () => {
+    let releaseRegistration!: () => void;
+    const registration = new Promise<{ success: boolean }>((resolve) => {
+      releaseRegistration = () => resolve({ success: true });
+    });
+    invoke.mockImplementation(async (channel: string) => (channel === 'ws-headers-set' ? registration : { success: true }));
+    const client = new OpenAILiveClient('sk-test');
+    const opened = vi.fn();
+    client.setEventHandlers({ onOpen: opened } as ClientEventHandlers);
+    const p = client.connect(baseConfig);
+    await flush();
+    // Registration still in flight: there is no socket for disconnect() to tear down.
+    expect((globalThis as any).WebSocket).not.toHaveBeenCalled();
+    await client.disconnect();
+    releaseRegistration();
+    await expect(p).rejects.toThrow(/superseded/);
+    expect((globalThis as any).WebSocket).not.toHaveBeenCalled();
+    expect(client.isConnected()).toBe(false);
+    expect(opened).not.toHaveBeenCalled();
+    const channels = invoke.mock.calls.map((c: unknown[]) => c[0] as string);
+    expect(channels.filter((ch) => ch === 'ws-headers-clear').length).toBeGreaterThanOrEqual(1);
+  });
+
   it('sends session.start as the first frame after open and resolves on session.started', async () => {
     const client = new OpenAILiveClient('sk-test');
     const opened = vi.fn();
@@ -882,6 +905,25 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
     expect(items[items.length - 1]?.type).toBe('error');
   });
 
+  it('drops input audio until the replacement handshake completes', async () => {
+    const client = await connectedClient();
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await flush();
+    expect(client.isConnected()).toBe(false);
+    // The replacement socket is open and session.start is on the wire, but
+    // session.started has not come back yet.
+    sockets[1].readyState = 1;
+    sockets[1].onopen?.({});
+    client.appendInputAudio(new Int16Array([1000, -1000, 1000, -1000]));
+    const types = () => sockets[1].send.mock.calls.map((c: unknown[]) => JSON.parse(c[0] as string).type);
+    expect(types()).toEqual(['session.start']);
+    sockets[1].onmessage?.({ data: JSON.stringify({ type: 'session.started', session: { id: 'live_1', expires_at: 1789000000, status: 'active', model: LIVE_MODEL } }) });
+    await flush();
+    expect(client.isConnected()).toBe(true);
+    client.appendInputAudio(new Int16Array([1000, -1000, 1000, -1000]));
+    expect(types()).toEqual(['session.start', 'session.input_audio.append']);
+  });
+
   it('a close during disconnect() is not an outage', async () => {
     const client = await connectedClient();
     const d = client.disconnect();
@@ -1031,7 +1073,7 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
     expect(handlers.reconnecting).not.toHaveBeenCalled();
   });
 
-  it("a reconnect superseded at the gate never clears the new session's header", async () => {
+  it("a reconnect superseded inside its header registration clears only its own rule, opens nothing, and never touches the new session's header", async () => {
     const client = await connectedClient();
     const invoke = (window as any).electron.invoke as ReturnType<typeof vi.fn>;
     // Hold the reconnect inside its header registration: the next
@@ -1053,24 +1095,18 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
 
     resolveStaleRegistration({ success: true });
     await flush();
-    // The stale coroutine registered and opened sockets[1]; opening it hands
-    // the gate to the new session, which registers and opens sockets[2].
+    // The stale coroutine sees the new generation right after its registration
+    // resolves: it clears its own rule, opens nothing, and releases the gate;
+    // the new session then registers and opens sockets[1].
     expect(sockets).toHaveLength(2);
-    sockets[1].readyState = 1;
-    sockets[1].onopen?.({});
-    await flush();
-    expect(sockets).toHaveLength(3);
     const newSetIdx = ipcTypes().lastIndexOf('ws-headers-set');
-
-    // The stale session.started lands while sockets[2] is still upgrading:
-    // before the guard this fired ws-headers-clear and stripped the new rule.
-    sockets[1].onmessage?.({ data: JSON.stringify({ type: 'session.started', session: { id: 'live_stale', expires_at: 1, status: 'active', model: LIVE_MODEL } }) });
-    await flush();
+    // Two clears before the new registration — the first session's own and the
+    // stale coroutine's (disconnect() had nothing registered to clear while the
+    // stale registration was still pending) — and none after it.
+    expect(ipcTypes().slice(0, newSetIdx).filter((t) => t === 'ws-headers-clear')).toHaveLength(2);
     expect(ipcTypes().slice(newSetIdx + 1)).not.toContain('ws-headers-clear');
-    expect(sockets[1].close).toHaveBeenCalled();
-    expect((client as any).sessionId).not.toBe('live_stale');
 
-    completeHandshake(sockets[2], 'live_new');
+    completeHandshake(sockets[1], 'live_new');
     await p;
     expect(client.isConnected()).toBe(true);
     expect((client as any).sessionId).toBe('live_new');
