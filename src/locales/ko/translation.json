@@ -456,8 +456,8 @@
       "description": "구글의 AI 기술"
     },
     "openaiCompatible": {
-      "name": "OpenAI 호환 API",
-      "description": "사용자 정의 OpenAI 호환 엔드포인트",
+      "name": "OpenAI 호환 (레거시 Realtime)",
+      "description": "OpenAI의 구 beta Realtime 프로토콜을 사용하는 서드파티 엔드포인트. OpenAI 자체용이 아닙니다.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

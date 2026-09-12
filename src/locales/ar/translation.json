@@ -456,8 +456,8 @@
       "description": "تقنية الذكاء الاصطناعي من Google"
     },
     "openaiCompatible": {
-      "name": "واجهة برمجة التطبيقات المتوافقة مع OpenAI",
-      "description": "نقطة نهاية مخصصة متوافقة مع OpenAI",
+      "name": "متوافق مع OpenAI (Realtime القديم)",
+      "description": "نقطة نهاية من طرف ثالث تستخدم بروتوكول Realtime التجريبي القديم من OpenAI. ليست مخصصة لـ OpenAI نفسها.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

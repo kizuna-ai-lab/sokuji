@@ -456,8 +456,8 @@
       "description": "Google'un AI teknolojisi"
     },
     "openaiCompatible": {
-      "name": "OpenAI Uyumlu API",
-      "description": "Özel OpenAI uyumlu uç nokta",
+      "name": "OpenAI uyumlu (eski Realtime)",
+      "description": "OpenAI'nin eski beta Realtime protokolünü kullanan üçüncü taraf uç noktası. OpenAI'nin kendisi için değil.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

@@ -456,8 +456,8 @@
       "description": "טכנולוגיית בינה מלאכותית של Google"
     },
     "openaiCompatible": {
-      "name": "API תואם OpenAI",
-      "description": "נקודת קצה מותאמת אישית תואמת OpenAI",
+      "name": "תואם OpenAI (Realtime ישן)",
+      "description": "נקודת קצה של צד שלישי המשתמשת בפרוטוקול Realtime בטא הישן של OpenAI. לא מיועד ל-OpenAI עצמה.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

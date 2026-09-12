@@ -456,8 +456,8 @@
       "description": "Công nghệ AI của Google"
     },
     "openaiCompatible": {
-      "name": "API Tương Thích OpenAI",
-      "description": "Điểm cuối tùy chỉnh tương thích với OpenAI",
+      "name": "Tương thích OpenAI (Realtime cũ)",
+      "description": "Điểm cuối bên thứ ba dùng giao thức Realtime beta cũ của OpenAI. Không dành cho chính OpenAI.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

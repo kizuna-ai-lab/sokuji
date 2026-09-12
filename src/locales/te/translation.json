@@ -456,8 +456,8 @@
       "description": "Google AI టెక్నాలజీ"
     },
     "openaiCompatible": {
-      "name": "OpenAI అనుకూల API",
-      "description": "అనుకూల OpenAI-అనుకూల ఎండ్‌పాయింట్",
+      "name": "OpenAI అనుకూలం (లెగసీ Realtime)",
+      "description": "OpenAI యొక్క పాత beta Realtime ప్రోటోకాల్‌ను ఉపయోగించే థర్డ్-పార్టీ ఎండ్‌పాయింట్. OpenAI కోసం కాదు.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

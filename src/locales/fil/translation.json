@@ -456,8 +456,8 @@
       "description": "AI technology ng Google"
     },
     "openaiCompatible": {
-      "name": "OpenAI Compatible API",
-      "description": "Custom na OpenAI-compatible endpoint",
+      "name": "Tugma sa OpenAI (Legacy Realtime)",
+      "description": "Third-party endpoint na gumagamit ng lumang beta Realtime protocol ng OpenAI. Hindi para sa OpenAI mismo.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

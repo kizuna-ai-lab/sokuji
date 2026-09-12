@@ -755,7 +755,20 @@ export class OpenAIClient implements IClient {
       return;
     }
 
-    // Send user message content - the library auto-creates ConversationItem
+    // Send user message content - the library auto-creates ConversationItem.
+    //
+    // Deliberately NOT wrapped in the reportSendFailure guard the other sends
+    // use. `sendUserMessageContent` goes out over `realtime.send`, which throws
+    // `RealtimeAPI is not connected` once the socket is down, and that throw is
+    // load-bearing at the call site: MainPanel.handleSendText only reaches
+    // `setItems(client.getConversationItems())` and the `text_input_sent` event
+    // if this returns normally. Swallowing the failure here would refresh the
+    // conversation from the client's items — wiping the error bubble onError
+    // had just appended — and record a message that never went out.
+    //
+    // Unlike the per-chunk audio path, every caller of this one is inside a
+    // try/catch already, because each call is a deliberate user action with
+    // someone waiting on the answer.
     this.client.sendUserMessageContent([
       { type: 'input_text', text: text.trim() }
     ]);
@@ -767,6 +780,37 @@ export class OpenAIClient implements IClient {
    *               Used for per-turn instructions to prevent model drift
    */
   createResponse(config?: ResponseConfig): void {
+    // #546. An out-of-band response (`conversation: 'none'` — today only the
+    // anchor that re-states the translator role) goes out on the conversation's
+    // own timer: once when a session starts, then every N translations. The
+    // user never asked for it and can do nothing about its failure, so on a
+    // closed socket it is dropped rather than reported. Reporting it raised
+    // `RealtimeAPI is not connected` as a conversation bubble seconds after
+    // Start, with nothing typed and nothing clicked.
+    //
+    // The socket can be closed here in three ways. Two are ours and this is
+    // the whole fix for the anchor on both: a leg whose connect failed
+    // (non-fatal by design, so the session runs on with the failed client
+    // still in its ref) and a client left behind by an earlier session
+    // (MainPanel now clears speakerClientRef on teardown; this guard is what
+    // covers the participant ref, which is deliberately kept). The third —
+    // the endpoint dropping a live socket — this only quiets the anchor's
+    // DUPLICATE report of. The audio path hits the dead socket first, ~6
+    // chunks/s, and its latched reportSendFailure is the drop notification;
+    // that stays, and should. Note this client has no socket-close hook (the
+    // GA client does), so a dropped socket is otherwise only noticed by the
+    // next send that fails.
+    //
+    // The sibling clients already guard in exactly this place — see
+    // OpenAIGAClient.createResponse's opening `if (!this.rt) return` and
+    // OpenAIWebRTCClient.sendEvent's "per-send guard: silent". This was the
+    // only one of the three without one, and the only one that surfaces this
+    // error at all: the GA path catches inside the official SDK's own send().
+    //
+    // Deliberately narrow. A user-initiated response still reports its failure,
+    // because someone is waiting on an answer for it.
+    if (config?.conversation === 'none' && !this.isConnected()) return;
+
     if (config) {
       // When bypassing the library's createResponse(), we need to manually commit
       // the input audio buffer first (same as what the library does internally)

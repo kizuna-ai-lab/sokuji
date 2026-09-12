@@ -456,8 +456,8 @@
       "description": "فناوری هوش مصنوعی Google"
     },
     "openaiCompatible": {
-      "name": "API سازگار با OpenAI",
-      "description": "نقطه پایانی سفارشی سازگار با OpenAI",
+      "name": "سازگار با OpenAI (Realtime قدیمی)",
+      "description": "نقطه پایانی شخص ثالث با پروتکل قدیمی Realtime بتای OpenAI. برای خود OpenAI نیست.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {

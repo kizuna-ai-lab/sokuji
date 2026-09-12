@@ -277,10 +277,12 @@ export function computeStartGate(input: StartGateInput): StartGate {
  *  - The participant catch block is non-fatal by design and does NOT clear
  *    `participantClientRef.current`, so a leg whose connect() or
  *    startSystemAudioRecording() rejected still left the ref set.
- *  - `speakerClientRef.current` is never assigned null anywhere in MainPanel,
- *    not even on Stop — so after the first session that builds a speaker client
- *    the speaker half of the old condition was false for the rest of the
- *    process's life, and the guard could not fire at all.
+ *  - `speakerClientRef.current` used to be worse still: it was never assigned
+ *    null anywhere in MainPanel, not even on Stop, so after the first session
+ *    that built a speaker client the speaker half of the old condition was
+ *    false for the rest of the process's life and the guard could not fire at
+ *    all. Stop clears it now, but that only retires the stale-object hazard —
+ *    a ref set mid-start still says nothing about whether the leg came up.
  *
  * The case that makes this matter is the participant-only session: no
  * microphone, the participant leg fails, and the session is marked active with
