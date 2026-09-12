@@ -383,17 +383,18 @@ async function edgeTtsClearDNRHeaders() {
 }
 
 // ─── OpenAI Live declarativeNetRequest header injection ────────────────────
-// The Live API authenticates the WebSocket upgrade with an Authorization
-// header (the openai-insecure-api-key subprotocol the Realtime endpoint accepts
-// is ignored by /v1/live/). The rule is scoped to the Live path so it never
-// touches the Realtime upgrade the OpenAI provider makes, and it is removed
-// as soon as the session has started.
+// Like the Volcengine functions, these chain through the shared dnrUpdatePromise
+// to serialize updates. The rule is scoped to the Live path so it never touches
+// the Realtime upgrade the OpenAI provider makes, and it is removed as soon as
+// the session has started.
 const OPENAI_LIVE_DNR_RULE_ID = 4000;
 const OPENAI_LIVE_URL_FILTER = '||api.openai.com/v1/live/';
 
 async function openaiLiveSetDNRHeaders(apiKey) {
-  dnrUpdatePromise = dnrUpdatePromise.then(async () => {
-    if (!apiKey) throw new Error('OpenAI Live: apiKey is required');
+  // Validate before touching the shared chain: a throw inside it would leave
+  // dnrUpdatePromise rejected for every later caller.
+  if (!apiKey) throw new Error('OpenAI Live: apiKey is required');
+  const run = dnrUpdatePromise.then(async () => {
     const rules = [{
       id: OPENAI_LIVE_DNR_RULE_ID,
       priority: 1,
@@ -417,11 +418,13 @@ async function openaiLiveSetDNRHeaders(apiKey) {
     });
     console.debug('[Sokuji] [Background] OpenAI Live DNR rule registered');
   });
-  return dnrUpdatePromise;
+  // The shared chain must never stay rejected; the caller still sees the failure via `run`.
+  dnrUpdatePromise = run.catch(() => {});
+  return run;
 }
 
 async function openaiLiveClearDNRHeaders() {
-  dnrUpdatePromise = dnrUpdatePromise.then(async () => {
+  const run = dnrUpdatePromise.then(async () => {
     const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
       .filter(r => r.id === OPENAI_LIVE_DNR_RULE_ID)
       .map(r => r.id);
@@ -430,7 +433,9 @@ async function openaiLiveClearDNRHeaders() {
       console.debug('[Sokuji] [Background] OpenAI Live DNR rule cleared');
     }
   });
-  return dnrUpdatePromise;
+  // The shared chain must never stay rejected; the caller still sees the failure via `run`.
+  dnrUpdatePromise = run.catch(() => {});
+  return run;
 }
 
 // ─── Bing Translator declarativeNetRequest header injection ───────────────────
