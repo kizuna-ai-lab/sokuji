@@ -382,6 +382,57 @@ async function edgeTtsClearDNRHeaders() {
   }
 }
 
+// ─── OpenAI Live declarativeNetRequest header injection ────────────────────
+// The Live API authenticates the WebSocket upgrade with an Authorization
+// header (the openai-insecure-api-key subprotocol the Realtime endpoint accepts
+// is ignored by /v1/live/). The rule is scoped to the Live path so it never
+// touches the Realtime upgrade the OpenAI provider makes, and it is removed
+// as soon as the session has started.
+const OPENAI_LIVE_DNR_RULE_ID = 4000;
+const OPENAI_LIVE_URL_FILTER = '||api.openai.com/v1/live/';
+
+async function openaiLiveSetDNRHeaders(apiKey) {
+  dnrUpdatePromise = dnrUpdatePromise.then(async () => {
+    if (!apiKey) throw new Error('OpenAI Live: apiKey is required');
+    const rules = [{
+      id: OPENAI_LIVE_DNR_RULE_ID,
+      priority: 1,
+      action: {
+        type: 'modifyHeaders',
+        requestHeaders: [
+          { header: 'Authorization', operation: 'set', value: `Bearer ${apiKey}` },
+        ],
+      },
+      condition: {
+        urlFilter: OPENAI_LIVE_URL_FILTER,
+        resourceTypes: ['websocket'],
+      },
+    }];
+    const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+      .filter(r => r.id === OPENAI_LIVE_DNR_RULE_ID)
+      .map(r => r.id);
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingRuleIds,
+      addRules: rules,
+    });
+    console.debug('[Sokuji] [Background] OpenAI Live DNR rule registered');
+  });
+  return dnrUpdatePromise;
+}
+
+async function openaiLiveClearDNRHeaders() {
+  dnrUpdatePromise = dnrUpdatePromise.then(async () => {
+    const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+      .filter(r => r.id === OPENAI_LIVE_DNR_RULE_ID)
+      .map(r => r.id);
+    if (existingRuleIds.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: existingRuleIds });
+      console.debug('[Sokuji] [Background] OpenAI Live DNR rule cleared');
+    }
+  });
+  return dnrUpdatePromise;
+}
+
 // ─── Bing Translator declarativeNetRequest header injection ───────────────────
 // Bing Translator's /ttranslatev3 endpoint requires browser-like headers or it
 // returns 403/empty responses. We inject them via declarativeNetRequest so the
@@ -515,6 +566,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
         console.error('[Sokuji] [Background] Failed to clear Edge TTS DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  // Handle OpenAI Live DNR header injection
+  if (message.type === 'OPENAI_LIVE_SET_HEADERS') {
+    openaiLiveSetDNRHeaders(message.apiKey)
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to set OpenAI Live DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === 'OPENAI_LIVE_CLEAR_HEADERS') {
+    openaiLiveClearDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to clear OpenAI Live DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;

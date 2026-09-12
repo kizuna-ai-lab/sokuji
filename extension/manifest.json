@@ -35,6 +35,7 @@
     "https://sokuji-api.kizuna.ai/*",
     "https://sokuji.kizuna.ai/*",
     "wss://openspeech.bytedance.com/*",
+    "wss://api.openai.com/*",
     "https://speech.platform.bing.com/*",
     "wss://speech.platform.bing.com/*",
     "https://www.bing.com/*",
