@@ -788,11 +788,18 @@ export class OpenAIClient implements IClient {
     // `RealtimeAPI is not connected` as a conversation bubble seconds after
     // Start, with nothing typed and nothing clicked.
     //
-    // The socket can be closed here in three ways, all of which this covers:
-    // a leg whose connect failed (non-fatal by design, so the session runs on
-    // with the failed client still in its ref), a client left behind by an
-    // earlier session (MainPanel never clears speakerClientRef), and one the
-    // endpoint dropped mid-session.
+    // The socket can be closed here in three ways. Two are ours and this is
+    // the whole fix for the anchor on both: a leg whose connect failed
+    // (non-fatal by design, so the session runs on with the failed client
+    // still in its ref) and a client left behind by an earlier session
+    // (MainPanel now clears speakerClientRef on teardown; this guard is what
+    // covers the participant ref, which is deliberately kept). The third —
+    // the endpoint dropping a live socket — this only quiets the anchor's
+    // DUPLICATE report of. The audio path hits the dead socket first, ~6
+    // chunks/s, and its latched reportSendFailure is the drop notification;
+    // that stays, and should. Note this client has no socket-close hook (the
+    // GA client does), so a dropped socket is otherwise only noticed by the
+    // next send that fails.
     //
     // The sibling clients already guard in exactly this place — see
     // OpenAIGAClient.createResponse's opening `if (!this.rt) return` and
