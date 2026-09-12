@@ -90,7 +90,6 @@ import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackSto
 import ModePicker from './ModePicker';
 import SplitDegradedChip from './SplitDegradedChip';
 import { resolveSplitDegraded, type SplitDegradedReason } from './splitDegraded';
-import { canUseTextInput } from './textInputGate';
 import { buildChannelTelemetryHandlers, type ChannelTelemetryPorts } from './participantTelemetry';
 import { sessionModelTelemetry, legModelsOf, type LegModels } from './sessionModelTelemetry';
 import { NO_CHANNELS_RECONNECTING, type ReconnectingState } from './reconnectingChannels';
@@ -369,11 +368,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // there is no participant waveform to be missing.
   const [splitDegraded, setSplitDegraded] = useState<SplitDegradedReason | null>(null);
 
-  // Whether the text-input row renders is the provider's own claim.
+  // Whether the provider accepts typed input at all is its own claim.
   const supportsTextInput = useMemo(
     () => ProviderConfigFactory.getDescriptor(provider).getConfig().capabilities.supportsTextInput ?? false,
     [provider]
   );
+
+  // #544: the text box is a SPEAKER-channel control. What a user types is their
+  // own input — the same thing the microphone would otherwise have carried — so
+  // it is translated in the speaker's direction and lands on the speaker's side
+  // of the conversation. Routing it to whichever leg happens to be live was
+  // considered and rejected: the participant leg runs the REVERSED direction, so
+  // the same box would translate the opposite way depending on mode, and in Both
+  // mode nothing would tell the user which leg their message went to.
+  //
+  // Hence: no speaker channel, no text box. In participant-only ("Others") mode
+  // it used to render, accept input, and drop every message silently.
+  //
+  // Keyed on the LIVE channel rather than the selected mode on purpose — in Both
+  // mode the speaker leg can fail while the participant leg survives (split
+  // degraded), and the mode alone would leave a dead box behind.
+  //
+  // One value for both the render gate and handleSendText, so a visible box and
+  // a working send cannot drift apart.
+  const canSendText = isSessionActive && supportsTextInput && speakerChannelActive;
 
   // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers without one
   const currentTurnDetectionMode = useCurrentTurnDetectionMode();
@@ -3124,14 +3142,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
    */
   const handleSendText = useCallback((text: string) => {
     const client = speakerClientRef.current;
-    // Same predicate the row renders on, so a visible box and a working send
-    // cannot drift apart. Unreachable from the UI in practice; a queued flush
-    // or a render racing teardown can still arrive here.
+    // Same value the row renders on. Unreachable from the UI in practice; a
+    // queued flush or a render racing teardown can still arrive here.
     //
     // The old message said "no active session", which was a lie in Others mode
     // (#544): the session WAS running, it simply had no speaker channel, and
     // the box stayed on screen swallowing every message.
-    if (!canUseTextInput({ isSessionActive, supportsTextInput, speakerChannelActive }) || !client) {
+    if (!canSendText || !client) {
       console.warn('[MainPanel] Cannot send text: no live speaker channel');
       return;
     }
@@ -3172,7 +3189,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         recoverable: true
       });
     }
-  }, [isSessionActive, isAIResponding, sessionId, provider, trackEvent, supportsTextInput, speakerChannelActive]);
+  }, [canSendText, isAIResponding, sessionId, provider, trackEvent]);
 
   /**
    * Submit text input in advanced mode
@@ -4282,8 +4299,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           )}
         </div>
 
-        {/* Text Input Section — speaker channel only, see textInputGate.ts */}
-        {canUseTextInput({ isSessionActive, supportsTextInput, speakerChannelActive }) && (
+        {/* Text Input Section — speaker channel only, see canSendText */}
+        {canSendText && (
           <div className="text-input-section">
             <div className="text-input-container">
               <input
