@@ -1195,6 +1195,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // the start of disconnectConversation and cleared in finally regardless of
   // whether the cleanup succeeded or threw.
   const disconnectInProgressRef = useRef<boolean>(false);
+  // Resolves when the in-flight disconnectConversation has finished ALL of its
+  // teardown; null when none is in flight. connectConversation awaits it so a
+  // Start clicked during a Stop cannot overlap the teardown — see both sites.
+  const disconnectDoneRef = useRef<Promise<void> | null>(null);
 
   // Start re-entry guard, the disconnect guard's mirror: a second Start while
   // one is mid-flight would run two prepares (and two resource acquires)
@@ -1666,6 +1670,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
     disconnectInProgressRef.current = true;
 
+    // Publish this teardown's completion, from before the first await, so a
+    // Start that lands while it is in flight can wait for the whole thing —
+    // not just the speaker leg. The participant leg, afterBothLegs and the
+    // trailing audioService.stopRecording() all read their ref (or the shared
+    // recorder) at RUN time; a Start that got in ahead of them would have its
+    // participant client disconnected, its lease released and its capture
+    // stopped by this Stop. Resolved in the finally, success or throw.
+    let markDisconnectDone: () => void = () => {};
+    disconnectDoneRef.current = new Promise<void>(resolve => { markDisconnectDone = resolve; });
+
+    // Capture the speaker client to tear down NOW, before any await. The
+    // `setIsSessionActive(false)` a few lines down runs synchronously and
+    // re-enables the Start button while this teardown is still in flight —
+    // nothing serializes a new Start behind an in-flight Stop — so by the time
+    // the speaker leg below runs, `speakerClientRef.current` may already hold
+    // the NEXT session's client. Reading the ref there would tear down the
+    // wrong one (disconnect/reset on a still-connecting client, then the null
+    // wiping its ref: a session that looks active and does nothing). The
+    // object this Stop owns is the one in the ref at this instant.
+    const speakerToTearDown = speakerClientRef.current;
+
     // Discard any in-flight Start: its prepare patches and its acquired
     // resources would target the session this teardown is ending.
     startAbortRef.current?.abort();
@@ -1742,7 +1767,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // SonioxClient, not the inert secondary port of the shared path.
       await teardownSessionLegs({
         speaker: async () => {
-          const client = speakerClientRef.current;
+          // Not `speakerClientRef.current` — see the capture at the top of
+          // this function. By now the ref may belong to the next session.
+          const client = speakerToTearDown;
           if (!client) return;
           // disconnect() emits final completion deltas via the throttle path,
           // which schedules a trailing setItems(client.getConversationItems())
@@ -1774,6 +1801,40 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
           setItems(client.getConversationItems());
           client.reset();
+          // Clear the ref, like the participant leg two blocks down has always
+          // done. Without this the object outlives its session, and the next
+          // session that builds NO speaker client — participant-only "Others"
+          // mode skips the whole `if (speakerWillStart)` block — reaches this
+          // same leg on Stop holding the previous session's dead client. Three
+          // things then happen, none of them wanted:
+          //
+          //  - `disconnect()` runs a second time, on a client whose handlers
+          //    are the PREVIOUS session's closures, re-emitting `session.closed`
+          //    (a spurious speaker-tagged row in the log panel) and, on the
+          //    managed-Soniox path, calling `detachLeg` on the old session.
+          //  - `setItems(client.getConversationItems())` becomes `setItems([])`,
+          //    because `reset()` already emptied it. In Others mode `items` is
+          //    NOT empty — it carries the participant-channel warning and the
+          //    descriptor's prepare notices — so those rows are silently wiped
+          //    at Stop. That one is user-visible, with no error and no log.
+          //  - LocalNativeClient.disconnect() disposes its ASR/translate/TTS
+          //    handles a second time, before the live participant leg is torn
+          //    down.
+          //
+          // It also retires the "a non-null ref here belongs to a previous
+          // session" reasoning that three comments in this file and
+          // sessionStartGate.ts were written around.
+          //
+          // Compare-and-clear, not a bare assignment: `await client.disconnect()`
+          // above is a real macrotask gap on providers whose disconnect hits
+          // the network (PalabraAI deletes its session and leaves the LiveKit
+          // room), and a Start clicked inside that gap has already put the
+          // NEXT session's client in the ref. Clearing unconditionally here
+          // would wipe it — a live session with a null ref, every audio frame
+          // dropped, nothing on screen. Only clear what this Stop owns.
+          if (speakerClientRef.current === client) {
+            speakerClientRef.current = null;
+          }
         },
         participant: async () => {
           const participantClient = participantClientRef.current;
@@ -1822,6 +1883,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
     } finally {
       disconnectInProgressRef.current = false;
+      // Clear before resolving: a waiter that wakes and re-reads the ref must
+      // not find this same, already-finished teardown.
+      disconnectDoneRef.current = null;
+      markDisconnectDone();
     }
   }, [refetchAll, setIsReconnecting]);
 
@@ -1851,6 +1916,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       setIsInitializing(true);
       setInitPhase(null);
+
+      // Serialize behind an in-flight Stop. disconnectConversation flips
+      // isSessionActive to false synchronously — which is what re-enables the
+      // Start button — and only then awaits (pauseRecording, a 100 ms settle,
+      // client.disconnect()). Nothing else makes this function wait for it:
+      // disconnectInProgressRef only blocks a second Stop, connectInProgressRef
+      // above only blocks a second Start, and neither reads the other. A Start
+      // clicked in that window (a double-tap on Stop is enough — the button
+      // changes in place) used to run concurrently with the teardown, which
+      // then tore down THIS session's participant client, released its lease
+      // in afterBothLegs, and stopped its capture in the trailing
+      // stopRecording(). The user sees "initializing" for the extra 100–300 ms.
+      //
+      // Position is load-bearing twice over. It is BEFORE this attempt's
+      // AbortController is minted below, so the Stop's abort() at its top
+      // cannot cancel this Start; and BEFORE the participantStreamEndedRef
+      // reset further down, which exists to undo a write the teardown makes
+      // DURING its run — reset first and the teardown would re-set it.
+      const pendingDisconnect = disconnectDoneRef.current;
+      if (pendingDisconnect) {
+        console.info('[Sokuji] [MainPanel] Start is waiting for the previous session\'s teardown to finish');
+        await pendingDisconnect;
+      }
+
       // Clear last session's indicator before anything can set this one's.
       // Not redundant with the disconnectConversation reset: the post-init
       // "both channels failed" guard below returns early WITHOUT routing
@@ -2571,10 +2660,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       //
       // Asks whether a channel WORKS, not whether a client object exists. The
       // refs cannot answer that: the participant catch is non-fatal by design
-      // and leaves `participantClientRef.current` set, and
-      // `speakerClientRef.current` is never assigned null anywhere in this file
-      // (not even on Stop), so the old ref-based condition also went permanently
-      // false after the first session that built a speaker client. See
+      // and leaves `participantClientRef.current` set. The speaker ref used to
+      // be worse still — it was never assigned null anywhere in this file, not
+      // even on Stop, so the old ref-based condition went permanently false
+      // after the first session that built a speaker client. Stop clears it
+      // now, but that only removes the stale-object hazard; a ref is still not
+      // evidence that a channel works, so this guard stays outcome-based. See
       // noChannelCameUp.
       if (noChannelCameUp({ speakerChannelStarted, participantChannelStarted })) {
         // A cancel that races client construction can surface here too: the
@@ -2599,9 +2690,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // the guard reads outcomes, so it fires for a leg that connected and
         // then failed to wire its recorder. There is never a speaker client to
         // take down — one that came up would have set speakerChannelStarted, and
-        // one that failed re-threw past this point — so a non-null
-        // speakerClientRef here belongs to a PREVIOUS session (this file never
-        // clears it) and must not be touched.
+        // one that failed re-threw past this point — so the speaker is left
+        // alone here. It used to matter more than it does: the ref was never
+        // cleared, so a non-null value here meant a PREVIOUS session's client
+        // that must not be touched. Stop clears it now, which leaves this leg
+        // correct for the simpler reason that this pass built nothing to undo.
         //
         // Ordered through teardownSessionLegs for its one invariant: every leg
         // is down before `session-end` is signalled. Releasing the lease while a
@@ -2707,6 +2800,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             }
             setItems(client.getConversationItems());
             client.reset();
+            // Same clear as disconnectConversation's leg. A cancelled start that
+            // got far enough to bring the speaker up must not leave its client
+            // behind either, or the next session inherits exactly the stale
+            // object this pass just tore down. Compare-and-clear for the same
+            // reason as there; here `client` is this pass's own and a second
+            // Start is blocked by connectInProgressRef, so the check is
+            // belt-and-braces rather than load-bearing.
+            if (speakerClientRef.current === client) {
+              speakerClientRef.current = null;
+            }
           },
           participant: async () => {
             const client = participantClientRef.current;
