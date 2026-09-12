@@ -575,4 +575,54 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
     expect(handlers.reconnecting).not.toHaveBeenCalled();
     expect(handlers.error).not.toHaveBeenCalled();
   });
+
+  it('disconnect() during an in-flight reconnect stops it', async () => {
+    const client = await connectedClient();
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await client.disconnect();
+    // The reconnect attempt was already in flight; let its handshake finish late.
+    await completeReconnect(1);
+    expect(handlers.reconnected).not.toHaveBeenCalled();
+    expect(sockets[1].close).toHaveBeenCalled();
+    expect(client.isConnected()).toBe(false);
+    expect(handlers.error).not.toHaveBeenCalled();
+  });
+
+  it('a reconnect that fails after disconnect() does not raise the notice', async () => {
+    const client = await connectedClient();
+    // Connect is already done, so this only affects the reconnect attempt below.
+    (window as any).electron.invoke = vi.fn(async () => ({ success: false, error: 'ipc down' }));
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await client.disconnect();
+    await flush();
+    expect(handlers.error).not.toHaveBeenCalled();
+    expect(handlers.close).not.toHaveBeenCalled();
+    expect(client.getConversationItems().some(i => i.type === 'error')).toBe(false);
+  });
+
+  it('a fresh connect() after a reconnect starts with clean reconnect state', async () => {
+    const client = await connectedClient();
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await completeReconnect(1);
+
+    const d = client.disconnect();
+    await Promise.resolve();
+    sockets[1].onmessage?.({ data: JSON.stringify({ type: 'session.closed', reason: 'close_requested', usage: { seconds: 1 } }) });
+    await d;
+
+    handlers.reconnecting.mockClear();
+    handlers.reconnected.mockClear();
+
+    const p = client.connect(baseConfig);
+    await flush();
+    completeHandshake(sockets[2]);
+    await p;
+
+    vi.advanceTimersByTime(1_000);
+    sockets[2].onclose?.({ code: 1006, reason: '' });
+    // Park the reconnect attempt mid-handshake so nothing dangles past this test.
+    await flush();
+    expect(handlers.reconnecting).toHaveBeenCalledTimes(1);
+    expect(handlers.error).not.toHaveBeenCalled();
+  });
 });

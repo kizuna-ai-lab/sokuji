@@ -87,6 +87,8 @@ export class OpenAILiveClient implements IClient {
   private voicedInputSinceUsage: boolean = false;
   private reconnecting: boolean = false;
   private reconnectedAt: number | null = null;
+  /** Bumped by connect()/disconnect() so a reconnect in flight can tell it has been superseded. */
+  private generation: number = 0;
 
   /** Latches once a frame has failed to parse; cleared by the next frame that parses. */
   private parseFailed: boolean = false;
@@ -264,14 +266,18 @@ export class OpenAILiveClient implements IClient {
     this.expiresAt = null;
     this.usageSeconds = null;
     this.voicedInputSinceUsage = false;
+    this.reconnecting = false;
+    this.reconnectedAt = null;
   }
 
   /** Register the header, open the socket, send session.start, wait for session.started. */
-  private async openSession(config: OpenAILiveSessionConfig): Promise<void> {
+  private async openSession(config: OpenAILiveSessionConfig): Promise<WebSocket> {
     await this.registerUpgradeHeader();
+    let ws: WebSocket;
     try {
       this.closedReceived = false;
-      this.ws = new WebSocket(LIVE_WS_URL);
+      ws = new WebSocket(LIVE_WS_URL);
+      this.ws = ws;
       this.setupWebSocketListeners(this.ws);
       const start = OpenAILiveClient.buildSessionStart(config, this.nextEventId('start'));
       this.ws.onopen = () => {
@@ -287,6 +293,7 @@ export class OpenAILiveClient implements IClient {
     // Electron's rule was consumed by the upgrade; the extension's rule has
     // done its job. Clearing both is a no-op at worst.
     this.clearUpgradeHeader();
+    return ws;
   }
 
   private setupWebSocketListeners(ws: WebSocket): void {
@@ -455,12 +462,20 @@ export class OpenAILiveClient implements IClient {
     this.teardownSocket();
     this.logClientEvent('session.reconnecting', { provider: 'openai_live', cause, timestamp: Date.now() });
     this.eventHandlers.onReconnecting?.();
+    const generation = this.generation;
     try {
-      await this.openSession(this.config);
-      if (this.closing) {
-        // disconnect() ran while we were reconnecting: drop the fresh session.
+      const ws = await this.openSession(this.config);
+      if (generation !== this.generation || this.closing) {
+        // The session was disconnected (or restarted) while we were
+        // reconnecting: close the socket this reconnect opened and leave
+        // everything else — connect()/disconnect() already own the rest of
+        // the state — alone. No onReconnected.
         this.reconnecting = false;
-        this.teardownSocket();
+        ws.onclose = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        try { ws.close(); } catch { /* already closed */ }
+        if (this.ws === ws) this.ws = null;
         return;
       }
       this.reconnecting = false;
@@ -471,6 +486,12 @@ export class OpenAILiveClient implements IClient {
       this.logClientEvent('session.reconnected', { provider: 'openai_live', sessionId: this.sessionId, timestamp: Date.now() });
       this.eventHandlers.onReconnected?.();
     } catch (error) {
+      if (generation !== this.generation || this.closing) {
+        // A user-initiated disconnect during the failed reconnect attempt
+        // must not raise the notice, onError, or onClose.
+        this.reconnecting = false;
+        return;
+      }
       this.reconnecting = false;
       this.giveUp(cause, error);
     }
@@ -761,6 +782,7 @@ export class OpenAILiveClient implements IClient {
   // ----- IClient -----
 
   async connect(config: SessionConfig): Promise<void> {
+    this.generation += 1;
     if (!isOpenAILiveSessionConfig(config)) {
       throw new Error('OpenAILiveClient requires an openai_live session config');
     }
@@ -788,9 +810,11 @@ export class OpenAILiveClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    this.generation += 1;
     this.closing = true;
     if (this.reconnecting) {
-      // A reconnect in flight will find `closing` set and stop in openSession's caller.
+      // A reconnect in flight sees the generation change after its await and
+      // closes the socket it opened.
       this.teardownSocket();
     }
     const ws = this.ws;
