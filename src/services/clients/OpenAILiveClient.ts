@@ -48,9 +48,59 @@ const SILENCE_TIMEOUT_MS = 1000;
  * sentence's `end_ms`, so the karaoke anchors and replay audio stay with the
  * sentence they belong to.
  */
-const SENTENCE_END_RE = /[。．！？!?.]["'”’」』）)\]]*\s*$/;
+const SENTENCE_TERMINALS = '。．！？!?.';
+const SENTENCE_CLOSERS = '"\'”’」』）)]';
+/** Words whose trailing period is not a sentence end (lower-case, inner dots kept). */
+const ABBREVIATIONS = new Set([
+  'mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr', 'st', 'mt', 'vs', 'etc', 'inc', 'ltd',
+  'fig', 'vol', 'al', 'e.g', 'i.e', 'a.m', 'p.m', 'u.s', 'u.k',
+]);
+/** A delta head made only of terminals, closers and whitespace: it ends the sentence before it. */
+const PUNCTUATION_ONLY_RE = /^[。．！？!?.\s"'”’」』）)\]]+$/;
 /** Slack after a sentence's `end_ms` before its audio is considered delivered. */
 const AUDIO_HANDOFF_MARGIN_MS = 300;
+/** A gap this long between consecutive input deltas on the session timeline is a real pause. */
+const USER_TIMELINE_GAP_MS = 600;
+/** A source item that never pauses or punctuates is cut once it spans this much timeline. */
+const USER_SPAN_CAP_MS = 12_000;
+/** Same safety net for a translation that never reaches a sentence end. */
+const ASSISTANT_SPAN_CAP_MS = 15_000;
+
+/** True when the period at `dot` is part of an abbreviation, an initial, a
+ *  decimal or a dotted token (e.g., U.S., example.com) rather than a sentence end. */
+function periodIsNotSentenceEnd(text: string, dot: number): boolean {
+  const next = text[dot + 1];
+  if (next !== undefined && /[A-Za-z0-9]/.test(next)) return true; // 3.5, e.g, U.S, a.b
+  if (next === '.' || text[dot - 1] === '.') return true; // an ellipsis is a pause, not an end
+  let start = dot;
+  while (start > 0 && /[A-Za-z.]/.test(text[start - 1])) start--;
+  const word = text.slice(start, dot).replace(/^\.+/, '');
+  if (word.length === 0) return false;
+  if (word.length === 1 && /[A-Z]/.test(word)) return true; // an initial: "J. Smith"
+  return ABBREVIATIONS.has(word.toLowerCase());
+}
+
+/**
+ * Index just past the last sentence end inside `text` (closing quotes and
+ * brackets included), or -1 when the text has none. Live places the terminal
+ * of one sentence at the end of a delta or at the start of the next one, so
+ * callers split the delta itself: `[0, idx)` finishes the current item, the
+ * rest opens a new one. `prefix` is the item's transcript so far: a period
+ * whose word began in an earlier delta ("Dr" + ". Andrew") is judged on the
+ * whole word.
+ */
+function lastSentenceEnd(text: string, prefix = ''): number {
+  const full = prefix + text;
+  for (let i = full.length - 1; i >= prefix.length; i--) {
+    const ch = full[i];
+    if (!SENTENCE_TERMINALS.includes(ch)) continue;
+    if (ch === '.' && periodIsNotSentenceEnd(full, i)) continue;
+    let end = i + 1;
+    while (end < full.length && SENTENCE_CLOSERS.includes(full[end])) end++;
+    return end - prefix.length;
+  }
+  return -1;
+}
 const SILENCE_TIMEOUT_MIN_MS = 100;
 const SILENCE_TIMEOUT_MAX_MS = 3000;
 const SESSION_START_TIMEOUT_MS = 30000;
@@ -136,6 +186,10 @@ export class OpenAILiveClient implements IClient {
   // spans its sentence boundaries, so each side closes on its own timer.
   private currentUserItemId: string | null = null;
   private currentAssistantItemId: string | null = null;
+  /** Timeline start of the current user / assistant item and the last input delta's end. */
+  private userItemStartMs: number | null = null;
+  private userLastEndMs: number | null = null;
+  private currentAssistantStartMs: number | null = null;
   private userSilenceTimer: ReturnType<typeof setTimeout> | null = null;
   private assistantSilenceTimer: ReturnType<typeof setTimeout> | null = null;
   private userSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
@@ -307,6 +361,9 @@ export class OpenAILiveClient implements IClient {
     this.pendingAudioItems = [];
     this.assistantTextEndMs.clear();
     this.timelineOriginMs = null;
+    this.userItemStartMs = null;
+    this.userLastEndMs = null;
+    this.currentAssistantStartMs = null;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
     this.itemLookup.clear();
@@ -663,37 +720,58 @@ export class OpenAILiveClient implements IClient {
 
     switch (event.type) {
       case 'session.input_transcript.delta': {
-        const userItemId = this.ensureUserItem();
-        const userItem = this.itemLookup.get(userItemId);
-        if (userItem?.formatted) {
-          userItem.formatted.transcript = (userItem.formatted.transcript || '') + (event.delta || '');
+        const delta: string = event.delta || '';
+        const startMs = typeof event.start_ms === 'number' ? event.start_ms : null;
+        const endMs = typeof event.end_ms === 'number' ? event.end_ms : null;
+        const current = this.currentUserItemId ? this.itemLookup.get(this.currentUserItemId) : undefined;
+        const split = lastSentenceEnd(delta, current?.formatted?.transcript ?? '');
+        const head = split > 0 ? delta.slice(0, split) : delta;
+        const tail = split > 0 ? delta.slice(split) : '';
+        // A terminal leading the delta belongs to the sentence before it; if
+        // that sentence was already completed by a pause, showing the mark on
+        // its own would be worse than dropping it.
+        const headIsPunctuation = split > 0 && PUNCTUATION_ONLY_RE.test(head);
+        if (!headIsPunctuation || this.currentUserItemId) {
+          // A real pause in the speaker's timeline starts a new item, whatever
+          // the network made of the arrival times.
+          if (this.currentUserItemId && !headIsPunctuation && startMs !== null && this.userLastEndMs !== null
+              && startMs - this.userLastEndMs >= USER_TIMELINE_GAP_MS) {
+            this.completeUserItem();
+          }
+          this.appendUserText(head, startMs);
+          if (split > 0) this.completeUserItem();
         }
-        this.eventHandlers.onConversationUpdated?.({
-          item: userItem!,
-          delta: { transcript: event.delta },
-        });
-        this.resetUserSilenceTimer();
+        if (tail.length > 0) this.appendUserText(tail, startMs);
+        // A speaker who neither pauses nor punctuates still gets readable pieces.
+        if (this.currentUserItemId && this.userItemStartMs !== null && endMs !== null
+            && endMs - this.userItemStartMs >= USER_SPAN_CAP_MS) {
+          this.completeUserItem();
+        }
+        if (endMs !== null) this.userLastEndMs = endMs;
+        if (this.currentUserItemId) this.resetUserSilenceTimer();
         break;
       }
 
       case 'session.output_transcript.delta': {
-        const assistantItemId = this.ensureAssistantItem();
-        const assistantItem = this.itemLookup.get(assistantItemId);
-        if (assistantItem?.formatted) {
-          assistantItem.formatted.transcript = (assistantItem.formatted.transcript || '') + (event.delta || '');
+        const delta: string = event.delta || '';
+        const startMs = typeof event.start_ms === 'number' ? event.start_ms : null;
+        const endMs = typeof event.end_ms === 'number' ? event.end_ms : null;
+        const current = this.currentAssistantItemId ? this.itemLookup.get(this.currentAssistantItemId) : undefined;
+        const split = lastSentenceEnd(delta, current?.formatted?.transcript ?? '');
+        const head = split > 0 ? delta.slice(0, split) : delta;
+        const tail = split > 0 ? delta.slice(split) : '';
+        // Same rule as the source side: a leading terminal closes the sentence
+        // before it, and has no home once that sentence is already closed.
+        const headIsPunctuation = split > 0 && PUNCTUATION_ONLY_RE.test(head);
+        if (!headIsPunctuation || this.currentAssistantItemId) {
+          const itemId = this.appendAssistantText(head, startMs, endMs);
+          // Close on a sentence end, or cut a translation that never reaches one.
+          const overCap = this.currentAssistantStartMs !== null && endMs !== null
+            && endMs - this.currentAssistantStartMs >= ASSISTANT_SPAN_CAP_MS;
+          if (split > 0 || overCap) this.closeAssistantText(itemId);
         }
-        if (typeof event.end_ms === 'number') {
-          const prev = this.assistantTextEndMs.get(assistantItemId) ?? 0;
-          this.assistantTextEndMs.set(assistantItemId, Math.max(prev, event.end_ms));
-        }
-        this.eventHandlers.onConversationUpdated?.({
-          item: assistantItem!,
-          delta: { transcript: event.delta },
-        });
+        if (tail.length > 0) this.appendAssistantText(tail, startMs, endMs);
         this.resetAssistantSilenceTimer();
-        if (SENTENCE_END_RE.test(assistantItem?.formatted?.transcript ?? '')) {
-          this.closeAssistantText(assistantItemId);
-        }
         break;
       }
 
@@ -867,7 +945,45 @@ export class OpenAILiveClient implements IClient {
     return id;
   }
 
+  /** Append transcript text to the current user item (opening one if needed);
+   *  a new item never starts with the whitespace that followed the last sentence. */
+  private appendUserText(text: string, startMs: number | null): void {
+    if (!this.currentUserItemId) text = text.replace(/^\s+/, '');
+    const id = this.ensureUserItem();
+    if (this.userItemStartMs === null && startMs !== null) this.userItemStartMs = startMs;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = (item.formatted.transcript || '') + text;
+    }
+    this.eventHandlers.onConversationUpdated?.({
+      item: item!,
+      delta: { transcript: text },
+    });
+  }
+
+  /** Append transcript text to the current assistant item (opening one if
+   *  needed, without leading whitespace); returns its id. */
+  private appendAssistantText(text: string, startMs: number | null, endMs: number | null): string {
+    if (!this.currentAssistantItemId) text = text.replace(/^\s+/, '');
+    const id = this.ensureAssistantItem();
+    if (this.currentAssistantStartMs === null && startMs !== null) this.currentAssistantStartMs = startMs;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = (item.formatted.transcript || '') + text;
+    }
+    if (endMs !== null) {
+      const prev = this.assistantTextEndMs.get(id) ?? 0;
+      this.assistantTextEndMs.set(id, Math.max(prev, endMs));
+    }
+    this.eventHandlers.onConversationUpdated?.({
+      item: item!,
+      delta: { transcript: text },
+    });
+    return id;
+  }
+
   private completeUserItem(): void {
+    this.userItemStartMs = null;
     if (!this.currentUserItemId) return;
     const item = this.itemLookup.get(this.currentUserItemId);
     if (item) {
@@ -889,6 +1005,7 @@ export class OpenAILiveClient implements IClient {
   private closeAssistantText(itemId: string): void {
     this.pendingAudioItems.push({ id: itemId, endMs: this.assistantTextEndMs.get(itemId) ?? null });
     this.currentAssistantItemId = null;
+    this.currentAssistantStartMs = null;
     this.scheduleAudioHandoff();
   }
 
@@ -940,6 +1057,7 @@ export class OpenAILiveClient implements IClient {
       this.currentAssistantItemId = null;
       this.finalizeAssistantItem(itemId);
     }
+    this.currentAssistantStartMs = null;
     if (this.assistantSilenceTimer) {
       clearTimeout(this.assistantSilenceTimer);
       this.assistantSilenceTimer = null;

@@ -464,6 +464,71 @@ describe('OpenAILiveClient state machine', () => {
   });
 });
 
+describe('OpenAILiveClient source segmentation', () => {
+  let client: OpenAILiveClient;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    client = new OpenAILiveClient('sk-test');
+    client.setEventHandlers({} as ClientEventHandlers);
+    (client as any).timelineOriginMs = Date.now();
+    (client as any).userSilenceTimeoutMs = 10_000; // keep the wall-clock timer out of these
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const feed = (event: unknown) => (client as any).handleServerEvent(event);
+  const users = () => client.getConversationItems().filter(i => i.role === 'user');
+
+  it('a timeline gap of 600 ms or more between input deltas starts a new source item', () => {
+    feed({ type: 'session.input_transcript.delta', delta: '大家', start_ms: 0, end_ms: 400 });
+    feed({ type: 'session.input_transcript.delta', delta: '好', start_ms: 400, end_ms: 800 });
+    feed({ type: 'session.input_transcript.delta', delta: ',先', start_ms: 1400, end_ms: 1800 });
+    feed({ type: 'session.input_transcript.delta', delta: '说', start_ms: 1900, end_ms: 2100 });
+    const items = users();
+    expect(items.map(i => i.formatted?.transcript)).toEqual(['大家好', ',先说']);
+    expect(items[0].status).toBe('completed');
+    expect(items[1].status).toBe('in_progress');
+  });
+
+  it('a sentence-final mark on the source side closes the item too, even when it leads the next delta', () => {
+    feed({ type: 'session.input_transcript.delta', delta: '预计十月上线', start_ms: 0, end_ms: 900 });
+    feed({ type: 'session.input_transcript.delta', delta: '。然后', start_ms: 900, end_ms: 1300 });
+    expect(users().map(i => i.formatted?.transcript)).toEqual(['预计十月上线。', '然后']);
+  });
+
+  it('a terminal leading the delta after a pause closes the previous item instead of opening one of its own', () => {
+    feed({ type: 'session.input_transcript.delta', delta: '大家好', start_ms: 0, end_ms: 800 });
+    feed({ type: 'session.input_transcript.delta', delta: '。然后', start_ms: 1600, end_ms: 2000 });
+    const items = users();
+    expect(items.map(i => i.formatted?.transcript)).toEqual(['大家好。', '然后']);
+    expect(items[0].status).toBe('completed');
+  });
+
+  it('the remainder after a sentence end opens the new item without its leading space', () => {
+    feed({ type: 'session.input_transcript.delta', delta: 'One thing.', start_ms: 0, end_ms: 800 });
+    feed({ type: 'session.input_transcript.delta', delta: ' Two', start_ms: 800, end_ms: 1100 });
+    expect(users().map(i => i.formatted?.transcript)).toEqual(['One thing.', 'Two']);
+  });
+
+  it('a source item with neither pauses nor punctuation is cut once it spans 12 s of timeline', () => {
+    feed({ type: 'session.input_transcript.delta', delta: 'a', start_ms: 0, end_ms: 4000 });
+    feed({ type: 'session.input_transcript.delta', delta: 'b', start_ms: 4000, end_ms: 11000 });
+    feed({ type: 'session.input_transcript.delta', delta: 'c', start_ms: 11000, end_ms: 12100 });
+    feed({ type: 'session.input_transcript.delta', delta: 'd', start_ms: 12100, end_ms: 12300 });
+    expect(users().map(i => i.formatted?.transcript)).toEqual(['abc', 'd']);
+  });
+
+  it('deltas without timeline stamps fall back to the wall-clock silence timer only', () => {
+    (client as any).userSilenceTimeoutMs = 1000;
+    feed({ type: 'session.input_transcript.delta', delta: 'one' });
+    feed({ type: 'session.input_transcript.delta', delta: ' two' });
+    expect(users()).toHaveLength(1);
+    vi.advanceTimersByTime(1001);
+    feed({ type: 'session.input_transcript.delta', delta: 'three' });
+    expect(users().map(i => i.formatted?.transcript)).toEqual(['one two', 'three']);
+  });
+});
+
 describe('OpenAILiveClient sentence segmentation', () => {
   let client: OpenAILiveClient;
   let updates: any[];
@@ -487,6 +552,60 @@ describe('OpenAILiveClient sentence segmentation', () => {
     feed({ type: 'session.output_transcript.delta', delta: 'まず', start_ms: 2100, end_ms: 2400 });
     const items = assistants();
     expect(items.map(i => i.formatted?.transcript)).toEqual(['皆さん、こんにちは。', 'まず']);
+  });
+
+  it('a terminal at the start of the next delta closes the previous sentence and the rest opens a new one', () => {
+    feed({ type: 'session.output_transcript.delta', delta: '十月に', start_ms: 0, end_ms: 500 });
+    feed({ type: 'session.output_transcript.delta', delta: 'リリース予定です', start_ms: 500, end_ms: 1200 });
+    feed({ type: 'session.output_transcript.delta', delta: '。また', start_ms: 1200, end_ms: 1600 });
+    feed({ type: 'session.output_transcript.delta', delta: '、料金', start_ms: 1600, end_ms: 2000 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual(['十月にリリース予定です。', 'また、料金']);
+  });
+
+  it('a delta carrying two sentences keeps both in the closed item and starts the remainder fresh', () => {
+    feed({ type: 'session.output_transcript.delta', delta: 'A。B。C', start_ms: 0, end_ms: 900 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual(['A。B。', 'C']);
+  });
+
+  it('a period after an abbreviation, an initial or inside a decimal is not a sentence end', () => {
+    feed({ type: 'session.output_transcript.delta', delta: 'This team is led by Dr.', start_ms: 0, end_ms: 800 });
+    feed({ type: 'session.output_transcript.delta', delta: ' Andrew Piper, e.g.', start_ms: 800, end_ms: 1400 });
+    feed({ type: 'session.output_transcript.delta', delta: ' J. Smith, at 3.5 percent.', start_ms: 1400, end_ms: 2200 });
+    feed({ type: 'session.output_transcript.delta', delta: ' Next', start_ms: 2300, end_ms: 2500 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual([
+      'This team is led by Dr. Andrew Piper, e.g. J. Smith, at 3.5 percent.',
+      'Next',
+    ]);
+  });
+
+  it('an abbreviation whose period arrives in the next delta is judged on the whole word', () => {
+    feed({ type: 'session.output_transcript.delta', delta: 'This team is led by Dr', start_ms: 0, end_ms: 800 });
+    feed({ type: 'session.output_transcript.delta', delta: '. Andrew Piper is also', start_ms: 800, end_ms: 1400 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual(['This team is led by Dr. Andrew Piper is also']);
+  });
+
+  it('an ellipsis is a pause, not a sentence end', () => {
+    feed({ type: 'session.output_transcript.delta', delta: 'Well...', start_ms: 0, end_ms: 600 });
+    feed({ type: 'session.output_transcript.delta', delta: ' I think so.', start_ms: 600, end_ms: 1400 });
+    feed({ type: 'session.output_transcript.delta', delta: ' Next', start_ms: 1500, end_ms: 1800 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual(['Well... I think so.', 'Next']);
+  });
+
+  it('a terminal that arrives after its sentence was already closed is dropped, not shown alone', () => {
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feed({ type: 'session.output_transcript.delta', delta: 'Hello', start_ms: 0, end_ms: 400 });
+    vi.advanceTimersByTime(1001);
+    feed({ type: 'session.output_transcript.delta', delta: '. Next', start_ms: 2000, end_ms: 2400 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual(['Hello', 'Next']);
+  });
+
+  it('a translation with no sentence end for 15 s of timeline is cut at the next delta boundary', () => {
+    (client as any).assistantSilenceTimeoutMs = 10_000;
+    feed({ type: 'session.output_transcript.delta', delta: 'a', start_ms: 0, end_ms: 5000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'b', start_ms: 5000, end_ms: 14000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'c', start_ms: 14000, end_ms: 15200 });
+    feed({ type: 'session.output_transcript.delta', delta: 'd', start_ms: 15200, end_ms: 15400 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual(['abc', 'd']);
   });
 
   it('closing quotes and brackets after the terminal still count as a sentence end', () => {
