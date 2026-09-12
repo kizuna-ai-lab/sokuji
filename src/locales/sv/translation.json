@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "GPT Realtime-talmodeller som instrueras att översätta · välj modell och röst · 55 språk"
+      "description": "Allmän GPT Realtime-talmodell, helt konfigurerbar"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Dedikerad översättningsmodell · 75 källspråk identifieras automatiskt · 13 målspråk"
+      "description": "Dedikerad översättningsmodell som identifierar källspråket automatiskt"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 som simultantolk · 22 röster · debiteras per sessionsminut, tystnad inräknad"
+      "description": "GPT-Live-1-tolk, debiteras per sessionsminut inklusive tystnad"
     },
     "palabraai": {
       "name": "Palabra AI",

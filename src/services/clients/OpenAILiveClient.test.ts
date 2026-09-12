@@ -1100,3 +1100,33 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
     expect(client.isConnected()).toBe(true);
   });
 });
+
+describe('OpenAILiveClient.clearConversationItems', () => {
+  it('forgets the open items, so the next deltas open fresh ones instead of appending to vanished ids', () => {
+    vi.useFakeTimers();
+    const client = new OpenAILiveClient('sk-test');
+    const updates: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: (e) => updates.push(e) } as ClientEventHandlers);
+    const feed = (event: unknown) => (client as any).handleServerEvent(event);
+    feed({ type: 'session.input_transcript.delta', delta: 'hello', start_ms: 0, end_ms: 500 });
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは', start_ms: 0, end_ms: 800 });
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    expect(client.getConversationItems()).toHaveLength(2);
+
+    client.clearConversationItems();
+    expect(client.getConversationItems()).toEqual([]);
+    updates.length = 0;
+
+    feed({ type: 'session.input_transcript.delta', delta: 'again', start_ms: 600, end_ms: 900 });
+    feed({ type: 'session.output_transcript.delta', delta: 'また', start_ms: 900, end_ms: 1200 });
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    const items = client.getConversationItems();
+    expect(items.map(i => [i.role, i.formatted?.transcript])).toEqual([['user', 'again'], ['assistant', 'また']]);
+    expect(items[1].formatted?.audioSegments).toHaveLength(1);
+    expect(updates.every(u => u.item !== undefined)).toBe(true);
+    // The old timers are gone; the new ones complete the new items, nothing throws.
+    vi.advanceTimersByTime(5000);
+    expect(client.getConversationItems().map(i => i.status)).toEqual(['completed', 'completed']);
+    vi.useRealTimers();
+  });
+});

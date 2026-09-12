@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "מודלי דיבור GPT Realtime המונחים לתרגם · בחירת מודל וקול · 55 שפות"
+      "description": "מודל דיבור GPT Realtime לשימוש כללי, ניתן להגדרה מלאה"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "מודל תרגום ייעודי · 75 שפות מקור מזוהות אוטומטית · 13 שפות יעד"
+      "description": "מודל תרגום ייעודי שמזהה את שפת המקור אוטומטית"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 כמתורגמן סימולטני · 22 קולות · חיוב לפי דקת שיחה, כולל שקט"
+      "description": "מתורגמן GPT-Live-1, חיוב לפי דקת שיחה כולל שקט"
     },
     "palabraai": {
       "name": "Palabra AI",

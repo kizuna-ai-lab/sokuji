@@ -101,3 +101,11 @@ describe('OpenAILiveProviderConfig.createClient / validation', () => {
     expect(res.validation.message).toBe('API key is required for openai_live');
   });
 });
+
+describe('OpenAILiveProviderConfig participant direction', () => {
+  it('asks the Start gate for a concrete source whenever a participant leg is in scope', () => {
+    // The gate reads this; with an `auto` source the participant template would
+    // otherwise name "auto" as its target language.
+    expect(descriptor.reversesDirectionViaSourceLanguage('gpt-live-1')).toBe(true);
+  });
+});

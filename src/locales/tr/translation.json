@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "Çeviri için yönlendirilen GPT Realtime konuşma modelleri · model ve ses seçimi · 55 dil"
+      "description": "Genel amaçlı GPT Realtime konuşma modeli, tamamen yapılandırılabilir"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Özel çeviri modeli · 75 kaynak dil otomatik algılanır · 13 hedef dil"
+      "description": "Kaynak dili otomatik algılayan özel çeviri modeli"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Simultane tercüman olarak GPT-Live-1 · 22 ses · oturum dakikası başına ücret, sessizlik dahil"
+      "description": "GPT-Live-1 tercüman, sessizlik dahil oturum dakikası başına ücretlendirilir"
     },
     "palabraai": {
       "name": "Palabra AI",

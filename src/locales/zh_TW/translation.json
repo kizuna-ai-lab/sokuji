@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "GPT Realtime 語音模型依提示翻譯 · 可選模型與語音 · 55 種語言"
+      "description": "通用 GPT Realtime 語音模型，可自由設定"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "專用翻譯模型 · 自動辨識 75 種來源語言 · 13 種目標語言"
+      "description": "專用翻譯模型，自動辨識來源語言"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 同步口譯 · 22 種語音 · 依工作階段時長每分鐘計費，含靜音"
+      "description": "GPT-Live-1 口譯，依工作階段時長計費（含靜音）"
     },
     "palabraai": {
       "name": "Palabra AI",

@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "అనువాదానికి సూచించబడిన GPT Realtime వాక్ మోడల్స్ · మోడల్ మరియు వాయిస్ ఎంచుకోండి · 55 భాషలు"
+      "description": "సాధారణ-ప్రయోజన GPT Realtime వాక్ మోడల్, పూర్తిగా కాన్ఫిగర్ చేయదగినది"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "ప్రత్యేక అనువాద మోడల్ · 75 మూల భాషలు స్వయంచాలకంగా గుర్తించబడతాయి · 13 లక్ష్య భాషలు"
+      "description": "మూల భాషను స్వయంచాలకంగా గుర్తించే ప్రత్యేక అనువాద మోడల్"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "ఏకకాల అనువాదకుడిగా GPT-Live-1 · 22 వాయిస్‌లు · సెషన్ నిమిషానికి బిల్లింగ్, నిశ్శబ్దంతో సహా"
+      "description": "GPT-Live-1 అనువాదకుడు, నిశ్శబ్దంతో సహా సెషన్ నిమిషానికి బిల్లింగ్"
     },
     "palabraai": {
       "name": "Palabra AI",

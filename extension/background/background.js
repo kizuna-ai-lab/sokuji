@@ -411,6 +411,9 @@ async function openaiLiveSetDNRHeaders(apiKey) {
       condition: {
         urlFilter: OPENAI_LIVE_URL_FILTER,
         resourceTypes: ['websocket'],
+        // While the rule is live it would hand the user's key to ANY page that
+        // opens a Live socket; only the extension's own pages get it.
+        initiatorDomains: [chrome.runtime.id],
       },
     }];
     const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())

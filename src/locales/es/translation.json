@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "Modelos de voz GPT Realtime guiados para traducir · elige modelo y voz · 55 idiomas"
+      "description": "Modelo de voz GPT Realtime de uso general, totalmente configurable"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Modelo dedicado de traducción · 75 idiomas de origen detectados automáticamente · 13 idiomas de destino"
+      "description": "Modelo dedicado de traducción que detecta el idioma de origen automáticamente"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 como intérprete simultáneo · 22 voces · se factura por minuto de sesión, silencio incluido"
+      "description": "Intérprete GPT-Live-1, facturado por minuto de sesión, silencio incluido"
     },
     "palabraai": {
       "name": "Palabra AI",

@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "অনুবাদের জন্য নির্দেশিত GPT Realtime বাক মডেল · মডেল ও কণ্ঠ বেছে নিন · 55টি ভাষা"
+      "description": "সাধারণ-উদ্দেশ্য GPT Realtime বাক মডেল, সম্পূর্ণ কনফিগারযোগ্য"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "নিবেদিত অনুবাদ মডেল · 75টি উৎস ভাষা স্বয়ংক্রিয়ভাবে শনাক্ত · 13টি লক্ষ্য ভাষা"
+      "description": "নিবেদিত অনুবাদ মডেল, উৎস ভাষা স্বয়ংক্রিয়ভাবে শনাক্ত করে"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "সমকালীন দোভাষী হিসেবে GPT-Live-1 · 22টি কণ্ঠ · সেশনের প্রতি মিনিটে বিল, নীরবতা সহ"
+      "description": "GPT-Live-1 দোভাষী, নীরবতা সহ সেশনের প্রতি মিনিটে বিল"
     },
     "palabraai": {
       "name": "Palabra AI",

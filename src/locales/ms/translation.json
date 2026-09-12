@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "Model suara GPT Realtime yang diarahkan untuk menterjemah · pilih model dan suara · 55 bahasa"
+      "description": "Model suara GPT Realtime serba guna, boleh dikonfigurasi sepenuhnya"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Model terjemahan khusus · 75 bahasa sumber dikesan secara automatik · 13 bahasa sasaran"
+      "description": "Model terjemahan khusus yang mengesan bahasa sumber secara automatik"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 sebagai jurubahasa serentak · 22 suara · dicaj mengikut minit sesi, termasuk senyap"
+      "description": "Jurubahasa GPT-Live-1, dicaj mengikut minit sesi termasuk senyap"
     },
     "palabraai": {
       "name": "Palabra AI",

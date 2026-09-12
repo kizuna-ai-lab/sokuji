@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "Các mô hình giọng nói GPT Realtime được hướng dẫn để dịch · chọn mô hình và giọng · 55 ngôn ngữ"
+      "description": "Mô hình giọng nói GPT Realtime đa dụng, tùy chỉnh toàn diện"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Mô hình dịch chuyên dụng · tự động nhận diện 75 ngôn ngữ nguồn · 13 ngôn ngữ đích"
+      "description": "Mô hình dịch chuyên dụng, tự động nhận diện ngôn ngữ nguồn"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 làm phiên dịch đồng thời · 22 giọng · tính phí theo phút phiên, kể cả khoảng lặng"
+      "description": "Phiên dịch GPT-Live-1, tính phí theo phút phiên kể cả khoảng lặng"
     },
     "palabraai": {
       "name": "Palabra AI",

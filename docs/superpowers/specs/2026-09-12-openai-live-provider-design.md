@@ -277,9 +277,13 @@ export const defaultOpenAILiveSettings = {
   voice picker (`hasVoiceSettings`) and the two silence sliders (`hasSilenceDuration`) read and
   write `openaiLive`. No new components; the transport selector is hidden because
   `supportsWebRTC` is false and the slice has no `transportType`.
+- `reversesDirectionViaSourceLanguage()` returns true: Live has no language fields, so a
+  participant leg's direction is only the swapped template, and an `auto` source would render
+  the literal word "auto" as that leg's target. The existing Start gate
+  (`autoSourceParticipantBlocked`) therefore refuses a participant leg with an `auto` source.
 - Locales, all 30 catalogs (`locales.consistency.test.ts` keeps them in lockstep with `en`):
   - `providers.openai_live.name`: "OpenAI Live"
-  - `providers.openai_live.description` (en): "GPT-Live-1 as a simultaneous interpreter. Billed per session minute, silence included."
+  - `providers.openai_live.description` (en): "GPT-Live-1 interpreter, billed per session minute including silence" — one short sentence like the other providers', and, per Known limitations, no "simultaneous".
   - `mainPanel.openaiLiveConnectionLost`: the same localized sentence as
     `mainPanel.sonioxConnectionLost` in every catalog ("The connection was interrupted — tap
     Start Session in a moment to continue."); the wording is provider-agnostic, so no new
@@ -294,7 +298,8 @@ export const defaultOpenAILiveSettings = {
   TTS comment in `background.js` records this). `connect-src` already allows `wss://api.openai.com`.
 - `extension/background/background.js`: `openaiLiveSetDNRHeaders(apiKey)` /
   `openaiLiveClearDNRHeaders()` following the Volcengine functions (serialized through the
-  same `dnrUpdatePromise`, rule id base 4000, remove-then-add), and two `onMessage` branches.
+  same `dnrUpdatePromise`, rule id base 4000, remove-then-add, `initiatorDomains` = the extension id so no other page's
+  socket can borrow the key while the rule is live), and two `onMessage` branches.
   The key is held only in the dynamic rule for the seconds between registration and
   `session.started`; it is never logged.
 - Electron: no change; `ws-headers-set` already accepts any host and header map.

@@ -573,9 +573,15 @@ describe('S3 reversesDirectionViaSourceLanguage', () => {
     expect(d.reversesDirectionViaSourceLanguage('')).toBe(false);
   });
 
+  it('true for OpenAI Live regardless of model — it has no language fields, so the swapped template is the whole direction', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_LIVE);
+    expect(d.reversesDirectionViaSourceLanguage('gpt-live-1')).toBe(true);
+    expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(true);
+  });
+
   it('false for every other descriptor, any model', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI].includes(id)) continue;
+      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI, Provider.OPENAI_LIVE].includes(id)) continue;
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.reversesDirectionViaSourceLanguage(TRANSLATE), `${id}`).toBe(false);
       expect(d.reversesDirectionViaSourceLanguage(undefined), `${id}`).toBe(false);

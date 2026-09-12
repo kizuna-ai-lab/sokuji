@@ -370,7 +370,11 @@ export class OpenAILiveClient implements IClient {
 
   // ----- Session lifecycle -----
 
-  private resetSessionState(): void {
+  /** Forget the items still receiving text or audio, and the timers that
+   *  would complete them. Shared by a session reset and a conversation clear:
+   *  after either, the next delta must open a fresh item rather than append
+   *  to an id that no longer resolves. */
+  private forgetOpenItems(): void {
     if (this.userSilenceTimer) clearTimeout(this.userSilenceTimer);
     if (this.assistantSilenceTimer) clearTimeout(this.assistantSilenceTimer);
     this.userSilenceTimer = null;
@@ -379,13 +383,17 @@ export class OpenAILiveClient implements IClient {
     this.audioHandoffTimer = null;
     this.pendingAudioItems = [];
     this.assistantTextEndMs.clear();
-    this.timelineOriginMs = null;
     this.userItemStartMs = null;
     this.userLastEndMs = null;
     this.userTimerFiredOnce = false;
     this.currentAssistantStartMs = null;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
+  }
+
+  private resetSessionState(): void {
+    this.forgetOpenItems();
+    this.timelineOriginMs = null;
     this.itemLookup.clear();
     this.conversationItems = [];
     this.audioChunks.clear();
@@ -1255,8 +1263,7 @@ export class OpenAILiveClient implements IClient {
     this.itemLookup.clear();
     this.audioChunks.clear();
     this.audioCumSamples.clear();
-    this.pendingAudioItems = [];
-    this.assistantTextEndMs.clear();
+    this.forgetOpenItems();
   }
   setEventHandlers(handlers: ClientEventHandlers): void { this.eventHandlers = { ...handlers }; }
   getProvider(): ProviderType { return Provider.OPENAI_LIVE; }

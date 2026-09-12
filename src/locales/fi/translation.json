@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "GPT Realtime -puhemallit ohjattuna kääntämään · valitse malli ja ääni · 55 kieltä"
+      "description": "Yleiskäyttöinen GPT Realtime -puhemalli, täysin muokattavissa"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Erillinen käännösmalli · 75 lähdekieltä tunnistetaan automaattisesti · 13 kohdekieltä"
+      "description": "Erillinen käännösmalli, joka tunnistaa lähdekielen automaattisesti"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 simultaanitulkkina · 22 ääntä · laskutus istuntominuuteittain, hiljaisuus mukaan lukien"
+      "description": "GPT-Live-1-tulkki, laskutus istuntominuuteittain hiljaisuus mukaan lukien"
     },
     "palabraai": {
       "name": "Palabra AI",

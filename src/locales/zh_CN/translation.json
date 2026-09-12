@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "GPT Realtime 语音模型按提示翻译 · 可选模型与音色 · 55 种语言"
+      "description": "通用 GPT Realtime 语音模型，可自由配置"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "专用翻译模型 · 自动识别 75 种源语言 · 13 种目标语言"
+      "description": "专用翻译模型，自动识别源语言"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 同声传译 · 22 种音色 · 按会话时长每分钟计费，含静音"
+      "description": "GPT-Live-1 口译，按会话时长计费（含静音）"
     },
     "palabraai": {
       "name": "Palabra AI",

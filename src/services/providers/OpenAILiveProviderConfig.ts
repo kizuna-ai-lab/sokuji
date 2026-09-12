@@ -91,6 +91,17 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
     { id: LIVE_MODEL, type: 'realtime' },
   ];
 
+  /**
+   * Live has no language fields: a participant leg's direction is only the
+   * rendered template with source and target swapped, and an `auto` source
+   * renders as the literal word "auto" as that leg's target language. Saying
+   * true puts Live behind the existing Start gate (`autoSourceParticipantBlocked`)
+   * whenever a participant channel is in scope, which is what that gate is for.
+   */
+  reversesDirectionViaSourceLanguage(_model: string | null | undefined): boolean {
+    return true;
+  }
+
   getConfig(): ProviderConfig {
     return {
       id: 'openai_live',

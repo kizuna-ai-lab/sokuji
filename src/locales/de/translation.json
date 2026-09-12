@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "GPT-Realtime-Sprachmodelle per Prompt zum Übersetzen · Modell und Stimme wählbar · 55 Sprachen"
+      "description": "Universelles GPT-Realtime-Sprachmodell, frei konfigurierbar"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Dediziertes Übersetzungsmodell · 75 Ausgangssprachen automatisch erkannt · 13 Zielsprachen"
+      "description": "Dediziertes Übersetzungsmodell mit automatischer Erkennung der Ausgangssprache"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 als Simultandolmetscher · 22 Stimmen · Abrechnung pro Sitzungsminute, Stille inklusive"
+      "description": "GPT-Live-1-Dolmetscher, Abrechnung pro Sitzungsminute inklusive Stille"
     },
     "palabraai": {
       "name": "Palabra AI",

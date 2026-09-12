@@ -449,7 +449,7 @@
     },
     "openai": {
       "name": "OpenAI Realtime",
-      "description": "GPT Realtime 音声モデルを指示で翻訳 · モデルと声を選択可 · 55 言語"
+      "description": "汎用 GPT Realtime 音声モデル、自由に設定可能"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "翻訳専用モデル · 75 のソース言語を自動検出 · 13 のターゲット言語"
+      "description": "翻訳専用モデル、ソース言語を自動検出"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 による同時通訳 · 22 種の声 · セッション時間で分単位課金（無音含む）"
+      "description": "GPT-Live-1 による通訳、セッション時間で分単位課金（無音含む）"
     },
     "palabraai": {
       "name": "Palabra AI",
