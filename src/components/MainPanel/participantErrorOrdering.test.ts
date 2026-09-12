@@ -82,3 +82,147 @@ describe('participant-connect error bubble vs. the post-init setItems overwrite'
     });
   });
 });
+
+/**
+ * The same overwrite hazard at the other end of the session.
+ *
+ * disconnectConversation's speaker leg ends with
+ * `setItems(client.getConversationItems()); client.reset();` — the plain-value
+ * overwrite again. It is correct for the session that owned the client: it
+ * captures the final transcript before reset empties it.
+ *
+ * It was wrong for the NEXT session, because `speakerClientRef.current` was
+ * never cleared. Participant-only ("Others") mode builds no speaker client at
+ * all, so its Stop reached this leg holding the previous session's object —
+ * already `reset()`, so `getConversationItems()` returns `[]`, so the overwrite
+ * is `setItems([])`. In Others mode `items` is not empty: it carries the
+ * participant-channel warning and the descriptor's prepare notices. Those rows
+ * vanished at Stop, silently.
+ *
+ * The fix is the null the participant leg always had. Modelled here the same
+ * way as above — the leg's `if (!client) return` is what the "fixed" case
+ * asserts, and there is still no React harness to mount MainPanel with.
+ */
+describe('stale speaker client vs. the teardown setItems overwrite', () => {
+  /** The tail of disconnectConversation's speaker leg. */
+  const teardownSpeakerLeg = (
+    setItems: (u: Updater) => void,
+    client: { getConversationItems: () => Item[] } | null,
+  ) => {
+    if (!client) return;
+    setItems(client.getConversationItems());
+  };
+
+  /** A client from an earlier session: disconnected and already reset, so empty. */
+  const staleClient = { getConversationItems: (): Item[] => [] };
+
+  const othersModeRows: Item[] = [
+    { id: 'warn-1', text: "Failed to start Other's audio channel." },
+    { id: 'notice-1', text: 'Prepare notice' },
+  ];
+
+  it('pre-fix: an Others-mode Stop wipes the warning and notice rows', () => {
+    const { setItems, getState } = makeStateContainer(othersModeRows);
+
+    // The ref still held the previous session's client, so the leg ran.
+    teardownSpeakerLeg(setItems, staleClient);
+
+    expect(getState()).toEqual([]); // both rows gone, no error, no log
+  });
+
+  it('cleared ref: the leg is skipped and the rows survive Stop', () => {
+    const { setItems, getState } = makeStateContainer(othersModeRows);
+
+    // Stop now nulls speakerClientRef, so a session that built no speaker
+    // client finds nothing to tear down.
+    teardownSpeakerLeg(setItems, null);
+
+    expect(getState()).toEqual(othersModeRows);
+  });
+
+  it('still captures the final transcript for the session that owned the client', () => {
+    const finalTranscript: Item[] = [{ id: 'speaker-1', text: 'hello' }];
+    const { setItems, getState } = makeStateContainer([{ id: 'stale', text: 'mid-stream' }]);
+
+    // The overwrite is not being removed — this is the case it exists for.
+    teardownSpeakerLeg(setItems, { getConversationItems: () => finalTranscript });
+
+    expect(getState()).toEqual(finalTranscript);
+  });
+});
+
+/**
+ * The clear must not wipe a session it does not own.
+ *
+ * disconnectConversation flips isSessionActive to false synchronously — which
+ * re-enables the Start button — and only then awaits (pauseRecording, a 100 ms
+ * settle, `client.disconnect()`). Nothing serializes a new Start behind that
+ * in-flight Stop, so a Stop→Start double-tap can put the NEXT session's client
+ * in `speakerClientRef` while the old teardown is still running. Two things
+ * then have to hold:
+ *
+ *  - the leg must tear down the client this Stop OWNED, not whatever the ref
+ *    holds by the time the leg runs — hence the capture at the top of
+ *    disconnectConversation, before any await;
+ *  - the clear must be compare-and-clear, so a ref that now points at the new
+ *    session's client is left alone.
+ *
+ * An unconditional `ref.current = null` there produced a live session with a
+ * null speaker ref: every audio frame dropped, nothing on screen, and the next
+ * Stop skipping the leg so the provider session was never closed.
+ */
+describe('teardown vs. a Start that lands mid-Stop', () => {
+  type Client = { getConversationItems: () => Item[] };
+
+  /** disconnectConversation's capture-then-tear-down shape, with the ref modelled. */
+  const runTeardown = (
+    ref: { current: Client | null },
+    captured: Client | null,
+    setItems: (u: Updater) => void,
+  ) => {
+    const client = captured;
+    if (!client) return;
+    setItems(client.getConversationItems());
+    if (ref.current === client) ref.current = null;
+  };
+
+  const oldClient: Client = { getConversationItems: () => [{ id: 'old-1', text: 'final line' }] };
+  const newClient: Client = { getConversationItems: () => [] };
+
+  it('a plain Stop clears the ref', () => {
+    const ref = { current: oldClient as Client | null };
+    const captured = ref.current; // top of disconnectConversation
+    const { setItems, getState } = makeStateContainer([]);
+
+    runTeardown(ref, captured, setItems);
+
+    expect(ref.current).toBeNull();
+    expect(getState()).toEqual([{ id: 'old-1', text: 'final line' }]);
+  });
+
+  it('a Start that lands during the old teardown keeps its client', () => {
+    const ref = { current: oldClient as Client | null };
+    const captured = ref.current; // top of disconnectConversation
+    const { setItems } = makeStateContainer([]);
+
+    // Start clicked inside the teardown's await window: the new session has
+    // already assigned its client before the old leg gets to run.
+    ref.current = newClient;
+
+    runTeardown(ref, captured, setItems);
+
+    // The old client was torn down (captured), and the new one is untouched.
+    expect(ref.current).toBe(newClient);
+  });
+
+  it('the pre-fix shape wiped the new session', () => {
+    // What an unconditional clear did in the same interleaving.
+    const ref = { current: oldClient as Client | null };
+    const captured = ref.current;
+    ref.current = newClient;
+
+    if (captured) ref.current = null; // the bare `= null` this test guards against
+
+    expect(ref.current).toBeNull(); // the live session just lost its client
+  });
+});

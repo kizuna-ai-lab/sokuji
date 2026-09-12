@@ -570,9 +570,11 @@ describe('noChannelCameUp — the post-init guard reads outcomes, not refs', () 
    *    `participantClientRef.current`. A participant leg whose connect() or
    *    startSystemAudioRecording() rejected therefore left the ref set and the
    *    guard silent.
-   *  - `speakerClientRef.current` is never assigned null anywhere in MainPanel,
-   *    not even in disconnectConversation. After the first session that builds a
-   *    speaker client, the left-hand operand is false forever.
+   *  - `speakerClientRef.current` was never assigned null anywhere in MainPanel
+   *    at the time, not even in disconnectConversation, so after the first
+   *    session that built a speaker client the left-hand operand was false
+   *    forever. Stop clears it now; the guard stays outcome-based regardless,
+   *    since a ref set mid-start still proves nothing about the leg.
    *
    * Together those make the participant-only session the real hazard: no
    * microphone, the participant leg fails, and the session is nonetheless marked
