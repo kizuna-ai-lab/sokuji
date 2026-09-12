@@ -74,6 +74,12 @@ export interface EventData {
     | 'session.input_audio_buffer.append'
     | 'conversation.item.create' | 'conversation.item.truncate' | 'conversation.item.delete'
     | 'response.create' | 'response.cancel'
+    // OpenAI Live (gpt-live-1) client events — the primary WebSocket's
+    // session.start/session.close handshake and its own audio-append name
+    // (distinct from the Realtime API's input_audio_buffer.append)
+    | 'session.start' | 'session.close' | 'session.close_timeout'
+    | 'session.input_audio.append'
+    | 'session.connection_lost'
     // openai-realtime-api custom events (for beta clients)
     | 'conversation.item.appended' | 'conversation.item.completed'
     | 'conversation.updated' | 'conversation.interrupted'
@@ -361,8 +367,10 @@ const useLogStore = create<LogStore>(
       let groupingKey: string | undefined;
       
       // OpenAI-specific grouping. The translate API prefixes the same wire
-      // event with `session.`, so collapse both variants under the same key.
-      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append') {
+      // event with `session.`, and the Live API names it without `_buffer`;
+      // all three are the microphone stream, collapsed under one key.
+      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append'
+          || eventType === 'session.input_audio.append') {
         groupingKey = 'input_audio_buffer';
       }
       // For other delta events, group by event type only

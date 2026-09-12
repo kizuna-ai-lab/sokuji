@@ -23,6 +23,7 @@ import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
 import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
+import { defaultOpenAILiveSettings } from './OpenAILiveProviderConfig';
 import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
@@ -44,6 +45,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   openai: defaultOpenAISettings,
   openaiCompatible: defaultOpenAICompatibleSettings,
   openaiTranslate: defaultOpenAITranslateSettings,
+  openaiLive: defaultOpenAILiveSettings,
   gemini: defaultGeminiSettings,
   palabraai: defaultPalabraAISettings,
   volcengineST: defaultVolcengineSTSettings,
@@ -60,7 +62,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(14);
+    expect(ids.length).toBe(15);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -219,6 +221,7 @@ describe('descriptor.buildSessionConfig', () => {
     // Expected wire tags (kizuna twins reuse their base tag; compatible uses 'openai').
     const wireTag: Record<string, string> = {
       openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
+      openai_live: 'openai_live',
       gemini: 'gemini', palabraai: 'palabraai', volcengine_st: 'volcengine_st',
       volcengine_ast2: 'volcengine_ast2', zoom_ai: 'zoom_ai', local_inference: 'local_inference',
       local_native: 'local_native',
@@ -287,6 +290,7 @@ describe('registry invariants', () => {
     [Provider.OPENAI]: 'openai',
     [Provider.OPENAI_COMPATIBLE]: 'openaiCompatible',
     [Provider.OPENAI_TRANSLATE]: 'openaiTranslate',
+    [Provider.OPENAI_LIVE]: 'openaiLive',
     [Provider.GEMINI]: 'gemini',
     [Provider.PALABRA_AI]: 'palabraai',
     [Provider.VOLCENGINE_ST]: 'volcengineST',
@@ -319,6 +323,7 @@ describe('registry invariants', () => {
     [Provider.OPENAI]: true,
     [Provider.OPENAI_COMPATIBLE]: true,
     [Provider.OPENAI_TRANSLATE]: true,
+    [Provider.OPENAI_LIVE]: false,
     [Provider.GEMINI]: false,
     [Provider.PALABRA_AI]: false,
     [Provider.VOLCENGINE_ST]: false,
@@ -368,6 +373,7 @@ describe('S1 capability flags', () => {
     [Provider.VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'], // twin spread
     [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.OPENAI_LIVE]: undefined,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
     [Provider.SONIOX]: undefined,
     [Provider.KIZUNA_AI_SONIOX]: undefined,
@@ -383,6 +389,7 @@ describe('S1 capability flags', () => {
     [Provider.LOCAL_INFERENCE]: true,
     [Provider.LOCAL_NATIVE]: true,
     [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.OPENAI_LIVE]: undefined,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
     [Provider.SONIOX]: undefined,
     [Provider.KIZUNA_AI_SONIOX]: undefined,
@@ -405,6 +412,7 @@ describe('S1 capability flags', () => {
     [Provider.OPENAI]: undefined,
     [Provider.OPENAI_COMPATIBLE]: undefined,
     [Provider.OPENAI_TRANSLATE]: undefined,
+    [Provider.OPENAI_LIVE]: undefined,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
     [Provider.SONIOX]: undefined,
     [Provider.KIZUNA_AI_SONIOX]: undefined,
@@ -565,9 +573,15 @@ describe('S3 reversesDirectionViaSourceLanguage', () => {
     expect(d.reversesDirectionViaSourceLanguage('')).toBe(false);
   });
 
+  it('true for OpenAI Live regardless of model — it has no language fields, so the swapped template is the whole direction', () => {
+    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_LIVE);
+    expect(d.reversesDirectionViaSourceLanguage('gpt-live-1')).toBe(true);
+    expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(true);
+  });
+
   it('false for every other descriptor, any model', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI].includes(id)) continue;
+      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI, Provider.OPENAI_LIVE].includes(id)) continue;
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.reversesDirectionViaSourceLanguage(TRANSLATE), `${id}`).toBe(false);
       expect(d.reversesDirectionViaSourceLanguage(undefined), `${id}`).toBe(false);

@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPTモデル搭載"
+      "name": "OpenAI Realtime",
+      "description": "汎用 GPT Realtime 音声モデル、自由に設定可能"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI 専用のリアルタイム翻訳モデル"
+      "description": "翻訳専用モデル、ソース言語を自動検出"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 による通訳、セッション時間で分単位課金（無音含む）"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "音声翻訳の一部を再生できませんでした。文字起こしとテキスト翻訳には影響ありません。",
     "sonioxSegmentEnded": "このセグメントは終了しました——続けるには「セッション開始」をタップしてください。",
     "sonioxConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。",
+    "openaiLiveConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。",
     "sonioxVoiceClipMissing": "この端末には音声の録音がないため、このセッションではプリセット音声を使用します。ここでご自身の声で話すには、設定で録音してください。",
     "sonioxVoicePoolBusy": "現在、カスタム音声の枠がすべて使用中のため、このセッションではプリセット音声を使用します。次回はご自身の音声が再び使用されます。",
     "sonioxVoiceBuildFailed": "カスタム音声を作成できなかったため、このセッションではプリセット音声を使用します。設定でより聞き取りやすいクリップを録音してみてください。",

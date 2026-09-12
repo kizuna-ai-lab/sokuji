@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Alimentado por modelos GPT"
+      "name": "OpenAI Realtime",
+      "description": "Modelo de voz GPT Realtime de uso geral, totalmente configurável"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Modelo dedicado de tradução em tempo real da OpenAI"
+      "description": "Modelo dedicado de tradução que detecta o idioma de origem automaticamente"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "Intérprete GPT-Live-1, cobrado por minuto de sessão, silêncio incluído"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Não foi possível reproduzir parte da tradução falada. A transcrição e a tradução de texto não foram afetadas.",
     "sonioxSegmentEnded": "Este segmento terminou — toque em “Iniciar sessão” para continuar.",
     "sonioxConnectionLost": "A conexão foi interrompida — toque em “Iniciar sessão” daqui a pouco para continuar.",
+    "openaiLiveConnectionLost": "A conexão foi interrompida — toque em “Iniciar sessão” daqui a pouco para continuar.",
     "sonioxVoiceClipMissing": "Este dispositivo não tem nenhuma gravação de voz, então esta sessão usa uma voz predefinida. Grave uma em Configurações para falar aqui com sua própria voz.",
     "sonioxVoicePoolBusy": "Todas as vagas de vozes personalizadas estão em uso no momento, então esta sessão usa uma voz predefinida. Sua própria voz será usada novamente na próxima vez.",
     "sonioxVoiceBuildFailed": "Não foi possível criar sua voz personalizada, então esta sessão usa uma voz predefinida. Tente gravar um trecho mais claro em Configurações.",

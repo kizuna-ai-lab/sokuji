@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Napędzany modelami GPT"
+      "name": "OpenAI Realtime",
+      "description": "Uniwersalny model mowy GPT Realtime, w pełni konfigurowalny"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Dedykowany model tłumaczenia w czasie rzeczywistym od OpenAI"
+      "description": "Dedykowany model tłumaczeniowy z automatycznym wykrywaniem języka źródłowego"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "Tłumacz GPT-Live-1, rozliczany za minutę sesji łącznie z ciszą"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Nie udało się odtworzyć części tłumaczenia mówionego. Transkrypcja i tłumaczenie tekstu działają bez zmian.",
     "sonioxSegmentEnded": "Ten segment się zakończył — dotknij „Rozpocznij sesję”, aby kontynuować.",
     "sonioxConnectionLost": "Połączenie zostało przerwane — za chwilę dotknij „Rozpocznij sesję”, aby kontynuować.",
+    "openaiLiveConnectionLost": "Połączenie zostało przerwane — za chwilę dotknij „Rozpocznij sesję”, aby kontynuować.",
     "sonioxVoiceClipMissing": "To urządzenie nie ma nagrania głosu, więc ta sesja korzysta z głosu z presetu. Nagraj je w Ustawieniach, aby mówić tutaj własnym głosem.",
     "sonioxVoicePoolBusy": "Wszystkie miejsca na własne głosy są obecnie zajęte, więc ta sesja korzysta z głosu z presetu. Twój własny głos zostanie użyty ponownie następnym razem.",
     "sonioxVoiceBuildFailed": "Nie udało się zbudować Twojego własnego głosu, więc ta sesja korzysta z głosu z presetu. Spróbuj nagrać wyraźniejszy klip w Ustawieniach.",

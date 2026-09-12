@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Didukung oleh model GPT"
+      "name": "OpenAI Realtime",
+      "description": "Model suara GPT Realtime serbaguna, dapat dikonfigurasi sepenuhnya"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Model terjemahan real-time khusus dari OpenAI"
+      "description": "Model terjemahan khusus yang mendeteksi bahasa sumber secara otomatis"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "Juru bahasa GPT-Live-1, ditagih per menit sesi termasuk keheningan"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Sebagian terjemahan suara tidak dapat diputar. Transkripsi dan terjemahan teks tidak terpengaruh.",
     "sonioxSegmentEnded": "Segmen ini telah berakhir — ketuk “Mulai sesi” untuk melanjutkan.",
     "sonioxConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan.",
+    "openaiLiveConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan.",
     "sonioxVoiceClipMissing": "Perangkat ini tidak memiliki rekaman suara, sehingga sesi ini menggunakan suara preset. Rekam satu di Pengaturan untuk berbicara dengan suara Anda sendiri di sini.",
     "sonioxVoicePoolBusy": "Semua slot suara kustom sedang digunakan saat ini, sehingga sesi ini menggunakan suara preset. Suara Anda sendiri akan digunakan lagi lain kali.",
     "sonioxVoiceBuildFailed": "Suara kustom Anda tidak dapat dibangun, sehingga sesi ini menggunakan suara preset. Coba rekam klip yang lebih jelas di Pengaturan.",

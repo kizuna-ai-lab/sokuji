@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT modelleri ile çalışır"
+      "name": "OpenAI Realtime",
+      "description": "Genel amaçlı GPT Realtime konuşma modeli, tamamen yapılandırılabilir"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI'nin özel gerçek zamanlı çeviri modeli"
+      "description": "Kaynak dili otomatik algılayan özel çeviri modeli"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 tercüman, sessizlik dahil oturum dakikası başına ücretlendirilir"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Sesli çevirinin bir kısmı oynatılamadı. Deşifre ve metin çevirisi etkilenmedi.",
     "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için “Oturumu başlat”a dokunun.",
     "sonioxConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun.",
+    "openaiLiveConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun.",
     "sonioxVoiceClipMissing": "Bu cihazda ses kaydı yok, bu yüzden bu oturum hazır bir ses kullanıyor. Burada kendi sesinizle konuşmak için Ayarlar'dan bir kayıt yapın.",
     "sonioxVoicePoolBusy": "Şu anda tüm özel ses yuvaları kullanımda olduğundan bu oturum hazır bir ses kullanıyor. Kendi sesiniz bir sonraki sefer tekrar kullanılacak.",
     "sonioxVoiceBuildFailed": "Özel sesiniz oluşturulamadı, bu yüzden bu oturum hazır bir ses kullanıyor. Ayarlar'dan daha net bir kayıt yapmayı deneyin.",

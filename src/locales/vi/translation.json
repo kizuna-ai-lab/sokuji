@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Sử dụng các mô hình GPT"
+      "name": "OpenAI Realtime",
+      "description": "Mô hình giọng nói GPT Realtime đa dụng, tùy chỉnh toàn diện"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Mô hình dịch thuật thời gian thực chuyên dụng của OpenAI"
+      "description": "Mô hình dịch chuyên dụng, tự động nhận diện ngôn ngữ nguồn"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "Phiên dịch GPT-Live-1, tính phí theo phút phiên kể cả khoảng lặng"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Không phát được một phần bản dịch giọng nói. Phiên âm và bản dịch văn bản không bị ảnh hưởng.",
     "sonioxSegmentEnded": "Đoạn này đã kết thúc — nhấn “Bắt đầu phiên” để tiếp tục.",
     "sonioxConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn “Bắt đầu phiên” sau giây lát để tiếp tục.",
+    "openaiLiveConnectionLost": "Kết nối đã bị gián đoạn — hãy nhấn “Bắt đầu phiên” sau giây lát để tiếp tục.",
     "sonioxVoiceClipMissing": "Thiết bị này không có bản ghi âm giọng nói nào, vì vậy phiên này dùng một giọng có sẵn. Hãy ghi âm một bản trong Cài đặt để nói bằng chính giọng của bạn tại đây.",
     "sonioxVoicePoolBusy": "Hiện tất cả các chỗ giọng nói tùy chỉnh đều đang được sử dụng, vì vậy phiên này dùng một giọng có sẵn. Giọng nói của riêng bạn sẽ được dùng lại vào lần sau.",
     "sonioxVoiceBuildFailed": "Không thể xây dựng giọng nói tùy chỉnh của bạn, vì vậy phiên này dùng một giọng có sẵn. Hãy thử ghi âm một đoạn rõ hơn trong Cài đặt.",

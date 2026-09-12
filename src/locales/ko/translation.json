@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT 모델 기반"
+      "name": "OpenAI Realtime",
+      "description": "범용 GPT Realtime 음성 모델, 자유롭게 설정 가능"
     },
     "gemini": {
       "name": "구글 제미나이",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI 전용 실시간 번역 모델"
+      "description": "번역 전용 모델, 원어 자동 감지"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 통역, 세션 시간 기준 분당 과금(무음 포함)"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "음성 번역의 일부를 재생하지 못했습니다. 전사와 텍스트 번역에는 영향이 없습니다.",
     "sonioxSegmentEnded": "이 세그먼트가 종료되었습니다 — 계속하려면 ‘세션 시작’을 탭하세요.",
     "sonioxConnectionLost": "연결이 끊어졌습니다 — 잠시 후 계속하려면 ‘세션 시작’을 탭하세요.",
+    "openaiLiveConnectionLost": "연결이 끊어졌습니다 — 잠시 후 계속하려면 ‘세션 시작’을 탭하세요.",
     "sonioxVoiceClipMissing": "이 기기에 음성 녹음이 없어 이 세션은 프리셋 음성을 사용합니다. 여기서 본인 목소리로 말하려면 설정에서 녹음하세요.",
     "sonioxVoicePoolBusy": "지금은 모든 맞춤 음성 슬롯이 사용 중이라 이 세션은 프리셋 음성을 사용합니다. 다음 번에는 본인 음성이 다시 사용됩니다.",
     "sonioxVoiceBuildFailed": "맞춤 음성을 만들지 못해 이 세션은 프리셋 음성을 사용합니다. 설정에서 더 또렷한 클립을 녹음해 보세요.",

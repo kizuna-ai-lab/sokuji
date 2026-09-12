@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "מופעל על ידי מודלי GPT"
+      "name": "OpenAI Realtime",
+      "description": "מודל דיבור GPT Realtime לשימוש כללי, ניתן להגדרה מלאה"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "מודל התרגום הייעודי בזמן אמת של OpenAI"
+      "description": "מודל תרגום ייעודי שמזהה את שפת המקור אוטומטית"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "מתורגמן GPT-Live-1, חיוב לפי דקת שיחה כולל שקט"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "לא ניתן היה להשמיע חלק מהתרגום הקולי. התמלול ותרגום הטקסט לא הושפעו.",
     "sonioxSegmentEnded": "קטע זה הסתיים — הקישו על \"התחל הפעלה\" כדי להמשיך.",
     "sonioxConnectionLost": "החיבור נותק — הקישו על \"התחל הפעלה\" בעוד רגע כדי להמשיך.",
+    "openaiLiveConnectionLost": "החיבור נותק — הקישו על \"התחל הפעלה\" בעוד רגע כדי להמשיך.",
     "sonioxVoiceClipMissing": "למכשיר הזה אין הקלטת קול, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש. הקליטו אחת בהגדרות כדי לדבר כאן בקול שלכם.",
     "sonioxVoicePoolBusy": "כל המקומות לקולות מותאמים אישית תפוסים כרגע, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש. הקול שלכם ישמש שוב בפעם הבאה.",
     "sonioxVoiceBuildFailed": "לא ניתן היה לבנות את הקול המותאם אישית שלכם, ולכן ההפעלה הזו משתמשת בקול מוגדר מראש. נסו להקליט קטע ברור יותר בהגדרות.",

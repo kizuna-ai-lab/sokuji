@@ -1166,6 +1166,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // active, which is the one window where nothing else in this file reacts to
   // a dead participant leg. See splitDegraded.ts's `participantStreamEnded`.
   const participantStreamEndedRef = useRef<boolean>(false);
+  // The speaker leg's twin, for the same window on the speaker side: a client
+  // whose connection ends between connect() resolving and
+  // setIsSessionActive(true) — OpenAILiveClient gives up there after a failed
+  // reconnect — reports onClose while the session is still inactive, where
+  // the handler's guard returns early. The fact is recorded here so the
+  // pre-activation check can refuse to mark a dead client active.
+  const speakerStreamEndedRef = useRef<boolean>(false);
 
   // The id of the session currently being built or running, minted at the top
   // of connectConversation — BEFORE any client exists.
@@ -1532,6 +1539,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       onReconnecting: speakerTelemetry.onReconnecting,
       onReconnected: speakerTelemetry.onReconnected,
       onClose: async (event: any) => {
+        // Recorded BEFORE the guard below decides what to do with it — the
+        // guard decides whether to tear down, not whether the fact happened
+        // (same shape as participantStreamEndedRef). Only this pass's client
+        // counts: a prior session's late close must not veto the next start.
+        if (speakerClientRef.current === client) speakerStreamEndedRef.current = true;
         // Bail out if the session is already inactive. Some clients (e.g. OpenAIClient)
         // synchronously fire onClose from inside disconnect() during a user-initiated
         // stop — by then disconnectConversation() has already cleared isSessionActive,
@@ -1954,6 +1966,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // socket cannot arrive later and re-set it, since handleSttClose drops
       // stale closes before reaching onClose.
       participantStreamEndedRef.current = false;
+      speakerStreamEndedRef.current = false;
 
       // Mint this session's id HERE, before a client exists, so the handlers
       // handed to those clients can carry it. The store's `sessionId` is still
@@ -2782,8 +2795,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // in-flight connect, and if connect rejects, the outer catch below
       // surfaces its error bubble instead of a clean cancel — inherent to
       // that race and accepted (see the S7 final review, issue I1).
-      if (startAbort.signal.aborted) {
-        console.info('[Sokuji] [MainPanel] Cancel raced client construction; tearing down what this pass built instead of activating.');
+      //
+      // The same check also catches a speaker leg whose own connection ended
+      // in this window (speakerStreamEndedRef): its onClose returned early
+      // because the session was not active yet, so nothing else would. The
+      // speaker flag is read unconditionally because its close can land
+      // before speakerChannelStarted is assigned. A participant leg that ended
+      // here only counts when it was the session's sole leg: with a speaker
+      // up, resolveSplitDegraded turns that into a one-way session instead.
+      const soleParticipantEnded =
+        !speakerChannelStarted && participantChannelStarted && participantStreamEndedRef.current;
+      if (startAbort.signal.aborted || speakerStreamEndedRef.current || soleParticipantEnded) {
+        console.info(startAbort.signal.aborted
+          ? '[Sokuji] [MainPanel] Cancel raced client construction; tearing down what this pass built instead of activating.'
+          : speakerStreamEndedRef.current
+            ? '[Sokuji] [MainPanel] Speaker leg ended before activation; tearing down what this pass built instead of activating.'
+            : '[Sokuji] [MainPanel] Sole participant leg ended before activation; tearing down what this pass built instead of activating.');
         await teardownSessionLegs({
           speaker: async () => {
             if (!speakerChannelStarted) return;

@@ -16,6 +16,7 @@ import {
   useOpenAICompatibleSettings,
   usePalabraAISettings,
   useOpenAITranslateSettings,
+  useOpenAILiveSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useZoomAISettings,
@@ -37,6 +38,7 @@ import {
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateOpenAITranslate,
+  useUpdateOpenAILive,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
@@ -129,6 +131,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const geminiSettings = useGeminiSettings();
   const palabraAISettings = usePalabraAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
+  const openAILiveSettings = useOpenAILiveSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const zoomAISettings = useZoomAISettings();
@@ -154,6 +157,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateGeminiSettings = useUpdateGemini();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
+  const updateOpenAILiveSettings = useUpdateOpenAILive();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateZoomAISettings = useUpdateZoomAI();
@@ -404,6 +408,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateKizunaSonioxSettings({ [key]: value });
     } else if (provider === Provider.LOCAL_INFERENCE) {
       updateLocalInferenceSettings({ [key]: value });
+    } else if (provider === Provider.OPENAI_LIVE) {
+      updateOpenAILiveSettings({ [key]: value });
     } else {
       console.warn('[Sokuji][ProviderSpecificSettings] Unsupported provider:', provider);
     }
@@ -429,6 +435,11 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       // Covers OPENAI_TRANSLATE and its kizuna twin; activeOpenAITranslateSettings
       // resolves to the kizuna slice when managed.
       return activeOpenAITranslateSettings;
+    } else if (provider === Provider.OPENAI_LIVE) {
+      // Carries userSilenceDuration / assistantSilenceDuration for the
+      // segmentation sliders; every other shared field is absent and the
+      // capability flags keep those sections hidden.
+      return openAILiveSettings;
     }
     return null;
   };
@@ -440,6 +451,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateOpenAICompatibleSettings(updates);
     } else if (effectiveProvider === Provider.OPENAI_TRANSLATE) {
       updateActiveOpenAITranslateSettings(updates);
+    } else if (provider === Provider.OPENAI_LIVE) {
+      updateOpenAILiveSettings(updates);
     }
   };
 
@@ -449,7 +462,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   // The explicit return type narrows out `OpenAITranslateSettings` so
   // callers can read turnDetectionMode/threshold/etc. directly.
   const getOpenAICompatibleOnlySettings = (): OpenAICompatibleSettingsBase | null => {
-    if (effectiveProvider === Provider.OPENAI_TRANSLATE) return null;
+    if (effectiveProvider === Provider.OPENAI_TRANSLATE || provider === Provider.OPENAI_LIVE) return null;
     const settings = getOpenAICompatibleSettings();
     if (!settings || 'targetLanguage' in settings && !('voice' in settings)) {
       // Defensive: shouldn't happen given the gate above
@@ -868,7 +881,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     const compatibleSettings = getOpenAICompatibleSettings();
-    if (!compatibleSettings) return null;
+    if (!compatibleSettings || !('noiseReduction' in compatibleSettings)) return null;
 
     return (
       <div className="settings-section">
@@ -904,7 +917,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     const compatibleSettings = getOpenAICompatibleSettings();
-    if (!compatibleSettings) {
+    if (!compatibleSettings || !('transportType' in compatibleSettings)) {
       return null;
     }
 
@@ -947,7 +960,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     }
 
     const compatibleSettings = getOpenAICompatibleSettings();
-    if (!compatibleSettings) return null;
+    if (!compatibleSettings || !('transcriptModel' in compatibleSettings)) return null;
 
     // Two gates, both required: the provider's session must be able to carry a
     // glossary at all, and the selected model must accept `keywords` — the

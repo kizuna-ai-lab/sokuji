@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "由GPT模型驱动"
+      "name": "OpenAI Realtime",
+      "description": "通用 GPT Realtime 语音模型，可自由配置"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,7 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI 专用的实时翻译模型"
+      "description": "专用翻译模型，自动识别源语言"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 口译，按会话时长计费（含静音）"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "有一段语音翻译未能播放。转录和文字翻译不受影响。",
     "sonioxSegmentEnded": "本段已结束——点击“开始会话”以继续。",
     "sonioxConnectionLost": "连接已中断——请稍候点击“开始会话”以继续。",
+    "openaiLiveConnectionLost": "连接已中断——请稍候点击“开始会话”以继续。",
     "sonioxVoiceClipMissing": "此设备没有语音录音，因此本次会话使用预设声音。请在设置中录制一段，以便在此处使用您自己的声音。",
     "sonioxVoicePoolBusy": "目前所有自定义声音名额都在使用中，因此本次会话使用预设声音。您自己的声音将在下次再次使用。",
     "sonioxVoiceBuildFailed": "无法生成您的自定义声音，因此本次会话使用预设声音。请尝试在设置中录制更清晰的片段。",

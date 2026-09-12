@@ -35,6 +35,9 @@ import {
   LEGACY_TRANSLATE_TRANSCRIPT_MODEL,
 } from '../services/providers/OpenAITranslateProviderConfig';
 import {
+  OpenAILiveSettings, defaultOpenAILiveSettings,
+} from '../services/providers/OpenAILiveProviderConfig';
+import {
   GeminiSettings, defaultGeminiSettings,
 } from '../services/providers/GeminiProviderConfig';
 import {
@@ -81,7 +84,7 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
-  OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
+  OpenAITranslateSettings, OpenAILiveSettings, GeminiSettings, PalabraAISettings,
   VolcengineSTSettings, ZoomAISettings, VolcengineAST2Settings, LocalInferenceSettings,
   LocalNativeSettings, SonioxSettings,
 };
@@ -90,7 +93,7 @@ export type {
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
-  | OpenAITranslateSettings | VolcengineSTSettings | ZoomAISettings
+  | OpenAITranslateSettings | OpenAILiveSettings | VolcengineSTSettings | ZoomAISettings
   | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
 // ==================== Type Definitions ====================
@@ -213,6 +216,7 @@ export interface SettingsStore {
   openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
   openaiTranslate: OpenAITranslateSettings;
+  openaiLive: OpenAILiveSettings;
   volcengineST: VolcengineSTSettings;
   zoomAI: ZoomAISettings;
   volcengineAST2: VolcengineAST2Settings;
@@ -321,6 +325,7 @@ export interface SettingsStore {
   updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
+  updateOpenAILive: (settings: Partial<OpenAILiveSettings>) => Promise<void>;
   updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
   updateZoomAI: (settings: Partial<ZoomAISettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
@@ -558,6 +563,7 @@ const PROVIDER_SLICE_REGISTRY = {
   openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff },
   palabraai: { defaults: defaultPalabraAISettings },
   openaiTranslate: { defaults: defaultOpenAITranslateSettings },
+  openaiLive: { defaults: defaultOpenAILiveSettings },
   volcengineST: { defaults: defaultVolcengineSTSettings },
   zoomAI: { defaults: defaultZoomAISettings },
   volcengineAST2: { defaults: defaultVolcengineAST2Settings },
@@ -608,6 +614,7 @@ const useSettingsStore = create<SettingsStore>()(
     openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
     openaiTranslate: defaultOpenAITranslateSettings,
+    openaiLive: defaultOpenAILiveSettings,
     volcengineST: defaultVolcengineSTSettings,
     zoomAI: defaultZoomAISettings,
     volcengineAST2: defaultVolcengineAST2Settings,
@@ -657,23 +664,23 @@ const useSettingsStore = create<SettingsStore>()(
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.provider', provider);
 
-      // Silent prefill: when first switching to OPENAI_TRANSLATE and its key
-      // is empty while the OpenAI provider already has one, copy it across so
-      // the user doesn't have to re-paste. After the copy, the two keys are
+      // Silent prefill: when first switching to OPENAI_TRANSLATE or OPENAI_LIVE
+      // and its key is empty while the OpenAI provider already has one, copy it
+      // across so the user doesn't have to re-paste. After the copy the keys are
       // independent — later edits to either won't propagate to the other.
-      if (
-        provider === Provider.OPENAI_TRANSLATE
-        && !prior.openaiTranslate.apiKey
-        && prior.openai.apiKey
-      ) {
+      const prefillSlice =
+        provider === Provider.OPENAI_TRANSLATE ? 'openaiTranslate'
+        : provider === Provider.OPENAI_LIVE ? 'openaiLive'
+        : null;
+      if (prefillSlice && !prior[prefillSlice].apiKey && prior.openai.apiKey) {
         const openaiKey = prior.openai.apiKey;
         set((s) => ({
-          openaiTranslate: { ...s.openaiTranslate, apiKey: openaiKey }
-        }));
+          [prefillSlice]: { ...s[prefillSlice], apiKey: openaiKey }
+        }) as Partial<SettingsStore>);
         // Best-effort prefill: if persistence fails the in-memory copy is
         // still usable for this session; the user can re-trigger by setting
         // the key manually. persistSetting still files the one panel line.
-        await persistSetting('settings.openaiTranslate.apiKey', openaiKey);
+        await persistSetting(`settings.${prefillSlice}.apiKey`, openaiKey);
         // Fire-and-forget validation so the freshly-prefilled key is verified
         // in the background without blocking the provider switch.
         void get().validateApiKey();
@@ -830,6 +837,7 @@ const useSettingsStore = create<SettingsStore>()(
     updateOpenAICompatible: (settings) => updateProviderSlice(set, 'openaiCompatible', settings),
     updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
+    updateOpenAILive: (settings) => updateProviderSlice(set, 'openaiLive', settings),
     updateVolcengineST: (settings) => updateProviderSlice(set, 'volcengineST', settings),
     updateZoomAI: (settings) => updateProviderSlice(set, 'zoomAI', settings),
     updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
@@ -1055,6 +1063,10 @@ const useSettingsStore = create<SettingsStore>()(
                   // Translate locks model server-side; settings shape has
                   // no `model` field, so the auto-select is intentionally
                   // a no-op here.
+                  break;
+                case Provider.OPENAI_LIVE:
+                  // Live runs the fixed gpt-live-1; the slice has no `model`
+                  // field, so there is nothing to auto-select.
                   break;
               }
               console.info(`[Sokuji] Model "${currentModel || '(empty)'}" not available, auto-selected "${latestModel}"`);
@@ -1377,6 +1389,7 @@ export const useGeminiSettings = () => useSettingsStore((state) => state.gemini)
 export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
+export const useOpenAILiveSettings = () => useSettingsStore((state) => state.openaiLive);
 export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
 export const useZoomAISettings = () => useSettingsStore((state) => state.zoomAI);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
@@ -1452,6 +1465,7 @@ export const useUpdateGemini = () => useSettingsStore((state) => state.updateGem
 export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
+export const useUpdateOpenAILive = () => useSettingsStore((state) => state.updateOpenAILive);
 export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
 export const useUpdateZoomAI = () => useSettingsStore((state) => state.updateZoomAI);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);

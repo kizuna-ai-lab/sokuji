@@ -16,6 +16,7 @@ import {
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateOpenAITranslate,
+  useUpdateOpenAILive,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
   useUpdateKizunaSoniox,
@@ -100,6 +101,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
+  const updateOpenAILiveSettings = useUpdateOpenAILive();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateKizunaSonioxSettings = useUpdateKizunaSoniox();
@@ -162,6 +164,10 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
         // Relay twin of OPENAI_TRANSLATE — writes the kizuna slice.
         updateKizunaOpenaiTranslateSettings({ sourceLanguage: value });
+        break;
+      case Provider.OPENAI_LIVE:
+        // Renders the interpreter template only; Live auto-detects the input.
+        updateOpenAILiveSettings({ sourceLanguage: value });
         break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ sourceLanguage: value });
@@ -262,6 +268,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.KIZUNA_AI_OPENAI_TRANSLATE:
         // Relay twin of OPENAI_TRANSLATE — writes the kizuna slice.
         updateKizunaOpenaiTranslateSettings({ targetLanguage: value as any });
+        break;
+      case Provider.OPENAI_LIVE:
+        updateOpenAILiveSettings({ targetLanguage: value });
         break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ targetLanguage: value });
