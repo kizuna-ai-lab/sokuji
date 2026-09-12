@@ -111,6 +111,8 @@ Modified files:
 - `src/types/Provider.ts` — `OPENAI_LIVE = 'openai_live'` in the enum and the `ProviderType` union.
 - `src/services/interfaces/IClient.ts` — `OpenAILiveSessionConfig`, its guard, the `SessionConfig` union.
 - `src/stores/settingsStore.ts` — `openaiLive` slice, `updateOpenAILive`, `useOpenAILiveSettings`, `PROVIDER_SLICE_REGISTRY` entry.
+- `src/stores/logStore.ts` — five Live literals in the closed `EventData['type']` union (`session.start`, `session.close`, `session.close_timeout`, `session.input_audio.append`, `session.connection_lost`).
+- `src/services/providers/OpenAIProviderConfig.ts` — `LANGUAGES` and `VOICES` made public statics so the Live descriptor can share them.
 - `src/services/providers/ProviderConfigFactory.ts` — registration after `OPENAI_TRANSLATE`, gated `isElectron() || isExtension()`.
 - `src/components/Settings/sections/LanguageSection.tsx`, `ProviderSection.tsx`, `ProviderSpecificSettings.tsx` — one `case` / branch each where sibling providers already switch.
 - `src/locales/*/translation.json` (30 catalogs) — `providers.openai_live.name`, `.description`, and `mainPanel.openaiLiveConnectionLost`.
@@ -128,9 +130,13 @@ Nothing in `MainPanel.tsx`, `IClient` handler shapes, `electron/main.js` or the 
 
 1. Reset per-session state (items, timers, audio maps, sequence counter, watchdog).
 2. Register the upgrade header for host `api.openai.com`:
-   - Electron (`isElectron() && window.electron?.invoke`): `window.electron.invoke('ws-headers-set', { host: 'api.openai.com', headers: { Authorization: 'Bearer <key>' } })`. The main process consumes the rule on the first WebSocket upgrade to that host. On any failure before the upgrade fires, `ws-headers-clear`.
-   - Extension (`isExtension()`): `chrome.runtime.sendMessage({ type: 'OPENAI_LIVE_SET_HEADERS', apiKey })`, awaiting `{ success }`. The background adds one dynamic DNR rule (id base 4000) with `urlFilter: '||api.openai.com/v1/live/'`, `resourceTypes: ['websocket']`, `modifyHeaders` set `Authorization`. The client sends `OPENAI_LIVE_CLEAR_HEADERS` as soon as `session.started` arrives, and on any connect failure. The narrow `urlFilter` keeps the rule off the Realtime upgrade the `openai` provider makes.
+   - Electron (`isElectron() && window.electron?.invoke`): `window.electron.invoke('ws-headers-set', { host: 'api.openai.com', headers: { Authorization: 'Bearer <key>' } })`. The main process consumes the rule on the first WebSocket upgrade to that host.
+   - Extension (`isExtension()`): `chrome.runtime.sendMessage({ type: 'OPENAI_LIVE_SET_HEADERS', apiKey })`, awaiting `{ success }`. The background adds one dynamic DNR rule (id base 4000) with `urlFilter: '||api.openai.com/v1/live/'`, `resourceTypes: ['websocket']`, `modifyHeaders` set `Authorization`. The narrow `urlFilter` keeps the rule off the Realtime upgrade the `openai` provider makes.
    - Otherwise: throw `Error('OpenAI Live needs the desktop app or the browser extension')` — unreachable in practice because the provider is not registered on the web build; kept so a misconfiguration fails loudly instead of hanging in `waitForSessionStarted`.
+
+   On both platforms the header is cleared unconditionally once `session.started` arrives (`ws-headers-clear` / `OPENAI_LIVE_CLEAR_HEADERS`; Electron's one-shot rule was already consumed by the upgrade, so clearing is a no-op there), and on every failure path only when the session generation is unchanged — a stale clear from a superseded connect or reconnect attempt would otherwise delete the newer session's not-yet-consumed rule.
+
+   Registrations and upgrades are serialised process-wide (a module-level gate held from `registerUpgradeHeader()` until the socket's `open`/`error`/`close`, 15 s cap), because the Electron rule is per host and one-shot and the extension rule is per host and cleared by the first leg to start: two legs reconnecting at once would otherwise send one upgrade without its header.
 3. Open `new WebSocket('wss://api.openai.com/v1/live/sessions')` — no query string, no subprotocols.
 4. On `open`, send the first frame:
    ```json
@@ -142,7 +148,7 @@ Nothing in `MainPanel.tsx`, `IClient` handler shapes, `electron/main.js` or the 
        "delegation": { "type": "client" } } }
    ```
 5. `waitForSessionStarted()` — same shape as translate's `waitForSessionCreated` (30 s timeout, `error` frame rejects with its message, other frames forwarded to the regular handler). Record `session.id` and `expires_at` from `session.started` and log them as a `session.opened` client event.
-6. Mark connected, fire `onOpen`.
+6. Clear the upgrade header (unconditionally, on both platforms — see step 2), mark connected, fire `onOpen`.
 
 `session.start` is built by a static `buildSessionStart(config)` so tests pin the wire shape.
 
@@ -156,7 +162,7 @@ Nothing in `MainPanel.tsx`, `IClient` handler shapes, `electron/main.js` or the 
 | `session.usage.updated` | Feed the watchdog (§1.5); log. |
 | `session.delegation.created` | Log only. The interpreter prompt forbids delegation; if it happens the app ignores it and the model continues. |
 | `session.instructions.appended` and the other `*.appended` acks | Log only (nothing sends them in v1). |
-| `error` | Log; `onError(event.error)` — a Live `error` with `client_event_id` for our `session.start` already rejected in step 5; a mid-session error is treated as session-breaking, matching the other clients. |
+| `error` | Log; `onError(event.error)` — a conversation bubble and an `api_error` per the repo's `onError` convention; the session itself continues unless the server also closes it. A Live `error` with `client_event_id` for our `session.start` already rejected in step 5. |
 | `session.closed` | Record `reason` and `usage`; resolve the pending close if `disconnect()` is waiting; otherwise (unexpected) → §1.5. |
 | `info`, anything else | Forward to `onRealtimeEvent` as `source: 'server'`; silent audio frames are not forwarded (same rule as translate). |
 
@@ -181,6 +187,8 @@ Detection, while connected and after `session.started`:
 Reaction:
 1. First unexpected end of this session (or of a session started less than 60 s ago by a previous reconnect): complete in-flight items, `onReconnecting()`, log `session.reconnecting { cause }`, tear the socket down, and run the connect sequence again with the same config (Electron re-registers the one-shot header; the extension rule is re-added). On `session.started`: `onReconnected()`, resume forwarding audio. Audio arriving during the gap is dropped, not buffered. Items and conversation history are kept; the model gets no history (instructions are the whole context an interpreter needs).
 2. Second unexpected end within 60 s of a reconnect, or a reconnect that fails to reach `session.started`: push a client-held `role: 'system', type: 'error'` `ConversationItem` with `i18n.t('mainPanel.openaiLiveConnectionLost')`, `onConversationUpdated`, then `onError(cause)` (keeps the `api_error` analytics event) and `onClose`. The raw close code / reason stays on the realtime log as `session.connection_lost`. This is the Soniox recoverable-outage seam, unchanged.
+
+Both legs of a Both session reconnect independently; the upgrade gate in §1.1 keeps their header registrations from colliding.
 
 `reason: 'content'` (safety filter ended the session) is treated the same as any other unexpected end: one reconnect, then the notice. A `content` cut that only stops the current audio arrives as an `error` frame without a close and is handled by the `error` row above.
 
