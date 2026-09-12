@@ -82,3 +82,71 @@ describe('participant-connect error bubble vs. the post-init setItems overwrite'
     });
   });
 });
+
+/**
+ * The same overwrite hazard at the other end of the session.
+ *
+ * disconnectConversation's speaker leg ends with
+ * `setItems(client.getConversationItems()); client.reset();` — the plain-value
+ * overwrite again. It is correct for the session that owned the client: it
+ * captures the final transcript before reset empties it.
+ *
+ * It was wrong for the NEXT session, because `speakerClientRef.current` was
+ * never cleared. Participant-only ("Others") mode builds no speaker client at
+ * all, so its Stop reached this leg holding the previous session's object —
+ * already `reset()`, so `getConversationItems()` returns `[]`, so the overwrite
+ * is `setItems([])`. In Others mode `items` is not empty: it carries the
+ * participant-channel warning and the descriptor's prepare notices. Those rows
+ * vanished at Stop, silently.
+ *
+ * The fix is the null the participant leg always had. Modelled here the same
+ * way as above — the leg's `if (!client) return` is what the "fixed" case
+ * asserts, and there is still no React harness to mount MainPanel with.
+ */
+describe('stale speaker client vs. the teardown setItems overwrite', () => {
+  /** The tail of disconnectConversation's speaker leg. */
+  const teardownSpeakerLeg = (
+    setItems: (u: Updater) => void,
+    client: { getConversationItems: () => Item[] } | null,
+  ) => {
+    if (!client) return;
+    setItems(client.getConversationItems());
+  };
+
+  /** A client from an earlier session: disconnected and already reset, so empty. */
+  const staleClient = { getConversationItems: (): Item[] => [] };
+
+  const othersModeRows: Item[] = [
+    { id: 'warn-1', text: "Failed to start Other's audio channel." },
+    { id: 'notice-1', text: 'Prepare notice' },
+  ];
+
+  it('pre-fix: an Others-mode Stop wipes the warning and notice rows', () => {
+    const { setItems, getState } = makeStateContainer(othersModeRows);
+
+    // The ref still held the previous session's client, so the leg ran.
+    teardownSpeakerLeg(setItems, staleClient);
+
+    expect(getState()).toEqual([]); // both rows gone, no error, no log
+  });
+
+  it('cleared ref: the leg is skipped and the rows survive Stop', () => {
+    const { setItems, getState } = makeStateContainer(othersModeRows);
+
+    // Stop now nulls speakerClientRef, so a session that built no speaker
+    // client finds nothing to tear down.
+    teardownSpeakerLeg(setItems, null);
+
+    expect(getState()).toEqual(othersModeRows);
+  });
+
+  it('still captures the final transcript for the session that owned the client', () => {
+    const finalTranscript: Item[] = [{ id: 'speaker-1', text: 'hello' }];
+    const { setItems, getState } = makeStateContainer([{ id: 'stale', text: 'mid-stream' }]);
+
+    // The overwrite is not being removed — this is the case it exists for.
+    teardownSpeakerLeg(setItems, { getConversationItems: () => finalTranscript });
+
+    expect(getState()).toEqual(finalTranscript);
+  });
+});

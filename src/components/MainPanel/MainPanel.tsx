@@ -1774,6 +1774,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           }
           setItems(client.getConversationItems());
           client.reset();
+          // Clear the ref, like the participant leg two blocks down has always
+          // done. Without this the object outlives its session, and the next
+          // session that builds NO speaker client — participant-only "Others"
+          // mode skips the whole `if (speakerWillStart)` block — reaches this
+          // same leg on Stop holding the previous session's dead client. Three
+          // things then happen, none of them wanted:
+          //
+          //  - `disconnect()` runs a second time, on a client whose handlers
+          //    are the PREVIOUS session's closures, re-emitting `session.closed`
+          //    (a spurious speaker-tagged row in the log panel) and, on the
+          //    managed-Soniox path, calling `detachLeg` on the old session.
+          //  - `setItems(client.getConversationItems())` becomes `setItems([])`,
+          //    because `reset()` already emptied it. In Others mode `items` is
+          //    NOT empty — it carries the participant-channel warning and the
+          //    descriptor's prepare notices — so those rows are silently wiped
+          //    at Stop. That one is user-visible, with no error and no log.
+          //  - LocalNativeClient.disconnect() disposes its ASR/translate/TTS
+          //    handles a second time, before the live participant leg is torn
+          //    down.
+          //
+          // It also retires the "a non-null ref here belongs to a previous
+          // session" reasoning that three comments in this file and
+          // sessionStartGate.ts were written around.
+          speakerClientRef.current = null;
         },
         participant: async () => {
           const participantClient = participantClientRef.current;
@@ -2571,10 +2595,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       //
       // Asks whether a channel WORKS, not whether a client object exists. The
       // refs cannot answer that: the participant catch is non-fatal by design
-      // and leaves `participantClientRef.current` set, and
-      // `speakerClientRef.current` is never assigned null anywhere in this file
-      // (not even on Stop), so the old ref-based condition also went permanently
-      // false after the first session that built a speaker client. See
+      // and leaves `participantClientRef.current` set. The speaker ref used to
+      // be worse still — it was never assigned null anywhere in this file, not
+      // even on Stop, so the old ref-based condition went permanently false
+      // after the first session that built a speaker client. Stop clears it
+      // now, but that only removes the stale-object hazard; a ref is still not
+      // evidence that a channel works, so this guard stays outcome-based. See
       // noChannelCameUp.
       if (noChannelCameUp({ speakerChannelStarted, participantChannelStarted })) {
         // A cancel that races client construction can surface here too: the
@@ -2599,9 +2625,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // the guard reads outcomes, so it fires for a leg that connected and
         // then failed to wire its recorder. There is never a speaker client to
         // take down — one that came up would have set speakerChannelStarted, and
-        // one that failed re-threw past this point — so a non-null
-        // speakerClientRef here belongs to a PREVIOUS session (this file never
-        // clears it) and must not be touched.
+        // one that failed re-threw past this point — so the speaker is left
+        // alone here. It used to matter more than it does: the ref was never
+        // cleared, so a non-null value here meant a PREVIOUS session's client
+        // that must not be touched. Stop clears it now, which leaves this leg
+        // correct for the simpler reason that this pass built nothing to undo.
         //
         // Ordered through teardownSessionLegs for its one invariant: every leg
         // is down before `session-end` is signalled. Releasing the lease while a
@@ -2707,6 +2735,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             }
             setItems(client.getConversationItems());
             client.reset();
+            // Same clear as disconnectConversation's leg. A cancelled start that
+            // got far enough to bring the speaker up must not leave its client
+            // behind either, or the next session inherits exactly the stale
+            // object this pass just tore down.
+            speakerClientRef.current = null;
           },
           participant: async () => {
             const client = participantClientRef.current;
