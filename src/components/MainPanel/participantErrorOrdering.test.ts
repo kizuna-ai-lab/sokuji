@@ -226,3 +226,81 @@ describe('teardown vs. a Start that lands mid-Stop', () => {
     expect(ref.current).toBeNull(); // the live session just lost its client
   });
 });
+
+/**
+ * Start must wait for an in-flight Stop — the whole class, not one ref.
+ *
+ * The capture + compare-and-clear above makes the SPEAKER ref safe across a
+ * Stop→Start overlap. It does nothing for the three other things the old
+ * teardown touches at run time: the participant leg reads and clears whatever
+ * `participantClientRef` holds, `afterBothLegs` reads and releases whatever
+ * `sessionResourcesRef` holds (the managed-Soniox lease), and the trailing
+ * `audioService.stopRecording()` stops whatever the shared recorder is doing.
+ * A Start that landed inside the window lost all three to the previous Stop.
+ *
+ * The fix is to serialize: disconnectConversation exposes a done-promise from
+ * before its first await, and connectConversation awaits it before touching
+ * any of that state. Modelled below with the same stand-in approach as the
+ * rest of this file; the shared state is what the teardown reads at run time.
+ */
+describe('a Start that lands mid-Stop waits for the teardown to finish', () => {
+  type Shared = { participant: string | null; resources: string | null; recording: string | null };
+
+  function makeSession() {
+    const shared: Shared = { participant: 'old-p', resources: 'old-r', recording: 'old-rec' };
+    let done: Promise<void> | null = null;
+    let release: () => void = () => {};
+    // Stands in for the awaits inside disconnectConversation (pauseRecording,
+    // the 100 ms settle, `client.disconnect()`): the window a Start can land in.
+    const gap = new Promise<void>(r => { release = r; });
+
+    const stop = async () => {
+      let markDone: () => void = () => {};
+      done = new Promise<void>(r => { markDone = r; }); // before any await
+      await gap;
+      shared.participant = null; // participant leg: reads the ref at run time
+      shared.resources = null;   // afterBothLegs: reads sessionResourcesRef at run time
+      shared.recording = null;   // stopRecording on the shared audio service
+      done = null;
+      markDone();                // the finally
+    };
+    const start = async (waitsForStop: boolean) => {
+      const pending = done;
+      if (waitsForStop && pending) await pending;
+      shared.participant = 'new-p';
+      shared.resources = 'new-r';
+      shared.recording = 'new-rec';
+    };
+    return { shared, stop, start, release };
+  }
+
+  it('pre-fix: a Start inside the window is torn down by the old Stop', async () => {
+    const s = makeSession();
+    const stopping = s.stop();
+    await s.start(false);   // assigns immediately, inside the gap
+    s.release();
+    await stopping;         // the old teardown now clears the NEW session's state
+
+    expect(s.shared).toEqual({ participant: null, resources: null, recording: null });
+  });
+
+  it('fixed: the Start parks on the done-promise and then owns its state', async () => {
+    const s = makeSession();
+    const stopping = s.stop();
+    const starting = s.start(true); // waits
+    s.release();
+    await stopping;
+    await starting;
+
+    expect(s.shared).toEqual({ participant: 'new-p', resources: 'new-r', recording: 'new-rec' });
+  });
+
+  it('with no Stop in flight, a Start does not wait on anything', async () => {
+    const s = makeSession();
+    // `done` is null — nothing to await, and nothing here would ever resolve
+    // `gap`, so hanging on it would fail this test by timeout.
+    await s.start(true);
+
+    expect(s.shared.participant).toBe('new-p');
+  });
+});

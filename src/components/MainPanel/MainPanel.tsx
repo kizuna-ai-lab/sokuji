@@ -1195,6 +1195,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // the start of disconnectConversation and cleared in finally regardless of
   // whether the cleanup succeeded or threw.
   const disconnectInProgressRef = useRef<boolean>(false);
+  // Resolves when the in-flight disconnectConversation has finished ALL of its
+  // teardown; null when none is in flight. connectConversation awaits it so a
+  // Start clicked during a Stop cannot overlap the teardown — see both sites.
+  const disconnectDoneRef = useRef<Promise<void> | null>(null);
 
   // Start re-entry guard, the disconnect guard's mirror: a second Start while
   // one is mid-flight would run two prepares (and two resource acquires)
@@ -1666,6 +1670,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
     disconnectInProgressRef.current = true;
 
+    // Publish this teardown's completion, from before the first await, so a
+    // Start that lands while it is in flight can wait for the whole thing —
+    // not just the speaker leg. The participant leg, afterBothLegs and the
+    // trailing audioService.stopRecording() all read their ref (or the shared
+    // recorder) at RUN time; a Start that got in ahead of them would have its
+    // participant client disconnected, its lease released and its capture
+    // stopped by this Stop. Resolved in the finally, success or throw.
+    let markDisconnectDone: () => void = () => {};
+    disconnectDoneRef.current = new Promise<void>(resolve => { markDisconnectDone = resolve; });
+
     // Capture the speaker client to tear down NOW, before any await. The
     // `setIsSessionActive(false)` a few lines down runs synchronously and
     // re-enables the Start button while this teardown is still in flight —
@@ -1869,6 +1883,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       }
     } finally {
       disconnectInProgressRef.current = false;
+      // Clear before resolving: a waiter that wakes and re-reads the ref must
+      // not find this same, already-finished teardown.
+      disconnectDoneRef.current = null;
+      markDisconnectDone();
     }
   }, [refetchAll, setIsReconnecting]);
 
@@ -1898,6 +1916,30 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     try {
       setIsInitializing(true);
       setInitPhase(null);
+
+      // Serialize behind an in-flight Stop. disconnectConversation flips
+      // isSessionActive to false synchronously — which is what re-enables the
+      // Start button — and only then awaits (pauseRecording, a 100 ms settle,
+      // client.disconnect()). Nothing else makes this function wait for it:
+      // disconnectInProgressRef only blocks a second Stop, connectInProgressRef
+      // above only blocks a second Start, and neither reads the other. A Start
+      // clicked in that window (a double-tap on Stop is enough — the button
+      // changes in place) used to run concurrently with the teardown, which
+      // then tore down THIS session's participant client, released its lease
+      // in afterBothLegs, and stopped its capture in the trailing
+      // stopRecording(). The user sees "initializing" for the extra 100–300 ms.
+      //
+      // Position is load-bearing twice over. It is BEFORE this attempt's
+      // AbortController is minted below, so the Stop's abort() at its top
+      // cannot cancel this Start; and BEFORE the participantStreamEndedRef
+      // reset further down, which exists to undo a write the teardown makes
+      // DURING its run — reset first and the teardown would re-set it.
+      const pendingDisconnect = disconnectDoneRef.current;
+      if (pendingDisconnect) {
+        console.info('[Sokuji] [MainPanel] Start is waiting for the previous session\'s teardown to finish');
+        await pendingDisconnect;
+      }
+
       // Clear last session's indicator before anything can set this one's.
       // Not redundant with the disconnectConversation reset: the post-init
       // "both channels failed" guard below returns early WITHOUT routing
