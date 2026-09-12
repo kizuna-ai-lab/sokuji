@@ -1666,6 +1666,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     }
     disconnectInProgressRef.current = true;
 
+    // Capture the speaker client to tear down NOW, before any await. The
+    // `setIsSessionActive(false)` a few lines down runs synchronously and
+    // re-enables the Start button while this teardown is still in flight —
+    // nothing serializes a new Start behind an in-flight Stop — so by the time
+    // the speaker leg below runs, `speakerClientRef.current` may already hold
+    // the NEXT session's client. Reading the ref there would tear down the
+    // wrong one (disconnect/reset on a still-connecting client, then the null
+    // wiping its ref: a session that looks active and does nothing). The
+    // object this Stop owns is the one in the ref at this instant.
+    const speakerToTearDown = speakerClientRef.current;
+
     // Discard any in-flight Start: its prepare patches and its acquired
     // resources would target the session this teardown is ending.
     startAbortRef.current?.abort();
@@ -1742,7 +1753,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // SonioxClient, not the inert secondary port of the shared path.
       await teardownSessionLegs({
         speaker: async () => {
-          const client = speakerClientRef.current;
+          // Not `speakerClientRef.current` — see the capture at the top of
+          // this function. By now the ref may belong to the next session.
+          const client = speakerToTearDown;
           if (!client) return;
           // disconnect() emits final completion deltas via the throttle path,
           // which schedules a trailing setItems(client.getConversationItems())
@@ -1797,7 +1810,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           // It also retires the "a non-null ref here belongs to a previous
           // session" reasoning that three comments in this file and
           // sessionStartGate.ts were written around.
-          speakerClientRef.current = null;
+          //
+          // Compare-and-clear, not a bare assignment: `await client.disconnect()`
+          // above is a real macrotask gap on providers whose disconnect hits
+          // the network (PalabraAI deletes its session and leaves the LiveKit
+          // room), and a Start clicked inside that gap has already put the
+          // NEXT session's client in the ref. Clearing unconditionally here
+          // would wipe it — a live session with a null ref, every audio frame
+          // dropped, nothing on screen. Only clear what this Stop owns.
+          if (speakerClientRef.current === client) {
+            speakerClientRef.current = null;
+          }
         },
         participant: async () => {
           const participantClient = participantClientRef.current;
@@ -2738,8 +2761,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // Same clear as disconnectConversation's leg. A cancelled start that
             // got far enough to bring the speaker up must not leave its client
             // behind either, or the next session inherits exactly the stale
-            // object this pass just tore down.
-            speakerClientRef.current = null;
+            // object this pass just tore down. Compare-and-clear for the same
+            // reason as there; here `client` is this pass's own and a second
+            // Start is blocked by connectInProgressRef, so the check is
+            // belt-and-braces rather than load-bearing.
+            if (speakerClientRef.current === client) {
+              speakerClientRef.current = null;
+            }
           },
           participant: async () => {
             const client = participantClientRef.current;
