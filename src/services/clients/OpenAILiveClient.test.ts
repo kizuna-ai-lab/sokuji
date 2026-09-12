@@ -432,3 +432,147 @@ describe('OpenAILiveClient state machine', () => {
     expect(errors).toHaveLength(1);
   });
 });
+
+describe('OpenAILiveClient watchdog and reconnect', () => {
+  let sockets: ReturnType<typeof makeMockWs>[];
+  let originalWebSocket: unknown;
+  let handlers: { reconnecting: ReturnType<typeof vi.fn>; reconnected: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn>; updates: any[]; events: any[] };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    env.electron = true; env.extension = false;
+    originalWebSocket = (globalThis as any).WebSocket;
+    sockets = [];
+    (globalThis as any).WebSocket = vi.fn(function () {
+      const ws = makeMockWs();
+      sockets.push(ws);
+      return ws;
+    });
+    (window as any).electron = { invoke: vi.fn(async () => ({ success: true })) };
+    handlers = { reconnecting: vi.fn(), reconnected: vi.fn(), error: vi.fn(), close: vi.fn(), updates: [], events: [] };
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    (globalThis as any).WebSocket = originalWebSocket;
+    delete (window as any).electron;
+  });
+
+  async function connectedClient() {
+    const client = new OpenAILiveClient('sk-test');
+    client.setEventHandlers({
+      onReconnecting: handlers.reconnecting,
+      onReconnected: handlers.reconnected,
+      onError: handlers.error,
+      onClose: handlers.close,
+      onConversationUpdated: (e) => handlers.updates.push(e),
+      onRealtimeEvent: (e) => handlers.events.push(e),
+    } as ClientEventHandlers);
+    const p = client.connect(baseConfig);
+    await flush();
+    completeHandshake(sockets[0]);
+    await p;
+    return client;
+  }
+
+  /** Let the reconnect's async header registration settle and complete the new handshake. */
+  async function completeReconnect(index: number) {
+    await flush();
+    completeHandshake(sockets[index], `live_${index}`);
+    await flush();
+  }
+
+  it('reconnects once when the socket closes abnormally without session.closed', async () => {
+    const client = await connectedClient();
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    expect(handlers.reconnecting).toHaveBeenCalledTimes(1);
+    await completeReconnect(1);
+    expect(sockets).toHaveLength(2);
+    expect(handlers.reconnected).toHaveBeenCalledTimes(1);
+    expect(client.isConnected()).toBe(true);
+    expect(handlers.error).not.toHaveBeenCalled();
+    expect(handlers.events.map(e => e.event.type)).toEqual(expect.arrayContaining(['session.connection_lost', 'session.reconnecting', 'session.reconnected']));
+  });
+
+  it('treats two frozen usage updates with voiced input in between as a stall', async () => {
+    const client = await connectedClient();
+    const feed = (event: unknown) => (client as any).handleServerEvent(event);
+    feed({ type: 'session.usage.updated', usage: { seconds: 10 } });
+    client.appendInputAudio(new Int16Array([1000, -1000]));
+    feed({ type: 'session.usage.updated', usage: { seconds: 10 } });
+    expect(handlers.reconnecting).toHaveBeenCalledTimes(1);
+    await completeReconnect(1);
+    expect(handlers.reconnected).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not treat advancing usage, or frozen usage without voiced input, as a stall', async () => {
+    const client = await connectedClient();
+    const feed = (event: unknown) => (client as any).handleServerEvent(event);
+    feed({ type: 'session.usage.updated', usage: { seconds: 10 } });
+    feed({ type: 'session.usage.updated', usage: { seconds: 10 } });
+    feed({ type: 'session.usage.updated', usage: { seconds: 25 } });
+    client.appendInputAudio(new Int16Array([1000, -1000]));
+    feed({ type: 'session.usage.updated', usage: { seconds: 40 } });
+    expect(handlers.reconnecting).not.toHaveBeenCalled();
+  });
+
+  it('an unexpected session.closed (expired) also reconnects once', async () => {
+    const client = await connectedClient();
+    (client as any).handleServerEvent({ type: 'session.closed', reason: 'expired', usage: { seconds: 600 } });
+    expect(handlers.reconnecting).toHaveBeenCalledTimes(1);
+    await completeReconnect(1);
+    expect(handlers.reconnected).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up with the localized notice when the reconnected session dies within 60 s', async () => {
+    const client = await connectedClient();
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await completeReconnect(1);
+    vi.advanceTimersByTime(30_000);
+    sockets[1].onclose?.({ code: 1006, reason: '' });
+    await flush();
+    expect(sockets).toHaveLength(2);
+    const notice = handlers.updates[handlers.updates.length - 1].item;
+    expect(notice.role).toBe('system');
+    expect(notice.type).toBe('error');
+    expect(notice.formatted.text).toBe('mainPanel.openaiLiveConnectionLost');
+    expect(client.getConversationItems()).toContain(notice);
+    expect(handlers.error).toHaveBeenCalledTimes(1);
+    expect(handlers.close).toHaveBeenCalledTimes(1);
+    expect(client.isConnected()).toBe(false);
+  });
+
+  it('allows a fresh reconnect once the reconnected session has run for 60 s', async () => {
+    const client = await connectedClient();
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await completeReconnect(1);
+    vi.advanceTimersByTime(60_001);
+    sockets[1].onclose?.({ code: 1006, reason: '' });
+    await completeReconnect(2);
+    expect(sockets).toHaveLength(3);
+    expect(handlers.reconnected).toHaveBeenCalledTimes(2);
+    expect(handlers.error).not.toHaveBeenCalled();
+    expect(client.isConnected()).toBe(true);
+  });
+
+  it('gives up when the reconnect itself fails', async () => {
+    const client = await connectedClient();
+    (window as any).electron.invoke = vi.fn(async () => ({ success: false, error: 'ipc down' }));
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await flush();
+    expect(sockets).toHaveLength(1);
+    expect(handlers.error).toHaveBeenCalledTimes(1);
+    expect(handlers.close).toHaveBeenCalledTimes(1);
+    const items = client.getConversationItems();
+    expect(items[items.length - 1]?.type).toBe('error');
+  });
+
+  it('a close during disconnect() is not an outage', async () => {
+    const client = await connectedClient();
+    const d = client.disconnect();
+    await Promise.resolve();
+    sockets[0].onclose?.({ code: 1000, reason: '' });
+    await d;
+    expect(handlers.reconnecting).not.toHaveBeenCalled();
+    expect(handlers.error).not.toHaveBeenCalled();
+  });
+});

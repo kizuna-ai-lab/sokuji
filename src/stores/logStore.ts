@@ -79,6 +79,7 @@ export interface EventData {
     // (distinct from the Realtime API's input_audio_buffer.append)
     | 'session.start' | 'session.close' | 'session.close_timeout'
     | 'session.input_audio.append'
+    | 'session.connection_lost'
     // openai-realtime-api custom events (for beta clients)
     | 'conversation.item.appended' | 'conversation.item.completed'
     | 'conversation.updated' | 'conversation.interrupted'

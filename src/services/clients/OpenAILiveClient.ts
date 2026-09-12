@@ -44,6 +44,8 @@ const SILENCE_TIMEOUT_MAX_MS = 3000;
 const SESSION_START_TIMEOUT_MS = 30000;
 /** How long disconnect() waits for session.closed before closing the socket anyway. */
 const CLOSE_TIMEOUT_MS = 5000;
+/** A second unexpected end inside this window after a reconnect means give up. */
+const RECONNECT_GRACE_MS = 60_000;
 
 export interface LiveSessionStart {
   type: 'session.start';
@@ -75,6 +77,16 @@ export class OpenAILiveClient implements IClient {
   private sessionId: string | null = null;
   private expiresAt: number | null = null;
   private eventCounter: number = 0;
+
+  // Stall watchdog: Live reports cumulative session seconds every ~15 s. Two
+  // consecutive reports with the same count while we were sending voiced audio
+  // is the signature of the upstream stall seen on 2026-09-12 (transcripts and
+  // the counter froze, the socket died ~20 s later with 1006 and no
+  // session.closed).
+  private usageSeconds: number | null = null;
+  private voicedInputSinceUsage: boolean = false;
+  private reconnecting: boolean = false;
+  private reconnectedAt: number | null = null;
 
   /** Latches once a frame has failed to parse; cleared by the next frame that parses. */
   private parseFailed: boolean = false;
@@ -250,6 +262,8 @@ export class OpenAILiveClient implements IClient {
     this.closeResolver = null;
     this.sessionId = null;
     this.expiresAt = null;
+    this.usageSeconds = null;
+    this.voicedInputSinceUsage = false;
   }
 
   /** Register the header, open the socket, send session.start, wait for session.started. */
@@ -302,13 +316,8 @@ export class OpenAILiveClient implements IClient {
       this.settleClose();
       return;
     }
-    if (this.connected) {
-      this.connected = false;
-      this.logClientEvent('session.closed', {
-        status: 'disconnected', provider: 'openai_live', timestamp: Date.now(),
-        reason: 'websocket_closed', code: event.code, detail: event.reason,
-      });
-      this.eventHandlers.onClose?.({ code: event.code, reason: event.reason });
+    if (this.connected && !this.closedReceived) {
+      void this.handleUnexpectedEnd(`websocket_closed_${event.code}`, { code: event.code, reason: event.reason });
     }
   }
 
@@ -423,6 +432,70 @@ export class OpenAILiveClient implements IClient {
     });
   }
 
+  // ----- Outage handling -----
+
+  /**
+   * One silent reconnect per outage, then the notice. Instructions are the
+   * whole context an interpreter needs, so a fresh session loses nothing but
+   * the audio that arrives during the gap (dropped, not buffered).
+   */
+  private async handleUnexpectedEnd(cause: string, detail?: unknown): Promise<void> {
+    if (this.closing || this.reconnecting || !this.config) return;
+    this.completeUserItem();
+    this.completeAssistantItem();
+    this.logClientEvent('session.connection_lost', { provider: 'openai_live', cause, detail, timestamp: Date.now() });
+
+    const recentlyReconnected = this.reconnectedAt !== null && Date.now() - this.reconnectedAt < RECONNECT_GRACE_MS;
+    if (recentlyReconnected) {
+      this.giveUp(cause);
+      return;
+    }
+
+    this.reconnecting = true;
+    this.teardownSocket();
+    this.logClientEvent('session.reconnecting', { provider: 'openai_live', cause, timestamp: Date.now() });
+    this.eventHandlers.onReconnecting?.();
+    try {
+      await this.openSession(this.config);
+      if (this.closing) {
+        // disconnect() ran while we were reconnecting: drop the fresh session.
+        this.reconnecting = false;
+        this.teardownSocket();
+        return;
+      }
+      this.reconnecting = false;
+      this.reconnectedAt = Date.now();
+      this.usageSeconds = null;
+      this.voicedInputSinceUsage = false;
+      this.connected = true;
+      this.logClientEvent('session.reconnected', { provider: 'openai_live', sessionId: this.sessionId, timestamp: Date.now() });
+      this.eventHandlers.onReconnected?.();
+    } catch (error) {
+      this.reconnecting = false;
+      this.giveUp(cause, error);
+    }
+  }
+
+  private giveUp(cause: string, error?: unknown): void {
+    this.teardownSocket();
+    this.connected = false;
+    const text = i18n.t('mainPanel.openaiLiveConnectionLost');
+    const item: ConversationItem = {
+      id: this.genItemId(),
+      role: 'system',
+      type: 'error',
+      status: 'completed',
+      createdAt: Date.now(),
+      formatted: { text },
+      content: [{ type: 'text', text }],
+    };
+    this.conversationItems.push(item);
+    this.itemLookup.set(item.id, item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+    this.eventHandlers.onError?.(error ?? new Error(`OpenAI Live session ended: ${cause}`));
+    this.eventHandlers.onClose?.({ reason: cause });
+  }
+
   // ----- Server events -----
 
   private handleServerEvent(event: any): void {
@@ -526,8 +599,20 @@ export class OpenAILiveClient implements IClient {
         break;
       }
 
+      case 'session.usage.updated': {
+        const seconds = event.usage?.seconds;
+        if (typeof seconds === 'number') {
+          const frozen = this.usageSeconds !== null && seconds === this.usageSeconds && this.voicedInputSinceUsage;
+          this.usageSeconds = seconds;
+          this.voicedInputSinceUsage = false;
+          if (frozen) {
+            void this.handleUnexpectedEnd('stalled', { seconds });
+          }
+        }
+        break;
+      }
+
       case 'session.delegation.created':
-      case 'session.usage.updated':
       case 'session.instructions.appended':
       case 'session.thinking.appended':
       case 'session.commentary.appended':
@@ -542,6 +627,9 @@ export class OpenAILiveClient implements IClient {
       case 'session.closed':
         if (this.closing) {
           this.settleClose();
+        } else {
+          this.closedReceived = true;
+          void this.handleUnexpectedEnd(`session_closed_${event.reason ?? 'unknown'}`, { reason: event.reason, usage: event.usage });
         }
         break;
 
@@ -701,6 +789,10 @@ export class OpenAILiveClient implements IClient {
 
   async disconnect(): Promise<void> {
     this.closing = true;
+    if (this.reconnecting) {
+      // A reconnect in flight will find `closing` set and stop in openSession's caller.
+      this.teardownSocket();
+    }
     const ws = this.ws;
     if (ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ type: 'session.close' }));
@@ -749,6 +841,7 @@ export class OpenAILiveClient implements IClient {
     // says nothing the next voiced frame doesn't. The wire send happened above.
     const rms = computeRms(audioData);
     if (rms === 0) return;
+    this.voicedInputSinceUsage = true;
     this.logClientEvent(payload.type, { ...payload, rms });
   }
 
