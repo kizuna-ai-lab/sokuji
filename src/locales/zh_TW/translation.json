@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "由 GPT 模型驅動"
+      "name": "OpenAI Realtime",
+      "description": "GPT Realtime 語音模型依提示翻譯 · 可選模型與語音 · 55 種語言"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI 專用的即時翻譯模型"
+      "description": "專用翻譯模型 · 自動辨識 75 種來源語言 · 13 種目標語言"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "以 GPT-Live-1 作為同步口譯。依工作階段時長（含靜音）每分鐘計費。"
+      "description": "GPT-Live-1 同步口譯 · 22 種語音 · 依工作階段時長每分鐘計費，含靜音"
     },
     "palabraai": {
       "name": "Palabra AI",

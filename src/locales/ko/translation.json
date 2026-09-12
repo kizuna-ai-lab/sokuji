@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT 모델 기반"
+      "name": "OpenAI Realtime",
+      "description": "GPT Realtime 음성 모델을 프롬프트로 번역 · 모델과 음성 선택 가능 · 55개 언어"
     },
     "gemini": {
       "name": "구글 제미나이",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI 전용 실시간 번역 모델"
+      "description": "번역 전용 모델 · 75개 원어 자동 감지 · 13개 목표 언어"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1을 동시통역으로 사용합니다. 세션 시간(무음 포함) 기준 분당 과금."
+      "description": "GPT-Live-1 동시통역 · 22가지 음성 · 세션 시간 기준 분당 과금(무음 포함)"
     },
     "palabraai": {
       "name": "Palabra AI",

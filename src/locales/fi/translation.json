@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT-mallien voimalla"
+      "name": "OpenAI Realtime",
+      "description": "GPT Realtime -puhemallit ohjattuna kääntämään · valitse malli ja ääni · 55 kieltä"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI:n erityinen reaaliaikainen käännösmalli"
+      "description": "Erillinen käännösmalli · 75 lähdekieltä tunnistetaan automaattisesti · 13 kohdekieltä"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 simultaanitulkkina. Laskutus istuntominuutin mukaan, hiljaisuus mukaan lukien."
+      "description": "GPT-Live-1 simultaanitulkkina · 22 ääntä · laskutus istuntominuuteittain, hiljaisuus mukaan lukien"
     },
     "palabraai": {
       "name": "Palabra AI",

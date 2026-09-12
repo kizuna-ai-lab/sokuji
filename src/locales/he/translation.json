@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "מופעל על ידי מודלי GPT"
+      "name": "OpenAI Realtime",
+      "description": "מודלי דיבור GPT Realtime המונחים לתרגם · בחירת מודל וקול · 55 שפות"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "מודל התרגום הייעודי בזמן אמת של OpenAI"
+      "description": "מודל תרגום ייעודי · 75 שפות מקור מזוהות אוטומטית · 13 שפות יעד"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 כמתורגמן סימולטני. חיוב לפי דקת הפעלה, כולל שקט."
+      "description": "GPT-Live-1 כמתורגמן סימולטני · 22 קולות · חיוב לפי דקת שיחה, כולל שקט"
     },
     "palabraai": {
       "name": "Palabra AI",

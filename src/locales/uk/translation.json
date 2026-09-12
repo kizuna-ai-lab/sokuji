@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "На базі моделей GPT"
+      "name": "OpenAI Realtime",
+      "description": "Мовленнєві моделі GPT Realtime, що перекладають за інструкцією · вибір моделі й голосу · 55 мов"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Спеціалізована модель синхронного перекладу OpenAI"
+      "description": "Спеціалізована модель перекладу · 75 вихідних мов визначаються автоматично · 13 цільових мов"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 як синхронний перекладач. Оплата за хвилину сесії, включно з тишею."
+      "description": "GPT-Live-1 як синхронний перекладач · 22 голоси · оплата за хвилину сесії, включно з тишею"
     },
     "palabraai": {
       "name": "Palabra AI",

@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "قدرت گرفته از مدل‌های GPT"
+      "name": "OpenAI Realtime",
+      "description": "مدل‌های گفتاری GPT Realtime با دستور ترجمه · انتخاب مدل و صدا · 55 زبان"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "مدل ترجمه بلادرنگ اختصاصی OpenAI"
+      "description": "مدل ترجمهٔ اختصاصی · 75 زبان مبدأ با تشخیص خودکار · 13 زبان مقصد"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 به‌عنوان مترجم هم‌زمان. بر اساس دقیقهٔ جلسه، شامل سکوت، هزینه محاسبه می‌شود."
+      "description": "GPT-Live-1 به‌عنوان مترجم همزمان · 22 صدا · محاسبهٔ هزینه به ازای هر دقیقه جلسه، شامل سکوت"
     },
     "palabraai": {
       "name": "Palabra AI",

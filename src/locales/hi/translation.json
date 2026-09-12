@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT मॉडल द्वारा संचालित"
+      "name": "OpenAI Realtime",
+      "description": "अनुवाद के लिए निर्देशित GPT Realtime वाक् मॉडल · मॉडल और आवाज़ चुनें · 55 भाषाएँ"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI का समर्पित रियल-टाइम अनुवाद मॉडल"
+      "description": "समर्पित अनुवाद मॉडल · 75 स्रोत भाषाएँ स्वतः पहचानी जाती हैं · 13 लक्ष्य भाषाएँ"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 एक साथ अनुवादक (सिमल्टेनियस इंटरप्रेटर) के रूप में। सत्र के प्रति मिनट बिल, मौन सहित।"
+      "description": "GPT-Live-1 एक साथ दुभाषिया के रूप में · 22 आवाज़ें · सत्र के प्रति मिनट बिलिंग, मौन सहित"
     },
     "palabraai": {
       "name": "Palabra AI",

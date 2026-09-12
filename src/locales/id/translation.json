@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Didukung oleh model GPT"
+      "name": "OpenAI Realtime",
+      "description": "Model suara GPT Realtime yang diarahkan untuk menerjemahkan · pilih model dan suara · 55 bahasa"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Model terjemahan real-time khusus dari OpenAI"
+      "description": "Model terjemahan khusus · 75 bahasa sumber terdeteksi otomatis · 13 bahasa target"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 sebagai penerjemah simultan. Ditagih per menit sesi, termasuk keheningan."
+      "description": "GPT-Live-1 sebagai juru bahasa simultan · 22 suara · ditagih per menit sesi, termasuk keheningan"
     },
     "palabraai": {
       "name": "Palabra AI",

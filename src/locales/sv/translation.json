@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Drivs av GPT modeller"
+      "name": "OpenAI Realtime",
+      "description": "GPT Realtime-talmodeller som instrueras att översätta · välj modell och röst · 55 språk"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAIs särskilda realtidsöversättningsmodell"
+      "description": "Dedikerad översättningsmodell · 75 källspråk identifieras automatiskt · 13 målspråk"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 som simultantolk. Debiteras per sessionsminut, tystnad inräknad."
+      "description": "GPT-Live-1 som simultantolk · 22 röster · debiteras per sessionsminut, tystnad inräknad"
     },
     "palabraai": {
       "name": "Palabra AI",

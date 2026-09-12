@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT மாதிரிகளால் அல்லதித்தப்படுகிறது"
+      "name": "OpenAI Realtime",
+      "description": "மொழிபெயர்க்க வழிநடத்தப்படும் GPT Realtime பேச்சு மாதிரிகள் · மாதிரி மற்றும் குரலைத் தேர்வு செய்யலாம் · 55 மொழிகள்"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI இன் சிறப்பு நேரடி மொழிபெயர்ப்பு மாதிரி"
+      "description": "பிரத்யேக மொழிபெயர்ப்பு மாதிரி · 75 மூல மொழிகள் தானாகக் கண்டறியப்படும் · 13 இலக்கு மொழிகள்"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "GPT-Live-1 ஒரே நேர மொழிபெயர்ப்பாளராக. அமர்வு நிமிடத்திற்கு கட்டணம், அமைதி உட்பட."
+      "description": "ஒரே நேர மொழிபெயர்ப்பாளராக GPT-Live-1 · 22 குரல்கள் · அமர்வு நிமிடத்திற்குக் கட்டணம், மௌனம் உட்பட"
     },
     "palabraai": {
       "name": "Palabra AI",

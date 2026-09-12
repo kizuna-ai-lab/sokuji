@@ -28,19 +28,28 @@ beforeEach(() => {
 });
 
 describe('provider list order', () => {
-  it('leads with the curated nine, in order, before everything else', async () => {
+  // The product order decided 2026-09-12: Kizuna-managed, Free, Gemini, Doubao
+  // AST 2.0, the three OpenAI providers, Soniox, OpenAI Compatible, Palabra,
+  // then the rest.
+  it('lists every provider in the decided order when every gate is on', async () => {
     const ids = await allProviders();
 
-    expect(ids.slice(0, 9)).toEqual([
-      Provider.OPENAI,
+    expect(ids).toEqual([
       Provider.KIZUNA_AI_SONIOX,
+      Provider.KIZUNA_AI_OPENAI_TRANSLATE,
+      Provider.KIZUNA_AI_VOLCENGINE_AST2,
+      Provider.LOCAL_INFERENCE,
+      Provider.GEMINI,
+      Provider.VOLCENGINE_AST2,
+      Provider.OPENAI,
       Provider.OPENAI_TRANSLATE,
       Provider.OPENAI_LIVE,
-      Provider.LOCAL_INFERENCE,
-      Provider.VOLCENGINE_AST2,
-      Provider.GEMINI,
       Provider.SONIOX,
+      Provider.OPENAI_COMPATIBLE,
       Provider.PALABRA_AI,
+      Provider.LOCAL_NATIVE,
+      Provider.VOLCENGINE_ST,
+      Provider.ZOOM_AI,
     ]);
   });
 
@@ -64,12 +73,14 @@ describe('provider list order', () => {
     const { ProviderConfigFactory } = await import('./ProviderConfigFactory');
     const ids = ProviderConfigFactory.getAvailableProviders();
 
-    expect(ids.slice(0, 5)).toEqual([
-      Provider.OPENAI,
-      Provider.OPENAI_TRANSLATE,
+    expect(ids).toEqual([
       Provider.LOCAL_INFERENCE,
       Provider.GEMINI,
+      Provider.OPENAI,
+      Provider.OPENAI_TRANSLATE,
       Provider.SONIOX,
+      Provider.VOLCENGINE_ST,
+      Provider.ZOOM_AI,
     ]);
   });
 });

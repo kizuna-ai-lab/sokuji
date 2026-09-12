@@ -448,8 +448,8 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT modelleri ile çalışır"
+      "name": "OpenAI Realtime",
+      "description": "Çeviri için yönlendirilen GPT Realtime konuşma modelleri · model ve ses seçimi · 55 dil"
     },
     "gemini": {
       "name": "Google Gemini",
@@ -462,11 +462,11 @@
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI'nin özel gerçek zamanlı çeviri modeli"
+      "description": "Özel çeviri modeli · 75 kaynak dil otomatik algılanır · 13 hedef dil"
     },
     "openai_live": {
       "name": "OpenAI Live",
-      "description": "Simultane tercüman olarak GPT-Live-1. Sessizlik dahil oturum dakikası başına ücretlendirilir."
+      "description": "Simultane tercüman olarak GPT-Live-1 · 22 ses · oturum dakikası başına ücret, sessizlik dahil"
     },
     "palabraai": {
       "name": "Palabra AI",
