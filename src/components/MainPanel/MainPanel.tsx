@@ -2669,11 +2669,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       //
       // The same check also catches a speaker leg whose own connection ended
       // in this window (speakerStreamEndedRef): its onClose returned early
-      // because the session was not active yet, so nothing else would.
-      if (startAbort.signal.aborted || speakerStreamEndedRef.current) {
+      // because the session was not active yet, so nothing else would. The
+      // speaker flag is read unconditionally because its close can land
+      // before speakerChannelStarted is assigned. A participant leg that ended
+      // here only counts when it was the session's sole leg: with a speaker
+      // up, resolveSplitDegraded turns that into a one-way session instead.
+      const soleParticipantEnded =
+        !speakerChannelStarted && participantChannelStarted && participantStreamEndedRef.current;
+      if (startAbort.signal.aborted || speakerStreamEndedRef.current || soleParticipantEnded) {
         console.info(startAbort.signal.aborted
           ? '[Sokuji] [MainPanel] Cancel raced client construction; tearing down what this pass built instead of activating.'
-          : '[Sokuji] [MainPanel] Speaker leg ended before activation; tearing down what this pass built instead of activating.');
+          : speakerStreamEndedRef.current
+            ? '[Sokuji] [MainPanel] Speaker leg ended before activation; tearing down what this pass built instead of activating.'
+            : '[Sokuji] [MainPanel] Sole participant leg ended before activation; tearing down what this pass built instead of activating.');
         await teardownSessionLegs({
           speaker: async () => {
             if (!speakerChannelStarted) return;
