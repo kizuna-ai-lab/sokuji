@@ -88,7 +88,12 @@ describe('OpenAILiveClient connect (Electron header injection)', () => {
     invoke = vi.fn(async () => ({ success: true }));
     (window as any).electron = { invoke };
   });
-  afterEach(() => {
+  afterEach(async () => {
+    // A failed assertion mid-connect leaves the mock socket neither opened nor
+    // closed, which holds the module-level upgrade gate and stalls every later
+    // test in the file at the 15 s cap; settle it before restoring globals.
+    if (ws.readyState === 0) ws.onclose?.({ code: 1006, reason: 'test teardown' });
+    await flush();
     (globalThis as any).WebSocket = originalWebSocket;
     delete (window as any).electron;
   });
@@ -100,6 +105,10 @@ describe('OpenAILiveClient connect (Electron header injection)', () => {
     expect(invoke).toHaveBeenCalledWith('ws-headers-set', {
       host: LIVE_HOST,
       headers: { Authorization: 'Bearer sk-test' },
+      // The Live endpoint answers 403 to any upgrade that carries a browser
+      // Origin header (verified 2026-09-12 against every origin value); the
+      // main process strips it in the same one-shot rule.
+      removeHeaders: ['Origin'],
     });
     expect(invoke.mock.invocationCallOrder[0]).toBeLessThan(((globalThis as any).WebSocket as any).mock.invocationCallOrder[0]);
     expect((globalThis as any).WebSocket).toHaveBeenCalledWith(LIVE_WS_URL);
@@ -278,7 +287,9 @@ describe('OpenAILiveClient connect (extension DNR header injection)', () => {
     sendMessage = vi.fn((_msg: unknown, cb?: (r: unknown) => void) => cb?.({ success: true }));
     (globalThis as any).chrome = { runtime: { sendMessage, lastError: undefined } };
   });
-  afterEach(() => {
+  afterEach(async () => {
+    if (ws.readyState === 0) ws.onclose?.({ code: 1006, reason: 'test teardown' });
+    await flush();
     (globalThis as any).WebSocket = originalWebSocket;
     delete (globalThis as any).chrome;
     env.electron = true; env.extension = false;

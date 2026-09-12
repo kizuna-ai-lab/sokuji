@@ -1026,7 +1026,9 @@ ipcMain.handle('fix-monitor-volume', async () => {
 // opening a WebSocket connection. This replaces the previous per-provider IPC
 // bridges (Volcengine, Edge TTS) that proxied every frame through main process.
 
-// Map<host, Map<headerName, headerValue>>
+// Map<host, { set: Map<headerName, headerValue>, remove: Set<lowercased headerName> }>
+// `remove` exists for endpoints that reject a header the browser always adds:
+// OpenAI's Live WebSocket answers 403 to any upgrade carrying `Origin`.
 const wsHeaderRules = new Map();
 
 function initWebSocketHeaderInjection() {
@@ -1077,9 +1079,14 @@ function initWebSocketHeaderInjection() {
       if (details.resourceType === 'webSocket') {
         try {
           const url = new URL(details.url);
-          const headers = wsHeaderRules.get(url.host);
-          if (headers) {
-            for (const [name, value] of headers.entries()) {
+          const rule = wsHeaderRules.get(url.host);
+          if (rule) {
+            if (rule.remove.size > 0) {
+              for (const name of Object.keys(requestHeaders)) {
+                if (rule.remove.has(name.toLowerCase())) delete requestHeaders[name];
+              }
+            }
+            for (const [name, value] of rule.set.entries()) {
               requestHeaders[name] = value;
             }
             wsHeaderRules.delete(url.host);
@@ -1116,7 +1123,7 @@ function initWebSocketHeaderInjection() {
 }
 
 // IPC: renderer registers headers for a host before opening a WebSocket
-ipcMain.handle('ws-headers-set', (event, { host, headers }) => {
+ipcMain.handle('ws-headers-set', (event, { host, headers, removeHeaders }) => {
   if (!host || !headers || typeof headers !== 'object') {
     return { success: false, error: 'Invalid arguments: host and headers required' };
   }
@@ -1126,8 +1133,15 @@ ipcMain.handle('ws-headers-set', (event, { host, headers }) => {
     .filter(([, v]) => v != null && v !== '')
     .map(([k, v]) => [k, String(v)]);
   const headerMap = new Map(entries);
-  wsHeaderRules.set(host, headerMap);
-  console.log(`[Sokuji] [Main] WS headers registered for ${host}: ${[...headerMap.keys()].join(', ')}`);
+  // Optional: header names to strip from the same upgrade (matched case-insensitively).
+  const remove = new Set(
+    (Array.isArray(removeHeaders) ? removeHeaders : [])
+      .filter((n) => typeof n === 'string' && n.trim() !== '')
+      .map((n) => n.trim().toLowerCase()),
+  );
+  wsHeaderRules.set(host, { set: headerMap, remove });
+  const removed = remove.size > 0 ? ` (removing: ${[...remove].join(', ')})` : '';
+  console.log(`[Sokuji] [Main] WS headers registered for ${host}: ${[...headerMap.keys()].join(', ')}${removed}`);
   return { success: true };
 });
 

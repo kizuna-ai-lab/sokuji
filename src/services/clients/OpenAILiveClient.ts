@@ -227,6 +227,11 @@ export class OpenAILiveClient implements IClient {
       const result = await window.electron.invoke('ws-headers-set', {
         host: LIVE_HOST,
         headers: { Authorization: `Bearer ${this.apiKey}` },
+        // The Live endpoint answers 403 to any upgrade that carries a browser
+        // `Origin` header — every value, including `null` — and 101 without one
+        // (verified 2026-09-12). Chromium always adds it to a renderer's
+        // WebSocket upgrade, so the main process strips it in the same rule.
+        removeHeaders: ['Origin'],
       });
       if (!result?.success) {
         throw new Error(`Failed to register WS headers: ${result?.error}`);

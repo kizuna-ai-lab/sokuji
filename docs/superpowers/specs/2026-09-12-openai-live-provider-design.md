@@ -34,6 +34,15 @@ upgrade headers), visible to every user, no Kizuna relay twin.
 
 - `gpt-live-1` is accepted only by `/v1/live/sessions`; every Realtime endpoint rejects it.
   It is in this project's `/v1/models` listing, so key validation can check for it.
+- The Live primary WebSocket rejects any upgrade that carries an `Origin` header: with a
+  valid key, `Origin: http://localhost:5173`, `null`, `https://sokuji.kizuna.ai`,
+  `chrome-extension://…`, `file://` and `https://api.openai.com` all answer `403 Forbidden`,
+  the same request without `Origin` answers `101` (and the Realtime endpoint answers `101`
+  with the Origin present). A browser adds `Origin` to every WebSocket upgrade and page
+  script cannot remove it, so the header-injection layer strips it as well: Electron's
+  `ws-headers-set` rule carries `removeHeaders: ['Origin']`, the extension's DNR rule adds
+  `{ header: 'Origin', operation: 'remove' }`. Found on the first Electron GUI run
+  (2026-09-12, after the branch was reviewed); the curl probes below had no `Origin`.
 - The Live primary WebSocket ignores the browser `openai-insecure-api-key.` subprotocol
   (a raw upgrade with it returns `401 missing_authorization`, identical to sending nothing;
   `Authorization: Bearer` returns `401 invalid_api_key` for a bogus key; the same subprotocol

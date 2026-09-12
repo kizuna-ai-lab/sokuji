@@ -402,6 +402,10 @@ async function openaiLiveSetDNRHeaders(apiKey) {
         type: 'modifyHeaders',
         requestHeaders: [
           { header: 'Authorization', operation: 'set', value: `Bearer ${apiKey}` },
+          // The Live endpoint answers 403 to any upgrade carrying a browser
+          // Origin header (verified 2026-09-12); the extension page's
+          // chrome-extension:// origin is no exception.
+          { header: 'Origin', operation: 'remove' },
         ],
       },
       condition: {

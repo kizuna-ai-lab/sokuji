@@ -647,7 +647,11 @@ client's.
   `missing_authorization` ("You didn't provide an API key…"), identical to sending no auth
   at all; with `Authorization: Bearer sk-bogus` → `401` `invalid_api_key` ("Incorrect API
   key provided"). The same subprotocol against `/v1/realtime?model=gpt-realtime-2.1` →
-  `101 Switching Protocols`. So the Live endpoint ignores the browser subprotocol trick and
+  `101 Switching Protocols`. Added later the same day, from the first Electron run: the
+  Live endpoint also answers `403 Forbidden` to any upgrade that carries an `Origin`
+  header (valid key; `http://localhost:5173`, `null`, `https://sokuji.kizuna.ai`,
+  `chrome-extension://…`, `file://`, `https://api.openai.com` all rejected; `101` without
+  `Origin`; `101` from `/v1/realtime` with the same `Origin`). So the Live endpoint ignores the browser subprotocol trick and
   needs a real `Authorization` header on the handshake.
 
 That header is not a blocker: Sokuji already injects headers into WebSocket upgrades on
