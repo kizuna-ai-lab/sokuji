@@ -39,6 +39,18 @@ const DEFAULT_VOICE = 'marin';
 /** PCM16 sample rate on both directions of the socket. */
 const SAMPLE_RATE = 24000;
 const SILENCE_TIMEOUT_MS = 1000;
+/**
+ * A translation is cut into items at sentence ends: Live has no per-response
+ * "done" event and a continuous speaker gives the silence timer no gap, so a
+ * two-minute monologue would otherwise become one assistant item. The text
+ * side closes on a sentence-final mark (optionally followed by closing quotes
+ * or brackets); the audio side follows once the session timeline passes the
+ * sentence's `end_ms`, so the karaoke anchors and replay audio stay with the
+ * sentence they belong to.
+ */
+const SENTENCE_END_RE = /[。．！？!?.]["'”’」』）)\]]*\s*$/;
+/** Slack after a sentence's `end_ms` before its audio is considered delivered. */
+const AUDIO_HANDOFF_MARGIN_MS = 300;
 const SILENCE_TIMEOUT_MIN_MS = 100;
 const SILENCE_TIMEOUT_MAX_MS = 3000;
 const SESSION_START_TIMEOUT_MS = 30000;
@@ -94,6 +106,8 @@ export class OpenAILiveClient implements IClient {
   private headerPlatform: 'electron' | 'extension' | null = null;
   private sessionId: string | null = null;
   private expiresAt: number | null = null;
+  /** Wall-clock origin of the Live session timeline (`start_ms`/`end_ms`). */
+  private timelineOriginMs: number | null = null;
   private eventCounter: number = 0;
 
   // Stall watchdog: Live reports cumulative session seconds every ~15 s. Two
@@ -129,6 +143,12 @@ export class OpenAILiveClient implements IClient {
   private audioChunks: Map<string, Int16Array[]> = new Map();
   private keepReplayAudio: boolean = false;
   private audioCumSamples: Map<string, number> = new Map();
+  // Sentence segmentation: assistant items whose text is closed but whose
+  // audio may still be arriving, oldest first; audio attaches to the head.
+  private pendingAudioItems: Array<{ id: string; endMs: number | null }> = [];
+  /** Latest output-transcript `end_ms` seen per assistant item. */
+  private assistantTextEndMs: Map<string, number> = new Map();
+  private audioHandoffTimer: ReturnType<typeof setTimeout> | null = null;
   private itemLookup: Map<string, ConversationItem> = new Map();
   private conversationItems: ConversationItem[] = [];
   private deltaSequenceNumber: number = 0;
@@ -282,6 +302,11 @@ export class OpenAILiveClient implements IClient {
     if (this.assistantSilenceTimer) clearTimeout(this.assistantSilenceTimer);
     this.userSilenceTimer = null;
     this.assistantSilenceTimer = null;
+    if (this.audioHandoffTimer) clearTimeout(this.audioHandoffTimer);
+    this.audioHandoffTimer = null;
+    this.pendingAudioItems = [];
+    this.assistantTextEndMs.clear();
+    this.timelineOriginMs = null;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
     this.itemLookup.clear();
@@ -440,6 +465,7 @@ export class OpenAILiveClient implements IClient {
             if (generation === this.generation) {
               this.sessionId = data.session?.id ?? null;
               this.expiresAt = data.session?.expires_at ?? null;
+              this.timelineOriginMs = Date.now();
             }
             if (regularHandler && typeof regularHandler === 'function') {
               regularHandler.call(ws, event);
@@ -656,11 +682,18 @@ export class OpenAILiveClient implements IClient {
         if (assistantItem?.formatted) {
           assistantItem.formatted.transcript = (assistantItem.formatted.transcript || '') + (event.delta || '');
         }
+        if (typeof event.end_ms === 'number') {
+          const prev = this.assistantTextEndMs.get(assistantItemId) ?? 0;
+          this.assistantTextEndMs.set(assistantItemId, Math.max(prev, event.end_ms));
+        }
         this.eventHandlers.onConversationUpdated?.({
           item: assistantItem!,
           delta: { transcript: event.delta },
         });
         this.resetAssistantSilenceTimer();
+        if (SENTENCE_END_RE.test(assistantItem?.formatted?.transcript ?? '')) {
+          this.closeAssistantText(assistantItemId);
+        }
         break;
       }
 
@@ -669,7 +702,7 @@ export class OpenAILiveClient implements IClient {
         if (audioRms === 0) break;
         const audioData = decodedAudio;
 
-        const assistantItemId = this.currentAssistantItemId ?? this.ensureAssistantItem();
+        const assistantItemId = this.audioTargetItemId();
         const assistantItem = this.itemLookup.get(assistantItemId);
         if (!assistantItem) break;
 
@@ -849,9 +882,72 @@ export class OpenAILiveClient implements IClient {
     }
   }
 
+  // ----- Sentence segmentation (assistant side) -----
+
+  /** The text of `itemId` is complete; later transcript deltas open a new item
+   *  while audio keeps attaching to this one until its timeline end passes. */
+  private closeAssistantText(itemId: string): void {
+    this.pendingAudioItems.push({ id: itemId, endMs: this.assistantTextEndMs.get(itemId) ?? null });
+    this.currentAssistantItemId = null;
+    this.scheduleAudioHandoff();
+  }
+
+  /** Where the next voiced audio frame belongs: the oldest sentence still
+   *  receiving audio, else the item currently receiving text. */
+  private audioTargetItemId(): string {
+    const pending = this.pendingAudioItems[0];
+    if (pending) return pending.id;
+    return this.currentAssistantItemId ?? this.ensureAssistantItem();
+  }
+
+  private sessionElapsedMs(): number | null {
+    return this.timelineOriginMs === null ? null : Date.now() - this.timelineOriginMs;
+  }
+
+  /** Finalize the head of the pending queue once the session timeline has
+   *  passed its `end_ms` (plus a margin), then look at the next one. Without a
+   *  usable timeline the hand-over is immediate. */
+  private scheduleAudioHandoff(): void {
+    if (this.audioHandoffTimer) {
+      clearTimeout(this.audioHandoffTimer);
+      this.audioHandoffTimer = null;
+    }
+    const head = this.pendingAudioItems[0];
+    if (!head) return;
+    const elapsed = this.sessionElapsedMs();
+    const delay = head.endMs !== null && elapsed !== null
+      ? Math.max(0, head.endMs + AUDIO_HANDOFF_MARGIN_MS - elapsed)
+      : 0;
+    this.audioHandoffTimer = setTimeout(() => {
+      this.audioHandoffTimer = null;
+      const done = this.pendingAudioItems.shift();
+      if (done) this.finalizeAssistantItem(done.id);
+      this.scheduleAudioHandoff();
+    }, delay);
+  }
+
+  /** Every assistant item is done: the model stopped, or the session ended. */
   private completeAssistantItem(): void {
-    if (!this.currentAssistantItemId) return;
-    const itemId = this.currentAssistantItemId;
+    if (this.audioHandoffTimer) {
+      clearTimeout(this.audioHandoffTimer);
+      this.audioHandoffTimer = null;
+    }
+    const pending = this.pendingAudioItems;
+    this.pendingAudioItems = [];
+    for (const entry of pending) this.finalizeAssistantItem(entry.id);
+    if (this.currentAssistantItemId) {
+      const itemId = this.currentAssistantItemId;
+      this.currentAssistantItemId = null;
+      this.finalizeAssistantItem(itemId);
+    }
+    if (this.assistantSilenceTimer) {
+      clearTimeout(this.assistantSilenceTimer);
+      this.assistantSilenceTimer = null;
+    }
+  }
+
+  private finalizeAssistantItem(itemId: string): void {
+    this.assistantTextEndMs.delete(itemId);
     const item = this.itemLookup.get(itemId);
     if (item) {
       item.status = 'completed';
@@ -872,11 +968,6 @@ export class OpenAILiveClient implements IClient {
       this.audioCumSamples.delete(itemId);
       if (item.formatted) item.formatted.text = item.formatted.transcript || '';
       this.eventHandlers.onConversationUpdated?.({ item });
-    }
-    this.currentAssistantItemId = null;
-    if (this.assistantSilenceTimer) {
-      clearTimeout(this.assistantSilenceTimer);
-      this.assistantSilenceTimer = null;
     }
   }
 
@@ -980,6 +1071,8 @@ export class OpenAILiveClient implements IClient {
     this.itemLookup.clear();
     this.audioChunks.clear();
     this.audioCumSamples.clear();
+    this.pendingAudioItems = [];
+    this.assistantTextEndMs.clear();
   }
   setEventHandlers(handlers: ClientEventHandlers): void { this.eventHandlers = { ...handlers }; }
   getProvider(): ProviderType { return Provider.OPENAI_LIVE; }

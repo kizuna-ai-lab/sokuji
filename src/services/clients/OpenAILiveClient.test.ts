@@ -464,6 +464,98 @@ describe('OpenAILiveClient state machine', () => {
   });
 });
 
+describe('OpenAILiveClient sentence segmentation', () => {
+  let client: OpenAILiveClient;
+  let updates: any[];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    client = new OpenAILiveClient('sk-test');
+    updates = [];
+    client.setEventHandlers({ onConversationUpdated: (e) => updates.push(e) } as ClientEventHandlers);
+    // The session timeline starts now; Live's start_ms/end_ms are relative to it.
+    (client as any).timelineOriginMs = Date.now();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const feed = (event: unknown) => (client as any).handleServerEvent(event);
+  const assistants = () => client.getConversationItems().filter(i => i.role === 'assistant');
+
+  it('a sentence-final delta closes the text of the item; the next delta opens a new item', () => {
+    feed({ type: 'session.output_transcript.delta', delta: '皆さん、', start_ms: 500, end_ms: 1000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。', start_ms: 1000, end_ms: 2000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'まず', start_ms: 2100, end_ms: 2400 });
+    const items = assistants();
+    expect(items.map(i => i.formatted?.transcript)).toEqual(['皆さん、こんにちは。', 'まず']);
+  });
+
+  it('closing quotes and brackets after the terminal still count as a sentence end', () => {
+    feed({ type: 'session.output_transcript.delta', delta: '「はい。」', start_ms: 0, end_ms: 800 });
+    feed({ type: 'session.output_transcript.delta', delta: '(Yes!)', start_ms: 900, end_ms: 1500 });
+    feed({ type: 'session.output_transcript.delta', delta: 'Then', start_ms: 1600, end_ms: 1900 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual(['「はい。」', '(Yes!)', 'Then']);
+  });
+
+  it('audio keeps attaching to the closed sentence until the timeline passes its end, then moves on', () => {
+    // Audio frames keep the silence timer reset in a real session; here none
+    // arrive during the wait, so keep that timer out of the picture.
+    (client as any).assistantSilenceTimeoutMs = 10_000;
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。', start_ms: 0, end_ms: 2000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'まず', start_ms: 2100, end_ms: 2400 });
+    // Session time is still 0: the first sentence's audio is still arriving.
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    let [first, second] = assistants();
+    expect(first.status).toBe('in_progress');
+    expect(first.formatted?.audioSegments).toHaveLength(1);
+    expect(second.formatted?.audioSegments).toBeUndefined();
+
+    // 2000 ms + the 300 ms margin: the first sentence's audio has been delivered.
+    vi.advanceTimersByTime(2300);
+    [first, second] = assistants();
+    expect(first.status).toBe('completed');
+    expect(first.formatted?.text).toBe('こんにちは。');
+    expect(second.status).toBe('in_progress');
+
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    [first, second] = assistants();
+    expect(first.formatted?.audioSegments).toHaveLength(1);
+    expect(second.formatted?.audioSegments).toHaveLength(1);
+    expect(second.formatted?.audioSegments?.[0].textEnd).toBe(2);
+  });
+
+  it('several closed sentences hand their audio over in order', () => {
+    (client as any).assistantSilenceTimeoutMs = 10_000;
+    feed({ type: 'session.output_transcript.delta', delta: 'A。', start_ms: 0, end_ms: 1000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'B。', start_ms: 1000, end_ms: 2000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'C', start_ms: 2000, end_ms: 2500 });
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA }); // → A
+    vi.advanceTimersByTime(1300);                                       // A's audio done
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA }); // → B
+    vi.advanceTimersByTime(1000);                                       // B's audio done
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA }); // → C
+    const [a, b, c] = assistants();
+    expect([a.status, b.status, c.status]).toEqual(['completed', 'completed', 'in_progress']);
+    expect([a, b, c].map(i => i.formatted?.audioSegments?.length)).toEqual([1, 1, 1]);
+  });
+
+  it('the assistant silence timer flushes every pending sentence when the model stops', () => {
+    (client as any).assistantSilenceTimeoutMs = 1500;
+    feed({ type: 'session.output_transcript.delta', delta: 'A。', start_ms: 0, end_ms: 9000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'B', start_ms: 9000, end_ms: 9500 });
+    vi.advanceTimersByTime(1501);
+    const [a, b] = assistants();
+    expect([a.status, b.status]).toEqual(['completed', 'completed']);
+    expect((client as any).pendingAudioItems).toEqual([]);
+  });
+
+  it('without a timeline origin the hand-over happens immediately', () => {
+    (client as any).timelineOriginMs = null;
+    feed({ type: 'session.output_transcript.delta', delta: 'A。', start_ms: 0, end_ms: 5000 });
+    vi.advanceTimersByTime(0);
+    expect(assistants()[0].status).toBe('completed');
+  });
+});
+
 describe('OpenAILiveClient watchdog and reconnect', () => {
   let sockets: ReturnType<typeof makeMockWs>[];
   let originalWebSocket: unknown;

@@ -103,7 +103,8 @@ to 1.65 s).
 | Electron + extension only | The plain web build cannot set an upgrade header and the subprotocol trick is ignored (probe). Registered under `isElectron() \|\| isExtension()`, as Volcengine AST2 is. |
 | Instructions from the global interpreter template | It already exists, is user-editable, and is the same shape as OpenAI's published Live interpreter prompt. Live's 16,384-token limit is far above the ~300-token default. |
 | Voice list: the 22 Live voices, default `marin` | The 10 Realtime voices plus the 12 new ones (English / Brazilian Portuguese). `marin` is Live's documented default. |
-| Silence-timer segmentation, defaults user 1.0 s / assistant 1.5 s | Same mechanism as translate; the assistant default is raised from 0.5 s because Live's intra-sentence transcript gaps reach 1.65 s. `start_ms` / `end_ms` are logged, not used, in v1. |
+| Silence-timer segmentation, defaults user 1.0 s / assistant 1.5 s | Same mechanism as translate; the assistant default is raised from 0.5 s because Live's intra-sentence transcript gaps reach 1.65 s. |
+| Assistant items also close at sentence ends, with the audio following by timeline (added after the first GUI run, 2026-09-12) | A continuous speaker never gives the assistant timer a 1.5 s gap and Live has no per-response done event, so a two-minute monologue became one translation item while the source was cut into twenty. The text side closes on a sentence-final mark; the audio side moves to the next item once the session timeline (origin = `session.started`) passes the sentence's last `end_ms` + 300 ms, so karaoke anchors and replay audio stay with their sentence. Measured: transcript deltas arrive ~600 ms after their `end_ms`, i.e. together with the sentence's last audio, so the hand-over is effectively immediate and the timeline check is a guard. |
 | One silent reconnect on an unexpected end, then a notice | A dead interpreter mid-meeting is worse than a 1–2 s gap. Instructions are static, so a fresh session loses nothing. A second unexpected end within 60 s ends the session with the localized notice through the client-held system item seam (Soniox recoverable-outage design). |
 | Participant leg supported the way translate does it | `buildParticipantSessionConfig` forces `textOnly: true` for every provider; Live has no text-only, so the participant client receives audio it does not play and uses the transcripts. Identical to `openai_translate` today. |
 | No Kizuna relay twin | The relay would need Live support in sokuji-backend. Out of scope. |
@@ -166,7 +167,7 @@ Nothing in `MainPanel.tsx`, `IClient` handler shapes, `electron/main.js` or the 
 | Event | Handling |
 | --- | --- |
 | `session.input_transcript.delta` | `ensureUserItem()`, append `delta` to `formatted.transcript`, `onConversationUpdated({ item, delta: { transcript } })`, reset the user silence timer. `start_ms` / `end_ms` go on the log event only. |
-| `session.output_transcript.delta` | Same for the assistant item and timer. |
+| `session.output_transcript.delta` | Same for the assistant item and timer; records the delta's `end_ms` for the item. If the item's transcript now ends in a sentence-final mark (`。．！？!?.`, optionally followed by closing quotes/brackets), the item's text is closed: it joins the pending-audio queue and the next transcript delta opens a new item. |
 | `session.output_audio.delta` | Base64 → `Int16Array`; frames with RMS 0 are dropped (Live streams silence continuously); voiced frames: open the assistant item if none, push to `audioChunks` when `keepReplayAudio`, advance `audioCumSamples`, append a karaoke segment, emit `onConversationUpdated` with `delta.audio` and the sequence number — verbatim from translate. |
 | `session.usage.updated` | Feed the watchdog (§1.5); log. |
 | `session.delegation.created` | Log only. The interpreter prompt forbids delegation; if it happens the app ignores it and the model continues. |
@@ -177,7 +178,7 @@ Nothing in `MainPanel.tsx`, `IClient` handler shapes, `electron/main.js` or the 
 
 Input audio: `appendInputAudio(Int16Array)` → `{ type: 'session.input_audio.append', audio: <base64> }` while `readyState === 1`, else dropped silently (hot path). Frames with RMS 0 are not forwarded to the log; the wire send always happens. The watchdog notes the wall time of the last voiced input frame.
 
-Segmentation is the translate client's pair of silence timers with clamped thresholds (0.1–3.0 s); `completeUserItem` / `completeAssistantItem` are unchanged, including the replay-audio merge.
+Segmentation is the translate client's pair of silence timers with clamped thresholds (0.1–3.0 s) plus, on the assistant side, the sentence-end rule above: voiced audio attaches to the oldest queued sentence until the session timeline passes that sentence's `end_ms` + 300 ms (`scheduleAudioHandoff`), then to the next; without a timeline origin the hand-over is immediate. The assistant silence timer flushes the whole queue (`completeAssistantItem`) when the model stops; `finalizeAssistantItem` carries the replay-audio merge. `completeUserItem` is unchanged.
 
 ### 1.3 Disconnect
 
