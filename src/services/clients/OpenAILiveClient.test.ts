@@ -427,8 +427,8 @@ describe('OpenAILiveClient state machine', () => {
     const errors: any[] = [];
     client.setEventHandlers({ onConversationUpdated: (e) => updates.push(e), onError: (e) => errors.push(e) } as ClientEventHandlers);
     feed({ type: 'error', error: { type: 'invalid_request_error', code: 'immutable_field_update', message: 'nope' } });
-    expect(updates.at(-1).item.type).toBe('error');
-    expect(updates.at(-1).item.formatted.text).toBe('[invalid_request_error] nope');
+    expect(updates[updates.length - 1].item.type).toBe('error');
+    expect(updates[updates.length - 1].item.formatted.text).toBe('[invalid_request_error] nope');
     expect(errors).toHaveLength(1);
   });
 });
