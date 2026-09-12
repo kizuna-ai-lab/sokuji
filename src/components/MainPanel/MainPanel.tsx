@@ -90,6 +90,7 @@ import { usePlaybackStore, usePlaybackHighlight } from '../../stores/playbackSto
 import ModePicker from './ModePicker';
 import SplitDegradedChip from './SplitDegradedChip';
 import { resolveSplitDegraded, type SplitDegradedReason } from './splitDegraded';
+import { reportError, describeCause } from '../../lib/diagnostics/report';
 import { buildChannelTelemetryHandlers, type ChannelTelemetryPorts } from './participantTelemetry';
 import { sessionModelTelemetry, legModelsOf, type LegModels } from './sessionModelTelemetry';
 import { NO_CHANNELS_RECONNECTING, type ReconnectingState } from './reconnectingChannels';
@@ -1487,7 +1488,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               // rather than a captured flag — this closure is built once per
               // session and would hold a stale value.
               if (!useSessionStore.getState().isSessionActive) return;
-              speakerClientRef.current?.appendInputText(text);
+              // The only appendInputText call site not already inside a
+              // try/catch — and it deliberately stays a throwing call (see the
+              // comment on OpenAIClient.appendInputText), so an unguarded one
+              // here would escape a timer callback with no handler at all.
+              try {
+                speakerClientRef.current?.appendInputText(text);
+              } catch (error) {
+                // Nothing else records this one: the throw means the client
+                // never reached reportSendFailure, so onError never fired.
+                reportError('MainPanel', `Queued text was not sent: ${describeCause(error)}`, { cause: error });
+              }
             }, 100);
           }
         }

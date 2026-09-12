@@ -757,26 +757,21 @@ export class OpenAIClient implements IClient {
 
     // Send user message content - the library auto-creates ConversationItem.
     //
-    // Guarded like every other send on this client. `sendUserMessageContent`
-    // puts the item on the wire through `realtime.send`, which throws
-    // `RealtimeAPI is not connected` as soon as the socket is down, and the
-    // beta SDK guards none of its own sends — this was the last unguarded send
-    // path, and it threw straight out of a React event handler (#544).
+    // Deliberately NOT wrapped in the reportSendFailure guard the other sends
+    // use. `sendUserMessageContent` goes out over `realtime.send`, which throws
+    // `RealtimeAPI is not connected` once the socket is down, and that throw is
+    // load-bearing at the call site: MainPanel.handleSendText only reaches
+    // `setItems(client.getConversationItems())` and the `text_input_sent` event
+    // if this returns normally. Swallowing the failure here would refresh the
+    // conversation from the client's items — wiping the error bubble onError
+    // had just appended — and record a message that never went out.
     //
-    // Deliberately unlatched, unlike the audio path: this is one call per
-    // deliberate user action, not ~6/second, so every failure is new
-    // information and the user is waiting on an answer for it.
-    //
-    // Letting the throw stop the SDK's own trailing `createResponse()` is the
-    // behaviour we want — a response over an item the server never received
-    // would answer the previous turn.
-    try {
-      this.client.sendUserMessageContent([
-        { type: 'input_text', text: text.trim() }
-      ]);
-    } catch (error) {
-      this.reportSendFailure('conversation.item.create', error);
-    }
+    // Unlike the per-chunk audio path, every caller of this one is inside a
+    // try/catch already, because each call is a deliberate user action with
+    // someone waiting on the answer.
+    this.client.sendUserMessageContent([
+      { type: 'input_text', text: text.trim() }
+    ]);
   }
 
   /**

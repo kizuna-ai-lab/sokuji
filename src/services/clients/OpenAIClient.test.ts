@@ -320,25 +320,18 @@ describe('OpenAIClient — realtime send failure handling', () => {
     expect(reportedOps()).toEqual(['response.create']);
   });
 
-  // #544: the one send path that had no guard. The text box is a speaker-channel
-  // control, so this only fires when the speaker socket dies under a live
-  // session — but it threw straight out of the React event handler, past
-  // MainPanel's catch and into the console as an unhandled rejection shape the
-  // user could do nothing with.
-  it('reports a text-input failure without throwing', () => {
+  // appendInputText is the one send that must NOT be swallowed, and this pins
+  // that. Every caller wraps it already, and MainPanel.handleSendText depends on
+  // the throw to tell a failed send from a completed one: on the success path it
+  // runs `setItems(client.getConversationItems())`, which would wipe the error
+  // bubble onError just appended, and records `text_input_sent` for a message
+  // the server never received.
+  it('propagates a text-input failure to the caller', () => {
     failEverySend();
 
-    expect(() => client.appendInputText('hello')).not.toThrow();
-    expect(reportedOps()).toEqual(['conversation.item.create']);
-  });
-
-  it('does not request a response when the text item never went out', () => {
-    failEverySend();
-
-    client.appendInputText('hello');
-
-    // sendUserMessageContent calls createResponse() after the item; a response
-    // over an item the server never received would answer the previous turn.
+    expect(() => client.appendInputText('hello')).toThrow('RealtimeAPI is not connected');
+    // The throw also stops the SDK's trailing createResponse(): a response over
+    // an item that never arrived would answer the previous turn.
     expect(sdk.createResponse).not.toHaveBeenCalled();
   });
 
