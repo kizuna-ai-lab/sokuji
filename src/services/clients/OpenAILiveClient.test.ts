@@ -479,15 +479,51 @@ describe('OpenAILiveClient source segmentation', () => {
   const feed = (event: unknown) => (client as any).handleServerEvent(event);
   const users = () => client.getConversationItems().filter(i => i.role === 'user');
 
-  it('a timeline gap of 600 ms or more between input deltas starts a new source item', () => {
-    feed({ type: 'session.input_transcript.delta', delta: '大家', start_ms: 0, end_ms: 400 });
-    feed({ type: 'session.input_transcript.delta', delta: '好', start_ms: 400, end_ms: 800 });
-    feed({ type: 'session.input_transcript.delta', delta: ',先', start_ms: 1400, end_ms: 1800 });
-    feed({ type: 'session.input_transcript.delta', delta: '说', start_ms: 1900, end_ms: 2100 });
+  it('a timeline gap of 600 ms or more ends a source item that already holds 4 s; the leading mark stays with it', () => {
+    feed({ type: 'session.input_transcript.delta', delta: '大家', start_ms: 0, end_ms: 2000 });
+    feed({ type: 'session.input_transcript.delta', delta: '好', start_ms: 2000, end_ms: 4100 });
+    feed({ type: 'session.input_transcript.delta', delta: ',先', start_ms: 4700, end_ms: 5100 });
+    feed({ type: 'session.input_transcript.delta', delta: '说', start_ms: 5200, end_ms: 5400 });
     const items = users();
-    expect(items.map(i => i.formatted?.transcript)).toEqual(['大家好', ',先说']);
+    expect(items.map(i => i.formatted?.transcript)).toEqual(['大家好,', '先说']);
     expect(items[0].status).toBe('completed');
     expect(items[1].status).toBe('in_progress');
+  });
+
+  it('a short source item survives an ordinary pause', () => {
+    feed({ type: 'session.input_transcript.delta', delta: '为什么呢', start_ms: 0, end_ms: 1000 });
+    feed({ type: 'session.input_transcript.delta', delta: '因为在中国呀', start_ms: 1700, end_ms: 3000 });
+    feed({ type: 'session.input_transcript.delta', delta: ',众多的运转', start_ms: 3800, end_ms: 4600 });
+    expect(users().map(i => i.formatted?.transcript)).toEqual(['为什么呢因为在中国呀,众多的运转']);
+  });
+
+  it('a pause of twice the silence setting ends even a short source item', () => {
+    (client as any).userSilenceTimeoutMs = 1000;
+    feed({ type: 'session.input_transcript.delta', delta: '好', start_ms: 0, end_ms: 1000 });
+    feed({ type: 'session.input_transcript.delta', delta: '那么', start_ms: 3100, end_ms: 3500 });
+    expect(users().map(i => i.formatted?.transcript)).toEqual(['好', '那么']);
+  });
+
+  it('past 8 s of timeline a source item is cut at the next clause mark', () => {
+    feed({ type: 'session.input_transcript.delta', delta: '很长的一句', start_ms: 0, end_ms: 8500 });
+    feed({ type: 'session.input_transcript.delta', delta: '话,然后', start_ms: 8500, end_ms: 9000 });
+    expect(users().map(i => i.formatted?.transcript)).toEqual(['很长的一句话,', '然后']);
+  });
+
+  it('the silence timer lets a short source item live through one pause, then ends it', () => {
+    (client as any).userSilenceTimeoutMs = 1000;
+    feed({ type: 'session.input_transcript.delta', delta: 'hi', start_ms: 0, end_ms: 500 });
+    vi.advanceTimersByTime(1001);
+    expect(users()[0].status).toBe('in_progress');
+    vi.advanceTimersByTime(1000);
+    expect(users()[0].status).toBe('completed');
+  });
+
+  it('the silence timer ends a source item of 4 s or more on its first firing', () => {
+    (client as any).userSilenceTimeoutMs = 1000;
+    feed({ type: 'session.input_transcript.delta', delta: 'a long stretch', start_ms: 0, end_ms: 4500 });
+    vi.advanceTimersByTime(1001);
+    expect(users()[0].status).toBe('completed');
   });
 
   it('a sentence-final mark on the source side closes the item too, even when it leads the next delta', () => {
@@ -599,13 +635,32 @@ describe('OpenAILiveClient sentence segmentation', () => {
     expect(assistants().map(i => i.formatted?.transcript)).toEqual(['Hello', 'Next']);
   });
 
-  it('a translation with no sentence end for 15 s of timeline is cut at the next delta boundary', () => {
+  it('a translation with no sentence end for 30 s of timeline is cut at the next delta boundary', () => {
     (client as any).assistantSilenceTimeoutMs = 10_000;
-    feed({ type: 'session.output_transcript.delta', delta: 'a', start_ms: 0, end_ms: 5000 });
-    feed({ type: 'session.output_transcript.delta', delta: 'b', start_ms: 5000, end_ms: 14000 });
-    feed({ type: 'session.output_transcript.delta', delta: 'c', start_ms: 14000, end_ms: 15200 });
-    feed({ type: 'session.output_transcript.delta', delta: 'd', start_ms: 15200, end_ms: 15400 });
+    feed({ type: 'session.output_transcript.delta', delta: 'a', start_ms: 0, end_ms: 10000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'b', start_ms: 10000, end_ms: 29000 });
+    feed({ type: 'session.output_transcript.delta', delta: 'c', start_ms: 29000, end_ms: 30200 });
+    feed({ type: 'session.output_transcript.delta', delta: 'd', start_ms: 30200, end_ms: 30400 });
     expect(assistants().map(i => i.formatted?.transcript)).toEqual(['abc', 'd']);
+  });
+
+  it('past 20 s of timeline a translation is cut at the next clause mark', () => {
+    (client as any).assistantSilenceTimeoutMs = 10_000;
+    feed({ type: 'session.output_transcript.delta', delta: 'every level relies on', start_ms: 0, end_ms: 21000 });
+    feed({ type: 'session.output_transcript.delta', delta: ' huge resources, and', start_ms: 21000, end_ms: 22000 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual(['every level relies on huge resources,', 'and']);
+  });
+
+  it('a company abbreviation and a lowercase continuation are not sentence ends', () => {
+    feed({ type: 'session.output_transcript.delta', delta: 'publisher Nan-I Book Co.', start_ms: 0, end_ms: 800 });
+    feed({ type: 'session.output_transcript.delta', delta: ', makes it fun. I said no. then', start_ms: 800, end_ms: 2000 });
+    feed({ type: 'session.output_transcript.delta', delta: ' we left.', start_ms: 2000, end_ms: 2400 });
+    feed({ type: 'session.output_transcript.delta', delta: ' Next', start_ms: 2500, end_ms: 2700 });
+    expect(assistants().map(i => i.formatted?.transcript)).toEqual([
+      'publisher Nan-I Book Co., makes it fun.',
+      'I said no. then we left.',
+      'Next',
+    ]);
   });
 
   it('closing quotes and brackets after the terminal still count as a sentence end', () => {
