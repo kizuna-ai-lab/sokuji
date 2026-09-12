@@ -74,6 +74,11 @@ export interface EventData {
     | 'session.input_audio_buffer.append'
     | 'conversation.item.create' | 'conversation.item.truncate' | 'conversation.item.delete'
     | 'response.create' | 'response.cancel'
+    // OpenAI Live (gpt-live-1) client events — the primary WebSocket's
+    // session.start/session.close handshake and its own audio-append name
+    // (distinct from the Realtime API's input_audio_buffer.append)
+    | 'session.start' | 'session.close' | 'session.close_timeout'
+    | 'session.input_audio.append'
     // openai-realtime-api custom events (for beta clients)
     | 'conversation.item.appended' | 'conversation.item.completed'
     | 'conversation.updated' | 'conversation.interrupted'
