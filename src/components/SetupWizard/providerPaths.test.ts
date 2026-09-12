@@ -24,7 +24,7 @@ describe('providerPaths', () => {
   it('own-key lists every user-managed provider in registration order, never managed or local ones', () => {
     const ids = ownKeyOptions('understand-others').map((o) => o.id);
     expect(ids).toEqual([
-      Provider.OPENAI, Provider.OPENAI_TRANSLATE, Provider.VOLCENGINE_AST2, Provider.GEMINI,
+      Provider.OPENAI, Provider.OPENAI_TRANSLATE, Provider.OPENAI_LIVE, Provider.VOLCENGINE_AST2, Provider.GEMINI,
       Provider.SONIOX, Provider.PALABRA_AI, Provider.OPENAI_COMPATIBLE, Provider.VOLCENGINE_ST, Provider.ZOOM_AI,
     ]);
   });
