@@ -28,13 +28,14 @@ beforeEach(() => {
 });
 
 describe('provider list order', () => {
-  it('leads with the curated eight, in order, before everything else', async () => {
+  it('leads with the curated nine, in order, before everything else', async () => {
     const ids = await allProviders();
 
-    expect(ids.slice(0, 8)).toEqual([
+    expect(ids.slice(0, 9)).toEqual([
       Provider.OPENAI,
       Provider.KIZUNA_AI_SONIOX,
       Provider.OPENAI_TRANSLATE,
+      Provider.OPENAI_LIVE,
       Provider.LOCAL_INFERENCE,
       Provider.VOLCENGINE_AST2,
       Provider.GEMINI,

@@ -23,6 +23,7 @@ import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
 import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
+import { defaultOpenAILiveSettings } from './OpenAILiveProviderConfig';
 import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
@@ -44,6 +45,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   openai: defaultOpenAISettings,
   openaiCompatible: defaultOpenAICompatibleSettings,
   openaiTranslate: defaultOpenAITranslateSettings,
+  openaiLive: defaultOpenAILiveSettings,
   gemini: defaultGeminiSettings,
   palabraai: defaultPalabraAISettings,
   volcengineST: defaultVolcengineSTSettings,
@@ -60,7 +62,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(14);
+    expect(ids.length).toBe(15);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -219,6 +221,7 @@ describe('descriptor.buildSessionConfig', () => {
     // Expected wire tags (kizuna twins reuse their base tag; compatible uses 'openai').
     const wireTag: Record<string, string> = {
       openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
+      openai_live: 'openai_live',
       gemini: 'gemini', palabraai: 'palabraai', volcengine_st: 'volcengine_st',
       volcengine_ast2: 'volcengine_ast2', zoom_ai: 'zoom_ai', local_inference: 'local_inference',
       local_native: 'local_native',

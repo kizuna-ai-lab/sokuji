@@ -4,6 +4,7 @@ import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
+import { OpenAILiveProviderConfig } from './OpenAILiveProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIOpenAITranslateProviderConfig } from './KizunaAIOpenAITranslateProviderConfig';
 import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2ProviderConfig';
@@ -37,6 +38,14 @@ export class ProviderConfigFactory {
     }
 
     ProviderConfigFactory.configs.set(Provider.OPENAI_TRANSLATE, new OpenAITranslateProviderConfig());
+
+    // OpenAI Live (gpt-live-1) — the Live WebSocket needs an Authorization header
+    // on the upgrade, which only Electron (webRequest) and the extension
+    // (declarativeNetRequest) can inject. The web build has no way to, so the
+    // provider is not offered there.
+    if (isElectron() || isExtension()) {
+      ProviderConfigFactory.configs.set(Provider.OPENAI_LIVE, new OpenAILiveProviderConfig());
+    }
 
     // Local inference is always available (no API key or feature flag required)
     ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
