@@ -260,7 +260,10 @@ export const defaultOpenAILiveSettings = {
 - Locales, all 30 catalogs (`locales.consistency.test.ts` keeps them in lockstep with `en`):
   - `providers.openai_live.name`: "OpenAI Live"
   - `providers.openai_live.description` (en): "GPT-Live-1 as a simultaneous interpreter. Billed per session minute, silence included."
-  - `mainPanel.openaiLiveConnectionLost` (en): "OpenAI Live dropped the session and could not reconnect. Press Start to continue."
+  - `mainPanel.openaiLiveConnectionLost`: the same localized sentence as
+    `mainPanel.sonioxConnectionLost` in every catalog ("The connection was interrupted — tap
+    Start Session in a moment to continue."); the wording is provider-agnostic, so no new
+    translation was needed.
 - CLAUDE.md: add `openai_live` to the provider sentence in Project Overview only if that
   sentence is updated for other reasons; the registry test is the source of truth.
 
@@ -293,8 +296,8 @@ export const defaultOpenAILiveSettings = {
   and every `gpt-realtime*`); validation messages.
 - Registry, locale and icon consistency tests updated as listed above.
 - Live smoke (manual, with a real key): the spike scripts under the job's tmp dir are the
-  reference; the plan ports the WebSocket one into `benchmark/openai-live/` so the smoke can be
-  repeated. Then one Electron dev run and one packed extension run, each: start a session,
+  reference; `benchmark/openai-live/live-smoke.mjs` (see its README) is the repeatable smoke.
+  Then one Electron dev run and one packed extension run, each: start a session,
   speak two sentences, confirm captions on both sides and audio out, stop, confirm
   `session.closed` in the log.
 
