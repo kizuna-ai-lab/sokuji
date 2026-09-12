@@ -1064,6 +1064,10 @@ const useSettingsStore = create<SettingsStore>()(
                   // no `model` field, so the auto-select is intentionally
                   // a no-op here.
                   break;
+                case Provider.OPENAI_LIVE:
+                  // Live runs the fixed gpt-live-1; the slice has no `model`
+                  // field, so there is nothing to auto-select.
+                  break;
               }
               console.info(`[Sokuji] Model "${currentModel || '(empty)'}" not available, auto-selected "${latestModel}"`);
             }

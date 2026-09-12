@@ -165,6 +165,26 @@ describe('OpenAILiveClient connect (Electron header injection)', () => {
     expect(invoke).toHaveBeenCalledWith('ws-headers-clear', { host: LIVE_HOST });
   });
 
+  it('a session.closed frame before session.started does not start a reconnect', async () => {
+    const client = new OpenAILiveClient('sk-test');
+    const onReconnecting = vi.fn();
+    const onError = vi.fn();
+    client.setEventHandlers({ onReconnecting, onError } as ClientEventHandlers);
+    const p = client.connect(baseConfig);
+    await flush();
+    ws.readyState = 1;
+    ws.onopen?.({});
+    // The handshake interceptor forwards this to handleServerEvent; the
+    // watchdog must ignore it because the session has not started yet.
+    ws.onmessage?.({ data: JSON.stringify({ type: 'session.closed', reason: 'expired' }) });
+    ws.onmessage?.({ data: JSON.stringify({ type: 'session.started', session: { id: 'live_1', expires_at: 1789000000, status: 'active', model: LIVE_MODEL } }) });
+    await p;
+    expect(onReconnecting).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect((globalThis as any).WebSocket).toHaveBeenCalledTimes(1);
+    expect(client.isConnected()).toBe(true);
+  });
+
   it('a failed handshake closes the socket', async () => {
     const client = new OpenAILiveClient('sk-test');
     const p = client.connect(baseConfig);
@@ -436,7 +456,11 @@ describe('OpenAILiveClient state machine', () => {
 describe('OpenAILiveClient watchdog and reconnect', () => {
   let sockets: ReturnType<typeof makeMockWs>[];
   let originalWebSocket: unknown;
-  let handlers: { reconnecting: ReturnType<typeof vi.fn>; reconnected: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn>; updates: any[]; events: any[] };
+  let handlers: ReturnType<typeof makeHandlers>;
+
+  function makeHandlers() {
+    return { reconnecting: vi.fn(), reconnected: vi.fn(), error: vi.fn(), close: vi.fn(), updates: [] as any[], events: [] as any[] };
+  }
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -449,27 +473,34 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
       return ws;
     });
     (window as any).electron = { invoke: vi.fn(async () => ({ success: true })) };
-    handlers = { reconnecting: vi.fn(), reconnected: vi.fn(), error: vi.fn(), close: vi.fn(), updates: [], events: [] };
+    handlers = makeHandlers();
   });
-  afterEach(() => {
+  afterEach(async () => {
+    // A socket left mid-upgrade holds the module-level upgrade gate; settle it
+    // so the next test's connect() is not queued behind this one's leftovers.
+    for (const ws of sockets) {
+      if (ws.readyState === 0) ws.onclose?.({ code: 1006, reason: 'test teardown' });
+    }
+    await flush();
     vi.useRealTimers();
     (globalThis as any).WebSocket = originalWebSocket;
     delete (window as any).electron;
   });
 
-  async function connectedClient() {
+  /** Connect a client whose initial socket is `sockets[index]`, reporting into `h`. */
+  async function connectedClient(index = 0, h = handlers) {
     const client = new OpenAILiveClient('sk-test');
     client.setEventHandlers({
-      onReconnecting: handlers.reconnecting,
-      onReconnected: handlers.reconnected,
-      onError: handlers.error,
-      onClose: handlers.close,
-      onConversationUpdated: (e) => handlers.updates.push(e),
-      onRealtimeEvent: (e) => handlers.events.push(e),
+      onReconnecting: h.reconnecting,
+      onReconnected: h.reconnected,
+      onError: h.error,
+      onClose: h.close,
+      onConversationUpdated: (e) => h.updates.push(e),
+      onRealtimeEvent: (e) => h.events.push(e),
     } as ClientEventHandlers);
     const p = client.connect(baseConfig);
     await flush();
-    completeHandshake(sockets[0]);
+    completeHandshake(sockets[index]);
     await p;
     return client;
   }
@@ -620,9 +651,92 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
 
     vi.advanceTimersByTime(1_000);
     sockets[2].onclose?.({ code: 1006, reason: '' });
-    // Park the reconnect attempt mid-handshake so nothing dangles past this test.
+    // Park the reconnect attempt mid-handshake; afterEach settles the socket
+    // it opened so its upgrade-gate hold does not outlive this test.
     await flush();
     expect(handlers.reconnecting).toHaveBeenCalledTimes(1);
     expect(handlers.error).not.toHaveBeenCalled();
+  });
+
+  it('a stale handshake timer cannot tear down a newer session', async () => {
+    const client = await connectedClient();
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await flush();
+    // The reconnect has opened sockets[1]; leave its handshake pending, as a
+    // black-holed TCP connect would, and let the user press Stop.
+    expect(sockets).toHaveLength(2);
+    await client.disconnect();
+
+    const p = client.connect(baseConfig);
+    await flush();
+    completeHandshake(sockets[2], 'live_new');
+    await p;
+    expect(client.isConnected()).toBe(true);
+
+    // Before the fix the parked reconnect's 30 s session.start timer fired
+    // here and its failure path tore down whatever this.ws was — sockets[2].
+    vi.advanceTimersByTime(31_000);
+    await flush();
+    expect(client.isConnected()).toBe(true);
+    expect(sockets[2].close).not.toHaveBeenCalled();
+    expect(handlers.error).not.toHaveBeenCalled();
+    expect(handlers.close).not.toHaveBeenCalled();
+  });
+
+  it('two clients reconnecting at once register and upgrade one after the other', async () => {
+    const handlersB = makeHandlers();
+    const clientA = await connectedClient();
+    const clientB = await connectedClient(1, handlersB);
+    const invoke = (window as any).electron.invoke as ReturnType<typeof vi.fn>;
+    const headerRegistrations = () => invoke.mock.calls.filter((c: unknown[]) => c[0] === 'ws-headers-set').length;
+    expect(headerRegistrations()).toBe(2);
+
+    // One network blip kills both legs' sockets in the same tick.
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    sockets[1].onclose?.({ code: 1006, reason: '' });
+    await flush();
+    // Only the first leg has registered its header and opened a socket; the
+    // second is queued on the gate so its registration cannot be consumed by
+    // the first leg's upgrade.
+    expect(sockets).toHaveLength(3);
+    expect(headerRegistrations()).toBe(3);
+
+    // The gate releases on `open`, not on session.started.
+    sockets[2].readyState = 1;
+    sockets[2].onopen?.({});
+    await flush();
+    expect(sockets).toHaveLength(4);
+    expect(headerRegistrations()).toBe(4);
+
+    sockets[2].onmessage?.({ data: JSON.stringify({ type: 'session.started', session: { id: 'live_a2', expires_at: 1789000000, status: 'active', model: LIVE_MODEL } }) });
+    completeHandshake(sockets[3], 'live_b2');
+    await flush();
+    expect(handlers.reconnected).toHaveBeenCalledTimes(1);
+    expect(handlersB.reconnected).toHaveBeenCalledTimes(1);
+    expect(handlers.error).not.toHaveBeenCalled();
+    expect(handlersB.error).not.toHaveBeenCalled();
+    expect(clientA.isConnected()).toBe(true);
+    expect(clientB.isConnected()).toBe(true);
+  });
+
+  it('late socket callbacks after disconnect() fire no handler', async () => {
+    const client = await connectedClient();
+    const ws = sockets[0];
+    const d = client.disconnect();
+    // The server never answers session.close: disconnect() gives up after
+    // 5 s and closes the socket itself.
+    await vi.advanceTimersByTimeAsync(5000);
+    await d;
+    expect(ws.close).toHaveBeenCalledTimes(1);
+    expect(ws.onerror).toBeNull();
+    expect(ws.onclose).toBeNull();
+    expect(ws.onmessage).toBeNull();
+
+    // Chrome fails a close handshake the server never answers: error, then close.
+    ws.onerror?.({});
+    ws.onclose?.({ code: 1006, reason: '' });
+    expect(handlers.error).not.toHaveBeenCalled();
+    expect(handlers.close).not.toHaveBeenCalled();
+    expect(handlers.reconnecting).not.toHaveBeenCalled();
   });
 });

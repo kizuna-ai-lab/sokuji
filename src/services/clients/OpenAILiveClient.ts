@@ -46,6 +46,24 @@ const SESSION_START_TIMEOUT_MS = 30000;
 const CLOSE_TIMEOUT_MS = 5000;
 /** A second unexpected end inside this window after a reconnect means give up. */
 const RECONNECT_GRACE_MS = 60_000;
+/** Longest one leg may hold the upgrade gate without its socket settling (a black-holed TCP connect). */
+const UPGRADE_GATE_CAP_MS = 15_000;
+
+// One upgrade at a time per process. Electron's `ws-headers-set` rule is per
+// host and one-shot; the extension's DNR rule is per host and cleared by
+// whichever leg starts first. Two legs of a Both session reconnecting after
+// the same network blip would otherwise register concurrently and send one
+// upgrade without its header (401 → giveUp → the whole session torn down).
+// Held from registerUpgradeHeader() until the socket's open/error/close.
+let upgradeGate: Promise<void> = Promise.resolve();
+
+async function acquireUpgradeGate(): Promise<() => void> {
+  const prev = upgradeGate;
+  let release!: () => void;
+  upgradeGate = new Promise<void>((r) => { release = r; });
+  await prev;
+  return release;
+}
 
 export interface LiveSessionStart {
   type: 'session.start';
@@ -89,6 +107,12 @@ export class OpenAILiveClient implements IClient {
   private reconnectedAt: number | null = null;
   /** Bumped by connect()/disconnect() so a reconnect in flight can tell it has been superseded. */
   private generation: number = 0;
+  /**
+   * The 30 s session.start timer of the handshake pending on `this.ws`, or null
+   * when none is. Cleared on every settle path so it can never fire against a
+   * socket that has since been torn down or replaced.
+   */
+  private handshakeTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Latches once a frame has failed to parse; cleared by the next frame that parses. */
   private parseFailed: boolean = false;
@@ -270,30 +294,65 @@ export class OpenAILiveClient implements IClient {
     this.reconnectedAt = null;
   }
 
-  /** Register the header, open the socket, send session.start, wait for session.started. */
+  /**
+   * Register the header, open the socket, send session.start, wait for
+   * session.started. Owns only the socket it creates: by the time a slow
+   * handshake settles, disconnect()/connect() may have replaced `this.ws`, and
+   * a stale failure must not tear the newer session down.
+   */
   private async openSession(config: OpenAILiveSessionConfig): Promise<WebSocket> {
-    await this.registerUpgradeHeader();
-    let ws: WebSocket;
+    const generation = this.generation;
+    const releaseGate = await acquireUpgradeGate();
+    let gateHeld = true;
+    let gateTimer: ReturnType<typeof setTimeout> | null = null;
+    const releaseUpgradeGate = () => {
+      if (!gateHeld) return;
+      gateHeld = false;
+      if (gateTimer) {
+        clearTimeout(gateTimer);
+        gateTimer = null;
+      }
+      releaseGate();
+    };
+    let ws: WebSocket | null = null;
     try {
+      await this.registerUpgradeHeader();
       this.closedReceived = false;
-      ws = new WebSocket(LIVE_WS_URL);
-      this.ws = ws;
-      this.setupWebSocketListeners(this.ws);
+      const socket = new WebSocket(LIVE_WS_URL);
+      ws = socket;
+      this.ws = socket;
+      this.setupWebSocketListeners(socket);
       const start = OpenAILiveClient.buildSessionStart(config, this.nextEventId('start'));
-      this.ws.onopen = () => {
-        this.ws?.send(JSON.stringify(start));
+      socket.onopen = () => {
+        releaseUpgradeGate();
+        socket.send(JSON.stringify(start));
         this.logClientEvent('session.start', start);
       };
-      await this.waitForSessionStarted();
-    } catch (error) {
-      this.teardownSocket();
+      gateTimer = setTimeout(releaseUpgradeGate, UPGRADE_GATE_CAP_MS);
+      await this.waitForSessionStarted(socket);
+      // Electron's rule was consumed by the upgrade; the extension's rule has
+      // done its job. Clearing both is a no-op at worst.
       this.clearUpgradeHeader();
+      return socket;
+    } catch (error) {
+      if (ws) {
+        ws.onopen = null;
+        ws.onclose = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        try { ws.close(); } catch { /* already closed */ }
+        if (this.ws === ws) this.ws = null;
+      }
+      // A stale clear on Electron would delete the newer session's
+      // not-yet-consumed rule; only the generation that registered may clear.
+      if (generation === this.generation) this.clearUpgradeHeader();
       throw error;
+    } finally {
+      // Settled on every path: session.started implies open fired; a rejected
+      // handshake implies error, close, or the 30 s timeout (longer than the
+      // gate cap). Idempotent, so the early release from onopen is unaffected.
+      releaseUpgradeGate();
     }
-    // Electron's rule was consumed by the upgrade; the extension's rule has
-    // done its job. Clearing both is a no-op at worst.
-    this.clearUpgradeHeader();
-    return ws;
   }
 
   private setupWebSocketListeners(ws: WebSocket): void {
@@ -328,20 +387,25 @@ export class OpenAILiveClient implements IClient {
     }
   }
 
-  private waitForSessionStarted(): Promise<void> {
+  private waitForSessionStarted(ws: WebSocket): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this.ws) {
-        reject(new Error('WebSocket not initialized'));
-        return;
-      }
       let settled = false;
-      const ws = this.ws;
-      const timeout = setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          reject(new Error('Session start timeout'));
-        }
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      // Every settle path goes through here, so `this.handshakeTimer` is
+      // non-null exactly while a handshake is pending — that is what lets
+      // teardownSocket() settle it. The identity check keeps a stale
+      // handshake from releasing a newer one's slot.
+      const settle = () => {
+        settled = true;
+        if (timer) clearTimeout(timer);
+        if (this.handshakeTimer === timer) this.handshakeTimer = null;
+      };
+      timer = setTimeout(() => {
+        if (settled) return;
+        settle();
+        reject(new Error('Session start timeout'));
       }, SESSION_START_TIMEOUT_MS);
+      this.handshakeTimer = timer;
 
       // Temporarily intercept frames for the handshake, then hand back to the
       // regular handlers installed by setupWebSocketListeners.
@@ -352,8 +416,7 @@ export class OpenAILiveClient implements IClient {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'session.started' && !settled) {
-            settled = true;
-            clearTimeout(timeout);
+            settle();
             ws.onmessage = regularHandler;
             ws.onerror = regularError;
             ws.onclose = regularClose;
@@ -366,8 +429,7 @@ export class OpenAILiveClient implements IClient {
             return;
           }
           if (data.type === 'error' && !settled) {
-            settled = true;
-            clearTimeout(timeout);
+            settle();
             reject(new Error(data.error?.message || 'Session start failed'));
             return;
           }
@@ -379,37 +441,49 @@ export class OpenAILiveClient implements IClient {
         }
       };
       ws.onerror = () => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timeout);
-          reject(new Error('WebSocket error during session start'));
-        }
+        if (settled) return;
+        settle();
+        reject(new Error('WebSocket error during session start'));
       };
       // A close racing the handshake must reject promptly rather than let the
       // caller wait out the full SESSION_START_TIMEOUT_MS for a misleading
-      // 'Session start timeout'. The reject paths above and below don't
-      // restore the regular handlers — the socket is torn down right after
-      // by openSession's catch block (teardownSocket nulls all three anyway).
+      // 'Session start timeout'. teardownSocket() also drives this handler
+      // (code 1006, 'torn down') to settle a pending handshake before it nulls
+      // the handlers. The reject paths above and below don't restore the
+      // regular handlers — openSession's catch detaches and closes the socket
+      // right after.
       ws.onclose = (event) => {
-        if (!settled) {
-          settled = true;
-          clearTimeout(timeout);
-          reject(new Error(`WebSocket closed during session start (code ${event.code})`));
-        }
+        if (settled) return;
+        settle();
+        reject(new Error(`WebSocket closed during session start (code ${event.code})`));
       };
     });
   }
 
-  /** Detach every socket handler and close it. Safe to call on an already-closed socket. */
+  /**
+   * Detach every socket handler and close it. Safe to call on an already-closed
+   * socket. A handshake still pending on the socket is settled first, through
+   * its own close handler, so the coroutine awaiting it wakes, sees the
+   * generation change, and returns without touching whatever `this.ws` is by
+   * then — and its 30 s timer is gone before the socket is.
+   */
   private teardownSocket(): void {
     const ws = this.ws;
-    this.ws = null;
-    if (ws) {
-      ws.onclose = null;
-      ws.onmessage = null;
-      ws.onerror = null;
-      try { ws.close(); } catch { /* already closed */ }
+    const handshakePending = this.handshakeTimer !== null;
+    if (this.handshakeTimer) {
+      clearTimeout(this.handshakeTimer);
+      this.handshakeTimer = null;
     }
+    if (!ws) return;
+    if (handshakePending) {
+      ws.onclose?.call(ws, { code: 1006, reason: 'torn down' } as CloseEvent);
+    }
+    ws.onopen = null;
+    ws.onclose = null;
+    ws.onmessage = null;
+    ws.onerror = null;
+    try { ws.close(); } catch { /* already closed */ }
+    if (this.ws === ws) this.ws = null;
   }
 
   private settleClose(): void {
@@ -447,7 +521,10 @@ export class OpenAILiveClient implements IClient {
    * the audio that arrives during the gap (dropped, not buffered).
    */
   private async handleUnexpectedEnd(cause: string, detail?: unknown): Promise<void> {
-    if (this.closing || this.reconnecting || !this.config) return;
+    // `connected` turns true only after session.started, so a session.closed
+    // or stall signal that lands during the initial handshake is ignored
+    // (spec §1.5: "while connected and after session.started").
+    if (!this.connected || this.closing || this.reconnecting || !this.config) return;
     this.completeUserItem();
     this.completeAssistantItem();
     this.logClientEvent('session.connection_lost', { provider: 'openai_live', cause, detail, timestamp: Date.now() });
@@ -661,6 +738,7 @@ export class OpenAILiveClient implements IClient {
           role: 'system',
           type: 'error',
           status: 'completed',
+          createdAt: Date.now(),
           formatted: { text: `[${event.error?.type || 'error'}] ${errorMessage}` },
           content: [{ type: 'text', text: errorMessage }],
         };
@@ -813,8 +891,9 @@ export class OpenAILiveClient implements IClient {
     this.generation += 1;
     this.closing = true;
     if (this.reconnecting) {
-      // A reconnect in flight sees the generation change after its await and
-      // closes the socket it opened.
+      // A reconnect in flight: settle the handshake pending on its socket (if
+      // it has one yet) so it wakes now; either way it sees the generation
+      // change after its await and closes whatever it opened.
       this.teardownSocket();
     }
     const ws = this.ws;
@@ -823,10 +902,10 @@ export class OpenAILiveClient implements IClient {
       this.logClientEvent('session.close', { provider: 'openai_live', timestamp: Date.now() });
       await this.waitForClosed();
     }
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+    // Detach before closing: a close handshake the server never answers makes
+    // the browser fail the connection, and that late `error` must not become
+    // an onError bubble after a clean Stop.
+    this.teardownSocket();
     this.connected = false;
     this.closing = false;
     this.clearUpgradeHeader();
