@@ -46,6 +46,23 @@ describe('logStore — per-client event grouping', () => {
     expect(speaker[0].groupingKey).toBe('input_audio_buffer');
   });
 
+  // The Live API names the same microphone stream `session.input_audio.append`
+  // (no `_buffer`); one entry per frame drowned the panel in a real session.
+  it('collapses the Live wire name for mic appends under the same key', () => {
+    for (let seq = 0; seq < 3; seq++) {
+      useLogStore.getState().addRealtimeEvent(
+        { type: 'session.input_audio.append', audio: `chunk-${seq}` } as any,
+        'client',
+        'session.input_audio.append',
+        'speaker'
+      );
+    }
+    const speaker = entriesFor('speaker');
+    expect(speaker).toHaveLength(1);
+    expect(speaker[0].events).toHaveLength(3);
+    expect(speaker[0].groupingKey).toBe('input_audio_buffer');
+  });
+
   // A session nobody speaks in sends nothing but mic appends, and they all
   // share one groupingKey, so they land in ONE entry for as long as the silence
   // lasts. Uncapped, that entry grew for the whole session and every append

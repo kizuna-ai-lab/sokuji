@@ -367,8 +367,10 @@ const useLogStore = create<LogStore>(
       let groupingKey: string | undefined;
       
       // OpenAI-specific grouping. The translate API prefixes the same wire
-      // event with `session.`, so collapse both variants under the same key.
-      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append') {
+      // event with `session.`, and the Live API names it without `_buffer`;
+      // all three are the microphone stream, collapsed under one key.
+      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append'
+          || eventType === 'session.input_audio.append') {
         groupingKey = 'input_audio_buffer';
       }
       // For other delta events, group by event type only
