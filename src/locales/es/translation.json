@@ -464,6 +464,10 @@
       "name": "OpenAI Translate",
       "description": "Modelo dedicado de traducción en tiempo real de OpenAI"
     },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 como intérprete simultáneo. Se factura por minuto de sesión, silencios incluidos."
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "AI de traducción especializada",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "No se pudo reproducir una parte de la traducción hablada. La transcripción y la traducción de texto no se ven afectadas.",
     "sonioxSegmentEnded": "Este segmento ha terminado — toca «Iniciar sesión» para continuar.",
     "sonioxConnectionLost": "Se interrumpió la conexión — toca «Iniciar sesión» en un momento para continuar.",
+    "openaiLiveConnectionLost": "Se interrumpió la conexión — toca «Iniciar sesión» en un momento para continuar.",
     "sonioxVoiceClipMissing": "Este dispositivo no tiene ninguna grabación de voz, así que esta sesión usa una voz integrada. Graba una en Configuración para hablar aquí con tu propia voz.",
     "sonioxVoicePoolBusy": "En este momento todas las plazas de voces personalizadas están en uso, así que esta sesión usa una voz integrada. Tu propia voz volverá a usarse la próxima vez.",
     "sonioxVoiceBuildFailed": "No se pudo crear tu voz personalizada, así que esta sesión usa una voz integrada. Intenta grabar un clip más claro en Configuración.",

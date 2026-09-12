@@ -464,6 +464,10 @@
       "name": "OpenAI Translate",
       "description": "OpenAI's dedicated real-time translation model"
     },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 as a simultaneous interpreter. Billed per session minute, silence included."
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "Specialized translation AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Part of the spoken translation could not be played. Transcription and text translation are unaffected.",
     "sonioxSegmentEnded": "This segment has ended — tap Start Session to continue.",
     "sonioxConnectionLost": "The connection was interrupted — tap Start Session in a moment to continue.",
+    "openaiLiveConnectionLost": "The connection was interrupted — tap Start Session in a moment to continue.",
     "sonioxVoiceClipMissing": "This device has no voice recording, so this session uses a built-in voice. Record one in Settings to speak in your own voice here.",
     "sonioxVoicePoolBusy": "All custom voice slots are in use right now, so this session uses a built-in voice. Your own voice will be used again next time.",
     "sonioxVoiceBuildFailed": "Your custom voice could not be built, so this session uses a built-in voice. Try recording a clearer clip in Settings.",

@@ -464,6 +464,10 @@
       "name": "OpenAI Translate",
       "description": "Model terjemahan masa nyata khusus daripada OpenAI"
     },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 sebagai jurubahasa serentak. Dicaj mengikut minit sesi, termasuk senyap."
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "AI terjemahan khusus",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Sebahagian terjemahan suara tidak dapat dimainkan. Transkripsi dan terjemahan teks tidak terjejas.",
     "sonioxSegmentEnded": "Segmen ini telah berakhir — ketik “Mula sesi” untuk meneruskan.",
     "sonioxConnectionLost": "Sambungan terputus — ketik “Mula sesi” sebentar lagi untuk meneruskan.",
+    "openaiLiveConnectionLost": "Sambungan terputus — ketik “Mula sesi” sebentar lagi untuk meneruskan.",
     "sonioxVoiceClipMissing": "Peranti ini tiada rakaman suara, jadi sesi ini menggunakan suara pratetap. Rakam satu dalam Tetapan untuk bercakap dengan suara anda sendiri di sini.",
     "sonioxVoicePoolBusy": "Semua slot suara tersuai sedang digunakan sekarang, jadi sesi ini menggunakan suara pratetap. Suara anda sendiri akan digunakan semula pada masa akan datang.",
     "sonioxVoiceBuildFailed": "Suara tersuai anda tidak dapat dibina, jadi sesi ini menggunakan suara pratetap. Cuba rakam klip yang lebih jelas dalam Tetapan.",

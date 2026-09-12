@@ -464,6 +464,10 @@
       "name": "OpenAI Translate",
       "description": "Dedykowany model tłumaczenia w czasie rzeczywistym od OpenAI"
     },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 jako tłumacz symultaniczny. Rozliczanie za minutę sesji, łącznie z ciszą."
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "Wyspecjalizowane AI do tłumaczeń",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Nie udało się odtworzyć części tłumaczenia mówionego. Transkrypcja i tłumaczenie tekstu działają bez zmian.",
     "sonioxSegmentEnded": "Ten segment się zakończył — dotknij „Rozpocznij sesję”, aby kontynuować.",
     "sonioxConnectionLost": "Połączenie zostało przerwane — za chwilę dotknij „Rozpocznij sesję”, aby kontynuować.",
+    "openaiLiveConnectionLost": "Połączenie zostało przerwane — za chwilę dotknij „Rozpocznij sesję”, aby kontynuować.",
     "sonioxVoiceClipMissing": "To urządzenie nie ma nagrania głosu, więc ta sesja korzysta z głosu z presetu. Nagraj je w Ustawieniach, aby mówić tutaj własnym głosem.",
     "sonioxVoicePoolBusy": "Wszystkie miejsca na własne głosy są obecnie zajęte, więc ta sesja korzysta z głosu z presetu. Twój własny głos zostanie użyty ponownie następnym razem.",
     "sonioxVoiceBuildFailed": "Nie udało się zbudować Twojego własnego głosu, więc ta sesja korzysta z głosu z presetu. Spróbuj nagrać wyraźniejszy klip w Ustawieniach.",

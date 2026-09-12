@@ -464,6 +464,10 @@
       "name": "OpenAI Translate",
       "description": "OpenAI:n erityinen reaaliaikainen käännösmalli"
     },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 simultaanitulkkina. Laskutus istuntominuutin mukaan, hiljaisuus mukaan lukien."
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "Erikoistunut käännöstekoäly",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Osaa puhutusta käännöksestä ei voitu toistaa. Litterointi ja tekstikäännös toimivat edelleen.",
     "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla ”Aloita istunto”.",
     "sonioxConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”.",
+    "openaiLiveConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”.",
     "sonioxVoiceClipMissing": "Tällä laitteella ei ole äänitallennetta, joten tämä istunto käyttää esiasetettua ääntä. Äänitä sellainen asetuksista, jotta voit puhua täällä omalla äänelläsi.",
     "sonioxVoicePoolBusy": "Kaikki mukautettujen äänten paikat ovat juuri nyt käytössä, joten tämä istunto käyttää esiasetettua ääntä. Omaa ääntäsi käytetään taas ensi kerralla.",
     "sonioxVoiceBuildFailed": "Mukautettua ääntäsi ei voitu luoda, joten tämä istunto käyttää esiasetettua ääntä. Kokeile äänittää selkeämpi näyte asetuksista.",

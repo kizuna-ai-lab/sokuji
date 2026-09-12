@@ -464,6 +464,10 @@
       "name": "OpenAI Translate",
       "description": "Modello dedicato di traduzione in tempo reale di OpenAI"
     },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 come interprete simultaneo. Fatturato al minuto di sessione, silenzi inclusi."
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "AI specializzata in traduzione",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Non è stato possibile riprodurre una parte della traduzione vocale. La trascrizione e la traduzione del testo non sono interessate.",
     "sonioxSegmentEnded": "Questo segmento è terminato — tocca «Inizia sessione» per continuare.",
     "sonioxConnectionLost": "La connessione è stata interrotta — tocca «Inizia sessione» tra un momento per continuare.",
+    "openaiLiveConnectionLost": "La connessione è stata interrotta — tocca «Inizia sessione» tra un momento per continuare.",
     "sonioxVoiceClipMissing": "Questo dispositivo non ha alcuna registrazione vocale, quindi questa sessione usa una voce preimpostata. Registrane una nelle Impostazioni per parlare qui con la tua voce.",
     "sonioxVoicePoolBusy": "Al momento tutti i posti per le voci personalizzate sono occupati, quindi questa sessione usa una voce preimpostata. La tua voce verrà usata di nuovo la prossima volta.",
     "sonioxVoiceBuildFailed": "Non è stato possibile creare la tua voce personalizzata, quindi questa sessione usa una voce preimpostata. Prova a registrare una clip più chiara nelle Impostazioni.",

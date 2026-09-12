@@ -464,6 +464,10 @@
       "name": "OpenAI Translate",
       "description": "Dedicated real-time translation model ng OpenAI"
     },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 bilang sabay-sabay na tagasalin. Sinisingil bawat minuto ng session, kasama ang katahimikan."
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "Specialized na translation AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "Hindi na-play ang bahagi ng binigkas na pagsasalin. Hindi apektado ang transcription at pagsasalin ng teksto.",
     "sonioxSegmentEnded": "Natapos na ang segment na ito — pindutin ang “Simulan ang session” para magpatuloy.",
     "sonioxConnectionLost": "Naputol ang koneksyon — pindutin ang “Simulan ang session” maya-maya para magpatuloy.",
+    "openaiLiveConnectionLost": "Naputol ang koneksyon — pindutin ang “Simulan ang session” maya-maya para magpatuloy.",
     "sonioxVoiceClipMissing": "Walang voice recording ang device na ito, kaya gumagamit ang session na ito ng preset na boses. Mag-record ng isa sa Mga Setting para makapagsalita gamit ang sarili mong boses dito.",
     "sonioxVoicePoolBusy": "Ginagamit ngayon ang lahat ng custom na voice slot, kaya gumagamit ang session na ito ng preset na boses. Gagamitin muli ang sarili mong boses sa susunod.",
     "sonioxVoiceBuildFailed": "Hindi mabuo ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses. Subukang mag-record ng mas malinaw na clip sa Mga Setting.",

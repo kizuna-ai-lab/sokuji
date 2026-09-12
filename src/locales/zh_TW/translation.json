@@ -464,6 +464,10 @@
       "name": "OpenAI Translate",
       "description": "OpenAI 專用的即時翻譯模型"
     },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "以 GPT-Live-1 作為同步口譯。依工作階段時長（含靜音）每分鐘計費。"
+    },
     "palabraai": {
       "name": "Palabra AI",
       "description": "專精翻譯的 AI",
@@ -616,6 +620,7 @@
     "sonioxTtsSegmentLost": "有一段語音翻譯未能播放。轉錄和文字翻譯不受影響。",
     "sonioxSegmentEnded": "此段落已結束——點一下「開始」以繼續。",
     "sonioxConnectionLost": "連線已中斷——請稍候點一下「開始」以繼續。",
+    "openaiLiveConnectionLost": "連線已中斷——請稍候點一下「開始」以繼續。",
     "sonioxVoiceClipMissing": "此裝置沒有語音錄音，因此本次工作階段使用預設語音。請在設定中錄製一段，以便在此使用您自己的聲音。",
     "sonioxVoicePoolBusy": "目前所有自訂語音名額都在使用中，因此本次工作階段使用預設語音。您自己的語音將於下次再次使用。",
     "sonioxVoiceBuildFailed": "無法建立您的自訂語音，因此本次工作階段使用預設語音。請嘗試在設定中錄製更清晰的片段。",
