@@ -26,6 +26,17 @@ vi.mock('openai-realtime-api', () => {
       merged.set(chunk, this.inputAudioBuffer.length);
       this.inputAudioBuffer = merged;
     });
+    // Reproduces the real SDK (dist/index.js:976-988): the item goes out over
+    // `realtime.send` — so it throws on a dead socket exactly like every other
+    // send — and a response is requested afterwards.
+    sendUserMessageContent = vi.fn((content: unknown[]) => {
+      if (content.length) {
+        this.realtime.send('conversation.item.create', {
+          item: { type: 'message', role: 'user', content }
+        });
+      }
+      this.createResponse();
+    });
     // Mirrors the SDK's RealtimeEventHandler contract: an array of handlers per
     // event, `on` appends, `off(event, cb)` removes only that callback.
     // OpenAIClient registers two 'realtime.event' handlers - the forwarder and
@@ -307,6 +318,21 @@ describe('OpenAIClient — realtime send failure handling', () => {
 
     expect(() => client.createResponse()).not.toThrow();
     expect(reportedOps()).toEqual(['response.create']);
+  });
+
+  // appendInputText is the one send that must NOT be swallowed, and this pins
+  // that. Every caller wraps it already, and MainPanel.handleSendText depends on
+  // the throw to tell a failed send from a completed one: on the success path it
+  // runs `setItems(client.getConversationItems())`, which would wipe the error
+  // bubble onError just appended, and records `text_input_sent` for a message
+  // the server never received.
+  it('propagates a text-input failure to the caller', () => {
+    failEverySend();
+
+    expect(() => client.appendInputText('hello')).toThrow('RealtimeAPI is not connected');
+    // The throw also stops the SDK's trailing createResponse(): a response over
+    // an item that never arrived would answer the previous turn.
+    expect(sdk.createResponse).not.toHaveBeenCalled();
   });
 
   it('catches failures on the keepReplayAudio path too', () => {

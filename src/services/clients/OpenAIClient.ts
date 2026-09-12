@@ -755,7 +755,20 @@ export class OpenAIClient implements IClient {
       return;
     }
 
-    // Send user message content - the library auto-creates ConversationItem
+    // Send user message content - the library auto-creates ConversationItem.
+    //
+    // Deliberately NOT wrapped in the reportSendFailure guard the other sends
+    // use. `sendUserMessageContent` goes out over `realtime.send`, which throws
+    // `RealtimeAPI is not connected` once the socket is down, and that throw is
+    // load-bearing at the call site: MainPanel.handleSendText only reaches
+    // `setItems(client.getConversationItems())` and the `text_input_sent` event
+    // if this returns normally. Swallowing the failure here would refresh the
+    // conversation from the client's items — wiping the error bubble onError
+    // had just appended — and record a message that never went out.
+    //
+    // Unlike the per-chunk audio path, every caller of this one is inside a
+    // try/catch already, because each call is a deliberate user action with
+    // someone waiting on the answer.
     this.client.sendUserMessageContent([
       { type: 'input_text', text: text.trim() }
     ]);
