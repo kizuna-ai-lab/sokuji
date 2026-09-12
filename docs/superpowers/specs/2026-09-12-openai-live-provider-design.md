@@ -134,7 +134,7 @@ Nothing in `MainPanel.tsx`, `IClient` handler shapes, `electron/main.js` or the 
    - Extension (`isExtension()`): `chrome.runtime.sendMessage({ type: 'OPENAI_LIVE_SET_HEADERS', apiKey })`, awaiting `{ success }`. The background adds one dynamic DNR rule (id base 4000) with `urlFilter: '||api.openai.com/v1/live/'`, `resourceTypes: ['websocket']`, `modifyHeaders` set `Authorization`. The narrow `urlFilter` keeps the rule off the Realtime upgrade the `openai` provider makes.
    - Otherwise: throw `Error('OpenAI Live needs the desktop app or the browser extension')` — unreachable in practice because the provider is not registered on the web build; kept so a misconfiguration fails loudly instead of hanging in `waitForSessionStarted`.
 
-   On both platforms the header is cleared unconditionally once `session.started` arrives (`ws-headers-clear` / `OPENAI_LIVE_CLEAR_HEADERS`; Electron's one-shot rule was already consumed by the upgrade, so clearing is a no-op there), and on every failure path only when the session generation is unchanged — a stale clear from a superseded connect or reconnect attempt would otherwise delete the newer session's not-yet-consumed rule.
+   On both platforms the header is cleared once `session.started` arrives (`ws-headers-clear` / `OPENAI_LIVE_CLEAR_HEADERS`; Electron's one-shot rule was already consumed by the upgrade, so clearing is a no-op there) and on every failure path — in both cases only when the session generation is unchanged, so a stale clear from a superseded connect or reconnect attempt can never delete the newer session's not-yet-consumed rule. An attempt still queued at the upgrade gate when its session is superseded aborts there and never registers a header or opens a socket.
 
    Registrations and upgrades are serialised process-wide (a module-level gate held from `registerUpgradeHeader()` until the socket's `open`/`error`/`close`, 15 s cap), because the Electron rule is per host and one-shot and the extension rule is per host and cleared by the first leg to start: two legs reconnecting at once would otherwise send one upgrade without its header.
 3. Open `new WebSocket('wss://api.openai.com/v1/live/sessions')` — no query string, no subprotocols.
@@ -148,7 +148,7 @@ Nothing in `MainPanel.tsx`, `IClient` handler shapes, `electron/main.js` or the 
        "delegation": { "type": "client" } } }
    ```
 5. `waitForSessionStarted()` — same shape as translate's `waitForSessionCreated` (30 s timeout, `error` frame rejects with its message, other frames forwarded to the regular handler). Record `session.id` and `expires_at` from `session.started` and log them as a `session.opened` client event.
-6. Clear the upgrade header (unconditionally, on both platforms — see step 2), mark connected, fire `onOpen`.
+6. Clear the upgrade header (both platforms, when the session generation is unchanged — see step 2), mark connected, fire `onOpen`.
 
 `session.start` is built by a static `buildSessionStart(config)` so tests pin the wire shape.
 

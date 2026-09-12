@@ -314,6 +314,13 @@ export class OpenAILiveClient implements IClient {
       }
       releaseGate();
     };
+    // A coroutine that was queued at the gate while the user pressed Stop (or
+    // Stop then Start) must never register a header or open a socket: it
+    // would bill a session nobody wants and hold the gate against the real one.
+    if (generation !== this.generation) {
+      releaseUpgradeGate();
+      throw new Error('session superseded during reconnect');
+    }
     let ws: WebSocket | null = null;
     try {
       await this.registerUpgradeHeader();
@@ -329,10 +336,12 @@ export class OpenAILiveClient implements IClient {
         this.logClientEvent('session.start', start);
       };
       gateTimer = setTimeout(releaseUpgradeGate, UPGRADE_GATE_CAP_MS);
-      await this.waitForSessionStarted(socket);
+      await this.waitForSessionStarted(socket, generation);
       // Electron's rule was consumed by the upgrade; the extension's rule has
-      // done its job. Clearing both is a no-op at worst.
-      this.clearUpgradeHeader();
+      // done its job. Clearing both is a no-op at worst — but only for the
+      // generation that registered: a stale coroutine's late session.started
+      // must not strip a newer session's not-yet-consumed rule.
+      if (generation === this.generation) this.clearUpgradeHeader();
       return socket;
     } catch (error) {
       if (ws) {
@@ -387,7 +396,7 @@ export class OpenAILiveClient implements IClient {
     }
   }
 
-  private waitForSessionStarted(ws: WebSocket): Promise<void> {
+  private waitForSessionStarted(ws: WebSocket, generation: number): Promise<void> {
     return new Promise((resolve, reject) => {
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | null = null;
@@ -420,8 +429,13 @@ export class OpenAILiveClient implements IClient {
             ws.onmessage = regularHandler;
             ws.onerror = regularError;
             ws.onclose = regularClose;
-            this.sessionId = data.session?.id ?? null;
-            this.expiresAt = data.session?.expires_at ?? null;
+            // A handshake that outlived its generation (disconnect() waited
+            // out a close handshake while this one was still pending) must
+            // not overwrite the identity of the session that follows.
+            if (generation === this.generation) {
+              this.sessionId = data.session?.id ?? null;
+              this.expiresAt = data.session?.expires_at ?? null;
+            }
             if (regularHandler && typeof regularHandler === 'function') {
               regularHandler.call(ws, event);
             }
@@ -725,10 +739,14 @@ export class OpenAILiveClient implements IClient {
       case 'session.closed':
         if (this.closing) {
           this.settleClose();
-        } else {
+        } else if (this.connected) {
           this.closedReceived = true;
           void this.handleUnexpectedEnd(`session_closed_${event.reason ?? 'unknown'}`, { reason: event.reason, usage: event.usage });
         }
+        // Before session.started it is already on the realtime log (forwarded
+        // above) and nothing else: latching closedReceived here would make
+        // handleSocketClosed swallow the next abnormal close of the session
+        // that follows.
         break;
 
       case 'error': {

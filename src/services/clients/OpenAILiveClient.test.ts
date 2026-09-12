@@ -487,8 +487,8 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
     delete (window as any).electron;
   });
 
-  /** Connect a client whose initial socket is `sockets[index]`, reporting into `h`. */
-  async function connectedClient(index = 0, h = handlers) {
+  /** A client wired to report into `h`, not yet connected. */
+  function newClient(h = handlers) {
     const client = new OpenAILiveClient('sk-test');
     client.setEventHandlers({
       onReconnecting: h.reconnecting,
@@ -498,12 +498,20 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
       onConversationUpdated: (e) => h.updates.push(e),
       onRealtimeEvent: (e) => h.events.push(e),
     } as ClientEventHandlers);
+    return client;
+  }
+
+  /** Connect a client whose initial socket is `sockets[index]`, reporting into `h`. */
+  async function connectedClient(index = 0, h = handlers) {
+    const client = newClient(h);
     const p = client.connect(baseConfig);
     await flush();
     completeHandshake(sockets[index]);
     await p;
     return client;
   }
+
+  const ipcTypes = () => ((window as any).electron.invoke as ReturnType<typeof vi.fn>).mock.calls.map((c: unknown[]) => c[0] as string);
 
   /** Let the reconnect's async header registration settle and complete the new handshake. */
   async function completeReconnect(index: number) {
@@ -610,13 +618,17 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
   it('disconnect() during an in-flight reconnect stops it', async () => {
     const client = await connectedClient();
     sockets[0].onclose?.({ code: 1006, reason: '' });
+    // The reconnect is still queued at the upgrade gate when Stop is pressed.
     await client.disconnect();
-    // The reconnect attempt was already in flight; let its handshake finish late.
-    await completeReconnect(1);
+    await flush();
+    // When it resumes it sees the new generation: no header registered, no
+    // socket opened, nothing reported.
+    expect(sockets).toHaveLength(1);
+    expect(ipcTypes().filter((t) => t === 'ws-headers-set')).toHaveLength(1);
     expect(handlers.reconnected).not.toHaveBeenCalled();
-    expect(sockets[1].close).toHaveBeenCalled();
     expect(client.isConnected()).toBe(false);
     expect(handlers.error).not.toHaveBeenCalled();
+    expect(handlers.close).not.toHaveBeenCalled();
   });
 
   it('a reconnect that fails after disconnect() does not raise the notice', async () => {
@@ -666,6 +678,8 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
     // black-holed TCP connect would, and let the user press Stop.
     expect(sockets).toHaveLength(2);
     await client.disconnect();
+    // Stop settled the pending handshake and closed its socket on the spot.
+    expect(sockets[1].close).toHaveBeenCalled();
 
     const p = client.connect(baseConfig);
     await flush();
@@ -738,5 +752,74 @@ describe('OpenAILiveClient watchdog and reconnect', () => {
     expect(handlers.error).not.toHaveBeenCalled();
     expect(handlers.close).not.toHaveBeenCalled();
     expect(handlers.reconnecting).not.toHaveBeenCalled();
+  });
+
+  it("a reconnect superseded at the gate never clears the new session's header", async () => {
+    const client = await connectedClient();
+    const invoke = (window as any).electron.invoke as ReturnType<typeof vi.fn>;
+    // Hold the reconnect inside its header registration: the next
+    // ws-headers-set resolves only when this test says so. (The gate was
+    // already acquired, so the abort at the gate cannot save this coroutine —
+    // this is the path where only the guarded clear can.)
+    let resolveStaleRegistration!: (r: { success: boolean }) => void;
+    invoke.mockImplementationOnce(() => new Promise((r) => { resolveStaleRegistration = r; }));
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    await flush();
+    expect(ipcTypes().filter((t) => t === 'ws-headers-set')).toHaveLength(2);
+    expect(sockets).toHaveLength(1);
+
+    await client.disconnect();
+    const p = client.connect(baseConfig);
+    await flush();
+    // The new connect is queued on the gate the stale coroutine still holds.
+    expect(sockets).toHaveLength(1);
+
+    resolveStaleRegistration({ success: true });
+    await flush();
+    // The stale coroutine registered and opened sockets[1]; opening it hands
+    // the gate to the new session, which registers and opens sockets[2].
+    expect(sockets).toHaveLength(2);
+    sockets[1].readyState = 1;
+    sockets[1].onopen?.({});
+    await flush();
+    expect(sockets).toHaveLength(3);
+    const newSetIdx = ipcTypes().lastIndexOf('ws-headers-set');
+
+    // The stale session.started lands while sockets[2] is still upgrading:
+    // before the guard this fired ws-headers-clear and stripped the new rule.
+    sockets[1].onmessage?.({ data: JSON.stringify({ type: 'session.started', session: { id: 'live_stale', expires_at: 1, status: 'active', model: LIVE_MODEL } }) });
+    await flush();
+    expect(ipcTypes().slice(newSetIdx + 1)).not.toContain('ws-headers-clear');
+    expect(sockets[1].close).toHaveBeenCalled();
+    expect((client as any).sessionId).not.toBe('live_stale');
+
+    completeHandshake(sockets[2], 'live_new');
+    await p;
+    expect(client.isConnected()).toBe(true);
+    expect((client as any).sessionId).toBe('live_new');
+    // Exactly one clear after the new registration: the new session's own.
+    expect(ipcTypes().slice(newSetIdx + 1)).toEqual(['ws-headers-clear']);
+    expect(handlers.error).not.toHaveBeenCalled();
+    expect(handlers.reconnected).not.toHaveBeenCalled();
+  });
+
+  it('a session.closed before session.started does not poison closedReceived for the session that follows', async () => {
+    const client = newClient();
+    const p = client.connect(baseConfig);
+    await flush();
+    sockets[0].readyState = 1;
+    sockets[0].onopen?.({});
+    sockets[0].onmessage?.({ data: JSON.stringify({ type: 'session.closed', reason: 'expired' }) });
+    sockets[0].onmessage?.({ data: JSON.stringify({ type: 'session.started', session: { id: 'live_1', expires_at: 1789000000, status: 'active', model: LIVE_MODEL } }) });
+    await p;
+    expect(handlers.reconnecting).not.toHaveBeenCalled();
+
+    // The first abnormal close of the started session must still reconnect.
+    sockets[0].onclose?.({ code: 1006, reason: '' });
+    expect(handlers.reconnecting).toHaveBeenCalledTimes(1);
+    await completeReconnect(1);
+    expect(handlers.reconnected).toHaveBeenCalledTimes(1);
+    expect(handlers.error).not.toHaveBeenCalled();
+    expect(client.isConnected()).toBe(true);
   });
 });
