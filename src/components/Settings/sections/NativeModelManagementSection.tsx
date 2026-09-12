@@ -733,6 +733,11 @@ export const NativeModelManagementSection: React.FC<{
       store={store}
       selected={settings.ttsVoice}
       targetLanguage={tgtLang}
+      // The card's own id + languages -- Task 7's preview synthesis dials
+      // this exact model, and drives which language the preview sentence is
+      // spoken in.
+      ttsModelId={reserveTtsId || ''}
+      ttsLanguages={catalog[reserveTtsId || '']?.languages ?? []}
       isSessionActive={isSessionActive}
       onSelect={(id) => update({ ttsVoice: id })}
       // NativeVoiceSection owns and refreshes its own custom-voice list

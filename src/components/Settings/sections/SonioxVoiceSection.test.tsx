@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 import { compile } from 'sass';
 import type { VoiceLibrarySource } from './voiceLibrarySource';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
+import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
+import { clearPreviewCache } from '../../../lib/tts/previewCache';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -29,14 +31,39 @@ const waitMock = vi.fn();
  *  existed — that is the point of this file: BYOK behaviour must come out
  *  bit-identical. Defaults route through the shared mocks above (not fresh
  *  vi.fn()s) so a test's `listMock.mockResolvedValue(...)` etc., set up
- *  before mount(), still reaches the source the component was given. */
+ *  before mount(), still reaches the source the component was given.
+ *
+ *  `preview`/`cacheNamespace` mirror what `byokVoiceSource` bakes in from its
+ *  `ttsDeps` (apiKey 'k', region 'us' — matching this file's default
+ *  `settings.apiKey`) and route through `synthesizeOnce`, which the
+ *  `vi.mock` below replaces with `synthesizeMock` — so every preview
+ *  assertion here keeps observing the same mock it always has. Only present
+ *  when the FINAL `canPreview` (after `over`) is true, so a caller that
+ *  overrides `canPreview: false` — standing in for a managed source — gets
+ *  no `preview` either, exactly as `source?.preview` gates in the component. */
 function fakeSource(over: Partial<VoiceLibrarySource> = {}): VoiceLibrarySource {
+  const canPreview = over.canPreview ?? true;
   return {
     list: listMock,
     create: createMock,
     delete: deleteMock,
     waitUntilReady: waitMock,
-    canPreview: true,
+    canPreview,
+    ...(canPreview
+      ? {
+          preview: (args: { id: string; language: string; text: string; speed: number; signal?: AbortSignal }) =>
+            synthesizeOnce({
+              apiKey: 'k',
+              region: 'us',
+              voice: args.id,
+              language: args.language,
+              text: args.text,
+              speed: args.speed,
+              signal: args.signal,
+            }),
+          cacheNamespace: 'soniox:us',
+        }
+      : {}),
     ...over,
   } as VoiceLibrarySource;
 }
@@ -132,6 +159,12 @@ const checkConsent = () => fireEvent.click(screen.getByRole('checkbox'));
 
 describe('SonioxVoiceSection', () => {
   beforeEach(() => {
+    // The preview cache (src/lib/tts/previewCache.ts) is a module-level
+    // singleton, same reasoning as NativeVoiceSection.test.tsx's beforeEach:
+    // now that the mount-time useEffect only clears on an ACTUAL source
+    // change (see the remount test below), tests no longer get isolation for
+    // free from a clear-on-every-mount side effect.
+    clearPreviewCache();
     listMock.mockReset().mockResolvedValue([]);
     createMock.mockReset();
     deleteMock.mockReset().mockResolvedValue(undefined);
@@ -1051,6 +1084,32 @@ describe('SonioxVoiceSection', () => {
     expect(synthesizeMock).toHaveBeenCalledTimes(1);
   });
 
+  it('a remount with an equivalent source (settings panel reopened) does not lose a cached preview', async () => {
+    // Regression coverage for the mount-time cache wipe: the settings panel
+    // lives inside <Activity>, which tears down and recreates this
+    // component's effects on every hide/show. A plain
+    // `useEffect(() => clearPreviewCache(), [source])` fires on EVERY mount,
+    // not only on an actual source change -- which would spend the user's
+    // wallet balance and take the account's exclusivity lease again on the
+    // very next listen after simply reopening settings. See
+    // previewCache.ts's module docstring for why the cache was moved out of
+    // the component in the first place.
+    listMock.mockResolvedValue([cloned()]);
+    const { unmount } = mount();
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    unmount();
+
+    // A fresh mount with an equivalent (not the same object) source, exactly
+    // as Activity's remount would produce.
+    mount();
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
+    expect(synthesizeMock).toHaveBeenCalledTimes(1);
+  });
+
   it('does not replay a preview cached under a previous API key after the client changes', async () => {
     // A changed API key means a (possibly) different Soniox project: audio
     // cached against the old project's UUIDs must not replay under the new
@@ -1128,13 +1187,71 @@ describe('SonioxVoiceSection', () => {
     expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
   });
 
-  it('surfaces a mapped synthesis failure in the capture-error banner', async () => {
+  it('surfaces a mapped synthesis failure in the capture-error banner (BYOK 401 still says check the API key)', async () => {
     listMock.mockResolvedValue([cloned()]);
     synthesizeMock.mockRejectedValue(new SonioxVoicesError('unauthenticated', 'bad key', 401));
-    mount();
+    mount({ managed: false });
     openManageDetails();
     fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/check the API key/i);
+  });
+
+  it('maps a managed preview\'s 401 to "sign in", not the BYOK API-key copy', async () => {
+    // ManagedVoicesClient.fetchWithAuth throws `authentication_required` (401)
+    // whenever the Better Auth token is missing or expired -- routine, not
+    // exotic -- and a backend 401 reaches the same arm through
+    // throwBackendError. A managed user has no API key to check; the correct
+    // remedy (sign in) is sitting in mapCreateError's existing, already
+    // translated copy one function above.
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('authentication_required', 'sign in again', 401));
+    mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/sign in to build a custom voice/i);
+    expect(alert).not.toHaveTextContent(/check the API key/i);
+  });
+
+  // The 402/409 arms describe ManagedVoicesClient.sessionKey's own failure
+  // modes — a managed preview's session-key mint, not a direct Soniox call —
+  // so they must only fire for a managed source.
+  it('maps a managed preview\'s 402 to "top up your balance", not the BYOK auth/quota copy', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('insufficient_balance', 'no funds', 402));
+    mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/top up your balance/i);
+  });
+
+  it('maps a managed preview\'s 409 to "a session is running"', async () => {
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('active_lease', 'busy', 409));
+    mount({ managed: true });
+    // Managed: the manage panel renders only once the first list has settled.
+    await waitFor(() => expect(listMock).toHaveBeenCalled());
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/session is running/i);
+  });
+
+  it('does NOT reinterpret a BYOK preview\'s 402/409 as a balance/session problem — those describe the managed mint, not Soniox\'s own API', async () => {
+    // A BYOK user's own Soniox project can answer 402 (out of Soniox credit)
+    // or 409 directly. Telling them to "top up your balance" points at a
+    // Sokuji billing page that has nothing to do with it.
+    listMock.mockResolvedValue([cloned()]);
+    synthesizeMock.mockRejectedValue(new SonioxVoicesError('insufficient_balance', 'soniox says no funds', 402));
+    mount({ managed: false });
+    openManageDetails();
+    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).not.toHaveTextContent(/top up your balance/i);
+    expect(alert).not.toHaveTextContent(/session is running/i);
   });
 
   it('keeps the banner empty when the preview was cancelled by the user', async () => {

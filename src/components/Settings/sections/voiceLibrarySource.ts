@@ -15,9 +15,13 @@
 import type { SonioxVoice, SonioxVoicesClient } from '../../../services/clients/SonioxVoicesClient';
 import type { ManagedVoicesClient, ManagedVoice } from '../../../services/clients/ManagedVoicesClient';
 import { SonioxVoicesError } from '../../../services/clients/SonioxVoicesClient';
+import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
+import type { SonioxRegion } from '../../../lib/soniox/regions';
+import { DEFAULT_SONIOX_REGION } from '../../../lib/soniox/regions';
 import { saveVoiceClip, clearVoiceClip } from '../../../lib/soniox/voiceClipStorage';
 import { SONIOX_TTS_MODEL } from '../../../lib/soniox/ttsCatalog';
 import { managedVoicePollDelayMs } from '../../../services/clients/managedVoicePolling';
+import { reportWarning, describeCause } from '../../../lib/diagnostics/report';
 
 export interface VoiceLibrarySource {
   /** Every voice this source can offer. The managed source returns zero or
@@ -29,17 +33,64 @@ export interface VoiceLibrarySource {
   /** False when auditioning is impossible because this source has no Soniox
    *  key to synthesize a sample with. */
   readonly canPreview: boolean;
+  /** Synthesize one sample sentence in this voice. Rejects rather than
+   *  returning null on failure; the section maps the error to a banner.
+   *
+   *  Optional — not every source can audition (see `canPreview`) — so a
+   *  caller narrows on THIS member, not on `canPreview`: a plain boolean
+   *  cannot narrow the type the way an optional method can, and `canPreview`
+   *  exists precisely because some sources have no `preview` at all. */
+  preview?(args: {
+    id: string; language: string; text: string; speed: number; signal?: AbortSignal;
+  }): Promise<{ audio: Float32Array; sampleRate: number }>;
+  /** Namespace for the shared preview cache — distinct per voice project.
+   *  Paired with `preview`: a source that can preview always sets this too. */
+  readonly cacheNamespace?: string;
+}
+
+/** What BYOK preview needs beyond the voices-CRUD client: the TTS REST call
+ *  itself (injectable so tests don't need a network fake, defaulting to the
+ *  real `synthesizeOnce`) and the credential to synthesize with — the SAME
+ *  project key/region `SonioxVoicesClient` above was constructed with, since
+ *  a preview is just another call against that project. All optional so the
+ *  parameter itself can default and existing callers keep compiling; a
+ *  caller that wants a WORKING preview must supply the real apiKey/region. */
+export interface ByokTtsDeps {
+  synthesize?: typeof synthesizeOnce;
+  apiKey?: string;
+  region?: SonioxRegion;
+}
+
+/** What managed preview needs beyond the voices-CRUD client: the TTS REST
+ *  call itself, injectable so tests don't need a network fake, defaulting to
+ *  the real `synthesizeOnce`.
+ *
+ *  Unlike `ByokTtsDeps`, there is no `apiKey`/`region` here for a caller to
+ *  forget — a managed preview holds no standing credential at all. Every
+ *  preview mints its OWN single-use key via `client.sessionKey()` and uses it
+ *  exactly once, so there is nothing about this dependency bag that could
+ *  default to a silently broken credential the way `byokVoiceSource`'s
+ *  `apiKey = ''` default once could. */
+export interface ManagedTtsDeps {
+  synthesize?: typeof synthesizeOnce;
 }
 
 /** BYOK: SonioxVoicesClient already satisfies the interface; this only names
- *  the fact and pins `canPreview`. */
-export function byokVoiceSource(client: SonioxVoicesClient): VoiceLibrarySource {
+ *  the fact and pins `canPreview`. `ttsDeps` carries what `preview` needs —
+ *  see `ByokTtsDeps`. */
+export function byokVoiceSource(client: SonioxVoicesClient, ttsDeps: ByokTtsDeps = {}): VoiceLibrarySource {
+  const { synthesize = synthesizeOnce, apiKey = '', region = DEFAULT_SONIOX_REGION } = ttsDeps;
   return {
     list: () => client.list(),
     create: (name, clip, fileName) => client.create(name, clip, fileName),
     delete: (id) => client.delete(id),
     waitUntilReady: (id) => client.waitUntilReady(id),
     canPreview: true,
+    preview: ({ id, language, text, speed, signal }) =>
+      synthesize({ apiKey, region, voice: id, language, text, speed, signal }),
+    // A different region is a different Soniox project — its cloned-voice
+    // UUIDs are not the same namespace, so cached audio must not cross.
+    cacheNamespace: `soniox:${region}`,
   };
 }
 
@@ -90,14 +141,83 @@ export function managedVoiceSource(
     timeoutMs?: number;
     sleep?: (ms: number) => Promise<void>;
     now?: () => number;
-  } = {}
+  } & ManagedTtsDeps = {}
 ): VoiceLibrarySource {
   const {
     pollDelayMs = managedVoicePollDelayMs,
     timeoutMs = 60_000,
     sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
     now = () => Date.now(),
+    synthesize = synthesizeOnce,
   } = opts;
+
+  // Previews on this source run one at a time. Settled-and-swallowed so a
+  // rejected preview never becomes an unhandled rejection through this
+  // chain; the caller still sees its own rejection through the returned
+  // promise. See `preview` below for why.
+  let previousPreview: Promise<void> = Promise.resolve();
+
+  const cancelled = () => new SonioxVoicesError('aborted', 'Preview cancelled', 0);
+
+  // The backend's retry hint, honoured abort-aware: a user who moves on
+  // during the wait must not sit through it (the NEXT preview waits on this
+  // one), and must not mint a key nobody will use. Uses the injected
+  // `sleep` so tests need no fake timers.
+  const retryDelay = (ms: number, signal?: AbortSignal): Promise<void> => {
+    if (!signal) return sleep(ms);
+    return new Promise<void>((resolve, reject) => {
+      // The listener is removed on every exit -- sleep resolves, sleep
+      // rejects, or abort fires -- not just the sleep-wins path, so an
+      // injected `sleep` that can reject doesn't leak it.
+      const settle = (fn: () => void) => { signal.removeEventListener('abort', onAbort); fn(); };
+      const onAbort = () => settle(() => reject(cancelled()));
+      if (signal.aborted) { onAbort(); return; }
+      signal.addEventListener('abort', onAbort, { once: true });
+      // On abort, the underlying `sleep` timer runs to completion harmlessly:
+      // the injected-sleep abstraction has no cancel, and by the time it
+      // settles this promise already has, so the callback below is a no-op.
+      sleep(ms).then(() => settle(resolve), (error) => settle(() => reject(error)));
+    });
+  };
+
+  // One retry on 409, after the backend's own hint. Serialization (in
+  // `preview`) removes the RACE 409; what remains is the GAP 409 -- a mint
+  // inside the backend's PREVIEW_MIN_GAP_MS of the previous preview's mint,
+  // which it refuses once so a scripted client cannot mint faster than it
+  // allows. For a real click that is at most one wait. A second 409 is a
+  // live session or a dead preview's 45 s backstop and surfaces exactly as
+  // before (SonioxVoiceSection's mapTtsError). Nothing was leased by a
+  // refused mint, so there is nothing to report done.
+  const mintPreviewKey = async (signal?: AbortSignal) => {
+    try {
+      return await client.sessionKey({ mode: 'voice_preview' });
+    } catch (error) {
+      if (!(error instanceof SonioxVoicesError) || error.status !== 409) throw error;
+      await retryDelay(error.retryAfterMs ?? 3000, signal);
+      return await client.sessionKey({ mode: 'voice_preview' });
+    }
+  };
+
+  // Wait for the preview queued ahead of this one, but reject AT ONCE if
+  // THIS preview is cancelled first -- a preview cancelled while merely
+  // queued (its predecessor still in flight) must not sit through that
+  // predecessor before finding out it was cancelled. Same listener hygiene
+  // as `retryDelay`: removed on every exit, not just the wait-wins path.
+  const waitTurn = (previous: Promise<void>, signal?: AbortSignal): Promise<void> => {
+    if (!signal) return previous;
+    return new Promise<void>((resolve, reject) => {
+      const settle = (fn: () => void) => { signal.removeEventListener('abort', onAbort); fn(); };
+      const onAbort = () => settle(() => reject(cancelled()));
+      if (signal.aborted) { onAbort(); return; }
+      signal.addEventListener('abort', onAbort, { once: true });
+      // `previous` is always the settled-and-swallowed promise `preview`
+      // produces below, so it never actually rejects -- both branches
+      // resolve regardless, matching retryDelay's shape without leaning on
+      // that invariant.
+      previous.then(() => settle(resolve), () => settle(resolve));
+    });
+  };
+
   return {
     async list() {
       const voice = await client.mine();
@@ -170,8 +290,87 @@ export function managedVoiceSource(
       }
     },
 
-    // Auditioning synthesizes a sample, which needs a Soniox key a managed
-    // user does not have.
-    canPreview: false,
+    // Auditioning works for managed too: unlike BYOK there is no standing
+    // Soniox key to synthesize with, but `preview` mints a single-use one of
+    // its own per call (see below) rather than needing one held statically.
+    canPreview: true,
+
+    async preview({ id, language, text, speed, signal }) {
+      // Serialize per source. The section aborts a superseded preview and
+      // starts the next one without awaiting it (VoiceLibrarySection's
+      // togglePreview), so voice B's session-key would race voice A's
+      // preview-done, sent from A's finally below. If B's mint lands first
+      // the account's lease row is still undone and the backend 409s
+      // (the row is re-entrant only once preview-done has landed --
+      // backend spec 2026-09-11, §3). Waiting for A to settle, outcome
+      // ignored, costs one round trip and removes the race. A preview
+      // cancelled while it waits leases nothing and reports nothing.
+      const previous = previousPreview;
+      const run = (async () => {
+        await waitTurn(previous, signal);
+        if (signal?.aborted) throw cancelled();
+        // Mint FIRST and outside the try/finally: a mint that failed leased
+        // nothing, so there is nothing to complete — and `preview-done`
+        // resolves the account's OWN lease server-side, so a stray call here
+        // could complete a DIFFERENT in-flight preview of this same account.
+        const key = await mintPreviewKey(signal);
+        try {
+          // `ttsApiKey`, not `sttApiKey`: this mode mints no transcription key
+          // at all (backend design §5.6) — the field is absent by design, not
+          // an oversight to fall back from.
+          return await synthesize({
+            apiKey: key.ttsApiKey, region: key.region,
+            voice: id, language, text, speed, signal,
+          });
+        } finally {
+          // `finally`, not the success path. This call is the BILLING
+          // TRIGGER: it writes the lease's `started_at`, which is what lets
+          // the reconciler's sweep find the lease at all, and what releases
+          // the account's exclusivity lease instead of leaving it to the ~45s
+          // backstop. A user cancelling mid-synthesis is the common case, not
+          // the rare one — which is exactly why this must not live on the
+          // success path alone.
+          //
+          // Never rethrows: a failed completion must not mask the synthesis
+          // result, nor replace a useful error with a bookkeeping one. The
+          // charge is not lost either way — it is only deferred to the next
+          // sweep triggered by unrelated traffic in this region.
+          //
+          // NOT swallowed silently, though — "never rethrow" and "discard" are
+          // different decisions, and the sibling fire-and-forget calls
+          // (ManagedSonioxSession.markStarted/end) already made the second one
+          // for good reason: unread, a systemic failure here (a route typo, a
+          // deploy skew) would be invisible — every preview keeps playing, no
+          // preview is ever billed, and the account's next Start 409s for up to
+          // the ~45s backstop with nothing anywhere naming why. `reportWarning`
+          // is the sanctioned channel for exactly this ("it happened, or will")
+          // and never shows UI, so it cannot collide with `setCaptureError`.
+          await client.previewDone().catch((error) => {
+            reportWarning(
+              'ManagedVoiceSource',
+              `Preview completion was not reported to the backend: ${describeCause(error)}`,
+              { cause: error }
+            );
+          });
+        }
+      })();
+      // The NEXT preview must wait for BOTH this run and the one already
+      // queued ahead of it -- not just this run -- or a preview cancelled
+      // while merely waiting its turn would let the one behind it start (and
+      // mint) while the ORIGINAL predecessor is still in flight: `run`
+      // settles the instant `waitTurn` rejects it, long before `previous`
+      // (what it was waiting on) has settled.
+      previousPreview = Promise.all([
+        previous,
+        run.then(() => undefined, () => undefined),
+      ]).then(() => undefined);
+      return run;
+    },
+
+    // A different region is a different Soniox project — same reasoning as
+    // byokVoiceSource's own namespace, just read off the client's region
+    // (set once, at construction, from the account's Soniox region setting)
+    // rather than a ttsDeps field of its own.
+    cacheNamespace: `managed:${client.region}`,
   };
 }

@@ -44,7 +44,12 @@ describe('sonioxHosts', () => {
 
 describe('asSonioxRegion', () => {
   it('passes every known region through', () => {
-    expect(SONIOX_REGIONS.map(asSonioxRegion)).toEqual([...SONIOX_REGIONS]);
+    // NOT `SONIOX_REGIONS.map(asSonioxRegion)`: Array.prototype.map calls its
+    // callback with (element, index, array), and asSonioxRegion's second
+    // parameter is now `fallback: SonioxRegion` — passing the index straight
+    // through would fail tsc even though every element here is already valid
+    // and so never reaches the fallback at runtime.
+    expect(SONIOX_REGIONS.map((r) => asSonioxRegion(r))).toEqual([...SONIOX_REGIONS]);
   });
 
   // Unlike the backend's parser, this one DEFAULTS rather than returning null:
@@ -60,6 +65,15 @@ describe('asSonioxRegion', () => {
 
   it('us is the default region', () => {
     expect(DEFAULT_SONIOX_REGION).toBe('us');
+  });
+
+  // A caller who already knows a better answer than the global default —
+  // e.g. ManagedVoicesClient.sessionKey falling back to the account's own
+  // configured region rather than always US.
+  it('falls back to a caller-supplied region instead of the global default', () => {
+    expect(asSonioxRegion(undefined, 'eu')).toBe('eu');
+    expect(asSonioxRegion('mars', 'jp')).toBe('jp');
+    expect(asSonioxRegion('eu', 'jp')).toBe('eu');
   });
 });
 

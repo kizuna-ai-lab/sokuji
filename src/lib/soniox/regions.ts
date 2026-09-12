@@ -52,12 +52,19 @@ export function sonioxHosts(region: SonioxRegion): SonioxHosts {
 }
 
 /**
- * Narrow an untrusted value to a region, defaulting to US.
+ * Narrow an untrusted value to a region, defaulting to `fallback` (US unless
+ * the caller names something better).
  *
  * Two untrusted sources feed this: a persisted settings value written by an
  * older or newer build, and the backend's session-key response (which an older
  * backend omits entirely). Both must degrade to a working session — a malformed
  * hostname would fail every connect with a DNS error nobody can act on.
+ *
+ * `fallback` matters whenever the caller already knows a region that is more
+ * likely correct than the global default — e.g. `ManagedVoicesClient.sessionKey`
+ * falls back to the account's OWN configured region rather than US: for a EU or
+ * JP account, defaulting to US would route a EU-minted key at the US TTS host,
+ * which 401s. Callers with no better answer than US omit it.
  *
  * This is the OPPOSITE choice from the backend's `parseSonioxRegion`, which
  * returns null so a REQUEST can be refused with a 400. That asymmetry is
@@ -65,8 +72,8 @@ export function sonioxHosts(region: SonioxRegion): SonioxHosts {
  * and defaulting is right when we are reading back our own storage. The two
  * must not be unified.
  */
-export function asSonioxRegion(value: unknown): SonioxRegion {
+export function asSonioxRegion(value: unknown, fallback: SonioxRegion = DEFAULT_SONIOX_REGION): SonioxRegion {
   return typeof value === 'string' && (SONIOX_REGIONS as readonly string[]).includes(value)
     ? (value as SonioxRegion)
-    : DEFAULT_SONIOX_REGION;
+    : fallback;
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
@@ -7,6 +7,7 @@ import {
   defaultTtsVoice,
   eligibleCustomVoices,
   requiresVoiceClip,
+  supportsLanguage,
   type VoiceCapability,
 } from '../../../lib/local-inference/native/nativeCatalog';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -15,6 +16,14 @@ import {
   type ClipValidationError, type NativeCustomVoice, type NativeVoiceStore,
 } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { VoiceImportError } from '../../../lib/local-inference/voiceStorage';
+import { createPreviewTts, type PreviewTtsHandle } from '../../../lib/local-inference/native/nativePreviewTts';
+import { resolvePreviewSample } from '../../../lib/tts/previewSample';
+import { previewCacheKey, getCachedPreview, setCachedPreview } from '../../../lib/tts/previewCache';
+
+// The preview audition has no speed control of its own (unlike the session's
+// ttsSpeed slider) -- a neutral 1.0 keeps it simple and matches
+// NativeTtsClient.generate's own default.
+const PREVIEW_SPEED = 1;
 
 // validateVoiceClip now lives in nativeVoiceStores.ts (shared with the
 // NativeVoiceStore abstraction). Re-exported here so this file's own test
@@ -60,6 +69,13 @@ export interface NativeVoiceSectionProps {
   selected: string;
   /** Target language, drives curation ordering + the default voice. */
   targetLanguage: string;
+  /** Selected TTS model id — `tts_init`'s `model`. Also the preview synthesis's
+   *  model id and the preview cache's namespace (`native:${ttsModelId}`). */
+  ttsModelId: string;
+  /** That card's `languages` (from the catalog, `nativeProtocol.ts`'s
+   *  NativeModelInfo). Drives which language the preview sentence is spoken
+   *  in — see `resolvePreviewSample`. */
+  ttsLanguages: string[];
   /** Disables voice selection while a session is active. */
   isSessionActive?: boolean;
   /** Write the picked voice id to settings.ttsVoice. */
@@ -78,6 +94,8 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   store,
   selected,
   targetLanguage,
+  ttsModelId,
+  ttsLanguages,
   isSessionActive = false,
   onSelect,
   onCustomChanged,
@@ -85,6 +103,33 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   const { t } = useTranslation();
   const [captureError, setCaptureError] = useState<string | null>(null);
   const [customVoices, setCustomVoices] = useState<NativeCustomVoice[]>([]);
+
+  // Dedicated sidecar connection for the preview audition, owned by this
+  // component -- never nativeModelStore's own connection (that singleton is
+  // the long-lived model-management channel). Created lazily on the first
+  // preview so opening this panel never pays a sidecar connection + tts_init
+  // cost before the user has asked to hear anything, and torn down on
+  // unmount so a resident (GB-scale) TTS model's memory goes back when the
+  // user leaves the panel.
+  const previewTtsRef = useRef<PreviewTtsHandle | null>(null);
+  useEffect(() => () => previewTtsRef.current?.close(), []);
+
+  // Guards previewTtsRef's shared client against two overlapping
+  // synthesize() calls: nativePreviewTts keeps `client`/`loadedModelId` as
+  // unguarded closure state by design (its module doc puts the burden of
+  // preventing overlap on the caller). VoiceLibrarySection's
+  // `disabled={isLoading}` only blocks a second click on the SAME row, and
+  // its abort-on-supersede only discards a superseded call's RESULT, not its
+  // still-running promise chain -- so clicking a DIFFERENT custom voice's
+  // Play button while the first's (multi-second) synthesis is still in
+  // flight is a real, easily reached path to two concurrent synthesize()
+  // calls sharing one connection (e.g. one call's setVoice/setReferenceVoice
+  // landing between another's applyVoice and generate). Rather than guard
+  // inside nativePreviewTts (a caller concern per its own doc comment), skip
+  // synthesis for a request that arrives while the shared client is already
+  // busy and fall back to the clip -- consistent with every other synthesis
+  // problem's fallback below.
+  const synthInFlightRef = useRef(false);
 
   const reloadCustomVoices = useCallback(() => {
     if (!store) { setCustomVoices([]); return; }
@@ -177,16 +222,88 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     onCustomChanged();
   }, [store, reloadCustomVoices, onCustomChanged]);
 
-  // Fetch a custom clip's audio so the user can play it back and check clarity.
-  const handlePreview = useCallback(async (id: string) => {
+  // Which language (if any) the preview sentence is spoken in, given what
+  // this TTS model's card claims to speak (`ttsLanguages`). `null` means no
+  // language clears both gates (the engine speaks it AND the sample table has
+  // a sentence for it) -- there is nothing to synthesize with, which is a
+  // disabled-reason case below, not an error.
+  const previewSample = useMemo(
+    () => resolvePreviewSample(targetLanguage, (l) => supportsLanguage({ languages: ttsLanguages }, l)),
+    [targetLanguage, ttsLanguages],
+  );
+
+  // Distinct reasons, in priority order: a session holds the sidecar's TTS
+  // engine (a panel-issued tts_generate would return _not_owner_error, so
+  // refuse up front rather than fail slowly), or there is no sample sentence
+  // to synthesize in a language this model speaks.
+  const previewUnavailableReason = isSessionActive
+    ? t('voiceLibrary.previewNeedsSessionStopped', 'Stop the session to preview this voice.')
+    : previewSample === null
+      ? t('voiceLibrary.previewLanguageUnsupported', 'This model has no sample sentence in a language it speaks.')
+      : undefined;
+
+  // Synthesize the sample sentence with the cloned voice so the user hears
+  // what the clone actually sounds like, falling back to replaying the
+  // reference clip (the previous behaviour) on any synthesis failure --
+  // deliberate, not a consolation prize: replaying answers "did I record
+  // clearly?", synthesis answers "does the clone sound like me". `signal`
+  // aborting (a newer preview superseded this one, or the component
+  // unmounted) returns null silently rather than falling back, mirroring
+  // "a superseded request should never reach the network" from
+  // VoiceLibrarySection's own doc comment -- though the actual sidecar call
+  // in flight cannot itself be cancelled (PreviewTtsHandle.synthesize takes
+  // no signal), so this only ever short-circuits around it, never stops it.
+  const handlePreview = useCallback(async (id: string, signal?: AbortSignal) => {
     if (!store || !id.startsWith('custom:')) return null;
     const numId = Number(id.slice('custom:'.length));
     if (!Number.isFinite(numId)) return null;
+
     const payload = await store.resolveApply(numId);
-    return payload && payload.kind === 'clip'
+    if (signal?.aborted) return null;
+    const clip = payload && payload.kind === 'clip'
       ? { audio: payload.audio, sampleRate: payload.sampleRate }
       : null;
-  }, [store]);
+    if (!clip) return null;
+
+    // previewUnavailableReason already disables the control in this case, so
+    // this only guards against a stale render still invoking the callback.
+    if (!previewSample) return clip;
+
+    const cacheKey = previewCacheKey(`native:${ttsModelId}`, id, previewSample.language, PREVIEW_SPEED);
+    const cached = getCachedPreview(cacheKey);
+    if (cached) return signal?.aborted ? null : cached;
+
+    if (!previewTtsRef.current) previewTtsRef.current = createPreviewTts();
+
+    // See synthInFlightRef's doc comment above: another row's synthesis is
+    // still using the shared client, so don't start an overlapping one.
+    if (synthInFlightRef.current) return signal?.aborted ? null : clip;
+
+    synthInFlightRef.current = true;
+    try {
+      const result = await previewTtsRef.current.synthesize({
+        modelId: ttsModelId,
+        language: previewSample.language,
+        text: previewSample.text,
+        speed: PREVIEW_SPEED,
+        voice: { kind: 'clip', audio: clip.audio, sampleRate: clip.sampleRate, refText: payload?.transcript },
+      });
+      // Cache a successful result even if THIS request was superseded
+      // meanwhile: the user already waited and the sidecar already spent the
+      // synthesis work, so throwing it away would cost the next click on
+      // this same row a full re-synthesis for nothing. Only the RETURN is
+      // conditioned on abort (so a superseded request never plays over a
+      // newer one) -- caching is unconditional.
+      setCachedPreview(cacheKey, result);
+      if (signal?.aborted) return null;
+      return result;
+    } catch {
+      if (signal?.aborted) return null;
+      return clip;
+    } finally {
+      synthInFlightRef.current = false;
+    }
+  }, [store, previewSample, ttsModelId]);
 
   const voices = useMemo<VoiceEntry[]>(() => {
     const { curated, rest } = curatedBuiltinVoices(targetLanguage, builtinVoices);
@@ -253,6 +370,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         onRename={handleRename}
         onDelete={handleDelete}
         onPreview={handlePreview}
+        previewUnavailableReason={previewUnavailableReason}
         capability={libraryCapability}
         isSessionActive={isSessionActive}
       />

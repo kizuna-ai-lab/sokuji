@@ -26,8 +26,12 @@
  *
  * Previewing (auditioning) a voice is a separate capability from the
  * create/delete affordances above: it needs a Soniox key to synthesize a
- * sample, which a managed account's source does not have, so it is gated on
- * `source.canPreview` rather than on `source` merely being non-null.
+ * sample — BYOK's own permanent key, or (as of the managed source) one
+ * single-use key minted per preview — so it is gated on `source.preview`
+ * existing rather than on `source` merely being non-null; the actual
+ * synthesis happens behind that seam (`voiceLibrarySource.ts`), not here —
+ * this component only clamps speed, resolves the sample sentence, and maps a
+ * rejection to the capture-error banner.
  */
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,9 +42,8 @@ import {
   encodeWavPcm16,
   type SonioxVoice,
 } from '../../../services/clients/SonioxVoicesClient';
-import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
-import { asSonioxRegion } from '../../../lib/soniox/regions';
-import { previewSampleFor } from './sonioxPreviewSample';
+import { resolvePreviewSample } from '../../../lib/tts/previewSample';
+import { previewCacheKey, getCachedPreview, setCachedPreview, clearPreviewCache } from '../../../lib/tts/previewCache';
 import { clampNumber } from '../../../services/providers/SonioxProviderConfig';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import { SONIOX_VOICE_ROSTER } from '../../../lib/soniox/sonioxVoiceRoster';
@@ -53,17 +56,18 @@ import type { VoiceLibrarySource } from './voiceLibrarySource';
 
 export interface SonioxVoiceSectionProps {
   /** `targetLanguage` and `ttsSpeed` drive the preview audition so it matches
-   *  what the session would actually speak. `apiKey` is BYOK-only and is
-   *  empty for managed accounts — the preview path is gated on
-   *  `source.canPreview`, not on this field. */
+   *  what the session would actually speak. `apiKey`/`region` are NOT read
+   *  by this component: preview synthesizes through `source.preview`, which
+   *  already carries the credential it was constructed with (see
+   *  `byokVoiceSource` in `voiceLibrarySource.ts`) — the preview path is
+   *  gated on `source.preview` existing, not on either field. Both fields
+   *  stay in the shape only because callers pass the full Soniox settings
+   *  slice here. */
   settings: {
     voice: string;
     apiKey: string;
     targetLanguage: string;
     ttsSpeed: number;
-    /** Which Soniox deployment `apiKey` belongs to, so the preview is
-     *  synthesized on the host that key authenticates against. Optional so the
-     *  existing tests' fixtures keep compiling; absent reads as US. */
     region?: string;
   };
   onUpdate: (patch: { voice: string }) => void;
@@ -318,6 +322,38 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // a synthesis call can produce.
   const mapTtsError = (e: unknown): Error => {
     if (e instanceof SonioxVoicesError) {
+      // Two outcomes specific to a MANAGED preview's session-key mint
+      // (ManagedVoicesClient.sessionKey) — checked ahead of the generic arms
+      // below, which describe a direct Soniox call and would otherwise
+      // misdescribe these as an auth or rate-limit problem. Gated on
+      // `managed`: a BYOK user's OWN Soniox account can also answer 402 (out
+      // of Soniox credit) or 409, and telling them to top up their SOKUJI
+      // balance — a page that is perfectly healthy — would be actively
+      // wrong, not just imprecise. 503 stays ungated below: Soniox capacity
+      // being full reads the same regardless of which credential hit it.
+      if (managed && e.status === 402) {
+        return new Error(t('voiceLibrary.previewNeedsBalance', 'Top up your balance to preview this voice.'));
+      }
+      if (managed && e.status === 409) {
+        return new Error(t('voiceLibrary.previewSessionRunning', 'A session is running. Try again in a moment.'));
+      }
+      if (e.status === 503) {
+        // Same wording a managed session-key 503 already uses — see
+        // ManagedSonioxSession.describeError's `mainPanel.sonioxServiceBusy`.
+        return new Error(t('mainPanel.sonioxServiceBusy', 'Soniox is at capacity right now. Please try again shortly.'));
+      }
+      // Gated on `managed` for the same reason the 402/409 arms above are:
+      // `ManagedVoicesClient`'s timed request path (`withTimedRequest`, behind
+      // `fetchWithAuth` / `fetchJsonWithAuth`) throws `authentication_required`
+      // (401) whenever the Better Auth token is missing or expired — routine,
+      // not exotic — and a backend 401 reaches this same arm through
+      // `throwBackendError`. A managed user has no API key to check, so
+      // "check the API key" points at a fix that does not exist for them;
+      // the correct remedy (sign in) is sitting in the error's own message,
+      // reused from `mapCreateError`'s identical condition above.
+      if (managed && (e.status === 401 || e.errorType === 'authentication_required')) {
+        return new Error(t('settings.sonioxVoiceSignInRequired', 'Sign in to build a custom voice.'));
+      }
       if (e.status === 401 || e.errorType === 'unauthenticated') {
         return new Error(t('settings.sonioxVoicePreviewAuthError', 'Preview failed — check the API key'));
       }
@@ -334,34 +370,79 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // Synthesized samples are effectively deterministic for a fixed text, so a
   // repeat listen carries no new information but would spend the user's tokens
   // again. Keyed by voice + language + speed so changing either re-synthesizes.
-  const previewCacheRef = useRef(new Map<string, { audio: Float32Array; sampleRate: number }>());
-  // A changed source means a (possibly) different voice project: audio cached
-  // against the old project's UUIDs must not replay under the new key.
-  useEffect(() => { previewCacheRef.current.clear(); }, [source]);
+  // The cache itself now lives outside the component (src/lib/tts/previewCache.ts)
+  // so it survives a panel close/reopen; this effect clears the LEAVING
+  // source's namespace whenever the source actually changes, since audio
+  // cached against the OLD project's UUIDs must not replay under a new one.
+  //
+  // Deliberately NOT `useEffect(() => clearPreviewCache(), [source])`: a
+  // `useEffect` runs on every MOUNT, not only when its dependency changes,
+  // and the settings panel lives inside `<Activity>` (MainLayout.tsx), which
+  // tears down and recreates this component's effects on every hide/show.
+  // Clearing unconditionally there would wipe the whole app-session cache on
+  // every reopen of the settings panel — spending the user's balance and
+  // taking the account's exclusivity lease again on the very next listen —
+  // which is exactly the cost the cache was moved out of the component to
+  // avoid (see previewCache.ts's module docstring). The ref below is seeded
+  // from the FIRST render's own source, so the effect sees "no change" on
+  // its first run and only clears on a real swap thereafter.
+  //
+  // Also namespace-scoped rather than a full `clearPreviewCache()`: the
+  // cache is shared with Local Native's `native:<modelId>` entries, and a
+  // Soniox source swap has nothing to do with those.
+  //
+  // Tracks the SOURCE OBJECT, not its `cacheNamespace` string: BYOK's
+  // namespace is `soniox:${region}` — keyed on region, not on the API key —
+  // so two different projects in the same region share one namespace
+  // string. Comparing namespace values would then treat a real key swap
+  // (still the same region) as "no change" and skip the clear, silently
+  // reviving the old project's audio under the new key. Comparing object
+  // identity instead means "the caller handed us a materially different
+  // source" is exactly what a real swap looks like — see this component's
+  // own doc comment: "The caller mints a NEW `source` object whenever the
+  // signed-in account changes".
+  const previousSourceRef = useRef(source);
+  useEffect(() => {
+    const leavingSource = previousSourceRef.current;
+    previousSourceRef.current = source;
+    if (leavingSource !== source && leavingSource?.cacheNamespace !== undefined) {
+      clearPreviewCache(leavingSource.cacheNamespace);
+    }
+  }, [source]);
 
   const handlePreview = useCallback(async (
     id: string,
     signal?: AbortSignal
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
-    if (!source?.canPreview) return null;
     // Pinned for the post-await staleness check below — same guard the
-    // list/create paths use via sourceRef.
+    // list/create paths use via sourceRef. Narrowed via THIS reference (not
+    // `source` directly) so the `.preview` guard below narrows the exact
+    // expression `preview()` is called through further down — narrowing an
+    // optional method through one variable does not carry over to a copy of
+    // it, since it tracks the access path, not the object's type.
     const requestSource = source;
-    const sample = previewSampleFor(settings.targetLanguage);
+    // Narrows `requestSource` so `.preview` below is known to exist.
+    // Guarding on `canPreview` instead would not narrow the type — see
+    // voiceLibrarySource.ts.
+    if (!requestSource?.preview) return null;
+    // `null`: a cloned Soniox voice is documented any-voice-any-language, so
+    // the language rule collapses to the previous previewSampleFor behaviour.
+    const sample = resolvePreviewSample(settings.targetLanguage, null);
+    // Cannot be null for a null `speaks` predicate (see resolvePreviewSample's
+    // docstring), but narrowed here rather than asserted.
+    if (!sample) return null;
     // Same choke point the session path uses (SonioxProviderConfig.
     // buildSessionConfig): the slider already constrains this in practice, so
     // clamping here is defensive, but the two paths reading the same setting
     // should agree on its bounds rather than one trusting the raw value.
     const speed = clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0);
-    const cacheKey = `${id}|${sample.language}|${speed}`;
+    const cacheKey = previewCacheKey(requestSource.cacheNamespace ?? '', id, sample.language, speed);
     setCaptureError(null);
-    const cached = previewCacheRef.current.get(cacheKey);
+    const cached = getCachedPreview(cacheKey);
     if (cached) return cached;
     try {
-      const result = await synthesizeOnce({
-        apiKey: settings.apiKey,
-        region: asSonioxRegion(settings.region),
-        voice: id,
+      const result = await requestSource.preview({
+        id,
         language: sample.language,
         text: sample.text,
         speed,
@@ -374,7 +455,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       // Discard instead; nothing was cancelled, so the user simply hears
       // nothing and can click again.
       if (sourceRef.current !== requestSource) return null;
-      previewCacheRef.current.set(cacheKey, result);
+      setCachedPreview(cacheKey, result);
       return result;
     } catch (e) {
       // A user-initiated cancel (switching rows, closing the panel) is not a
@@ -383,7 +464,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       setCaptureError(mapTtsError(e).message);
       return null;
     }
-  }, [source, settings.apiKey, settings.targetLanguage, settings.ttsSpeed, t]);
+  }, [source, settings.targetLanguage, settings.ttsSpeed, t]);
 
   // Latest selection, read at auto-select time: the ready-wait below runs for
   // up to a minute in the background, and a choice the user made meanwhile
@@ -732,26 +813,34 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         onImport={canCreate ? onImport : undefined}
         onRecord={canCreate ? onRecord : undefined}
         onDelete={onDelete}
-        onPreview={source?.canPreview ? handlePreview : undefined}
+        onPreview={source?.preview ? handlePreview : undefined}
         onRefresh={source ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
         // Footnote, not a standalone setting: it describes controls that live
         // inside the expanded manage body (the per-row preview button, the
         // record/import buttons), so it belongs there rather than above the
-        // collapsed expander where they aren't even visible. The two cases
-        // are mutually exclusive — only a managed source can block create,
-        // and a managed source can never preview.
+        // collapsed expander where they aren't even visible. `managed` can
+        // now preview too, so the two cases are no longer mutually
+        // exclusive by construction — `managedVoiceBlocksCreate` still takes
+        // priority, because a managed account with an existing voice has
+        // nothing to gain from the preview cost hint while create is
+        // withdrawn anyway.
         manageNote={
           managedVoiceBlocksCreate
             ? t(
                 'settings.sonioxManagedVoiceReplaceHint',
                 'Delete this voice before recording a new one — recording again on its own keeps the voice you already have.'
               )
-            : source?.canPreview
-              ? t(
-                  'settings.sonioxVoicePreviewCostHint',
-                  'Previewing a voice synthesizes a short clip using your own Soniox quota.'
-                )
+            : source?.preview
+              ? managed
+                ? t(
+                    'voiceLibrary.previewChargedToBalance',
+                    'Previewing synthesizes a short sample and is charged to your account balance.'
+                  )
+                : t(
+                    'settings.sonioxVoicePreviewCostHint',
+                    'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+                  )
               : undefined
         }
         capability={{

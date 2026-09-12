@@ -3,6 +3,8 @@ import {
   SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR,
   SONIOX_MANAGED_MIN_BALANCE_MICRO_USD,
   SONIOX_MANAGED_MIN_SESSION_S,
+  SONIOX_PREVIEW_MIN_SESSION_S,
+  SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD,
   sonioxManagedMinBalanceMicroUsd,
 } from './SonioxProviderConfig';
 
@@ -81,5 +83,43 @@ describe('managed Soniox start floor', () => {
   it('sits above the old per-SKU list floors it replaced', () => {
     expect(sonioxManagedMinBalanceMicroUsd(true)).toBeGreaterThan(10_000);
     expect(sonioxManagedMinBalanceMicroUsd(false)).toBeGreaterThan(25_000);
+  });
+});
+
+/**
+ * A preview is one REST call, not a session, so it is floored at the
+ * backend's PREVIEW_MIN_SESSION_S (`sokuji-backend`'s `src/config/soniox.ts`)
+ * rather than at MIN_SESSION_S — `sonioxStartFloorMicroUsd`'s preview branch
+ * (`src/services/soniox-budget.ts`) charges a single synthesis stream for
+ * that many seconds at the same conservative TTS rate mirrored above. These
+ * literals restate that arithmetic so a rate or duration change on either
+ * side shows up as a failing test rather than as a Start/Preview control
+ * that lies about a 402.
+ */
+describe('managed Soniox preview floor', () => {
+  const PREVIEW_MIN_SESSION_S = 10;
+  const TTS = 1_400_000; // µUSD/hr — same conservative synthesis rate as above
+  const floor = Math.ceil((TTS * PREVIEW_MIN_SESSION_S) / 3600);
+
+  it('mirrors the backend PREVIEW_MIN_SESSION_S and the conservative TTS rate', () => {
+    expect(SONIOX_PREVIEW_MIN_SESSION_S).toBe(PREVIEW_MIN_SESSION_S);
+    // Without this, a TTS rate change would fail the sibling 'start floor'
+    // block above but leave this block's local TTS and the (now stale)
+    // SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD self-consistent with each
+    // other, so the drift this file exists to catch would pass silently here.
+    expect(SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR.tts).toBe(TTS);
+  });
+
+  it('matches the backend formula for a single preview synthesis stream', () => {
+    expect(SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD).toBe(floor); // $0.003889
+  });
+
+  it('sits far below a minimum session, which is the point of a separate floor', () => {
+    expect(SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD)
+      .toBeLessThan(SONIOX_MANAGED_MIN_BALANCE_MICRO_USD.one_stt_text_only);
+  });
+
+  it('is strictly above zero, so "any positive balance" is never the same gate', () => {
+    expect(SONIOX_MANAGED_PREVIEW_MIN_BALANCE_MICRO_USD).toBeGreaterThan(0);
   });
 });

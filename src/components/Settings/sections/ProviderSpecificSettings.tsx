@@ -289,8 +289,14 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         userId
       );
     }
+    // Same apiKey/region the client above was constructed with — preview is
+    // just another Soniox call against that project, so it needs the same
+    // credential (see `ByokTtsDeps` in voiceLibrarySource.ts).
     return provider === Provider.SONIOX && sonioxApiKeyForRegion
-      ? byokVoiceSource(new SonioxVoicesClient(sonioxApiKeyForRegion, sonioxRegion))
+      ? byokVoiceSource(
+          new SonioxVoicesClient(sonioxApiKeyForRegion, sonioxRegion),
+          { apiKey: sonioxApiKeyForRegion, region: sonioxRegion }
+        )
       : null;
   }, [provider, sonioxApiKeyForRegion, sonioxRegion, userId]);
 
