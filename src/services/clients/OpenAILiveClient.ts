@@ -423,17 +423,120 @@ export class OpenAILiveClient implements IClient {
     });
   }
 
-  // ----- Server events (extended in later tasks) -----
+  // ----- Server events -----
 
   private handleServerEvent(event: any): void {
-    this.eventHandlers.onRealtimeEvent?.({
-      source: 'server',
-      event: { type: event.type, data: event },
-    });
+    // Decode + measure output audio once so the log carries the frame's RMS and
+    // the case below reuses the buffer. Live streams zero-amplitude frames
+    // continuously between utterances (like the translate API's heartbeat);
+    // those are noise for the timeline and for the conversation.
+    let decodedAudio: Int16Array | null = null;
+    let audioRms: number | null = null;
+    if (event.type === 'session.output_audio.delta' && event.delta) {
+      decodedAudio = base64ToInt16Array(event.delta);
+      audioRms = computeRms(decodedAudio);
+      event.rms = audioRms;
+    }
+    const isSilentAudioFrame = event.type === 'session.output_audio.delta' && audioRms === 0;
+    if (!isSilentAudioFrame) {
+      this.eventHandlers.onRealtimeEvent?.({
+        source: 'server',
+        event: { type: event.type, data: event },
+      });
+    }
 
     switch (event.type) {
+      case 'session.input_transcript.delta': {
+        const userItemId = this.ensureUserItem();
+        const userItem = this.itemLookup.get(userItemId);
+        if (userItem?.formatted) {
+          userItem.formatted.transcript = (userItem.formatted.transcript || '') + (event.delta || '');
+        }
+        this.eventHandlers.onConversationUpdated?.({
+          item: userItem!,
+          delta: { transcript: event.delta },
+        });
+        this.resetUserSilenceTimer();
+        break;
+      }
+
+      case 'session.output_transcript.delta': {
+        const assistantItemId = this.ensureAssistantItem();
+        const assistantItem = this.itemLookup.get(assistantItemId);
+        if (assistantItem?.formatted) {
+          assistantItem.formatted.transcript = (assistantItem.formatted.transcript || '') + (event.delta || '');
+        }
+        this.eventHandlers.onConversationUpdated?.({
+          item: assistantItem!,
+          delta: { transcript: event.delta },
+        });
+        this.resetAssistantSilenceTimer();
+        break;
+      }
+
+      case 'session.output_audio.delta': {
+        if (!event.delta || !decodedAudio) break;
+        if (audioRms === 0) break;
+        const audioData = decodedAudio;
+
+        const assistantItemId = this.currentAssistantItemId ?? this.ensureAssistantItem();
+        const assistantItem = this.itemLookup.get(assistantItemId);
+        if (!assistantItem) break;
+
+        const sequenceNumber = ++this.deltaSequenceNumber;
+
+        // Full-audio retention is the one thing that grows with session length;
+        // karaoke timing below stays populated either way.
+        if (this.keepReplayAudio) {
+          if (!this.audioChunks.has(assistantItemId)) {
+            this.audioChunks.set(assistantItemId, []);
+          }
+          this.audioChunks.get(assistantItemId)!.push(audioData);
+        }
+        const prevCumSamples = this.audioCumSamples.get(assistantItemId) ?? 0;
+        const newCumSamples = prevCumSamples + audioData.length;
+        this.audioCumSamples.set(assistantItemId, newCumSamples);
+
+        // Anchor the current transcript end to cumulative audio time so the
+        // highlight steps in chunk-aligned units (see OpenAITranslateGAClient,
+        // issue #216). Transcript and audio are independent streams here too.
+        if (assistantItem.formatted) {
+          const textLen = assistantItem.formatted.transcript?.length ?? 0;
+          if (!assistantItem.formatted.audioSegments) {
+            assistantItem.formatted.audioSegments = [];
+          }
+          assistantItem.formatted.audioSegments.push({
+            textEnd: textLen,
+            audioEnd: newCumSamples / SAMPLE_RATE,
+          });
+          assistantItem.formatted.audioTextEnd = textLen;
+        }
+
+        this.eventHandlers.onConversationUpdated?.({
+          item: assistantItem,
+          delta: {
+            audio: audioData,
+            sequenceNumber,
+            timestamp: Date.now(),
+          },
+        });
+        // Voiced audio is real assistant activity — keep the item open until
+        // playback-side rendering also winds down.
+        this.resetAssistantSilenceTimer();
+        break;
+      }
+
+      case 'session.delegation.created':
+      case 'session.usage.updated':
+      case 'session.instructions.appended':
+      case 'session.thinking.appended':
+      case 'session.commentary.appended':
+      case 'session.input_audio.muted':
+      case 'session.input_audio.unmuted':
       case 'session.started':
       case 'session.updated':
+      case 'info':
+        // No conversation impact; already forwarded via onRealtimeEvent above.
         break;
 
       case 'session.closed':
@@ -467,6 +570,58 @@ export class OpenAILiveClient implements IClient {
 
   private genItemId(): string {
     return `live_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  }
+
+  private resetUserSilenceTimer(): void {
+    if (this.userSilenceTimer) clearTimeout(this.userSilenceTimer);
+    this.userSilenceTimer = setTimeout(() => {
+      this.completeUserItem();
+    }, this.userSilenceTimeoutMs);
+  }
+
+  private resetAssistantSilenceTimer(): void {
+    if (this.assistantSilenceTimer) clearTimeout(this.assistantSilenceTimer);
+    this.assistantSilenceTimer = setTimeout(() => {
+      this.completeAssistantItem();
+    }, this.assistantSilenceTimeoutMs);
+  }
+
+  private ensureUserItem(): string {
+    if (this.currentUserItemId) return this.currentUserItemId;
+    const id = this.genItemId();
+    this.currentUserItemId = id;
+    const item: ConversationItem = {
+      id,
+      role: 'user',
+      type: 'message',
+      status: 'in_progress',
+      createdAt: Date.now(),
+      formatted: { text: '', transcript: '' },
+      content: [],
+    };
+    this.conversationItems.push(item);
+    this.itemLookup.set(id, item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+    return id;
+  }
+
+  private ensureAssistantItem(): string {
+    if (this.currentAssistantItemId) return this.currentAssistantItemId;
+    const id = this.genItemId();
+    this.currentAssistantItemId = id;
+    const item: ConversationItem = {
+      id,
+      role: 'assistant',
+      type: 'message',
+      status: 'in_progress',
+      createdAt: Date.now(),
+      formatted: { text: '', transcript: '' },
+      content: [],
+    };
+    this.conversationItems.push(item);
+    this.itemLookup.set(id, item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+    return id;
   }
 
   private completeUserItem(): void {
@@ -536,12 +691,9 @@ export class OpenAILiveClient implements IClient {
       model: this.config?.model,
       sessionId: this.sessionId,
       expiresAt: this.expiresAt,
-      // Effective clamped thresholds and the delta cursor for this session —
-      // consumed by the item helpers a later task adds; logged here so the
-      // fields are read, not just written, from the moment this task lands.
+      // Effective clamped thresholds for this session.
       userSilenceTimeoutMs: this.userSilenceTimeoutMs,
       assistantSilenceTimeoutMs: this.assistantSilenceTimeoutMs,
-      deltaSequenceNumber: this.deltaSequenceNumber,
       timestamp: Date.now(),
     });
     this.eventHandlers.onOpen?.();

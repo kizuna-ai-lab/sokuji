@@ -286,3 +286,149 @@ describe('OpenAILiveClient connect (web build)', () => {
     }
   });
 });
+
+/** Build a base64-encoded PCM16 chunk of `samples` Int16 samples. */
+function makePcmDelta(samples: number, value: number): string {
+  const bytes = new Uint8Array(samples * 2);
+  const view = new DataView(bytes.buffer);
+  for (let i = 0; i < samples; i++) view.setInt16(i * 2, value, true);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+const SILENT_DELTA = makePcmDelta(2400, 0);
+const VOICED_DELTA = makePcmDelta(2400, 1000);
+
+describe('OpenAILiveClient state machine', () => {
+  let client: OpenAILiveClient;
+  let updates: any[];
+  let realtimeEvents: any[];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    client = new OpenAILiveClient('sk-test');
+    updates = [];
+    realtimeEvents = [];
+    client.setEventHandlers({
+      onConversationUpdated: (e) => updates.push(e),
+      onRealtimeEvent: (e) => realtimeEvents.push(e),
+    } as ClientEventHandlers);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const feed = (event: unknown) => (client as any).handleServerEvent(event);
+
+  it('creates a user item on the first input transcript delta and appends later deltas', () => {
+    feed({ type: 'session.input_transcript.delta', delta: 'Hello', start_ms: 0, end_ms: 400 });
+    feed({ type: 'session.input_transcript.delta', delta: ' there', start_ms: 400, end_ms: 800 });
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].role).toBe('user');
+    expect(items[0].formatted?.transcript).toBe('Hello there');
+    expect(items[0].status).toBe('in_progress');
+  });
+
+  it('creates an assistant item on the first output transcript delta, independent of the user item', () => {
+    feed({ type: 'session.input_transcript.delta', delta: 'Hello' });
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは' });
+    const items = client.getConversationItems();
+    expect(items.map(i => i.role)).toEqual(['user', 'assistant']);
+    expect(items[1].formatted?.transcript).toBe('こんにちは');
+  });
+
+  it('drops zero-amplitude output audio frames and does not open an assistant item for them', () => {
+    feed({ type: 'session.output_audio.delta', delta: SILENT_DELTA });
+    expect(client.getConversationItems()).toHaveLength(0);
+    expect(realtimeEvents.some(e => e.event.type === 'session.output_audio.delta')).toBe(false);
+  });
+
+  it('opens an assistant item from the first voiced frame and emits audio deltas with sequence numbers', () => {
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    const items = client.getConversationItems();
+    expect(items).toHaveLength(1);
+    expect(items[0].role).toBe('assistant');
+    const audioUpdates = updates.filter(u => u.delta?.audio);
+    expect(audioUpdates.map(u => u.delta.sequenceNumber)).toEqual([1, 2]);
+    expect(audioUpdates[0].delta.audio).toBeInstanceOf(Int16Array);
+    expect(audioUpdates[0].delta.audio.length).toBe(2400);
+  });
+
+  it('records karaoke segments anchored to the transcript length and cumulative audio time', () => {
+    feed({ type: 'session.output_transcript.delta', delta: '皆さん' });
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    const item = client.getConversationItems()[0];
+    expect(item.formatted?.audioSegments).toEqual([{ textEnd: 3, audioEnd: 2400 / 24000 }]);
+    expect(item.formatted?.audioTextEnd).toBe(3);
+  });
+
+  it('keeps replay audio only when keepReplayAudio is on', async () => {
+    (client as any).keepReplayAudio = true;
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    vi.advanceTimersByTime(1001);
+    const withReplay = client.getConversationItems()[0];
+    expect(withReplay.status).toBe('completed');
+    expect((withReplay.formatted?.audio as Int16Array).length).toBe(4800);
+
+    client.clearConversationItems();
+    (client as any).keepReplayAudio = false;
+    (client as any).currentAssistantItemId = null;
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    vi.advanceTimersByTime(1001);
+    const without = client.getConversationItems()[0];
+    expect(without.status).toBe('completed');
+    expect(without.formatted?.audio).toBeUndefined();
+  });
+
+  it('closes user and assistant items on their own silence timers', () => {
+    (client as any).userSilenceTimeoutMs = 1000;
+    (client as any).assistantSilenceTimeoutMs = 1500;
+    feed({ type: 'session.input_transcript.delta', delta: 'Hello' });
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは' });
+    vi.advanceTimersByTime(1001);
+    let items = client.getConversationItems();
+    expect(items[0].status).toBe('completed');
+    expect(items[1].status).toBe('in_progress');
+    vi.advanceTimersByTime(500);
+    items = client.getConversationItems();
+    expect(items[1].status).toBe('completed');
+    expect(items[1].formatted?.text).toBe('こんにちは');
+  });
+
+  it('voiced audio keeps the assistant item open past the last transcript delta', () => {
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは' });
+    vi.advanceTimersByTime(800);
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    vi.advanceTimersByTime(800);
+    expect(client.getConversationItems()[0].status).toBe('in_progress');
+    vi.advanceTimersByTime(201);
+    expect(client.getConversationItems()[0].status).toBe('completed');
+  });
+
+  it('a new utterance after the user item closed starts a second user item', () => {
+    (client as any).userSilenceTimeoutMs = 1000;
+    feed({ type: 'session.input_transcript.delta', delta: 'One' });
+    vi.advanceTimersByTime(1001);
+    feed({ type: 'session.input_transcript.delta', delta: 'Two' });
+    const users = client.getConversationItems().filter(i => i.role === 'user');
+    expect(users.map(u => u.formatted?.transcript)).toEqual(['One', 'Two']);
+  });
+
+  it('logs delegation and usage events without touching the conversation', () => {
+    feed({ type: 'session.delegation.created', delegation: { id: 'item_1', target: 'client', type: 'delegation' }, offset_ms: 100 });
+    feed({ type: 'session.usage.updated', usage: { seconds: 15 }, context_window: { usage_ratio: 0.01 } });
+    expect(client.getConversationItems()).toHaveLength(0);
+    expect(realtimeEvents.map(e => e.event.type)).toEqual(['session.delegation.created', 'session.usage.updated']);
+  });
+
+  it('surfaces an error frame as a system item and onError', () => {
+    const errors: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: (e) => updates.push(e), onError: (e) => errors.push(e) } as ClientEventHandlers);
+    feed({ type: 'error', error: { type: 'invalid_request_error', code: 'immutable_field_update', message: 'nope' } });
+    expect(updates.at(-1).item.type).toBe('error');
+    expect(updates.at(-1).item.formatted.text).toBe('[invalid_request_error] nope');
+    expect(errors).toHaveLength(1);
+  });
+});
