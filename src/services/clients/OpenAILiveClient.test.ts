@@ -140,6 +140,43 @@ describe('OpenAILiveClient connect (Electron header injection)', () => {
     expect((globalThis as any).WebSocket).not.toHaveBeenCalled();
   });
 
+  it('socket errors after the handshake still reach onError', async () => {
+    const client = new OpenAILiveClient('sk-test');
+    const onError = vi.fn();
+    client.setEventHandlers({ onError } as ClientEventHandlers);
+    const p = client.connect(baseConfig);
+    await flush();
+    completeHandshake(ws);
+    await p;
+
+    ws.onerror?.({});
+
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it('a socket close before session.started rejects connect promptly', async () => {
+    const client = new OpenAILiveClient('sk-test');
+    const p = client.connect(baseConfig);
+    await flush();
+    ws.readyState = 1;
+    ws.onopen?.({});
+    ws.onclose?.({ code: 1006, reason: '' });
+    await expect(p).rejects.toThrow('closed during session start');
+    expect(invoke).toHaveBeenCalledWith('ws-headers-clear', { host: LIVE_HOST });
+  });
+
+  it('a failed handshake closes the socket', async () => {
+    const client = new OpenAILiveClient('sk-test');
+    const p = client.connect(baseConfig);
+    await flush();
+    ws.readyState = 1;
+    ws.onopen?.({});
+    ws.onmessage?.({ data: JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'bad instructions' } }) });
+    await expect(p).rejects.toThrow('bad instructions');
+    expect(ws.close).toHaveBeenCalledTimes(1);
+    expect(client.isConnected()).toBe(false);
+  });
+
   it('appendInputAudio sends base64 session.input_audio.append and logs only voiced frames', async () => {
     const client = new OpenAILiveClient('sk-test');
     const events: any[] = [];

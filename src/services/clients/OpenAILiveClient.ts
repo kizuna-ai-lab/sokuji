@@ -266,6 +266,7 @@ export class OpenAILiveClient implements IClient {
       };
       await this.waitForSessionStarted();
     } catch (error) {
+      this.teardownSocket();
       this.clearUpgradeHeader();
       throw error;
     }
@@ -327,8 +328,10 @@ export class OpenAILiveClient implements IClient {
       }, SESSION_START_TIMEOUT_MS);
 
       // Temporarily intercept frames for the handshake, then hand back to the
-      // regular handler installed by setupWebSocketListeners.
+      // regular handlers installed by setupWebSocketListeners.
       const regularHandler = ws.onmessage;
+      const regularError = ws.onerror;
+      const regularClose = ws.onclose;
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -336,6 +339,8 @@ export class OpenAILiveClient implements IClient {
             settled = true;
             clearTimeout(timeout);
             ws.onmessage = regularHandler;
+            ws.onerror = regularError;
+            ws.onclose = regularClose;
             this.sessionId = data.session?.id ?? null;
             this.expiresAt = data.session?.expires_at ?? null;
             if (regularHandler && typeof regularHandler === 'function') {
@@ -364,7 +369,31 @@ export class OpenAILiveClient implements IClient {
           reject(new Error('WebSocket error during session start'));
         }
       };
+      // A close racing the handshake must reject promptly rather than let the
+      // caller wait out the full SESSION_START_TIMEOUT_MS for a misleading
+      // 'Session start timeout'. The reject paths above and below don't
+      // restore the regular handlers — the socket is torn down right after
+      // by openSession's catch block (teardownSocket nulls all three anyway).
+      ws.onclose = (event) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeout);
+          reject(new Error(`WebSocket closed during session start (code ${event.code})`));
+        }
+      };
     });
+  }
+
+  /** Detach every socket handler and close it. Safe to call on an already-closed socket. */
+  private teardownSocket(): void {
+    const ws = this.ws;
+    this.ws = null;
+    if (ws) {
+      ws.onclose = null;
+      ws.onmessage = null;
+      ws.onerror = null;
+      try { ws.close(); } catch { /* already closed */ }
+    }
   }
 
   private settleClose(): void {
