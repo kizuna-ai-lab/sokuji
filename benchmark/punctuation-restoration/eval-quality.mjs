@@ -28,7 +28,8 @@ const langFilter = arg('langs', '').split(',').filter(Boolean);
 // module they are `en` (its guard is the only use of the argument) — to measure
 // how a model behaves outside its stated coverage.
 const asLang = arg('as-lang', '');
-const LATIN = new Set(['en', 'fr', 'de', 'es', 'pt']);
+// Cased scripts get a lowercased input variant too (CTC/RNNT ASR often emits no casing).
+const LATIN = new Set(['en', 'fr', 'de', 'es', 'pt', 'ru']);
 const RIGHT_CONTEXT = [0, 4, 8, 16];
 
 const items = await loadCorpus(join(here, 'corpus'));
