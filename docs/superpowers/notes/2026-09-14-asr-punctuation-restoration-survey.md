@@ -2,6 +2,11 @@
 
 Date: 2026-09-14. Worktree `research-asr-punctuation` at `fb384d84` (v0.41.0). Research note: no code changed.
 
+> Follow-up: the "no model yet" recommendation below was rejected — the problem is where to cut
+> lines and when to hand a sentence to the translator, not only translation quality. Measured
+> results for the candidates, run in the Electron renderer, are in
+> `2026-09-14-asr-punctuation-benchmark.md`.
+
 ## TL;DR
 
 - **The gap is smaller than it looks, and much of it is configuration.** Per their own sources, most cards we recommend already emit punctuation (§2): Cohere, Whisper, SenseVoice (ITN on), Canary, Parakeet v3, the Nemotron streaming models, plus Qwen3-ASR and Voxtral Realtime (our own observation). The unpunctuated output comes from:

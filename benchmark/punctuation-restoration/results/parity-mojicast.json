@@ -1,0 +1,92 @@
+{
+ "precisions": {
+  "int8": {
+   "loadMs": 533,
+   "probe": {
+    "js": "これはてすとです。",
+    "py": "これはてすとです。"
+   },
+   "rows": 51,
+   "textExact_vsPython": 0.9607843137254902,
+   "rawExact_vsPython": 0.9607843137254902,
+   "skeletonKept": 1,
+   "probMaxAbsDiff_vsPython": 0.24617668947579313,
+   "thresholdFlips_vsPython": [
+    {
+     "id": "ja-mixed-01",
+     "variant": "stripped",
+     "pos": 11,
+     "cls": "。",
+     "js": 0.1634116222357739,
+     "py": 0.0733945220708847
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "commas",
+     "pos": 11,
+     "cls": "。",
+     "js": 0.1634116222357739,
+     "py": 0.0733945220708847
+    }
+   ],
+   "diffs": [
+    {
+     "id": "ja-mixed-01",
+     "variant": "stripped",
+     "py": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします。",
+     "js": "今日のデモはここまでです。Thank you for watching 次回もよろしくお願いします。"
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "commas",
+     "py": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします。",
+     "js": "今日のデモはここまでです。Thank you for watching 次回もよろしくお願いします。"
+    }
+   ]
+  },
+  "fp32": {
+   "loadMs": 811,
+   "probe": {
+    "js": "これはてすとです。",
+    "py": "これはてすとです。"
+   },
+   "rows": 51,
+   "textExact_vsPython": 1,
+   "rawExact_vsPython": 1,
+   "skeletonKept": 1,
+   "probMaxAbsDiff_vsPython": 0.000004953585147460249,
+   "thresholdFlips_vsPython": [],
+   "diffs": []
+  }
+ },
+ "pythonVersions": {
+  "onnxruntime": "1.30.0",
+  "numpy": "2.5.3"
+ },
+ "int8VsFp32": {
+  "js": {
+   "textExact": 0.9803921568627451,
+   "marks_int8_vs_fp32": {
+    "both": 147,
+    "differentMark": 0,
+    "onlyFirst": 0,
+    "onlySecond": 1
+   }
+  },
+  "python": {
+   "textExact": 0.9411764705882353,
+   "marks_int8_vs_fp32": {
+    "both": 145,
+    "differentMark": 0,
+    "onlyFirst": 0,
+    "onlySecond": 3
+   }
+  },
+  "diffs": [
+   {
+    "int8": "みなさんこんにちは!今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの",
+    "fp32": "みなさんこんにちは!。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの"
+   }
+  ]
+ }
+}

@@ -1,0 +1,3659 @@
+{
+ "_smoke/wasm/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=_smoke&ep=wasm&threads=1&reps=5",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106116,
+    "gpuKB": 184720,
+    "totalKB": 527628
+   },
+   "loaded": {
+    "rendererKB": 363540,
+    "gpuKB": 184720,
+    "totalKB": 785112
+   },
+   "ran": {
+    "rendererKB": 314628,
+    "gpuKB": 184720,
+    "totalKB": 736256
+   },
+   "done": {
+    "rendererKB": 317128,
+    "gpuKB": 184720,
+    "totalKB": 738776
+   }
+  },
+  "peak": {
+   "rendererKB": 411756,
+   "gpuKB": 184732,
+   "totalKB": 833344
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "_smoke",
+   "ep": "wasm",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "_smoke",
+    "name": "harness smoke test",
+    "langs": [
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-online-punct-en-2024-08-06",
+    "files": [
+     "model.int8.onnx"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1813605,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 721.5349998474121,
+   "firstCall": {
+    "en": 109.41499996185303
+   },
+   "latency": [
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 25.69000005722046,
+     "median": 25.960000038146973,
+     "p90": 27.30999994277954,
+     "n": 5
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 25.46500015258789,
+     "median": 25.584999799728394,
+     "p90": 33.894999980926514,
+     "n": 5
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 25.505000114440918,
+     "median": 25.700000047683716,
+     "p90": 37.77499985694885,
+     "n": 5
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 25.384999990463257,
+     "median": 25.47000002861023,
+     "p90": 26.84000015258789,
+     "n": 5
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 25.444999933242798,
+     "median": 25.55999994277954,
+     "p90": 32.66499996185303,
+     "n": 5
+    }
+   ],
+   "memAfter": {
+    "bytes": 12389988,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "_smoke/webgpu/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=_smoke&ep=webgpu&threads=1&reps=5",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106084,
+    "gpuKB": 184764,
+    "totalKB": 527572
+   },
+   "loaded": {
+    "rendererKB": 326508,
+    "gpuKB": 208788,
+    "totalKB": 772104
+   },
+   "ran": {
+    "rendererKB": 286896,
+    "gpuKB": 272088,
+    "totalKB": 800308
+   },
+   "done": {
+    "rendererKB": 287264,
+    "gpuKB": 272124,
+    "totalKB": 801076
+   }
+  },
+  "peak": {
+   "rendererKB": 415972,
+   "gpuKB": 272712,
+   "totalKB": 911852
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "_smoke",
+   "ep": "webgpu",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "_smoke",
+    "name": "harness smoke test",
+    "langs": [
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-online-punct-en-2024-08-06",
+    "files": [
+     "model.int8.onnx"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1813609,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 927.8600001335144,
+   "firstCall": {
+    "en": 478.6400001049042
+   },
+   "latency": [
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 46.05999994277954,
+     "median": 51.1949999332428,
+     "p90": 64.72000002861023,
+     "n": 5
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 48.33500003814697,
+     "median": 49.295000076293945,
+     "p90": 59.894999980926514,
+     "n": 5
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 44.980000019073486,
+     "median": 50.16000008583069,
+     "p90": 71.125,
+     "n": 5
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 49.91000008583069,
+     "median": 56.40499997138977,
+     "p90": 68.02999997138977,
+     "n": 5
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 50.06499981880188,
+     "median": 51.71499991416931,
+     "p90": 68.30999994277954,
+     "n": 5
+    }
+   ],
+   "memAfter": {
+    "bytes": 11970875,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": [
+   "[page] \u001b[0;93m2026-09-14 15:13:47.256114 [W:onnxruntime:, session_state.cc:1367 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+   "[page] \u001b[0;93m2026-09-14 15:13:47.261464 [W:onnxruntime:, session_state.cc:1369 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
+  ]
+ },
+ "edge-punct-en/wasm/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=edge-punct-en&ep=wasm&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106232,
+    "gpuKB": 185072,
+    "totalKB": 528300
+   },
+   "loaded": {
+    "rendererKB": 385564,
+    "gpuKB": 185072,
+    "totalKB": 807692
+   },
+   "ran": {
+    "rendererKB": 291612,
+    "gpuKB": 185080,
+    "totalKB": 713876
+   },
+   "done": {
+    "rendererKB": 290680,
+    "gpuKB": 185080,
+    "totalKB": 712964
+   }
+  },
+  "peak": {
+   "rendererKB": 407392,
+   "gpuKB": 185080,
+   "totalKB": 829540
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "edge-punct-en",
+   "ep": "wasm",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "edge-punct-en",
+    "name": "Edge-Punct-Casing CNN-BiLSTM en int8 (sherpa-onnx 2024-08-06)",
+    "langs": [
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-online-punct-en-2024-08-06",
+    "files": [
+     "model.int8.onnx",
+     "bpe.vocab"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1825557,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 698.0149998664856,
+   "firstCall": {
+    "en": 95.99000000953674
+   },
+   "latency": [
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 29.265000104904175,
+     "median": 29.380000114440918,
+     "p90": 30.080000162124634,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 33.19999980926514,
+     "median": 33.264999866485596,
+     "p90": 34.61500000953674,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 42.734999895095825,
+     "median": 42.87999987602234,
+     "p90": 43.00499987602234,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 60.68499994277954,
+     "median": 60.85000014305115,
+     "p90": 60.97000002861023,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 117.67999982833862,
+     "median": 117.87999987602234,
+     "p90": 118.97000002861023,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 14840835,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "edge-punct-en/wasm/t4": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=edge-punct-en&ep=wasm&threads=4&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106208,
+    "gpuKB": 185148,
+    "totalKB": 528148
+   },
+   "loaded": {
+    "rendererKB": 361884,
+    "gpuKB": 185148,
+    "totalKB": 784404
+   },
+   "ran": {
+    "rendererKB": 302284,
+    "gpuKB": 185148,
+    "totalKB": 724872
+   },
+   "done": {
+    "rendererKB": 303192,
+    "gpuKB": 185148,
+    "totalKB": 725800
+   }
+  },
+  "peak": {
+   "rendererKB": 415104,
+   "gpuKB": 185156,
+   "totalKB": 837644
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "edge-punct-en",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "edge-punct-en",
+    "name": "Edge-Punct-Casing CNN-BiLSTM en int8 (sherpa-onnx 2024-08-06)",
+    "langs": [
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-online-punct-en-2024-08-06",
+    "files": [
+     "model.int8.onnx",
+     "bpe.vocab"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1825557,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 698.8949999809265,
+   "firstCall": {
+    "en": 88.98000001907349
+   },
+   "latency": [
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 10.839999914169312,
+     "median": 11.205000162124634,
+     "p90": 12.5,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 11.830000162124634,
+     "median": 11.990000009536743,
+     "p90": 12.490000009536743,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 14.859999895095825,
+     "median": 15.21500015258789,
+     "p90": 20.44000005722046,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 20.549999952316284,
+     "median": 20.730000019073486,
+     "p90": 27.134999990463257,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 38.14999985694885,
+     "median": 38.59000015258789,
+     "p90": 39.78000020980835,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 14876471,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "edge-punct-en/webgpu/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=edge-punct-en&ep=webgpu&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106348,
+    "gpuKB": 185120,
+    "totalKB": 528384
+   },
+   "loaded": {
+    "rendererKB": 369948,
+    "gpuKB": 209144,
+    "totalKB": 816100
+   },
+   "ran": {
+    "rendererKB": 245232,
+    "gpuKB": 271808,
+    "totalKB": 754356
+   },
+   "done": {
+    "rendererKB": 245596,
+    "gpuKB": 271872,
+    "totalKB": 754752
+   }
+  },
+  "peak": {
+   "rendererKB": 431200,
+   "gpuKB": 272864,
+   "totalKB": 927572
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "edge-punct-en",
+   "ep": "webgpu",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "edge-punct-en",
+    "name": "Edge-Punct-Casing CNN-BiLSTM en int8 (sherpa-onnx 2024-08-06)",
+    "langs": [
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-online-punct-en-2024-08-06",
+    "files": [
+     "model.int8.onnx",
+     "bpe.vocab"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1825561,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 928.7599999904633,
+   "firstCall": {
+    "en": 266.75
+   },
+   "latency": [
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 51.34999990463257,
+     "median": 57.700000047683716,
+     "p90": 76.4850001335144,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 52.549999952316284,
+     "median": 57.81500005722046,
+     "p90": 65.91499996185303,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 61.1800000667572,
+     "median": 70.02999997138977,
+     "p90": 74.91000008583069,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 79.72499990463257,
+     "median": 86.65999984741211,
+     "p90": 91.74000000953674,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 140.92499995231628,
+     "median": 144.27999997138977,
+     "p90": 147.17499995231628,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 8107381,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": [
+   "[page] \u001b[0;93m2026-09-14 15:51:01.423300 [W:onnxruntime:, session_state.cc:1367 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+   "[page] \u001b[0;93m2026-09-14 15:51:01.426905 [W:onnxruntime:, session_state.cc:1369 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
+  ]
+ },
+ "ct-transformer/wasm/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=ct-transformer&ep=wasm&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106460,
+    "gpuKB": 185036,
+    "totalKB": 528396
+   },
+   "loaded": {
+    "rendererKB": 674720,
+    "gpuKB": 185036,
+    "totalKB": 1096744
+   },
+   "ran": {
+    "rendererKB": 549648,
+    "gpuKB": 185044,
+    "totalKB": 971908
+   },
+   "done": {
+    "rendererKB": 541772,
+    "gpuKB": 185044,
+    "totalKB": 964052
+   }
+  },
+  "peak": {
+   "rendererKB": 798832,
+   "gpuKB": 185052,
+   "totalKB": 1220864
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "ct-transformer",
+   "ep": "wasm",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "ct-transformer",
+    "name": "CT-Transformer zh-en vocab272727 int8 (sherpa-onnx 2024-04-12)",
+    "langs": [
+     "zh",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12-int8",
+    "files": [
+     "model.int8.onnx",
+     "tokens.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1825386,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1062.8550000190735,
+   "firstCall": {
+    "zh": 74.93999981880188,
+    "en": 6.644999980926514
+   },
+   "latency": [
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 12.370000123977661,
+     "median": 12.995000123977661,
+     "p90": 14.299999952316284,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 25.545000076293945,
+     "median": 25.799999952316284,
+     "p90": 28.490000009536743,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 40.80999994277954,
+     "median": 41.46500015258789,
+     "p90": 42,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 74.59999990463257,
+     "median": 75.1650002002716,
+     "p90": 75.6800000667572,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 162.13000011444092,
+     "median": 164.30999994277954,
+     "p90": 164.9850001335144,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 4.729999780654907,
+     "median": 4.759999990463257,
+     "p90": 4.799999952316284,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 6.565000057220459,
+     "median": 6.6000001430511475,
+     "p90": 6.990000009536743,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 12.599999904632568,
+     "median": 12.674999952316284,
+     "p90": 12.930000066757202,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 22.990000009536743,
+     "median": 23.045000076293945,
+     "p90": 23.09500002861023,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 44.5,
+     "median": 44.640000104904175,
+     "p90": 44.74500012397766,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 27598253,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "ct-transformer/wasm/t4": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=ct-transformer&ep=wasm&threads=4&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106332,
+    "gpuKB": 185216,
+    "totalKB": 528456
+   },
+   "loaded": {
+    "rendererKB": 682060,
+    "gpuKB": 185216,
+    "totalKB": 1104736
+   },
+   "ran": {
+    "rendererKB": 565708,
+    "gpuKB": 185224,
+    "totalKB": 988512
+   },
+   "done": {
+    "rendererKB": 549592,
+    "gpuKB": 185224,
+    "totalKB": 972424
+   }
+  },
+  "peak": {
+   "rendererKB": 800068,
+   "gpuKB": 185228,
+   "totalKB": 1222752
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "ct-transformer",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "ct-transformer",
+    "name": "CT-Transformer zh-en vocab272727 int8 (sherpa-onnx 2024-04-12)",
+    "langs": [
+     "zh",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12-int8",
+    "files": [
+     "model.int8.onnx",
+     "tokens.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1825386,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1073.8700001239777,
+   "firstCall": {
+    "zh": 75.41499996185303,
+    "en": 4.5
+   },
+   "latency": [
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 8.089999914169312,
+     "median": 8.450000047683716,
+     "p90": 13.765000104904175,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 14.625,
+     "median": 15.15499997138977,
+     "p90": 16.75,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 23.384999990463257,
+     "median": 23.859999895095825,
+     "p90": 28.84999990463257,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 42.44500017166138,
+     "median": 42.91000008583069,
+     "p90": 43.894999980926514,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 91.44500017166138,
+     "median": 92.22000002861023,
+     "p90": 93.0550000667572,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 3.075000047683716,
+     "median": 3.1100001335144043,
+     "p90": 11.804999828338623,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 4.390000104904175,
+     "median": 4.444999933242798,
+     "p90": 4.525000095367432,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 7.825000047683716,
+     "median": 7.8500001430511475,
+     "p90": 7.9700000286102295,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 14.129999876022339,
+     "median": 14.184999942779541,
+     "p90": 14.315000057220459,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 26.619999885559082,
+     "median": 26.740000009536743,
+     "p90": 26.955000162124634,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 27232753,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "ct-transformer/webgpu/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=ct-transformer&ep=webgpu&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106400,
+    "gpuKB": 185132,
+    "totalKB": 528408
+   },
+   "loaded": {
+    "rendererKB": 698676,
+    "gpuKB": 209352,
+    "totalKB": 1145016
+   },
+   "ran": {
+    "rendererKB": 487936,
+    "gpuKB": 307568,
+    "totalKB": 1030640
+   },
+   "done": {
+    "rendererKB": 488480,
+    "gpuKB": 307604,
+    "totalKB": 1031260
+   }
+  },
+  "peak": {
+   "rendererKB": 758972,
+   "gpuKB": 310100,
+   "totalKB": 1259008
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "ct-transformer",
+   "ep": "webgpu",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "ct-transformer",
+    "name": "CT-Transformer zh-en vocab272727 int8 (sherpa-onnx 2024-04-12)",
+    "langs": [
+     "zh",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12-int8",
+    "files": [
+     "model.int8.onnx",
+     "tokens.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1825390,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1324.5750000476837,
+   "firstCall": {
+    "zh": 683.9300000667572,
+    "en": 236.80999994277954
+   },
+   "latency": [
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 233.2699999809265,
+     "median": 241.23499989509583,
+     "p90": 259.15499997138977,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 307.9300000667572,
+     "median": 350.24500012397766,
+     "p90": 384.20499992370605,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 575.1800000667572,
+     "median": 620.5649998188019,
+     "p90": 661.0199999809265,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 1024.4349999427795,
+     "median": 1139.289999961853,
+     "p90": 1246.9800000190735,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 2053.4400000572205,
+     "median": 2236.715000152588,
+     "p90": 2343.949999809265,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 153.71999979019165,
+     "median": 163.42499995231628,
+     "p90": 179.47000002861023,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 231.5199999809265,
+     "median": 244.3550000190735,
+     "p90": 268.4500000476837,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 303.7850000858307,
+     "median": 346.4449999332428,
+     "p90": 359.0600001811981,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 520.289999961853,
+     "median": 562.8650000095367,
+     "p90": 636.6950001716614,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 868.3400001525879,
+     "median": 942.8099999427795,
+     "p90": 1026.9750001430511,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 24641156,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": [
+   "[page] \u001b[0;93m2026-09-14 15:51:23.239304 [W:onnxruntime:, session_state.cc:1367 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+   "[page] \u001b[0;93m2026-09-14 15:51:23.241319 [W:onnxruntime:, session_state.cc:1369 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
+  ]
+ },
+ "mojicast/wasm/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=mojicast&ep=wasm&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106248,
+    "gpuKB": 185440,
+    "totalKB": 528604
+   },
+   "loaded": {
+    "rendererKB": 775400,
+    "gpuKB": 185440,
+    "totalKB": 1197852
+   },
+   "ran": {
+    "rendererKB": 609208,
+    "gpuKB": 185520,
+    "totalKB": 1029808
+   },
+   "done": {
+    "rendererKB": 608348,
+    "gpuKB": 185520,
+    "totalKB": 1028964
+   }
+  },
+  "peak": {
+   "rendererKB": 827536,
+   "gpuKB": 185520,
+   "totalKB": 1249996
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "mojicast",
+   "ep": "wasm",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "mojicast",
+    "name": "Mojicast punct BERT int8",
+    "langs": [
+     "ja"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/huggingface/hub/models--ishiki-emo--mojicast-punct-onnx/snapshots/6bef44545db904999043648af48ee17cd6177ee4",
+    "files": [
+     "punct_bert.int8.onnx",
+     "vocab.txt"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1820474,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1193.0250000953674,
+   "firstCall": {
+    "ja": 184.12999987602234
+   },
+   "latency": [
+    {
+     "lang": "ja",
+     "chars": 30,
+     "min": 97.63499999046326,
+     "median": 98.14499998092651,
+     "p90": 98.94000005722046,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 60,
+     "min": 180.20000004768372,
+     "median": 181.38000011444092,
+     "p90": 181.84500002861023,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 120,
+     "min": 349.90000009536743,
+     "median": 350.7449998855591,
+     "p90": 351.5199999809265,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 240,
+     "min": 708.460000038147,
+     "median": 709.8600001335144,
+     "p90": 711.5,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 480,
+     "min": 1417.9750001430511,
+     "median": 1419.6849999427795,
+     "p90": 1421.8150000572205,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 113482468,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "mojicast/wasm/t4": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=mojicast&ep=wasm&threads=4&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106356,
+    "gpuKB": 185472,
+    "totalKB": 528744
+   },
+   "loaded": {
+    "rendererKB": 777932,
+    "gpuKB": 185472,
+    "totalKB": 1200932
+   },
+   "ran": {
+    "rendererKB": 623728,
+    "gpuKB": 185484,
+    "totalKB": 1047248
+   },
+   "done": {
+    "rendererKB": 624400,
+    "gpuKB": 185484,
+    "totalKB": 1047924
+   }
+  },
+  "peak": {
+   "rendererKB": 866432,
+   "gpuKB": 185484,
+   "totalKB": 1289452
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "mojicast",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "mojicast",
+    "name": "Mojicast punct BERT int8",
+    "langs": [
+     "ja"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/huggingface/hub/models--ishiki-emo--mojicast-punct-onnx/snapshots/6bef44545db904999043648af48ee17cd6177ee4",
+    "files": [
+     "punct_bert.int8.onnx",
+     "vocab.txt"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1820474,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1087.8550000190735,
+   "firstCall": {
+    "ja": 63.11999988555908
+   },
+   "latency": [
+    {
+     "lang": "ja",
+     "chars": 30,
+     "min": 30.289999961853027,
+     "median": 30.449999809265137,
+     "p90": 31.699999809265137,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 60,
+     "min": 54.22499990463257,
+     "median": 54.5550000667572,
+     "p90": 69.0550000667572,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 120,
+     "min": 101.0699999332428,
+     "median": 101.24500012397766,
+     "p90": 101.57999992370605,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 240,
+     "min": 204.25,
+     "median": 205.24000000953674,
+     "p90": 206.85000014305115,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 480,
+     "min": 408.65000009536743,
+     "median": 410.72500014305115,
+     "p90": 418.8050000667572,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 113516880,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "mojicast/webgpu/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=mojicast&ep=webgpu&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106304,
+    "gpuKB": 185468,
+    "totalKB": 528576
+   },
+   "loaded": {
+    "rendererKB": 817956,
+    "gpuKB": 286528,
+    "totalKB": 1341380
+   },
+   "ran": {
+    "rendererKB": 505420,
+    "gpuKB": 304880,
+    "totalKB": 1046492
+   },
+   "done": {
+    "rendererKB": 505812,
+    "gpuKB": 304912,
+    "totalKB": 1046932
+   }
+  },
+  "peak": {
+   "rendererKB": 902304,
+   "gpuKB": 309448,
+   "totalKB": 1425776
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "mojicast",
+   "ep": "webgpu",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "mojicast",
+    "name": "Mojicast punct BERT int8",
+    "langs": [
+     "ja"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/huggingface/hub/models--ishiki-emo--mojicast-punct-onnx/snapshots/6bef44545db904999043648af48ee17cd6177ee4",
+    "files": [
+     "punct_bert.int8.onnx",
+     "vocab.txt"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1820478,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1942.829999923706,
+   "firstCall": {
+    "ja": 544.4300000667572
+   },
+   "latency": [
+    {
+     "lang": "ja",
+     "chars": 30,
+     "min": 291.9599997997284,
+     "median": 468.95499992370605,
+     "p90": 539.1150000095367,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 60,
+     "min": 386.9500000476837,
+     "median": 401.7850000858307,
+     "p90": 418.2149999141693,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 120,
+     "min": 566.2149999141693,
+     "median": 572.7599999904633,
+     "p90": 595.7150001525879,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 240,
+     "min": 907.0149998664856,
+     "median": 925.1800000667572,
+     "p90": 930.6300001144409,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 480,
+     "min": 1808.454999923706,
+     "median": 1833.164999961853,
+     "p90": 1843.9449999332428,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 5877098,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": [
+   "[page] \u001b[0;93m2026-09-14 15:53:28.455304 [W:onnxruntime:, session_state.cc:1367 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+   "[page] \u001b[0;93m2026-09-14 15:53:28.457194 [W:onnxruntime:, session_state.cc:1369 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
+  ]
+ },
+ "fireredpunc-q8w/wasm/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=fireredpunc-q8w&ep=wasm&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106260,
+    "gpuKB": 185756,
+    "totalKB": 528936
+   },
+   "loaded": {
+    "rendererKB": 876700,
+    "gpuKB": 185756,
+    "totalKB": 1299456
+   },
+   "ran": {
+    "rendererKB": 807344,
+    "gpuKB": 185276,
+    "totalKB": 1227232
+   },
+   "done": {
+    "rendererKB": 806452,
+    "gpuKB": 185276,
+    "totalKB": 1226368
+   }
+  },
+  "peak": {
+   "rendererKB": 984348,
+   "gpuKB": 185832,
+   "totalKB": 1407112
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "fireredpunc-q8w",
+   "ep": "wasm",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "fireredpunc-q8w",
+    "name": "FireRedPunc q8 weight-only (MatMulNBits)",
+    "langs": [
+     "zh",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/fireredpunc-onnx",
+    "files": [
+     "punc.q8w.onnx",
+     "tokenizer.json",
+     "out_dict"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1837187,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1352.0650000572205,
+   "firstCall": {
+    "zh": 309.19000005722046,
+    "en": 194.34999990463257
+   },
+   "latency": [
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 182.0199999809265,
+     "median": 186.1949999332428,
+     "p90": 187.49000000953674,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 262.1949999332428,
+     "median": 263.2850000858307,
+     "p90": 264.97500014305115,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 423.9850001335144,
+     "median": 424.8349997997284,
+     "p90": 431.5899999141693,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 757.9849998950958,
+     "median": 764.164999961853,
+     "p90": 767.1050000190735,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 1513.9100000858307,
+     "median": 1518.9699997901917,
+     "p90": 1523.9500000476837,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 152.11500000953674,
+     "median": 155.90499997138977,
+     "p90": 157.375,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 192.2849998474121,
+     "median": 192.4800000190735,
+     "p90": 192.57500004768372,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 296.9500000476837,
+     "median": 297.6399998664856,
+     "p90": 300.7000000476837,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 510.5499999523163,
+     "median": 512.2000000476837,
+     "p90": 517.0349998474121,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 927.9850001335144,
+     "median": 933.085000038147,
+     "p90": 937.8349997997284,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 170497724,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "fireredpunc-q8w/wasm/t4": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=fireredpunc-q8w&ep=wasm&threads=4&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106412,
+    "gpuKB": 185892,
+    "totalKB": 529232
+   },
+   "loaded": {
+    "rendererKB": 876636,
+    "gpuKB": 185892,
+    "totalKB": 1300024
+   },
+   "ran": {
+    "rendererKB": 832224,
+    "gpuKB": 185968,
+    "totalKB": 1255484
+   },
+   "done": {
+    "rendererKB": 832892,
+    "gpuKB": 185968,
+    "totalKB": 1256124
+   }
+  },
+  "peak": {
+   "rendererKB": 1071464,
+   "gpuKB": 185968,
+   "totalKB": 1494880
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "fireredpunc-q8w",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "fireredpunc-q8w",
+    "name": "FireRedPunc q8 weight-only (MatMulNBits)",
+    "langs": [
+     "zh",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/fireredpunc-onnx",
+    "files": [
+     "punc.q8w.onnx",
+     "tokenizer.json",
+     "out_dict"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1838892,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1153.454999923706,
+   "firstCall": {
+    "zh": 149.8550000190735,
+    "en": 54.43999981880188
+   },
+   "latency": [
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 51.75500011444092,
+     "median": 52.825000047683716,
+     "p90": 65.0550000667572,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 72.23000001907349,
+     "median": 72.59999990463257,
+     "p90": 73.91000008583069,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 113.25,
+     "median": 114.64499998092651,
+     "p90": 116.34999990463257,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 198.84499979019165,
+     "median": 200.18499994277954,
+     "p90": 202.99500012397766,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 392.20499992370605,
+     "median": 393.7699999809265,
+     "p90": 394.99000000953674,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 43.47500014305115,
+     "median": 44.25999999046326,
+     "p90": 45.894999980926514,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 54.575000047683716,
+     "median": 55.87999987602234,
+     "p90": 56.829999923706055,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 81.17000007629395,
+     "median": 81.49500012397766,
+     "p90": 82.78999996185303,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 135.48499989509583,
+     "median": 136.8399999141693,
+     "p90": 138.53999996185303,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 241.33000016212463,
+     "median": 246.0900001525879,
+     "p90": 249.77500009536743,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 171512981,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "fireredpunc-q8w/webgpu/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=fireredpunc-q8w&ep=webgpu&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106500,
+    "gpuKB": 186180,
+    "totalKB": 529644
+   },
+   "loaded": {
+    "rendererKB": 1128560,
+    "gpuKB": 270608,
+    "totalKB": 1636264
+   },
+   "ran": {
+    "rendererKB": 805488,
+    "gpuKB": 418816,
+    "totalKB": 1461568
+   },
+   "done": {
+    "rendererKB": 805656,
+    "gpuKB": 418816,
+    "totalKB": 1461724
+   }
+  },
+  "peak": {
+   "rendererKB": 1272624,
+   "gpuKB": 419236,
+   "totalKB": 1892660
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "fireredpunc-q8w",
+   "ep": "webgpu",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "fireredpunc-q8w",
+    "name": "FireRedPunc q8 weight-only (MatMulNBits)",
+    "langs": [
+     "zh",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/fireredpunc-onnx",
+    "files": [
+     "punc.q8w.onnx",
+     "tokenizer.json",
+     "out_dict"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1838896,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1497.0149998664856,
+   "firstCall": {
+    "zh": 206.3600001335144,
+    "en": 20.759999990463257
+   },
+   "latency": [
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 11.319999933242798,
+     "median": 22.075000047683716,
+     "p90": 62.58500003814697,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 9.950000047683716,
+     "median": 10.880000114440918,
+     "p90": 12.754999876022339,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 10.865000009536743,
+     "median": 13.125,
+     "p90": 17.794999837875366,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 15.240000009536743,
+     "median": 16.44000005722046,
+     "p90": 17.08999991416931,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 24.509999990463257,
+     "median": 26.944999933242798,
+     "p90": 28.295000076293945,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 11.21500015258789,
+     "median": 12.224999904632568,
+     "p90": 20.195000171661377,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 10.694999933242798,
+     "median": 12.264999866485596,
+     "p90": 20.40499997138977,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 11.375,
+     "median": 13.255000114440918,
+     "p90": 14.52999997138977,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 13.430000066757202,
+     "median": 14.980000019073486,
+     "p90": 17.43499994277954,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 17.805000066757202,
+     "median": 19.299999952316284,
+     "p90": 20.795000076293945,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 8551563,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": [
+   "[page] \u001b[0;93m2026-09-14 15:55:39.276455 [W:onnxruntime:, session_state.cc:1367 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+   "[page] \u001b[0;93m2026-09-14 15:55:39.280385 [W:onnxruntime:, session_state.cc:1369 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
+  ]
+ },
+ "koen-punct/wasm/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=koen-punct&ep=wasm&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106632,
+    "gpuKB": 186140,
+    "totalKB": 529724
+   },
+   "loaded": {
+    "rendererKB": 1605188,
+    "gpuKB": 186140,
+    "totalKB": 2028420
+   },
+   "ran": {
+    "rendererKB": 1530804,
+    "gpuKB": 186216,
+    "totalKB": 1951592
+   },
+   "done": {
+    "rendererKB": 1531084,
+    "gpuKB": 186216,
+    "totalKB": 1951896
+   }
+  },
+  "peak": {
+   "rendererKB": 1691568,
+   "gpuKB": 186216,
+   "totalKB": 2114816
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "koen-punct",
+   "ep": "wasm",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "koen-punct",
+    "name": "koen_punctuation gte-multilingual ko+en (int8)",
+    "langs": [
+     "ko",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/ko/koen_punctuation",
+    "files": [
+     "model.int8.onnx",
+     "tokenizer.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1828392,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 2181.574999809265,
+   "firstCall": {
+    "ko": 268.36500000953674,
+    "en": 119.77999997138977
+   },
+   "latency": [
+    {
+     "lang": "ko",
+     "chars": 60,
+     "min": 126.80499982833862,
+     "median": 126.9850001335144,
+     "p90": 128.00500011444092,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 120,
+     "min": 218.1949999332428,
+     "median": 219.84500002861023,
+     "p90": 220.49000000953674,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 240,
+     "min": 422.29500007629395,
+     "median": 425.63499999046326,
+     "p90": 426.2849998474121,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 480,
+     "min": 838.289999961853,
+     "median": 841.0099999904633,
+     "p90": 846.5999999046326,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 960,
+     "min": 1766.625,
+     "median": 1776.5449998378754,
+     "p90": 1786.5199999809265,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 72.17499995231628,
+     "median": 72.48499989509583,
+     "p90": 72.76500010490417,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 118.81500005722046,
+     "median": 119.76999998092651,
+     "p90": 120.07999992370605,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 241.17499995231628,
+     "median": 243.17000007629395,
+     "p90": 243.8550000190735,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 434.2350001335144,
+     "median": 435.87999987602234,
+     "p90": 437.6100001335144,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 842.125,
+     "median": 846.25,
+     "p90": 849.8949999809265,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 409479420,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "koen-punct/wasm/t4": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=koen-punct&ep=wasm&threads=4&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106372,
+    "gpuKB": 186296,
+    "totalKB": 529616
+   },
+   "loaded": {
+    "rendererKB": 1608576,
+    "gpuKB": 186296,
+    "totalKB": 2032436
+   },
+   "ran": {
+    "rendererKB": 1541600,
+    "gpuKB": 186372,
+    "totalKB": 1965028
+   },
+   "done": {
+    "rendererKB": 1541640,
+    "gpuKB": 186372,
+    "totalKB": 1965040
+   }
+  },
+  "peak": {
+   "rendererKB": 1719736,
+   "gpuKB": 186372,
+   "totalKB": 2143616
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "koen-punct",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "koen-punct",
+    "name": "koen_punctuation gte-multilingual ko+en (int8)",
+    "langs": [
+     "ko",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/ko/koen_punctuation",
+    "files": [
+     "model.int8.onnx",
+     "tokenizer.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1828416,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1908.1650002002716,
+   "firstCall": {
+    "ko": 152.55999994277954,
+    "en": 36.0550000667572
+   },
+   "latency": [
+    {
+     "lang": "ko",
+     "chars": 60,
+     "min": 38.28500008583069,
+     "median": 38.59500002861023,
+     "p90": 38.75999999046326,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 120,
+     "min": 64.46999979019165,
+     "median": 64.75999999046326,
+     "p90": 80.7900002002716,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 240,
+     "min": 122.34500002861023,
+     "median": 122.61500000953674,
+     "p90": 123.08500003814697,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 480,
+     "min": 236.10999989509583,
+     "median": 236.5550000667572,
+     "p90": 237.375,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 960,
+     "min": 487.2349998950958,
+     "median": 489.52499985694885,
+     "p90": 494.44000005722046,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 22.25,
+     "median": 22.31000018119812,
+     "p90": 22.414999961853027,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 35.63499999046326,
+     "median": 35.75499987602234,
+     "p90": 36.0550000667572,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 71.3600001335144,
+     "median": 71.53500008583069,
+     "p90": 71.8199999332428,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 123.47000002861023,
+     "median": 123.62999987602234,
+     "p90": 124.07000017166138,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 235.92999982833862,
+     "median": 236.3949999809265,
+     "p90": 238.38000011444092,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 409275324,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "koen-punct/webgpu/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=koen-punct&ep=webgpu&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106492,
+    "gpuKB": 186036,
+    "totalKB": 529484
+   },
+   "loaded": {
+    "rendererKB": 1624248,
+    "gpuKB": 210472,
+    "totalKB": 2071840
+   },
+   "ran": {
+    "rendererKB": 1150084,
+    "gpuKB": 335240,
+    "totalKB": 1720208
+   },
+   "done": {
+    "rendererKB": 1151140,
+    "gpuKB": 335392,
+    "totalKB": 1721444
+   }
+  },
+  "peak": {
+   "rendererKB": 1773064,
+   "gpuKB": 344424,
+   "totalKB": 2278428
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "koen-punct",
+   "ep": "webgpu",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "koen-punct",
+    "name": "koen_punctuation gte-multilingual ko+en (int8)",
+    "langs": [
+     "ko",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/ko/koen_punctuation",
+    "files": [
+     "model.int8.onnx",
+     "tokenizer.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1828396,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 2278.8349997997284,
+   "firstCall": {
+    "ko": 652.1449999809265,
+    "en": 302.5499999523163
+   },
+   "latency": [
+    {
+     "lang": "ko",
+     "chars": 60,
+     "min": 292.82999992370605,
+     "median": 315.2000000476837,
+     "p90": 336.49000000953674,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 120,
+     "min": 387.47500014305115,
+     "median": 404.47499990463257,
+     "p90": 410.99000000953674,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 240,
+     "min": 586.7000000476837,
+     "median": 599.460000038147,
+     "p90": 622.420000076294,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 480,
+     "min": 1005.7249999046326,
+     "median": 1053.1200001239777,
+     "p90": 1105.6000001430511,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 960,
+     "min": 1834.3700001239777,
+     "median": 1859.2599999904633,
+     "p90": 1898.9350001811981,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 231.25,
+     "median": 363.09500002861023,
+     "p90": 418.97000002861023,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 283.7699999809265,
+     "median": 304.9249999523163,
+     "p90": 310.11500000953674,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 402.52999997138977,
+     "median": 422.33000016212463,
+     "p90": 433.7550001144409,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 620.8800001144409,
+     "median": 631.5700001716614,
+     "p90": 634.3949999809265,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 999.6150000095367,
+     "median": 1015.454999923706,
+     "p90": 1031.8650000095367,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 90241686,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": [
+   "[page] \u001b[0;93m2026-09-14 15:57:06.865293 [W:onnxruntime:, session_state.cc:1367 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+   "[page] \u001b[0;93m2026-09-14 15:57:06.871039 [W:onnxruntime:, session_state.cc:1369 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
+  ]
+ },
+ "pcs47/wasm/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=pcs47&ep=wasm&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106500,
+    "gpuKB": 185860,
+    "totalKB": 529228
+   },
+   "loaded": {
+    "rendererKB": 1474360,
+    "gpuKB": 185860,
+    "totalKB": 1897220
+   },
+   "ran": {
+    "rendererKB": 1440516,
+    "gpuKB": 185328,
+    "totalKB": 1860584
+   },
+   "done": {
+    "rendererKB": 1442020,
+    "gpuKB": 185328,
+    "totalKB": 1862132
+   }
+  },
+  "peak": {
+   "rendererKB": 1670940,
+   "gpuKB": 185936,
+   "totalKB": 2093828
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "pcs47",
+   "ep": "wasm",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "pcs47",
+    "name": "PCS-47 xlm-roberta punct+truecase (int8)",
+    "langs": [
+     "ja",
+     "zh",
+     "en",
+     "ko"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/pcs47",
+    "files": [
+     "model.int8.onnx",
+     "tokenizer.json",
+     "config.yaml"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1830472,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1964.3300001621246,
+   "firstCall": {
+    "ja": 173.7300000190735,
+    "zh": 112.25499987602234,
+    "en": 90.53500008583069,
+    "ko": 166.20000004768372
+   },
+   "latency": [
+    {
+     "lang": "ja",
+     "chars": 30,
+     "min": 74.39000010490417,
+     "median": 74.53500008583069,
+     "p90": 77.37999987602234,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 60,
+     "min": 108.29999995231628,
+     "median": 109.10000014305115,
+     "p90": 109.18499994277954,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 120,
+     "min": 179.60999989509583,
+     "median": 180.09500002861023,
+     "p90": 181.02999997138977,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 240,
+     "min": 377.3250000476837,
+     "median": 378.41999983787537,
+     "p90": 379.95500016212463,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 480,
+     "min": 702.4850001335144,
+     "median": 707.1200001239777,
+     "p90": 709.3400001525879,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 70.80999994277954,
+     "median": 71.21499991416931,
+     "p90": 71.47000002861023,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 110.79500007629395,
+     "median": 111.37999987602234,
+     "p90": 111.75500011444092,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 198.6599998474121,
+     "median": 199.30999994277954,
+     "p90": 199.9150002002716,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 417.6950001716614,
+     "median": 419.07999992370605,
+     "p90": 420.125,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 883.5199999809265,
+     "median": 887.4049999713898,
+     "p90": 891.1800000667572,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 54.24000000953674,
+     "median": 54.44000005722046,
+     "p90": 55.4449999332428,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 89.83500003814697,
+     "median": 90.28500008583069,
+     "p90": 90.66000008583069,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 182.83500003814697,
+     "median": 183.4449999332428,
+     "p90": 184.25999999046326,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 330.16999983787537,
+     "median": 331.12999987602234,
+     "p90": 332.664999961853,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 643.3249998092651,
+     "median": 648.4249999523163,
+     "p90": 651.1349999904633,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 60,
+     "min": 95.29999995231628,
+     "median": 95.57999992370605,
+     "p90": 96.28500008583069,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 120,
+     "min": 165.5199999809265,
+     "median": 166.04499983787537,
+     "p90": 167.24000000953674,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 240,
+     "min": 322.15000009536743,
+     "median": 323.664999961853,
+     "p90": 324.6199998855591,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 480,
+     "min": 633.4949998855591,
+     "median": 635.3150000572205,
+     "p90": 637.9349999427795,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 960,
+     "min": 1344.6499998569489,
+     "median": 1353.2349998950958,
+     "p90": 1357.4000000953674,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 367384551,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "pcs47/wasm/t4": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=pcs47&ep=wasm&threads=4&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106464,
+    "gpuKB": 185920,
+    "totalKB": 529344
+   },
+   "loaded": {
+    "rendererKB": 1479100,
+    "gpuKB": 185920,
+    "totalKB": 1902640
+   },
+   "ran": {
+    "rendererKB": 1454668,
+    "gpuKB": 185996,
+    "totalKB": 1878336
+   },
+   "done": {
+    "rendererKB": 1454068,
+    "gpuKB": 185996,
+    "totalKB": 1877756
+   }
+  },
+  "peak": {
+   "rendererKB": 1670296,
+   "gpuKB": 185996,
+   "totalKB": 2093824
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "pcs47",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "pcs47",
+    "name": "PCS-47 xlm-roberta punct+truecase (int8)",
+    "langs": [
+     "ja",
+     "zh",
+     "en",
+     "ko"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/pcs47",
+    "files": [
+     "model.int8.onnx",
+     "tokenizer.json",
+     "config.yaml"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1830648,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 2217.609999895096,
+   "firstCall": {
+    "ja": 133.43999981880188,
+    "zh": 33.02999997138977,
+    "en": 27.15499997138977,
+    "ko": 48.9449999332428
+   },
+   "latency": [
+    {
+     "lang": "ja",
+     "chars": 30,
+     "min": 22.960000038146973,
+     "median": 23.335000038146973,
+     "p90": 24.115000009536743,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 60,
+     "min": 32.34999990463257,
+     "median": 32.49000000953674,
+     "p90": 37.24000000953674,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 120,
+     "min": 52,
+     "median": 52.375,
+     "p90": 55.674999952316284,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 240,
+     "min": 105.47500014305115,
+     "median": 106.63499999046326,
+     "p90": 107.00500011444092,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 480,
+     "min": 195.54500007629395,
+     "median": 196.41499996185303,
+     "p90": 199.125,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 21.5,
+     "median": 21.569999933242798,
+     "p90": 21.679999828338623,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 32.5550000667572,
+     "median": 32.644999980926514,
+     "p90": 33.669999837875366,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 56.959999799728394,
+     "median": 57.15000009536743,
+     "p90": 58.63000011444092,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 116.31499981880188,
+     "median": 116.65999984741211,
+     "p90": 117.10499978065491,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 246.8199999332428,
+     "median": 248.14000010490417,
+     "p90": 249.59999990463257,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 16.735000133514404,
+     "median": 16.77999997138977,
+     "p90": 17.90000009536743,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 26.77999997138977,
+     "median": 26.985000133514404,
+     "p90": 27.240000009536743,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 53.24500012397766,
+     "median": 53.519999980926514,
+     "p90": 53.6949999332428,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 93.79499983787537,
+     "median": 93.94500017166138,
+     "p90": 94.1949999332428,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 179.74500012397766,
+     "median": 180.5899999141693,
+     "p90": 181.0550000667572,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 60,
+     "min": 28.539999961853027,
+     "median": 28.77999997138977,
+     "p90": 29.08999991416931,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 120,
+     "min": 48.204999923706055,
+     "median": 48.420000076293945,
+     "p90": 48.875,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 240,
+     "min": 91.05999994277954,
+     "median": 91.27499985694885,
+     "p90": 91.47000002861023,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 480,
+     "min": 176.28999996185303,
+     "median": 176.6449999809265,
+     "p90": 176.90000009536743,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 960,
+     "min": 371.460000038147,
+     "median": 374.33000016212463,
+     "p90": 376.06500005722046,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 367310115,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "pcs47/webgpu/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=pcs47&ep=webgpu&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 106448,
+    "gpuKB": 185864,
+    "totalKB": 529232
+   },
+   "loaded": {
+    "rendererKB": 1511060,
+    "gpuKB": 210416,
+    "totalKB": 1958548
+   },
+   "ran": {
+    "rendererKB": 1082800,
+    "gpuKB": 325960,
+    "totalKB": 1644160
+   },
+   "done": {
+    "rendererKB": 1084424,
+    "gpuKB": 326028,
+    "totalKB": 1645904
+   }
+  },
+  "peak": {
+   "rendererKB": 1630548,
+   "gpuKB": 332608,
+   "totalKB": 2127272
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "pcs47",
+   "ep": "webgpu",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "pcs47",
+    "name": "PCS-47 xlm-roberta punct+truecase (int8)",
+    "langs": [
+     "ja",
+     "zh",
+     "en",
+     "ko"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/pcs47",
+    "files": [
+     "model.int8.onnx",
+     "tokenizer.json",
+     "config.yaml"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1830652,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 2135.4550001621246,
+   "firstCall": {
+    "ja": 796.1500000953674,
+    "zh": 346.5699999332428,
+    "en": 304.085000038147,
+    "ko": 543.6150000095367
+   },
+   "latency": [
+    {
+     "lang": "ja",
+     "chars": 30,
+     "min": 250.10000014305115,
+     "median": 422.34500002861023,
+     "p90": 468.74000000953674,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 60,
+     "min": 290.80999994277954,
+     "median": 414.7999999523163,
+     "p90": 581.6399998664856,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 120,
+     "min": 369.8600001335144,
+     "median": 397.4649999141693,
+     "p90": 432.0149998664856,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 240,
+     "min": 542.2200000286102,
+     "median": 583.289999961853,
+     "p90": 674.7550001144409,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 480,
+     "min": 883.8050000667572,
+     "median": 921.9700000286102,
+     "p90": 942.9400000572205,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 265.94999980926514,
+     "median": 334.7650001049042,
+     "p90": 447.8399999141693,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 319.11500000953674,
+     "median": 355.44000005722046,
+     "p90": 531.2050001621246,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 428.8949999809265,
+     "median": 459.18499994277954,
+     "p90": 489,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 620.6100001335144,
+     "median": 655.3849999904633,
+     "p90": 683.3200001716614,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 1243.0150001049042,
+     "median": 1326.1100001335144,
+     "p90": 1437.9649999141693,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 224.79500007629395,
+     "median": 331.7850000858307,
+     "p90": 393.0149998664856,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 260.164999961853,
+     "median": 326.0199999809265,
+     "p90": 347.9100000858307,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 354.59999990463257,
+     "median": 397.31500005722046,
+     "p90": 470.4649999141693,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 504.3600001335144,
+     "median": 558.4900000095367,
+     "p90": 578.295000076294,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 828.6300001144409,
+     "median": 894.2149999141693,
+     "p90": 915.9449999332428,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 60,
+     "min": 257.7999999523163,
+     "median": 348.37999987602234,
+     "p90": 504.875,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 120,
+     "min": 336.61500000953674,
+     "median": 392.52999997138977,
+     "p90": 443.2349998950958,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 240,
+     "min": 526.2450001239777,
+     "median": 561.9099998474121,
+     "p90": 590.3500001430511,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 480,
+     "min": 815.7300000190735,
+     "median": 852.6550002098083,
+     "p90": 874.8949999809265,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 960,
+     "min": 1759.375,
+     "median": 1799.6949999332428,
+     "p90": 1820.920000076294,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 93354141,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": [
+   "[page] \u001b[0;93m2026-09-14 16:00:16.735284 [W:onnxruntime:, session_state.cc:1367 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+   "[page] \u001b[0;93m2026-09-14 16:00:16.739499 [W:onnxruntime:, session_state.cc:1369 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
+  ]
+ },
+ "sat-3l-sm/wasm/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=sat-3l-sm&ep=wasm&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 108000,
+    "gpuKB": 185992,
+    "totalKB": 530888
+   },
+   "loaded": {
+    "rendererKB": 2072000,
+    "gpuKB": 185992,
+    "totalKB": 2495048
+   },
+   "ran": {
+    "rendererKB": 2042944,
+    "gpuKB": 186064,
+    "totalKB": 2465580
+   },
+   "done": {
+    "rendererKB": 2042092,
+    "gpuKB": 186064,
+    "totalKB": 2464748
+   }
+  },
+  "peak": {
+   "rendererKB": 2176064,
+   "gpuKB": 186064,
+   "totalKB": 2599092
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "sat-3l-sm",
+   "ep": "wasm",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "sat-3l-sm",
+    "name": "SaT sat-3l-sm (wtpsplit, XLM-R 3 layers, boundaries only)",
+    "langs": [
+     "ja",
+     "zh",
+     "en",
+     "ko"
+    ],
+    "output": "boundary",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sat/sat-3l-sm",
+    "files": [
+     "model.onnx",
+     "tokenizer.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1833660,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 2425.4100000858307,
+   "firstCall": {
+    "ja": 65.10500001907349,
+    "zh": 28.790000200271606,
+    "en": 23.429999828338623,
+    "ko": 43.86500000953674
+   },
+   "latency": [
+    {
+     "lang": "ja",
+     "chars": 30,
+     "min": 19.149999856948853,
+     "median": 19.734999895095825,
+     "p90": 30.829999923706055,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 60,
+     "min": 27.884999990463257,
+     "median": 27.97000002861023,
+     "p90": 28.22499990463257,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 120,
+     "min": 46.05499982833862,
+     "median": 46.4300000667572,
+     "p90": 46.62999987602234,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 240,
+     "min": 97.0699999332428,
+     "median": 97.64499998092651,
+     "p90": 97.85999989509583,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 480,
+     "min": 185.5199999809265,
+     "median": 186.28999996185303,
+     "p90": 186.65000009536743,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 18.25,
+     "median": 18.375,
+     "p90": 18.605000019073486,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 28.975000143051147,
+     "median": 29.18499994277954,
+     "p90": 29.384999990463257,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 51.47000002861023,
+     "median": 51.625,
+     "p90": 52.72000002861023,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 107.78999996185303,
+     "median": 107.96000003814697,
+     "p90": 108.32499980926514,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 218.2699999809265,
+     "median": 219.5350000858307,
+     "p90": 221.25,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 13.880000114440918,
+     "median": 13.980000019073486,
+     "p90": 14.09500002861023,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 23.329999923706055,
+     "median": 23.5,
+     "p90": 23.709999799728394,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 47.42999982833862,
+     "median": 47.61500000953674,
+     "p90": 47.94000005722046,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 86.02999997138977,
+     "median": 86.25499987602234,
+     "p90": 86.83500003814697,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 168.52999997138977,
+     "median": 170.7900002002716,
+     "p90": 171.7099997997284,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 60,
+     "min": 25.09000015258789,
+     "median": 25.295000076293945,
+     "p90": 25.489999771118164,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 120,
+     "min": 43.674999952316284,
+     "median": 43.82499980926514,
+     "p90": 44.28500008583069,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 240,
+     "min": 85.09000015258789,
+     "median": 85.30999994277954,
+     "p90": 85.44500017166138,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 480,
+     "min": 170.42499995231628,
+     "median": 170.91499996185303,
+     "p90": 171.8050000667572,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 960,
+     "min": 371.3599998950958,
+     "median": 372.4100000858307,
+     "p90": 373.77499985694885,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 531354512,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "sat-3l-sm/wasm/t4": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=sat-3l-sm&ep=wasm&threads=4&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 107992,
+    "gpuKB": 186008,
+    "totalKB": 530888
+   },
+   "loaded": {
+    "rendererKB": 2095160,
+    "gpuKB": 186008,
+    "totalKB": 2518752
+   },
+   "ran": {
+    "rendererKB": 2060436,
+    "gpuKB": 186016,
+    "totalKB": 2484544
+   },
+   "done": {
+    "rendererKB": 2059584,
+    "gpuKB": 186016,
+    "totalKB": 2483704
+   }
+  },
+  "peak": {
+   "rendererKB": 2148588,
+   "gpuKB": 186020,
+   "totalKB": 2572188
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "sat-3l-sm",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "sat-3l-sm",
+    "name": "SaT sat-3l-sm (wtpsplit, XLM-R 3 layers, boundaries only)",
+    "langs": [
+     "ja",
+     "zh",
+     "en",
+     "ko"
+    ],
+    "output": "boundary",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sat/sat-3l-sm",
+    "files": [
+     "model.onnx",
+     "tokenizer.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1833660,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 2254.8349997997284,
+   "firstCall": {
+    "ja": 59.28000020980835,
+    "zh": 10.105000019073486,
+    "en": 8.75,
+    "ko": 14.065000057220459
+   },
+   "latency": [
+    {
+     "lang": "ja",
+     "chars": 30,
+     "min": 14.139999866485596,
+     "median": 14.944999933242798,
+     "p90": 18.59999990463257,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 60,
+     "min": 21.085000038146973,
+     "median": 21.30999994277954,
+     "p90": 21.694999933242798,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 120,
+     "min": 15.180000066757202,
+     "median": 35.264999866485596,
+     "p90": 35.5699999332428,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 240,
+     "min": 29.59000015258789,
+     "median": 29.97000002861023,
+     "p90": 30.610000133514404,
+     "n": 10
+    },
+    {
+     "lang": "ja",
+     "chars": 480,
+     "min": 53.15999984741211,
+     "median": 53.5699999332428,
+     "p90": 56.63000011444092,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 30,
+     "min": 6.5899999141693115,
+     "median": 6.880000114440918,
+     "p90": 7.090000152587891,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 60,
+     "min": 9.90499997138977,
+     "median": 10.005000114440918,
+     "p90": 10.214999914169312,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 120,
+     "min": 16.78500008583069,
+     "median": 17.015000104904175,
+     "p90": 17.179999828338623,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 240,
+     "min": 33.075000047683716,
+     "median": 79.1949999332428,
+     "p90": 82.06500005722046,
+     "n": 10
+    },
+    {
+     "lang": "zh",
+     "chars": 480,
+     "min": 62.25,
+     "median": 62.890000104904175,
+     "p90": 63.35000014305115,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 60,
+     "min": 5.384999990463257,
+     "median": 5.440000057220459,
+     "p90": 5.580000162124634,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 120,
+     "min": 8.399999856948853,
+     "median": 8.495000123977661,
+     "p90": 8.644999980926514,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 240,
+     "min": 15.540000200271606,
+     "median": 15.700000047683716,
+     "p90": 16.15499997138977,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 480,
+     "min": 26.50499987602234,
+     "median": 26.680000066757202,
+     "p90": 27.049999952316284,
+     "n": 10
+    },
+    {
+     "lang": "en",
+     "chars": 960,
+     "min": 48.0699999332428,
+     "median": 48.13000011444092,
+     "p90": 48.8050000667572,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 60,
+     "min": 8.46500015258789,
+     "median": 8.505000114440918,
+     "p90": 8.855000019073486,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 120,
+     "min": 13.825000047683716,
+     "median": 13.919999837875366,
+     "p90": 13.960000038146973,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 240,
+     "min": 25.179999828338623,
+     "median": 25.34500002861023,
+     "p90": 25.43500018119812,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 480,
+     "min": 47.205000162124634,
+     "median": 47.40000009536743,
+     "p90": 47.90499997138977,
+     "n": 10
+    },
+    {
+     "lang": "ko",
+     "chars": 960,
+     "min": 102.77499985694885,
+     "median": 103.03500008583069,
+     "p90": 104.41499996185303,
+     "n": 10
+    }
+   ],
+   "memAfter": {
+    "bytes": 531166488,
+    "source": "usedJSHeapSize"
+   }
+  },
+  "pageErrors": []
+ },
+ "sat-3l-sm/webgpu/t1": {
+  "url": "http://127.0.0.1:8787/www/index.html?model=sat-3l-sm&ep=webgpu&threads=1&reps=10",
+  "electron": "40.8.5",
+  "chrome": "144.0.7559.236",
+  "timedOut": false,
+  "marks": {
+   "ready": {
+    "rendererKB": 108000,
+    "gpuKB": 186124,
+    "totalKB": 531068
+   },
+   "loaded": {
+    "rendererKB": 2907876,
+    "gpuKB": 219352,
+    "totalKB": 3364320
+   },
+   "done": {
+    "rendererKB": 2914764,
+    "gpuKB": 624484,
+    "totalKB": 3776368
+   }
+  },
+  "peak": {
+   "rendererKB": 2892668,
+   "gpuKB": 219332,
+   "totalKB": 3349084
+  },
+  "gpu": [
+   {
+    "vendorId": 4318,
+    "deviceId": 11794,
+    "active": true
+   }
+  ],
+  "page": {
+   "id": "sat-3l-sm",
+   "ep": "webgpu",
+   "threads": 1,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "sat-3l-sm",
+    "name": "SaT sat-3l-sm (wtpsplit, XLM-R 3 layers, boundaries only)",
+    "langs": [
+     "ja",
+     "zh",
+     "en",
+     "ko"
+    ],
+    "output": "boundary",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sat/sat-3l-sm",
+    "files": [
+     "model.onnx",
+     "tokenizer.json"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1833648,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 2617.180000066757,
+   "firstCall": {},
+   "latency": [],
+   "error": "Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: Non-zero status code returned while running Gather node. Name:'/roberta/embeddings/position_embeddings/Gather' Status Message: shader_helper.cc:401 GenerateSourceCode Program Gather requires f16 but the device does not support it.\n    at E (http://127.0.0.1:8787/ort/ort.webgpu.min.mjs:6:26271)\n    at Re (http://127.0.0.1:8787/ort/ort.webgpu.min.mjs:7:28894)\n    at async Ze.run (http://127.0.0.1:8787/ort/ort.webgpu.min.mjs:7:36433)\n    at async t.run (http://127.0.0.1:8787/ort/ort.webgpu.min.mjs:6:18275)\n    at async tokenLogits (http://127.0.0.1:8787/models/sat-3l-sm.mjs:243:19)\n    at async predict (http://127.0.0.1:8787/models/sat-3l-sm.mjs:271:20)\n    at async split (http://127.0.0.1:8787/models/sat-3l-sm.mjs:283:30)\n    at async Object.punctuate (http://127.0.0.1:8787/models/sat-3l-sm.mjs:292:27)\n    at async http://127.0.0.1:8787/www/bench.mjs:82:5"
+  },
+  "pageErrors": [
+   "[page] \u001b[0;93m2026-09-14 16:03:44.491334 [W:onnxruntime:, session_state.cc:1367 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+   "[page] \u001b[0;93m2026-09-14 16:03:44.492854 [W:onnxruntime:, session_state.cc:1369 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m",
+   "[page] \u001b[1;31m2026-09-14 16:03:44.962139 [E:onnxruntime:, sequential_executor.cc:614 ExecuteKernel] Non-zero status code returned while running Gather node. Name:'/roberta/embeddings/position_embeddings/Gather' Status Message: shader_helper.cc:401 GenerateSourceCode Program Gather requires f16 but the device does not support it.\u001b[m"
+  ]
+ }
+}

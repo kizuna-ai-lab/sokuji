@@ -1,0 +1,126 @@
+{
+ "reference": {
+  "sherpaOnnx": "1.13.8",
+  "encoder": "simple-sentencepiece v0.7 C++ (parity/edge-punct-en-ssentencepiece.cc)"
+ },
+ "tokens": {
+  "words": 104523,
+  "match": 104523,
+  "diffs": [],
+  "lines": {
+   "words": 104524,
+   "js": 104524,
+   "ref": 104524
+  },
+  "rate": 1
+ },
+ "upstream": {
+  "n": 97,
+  "match": 96,
+  "explained": 1,
+  "unexplained": 0,
+  "diffs": [
+   {
+    "key": "concat/stripped/0+23",
+    "input": "Hi everyone let's go over the plan for next quarter First the mobile subtitle feature which we expect to ship in October Then the pricing page redesign Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at 10 in the morning Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at ten in the morning Okay let's get started First can everyone see my screen Great so here's the agenda for today We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years Do you have any questions so far If not I'll move on to the next slide Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers Um so I think the main issue is uh the latency It takes like two seconds before the translation shows up What's up everyone Welcome back to the stream Today we're finally going to beat the final boss Oh no he's right behind me Run run run Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water and it releases oxygen Without it life on Earth as we know it wouldn't exist Yeah that works for me Thank you so much Thanks for calling customer support My name is Alex How can I help you today My manager said the report is due on Friday Honestly I don't think we can make it Please bring your passport your boarding pass and a copy of your hotel booking We'll meet at the airport at seven I tried that new ramen place downtown yesterday The line was insane but the food was just okay We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari Who made that decision Was it discussed in the meeting Or did it come from leadership The app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything It's supposed to rain tomorrow You might want to bring an umbrella I'm not sure Let me check and get back to you by the end of the day",
+    "ref": "Hi everyone let's go, over the plan for next quarter First the, mobile subtitle feature which we expect to ship. IN, October Then the pricing page redesign Good afternoon everyone Let me start with, last week's progress The mobile subtitle feature has finished internal testing Feedback. was, generally positive but we Saw Delays on weak network connections AND we plan to fix that. Next. Week Also the. New. Pricing page design has gone? To? The design team for review and. We expect to finalize it by The. END. Of. The month Finally A reminder that the quarterly review. meeting Has moved to Friday at 10 IN the morning Good afternoon everyone. LET me start with last week's progress THE mobile subtitle feature has finished internal testing Feedback. WAS. Generally positive BUT we. Saw delays on weak network connections and we. Plan, To fix that next, week Also the new pricing page Design. HAS, gone to the. Design Team. for. review. and we expect to Finalize it By. The End Of The month Finally a reminder. That the quarterly review, meeting has moved to Friday at ten in, the morning Okay let's get started First can. EVERYONE, see my screen Great so here's the agenda for today We shipped the, new release on Tuesday So far we've seen about 3.5% fewer crashes. than, last week Dr Smith Will Join us at 2 pm TO talk ABOUT the results She Works at. A hospital in the US and Has Been. RUNNING This Study For years Do you have. Any questions so far, IF, not I'll. move on to the next slide. Revenue grew 12% year over year to $4.2 Million Most of that came from our enterprise Customers UM. So I think the main issue is, UH, the latency IT takes like two seconds before the translation shows up What's up. Everyone Welcome back to the stream. Today. We're finally going to beat the final Boss OH. No, he's right behind me. Run Run, Run, Today. We're going to talk about photosynthesis. Photosynthesis is the process plants use to turn sunlight into energy. IT happens mostly in the leaves THE plant takes in carbon dioxide and water, and it releases oxygen. Without It life on EARTH as we know it wouldn't exist. YEAH, that works for me, Thank, you so much Thanks for calling customer support My name is Alex HOW. Can I help you today? MY Manager said the report is due on Friday, Honestly, I. Don't think we can make it Please. Bring your passport, your boarding pass and a copy of your hotel booking. We'll meet at the airport at seven. I tried that new Ramen Place. Downtown yesterday. The Line was insane. But the food was just, okay. We're using the OPENAI Realtime API with WEBRTC The. Next step is to test it on CHROME and SAFARI Who made that decision Was it discussed in the meeting OR. Did it come from Leadership THE. App translates speech in real time so you can use it in meetings with overseas clients. and it also shows subtitles. so you don't have to worry about missing anything. It's supposed to rain tomorrow YOU might want to bring an umbrella. I'm not sure. Let me. check and get back to you by the end of the day.",
+    "js": "Hi everyone let's go, over the plan for next quarter First the, mobile subtitle feature which we expect to ship. IN, October Then the pricing page redesign Good afternoon everyone Let me start with, last week's progress The mobile subtitle feature has finished internal testing Feedback. was, generally positive but we Saw Delays on weak network connections AND we plan to fix that. Next. Week Also the. New. Pricing page design has gone? To? The design team for review and. We expect to finalize it by The. END. Of. The month Finally A reminder that the quarterly review. meeting Has moved to Friday at 10 IN the morning Good afternoon everyone. LET me start with last week's progress THE mobile subtitle feature has finished internal testing Feedback. WAS. Generally positive BUT we. Saw delays on weak network connections and we. Plan, To fix that next, week Also the new pricing page Design. HAS, gone to the. Design Team. for. review. and we expect to Finalize it By. The End Of The month Finally a reminder. That the quarterly review, meeting has moved to Friday at ten in, the morning Okay let's get started First can. EVERYONE, see my screen Great so here's the agenda for today We shipped the, new release on Tuesday So far we've seen about 3.5% fewer crashes. than, last week Dr Smith Will Join us at 2 pm TO talk ABOUT the results She Works at. A hospital in the US and Has Been. RUNNING This Study For years Do you have. Any questions so far, IF, not I'll. move on to the next slide. Revenue grew 12% year over year to $4.2 Million Most of that came from our enterprise Customers UM. So I think the main issue is, UH, the latency IT takes like two seconds before the translation shows up What's up. Everyone Welcome back to the stream. Today. We're finally going to beat the final Boss OH. No, he's right behind me. Run Run, Run, Today. We're going to talk about photosynthesis. Photosynthesis is the process plants use to turn sunlight into energy. IT happens mostly in the leaves THE plant takes in carbon dioxide and water, and it releases oxygen. Without It life on EARTH as we know it wouldn't exist. YEAH, that works for me, Thank, you so much Thanks for calling customer support My name is Alex HOW. Can I help you today? MY Manager said the report is due on Friday, Honestly, I. Don't think we can make it Please. Bring your passport, your boarding pass and a copy of your hotel booking. We'll meet at the airport at seven. I tried that new Ramen Place. Downtown yesterday. The Line was insane. But the food was just okay. We're using the OPENAI Realtime API with WEBRTC The. Next step is to test it on CHROME and SAFARI Who made that decision Was it discussed in the meeting OR. Did it come from Leadership THE. App translates speech in real time so you can use it in meetings with overseas clients. and it also shows subtitles. so you don't have to worry about missing anything. It's supposed to rain tomorrow YOU might want to bring an umbrella. I'm not sure. Let me. check and get back to you by the end of the day.",
+    "explanation": "ORT-web vs sherpa-onnx near-tie at 1 word(s) (margin < 1 logit), same batch ids",
+    "flips": [
+     {
+      "wordIndex": 458,
+      "word": "just",
+      "ref": "just,",
+      "js": "just",
+      "webCase": [
+       6.1809,
+       -4.7637,
+       0.7996,
+       -5.4797
+      ],
+      "webPunct": [
+       1.8302,
+       1.8123,
+       -0.7155,
+       -4.7802
+      ],
+      "nativeCase": [
+       6.173699855804443,
+       -4.765399932861328,
+       0.8030999898910522,
+       -5.474699974060059
+      ],
+      "nativePunct": [
+       1.8179999589920044,
+       1.8209999799728394,
+       -0.7123000025749207,
+       -4.777699947357178
+      ],
+      "kind": "punct",
+      "refClass": "COMMA",
+      "webClass": "NO_PUNCT",
+      "webMarginOverRefClass": 0.0179,
+      "nativeClass": "COMMA"
+     }
+    ]
+   }
+  ],
+  "rate": 0.9896907216494846,
+  "note": "punctuateUpstream(input) vs sherpa OnlinePunctuation.add_punctuation_with_case(input)"
+ },
+ "module": {
+  "n": 97,
+  "match": 96,
+  "explained": 1,
+  "unexplained": 0,
+  "diffs": [
+   {
+    "key": "edge/long-word-400",
+    "pre": "the word ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ is long",
+    "refOnPre": "The word ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ is long",
+    "expected": "The word ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ is long",
+    "module": "The word ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ is LONG",
+    "explanation": "a word over 198 pieces: upstream packs a longer row and the batch tensor reads shifted ids; the module caps the word at 198 pieces"
+   }
+  ],
+  "skeletonLost": 0,
+  "noReference": [],
+  "rate": 0.9896907216494846,
+  "note": "punctuate(input) vs add_punctuation_with_case(preprocessText(input)), case and marks re-applied to the words as written"
+ },
+ "logits": {
+  "rows": 95,
+  "nativeOrt": "1.30.0",
+  "maxAbsDiff": {
+   "native-all~web-default": 0.05072593688964844,
+   "native-none~web-disabled": 0.05072593688964844,
+   "native-all~native-none": 9.5367431640625e-7,
+   "web-default~web-disabled": 0
+  },
+  "words": 5147,
+  "disagreementsPipOrtVsWeb": [
+   {
+    "key": "concat/stripped/0+23",
+    "kind": "punct",
+    "wordIndex": 458,
+    "word": "just",
+    "webClass": "NO_PUNCT",
+    "nativeClass": "COMMA",
+    "webLogits": [
+     1.8302,
+     1.8123,
+     -0.7155,
+     -4.7802
+    ],
+    "nativeLogits": [
+     1.818,
+     1.821,
+     -0.7123,
+     -4.7777
+    ],
+    "webMargin": 0.0179,
+    "nativeMargin": 0.003
+   }
+  ]
+ }
+}

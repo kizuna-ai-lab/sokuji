@@ -1,0 +1,918 @@
+{
+ "comparisons": [
+  {
+   "label": "JS fp32 vs punctuators fp32",
+   "key": "punct",
+   "same": 248,
+   "n": 248,
+   "eventsAgree": 1887,
+   "eventsUnion": 1887,
+   "diffs": []
+  },
+  {
+   "label": "JS fp32 vs punctuators fp32",
+   "key": "sbd",
+   "same": 248,
+   "n": 248,
+   "eventsAgree": 677,
+   "eventsUnion": 677,
+   "diffs": []
+  },
+  {
+   "label": "JS int8 vs punctuators int8",
+   "key": "punct",
+   "same": 187,
+   "n": 248,
+   "eventsAgree": 1765,
+   "eventsUnion": 2000,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone, let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone, let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone, let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone, let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-ja1-en-openai/stripped",
+     "a": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは、今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。"
+    },
+    {
+     "row": "gl-ja1-en-openai/commas",
+     "a": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは、今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。"
+    }
+   ]
+  },
+  {
+   "label": "JS int8 vs punctuators int8",
+   "key": "sbd",
+   "same": 182,
+   "n": 248,
+   "eventsAgree": 652,
+   "eventsUnion": 758,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone, let me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone, let me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone, let me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone, let me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-ja1-en-openai/stripped",
+     "a": "皆さん、こんにちは。\n今日は来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは、\n今日は、来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。"
+    },
+    {
+     "row": "gl-ja1-en-openai/commas",
+     "a": "皆さん、こんにちは。\n今日は来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは、\n今日は、来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。"
+    }
+   ]
+  },
+  {
+   "label": "JS int8-matmul vs punctuators int8-matmul",
+   "key": "punct",
+   "same": 187,
+   "n": 248,
+   "eventsAgree": 1763,
+   "eventsUnion": 1985,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-zhlong-en-openai-2/stripped",
+     "a": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-zhlong-en-openai-2/commas",
+     "a": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-zhlong-en-openai-2/raw",
+     "a": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-zhlong-ja-openai/stripped",
+     "a": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-zhlong-ja-openai/commas",
+     "a": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-gui-L3383-p1/stripped",
+     "a": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症。这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感。刊登2026刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学。特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者。过去几十年，对抗阿尔茨海默症的思路，主要都是清垃圾，也就是想办法清除脑袋里的类淀粉，蛋白，斑块，或是涛蛋白。纠结。",
+     "b": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症。这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感。刊登2026刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学。特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者。过去几十年，对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块，或是涛蛋白纠结。"
+    }
+   ]
+  },
+  {
+   "label": "JS int8-matmul vs punctuators int8-matmul",
+   "key": "sbd",
+   "same": 183,
+   "n": 248,
+   "eventsAgree": 668,
+   "eventsUnion": 785,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-jalong-zh-openai/stripped",
+     "a": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "b": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、\n料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。"
+    },
+    {
+     "row": "gl-jalong-zh-openai/commas",
+     "a": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "b": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、\n料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。"
+    },
+    {
+     "row": "gl-jalong-zh-openai/raw",
+     "a": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "b": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、\n料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。"
+    },
+    {
+     "row": "gl-zhlong-en-openai-2/stripped",
+     "a": "各位，下午好，先说一下上周的进展。\n移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。\n我们计划在下周修复这个问题。\n另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。\n最后提醒大家，\n季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。\n移动端字幕功能已经完成了内部测试，\n反馈总体不错，但在弱网环境下会出现延迟。\n我们计划在下周修复这个问题。\n另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。\n最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-zhlong-en-openai-2/commas",
+     "a": "各位，下午好，先说一下上周的进展。\n移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。\n我们计划在下周修复这个问题。\n另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。\n最后提醒大家，\n季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。\n移动端字幕功能已经完成了内部测试，\n反馈总体不错，但在弱网环境下会出现延迟。\n我们计划在下周修复这个问题。\n另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。\n最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-zhlong-en-openai-2/raw",
+     "a": "各位，下午好，先说一下上周的进展。\n移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。\n我们计划在下周修复这个问题。\n另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。\n最后提醒大家，\n季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。\n移动端字幕功能已经完成了内部测试，\n反馈总体不错，但在弱网环境下会出现延迟。\n我们计划在下周修复这个问题。\n另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。\n最后提醒大家，季度总结会议改到周五上午十点。"
+    }
+   ]
+  },
+  {
+   "label": "JS int8 vs punctuators int8 (graph opt off)",
+   "key": "punct",
+   "same": 182,
+   "n": 248,
+   "eventsAgree": 1757,
+   "eventsUnion": 2020,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-ja1-en-openai/stripped",
+     "a": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは、今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。"
+    },
+    {
+     "row": "gl-ja1-en-openai/commas",
+     "a": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは、今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。"
+    }
+   ]
+  },
+  {
+   "label": "JS int8 vs punctuators int8 (graph opt off)",
+   "key": "sbd",
+   "same": 179,
+   "n": 248,
+   "eventsAgree": 665,
+   "eventsUnion": 775,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-ja1-en-openai/stripped",
+     "a": "皆さん、こんにちは。\n今日は来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは、\n今日は、来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。"
+    },
+    {
+     "row": "gl-ja1-en-openai/commas",
+     "a": "皆さん、こんにちは。\n今日は来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは、\n今日は、来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。"
+    }
+   ]
+  },
+  {
+   "label": "JS int8 vs JS fp32",
+   "key": "punct",
+   "same": 150,
+   "n": 248,
+   "eventsAgree": 1709,
+   "eventsUnion": 2057,
+   "diffs": [
+    {
+     "row": "gl-en1-ja-openai-alloy/stripped",
+     "a": "Hi everyone, let's go over the plan for next quarter. First the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/commas",
+     "a": "Hi everyone, let's go over the plan for next quarter. First the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/lower",
+     "a": "Hi everyone, let's go over the plan for next quarter. First the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/raw",
+     "a": "Hi everyone, let's go over the plan for next quarter. First the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    }
+   ]
+  },
+  {
+   "label": "JS int8 vs JS fp32",
+   "key": "sbd",
+   "same": 142,
+   "n": 248,
+   "eventsAgree": 617,
+   "eventsUnion": 756,
+   "diffs": [
+    {
+     "row": "gl-en1-ja-openai-alloy/stripped",
+     "a": "Hi everyone, let's go over the plan for next quarter.\nFirst the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/commas",
+     "a": "Hi everyone, let's go over the plan for next quarter.\nFirst the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/lower",
+     "a": "Hi everyone, let's go over the plan for next quarter.\nFirst the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/raw",
+     "a": "Hi everyone, let's go over the plan for next quarter.\nFirst the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    }
+   ]
+  },
+  {
+   "label": "punctuators int8 vs punctuators fp32",
+   "key": "punct",
+   "same": 143,
+   "n": 248,
+   "eventsAgree": 1700,
+   "eventsUnion": 2073,
+   "diffs": [
+    {
+     "row": "gl-en1-ja-openai-alloy/stripped",
+     "a": "Hi everyone, let's go over the plan for next quarter. First the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/commas",
+     "a": "Hi everyone, let's go over the plan for next quarter. First the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/lower",
+     "a": "Hi everyone, let's go over the plan for next quarter. First the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/raw",
+     "a": "Hi everyone, let's go over the plan for next quarter. First the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone, let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone, let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone, let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone, let me start with last week's progress. The mobile subtitle feature has finished. Internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-ja1-en-openai/stripped",
+     "a": "皆さん、こんにちは、今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは。今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。"
+    },
+    {
+     "row": "gl-ja1-en-openai/commas",
+     "a": "皆さん、こんにちは、今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは。今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。"
+    }
+   ]
+  },
+  {
+   "label": "punctuators int8 vs punctuators fp32",
+   "key": "sbd",
+   "same": 135,
+   "n": 248,
+   "eventsAgree": 611,
+   "eventsUnion": 780,
+   "diffs": [
+    {
+     "row": "gl-en1-ja-openai-alloy/stripped",
+     "a": "Hi everyone, let's go over the plan for next quarter.\nFirst the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/commas",
+     "a": "Hi everyone, let's go over the plan for next quarter.\nFirst the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/lower",
+     "a": "Hi everyone, let's go over the plan for next quarter.\nFirst the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-en1-ja-openai-alloy/raw",
+     "a": "Hi everyone, let's go over the plan for next quarter.\nFirst the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "b": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone, let me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone, let me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone, let me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone, let me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-ja1-en-openai/stripped",
+     "a": "皆さん、こんにちは、\n今日は、来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは。\n今日は、来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。"
+    },
+    {
+     "row": "gl-ja1-en-openai/commas",
+     "a": "皆さん、こんにちは、\n今日は、来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。",
+     "b": "皆さん、こんにちは。\n今日は、来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です。"
+    }
+   ]
+  },
+  {
+   "label": "JS int8-matmul vs JS fp32",
+   "key": "punct",
+   "same": 145,
+   "n": 248,
+   "eventsAgree": 1687,
+   "eventsUnion": 2065,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-zhlong-en-openai-2/stripped",
+     "a": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-zhlong-en-openai-2/commas",
+     "a": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了，内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    }
+   ]
+  },
+  {
+   "label": "JS int8-matmul vs JS fp32",
+   "key": "sbd",
+   "same": 134,
+   "n": 248,
+   "eventsAgree": 605,
+   "eventsUnion": 779,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-jalong-zh-openai/stripped",
+     "a": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "b": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、\n社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。"
+    },
+    {
+     "row": "gl-jalong-zh-openai/commas",
+     "a": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "b": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、\n社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。"
+    }
+   ]
+  },
+  {
+   "label": "punctuators int8-matmul vs punctuators fp32",
+   "key": "punct",
+   "same": 149,
+   "n": 248,
+   "eventsAgree": 1687,
+   "eventsUnion": 2083,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-zhlong-ja-openai/raw",
+     "a": "各位，下午好，先说一下上周的进展。:移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "b": "各位，下午好，先说一下上周的进展:移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "row": "gl-gui-L3383-p1/stripped",
+     "a": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症。这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感。刊登2026刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学。特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者。过去几十年，对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块，或是涛蛋白纠结。",
+     "b": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症。这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感。刊登2026刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学。特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者。过去几十年，对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉，蛋白，斑块，或是涛蛋白纠结。"
+    }
+   ]
+  },
+  {
+   "label": "punctuators int8-matmul vs punctuators fp32",
+   "key": "sbd",
+   "same": 131,
+   "n": 248,
+   "eventsAgree": 615,
+   "eventsUnion": 808,
+   "diffs": [
+    {
+     "row": "gl-enlong-ja-openai/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-ja-openai/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/stripped",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/commas",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/lower",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-enlong-zh-openai-2/raw",
+     "a": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "b": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished.\nInternal testing.\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning."
+    },
+    {
+     "row": "gl-jalong-zh-openai/stripped",
+     "a": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、\n料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "b": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、\n社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。"
+    },
+    {
+     "row": "gl-jalong-zh-openai/commas",
+     "a": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、\n料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "b": "皆さん、こんにちは。\nまず、先週の進捗を共有します。\nモバイル版の字幕機能は、\n社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り。\n会議は、金曜日の午前10時に変更になりましたので、ご注意ください。"
+    }
+   ]
+  }
+ ],
+ "js": {
+  "fp32": {
+   "loadMs": 4174.851167,
+   "bench": {
+    "en/64": 245.2,
+    "en/128": 490,
+    "en/254": 952.4,
+    "ja/64": 240.4,
+    "ja/128": 471.2,
+    "ja/254": 943.4
+   },
+   "tokenizer": {
+    "rows": 248,
+    "preprocessMismatch": 0,
+    "inputIdsMismatch": 0,
+    "preIdsMismatch": 0,
+    "unkRows": []
+   }
+  },
+  "int8": {
+   "loadMs": 2344.180873,
+   "bench": {
+    "en/64": 210.7,
+    "en/128": 409.3,
+    "en/254": 833.5,
+    "ja/64": 212.9,
+    "ja/128": 410.9,
+    "ja/254": 820.5
+   },
+   "tokenizer": {
+    "rows": 248,
+    "preprocessMismatch": 0,
+    "inputIdsMismatch": 0,
+    "preIdsMismatch": 0,
+    "unkRows": []
+   }
+  },
+  "int8-matmul": {
+   "loadMs": 4131.177761,
+   "bench": {
+    "en/64": 210.9,
+    "en/128": 407,
+    "en/254": 828.6,
+    "ja/64": 213.2,
+    "ja/128": 409.7,
+    "ja/254": 818.4
+   },
+   "tokenizer": {
+    "rows": 248,
+    "preprocessMismatch": 0,
+    "inputIdsMismatch": 0,
+    "preIdsMismatch": 0,
+    "unkRows": []
+   }
+  }
+ }
+}

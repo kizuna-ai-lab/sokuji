@@ -1,0 +1,103 @@
+{
+ "threads": 1,
+ "loadMs": 551.737334,
+ "runs": 15,
+ "cases": [
+  {
+   "lang": "zh",
+   "tokens": 64,
+   "punctuateMedianMs": 25.557367999999997,
+   "singleForwardMedianMs": 10.09125999999992,
+   "windowLengths": [
+    20,
+    40,
+    60,
+    16,
+    16
+   ]
+  },
+  {
+   "lang": "zh",
+   "tokens": 128,
+   "punctuateMedianMs": 51.591199999999844,
+   "singleForwardMedianMs": 20.18119200000001,
+   "windowLengths": [
+    20,
+    40,
+    60,
+    32,
+    52,
+    72,
+    22,
+    22
+   ]
+  },
+  {
+   "lang": "zh",
+   "tokens": 200,
+   "punctuateMedianMs": 75.38771399999996,
+   "singleForwardMedianMs": 32.87693999999965,
+   "windowLengths": [
+    20,
+    40,
+    60,
+    32,
+    52,
+    72,
+    34,
+    41,
+    61,
+    33,
+    20
+   ]
+  },
+  {
+   "lang": "en",
+   "tokens": 64,
+   "punctuateMedianMs": 22.05937300000005,
+   "singleForwardMedianMs": 10.150364000000081,
+   "windowLengths": [
+    20,
+    30,
+    23,
+    27,
+    27
+   ]
+  },
+  {
+   "lang": "en",
+   "tokens": 128,
+   "punctuateMedianMs": 34.52286499999991,
+   "singleForwardMedianMs": 20.274185000000216,
+   "windowLengths": [
+    20,
+    30,
+    23,
+    43,
+    35,
+    29,
+    10,
+    10
+   ]
+  },
+  {
+   "lang": "en",
+   "tokens": 200,
+   "punctuateMedianMs": 52.19102599999951,
+   "singleForwardMedianMs": 32.72039500000028,
+   "windowLengths": [
+    20,
+    30,
+    23,
+    43,
+    35,
+    29,
+    22,
+    42,
+    34,
+    28,
+    6
+   ]
+  }
+ ]
+}
