@@ -9,15 +9,21 @@ const res = join(root, 'results');
 const f1 = (x) => (x == null ? '–' : (100 * x).toFixed(1));
 const readJson = async (p) => JSON.parse(await readFile(p, 'utf8'));
 
+// --prefix european- --langs fr,de,es,pt summarises a separate set of runs.
+const argOf = (name, dflt) => {
+  const i = process.argv.indexOf(`--${name}`);
+  return i > 0 ? process.argv[i + 1] : dflt;
+};
+const prefix = argOf('prefix', 'quality-');
 const quality = {};
-for (const f of (await readdir(res)).filter((n) => /^quality-.*\.json$/.test(n)).sort()) {
+for (const f of (await readdir(res)).filter((n) => n.startsWith(prefix) && n.endsWith('.json')).sort()) {
   const data = await readJson(join(res, f));
   Object.assign(quality, data.models);
 }
 let segmenter = null;
 try { segmenter = await readJson(join(res, 'segmenter-node.json')); } catch {}
 
-const LANGS = ['ja', 'zh', 'en', 'ko'];
+const LANGS = argOf('langs', 'ja,zh,en,ko').split(',');
 console.log('## Offline quality (one call per utterance)\n');
 console.log('Sentence-boundary F1 excludes the end of the utterance. `stripped` = all marks removed; `raw` = GPT-Live\'s own transcript; `lower` = English lowercased.\n');
 console.log(`| Model | ${LANGS.map((l) => `${l} boundary F1 (P/R)`).join(' | ')} | zh raw boundary F1 | en raw boundary F1 | en lower casing F1 |`);
