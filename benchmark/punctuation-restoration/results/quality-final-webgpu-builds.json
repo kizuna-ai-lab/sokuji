@@ -1,0 +1,5579 @@
+{
+ "threads": 1,
+ "models": {
+  "pcs47-q8w-gather": {
+   "info": {
+    "id": "pcs47-q8w-gather",
+    "name": "PCS-47 xlm-roberta punct+truecase (q8 weight-only + q8 embedding)",
+    "langs": [
+     "ja",
+     "zh",
+     "en",
+     "ko"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/pcs47",
+    "files": [
+     "model.q8w-gather.onnx",
+     "tokenizer.json",
+     "config.yaml"
+    ]
+   },
+   "loadMs": 1500.463001,
+   "offline": {
+    "en/stripped": {
+     "items": 23,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.8285714285714286,
+      "r": 0.8055555555555556,
+      "f": 0.8169014084507044,
+      "tp": 29,
+      "fp": 6,
+      "fn": 7
+     },
+     "breakpoint": {
+      "p": 0.8695652173913043,
+      "r": 0.821917808219178,
+      "f": 0.8450704225352113,
+      "tp": 60,
+      "fp": 9,
+      "fn": 13
+     },
+     "period": {
+      "p": 0.8431372549019608,
+      "r": 0.8775510204081632,
+      "f": 0.86,
+      "tp": 43,
+      "fp": 8,
+      "fn": 6
+     },
+     "comma": {
+      "p": 0.7058823529411765,
+      "r": 0.6486486486486487,
+      "f": 0.676056338028169,
+      "tp": 24,
+      "fp": 10,
+      "fn": 13
+     },
+     "question": {
+      "p": 0.7142857142857143,
+      "r": 0.8333333333333334,
+      "f": 0.7692307692307692,
+      "tp": 5,
+      "fp": 2,
+      "fn": 1
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 4617.056725999997,
+     "chars": 2927,
+     "calls": 23
+    },
+    "en/commas": {
+     "items": 23,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.8285714285714286,
+      "r": 0.8055555555555556,
+      "f": 0.8169014084507044,
+      "tp": 29,
+      "fp": 6,
+      "fn": 7
+     },
+     "breakpoint": {
+      "p": 0.8695652173913043,
+      "r": 0.821917808219178,
+      "f": 0.8450704225352113,
+      "tp": 60,
+      "fp": 9,
+      "fn": 13
+     },
+     "period": {
+      "p": 0.8431372549019608,
+      "r": 0.8775510204081632,
+      "f": 0.86,
+      "tp": 43,
+      "fp": 8,
+      "fn": 6
+     },
+     "comma": {
+      "p": 0.7058823529411765,
+      "r": 0.6486486486486487,
+      "f": 0.676056338028169,
+      "tp": 24,
+      "fp": 10,
+      "fn": 13
+     },
+     "question": {
+      "p": 0.7142857142857143,
+      "r": 0.8333333333333334,
+      "f": 0.7692307692307692,
+      "tp": 5,
+      "fp": 2,
+      "fn": 1
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 4614.045879999992,
+     "chars": 2964,
+     "calls": 23
+    },
+    "en/lower": {
+     "items": 23,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.8285714285714286,
+      "r": 0.8055555555555556,
+      "f": 0.8169014084507044,
+      "tp": 29,
+      "fp": 6,
+      "fn": 7
+     },
+     "breakpoint": {
+      "p": 0.8695652173913043,
+      "r": 0.821917808219178,
+      "f": 0.8450704225352113,
+      "tp": 60,
+      "fp": 9,
+      "fn": 13
+     },
+     "period": {
+      "p": 0.8431372549019608,
+      "r": 0.8775510204081632,
+      "f": 0.86,
+      "tp": 43,
+      "fp": 8,
+      "fn": 6
+     },
+     "comma": {
+      "p": 0.7058823529411765,
+      "r": 0.6486486486486487,
+      "f": 0.676056338028169,
+      "tp": 24,
+      "fp": 10,
+      "fn": 13
+     },
+     "question": {
+      "p": 0.7142857142857143,
+      "r": 0.8333333333333334,
+      "f": 0.7692307692307692,
+      "tp": 5,
+      "fp": 2,
+      "fn": 1
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 0.927710843373494,
+      "r": 0.8953488372093024,
+      "f": 0.9112426035502958,
+      "tp": 77,
+      "fp": 6,
+      "fn": 9
+     },
+     "finalTerm": 1,
+     "ms": 4608.220269000007,
+     "chars": 2927,
+     "calls": 23
+    },
+    "en/raw": {
+     "items": 3,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.8461538461538461,
+      "r": 0.9166666666666666,
+      "f": 0.8799999999999999,
+      "tp": 11,
+      "fp": 2,
+      "fn": 1
+     },
+     "breakpoint": {
+      "p": 0.9130434782608695,
+      "r": 0.7777777777777778,
+      "f": 0.84,
+      "tp": 21,
+      "fp": 2,
+      "fn": 6
+     },
+     "period": {
+      "p": 0.875,
+      "r": 0.9333333333333333,
+      "f": 0.9032258064516129,
+      "tp": 14,
+      "fp": 2,
+      "fn": 1
+     },
+     "comma": {
+      "p": 0.9,
+      "r": 0.6,
+      "f": 0.7200000000000001,
+      "tp": 9,
+      "fp": 1,
+      "fn": 6
+     },
+     "question": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "exclaim": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 1042.7433890000007,
+     "chars": 1074,
+     "calls": 3
+    },
+    "ja/stripped": {
+     "items": 24,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.9210526315789473,
+      "r": 0.8333333333333334,
+      "f": 0.875,
+      "tp": 35,
+      "fp": 3,
+      "fn": 7
+     },
+     "breakpoint": {
+      "p": 0.72,
+      "r": 0.96,
+      "f": 0.8228571428571428,
+      "tp": 72,
+      "fp": 28,
+      "fn": 3
+     },
+     "period": {
+      "p": 0.9074074074074074,
+      "r": 0.8909090909090909,
+      "f": 0.8990825688073394,
+      "tp": 49,
+      "fp": 5,
+      "fn": 6
+     },
+     "comma": {
+      "p": 0.4838709677419355,
+      "r": 0.9090909090909091,
+      "f": 0.631578947368421,
+      "tp": 30,
+      "fp": 32,
+      "fn": 3
+     },
+     "question": {
+      "p": 0.75,
+      "r": 0.8571428571428571,
+      "f": 0.7999999999999999,
+      "tp": 6,
+      "fp": 2,
+      "fn": 1
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 4532.385532000002,
+     "chars": 1249,
+     "calls": 24
+    },
+    "ja/commas": {
+     "items": 24,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.9210526315789473,
+      "r": 0.8333333333333334,
+      "f": 0.875,
+      "tp": 35,
+      "fp": 3,
+      "fn": 7
+     },
+     "breakpoint": {
+      "p": 0.72,
+      "r": 0.96,
+      "f": 0.8228571428571428,
+      "tp": 72,
+      "fp": 28,
+      "fn": 3
+     },
+     "period": {
+      "p": 0.9074074074074074,
+      "r": 0.8909090909090909,
+      "f": 0.8990825688073394,
+      "tp": 49,
+      "fp": 5,
+      "fn": 6
+     },
+     "comma": {
+      "p": 0.4838709677419355,
+      "r": 0.9090909090909091,
+      "f": 0.631578947368421,
+      "tp": 30,
+      "fp": 32,
+      "fn": 3
+     },
+     "question": {
+      "p": 0.75,
+      "r": 0.8571428571428571,
+      "f": 0.7999999999999999,
+      "tp": 6,
+      "fp": 2,
+      "fn": 1
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 4536.963991999998,
+     "chars": 1282,
+     "calls": 24
+    },
+    "ja/raw": {
+     "items": 3,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.9285714285714286,
+      "r": 1,
+      "f": 0.962962962962963,
+      "tp": 13,
+      "fp": 1,
+      "fn": 0
+     },
+     "breakpoint": {
+      "p": 0.6666666666666666,
+      "r": 1,
+      "f": 0.8,
+      "tp": 22,
+      "fp": 11,
+      "fn": 0
+     },
+     "period": {
+      "p": 0.875,
+      "r": 0.9333333333333333,
+      "f": 0.9032258064516129,
+      "tp": 14,
+      "fp": 2,
+      "fn": 1
+     },
+     "comma": {
+      "p": 0.47368421052631576,
+      "r": 1,
+      "f": 0.6428571428571429,
+      "tp": 9,
+      "fp": 10,
+      "fn": 0
+     },
+     "question": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 1,
+      "f": 0,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 811.2952139999998,
+     "chars": 345,
+     "calls": 3
+    },
+    "zh/stripped": {
+     "items": 34,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.673469387755102,
+      "r": 0.4647887323943662,
+      "f": 0.55,
+      "tp": 33,
+      "fp": 16,
+      "fn": 38
+     },
+     "breakpoint": {
+      "p": 0.8243243243243243,
+      "r": 0.9481865284974094,
+      "f": 0.8819277108433735,
+      "tp": 183,
+      "fp": 39,
+      "fn": 10
+     },
+     "period": {
+      "p": 0.7792207792207793,
+      "r": 0.6593406593406593,
+      "f": 0.7142857142857143,
+      "tp": 60,
+      "fp": 17,
+      "fn": 31
+     },
+     "comma": {
+      "p": 0.6127167630057804,
+      "r": 0.8688524590163934,
+      "f": 0.7186440677966102,
+      "tp": 106,
+      "fp": 67,
+      "fn": 16
+     },
+     "question": {
+      "p": 0.6666666666666666,
+      "r": 0.4,
+      "f": 0.5,
+      "tp": 4,
+      "fp": 2,
+      "fn": 6
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 8308.716381000011,
+     "chars": 2322,
+     "calls": 34
+    },
+    "zh/commas": {
+     "items": 34,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.673469387755102,
+      "r": 0.4647887323943662,
+      "f": 0.55,
+      "tp": 33,
+      "fp": 16,
+      "fn": 38
+     },
+     "breakpoint": {
+      "p": 0.8243243243243243,
+      "r": 0.9481865284974094,
+      "f": 0.8819277108433735,
+      "tp": 183,
+      "fp": 39,
+      "fn": 10
+     },
+     "period": {
+      "p": 0.7792207792207793,
+      "r": 0.6593406593406593,
+      "f": 0.7142857142857143,
+      "tp": 60,
+      "fp": 17,
+      "fn": 31
+     },
+     "comma": {
+      "p": 0.6127167630057804,
+      "r": 0.8688524590163934,
+      "f": 0.7186440677966102,
+      "tp": 106,
+      "fp": 67,
+      "fn": 16
+     },
+     "question": {
+      "p": 0.6666666666666666,
+      "r": 0.4,
+      "f": 0.5,
+      "tp": 4,
+      "fp": 2,
+      "fn": 6
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 8313.460686999999,
+     "chars": 2444,
+     "calls": 34
+    },
+    "zh/raw": {
+     "items": 13,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.6444444444444445,
+      "r": 0.6170212765957447,
+      "f": 0.6304347826086957,
+      "tp": 29,
+      "fp": 16,
+      "fn": 18
+     },
+     "breakpoint": {
+      "p": 0.8322981366459627,
+      "r": 0.9370629370629371,
+      "f": 0.881578947368421,
+      "tp": 134,
+      "fp": 27,
+      "fn": 9
+     },
+     "period": {
+      "p": 0.7272727272727273,
+      "r": 0.7142857142857143,
+      "f": 0.7207207207207208,
+      "tp": 40,
+      "fp": 15,
+      "fn": 16
+     },
+     "comma": {
+      "p": 0.6982758620689655,
+      "r": 0.84375,
+      "f": 0.7641509433962264,
+      "tp": 81,
+      "fp": 35,
+      "fn": 15
+     },
+     "question": {
+      "p": 0.3333333333333333,
+      "r": 0.25,
+      "f": 0.28571428571428575,
+      "tp": 1,
+      "fp": 2,
+      "fn": 3
+     },
+     "exclaim": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 4794.949069999997,
+     "chars": 1733,
+     "calls": 13
+    },
+    "ko/stripped": {
+     "items": 20,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 0.5833333333333334,
+      "f": 0.7368421052631579,
+      "tp": 14,
+      "fp": 0,
+      "fn": 10
+     },
+     "breakpoint": {
+      "p": 0.9666666666666667,
+      "r": 0.8529411764705882,
+      "f": 0.90625,
+      "tp": 29,
+      "fp": 1,
+      "fn": 5
+     },
+     "period": {
+      "p": 0.9642857142857143,
+      "r": 0.7941176470588235,
+      "f": 0.8709677419354839,
+      "tp": 27,
+      "fp": 1,
+      "fn": 7
+     },
+     "comma": {
+      "p": 0.4375,
+      "r": 0.7,
+      "f": 0.5384615384615384,
+      "tp": 7,
+      "fp": 9,
+      "fn": 3
+     },
+     "question": {
+      "p": 1,
+      "r": 0.7142857142857143,
+      "f": 0.8333333333333333,
+      "tp": 5,
+      "fp": 0,
+      "fn": 2
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0.95,
+     "ms": 3513.751605999998,
+     "chars": 903,
+     "calls": 20
+    },
+    "ko/commas": {
+     "items": 20,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 0.5833333333333334,
+      "f": 0.7368421052631579,
+      "tp": 14,
+      "fp": 0,
+      "fn": 10
+     },
+     "breakpoint": {
+      "p": 0.9666666666666667,
+      "r": 0.8529411764705882,
+      "f": 0.90625,
+      "tp": 29,
+      "fp": 1,
+      "fn": 5
+     },
+     "period": {
+      "p": 0.9642857142857143,
+      "r": 0.7941176470588235,
+      "f": 0.8709677419354839,
+      "tp": 27,
+      "fp": 1,
+      "fn": 7
+     },
+     "comma": {
+      "p": 0.4375,
+      "r": 0.7,
+      "f": 0.5384615384615384,
+      "tp": 7,
+      "fp": 9,
+      "fn": 3
+     },
+     "question": {
+      "p": 1,
+      "r": 0.7142857142857143,
+      "f": 0.8333333333333333,
+      "tp": 5,
+      "fp": 0,
+      "fn": 2
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0.95,
+     "ms": 3509.4863780000087,
+     "chars": 913,
+     "calls": 20
+    }
+   },
+   "stream": {},
+   "streamBreak": {},
+   "outputs": [
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "stripped",
+     "input": "Hi everyone let's go over the plan for next quarter First the mobile subtitle feature which we expect to ship in October Then the pricing page redesign",
+     "out": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "ms": 216.5
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "commas",
+     "input": "Hi everyone, let's go over the plan for next quarter First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign",
+     "out": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "ms": 219.5
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "lower",
+     "input": "hi everyone let's go over the plan for next quarter first the mobile subtitle feature which we expect to ship in october then the pricing page redesign",
+     "out": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "ms": 216.6
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "raw",
+     "input": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign",
+     "out": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October, then the pricing page redesign.",
+     "ms": 217.4
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "stripped",
+     "input": "Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "out": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "ms": 411.8
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "commas",
+     "input": "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "out": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "ms": 408.9
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "lower",
+     "input": "good afternoon everyone let me start with last week's progress the mobile subtitle feature has finished internal testing feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month finally a reminder that the quarterly review meeting has moved to friday at 10 in the morning",
+     "out": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "ms": 408.6
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "raw",
+     "input": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "out": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "ms": 408.9
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "stripped",
+     "input": "Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "out": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "ms": 410
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "commas",
+     "input": "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "out": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "ms": 411.3
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "lower",
+     "input": "good afternoon everyone let me start with last week's progress the mobile subtitle feature has finished internal testing feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month finally a reminder that the quarterly review meeting has moved to friday at ten in the morning",
+     "out": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "ms": 412.9
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "raw",
+     "input": "Good afternoon, everyone. Let me start with last week's progress The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "out": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished. Internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "ms": 416.5
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "stripped",
+     "input": "皆さんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの改修です",
+     "out": "皆さん、こんにちは。今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "ms": 211.2
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "commas",
+     "input": "皆さん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの改修です",
+     "out": "皆さん、こんにちは。今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "ms": 211.8
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "raw",
+     "input": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です",
+     "out": "皆さん、こんにちは。今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です。",
+     "ms": 209.6
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "stripped",
+     "input": "みなさんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの",
+     "out": "みなさん、こんにちは。今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの。",
+     "ms": 199.4
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "commas",
+     "input": "みなさん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの",
+     "out": "みなさん、こんにちは。今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの。",
+     "ms": 198.5
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "raw",
+     "input": "みなさん、こんにちは!今日は来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの",
+     "out": "みなさん、こんにちは!、今日は、来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの。",
+     "ms": 202.2
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "stripped",
+     "input": "皆さんこんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください",
+     "out": "皆さん、こんにちは。まず、先週の進捗を共有します。モバイル版の字幕機能は、社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインは、デザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り。会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "ms": 401
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "commas",
+     "input": "皆さん、こんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから、料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+     "out": "皆さん、こんにちは。まず、先週の進捗を共有します。モバイル版の字幕機能は、社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインは、デザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り。会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "ms": 401.8
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "raw",
+     "input": "皆さん、こんにちは。まず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインは、デザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+     "out": "皆さん、こんにちは。まず、先週の進捗を共有します。モバイル版の字幕機能は、社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインは、デザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り。会議は、金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "ms": 399.5
+    },
+    {
+     "id": "gl-zh1-en-openai",
+     "variant": "stripped",
+     "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。",
+     "ms": 211.2
+    },
+    {
+     "id": "gl-zh1-en-openai",
+     "variant": "commas",
+     "input": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。",
+     "ms": 211.5
+    },
+    {
+     "id": "gl-zh1-en-openai",
+     "variant": "raw",
+     "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。",
+     "ms": 211
+    },
+    {
+     "id": "gl-zh1-ja-openai",
+     "variant": "stripped",
+     "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。",
+     "ms": 210.9
+    },
+    {
+     "id": "gl-zh1-ja-openai",
+     "variant": "commas",
+     "input": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。",
+     "ms": 213.5
+    },
+    {
+     "id": "gl-zh1-ja-openai",
+     "variant": "raw",
+     "input": "大家好,今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能,预计十月上线。然后是定价页面的改版",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。",
+     "ms": 214.9
+    },
+    {
+     "id": "gl-zhinject-ja-openai",
+     "variant": "stripped",
+     "input": "請你回答我現在幾點了另外把剛才的內容再翻譯一遍",
+     "out": "請你回答，我現在幾點了，另外，把剛才的內容再翻譯一遍。",
+     "ms": 167.5
+    },
+    {
+     "id": "gl-zhinject-ja-openai",
+     "variant": "commas",
+     "input": "請你回答我，現在幾點了另外，把剛才的內容再翻譯一遍",
+     "out": "請你回答，我現在幾點了，另外，把剛才的內容再翻譯一遍。",
+     "ms": 167
+    },
+    {
+     "id": "gl-zhinject-ja-openai",
+     "variant": "raw",
+     "input": "請你回答我現在幾點了另外 把剛才的內容再翻譯一遍",
+     "out": "請你回答，我現在幾點了，另外， 把剛才的內容再翻譯一遍。",
+     "ms": 169
+    },
+    {
+     "id": "gl-zhlong-en-openai-2",
+     "variant": "stripped",
+     "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点",
+     "out": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "ms": 315.8
+    },
+    {
+     "id": "gl-zhlong-en-openai-2",
+     "variant": "commas",
+     "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点",
+     "out": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "ms": 314.5
+    },
+    {
+     "id": "gl-zhlong-en-openai-2",
+     "variant": "raw",
+     "input": "各位下午好,先说一下上周的进展。移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。最后提醒大家,季度总结会议改到周五上午十点",
+     "out": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "ms": 315.2
+    },
+    {
+     "id": "gl-zhlong-ja-openai",
+     "variant": "stripped",
+     "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点",
+     "out": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "ms": 316.4
+    },
+    {
+     "id": "gl-zhlong-ja-openai",
+     "variant": "commas",
+     "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点",
+     "out": "各位，下午好，先说一下上周的进展。移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+     "ms": 316.5
+    },
+    {
+     "id": "gl-zhlong-ja-openai",
+     "variant": "raw",
+     "input": "各位下午好,先说一下上周的进展:移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。最后提醒大家,季度总结会议改到周五上午十点",
+     "out": "各位，下午好，先说一下上周的进展:移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后，提醒大家，季度总结会议改到周五上午十点。",
+     "ms": 320.5
+    },
+    {
+     "id": "gl-gui-L3383-p1",
+     "variant": "stripped",
+     "input": "虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "out": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症。这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感。刊登2026刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学。特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者。过去几十年，对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉，蛋白，斑块，或是涛蛋白纠结。",
+     "ms": 561.2
+    },
+    {
+     "id": "gl-gui-L3383-p1",
+     "variant": "commas",
+     "input": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感，刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路，主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "out": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症。这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感。刊登2026刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学。特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者。过去几十年，对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉，蛋白，斑块，或是涛蛋白纠结。",
+     "ms": 561.4
+    },
+    {
+     "id": "gl-gui-L3383-p1",
+     "variant": "raw",
+     "input": "虽说功受不可逆 史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "out": "虽说功受不可逆， 史上第一次科学逆转了阿尔茨海默晚期重症。这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感。刊登2026刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学。特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者。过去几十年，对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白，斑块，或是涛蛋白纠结。",
+     "ms": 566.6
+    },
+    {
+     "id": "gl-gui-L3383-p2",
+     "variant": "stripped",
+     "input": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统",
+     "out": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆。他们认为，问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了，他们找来两种已经壁炉高旷的小鼠，第一种是5x Fad小鼠。满脑子都是类淀粉蛋白斑块，第二种是PS19小鼠，脑袋里塞满了涛蛋白。纠结，这时，年纪都很大了，记忆力崩坏，只能等死。团队给他们打了一种代号PTC3 A20的药物。这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的NaD plus系统。",
+     "ms": 569.8
+    },
+    {
+     "id": "gl-gui-L3383-p2",
+     "variant": "commas",
+     "input": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块第二种是PS19小鼠，脑袋里塞满了涛蛋白纠结这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的NAD plus系统",
+     "out": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆。他们认为，问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了，他们找来两种已经壁炉高旷的小鼠，第一种是5x Fad小鼠。满脑子都是类淀粉蛋白斑块，第二种是PS19小鼠，脑袋里塞满了涛蛋白。纠结，这时，年纪都很大了，记忆力崩坏，只能等死。团队给他们打了一种代号PTC3 A20的药物。这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的NaD plus系统。",
+     "ms": 568.4
+    },
+    {
+     "id": "gl-gui-L3383-p2",
+     "variant": "raw",
+     "input": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统",
+     "out": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆。他们认为，问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了，他们找来两种已经壁炉高旷的小鼠，第一种是5x Fad小鼠。满脑子都是类淀粉蛋白斑块，第二种是PS19小鼠，脑袋里塞满了涛蛋白。纠结，这时，年纪都很大了，记忆力崩坏，只能等死。团队给他们打了一种代号PTC3 A20的药物。这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的NaD plus系统。",
+     "ms": 564.6
+    },
+    {
+     "id": "gl-gui-L3383-p3",
+     "variant": "stripped",
+     "input": "这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修",
+     "out": "这个NAD Plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损DNA的关键原料。非常重要。而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂。因为NaD Plus耗尽，神经细胞，不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而PTC3 A20的作用，就是重新启动供应链，让大脑恢复制造NaD Plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修。",
+     "ms": 463.5
+    },
+    {
+     "id": "gl-gui-L3383-p3",
+     "variant": "commas",
+     "input": "这个NAD plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损DNA的关键原料，非常重要而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废而PTC3 A20的作用，就是重新启动供应链，让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修",
+     "out": "这个NAD Plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损DNA的关键原料。非常重要。而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂。因为NaD Plus耗尽，神经细胞，不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而PTC3 A20的作用，就是重新启动供应链，让大脑恢复制造NaD Plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修。",
+     "ms": 464.2
+    },
+    {
+     "id": "gl-gui-L3383-p3",
+     "variant": "raw",
+     "input": "这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修",
+     "out": "这个NAD Plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损DNA的关键原料。非常重要。而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂。因为NaD Plus耗尽，神经细胞，不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而PTC3 A20的作用，就是重新启动供应链，让大脑恢复制造NaD Plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修。",
+     "ms": 466.4
+    },
+    {
+     "id": "gl-gui-L3383-p4",
+     "variant": "stripped",
+     "input": "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night night night 切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了",
+     "out": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫，游泳，放在滚轮上，跑步，结果所有人都惊呆了。这些原本已经失智，路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠。高尚。ONe more time， I wanna get lost in the night， night night。 切开大脑一看，更不得了。原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了。",
+     "ms": 427.3
+    },
+    {
+     "id": "gl-gui-L3383-p4",
+     "variant": "commas",
+     "input": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫游泳、放在滚轮上跑步，结果所有人都惊呆了这些原本已经失智、路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠高尚One more time, I wanna get lost in the night, night, night 切开大脑一看更不得了，原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了",
+     "out": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫，游泳，放在滚轮上，跑步，结果所有人都惊呆了。这些原本已经失智，路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠。高尚。ONe more time， I wanna get lost in the night， night night。 切开大脑一看，更不得了。原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了。",
+     "ms": 429.5
+    },
+    {
+     "id": "gl-gui-L3383-p4",
+     "variant": "raw",
+     "input": "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night, night, night切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了",
+     "out": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫，游泳，放在滚轮上跑步，结果所有人都惊呆了。这些原本已经失智，路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠。高尚。ONe more time， I wanna get lost in the night， night night。切开大脑一看，更不得了。原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了。",
+     "ms": 429.5
+    },
+    {
+     "id": "gl-gui-L3383-p5",
+     "variant": "stripped",
+     "input": "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "out": "更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NaD Plus的合成酵素也有一样的崩坏现象。这强力暗示，如果我们能修复人类大脑的NaD Plus系统，或许，失智症就不再是通往虚无的单程票，而是可逆向的旅程。当然，我不是老鼠，你也不是，应该不是。但这研究告诉我们，大脑的韧性比我们想象的还要强。多睡觉，多运动，保护好大脑代谢功能之外，是要给他足够的修复原料。或许真的能自己的大脑自己救哈，这是脑细胞，算不算挑衅类淀粉蛋白哈？",
+     "ms": 505.6
+    },
+    {
+     "id": "gl-gui-L3383-p5",
+     "variant": "commas",
+     "input": "更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症就不再是通往虚无的单程票，而是可逆向的旅程当然我不是老鼠，你也不是，应该不是但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉、多运动，保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "out": "更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NaD Plus的合成酵素也有一样的崩坏现象。这强力暗示，如果我们能修复人类大脑的NaD Plus系统，或许，失智症就不再是通往虚无的单程票，而是可逆向的旅程。当然，我不是老鼠，你也不是，应该不是。但这研究告诉我们，大脑的韧性比我们想象的还要强。多睡觉，多运动，保护好大脑代谢功能之外，是要给他足够的修复原料。或许真的能自己的大脑自己救哈，这是脑细胞，算不算挑衅类淀粉蛋白哈？",
+     "ms": 505.2
+    },
+    {
+     "id": "gl-gui-L3383-p5",
+     "variant": "raw",
+     "input": "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NADplus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "out": "更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里Nadplus的合成酵素也有一样的崩坏现象。这强力暗示，如果我们能修复人类大脑的NaD Plus系统，或许，失智症就不再是通往虚无的单程票，而是可逆向的旅程。当然，我不是老鼠，你也不是，应该不是。但这研究告诉我们，大脑的韧性比我们想象的还要强。多睡觉，多运动，保护好大脑代谢功能之外，是要给他足够的修复原料。或许真的能自己的大脑自己救哈，这是脑细胞，算不算挑衅类淀粉蛋白哈？",
+     "ms": 508
+    },
+    {
+     "id": "gl-gui-L3383-p6",
+     "variant": "stripped",
+     "input": "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "out": "寒假，别只让孩子滑手机，给他一本比手游还好玩的秘密武器。科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学。像在看动漫，受训范世级科学生。现在预购有79折优惠哦。",
+     "ms": 283.4
+    },
+    {
+     "id": "gl-gui-L3383-p6",
+     "variant": "commas",
+     "input": "寒假别只让孩子滑手机，给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "out": "寒假，别只让孩子滑手机，给他一本比手游还好玩的秘密武器。科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学。像在看动漫，受训范世级科学生。现在预购有79折优惠哦。",
+     "ms": 284.5
+    },
+    {
+     "id": "gl-gui-L3383-p6",
+     "variant": "raw",
+     "input": "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "out": "寒假，别只让孩子滑手机，给他一本比手游还好玩的秘密武器。科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学。像在看动漫，受训范世级科学生。现在预购有79折优惠哦。",
+     "ms": 285.6
+    },
+    {
+     "id": "gl-gui-L3400-p1",
+     "variant": "stripped",
+     "input": "我说中国呀不怕金融危机中国怕财政危机为什么呢因为在中国呀众多的运转都依赖于财政而不是依赖于纯粹的金融这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看为什么我说中国最怕财政危机而不是怕金融危机",
+     "out": "我说中国呀，不怕金融危机，中国怕财政危机，为什么呢，因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融。这是当时计划经济的痕迹，没有完全脱进那时候的一种表现。你看，为什么我说，中国最怕财政危机，而不是怕金融危机？",
+     "ms": 286.7
+    },
+    {
+     "id": "gl-gui-L3400-p1",
+     "variant": "commas",
+     "input": "我说中国呀，不怕金融危机，中国怕财政危机为什么呢因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看，为什么我说中国最怕财政危机而不是怕金融危机",
+     "out": "我说中国呀，不怕金融危机，中国怕财政危机，为什么呢，因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融。这是当时计划经济的痕迹，没有完全脱进那时候的一种表现。你看，为什么我说，中国最怕财政危机，而不是怕金融危机？",
+     "ms": 288.3
+    },
+    {
+     "id": "gl-gui-L3400-p1",
+     "variant": "raw",
+     "input": "我说中国呀,不怕金融危机,中国怕财政危机。为什么呢因为在中国呀,众多的运转都依赖于财政,而不是依赖于纯粹的金融,这是当时计划经济的痕迹没有完全脱进那时候的一种表现。你看为什么我说中国最怕财政危机而不是怕金融危机",
+     "out": "我说中国呀，不怕金融危机，中国怕财政危机，为什么呢，因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融。这是当时计划经济的痕迹，没有完全脱进那时候的一种表现。你看，为什么我说，中国最怕财政危机，而不是怕金融危机？",
+     "ms": 287.2
+    },
+    {
+     "id": "gl-gui-L3400-p2",
+     "variant": "stripped",
+     "input": "首先一个呢中国庞大的官僚体系这种制度它就决定了从上到下呀各个阶层你是党政机关呐中央地市啊还是包括你维稳这套系统啊以及国际民生这套系统全部要依赖巨大的财政资源来维系你这么庞大一个体系一天没钱没有财政支持你就运转不了这是第一个第二个呢中国的权力特点呢我们说算是中央集权就越往上权力越高而且分配资源的方式呢是自上而下按照权力大小来分配资源",
+     "out": "首先，一个呢，中国庞大的官僚体系，这种制度，它就决定了从上到下呀，各个阶层。你是党政机关呐，中央，地市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系。你这么庞大一个体系，一天没钱，没有财政支持，你就运转不了。这是第一个，第二个呢？中国的权力特点呢，我们说算是中央集权，就越往上，权力越高。而且分配资源的方式呢，是自上而下，按照权力大小来分配资源。",
+     "ms": 458.1
+    },
+    {
+     "id": "gl-gui-L3400-p2",
+     "variant": "commas",
+     "input": "首先一个呢，中国庞大的官僚体系，这种制度，它就决定了从上到下呀，各个阶层，你是党政机关呐，中央、地、市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系你这么庞大一个体系，一天没钱，没有财政支持，你就运转不了，这是第一个第二个呢，中国的权力特点呢，我们说算是中央集权，就越往上权力越高，而且分配资源的方式呢是自上而下，按照权力大小来分配资源",
+     "out": "首先，一个呢，中国庞大的官僚体系，这种制度，它就决定了从上到下呀，各个阶层。你是党政机关呐，中央，地市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系。你这么庞大一个体系，一天没钱，没有财政支持，你就运转不了。这是第一个，第二个呢？中国的权力特点呢，我们说算是中央集权，就越往上，权力越高。而且分配资源的方式呢，是自上而下，按照权力大小来分配资源。",
+     "ms": 457.9
+    },
+    {
+     "id": "gl-gui-L3400-p2",
+     "variant": "raw",
+     "input": "首先一个呢中国庞大的官僚体系这种制度,它就决定了从上到下呀,各个阶层,你是党政机关呐,中央、地、市啊,还是包括你维稳这套系统啊,以及国际民生这套系统,全部要依赖巨大的财政资源来维系,你这么庞大一个体系,一天没钱没有财政支持,你就运转不了,这是第一个第二个呢,中国的权力特点呢,我们说算是中央集权,就越往上权力越高,而且分配资源的方式呢是自上而下,按照权力大小来分配资源",
+     "out": "首先，一个呢，中国庞大的官僚体系，这种制度，它就决定了从上到下呀，各个阶层。你是党政机关呐，中央，地市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系。你这么庞大一个体系，一天没钱，没有财政支持，你就运转不了。这是第一个，第二个呢？中国的权力特点呢，我们说算是中央集权，就越往上，权力越高。而且分配资源的方式呢，是自上而下，按照权力大小来分配资源。",
+     "ms": 456.4
+    },
+    {
+     "id": "ja-meeting-01",
+     "variant": "stripped",
+     "input": "えーそれでは定例会議を始めますまず先週の進捗から確認しましょう田中さんお願いできますか",
+     "out": "えー？それでは、定例会議を始めます。まず、先週の進捗から確認しましょう。田中さん、お願いできますか？",
+     "ms": 189.6
+    },
+    {
+     "id": "ja-meeting-01",
+     "variant": "commas",
+     "input": "えー、それでは定例会議を始めますまず先週の進捗から確認しましょう田中さん、お願いできますか",
+     "out": "えー？それでは、定例会議を始めます。まず、先週の進捗から確認しましょう。田中さん、お願いできますか？",
+     "ms": 189.3
+    },
+    {
+     "id": "ja-meeting-02",
+     "variant": "stripped",
+     "input": "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください",
+     "out": "資料は昨日の夜に共有フォルダに入れておきました。まだ見ていない方は、会議の後で確認してください。何か質問があれば、チャットに書いてください。",
+     "ms": 205.2
+    },
+    {
+     "id": "ja-meeting-02",
+     "variant": "commas",
+     "input": "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください",
+     "out": "資料は昨日の夜に共有フォルダに入れておきました。まだ見ていない方は、会議の後で確認してください。何か質問があれば、チャットに書いてください。",
+     "ms": 203.4
+    },
+    {
+     "id": "ja-question-01",
+     "variant": "stripped",
+     "input": "この機能はいつリリースされる予定ですか来月の頭には出せると思いますがテストの結果次第です",
+     "out": "この機能は、いつリリースされる予定ですか？来月の頭には出せると思いますが、テストの結果次第です。",
+     "ms": 168.1
+    },
+    {
+     "id": "ja-question-01",
+     "variant": "commas",
+     "input": "この機能はいつリリースされる予定ですか来月の頭には出せると思いますが、テストの結果次第です",
+     "out": "この機能は、いつリリースされる予定ですか？来月の頭には出せると思いますが、テストの結果次第です。",
+     "ms": 169.7
+    },
+    {
+     "id": "ja-numbers-01",
+     "variant": "stripped",
+     "input": "売上は前年比で12.5パーセント増えました特に第3四半期は好調で3億2000万円を超えました",
+     "out": "売上は前年比で12.5パーセント増えました。特に第3四半期は好調で、3億2000万円を超えました。",
+     "ms": 208.4
+    },
+    {
+     "id": "ja-numbers-01",
+     "variant": "commas",
+     "input": "売上は前年比で12.5パーセント増えました特に第3四半期は好調で、3億2000万円を超えました",
+     "out": "売上は前年比で12.5パーセント増えました。特に第3四半期は好調で、3億2000万円を超えました。",
+     "ms": 207.9
+    },
+    {
+     "id": "ja-numbers-02",
+     "variant": "stripped",
+     "input": "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります",
+     "out": "次回の打ち合わせは、10月3日の午後2時からです。場所は、本社の5階の会議室になります。",
+     "ms": 186.1
+    },
+    {
+     "id": "ja-numbers-02",
+     "variant": "commas",
+     "input": "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります",
+     "out": "次回の打ち合わせは、10月3日の午後2時からです。場所は、本社の5階の会議室になります。",
+     "ms": 186.3
+    },
+    {
+     "id": "ja-codeswitch-01",
+     "variant": "stripped",
+     "input": "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です",
+     "out": "今回のプロジェクトでは、AWSのS3とCloudFrontを使います。デプロイは、GitHub Actionsで自動化する予定です。",
+     "ms": 187.9
+    },
+    {
+     "id": "ja-codeswitch-01",
+     "variant": "commas",
+     "input": "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です",
+     "out": "今回のプロジェクトでは、AWSのS3とCloudFrontを使います。デプロイは、GitHub Actionsで自動化する予定です。",
+     "ms": 188.2
+    },
+    {
+     "id": "ja-fillers-01",
+     "variant": "stripped",
+     "input": "あのちょっと確認なんですけどこの数字って税込みですかあ税抜きなんですねわかりました",
+     "out": "あの、ちょっと確認なんですけど、この数字って税込みですか？あ、税抜きなんですね、わかりました。",
+     "ms": 168.6
+    },
+    {
+     "id": "ja-fillers-01",
+     "variant": "commas",
+     "input": "あの、ちょっと確認なんですけど、この数字って税込みですかあ、税抜きなんですねわかりました",
+     "out": "あの、ちょっと確認なんですけど、この数字って税込みですか？あ、税抜きなんですね、わかりました。",
+     "ms": 169.9
+    },
+    {
+     "id": "ja-stream-01",
+     "variant": "stripped",
+     "input": "みんなこんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます",
+     "out": "みんな、こんばんは、今日も配信に来てくれてありがとう。今日は新しいゲームをやっていきます。",
+     "ms": 167.9
+    },
+    {
+     "id": "ja-stream-01",
+     "variant": "commas",
+     "input": "みんな、こんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます",
+     "out": "みんな、こんばんは、今日も配信に来てくれてありがとう。今日は新しいゲームをやっていきます。",
+     "ms": 168.6
+    },
+    {
+     "id": "ja-stream-02",
+     "variant": "stripped",
+     "input": "うわやばいボスが強すぎるちょっと回復させてよしもう一回いくよ",
+     "out": "うわ、やばいボスが強すぎる。ちょっと回復させてよし、もう一回いくよ。",
+     "ms": 175.1
+    },
+    {
+     "id": "ja-stream-02",
+     "variant": "commas",
+     "input": "うわ、やばい、ボスが強すぎるちょっと回復させてよし、もう一回いくよ",
+     "out": "うわ、やばいボスが強すぎる。ちょっと回復させてよし、もう一回いくよ。",
+     "ms": 176.1
+    },
+    {
+     "id": "ja-lecture-01",
+     "variant": "stripped",
+     "input": "今日のテーマは機械学習の基礎です機械学習とはデータからパターンを学習する技術のことです例えば迷惑メールの判定がその代表例です大量のメールを学習することで新しいメールを自動で分類できるようになりますでは具体的な仕組みを見ていきましょう",
+     "out": "今日のテーマは機械学習の基礎です機械学習とは、データからパターンを学習する技術のことです。例えば、迷惑メールの判定がその代表例です。大量のメールを学習することで、新しいメールを自動で分類できるようになります。では、具体的な仕組みを見ていきましょう。",
+     "ms": 274.2
+    },
+    {
+     "id": "ja-lecture-01",
+     "variant": "commas",
+     "input": "今日のテーマは機械学習の基礎です機械学習とは、データからパターンを学習する技術のことです例えば、迷惑メールの判定がその代表例です大量のメールを学習することで、新しいメールを自動で分類できるようになりますでは、具体的な仕組みを見ていきましょう",
+     "out": "今日のテーマは機械学習の基礎です機械学習とは、データからパターンを学習する技術のことです。例えば、迷惑メールの判定がその代表例です。大量のメールを学習することで、新しいメールを自動で分類できるようになります。では、具体的な仕組みを見ていきましょう。",
+     "ms": 273.7
+    },
+    {
+     "id": "ja-short-01",
+     "variant": "stripped",
+     "input": "はいそうです",
+     "out": "はい，そうです。",
+     "ms": 120.3
+    },
+    {
+     "id": "ja-short-01",
+     "variant": "commas",
+     "input": "はい、そうです",
+     "out": "はい，そうです。",
+     "ms": 121.3
+    },
+    {
+     "id": "ja-short-02",
+     "variant": "stripped",
+     "input": "ありがとうございます",
+     "out": "ありがとうございます。",
+     "ms": 115.9
+    },
+    {
+     "id": "ja-short-02",
+     "variant": "commas",
+     "input": "ありがとうございます",
+     "out": "ありがとうございます。",
+     "ms": 115.4
+    },
+    {
+     "id": "ja-support-01",
+     "variant": "stripped",
+     "input": "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか",
+     "out": "お電話ありがとうございます、サポートセンターの佐藤です。本日は、どのようなご用件でしょうか？",
+     "ms": 161.1
+    },
+    {
+     "id": "ja-support-01",
+     "variant": "commas",
+     "input": "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか",
+     "out": "お電話ありがとうございます、サポートセンターの佐藤です。本日は、どのようなご用件でしょうか？",
+     "ms": 159.3
+    },
+    {
+     "id": "ja-reported-01",
+     "variant": "stripped",
+     "input": "部長が明日までに見積もりを出してほしいと言っていましたでも正直明日までは厳しいと思います",
+     "out": "部長が明日までに見積もりを出してほしいと言っていました。でも、正直、明日までは厳しいと思います。",
+     "ms": 160.9
+    },
+    {
+     "id": "ja-reported-01",
+     "variant": "commas",
+     "input": "部長が明日までに見積もりを出してほしいと言っていましたでも正直、明日までは厳しいと思います",
+     "out": "部長が明日までに見積もりを出してほしいと言っていました。でも、正直、明日までは厳しいと思います。",
+     "ms": 159.3
+    },
+    {
+     "id": "ja-list-01",
+     "variant": "stripped",
+     "input": "必要なものはパスポート航空券それからホテルの予約確認書です忘れないように前日に確認してください",
+     "out": "必要なものは、パスポート、航空券、それからホテルの予約確認書です。忘れないように、前日に確認してください。",
+     "ms": 173.7
+    },
+    {
+     "id": "ja-list-01",
+     "variant": "commas",
+     "input": "必要なものは、パスポート、航空券、それからホテルの予約確認書です忘れないように前日に確認してください",
+     "out": "必要なものは、パスポート、航空券、それからホテルの予約確認書です。忘れないように、前日に確認してください。",
+     "ms": 173.9
+    },
+    {
+     "id": "ja-casual-01",
+     "variant": "stripped",
+     "input": "昨日さ駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど味は普通だったかな",
+     "out": "昨日さ、駅前に新しくできたラーメン屋に行ってきたんだよ。めっちゃ並んでたけど、味は普通だったかな。",
+     "ms": 179.4
+    },
+    {
+     "id": "ja-casual-01",
+     "variant": "commas",
+     "input": "昨日さ、駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど、味は普通だったかな",
+     "out": "昨日さ、駅前に新しくできたラーメン屋に行ってきたんだよ。めっちゃ並んでたけど、味は普通だったかな。",
+     "ms": 180.1
+    },
+    {
+     "id": "ja-news-01",
+     "variant": "stripped",
+     "input": "政府は本日新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです",
+     "out": "政府は本日、新しい経済対策を発表しました。対策の規模は、総額で20兆円に上る見通しです。",
+     "ms": 199
+    },
+    {
+     "id": "ja-news-01",
+     "variant": "commas",
+     "input": "政府は本日、新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです",
+     "out": "政府は本日、新しい経済対策を発表しました。対策の規模は、総額で20兆円に上る見通しです。",
+     "ms": 199.9
+    },
+    {
+     "id": "ja-questions-02",
+     "variant": "stripped",
+     "input": "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか",
+     "out": "それって、誰が決めたんですか？会議で決まったんですか、それとも上からの指示ですか？",
+     "ms": 171.8
+    },
+    {
+     "id": "ja-questions-02",
+     "variant": "commas",
+     "input": "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか",
+     "out": "それって、誰が決めたんですか？会議で決まったんですか、それとも上からの指示ですか？",
+     "ms": 171.9
+    },
+    {
+     "id": "ja-longsentence-01",
+     "variant": "stripped",
+     "input": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし字幕も表示されるので聞き逃しても安心です",
+     "out": "このアプリは、音声をリアルタイムで翻訳できるので、海外の取引先との会議でも使えますし。字幕も表示されるので、聞き逃しても安心です。",
+     "ms": 205.3
+    },
+    {
+     "id": "ja-longsentence-01",
+     "variant": "commas",
+     "input": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です",
+     "out": "このアプリは、音声をリアルタイムで翻訳できるので、海外の取引先との会議でも使えますし。字幕も表示されるので、聞き逃しても安心です。",
+     "ms": 207.6
+    },
+    {
+     "id": "ja-casual-02",
+     "variant": "stripped",
+     "input": "明日は雨らしいよ傘を持っていったほうがいいかも",
+     "out": "明日は雨らしいよ、傘を持っていったほうがいいかも？",
+     "ms": 145.9
+    },
+    {
+     "id": "ja-casual-02",
+     "variant": "commas",
+     "input": "明日は雨らしいよ傘を持っていったほうがいいかも",
+     "out": "明日は雨らしいよ、傘を持っていったほうがいいかも？",
+     "ms": 146
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "stripped",
+     "input": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします",
+     "out": "今日のデモはここまでです。Thank you for watching。 次回もよろしくお願いします。",
+     "ms": 156.3
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "commas",
+     "input": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします",
+     "out": "今日のデモはここまでです。Thank you for watching。 次回もよろしくお願いします。",
+     "ms": 157
+    },
+    {
+     "id": "zh-meeting-01",
+     "variant": "stripped",
+     "input": "好那我们开始今天的会议吧首先请小王汇报一下上周的进度",
+     "out": "好，那我们开始今天的会议吧，首先，请小王汇报一下上周的进度。",
+     "ms": 164.7
+    },
+    {
+     "id": "zh-meeting-01",
+     "variant": "commas",
+     "input": "好，那我们开始今天的会议吧首先请小王汇报一下上周的进度",
+     "out": "好，那我们开始今天的会议吧，首先，请小王汇报一下上周的进度。",
+     "ms": 165.3
+    },
+    {
+     "id": "zh-meeting-02",
+     "variant": "stripped",
+     "input": "这个方案我们内部讨论过了大家基本上都同意但是预算方面还需要再确认一下",
+     "out": "这个方案我们内部讨论过了，大家基本上都同意，但是预算方面还需要再确认一下。",
+     "ms": 170
+    },
+    {
+     "id": "zh-meeting-02",
+     "variant": "commas",
+     "input": "这个方案我们内部讨论过了，大家基本上都同意但是预算方面还需要再确认一下",
+     "out": "这个方案我们内部讨论过了，大家基本上都同意，但是预算方面还需要再确认一下。",
+     "ms": 170.1
+    },
+    {
+     "id": "zh-question-01",
+     "variant": "stripped",
+     "input": "你们什么时候可以交付如果下个月不行的话我们可能要换供应商",
+     "out": "你们什么时候可以交付，如果下个月不行的话，我们可能要换供应商。",
+     "ms": 161.3
+    },
+    {
+     "id": "zh-question-01",
+     "variant": "commas",
+     "input": "你们什么时候可以交付如果下个月不行的话，我们可能要换供应商",
+     "out": "你们什么时候可以交付，如果下个月不行的话，我们可能要换供应商。",
+     "ms": 158.2
+    },
+    {
+     "id": "zh-numbers-01",
+     "variant": "stripped",
+     "input": "今年第三季度的营收是3.2亿元同比增长了15.6%其中海外市场贡献了大约四成",
+     "out": "今年第三季度的营收是3.2亿元，同比增长了15.6%，其中，海外市场贡献了大约四成。",
+     "ms": 180.4
+    },
+    {
+     "id": "zh-numbers-01",
+     "variant": "commas",
+     "input": "今年第三季度的营收是3.2亿元，同比增长了15.6%其中海外市场贡献了大约四成",
+     "out": "今年第三季度的营收是3.2亿元，同比增长了15.6%，其中，海外市场贡献了大约四成。",
+     "ms": 179.6
+    },
+    {
+     "id": "zh-numbers-02",
+     "variant": "stripped",
+     "input": "下次会议定在10月8号下午三点地点在公司五楼的大会议室",
+     "out": "下次会议定在10月8号下午三点，地点在公司五楼的大会议室。",
+     "ms": 173
+    },
+    {
+     "id": "zh-numbers-02",
+     "variant": "commas",
+     "input": "下次会议定在10月8号下午三点，地点在公司五楼的大会议室",
+     "out": "下次会议定在10月8号下午三点，地点在公司五楼的大会议室。",
+     "ms": 174.4
+    },
+    {
+     "id": "zh-codeswitch-01",
+     "variant": "stripped",
+     "input": "我们现在用的是GPT-4o的API延迟大概在500毫秒左右下一步打算试一下本地部署的模型",
+     "out": "我们现在用的是GPT-4o的API，延迟大概在500毫秒左右，下一步打算试一下本地部署的模型。",
+     "ms": 191
+    },
+    {
+     "id": "zh-codeswitch-01",
+     "variant": "commas",
+     "input": "我们现在用的是GPT-4o的API，延迟大概在500毫秒左右下一步打算试一下本地部署的模型",
+     "out": "我们现在用的是GPT-4o的API，延迟大概在500毫秒左右，下一步打算试一下本地部署的模型。",
+     "ms": 189.4
+    },
+    {
+     "id": "zh-fillers-01",
+     "variant": "stripped",
+     "input": "嗯那个我想问一下这个价格是含税的吗哦不含税啊好的我知道了",
+     "out": "嗯，那个，我想问一下，这个价格是含税的吗？哦，不含税啊，好的，我知道了。",
+     "ms": 171.2
+    },
+    {
+     "id": "zh-fillers-01",
+     "variant": "commas",
+     "input": "嗯，那个，我想问一下，这个价格是含税的吗哦，不含税啊好的，我知道了",
+     "out": "嗯，那个，我想问一下，这个价格是含税的吗？哦，不含税啊，好的，我知道了。",
+     "ms": 173.9
+    },
+    {
+     "id": "zh-stream-01",
+     "variant": "stripped",
+     "input": "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏喜欢的话记得点个关注",
+     "out": "家人们，晚上好，欢迎来到直播间，今天给大家带来一款新游戏，喜欢的话，记得点个关注。",
+     "ms": 177.7
+    },
+    {
+     "id": "zh-stream-01",
+     "variant": "commas",
+     "input": "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏，喜欢的话记得点个关注",
+     "out": "家人们，晚上好，欢迎来到直播间，今天给大家带来一款新游戏，喜欢的话，记得点个关注。",
+     "ms": 177.2
+    },
+    {
+     "id": "zh-stream-02",
+     "variant": "stripped",
+     "input": "哇这波操作太秀了再来一次",
+     "out": "哇，这波操作太秀了，再来一次。",
+     "ms": 145
+    },
+    {
+     "id": "zh-stream-02",
+     "variant": "commas",
+     "input": "哇，这波操作太秀了再来一次",
+     "out": "哇，这波操作太秀了，再来一次。",
+     "ms": 145.5
+    },
+    {
+     "id": "zh-lecture-01",
+     "variant": "stripped",
+     "input": "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支它通过多层神经网络来学习数据的特征比如说图像识别就是一个典型的应用只要有足够多的数据模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构",
+     "out": "今天我们讲的是深度学习的基本概念，深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征。比如说，图像识别就是一个典型的应用，只要有足够多的数据模型，就能学会识别猫和狗。那么，接下来，我们看一下具体的网络结构。",
+     "ms": 280.1
+    },
+    {
+     "id": "zh-lecture-01",
+     "variant": "commas",
+     "input": "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征比如说，图像识别就是一个典型的应用只要有足够多的数据，模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构",
+     "out": "今天我们讲的是深度学习的基本概念，深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征。比如说，图像识别就是一个典型的应用，只要有足够多的数据模型，就能学会识别猫和狗。那么，接下来，我们看一下具体的网络结构。",
+     "ms": 278.8
+    },
+    {
+     "id": "zh-short-01",
+     "variant": "stripped",
+     "input": "对没错",
+     "out": "对，没错。",
+     "ms": 118.4
+    },
+    {
+     "id": "zh-short-01",
+     "variant": "commas",
+     "input": "对，没错",
+     "out": "对，没错。",
+     "ms": 118.5
+    },
+    {
+     "id": "zh-short-02",
+     "variant": "stripped",
+     "input": "谢谢大家",
+     "out": "谢谢大家。",
+     "ms": 118.4
+    },
+    {
+     "id": "zh-short-02",
+     "variant": "commas",
+     "input": "谢谢大家",
+     "out": "谢谢大家。",
+     "ms": 119.3
+    },
+    {
+     "id": "zh-support-01",
+     "variant": "stripped",
+     "input": "您好这里是客服中心请问有什么可以帮您",
+     "out": "您好，这里是客服中心，请问有什么可以帮您？",
+     "ms": 144.9
+    },
+    {
+     "id": "zh-support-01",
+     "variant": "commas",
+     "input": "您好，这里是客服中心请问有什么可以帮您",
+     "out": "您好，这里是客服中心，请问有什么可以帮您？",
+     "ms": 144.7
+    },
+    {
+     "id": "zh-reported-01",
+     "variant": "stripped",
+     "input": "老板说这个项目必须在月底之前完成我觉得时间有点紧可能需要加班",
+     "out": "老板说，这个项目必须在月底之前完成，我觉得时间有点紧，可能需要加班。",
+     "ms": 162.8
+    },
+    {
+     "id": "zh-reported-01",
+     "variant": "commas",
+     "input": "老板说这个项目必须在月底之前完成我觉得时间有点紧，可能需要加班",
+     "out": "老板说，这个项目必须在月底之前完成，我觉得时间有点紧，可能需要加班。",
+     "ms": 162.9
+    },
+    {
+     "id": "zh-list-01",
+     "variant": "stripped",
+     "input": "出差需要准备护照机票和酒店确认单别忘了提前一天检查一下",
+     "out": "出差需要准备护照，机票和酒店确认单，别忘了提前一天检查一下。",
+     "ms": 162.5
+    },
+    {
+     "id": "zh-list-01",
+     "variant": "commas",
+     "input": "出差需要准备护照、机票和酒店确认单别忘了提前一天检查一下",
+     "out": "出差需要准备护照，机票和酒店确认单，别忘了提前一天检查一下。",
+     "ms": 161.8
+    },
+    {
+     "id": "zh-casual-01",
+     "variant": "stripped",
+     "input": "昨天我去了一家新开的火锅店排了一个小时的队味道还行吧就是有点贵",
+     "out": "昨天，我去了一家新开的火锅店，排了一个小时的队，味道还行吧，就是有点贵。",
+     "ms": 181.8
+    },
+    {
+     "id": "zh-casual-01",
+     "variant": "commas",
+     "input": "昨天我去了一家新开的火锅店，排了一个小时的队味道还行吧，就是有点贵",
+     "out": "昨天，我去了一家新开的火锅店，排了一个小时的队，味道还行吧，就是有点贵。",
+     "ms": 182.6
+    },
+    {
+     "id": "zh-news-01",
+     "variant": "stripped",
+     "input": "国家统计局今天发布了最新数据数据显示八月份全国居民消费价格同比上涨0.6%",
+     "out": "国家统计局今天发布了最新数据，数据显示，八月份，全国居民消费价格同比上涨0.6%。",
+     "ms": 173.1
+    },
+    {
+     "id": "zh-news-01",
+     "variant": "commas",
+     "input": "国家统计局今天发布了最新数据数据显示，八月份全国居民消费价格同比上涨0.6%",
+     "out": "国家统计局今天发布了最新数据，数据显示，八月份，全国居民消费价格同比上涨0.6%。",
+     "ms": 174.2
+    },
+    {
+     "id": "zh-questions-02",
+     "variant": "stripped",
+     "input": "这是谁决定的是开会定的吗还是领导直接拍板的",
+     "out": "这是谁决定的是开会定的吗，还是领导直接拍板的？",
+     "ms": 158.2
+    },
+    {
+     "id": "zh-questions-02",
+     "variant": "commas",
+     "input": "这是谁决定的是开会定的吗还是领导直接拍板的",
+     "out": "这是谁决定的是开会定的吗，还是领导直接拍板的？",
+     "ms": 158.5
+    },
+    {
+     "id": "zh-longsentence-01",
+     "variant": "stripped",
+     "input": "这个软件可以实时翻译语音所以跟国外客户开会的时候也能用而且还会显示字幕就算没听清也不用担心",
+     "out": "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用，而且还会显示字幕，就算没听清也不用担心。",
+     "ms": 198.5
+    },
+    {
+     "id": "zh-longsentence-01",
+     "variant": "commas",
+     "input": "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用，而且还会显示字幕，就算没听清也不用担心",
+     "out": "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用，而且还会显示字幕，就算没听清也不用担心。",
+     "ms": 198.2
+    },
+    {
+     "id": "zh-casual-02",
+     "variant": "stripped",
+     "input": "明天好像要下雨你出门记得带伞",
+     "out": "明天好像要下雨，你出门记得带伞。",
+     "ms": 140.9
+    },
+    {
+     "id": "zh-casual-02",
+     "variant": "commas",
+     "input": "明天好像要下雨你出门记得带伞",
+     "out": "明天好像要下雨，你出门记得带伞。",
+     "ms": 141.1
+    },
+    {
+     "id": "zh-mixed-01",
+     "variant": "stripped",
+     "input": "今天的演示就到这里Thank you for watching 我们下次再见",
+     "out": "今天的演示就到这里，Thank you for watching， 我们，下次再见。",
+     "ms": 157.7
+    },
+    {
+     "id": "zh-mixed-01",
+     "variant": "commas",
+     "input": "今天的演示就到这里Thank you for watching 我们下次再见",
+     "out": "今天的演示就到这里，Thank you for watching， 我们，下次再见。",
+     "ms": 157
+    },
+    {
+     "id": "en-meeting-01",
+     "variant": "stripped",
+     "input": "Okay let's get started First can everyone see my screen Great so here's the agenda for today",
+     "out": "Okay, let's get started first, can everyone see my screen? Great? So here's the agenda for today.",
+     "ms": 178.1
+    },
+    {
+     "id": "en-meeting-01",
+     "variant": "commas",
+     "input": "Okay, let's get started First, can everyone see my screen Great, so here's the agenda for today",
+     "out": "Okay, let's get started first, can everyone see my screen? Great? So here's the agenda for today.",
+     "ms": 181.2
+    },
+    {
+     "id": "en-meeting-01",
+     "variant": "lower",
+     "input": "okay let's get started first can everyone see my screen great so here's the agenda for today",
+     "out": "Okay, let's get started first, can everyone see my screen? Great? So here's the agenda for today.",
+     "ms": 181.3
+    },
+    {
+     "id": "en-meeting-02",
+     "variant": "stripped",
+     "input": "We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week",
+     "out": "We shipped the new release on Tuesday. So far, we've seen about 3.5% fewer crashes than last week.",
+     "ms": 197
+    },
+    {
+     "id": "en-meeting-02",
+     "variant": "commas",
+     "input": "We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week",
+     "out": "We shipped the new release on Tuesday. So far, we've seen about 3.5% fewer crashes than last week.",
+     "ms": 195.3
+    },
+    {
+     "id": "en-meeting-02",
+     "variant": "lower",
+     "input": "we shipped the new release on tuesday so far we've seen about 3.5% fewer crashes than last week",
+     "out": "We shipped the new release on Tuesday. So far, we've seen about 3.5% fewer crashes than last week.",
+     "ms": 189.9
+    },
+    {
+     "id": "en-abbrev-01",
+     "variant": "stripped",
+     "input": "Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years",
+     "out": "Dr. Smith will join us at 2 p.m. to talk about the results. She works at a hospital in the U.S. and has been running this study for years.",
+     "ms": 201.4
+    },
+    {
+     "id": "en-abbrev-01",
+     "variant": "commas",
+     "input": "Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years",
+     "out": "Dr. Smith will join us at 2 p.m. to talk about the results. She works at a hospital in the U.S. and has been running this study for years.",
+     "ms": 201
+    },
+    {
+     "id": "en-abbrev-01",
+     "variant": "lower",
+     "input": "dr smith will join us at 2 pm to talk about the results she works at a hospital in the us and has been running this study for years",
+     "out": "Dr. Smith will join us at 2 p.m. to talk about the results. She works at a hospital in the U.S. and has been running this study for years.",
+     "ms": 203.2
+    },
+    {
+     "id": "en-question-01",
+     "variant": "stripped",
+     "input": "Do you have any questions so far If not I'll move on to the next slide",
+     "out": "Do you have any questions so far? If not, I'll move on to the next slide.",
+     "ms": 167.5
+    },
+    {
+     "id": "en-question-01",
+     "variant": "commas",
+     "input": "Do you have any questions so far If not, I'll move on to the next slide",
+     "out": "Do you have any questions so far? If not, I'll move on to the next slide.",
+     "ms": 166.5
+    },
+    {
+     "id": "en-question-01",
+     "variant": "lower",
+     "input": "do you have any questions so far if not i'll move on to the next slide",
+     "out": "Do you have any questions so far? If not, I'll move on to the next slide.",
+     "ms": 164.1
+    },
+    {
+     "id": "en-numbers-01",
+     "variant": "stripped",
+     "input": "Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers",
+     "out": "Revenue grew 12% year over year, to $4.2 million. Most of that came from our enterprise customers.",
+     "ms": 170.3
+    },
+    {
+     "id": "en-numbers-01",
+     "variant": "commas",
+     "input": "Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers",
+     "out": "Revenue grew 12% year over year, to $4.2 million. Most of that came from our enterprise customers.",
+     "ms": 170.3
+    },
+    {
+     "id": "en-numbers-01",
+     "variant": "lower",
+     "input": "revenue grew 12% year over year to $4.2 million most of that came from our enterprise customers",
+     "out": "Revenue grew 12% year over year, to $4.2 million. Most of that came from our enterprise customers.",
+     "ms": 168.3
+    },
+    {
+     "id": "en-fillers-01",
+     "variant": "stripped",
+     "input": "Um so I think the main issue is uh the latency It takes like two seconds before the translation shows up",
+     "out": "Um, so I think the main issue is, uh, the latency. It takes like two seconds before the translation shows up.",
+     "ms": 173.5
+    },
+    {
+     "id": "en-fillers-01",
+     "variant": "commas",
+     "input": "Um, so, I think the main issue is, uh, the latency It takes like two seconds before the translation shows up",
+     "out": "Um, so I think the main issue is, uh, the latency. It takes like two seconds before the translation shows up.",
+     "ms": 173.4
+    },
+    {
+     "id": "en-fillers-01",
+     "variant": "lower",
+     "input": "um so i think the main issue is uh the latency it takes like two seconds before the translation shows up",
+     "out": "Um, so I think the main issue is, uh, the latency. It takes like two seconds before the translation shows up.",
+     "ms": 174.6
+    },
+    {
+     "id": "en-stream-01",
+     "variant": "stripped",
+     "input": "What's up everyone Welcome back to the stream Today we're finally going to beat the final boss",
+     "out": "What's up everyone? Welcome back to the stream today. We're finally going to beat the final boss.",
+     "ms": 174.6
+    },
+    {
+     "id": "en-stream-01",
+     "variant": "commas",
+     "input": "What's up, everyone Welcome back to the stream Today we're finally going to beat the final boss",
+     "out": "What's up everyone? Welcome back to the stream today. We're finally going to beat the final boss.",
+     "ms": 176.7
+    },
+    {
+     "id": "en-stream-01",
+     "variant": "lower",
+     "input": "what's up everyone welcome back to the stream today we're finally going to beat the final boss",
+     "out": "What's up everyone? Welcome back to the stream today. We're finally going to beat the final boss.",
+     "ms": 177.1
+    },
+    {
+     "id": "en-stream-02",
+     "variant": "stripped",
+     "input": "Oh no he's right behind me Run run run",
+     "out": "Oh, no, he's right behind me. Run, run, run.",
+     "ms": 146
+    },
+    {
+     "id": "en-stream-02",
+     "variant": "commas",
+     "input": "Oh no, he's right behind me Run, run, run",
+     "out": "Oh, no, he's right behind me. Run, run, run.",
+     "ms": 144.1
+    },
+    {
+     "id": "en-stream-02",
+     "variant": "lower",
+     "input": "oh no he's right behind me run run run",
+     "out": "Oh, no, he's right behind me. Run, run, run.",
+     "ms": 143.8
+    },
+    {
+     "id": "en-lecture-01",
+     "variant": "stripped",
+     "input": "Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water and it releases oxygen Without it life on Earth as we know it wouldn't exist",
+     "out": "Today, we're going to talk about photosynthesis. Photosynthesis is the process plants use to turn sunlight into energy. It happens mostly in the leaves, The plant takes in carbon dioxide and water, and it releases oxygen. Without it, life on Earth, as we know it, wouldn't exist.",
+     "ms": 309.9
+    },
+    {
+     "id": "en-lecture-01",
+     "variant": "commas",
+     "input": "Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water, and it releases oxygen Without it, life on Earth as we know it wouldn't exist",
+     "out": "Today, we're going to talk about photosynthesis. Photosynthesis is the process plants use to turn sunlight into energy. It happens mostly in the leaves, The plant takes in carbon dioxide and water, and it releases oxygen. Without it, life on Earth, as we know it, wouldn't exist.",
+     "ms": 308.5
+    },
+    {
+     "id": "en-lecture-01",
+     "variant": "lower",
+     "input": "today we're going to talk about photosynthesis photosynthesis is the process plants use to turn sunlight into energy it happens mostly in the leaves the plant takes in carbon dioxide and water and it releases oxygen without it life on earth as we know it wouldn't exist",
+     "out": "Today, we're going to talk about photosynthesis. Photosynthesis is the process plants use to turn sunlight into energy. It happens mostly in the leaves, The plant takes in carbon dioxide and water, and it releases oxygen. Without it, life on Earth, as we know it, wouldn't exist.",
+     "ms": 310.4
+    },
+    {
+     "id": "en-short-01",
+     "variant": "stripped",
+     "input": "Yeah that works for me",
+     "out": "Yeah, that works for me.",
+     "ms": 126.9
+    },
+    {
+     "id": "en-short-01",
+     "variant": "commas",
+     "input": "Yeah, that works for me",
+     "out": "Yeah, that works for me.",
+     "ms": 125.5
+    },
+    {
+     "id": "en-short-01",
+     "variant": "lower",
+     "input": "yeah that works for me",
+     "out": "Yeah, that works for me.",
+     "ms": 125.1
+    },
+    {
+     "id": "en-short-02",
+     "variant": "stripped",
+     "input": "Thank you so much",
+     "out": "Thank you so much.",
+     "ms": 119.7
+    },
+    {
+     "id": "en-short-02",
+     "variant": "commas",
+     "input": "Thank you so much",
+     "out": "Thank you so much.",
+     "ms": 119.2
+    },
+    {
+     "id": "en-short-02",
+     "variant": "lower",
+     "input": "thank you so much",
+     "out": "Thank you so much.",
+     "ms": 120.6
+    },
+    {
+     "id": "en-support-01",
+     "variant": "stripped",
+     "input": "Thanks for calling customer support My name is Alex How can I help you today",
+     "out": "Thanks for calling customer support. My name is Alex. How can I help you today?",
+     "ms": 158.6
+    },
+    {
+     "id": "en-support-01",
+     "variant": "commas",
+     "input": "Thanks for calling customer support My name is Alex How can I help you today",
+     "out": "Thanks for calling customer support. My name is Alex. How can I help you today?",
+     "ms": 158.4
+    },
+    {
+     "id": "en-support-01",
+     "variant": "lower",
+     "input": "thanks for calling customer support my name is alex how can i help you today",
+     "out": "Thanks for calling customer support. My name is Alex. How can I help you today?",
+     "ms": 158.7
+    },
+    {
+     "id": "en-reported-01",
+     "variant": "stripped",
+     "input": "My manager said the report is due on Friday Honestly I don't think we can make it",
+     "out": "My manager said the report is due on Friday. Honestly, I don't think we can make it.",
+     "ms": 175.8
+    },
+    {
+     "id": "en-reported-01",
+     "variant": "commas",
+     "input": "My manager said the report is due on Friday Honestly, I don't think we can make it",
+     "out": "My manager said the report is due on Friday. Honestly, I don't think we can make it.",
+     "ms": 174.1
+    },
+    {
+     "id": "en-reported-01",
+     "variant": "lower",
+     "input": "my manager said the report is due on friday honestly i don't think we can make it",
+     "out": "My manager said the report is due on Friday. Honestly, I don't think we can make it.",
+     "ms": 170.5
+    },
+    {
+     "id": "en-list-01",
+     "variant": "stripped",
+     "input": "Please bring your passport your boarding pass and a copy of your hotel booking We'll meet at the airport at seven",
+     "out": "Please bring your passport, your boarding pass and a copy of your hotel booking. We'll meet at the airport at seven.",
+     "ms": 184.9
+    },
+    {
+     "id": "en-list-01",
+     "variant": "commas",
+     "input": "Please bring your passport, your boarding pass, and a copy of your hotel booking We'll meet at the airport at seven",
+     "out": "Please bring your passport, your boarding pass and a copy of your hotel booking. We'll meet at the airport at seven.",
+     "ms": 184.6
+    },
+    {
+     "id": "en-list-01",
+     "variant": "lower",
+     "input": "please bring your passport your boarding pass and a copy of your hotel booking we'll meet at the airport at seven",
+     "out": "Please bring your passport, your boarding pass and a copy of your hotel booking. We'll meet at the airport at seven.",
+     "ms": 184.2
+    },
+    {
+     "id": "en-casual-01",
+     "variant": "stripped",
+     "input": "I tried that new ramen place downtown yesterday The line was insane but the food was just okay",
+     "out": "I tried that new ramen place downtown yesterday, the line was insane, but the food was just okay.",
+     "ms": 170.6
+    },
+    {
+     "id": "en-casual-01",
+     "variant": "commas",
+     "input": "I tried that new ramen place downtown yesterday The line was insane, but the food was just okay",
+     "out": "I tried that new ramen place downtown yesterday, the line was insane, but the food was just okay.",
+     "ms": 173.5
+    },
+    {
+     "id": "en-casual-01",
+     "variant": "lower",
+     "input": "i tried that new ramen place downtown yesterday the line was insane but the food was just okay",
+     "out": "I tried that new ramen place downtown yesterday, the line was insane, but the food was just okay.",
+     "ms": 172.6
+    },
+    {
+     "id": "en-codeswitch-01",
+     "variant": "stripped",
+     "input": "We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari",
+     "out": "We're using the OpenAi realtime API with WebRTC. The next step is to test it on Chrome and Safari.",
+     "ms": 192.1
+    },
+    {
+     "id": "en-codeswitch-01",
+     "variant": "commas",
+     "input": "We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari",
+     "out": "We're using the OpenAi realtime API with WebRTC. The next step is to test it on Chrome and Safari.",
+     "ms": 191.1
+    },
+    {
+     "id": "en-codeswitch-01",
+     "variant": "lower",
+     "input": "we're using the openai realtime api with webrtc the next step is to test it on chrome and safari",
+     "out": "We're using the OpenAi realtime API with WebRTC. The next step is to test it on Chrome and Safari.",
+     "ms": 192.9
+    },
+    {
+     "id": "en-questions-02",
+     "variant": "stripped",
+     "input": "Who made that decision Was it discussed in the meeting Or did it come from leadership",
+     "out": "Who made that decision? was it discussed in the meeting or did it come from leadership?",
+     "ms": 165.3
+    },
+    {
+     "id": "en-questions-02",
+     "variant": "commas",
+     "input": "Who made that decision Was it discussed in the meeting Or did it come from leadership",
+     "out": "Who made that decision? was it discussed in the meeting or did it come from leadership?",
+     "ms": 164.4
+    },
+    {
+     "id": "en-questions-02",
+     "variant": "lower",
+     "input": "who made that decision was it discussed in the meeting or did it come from leadership",
+     "out": "Who made that decision? was it discussed in the meeting or did it come from leadership?",
+     "ms": 165.4
+    },
+    {
+     "id": "en-longsentence-01",
+     "variant": "stripped",
+     "input": "The app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything",
+     "out": "The app translates speech in real time so you can use it in meetings with overseas clients. And it also shows subtitles. So you don't have to worry about missing anything.",
+     "ms": 238.6
+    },
+    {
+     "id": "en-longsentence-01",
+     "variant": "commas",
+     "input": "The app translates speech in real time, so you can use it in meetings with overseas clients, and it also shows subtitles, so you don't have to worry about missing anything",
+     "out": "The app translates speech in real time so you can use it in meetings with overseas clients. And it also shows subtitles. So you don't have to worry about missing anything.",
+     "ms": 237.8
+    },
+    {
+     "id": "en-longsentence-01",
+     "variant": "lower",
+     "input": "the app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything",
+     "out": "The app translates speech in real time so you can use it in meetings with overseas clients. And it also shows subtitles. So you don't have to worry about missing anything.",
+     "ms": 237.2
+    },
+    {
+     "id": "en-casual-02",
+     "variant": "stripped",
+     "input": "It's supposed to rain tomorrow You might want to bring an umbrella",
+     "out": "It's supposed to rain tomorrow. You might want to bring an umbrella.",
+     "ms": 158.2
+    },
+    {
+     "id": "en-casual-02",
+     "variant": "commas",
+     "input": "It's supposed to rain tomorrow You might want to bring an umbrella",
+     "out": "It's supposed to rain tomorrow. You might want to bring an umbrella.",
+     "ms": 158.6
+    },
+    {
+     "id": "en-casual-02",
+     "variant": "lower",
+     "input": "it's supposed to rain tomorrow you might want to bring an umbrella",
+     "out": "It's supposed to rain tomorrow. You might want to bring an umbrella.",
+     "ms": 160.5
+    },
+    {
+     "id": "en-support-02",
+     "variant": "stripped",
+     "input": "I'm not sure Let me check and get back to you by the end of the day",
+     "out": "I'm not sure, let me check and get back to you by the end of the day.",
+     "ms": 169.6
+    },
+    {
+     "id": "en-support-02",
+     "variant": "commas",
+     "input": "I'm not sure Let me check and get back to you by the end of the day",
+     "out": "I'm not sure, let me check and get back to you by the end of the day.",
+     "ms": 170.1
+    },
+    {
+     "id": "en-support-02",
+     "variant": "lower",
+     "input": "i'm not sure let me check and get back to you by the end of the day",
+     "out": "I'm not sure, let me check and get back to you by the end of the day.",
+     "ms": 169.8
+    },
+    {
+     "id": "ko-meeting-01",
+     "variant": "stripped",
+     "input": "자 그럼 회의를 시작하겠습니다 먼저 지난주 진행 상황부터 확인해 볼까요",
+     "out": "자, 그럼 회의를 시작하겠습니다. 먼저 지난주 진행 상황부터 확인해 볼까요?",
+     "ms": 162.5
+    },
+    {
+     "id": "ko-meeting-01",
+     "variant": "commas",
+     "input": "자, 그럼 회의를 시작하겠습니다 먼저 지난주 진행 상황부터 확인해 볼까요",
+     "out": "자, 그럼 회의를 시작하겠습니다. 먼저 지난주 진행 상황부터 확인해 볼까요?",
+     "ms": 162.5
+    },
+    {
+     "id": "ko-meeting-02",
+     "variant": "stripped",
+     "input": "자료는 어제 공유 폴더에 올려 두었습니다 아직 못 보신 분들은 회의 끝나고 확인해 주세요",
+     "out": "자료는 어제 공유 폴더에 올려 두었습니다. 아직 못 보신 분들은 회의 끝나고 확인해 주세요.",
+     "ms": 178
+    },
+    {
+     "id": "ko-meeting-02",
+     "variant": "commas",
+     "input": "자료는 어제 공유 폴더에 올려 두었습니다 아직 못 보신 분들은 회의 끝나고 확인해 주세요",
+     "out": "자료는 어제 공유 폴더에 올려 두었습니다. 아직 못 보신 분들은 회의 끝나고 확인해 주세요.",
+     "ms": 178.6
+    },
+    {
+     "id": "ko-question-01",
+     "variant": "stripped",
+     "input": "이 기능은 언제 출시될 예정인가요 다음 달 초에는 가능할 것 같은데 테스트 결과에 따라 달라질 수 있습니다",
+     "out": "이 기능은 언제 출시될 예정인가요? 다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다.",
+     "ms": 186
+    },
+    {
+     "id": "ko-question-01",
+     "variant": "commas",
+     "input": "이 기능은 언제 출시될 예정인가요 다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다",
+     "out": "이 기능은 언제 출시될 예정인가요? 다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다.",
+     "ms": 184.9
+    },
+    {
+     "id": "ko-numbers-01",
+     "variant": "stripped",
+     "input": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다 특히 해외 매출이 크게 늘었습니다",
+     "out": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다. 특히 해외 매출이 크게 늘었습니다.",
+     "ms": 184.1
+    },
+    {
+     "id": "ko-numbers-01",
+     "variant": "commas",
+     "input": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다 특히 해외 매출이 크게 늘었습니다",
+     "out": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다. 특히 해외 매출이 크게 늘었습니다.",
+     "ms": 185.5
+    },
+    {
+     "id": "ko-numbers-02",
+     "variant": "stripped",
+     "input": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다",
+     "out": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다.",
+     "ms": 171.8
+    },
+    {
+     "id": "ko-numbers-02",
+     "variant": "commas",
+     "input": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다",
+     "out": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다.",
+     "ms": 172.5
+    },
+    {
+     "id": "ko-codeswitch-01",
+     "variant": "stripped",
+     "input": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다 배포는 GitHub Actions로 자동화할 예정입니다",
+     "out": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다. 배포는 GitHub Actions로 자동화할 예정입니다.",
+     "ms": 187.8
+    },
+    {
+     "id": "ko-codeswitch-01",
+     "variant": "commas",
+     "input": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다 배포는 GitHub Actions로 자동화할 예정입니다",
+     "out": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다. 배포는 GitHub Actions로 자동화할 예정입니다.",
+     "ms": 186.5
+    },
+    {
+     "id": "ko-fillers-01",
+     "variant": "stripped",
+     "input": "음 그 하나만 여쭤볼게요 이 가격은 부가세 포함인가요 아 별도군요 알겠습니다",
+     "out": "음, 그 하나만 여쭤볼게요, 이 가격은 부가세 포함인가요? 아, 별도군요, 알겠습니다.",
+     "ms": 183.9
+    },
+    {
+     "id": "ko-fillers-01",
+     "variant": "commas",
+     "input": "음, 그, 하나만 여쭤볼게요 이 가격은 부가세 포함인가요 아, 별도군요 알겠습니다",
+     "out": "음, 그 하나만 여쭤볼게요, 이 가격은 부가세 포함인가요? 아, 별도군요, 알겠습니다.",
+     "ms": 184
+    },
+    {
+     "id": "ko-stream-01",
+     "variant": "stripped",
+     "input": "여러분 안녕하세요 오늘도 방송에 와 주셔서 감사합니다 오늘은 새로운 게임을 해 볼게요",
+     "out": "여러분, 안녕하세요, 오늘도 방송에 와 주셔서 감사합니다. 오늘은 새로운 게임을 해 볼게요.",
+     "ms": 166.2
+    },
+    {
+     "id": "ko-stream-01",
+     "variant": "commas",
+     "input": "여러분 안녕하세요 오늘도 방송에 와 주셔서 감사합니다 오늘은 새로운 게임을 해 볼게요",
+     "out": "여러분, 안녕하세요, 오늘도 방송에 와 주셔서 감사합니다. 오늘은 새로운 게임을 해 볼게요.",
+     "ms": 165.6
+    },
+    {
+     "id": "ko-stream-02",
+     "variant": "stripped",
+     "input": "와 대박 보스 너무 세다 잠깐만 회복 좀 할게요",
+     "out": "와 대박 보스 너무 세다. 잠깐만 회복 좀 할게요.",
+     "ms": 158
+    },
+    {
+     "id": "ko-stream-02",
+     "variant": "commas",
+     "input": "와, 대박 보스 너무 세다 잠깐만 회복 좀 할게요",
+     "out": "와 대박 보스 너무 세다. 잠깐만 회복 좀 할게요.",
+     "ms": 158.2
+    },
+    {
+     "id": "ko-lecture-01",
+     "variant": "stripped",
+     "input": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다 머신러닝은 데이터에서 패턴을 학습하는 기술입니다 예를 들어 스팸 메일 분류가 대표적인 사례입니다 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다 그럼 구체적인 원리를 살펴보겠습니다",
+     "out": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다. 머신러닝은 데이터에서 패턴을 학습하는 기술입니다. 예를 들어 스팸 메일 분류가 대표적인 사례입니다, 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다. 그럼 구체적인 원리를 살펴보겠습니다.",
+     "ms": 287.3
+    },
+    {
+     "id": "ko-lecture-01",
+     "variant": "commas",
+     "input": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다 머신러닝은 데이터에서 패턴을 학습하는 기술입니다 예를 들어 스팸 메일 분류가 대표적인 사례입니다 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다 그럼 구체적인 원리를 살펴보겠습니다",
+     "out": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다. 머신러닝은 데이터에서 패턴을 학습하는 기술입니다. 예를 들어 스팸 메일 분류가 대표적인 사례입니다, 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다. 그럼 구체적인 원리를 살펴보겠습니다.",
+     "ms": 285.7
+    },
+    {
+     "id": "ko-short-01",
+     "variant": "stripped",
+     "input": "네 맞습니다",
+     "out": "네 맞습니다.",
+     "ms": 116.3
+    },
+    {
+     "id": "ko-short-01",
+     "variant": "commas",
+     "input": "네, 맞습니다",
+     "out": "네 맞습니다.",
+     "ms": 115.6
+    },
+    {
+     "id": "ko-short-02",
+     "variant": "stripped",
+     "input": "감사합니다",
+     "out": "감사합니다।",
+     "ms": 110.1
+    },
+    {
+     "id": "ko-short-02",
+     "variant": "commas",
+     "input": "감사합니다",
+     "out": "감사합니다।",
+     "ms": 109.5
+    },
+    {
+     "id": "ko-support-01",
+     "variant": "stripped",
+     "input": "고객센터 김민수입니다 무엇을 도와드릴까요",
+     "out": "고객센터 김민수입니다. 무엇을 도와드릴까요?",
+     "ms": 133.7
+    },
+    {
+     "id": "ko-support-01",
+     "variant": "commas",
+     "input": "고객센터 김민수입니다 무엇을 도와드릴까요",
+     "out": "고객센터 김민수입니다. 무엇을 도와드릴까요?",
+     "ms": 131
+    },
+    {
+     "id": "ko-reported-01",
+     "variant": "stripped",
+     "input": "부장님이 내일까지 견적서를 달라고 하셨어요 솔직히 내일까지는 좀 어려울 것 같아요",
+     "out": "부장님이 내일까지 견적서를 달라고 하셨어요, 솔직히 내일까지는 좀 어려울 것 같아요.",
+     "ms": 182.3
+    },
+    {
+     "id": "ko-reported-01",
+     "variant": "commas",
+     "input": "부장님이 내일까지 견적서를 달라고 하셨어요 솔직히 내일까지는 좀 어려울 것 같아요",
+     "out": "부장님이 내일까지 견적서를 달라고 하셨어요, 솔직히 내일까지는 좀 어려울 것 같아요.",
+     "ms": 182
+    },
+    {
+     "id": "ko-list-01",
+     "variant": "stripped",
+     "input": "여권 항공권 그리고 호텔 예약 확인서를 준비해 주세요 출발 전날 꼭 다시 확인하세요",
+     "out": "여권, 항공권, 그리고 호텔 예약 확인서를 준비해 주세요. 출발 전날 꼭 다시 확인하세요.",
+     "ms": 165.9
+    },
+    {
+     "id": "ko-list-01",
+     "variant": "commas",
+     "input": "여권, 항공권, 그리고 호텔 예약 확인서를 준비해 주세요 출발 전날 꼭 다시 확인하세요",
+     "out": "여권, 항공권, 그리고 호텔 예약 확인서를 준비해 주세요. 출발 전날 꼭 다시 확인하세요.",
+     "ms": 165.7
+    },
+    {
+     "id": "ko-casual-01",
+     "variant": "stripped",
+     "input": "어제 역 앞에 새로 생긴 라멘집에 가 봤어 줄은 엄청 길었는데 맛은 그냥 그랬어",
+     "out": "어제 역 앞에 새로 생긴 라멘집에 가 봤어, 줄은 엄청 길었는데 맛은 그냥 그랬어.",
+     "ms": 181.9
+    },
+    {
+     "id": "ko-casual-01",
+     "variant": "commas",
+     "input": "어제 역 앞에 새로 생긴 라멘집에 가 봤어 줄은 엄청 길었는데 맛은 그냥 그랬어",
+     "out": "어제 역 앞에 새로 생긴 라멘집에 가 봤어, 줄은 엄청 길었는데 맛은 그냥 그랬어.",
+     "ms": 185.2
+    },
+    {
+     "id": "ko-news-01",
+     "variant": "stripped",
+     "input": "정부는 오늘 새로운 경제 대책을 발표했습니다 대책 규모는 총 20조 원에 달할 전망입니다",
+     "out": "정부는 오늘 새로운 경제 대책을 발표했습니다. 대책 규모는 총 20조 원에 달할 전망입니다.",
+     "ms": 182.4
+    },
+    {
+     "id": "ko-news-01",
+     "variant": "commas",
+     "input": "정부는 오늘 새로운 경제 대책을 발표했습니다 대책 규모는 총 20조 원에 달할 전망입니다",
+     "out": "정부는 오늘 새로운 경제 대책을 발표했습니다. 대책 규모는 총 20조 원에 달할 전망입니다.",
+     "ms": 182.8
+    },
+    {
+     "id": "ko-questions-02",
+     "variant": "stripped",
+     "input": "그거 누가 정한 거예요 회의에서 정한 거예요 아니면 위에서 내려온 지시예요",
+     "out": "그거 누가 정한 거예요, 회의에서 정한 거예요, 아니면 위에서 내려온 지시예요?",
+     "ms": 190.6
+    },
+    {
+     "id": "ko-questions-02",
+     "variant": "commas",
+     "input": "그거 누가 정한 거예요 회의에서 정한 거예요 아니면 위에서 내려온 지시예요",
+     "out": "그거 누가 정한 거예요, 회의에서 정한 거예요, 아니면 위에서 내려온 지시예요?",
+     "ms": 190.3
+    },
+    {
+     "id": "ko-longsentence-01",
+     "variant": "stripped",
+     "input": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요",
+     "out": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고, 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요.",
+     "ms": 238.5
+    },
+    {
+     "id": "ko-longsentence-01",
+     "variant": "commas",
+     "input": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고, 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요",
+     "out": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고, 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요.",
+     "ms": 237.7
+    },
+    {
+     "id": "ko-casual-02",
+     "variant": "stripped",
+     "input": "내일 비 온대 우산 챙겨 가",
+     "out": "내일 비 온대 우산 챙겨 가.",
+     "ms": 146.5
+    },
+    {
+     "id": "ko-casual-02",
+     "variant": "commas",
+     "input": "내일 비 온대 우산 챙겨 가",
+     "out": "내일 비 온대 우산 챙겨 가.",
+     "ms": 145.8
+    }
+   ]
+  },
+  "sat-3l-sm-q8w-gather": {
+   "info": {
+    "id": "sat-3l-sm-q8w-gather",
+    "name": "SaT sat-3l-sm q8 weight-only + q8 embedding (boundaries only)",
+    "langs": [
+     "ja",
+     "zh",
+     "en",
+     "ko"
+    ],
+    "output": "boundary",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/sat/sat-3l-sm-q8w-gather",
+    "files": [
+     "model.onnx",
+     "tokenizer.json"
+    ]
+   },
+   "loadMs": 1113.8467689999961,
+   "offline": {
+    "en/stripped": {
+     "items": 23,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.972972972972973,
+      "r": 1,
+      "f": 0.9863013698630138,
+      "tp": 36,
+      "fp": 1,
+      "fn": 0
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.5068493150684932,
+      "f": 0.6727272727272727,
+      "tp": 37,
+      "fp": 0,
+      "fn": 36
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 49
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 37
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 6
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 1181.9858949999689,
+     "chars": 2927,
+     "calls": 23
+    },
+    "en/commas": {
+     "items": 23,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 36,
+      "fp": 0,
+      "fn": 0
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.4931506849315068,
+      "f": 0.6605504587155963,
+      "tp": 36,
+      "fp": 0,
+      "fn": 37
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 49
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 37
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 6
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 1212.7247950000237,
+     "chars": 2964,
+     "calls": 23
+    },
+    "en/lower": {
+     "items": 23,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.7241379310344828,
+      "r": 0.5833333333333334,
+      "f": 0.6461538461538462,
+      "tp": 21,
+      "fp": 8,
+      "fn": 15
+     },
+     "breakpoint": {
+      "p": 0.8620689655172413,
+      "r": 0.3424657534246575,
+      "f": 0.49019607843137253,
+      "tp": 25,
+      "fp": 4,
+      "fn": 48
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 49
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 37
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 6
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 86
+     },
+     "finalTerm": 0,
+     "ms": 1187.6958989999766,
+     "chars": 2927,
+     "calls": 23
+    },
+    "en/raw": {
+     "items": 3,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 12,
+      "fp": 0,
+      "fn": 0
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.4444444444444444,
+      "f": 0.6153846153846153,
+      "tp": 12,
+      "fp": 0,
+      "fn": 15
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 15
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 15
+     },
+     "question": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "exclaim": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 279.78840400000627,
+     "chars": 1074,
+     "calls": 3
+    },
+    "ja/stripped": {
+     "items": 24,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.9302325581395349,
+      "r": 0.9523809523809523,
+      "f": 0.9411764705882352,
+      "tp": 40,
+      "fp": 3,
+      "fn": 2
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.5733333333333334,
+      "f": 0.728813559322034,
+      "tp": 43,
+      "fp": 0,
+      "fn": 32
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 55
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 33
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 1156.8379780000105,
+     "chars": 1249,
+     "calls": 24
+    },
+    "ja/commas": {
+     "items": 24,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 0.9285714285714286,
+      "f": 0.962962962962963,
+      "tp": 39,
+      "fp": 0,
+      "fn": 3
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.52,
+      "f": 0.6842105263157895,
+      "tp": 39,
+      "fp": 0,
+      "fn": 36
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 55
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 33
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 1181.7857659999572,
+     "chars": 1282,
+     "calls": 24
+    },
+    "ja/raw": {
+     "items": 3,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 13,
+      "fp": 0,
+      "fn": 0
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.5909090909090909,
+      "f": 0.7428571428571429,
+      "tp": 13,
+      "fp": 0,
+      "fn": 9
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 15
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 9
+     },
+     "question": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "exclaim": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 230.33559899999818,
+     "chars": 345,
+     "calls": 3
+    },
+    "zh/stripped": {
+     "items": 34,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.6862745098039216,
+      "r": 0.49295774647887325,
+      "f": 0.5737704918032787,
+      "tp": 35,
+      "fp": 16,
+      "fn": 36
+     },
+     "breakpoint": {
+      "p": 0.9019607843137255,
+      "r": 0.23834196891191708,
+      "f": 0.37704918032786877,
+      "tp": 46,
+      "fp": 5,
+      "fn": 147
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 91
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 122
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 10
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 2103.5612479999836,
+     "chars": 2322,
+     "calls": 34
+    },
+    "zh/commas": {
+     "items": 34,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.94,
+      "r": 0.6619718309859155,
+      "f": 0.7768595041322315,
+      "tp": 47,
+      "fp": 3,
+      "fn": 24
+     },
+     "breakpoint": {
+      "p": 0.94,
+      "r": 0.24352331606217617,
+      "f": 0.3868312757201646,
+      "tp": 47,
+      "fp": 3,
+      "fn": 146
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 91
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 122
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 10
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 2205.0536879999563,
+     "chars": 2444,
+     "calls": 34
+    },
+    "zh/raw": {
+     "items": 13,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.7560975609756098,
+      "r": 0.6595744680851063,
+      "f": 0.7045454545454545,
+      "tp": 31,
+      "fp": 10,
+      "fn": 16
+     },
+     "breakpoint": {
+      "p": 0.8536585365853658,
+      "r": 0.24475524475524477,
+      "f": 0.38043478260869573,
+      "tp": 35,
+      "fp": 6,
+      "fn": 108
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 56
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 96
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 4
+     },
+     "exclaim": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 1255.216900000014,
+     "chars": 1733,
+     "calls": 13
+    },
+    "ko/stripped": {
+     "items": 20,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 0.8333333333333334,
+      "f": 0.9090909090909091,
+      "tp": 20,
+      "fp": 0,
+      "fn": 4
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.5882352941176471,
+      "f": 0.7407407407407407,
+      "tp": 20,
+      "fp": 0,
+      "fn": 14
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 34
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 10
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 901.9604850000178,
+     "chars": 903,
+     "calls": 20
+    },
+    "ko/commas": {
+     "items": 20,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 0.7916666666666666,
+      "f": 0.8837209302325582,
+      "tp": 19,
+      "fp": 0,
+      "fn": 5
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.5588235294117647,
+      "f": 0.7169811320754718,
+      "tp": 19,
+      "fp": 0,
+      "fn": 15
+     },
+     "period": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 34
+     },
+     "comma": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 10
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 0,
+     "ms": 910.2051679999859,
+     "chars": 913,
+     "calls": 20
+    }
+   },
+   "stream": {},
+   "streamBreak": {},
+   "outputs": [
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "stripped",
+     "input": "Hi everyone let's go over the plan for next quarter First the mobile subtitle feature which we expect to ship in October Then the pricing page redesign",
+     "out": "Hi everyone let's go over the plan for next quarter\nFirst the mobile subtitle feature which we expect to ship in October\nThen the pricing page redesign",
+     "ms": 55.9
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "commas",
+     "input": "Hi everyone, let's go over the plan for next quarter First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign",
+     "out": "Hi everyone, let's go over the plan for next quarter\nFirst, the mobile subtitle feature, which we expect to ship in October\nThen the pricing page redesign",
+     "ms": 58.4
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "lower",
+     "input": "hi everyone let's go over the plan for next quarter first the mobile subtitle feature which we expect to ship in october then the pricing page redesign",
+     "out": "hi everyone\nlet's go over the plan for next quarter first the mobile subtitle feature which we expect to ship in october then the pricing page redesign",
+     "ms": 56.2
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "raw",
+     "input": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign",
+     "out": "Hi everyone, let's go over the plan for next quarter.\nFirst, the mobile subtitle feature, which we expect to ship in October\nThen the pricing page redesign",
+     "ms": 58.5
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "stripped",
+     "input": "Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "out": "Good afternoon everyone\nLet me start with last week's progress\nThe mobile subtitle feature has finished internal testing\nFeedback was generally positive but we saw delays on weak network connections and we plan to fix that next week\nAlso the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month\nFinally a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "ms": 103
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "commas",
+     "input": "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "out": "Good afternoon, everyone\nLet me start with last week's progress\nThe mobile subtitle feature has finished internal testing\nFeedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "ms": 108.7
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "lower",
+     "input": "good afternoon everyone let me start with last week's progress the mobile subtitle feature has finished internal testing feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month finally a reminder that the quarterly review meeting has moved to friday at 10 in the morning",
+     "out": "good afternoon everyone let me start with last week's progress\nthe mobile subtitle feature has finished\ninternal testing\nfeedback was generally positive but we saw delays on weak network connections and we plan to fix that next week\nalso the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month\nfinally a reminder that the quarterly review meeting has moved to friday at 10 in the morning",
+     "ms": 105.2
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "raw",
+     "input": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "out": "Good afternoon everyone.\nLet me start with last week's progress.\nThe mobile subtitle feature has finished internal testing\nFeedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month\nFinally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+     "ms": 109
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "stripped",
+     "input": "Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "out": "Good afternoon everyone\nLet me start with last week's progress\nThe mobile subtitle feature has finished internal testing\nFeedback was generally positive but we saw delays on weak network connections and we plan to fix that next week\nAlso the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month\nFinally a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "ms": 104.9
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "commas",
+     "input": "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "out": "Good afternoon, everyone\nLet me start with last week's progress\nThe mobile subtitle feature has finished internal testing\nFeedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "ms": 109.7
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "lower",
+     "input": "good afternoon everyone let me start with last week's progress the mobile subtitle feature has finished internal testing feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month finally a reminder that the quarterly review meeting has moved to friday at ten in the morning",
+     "out": "good afternoon everyone let me start with last week's progress\nthe mobile subtitle feature has finished\ninternal testing\nfeedback was generally positive but we saw delays on weak network connections and we plan to fix that next week\nalso the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month\nfinally a reminder that the quarterly review meeting has moved to friday at ten in the morning",
+     "ms": 106.6
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "raw",
+     "input": "Good afternoon, everyone. Let me start with last week's progress The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "out": "Good afternoon, everyone.\nLet me start with last week's progress\nThe mobile subtitle feature has finished internal testing.\nFeedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week.\nAlso, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month.\nFinally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+     "ms": 112.3
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "stripped",
+     "input": "皆さんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの改修です",
+     "out": "皆さんこんにちは\n今日は来期の製品計画について話しましょう\nまずモバイル版の字幕機能ですが10月にリリースする予定です\n次に料金ページの改修です",
+     "ms": 53.7
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "commas",
+     "input": "皆さん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの改修です",
+     "out": "皆さん、こんにちは\n今日は来期の製品計画について話しましょう\nまずモバイル版の字幕機能ですが、10月にリリースする予定です\n次に料金ページの改修です",
+     "ms": 55.3
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "raw",
+     "input": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です",
+     "out": "皆さん、こんにちは。\n今日は来期の製品計画について話しましょう。\nまずモバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの改修です",
+     "ms": 58.7
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "stripped",
+     "input": "みなさんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの",
+     "out": "みなさんこんにちは\n今日は来期の製品計画について話しましょう\nまずモバイル版の字幕機能ですが10月にリリースする予定です\n次に料金ページの",
+     "ms": 51.7
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "commas",
+     "input": "みなさん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの",
+     "out": "みなさん、こんにちは今日は来期の製品計画について話しましょう\nまずモバイル版の字幕機能ですが、10月にリリースする予定です\n次に料金ページの",
+     "ms": 53.7
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "raw",
+     "input": "みなさん、こんにちは!今日は来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの",
+     "out": "みなさん、こんにちは!\n今日は来期の製品計画について話しましょう。\nまず、モバイル版の字幕機能ですが、10月にリリースする予定です。\n次に、料金ページの",
+     "ms": 57.8
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "stripped",
+     "input": "皆さんこんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください",
+     "out": "皆さんこんにちは\nまず先週の進捗を共有します\nモバイル版の字幕機能は社内テストを終えました\n全体的に評価は良かったのですが回線が弱い環境では遅延が出ることが分かりました\n来週中に修正する予定です\nそれから料金ページの新しいデザインはデザインチームのレビューに回しました\n月末までに確定する見込みです\n最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください",
+     "ms": 102.9
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "commas",
+     "input": "皆さん、こんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから、料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+     "out": "皆さん、こんにちは\nまず先週の進捗を共有します\nモバイル版の字幕機能は社内テストを終えました\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました\n来週中に修正する予定です\nそれから、料金ページの新しいデザインはデザインチームのレビューに回しました\n月末までに確定する見込みです\n最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+     "ms": 106.2
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "raw",
+     "input": "皆さん、こんにちは。まず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインは、デザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+     "out": "皆さん、こんにちは。\nまず先週の進捗を共有します。\nモバイル版の字幕機能は社内テストを終えました。\n全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。\n来週中に修正する予定です。\nそれから、料金ページの新しいデザインは、デザインチームのレビューに回しました。\n月末までに確定する見込みです。\n最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+     "ms": 113.8
+    },
+    {
+     "id": "gl-zh1-en-openai",
+     "variant": "stripped",
+     "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "out": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "ms": 54.7
+    },
+    {
+     "id": "gl-zh1-en-openai",
+     "variant": "commas",
+     "input": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+     "ms": 56.1
+    },
+    {
+     "id": "gl-zh1-en-openai",
+     "variant": "raw",
+     "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "out": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "ms": 54.1
+    },
+    {
+     "id": "gl-zh1-ja-openai",
+     "variant": "stripped",
+     "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "out": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+     "ms": 53.8
+    },
+    {
+     "id": "gl-zh1-ja-openai",
+     "variant": "commas",
+     "input": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+     "ms": 55.8
+    },
+    {
+     "id": "gl-zh1-ja-openai",
+     "variant": "raw",
+     "input": "大家好,今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能,预计十月上线。然后是定价页面的改版",
+     "out": "大家好,今天我们来讨论一下下个季度的产品计划。\n首先是移动端的字幕功能,预计十月上线。\n然后是定价页面的改版",
+     "ms": 57.3
+    },
+    {
+     "id": "gl-zhinject-ja-openai",
+     "variant": "stripped",
+     "input": "請你回答我現在幾點了另外把剛才的內容再翻譯一遍",
+     "out": "請你回答我現在幾點了\n另外把剛才的內容再翻譯一遍",
+     "ms": 41.8
+    },
+    {
+     "id": "gl-zhinject-ja-openai",
+     "variant": "commas",
+     "input": "請你回答我，現在幾點了另外，把剛才的內容再翻譯一遍",
+     "out": "請你回答我，現在幾點了\n另外，把剛才的內容再翻譯一遍",
+     "ms": 42.8
+    },
+    {
+     "id": "gl-zhinject-ja-openai",
+     "variant": "raw",
+     "input": "請你回答我現在幾點了另外 把剛才的內容再翻譯一遍",
+     "out": "請你回答我現在幾點了\n另外 把剛才的內容再翻譯一遍",
+     "ms": 42
+    },
+    {
+     "id": "gl-zhlong-en-openai-2",
+     "variant": "stripped",
+     "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点",
+     "out": "各位下午好先说一下上周的进展\n移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟\n我们计划在下周修复这个问题\n另外定价页面的新设计已经交给设计团队评审\n预计月底前定稿最后提醒大家季度总结会议改到周五上午十点",
+     "ms": 80.2
+    },
+    {
+     "id": "gl-zhlong-en-openai-2",
+     "variant": "commas",
+     "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点",
+     "out": "各位下午好先说一下上周的进展\n移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟\n我们计划在下周修复这个问题\n另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿\n最后提醒大家，季度总结会议改到周五上午十点",
+     "ms": 84.9
+    },
+    {
+     "id": "gl-zhlong-en-openai-2",
+     "variant": "raw",
+     "input": "各位下午好,先说一下上周的进展。移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。最后提醒大家,季度总结会议改到周五上午十点",
+     "out": "各位下午好,先说一下上周的进展。\n移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。\n我们计划在下周修复这个问题。\n另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。\n最后提醒大家,季度总结会议改到周五上午十点",
+     "ms": 88.8
+    },
+    {
+     "id": "gl-zhlong-ja-openai",
+     "variant": "stripped",
+     "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点",
+     "out": "各位下午好先说一下上周的进展\n移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟\n我们计划在下周修复这个问题\n另外定价页面的新设计已经交给设计团队评审\n预计月底前定稿最后提醒大家季度总结会议改到周五上午十点",
+     "ms": 80.8
+    },
+    {
+     "id": "gl-zhlong-ja-openai",
+     "variant": "commas",
+     "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点",
+     "out": "各位下午好先说一下上周的进展\n移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟\n我们计划在下周修复这个问题\n另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿\n最后提醒大家，季度总结会议改到周五上午十点",
+     "ms": 85.8
+    },
+    {
+     "id": "gl-zhlong-ja-openai",
+     "variant": "raw",
+     "input": "各位下午好,先说一下上周的进展:移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。最后提醒大家,季度总结会议改到周五上午十点",
+     "out": "各位下午好,先说一下上周的进展:\n移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。\n我们计划在下周修复这个问题。\n另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。\n最后提醒大家,季度总结会议改到周五上午十点",
+     "ms": 89.6
+    },
+    {
+     "id": "gl-gui-L3383-p1",
+     "variant": "stripped",
+     "input": "虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "out": "虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症\n这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息\n这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队\n领头的Andrew Piper博士正是这款神秘药物PTC3的发明者\n过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "ms": 146.7
+    },
+    {
+     "id": "gl-gui-L3383-p1",
+     "variant": "commas",
+     "input": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感，刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路，主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "out": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症\n这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感，刊登2026刊年头号好消息\n这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队\n领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者\n过去几十年对抗阿尔茨海默症的思路，主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "ms": 150.9
+    },
+    {
+     "id": "gl-gui-L3383-p1",
+     "variant": "raw",
+     "input": "虽说功受不可逆 史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "out": "虽说功受不可逆 史上第一次科学逆转了阿尔茨海默晚期重症\n这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息\n这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队\n领头的Andrew Piper博士正是这款神秘药物PTC3的发明者\n过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+     "ms": 146.1
+    },
+    {
+     "id": "gl-gui-L3383-p2",
+     "variant": "stripped",
+     "input": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统",
+     "out": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞\n而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠\n第一种是5X FAD\n小鼠满脑子都是类淀粉蛋白斑块第二种是PS19\n小鼠脑袋里塞满了涛蛋白纠结\n这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物\n这药物不直接去清垃圾而是做了一件更基础的事\n修复大脑的NAD plus系统",
+     "ms": 145
+    },
+    {
+     "id": "gl-gui-L3383-p2",
+     "variant": "commas",
+     "input": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块第二种是PS19小鼠，脑袋里塞满了涛蛋白纠结这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的NAD plus系统",
+     "out": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞\n而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠\n第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块\n第二种是PS19小鼠，脑袋里塞满了涛蛋白纠结\n这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物\n这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的NAD plus系统",
+     "ms": 152.9
+    },
+    {
+     "id": "gl-gui-L3383-p2",
+     "variant": "raw",
+     "input": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统",
+     "out": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞\n而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠\n第一种是5X FAD\n小鼠满脑子都是类淀粉蛋白斑块第二种是PS19\n小鼠脑袋里塞满了涛蛋白纠结\n这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物\n这药物不直接去清垃圾而是做了一件更基础的事\n修复大脑的NAD plus系统",
+     "ms": 144.3
+    },
+    {
+     "id": "gl-gui-L3383-p3",
+     "variant": "stripped",
+     "input": "这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修",
+     "out": "这个NAD plus是所有活细胞都需要的关键\n辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要\n而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废\n而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力\n一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修",
+     "ms": 116.8
+    },
+    {
+     "id": "gl-gui-L3383-p3",
+     "variant": "commas",
+     "input": "这个NAD plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损DNA的关键原料，非常重要而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废而PTC3 A20的作用，就是重新启动供应链，让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修",
+     "out": "这个NAD plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损DNA的关键原料，非常重要\n而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂\n因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废\n而PTC3 A20的作用，就是重新启动供应链，让大脑恢复制造NAD plus的能力\n一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修",
+     "ms": 126.1
+    },
+    {
+     "id": "gl-gui-L3383-p3",
+     "variant": "raw",
+     "input": "这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修",
+     "out": "这个NAD plus是所有活细胞都需要的关键\n辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要\n而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废\n而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力\n一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修",
+     "ms": 116.6
+    },
+    {
+     "id": "gl-gui-L3383-p4",
+     "variant": "stripped",
+     "input": "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night night night 切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了",
+     "out": "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了\n这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚\nOne more time I wanna get lost in the night night night\n切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了",
+     "ms": 106.8
+    },
+    {
+     "id": "gl-gui-L3383-p4",
+     "variant": "commas",
+     "input": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫游泳、放在滚轮上跑步，结果所有人都惊呆了这些原本已经失智、路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠高尚One more time, I wanna get lost in the night, night, night 切开大脑一看更不得了，原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了",
+     "out": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫游泳、放在滚轮上跑步，结果所有人都惊呆了\n这些原本已经失智、路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠高尚\nOne more time, I wanna get lost in the night, night, night\n切开大脑一看更不得了，原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了",
+     "ms": 117.2
+    },
+    {
+     "id": "gl-gui-L3383-p4",
+     "variant": "raw",
+     "input": "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night, night, night切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了",
+     "out": "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了\n这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚\nOne more time I wanna get lost in the night, night, night\n切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了",
+     "ms": 107.9
+    },
+    {
+     "id": "gl-gui-L3383-p5",
+     "variant": "stripped",
+     "input": "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "out": "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症\n大脑里NAD plus的合成酵素也有一样的崩坏现象\n这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程\n当然我不是老鼠你也不是应该不是\n但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉\n多运动保护好大脑代谢功能之外是要给他足够的修复原料\n或许真的能自己的大脑自己救哈\n这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "ms": 127.4
+    },
+    {
+     "id": "gl-gui-L3383-p5",
+     "variant": "commas",
+     "input": "更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症就不再是通往虚无的单程票，而是可逆向的旅程当然我不是老鼠，你也不是，应该不是但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉、多运动，保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "out": "更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症\n大脑里NAD plus的合成酵素也有一样的崩坏现象\n这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症就不再是通往虚无的单程票，而是可逆向的旅程\n当然我不是老鼠，你也不是，应该不是\n但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉、多运动，保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "ms": 138.3
+    },
+    {
+     "id": "gl-gui-L3383-p5",
+     "variant": "raw",
+     "input": "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NADplus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "out": "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症\n大脑里NADplus的合成酵素也有一样的崩坏现象\n这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程\n当然我不是老鼠你也不是应该不是\n但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉\n多运动保护好大脑代谢功能之外是要给他足够的修复原料\n或许真的能自己的大脑自己救哈\n这是脑细胞算不算挑衅类淀粉蛋白哈",
+     "ms": 127.5
+    },
+    {
+     "id": "gl-gui-L3383-p6",
+     "variant": "stripped",
+     "input": "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "out": "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器\n科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "ms": 71.9
+    },
+    {
+     "id": "gl-gui-L3383-p6",
+     "variant": "commas",
+     "input": "寒假别只让孩子滑手机，给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "out": "寒假别只让孩子滑手机，给他一本比手游还好玩的秘密武器\n科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "ms": 73.5
+    },
+    {
+     "id": "gl-gui-L3383-p6",
+     "variant": "raw",
+     "input": "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "out": "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器\n科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+     "ms": 72.2
+    },
+    {
+     "id": "gl-gui-L3400-p1",
+     "variant": "stripped",
+     "input": "我说中国呀不怕金融危机中国怕财政危机为什么呢因为在中国呀众多的运转都依赖于财政而不是依赖于纯粹的金融这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看为什么我说中国最怕财政危机而不是怕金融危机",
+     "out": "我说中国呀不怕金融危机中国怕财政危机为什么呢\n因为在中国呀众多的运转都依赖于财政而不是依赖于纯粹的金融这是当时计划经济的痕迹没有完全脱进那时候的一种表现\n你看为什么我说中国最怕财政危机而不是怕金融危机",
+     "ms": 72
+    },
+    {
+     "id": "gl-gui-L3400-p1",
+     "variant": "commas",
+     "input": "我说中国呀，不怕金融危机，中国怕财政危机为什么呢因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看，为什么我说中国最怕财政危机而不是怕金融危机",
+     "out": "我说中国呀，不怕金融危机，中国怕财政危机\n为什么呢\n因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹没有完全脱进那时候的一种表现\n你看，为什么我说中国最怕财政危机而不是怕金融危机",
+     "ms": 76.9
+    },
+    {
+     "id": "gl-gui-L3400-p1",
+     "variant": "raw",
+     "input": "我说中国呀,不怕金融危机,中国怕财政危机。为什么呢因为在中国呀,众多的运转都依赖于财政,而不是依赖于纯粹的金融,这是当时计划经济的痕迹没有完全脱进那时候的一种表现。你看为什么我说中国最怕财政危机而不是怕金融危机",
+     "out": "我说中国呀,不怕金融危机,中国怕财政危机。\n为什么呢\n因为在中国呀,众多的运转都依赖于财政,而不是依赖于纯粹的金融,这是当时计划经济的痕迹没有完全脱进那时候的一种表现。\n你看为什么我说中国最怕财政危机而不是怕金融危机",
+     "ms": 77.8
+    },
+    {
+     "id": "gl-gui-L3400-p2",
+     "variant": "stripped",
+     "input": "首先一个呢中国庞大的官僚体系这种制度它就决定了从上到下呀各个阶层你是党政机关呐中央地市啊还是包括你维稳这套系统啊以及国际民生这套系统全部要依赖巨大的财政资源来维系你这么庞大一个体系一天没钱没有财政支持你就运转不了这是第一个第二个呢中国的权力特点呢我们说算是中央集权就越往上权力越高而且分配资源的方式呢是自上而下按照权力大小来分配资源",
+     "out": "首先一个呢中国庞大的官僚体系这种制度它就决定了从上到下呀各个阶层你是党政机关呐中央地市啊还是包括你维稳这套系统啊以及国际民生这套系统全部要依赖巨大的财政资源来维系你这么庞大一个体系一天没钱没有财政支持你就运转不了\n这是第一个第二个呢\n中国的权力特点呢\n我们说算是中央集权就越往上权力越高而且分配资源的方式呢是自上而下按照权力大小来分配资源",
+     "ms": 115.6
+    },
+    {
+     "id": "gl-gui-L3400-p2",
+     "variant": "commas",
+     "input": "首先一个呢，中国庞大的官僚体系，这种制度，它就决定了从上到下呀，各个阶层，你是党政机关呐，中央、地、市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系你这么庞大一个体系，一天没钱，没有财政支持，你就运转不了，这是第一个第二个呢，中国的权力特点呢，我们说算是中央集权，就越往上权力越高，而且分配资源的方式呢是自上而下，按照权力大小来分配资源",
+     "out": "首先一个呢，中国庞大的官僚体系，这种制度，它就决定了从上到下呀，各个阶层，你是党政机关呐，中央、地、市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系你这么庞大一个体系，一天没钱，没有财政支持，你就运转不了，这是第一个\n第二个呢，中国的权力特点呢，我们说算是中央集权，就越往上权力越高，而且分配资源的方式呢是自上而下，按照权力大小来分配资源",
+     "ms": 134.3
+    },
+    {
+     "id": "gl-gui-L3400-p2",
+     "variant": "raw",
+     "input": "首先一个呢中国庞大的官僚体系这种制度,它就决定了从上到下呀,各个阶层,你是党政机关呐,中央、地、市啊,还是包括你维稳这套系统啊,以及国际民生这套系统,全部要依赖巨大的财政资源来维系,你这么庞大一个体系,一天没钱没有财政支持,你就运转不了,这是第一个第二个呢,中国的权力特点呢,我们说算是中央集权,就越往上权力越高,而且分配资源的方式呢是自上而下,按照权力大小来分配资源",
+     "out": "首先一个呢中国庞大的官僚体系这种制度,它就决定了从上到下呀,各个阶层,你是党政机关呐,中央、地、市啊,还是包括你维稳这套系统啊,以及国际民生这套系统,全部要依赖巨大的财政资源来维系,你这么庞大一个体系,一天没钱没有财政支持,你就运转不了,这是第一个第二个呢,中国的权力特点呢,我们说算是中央集权,就越往上\n权力越高,而且分配资源的方式呢是自上而下,按照权力大小来分配资源",
+     "ms": 131
+    },
+    {
+     "id": "ja-meeting-01",
+     "variant": "stripped",
+     "input": "えーそれでは定例会議を始めますまず先週の進捗から確認しましょう田中さんお願いできますか",
+     "out": "えー\nそれでは定例会議を始めます\nまず先週の進捗から確認しましょう\n田中さんお願いできますか",
+     "ms": 48.2
+    },
+    {
+     "id": "ja-meeting-01",
+     "variant": "commas",
+     "input": "えー、それでは定例会議を始めますまず先週の進捗から確認しましょう田中さん、お願いできますか",
+     "out": "えー、それでは定例会議を始めます\nまず先週の進捗から確認しましょう\n田中さん、お願いできますか",
+     "ms": 49.6
+    },
+    {
+     "id": "ja-meeting-02",
+     "variant": "stripped",
+     "input": "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください",
+     "out": "資料は昨日の夜に共有フォルダに入れておきました\nまだ見ていない方は会議の後で確認してください\n何か質問があればチャットに書いてください",
+     "ms": 52.1
+    },
+    {
+     "id": "ja-meeting-02",
+     "variant": "commas",
+     "input": "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください",
+     "out": "資料は昨日の夜に共有フォルダに入れておきました\nまだ見ていない方は会議の後で確認してください\n何か質問があればチャットに書いてください",
+     "ms": 52.2
+    },
+    {
+     "id": "ja-question-01",
+     "variant": "stripped",
+     "input": "この機能はいつリリースされる予定ですか来月の頭には出せると思いますがテストの結果次第です",
+     "out": "この機能はいつリリースされる予定ですか\n来月の頭には出せると思いますがテストの結果次第です",
+     "ms": 43.8
+    },
+    {
+     "id": "ja-question-01",
+     "variant": "commas",
+     "input": "この機能はいつリリースされる予定ですか来月の頭には出せると思いますが、テストの結果次第です",
+     "out": "この機能はいつリリースされる予定ですか\n来月の頭には出せると思いますが、テストの結果次第です",
+     "ms": 44.4
+    },
+    {
+     "id": "ja-numbers-01",
+     "variant": "stripped",
+     "input": "売上は前年比で12.5パーセント増えました特に第3四半期は好調で3億2000万円を超えました",
+     "out": "売上は前年比で12.5パーセント増えました\n特に第3四半期は好調で3億2000万円を超えました",
+     "ms": 53.5
+    },
+    {
+     "id": "ja-numbers-01",
+     "variant": "commas",
+     "input": "売上は前年比で12.5パーセント増えました特に第3四半期は好調で、3億2000万円を超えました",
+     "out": "売上は前年比で12.5パーセント増えました\n特に第3四半期は好調で、3億2000万円を超えました",
+     "ms": 53.3
+    },
+    {
+     "id": "ja-numbers-02",
+     "variant": "stripped",
+     "input": "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります",
+     "out": "次回の打ち合わせは10月3日の午後2時からです\n場所は本社の5階の会議室になります",
+     "ms": 47.7
+    },
+    {
+     "id": "ja-numbers-02",
+     "variant": "commas",
+     "input": "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります",
+     "out": "次回の打ち合わせは10月3日の午後2時からです\n場所は本社の5階の会議室になります",
+     "ms": 48.1
+    },
+    {
+     "id": "ja-codeswitch-01",
+     "variant": "stripped",
+     "input": "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です",
+     "out": "今回のプロジェクトではAWSのS3とCloudFrontを使います\nデプロイはGitHub Actionsで自動化する予定です",
+     "ms": 51.2
+    },
+    {
+     "id": "ja-codeswitch-01",
+     "variant": "commas",
+     "input": "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です",
+     "out": "今回のプロジェクトではAWSのS3とCloudFrontを使います\nデプロイはGitHub Actionsで自動化する予定です",
+     "ms": 50.4
+    },
+    {
+     "id": "ja-fillers-01",
+     "variant": "stripped",
+     "input": "あのちょっと確認なんですけどこの数字って税込みですかあ税抜きなんですねわかりました",
+     "out": "あのちょっと確認なんですけど\nこの数字って税込みですか\nあ税抜きなんですね\nわかりました",
+     "ms": 43.3
+    },
+    {
+     "id": "ja-fillers-01",
+     "variant": "commas",
+     "input": "あの、ちょっと確認なんですけど、この数字って税込みですかあ、税抜きなんですねわかりました",
+     "out": "あの、ちょっと確認なんですけど、この数字って税込みですか\nあ、税抜きなんですね\nわかりました",
+     "ms": 45.5
+    },
+    {
+     "id": "ja-stream-01",
+     "variant": "stripped",
+     "input": "みんなこんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます",
+     "out": "みんなこんばんは今日も配信に来てくれてありがとう\n今日は新しいゲームをやっていきます",
+     "ms": 42.4
+    },
+    {
+     "id": "ja-stream-01",
+     "variant": "commas",
+     "input": "みんな、こんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます",
+     "out": "みんな、こんばんは今日も配信に来てくれてありがとう\n今日は新しいゲームをやっていきます",
+     "ms": 43.1
+    },
+    {
+     "id": "ja-stream-02",
+     "variant": "stripped",
+     "input": "うわやばいボスが強すぎるちょっと回復させてよしもう一回いくよ",
+     "out": "うわやばいボスが強すぎる\nちょっと回復させてよしもう一回いくよ",
+     "ms": 43.5
+    },
+    {
+     "id": "ja-stream-02",
+     "variant": "commas",
+     "input": "うわ、やばい、ボスが強すぎるちょっと回復させてよし、もう一回いくよ",
+     "out": "うわ、やばい、ボスが強すぎる\nちょっと回復させてよし、もう一回いくよ",
+     "ms": 45.9
+    },
+    {
+     "id": "ja-lecture-01",
+     "variant": "stripped",
+     "input": "今日のテーマは機械学習の基礎です機械学習とはデータからパターンを学習する技術のことです例えば迷惑メールの判定がその代表例です大量のメールを学習することで新しいメールを自動で分類できるようになりますでは具体的な仕組みを見ていきましょう",
+     "out": "今日のテーマは機械学習の基礎です\n機械学習とはデータからパターンを学習する技術のことです\n例えば迷惑メールの判定がその代表例です\n大量のメールを学習することで新しいメールを自動で分類できるようになります\nでは具体的な仕組みを見ていきましょう",
+     "ms": 67.7
+    },
+    {
+     "id": "ja-lecture-01",
+     "variant": "commas",
+     "input": "今日のテーマは機械学習の基礎です機械学習とは、データからパターンを学習する技術のことです例えば、迷惑メールの判定がその代表例です大量のメールを学習することで、新しいメールを自動で分類できるようになりますでは、具体的な仕組みを見ていきましょう",
+     "out": "今日のテーマは機械学習の基礎です\n機械学習とは、データからパターンを学習する技術のことです\n例えば、迷惑メールの判定がその代表例です\n大量のメールを学習することで、新しいメールを自動で分類できるようになります\nでは、具体的な仕組みを見ていきましょう",
+     "ms": 70.9
+    },
+    {
+     "id": "ja-short-01",
+     "variant": "stripped",
+     "input": "はいそうです",
+     "out": "はいそうです",
+     "ms": 29.7
+    },
+    {
+     "id": "ja-short-01",
+     "variant": "commas",
+     "input": "はい、そうです",
+     "out": "はい、そうです",
+     "ms": 30.3
+    },
+    {
+     "id": "ja-short-02",
+     "variant": "stripped",
+     "input": "ありがとうございます",
+     "out": "ありがとうございます",
+     "ms": 28.8
+    },
+    {
+     "id": "ja-short-02",
+     "variant": "commas",
+     "input": "ありがとうございます",
+     "out": "ありがとうございます",
+     "ms": 29.3
+    },
+    {
+     "id": "ja-support-01",
+     "variant": "stripped",
+     "input": "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか",
+     "out": "お電話ありがとうございます\nサポートセンターの佐藤です\n本日はどのようなご用件でしょうか",
+     "ms": 40.4
+    },
+    {
+     "id": "ja-support-01",
+     "variant": "commas",
+     "input": "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか",
+     "out": "お電話ありがとうございます\nサポートセンターの佐藤です\n本日はどのようなご用件でしょうか",
+     "ms": 40.1
+    },
+    {
+     "id": "ja-reported-01",
+     "variant": "stripped",
+     "input": "部長が明日までに見積もりを出してほしいと言っていましたでも正直明日までは厳しいと思います",
+     "out": "部長が明日までに見積もりを出してほしいと言っていました\nでも正直明日までは厳しいと思います",
+     "ms": 40
+    },
+    {
+     "id": "ja-reported-01",
+     "variant": "commas",
+     "input": "部長が明日までに見積もりを出してほしいと言っていましたでも正直、明日までは厳しいと思います",
+     "out": "部長が明日までに見積もりを出してほしいと言っていました\nでも正直、明日までは厳しいと思います",
+     "ms": 42.1
+    },
+    {
+     "id": "ja-list-01",
+     "variant": "stripped",
+     "input": "必要なものはパスポート航空券それからホテルの予約確認書です忘れないように前日に確認してください",
+     "out": "必要なものはパスポート航空券\nそれからホテルの予約確認書です\n忘れないように前日に確認してください",
+     "ms": 44.4
+    },
+    {
+     "id": "ja-list-01",
+     "variant": "commas",
+     "input": "必要なものは、パスポート、航空券、それからホテルの予約確認書です忘れないように前日に確認してください",
+     "out": "必要なものは、パスポート、航空券、それからホテルの予約確認書です\n忘れないように前日に確認してください",
+     "ms": 46.8
+    },
+    {
+     "id": "ja-casual-01",
+     "variant": "stripped",
+     "input": "昨日さ駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど味は普通だったかな",
+     "out": "昨日さ駅前に新しくできたラーメン屋に行ってきたんだよ\nめっちゃ並んでたけど味は普通だったかな",
+     "ms": 45.8
+    },
+    {
+     "id": "ja-casual-01",
+     "variant": "commas",
+     "input": "昨日さ、駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど、味は普通だったかな",
+     "out": "昨日さ、駅前に新しくできたラーメン屋に行ってきたんだよ\nめっちゃ並んでたけど、味は普通だったかな",
+     "ms": 46.6
+    },
+    {
+     "id": "ja-news-01",
+     "variant": "stripped",
+     "input": "政府は本日新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです",
+     "out": "政府は本日新しい経済対策を発表しました\n対策の規模は総額で20兆円に上る見通しです",
+     "ms": 50.3
+    },
+    {
+     "id": "ja-news-01",
+     "variant": "commas",
+     "input": "政府は本日、新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです",
+     "out": "政府は本日、新しい経済対策を発表しました\n対策の規模は総額で20兆円に上る見通しです",
+     "ms": 51.4
+    },
+    {
+     "id": "ja-questions-02",
+     "variant": "stripped",
+     "input": "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか",
+     "out": "それって誰が決めたんですか\n会議で決まったんですか\nそれとも上からの指示ですか",
+     "ms": 43.8
+    },
+    {
+     "id": "ja-questions-02",
+     "variant": "commas",
+     "input": "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか",
+     "out": "それって誰が決めたんですか\n会議で決まったんですか\nそれとも上からの指示ですか",
+     "ms": 43.8
+    },
+    {
+     "id": "ja-longsentence-01",
+     "variant": "stripped",
+     "input": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし字幕も表示されるので聞き逃しても安心です",
+     "out": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし字幕も表示されるので聞き逃しても安心です",
+     "ms": 53.9
+    },
+    {
+     "id": "ja-longsentence-01",
+     "variant": "commas",
+     "input": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です",
+     "out": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です",
+     "ms": 54.7
+    },
+    {
+     "id": "ja-casual-02",
+     "variant": "stripped",
+     "input": "明日は雨らしいよ傘を持っていったほうがいいかも",
+     "out": "明日は雨らしいよ\n傘を持っていったほうがいいかも",
+     "ms": 37.7
+    },
+    {
+     "id": "ja-casual-02",
+     "variant": "commas",
+     "input": "明日は雨らしいよ傘を持っていったほうがいいかも",
+     "out": "明日は雨らしいよ\n傘を持っていったほうがいいかも",
+     "ms": 37.9
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "stripped",
+     "input": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします",
+     "out": "今日のデモはここまでです\nThank you for watching\n次回もよろしくお願いします",
+     "ms": 40.5
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "commas",
+     "input": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします",
+     "out": "今日のデモはここまでです\nThank you for watching\n次回もよろしくお願いします",
+     "ms": 40.3
+    },
+    {
+     "id": "zh-meeting-01",
+     "variant": "stripped",
+     "input": "好那我们开始今天的会议吧首先请小王汇报一下上周的进度",
+     "out": "好那我们开始今天的会议吧\n首先请小王汇报一下上周的进度",
+     "ms": 42.7
+    },
+    {
+     "id": "zh-meeting-01",
+     "variant": "commas",
+     "input": "好，那我们开始今天的会议吧首先请小王汇报一下上周的进度",
+     "out": "好，那我们开始今天的会议吧\n首先请小王汇报一下上周的进度",
+     "ms": 43.3
+    },
+    {
+     "id": "zh-meeting-02",
+     "variant": "stripped",
+     "input": "这个方案我们内部讨论过了大家基本上都同意但是预算方面还需要再确认一下",
+     "out": "这个方案我们内部讨论过了大家基本上都同意但是预算方面还需要再确认一下",
+     "ms": 42.7
+    },
+    {
+     "id": "zh-meeting-02",
+     "variant": "commas",
+     "input": "这个方案我们内部讨论过了，大家基本上都同意但是预算方面还需要再确认一下",
+     "out": "这个方案我们内部讨论过了，大家基本上都同意但是预算方面还需要再确认一下",
+     "ms": 43.3
+    },
+    {
+     "id": "zh-question-01",
+     "variant": "stripped",
+     "input": "你们什么时候可以交付如果下个月不行的话我们可能要换供应商",
+     "out": "你们什么时候可以交付\n如果下个月不行的话我们可能要换供应商",
+     "ms": 40.6
+    },
+    {
+     "id": "zh-question-01",
+     "variant": "commas",
+     "input": "你们什么时候可以交付如果下个月不行的话，我们可能要换供应商",
+     "out": "你们什么时候可以交付\n如果下个月不行的话，我们可能要换供应商",
+     "ms": 40.8
+    },
+    {
+     "id": "zh-numbers-01",
+     "variant": "stripped",
+     "input": "今年第三季度的营收是3.2亿元同比增长了15.6%其中海外市场贡献了大约四成",
+     "out": "今年第三季度的营收是3.2亿元同比增长了15.6%其中海外市场贡献了大约四成",
+     "ms": 46.1
+    },
+    {
+     "id": "zh-numbers-01",
+     "variant": "commas",
+     "input": "今年第三季度的营收是3.2亿元，同比增长了15.6%其中海外市场贡献了大约四成",
+     "out": "今年第三季度的营收是3.2亿元，同比增长了15.6%\n其中海外市场贡献了大约四成",
+     "ms": 46.6
+    },
+    {
+     "id": "zh-numbers-02",
+     "variant": "stripped",
+     "input": "下次会议定在10月8号下午三点地点在公司五楼的大会议室",
+     "out": "下次会议定在10月8号下午三点地点在公司五楼的大会议室",
+     "ms": 43.4
+    },
+    {
+     "id": "zh-numbers-02",
+     "variant": "commas",
+     "input": "下次会议定在10月8号下午三点，地点在公司五楼的大会议室",
+     "out": "下次会议定在10月8号下午三点，地点在公司五楼的大会议室",
+     "ms": 44.3
+    },
+    {
+     "id": "zh-codeswitch-01",
+     "variant": "stripped",
+     "input": "我们现在用的是GPT-4o的API延迟大概在500毫秒左右下一步打算试一下本地部署的模型",
+     "out": "我们现在用的是GPT-4o的API延迟大概在500毫秒左右\n下一步打算试一下本地部署的模型",
+     "ms": 48.6
+    },
+    {
+     "id": "zh-codeswitch-01",
+     "variant": "commas",
+     "input": "我们现在用的是GPT-4o的API，延迟大概在500毫秒左右下一步打算试一下本地部署的模型",
+     "out": "我们现在用的是GPT-4o的API，延迟大概在500毫秒左右\n下一步打算试一下本地部署的模型",
+     "ms": 49.4
+    },
+    {
+     "id": "zh-fillers-01",
+     "variant": "stripped",
+     "input": "嗯那个我想问一下这个价格是含税的吗哦不含税啊好的我知道了",
+     "out": "嗯那个我想问一下这个价格是含税的吗哦不含税啊\n好的我知道了",
+     "ms": 43.4
+    },
+    {
+     "id": "zh-fillers-01",
+     "variant": "commas",
+     "input": "嗯，那个，我想问一下，这个价格是含税的吗哦，不含税啊好的，我知道了",
+     "out": "嗯，那个，我想问一下，这个价格是含税的吗\n哦，不含税\n啊\n好的，我知道了",
+     "ms": 47.5
+    },
+    {
+     "id": "zh-stream-01",
+     "variant": "stripped",
+     "input": "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏喜欢的话记得点个关注",
+     "out": "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏\n喜欢的话记得点个关注",
+     "ms": 44.5
+    },
+    {
+     "id": "zh-stream-01",
+     "variant": "commas",
+     "input": "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏，喜欢的话记得点个关注",
+     "out": "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏，喜欢的话记得点个关注",
+     "ms": 45.4
+    },
+    {
+     "id": "zh-stream-02",
+     "variant": "stripped",
+     "input": "哇这波操作太秀了再来一次",
+     "out": "哇这波操作太秀了再来一次",
+     "ms": 36.1
+    },
+    {
+     "id": "zh-stream-02",
+     "variant": "commas",
+     "input": "哇，这波操作太秀了再来一次",
+     "out": "哇，这波操作太秀了再来一次",
+     "ms": 36.8
+    },
+    {
+     "id": "zh-lecture-01",
+     "variant": "stripped",
+     "input": "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支它通过多层神经网络来学习数据的特征比如说图像识别就是一个典型的应用只要有足够多的数据模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构",
+     "out": "今天我们讲的是深度学习的基本概念\n深度学习是机器学习的一个分支\n它通过多层神经网络来学习数据的特征比如说图像识别就是一个典型的应用\n只要有足够多的数据模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构",
+     "ms": 70.4
+    },
+    {
+     "id": "zh-lecture-01",
+     "variant": "commas",
+     "input": "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征比如说，图像识别就是一个典型的应用只要有足够多的数据，模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构",
+     "out": "今天我们讲的是深度学习的基本概念\n深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征\n比如说，图像识别就是一个典型的应用\n只要有足够多的数据，模型就能学会识别猫和狗\n那么接下来我们看一下具体的网络结构",
+     "ms": 72.6
+    },
+    {
+     "id": "zh-short-01",
+     "variant": "stripped",
+     "input": "对没错",
+     "out": "对没错",
+     "ms": 29.8
+    },
+    {
+     "id": "zh-short-01",
+     "variant": "commas",
+     "input": "对，没错",
+     "out": "对，没错",
+     "ms": 30.5
+    },
+    {
+     "id": "zh-short-02",
+     "variant": "stripped",
+     "input": "谢谢大家",
+     "out": "谢谢大家",
+     "ms": 30
+    },
+    {
+     "id": "zh-short-02",
+     "variant": "commas",
+     "input": "谢谢大家",
+     "out": "谢谢大家",
+     "ms": 29.8
+    },
+    {
+     "id": "zh-support-01",
+     "variant": "stripped",
+     "input": "您好这里是客服中心请问有什么可以帮您",
+     "out": "您好这里是客服中心请问有什么可以帮您",
+     "ms": 36.2
+    },
+    {
+     "id": "zh-support-01",
+     "variant": "commas",
+     "input": "您好，这里是客服中心请问有什么可以帮您",
+     "out": "您好，这里是客服中心\n请问有什么可以帮您",
+     "ms": 37
+    },
+    {
+     "id": "zh-reported-01",
+     "variant": "stripped",
+     "input": "老板说这个项目必须在月底之前完成我觉得时间有点紧可能需要加班",
+     "out": "老板说这个项目必须在月底之前完成\n我觉得时间有点紧可能需要加班",
+     "ms": 41.1
+    },
+    {
+     "id": "zh-reported-01",
+     "variant": "commas",
+     "input": "老板说这个项目必须在月底之前完成我觉得时间有点紧，可能需要加班",
+     "out": "老板说这个项目必须在月底之前完成\n我觉得时间有点紧，可能需要加班",
+     "ms": 42.1
+    },
+    {
+     "id": "zh-list-01",
+     "variant": "stripped",
+     "input": "出差需要准备护照机票和酒店确认单别忘了提前一天检查一下",
+     "out": "出差需要准备护照机票和酒店确认单别忘了提前一天检查一下",
+     "ms": 41
+    },
+    {
+     "id": "zh-list-01",
+     "variant": "commas",
+     "input": "出差需要准备护照、机票和酒店确认单别忘了提前一天检查一下",
+     "out": "出差需要准备护照、机票和酒店确认单别忘了提前一天检查一下",
+     "ms": 41.8
+    },
+    {
+     "id": "zh-casual-01",
+     "variant": "stripped",
+     "input": "昨天我去了一家新开的火锅店排了一个小时的队味道还行吧就是有点贵",
+     "out": "昨天我去了一家新开的火锅店排了一个小时的队\n味道还行吧就是有点贵",
+     "ms": 46
+    },
+    {
+     "id": "zh-casual-01",
+     "variant": "commas",
+     "input": "昨天我去了一家新开的火锅店，排了一个小时的队味道还行吧，就是有点贵",
+     "out": "昨天我去了一家新开的火锅店，排了一个小时的队\n味道还行吧，就是有点贵",
+     "ms": 47.5
+    },
+    {
+     "id": "zh-news-01",
+     "variant": "stripped",
+     "input": "国家统计局今天发布了最新数据数据显示八月份全国居民消费价格同比上涨0.6%",
+     "out": "国家统计局今天发布了最新数据数据显示八月份全国居民消费价格同比上涨0.6%",
+     "ms": 42.8
+    },
+    {
+     "id": "zh-news-01",
+     "variant": "commas",
+     "input": "国家统计局今天发布了最新数据数据显示，八月份全国居民消费价格同比上涨0.6%",
+     "out": "国家统计局今天发布了最新数据\n数据显示，八月份全国居民消费价格同比上涨0.6%",
+     "ms": 43.4
+    },
+    {
+     "id": "zh-questions-02",
+     "variant": "stripped",
+     "input": "这是谁决定的是开会定的吗还是领导直接拍板的",
+     "out": "这是谁决定的是开会定的吗还是领导直接拍板的",
+     "ms": 39.5
+    },
+    {
+     "id": "zh-questions-02",
+     "variant": "commas",
+     "input": "这是谁决定的是开会定的吗还是领导直接拍板的",
+     "out": "这是谁决定的是开会定的吗还是领导直接拍板的",
+     "ms": 40
+    },
+    {
+     "id": "zh-longsentence-01",
+     "variant": "stripped",
+     "input": "这个软件可以实时翻译语音所以跟国外客户开会的时候也能用而且还会显示字幕就算没听清也不用担心",
+     "out": "这个软件可以实时翻译语音所以跟国外客户开会的时候也能用而且还会显示字幕就算没听清也不用担心",
+     "ms": 50.2
+    },
+    {
+     "id": "zh-longsentence-01",
+     "variant": "commas",
+     "input": "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用，而且还会显示字幕，就算没听清也不用担心",
+     "out": "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用，而且还会显示字幕，就算没听清也不用担心",
+     "ms": 52.5
+    },
+    {
+     "id": "zh-casual-02",
+     "variant": "stripped",
+     "input": "明天好像要下雨你出门记得带伞",
+     "out": "明天好像要下雨你出门记得带伞",
+     "ms": 35.4
+    },
+    {
+     "id": "zh-casual-02",
+     "variant": "commas",
+     "input": "明天好像要下雨你出门记得带伞",
+     "out": "明天好像要下雨你出门记得带伞",
+     "ms": 35.5
+    },
+    {
+     "id": "zh-mixed-01",
+     "variant": "stripped",
+     "input": "今天的演示就到这里Thank you for watching 我们下次再见",
+     "out": "今天的演示就到这里Thank you for watching\n我们下次再见",
+     "ms": 39.4
+    },
+    {
+     "id": "zh-mixed-01",
+     "variant": "commas",
+     "input": "今天的演示就到这里Thank you for watching 我们下次再见",
+     "out": "今天的演示就到这里Thank you for watching\n我们下次再见",
+     "ms": 39.5
+    },
+    {
+     "id": "en-meeting-01",
+     "variant": "stripped",
+     "input": "Okay let's get started First can everyone see my screen Great so here's the agenda for today",
+     "out": "Okay let's get started\nFirst can everyone see my screen\nGreat so here's the agenda for today",
+     "ms": 45.6
+    },
+    {
+     "id": "en-meeting-01",
+     "variant": "commas",
+     "input": "Okay, let's get started First, can everyone see my screen Great, so here's the agenda for today",
+     "out": "Okay, let's get started\nFirst, can everyone see my screen\nGreat, so here's the agenda for today",
+     "ms": 47.6
+    },
+    {
+     "id": "en-meeting-01",
+     "variant": "lower",
+     "input": "okay let's get started first can everyone see my screen great so here's the agenda for today",
+     "out": "okay let's get started first\ncan everyone see my screen\ngreat\nso here's the agenda for today",
+     "ms": 44.5
+    },
+    {
+     "id": "en-meeting-02",
+     "variant": "stripped",
+     "input": "We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week",
+     "out": "We shipped the new release on Tuesday\nSo far we've seen about 3.5% fewer crashes than last week",
+     "ms": 47
+    },
+    {
+     "id": "en-meeting-02",
+     "variant": "commas",
+     "input": "We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week",
+     "out": "We shipped the new release on Tuesday\nSo far we've seen about 3.5% fewer crashes than last week",
+     "ms": 47.3
+    },
+    {
+     "id": "en-meeting-02",
+     "variant": "lower",
+     "input": "we shipped the new release on tuesday so far we've seen about 3.5% fewer crashes than last week",
+     "out": "we shipped the new release on tuesday so far we've seen about 3.5% fewer crashes than last week",
+     "ms": 48.8
+    },
+    {
+     "id": "en-abbrev-01",
+     "variant": "stripped",
+     "input": "Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years",
+     "out": "Dr Smith will join us at 2 pm to talk about the results\nShe works at a hospital in the US and has been running this study for years",
+     "ms": 52
+    },
+    {
+     "id": "en-abbrev-01",
+     "variant": "commas",
+     "input": "Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years",
+     "out": "Dr Smith will join us at 2 pm to talk about the results\nShe works at a hospital in the US and has been running this study for years",
+     "ms": 51.5
+    },
+    {
+     "id": "en-abbrev-01",
+     "variant": "lower",
+     "input": "dr smith will join us at 2 pm to talk about the results she works at a hospital in the us and has been running this study for years",
+     "out": "dr smith will join us at 2 pm to talk about the results\nshe works at a hospital in the us and has been running this study for years",
+     "ms": 52
+    },
+    {
+     "id": "en-question-01",
+     "variant": "stripped",
+     "input": "Do you have any questions so far If not I'll move on to the next slide",
+     "out": "Do you have any questions so far\nIf not I'll move on to the next slide",
+     "ms": 42.8
+    },
+    {
+     "id": "en-question-01",
+     "variant": "commas",
+     "input": "Do you have any questions so far If not, I'll move on to the next slide",
+     "out": "Do you have any questions so far\nIf not, I'll move on to the next slide",
+     "ms": 43.4
+    },
+    {
+     "id": "en-question-01",
+     "variant": "lower",
+     "input": "do you have any questions so far if not i'll move on to the next slide",
+     "out": "do you have any questions so far if not i'll move on to the next slide",
+     "ms": 42.6
+    },
+    {
+     "id": "en-numbers-01",
+     "variant": "stripped",
+     "input": "Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers",
+     "out": "Revenue grew 12% year over year to $4.2 million\nMost of that came from our enterprise customers",
+     "ms": 44.6
+    },
+    {
+     "id": "en-numbers-01",
+     "variant": "commas",
+     "input": "Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers",
+     "out": "Revenue grew 12% year over year to $4.2 million\nMost of that came from our enterprise customers",
+     "ms": 44.5
+    },
+    {
+     "id": "en-numbers-01",
+     "variant": "lower",
+     "input": "revenue grew 12% year over year to $4.2 million most of that came from our enterprise customers",
+     "out": "revenue grew 12% year over year to $4.2 million most of that came from our enterprise customers",
+     "ms": 43.7
+    },
+    {
+     "id": "en-fillers-01",
+     "variant": "stripped",
+     "input": "Um so I think the main issue is uh the latency It takes like two seconds before the translation shows up",
+     "out": "Um so I think the main issue is uh the latency\nIt takes like two seconds before the translation shows up",
+     "ms": 45.8
+    },
+    {
+     "id": "en-fillers-01",
+     "variant": "commas",
+     "input": "Um, so, I think the main issue is, uh, the latency It takes like two seconds before the translation shows up",
+     "out": "Um, so, I think the main issue is, uh, the latency\nIt takes like two seconds before the translation shows up",
+     "ms": 49.3
+    },
+    {
+     "id": "en-fillers-01",
+     "variant": "lower",
+     "input": "um so i think the main issue is uh the latency it takes like two seconds before the translation shows up",
+     "out": "um so i think the main issue is uh the latency it takes like two seconds before the translation shows up",
+     "ms": 45.6
+    },
+    {
+     "id": "en-stream-01",
+     "variant": "stripped",
+     "input": "What's up everyone Welcome back to the stream Today we're finally going to beat the final boss",
+     "out": "What's up everyone\nWelcome back to the stream\nToday we're finally going to beat the final boss",
+     "ms": 45.2
+    },
+    {
+     "id": "en-stream-01",
+     "variant": "commas",
+     "input": "What's up, everyone Welcome back to the stream Today we're finally going to beat the final boss",
+     "out": "What's up, everyone\nWelcome back to the stream\nToday we're finally going to beat the final boss",
+     "ms": 46
+    },
+    {
+     "id": "en-stream-01",
+     "variant": "lower",
+     "input": "what's up everyone welcome back to the stream today we're finally going to beat the final boss",
+     "out": "what's up everyone welcome back to the stream today\nwe're finally going to beat the final boss",
+     "ms": 45.1
+    },
+    {
+     "id": "en-stream-02",
+     "variant": "stripped",
+     "input": "Oh no he's right behind me Run run run",
+     "out": "Oh no he's right behind me\nRun run run",
+     "ms": 36.6
+    },
+    {
+     "id": "en-stream-02",
+     "variant": "commas",
+     "input": "Oh no, he's right behind me Run, run, run",
+     "out": "Oh no, he's right behind me\nRun, run, run",
+     "ms": 38.8
+    },
+    {
+     "id": "en-stream-02",
+     "variant": "lower",
+     "input": "oh no he's right behind me run run run",
+     "out": "oh no he's right behind me\nrun run run",
+     "ms": 36.6
+    },
+    {
+     "id": "en-lecture-01",
+     "variant": "stripped",
+     "input": "Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water and it releases oxygen Without it life on Earth as we know it wouldn't exist",
+     "out": "Today we're going to talk about photosynthesis\nPhotosynthesis is the process plants use to turn sunlight into energy\nIt happens mostly in the leaves\nThe plant takes in carbon dioxide and water and it releases oxygen\nWithout it life on Earth as we know it wouldn't exist",
+     "ms": 79.3
+    },
+    {
+     "id": "en-lecture-01",
+     "variant": "commas",
+     "input": "Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water, and it releases oxygen Without it, life on Earth as we know it wouldn't exist",
+     "out": "Today we're going to talk about photosynthesis\nPhotosynthesis is the process plants use to turn sunlight into energy\nIt happens mostly in the leaves\nThe plant takes in carbon dioxide and water, and it releases oxygen\nWithout it, life on Earth as we know it wouldn't exist",
+     "ms": 80.8
+    },
+    {
+     "id": "en-lecture-01",
+     "variant": "lower",
+     "input": "today we're going to talk about photosynthesis photosynthesis is the process plants use to turn sunlight into energy it happens mostly in the leaves the plant takes in carbon dioxide and water and it releases oxygen without it life on earth as we know it wouldn't exist",
+     "out": "today we're going to talk about photosynthesis\nphotosynthesis is the process\nplants use to turn sunlight into energy\nit happens mostly in the leaves\nthe plant takes in carbon dioxide and water and it releases oxygen without it\nlife on earth as we know it wouldn't exist",
+     "ms": 79.4
+    },
+    {
+     "id": "en-short-01",
+     "variant": "stripped",
+     "input": "Yeah that works for me",
+     "out": "Yeah that works for me",
+     "ms": 31.7
+    },
+    {
+     "id": "en-short-01",
+     "variant": "commas",
+     "input": "Yeah, that works for me",
+     "out": "Yeah, that works for me",
+     "ms": 32.8
+    },
+    {
+     "id": "en-short-01",
+     "variant": "lower",
+     "input": "yeah that works for me",
+     "out": "yeah that works for me",
+     "ms": 31.8
+    },
+    {
+     "id": "en-short-02",
+     "variant": "stripped",
+     "input": "Thank you so much",
+     "out": "Thank you so much",
+     "ms": 30.6
+    },
+    {
+     "id": "en-short-02",
+     "variant": "commas",
+     "input": "Thank you so much",
+     "out": "Thank you so much",
+     "ms": 30.4
+    },
+    {
+     "id": "en-short-02",
+     "variant": "lower",
+     "input": "thank you so much",
+     "out": "thank you so much",
+     "ms": 30.5
+    },
+    {
+     "id": "en-support-01",
+     "variant": "stripped",
+     "input": "Thanks for calling customer support My name is Alex How can I help you today",
+     "out": "Thanks for calling customer support\nMy name is Alex\nHow can I help you today",
+     "ms": 39.9
+    },
+    {
+     "id": "en-support-01",
+     "variant": "commas",
+     "input": "Thanks for calling customer support My name is Alex How can I help you today",
+     "out": "Thanks for calling customer support\nMy name is Alex\nHow can I help you today",
+     "ms": 39.7
+    },
+    {
+     "id": "en-support-01",
+     "variant": "lower",
+     "input": "thanks for calling customer support my name is alex how can i help you today",
+     "out": "thanks for calling customer support\nmy name is alex\nhow can i help you today",
+     "ms": 40.5
+    },
+    {
+     "id": "en-reported-01",
+     "variant": "stripped",
+     "input": "My manager said the report is due on Friday Honestly I don't think we can make it",
+     "out": "My manager said the report is due on Friday\nHonestly\nI don't think we can make it",
+     "ms": 44.8
+    },
+    {
+     "id": "en-reported-01",
+     "variant": "commas",
+     "input": "My manager said the report is due on Friday Honestly, I don't think we can make it",
+     "out": "My manager said the report is due on Friday\nHonestly, I don't think we can make it",
+     "ms": 45.6
+    },
+    {
+     "id": "en-reported-01",
+     "variant": "lower",
+     "input": "my manager said the report is due on friday honestly i don't think we can make it",
+     "out": "my manager said the report is due on friday\nhonestly i don't think we can make it",
+     "ms": 44.8
+    },
+    {
+     "id": "en-list-01",
+     "variant": "stripped",
+     "input": "Please bring your passport your boarding pass and a copy of your hotel booking We'll meet at the airport at seven",
+     "out": "Please bring your passport your boarding pass and a copy of your hotel booking\nWe'll meet at the airport at seven",
+     "ms": 48.1
+    },
+    {
+     "id": "en-list-01",
+     "variant": "commas",
+     "input": "Please bring your passport, your boarding pass, and a copy of your hotel booking We'll meet at the airport at seven",
+     "out": "Please bring your passport, your boarding pass, and a copy of your hotel booking\nWe'll meet at the airport at seven",
+     "ms": 51.3
+    },
+    {
+     "id": "en-list-01",
+     "variant": "lower",
+     "input": "please bring your passport your boarding pass and a copy of your hotel booking we'll meet at the airport at seven",
+     "out": "please bring your passport your boarding pass and a copy of your hotel booking\nwe'll meet at the airport at seven",
+     "ms": 48.4
+    },
+    {
+     "id": "en-casual-01",
+     "variant": "stripped",
+     "input": "I tried that new ramen place downtown yesterday The line was insane but the food was just okay",
+     "out": "I tried that new ramen place downtown yesterday\nThe line was insane but the food was just okay",
+     "ms": 45.1
+    },
+    {
+     "id": "en-casual-01",
+     "variant": "commas",
+     "input": "I tried that new ramen place downtown yesterday The line was insane, but the food was just okay",
+     "out": "I tried that new ramen place downtown yesterday\nThe line was insane, but the food was just okay",
+     "ms": 46.2
+    },
+    {
+     "id": "en-casual-01",
+     "variant": "lower",
+     "input": "i tried that new ramen place downtown yesterday the line was insane but the food was just okay",
+     "out": "i tried that new ramen place downtown yesterday\nthe line was insane but the food was just okay",
+     "ms": 45.5
+    },
+    {
+     "id": "en-codeswitch-01",
+     "variant": "stripped",
+     "input": "We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari",
+     "out": "We're using the OpenAI Realtime API with WebRTC\nThe next step is to test it on Chrome and Safari",
+     "ms": 49.3
+    },
+    {
+     "id": "en-codeswitch-01",
+     "variant": "commas",
+     "input": "We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari",
+     "out": "We're using the OpenAI Realtime API with WebRTC\nThe next step is to test it on Chrome and Safari",
+     "ms": 49
+    },
+    {
+     "id": "en-codeswitch-01",
+     "variant": "lower",
+     "input": "we're using the openai realtime api with webrtc the next step is to test it on chrome and safari",
+     "out": "we're using the openai realtime api with webrtc\nthe next step is to test it on chrome and safari",
+     "ms": 49.3
+    },
+    {
+     "id": "en-questions-02",
+     "variant": "stripped",
+     "input": "Who made that decision Was it discussed in the meeting Or did it come from leadership",
+     "out": "Who made that decision\nWas it discussed in the meeting\nOr did it come from leadership",
+     "ms": 42.3
+    },
+    {
+     "id": "en-questions-02",
+     "variant": "commas",
+     "input": "Who made that decision Was it discussed in the meeting Or did it come from leadership",
+     "out": "Who made that decision\nWas it discussed in the meeting\nOr did it come from leadership",
+     "ms": 42.3
+    },
+    {
+     "id": "en-questions-02",
+     "variant": "lower",
+     "input": "who made that decision was it discussed in the meeting or did it come from leadership",
+     "out": "who made that decision was it discussed in the meeting or did it come from leadership",
+     "ms": 42.6
+    },
+    {
+     "id": "en-longsentence-01",
+     "variant": "stripped",
+     "input": "The app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything",
+     "out": "The app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything",
+     "ms": 61.3
+    },
+    {
+     "id": "en-longsentence-01",
+     "variant": "commas",
+     "input": "The app translates speech in real time, so you can use it in meetings with overseas clients, and it also shows subtitles, so you don't have to worry about missing anything",
+     "out": "The app translates speech in real time, so you can use it in meetings with overseas clients, and it also shows subtitles, so you don't have to worry about missing anything",
+     "ms": 63.8
+    },
+    {
+     "id": "en-longsentence-01",
+     "variant": "lower",
+     "input": "the app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything",
+     "out": "the app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything",
+     "ms": 61.7
+    },
+    {
+     "id": "en-casual-02",
+     "variant": "stripped",
+     "input": "It's supposed to rain tomorrow You might want to bring an umbrella",
+     "out": "It's supposed to rain tomorrow\nYou might want to bring an umbrella",
+     "ms": 41.9
+    },
+    {
+     "id": "en-casual-02",
+     "variant": "commas",
+     "input": "It's supposed to rain tomorrow You might want to bring an umbrella",
+     "out": "It's supposed to rain tomorrow\nYou might want to bring an umbrella",
+     "ms": 41.5
+    },
+    {
+     "id": "en-casual-02",
+     "variant": "lower",
+     "input": "it's supposed to rain tomorrow you might want to bring an umbrella",
+     "out": "it's supposed to rain tomorrow\nyou might want to bring an umbrella",
+     "ms": 41.8
+    },
+    {
+     "id": "en-support-02",
+     "variant": "stripped",
+     "input": "I'm not sure Let me check and get back to you by the end of the day",
+     "out": "I'm not sure\nLet me check and get back to you by the end of the day",
+     "ms": 44.5
+    },
+    {
+     "id": "en-support-02",
+     "variant": "commas",
+     "input": "I'm not sure Let me check and get back to you by the end of the day",
+     "out": "I'm not sure\nLet me check and get back to you by the end of the day",
+     "ms": 44.2
+    },
+    {
+     "id": "en-support-02",
+     "variant": "lower",
+     "input": "i'm not sure let me check and get back to you by the end of the day",
+     "out": "i'm not sure let me check and get back to you by the end of the day",
+     "ms": 44.4
+    },
+    {
+     "id": "ko-meeting-01",
+     "variant": "stripped",
+     "input": "자 그럼 회의를 시작하겠습니다 먼저 지난주 진행 상황부터 확인해 볼까요",
+     "out": "자 그럼 회의를 시작하겠습니다\n먼저 지난주 진행 상황부터 확인해 볼까요",
+     "ms": 42.2
+    },
+    {
+     "id": "ko-meeting-01",
+     "variant": "commas",
+     "input": "자, 그럼 회의를 시작하겠습니다 먼저 지난주 진행 상황부터 확인해 볼까요",
+     "out": "자, 그럼 회의를 시작하겠습니다\n먼저 지난주 진행 상황부터 확인해 볼까요",
+     "ms": 42.8
+    },
+    {
+     "id": "ko-meeting-02",
+     "variant": "stripped",
+     "input": "자료는 어제 공유 폴더에 올려 두었습니다 아직 못 보신 분들은 회의 끝나고 확인해 주세요",
+     "out": "자료는 어제 공유 폴더에 올려 두었습니다\n아직 못 보신 분들은 회의 끝나고 확인해 주세요",
+     "ms": 47.6
+    },
+    {
+     "id": "ko-meeting-02",
+     "variant": "commas",
+     "input": "자료는 어제 공유 폴더에 올려 두었습니다 아직 못 보신 분들은 회의 끝나고 확인해 주세요",
+     "out": "자료는 어제 공유 폴더에 올려 두었습니다\n아직 못 보신 분들은 회의 끝나고 확인해 주세요",
+     "ms": 47.7
+    },
+    {
+     "id": "ko-question-01",
+     "variant": "stripped",
+     "input": "이 기능은 언제 출시될 예정인가요 다음 달 초에는 가능할 것 같은데 테스트 결과에 따라 달라질 수 있습니다",
+     "out": "이 기능은 언제 출시될 예정인가요\n다음 달 초에는 가능할 것 같은데 테스트 결과에 따라 달라질 수 있습니다",
+     "ms": 49.4
+    },
+    {
+     "id": "ko-question-01",
+     "variant": "commas",
+     "input": "이 기능은 언제 출시될 예정인가요 다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다",
+     "out": "이 기능은 언제 출시될 예정인가요\n다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다",
+     "ms": 50.2
+    },
+    {
+     "id": "ko-numbers-01",
+     "variant": "stripped",
+     "input": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다 특히 해외 매출이 크게 늘었습니다",
+     "out": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다\n특히 해외 매출이 크게 늘었습니다",
+     "ms": 48.3
+    },
+    {
+     "id": "ko-numbers-01",
+     "variant": "commas",
+     "input": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다 특히 해외 매출이 크게 늘었습니다",
+     "out": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다\n특히 해외 매출이 크게 늘었습니다",
+     "ms": 48.7
+    },
+    {
+     "id": "ko-numbers-02",
+     "variant": "stripped",
+     "input": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다",
+     "out": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다",
+     "ms": 45.2
+    },
+    {
+     "id": "ko-numbers-02",
+     "variant": "commas",
+     "input": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다",
+     "out": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다",
+     "ms": 44.3
+    },
+    {
+     "id": "ko-codeswitch-01",
+     "variant": "stripped",
+     "input": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다 배포는 GitHub Actions로 자동화할 예정입니다",
+     "out": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다\n배포는 GitHub Actions로 자동화할 예정입니다",
+     "ms": 50.3
+    },
+    {
+     "id": "ko-codeswitch-01",
+     "variant": "commas",
+     "input": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다 배포는 GitHub Actions로 자동화할 예정입니다",
+     "out": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다\n배포는 GitHub Actions로 자동화할 예정입니다",
+     "ms": 50.7
+    },
+    {
+     "id": "ko-fillers-01",
+     "variant": "stripped",
+     "input": "음 그 하나만 여쭤볼게요 이 가격은 부가세 포함인가요 아 별도군요 알겠습니다",
+     "out": "음 그 하나만 여쭤볼게요\n이 가격은 부가세 포함인가요\n아 별도군요\n알겠습니다",
+     "ms": 47.4
+    },
+    {
+     "id": "ko-fillers-01",
+     "variant": "commas",
+     "input": "음, 그, 하나만 여쭤볼게요 이 가격은 부가세 포함인가요 아, 별도군요 알겠습니다",
+     "out": "음, 그, 하나만 여쭤볼게요\n이 가격은 부가세 포함인가요\n아, 별도군요 알겠습니다",
+     "ms": 50.4
+    },
+    {
+     "id": "ko-stream-01",
+     "variant": "stripped",
+     "input": "여러분 안녕하세요 오늘도 방송에 와 주셔서 감사합니다 오늘은 새로운 게임을 해 볼게요",
+     "out": "여러분 안녕하세요\n오늘도 방송에 와 주셔서 감사합니다\n오늘은 새로운 게임을 해 볼게요",
+     "ms": 42.2
+    },
+    {
+     "id": "ko-stream-01",
+     "variant": "commas",
+     "input": "여러분 안녕하세요 오늘도 방송에 와 주셔서 감사합니다 오늘은 새로운 게임을 해 볼게요",
+     "out": "여러분 안녕하세요\n오늘도 방송에 와 주셔서 감사합니다\n오늘은 새로운 게임을 해 볼게요",
+     "ms": 41.8
+    },
+    {
+     "id": "ko-stream-02",
+     "variant": "stripped",
+     "input": "와 대박 보스 너무 세다 잠깐만 회복 좀 할게요",
+     "out": "와 대박 보스 너무 세다 잠깐만 회복 좀 할게요",
+     "ms": 40
+    },
+    {
+     "id": "ko-stream-02",
+     "variant": "commas",
+     "input": "와, 대박 보스 너무 세다 잠깐만 회복 좀 할게요",
+     "out": "와, 대박 보스 너무 세다 잠깐만 회복 좀 할게요",
+     "ms": 41.1
+    },
+    {
+     "id": "ko-lecture-01",
+     "variant": "stripped",
+     "input": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다 머신러닝은 데이터에서 패턴을 학습하는 기술입니다 예를 들어 스팸 메일 분류가 대표적인 사례입니다 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다 그럼 구체적인 원리를 살펴보겠습니다",
+     "out": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다\n머신러닝은 데이터에서 패턴을 학습하는 기술입니다\n예를 들어 스팸 메일 분류가 대표적인 사례입니다\n많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다\n그럼 구체적인 원리를 살펴보겠습니다",
+     "ms": 72.6
+    },
+    {
+     "id": "ko-lecture-01",
+     "variant": "commas",
+     "input": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다 머신러닝은 데이터에서 패턴을 학습하는 기술입니다 예를 들어 스팸 메일 분류가 대표적인 사례입니다 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다 그럼 구체적인 원리를 살펴보겠습니다",
+     "out": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다\n머신러닝은 데이터에서 패턴을 학습하는 기술입니다\n예를 들어 스팸 메일 분류가 대표적인 사례입니다\n많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다\n그럼 구체적인 원리를 살펴보겠습니다",
+     "ms": 72.6
+    },
+    {
+     "id": "ko-short-01",
+     "variant": "stripped",
+     "input": "네 맞습니다",
+     "out": "네 맞습니다",
+     "ms": 30
+    },
+    {
+     "id": "ko-short-01",
+     "variant": "commas",
+     "input": "네, 맞습니다",
+     "out": "네, 맞습니다",
+     "ms": 30.3
+    },
+    {
+     "id": "ko-short-02",
+     "variant": "stripped",
+     "input": "감사합니다",
+     "out": "감사합니다",
+     "ms": 28.1
+    },
+    {
+     "id": "ko-short-02",
+     "variant": "commas",
+     "input": "감사합니다",
+     "out": "감사합니다",
+     "ms": 28.2
+    },
+    {
+     "id": "ko-support-01",
+     "variant": "stripped",
+     "input": "고객센터 김민수입니다 무엇을 도와드릴까요",
+     "out": "고객센터 김민수입니다\n무엇을 도와드릴까요",
+     "ms": 34.4
+    },
+    {
+     "id": "ko-support-01",
+     "variant": "commas",
+     "input": "고객센터 김민수입니다 무엇을 도와드릴까요",
+     "out": "고객센터 김민수입니다\n무엇을 도와드릴까요",
+     "ms": 34.4
+    },
+    {
+     "id": "ko-reported-01",
+     "variant": "stripped",
+     "input": "부장님이 내일까지 견적서를 달라고 하셨어요 솔직히 내일까지는 좀 어려울 것 같아요",
+     "out": "부장님이 내일까지 견적서를 달라고 하셨어요\n솔직히 내일까지는 좀 어려울 것 같아요",
+     "ms": 46.4
+    },
+    {
+     "id": "ko-reported-01",
+     "variant": "commas",
+     "input": "부장님이 내일까지 견적서를 달라고 하셨어요 솔직히 내일까지는 좀 어려울 것 같아요",
+     "out": "부장님이 내일까지 견적서를 달라고 하셨어요\n솔직히 내일까지는 좀 어려울 것 같아요",
+     "ms": 46.4
+    },
+    {
+     "id": "ko-list-01",
+     "variant": "stripped",
+     "input": "여권 항공권 그리고 호텔 예약 확인서를 준비해 주세요 출발 전날 꼭 다시 확인하세요",
+     "out": "여권 항공권 그리고 호텔 예약 확인서를 준비해 주세요\n출발 전날 꼭 다시 확인하세요",
+     "ms": 41.6
+    },
+    {
+     "id": "ko-list-01",
+     "variant": "commas",
+     "input": "여권, 항공권, 그리고 호텔 예약 확인서를 준비해 주세요 출발 전날 꼭 다시 확인하세요",
+     "out": "여권, 항공권, 그리고 호텔 예약 확인서를 준비해 주세요\n출발 전날 꼭 다시 확인하세요",
+     "ms": 43.1
+    },
+    {
+     "id": "ko-casual-01",
+     "variant": "stripped",
+     "input": "어제 역 앞에 새로 생긴 라멘집에 가 봤어 줄은 엄청 길었는데 맛은 그냥 그랬어",
+     "out": "어제 역 앞에 새로 생긴 라멘집에 가 봤어\n줄은 엄청 길었는데 맛은 그냥 그랬어",
+     "ms": 46.5
+    },
+    {
+     "id": "ko-casual-01",
+     "variant": "commas",
+     "input": "어제 역 앞에 새로 생긴 라멘집에 가 봤어 줄은 엄청 길었는데 맛은 그냥 그랬어",
+     "out": "어제 역 앞에 새로 생긴 라멘집에 가 봤어\n줄은 엄청 길었는데 맛은 그냥 그랬어",
+     "ms": 46.4
+    },
+    {
+     "id": "ko-news-01",
+     "variant": "stripped",
+     "input": "정부는 오늘 새로운 경제 대책을 발표했습니다 대책 규모는 총 20조 원에 달할 전망입니다",
+     "out": "정부는 오늘 새로운 경제 대책을 발표했습니다\n대책 규모는 총 20조 원에 달할 전망입니다",
+     "ms": 45.8
+    },
+    {
+     "id": "ko-news-01",
+     "variant": "commas",
+     "input": "정부는 오늘 새로운 경제 대책을 발표했습니다 대책 규모는 총 20조 원에 달할 전망입니다",
+     "out": "정부는 오늘 새로운 경제 대책을 발표했습니다\n대책 규모는 총 20조 원에 달할 전망입니다",
+     "ms": 46
+    },
+    {
+     "id": "ko-questions-02",
+     "variant": "stripped",
+     "input": "그거 누가 정한 거예요 회의에서 정한 거예요 아니면 위에서 내려온 지시예요",
+     "out": "그거 누가 정한 거예요\n회의에서 정한 거예요 아니면 위에서 내려온 지시예요",
+     "ms": 47.7
+    },
+    {
+     "id": "ko-questions-02",
+     "variant": "commas",
+     "input": "그거 누가 정한 거예요 회의에서 정한 거예요 아니면 위에서 내려온 지시예요",
+     "out": "그거 누가 정한 거예요\n회의에서 정한 거예요 아니면 위에서 내려온 지시예요",
+     "ms": 47.9
+    },
+    {
+     "id": "ko-longsentence-01",
+     "variant": "stripped",
+     "input": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요",
+     "out": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요",
+     "ms": 59.9
+    },
+    {
+     "id": "ko-longsentence-01",
+     "variant": "commas",
+     "input": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고, 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요",
+     "out": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고, 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요",
+     "ms": 60.6
+    },
+    {
+     "id": "ko-casual-02",
+     "variant": "stripped",
+     "input": "내일 비 온대 우산 챙겨 가",
+     "out": "내일 비 온대 우산 챙겨 가",
+     "ms": 36.3
+    },
+    {
+     "id": "ko-casual-02",
+     "variant": "commas",
+     "input": "내일 비 온대 우산 챙겨 가",
+     "out": "내일 비 온대 우산 챙겨 가",
+     "ms": 36.4
+    }
+   ]
+  },
+  "mojicast-q8w-nonan": {
+   "info": {
+    "id": "mojicast-q8w-nonan",
+    "name": "Mojicast punct BERT q8 weight-only, no IsNaN guard (WebGPU)",
+    "langs": [
+     "ja"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/mojicast",
+    "files": [
+     "punct_bert.q8w-nonan.onnx",
+     "vocab.txt"
+    ]
+   },
+   "loadMs": 406.04510299999674,
+   "offline": {
+    "ja/stripped": {
+     "items": 24,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.9,
+      "r": 0.8571428571428571,
+      "f": 0.8780487804878048,
+      "tp": 36,
+      "fp": 4,
+      "fn": 6
+     },
+     "breakpoint": {
+      "p": 0.9772727272727273,
+      "r": 0.5733333333333334,
+      "f": 0.722689075630252,
+      "tp": 43,
+      "fp": 1,
+      "fn": 32
+     },
+     "period": {
+      "p": 0.7936507936507936,
+      "r": 0.9090909090909091,
+      "f": 0.847457627118644,
+      "tp": 50,
+      "fp": 13,
+      "fn": 5
+     },
+     "comma": {
+      "p": 0.75,
+      "r": 0.09090909090909091,
+      "f": 0.16216216216216214,
+      "tp": 3,
+      "fp": 1,
+      "fn": 30
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 6659.924651000023,
+     "chars": 1249,
+     "calls": 24
+    },
+    "ja/commas": {
+     "items": 24,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 0.9,
+      "r": 0.8571428571428571,
+      "f": 0.8780487804878048,
+      "tp": 36,
+      "fp": 4,
+      "fn": 6
+     },
+     "breakpoint": {
+      "p": 0.9772727272727273,
+      "r": 0.5733333333333334,
+      "f": 0.722689075630252,
+      "tp": 43,
+      "fp": 1,
+      "fn": 32
+     },
+     "period": {
+      "p": 0.7936507936507936,
+      "r": 0.9090909090909091,
+      "f": 0.847457627118644,
+      "tp": 50,
+      "fp": 13,
+      "fn": 5
+     },
+     "comma": {
+      "p": 0.75,
+      "r": 0.09090909090909091,
+      "f": 0.16216216216216214,
+      "tp": 3,
+      "fp": 1,
+      "fn": 30
+     },
+     "question": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 7
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 0,
+      "f": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 3
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 6653.363110999999,
+     "chars": 1282,
+     "calls": 24
+    },
+    "ja/raw": {
+     "items": 3,
+     "skelMismatch": 0,
+     "boundary": {
+      "p": 1,
+      "r": 0.8461538461538461,
+      "f": 0.9166666666666666,
+      "tp": 11,
+      "fp": 0,
+      "fn": 2
+     },
+     "breakpoint": {
+      "p": 1,
+      "r": 0.5454545454545454,
+      "f": 0.7058823529411764,
+      "tp": 12,
+      "fp": 0,
+      "fn": 10
+     },
+     "period": {
+      "p": 1,
+      "r": 0.8,
+      "f": 0.888888888888889,
+      "tp": 12,
+      "fp": 0,
+      "fn": 3
+     },
+     "comma": {
+      "p": 1,
+      "r": 0.1111111111111111,
+      "f": 0.19999999999999998,
+      "tp": 1,
+      "fp": 0,
+      "fn": 8
+     },
+     "question": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "exclaim": {
+      "p": 0,
+      "r": 1,
+      "f": 0,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0
+     },
+     "upper": {
+      "p": 1,
+      "r": 1,
+      "f": 1,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0
+     },
+     "finalTerm": 1,
+     "ms": 1377.3651899999822,
+     "chars": 345,
+     "calls": 3
+    }
+   },
+   "stream": {},
+   "streamBreak": {},
+   "outputs": [
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "stripped",
+     "input": "皆さんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの改修です",
+     "out": "皆さんこんにちは今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの改修です。",
+     "ms": 333.3
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "commas",
+     "input": "皆さん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの改修です",
+     "out": "皆さんこんにちは今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの改修です。",
+     "ms": 333.3
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "raw",
+     "input": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です",
+     "out": "皆さんこんにちは今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの改修です。",
+     "ms": 333
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "stripped",
+     "input": "みなさんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの",
+     "out": "みなさんこんにちは今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの",
+     "ms": 323.6
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "commas",
+     "input": "みなさん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの",
+     "out": "みなさんこんにちは今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの",
+     "ms": 322.3
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "raw",
+     "input": "みなさん、こんにちは!今日は来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの",
+     "out": "みなさんこんにちは!。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの",
+     "ms": 327.5
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "stripped",
+     "input": "皆さんこんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください",
+     "out": "皆さんこんにちはまず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから料金ページの新しいデザインはデザインチームのレビューに回しました。月末までに確定する見込みです。最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください。",
+     "ms": 719.9
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "commas",
+     "input": "皆さん、こんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから、料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+     "out": "皆さんこんにちはまず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから料金ページの新しいデザインはデザインチームのレビューに回しました。月末までに確定する見込みです。最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください。",
+     "ms": 719.8
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "raw",
+     "input": "皆さん、こんにちは。まず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインは、デザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+     "out": "皆さんこんにちはまず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから料金ページの新しいデザインはデザインチームのレビューに回しました。月末までに確定する見込みです。最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください。",
+     "ms": 716.9
+    },
+    {
+     "id": "ja-meeting-01",
+     "variant": "stripped",
+     "input": "えーそれでは定例会議を始めますまず先週の進捗から確認しましょう田中さんお願いできますか",
+     "out": "えーそれでは定例会議を始めます。まず先週の進捗から確認しましょう。田中さんお願いできますか。",
+     "ms": 247
+    },
+    {
+     "id": "ja-meeting-01",
+     "variant": "commas",
+     "input": "えー、それでは定例会議を始めますまず先週の進捗から確認しましょう田中さん、お願いできますか",
+     "out": "えーそれでは定例会議を始めます。まず先週の進捗から確認しましょう。田中さんお願いできますか。",
+     "ms": 246.3
+    },
+    {
+     "id": "ja-meeting-02",
+     "variant": "stripped",
+     "input": "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください",
+     "out": "資料は昨日の夜に共有フォルダに入れておきました。まだ見ていない方は会議の後で確認してください。何か質問があればチャットに書いてください。",
+     "ms": 318.7
+    },
+    {
+     "id": "ja-meeting-02",
+     "variant": "commas",
+     "input": "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください",
+     "out": "資料は昨日の夜に共有フォルダに入れておきました。まだ見ていない方は会議の後で確認してください。何か質問があればチャットに書いてください。",
+     "ms": 319.8
+    },
+    {
+     "id": "ja-question-01",
+     "variant": "stripped",
+     "input": "この機能はいつリリースされる予定ですか来月の頭には出せると思いますがテストの結果次第です",
+     "out": "この機能はいつリリースされる予定ですか。来月の頭には出せると思いますが、テストの結果次第です。",
+     "ms": 252.1
+    },
+    {
+     "id": "ja-question-01",
+     "variant": "commas",
+     "input": "この機能はいつリリースされる予定ですか来月の頭には出せると思いますが、テストの結果次第です",
+     "out": "この機能はいつリリースされる予定ですか。来月の頭には出せると思いますが、テストの結果次第です。",
+     "ms": 250.4
+    },
+    {
+     "id": "ja-numbers-01",
+     "variant": "stripped",
+     "input": "売上は前年比で12.5パーセント増えました特に第3四半期は好調で3億2000万円を超えました",
+     "out": "売上は前年比で12.5パーセント増えました。特に第3四半期は好調で3億2000万円を超えました。",
+     "ms": 256.6
+    },
+    {
+     "id": "ja-numbers-01",
+     "variant": "commas",
+     "input": "売上は前年比で12.5パーセント増えました特に第3四半期は好調で、3億2000万円を超えました",
+     "out": "売上は前年比で12.5パーセント増えました。特に第3四半期は好調で3億2000万円を超えました。",
+     "ms": 255.9
+    },
+    {
+     "id": "ja-numbers-02",
+     "variant": "stripped",
+     "input": "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります",
+     "out": "次回の打ち合わせは10月3日の午後2時からです。場所は本社の5階の会議室になります。",
+     "ms": 236.8
+    },
+    {
+     "id": "ja-numbers-02",
+     "variant": "commas",
+     "input": "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります",
+     "out": "次回の打ち合わせは10月3日の午後2時からです。場所は本社の5階の会議室になります。",
+     "ms": 239
+    },
+    {
+     "id": "ja-codeswitch-01",
+     "variant": "stripped",
+     "input": "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です",
+     "out": "今回のプロジェクトではAWSのS3とCloudFrontを使います。デプロイはGitHub Actionsで自動化する予定です。",
+     "ms": 312.1
+    },
+    {
+     "id": "ja-codeswitch-01",
+     "variant": "commas",
+     "input": "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です",
+     "out": "今回のプロジェクトではAWSのS3とCloudFrontを使います。デプロイはGitHub Actionsで自動化する予定です。",
+     "ms": 310.9
+    },
+    {
+     "id": "ja-fillers-01",
+     "variant": "stripped",
+     "input": "あのちょっと確認なんですけどこの数字って税込みですかあ税抜きなんですねわかりました",
+     "out": "あのちょっと確認なんですけどこの数字って税込みですか。あ。税抜きなんですね。わかりました。",
+     "ms": 240.7
+    },
+    {
+     "id": "ja-fillers-01",
+     "variant": "commas",
+     "input": "あの、ちょっと確認なんですけど、この数字って税込みですかあ、税抜きなんですねわかりました",
+     "out": "あのちょっと確認なんですけどこの数字って税込みですか。あ。税抜きなんですね。わかりました。",
+     "ms": 243.8
+    },
+    {
+     "id": "ja-stream-01",
+     "variant": "stripped",
+     "input": "みんなこんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます",
+     "out": "みんなこんばんは今日も配信に来てくれてありがとう。今日は新しいゲームをやっていきます。",
+     "ms": 244.2
+    },
+    {
+     "id": "ja-stream-01",
+     "variant": "commas",
+     "input": "みんな、こんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます",
+     "out": "みんなこんばんは今日も配信に来てくれてありがとう。今日は新しいゲームをやっていきます。",
+     "ms": 244.2
+    },
+    {
+     "id": "ja-stream-02",
+     "variant": "stripped",
+     "input": "うわやばいボスが強すぎるちょっと回復させてよしもう一回いくよ",
+     "out": "うわやばい。ボスが強すぎる。ちょっと回復させてよしもう一回いくよ。",
+     "ms": 207.5
+    },
+    {
+     "id": "ja-stream-02",
+     "variant": "commas",
+     "input": "うわ、やばい、ボスが強すぎるちょっと回復させてよし、もう一回いくよ",
+     "out": "うわやばい。ボスが強すぎる。ちょっと回復させてよしもう一回いくよ。",
+     "ms": 208.1
+    },
+    {
+     "id": "ja-lecture-01",
+     "variant": "stripped",
+     "input": "今日のテーマは機械学習の基礎です機械学習とはデータからパターンを学習する技術のことです例えば迷惑メールの判定がその代表例です大量のメールを学習することで新しいメールを自動で分類できるようになりますでは具体的な仕組みを見ていきましょう",
+     "out": "今日のテーマは機械学習の基礎です。機械学習とはデータからパターンを学習する技術のことです。例えば迷惑メールの判定がその代表例です。大量のメールを学習することで新しいメールを自動で分類できるようになります。では具体的な仕組みを見ていきましょう。",
+     "ms": 486.2
+    },
+    {
+     "id": "ja-lecture-01",
+     "variant": "commas",
+     "input": "今日のテーマは機械学習の基礎です機械学習とは、データからパターンを学習する技術のことです例えば、迷惑メールの判定がその代表例です大量のメールを学習することで、新しいメールを自動で分類できるようになりますでは、具体的な仕組みを見ていきましょう",
+     "out": "今日のテーマは機械学習の基礎です。機械学習とはデータからパターンを学習する技術のことです。例えば迷惑メールの判定がその代表例です。大量のメールを学習することで新しいメールを自動で分類できるようになります。では具体的な仕組みを見ていきましょう。",
+     "ms": 485.9
+    },
+    {
+     "id": "ja-short-01",
+     "variant": "stripped",
+     "input": "はいそうです",
+     "out": "はいそうです。",
+     "ms": 129.6
+    },
+    {
+     "id": "ja-short-01",
+     "variant": "commas",
+     "input": "はい、そうです",
+     "out": "はいそうです。",
+     "ms": 128.7
+    },
+    {
+     "id": "ja-short-02",
+     "variant": "stripped",
+     "input": "ありがとうございます",
+     "out": "ありがとうございます。",
+     "ms": 141.7
+    },
+    {
+     "id": "ja-short-02",
+     "variant": "commas",
+     "input": "ありがとうございます",
+     "out": "ありがとうございます。",
+     "ms": 141.7
+    },
+    {
+     "id": "ja-support-01",
+     "variant": "stripped",
+     "input": "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか",
+     "out": "お電話ありがとうございます。サポートセンターの佐藤です。本日はどのようなご用件でしょうか。",
+     "ms": 244
+    },
+    {
+     "id": "ja-support-01",
+     "variant": "commas",
+     "input": "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか",
+     "out": "お電話ありがとうございます。サポートセンターの佐藤です。本日はどのようなご用件でしょうか。",
+     "ms": 243.6
+    },
+    {
+     "id": "ja-reported-01",
+     "variant": "stripped",
+     "input": "部長が明日までに見積もりを出してほしいと言っていましたでも正直明日までは厳しいと思います",
+     "out": "部長が明日までに見積もりを出してほしいと言っていました。でも正直明日までは厳しいと思います。",
+     "ms": 250
+    },
+    {
+     "id": "ja-reported-01",
+     "variant": "commas",
+     "input": "部長が明日までに見積もりを出してほしいと言っていましたでも正直、明日までは厳しいと思います",
+     "out": "部長が明日までに見積もりを出してほしいと言っていました。でも正直明日までは厳しいと思います。",
+     "ms": 250.6
+    },
+    {
+     "id": "ja-list-01",
+     "variant": "stripped",
+     "input": "必要なものはパスポート航空券それからホテルの予約確認書です忘れないように前日に確認してください",
+     "out": "必要なものはパスポート航空券。それからホテルの予約確認書です。忘れないように前日に確認してください。",
+     "ms": 260.6
+    },
+    {
+     "id": "ja-list-01",
+     "variant": "commas",
+     "input": "必要なものは、パスポート、航空券、それからホテルの予約確認書です忘れないように前日に確認してください",
+     "out": "必要なものはパスポート航空券。それからホテルの予約確認書です。忘れないように前日に確認してください。",
+     "ms": 257.2
+    },
+    {
+     "id": "ja-casual-01",
+     "variant": "stripped",
+     "input": "昨日さ駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど味は普通だったかな",
+     "out": "昨日さ。駅前に新しくできたラーメン屋に行ってきたんだよ。めっちゃ並んでたけど味は普通だったかな。",
+     "ms": 251.1
+    },
+    {
+     "id": "ja-casual-01",
+     "variant": "commas",
+     "input": "昨日さ、駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど、味は普通だったかな",
+     "out": "昨日さ。駅前に新しくできたラーメン屋に行ってきたんだよ。めっちゃ並んでたけど味は普通だったかな。",
+     "ms": 250.7
+    },
+    {
+     "id": "ja-news-01",
+     "variant": "stripped",
+     "input": "政府は本日新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです",
+     "out": "政府は本日新しい経済対策を発表しました。対策の規模は総額で20兆円に上る見通しです。",
+     "ms": 233.4
+    },
+    {
+     "id": "ja-news-01",
+     "variant": "commas",
+     "input": "政府は本日、新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです",
+     "out": "政府は本日新しい経済対策を発表しました。対策の規模は総額で20兆円に上る見通しです。",
+     "ms": 234.5
+    },
+    {
+     "id": "ja-questions-02",
+     "variant": "stripped",
+     "input": "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか",
+     "out": "それって誰が決めたんですか。会議で決まったんですか。それとも上からの指示ですか。",
+     "ms": 226.5
+    },
+    {
+     "id": "ja-questions-02",
+     "variant": "commas",
+     "input": "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか",
+     "out": "それって誰が決めたんですか。会議で決まったんですか。それとも上からの指示ですか。",
+     "ms": 226
+    },
+    {
+     "id": "ja-longsentence-01",
+     "variant": "stripped",
+     "input": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし字幕も表示されるので聞き逃しても安心です",
+     "out": "このアプリは音声をリアルタイムで翻訳できるので、海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です。",
+     "ms": 300.7
+    },
+    {
+     "id": "ja-longsentence-01",
+     "variant": "commas",
+     "input": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です",
+     "out": "このアプリは音声をリアルタイムで翻訳できるので、海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です。",
+     "ms": 299.5
+    },
+    {
+     "id": "ja-casual-02",
+     "variant": "stripped",
+     "input": "明日は雨らしいよ傘を持っていったほうがいいかも",
+     "out": "明日は雨らしいよ。傘を持っていったほうがいいかも。",
+     "ms": 180.3
+    },
+    {
+     "id": "ja-casual-02",
+     "variant": "commas",
+     "input": "明日は雨らしいよ傘を持っていったほうがいいかも",
+     "out": "明日は雨らしいよ。傘を持っていったほうがいいかも。",
+     "ms": 180.2
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "stripped",
+     "input": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします",
+     "out": "今日のデモはここまでです。Thank you for watching 次回もよろしくお願いします。",
+     "ms": 263.2
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "commas",
+     "input": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします",
+     "out": "今日のデモはここまでです。Thank you for watching 次回もよろしくお願いします。",
+     "ms": 260.8
+    }
+   ]
+  }
+ }
+}

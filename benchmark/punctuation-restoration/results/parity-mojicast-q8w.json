@@ -1,0 +1,90 @@
+{
+ "rows": 51,
+ "threshold": 0.1,
+ "builds": {
+  "mojicast-fp32": {
+   "file": "punct_bert.onnx",
+   "bytes": 363501157,
+   "loadMs": 1212,
+   "rssMB": {
+    "before": 52,
+    "afterLoad": 1491
+   },
+   "probe": "これはてすとです。",
+   "bench128Ms": 418.9
+  },
+  "mojicast-q8w": {
+   "file": "punct_bert.q8w.onnx",
+   "bytes": 119319011,
+   "loadMs": 341,
+   "rssMB": {
+    "before": 1254,
+    "afterLoad": 1482
+   },
+   "probe": "これはてすとです。",
+   "bench128Ms": 516.3
+  },
+  "mojicast-q8w-nonan": {
+   "file": "punct_bert.q8w-nonan.onnx",
+   "bytes": 119317763,
+   "loadMs": 334,
+   "rssMB": {
+    "before": 1254,
+    "afterLoad": 1514
+   },
+   "probe": "これはてすとです。",
+   "bench128Ms": 515.3
+  }
+ },
+ "mojicast-q8w vs mojicast-fp32": {
+  "rows": 51,
+  "textExact": 51,
+  "rawExact": 51,
+  "splitExact": 51,
+  "skeletonKept": 51,
+  "rowsBitExact": 0,
+  "maxAbsProb": 0.03378468002810231,
+  "thresholdFlips": [],
+  "marks": {
+   "both": 148,
+   "differentMark": 0,
+   "onlyFirst": 0,
+   "onlySecond": 0
+  },
+  "diffs": []
+ },
+ "mojicast-q8w-nonan vs mojicast-fp32": {
+  "rows": 51,
+  "textExact": 51,
+  "rawExact": 51,
+  "splitExact": 51,
+  "skeletonKept": 51,
+  "rowsBitExact": 0,
+  "maxAbsProb": 0.03378468002810231,
+  "thresholdFlips": [],
+  "marks": {
+   "both": 148,
+   "differentMark": 0,
+   "onlyFirst": 0,
+   "onlySecond": 0
+  },
+  "diffs": []
+ },
+ "mojicast-q8w-nonan vs mojicast-q8w": {
+  "rows": 51,
+  "textExact": 51,
+  "rawExact": 51,
+  "splitExact": 51,
+  "skeletonKept": 51,
+  "rowsBitExact": 51,
+  "maxAbsProb": 0,
+  "thresholdFlips": [],
+  "marks": {
+   "both": 148,
+   "differentMark": 0,
+   "onlyFirst": 0,
+   "onlySecond": 0
+  },
+  "diffs": []
+ }
+}

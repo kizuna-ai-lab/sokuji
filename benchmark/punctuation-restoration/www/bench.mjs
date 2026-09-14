@@ -2,16 +2,19 @@
 // input length, and JS+WASM memory. Driven by tools/electron-bench.cjs, which adds
 // per-process working-set numbers from app.getAppMetrics().
 // Query: ?model=<id>&ep=wasm|webgpu&threads=1&reps=15
-import * as ort from '/ort/ort.webgpu.min.mjs';
 import { Tokenizer } from '/tokenizers/tokenizers.mjs';
 import { makeInput } from '/lib/text.mjs';
 
 const q = new URLSearchParams(location.search);
+// &bundle= picks the onnxruntime-web entry: the WebGPU build (default) or e.g.
+// ort.wasm.min.mjs. Their WASM binaries do not register the same CPU kernels.
+const bundle = q.get('bundle') ?? 'ort.webgpu.min.mjs';
+const ort = await import(`/ort/${bundle}`);
 const id = q.get('model');
 const ep = q.get('ep') ?? 'wasm';
 const threads = Number(q.get('threads') ?? '1');
 const reps = Number(q.get('reps') ?? '15');
-const out = { id, ep, threads, crossOriginIsolated: self.crossOriginIsolated, ua: navigator.userAgent, done: false };
+const out = { id, ep, threads, bundle, crossOriginIsolated: self.crossOriginIsolated, ua: navigator.userAgent, done: false };
 window.__result = out;
 const status = (s) => console.log(`STATUS ${s}`);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
