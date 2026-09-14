@@ -275,6 +275,78 @@ PCS-47 lowercases its input, so its cased and lowercased columns are the same ru
 - **Suggested routing:** PCS-47 for fr/de/es/pt marks and casing. SaT can add sentence ends when
   the input is cased.
 
+## Production language mix and model selection
+
+**Source.** PostHog (project `sokuji`), production only, 2026-06-01 → 2026-09-14.
+- **Languages and channels:** from `translation_session_start`. `channels` was recorded from
+  2026-05-23 and fills essentially every session from June on.
+- **Minutes:** from `translation_session_end.duration`, joined on `session_id` and capped at 180
+  min per session.
+- **Legs:** the speaker leg recognises `source_language`; the participant leg recognises
+  `target_language`.
+- **Codes:** normalised to their base (`zh`, `cmn-CN`, `zh_CN` → zh; `en-US`, `en_US` → en;
+  `ru-RU` → ru; …).
+- **Totals:** 425,727 speaker minutes and 545,688 participant minutes.
+
+| language | speaker share | participant share | combined share | model |
+|---|---|---|---|---|
+| en | 20.7% | 45.5% | **34.6%** | Edge-Punct-en |
+| zh (+ zh+en 0.3%) | 36.3% | 16.7% | **25.3%** | FireRedPunc |
+| ja | 7.6% | 21.3% | **15.3%** | SaT |
+| ru | 10.8% | 3.1% | **6.5%** | SaT (sentence ends), PCS-47 (commas) |
+| es | 7.6% | 5.4% | **6.4%** | PCS-47 (marks + casing), SaT (sentence ends) |
+| pt | 2.0% | 2.0% | 2.0% | PCS-47 / SaT |
+| ko | 1.9% | 1.7% | 1.8% | SaT |
+| de | 2.3% | 1.2% | 1.6% | PCS-47 / SaT |
+| vi | 2.4% | 0.5% | 1.3% | SaT (in its 85 languages; not in PCS-47's 47; not measured here) |
+| fr | 1.6% | 0.3% | 0.9% | PCS-47 / SaT |
+| tr, id, it, uk, ar, fa, hi, pl, … | ≈ 3% | ≈ 1% | ≈ 2% | SaT (sentence ends); PCS-47 covers most of them too |
+
+Russian was measured after this breakdown (`corpus/russian.gold.json`, 10 passages;
+`results/summary-russian.md`):
+- **SaT:** sentence-end F1 96.6 on cased input, 64.0 lowercased; streaming 71.4 / 71.4.
+- **PCS-47:** breakpoint F1 88.0 (streaming 85.7 / 96.0) but sentence-end F1 only 31.6.
+
+**What recognises the speech.** `local_inference` carries ≈ 68% of speaker minutes and ≈ 72% of
+participant minutes. Most of it runs on ASR that already emits punctuation:
+- cohere-transcribe: 102k speaker / 133k participant minutes;
+- whisper-large-v3-turbo: 47k / 91k;
+- voxtral-mini-4b: 62k / 87k;
+- parakeet-tdt, qwen3-asr, sensevoice.
+
+The sherpa streaming families carry about 6% of speaker minutes and 3% of participant minutes:
+stream-zh-2025, stream-multi-8lang, *-kroko, zipformer-ru/vi, vosk-ru, nemo-ctc-80ms. Their
+punctuation was not verified in the survey; these families are normally trained on unpunctuated
+text. Online providers carry the rest: Gemini, Volcengine AST 2.0, Soniox, OpenAI Realtime /
+Translate. How reliably each punctuates is not in the telemetry; GPT-Live's Chinese was
+unpunctuated or comma-only in its spike and GUI logs.
+
+- **Telemetry cannot say where punctuation is actually missing.** PostHog holds no transcript
+  text. A privacy-safe measure — sentence terminators per 100 characters of final transcript, by
+  leg, provider, ASR model and language — would show where the punctuator must run and where it
+  can stay idle.
+- **HogQL trap found here:** `if(properties.x != '', …)` on a missing property returns NULL instead
+  of taking the else branch. The first participant-leg query reported 348k minutes with no ASR
+  model; `coalesce(nullIf(…))` recovered them.
+
+**Selection.**
+1. **Core, three models** (≈ 85% of minutes in languages with a measured model):
+   - **FireRedPunc q8w** for zh: 25%, including zh+en code-switching.
+   - **Edge-Punct-en** for en: 35%; 7.6 MB, WASM.
+   - **SaT q8w-gather** for ja, ru, ko, vi and every other language's sentence ends: 85
+     languages, one 251 MB model.
+2. **Optional fourth: PCS-47 q8w-gather** for comma-level breakpoints and casing in
+   es / pt / de / fr / ru (≈ 17% of minutes), where SaT gives only sentence ends and depends on
+   the ASR keeping capitals.
+   - Its sentence ends are weak (ru 31.6, es 42.1, fr 45.5).
+   - It is the heaviest model in the renderer (1.4–1.9 GB).
+   - Add it only if SaT-only lines prove too long, or for lowercased ASR.
+3. **Not selected:** CT-Transformer (zh-en only, weaker), koen-punct, Mojicast (SaT is better for
+   ja sentence ends and covers more languages).
+4. **Per session, at most two models are loaded:** speaker source + participant target. The most
+   common pairs — zh→en, en→ja, ja→en, zh→ja — cost FireRedPunc + Edge-Punct-en (≈ 1.4 GB
+   renderer) or FireRedPunc/Edge + SaT (≈ 1.6–2.7 GB on WebGPU).
+
 ## Open questions
 
 - **One machine only.** Needs the fleet:
