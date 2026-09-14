@@ -50,6 +50,8 @@ export function analyze(text) {
     }
     let cls = MARK_CLASS.get(ch);
     if (ch === '.' && !isPeriodDot(cps, i)) cls = undefined;
+    // A decimal comma (fr/de/es/pt "4,2") is part of the number, not a mark.
+    if (ch === ',' && isDigit(cps[i - 1] ?? '') && isDigit(cps[i + 1] ?? '')) cls = undefined;
     if (!cls || skel.length === 0) continue;
     const prev = marks.get(skel.length);
     if (!prev || RANK[cls] > RANK[prev]) marks.set(skel.length, cls);
@@ -76,11 +78,12 @@ export function makeInput(ref, variant) {
       // Abbreviation and sentence dots are both dropped: ASR writes "dr smith".
       continue;
     }
+    if (ch === ',' && isDigit(cps[i - 1] ?? '') && isDigit(cps[i + 1] ?? '')) { out += ch; continue; }
     if (cls) {
       if (variant === 'commas' && cls === 'comma') out += ch;
       continue;
     }
-    if (/[「」『』（）()"“”:;：；…]/u.test(ch)) continue;
+    if (/[「」『』（）()"“”:;：；…¿¡«»„]/u.test(ch)) continue;
     out += ch;
   }
   out = out.replace(/\s+/gu, ' ').trim();

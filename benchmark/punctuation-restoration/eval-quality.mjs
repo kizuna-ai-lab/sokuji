@@ -24,6 +24,11 @@ const doStream = !process.argv.includes('--no-stream');
 // --no-offline re-runs only the streaming replay and merges it into an existing --out file.
 const doOffline = !process.argv.includes('--no-offline');
 const langFilter = arg('langs', '').split(',').filter(Boolean);
+// --as-lang en --langs fr,de: feed languages a module does not declare, telling the
+// module they are `en` (its guard is the only use of the argument) — to measure
+// how a model behaves outside its stated coverage.
+const asLang = arg('as-lang', '');
+const LATIN = new Set(['en', 'fr', 'de', 'es', 'pt']);
 const RIGHT_CONTEXT = [0, 4, 8, 16];
 
 const items = await loadCorpus(join(here, 'corpus'));
@@ -32,7 +37,7 @@ const outputBoundaries = hypothesisFor;
 
 function variantsFor(it) {
   const v = ['stripped', 'commas'];
-  if (it.lang === 'en') v.push('lower');
+  if (LATIN.has(it.lang)) v.push('lower');
   if (it.raw) v.push('raw');
   return v;
 }
@@ -56,7 +61,8 @@ let report = { threads, models: {} };
 if (!doOffline) report = JSON.parse(await (await import('node:fs/promises')).readFile(outPath, 'utf8'));
 for (const id of modelIds) {
   const { info, model, loadMs } = await loadModel(id, { threads });
-  const langs = new Set(info.langs.filter((l) => !langFilter.length || langFilter.includes(l)));
+  const langs = new Set(asLang && langFilter.length ? langFilter : info.langs.filter((l) => !langFilter.length || langFilter.includes(l)));
+  const callLang = (lang) => (info.langs.includes(lang) ? lang : asLang);
   const r = doOffline ? { info, loadMs, offline: {}, stream: {}, streamBreak: {}, outputs: [] } : report.models[id];
   r.stream = {};
   r.streamBreak = {};
@@ -65,7 +71,7 @@ for (const id of modelIds) {
 
   // Warm up once so the first scored call does not pay graph initialisation.
   const warm = items.find((i) => langs.has(i.lang));
-  await model.punctuate(makeInput(warm.ref, 'stripped'), warm.lang);
+  await model.punctuate(makeInput(warm.ref, 'stripped'), callLang(warm.lang));
 
   const counts = {};
   const timing = {};
@@ -74,7 +80,7 @@ for (const id of modelIds) {
     for (const variant of variantsFor(it)) {
       const input = variant === 'raw' ? it.raw : makeInput(it.ref, variant);
       const t0 = performance.now();
-      const out = await model.punctuate(input, it.lang);
+      const out = await model.punctuate(input, callLang(it.lang));
       const ms = performance.now() - t0;
       const key = `${it.lang}/${variant}`;
       counts[key] ??= newCounts();
@@ -92,7 +98,7 @@ for (const id of modelIds) {
   if (doStream) {
     for (const it of items) {
       if (!langs.has(it.lang)) continue;
-      const input = it.raw ?? makeInput(it.ref, it.lang === 'en' ? 'lower' : 'stripped');
+      const input = it.raw ?? makeInput(it.ref, LATIN.has(it.lang) ? 'lower' : 'stripped');
       const gold = analyze(it.ref);
       const gLen = gold.skelChars.length;
       // Two targets: sentence ends (when to hand a sentence to the translator) and
@@ -112,7 +118,7 @@ for (const id of modelIds) {
       for (let ci = 0; ci < chunks.length; ci++) {
         prefix += chunks[ci];
         const last = ci === chunks.length - 1;
-        const out = await model.punctuate(prefix, it.lang);
+        const out = await model.punctuate(prefix, callLang(it.lang));
         const { positions } = outputBoundaries(info, out);
         const predicted = {
           stream: positions,

@@ -29,6 +29,250 @@
   "zstd": "1.5.7"
  },
  "results": {
+  "fr/gold": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 14,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.5185185185185185,
+    "f": 0.6829268292682926,
+    "tp": 14,
+    "fp": 0,
+    "fn": 13
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 13
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "de/gold": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 14,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.6086956521739131,
+    "f": 0.7567567567567568,
+    "tp": 14,
+    "fp": 0,
+    "fn": 9
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 9
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "es/gold": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 14,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.5833333333333334,
+    "f": 0.7368421052631579,
+    "tp": 14,
+    "fp": 0,
+    "fn": 10
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "pt/gold": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 14,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.5833333333333334,
+    "f": 0.7368421052631579,
+    "tp": 14,
+    "fp": 0,
+    "fn": 10
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
   "en/gold": {
    "items": 23,
    "skelMismatch": 0,
@@ -39,6 +283,14 @@
     "tp": 36,
     "fp": 1,
     "fn": 0
+   },
+   "breakpoint": {
+    "p": 0.972972972972973,
+    "r": 0.4931506849315068,
+    "f": 0.6545454545454545,
+    "tp": 36,
+    "fp": 1,
+    "fn": 37
    },
    "period": {
     "p": 0,
@@ -93,6 +345,14 @@
     "fp": 0,
     "fn": 0
    },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.56,
+    "f": 0.717948717948718,
+    "tp": 42,
+    "fp": 0,
+    "fn": 33
+   },
    "period": {
     "p": 0,
     "r": 0,
@@ -145,6 +405,14 @@
     "tp": 71,
     "fp": 0,
     "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.36787564766839376,
+    "f": 0.5378787878787878,
+    "tp": 71,
+    "fp": 0,
+    "fn": 122
    },
    "period": {
     "p": 0,
@@ -199,6 +467,14 @@
     "fp": 0,
     "fn": 0
    },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.7058823529411765,
+    "f": 0.8275862068965517,
+    "tp": 24,
+    "fp": 0,
+    "fn": 10
+   },
    "period": {
     "p": 0,
     "r": 0,
@@ -241,6 +517,250 @@
    },
    "finalTerm": 0
   },
+  "fr/stripped": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 27
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 13
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "de/stripped": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 23
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 9
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "es/stripped": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "pt/stripped": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
   "en/stripped": {
    "items": 23,
    "skelMismatch": 0,
@@ -251,6 +771,14 @@
     "tp": 0,
     "fp": 0,
     "fn": 36
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 73
    },
    "period": {
     "p": 0,
@@ -305,6 +833,14 @@
     "fp": 0,
     "fn": 42
    },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 75
+   },
    "period": {
     "p": 0,
     "r": 0,
@@ -357,6 +893,14 @@
     "tp": 0,
     "fp": 0,
     "fn": 71
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 193
    },
    "period": {
     "p": 0,
@@ -411,6 +955,14 @@
     "fp": 0,
     "fn": 24
    },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 34
+   },
    "period": {
     "p": 0,
     "r": 0,
@@ -464,6 +1016,14 @@
     "fp": 0,
     "fn": 36
    },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 73
+   },
    "period": {
     "p": 0,
     "r": 0,
@@ -506,6 +1066,250 @@
    },
    "finalTerm": 0
   },
+  "fr/commas": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 27
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 13
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "de/commas": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 23
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 9
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "es/commas": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "pt/commas": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
   "en/commas": {
    "items": 23,
    "skelMismatch": 0,
@@ -516,6 +1320,14 @@
     "tp": 0,
     "fp": 0,
     "fn": 36
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 73
    },
    "period": {
     "p": 0,
@@ -570,6 +1382,14 @@
     "fp": 0,
     "fn": 42
    },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 75
+   },
    "period": {
     "p": 0,
     "r": 0,
@@ -622,6 +1442,14 @@
     "tp": 0,
     "fp": 0,
     "fn": 71
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 193
    },
    "period": {
     "p": 0,
@@ -676,6 +1504,14 @@
     "fp": 0,
     "fn": 24
    },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 34
+   },
    "period": {
     "p": 0,
     "r": 0,
@@ -718,6 +1554,250 @@
    },
    "finalTerm": 0
   },
+  "fr/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  },
+  "de/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  },
+  "es/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  },
+  "pt/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  },
   "en/raw": {
    "items": 3,
    "skelMismatch": 0,
@@ -728,6 +1808,14 @@
     "tp": 7,
     "fp": 0,
     "fn": 5
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.25925925925925924,
+    "f": 0.4117647058823529,
+    "tp": 7,
+    "fp": 0,
+    "fn": 20
    },
    "period": {
     "p": 0,
@@ -782,6 +1870,14 @@
     "fp": 0,
     "fn": 0
    },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.5909090909090909,
+    "f": 0.7428571428571429,
+    "tp": 13,
+    "fp": 0,
+    "fn": 9
+   },
    "period": {
     "p": 0,
     "r": 0,
@@ -834,6 +1930,14 @@
     "tp": 11,
     "fp": 0,
     "fn": 36
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.07692307692307693,
+    "f": 0.14285714285714288,
+    "tp": 11,
+    "fp": 0,
+    "fn": 132
    },
    "period": {
     "p": 0,
@@ -888,6 +1992,14 @@
     "fp": 0,
     "fn": 0
    },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
    "period": {
     "p": 1,
     "r": 1,
@@ -932,6 +2044,326 @@
   }
  },
  "examples": [
+  {
+   "id": "fr-meeting-01",
+   "variant": "stripped",
+   "input": "Bon on va commencer la réunion D'abord est-ce que tout le monde voit mon écran Parfait alors voici l'ordre du jour",
+   "segments": [
+    "Bon on va commencer la réunion D'abord est-ce que tout le monde voit mon écran Parfait alors voici l'ordre du jour"
+   ]
+  },
+  {
+   "id": "fr-question-01",
+   "variant": "stripped",
+   "input": "Vous avez des questions pour l'instant Sinon je passe à la diapositive suivante",
+   "segments": [
+    "Vous avez des questions pour l'instant Sinon je passe à la diapositive suivante"
+   ]
+  },
+  {
+   "id": "fr-numbers-01",
+   "variant": "stripped",
+   "input": "Le chiffre d'affaires a augmenté de 12 % sur un an pour atteindre 4,2 millions d'euros La plupart vient de nos clients entreprises",
+   "segments": [
+    "Le chiffre d'affaires a augmenté de 12 % sur un an pour atteindre 4,2 millions d'euros La plupart vient de nos clients entreprises"
+   ]
+  },
+  {
+   "id": "fr-stream-01",
+   "variant": "stripped",
+   "input": "Salut tout le monde Bienvenue sur le stream Aujourd'hui on va enfin battre le boss final",
+   "segments": [
+    "Salut tout le monde Bienvenue sur le stream Aujourd'hui on va enfin battre le boss final"
+   ]
+  },
+  {
+   "id": "fr-lecture-01",
+   "variant": "stripped",
+   "input": "Aujourd'hui nous allons parler de la photosynthèse La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie Elle se produit surtout dans les feuilles Sans elle la vie sur Terre serait impossible",
+   "segments": [
+    "Aujourd'hui nous allons parler de la photosynthèse La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie Elle se produit surtout dans les feuilles Sans elle la vie sur Terre serait impossible"
+   ]
+  },
+  {
+   "id": "fr-short-01",
+   "variant": "stripped",
+   "input": "Oui ça me va",
+   "segments": [
+    "Oui ça me va"
+   ]
+  },
+  {
+   "id": "fr-support-01",
+   "variant": "stripped",
+   "input": "Merci d'avoir appelé le service client Je m'appelle Julie Comment puis-je vous aider",
+   "segments": [
+    "Merci d'avoir appelé le service client Je m'appelle Julie Comment puis-je vous aider"
+   ]
+  },
+  {
+   "id": "fr-casual-01",
+   "variant": "stripped",
+   "input": "Hier je suis allé dans le nouveau restaurant de ramen du centre-ville Il y avait une queue énorme mais c'était juste correct",
+   "segments": [
+    "Hier je suis allé dans le nouveau restaurant de ramen du centre-ville Il y avait une queue énorme mais c'était juste correct"
+   ]
+  },
+  {
+   "id": "fr-questions-02",
+   "variant": "stripped",
+   "input": "Qui a pris cette décision On en a parlé en réunion Ou ça vient de la direction",
+   "segments": [
+    "Qui a pris cette décision On en a parlé en réunion Ou ça vient de la direction"
+   ]
+  },
+  {
+   "id": "fr-longsentence-01",
+   "variant": "stripped",
+   "input": "L'application traduit la parole en temps réel donc on peut l'utiliser pendant les réunions avec des clients étrangers et elle affiche aussi des sous-titres pour ne rien manquer",
+   "segments": [
+    "L'application traduit la parole en temps réel donc on peut l'utiliser pendant les réunions avec des clients étrangers et elle affiche aussi des sous-titres pour ne rien manquer"
+   ]
+  },
+  {
+   "id": "de-meeting-01",
+   "variant": "stripped",
+   "input": "Okay dann fangen wir mit dem Meeting an Könnt ihr alle meinen Bildschirm sehen Gut dann hier die Tagesordnung für heute",
+   "segments": [
+    "Okay dann fangen wir mit dem Meeting an Könnt ihr alle meinen Bildschirm sehen Gut dann hier die Tagesordnung für heute"
+   ]
+  },
+  {
+   "id": "de-question-01",
+   "variant": "stripped",
+   "input": "Habt ihr bis jetzt Fragen Wenn nicht gehe ich zur nächsten Folie",
+   "segments": [
+    "Habt ihr bis jetzt Fragen Wenn nicht gehe ich zur nächsten Folie"
+   ]
+  },
+  {
+   "id": "de-numbers-01",
+   "variant": "stripped",
+   "input": "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen Das meiste davon kam von unseren Firmenkunden",
+   "segments": [
+    "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen Das meiste davon kam von unseren Firmenkunden"
+   ]
+  },
+  {
+   "id": "de-stream-01",
+   "variant": "stripped",
+   "input": "Hallo zusammen Willkommen zurück im Stream Heute besiegen wir endlich den Endboss",
+   "segments": [
+    "Hallo zusammen Willkommen zurück im Stream Heute besiegen wir endlich den Endboss"
+   ]
+  },
+  {
+   "id": "de-lecture-01",
+   "variant": "stripped",
+   "input": "Heute sprechen wir über die Photosynthese Die Photosynthese ist der Prozess mit dem Pflanzen Sonnenlicht in Energie umwandeln Sie findet vor allem in den Blättern statt Ohne sie wäre Leben auf der Erde nicht möglich",
+   "segments": [
+    "Heute sprechen wir über die Photosynthese Die Photosynthese ist der Prozess mit dem Pflanzen Sonnenlicht in Energie umwandeln Sie findet vor allem in den Blättern statt Ohne sie wäre Leben auf der Erde nicht möglich"
+   ]
+  },
+  {
+   "id": "de-short-01",
+   "variant": "stripped",
+   "input": "Ja das passt mir",
+   "segments": [
+    "Ja das passt mir"
+   ]
+  },
+  {
+   "id": "de-support-01",
+   "variant": "stripped",
+   "input": "Danke für Ihren Anruf beim Kundenservice Mein Name ist Anna Wie kann ich Ihnen helfen",
+   "segments": [
+    "Danke für Ihren Anruf beim Kundenservice Mein Name ist Anna Wie kann ich Ihnen helfen"
+   ]
+  },
+  {
+   "id": "de-casual-01",
+   "variant": "stripped",
+   "input": "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt Die Schlange war riesig aber das Essen war nur okay",
+   "segments": [
+    "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt Die Schlange war riesig aber das Essen war nur okay"
+   ]
+  },
+  {
+   "id": "de-questions-02",
+   "variant": "stripped",
+   "input": "Wer hat das entschieden Wurde das im Meeting besprochen Oder kam das von der Geschäftsführung",
+   "segments": [
+    "Wer hat das entschieden Wurde das im Meeting besprochen Oder kam das von der Geschäftsführung"
+   ]
+  },
+  {
+   "id": "de-longsentence-01",
+   "variant": "stripped",
+   "input": "Die App übersetzt Sprache in Echtzeit sodass man sie in Meetings mit ausländischen Kunden nutzen kann und sie zeigt außerdem Untertitel an damit man nichts verpasst",
+   "segments": [
+    "Die App übersetzt Sprache in Echtzeit sodass man sie in Meetings mit ausländischen Kunden nutzen kann und sie zeigt außerdem Untertitel an damit man nichts verpasst"
+   ]
+  },
+  {
+   "id": "es-meeting-01",
+   "variant": "stripped",
+   "input": "Bueno empecemos la reunión Primero todos pueden ver mi pantalla Perfecto entonces esta es la agenda de hoy",
+   "segments": [
+    "Bueno empecemos la reunión Primero todos pueden ver mi pantalla Perfecto entonces esta es la agenda de hoy"
+   ]
+  },
+  {
+   "id": "es-question-01",
+   "variant": "stripped",
+   "input": "Tienen alguna pregunta hasta ahora Si no paso a la siguiente diapositiva",
+   "segments": [
+    "Tienen alguna pregunta hasta ahora Si no paso a la siguiente diapositiva"
+   ]
+  },
+  {
+   "id": "es-numbers-01",
+   "variant": "stripped",
+   "input": "Los ingresos crecieron un 12 % respecto al año anterior hasta 4,2 millones de euros La mayor parte vino de nuestros clientes empresariales",
+   "segments": [
+    "Los ingresos crecieron un 12 % respecto al año anterior hasta 4,2 millones de euros La mayor parte vino de nuestros clientes empresariales"
+   ]
+  },
+  {
+   "id": "es-stream-01",
+   "variant": "stripped",
+   "input": "Hola a todos Bienvenidos otra vez al directo Hoy por fin vamos a derrotar al jefe final",
+   "segments": [
+    "Hola a todos Bienvenidos otra vez al directo Hoy por fin vamos a derrotar al jefe final"
+   ]
+  },
+  {
+   "id": "es-lecture-01",
+   "variant": "stripped",
+   "input": "Hoy vamos a hablar de la fotosíntesis La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía Ocurre sobre todo en las hojas Sin ella la vida en la Tierra no existiría",
+   "segments": [
+    "Hoy vamos a hablar de la fotosíntesis La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía Ocurre sobre todo en las hojas Sin ella la vida en la Tierra no existiría"
+   ]
+  },
+  {
+   "id": "es-short-01",
+   "variant": "stripped",
+   "input": "Sí a mí me viene bien",
+   "segments": [
+    "Sí a mí me viene bien"
+   ]
+  },
+  {
+   "id": "es-support-01",
+   "variant": "stripped",
+   "input": "Gracias por llamar al servicio de atención al cliente Me llamo Carlos En qué puedo ayudarle",
+   "segments": [
+    "Gracias por llamar al servicio de atención al cliente Me llamo Carlos En qué puedo ayudarle"
+   ]
+  },
+  {
+   "id": "es-casual-01",
+   "variant": "stripped",
+   "input": "Ayer fui al nuevo restaurante de ramen del centro La cola era enorme pero la comida estaba normal",
+   "segments": [
+    "Ayer fui al nuevo restaurante de ramen del centro La cola era enorme pero la comida estaba normal"
+   ]
+  },
+  {
+   "id": "es-questions-02",
+   "variant": "stripped",
+   "input": "Quién tomó esa decisión Se habló en la reunión O vino de la dirección",
+   "segments": [
+    "Quién tomó esa decisión Se habló en la reunión O vino de la dirección"
+   ]
+  },
+  {
+   "id": "es-longsentence-01",
+   "variant": "stripped",
+   "input": "La aplicación traduce la voz en tiempo real así que se puede usar en reuniones con clientes extranjeros y además muestra subtítulos para que no se te escape nada",
+   "segments": [
+    "La aplicación traduce la voz en tiempo real así que se puede usar en reuniones con clientes extranjeros y además muestra subtítulos para que no se te escape nada"
+   ]
+  },
+  {
+   "id": "pt-meeting-01",
+   "variant": "stripped",
+   "input": "Bom vamos começar a reunião Primeiro todo mundo consegue ver a minha tela Ótimo então aqui está a pauta de hoje",
+   "segments": [
+    "Bom vamos começar a reunião Primeiro todo mundo consegue ver a minha tela Ótimo então aqui está a pauta de hoje"
+   ]
+  },
+  {
+   "id": "pt-question-01",
+   "variant": "stripped",
+   "input": "Vocês têm alguma pergunta até agora Se não vou passar para o próximo slide",
+   "segments": [
+    "Vocês têm alguma pergunta até agora Se não vou passar para o próximo slide"
+   ]
+  },
+  {
+   "id": "pt-numbers-01",
+   "variant": "stripped",
+   "input": "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais A maior parte veio dos nossos clientes corporativos",
+   "segments": [
+    "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais A maior parte veio dos nossos clientes corporativos"
+   ]
+  },
+  {
+   "id": "pt-stream-01",
+   "variant": "stripped",
+   "input": "E aí pessoal Bem-vindos de volta à live Hoje a gente finalmente vai derrotar o chefão final",
+   "segments": [
+    "E aí pessoal Bem-vindos de volta à live Hoje a gente finalmente vai derrotar o chefão final"
+   ]
+  },
+  {
+   "id": "pt-lecture-01",
+   "variant": "stripped",
+   "input": "Hoje vamos falar sobre a fotossíntese A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia Ela acontece principalmente nas folhas Sem ela a vida na Terra não existiria",
+   "segments": [
+    "Hoje vamos falar sobre a fotossíntese A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia Ela acontece principalmente nas folhas Sem ela a vida na Terra não existiria"
+   ]
+  },
+  {
+   "id": "pt-short-01",
+   "variant": "stripped",
+   "input": "Sim para mim está bom",
+   "segments": [
+    "Sim para mim está bom"
+   ]
+  },
+  {
+   "id": "pt-support-01",
+   "variant": "stripped",
+   "input": "Obrigado por ligar para o atendimento ao cliente Meu nome é Ana Como posso ajudar você",
+   "segments": [
+    "Obrigado por ligar para o atendimento ao cliente Meu nome é Ana Como posso ajudar você"
+   ]
+  },
+  {
+   "id": "pt-casual-01",
+   "variant": "stripped",
+   "input": "Ontem eu fui naquele restaurante de lámen novo no centro A fila estava enorme mas a comida era só razoável",
+   "segments": [
+    "Ontem eu fui naquele restaurante de lámen novo no centro A fila estava enorme mas a comida era só razoável"
+   ]
+  },
+  {
+   "id": "pt-questions-02",
+   "variant": "stripped",
+   "input": "Quem tomou essa decisão Isso foi discutido na reunião Ou veio da diretoria",
+   "segments": [
+    "Quem tomou essa decisão Isso foi discutido na reunião Ou veio da diretoria"
+   ]
+  },
+  {
+   "id": "pt-longsentence-01",
+   "variant": "stripped",
+   "input": "O aplicativo traduz a fala em tempo real então dá para usar em reuniões com clientes estrangeiros e ele também mostra legendas para você não perder nada",
+   "segments": [
+    "O aplicativo traduz a fala em tempo real então dá para usar em reuniões com clientes estrangeiros e ele também mostra legendas para você não perder nada"
+   ]
+  },
   {
    "id": "gl-en1-ja-openai-alloy",
    "variant": "stripped",
@@ -1922,6 +3354,326 @@
    "input": "i'm not sure let me check and get back to you by the end of the day",
    "segments": [
     "i'm not sure let me check and get back to you by the end of the day"
+   ]
+  },
+  {
+   "id": "fr-meeting-01",
+   "variant": "commas",
+   "input": "Bon, on va commencer la réunion D'abord, est-ce que tout le monde voit mon écran Parfait, alors voici l'ordre du jour",
+   "segments": [
+    "Bon, on va commencer la réunion D'abord, est-ce que tout le monde voit mon écran Parfait, alors voici l'ordre du jour"
+   ]
+  },
+  {
+   "id": "fr-question-01",
+   "variant": "commas",
+   "input": "Vous avez des questions pour l'instant Sinon, je passe à la diapositive suivante",
+   "segments": [
+    "Vous avez des questions pour l'instant Sinon, je passe à la diapositive suivante"
+   ]
+  },
+  {
+   "id": "fr-numbers-01",
+   "variant": "commas",
+   "input": "Le chiffre d'affaires a augmenté de 12 % sur un an, pour atteindre 4,2 millions d'euros La plupart vient de nos clients entreprises",
+   "segments": [
+    "Le chiffre d'affaires a augmenté de 12 % sur un an, pour atteindre 4,2 millions d'euros La plupart vient de nos clients entreprises"
+   ]
+  },
+  {
+   "id": "fr-stream-01",
+   "variant": "commas",
+   "input": "Salut tout le monde Bienvenue sur le stream Aujourd'hui, on va enfin battre le boss final",
+   "segments": [
+    "Salut tout le monde Bienvenue sur le stream Aujourd'hui, on va enfin battre le boss final"
+   ]
+  },
+  {
+   "id": "fr-lecture-01",
+   "variant": "commas",
+   "input": "Aujourd'hui, nous allons parler de la photosynthèse La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie Elle se produit surtout dans les feuilles Sans elle, la vie sur Terre serait impossible",
+   "segments": [
+    "Aujourd'hui, nous allons parler de la photosynthèse La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie Elle se produit surtout dans les feuilles Sans elle, la vie sur Terre serait impossible"
+   ]
+  },
+  {
+   "id": "fr-short-01",
+   "variant": "commas",
+   "input": "Oui, ça me va",
+   "segments": [
+    "Oui, ça me va"
+   ]
+  },
+  {
+   "id": "fr-support-01",
+   "variant": "commas",
+   "input": "Merci d'avoir appelé le service client Je m'appelle Julie Comment puis-je vous aider",
+   "segments": [
+    "Merci d'avoir appelé le service client Je m'appelle Julie Comment puis-je vous aider"
+   ]
+  },
+  {
+   "id": "fr-casual-01",
+   "variant": "commas",
+   "input": "Hier, je suis allé dans le nouveau restaurant de ramen du centre-ville Il y avait une queue énorme, mais c'était juste correct",
+   "segments": [
+    "Hier, je suis allé dans le nouveau restaurant de ramen du centre-ville Il y avait une queue énorme, mais c'était juste correct"
+   ]
+  },
+  {
+   "id": "fr-questions-02",
+   "variant": "commas",
+   "input": "Qui a pris cette décision On en a parlé en réunion Ou ça vient de la direction",
+   "segments": [
+    "Qui a pris cette décision On en a parlé en réunion Ou ça vient de la direction"
+   ]
+  },
+  {
+   "id": "fr-longsentence-01",
+   "variant": "commas",
+   "input": "L'application traduit la parole en temps réel, donc on peut l'utiliser pendant les réunions avec des clients étrangers, et elle affiche aussi des sous-titres pour ne rien manquer",
+   "segments": [
+    "L'application traduit la parole en temps réel, donc on peut l'utiliser pendant les réunions avec des clients étrangers, et elle affiche aussi des sous-titres pour ne rien manquer"
+   ]
+  },
+  {
+   "id": "de-meeting-01",
+   "variant": "commas",
+   "input": "Okay, dann fangen wir mit dem Meeting an Könnt ihr alle meinen Bildschirm sehen Gut, dann hier die Tagesordnung für heute",
+   "segments": [
+    "Okay, dann fangen wir mit dem Meeting an Könnt ihr alle meinen Bildschirm sehen Gut, dann hier die Tagesordnung für heute"
+   ]
+  },
+  {
+   "id": "de-question-01",
+   "variant": "commas",
+   "input": "Habt ihr bis jetzt Fragen Wenn nicht, gehe ich zur nächsten Folie",
+   "segments": [
+    "Habt ihr bis jetzt Fragen Wenn nicht, gehe ich zur nächsten Folie"
+   ]
+  },
+  {
+   "id": "de-numbers-01",
+   "variant": "commas",
+   "input": "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen Das meiste davon kam von unseren Firmenkunden",
+   "segments": [
+    "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen Das meiste davon kam von unseren Firmenkunden"
+   ]
+  },
+  {
+   "id": "de-stream-01",
+   "variant": "commas",
+   "input": "Hallo zusammen Willkommen zurück im Stream Heute besiegen wir endlich den Endboss",
+   "segments": [
+    "Hallo zusammen Willkommen zurück im Stream Heute besiegen wir endlich den Endboss"
+   ]
+  },
+  {
+   "id": "de-lecture-01",
+   "variant": "commas",
+   "input": "Heute sprechen wir über die Photosynthese Die Photosynthese ist der Prozess, mit dem Pflanzen Sonnenlicht in Energie umwandeln Sie findet vor allem in den Blättern statt Ohne sie wäre Leben auf der Erde nicht möglich",
+   "segments": [
+    "Heute sprechen wir über die Photosynthese Die Photosynthese ist der Prozess, mit dem Pflanzen Sonnenlicht in Energie umwandeln Sie findet vor allem in den Blättern statt Ohne sie wäre Leben auf der Erde nicht möglich"
+   ]
+  },
+  {
+   "id": "de-short-01",
+   "variant": "commas",
+   "input": "Ja, das passt mir",
+   "segments": [
+    "Ja, das passt mir"
+   ]
+  },
+  {
+   "id": "de-support-01",
+   "variant": "commas",
+   "input": "Danke für Ihren Anruf beim Kundenservice Mein Name ist Anna Wie kann ich Ihnen helfen",
+   "segments": [
+    "Danke für Ihren Anruf beim Kundenservice Mein Name ist Anna Wie kann ich Ihnen helfen"
+   ]
+  },
+  {
+   "id": "de-casual-01",
+   "variant": "commas",
+   "input": "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt Die Schlange war riesig, aber das Essen war nur okay",
+   "segments": [
+    "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt Die Schlange war riesig, aber das Essen war nur okay"
+   ]
+  },
+  {
+   "id": "de-questions-02",
+   "variant": "commas",
+   "input": "Wer hat das entschieden Wurde das im Meeting besprochen Oder kam das von der Geschäftsführung",
+   "segments": [
+    "Wer hat das entschieden Wurde das im Meeting besprochen Oder kam das von der Geschäftsführung"
+   ]
+  },
+  {
+   "id": "de-longsentence-01",
+   "variant": "commas",
+   "input": "Die App übersetzt Sprache in Echtzeit, sodass man sie in Meetings mit ausländischen Kunden nutzen kann, und sie zeigt außerdem Untertitel an, damit man nichts verpasst",
+   "segments": [
+    "Die App übersetzt Sprache in Echtzeit, sodass man sie in Meetings mit ausländischen Kunden nutzen kann, und sie zeigt außerdem Untertitel an, damit man nichts verpasst"
+   ]
+  },
+  {
+   "id": "es-meeting-01",
+   "variant": "commas",
+   "input": "Bueno, empecemos la reunión Primero, todos pueden ver mi pantalla Perfecto, entonces esta es la agenda de hoy",
+   "segments": [
+    "Bueno, empecemos la reunión Primero, todos pueden ver mi pantalla Perfecto, entonces esta es la agenda de hoy"
+   ]
+  },
+  {
+   "id": "es-question-01",
+   "variant": "commas",
+   "input": "Tienen alguna pregunta hasta ahora Si no, paso a la siguiente diapositiva",
+   "segments": [
+    "Tienen alguna pregunta hasta ahora Si no, paso a la siguiente diapositiva"
+   ]
+  },
+  {
+   "id": "es-numbers-01",
+   "variant": "commas",
+   "input": "Los ingresos crecieron un 12 % respecto al año anterior, hasta 4,2 millones de euros La mayor parte vino de nuestros clientes empresariales",
+   "segments": [
+    "Los ingresos crecieron un 12 % respecto al año anterior, hasta 4,2 millones de euros La mayor parte vino de nuestros clientes empresariales"
+   ]
+  },
+  {
+   "id": "es-stream-01",
+   "variant": "commas",
+   "input": "Hola a todos Bienvenidos otra vez al directo Hoy por fin vamos a derrotar al jefe final",
+   "segments": [
+    "Hola a todos Bienvenidos otra vez al directo Hoy por fin vamos a derrotar al jefe final"
+   ]
+  },
+  {
+   "id": "es-lecture-01",
+   "variant": "commas",
+   "input": "Hoy vamos a hablar de la fotosíntesis La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía Ocurre sobre todo en las hojas Sin ella, la vida en la Tierra no existiría",
+   "segments": [
+    "Hoy vamos a hablar de la fotosíntesis La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía Ocurre sobre todo en las hojas Sin ella, la vida en la Tierra no existiría"
+   ]
+  },
+  {
+   "id": "es-short-01",
+   "variant": "commas",
+   "input": "Sí, a mí me viene bien",
+   "segments": [
+    "Sí, a mí me viene bien"
+   ]
+  },
+  {
+   "id": "es-support-01",
+   "variant": "commas",
+   "input": "Gracias por llamar al servicio de atención al cliente Me llamo Carlos En qué puedo ayudarle",
+   "segments": [
+    "Gracias por llamar al servicio de atención al cliente Me llamo Carlos En qué puedo ayudarle"
+   ]
+  },
+  {
+   "id": "es-casual-01",
+   "variant": "commas",
+   "input": "Ayer fui al nuevo restaurante de ramen del centro La cola era enorme, pero la comida estaba normal",
+   "segments": [
+    "Ayer fui al nuevo restaurante de ramen del centro La cola era enorme, pero la comida estaba normal"
+   ]
+  },
+  {
+   "id": "es-questions-02",
+   "variant": "commas",
+   "input": "Quién tomó esa decisión Se habló en la reunión O vino de la dirección",
+   "segments": [
+    "Quién tomó esa decisión Se habló en la reunión O vino de la dirección"
+   ]
+  },
+  {
+   "id": "es-longsentence-01",
+   "variant": "commas",
+   "input": "La aplicación traduce la voz en tiempo real, así que se puede usar en reuniones con clientes extranjeros, y además muestra subtítulos para que no se te escape nada",
+   "segments": [
+    "La aplicación traduce la voz en tiempo real, así que se puede usar en reuniones con clientes extranjeros, y además muestra subtítulos para que no se te escape nada"
+   ]
+  },
+  {
+   "id": "pt-meeting-01",
+   "variant": "commas",
+   "input": "Bom, vamos começar a reunião Primeiro, todo mundo consegue ver a minha tela Ótimo, então aqui está a pauta de hoje",
+   "segments": [
+    "Bom, vamos começar a reunião Primeiro, todo mundo consegue ver a minha tela Ótimo, então aqui está a pauta de hoje"
+   ]
+  },
+  {
+   "id": "pt-question-01",
+   "variant": "commas",
+   "input": "Vocês têm alguma pergunta até agora Se não, vou passar para o próximo slide",
+   "segments": [
+    "Vocês têm alguma pergunta até agora Se não, vou passar para o próximo slide"
+   ]
+  },
+  {
+   "id": "pt-numbers-01",
+   "variant": "commas",
+   "input": "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais A maior parte veio dos nossos clientes corporativos",
+   "segments": [
+    "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais A maior parte veio dos nossos clientes corporativos"
+   ]
+  },
+  {
+   "id": "pt-stream-01",
+   "variant": "commas",
+   "input": "E aí, pessoal Bem-vindos de volta à live Hoje a gente finalmente vai derrotar o chefão final",
+   "segments": [
+    "E aí, pessoal Bem-vindos de volta à live Hoje a gente finalmente vai derrotar o chefão final"
+   ]
+  },
+  {
+   "id": "pt-lecture-01",
+   "variant": "commas",
+   "input": "Hoje vamos falar sobre a fotossíntese A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia Ela acontece principalmente nas folhas Sem ela, a vida na Terra não existiria",
+   "segments": [
+    "Hoje vamos falar sobre a fotossíntese A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia Ela acontece principalmente nas folhas Sem ela, a vida na Terra não existiria"
+   ]
+  },
+  {
+   "id": "pt-short-01",
+   "variant": "commas",
+   "input": "Sim, para mim está bom",
+   "segments": [
+    "Sim, para mim está bom"
+   ]
+  },
+  {
+   "id": "pt-support-01",
+   "variant": "commas",
+   "input": "Obrigado por ligar para o atendimento ao cliente Meu nome é Ana Como posso ajudar você",
+   "segments": [
+    "Obrigado por ligar para o atendimento ao cliente Meu nome é Ana Como posso ajudar você"
+   ]
+  },
+  {
+   "id": "pt-casual-01",
+   "variant": "commas",
+   "input": "Ontem eu fui naquele restaurante de lámen novo no centro A fila estava enorme, mas a comida era só razoável",
+   "segments": [
+    "Ontem eu fui naquele restaurante de lámen novo no centro A fila estava enorme, mas a comida era só razoável"
+   ]
+  },
+  {
+   "id": "pt-questions-02",
+   "variant": "commas",
+   "input": "Quem tomou essa decisão Isso foi discutido na reunião Ou veio da diretoria",
+   "segments": [
+    "Quem tomou essa decisão Isso foi discutido na reunião Ou veio da diretoria"
+   ]
+  },
+  {
+   "id": "pt-longsentence-01",
+   "variant": "commas",
+   "input": "O aplicativo traduz a fala em tempo real, então dá para usar em reuniões com clientes estrangeiros, e ele também mostra legendas para você não perder nada",
+   "segments": [
+    "O aplicativo traduz a fala em tempo real, então dá para usar em reuniões com clientes estrangeiros, e ele também mostra legendas para você não perder nada"
    ]
   },
   {

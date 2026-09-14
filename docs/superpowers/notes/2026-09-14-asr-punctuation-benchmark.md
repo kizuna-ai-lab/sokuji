@@ -227,6 +227,54 @@ What the cost runs established:
 
    The stage would give all three committed breakpoints instead. The design is a separate spec.
 
+## French, German, Spanish, Portuguese
+
+Added after the main run: `corpus/european.gold.json`, 10 hand-written passages per language in the
+same categories (14 internal sentence ends and ~25 breakpoints per language, so treat differences
+under ~10 points as noise). None of the ported modules declares these languages. PCS-47 and SaT
+cover them upstream (PCS-47 `config.yaml` lists de/es/fr/pt; SaT covers 85 languages), and
+CT-Transformer does not. `eval-quality.mjs --langs fr,de,es,pt --as-lang en` feeds them through the
+modules' language guard, which is the only use of the argument. Full tables:
+`results/summary-european.md`.
+
+| lang | model | breakpoint F1 (offline) | sentence-end F1: cased / lowercased input | streaming breakpoints P/R (R=8) | casing F1 |
+|---|---|---|---|---|---|
+| fr | **PCS-47** | **89.8** | 45.5 / 45.5 | **100 / 88.9** | 71.1 |
+| fr | SaT | 68.3 | **100** / 58.3 | 91.7 / 40.7 | – |
+| fr | CT-Transformer | 7.1 | 0 / 0 | 50.0 / 3.7 | – |
+| de | **PCS-47** | **95.5** | 72.7 / 72.7 | **95.7 / 95.7** | 95.2 |
+| de | SaT | 75.7 | **100** / 80.0 | 91.7 / 47.8 | – |
+| de | CT-Transformer | 14.8 | 13.3 / 13.3 | 60.0 / 13.0 | – |
+| es | **PCS-47** | **88.9** | 42.1 / 42.1 | **88.0 / 91.7** | 74.4 |
+| es | SaT | 76.9 | **96.6** / 43.5 | 88.9 / 33.3 | – |
+| es | CT-Transformer | 0.0 | 0 / 0 | 0 / 0 | – |
+| pt | **PCS-47** | **80.0** | 57.1 / 57.1 | **77.8 / 87.5** | 76.0 |
+| pt | SaT | 73.7 | **100** / 61.5 | 78.6 / 45.8 | – |
+| pt | CT-Transformer | 19.4 | 12.5 / 12.5 | 36.4 / 16.7 | – |
+
+PCS-47 lowercases its input, so its cased and lowercased columns are the same run.
+
+- **CT-Transformer does not support these languages.**
+  - **Upstream scope:** FunASR publishes only zh and zh-en CT checkpoints (survey §4.3).
+  - **Vocabulary:** the sherpa build's 272,727-token vocabulary is 262,487 ASCII words (English
+    corpus, including loanwords such as `le`, `der`, `que`, `obrigado`) and 8,362 CJK characters.
+  - **Accented words never match:** its 1,791 accented entries are stored with uppercase accents
+    (`acciÓn`), while lookup lowercases first, so `réunion`, `für`, `año`, `não` are `<unk>`.
+  - **Unknown-token rate** on these passages: fr 22.5%, de 33.9%, es 28.9%, pt 42.3%, vs en 3.5%.
+  - **Output:** no internal marks at all, only a final `。`. It also damages the text: spacing is
+    rebuilt from tokens, so `en énergie Elle` → `enénergieElle`, and the decimal `4,2` → `4 2`.
+- **PCS-47 is the usable model for these four.**
+  - Breakpoints 80–96 offline and 78–100% precision streamed, with casing restored (de 95).
+  - It prefers commas where the reference ends a sentence, so sentence-end recall is low (29–57%).
+    The same trigger caveat as Chinese applies.
+  - On the renderer it is the same PCS-47 build and cost as above.
+- **SaT leans on capitals again.**
+  - Sentence ends are near-perfect when the ASR keeps casing (Whisper-style and most providers).
+  - Lowercased CTC-style text drops them to 44–80.
+  - No commas.
+- **Suggested routing:** PCS-47 for fr/de/es/pt marks and casing. SaT can add sentence ends when
+  the input is cased.
+
 ## Open questions
 
 - **One machine only.** Needs the fleet:
