@@ -1,0 +1,148 @@
+{
+ "onnxruntime": "1.30.0",
+ "onnx": "1.22.0",
+ "builds": {
+  "q8w": {
+   "file": "/home/jiangzhuo/.cache/sokuji-punct-bench/pcs47/model.q8w.onnx",
+   "bytes": 868305097,
+   "ops": {
+    "Add": 132,
+    "ArgMax": 4,
+    "Cast": 56,
+    "Concat": 54,
+    "Constant": 372,
+    "ConstantOfShape": 5,
+    "CumSum": 1,
+    "Div": 24,
+    "Equal": 4,
+    "Erf": 12,
+    "Expand": 4,
+    "Gather": 105,
+    "Greater": 2,
+    "LayerNormalization": 25,
+    "MatMul": 32,
+    "Mul": 29,
+    "Not": 1,
+    "Pad": 1,
+    "Range": 1,
+    "Relu": 4,
+    "Reshape": 53,
+    "ScatterND": 1,
+    "Shape": 106,
+    "Sigmoid": 1,
+    "Slice": 4,
+    "Softmax": 13,
+    "Sub": 1,
+    "Transpose": 49,
+    "Unsqueeze": 104,
+    "Where": 3,
+    "com.microsoft:MatMulNBits": 72
+   }
+  },
+  "q8w-gather": {
+   "file": "/home/jiangzhuo/.cache/sokuji-punct-bench/pcs47/model.q8w-gather.onnx",
+   "bytes": 316300915,
+   "ops": {
+    "Add": 132,
+    "ArgMax": 4,
+    "Cast": 56,
+    "Concat": 54,
+    "Constant": 372,
+    "ConstantOfShape": 5,
+    "CumSum": 1,
+    "Div": 24,
+    "Equal": 4,
+    "Erf": 12,
+    "Expand": 4,
+    "Gather": 104,
+    "Greater": 2,
+    "LayerNormalization": 25,
+    "MatMul": 32,
+    "Mul": 29,
+    "Not": 1,
+    "Pad": 1,
+    "Range": 1,
+    "Relu": 4,
+    "Reshape": 53,
+    "ScatterND": 1,
+    "Shape": 106,
+    "Sigmoid": 1,
+    "Slice": 4,
+    "Softmax": 13,
+    "Sub": 1,
+    "Transpose": 49,
+    "Unsqueeze": 104,
+    "Where": 3,
+    "com.microsoft:GatherBlockQuantized": 1,
+    "com.microsoft:MatMulNBits": 72
+   },
+   "embedding_quantization": {
+    "table": [
+     250002,
+     768
+    ],
+    "scales": [
+     250002,
+     24
+    ],
+    "max_abs_err": 0.003942482173442841,
+    "mean_abs_err": 0.0008615247788839042,
+    "max_abs_weight": 1.0420403480529785
+   }
+  }
+ },
+ "native_cpu_sanity_first_254_tokens_vs_fp32": {
+  "q8w": {
+   "en": {
+    "pre_preds": "256/256",
+    "post_preds": "256/256",
+    "cap_preds": "4096/4096",
+    "seg_preds": "256/256"
+   },
+   "ja": {
+    "pre_preds": "256/256",
+    "post_preds": "256/256",
+    "cap_preds": "4095/4096",
+    "seg_preds": "256/256"
+   },
+   "zh": {
+    "pre_preds": "256/256",
+    "post_preds": "256/256",
+    "cap_preds": "4095/4096",
+    "seg_preds": "256/256"
+   },
+   "ko": {
+    "pre_preds": "256/256",
+    "post_preds": "256/256",
+    "cap_preds": "4096/4096",
+    "seg_preds": "256/256"
+   }
+  },
+  "q8w-gather": {
+   "en": {
+    "pre_preds": "256/256",
+    "post_preds": "256/256",
+    "cap_preds": "4096/4096",
+    "seg_preds": "256/256"
+   },
+   "ja": {
+    "pre_preds": "256/256",
+    "post_preds": "256/256",
+    "cap_preds": "4095/4096",
+    "seg_preds": "256/256"
+   },
+   "zh": {
+    "pre_preds": "256/256",
+    "post_preds": "256/256",
+    "cap_preds": "4095/4096",
+    "seg_preds": "256/256"
+   },
+   "ko": {
+    "pre_preds": "256/256",
+    "post_preds": "256/256",
+    "cap_preds": "4096/4096",
+    "seg_preds": "256/256"
+   }
+  }
+ }
+}

@@ -113,11 +113,133 @@ Findings that change what "the model" means in practice:
   0.1, non-overlapping 256-char chunks, with a digit+counter fix and a self-test that falls back to fp32
   because int8 marked every character on non-VNNI CPUs.
 
-<!-- QUALITY_TABLES -->
+## Results
 
-<!-- COST_TABLE -->
+Every model, input variant, right-context R and renderer cell is in
+`benchmark/punctuation-restoration/results/summary.md`; the numbers below are a selection.
+- **breakpoint**: a comma or sentence end at the reference position — where a subtitle line may be cut.
+- **sentence end**: `。 . ？ ? ！ !` only — when a sentence is complete enough for the translator.
+- **streaming**: the model re-runs on every chunk; a position is committed after 8 characters of right context.
 
-<!-- RECOMMENDATION -->
+### Quality by language (stripped input unless noted)
+
+| lang | model | breakpoint F1 (offline) | sentence-end F1 (offline) | streaming breakpoints P/R | streaming sentence ends P/R | notes |
+|---|---|---|---|---|---|---|
+| zh | **FireRedPunc** | **91.5** (GPT-Live raw 90.8) | 55.4 (P 93 / R 39) | **93.0 / 90.2** | 84.4 / 53.5 | prefers `，` to `。`; lowercases English |
+| zh | PCS-47 | 83.9 | 55.0 | 65.2 / 95.3 | 38.7 / 57.7 | extra commas, false `。` inside clauses |
+| zh | CT-Transformer | 81.3 | 57.6 | 85.5 / 82.4 | 71.7 / 53.5 | |
+| zh | SaT | 37.0 | 56.2 (raw 69.0) | 86.7 / 26.9 | 71.7 / 60.6 | boundaries only |
+| en | **Edge-Punct-en** | **92.3** | 84.5 | **90.8 / 94.5** | 76.2 / 88.9 | casing F1 84.0 |
+| en | FireRedPunc | 85.0 | 85.7 | 94.8 / 75.3 | 86.1 / 86.1 | output lowercased |
+| en | PCS-47 | 84.3 | 78.9 | 85.5 / 89.0 | 75.6 / 86.1 | casing F1 88.6 |
+| en | SaT | 67.3 | 98.6 cased, 64.6 lowercased | – | 79.4 / 75.0 (lowercased) | relies on capitals |
+| ja | **SaT** | 72.9 | **94.1** | 100 / 57.3 | **93.0 / 95.2** | boundaries only |
+| ja | PCS-47 | 85.1 | 90.2 | 69.8 / 98.7 | 88.6 / 92.9 | about twice the reference `、` |
+| ja | Mojicast | 72.3 | 87.8 | 93.9 / 61.3 | 84.1 / 88.1 | almost no `、`, never `？` |
+| ko | **SaT** | 74.1 | **90.9** | 100 / 61.8 | **100 / 87.5** | boundaries only |
+| ko | PCS-47 | **88.9** | 73.7 | 93.3 / 82.4 | 100 / 66.7 | |
+| ko | koen-punct | 64.0 | 76.9 | 100 / 55.9 | 100 / 75.0 | no commas at all |
+
+The WebGPU-friendly builds score within noise of the builds above (`pcs47-q8w-gather` boundary F1
+en 81.7 / ja 87.5 / zh 55.0 / ko 73.7; `sat-3l-sm-q8w-gather` and `mojicast-q8w-nonan` unchanged);
+their streaming runs were not repeated.
+
+### Renderer cost
+
+Electron 40.8.5 renderer on the GB10, median ms per call, 4-thread WASM or WebGPU. Renderer working
+set is 104 MB before loading and the GPU process 182 MB.
+
+| model (build) | files | backend | renderer after load | GPU process peak | 120 CJK / 240 en chars | 480 CJK / 960 en chars |
+|---|---|---|---|---|---|---|
+| Edge-Punct-en (int8) | 7.6 MB | WASM | 353 MB | – | en 15 ms | en 39 ms |
+| CT-Transformer (int8) | 80 MB | WASM | 666 MB | – | zh 24 / en 8 ms | zh 92 / en 27 ms |
+| FireRedPunc (q8w) | 163 MB | **WebGPU** | 1,102 MB | 409 MB | zh 13 / en 13 ms | zh 27 / en 19 ms |
+| FireRedPunc (q8w) | 163 MB | WASM | 856 MB | – | zh 115 / en 81 ms | zh 394 / en 246 ms |
+| Mojicast (q8w, no IsNaN) | 119 MB | **WebGPU** | 840 MB | 334 MB | ja 14 ms | ja 33 ms |
+| Mojicast (int8) | 109 MB | WASM | 760 MB | – | ja 101 ms | ja 411 ms |
+| SaT (q8w + 8-bit embedding) | 251 MB | **WebGPU** | 1,582 MB | 514 MB | ja 16 / zh 11 / en 14 / ko 12 ms | ja 15 / zh 13 / en 13 / ko 16 ms |
+| SaT (q8w + 8-bit embedding) | 251 MB | WASM (`ort.wasm` bundle) | 1,251 MB | – | ja 19 / zh 20 / en 19 / ko 28 ms | ja 54 / zh 62 / en 50 / ko 95 ms |
+| SaT (published fp16) | 437 MB | WASM | 2,046 MB | – | zh 17 / en 16 ms | zh 63 / en 48 ms |
+| PCS-47 (q8w + 8-bit embedding) | 325 MB | **WebGPU** | 1,915 MB | 716 MB | ja 35 / zh 25 / en 25 / ko 37 ms | ja 30 / zh 74 / en 25 / ko 68 ms |
+| PCS-47 (q8w + 8-bit embedding) | 325 MB | WASM (`ort.wasm` bundle) | 1,443 MB | – | ja 75 / zh 79 / en 74 / ko 111 ms | ja 206 / zh 279 / en 193 / ko 394 ms |
+| PCS-47 (int8) | 288 MB | WASM | 1,444 MB | – | ja 52 / zh 57 / en 54 ms | ja 196 / zh 248 / en 181 / ko 374 ms |
+| koen-punct (int8) | 328 MB | WASM | 1,571 MB | – | ko 65 ms | ko 490 ms |
+
+What the cost runs established:
+- **q8w builds are backend-portable.** WebGPU output equals WASM output on every corpus input:
+  `fireredpunc-q8w` 57/57 (both in the renderer), `mojicast-q8w-nonan` 24/24,
+  `pcs47-q8w-gather` 101/101 and `sat-3l-sm-q8w-gather` 101/101 (WebGPU renderer vs Node WASM).
+  Against their fp32 originals on WASM: FireRedPunc and Mojicast 100%, PCS-47 96.4% of rows,
+  SaT 96.7% of splits (near-threshold flips; no 8-bit recipe reaches 100%).
+- **The WebGPU bundle cannot be the CPU fallback for the gather builds.** Under
+  `onnxruntime-web/webgpu` the WASM EP has no `GatherBlockQuantized` kernel ("Could not find an
+  implementation"); the plain `onnxruntime-web/wasm` bundle loads the same file.
+- **SaT's memory problem goes away** with the q8w + 8-bit-embedding build: 1,251 MB on WASM vs
+  2,046 MB for the published fp16, and it runs on WebGPU where fp16 cannot.
+- **WebGPU sessions still hold 1.1–1.9 GB in the renderer**, beyond the GPU process growth. Not
+  investigated (model bytes kept alive, WASM heap copy, arena).
+- The SaT fp16 cells ran while seven single-threaded quality jobs were also running; the q8w cells
+  overlapped a short Node run. Absolute ms there may be a little high.
+
+## Recommendation
+
+1. **Add a punctuation stage in the renderer, chosen by source language**, between ASR text
+   (provider deltas or local ASR partials) and the display / translation hand-off. `Intl.Segmenter`
+   stays, after it. Load one model at a time: each costs 0.35–1.9 GB resident.
+2. **Model per language:**
+   - **zh → FireRedPunc q8w.** Best breakpoints by far, and just as good streamed. The English
+     casing the upstream rule-fix lowercases must be restored from the input. Its sentence ends are
+     conservative (recall 39%), so "send to the translator" should key on committed breakpoints plus
+     a length/time rule, not on `。` alone.
+   - **en → Edge-Punct-en.** 7.6 MB and under 40 ms on WASM with no GPU; breakpoints 92, casing 84.
+     It never forces a final mark; the VAD end supplies it.
+   - **ja → SaT** for sentence ends (94 offline, 93 / 95 streamed), inserting `。` at its cuts.
+     None of the Japanese candidates places `、` well: PCS-47 doubles them, Mojicast omits them.
+   - **ko → SaT** for sentence ends (91; 100 / 87.5 streamed); PCS-47 if commas are wanted
+     (breakpoints 89).
+   - **Other languages → SaT** (85 languages, boundaries) or PCS-47 (47 languages, marks and casing).
+   - **Not recommended:**
+     - CT-Transformer: weaker, and under the FunASR model license.
+     - koen-punct.
+     - 42ailab's FireRedPunc int8: broken.
+     - Any dynamic-int8 build on WebGPU.
+     - fp16 builds: they need `shader-f16`.
+3. **Ship q8w builds** (MatMulNBits 8-bit, fp32 activations, 8-bit `GatherBlockQuantized`
+   embedding where the table is large).
+   - One file serves WebGPU and WASM, but the CPU fallback must load the `onnxruntime-web/wasm`
+     bundle.
+   - These are our own conversions, so they need hosting with the upstream licenses carried over
+     (FireRedPunc, PCS-47 and Edge-Punct-Casing Apache-2.0; SaT MIT).
+4. **Streaming policy:**
+   - Run on the uncommitted tail since the last committed breakpoint, not the whole utterance. That
+     keeps calls in the 120-character column above: about 15 ms on WebGPU, at most about 120 ms on
+     WASM.
+   - Commit a position only after ≥ 8 characters of right context. Every model marks the end of a
+     prefix as a sentence end (end-of-input bias), and R = 8 is where precision stops improving.
+     Lag is 9–14 characters.
+   - Commit everything at the VAD end or a provider final.
+   - Skip the model when the provider's text already carries punctuation. GPT-Live's Japanese was
+     fully punctuated; its Chinese was not.
+5. **Integration points to design against:**
+   - `StreamingTextAccumulator` (`streaming-generation.ts:237`, regex on terminal marks).
+   - `splitSentences` (`Intl.Segmenter`).
+   - The GPT-Live client's timing-based cut rules (#552).
+
+   The stage would give all three committed breakpoints instead. The design is a separate spec.
+
+## Open questions
+
+- **One machine only.** Needs the fleet:
+  - an x64 laptop iGPU (Intel/AMD WebGPU);
+  - Apple M-series (has `shader-f16`, so fp16 becomes an option);
+  - a machine without WebGPU (WASM-only budget).
+- **Renderer memory of WebGPU sessions (1.1–1.9 GB):** can it be released after upload?
+- **Chinese translation trigger:** sentence-end recall is ≤ 60% for every model, so the trigger rule
+  (breakpoints + length) needs its own test on real sessions.
+- **Coverage gaps:**
+  - Japanese comma placement is unsolved.
+  - Korean has no real-provider text in the corpus.
+  - Streaming was not re-run for the q8w builds.
 
 ## Caveats
 

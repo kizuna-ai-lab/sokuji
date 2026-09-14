@@ -164,3 +164,57 @@ Results: `results/parity-mojicast-python.json`, `results/parity-mojicast.json`.
 - **The failure mode is "mark everything":** the 0.1 threshold on sigmoid(≈0) = 0.5. The guard and
   self-test exist for that; keep them if this model ships.
 - **No ？ class, and comma recall is structurally low** (see ROADMAP §14 and the eval's comma F1).
+
+## WebGPU builds
+
+Why a new build: the int8 file is dynamic quantization (`DynamicQuantizeLinear` → `MatMulInteger`), and
+onnxruntime-web 1.26's WebGPU EP has no kernel for either, so those nodes would run on the CPU. Weight-only
+8-bit (`MatMulNBits`, activations fp32) has a WebGPU kernel. The op-support survey is in `models/pcs47.md`
+"WebGPU builds".
+
+| module | file | bytes | graph |
+|---|---|---:|---|
+| `mojicast-q8w` | `punct_bert.q8w.onnx` | 119,319,011 | 73 of 97 MatMul → `com.microsoft:MatMulNBits` (the other 24 multiply two activations) |
+| `mojicast-q8w-nonan` | `punct_bert.q8w-nonan.onnx` | 119,317,763 | the same, minus the 12 `IsNaN` + 12 `Where` attention guards |
+| both | `vocab.txt` (copy of the snapshot's) | 27,928 | |
+
+Files live in `/home/jiangzhuo/.cache/sokuji-punct-bench/mojicast/`: the module contract reads every file
+from one directory, and the HF snapshot holds only the upstream files.
+
+**Recipe** (`parity/mojicast-q8w.py`, `venv-firered` Python, onnxruntime 1.30.0, onnx 1.22.0):
+- `MatMulNBitsQuantizer(onnx.load(punct_bert.onnx), bits=8, block_size=32, is_symmetric=True)`,
+  the recipe that kept FireRedPunc exact (`parity/fireredpunc-quant.py`). No `accuracy_level`.
+- The three embedding tables (`Gather`, 7,027 × 768 words) stay fp32, as in upstream's int8 file.
+- `nonan`: the torch SDPA export wraps every attention softmax as `Where(IsNaN(p), 0, p)`. onnxruntime's
+  native WebGPU EP registers no `IsNaN` kernel (checked in its kernel registry at the 1.26 commit), so the
+  guarded graph leaves the GPU inside all 12 layers, copying the `[1, 12, s, s]` attention matrix out and
+  back each time. A softmax row is NaN only when every key is masked. The module always passes an all-ones
+  mask, so the guard never fires, and the script rewires each `Where`'s consumers to the softmax output.
+- The one `Max` node without a WebGPU kernel is shape arithmetic (`Unsqueeze` inputs → `Shape`), so it runs
+  on the CPU in any build.
+- Native sanity check in the script (Python ORT CPU): on 「これはてすとです」 and a 57-character row, max
+  |Δlogit| 0.044 / 0.060, max |Δp| 6.9e-4 / 8.2e-4, identical 0.1-threshold decisions, and `nonan` logits
+  exactly equal to `q8w`'s.
+
+**Parity** (`node --expose-gc parity/mojicast-q8w.mjs` → `results/parity-mojicast-q8w.json`): the 51 ja rows
+of `results/inputs.json`, onnxruntime-web 1.26 WASM, 1 thread, each build against `mojicast-fp32` (which is
+itself exact against Mojicast's `punct.py`).
+
+| build vs `mojicast-fp32` | text exact | raw decision exact | split at 。 identical | skeleton kept | max \|Δp\| | threshold flips | marks both / only fp32 / only q8w |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `mojicast-q8w` | **51/51** | 51/51 | 51/51 | 51/51 | 0.034 | 0 | 148 / 0 / 0 |
+| `mojicast-q8w-nonan` | **51/51** | 51/51 | 51/51 | 51/51 | 0.034 | 0 | 148 / 0 / 0 |
+
+- `nonan` against `q8w`: probabilities bit-identical on all 51 rows (max |Δp| 0).
+- The self-test probe passes on both (「これはてすとです。」).
+- For comparison, the upstream int8 file gave 50/51 against fp32 on the same runtime (above).
+- It meets FireRedPunc q8w's bar: no row changes.
+
+**WASM cost** (same run, while four to five other single-threaded jobs shared the box, so indicative):
+- Load: fp32 1,212 ms, q8w 341 ms, nonan 334 ms.
+- One 128-token call: fp32 419 ms, q8w 516 ms, nonan 515 ms. That is the same roughly +100 ms per call
+  FireRedPunc q8w showed: on the WASM CPU kernel an 8-bit MatMulNBits works from dequantized weights. These
+  builds are for WebGPU, not for WASM.
+
+**For the WebGPU run use `mojicast-q8w-nonan`.** Nothing here was run on WebGPU. The builds need no
+`shader-f16`: every float tensor is fp32.

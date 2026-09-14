@@ -279,6 +279,116 @@ node eval-quality.mjs --models sat-3l-sm --no-stream --out results/parity-sat-3l
 ```
 
 The venv is `uv venv --python 3.12` plus `wtpsplit onnxruntime onnx onnxconverter-common`.
+
+## q8w build
+
+**Why a new build.**
+- The published fp16 file fails on the WebGPU EP of the GB10/Vulkan adapter used for the renderer benchmark:
+  "Program Gather requires f16 but the device does not support it". That adapter exposes no `shader-f16`,
+  and the app's `shaderF16Gate` refuses fp16 variants on such devices. That result is from the coordinator's
+  Electron run, not from this section.
+- The int8 builds are dynamic quantization, `DynamicQuantizeLinear` → `MatMulInteger`. onnxruntime-web
+  1.26's WebGPU EP has no kernel for either, and both failed parity anyway.
+- Weight-only 8-bit keeps every activation in float32 and has WebGPU kernels. The op survey is in
+  `models/pcs47.md` "WebGPU builds".
+
+| module | `model.onnx` in | bytes | graph |
+|---|---|---:|---|
+| `sat-3l-sm-q8w` | `sat/sat-3l-sm-q8w/` | 793,953,242 | 19 of 25 MatMul → `com.microsoft:MatMulNBits` (the 18 encoder weights and the 768 → 1 classifier; the other 6 multiply two activations); float32 `attention_mask` and `logits`; word embedding float32 |
+| `sat-3l-sm-q8w-gather` | `sat/sat-3l-sm-q8w-gather/` | 241,945,842 | the same, plus the word-embedding `Gather` → `com.microsoft:GatherBlockQuantized` |
+| both | `tokenizer.json` (copy) | 9,096,718 | |
+
+- Both modules re-export `models/sat-3l-sm.mjs` unchanged. Its `create()` reads `model.onnx` +
+  `tokenizer.json` and picks the float32 mask from `session.inputMetadata`.
+- Every op of both graphs has a kernel in the native WebGPU EP at the ORT-web 1.26 commit, including
+  `BiasGelu`, `SkipLayerNormalization`, `MatMulNBits` and `GatherBlockQuantized`. The one exception is
+  `ConstantOfShape`, a single node doing int64 shape arithmetic that runs on the CPU in any build.
+- No tensor is float16, so neither build needs `shader-f16`.
+
+**Recipe** (`parity/sat-3l-sm-q8w.py`, `venv-firered` Python, onnxruntime 1.30.0, onnx 1.22.0):
+- Source: `model_fp32.onnx`, the fp16 → fp32 rewrite above, so the weights carry the export's fp16
+  rounding.
+- `MatMulNBitsQuantizer(bits=8, block_size=32, is_symmetric=True)`, FireRedPunc's recipe. No
+  `accuracy_level`.
+- `q8w-gather`: ORT's quantizer only emits a 4-bit `GatherBlockQuantized` ("Gather only supports 4 bits
+  quantization"), so the 8-bit table is built by hand.
+  - One float32 scale per 32 values along the hidden axis, max |w| / 127.
+  - uint8 data with no zero-point input.
+  - `bits=8, gather_axis=0, quantize_axis=1, block_size=32`. The CPU kernel requires exactly that layout for
+    uint8.
+  - Both the CPU and WebGPU kernels decode it as `(q − 128) × scale`.
+  - Max dequantization error 0.0044, against a max |w| of 1.12.
+- The script's native sanity check on one 510-subword window per language (Python ORT CPU): max |Δp|
+  0.017-0.075 (q8w) and 0.018-0.130 (gather). One decision of a window's ~510 flips in the ja and en windows
+  for q8w, and in the zh and en windows for gather.
+
+**Parity** (`node --expose-gc parity/sat-3l-sm-q8w.mjs run fp16|q8w|q8w-gather`, one process each, then
+`report` → `results/parity-sat-3l-sm-q8w.json`):
+- Rows: the 270 rows of `results/parity-sat-3l-sm.rows.json` (all 244 of `results/inputs.json`, 12 long rows
+  of 1-61 windows, 14 edge rows).
+- Runtime: onnxruntime-web 1.26 WASM, 1 thread, the same module for all three builds.
+- Baseline: the published fp16 file. On WASM it runs upcast to float32 and makes the same decisions as
+  the fp32 rewrite on all 270 rows.
+
+| build vs baseline | split identical | ja | zh | en | ko | decision flips | max \|Δp\| | mean row max \|Δp\| |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `q8w` vs fp16 | **261/270 (96.7 %)** | 58/58 | 80/85 | 80/83 | 43/44 | 12 | 0.056 | 5.0e-3 |
+| `q8w-gather` vs fp16 | **261/270 (96.7 %)** | 58/58 | 80/85 | 80/83 | 43/44 | 15 | 0.076 | 5.4e-3 |
+| `q8w-gather` vs `q8w` | 267/270 | 58/58 | 84/85 | 81/83 | 44/44 | 3 | 0.020 | 1.5e-3 |
+
+- **Every flip has both probabilities within 0.011 of the 0.25 threshold** (0.015 for `q8w-gather`). The nine
+  rows differing for q8w:
+  - `gl-gui-L3383-p2` stripped and raw: character 133, 0.2531 vs 0.2431.
+  - `long1/2/3-zh`: character 963, 0.2456 vs 0.2542. `long3-zh` also flips at 4380 and 4449.
+  - `long1/2/3-en`: character 723, 0.2608 vs 0.2478. `long3-en` also flips at 7631.
+  - `long3-ko`: character 1854, 0.2422 vs 0.2552.
+- The long rows share their prefixes, so this is about six distinct decisions, not nine.
+- The largest |Δp| is not a flip: `long1-zh` character 2321, 0.520 vs 0.464.
+- All 244 corpus rows but two are identical, and every build keeps every input character (0 invariant
+  failures).
+- **Below FireRedPunc q8w's 100 %, and no 8-bit recipe closes the gap.** `parity/sat-3l-sm-q8w-recipes.py`
+  (`results/parity-sat-3l-sm-q8w-recipes.json`) is a native proxy: the first window of every row, 268
+  windows and 14,745 tokens, against `model_fp32.onnx`, with the module's float16-rounded logit and
+  p > 0.25.
+
+  | recipe | token flips | rows | max \|Δp\| | largest fp32 margin \|p − 0.25\| at a flip |
+  |---|---:|---:|---:|---:|
+  | symmetric, block 32 (**shipped**) | 5 | 5 | 0.049 | 0.0069 |
+  | symmetric, block 32, classifier float32 | 5 | 5 | 0.050 | 0.0069 |
+  | asymmetric, block 32 | 7 | 4 | 0.028 | 0.0033 |
+  | asymmetric, block 32, classifier float32 | 7 | 4 | 0.028 | 0.0033 |
+  | symmetric, block 16, classifier float32 | 5 | 5 | 0.029 | 0.0055 |
+
+  - Only 11 of the 14,745 fp32 decisions lie within 0.0069 of the threshold, and those are where the flips
+    land.
+  - Asymmetric and block-16 recipes halve |Δp| but still flip about as many of those threshold-sitting
+    decisions. Block 16 would also lose the WebGPU EP's block-32 kernel. So the shipped recipe stays
+    symmetric block 32.
+  - FireRedPunc's 8,798 token decisions all survived the same recipe; its margins were not measured.
+
+**Memory** (Node RSS in MB after `gc()`, WASM EP, same runs):
+
+| build | file bytes | RSS after load | of which JS-side model bytes | RSS after the 270 rows | load |
+|---|---:|---:|---:|---:|---:|
+| fp16 (published) | 427,756,189 | 2,388 | 828 | 2,097 | 1.8 s |
+| `q8w` | 793,953,242 | 4,162 | 1,527 | 3,045 | 2.5 s |
+| `q8w-gather` | 241,945,842 | **1,505** | 474 | 1,817 | 1.5 s |
+
+- "After load" still counts the model bytes on the JS side, which GC frees once the session exists.
+- "After the rows" is the WASM heap's high-water mark (a WASM heap never shrinks), including activations
+  for the long rows' 32-window batches.
+- **`q8w` is worse than fp16 on WASM.** Its file carries the 768 MB float32 embedding table, and loading
+  holds the file and the session's copy at once.
+- `q8w-gather` is the smallest resident build here.
+
+**WASM latency** (`model.predict` on the first 128 / 256 / 510 subwords of `long3-en`, median of 7, while
+other single-threaded jobs shared the box): fp16 110 / 225 / 481 ms, q8w 132 / 244 / 484 ms, q8w-gather
+134 / 247 / 486 ms. On the WASM CPU kernel an 8-bit MatMulNBits works from dequantized weights, so these
+builds are for WebGPU, not for WASM.
+
+**For the WebGPU run use `sat-3l-sm-q8w-gather`.** It is the smallest file and the smallest resident build,
+and its largest single tensor is a 192 MB uint8 table instead of a 768 MB float32 one. Fall back to
+`sat-3l-sm-q8w` if `GatherBlockQuantized` misbehaves there. Neither has run on WebGPU yet.
 wtpsplit must be imported before transformers: skops walks transformers' lazy modules at import
 time and trips over the missing torch otherwise. The fp32 and int8 builds come from
 `convert_sat.py` and `convert_sat_int8.py` in the job scratch (`tmp/`, `tmp/sat/`), and the

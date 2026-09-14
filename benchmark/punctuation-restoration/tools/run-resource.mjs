@@ -19,10 +19,11 @@ const eps = arg('eps', 'wasm').split(',');
 const threadList = arg('threads', '1').split(',').map(Number);
 const reps = arg('reps', '15');
 const port = arg('port', '8787');
+const bundle = arg('bundle', '');
 const outPath = join(root, 'results', 'resource.json');
 
 function runCell(model, ep, threads) {
-  const url = `http://127.0.0.1:${port}/www/index.html?model=${model}&ep=${ep}&threads=${threads}&reps=${reps}`;
+  const url = `http://127.0.0.1:${port}/www/index.html?model=${model}&ep=${ep}&threads=${threads}&reps=${reps}${bundle ? `&bundle=${bundle}` : ''}`;
   return new Promise((resolve) => {
     const child = spawn(ELECTRON, [join(root, 'tools', 'electron-bench.cjs'), url], {
       env: { ...process.env, BENCH_TIMEOUT_MS: process.env.BENCH_TIMEOUT_MS ?? '900000' },
@@ -47,7 +48,7 @@ const mb = (kb) => (kb == null ? '   -' : String(Math.round(kb / 1024)).padStart
 for (const model of models) {
   for (const ep of eps) {
     for (const threads of ep === 'webgpu' ? [1] : threadList) {
-      const key = `${model}/${ep}/t${threads}`;
+      const key = `${model}/${ep}/t${threads}${bundle ? `/${bundle}` : ''}`;
       process.stdout.write(`${key} ... `);
       const r = await runCell(model, ep, threads);
       results[key] = r;
