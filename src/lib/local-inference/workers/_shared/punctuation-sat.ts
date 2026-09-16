@@ -220,11 +220,47 @@ export function joinSegments(sentences: string[]): string {
     .join('\n');
 }
 
-// ---- script-chosen terminal --------------------------------------------------------------
+// ---- boundaries to marks ------------------------------------------------------------------
 
-/** CJK ideographs/kana plus the fullwidth/halfwidth forms block: text in this range gets '。',
- *  everything else (including Korean, which is written with the ASCII period) gets '.'. */
-const CJK_OR_FULLWIDTH_RE = /[　-鿿＀-￯]/;
+/**
+ * Turn SaT's segments into text with marks, and report where they landed.
+ *
+ * Exported and pure because it is the one piece of this adapter with no
+ * upstream to be faithful to, and it is where the mistakes live.
+ *
+ * Spacing: `sentencesFrom` leaves the whitespace that followed a boundary on
+ * the END of the preceding segment, so the mark goes before that space -- and
+ * a segment that had no trailing space must not gain one. Japanese has none,
+ * and inventing one puts `です。 散歩` in the bubble, which is neither an input
+ * character nor a mark and disagrees with how FireRedPunc writes the same 。
+ * A newline-derived cut therefore yields `one.two` rather than `one. two`:
+ * running two Latin words together reads worse, but inventing a character the
+ * ASR never produced is the thing the contract forbids.
+ *
+ * The last segment never takes a terminal. The utterance end supplies it, and
+ * `SentenceStream` distrusts a mark at the very end of a tail anyway.
+ */
+export function markBoundaries(
+  segments: string[],
+  terminal: string,
+): { text: string; sentenceEnds: number[] } {
+  // Blank segments come from consecutive or leading input newlines. Marking
+  // one emits a freestanding terminal with no sentence in front of it, and
+  // leaving one at the end would make the real last segment take a mark.
+  const real = segments.filter((s) => s.length > 0);
+  const sentenceEnds: number[] = [];
+  let text = '';
+  real.forEach((seg, i) => {
+    const isLast = i === real.length - 1;
+    const hadSpace = !isLast && seg.endsWith(' ');
+    text += hadSpace ? seg.slice(0, -1) : seg;
+    if (isLast) return;
+    text += terminal;
+    sentenceEnds.push(text.length);
+    if (hadSpace) text += ' ';
+  });
+  return { text, sentenceEnds };
+}
 
 // ---- model -------------------------------------------------------------------------------
 
@@ -325,26 +361,12 @@ export function createSatAdapter(): PunctuationAdapter {
     async run(text: string) {
       if (!splitText) throw new Error('sat-3l-sm: run() called before load()');
       const segments = await splitText(text);
-      // A boundary carries no mark of its own. One terminal is written per cut,
-      // chosen by script so a Japanese bubble does not end in a Latin period,
-      // and never after the last segment -- the final mark is the utterance
-      // end's job, and SentenceStream never trusts one at the very end of a
-      // tail anyway. The trailing space `sentencesFrom` leaves on a cut
-      // segment is dropped first, exactly as `joinSegments` does, and a single
-      // space is written back after the terminal so the boundary still reads
-      // as an ordinary sentence break rather than running the words together.
-      const terminal = CJK_OR_FULLWIDTH_RE.test(text) ? '。' : '.';
-      let out = '';
-      const sentenceEnds: number[] = [];
-      segments.forEach((seg, i) => {
-        const isLast = i === segments.length - 1;
-        out += isLast || !seg.endsWith(' ') ? seg : seg.slice(0, -1);
-        if (!isLast) {
-          out += terminal;
-          sentenceEnds.push(out.length);
-          out += ' ';
-        }
-      });
+      // The mark is chosen by script so a Japanese bubble does not end in a
+      // Latin period. Chosen once for the whole call: a mostly-Latin tail
+      // carrying one stray fullwidth character will take 。 throughout, which
+      // is rare enough to accept.
+      const terminal = /[　-鿿＀-￯]/.test(text) ? '。' : '.';
+      const { text: out, sentenceEnds } = markBoundaries(segments, terminal);
       return { text: out, sentenceEnds, breakpoints: [...sentenceEnds], model: 'sat-3l-sm' as const };
     },
     async release() {
