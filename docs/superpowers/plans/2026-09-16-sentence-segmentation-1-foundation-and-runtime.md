@@ -475,10 +475,6 @@ function resultOf(text: string, ends: number[], breaks: number[] = ends): Punctu
   return { text, sentenceEnds: ends, breakpoints: breaks, model: 'fireredpunc' };
 }
 
-function collect(stream: SentenceStream, seals: SealedChunk[]) {
-  return seals;
-}
-
 describe('SentenceStream gating', () => {
   it('never calls the model for a short tail', async () => {
     const { runtime, calls } = fakeRuntime({});
@@ -595,8 +591,9 @@ describe('SentenceStream sealing', () => {
 
 describe('SentenceStream model results', () => {
   it('seals with the inserted punctuation and leaves the remainder raw', async () => {
-    const raw = 'first sentence here second sentence here third sentence here and then the tail continues';
-    const punctuated = 'First sentence here. Second sentence here. Third sentence here. and then the tail continues';
+    // 162 characters, so it clears the English gate at N = 3 (3 x 50 = 150).
+    const raw = 'first sentence here second sentence here third sentence here and then the tail continues for a good while longer without any punctuation at all and it keeps going';
+    const punctuated = 'First sentence here. Second sentence here. Third sentence here. and then the tail continues for a good while longer without any punctuation at all and it keeps going';
     const ends = [20, 42, 63];
     const seals: SealedChunk[] = [];
     const pendings: string[] = [];
@@ -610,7 +607,7 @@ describe('SentenceStream model results', () => {
     expect(seals[0].text).toBe('First sentence here. Second sentence here. Third sentence here.');
     expect(seals[0].reason).toBe('sentences');
     // The tail is shown raw, with no provisional marks.
-    expect(pendings[pendings.length - 1]).toBe(' and then the tail continues');
+    expect(pendings[pendings.length - 1]).toBe(' and then the tail continues for a good while longer without any punctuation at all and it keeps going');
   });
 
   it('discards a result whose skeleton differs from the input', async () => {
@@ -679,12 +676,15 @@ describe('SentenceStream rewrites and re-anchoring', () => {
     const stream = new SentenceStream({
       lang: 'en', runtime, sentencesPerChunk: 1, onSeal: (c) => seals.push(c), onPending: () => {},
     });
-    stream.update('First sentence. and the tail goes on');
+    // The word after the period is capitalised on purpose: sentenceEnd.ts
+    // treats "sentence. and" as a mid-sentence dot ("no. then"), so a
+    // lower-case continuation would give the rule nothing to count.
+    stream.update('First sentence. And the tail goes on');
     await vi.waitFor(() => expect(seals.length).toBe(1));
     expect(seals[0].text).toBe('First sentence.');
     // update() carries the text SINCE the last seal, so the client now sends
     // the rewritten remainder. The seal already emitted must not move.
-    stream.update(' and the tail went on a bit further than that');
+    stream.update(' And the tail went on a bit further than that');
     await vi.waitFor(() => expect(seals.length).toBe(1));
     expect(seals[0].text).toBe('First sentence.');
   });
@@ -716,7 +716,8 @@ describe('SentenceStream rewrites and re-anchoring', () => {
       lang: 'en', runtime, sentencesPerChunk: 5, onSeal: () => {}, onPending: () => {},
     });
     expect(stream.confirmedBoundary()).toBe(-1);
-    stream.update('One. Two. and then a good deal more text after it');
+    // Capitalised continuations, for the same reason as the test above.
+    stream.update('One. Two. And then a good deal more text after it');
     expect(stream.confirmedBoundary()).toBe(9);
     // A mark at the very end of the tail is not confirmed.
     stream.update('One. Two. Three.');
@@ -899,7 +900,11 @@ export class SentenceStream {
   }
 
   end(): void {
-    if (this.disposed) return;
+    // active(), not just disposed: update() records the pending text before
+    // it checks whether the stage is on, so a null or disabled runtime would
+    // otherwise still emit a final chunk — and "no runtime" must mean no
+    // sealing at all, including this one.
+    if (!this.active()) return;
     const tail = this.pending;
     this.pending = '';
     this.queued = null;
