@@ -1636,12 +1636,16 @@ describe('SaT sentencesFrom', () => {
     probs[2] = 0.25; // exactly at the threshold: not a boundary
     expect(sentencesFrom(chars, probs)).toEqual(['one two three']);
     probs[2] = 0.2500001;
-    expect(sentencesFrom(chars, probs)).toEqual(['one', 'two three']);
+    expect(sentencesFrom(chars, probs)).toEqual(['one ', 'two three']);
   });
-  it('swallows the whitespace after a boundary', () => {
+  it('gives the whitespace after a boundary to the segment before it', () => {
+    // The space is not dropped. The cut advances past the run of whitespace
+    // and the whole slice, trailing space included, becomes the preceding
+    // segment. Removing that space is joinSegments' job — which is exactly
+    // why the two functions are tested apart.
     const probs = new Float32Array(chars.length);
     probs[2] = 0.9;
-    expect(sentencesFrom(chars, probs)).toEqual(['one', 'two three']);
+    expect(sentencesFrom(chars, probs)).toEqual(['one ', 'two three']);
   });
   it('treats an input newline as a boundary', () => {
     const withNewline = Array.from('one\ntwo');
