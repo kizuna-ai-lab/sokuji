@@ -22,6 +22,15 @@ describe('punctuation manifest entries', () => {
     expect(entry.requiredDevice).toBeUndefined();
   });
 
+  it("spells FireRedPunc's Cantonese support 'cantonese', not 'yue' — the app's language list (src/utils/languages.ts) has no 'yue' key, and six sibling manifest entries already use 'cantonese'", () => {
+    expect(getManifestEntry('punct-zh-fireredpunc')!.languages).toEqual(['zh', 'cantonese']);
+  });
+
+  it('pins the other two entries\' language lists', () => {
+    expect(getManifestEntry('punct-en-edge')!.languages).toEqual(['en']);
+    expect(getManifestEntry('punct-multi-sat')!.languages).toEqual(['multilingual']);
+  });
+
   it('carries the measured file sizes', () => {
     const zh = getManifestEntry('punct-zh-fireredpunc')!;
     expect(zh.variants.default.files).toEqual([
