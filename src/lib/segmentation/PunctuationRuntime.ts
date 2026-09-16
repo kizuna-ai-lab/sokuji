@@ -318,7 +318,14 @@ export class PunctuationRuntime implements SegmentationRuntime {
       if (this.backend === 'webgpu' && !this.webgpuDisabledForLaunch) {
         this.webgpuDisabledForLaunch = true;
         this.teardownSession();
-        this.opts.onStatus?.(model, 'downloaded', 'webgpu load failed; retrying on wasm');
+        // Every model the old worker held resident or was bringing up loses
+        // that state along with it -- not only the one whose load just
+        // failed. Reset them all before retrying, the same way a crash does,
+        // or a 'ready' model is left pointing at a dead adapter and a
+        // 'loading' one is stuck forever (its own performLoad() catch bails
+        // out silently: teardownSession() already bumped the epoch, so its
+        // `this.epoch !== epochAtStart` check is true and it returns early).
+        this.resetResidentModels('webgpu load failed; retrying on wasm');
         this.startLoad(model);
         return;
       }
@@ -456,9 +463,6 @@ export class PunctuationRuntime implements SegmentationRuntime {
     this.workerCrashCount++;
     const disableAll = this.workerCrashCount >= MAX_WORKER_CRASHES;
     const wasWebgpu = this.backend === 'webgpu';
-    const readyOrLoading = MODEL_KEYS.filter(
-      (m) => this.models[m].status === 'ready' || this.models[m].status === 'loading',
-    );
     this.teardownSession();
     // A crash on the WebGPU backend is at least as suspicious as a load
     // failure there -- fall back to WASM for any restart, rather than risk
@@ -473,9 +477,25 @@ export class PunctuationRuntime implements SegmentationRuntime {
         }
       }
     } else {
-      for (const m of readyOrLoading) {
+      this.resetResidentModels('worker crashed, will reload');
+    }
+  }
+
+  /** Every model the shared worker was holding resident ('ready') or bringing
+   *  up ('loading') at the moment the worker itself was torn down out of
+   *  band -- a crash or the WebGPU->WASM fallback both replace the worker out
+   *  from under whichever models were using it. Reset them to 'downloaded' so
+   *  the next punctuate() call reloads them into the replacement worker,
+   *  instead of leaving 'loading' stuck forever (prepareModel refuses to
+   *  touch it) or 'ready' pointing at an adapter that no longer exists.
+   *  Shared by handleWorkerCrash() and the WebGPU->WASM load-failure
+   *  fallback, so both paths reset every affected model the same way rather
+   *  than only the one each was originally handling. */
+  private resetResidentModels(detail: string): void {
+    for (const m of MODEL_KEYS) {
+      if (this.models[m].status === 'ready' || this.models[m].status === 'loading') {
         this.models[m].status = 'downloaded';
-        this.opts.onStatus?.(m, 'downloaded', 'worker crashed, will reload');
+        this.opts.onStatus?.(m, 'downloaded', detail);
       }
     }
   }
