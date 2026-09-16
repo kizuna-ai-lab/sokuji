@@ -1,0 +1,415 @@
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import { PunctuationRuntime, modelForLanguage, MODEL_IDS } from './PunctuationRuntime';
+import { MockWorker } from '../local-inference/engine/testing/mockWorker';
+import { ModelManager } from '../local-inference/ModelManager';
+import { checkWebGPU } from '../../utils/webgpu';
+import { createPunctuationWorker } from './createPunctuationWorker';
+
+vi.mock('./createPunctuationWorker', () => ({
+  createPunctuationWorker: vi.fn(),
+}));
+vi.mock('../../utils/webgpu', () => ({
+  checkWebGPU: vi.fn(),
+}));
+
+describe('modelForLanguage', () => {
+  it.each([
+    ['zh', 'fireredpunc'],
+    ['zh-CN', 'fireredpunc'],
+    ['cmn-CN', 'fireredpunc'],
+    ['yue', 'fireredpunc'],
+    ['cantonese', 'fireredpunc'],
+    ['en', 'edge-punct-en'],
+    ['en-US', 'edge-punct-en'],
+    ['ja', 'sat-3l-sm'],
+    ['ko', 'sat-3l-sm'],
+    ['ru', 'sat-3l-sm'],
+    ['auto', 'sat-3l-sm'],
+    ['', 'sat-3l-sm'],
+  ])('%s -> %s', (lang, model) => {
+    expect(modelForLanguage(lang)).toBe(model);
+  });
+});
+
+function setDeviceMemory(gb: number | undefined): void {
+  if (gb === undefined) {
+    delete (navigator as { deviceMemory?: number }).deviceMemory;
+  } else {
+    Object.defineProperty(navigator, 'deviceMemory', { value: gb, configurable: true });
+  }
+}
+
+/** Waits for the Nth (1-indexed) posted message of a given type and returns it. */
+async function waitForMessageAt(worker: MockWorker, type: string, occurrence: number): Promise<any> {
+  await vi.waitFor(() => {
+    const matches = worker.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === type);
+    expect(matches.length).toBeGreaterThanOrEqual(occurrence);
+  });
+  return worker.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === type)[occurrence - 1][0];
+}
+
+/** Same lookup, but for use inside a fake-timers block where vi.waitFor's own
+ *  polling (backed by setTimeout) cannot be relied on to fire. The caller is
+ *  responsible for having already let the relevant microtasks resolve. */
+function lastMessageOfType(worker: MockWorker, type: string): any {
+  const matches = worker.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === type);
+  return matches[matches.length - 1][0];
+}
+
+/** Drains the microtask queue (Promise resolution is never faked by
+ *  vi.useFakeTimers()) until `predicate` holds or `maxTicks` is exhausted.
+ *  Used instead of vi.waitFor inside a fake-timers block, since vi.waitFor's
+ *  own polling is backed by a real setTimeout that fake timers never fire. */
+async function flushUntil(predicate: () => boolean, maxTicks = 50): Promise<void> {
+  for (let i = 0; i < maxTicks && !predicate(); i++) {
+    await Promise.resolve();
+  }
+  expect(predicate()).toBe(true);
+}
+
+const fakeResult = (model: string, text: string) => ({
+  text,
+  sentenceEnds: [text.length],
+  breakpoints: [text.length],
+  model,
+});
+
+describe('PunctuationRuntime', () => {
+  let isModelReady: Mock;
+  let getModelBlobUrls: Mock;
+  let revokeBlobUrls: Mock;
+  let downloadModel: Mock;
+
+  beforeEach(() => {
+    MockWorker.reset();
+    (createPunctuationWorker as unknown as Mock).mockImplementation((backend: 'webgpu' | 'wasm') => {
+      const worker = new MockWorker(backend);
+      // Mirrors installPunctuationWorker: the real worker posts 'ready'
+      // unprompted as soon as its module finishes evaluating, independent of
+      // whatever the main thread sends it.
+      queueMicrotask(() => worker.emit({ type: 'ready', loadTimeMs: 0, device: backend }));
+      return worker as unknown as Worker;
+    });
+    (checkWebGPU as unknown as Mock).mockResolvedValue({ available: false });
+    setDeviceMemory(8);
+    localStorage.removeItem('debug:device-memory');
+
+    isModelReady = vi.spyOn(ModelManager.prototype, 'isModelReady').mockResolvedValue(false) as unknown as Mock;
+    getModelBlobUrls = vi.spyOn(ModelManager.prototype, 'getModelBlobUrls').mockResolvedValue({}) as unknown as Mock;
+    revokeBlobUrls = vi.spyOn(ModelManager.prototype, 'revokeBlobUrls').mockImplementation(() => {}) as unknown as Mock;
+    downloadModel = vi.spyOn(ModelManager.prototype, 'downloadModel').mockImplementation(
+      () => new Promise(() => {}),
+    ) as unknown as Mock;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    setDeviceMemory(undefined);
+  });
+
+  function makeRuntime(enabled = true) {
+    const onStatus = vi.fn();
+    const onDownloadProgress = vi.fn();
+    const onLoaded = vi.fn();
+    const runtime = new PunctuationRuntime({
+      isEnabled: () => enabled,
+      onStatus,
+      onDownloadProgress,
+      onLoaded,
+    });
+    return { runtime, onStatus, onDownloadProgress, onLoaded };
+  }
+
+  /** Drives the edge-punct-en model (via lang 'en') all the way to 'ready'
+   *  over one shared worker, returning that worker for further interaction. */
+  async function bringReady(
+    runtime: PunctuationRuntime,
+    onStatus: Mock,
+    lang: string,
+    modelId: string,
+  ): Promise<MockWorker> {
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockResolvedValue({});
+    await expect(runtime.punctuate(lang, 'priming call')).resolves.toBeNull();
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBeGreaterThanOrEqual(1));
+    const worker = MockWorker.last();
+    const loadMsg = await waitForMessageAt(worker, 'load', 1);
+    worker.emit({ type: 'loaded', id: loadMsg.id, model: modelId, loadTimeMs: 10, device: 'wasm' });
+    await vi.waitFor(() => expect(onStatus).toHaveBeenCalledWith(modelId, 'ready'));
+    // The blob URLs handed to the worker for this load are revoked once it
+    // confirms the files are read, exactly as the other engines do.
+    expect(revokeBlobUrls).toHaveBeenCalled();
+    return worker;
+  }
+
+  it('creates the worker lazily: no Worker before the first punctuate()', () => {
+    makeRuntime();
+    expect(MockWorker.instances.length).toBe(0);
+    expect(createPunctuationWorker).not.toHaveBeenCalled();
+  });
+
+  it('starts one download when the model is not downloaded, and does not start a second on the next call', async () => {
+    const { runtime } = makeRuntime();
+    isModelReady.mockResolvedValue(false);
+
+    await expect(runtime.punctuate('en', 'hello')).resolves.toBeNull();
+    expect(downloadModel).toHaveBeenCalledTimes(1);
+    expect(downloadModel).toHaveBeenCalledWith(MODEL_IDS['edge-punct-en'], expect.any(Function));
+
+    await expect(runtime.punctuate('en', 'hello again')).resolves.toBeNull();
+    expect(downloadModel).toHaveBeenCalledTimes(1);
+    expect(MockWorker.instances.length).toBe(0);
+  });
+
+  it('returns null while the model is loading', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockImplementation(() => new Promise(() => {})); // never resolves -> stuck loading
+
+    await expect(runtime.punctuate('ja', 'hello')).resolves.toBeNull();
+    await vi.waitFor(() => expect(onStatus).toHaveBeenCalledWith('sat-3l-sm', 'loading'));
+
+    await expect(runtime.punctuate('ja', 'hello again')).resolves.toBeNull();
+    expect(MockWorker.instances.length).toBe(1); // no second worker/load attempt
+  });
+
+  it('a loaded model returns the worker result', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    const worker = await bringReady(runtime, onStatus, 'ja', 'sat-3l-sm');
+
+    const p = runtime.punctuate('ja', 'hello again');
+    const runMsg = await waitForMessageAt(worker, 'run', 1);
+    expect(runMsg.model).toBe('sat-3l-sm');
+    const result = fakeResult('sat-3l-sm', 'hello again.');
+    worker.emit({ type: 'result', id: runMsg.id, result, inferenceMs: 5 });
+    await expect(p).resolves.toEqual(result);
+  });
+
+  it('three consecutive failures disable that model for the session', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
+
+    for (let i = 1; i <= 3; i++) {
+      const p = runtime.punctuate('en', `try ${i}`);
+      const msg = await waitForMessageAt(worker, 'run', i);
+      worker.emit({ type: 'error', id: msg.id, error: 'boom' });
+      await expect(p).resolves.toBeNull();
+    }
+
+    expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'disabled', expect.any(String));
+
+    worker.postMessage.mockClear();
+    await expect(runtime.punctuate('en', 'after disable')).resolves.toBeNull();
+    expect(worker.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('a worker crash restarts once; the second crash disables models', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockResolvedValue({});
+
+    await runtime.punctuate('en', 'a'); // kicks off the load, worker #1
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
+    const worker1 = MockWorker.last();
+    worker1.emitError('boom');
+    await vi.waitFor(() =>
+      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'downloaded', expect.any(String)),
+    );
+    expect(worker1.terminate).toHaveBeenCalledTimes(1);
+
+    await runtime.punctuate('en', 'b'); // restarts: a fresh worker #2
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(2));
+    const worker2 = MockWorker.last();
+    worker2.emitError('boom again');
+    await vi.waitFor(() => {
+      expect(onStatus).toHaveBeenCalledWith('fireredpunc', 'disabled', expect.any(String));
+      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'disabled', expect.any(String));
+      expect(onStatus).toHaveBeenCalledWith('sat-3l-sm', 'disabled', expect.any(String));
+    });
+
+    await expect(runtime.punctuate('en', 'c')).resolves.toBeNull();
+    expect(MockWorker.instances.length).toBe(2); // no third worker
+  });
+
+  it('a WebGPU load failure recreates the worker with the wasm entry', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    (checkWebGPU as unknown as Mock).mockResolvedValue({ available: true });
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockResolvedValue({});
+
+    const p = runtime.punctuate('ja', 'hello');
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
+    expect(createPunctuationWorker).toHaveBeenLastCalledWith('webgpu');
+    const worker1 = MockWorker.last();
+    const loadMsg1 = await waitForMessageAt(worker1, 'load', 1);
+    worker1.emit({ type: 'error', id: loadMsg1.id, error: 'no webgpu adapter' });
+
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(2));
+    expect(createPunctuationWorker).toHaveBeenLastCalledWith('wasm');
+    const worker2 = MockWorker.last();
+    const loadMsg2 = await waitForMessageAt(worker2, 'load', 1);
+    worker2.emit({ type: 'loaded', id: loadMsg2.id, model: 'sat-3l-sm', loadTimeMs: 800, device: 'wasm' });
+
+    await expect(p).resolves.toBeNull(); // the original call already returned null (fire-and-forget load)
+    await vi.waitFor(() => expect(onStatus).toHaveBeenCalledWith('sat-3l-sm', 'ready'));
+
+    const p2 = runtime.punctuate('ja', 'hello again');
+    const runMsg = await waitForMessageAt(worker2, 'run', 1);
+    const result = fakeResult('sat-3l-sm', 'hello again.');
+    worker2.emit({ type: 'result', id: runMsg.id, result, inferenceMs: 5 });
+    await expect(p2).resolves.toEqual(result);
+  });
+
+  it('a call that exceeds 3 s resolves null', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
+
+    vi.useFakeTimers();
+    try {
+      const p = runtime.punctuate('en', 'slow');
+      await vi.advanceTimersByTimeAsync(3_000);
+      await expect(p).resolves.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    // A late reply for the timed-out request must not throw.
+    const runMsg = lastMessageOfType(worker, 'run');
+    expect(() =>
+      worker.emit({ type: 'result', id: runMsg.id, result: fakeResult('edge-punct-en', 'x'), inferenceMs: 3500 }),
+    ).not.toThrow();
+  });
+
+  it('navigator.deviceMemory <= 4 loads nothing and always returns null', async () => {
+    setDeviceMemory(4);
+    const { runtime } = makeRuntime();
+    isModelReady.mockResolvedValue(true);
+
+    await expect(runtime.punctuate('en', 'hello')).resolves.toBeNull();
+    expect(isModelReady).not.toHaveBeenCalled();
+    expect(MockWorker.instances.length).toBe(0);
+  });
+
+  it('a model unused for 2 minutes unloads, and the worker terminates once it holds none', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockResolvedValue({});
+
+    // The whole flow runs under fake timers from the start: touch()'s idle
+    // timer is scheduled via the real setTimeout the instant it is set, so
+    // enabling fake timers only after that point would leave it running on
+    // its own, unadvanceable, real clock.
+    vi.useFakeTimers();
+    try {
+      void runtime.punctuate('en', 'a'); // kicks off the load
+      await flushUntil(() => MockWorker.instances.length >= 1);
+      const worker = MockWorker.last();
+      await flushUntil(() => worker.postMessage.mock.calls.some((c: any[]) => c[0]?.type === 'load'));
+      const loadMsg = lastMessageOfType(worker, 'load');
+      worker.emit({ type: 'loaded', id: loadMsg.id, model: 'edge-punct-en', loadTimeMs: 10, device: 'wasm' });
+      await flushUntil(() => onStatus.mock.calls.some((c: any[]) => c[0] === 'edge-punct-en' && c[1] === 'ready'));
+
+      // Use it once, so the idle clock starts from a real "last used" moment.
+      const runP = runtime.punctuate('en', 'b');
+      await flushUntil(() => worker.postMessage.mock.calls.some((c: any[]) => c[0]?.type === 'run'));
+      const runMsg = lastMessageOfType(worker, 'run');
+      worker.emit({ type: 'result', id: runMsg.id, result: fakeResult('edge-punct-en', 'b.'), inferenceMs: 1 });
+      await expect(runP).resolves.toEqual(fakeResult('edge-punct-en', 'b.'));
+
+      await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+      expect(worker.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'unload', model: 'edge-punct-en' }),
+      );
+      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'downloaded', expect.any(String));
+      expect(worker.terminate).toHaveBeenCalledTimes(1); // the only model held -> worker torn down
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('enabled === false makes punctuate() return null without touching the worker or the ModelManager', async () => {
+    const { runtime } = makeRuntime(false);
+    expect(runtime.enabled).toBe(false);
+
+    await expect(runtime.punctuate('en', 'hello')).resolves.toBeNull();
+    expect(isModelReady).not.toHaveBeenCalled();
+    expect(downloadModel).not.toHaveBeenCalled();
+    expect(MockWorker.instances.length).toBe(0);
+  });
+
+  it('a download failure does not retry automatically in the same launch', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    isModelReady.mockResolvedValue(false);
+    downloadModel.mockRejectedValueOnce(new Error('network down'));
+
+    await expect(runtime.punctuate('en', 'hello')).resolves.toBeNull();
+    await vi.waitFor(() =>
+      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'error', expect.any(String)),
+    );
+    expect(downloadModel).toHaveBeenCalledTimes(1);
+
+    await expect(runtime.punctuate('en', 'hello again')).resolves.toBeNull();
+    expect(downloadModel).toHaveBeenCalledTimes(1);
+  });
+
+  it('a manual retry after a failure starts exactly one new download', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    isModelReady.mockResolvedValue(false);
+    downloadModel.mockRejectedValueOnce(new Error('network down'));
+
+    await runtime.punctuate('en', 'hello');
+    await vi.waitFor(() =>
+      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'error', expect.any(String)),
+    );
+
+    downloadModel.mockImplementationOnce(() => new Promise(() => {}));
+    runtime.retryDownload('edge-punct-en');
+    expect(downloadModel).toHaveBeenCalledTimes(2);
+
+    runtime.retryDownload('edge-punct-en'); // status is now 'downloading', not 'error' -> no-op
+    expect(downloadModel).toHaveBeenCalledTimes(2);
+  });
+
+  it('once the median call latency stays above 500 ms, that model goes rule-only for the session', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
+
+    vi.useFakeTimers();
+    try {
+      for (let i = 1; i <= 3; i++) {
+        const p = runtime.punctuate('en', `slow ${i}`);
+        await vi.advanceTimersByTimeAsync(0); // let the run message actually post
+        const msg = lastMessageOfType(worker, 'run');
+        await vi.advanceTimersByTimeAsync(600); // 600ms > the 500ms budget
+        worker.emit({ type: 'result', id: msg.id, result: fakeResult('edge-punct-en', `slow ${i}.`), inferenceMs: 600 });
+        await expect(p).resolves.toEqual(fakeResult('edge-punct-en', `slow ${i}.`));
+      }
+      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'disabled', expect.any(String));
+
+      worker.postMessage.mockClear();
+      const p4 = runtime.punctuate('en', 'after slow disable');
+      await vi.advanceTimersByTimeAsync(0);
+      await expect(p4).resolves.toBeNull();
+      expect(worker.postMessage).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('dispose() rejects every in-flight request and terminates the worker; a late result touches nothing', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
+
+    const p = runtime.punctuate('en', 'in flight');
+    const runMsg = await waitForMessageAt(worker, 'run', 1);
+
+    runtime.dispose();
+    await expect(p).resolves.toBeNull(); // SegmentationRuntime.punctuate never rejects
+    expect(worker.terminate).toHaveBeenCalledTimes(1);
+
+    expect(() =>
+      worker.emit({ type: 'result', id: runMsg.id, result: fakeResult('edge-punct-en', 'x'), inferenceMs: 1 }),
+    ).not.toThrow();
+  });
+});
