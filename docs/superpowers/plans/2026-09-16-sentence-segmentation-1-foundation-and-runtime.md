@@ -12,7 +12,7 @@
 
 **Slices:** this is 1 of 4. Slice 2 = settings, store and UI. Slice 3 = Local Inference and Local Native integration. Slice 4 = online providers, notice, diagnostics, analytics. Nothing in this slice is reachable by a user; its deliverable is a unit-tested library plus a benchmark entry that reproduces the measured numbers.
 
-**Typecheck:** `npx tsc --noEmit`. Tests: `npm run test -- <path>`. Both must pass before every commit.
+**Typecheck:** the repo's baseline is **not clean** — `npx tsc --noEmit` reports 319 errors across 154 files as of `6dd46986`, every one of them pre-existing and none in a file this work creates or touches. "Confirm tsc is clean" is therefore impossible to satisfy and must not be asked of anyone. The bar is **zero contribution**: run `npx tsc --noEmit` and confirm its output names none of the files your task created or modified. Tests: `npm run test -- <path>`. Both must hold before every commit.
 
 ---
 
