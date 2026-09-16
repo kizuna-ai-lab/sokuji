@@ -475,6 +475,17 @@ function resultOf(text: string, ends: number[], breaks: number[] = ends): Punctu
   return { text, sentenceEnds: ends, breakpoints: breaks, model: 'fireredpunc' };
 }
 
+/**
+ * Yield to the macrotask queue, which drains every pending microtask first.
+ *
+ * `vi.waitFor` runs its callback synchronously and returns immediately if it
+ * already passes, so `await vi.waitFor(() => expect(seals).toEqual([]))` on an
+ * array that is already empty proves nothing: it resolves before the model's
+ * answer could possibly arrive. Every assertion that something did NOT happen
+ * must come after a real yield instead.
+ */
+const flush = () => new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+
 describe('SentenceStream gating', () => {
   it('never calls the model for a short tail', async () => {
     const { runtime, calls } = fakeRuntime({});
@@ -569,7 +580,11 @@ describe('SentenceStream sealing', () => {
 
   it('does not apply the Chinese length fallback to Japanese', async () => {
     const seals: SealedChunk[] = [];
-    const tail = 'これは非常に長い日本語の文章です、句点がないまま百文字を超えて続きますが日本語には長さのフォールバックを適用しないので封をしないはずですまだ続きます';
+    // 123 characters, past zhFallbackChars(3) = 100, and still carrying 、 —
+    // so if 'ja' were ever added to LENGTH_FALLBACK_LANGS this test would
+    // fail. At 74 characters it could not, because the length guard returned
+    // before the language was ever consulted.
+    const tail = 'これは長い日本語の文章です、'.repeat(8) + '句点がないまま続きます';
     const { runtime } = fakeRuntime({ [tail]: null });
     const stream = new SentenceStream({
       lang: 'ja', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
@@ -939,11 +954,12 @@ export class SentenceStream {
     }
 
     if (tail.length >= gateChars(this.lang, this.n)) this.callModel(tail);
-    // The length fallback is a property of the tail, not a consolation prize
-    // for a failed model call: a Chinese tail with no marks at all and a
-    // runtime that declines would otherwise grow without bound, which is
-    // precisely the case the fallback exists for.
-    this.tryLengthFallback(tail, 0);
+    // No length fallback here. The spec conditions it on "fewer than N
+    // sentence ends", which is a fact only the model's answer establishes, so
+    // it belongs on the paths that know that answer: applyResult when a
+    // result arrives, and onResult when one never usefully does. Firing it
+    // here as well would seal at a comma in the same tick the model was
+    // asked, guaranteeing its answer is discarded as stale.
   }
 
   /** Count the marks already in the tail and seal if there are enough. */
@@ -995,21 +1011,30 @@ export class SentenceStream {
     const next = this.queued;
     this.queued = null;
 
-    if (!this.disposed && result) this.applyResult(input, dropped, result);
+    const applied = !this.disposed && result
+      ? this.applyResult(input, dropped, result)
+      : false;
+    // The model declined, or its answer was stale or failed the skeleton
+    // invariant. The tail is still unpunctuated and still growing, so the
+    // length backstop is the only thing left that can seal it.
+    if (!applied && !this.disposed) this.tryLengthFallback(this.pending, 0);
 
     if (next !== null && this.active() && this.pending.length > 0) this.evaluate();
   }
 
-  private applyResult(input: string, dropped: number, result: PunctuationResult): void {
+  /** True when this answer was usable and the counting decision was made from
+   *  it — false when it was stale or malformed, so the caller knows the tail
+   *  still has nobody deciding for it. */
+  private applyResult(input: string, dropped: number, result: PunctuationResult): boolean {
     // A stale answer: the tail no longer starts with what was sent.
     const tail = this.pending;
     const sentSkeleton = this.inFlightSkeleton;
     const tailSkeleton = skeleton(tail.slice(dropped));
-    if (!tailSkeleton.startsWith(sentSkeleton)) return;
+    if (!tailSkeleton.startsWith(sentSkeleton)) return false;
 
     // The output invariant. Every model rewrites spacing and two of them
     // recase, so only letters and digits, lower-cased, may be compared.
-    if (skeleton(result.text) !== skeleton(input)) return;
+    if (skeleton(result.text) !== skeleton(input)) return false;
 
     const counted = result.sentenceEnds.filter((e) => this.hasRightContext(result.text, e));
     if (counted.length >= this.n) {
@@ -1017,9 +1042,10 @@ export class SentenceStream {
       const sealedText = result.text.slice(0, cut);
       const rawCut = this.rawOffsetFor(input, skeleton(sealedText).length);
       this.seal(tail.slice(0, dropped) + sealedText, tail.slice(dropped + rawCut), 'sentences');
-      return;
+      return true;
     }
     this.tryLengthFallback(tail, counted.length);
+    return true;
   }
 
   /**
