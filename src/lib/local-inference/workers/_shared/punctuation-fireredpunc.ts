@@ -25,7 +25,7 @@
  * order of the regexes inside ruleBasedTxtFix are load-bearing and ported verbatim.
  */
 import type { PunctuationAdapter, PunctuationAdapterDeps } from './punctuation-core';
-import { periodIsNotSentenceEnd } from '../../../segmentation/sentenceEnd';
+import { sentenceEnds as ruleSentenceEnds } from '../../../segmentation/sentenceEnd';
 
 // FireRedPuncBert.max_input_len: 512 position embeddings minus the [CLS] slot.
 const MAX_TOKENS = 511;
@@ -335,23 +335,33 @@ export function decode(
 /**
  * Where FireRedPunc's output ends a sentence.
  *
- * The model writes four marks and prefers commas: 64 sentence ends against 103
- * in the reference, but 205 of 225 marks overall. That under-emission is why
- * the Chinese length fallback exists; it is not compensated for here.
+ * Delegates to the shared rule rather than reimplementing it. The model writes
+ * only 。，？！, and `ruleBasedTxtFix` converts each terminal to its ASCII form
+ * in ASCII-letter contexts, so everything this model can produce is a strict
+ * subset of what `sentenceEnd.ts` already recognises — a narrower copy here
+ * buys nothing and only creates ways to disagree. An earlier draft did
+ * reimplement it and silently dropped the ASCII `!` and `?` that the model's
+ * own post-processing creates, so `"wow！amazing"` became `"Wow! Amazing"`
+ * with no sentence end at all.
+ *
+ * The model prefers commas — 64 sentence ends against 103 in the reference,
+ * but 205 of 225 marks overall — which is why the Chinese length fallback
+ * exists. That under-emission is not compensated for here.
  */
 export function countSentenceEnds(text: string): number[] {
-  const out: number[] = [];
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '。' || ch === '！' || ch === '？') { out.push(i + 1); continue; }
-    if (ch === '.' && !periodIsNotSentenceEnd(text, i)) out.push(i + 1);
-  }
-  return out;
+  return ruleSentenceEnds(text);
 }
 
-/** Sentence ends plus the commas the model wrote. */
+/**
+ * Sentence ends plus the commas the model wrote.
+ *
+ * Deliberately narrower than the shared `breakpoints()`, which also counts
+ * 、;；:：—– . FireRedPunc never emits any of those, so counting them would
+ * mean reacting to punctuation that came from the ASR's own text rather than
+ * from the model.
+ */
 export function countBreakpoints(text: string): number[] {
-  const ends = new Set(countSentenceEnds(text));
+  const ends = new Set(ruleSentenceEnds(text));
   for (let i = 0; i < text.length; i++) {
     if (text[i] === '，' || text[i] === ',') ends.add(i + 1);
   }
