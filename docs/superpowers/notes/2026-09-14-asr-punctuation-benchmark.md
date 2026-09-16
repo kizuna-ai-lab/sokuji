@@ -417,8 +417,10 @@ WASM lane: the default WebGPU bundle's WASM EP has no `GatherBlockQuantized` ker
 as the main table). One run per cell (n=1); see "How noisy" below for the error bar this implies.
 All cells here used `threads=1` (the brief's own example command), while the pre-existing
 "Renderer cost" table above used 4-thread WASM/WebGPU — a variable this note previously left
-unnamed. The "after load" figures still land within ~3% of that table's, so thread count does not
-appear to move memory much, but it is not the same setting.
+unnamed. The "after load" figures still land within 5% of that table's across all five directly
+comparable rows (FireRedPunc WASM 2.6%, FireRedPunc WebGPU 2.9%, Edge-Punct-en WASM 4.9% — the
+largest gap, SaT WASM 0.9%, SaT WebGPU 0.8%), so thread count does not appear to move memory much,
+but it is not the same setting.
 
 ### Baseline: idle / load / call loop / unload
 
@@ -574,7 +576,11 @@ change at the marks that matter: comparing baseline vs. fix-1 for the *same* mod
 "after unload" every delta is under 1.5% (max magnitude 6.9 MB), and at "after load" the spread is
 wider (up to 17% for Edge-Punct-en WASM, the smallest model, where GC-timing variance is a larger
 fraction of a smaller number). Treat single-digit percent differences anywhere in these tables as
-noise; the ≥19% GC recovery for SaT and the 432 MB sequential-load tax are well outside that band.
+noise; the ≥19% GC recovery for SaT is well outside that band. The sequential-load tax (240–472 MB,
+i.e. 16–31% of SaT's own single-model `done`) is less clear-cut at its low end: run 2's 240 MB
+(16%) sits close to the ~17% ceiling this same paragraph documents for Edge-Punct-en WASM above,
+so treat that run as the weakest evidence of the three; runs 1 and 3 (~31%, ~470 MB each) are
+comfortably outside it.
 
 ### Verdict
 
