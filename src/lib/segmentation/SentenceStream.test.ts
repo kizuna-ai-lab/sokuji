@@ -20,6 +20,17 @@ function resultOf(text: string, ends: number[], breaks: number[] = ends): Punctu
   return { text, sentenceEnds: ends, breakpoints: breaks, model: 'fireredpunc' };
 }
 
+/**
+ * Yield to the macrotask queue, which drains every pending microtask first.
+ *
+ * `vi.waitFor` runs its callback synchronously and returns immediately if it
+ * already passes, so `await vi.waitFor(() => expect(seals).toEqual([]))` on an
+ * array that is already empty proves nothing: it resolves before the model's
+ * answer could possibly arrive. Every assertion that something did NOT happen
+ * must come after a real yield instead.
+ */
+const flush = () => new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+
 describe('SentenceStream gating', () => {
   it('never calls the model for a short tail', async () => {
     const { runtime, calls } = fakeRuntime({});
@@ -27,7 +38,8 @@ describe('SentenceStream gating', () => {
       lang: 'zh', runtime, sentencesPerChunk: 3, onSeal: () => {}, onPending: () => {},
     });
     stream.update('太短了');
-    await vi.waitFor(() => expect(calls).toEqual([]));
+    await flush();
+    expect(calls).toEqual([]);
   });
 
   it('never calls the model when the tail already has a terminal', async () => {
@@ -60,7 +72,8 @@ describe('SentenceStream gating', () => {
       lang: 'en', runtime, sentencesPerChunk: 3, onSeal: () => {}, onPending: () => {},
     });
     stream.update('a'.repeat(149));
-    await vi.waitFor(() => expect(calls).toEqual([]));
+    await flush();
+    expect(calls).toEqual([]);
     stream.update('a'.repeat(150));
     await vi.waitFor(() => expect(calls.length).toBe(1));
   });
@@ -89,7 +102,8 @@ describe('SentenceStream sealing', () => {
       lang: 'en', runtime, sentencesPerChunk: 1, onSeal: (c) => seals.push(c), onPending: () => {},
     });
     stream.update('One complete sentence.');
-    await vi.waitFor(() => expect(seals).toEqual([]));
+    await flush();
+    expect(seals).toEqual([]);
     stream.update('One complete sentence. And more words after it');
     await vi.waitFor(() => expect(seals.length).toBe(1));
     expect(seals[0].text).toBe('One complete sentence.');
@@ -114,13 +128,18 @@ describe('SentenceStream sealing', () => {
 
   it('does not apply the Chinese length fallback to Japanese', async () => {
     const seals: SealedChunk[] = [];
-    const tail = 'これは非常に長い日本語の文章です、句点がないまま百文字を超えて続きますが日本語には長さのフォールバックを適用しないので封をしないはずですまだ続きます';
+    // 123 characters, past zhFallbackChars(3) = 100, and still carrying 、 —
+    // so if 'ja' were ever added to LENGTH_FALLBACK_LANGS this test would
+    // fail. At 74 characters it could not, because the length guard returned
+    // before the language was ever consulted.
+    const tail = 'これは長い日本語の文章です、'.repeat(8) + '句点がないまま続きます';
     const { runtime } = fakeRuntime({ [tail]: null });
     const stream = new SentenceStream({
       lang: 'ja', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
     });
     stream.update(tail);
-    await vi.waitFor(() => expect(seals).toEqual([]));
+    await flush();
+    expect(seals).toEqual([]);
   });
 
   it('reads N when the stream is created, so a setting change never cuts mid-bubble', async () => {
@@ -130,7 +149,8 @@ describe('SentenceStream sealing', () => {
       lang: 'en', runtime, sentencesPerChunk: 5, onSeal: (c) => seals.push(c), onPending: () => {},
     });
     stream.update('One. Two. Three. Four. and the tail keeps going here');
-    await vi.waitFor(() => expect(seals).toEqual([]));
+    await flush();
+    expect(seals).toEqual([]);
   });
 });
 
@@ -163,7 +183,8 @@ describe('SentenceStream model results', () => {
       lang: 'en', runtime, sentencesPerChunk: 1, onSeal: (c) => seals.push(c), onPending: () => {},
     });
     stream.update(raw);
-    await vi.waitFor(() => expect(seals).toEqual([]));
+    await flush();
+    expect(seals).toEqual([]);
   });
 
   it('accepts a result that only recases and respaces', async () => {
@@ -252,7 +273,11 @@ describe('SentenceStream rewrites and re-anchoring', () => {
     // The tail is rewritten from the start while the call is in flight.
     stream.update('b'.repeat(150));
     release();
-    await vi.waitFor(() => expect(seals).toEqual([]));
+    // Not named in the fix-round list, but the same anti-pattern Finding 1
+    // describes: this checks that nothing happened right after release(),
+    // before the model's .then() chain could possibly have run.
+    await flush();
+    expect(seals).toEqual([]);
   });
 
   it('confirmedBoundary reports the latest counted end, and -1 when there is none', () => {
@@ -305,8 +330,10 @@ describe('SentenceStream end and disposal', () => {
     });
     stream.update('One. Two. Three. Four. Five. Six.');
     await vi.waitFor(() => expect(pendings.length).toBe(1));
+    await flush();
     expect(seals).toEqual([]);
     stream.end();
+    await flush();
     expect(seals).toEqual([]);
   });
 
@@ -318,7 +345,8 @@ describe('SentenceStream end and disposal', () => {
     });
     stream.update('One. Two. Three. Four. Five. Six.');
     stream.end();
-    await vi.waitFor(() => expect(seals).toEqual([]));
+    await flush();
+    expect(seals).toEqual([]);
   });
 
   it('emits nothing after dispose', async () => {
@@ -330,6 +358,7 @@ describe('SentenceStream end and disposal', () => {
     stream.dispose();
     stream.update('One. Two. Three. and more text');
     stream.end();
-    await vi.waitFor(() => expect(seals).toEqual([]));
+    await flush();
+    expect(seals).toEqual([]);
   });
 });
