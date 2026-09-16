@@ -475,7 +475,6 @@ describe('PunctuationRuntime', () => {
     await expect(runZh).resolves.toEqual(zhResult);
   });
 
-
   it('a model disabled by repeated failures is unloaded, and the worker terminates once it holds none', async () => {
     // Regression: recordFailure()/recordLatency() set status = 'disabled'
     // while the adapter stayed resident in the worker. idleUnload() only ever
@@ -499,6 +498,36 @@ describe('PunctuationRuntime', () => {
     expect(worker.terminate).toHaveBeenCalledTimes(1); // the only model held -> worker torn down
   });
 
+  it('dispose() during a pending checkWebGPU() leaves no worker behind once the bootstrap settles', async () => {
+    // Regression: dispose() neither cancels nor awaits a bootstrap that is
+    // mid-checkWebGPU(). Before the fix, createSession() would resume once
+    // checkWebGPU() resolved, go on to construct a Worker, and assign it to
+    // `this.session` on an already-disposed runtime -- a live worker nothing
+    // terminates, since dispose()'s own `this.session?.dispose()` already ran
+    // (as a no-op) before the Worker even existed.
+    const { runtime } = makeRuntime();
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockResolvedValue({});
+
+    let resolveWebGpu!: (v: { available: boolean }) => void;
+    (checkWebGPU as unknown as Mock).mockReturnValue(
+      new Promise((resolve) => { resolveWebGpu = resolve; }),
+    );
+
+    const p = runtime.punctuate('en', 'hello');
+    await vi.waitFor(() => expect(checkWebGPU).toHaveBeenCalled());
+    expect(MockWorker.instances.length).toBe(0); // still blocked before any Worker is created
+
+    runtime.dispose();
+    await expect(p).resolves.toBeNull();
+
+    // The bootstrap now resolves, long after disposal.
+    resolveWebGpu({ available: false });
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(MockWorker.instances.length).toBe(0);
+  });
 
   it('a call that exceeds 3 s resolves null', async () => {
     const { runtime, onStatus } = makeRuntime();
