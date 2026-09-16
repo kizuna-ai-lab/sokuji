@@ -719,8 +719,11 @@ describe('SentenceStream rewrites and re-anchoring', () => {
     // Capitalised continuations, for the same reason as the test above.
     stream.update('One. Two. And then a good deal more text after it');
     expect(stream.confirmedBoundary()).toBe(9);
-    // A mark at the very end of the tail is not confirmed.
-    stream.update('One. Two. Three.');
+    // A mark at the very end of the tail is not confirmed. The one before it
+    // is — but only because the closing sentence is long enough to supply the
+    // 8 skeleton characters the right-context rule demands. In 'One. Two.
+    // Three.' the mark at 9 would fail too, since 'three' is only 5.
+    stream.update('One. Two. Three sentences here.');
     expect(stream.confirmedBoundary()).toBe(9);
   });
 });
