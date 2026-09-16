@@ -149,11 +149,12 @@ export class SentenceStream {
     }
 
     if (tail.length >= gateChars(this.lang, this.n)) this.callModel(tail);
-    // The length fallback is a property of the tail, not a consolation prize
-    // for a failed model call: a Chinese tail with no marks at all and a
-    // runtime that declines would otherwise grow without bound, which is
-    // precisely the case the fallback exists for.
-    this.tryLengthFallback(tail, 0);
+    // No length fallback here. The spec conditions it on "fewer than N
+    // sentence ends", which is a fact only the model's answer establishes, so
+    // it belongs on the paths that know that answer: applyResult when a
+    // result arrives, and onResult when one never usefully does. Firing it
+    // here as well would seal at a comma in the same tick the model was
+    // asked, guaranteeing its answer is discarded as stale.
   }
 
   /** Count the marks already in the tail and seal if there are enough. */
@@ -205,21 +206,30 @@ export class SentenceStream {
     const next = this.queued;
     this.queued = null;
 
-    if (!this.disposed && result) this.applyResult(input, dropped, result);
+    const applied = !this.disposed && result
+      ? this.applyResult(input, dropped, result)
+      : false;
+    // The model declined, or its answer was stale or failed the skeleton
+    // invariant. The tail is still unpunctuated and still growing, so the
+    // length backstop is the only thing left that can seal it.
+    if (!applied && !this.disposed) this.tryLengthFallback(this.pending, 0);
 
     if (next !== null && this.active() && this.pending.length > 0) this.evaluate();
   }
 
-  private applyResult(input: string, dropped: number, result: PunctuationResult): void {
+  /** True when this answer was usable and the counting decision was made from
+   *  it — false when it was stale or malformed, so the caller knows the tail
+   *  still has nobody deciding for it. */
+  private applyResult(input: string, dropped: number, result: PunctuationResult): boolean {
     // A stale answer: the tail no longer starts with what was sent.
     const tail = this.pending;
     const sentSkeleton = this.inFlightSkeleton;
     const tailSkeleton = skeleton(tail.slice(dropped));
-    if (!tailSkeleton.startsWith(sentSkeleton)) return;
+    if (!tailSkeleton.startsWith(sentSkeleton)) return false;
 
     // The output invariant. Every model rewrites spacing and two of them
     // recase, so only letters and digits, lower-cased, may be compared.
-    if (skeleton(result.text) !== skeleton(input)) return;
+    if (skeleton(result.text) !== skeleton(input)) return false;
 
     const counted = result.sentenceEnds.filter((e) => this.hasRightContext(result.text, e));
     if (counted.length >= this.n) {
@@ -227,9 +237,10 @@ export class SentenceStream {
       const sealedText = result.text.slice(0, cut);
       const rawCut = this.rawOffsetFor(input, skeleton(sealedText).length);
       this.seal(tail.slice(0, dropped) + sealedText, tail.slice(dropped + rawCut), 'sentences');
-      return;
+      return true;
     }
     this.tryLengthFallback(tail, counted.length);
+    return true;
   }
 
   /**
