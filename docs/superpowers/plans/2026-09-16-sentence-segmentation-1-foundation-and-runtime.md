@@ -2058,7 +2058,12 @@ describe('punctuation manifest entries', () => {
   });
 
   it('reports the sizes the settings section will show', () => {
-    expect(getModelSizeMb(getManifestEntry('punct-zh-fireredpunc')!)).toBe(156);
+    // getModelSizeMb is Math.round(sum(sizeBytes) / 1_048_576). Computed from
+    // the byte counts above, each of which was checked against the real file:
+    //   163,040,199 -> 155.4873 -> 155
+    //     7,639,930 ->   7.2861 ->   7
+    //   251,042,560 -> 239.4128 -> 239
+    expect(getModelSizeMb(getManifestEntry('punct-zh-fireredpunc')!)).toBe(155);
     expect(getModelSizeMb(getManifestEntry('punct-en-edge')!)).toBe(7);
     expect(getModelSizeMb(getManifestEntry('punct-multi-sat')!)).toBe(239);
   });
@@ -2075,7 +2080,7 @@ describe('punctuation manifest entries', () => {
 });
 ```
 
-The three `getModelSizeMb` expectations are placeholders until Step 3 computes them — run the test once, read the real values out of the failure, and write them in. Do not round by hand.
+The three `getModelSizeMb` expectations are **computed, not placeholders**: every byte count above was checked against the real file under `~/.cache/sokuji-punct-bench/`, and the MB values follow from `Math.round(sum / 1_048_576)`. They should pass first time. If one does not, the byte counts are what to re-check — do not adjust the expectation to match whatever the code returns.
 
 - [ ] **Step 2: Run it to verify it fails**
 
