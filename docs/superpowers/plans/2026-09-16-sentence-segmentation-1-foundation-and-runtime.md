@@ -1680,13 +1680,21 @@ Port of `benchmark/punctuation-restoration/models/sat-3l-sm.mjs` (298 lines). Th
 
 `@huggingface/tokenizers` 0.1.3 is in `node_modules` only as a transitive dependency of `@huggingface/transformers`, and the adapter uses four of its internals (`tokenizer.normalizer(s)`, `tokenizer.model([...])` called as a function, `tokenizer.model.tokens_to_ids`, `tokenizer.model.unk_token_id`). Relying on a transitive version for that is how a patch release breaks the build silently.
 
-Read the installed version first, then pin that exact version:
+The facts below are measured, not assumed — I probed them before this task was dispatched:
+
+- **The installed version is `0.1.3`.**
+- It lives in the **main checkout's** `node_modules`, not the worktree's: a worktree under `.claude/worktrees/` has no `node_modules` of its own and resolves three directories up. `vitest.config.ts` documents the same thing at its `nodeModulesInUse` helper.
+- **Do not read the version with `require('<pkg>/package.json')`.** That fails with `ERR_PACKAGE_PATH_NOT_EXPORTED` for this package, for `@huggingface/transformers` and for `onnxruntime-web` — none of them expose `./package.json` in their exports map. Read the file by path instead:
 
 ```bash
-node -e "console.log(require('./node_modules/@huggingface/tokenizers/package.json').version)"
+node -e "console.log(JSON.parse(require('fs').readFileSync('../../../node_modules/@huggingface/tokenizers/package.json','utf8')).version)"
 ```
 
-Add it to `dependencies` in `package.json` with an exact version (no caret — the adapter depends on internals), then `npm install` and confirm `package-lock.json` changed.
+- **All four internals the adapter relies on exist and behave on 0.1.3**, verified against the real `sat-3l-sm-q8w-gather/tokenizer.json`: `tokenizer.normalizer` is callable, `tokenizer.model` is callable, `tokenizer.model.tokens_to_ids` is a `Map`, `tokenizer.model.unk_token_id` is `3`, and `tokenizer.model(['▁hello'])` returns `['▁hell', 'o']`.
+
+Add it to **`devDependencies`**, not `dependencies`, pinned to the exact version `0.1.3` with no caret — the adapter depends on undocumented internals, so a patch release is a real risk. `devDependencies` is where its two siblings already sit: `@huggingface/transformers@^4.2.0` and `onnxruntime-web@1.26.0-dev.20260416-b7804b056c` are both imported by shipped renderer and worker code and are both devDependencies, because vite bundles them at build time and nothing resolves them from `node_modules` in the packaged app. The point of this step is to stop depending on the package transitively, not to move it to a different section than its siblings.
+
+Then `npm install` and confirm `package-lock.json` changed.
 
 - [ ] **Step 2: Write the failing golden test**
 
