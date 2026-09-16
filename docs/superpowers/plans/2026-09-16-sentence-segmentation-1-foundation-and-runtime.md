@@ -1471,9 +1471,13 @@ describe('edge-punct UnigramEncoder', () => {
     const enc = new UnigramEncoder(VOCAB);
     expect(enc.encodeWord('the')).toEqual([3]);
   });
-  it('falls back to <unk> for an uncovered word, since the vocab has no byte pieces', () => {
+  it('falls back to one <unk> per byte for an uncovered word, since the vocab has no byte pieces', () => {
     const enc = new UnigramEncoder(VOCAB);
-    expect(enc.encodeWord('zzz')).toEqual([0]);
+    // Six, not one: `▁zzz` is 6 UTF-8 bytes (the metaspace alone is 3), and
+    // with no `<0x00>` piece in the vocab `bytesOffset` stays -1, so the
+    // Viterbi walk emits an <unk> for every uncovered byte rather than
+    // collapsing the word into a single one.
+    expect(enc.encodeWord('zzz')).toEqual([0, 0, 0, 0, 0, 0]);
   });
 });
 
