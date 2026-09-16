@@ -90,13 +90,23 @@ export interface PunctuationCoreDeps {
  */
 export function installPunctuationWorker(deps: PunctuationCoreDeps): void {
   const loaded = new Map<PunctuationModelId, PunctuationAdapter>();
-  const blobs = new Map<PunctuationModelId, Record<string, string>>();
   let chain: Promise<void> = Promise.resolve();
 
   const post = (msg: PunctuationWorkerOutbound) => (self as any).postMessage(msg);
 
   async function handleLoad(msg: PunctuationInitMessage): Promise<void> {
     const started = performance.now();
+    // A second load for a model already held would otherwise drop the first
+    // adapter's ONNX session — and its WASM heap or GPU buffers — with nothing
+    // releasing it. The guard belongs here rather than in the caller: this
+    // module exists so the two entries and the runtime can stay thin, and a
+    // leaked session costs 0.25-1.5 GB against a design whose largest open
+    // question is already renderer memory.
+    const previous = loaded.get(msg.model);
+    if (previous) {
+      loaded.delete(msg.model);
+      await previous.release();
+    }
     if (deps.env?.wasm) {
       deps.env.wasm.wasmPaths = msg.ortWasmBaseUrl;
       deps.env.wasm.numThreads = msg.numThreads;
@@ -116,7 +126,6 @@ export function installPunctuationWorker(deps: PunctuationCoreDeps): void {
       executionProviders: [device],
     });
     loaded.set(msg.model, adapter);
-    blobs.set(msg.model, msg.fileUrls);
     post({ type: 'loaded', id: msg.id, model: msg.model, loadTimeMs: Math.round(performance.now() - started), device });
   }
 
@@ -132,7 +141,6 @@ export function installPunctuationWorker(deps: PunctuationCoreDeps): void {
     const adapter = loaded.get(msg.model);
     if (adapter) await adapter.release();
     loaded.delete(msg.model);
-    blobs.delete(msg.model);
     post({ type: 'unloaded', id: msg.id });
   }
 
