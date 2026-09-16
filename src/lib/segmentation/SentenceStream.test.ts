@@ -154,6 +154,39 @@ describe('SentenceStream sealing', () => {
   });
 });
 
+describe('SentenceStream multi-group finals', () => {
+  it('seals every full N-sentence group from a single update(), not just the first', async () => {
+    // Simulates an offline ASR worker's final (whisper, qwen3-asr, granite,
+    // sherpa offline): already fully punctuated, delivered whole via a single
+    // update() immediately followed by end(), never grown delta by delta.
+    const seals: SealedChunk[] = [];
+    const { runtime } = fakeRuntime({});
+    const stream = new SentenceStream({
+      lang: 'en', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
+    });
+    const text = Array.from({ length: 9 }, (_, i) => `Sentence number ${i + 1}.`).join(' ');
+    stream.update(text);
+    await flush();
+    // Two full 3-sentence groups must seal from the rule path within this one
+    // update() call. Before the fix, evaluate() sealed once and returned,
+    // leaving the other 6 sentences pending until end() flushed them as one
+    // oversized chunk instead of two more bounded ones.
+    expect(seals.length).toBe(2);
+    expect(seals[0].reason).toBe('sentences');
+    expect(seals[1].reason).toBe('sentences');
+    expect(seals[0].text.match(/\./g)?.length).toBe(3);
+    expect(seals[1].text.match(/\./g)?.length).toBe(3);
+
+    // The last group's own final mark is at the very end of the tail (no
+    // right context), so it only flushes once end() is called -- but it must
+    // still be exactly the remaining 3 sentences, not 3 + whatever else.
+    stream.end();
+    expect(seals.length).toBe(3);
+    expect(seals[2].reason).toBe('end');
+    expect(seals[2].text.match(/\./g)?.length).toBe(3);
+  });
+});
+
 describe('SentenceStream model results', () => {
   it('seals with the inserted punctuation and leaves the remainder raw', async () => {
     // 162 characters, so it clears the English gate at N = 3 (3 x 50 = 150).

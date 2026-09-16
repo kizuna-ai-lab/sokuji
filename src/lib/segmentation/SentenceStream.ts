@@ -137,34 +137,47 @@ export class SentenceStream {
   }
 
   private evaluate(): void {
-    if (!this.active()) return;
-    const tail = this.pending;
-    if (tail.length === 0) return;
+    // A single update() can carry enough already-punctuated text for more
+    // than one N-sentence chunk in one shot — most commonly the final from an
+    // offline ASR worker (whisper, qwen3-asr, granite, sherpa offline), which
+    // delivers one whole punctuated transcript via update() + end() rather
+    // than growing it delta by delta. Looping here seals every full group
+    // immediately instead of only the first, leaving the rest to be flushed
+    // by end() as a single oversized chunk no update() ever re-evaluates.
+    for (;;) {
+      if (!this.active()) return;
+      const tail = this.pending;
+      if (tail.length === 0) return;
 
-    // Existing punctuation is authoritative: count it and never call a model.
-    const ends = ruleSentenceEnds(tail);
-    if (ends.length > 0) {
-      this.sealFromRule(tail, ends);
+      // Existing punctuation is authoritative: count it and never call a model.
+      const ends = ruleSentenceEnds(tail);
+      if (ends.length > 0) {
+        if (this.sealFromRule(tail, ends)) continue; // remainder may hold N more
+        return;
+      }
+
+      if (tail.length >= gateChars(this.lang, this.n)) this.callModel(tail);
+      // No length fallback here. The spec conditions it on "fewer than N
+      // sentence ends", which is a fact only the model's answer establishes, so
+      // it belongs on the paths that know that answer: applyResult when a
+      // result arrives, and onResult when one never usefully does. Firing it
+      // here as well would seal at a comma in the same tick the model was
+      // asked, guaranteeing its answer is discarded as stale.
       return;
     }
-
-    if (tail.length >= gateChars(this.lang, this.n)) this.callModel(tail);
-    // No length fallback here. The spec conditions it on "fewer than N
-    // sentence ends", which is a fact only the model's answer establishes, so
-    // it belongs on the paths that know that answer: applyResult when a
-    // result arrives, and onResult when one never usefully does. Firing it
-    // here as well would seal at a comma in the same tick the model was
-    // asked, guaranteeing its answer is discarded as stale.
   }
 
-  /** Count the marks already in the tail and seal if there are enough. */
-  private sealFromRule(tail: string, ends: number[]): void {
+  /** Count the marks already in the tail and seal if there are enough.
+   *  Returns whether it sealed, so evaluate() knows the remainder may still
+   *  hold another full group worth re-checking in the same tick. */
+  private sealFromRule(tail: string, ends: number[]): boolean {
     const counted = ends.filter((e) => this.hasRightContext(tail, e));
     if (counted.length >= this.n) {
       this.seal(tail.slice(0, counted[this.n - 1]), tail.slice(counted[this.n - 1]), 'sentences');
-      return;
+      return true;
     }
     this.tryLengthFallback(tail, counted.length);
+    return false;
   }
 
   private hasRightContext(text: string, offset: number): boolean {
