@@ -1611,6 +1611,8 @@ export function createEdgePunctEnAdapter(): PunctuationAdapter {
   };
 }
 
+import { sentenceEnds as ruleSentenceEnds } from '../../../segmentation/sentenceEnd';
+
 /**
  * Where Edge-Punct's output ends a sentence.
  *
