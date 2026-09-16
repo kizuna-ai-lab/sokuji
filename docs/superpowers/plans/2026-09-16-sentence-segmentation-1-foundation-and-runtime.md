@@ -100,7 +100,7 @@ describe('periodIsNotSentenceEnd', () => {
     ['Das ist z. B. ein Test.', 9],
     ['Siehe Nr. 5 im Anhang.', 8],
     ['El Sr. García llegó ayer.', 5],
-    ['A Dra. Silva chegou.', 6],
+    ['A Dra. Silva chegou.', 5],
     ['Это т. е. пример.', 5],
   ];
   it.each(notAnEnd)('%s: the dot at %i is not a sentence end', (text, dot) => {
@@ -556,7 +556,10 @@ describe('SentenceStream sealing', () => {
 
   it('seals Chinese at the last comma once the tail is N x 33 characters', async () => {
     const seals: SealedChunk[] = [];
-    const tail = '第一部分内容很长很长，第二部分内容也很长很长，第三部分内容同样很长很长，第四部分内容依旧非常长而且还在继续写下去直到超过一百个字符为止';
+    // 12 comma-separated clauses of 8 characters (96) plus an 18-character
+    // tail = 114, past zhFallbackChars(3) = 100, with no sentence-final mark
+    // anywhere and a runtime that declines.
+    const tail = '第一段内容很长，'.repeat(12) + '第七段内容仍然没有句号而且继续写下去';
     const { runtime } = fakeRuntime({});
     const stream = new SentenceStream({
       lang: 'zh', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
@@ -565,6 +568,7 @@ describe('SentenceStream sealing', () => {
     await vi.waitFor(() => expect(seals.length).toBe(1));
     expect(seals[0].reason).toBe('length');
     expect(seals[0].text.endsWith('，')).toBe(true);
+    expect(seals[0].text.length).toBe(96);
   });
 
   it('does not apply the Chinese length fallback to Japanese', async () => {
@@ -621,8 +625,9 @@ describe('SentenceStream model results', () => {
   });
 
   it('accepts a result that only recases and respaces', async () => {
-    const raw = 'i think so we should go now and then some more text to pass the gate here';
-    const punctuated = 'I think so. We should go now. and then some more text to pass the gate here';
+    // Over 100 characters, so it clears the English gate at N = 2 (2 x 50).
+    const raw = 'i think so we should go now and then some more text follows here to push this tail past the hundred character gate';
+    const punctuated = 'I think so. We should go now. and then some more text follows here to push this tail past the hundred character gate';
     const seals: SealedChunk[] = [];
     const { runtime } = fakeRuntime({ [raw]: resultOf(punctuated, [11, 29]) });
     const stream = new SentenceStream({
@@ -668,7 +673,7 @@ describe('SentenceStream model results', () => {
 });
 
 describe('SentenceStream rewrites and re-anchoring', () => {
-  it('never un-seals when the ASR rewrites text before a seal', async () => {
+  it('never un-seals when the ASR rewrites the tail after a seal', async () => {
     const seals: SealedChunk[] = [];
     const { runtime } = fakeRuntime({});
     const stream = new SentenceStream({
@@ -676,8 +681,10 @@ describe('SentenceStream rewrites and re-anchoring', () => {
     });
     stream.update('First sentence. and the tail goes on');
     await vi.waitFor(() => expect(seals.length).toBe(1));
-    // The recogniser revises a word inside text that is already sealed.
-    stream.update('Furst sentence. and the tail goes on a bit further');
+    expect(seals[0].text).toBe('First sentence.');
+    // update() carries the text SINCE the last seal, so the client now sends
+    // the rewritten remainder. The seal already emitted must not move.
+    stream.update(' and the tail went on a bit further than that');
     await vi.waitFor(() => expect(seals.length).toBe(1));
     expect(seals[0].text).toBe('First sentence.');
   });
@@ -923,8 +930,12 @@ export class SentenceStream {
       return;
     }
 
-    if (tail.length < gateChars(this.lang, this.n)) return;
-    this.callModel(tail);
+    if (tail.length >= gateChars(this.lang, this.n)) this.callModel(tail);
+    // The length fallback is a property of the tail, not a consolation prize
+    // for a failed model call: a Chinese tail with no marks at all and a
+    // runtime that declines would otherwise grow without bound, which is
+    // precisely the case the fallback exists for.
+    this.tryLengthFallback(tail, 0);
   }
 
   /** Count the marks already in the tail and seal if there are enough. */
