@@ -397,6 +397,85 @@ describe('PunctuationRuntime', () => {
     await expect(p2).resolves.toEqual(result);
   });
 
+  it('a WebGPU fallback resets every other model resident on the shared worker, not only the one that failed', async () => {
+    // Regression: the fallback used to call teardownSession() (which rejects
+    // every in-flight load and bumps the epoch) and then restart only the
+    // model whose load had just failed. Any OTHER model sharing that worker
+    // -- exactly the zh<->en case this worker is shared for -- was left
+    // orphaned: a 'ready' one kept pointing at an adapter that no longer
+    // exists, and a 'loading' one stayed 'loading' forever, because its own
+    // performLoad() catch bails out silently once teardownSession() has
+    // already bumped the epoch out from under it.
+    const { runtime, onStatus } = makeRuntime();
+    (checkWebGPU as unknown as Mock).mockResolvedValue({ available: true });
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockResolvedValue({});
+
+    // en (edge-punct-en) is already fully resident ('ready') on the webgpu
+    // worker.
+    const worker1 = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
+    expect(createPunctuationWorker).toHaveBeenLastCalledWith('webgpu');
+
+    // zh (fireredpunc) starts loading on the same worker, but its load has
+    // not settled yet.
+    const pZh = runtime.punctuate('zh', '你好');
+    await waitForMessageAt(worker1, 'load', 2);
+    await vi.waitFor(() => expect(onStatus).toHaveBeenCalledWith('fireredpunc', 'loading'));
+
+    // ja (sat-3l-sm) load fails on webgpu -> fallback to wasm.
+    const pJa = runtime.punctuate('ja', 'hello');
+    const jaLoadMsg = await waitForMessageAt(worker1, 'load', 3);
+    worker1.emit({ type: 'error', id: jaLoadMsg.id, error: 'no webgpu adapter' });
+
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(2));
+    expect(createPunctuationWorker).toHaveBeenLastCalledWith('wasm');
+    const worker2 = MockWorker.last();
+
+    // Both the ready model and the loading model must be reset so they can
+    // reload on the replacement worker, instead of one staying 'ready' with
+    // a dead adapter and the other stuck 'loading' forever.
+    await vi.waitFor(() => {
+      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'downloaded', expect.any(String));
+      expect(onStatus).toHaveBeenCalledWith('fireredpunc', 'downloaded', expect.any(String));
+    });
+
+    // ja reloads on the wasm worker as before.
+    const jaLoadMsg2 = await waitForMessageAt(worker2, 'load', 1);
+    worker2.emit({ type: 'loaded', id: jaLoadMsg2.id, model: 'sat-3l-sm', loadTimeMs: 800, device: 'wasm' });
+    await expect(pJa).resolves.toBeNull();
+    await expect(pZh).resolves.toBeNull(); // zh's original call: fire-and-forget, still resolves null
+
+    // en and zh must both actually be reloadable now -- not stuck refused
+    // forever the way a stale 'ready' or 'loading' status would have left
+    // them (prepareModel refuses to touch either). Each of these calls only
+    // kicks off the reload and resolves null itself (prepareModel returns
+    // false while the model is loading); a separate call once each model is
+    // 'ready' is what actually reaches runInference().
+    await expect(runtime.punctuate('en', 'hi again')).resolves.toBeNull();
+    const enLoadMsg2 = await waitForMessageAt(worker2, 'load', 2);
+    expect(enLoadMsg2.model).toBe('edge-punct-en');
+    worker2.emit({ type: 'loaded', id: enLoadMsg2.id, model: 'edge-punct-en', loadTimeMs: 9, device: 'wasm' });
+    await vi.waitFor(() => expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'ready'));
+
+    await expect(runtime.punctuate('zh', '你好吗')).resolves.toBeNull();
+    const zhLoadMsg2 = await waitForMessageAt(worker2, 'load', 3);
+    expect(zhLoadMsg2.model).toBe('fireredpunc');
+    worker2.emit({ type: 'loaded', id: zhLoadMsg2.id, model: 'fireredpunc', loadTimeMs: 12, device: 'wasm' });
+    await vi.waitFor(() => expect(onStatus).toHaveBeenCalledWith('fireredpunc', 'ready'));
+
+    const runEn = runtime.punctuate('en', 'hi once more');
+    const runZh = runtime.punctuate('zh', '你好吗再一次');
+    const runEnMsg = await waitForMessageAt(worker2, 'run', 1);
+    const runZhMsg = await waitForMessageAt(worker2, 'run', 2);
+    const enResult = fakeResult('edge-punct-en', 'hi once more.');
+    const zhResult = fakeResult('fireredpunc', '你好吗再一次?');
+    worker2.emit({ type: 'result', id: runEnMsg.id, result: enResult, inferenceMs: 3 });
+    worker2.emit({ type: 'result', id: runZhMsg.id, result: zhResult, inferenceMs: 4 });
+    await expect(runEn).resolves.toEqual(enResult);
+    await expect(runZh).resolves.toEqual(zhResult);
+  });
+
+
   it('a call that exceeds 3 s resolves null', async () => {
     const { runtime, onStatus } = makeRuntime();
     const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
