@@ -353,7 +353,9 @@ unpunctuated or comma-only in its spike and GUI logs.
   - an x64 laptop iGPU (Intel/AMD WebGPU);
   - Apple M-series (has `shader-f16`, so fp16 becomes an option);
   - a machine without WebGPU (WASM-only budget).
-- **Renderer memory of WebGPU sessions (1.1–1.9 GB):** can it be released after upload?
+- ~~**Renderer memory of WebGPU sessions (1.1–1.9 GB):** can it be released after upload?~~
+  Answered in "Renderer memory of WebGPU sessions (task 12)" below: no, not by either candidate
+  fix — it is close to a permanent per-renderer floor.
 - **Chinese translation trigger:** sentence-end recall is ≤ 60% for every model, so the trigger rule
   (breakpoints + length) needs its own test on real sessions.
 - **Coverage gaps:**
@@ -382,3 +384,202 @@ node tools/summarize.mjs
 ```
 Model files live under `~/.cache/sokuji-punct-bench/` and the HF cache; each `models/<id>.md` has the
 download/export steps.
+
+## Renderer memory of WebGPU sessions (task 12)
+
+Date: 2026-09-16. Answers the open question above: can the 1.1–1.9 GB a WebGPU session holds be
+released? Same box as the rest of this note (DGX Spark GB10, aarch64, Vulkan) and the same
+Electron build (40.8.5, Chrome 144.0.7559.236), so these numbers are directly comparable to the
+"Renderer cost" table. `app.getGPUInfo('basic')` reported an active device with `vendorId 4318`
+(NVIDIA) on every run, confirming WebGPU ran on the real GB10 GPU, not a software fallback.
+
+**Inherits task 11.** Only `tools/electron-bench.cjs` + `www/bench.mjs` exist to drive this —
+they load the benchmark ports (`models/fireredpunc-q8w.mjs`, `models/edge-punct-en.mjs`,
+`models/sat-3l-sm-q8w-gather.mjs`), not the shipped TypeScript worker entries, which are not
+loadable assets before a vite build and are wired to no session yet (slice 1). Task 11
+(`benchmark/punctuation-restoration/app-parity.test.ts`) established that these same three ports
+reproduce the shipped adapters' scored F1 figures within 0.0005, which is what licenses reading
+this measurement as standing in for the shipped code.
+
+**Method:** `node tools/serve.mjs --port 8787` in the background, then
+`node_modules/electron/dist/electron --no-sandbox tools/electron-bench.cjs
+'http://127.0.0.1:8787/?model=<id>&ep=<ep>&threads=1'` (`--no-sandbox` was required — the
+downloaded Electron's `chrome-sandbox` helper isn't setuid-root in this checkout; the app's own
+packaged builds don't need it). `bench.mjs` emits four `STATUS` marks used below: `ready` (ort +
+tokenizer + model module imported, no session yet — **idle**), `loaded` (`InferenceSession.create`
+resolved — **after load**), `ran` (the full latency loop across every language/length finished,
+**before** `model.release()` — **after the call loop**), `done` (after `model.release()` has
+already run — **after unload**). `sat-3l-sm-q8w-gather` needed `&bundle=ort.wasm.min.mjs` for the
+WASM lane: the default WebGPU bundle's WASM EP has no `GatherBlockQuantized` kernel (same finding
+as the main table). One run per cell (n=1); see "How noisy" below for the error bar this implies.
+
+### Baseline: idle / load / call loop / unload
+
+Renderer and GPU-process working set (`app.getAppMetrics()`), MB (KB ÷ 1024):
+
+| model | EP | idle | after load | after call loop | after unload | peak (200 ms sampler) |
+|---|---|---|---|---|---|---|
+| FireRedPunc q8w | WASM | 96.2 / — | 833.5 / 190.0 | 777.6 / 189.5 | 777.8 / 189.5 | 1,027.1 / 190.1 |
+| FireRedPunc q8w | **WebGPU** | 96.3 / — | 1,070.6 / 360.3 | 766.7 / 366.4 | 767.1 / 366.5 | 1,095.3 / 366.2 |
+| Edge-Punct-en | WASM | 96.1 / — | 370.4 / 190.0 | 284.1 / 190.0 | 283.2 / 190.0 | 377.0 / 190.0 |
+| Edge-Punct-en | **WebGPU** | 96.2 / — | 334.2 / 214.3 | 234.9 / 241.0 | 235.2 / 241.1 | 401.3 / 241.8 |
+| SaT q8w-gather | WASM (`ort.wasm` bundle) | 97.3 / — | 1,240.4 / 190.0 | 1,225.2 / 190.1 | 1,226.1 / 190.1 | 1,293.2 / 190.1 |
+| SaT q8w-gather | **WebGPU** | 97.6 / — | 1,569.4 / 250.4 | 1,521.1 / 499.3 | 1,521.2 / 499.5 | 1,617.8 / 499.4 |
+
+(cell format: renderer MB / GPU-process MB. The GPU process sits at its ~190 MB pre-session
+baseline in every row at the idle mark, since no session — WASM or WebGPU — has been created yet;
+"—" in the idle column just avoids repeating that same number six times. WASM rows never diverge
+from it, which is why their later columns still read ~190.) These "after load" figures land
+within about 3% of the main table's (1,102 / 1,582 MB for FireRedPunc/SaT WebGPU there), so the
+two harnesses agree.
+
+**The first, unexpected finding: most of the "after load" growth already drains away once the
+model actually runs, with no code change.** FireRedPunc WebGPU drops 1,070.6 → 766.7 MB (-28%,
+-304 MB) between "after load" and "after the call loop"; SaT WASM barely moves (-1.2%); the drop
+happens on WASM too (FireRedPunc WASM -6.9%, Edge-Punct WASM -23%), so it isn't WebGPU-specific.
+This is ordinary V8 GC catching up with an already-unreferenced model byte buffer, not anything
+`model.release()` did — release() runs later, only between "after the call loop" and "after
+unload" in this table.
+
+### Candidate fix 1: drop the reference to the model `Uint8Array` right after `InferenceSession.create` resolves
+
+In all three modules, the local variable holding the model bytes (`modelBytes` in
+`fireredpunc.mjs`'s `createFireRedPunc` and in `edge-punct-en.mjs`'s `create`; the temporary in
+`sat-3l-sm.mjs`'s `create`, which already has no named binding) is never referenced by any closure
+the module returns, so it is already dead code after the `InferenceSession.create` line — with or
+without an explicit `= null`. Patched all three (temporarily, not committed — reverted before this
+commit) to null it explicitly right after the session resolves, and re-ran all six baseline cells:
+
+| model | EP | after load Δ | after unload Δ |
+|---|---|---|---|
+| FireRedPunc q8w | WASM | +4.9% (874.6 vs 833.5) | -0.1% (776.7 vs 777.8) |
+| FireRedPunc q8w | WebGPU | -0.6% (1,064.2 vs 1,070.6) | -0.9% (759.8 vs 767.1) |
+| Edge-Punct-en | WASM | -17.3% (306.1 vs 370.4) | -0.1% (283.1 vs 283.2) |
+| Edge-Punct-en | WebGPU | -5.4% (316.3 vs 334.2) | +0.1% (235.5 vs 235.2) |
+| SaT q8w-gather | WASM | -0.6% (1,233.4 vs 1,240.4) | +0.1% (1,227.1 vs 1,226.1) |
+| SaT q8w-gather | WebGPU | -0.2% (1,566.1 vs 1,569.4) | -0.02% (1,520.9 vs 1,521.2) |
+
+**No effect at "after unload"** — every delta there is under 1%, and the signs are inconsistent
+(sometimes higher, sometimes lower than baseline), which is what run-to-run GC-timing noise looks
+like, not a real change. The one double-digit swing (Edge-Punct-en WASM "after load" -17.3%) is at
+the mark where GC hasn't caught up yet in either version — see "how noisy" below — and washes out
+by "after unload" like everything else. Explicitly dropping the reference does not make the model
+bytes any more collectible than they already were; the object was already unreachable, not merely
+unreferenced-but-reachable.
+
+### Candidate fix 2: call the session's release path on unload
+
+`bench.mjs` already calls `await model.release?.()` before the `done` mark — this candidate was
+already exercised in every baseline row above. Its effect is exactly the "after call loop" →
+"after unload" column:
+
+| model | EP | Δ from release() |
+|---|---|---|
+| FireRedPunc q8w | WASM | +0.2 MB |
+| FireRedPunc q8w | WebGPU | +0.4 MB |
+| Edge-Punct-en | WASM | -0.9 MB |
+| Edge-Punct-en | WebGPU | +0.3 MB |
+| SaT q8w-gather | WASM | +0.9 MB |
+| SaT q8w-gather | WebGPU | +0.1 MB |
+
+**`session.release()` recovers approximately 0 MB in every case**, WASM or WebGPU. It tears down
+the ORT session object enough that a new session can be created, but it does not shrink the
+process's resident working set.
+
+### An additional check, not a candidate: forced GC (diagnostic only — not shippable)
+
+Neither candidate touches memory, which raises the question of whether the leftover is simply
+uncollected garbage (a GC-timing artifact, like the "after load → after call loop" drop above) or
+genuinely retained (WASM linear memory / GPU buffers a GC pass cannot shrink). Chromium doesn't
+expose `--js-flags=--expose-gc` in a packaged app, so this only works as a diagnostic, not a fix —
+but it's diagnostic of exactly which one we're looking at. Patched `electron-bench.cjs` to add
+`--js-flags=--expose-gc` and `bench.mjs` to call `globalThis.gc()` three times (200 ms apart) after
+`release()` (temporarily, not committed — reverted before this commit), WebGPU only:
+
+| model | released → after 3× forced GC (renderer) | GPU process |
+|---|---|---|
+| FireRedPunc q8w | 783.9 → 772.1 MB (-1.5%) | 382.3 → 354.3 MB (-7.3%) |
+| SaT q8w-gather | 1,519.9 → 1,223.6 MB (**-19.5%**) | 499.1 → 464.0 MB (-7.0%) |
+
+Forced GC recovers a little for FireRedPunc (a genuinely small, mostly-committed float32/int8
+graph) and a lot more for SaT (-296 MB, one-fifth of its footprint) — so part of what looked
+"stuck" was in fact ordinary uncollected garbage that a GC pass this renderer never happened to run
+before the page closed. But even after three forced GC passes, **FireRedPunc is still 676 MB above
+idle and SaT is still 1,126 MB above idle** — the majority in both cases is not GC-collectible at
+all. That remainder is consistent with WASM linear memory (`memory.grow()` is monotonic — the
+browser does not shrink it back once grown) and/or pooled WebGPU buffers ORT does not eagerly
+destroy.
+
+### Sequential-load check: does a released session's memory become available to the next one?
+
+The three-model core selection means a renderer can load more than one of these models over its
+life (a session with FireRedPunc for zh switches to SaT if the source language changes to ja).
+Built a throwaway two-model driver (`www/bench-seq.mjs` + `www/index-seq.html`, not committed —
+deleted after this run) that loads FireRedPunc q8w on WebGPU, runs it, releases it, *then* loads
+SaT q8w-gather on WebGPU, runs it, and releases it — mirroring exactly what `bench.mjs` already
+does, just twice in one page instead of once:
+
+| mark | renderer MB | GPU MB |
+|---|---|---|
+| idle | 95.0 | — |
+| loaded FireRedPunc | 1,073.9 | 378.2 |
+| released FireRedPunc | 1,062.6 | 328.1 |
+| loaded SaT (on top of the released FireRedPunc session) | 1,958.5 | 320.1 |
+| released SaT / done | 1,953.1 | 509.8 |
+
+**Loading and releasing FireRedPunc first leaves the renderer 432 MB heavier than loading SaT
+alone** (1,953.1 MB here vs. 1,521.2 MB for SaT by itself in the baseline table) — roughly 45% of
+FireRedPunc's own 671 MB "extra-over-idle" persists and stacks on top of whatever the renderer
+loads next, even though FireRedPunc's own session was already released before SaT was created.
+It is not *fully* additive, though: SaT's marginal cost here (896 MB, from 1,062.6 → 1,958.5 MB) is
+less than SaT's from-cold cost alone (1,472 MB), and the two-model total (1,953 MB) is 335 MB below
+the naive sum of both models' independent "done" numbers (767.1 + 1,521.2 = 2,288.3 MB) — some
+underlying WASM/GPU capacity is being reused across sessions, just not released back to the OS.
+
+### How noisy
+
+n=1 per cell; no repeated-run standard deviation was collected (time budget). The candidate-fix
+tables above double as an informal repeat measurement, though, since fix 1 makes no code-observable
+change at the marks that matter: comparing baseline vs. fix-1 for the *same* model/EP/mark, at
+"after unload" every delta is under 1.5% (max magnitude 6.9 MB), and at "after load" the spread is
+wider (up to 17% for Edge-Punct-en WASM, the smallest model, where GC-timing variance is a larger
+fraction of a smaller number). Treat single-digit percent differences anywhere in these tables as
+noise; the ≥19% GC recovery for SaT and the 432 MB sequential-load tax are well outside that band.
+
+### Verdict
+
+**The memory is not recoverable within the renderer's lifetime, by either candidate fix.** Dropping
+the model `Uint8Array` reference changes nothing because it was already unreferenced. Calling
+`session.release()` — which the harness already does on every run — recovers ~0 MB. Forced GC (not
+available in a packaged app) recovers a real but partial amount for one model (SaT, -19.5%) and
+almost nothing for another (FireRedPunc, -1.5%); the majority survives even that. And a model that
+has been loaded and released once still taxes a renderer that later loads a *different* model, by
+several hundred MB. The 1.1–1.9 GB figure isn't a transient spike this app can wait out or nudge
+with a release call — it's close to a permanent floor for any renderer that has ever created a
+WebGPU (or, per the WASM columns above, even a WASM) punctuation session, and that floor is
+per-distinct-model-ever-loaded, not per-currently-loaded-model.
+
+**Consequences for slice 2, stated explicitly:**
+
+1. **Idle unload has to be more aggressive than the current 2-minute constant, but it will not by
+   itself fix this.** A shorter timeout calls `release()` sooner, which is still worth doing (it
+   stops the session from being usable/holding whatever *does* get GC'd hostage a little longer,
+   and the "after load → after call loop" drop shows GC does eventually reclaim something on its
+   own schedule) — but `release()` itself, measured above, recovers ~0 MB immediately. Shortening
+   the timeout narrows the window during which an idle model's cost is paid; it does not lower the
+   cost.
+2. **The `deviceMemory ≤ 4 GB` guard may need to rise, and needs to change what it's guarding
+   against.** It was presumably sized against "one model's peak footprint" (up to ~1.6 GB for SaT
+   WebGPU here). The sequential-load result shows the real risk is cumulative: a session that
+   switches source or target language mid-call and therefore loads a second or third distinct
+   model pays close to the sum of their footprints minus partial sharing (here, 1.95 GB for two of
+   the three shipped models; all three, worst case, likely approaches 2.5–3 GB), not the max of any
+   one. On a 4 GB device that leaves very little headroom for the rest of the app after even two
+   language switches in one session. The guard should be evaluated against "every distinct model
+   this renderer has ever loaded," not "the model currently active," or slice 2/3 should cap how
+   many distinct punctuation models a single renderer lifetime may load before requiring a
+   window/renderer restart to reclaim the floor.
+3. **This is now answered, not open:** "Renderer memory of WebGPU sessions (1.1–1.9 GB): can it be
+   released after upload?" → No — not via dropping the byte-array reference, not via
+   `session.release()`, and only partially (0–20%, model-dependent) via a forced GC pass that a
+   packaged Electron app cannot even invoke on demand.
