@@ -1901,7 +1901,7 @@ installPunctuationWorker({
 });
 ```
 
-**The trap in this file:** `shaderF16Gate.consistency.test.ts` makes any `*.worker.ts` in this directory a candidate when its lowercased source contains the substring `webgpu` **and** it matches `/InferenceSession\.create\(/`. The `InferenceSession.create(` call lives in the adapters, not here, so as written this file is not a candidate — but the word "WebGPU" must not appear in it either, or a later edit that adds a `create(` call would silently enrol it. The doc comment above deliberately says "GPU", not "WebGPU". If a future edit needs the word, add an `EXEMPT` row in that test with an executable `stillHolds` predicate, copying the `zoom-vad.worker.ts` row.
+**The trap in this file:** `shaderF16Gate.consistency.test.ts` makes any `*.worker.ts` in this directory a candidate when its lowercased source contains the substring `webgpu` **and** it matches `LOADS_A_MODEL`, which is the full alternation `/from_pretrained\(|pipeline as any\)\(|await pipeline\(|InferenceSession\.create\(/` — four markers, not just the session call. None of the four appears in either entry, because the `InferenceSession.create(` calls live in the adapters, so as written this file is not a candidate — but the word "WebGPU" must not appear in it either, or a later edit that adds a `create(` call would silently enrol it. The doc comment above deliberately says "GPU", not "WebGPU". If a future edit needs the word, add an `EXEMPT` row in that test with an executable `stillHolds` predicate, copying the `zoom-vad.worker.ts` row.
 
 - [ ] **Step 3: Write the worker factory**
 
