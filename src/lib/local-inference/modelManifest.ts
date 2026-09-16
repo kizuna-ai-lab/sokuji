@@ -3335,7 +3335,13 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     id: 'punct-zh-fireredpunc',
     type: 'punctuation',
     name: 'FireRedPunc (Chinese)',
-    languages: ['zh', 'yue'],
+    // 'cantonese', not 'yue': ModelManifestEntry.languages uses the app's own
+    // settings vocabulary from src/utils/languages.ts, which has no 'yue' key,
+    // and modelManifest.qwen3Asr.test.ts pins that rule for a sibling entry in
+    // this same array. Every generic consumer — getAsrModelsForLanguage,
+    // ModelManagementSection's `m.languages.includes(...)`, and the
+    // LanguageTags renderer — compares or displays against that vocabulary.
+    languages: ['zh', 'cantonese'],
     hfModelId: 'jiangzhuo9357/fireredpunc-onnx',
     hfRevision: 'TODO-COMMIT-SHA',
     variants: {
