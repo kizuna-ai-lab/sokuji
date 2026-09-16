@@ -378,6 +378,7 @@ export class PunctuationRuntime implements SegmentationRuntime {
     if (state.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
       state.status = 'disabled';
       this.opts.onStatus?.(model, 'disabled', 'too many failures');
+      this.releaseModel(model);
     } else {
       state.status = fallbackStatus;
     }
@@ -393,6 +394,7 @@ export class PunctuationRuntime implements SegmentationRuntime {
     ) {
       state.status = 'disabled';
       this.opts.onStatus?.(model, 'disabled', 'too slow');
+      this.releaseModel(model);
     }
   }
 
@@ -533,13 +535,30 @@ export class PunctuationRuntime implements SegmentationRuntime {
   private idleUnload(model: PunctuationModelId): void {
     const state = this.models[model];
     state.idleTimer = null;
+    if (state.status !== 'ready' || !this.session) return;
+
+    state.status = 'downloaded';
+    this.opts.onStatus?.(model, 'downloaded', 'idle unload');
+    this.releaseModel(model);
+  }
+
+  /** Posts `unload` for a model no longer in use, and tears the whole shared
+   *  worker down too if nothing else needs it. The caller sets `state.status`
+   *  to its post-release value BEFORE calling this, so the "is anything else
+   *  still held" check below naturally excludes `model` itself.
+   *
+   *  Shared by the idle-unload timer (status becomes 'downloaded', so a later
+   *  punctuate() call can reload it) and a model that just got disabled by
+   *  recordFailure()/recordLatency() (status stays 'disabled' -- it is
+   *  rule-only for the rest of the session -- but the adapter it holds, 0.25-
+   *  1.5 GB per Task 12's measurements, must not stay resident anyway: it is
+   *  never coming back into use). */
+  private releaseModel(model: PunctuationModelId): void {
     const session = this.session;
-    if (state.status !== 'ready' || !session) return;
+    if (!session) return;
 
     const unloadMessage: PunctuationUnloadMessage = { type: 'unload', id: this.nextId(), model };
     session.post(unloadMessage);
-    state.status = 'downloaded';
-    this.opts.onStatus?.(model, 'downloaded', 'idle unload');
 
     const stillHeld = MODEL_KEYS.some(
       (m) => this.models[m].status === 'ready' || this.models[m].status === 'loading',

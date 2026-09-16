@@ -476,6 +476,30 @@ describe('PunctuationRuntime', () => {
   });
 
 
+  it('a model disabled by repeated failures is unloaded, and the worker terminates once it holds none', async () => {
+    // Regression: recordFailure()/recordLatency() set status = 'disabled'
+    // while the adapter stayed resident in the worker. idleUnload() only ever
+    // acts on status === 'ready', so it never fired for a disabled model --
+    // the ~0.25-1.5 GB adapter (Task 12's measurement) stayed loaded for the
+    // rest of the session even though nothing will ever use it again.
+    const { runtime, onStatus } = makeRuntime();
+    const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
+
+    for (let i = 1; i <= 3; i++) {
+      const p = runtime.punctuate('en', `try ${i}`);
+      const msg = await waitForMessageAt(worker, 'run', i);
+      worker.emit({ type: 'error', id: msg.id, error: 'boom' });
+      await expect(p).resolves.toBeNull();
+    }
+
+    expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'disabled', expect.any(String));
+    expect(worker.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'unload', model: 'edge-punct-en' }),
+    );
+    expect(worker.terminate).toHaveBeenCalledTimes(1); // the only model held -> worker torn down
+  });
+
+
   it('a call that exceeds 3 s resolves null', async () => {
     const { runtime, onStatus } = makeRuntime();
     const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
