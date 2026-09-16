@@ -2398,49 +2398,126 @@ git commit -m "feat(segmentation): add PunctuationRuntime over one lazily create
 The shipped adapters must reproduce the measured numbers, or a port bug would ship silently. The benchmark harness already scores everything; this task teaches it to load the production code.
 
 **Files:**
-- Create: `benchmark/punctuation-restoration/models/app-adapters.mjs`
 - Create: `benchmark/punctuation-restoration/app-parity.test.ts`
 
-- [ ] **Step 1: Write the harness shim**
+**Interfaces:**
+- Consumes: `createFireRedPuncAdapter()` from `src/lib/local-inference/workers/_shared/punctuation-fireredpunc.ts`, `createEdgePunctEnAdapter()` from `…/punctuation-edge-punct-en.ts`, `createSatAdapter()` from `…/punctuation-sat.ts` — each returns a `PunctuationAdapter` with `load(deps)`, `run(text)`, `release()`.
+- Consumes: `ort`, `Tokenizer`, `fileReader(dir)` from `benchmark/punctuation-restoration/lib/node-env.mjs`; `loadCorpus`, `makeInput`, `hypothesisFor`, `scoreInto`, `newCounts`, `summarize` from `benchmark/punctuation-restoration/lib/text.mjs`.
+- Produces: nothing other tasks consume.
 
-`benchmark/punctuation-restoration/models/app-adapters.mjs` exposes the three shipped adapters through the harness's `{ info, create(deps) }` contract, so `eval-quality.mjs --models app-fireredpunc,app-edge-punct-en,app-sat` scores them with exactly the same code that scored the ports. The harness calls `mod.create({ ort, Tokenizer, readFile, executionProviders })` and then `model.punctuate(input, lang)`; the shim adapts `PunctuationAdapter.run()` to that, returning `result.text` for the two punct models and, for SaT, the text with `'\n'` at each boundary so `hypothesisFor` scores it as `output: 'boundary'`.
+**Why this is a vitest file and not a harness shim.** `tools/electron-bench.cjs` and `eval-quality.mjs` are plain ESM run under bare `node`, and `lib/node-env.mjs`'s `loadModel` resolves `models/<id>.mjs` per `--models` id. The shipped adapters are TypeScript, which bare `node` cannot load, and one shim file cannot serve three ids. So the test imports the shipped adapters and the harness's own scoring functions directly and replays the offline loop itself — same corpus, same scoring code, no new module-resolution surface. Verified: vitest imports `lib/node-env.mjs` cleanly from a TypeScript test despite its top-level `await import()` of an absolute path.
 
-- [ ] **Step 2: Write the vitest entry that skips without cached models**
+**Score all three as `output: 'punct'`.** The shipped SaT adapter inserts real terminal marks (`markBoundaries` appends the terminal to `text` before recording the offset), so `hypothesisFor` recovers sentence-end positions from the marks exactly as it does for the two punctuation models. No `'\n'`-joined boundary form is needed.
 
-`benchmark/**` is **not** in `vitest.config.ts`'s exclude list, so a test file there runs in CI. It must therefore skip itself cleanly:
+**The parity targets.** `results/summary.md` section 1 is sentence-boundary F1 (`summarize().boundary.f`) and section 2 is breakpoint F1 (`summarize().breakpoint.f`). The rows that matter are the quantised ones, because those are the weights the manifest ships:
+
+| adapter | lang | field | expected | source |
+|---|---|---|---|---|
+| FireRedPunc | zh | `breakpoint.f` | 0.915 | `results/summary.md:29`, row `fireredpunc-q8w` |
+| Edge-Punct | en | `breakpoint.f` | 0.923 | `results/summary.md`, breakpoint section, row `edge-punct-en` |
+| SaT | ja | `boundary.f` | 0.941 | `results/summary.md`, boundary section, row `sat-3l-sm-q8w-gather` |
+| SaT | ko | `boundary.f` | 0.909 | same row |
+| SaT | ru | `boundary.f` | 0.966 | `results/summary-russian.md:9`, row `sat-3l-sm` |
+
+Do not point the FireRedPunc adapter at the plain `fireredpunc` row: it scores zh boundary **2.8**, and the failure would look like a port bug rather than a wrong file. `makeInput(ref, 'stripped')` removes the marks and keeps the case — the variant every figure above was measured on. `loadCorpus` reads every `*.gold.json`, so Russian arrives in the same sweep; the corpus is zh 34, ja 24, en 23, ko 20, and de/es/fr/pt/ru 10 each.
+
+Model files are already cached, each directory holding exactly the filenames its manifest entry lists:
+
+- `~/.cache/sokuji-punct-bench/fireredpunc-onnx` — `punc.q8w.onnx`, `tokenizer.json`, `out_dict`
+- `~/.cache/sokuji-punct-bench/sherpa/sherpa-onnx-online-punct-en-2024-08-06` — `model.int8.onnx`, `bpe.vocab`
+- `~/.cache/sokuji-punct-bench/sat/sat-3l-sm-q8w-gather` — `model.onnx`, `tokenizer.json`
+
+- [ ] **Step 1: Write the test, and watch it fail**
+
+`benchmark/**` is **not** in `vitest.config.ts`'s exclude list, so this file runs in CI, where none of those directories exist — it must skip itself cleanly. It also needs the node environment: the default is jsdom and the ORT build here is the node one.
 
 ```typescript
-import { describe, it, expect } from 'vitest';
+// @vitest-environment node
+import { describe, it, expect, beforeAll } from 'vitest';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+// This file is ESM under the node environment, so there is no `__dirname`;
+// resolve the corpus against the module URL instead.
+import { fileURLToPath } from 'node:url';
 
 const CACHE = join(homedir(), '.cache', 'sokuji-punct-bench');
-const haveModels = existsSync(join(CACHE, 'fireredpunc-onnx', 'punc.q8w.onnx'));
+const DIRS = {
+  fireredpunc: join(CACHE, 'fireredpunc-onnx'),
+  edge: join(CACHE, 'sherpa', 'sherpa-onnx-online-punct-en-2024-08-06'),
+  sat: join(CACHE, 'sat', 'sat-3l-sm-q8w-gather'),
+};
+const haveModels = Object.values(DIRS).every((d) => existsSync(d));
 
-describe.skipIf(!haveModels)('shipped punctuation adapters reproduce the benchmark', () => {
-  it('matches the measured breakpoint F1 within 0.5 points', async () => {
-    // Runs eval-quality.mjs against models/app-adapters.mjs and compares with
-    // the numbers in docs/superpowers/notes/2026-09-14-asr-punctuation-benchmark.md:
-    //   zh FireRedPunc breakpoint F1 91.5
-    //   en Edge-Punct breakpoint F1 92.3
-    //   ja SaT sentence-end F1 94.1, ko 90.9, ru 96.6
-    expect(true).toBe(true);
-  }, 600_000);
+// Each row: which adapter, which language, which summarize() field, the
+// measured value. Sources are in the table above; 0.5 points of tolerance.
+const TARGETS = [
+  { adapter: 'fireredpunc', lang: 'zh', field: 'breakpoint', expected: 0.915 },
+  { adapter: 'edge',        lang: 'en', field: 'breakpoint', expected: 0.923 },
+  { adapter: 'sat',         lang: 'ja', field: 'boundary',   expected: 0.941 },
+  { adapter: 'sat',         lang: 'ko', field: 'boundary',   expected: 0.909 },
+  { adapter: 'sat',         lang: 'ru', field: 'boundary',   expected: 0.966 },
+] as const;
+
+describe.skipIf(!haveModels)('the shipped adapters reproduce the benchmark', () => {
+  const scores: Record<string, { boundary: number; breakpoint: number }> = {};
+
+  beforeAll(async () => {
+    const { ort, fileReader } = await import('./lib/node-env.mjs');
+    const { loadCorpus, makeInput, hypothesisFor, scoreInto, newCounts, summarize } =
+      await import('./lib/text.mjs');
+    const { createFireRedPuncAdapter } =
+      await import('../../src/lib/local-inference/workers/_shared/punctuation-fireredpunc');
+    const { createEdgePunctEnAdapter } =
+      await import('../../src/lib/local-inference/workers/_shared/punctuation-edge-punct-en');
+    const { createSatAdapter } =
+      await import('../../src/lib/local-inference/workers/_shared/punctuation-sat');
+
+    const items = await loadCorpus(fileURLToPath(new URL('./corpus', import.meta.url)));
+    const make = { fireredpunc: createFireRedPuncAdapter, edge: createEdgePunctEnAdapter, sat: createSatAdapter };
+
+    for (const [name, langs] of [['fireredpunc', ['zh']], ['edge', ['en']], ['sat', ['ja', 'ko', 'ru']]] as const) {
+      const adapter = make[name]();
+      await adapter.load({
+        InferenceSession: ort.InferenceSession,
+        Tensor: ort.Tensor,
+        readFile: fileReader(DIRS[name]),
+        executionProviders: ['wasm'],
+      });
+      for (const lang of langs) {
+        const counts = newCounts();
+        for (const it of items.filter((i: { lang: string }) => i.lang === lang)) {
+          const input = makeInput(it.ref, 'stripped');
+          const out = await adapter.run(input);
+          const { hyp } = hypothesisFor({ output: 'punct' }, out.text);
+          scoreInto(counts, it.ref, hyp);
+        }
+        const s = summarize(counts);
+        scores[`${name}/${lang}`] = { boundary: s.boundary.f, breakpoint: s.breakpoint.f };
+      }
+      await adapter.release();
+    }
+  }, 900_000);
+
+  it.each(TARGETS)('$adapter on $lang matches the measured $field F1', ({ adapter, lang, field, expected }) => {
+    expect(scores[`${adapter}/${lang}`][field]).toBeCloseTo(expected, 2);
+  });
 });
 ```
 
-Fill the body in with the real comparison; the `describe.skipIf` guard and the 10-minute timeout are what make it safe in CI.
+`toBeCloseTo(x, 2)` accepts a difference below 0.005 — half a point on the percentage scale the tables use.
 
-- [ ] **Step 3: Run it locally with the models present**
+- [ ] **Step 2: Run it with the models present**
 
 Run: `npm run test -- benchmark/punctuation-restoration/app-parity.test.ts`
-Expected: PASS locally. On a machine without `~/.cache/sokuji-punct-bench/`, expect SKIPPED.
+Expected: 5 passing. On a machine without `~/.cache/sokuji-punct-bench/`, expected SKIPPED. (This vitest has no `basic` reporter; `--reporter=basic` fails at startup. Use the default.)
 
-- [ ] **Step 4: Commit**
+If a row misses by more than half a point, that is a real port regression: report the measured value against the expected one. Do not widen the tolerance, do not switch to the other `summarize()` field to make it fit, and do not drop a language from the table.
+
+- [ ] **Step 3: Commit**
 
 ```bash
-git add benchmark/punctuation-restoration/models/app-adapters.mjs benchmark/punctuation-restoration/app-parity.test.ts
+git add benchmark/punctuation-restoration/app-parity.test.ts
 git commit -m "test(segmentation): score the shipped adapters on the benchmark corpus"
 ```
 
@@ -2454,11 +2531,20 @@ The spec calls this out as a must-measure-before-shipping: WebGPU sessions kept 
 
 - [ ] **Step 1: Measure**
 
-Use `benchmark/punctuation-restoration/tools/electron-bench.cjs`, which already mirrors the app's GPU switches (`enable-unsafe-webgpu`, `enable-features=Vulkan,SharedArrayBuffer`) and reads `app.getAppMetrics()`. Load each model through the **shipped** worker entries (not the benchmark ports) and record renderer and GPU-process working set: idle, after load, after 50 calls, after unload.
+Use `benchmark/punctuation-restoration/tools/electron-bench.cjs`, which already mirrors the app's GPU switches (`enable-unsafe-webgpu`, `enable-features=Vulkan,SharedArrayBuffer`) and reads `app.getAppMetrics()`. Start `node tools/serve.mjs`, then run the driver once per model and EP:
+
+```bash
+<sokuji>/node_modules/electron/dist/electron tools/electron-bench.cjs \
+  'http://127.0.0.1:8787/?model=fireredpunc-q8w&ep=webgpu&threads=1'
+```
+
+Measure the three modules carrying the **shipped** weights — `fireredpunc-q8w`, `edge-punct-en`, `sat-3l-sm-q8w-gather` — on `ep=wasm` and `ep=webgpu`, recording `rendererKB` and `gpuKB` at each `STATUS` mark the page emits plus the sampler's `peak`: idle, after load, after the call loop, after unload.
+
+Measure the benchmark ports, not the shipped worker entries. `electron-bench.cjs` loads no modules — it opens a BrowserWindow on a URL served by `tools/serve.mjs`, a static server that applies no TypeScript transform, and `www/bench.mjs` resolves `?model=<id>` to `/models/<id>.mjs`. The shipped entries are TypeScript assembled by vite and only exist as loadable assets after a build, and slice 1 wires the runtime to no session, so there is no app path to measure yet. These three modules run the same ONNX graphs the adapters run — which is exactly what Task 11 establishes — so run Task 11 first and note in the write-up that this measurement inherits its result.
 
 - [ ] **Step 2: Try the two candidate fixes**
 
-Release the model bytes after `InferenceSession.create` returns, and try ORT's arena settings. Record whether either recovers the 1.1–1.9 GB.
+Drop the reference to the model `Uint8Array` as soon as `InferenceSession.create` resolves, and re-measure. Call the session's release path on unload, and re-measure. Record whether either recovers the 1.1–1.9 GB. If you try a third ORT knob, name it in the notes with its measured effect — do not record an untried setting as a candidate.
 
 - [ ] **Step 3: Record the answer**
 
@@ -2475,7 +2561,12 @@ git commit -m "docs(segmentation): measure renderer memory for the shipped worke
 
 ## Done when
 
-- `npm run test` is green and `npx tsc --noEmit` is clean.
+- `npm run test` is green apart from the three `hfRevision` assertions in
+  `modelManifest.punctuation.test.ts`, which fail by design until the three
+  Hugging Face repos are uploaded — an outward action needing jiangzhuo's
+  explicit per-repository confirmation, not something this slice completes.
+- `npx tsc --noEmit` adds no errors to the pre-existing baseline of 319 across
+  154 files. The bar is zero contribution, not a clean run.
 - `src/lib/segmentation/` holds a runtime nothing imports yet.
 - The three models are in the manifest, downloadable, and absent from every engine and model-management surface.
 - The shipped adapters reproduce the benchmark numbers on the corpus.
