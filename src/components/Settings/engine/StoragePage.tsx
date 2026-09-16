@@ -297,7 +297,7 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
               }}
             >
               <option value="" disabled>{t('engineUi.importChooseModel', 'Choose a model to import')}</option>
-              {MODEL_MANIFEST.filter((m) => !m.isCloudModel).map((m) => (
+              {MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation').map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>

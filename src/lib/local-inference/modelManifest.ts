@@ -14,7 +14,7 @@ export interface ModelFileEntry {
   sizeBytes: number;
 }
 
-export type ModelType = 'asr' | 'asr-stream' | 'tts' | 'translation';
+export type ModelType = 'asr' | 'asr-stream' | 'tts' | 'translation' | 'punctuation';
 export type ModelStatus = 'not_downloaded' | 'downloading' | 'downloaded' | 'error';
 
 /** A dtype variant of a model, with its own file list and optional GPU feature requirements. */
@@ -3326,6 +3326,64 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // ── Language Family Models ─────────────────────────────────────────────
   // { id: 'opus-mt-gem-gem', type: 'translation', name: 'Opus-MT (Germanic ↔ Germanic)', languages: ['de', 'en', 'nl', 'da', 'sv', 'no'], variants: { default: { dtype: 'default', files: translationFiles(1_391, 293, 3_640_084, 282, 38_944_670, 46_148_708) } }, hfModelId: 'Xenova/opus-mt-gem-gem', sourceLang: 'gem', targetLang: 'gem' },
   // { id: 'opus-mt-gmw-gmw', type: 'translation', name: 'Opus-MT (West Germanic ↔ West Germanic)', languages: ['de', 'en', 'nl', 'af'], variants: { default: { dtype: 'default', files: translationFiles(1_391, 293, 3_431_142, 282, 37_776_798, 44_971_712) } }, hfModelId: 'Xenova/opus-mt-gmw-gmw', sourceLang: 'gmw', targetLang: 'gmw' },
+
+  // ─── Punctuation (sentence segmentation stage) ─────────────────────────
+  // Not engines: these never enter a resolver pool and never appear in the
+  // model-management or engine pages. They are downloaded on first need by
+  // PunctuationRuntime and managed from the Sentence segmentation section.
+  {
+    id: 'punct-zh-fireredpunc',
+    type: 'punctuation',
+    name: 'FireRedPunc (Chinese)',
+    languages: ['zh', 'yue'],
+    hfModelId: 'jiangzhuo9357/fireredpunc-onnx',
+    hfRevision: 'TODO-COMMIT-SHA',
+    variants: {
+      default: {
+        dtype: 'default',
+        files: [
+          { filename: 'punc.q8w.onnx', sizeBytes: 162_771_205 },
+          { filename: 'tokenizer.json', sizeBytes: 268_961 },
+          { filename: 'out_dict', sizeBytes: 33 },
+        ],
+      },
+    },
+  },
+  {
+    id: 'punct-en-edge',
+    type: 'punctuation',
+    name: 'Edge-Punct-Casing (English)',
+    languages: ['en'],
+    hfModelId: 'jiangzhuo9357/edge-punct-casing-en-onnx',
+    hfRevision: 'TODO-COMMIT-SHA',
+    variants: {
+      default: {
+        dtype: 'default',
+        files: [
+          { filename: 'model.int8.onnx', sizeBytes: 7_490_500 },
+          { filename: 'bpe.vocab', sizeBytes: 149_430 },
+        ],
+      },
+    },
+  },
+  {
+    id: 'punct-multi-sat',
+    type: 'punctuation',
+    name: 'SaT 3L-SM (other languages)',
+    languages: ['multilingual'],
+    multilingual: true,
+    hfModelId: 'jiangzhuo9357/sat-3l-sm-onnx',
+    hfRevision: 'TODO-COMMIT-SHA',
+    variants: {
+      default: {
+        dtype: 'default',
+        files: [
+          { filename: 'model.onnx', sizeBytes: 241_945_842 },
+          { filename: 'tokenizer.json', sizeBytes: 9_096_718 },
+        ],
+      },
+    },
+  },
 ];
 
 // ─── Language Helpers ────────────────────────────────────────────────────────
