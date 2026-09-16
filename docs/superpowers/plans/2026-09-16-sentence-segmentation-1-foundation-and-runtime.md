@@ -2110,7 +2110,13 @@ Append three entries to `MODEL_MANIFEST` (the array closes at line 3328). `hfRev
     id: 'punct-zh-fireredpunc',
     type: 'punctuation',
     name: 'FireRedPunc (Chinese)',
-    languages: ['zh', 'yue'],
+    // 'cantonese', not 'yue': ModelManifestEntry.languages uses the app's own
+    // settings vocabulary from src/utils/languages.ts, which has no 'yue' key,
+    // and modelManifest.qwen3Asr.test.ts pins that rule for a sibling entry in
+    // this same array. Every generic consumer — getAsrModelsForLanguage,
+    // ModelManagementSection's `m.languages.includes(...)`, and the
+    // LanguageTags renderer — compares or displays against that vocabulary.
+    languages: ['zh', 'cantonese'],
     hfModelId: 'jiangzhuo9357/fireredpunc-onnx',
     hfRevision: 'TODO-COMMIT-SHA',
     variants: {
@@ -2172,6 +2178,10 @@ Append three entries to `MODEL_MANIFEST` (the array closes at line 3328). `hfRev
 Change it to:
 
 ```tsx
+              {/* Punctuation models are managed from the Sentence segmentation
+                  section and downloaded on demand, so they are not importable
+                  here. Without this the picker would offer them as if they
+                  were engines. */}
               {MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation').map((m) => (
 ```
 
@@ -2226,6 +2236,7 @@ describe('modelForLanguage', () => {
     ['zh-CN', 'fireredpunc'],
     ['cmn-CN', 'fireredpunc'],
     ['yue', 'fireredpunc'],
+    ['cantonese', 'fireredpunc'],
     ['en', 'edge-punct-en'],
     ['en-US', 'edge-punct-en'],
     ['ja', 'sat-3l-sm'],
@@ -2303,11 +2314,19 @@ export type PunctuationStatus =
   | 'not-downloaded' | 'downloading' | 'downloaded'
   | 'loading' | 'ready' | 'error' | 'disabled';
 
-/** Which model serves a language. Everything not zh/yue/en goes to SaT, which
- *  covers 85 languages; so does `auto` with nothing detected yet. */
+/**
+ * Which model serves a language. Everything not Chinese or English goes to
+ * SaT, which covers 85 languages; so does `auto` with nothing detected yet.
+ *
+ * Cantonese has two spellings in play and both must route to FireRedPunc.
+ * `'cantonese'` is the app's own settings vocabulary (src/utils/languages.ts,
+ * and what `sourceLanguage` actually holds); `'yue'` is the BCP-47 tag a
+ * provider's `detectedLanguage` can carry. `baseLang` normalises neither into
+ * the other, so matching only one sends half the Cantonese traffic to SaT.
+ */
 export function modelForLanguage(lang: string): PunctuationModelId {
   const base = baseLang(lang);
-  if (base === 'zh' || base === 'yue') return 'fireredpunc';
+  if (base === 'zh' || base === 'yue' || base === 'cantonese') return 'fireredpunc';
   if (base === 'en') return 'edge-punct-en';
   return 'sat-3l-sm';
 }
