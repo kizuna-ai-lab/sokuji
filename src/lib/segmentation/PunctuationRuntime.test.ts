@@ -81,6 +81,10 @@ describe('PunctuationRuntime', () => {
   let downloadModel: Mock;
 
   beforeEach(() => {
+    // vi.mock()'s module-level mocks (createPunctuationWorker, checkWebGPU)
+    // persist as the same function object across tests; only mockClear()
+    // makes each test start from a call count of zero for them.
+    vi.clearAllMocks();
     MockWorker.reset();
     (createPunctuationWorker as unknown as Mock).mockImplementation((backend: 'webgpu' | 'wasm') => {
       const worker = new MockWorker(backend);
@@ -184,6 +188,138 @@ describe('PunctuationRuntime', () => {
     const result = fakeResult('sat-3l-sm', 'hello again.');
     worker.emit({ type: 'result', id: runMsg.id, result, inferenceMs: 5 });
     await expect(p).resolves.toEqual(result);
+  });
+
+  it('two punctuate() calls for different models racing through checkWebGPU() share exactly one worker', async () => {
+    // Regression for a bug where ensureSession()'s `if (this.session) return
+    // this.session;` guard and its `this.session = session` assignment
+    // straddle an `await checkWebGPU()`: two punctuate() calls for different
+    // models (the exact zh<->en case one worker is shared for) can both pass
+    // the guard before either assignment lands, creating two Workers, with
+    // whichever model's worker loses the `this.session` race left orphaned.
+    const { runtime, onStatus } = makeRuntime();
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockResolvedValue({});
+
+    let resolveWebGpu!: (v: { available: boolean }) => void;
+    (checkWebGPU as unknown as Mock).mockReturnValue(
+      new Promise((resolve) => { resolveWebGpu = resolve; }),
+    );
+
+    const p1 = runtime.punctuate('en', 'hello'); // edge-punct-en
+    const p2 = runtime.punctuate('zh', '你好');    // fireredpunc
+    await expect(p1).resolves.toBeNull();
+    await expect(p2).resolves.toBeNull();
+
+    // Both calls' ensureSession() are now blocked on the same pending
+    // checkWebGPU() promise -- the race window itself.
+    resolveWebGpu({ available: false });
+
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBeGreaterThanOrEqual(1));
+    // Give a second (buggy) worker every opportunity to also materialize
+    // before asserting there is exactly one.
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(createPunctuationWorker).toHaveBeenCalledTimes(1);
+    expect(MockWorker.instances.length).toBe(1);
+
+    const worker = MockWorker.last();
+    await vi.waitFor(() => {
+      const loads = worker.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === 'load');
+      expect(loads.length).toBe(2);
+    });
+    const loads = worker.postMessage.mock.calls
+      .filter((c: any[]) => c[0]?.type === 'load')
+      .map((c: any[]) => c[0]);
+    for (const msg of loads) {
+      worker.emit({ type: 'loaded', id: msg.id, model: msg.model, loadTimeMs: 10, device: 'wasm' });
+    }
+    await vi.waitFor(() => {
+      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'ready');
+      expect(onStatus).toHaveBeenCalledWith('fireredpunc', 'ready');
+    });
+
+    // Both models must then run successfully on the one shared worker.
+    const runEnP = runtime.punctuate('en', 'hi again');
+    const runZhP = runtime.punctuate('zh', '你好吗');
+    await vi.waitFor(() => {
+      const runs = worker.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === 'run');
+      expect(runs.length).toBe(2);
+    });
+    const runs = worker.postMessage.mock.calls
+      .filter((c: any[]) => c[0]?.type === 'run')
+      .map((c: any[]) => c[0]);
+    const runEnMsg = runs.find((m: any) => m.model === 'edge-punct-en');
+    const runZhMsg = runs.find((m: any) => m.model === 'fireredpunc');
+    const enResult = fakeResult('edge-punct-en', 'hi again.');
+    const zhResult = fakeResult('fireredpunc', '你好吗?');
+    worker.emit({ type: 'result', id: runEnMsg.id, result: enResult, inferenceMs: 3 });
+    worker.emit({ type: 'result', id: runZhMsg.id, result: zhResult, inferenceMs: 4 });
+    await expect(runEnP).resolves.toEqual(enResult);
+    await expect(runZhP).resolves.toEqual(zhResult);
+  });
+
+  it('two different models can be resident on the shared worker at the same time', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
+
+    // Bring a second, different model up on the SAME worker instance.
+    await expect(runtime.punctuate('zh', '你好')).resolves.toBeNull();
+    const loadMsg = await waitForMessageAt(worker, 'load', 2);
+    expect(loadMsg.model).toBe('fireredpunc');
+    worker.emit({ type: 'loaded', id: loadMsg.id, model: 'fireredpunc', loadTimeMs: 12, device: 'wasm' });
+    await vi.waitFor(() => expect(onStatus).toHaveBeenCalledWith('fireredpunc', 'ready'));
+    expect(MockWorker.instances.length).toBe(1); // still just the one worker
+
+    // Both models now answer independently on that same worker.
+    const pEn = runtime.punctuate('en', 'hi');
+    const pZh = runtime.punctuate('zh', '你好吗');
+    await vi.waitFor(() => {
+      const runs = worker.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === 'run');
+      expect(runs.length).toBe(2);
+    });
+    const runs = worker.postMessage.mock.calls
+      .filter((c: any[]) => c[0]?.type === 'run')
+      .map((c: any[]) => c[0]);
+    const runEnMsg = runs.find((m: any) => m.model === 'edge-punct-en');
+    const runZhMsg = runs.find((m: any) => m.model === 'fireredpunc');
+    const enResult = fakeResult('edge-punct-en', 'hi.');
+    const zhResult = fakeResult('fireredpunc', '你好吗?');
+    worker.emit({ type: 'result', id: runEnMsg.id, result: enResult, inferenceMs: 3 });
+    worker.emit({ type: 'result', id: runZhMsg.id, result: zhResult, inferenceMs: 4 });
+    await expect(pEn).resolves.toEqual(enResult);
+    await expect(pZh).resolves.toEqual(zhResult);
+  });
+
+  it('arms the idle-unload timer on a successful load, even with no inference call yet', async () => {
+    // Regression: touch() was previously only called from runInference(), so
+    // a model that loaded successfully and was never actually queried had no
+    // idle timer at all and stayed resident indefinitely.
+    const { runtime, onStatus } = makeRuntime();
+    isModelReady.mockResolvedValue(true);
+    getModelBlobUrls.mockResolvedValue({});
+
+    vi.useFakeTimers();
+    try {
+      void runtime.punctuate('en', 'a'); // kicks off the load only
+      await flushUntil(() => MockWorker.instances.length >= 1);
+      const worker = MockWorker.last();
+      await flushUntil(() => worker.postMessage.mock.calls.some((c: any[]) => c[0]?.type === 'load'));
+      const loadMsg = lastMessageOfType(worker, 'load');
+      worker.emit({ type: 'loaded', id: loadMsg.id, model: 'edge-punct-en', loadTimeMs: 10, device: 'wasm' });
+      await flushUntil(() => onStatus.mock.calls.some((c: any[]) => c[0] === 'edge-punct-en' && c[1] === 'ready'));
+
+      // No punctuate() call happens after this -- the load itself must have
+      // armed the idle timer, or this model stays resident forever.
+      await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+      expect(worker.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'unload', model: 'edge-punct-en' }),
+      );
+      expect(worker.terminate).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('three consecutive failures disable that model for the session', async () => {

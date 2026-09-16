@@ -140,6 +140,13 @@ export class PunctuationRuntime implements SegmentationRuntime {
   private epoch = 0;
   private disposed = false;
   private counter = 0;
+  /** Memoizes an in-flight `createSession()` bootstrap so two `punctuate()`
+   *  calls for different models -- the exact case a shared worker exists for
+   *  -- cannot each create their own Worker while both are still awaiting
+   *  `checkWebGPU()`, before either has set `this.session`. Cleared once the
+   *  bootstrap settles (success or failure), so a fresh attempt is made next
+   *  time `ensureSession()` is needed. */
+  private sessionPromise: Promise<WorkerSession> | null = null;
   private readonly loadReqs = new RequestRegistry<{ loadTimeMs: number; device: 'webgpu' | 'wasm' }>();
   private readonly runReqs = new RequestRegistry<PunctuationResult>();
 
@@ -299,6 +306,10 @@ export class PunctuationRuntime implements SegmentationRuntime {
       state.consecutiveFailures = 0;
       this.opts.onLoaded?.(model, loaded.device, loaded.loadTimeMs);
       this.opts.onStatus?.(model, 'ready');
+      // Arms the idle-unload timer here too, not only from a successful
+      // inference: a model that loads but is never actually queried would
+      // otherwise have no idle timer at all and stay resident indefinitely.
+      this.touch(model);
     } catch {
       manager.revokeBlobUrls(fileUrls);
       // A crash or an earlier fallback already tore this attempt down and
@@ -382,6 +393,23 @@ export class PunctuationRuntime implements SegmentationRuntime {
 
   private async ensureSession(): Promise<WorkerSession> {
     if (this.session) return this.session;
+    if (!this.sessionPromise) {
+      this.sessionPromise = this.createSession().finally(() => {
+        this.sessionPromise = null;
+      });
+    }
+    return this.sessionPromise;
+  }
+
+  /** The actual one-time bootstrap, memoized by `ensureSession()`'s
+   *  `sessionPromise`: decide the backend, create the Worker, and wait for
+   *  its boot handshake. Without the memoization, two concurrent callers
+   *  would each pass `ensureSession()`'s `if (this.session)` guard while both
+   *  are still awaiting `checkWebGPU()` below, each create their own Worker,
+   *  and silently orphan whichever one loses the `this.session` assignment
+   *  race -- `runInference()` always reads the shared `this.session` field,
+   *  so the loser's model would never actually be reachable. */
+  private async createSession(): Promise<WorkerSession> {
     const webgpuOk = !this.webgpuDisabledForLaunch && (await checkWebGPU()).available;
     const backend: 'webgpu' | 'wasm' = webgpuOk ? 'webgpu' : 'wasm';
     this.backend = backend;
