@@ -1959,7 +1959,11 @@ installPunctuationWorker({
 });
 ```
 
-**The trap in this file:** `shaderF16Gate.consistency.test.ts` makes any `*.worker.ts` in this directory a candidate when its lowercased source contains the substring `webgpu` **and** it matches `LOADS_A_MODEL`, which is the full alternation `/from_pretrained\(|pipeline as any\)\(|await pipeline\(|InferenceSession\.create\(/` — four markers, not just the session call. None of the four appears in either entry, because the `InferenceSession.create(` calls live in the adapters, so as written this file is not a candidate — but the word "WebGPU" must not appear in it either, or a later edit that adds a `create(` call would silently enrol it. The doc comment above deliberately says "GPU", not "WebGPU". If a future edit needs the word, add an `EXEMPT` row in that test with an executable `stillHolds` predicate, copying the `zoom-vad.worker.ts` row.
+**The trap, and what actually guards against it.** `shaderF16Gate.consistency.test.ts` makes a `*.worker.ts` in this directory a candidate only when **both** hold: its lowercased source contains the substring `webgpu`, **and** it matches `LOADS_A_MODEL`, the full alternation `/from_pretrained\(|pipeline as any\)\(|await pipeline\(|InferenceSession\.create\(/` — four markers, not just the session call.
+
+The substring half is already true of both entries and cannot be avoided: `canUseWebGpu` is the property name `PunctuationCoreDeps` requires, and it lowercases to `...usewebgpu...`. So **the rule to follow is the second half — do not put a `LOADS_A_MODEL` marker in either entry.** Neither has one today, because every `InferenceSession.create(` lives in the adapters, which is why neither file is a candidate. If a later edit moves a session creation into an entry, that entry becomes a candidate and must then satisfy all five gate requirements above, or carry an `EXEMPT` row in that test with an executable `stillHolds` predicate, copying the `zoom-vad.worker.ts` row.
+
+A consequence worth knowing: because neither entry is a candidate, the `bindCheckedWebGpuAdapter(ortEnv, …)` call in the WebGPU entry is there because it is correct, not because a test compels it. Nothing will catch its removal.
 
 - [ ] **Step 3: Write the worker factory**
 
