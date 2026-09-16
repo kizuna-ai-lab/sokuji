@@ -12,7 +12,7 @@
 
 **Depends on:** slices 1 and 2.
 
-**Typecheck:** `npx tsc --noEmit`. Tests: `npm run test -- <path>`.
+**Typecheck:** the repo's baseline is **not clean** — `npx tsc --noEmit` reports 319 errors across 154 files as of `6dd46986`, all pre-existing. Never ask anyone to "confirm tsc is clean"; the bar is **zero contribution**: run it and confirm its output names none of the files your task created or modified. Tests: `npm run test -- <path>`.
 
 ---
 
