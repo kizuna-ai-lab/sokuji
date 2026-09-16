@@ -176,8 +176,11 @@ What the cost runs established:
   implementation"); the plain `onnxruntime-web/wasm` bundle loads the same file.
 - **SaT's memory problem goes away** with the q8w + 8-bit-embedding build: 1,251 MB on WASM vs
   2,046 MB for the published fp16, and it runs on WebGPU where fp16 cannot.
-- **WebGPU sessions still hold 1.1–1.9 GB in the renderer**, beyond the GPU process growth. Not
-  investigated (model bytes kept alive, WASM heap copy, arena).
+- ~~**WebGPU sessions still hold 1.1–1.9 GB in the renderer**, beyond the GPU process growth. Not
+  investigated (model bytes kept alive, WASM heap copy, arena).~~ Investigated in "Renderer memory
+  of WebGPU sessions (task 12)" below: the "model bytes kept alive" hypothesis is disproved
+  (dropping that reference measured no effect); the WASM-heap/arena half is the one the forced-GC
+  diagnostic there supports.
 - The SaT fp16 cells ran while seven single-threaded quality jobs were also running; the q8w cells
   overlapped a short Node run. Absolute ms there may be a little high.
 
@@ -412,6 +415,10 @@ resolved — **after load**), `ran` (the full latency loop across every language
 already run — **after unload**). `sat-3l-sm-q8w-gather` needed `&bundle=ort.wasm.min.mjs` for the
 WASM lane: the default WebGPU bundle's WASM EP has no `GatherBlockQuantized` kernel (same finding
 as the main table). One run per cell (n=1); see "How noisy" below for the error bar this implies.
+All cells here used `threads=1` (the brief's own example command), while the pre-existing
+"Renderer cost" table above used 4-thread WASM/WebGPU — a variable this note previously left
+unnamed. The "after load" figures still land within ~3% of that table's, so thread count does not
+appear to move memory much, but it is not the same setting.
 
 ### Baseline: idle / load / call loop / unload
 
@@ -515,26 +522,49 @@ destroy.
 The three-model core selection means a renderer can load more than one of these models over its
 life (a session with FireRedPunc for zh switches to SaT if the source language changes to ja).
 Built a throwaway two-model driver (`www/bench-seq.mjs` + `www/index-seq.html`, not committed —
-deleted after this run) that loads FireRedPunc q8w on WebGPU, runs it, releases it, *then* loads
-SaT q8w-gather on WebGPU, runs it, and releases it — mirroring exactly what `bench.mjs` already
-does, just twice in one page instead of once:
+deleted after this run) that loads FireRedPunc q8w on WebGPU, runs it through **the same full
+latency loop `bench.mjs` runs for one model** (every language, every length, `reps=15` — copied
+verbatim, not a lighter stand-in), releases it, *then* does the same for SaT q8w-gather on WebGPU.
 
-| mark | renderer MB | GPU MB |
-|---|---|---|
-| idle | 95.0 | — |
-| loaded FireRedPunc | 1,073.9 | 378.2 |
-| released FireRedPunc | 1,062.6 | 328.1 |
-| loaded SaT (on top of the released FireRedPunc session) | 1,958.5 | 320.1 |
-| released SaT / done | 1,953.1 | 509.8 |
+*(An earlier version of this check used a 5-call warm-up instead of the full loop. FireRedPunc's
+own numbers inside that script came out ~300 MB higher than its single-model baseline — a
+methodology artifact, not a real effect — which made the "tax" figure computed from it
+unreliable. Fixed by matching the workload exactly; see below for why the artifact happened.)*
 
-**Loading and releasing FireRedPunc first leaves the renderer 432 MB heavier than loading SaT
-alone** (1,953.1 MB here vs. 1,521.2 MB for SaT by itself in the baseline table) — roughly 45% of
-FireRedPunc's own 671 MB "extra-over-idle" persists and stacks on top of whatever the renderer
-loads next, even though FireRedPunc's own session was already released before SaT was created.
-It is not *fully* additive, though: SaT's marginal cost here (896 MB, from 1,062.6 → 1,958.5 MB) is
-less than SaT's from-cold cost alone (1,472 MB), and the two-model total (1,953 MB) is 335 MB below
-the naive sum of both models' independent "done" numbers (767.1 + 1,521.2 = 2,288.3 MB) — some
-underlying WASM/GPU capacity is being reused across sessions, just not released back to the OS.
+Three repeated runs (renderer MB):
+
+| mark | run 1 | run 2 | run 3 | baseline (single model) |
+|---|---|---|---|---|
+| idle | 96.2 | 96.0 | 96.0 | 96.3 |
+| loaded FireRedPunc | 1,063.0 | 1,053.4 | 1,039.4 | 1,070.6 |
+| ran FireRedPunc | 770.6 | 772.4 | 769.4 | 766.7 |
+| released FireRedPunc | 770.9 | 772.7 | 769.4 | 767.1 |
+| loaded SaT (on top of released FireRedPunc) | 1,965.6 | 1,960.9 | 1,959.0 | 1,569.4 |
+| ran SaT | 1,989.6 | 1,761.3 | 1,993.2 | 1,521.1 |
+| done | 1,989.8 | 1,761.3 | 1,993.2 | 1,521.2 |
+
+**FireRedPunc's own numbers inside this script now reproduce its single-model baseline within
+1%** (released: 770.9 / 772.7 / 769.4 MB here vs. 767.1 MB baseline) — the fix above worked, so the
+gap between this run's final `done` and SaT's own single-model baseline (1,521.2 MB) can be
+attributed to loading history rather than to script overhead:
+
+| | run 1 | run 2 | run 3 |
+|---|---|---|---|
+| tax (`done` − SaT-alone `done`) | 468.6 MB | 240.1 MB | 472.0 MB |
+| as % of FireRedPunc's own extra-over-idle (≈675 MB) | 69.5% | 35.5% | 70.1% |
+
+**Direction is robust across all three runs — releasing FireRedPunc before loading SaT still
+leaves the renderer several hundred MB heavier than loading SaT alone — but the exact size is not
+a fixed number: it ranged 240–472 MB (35–70% of FireRedPunc's own footprint) over three otherwise
+identical runs.** The spread traces to whether a GC pass fires during SaT's *own* call loop: run 2
+shows the same kind of large mid-loop drop (loaded 1,960.9 → ran 1,761.3 MB) the single-model
+baseline also sometimes shows on its own (loaded → ran, main baseline table above); runs 1 and 3
+show little to no such drop. This is the same GC-timing variance discussed under "How noisy" —
+just landing on the more consequential side of it here. **Treat "several hundred MB, roughly a
+third to two-thirds of a released model's own footprint" as the finding, not any single number in
+the table above; a specific figure such as "432 MB" is not defensible from n=3 this noisy, and a
+further projection to all three shipped models loaded in one renderer was not measured at all and
+should not be quoted as if it were.**
 
 ### How noisy
 
@@ -570,14 +600,17 @@ per-distinct-model-ever-loaded, not per-currently-loaded-model.
    cost.
 2. **The `deviceMemory ≤ 4 GB` guard may need to rise, and needs to change what it's guarding
    against.** It was presumably sized against "one model's peak footprint" (up to ~1.6 GB for SaT
-   WebGPU here). The sequential-load result shows the real risk is cumulative: a session that
-   switches source or target language mid-call and therefore loads a second or third distinct
-   model pays close to the sum of their footprints minus partial sharing (here, 1.95 GB for two of
-   the three shipped models; all three, worst case, likely approaches 2.5–3 GB), not the max of any
-   one. On a 4 GB device that leaves very little headroom for the rest of the app after even two
-   language switches in one session. The guard should be evaluated against "every distinct model
-   this renderer has ever loaded," not "the model currently active," or slice 2/3 should cap how
-   many distinct punctuation models a single renderer lifetime may load before requiring a
+   WebGPU here). The sequential-load result shows the real risk is cumulative, not just peak: a
+   session that switches source or target language mid-call and therefore loads a second distinct
+   model still pays several hundred MB (measured range 240–472 MB across three runs, not a single
+   fixed number — see above) on top of that second model's own footprint, even though the first
+   model was already released. **A specific total for two- or three-model sequences was not
+   reliably measured and should not be sized against** — the range above is wide enough that
+   picking one endpoint to plan a guard around would be as unfounded as the single figure this
+   revision removed. What is measured is the direction: the guard should be evaluated against
+   "every distinct model this renderer has ever loaded," not "the model currently active," or
+   slice 2/3 should cap how many distinct punctuation models a single renderer lifetime may load
+   before requiring a
    window/renderer restart to reclaim the floor.
 3. **This is now answered, not open:** "Renderer memory of WebGPU sessions (1.1–1.9 GB): can it be
    released after upload?" → No — not via dropping the byte-array reference, not via
