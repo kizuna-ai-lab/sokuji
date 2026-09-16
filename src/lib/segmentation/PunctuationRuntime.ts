@@ -420,6 +420,12 @@ export class PunctuationRuntime implements SegmentationRuntime {
    *  so the loser's model would never actually be reachable. */
   private async createSession(): Promise<WorkerSession> {
     const webgpuOk = !this.webgpuDisabledForLaunch && (await checkWebGPU()).available;
+    // dispose() may have run while we were awaiting checkWebGPU(): no Worker
+    // exists yet at that point (this.session is only ever assigned below, on
+    // this same synchronous continuation), so dispose()'s own `this.session
+    // ?.dispose()` was a no-op and nothing else will ever terminate the
+    // Worker this call is about to create. Refuse to create it at all.
+    if (this.disposed) throw new Error('PunctuationRuntime disposed');
     const backend: 'webgpu' | 'wasm' = webgpuOk ? 'webgpu' : 'wasm';
     this.backend = backend;
     const session = new WorkerSession({
@@ -432,6 +438,15 @@ export class PunctuationRuntime implements SegmentationRuntime {
     // finishes evaluating -- this message carries no init payload, so what we
     // send here is never read by the protocol on the other end.
     await session.start({ type: 'boot' });
+    if (this.disposed) {
+      // dispose() ran while the boot handshake was in flight. `this.session`
+      // above already points at this session -- undo that and terminate the
+      // worker we just booted, rather than leaving a live, never-torn-down
+      // session dangling off a disposed runtime.
+      session.dispose();
+      if (this.session === session) this.session = null;
+      throw new Error('PunctuationRuntime disposed');
+    }
     return session;
   }
 
