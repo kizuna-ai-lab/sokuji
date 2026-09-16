@@ -1611,20 +1611,39 @@ export function createEdgePunctEnAdapter(): PunctuationAdapter {
   };
 }
 
-/** Edge-Punct writes no abbreviation dots, so every '.' and '?' it emits is a
- *  sentence end. It never forces a final mark — the utterance end supplies one. */
+/**
+ * Where Edge-Punct's output ends a sentence.
+ *
+ * Delegates to the shared rule, exactly as the FireRedPunc adapter does. An
+ * earlier draft scanned for `.` and `?` directly, on the claim that this model
+ * "writes no abbreviation dots" — which is false. `moduleWords` strips a
+ * trailing `.,?` from every word before encoding and `decodeWord` then appends
+ * whatever mark the model predicts, so "Dr. Smith" can come back as `Dr.` with
+ * a predicted period. Counting that as a sentence end is precisely the
+ * mid-abbreviation cut this whole design exists to remove, and
+ * `periodIsNotSentenceEnd` already rejects it.
+ *
+ * The model emits only `,`, `.` and `?` (PUNCT_SUFFIX), a strict subset of the
+ * shared terminal set, so nothing it can produce is missed. It never forces a
+ * final mark — the utterance end supplies one.
+ */
 function periodOffsets(text: string): number[] {
-  const out: number[] = [];
-  for (let i = 0; i < text.length; i++) if (text[i] === '.' || text[i] === '?') out.push(i + 1);
-  return out;
+  return ruleSentenceEnds(text);
 }
 
+/**
+ * Sentence ends plus the commas the model wrote.
+ *
+ * Narrower than the shared `breakpoints()` on purpose: that one also counts
+ * `、;；:：—–`, none of which Edge-Punct can emit, so counting them would mean
+ * reacting to punctuation that came from the ASR rather than from the model.
+ */
 function periodOrCommaOffsets(text: string): number[] {
-  const out: number[] = [];
+  const ends = new Set(ruleSentenceEnds(text));
   for (let i = 0; i < text.length; i++) {
-    if (text[i] === '.' || text[i] === '?' || text[i] === ',') out.push(i + 1);
+    if (text[i] === ',') ends.add(i + 1);
   }
-  return out;
+  return [...ends].sort((a, b) => a - b);
 }
 ```
 
