@@ -1341,6 +1341,46 @@ describe('fireredpunc ruleBasedTxtFix', () => {
   });
 });
 
+describe('fireredpunc decode', () => {
+  // decode() is the one function in this port that was restructured rather
+  // than transcribed, and it owns two invariant throws — the projection sync
+  // check and the leftover-characters check — that nothing else exercises.
+  // It is ONNX-free and takes plain data, so it is exactly the golden test
+  // the task calls for.
+  //
+  // DERIVE THE EXPECTED VALUES FROM THE BENCHMARK, NOT FROM THIS PORT.
+  // Deriving them from the port under test would only prove the port agrees
+  // with itself. Run the benchmark model's `inspect(text)` against the real
+  // weights in `~/.cache/sokuji-punct-bench/fireredpunc-onnx/`, outside
+  // vitest, capture its `{ tokens, ids, preds, built, fixed, out }` for two
+  // short inputs — one pure CJK, one with embedded ASCII so the full-width to
+  // ASCII conversion and the casing projection both fire — and hardcode those
+  // captured values here. Put the command and its raw output in the report so
+  // the derivation is auditable.
+  it('projects the rule-fixed text back onto the original characters', () => {
+    // units and preds captured as above; assert decode(...).out equals the
+    // captured `out`, and that `built` and `fixed` match too — those two are
+    // what the projection walks between.
+  });
+
+  it('accepts a result whose casing the rule fix changed', () => {
+    // The ASCII input from the same capture: ruleBasedTxtFix uppercases
+    // sentence starts and standalone "i", and applyCase must replay that onto
+    // the original characters without shifting any offset.
+  });
+});
+
+describe('fireredpunc breakpoints', () => {
+  it('counts the commas the model wrote as well as its sentence ends', () => {
+    expect(countBreakpoints('第一部分，第二部分。')).toEqual([5, 10]);
+  });
+  it('does not count marks FireRedPunc never emits', () => {
+    // 、；： are in the shared CLAUSE_MARKS but not in this model's output,
+    // so they must come back unlisted.
+    expect(countBreakpoints('一、二；三：四')).toEqual([]);
+  });
+});
+
 describe('fireredpunc sentence counting', () => {
   it('counts the three CJK terminals', () => {
     expect(countSentenceEnds('第一句。第二句！第三句？')).toEqual([4, 8, 12]);
@@ -1372,28 +1412,38 @@ Copy the whole body of `benchmark/punctuation-restoration/models/fireredpunc.mjs
 Then add the two pieces the benchmark did not need:
 
 ```typescript
-import { periodIsNotSentenceEnd } from '../../../segmentation/sentenceEnd';
+import { sentenceEnds as ruleSentenceEnds } from '../../../segmentation/sentenceEnd';
 
 /**
  * Where FireRedPunc's output ends a sentence.
  *
- * The model writes four marks and prefers commas: 64 sentence ends against 103
- * in the reference, but 205 of 225 marks overall. That under-emission is why
- * the Chinese length fallback exists; it is not compensated for here.
+ * Delegates to the shared rule rather than reimplementing it. The model writes
+ * only 。，？！, and `ruleBasedTxtFix` converts each terminal to its ASCII form
+ * in ASCII-letter contexts, so everything this model can produce is a strict
+ * subset of what `sentenceEnd.ts` already recognises — a narrower copy here
+ * buys nothing and only creates ways to disagree. An earlier draft did
+ * reimplement it and silently dropped the ASCII `!` and `?` that the model's
+ * own post-processing creates, so `"wow！amazing"` became `"Wow! Amazing"`
+ * with no sentence end at all.
+ *
+ * The model prefers commas — 64 sentence ends against 103 in the reference,
+ * but 205 of 225 marks overall — which is why the Chinese length fallback
+ * exists. That under-emission is not compensated for here.
  */
 export function countSentenceEnds(text: string): number[] {
-  const out: number[] = [];
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '。' || ch === '！' || ch === '？') { out.push(i + 1); continue; }
-    if (ch === '.' && !periodIsNotSentenceEnd(text, i)) out.push(i + 1);
-  }
-  return out;
+  return ruleSentenceEnds(text);
 }
 
-/** Sentence ends plus the commas the model wrote. */
+/**
+ * Sentence ends plus the commas the model wrote.
+ *
+ * Deliberately narrower than the shared `breakpoints()`, which also counts
+ * 、;；:：—– . FireRedPunc never emits any of those, so counting them would
+ * mean reacting to punctuation that came from the ASR's own text rather than
+ * from the model.
+ */
 export function countBreakpoints(text: string): number[] {
-  const ends = new Set(countSentenceEnds(text));
+  const ends = new Set(ruleSentenceEnds(text));
   for (let i = 0; i < text.length; i++) {
     if (text[i] === '，' || text[i] === ',') ends.add(i + 1);
   }
