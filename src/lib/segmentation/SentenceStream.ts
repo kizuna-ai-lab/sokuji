@@ -248,15 +248,29 @@ export class SentenceStream {
    * characters. This is how a cut chosen in the model's output — which has
    * different spacing and possibly different case — is mapped back onto the
    * characters the ASR actually produced.
+   *
+   * `skeletonLength` is `skeleton(...).length`: a count of UTF-16 units in the
+   * *output* skeleton string, where a matched astral character contributes 2
+   * (its own UTF-16 length), not 1. The scan below must accumulate `seen` the
+   * same way — by each matched code point's `.length` — to stay aligned with
+   * it. The previous implementation indexed `raw[i]` and tested one UTF-16
+   * unit at a time: a lone surrogate half is `\p{Cs}` (surrogate), not
+   * `\p{L}`, so it never matched at all. That undercounts every astral
+   * character (FireRedPunc itself treats U+20000-U+2CEAF as ordinary Chinese
+   * text) by its full contribution, drifting the cut for everything after it
+   * and, once the scan runs out of narrow characters to find, dropping the
+   * entire remainder by falling through to `raw.length`.
    */
   private rawOffsetFor(raw: string, skeletonLength: number): number {
     if (skeletonLength === 0) return 0;
     let seen = 0;
-    for (let i = 0; i < raw.length; i++) {
-      if (/[\p{L}\p{N}]/u.test(raw[i])) {
-        seen++;
-        if (seen === skeletonLength) return i + 1;
+    let offset = 0;
+    for (const ch of raw) {
+      if (/[\p{L}\p{N}]/u.test(ch)) {
+        seen += ch.length;
+        if (seen >= skeletonLength) return offset + ch.length;
       }
+      offset += ch.length;
     }
     return raw.length;
   }

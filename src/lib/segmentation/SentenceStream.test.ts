@@ -235,6 +235,57 @@ describe('SentenceStream model results', () => {
   });
 });
 
+describe('SentenceStream astral characters (rawOffsetFor)', () => {
+  // U+20BB7, a real Chinese character (outside the BMP, so it is a surrogate
+  // pair in UTF-16). FireRedPunc's own `isChineseChar` explicitly accepts
+  // U+20000-U+2CEAF, so this is an expected input, not an edge case.
+  const ASTRAL = '\u{20BB7}';
+
+  it('does not lose text around an astral character mid-window', async () => {
+    // 9 characters ("abc" + astral + "def ") plus 60 "x"s clears the English
+    // gate (50) without hitting MAX_MODEL_CHARS (300).
+    const raw = `abc${ASTRAL}def ` + 'x'.repeat(60);
+    const punctuated = `Abc${ASTRAL}def.` + ' ' + 'x'.repeat(60);
+    const seals: SealedChunk[] = [];
+    const pendings: string[] = [];
+    const { runtime } = fakeRuntime({ [raw]: resultOf(punctuated, [9]) });
+    const stream = new SentenceStream({
+      lang: 'en', runtime, sentencesPerChunk: 1,
+      onSeal: (c) => seals.push(c), onPending: (t) => pendings.push(t),
+    });
+    stream.update(raw);
+    await vi.waitFor(() => expect(seals.length).toBe(1));
+    expect(seals[0].text).toBe(`Abc${ASTRAL}def.`);
+    // The old code counted rawOffsetFor's target in UTF-16 units, where a
+    // surrogate half matches \p{Cs}, not \p{L} -- so it undercounted by one
+    // for every astral character before the cut and read two units too far,
+    // silently swallowing the space and the first "x" (they land in neither
+    // the sealed chunk above nor this remainder).
+    expect(pendings[pendings.length - 1]).toBe(' ' + 'x'.repeat(60));
+  });
+
+  it('does not drop the entire remainder when the cut lands right after a run of astral characters', async () => {
+    // 30 astral characters (60 UTF-16 units) clears the English gate (50).
+    const raw = ASTRAL.repeat(30);
+    const punctuated = ASTRAL.repeat(5) + '.' + ASTRAL.repeat(25);
+    const seals: SealedChunk[] = [];
+    const pendings: string[] = [];
+    const { runtime } = fakeRuntime({ [raw]: resultOf(punctuated, [11]) });
+    const stream = new SentenceStream({
+      lang: 'en', runtime, sentencesPerChunk: 1,
+      onSeal: (c) => seals.push(c), onPending: (t) => pendings.push(t),
+    });
+    stream.update(raw);
+    await vi.waitFor(() => expect(seals.length).toBe(1));
+    expect(seals[0].text).toBe(ASTRAL.repeat(5) + '.');
+    // The old code never matched a single unit in an all-astral raw string
+    // (every unit is a lone surrogate), so it fell through to `raw.length`
+    // and the entire 25-character remainder vanished instead of surviving as
+    // pending text.
+    expect(pendings[pendings.length - 1]).toBe(ASTRAL.repeat(25));
+  });
+});
+
 describe('SentenceStream rewrites and re-anchoring', () => {
   it('never un-seals when the ASR rewrites the tail after a seal', async () => {
     const seals: SealedChunk[] = [];
