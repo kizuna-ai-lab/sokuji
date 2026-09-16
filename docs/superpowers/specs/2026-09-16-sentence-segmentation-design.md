@@ -17,7 +17,8 @@ the local pipeline waits for the VAD. Local translation also waits for the whole
 This design adds a renderer-side **sentence segmentation stage** shared by every provider:
 - **Counting.** It counts sentences, from the punctuation that is already there, or from a small
   punctuation model when there is none.
-- **Sealing.** It seals a bubble every **three sentences**. Short utterances are untouched.
+- **Sealing.** It seals a bubble every **N sentences**, where N is a user setting (1–5, default 3).
+  Short utterances are untouched.
 - **Local translation.** On Local Inference and Local Native, each sealed chunk goes to the
   translator as soon as it seals.
 - **Server-definite providers** (Soniox, Volcengine, Palabra, OpenAI Realtime, Zoom) keep their
@@ -63,8 +64,8 @@ minutes.
 
 ## Goals
 
-- No bubble accumulates more than about three sentences of speech without being cut. For Chinese
-  there is also a length fallback at about 100 characters.
+- No bubble accumulates more than N sentences of speech without being cut, where N is the user's
+  setting (1–5, default 3). For Chinese there is also a length fallback, ~100 characters at N = 3.
 - Short utterances keep today's bubbles and today's translation unit.
 - Long local utterances are translated chunk by chunk as they seal, instead of after the VAD ends
   the utterance.
@@ -86,18 +87,19 @@ minutes.
 |---|---|---|
 | D1 | Scope | Local Inference, Local Native, and online providers' display segmentation |
 | D2 | When a model runs | Runtime check only: the model is called only for a long unsealed tail with no sentence-terminal punctuation. No per-model "punctuates" flags. |
-| D3 | Granularity | Seal a bubble every 3 sentences; shorter utterances are unchanged |
+| D3 | Granularity | Seal a bubble every N sentences (see D15); shorter utterances are unchanged |
 | D4 | Local translation | Each sealed chunk is enqueued for translation immediately, as text with the inserted punctuation; the utterance tail is the last job |
-| D5 | Timer/regex online providers | All existing cut rules stay. Added: the 3-sentence seal, and the hard span caps prefer a confirmed boundary. The translation side uses the same rules. |
+| D5 | Timer/regex online providers | All existing cut rules stay. Added: the N-sentence seal, and the hard span caps prefer a confirmed boundary. The translation side uses the same rules. |
 | D6 | Server-definite providers | Boundaries kept, never split; missing punctuation filled in on the definite text |
 | D7 | Sentence counting | When the model ran, count from its output. Otherwise use a shared sentence-end rule on existing marks. `Intl.Segmenter` is not used. |
-| D8 | Chinese fallback | Tail ≥ ~100 characters with < 3 sentence ends → seal at the latest confirmed breakpoint (sentence end or comma) |
+| D8 | Chinese fallback | Tail ≥ N × 33 characters (~100 at N = 3) with < N sentence ends → seal at the latest confirmed breakpoint (sentence end or comma) |
 | D9 | Architecture | Shared stage: `SentenceStream` + `PunctuationRuntime` + one worker, injected through `ClientOptions` |
 | D10 | UI | Independent "Sentence segmentation" section, visible for every provider |
 | D11 | Download | Automatic, in the background, on first need; manual download also offered |
 | D12 | Default | On; one-time notice on the first background download |
 | D13 | Hosting | Own Hugging Face repos (`jiangzhuo9357`), pinned `hfRevision` |
 | D14 | Extension | Enabled as on desktop |
+| D15 | Sentences per bubble | A user setting: 1–5, default 3, shown as a segmented control. The model gate and the Chinese fallback scale with it. At 1, local paths translate sentence by sentence. |
 
 ## Models
 
@@ -196,6 +198,7 @@ interface PunctuationResult {
 
 **Settings (`CommonSettings`)**
 - `sentenceSegmentation: boolean`, default `true`.
+- `sentenceSegmentationChunkSentences: number`, default `3`, clamped to 1–5 on read.
 - `sentenceSegmentationNoticeShown: boolean`.
 
 **UI**
@@ -221,9 +224,11 @@ interface PunctuationResult {
 - **Gate**
   - Tail contains a sentence terminal per `sentenceEnd.ts` → count from the existing marks; no
     model call.
-  - Tail has no terminal and is long enough to hold three sentences (≥ 60 characters for zh, yue,
-    ja and ko; ≥ 150 characters for every other language) → `runtime.punctuate`. Both thresholds
-    are starting values, tuned after release.
+  - Tail has no terminal and is long enough to hold N sentences (≥ N × 20 characters for zh, yue,
+    ja and ko; ≥ N × 50 characters for every other language) → `runtime.punctuate`. At the default
+    N = 3 that is 60 and 150 characters. The per-sentence constants come from the corpus's average
+    sentence lengths (ja 19, zh 22, ko 16, en 40, fr/de/es/pt/ru 36–38 characters) and are starting
+    values, tuned after release.
   - Otherwise → wait. Short utterances therefore never trigger a download.
 - **Counting from a model result**
   - Edge-Punct-en: its periods.
@@ -233,11 +238,14 @@ interface PunctuationResult {
   the very end of the tail is never trusted.
 - **Freeze.** Counted positions are frozen. If the ASR rewrites text before them, the stream
   re-anchors by skeleton and never un-seals.
-- **Seal.** At the third counted sentence end, seal through it (`reason: 'sentences'`); the
-  remainder stays pending.
-- **Chinese fallback.** For zh and yue only (not ja), if the tail reaches ≥ 100 characters with
-  fewer than three sentence ends, seal at the latest confirmed breakpoint that has ≥ 8 characters of
-  right context (`reason: 'length'`).
+- **Seal.** At the Nth counted sentence end, seal through it (`reason: 'sentences'`); the
+  remainder stays pending. N is read per stream when it is created, so changing the setting applies
+  to the next utterance or item, never mid-bubble.
+- **Chinese fallback.** For zh and yue only (not ja), if the tail reaches ≥ N × 33 characters
+  (rounded to ten: 100 at N = 3) with fewer than N sentence ends, seal at the latest confirmed
+  breakpoint that has ≥ 8 characters of right context (`reason: 'length'`). The constant exists
+  because FireRedPunc emits only 62% of the reference sentence ends, so N detected sentences are
+  roughly 1.6 × N real ones.
 - **`end()`**
   - Punctuate the tail if it is long and unpunctuated.
   - Emit the remainder as a final chunk (`reason: 'end'`). The right-context rule does not apply.
@@ -397,7 +405,13 @@ set. Candidates to try: releasing the model bytes after session creation, and OR
 `persistSetting` with rollback.
 
 **Description.** One sentence: long unsegmented transcripts get punctuation and a new bubble every
-three sentences, and a model is downloaded only when needed.
+N sentences, and a model is downloaded only when needed.
+
+**Sentences per bubble.** A segmented control with 1–5, default 3, directly under the toggle and
+greyed out with it, plus a line naming the effect ("long speech starts a new bubble every 3
+sentences"). It is the only tuning knob exposed; the gate and the Chinese fallback follow it. On
+Local Inference and Local Native it also sets the translation unit, so 1 means sentence-by-sentence
+translation and 5 stays close to today's whole-utterance behaviour.
 
 **Model rows.** One row per model:
 - name (Chinese / English / Other languages), size and status;
@@ -430,7 +444,8 @@ the rows are greyed out with the reason.
 - LogsPanel (diagnostic logs on only): download and load durations, and seal reasons.
 
 **Analytics (PostHog)**
-- `translation_session_start` gains `sentence_segmentation_enabled`.
+- `translation_session_start` gains `sentence_segmentation_enabled` and
+  `sentence_segmentation_chunk_sentences`.
 - New events:
   - `segmentation_model_download` `{ model, size_mb, result, duration_ms }`
   - `segmentation_model_load` `{ model, backend: 'webgpu' | 'wasm', load_ms, result }`
@@ -471,7 +486,8 @@ failure class is reported once.
   and `OpenAILiveClient.test.ts` stays green.
 - **`SentenceStream`:** with a controllable fake runtime, cover:
   - gating (short, long-unpunctuated, punctuated);
-  - the 3-sentence seal, and the zh 100-character fallback at a comma;
+  - the N-sentence seal at N = 1, 3 and 5, and the zh fallback at a comma for each N;
+  - a setting change applying only to the next stream, never mid-bubble;
   - the right-context rule and distrust of the final mark;
   - freezing and re-anchoring;
   - latest-wins coalescing and `end()` flushing;
@@ -487,7 +503,7 @@ failure class is reported once.
 
 **Client integration**
 - **Local Inference and Local Native:**
-  - a long streaming utterance seals every 3 sentences and enqueues jobs in order;
+  - a long streaming utterance seals every N sentences and enqueues jobs in order;
   - an offline final of 6 sentences gives 2 items and 2 jobs;
   - short utterances and the disabled toggle match existing tests.
 - **GPT-Live, OpenAI Translate, Gemini:**
@@ -515,7 +531,7 @@ skips when the models are not cached locally.
   - packaged Electron on both backends, checking whether threads work under `file://`;
   - the extension side panel (WebGPU availability, single-thread latency).
 - **Sessions:**
-  - GPT-Live on the L3383 video: seals every 3 sentences, no mid-word cuts;
+  - GPT-Live on the L3383 video at the default N = 3: seals every three sentences, no mid-word cuts;
   - Local Inference with sherpa `stream-zh` (unpunctuated) and cohere (punctuated);
   - Local Native and Soniox;
   - a long monologue, checking that translation now appears earlier.
@@ -525,9 +541,9 @@ skips when the models are not cached locally.
 - **UI:** rendered candidates for the section and the notice; every locale checked for width.
 
 **After release (PostHog).** Watch download success, load failures, seals per session by reason,
-and terminals per 100 characters per ASR model. Tune the thresholds from those numbers: 3
-sentences, 60/150-character gate, 100-character zh fallback, R = 8, 3 s timeout, 500 ms latency
-budget.
+and terminals per 100 characters per ASR model. Tune from those numbers: the default N, the gate's
+per-sentence constants (20 and 50 characters), the Chinese fallback's 33 characters per sentence,
+R = 8, the 3 s timeout and the 500 ms latency budget.
 
 ## Suggested phasing for the implementation plan
 
@@ -554,10 +570,35 @@ budget.
   - WebGPU availability in the extension side panel is unverified.
 - **GPU contention:** contention with local WebGPU ASR and translation (Voxtral, Qwen3-ASR, Qwen
   translation) on the same GPU is unmeasured.
-- **Small tuning corpus:** thresholds rest on 101 passages plus 10 per European language and 10
-  Russian. PostHog tuning is part of rollout.
+- **Small tuning corpus.** The corpus is 101 passages (zh 34 / 71 internal boundaries, ja 24 / 42,
+  en 23 / 36, ko 20 / 24) plus 10 passages and 14 boundaries for each of fr, de, es, pt and ru.
+  Where each threshold comes from:
+
+  | Threshold | Value | Basis |
+  |---|---|---|
+  | Right context | 8 characters | Measured: precision stops improving past R = 8 (streaming tables at R = 0/4/8/16); commit lag 9–14 characters |
+  | Sentences per bubble | 1–5, default 3 | Product choice, now a user setting |
+  | Model gate | N × 20 / N × 50 characters | Derived from corpus average sentence lengths; no experiment |
+  | Chinese fallback | N × 33 characters | Derived from FireRedPunc's 62% sentence-end rate; not tuned |
+  | Model window | ~300 characters | SaT degrades past 510 subwords (511 → 984 ms, 1,020 → 4.5 s); FireRedPunc caps at 512 tokens; Edge at 200 pieces per row |
+  | Inference timeout | 3 s | Engineering default |
+  | Latency budget | 500 ms median | Reference points measured (WASM ×4 zh 480 chars 394 ms; WebGPU 27 ms); the budget itself is a default |
+  | Disable rule | 3 failures / 2 crashes | Engineering default |
+  | Idle unload | 2 minutes | Engineering default |
+  | Memory guard | `deviceMemory` ≤ 4 GB | Engineering default |
+
+  Model-internal thresholds are left at upstream defaults on purpose (SaT 0.25; Edge and
+  FireRedPunc take the argmax), so nothing is fitted to this corpus.
+
+  **Korean is the weakest fit:** its average sentence is 16 characters, so N = 3 is ~48, below the
+  60-character gate, and Korean will seal later than the other languages. A 50-character constant
+  would fit better but has no measurement behind it.
+
+- **Tune before release with recorded deltas.** The 11 GPT-Live spike sessions in the corpus carry
+  real delta sequences and timings. Replaying them through the stage at several threshold sets
+  measures seal counts, commit lag and false cuts without waiting for production data.
 - **Undercounted Chinese sentences:** FireRedPunc's 62% sentence-end rate is why D8 exists; if bubbles
-  still read long, lower the 100-character fallback.
+  still read long, lower the fallback's 33 characters per sentence.
 - **ASR rewrites:** how often sherpa partials rewrite text more than 8 characters back is unmeasured;
   re-anchoring covers correctness, not frequency.
 - **Hosting is outward:** hosting the converted models is an outward publication and needs explicit
