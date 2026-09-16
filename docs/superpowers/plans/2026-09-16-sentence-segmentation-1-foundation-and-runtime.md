@@ -1732,6 +1732,27 @@ describe('SaT sentencesFrom', () => {
   });
 });
 
+describe('SaT markBoundaries', () => {
+  it('puts the mark before the space the boundary left behind', () => {
+    expect(markBoundaries(['one ', 'two three'], '.')).toEqual({
+      text: 'one. two three',
+      sentenceEnds: [4],
+    });
+  });
+  it('does not invent a space where the input had none', () => {
+    expect(markBoundaries(['今日はいい天気です', '散歩に行きましょう'], '。')).toEqual({
+      text: '今日はいい天気です。散歩に行きましょう',
+      sentenceEnds: [10],
+    });
+  });
+  it('never marks the last segment', () => {
+    expect(markBoundaries(['only one'], '.')).toEqual({ text: 'only one', sentenceEnds: [] });
+  });
+  it('skips the blank segments consecutive newlines produce', () => {
+    expect(markBoundaries(['one', '', 'two'], '.')).toEqual({ text: 'one.two', sentenceEnds: [4] });
+  });
+});
+
 describe('SaT joinSegments', () => {
   it('drops one trailing space per cut segment', () => {
     expect(joinSegments(['one ', 'two'])).toBe('one\ntwo');
@@ -1777,17 +1798,12 @@ export function createSatAdapter(): PunctuationAdapter {
     },
     async run(text) {
       const segments = /* split(text) as in the benchmark */ [] as string[];
-      // A boundary carries no mark of its own. Writing one terminal per cut
-      // keeps the PunctuationResult contract — "input characters with marks
-      // inserted" — and gives SentenceStream something to count. The mark is
-      // chosen by script so a Japanese bubble does not end in a Latin period.
+      // The mark is chosen by script so a Japanese bubble does not end in a
+      // Latin period. Chosen once for the whole call: a mostly-Latin tail
+      // carrying one stray fullwidth character will take 。 throughout, which
+      // is rare enough to accept.
       const terminal = /[　-鿿＀-￯]/.test(text) ? '。' : '.';
-      let out = '';
-      const sentenceEnds: number[] = [];
-      segments.forEach((seg, i) => {
-        out += seg;
-        if (i < segments.length - 1) { out += terminal; sentenceEnds.push(out.length); }
-      });
+      const { text: out, sentenceEnds } = markBoundaries(segments, terminal);
       return { text: out, sentenceEnds, breakpoints: [...sentenceEnds], model: 'sat-3l-sm' };
     },
     async release() { await session?.release?.(); session = null; tokenizer = null; },
@@ -1795,7 +1811,49 @@ export function createSatAdapter(): PunctuationAdapter {
 }
 ```
 
-Note for the implementer: the adapter must **not** append a terminal after the last segment. The final mark is the utterance end's job, and a mark at the very end of a tail is never trusted by `SentenceStream` anyway.
+`markBoundaries` is the only logic in this adapter that is not ported from the benchmark, so it is exported and pure — the same treatment `sentencesFrom` and `joinSegments` already get, and the reason they are testable without a model:
+
+```typescript
+/**
+ * Turn SaT's segments into text with marks, and report where they landed.
+ *
+ * Exported and pure because it is the one piece of this adapter with no
+ * upstream to be faithful to, and it is where the mistakes live.
+ *
+ * Spacing: `sentencesFrom` leaves the whitespace that followed a boundary on
+ * the END of the preceding segment, so the mark goes before that space — and
+ * a segment that had no trailing space must not gain one. Japanese has none,
+ * and inventing one puts `です。 散歩` in the bubble, which is neither an input
+ * character nor a mark and disagrees with how FireRedPunc writes the same 。
+ * A newline-derived cut therefore yields `one.two` rather than `one. two`:
+ * running two Latin words together reads worse, but inventing a character the
+ * ASR never produced is the thing the contract forbids.
+ *
+ * The last segment never takes a terminal. The utterance end supplies it, and
+ * `SentenceStream` distrusts a mark at the very end of a tail anyway.
+ */
+export function markBoundaries(
+  segments: string[],
+  terminal: string,
+): { text: string; sentenceEnds: number[] } {
+  // Blank segments come from consecutive or leading input newlines. Marking
+  // one emits a freestanding terminal with no sentence in front of it, and
+  // leaving one at the end would make the real last segment take a mark.
+  const real = segments.filter((s) => s.length > 0);
+  const sentenceEnds: number[] = [];
+  let text = '';
+  real.forEach((seg, i) => {
+    const isLast = i === real.length - 1;
+    const hadSpace = !isLast && seg.endsWith(' ');
+    text += hadSpace ? seg.slice(0, -1) : seg;
+    if (isLast) return;
+    text += terminal;
+    sentenceEnds.push(text.length);
+    if (hadSpace) text += ' ';
+  });
+  return { text, sentenceEnds };
+}
+```
 
 - [ ] **Step 5: Run the tests and the typecheck**
 
