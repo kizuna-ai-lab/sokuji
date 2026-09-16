@@ -297,6 +297,10 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
               }}
             >
               <option value="" disabled>{t('engineUi.importChooseModel', 'Choose a model to import')}</option>
+              {/* Punctuation models are managed from the Sentence segmentation
+                  section and downloaded on demand, so they are not importable
+                  here. Without this the picker would offer them as if they
+                  were engines. */}
               {MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation').map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
