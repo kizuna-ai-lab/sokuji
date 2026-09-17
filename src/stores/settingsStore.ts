@@ -115,6 +115,12 @@ export interface CommonSettings {
   textOnly: boolean;
   keepReplayAudio: boolean;
   diagnosticLogs: boolean;
+  /** The sentence segmentation stage. On by default; see the design's D12. */
+  sentenceSegmentation: boolean;
+  /** How many sentences fill one bubble. 1-5, clamped on read. */
+  sentenceSegmentationChunkSentences: number;
+  /** The first background model download has already been announced once. */
+  sentenceSegmentationNoticeShown: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 }
@@ -134,6 +140,25 @@ interface CacheEntry {
 
 // ==================== Default Values ====================
 
+/**
+ * The only place 1-5 is enforced.
+ *
+ * This is CommonSettings' first numeric field, and it reaches a SentenceStream
+ * that multiplies it into three thresholds. A value from an older build, a
+ * corrupted store or a hand-edited settings file must never get that far, so
+ * the clamp sits on the read and on the write rather than in the picker.
+ */
+export function clampChunkSentences(value: unknown): number {
+  // `null` means the setting is absent, so it takes the default like
+  // `undefined` does. Without this line it would fall through to
+  // `Number(null) === 0` and clamp up to 1, silently halving the smallest
+  // bubble for anyone whose stored value went missing.
+  if (value === null || value === undefined) return 3;
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return 3;
+  return Math.min(5, Math.max(1, n));
+}
+
 const defaultCommonSettings: CommonSettings = {
   provider: Provider.OPENAI,
   uiLanguage: 'en',
@@ -141,6 +166,9 @@ const defaultCommonSettings: CommonSettings = {
   textOnly: false,
   keepReplayAudio: false,
   diagnosticLogs: false,
+  sentenceSegmentation: true,
+  sentenceSegmentationChunkSentences: 3,
+  sentenceSegmentationNoticeShown: false,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -274,6 +302,13 @@ export interface SettingsStore {
   // the title bar offers no logs button.
   diagnosticLogs: boolean;
 
+  /** The sentence segmentation stage. On by default; see the design's D12. */
+  sentenceSegmentation: boolean;
+  /** How many sentences fill one bubble. 1-5, clamped on read. */
+  sentenceSegmentationChunkSentences: number;
+  /** The first background model download has already been announced once. */
+  sentenceSegmentationNoticeShown: boolean;
+
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
@@ -295,6 +330,9 @@ export interface SettingsStore {
   setTextOnly: (textOnly: boolean) => void;
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
+  setSentenceSegmentation: (enabled: boolean) => Promise<void>;
+  setSentenceSegmentationChunkSentences: (n: number) => Promise<void>;
+  markSentenceSegmentationNoticeShown: () => void;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   enterSubtitleMode: () => Promise<void>;
@@ -751,6 +789,33 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    setSentenceSegmentation: async (sentenceSegmentation) => {
+      const previous = get().sentenceSegmentation;
+      set({sentenceSegmentation});
+      if (!await persistSetting('settings.common.sentenceSegmentation', sentenceSegmentation)) {
+        set({sentenceSegmentation: previous});
+      }
+    },
+
+    setSentenceSegmentationChunkSentences: async (n) => {
+      const previous = get().sentenceSegmentationChunkSentences;
+      const clamped = clampChunkSentences(n);
+      set({sentenceSegmentationChunkSentences: clamped});
+      if (!await persistSetting('settings.common.sentenceSegmentationChunkSentences', clamped)) {
+        set({sentenceSegmentationChunkSentences: previous});
+      }
+    },
+
+    // A seen-marker, not a preference: fire and forget with no rollback, the
+    // same shape as audioStore's markParticipantTapAudioSeen. Showing the
+    // notice twice after a failed write is a smaller harm than a dialog that
+    // blocks on storage.
+    markSentenceSegmentationNoticeShown: () => {
+      if (get().sentenceSegmentationNoticeShown) return;
+      set({sentenceSegmentationNoticeShown: true});
+      void persistSetting('settings.common.sentenceSegmentationNoticeShown', true);
+    },
+
     setSpeakerDisplayMode: async (speakerDisplayMode) => {
       const previous = get().speakerDisplayMode;
       set({speakerDisplayMode});
@@ -1169,6 +1234,11 @@ const useSettingsStore = create<SettingsStore>()(
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
+        const sentenceSegmentation = await service.getSetting('settings.common.sentenceSegmentation', defaultCommonSettings.sentenceSegmentation);
+        const sentenceSegmentationChunkSentences = clampChunkSentences(
+          await service.getSetting('settings.common.sentenceSegmentationChunkSentences', defaultCommonSettings.sentenceSegmentationChunkSentences),
+        );
+        const sentenceSegmentationNoticeShown = await service.getSetting('settings.common.sentenceSegmentationNoticeShown', defaultCommonSettings.sentenceSegmentationNoticeShown);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
         // Subtitle settings now hydrated by subtitleStore.hydrate(); see stores/subtitleStore.ts.
@@ -1230,6 +1300,9 @@ const useSettingsStore = create<SettingsStore>()(
           textOnly,
           keepReplayAudio,
           diagnosticLogs,
+          sentenceSegmentation,
+          sentenceSegmentationChunkSentences,
+          sentenceSegmentationNoticeShown,
           speakerDisplayMode,
           participantDisplayMode,
           ...loadedSlices,
@@ -1447,6 +1520,12 @@ export const useTextOnly = () => useSettingsStore((state) => state.textOnly);
 export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepReplayAudio);
 export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
 export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
+export const useSentenceSegmentation = () => useSettingsStore((state) => state.sentenceSegmentation);
+export const useSetSentenceSegmentation = () => useSettingsStore((state) => state.setSentenceSegmentation);
+export const useSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.sentenceSegmentationChunkSentences);
+export const useSetSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.setSentenceSegmentationChunkSentences);
+export const useSentenceSegmentationNoticeShown = () => useSettingsStore((state) => state.sentenceSegmentationNoticeShown);
+export const useMarkSentenceSegmentationNoticeShown = () => useSettingsStore((state) => state.markSentenceSegmentationNoticeShown);
 
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);
