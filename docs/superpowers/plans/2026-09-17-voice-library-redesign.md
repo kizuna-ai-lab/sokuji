@@ -14,6 +14,7 @@
 
 - **English only** in code, comments, docstrings and commit messages. Chat stays Chinese; the repo stays English.
 - **TDD.** Write the failing test, run it, see it fail for the stated reason, then implement. A test that passes before the implementation is a *guard* and this plan labels it as such.
+- **`fireEvent`, never `@testing-library/user-event`.** That package is NOT a dependency of this project — it is absent from root `package.json` and from `node_modules`, and no file in `src` imports it. 64 existing suites use `fireEvent` from `@testing-library/react`. The idioms, taken from those suites and from `VoicePicker.test.tsx` (which ports this plan's own first suite and passes): open the picker with `fireEvent.click(screen.getByRole('button', { expanded: false }))`; type with `fireEvent.change(input, { target: { value: 'x' } })`; commit an inline edit with `fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })`; choose a facet with `fireEvent.change(screen.getByLabelText(/gender/i), { target: { value: 'male' } })`; press a key with `fireEvent.keyDown(el, { key: 'ArrowDown' })`. `fireEvent` is synchronous, so drop the `await`s a `userEvent` version would need — EXCEPT where the code under test defers work (a `requestAnimationFrame`, a promise), which needs `await vi.waitFor(() => expect(…))`. Fire `Escape` at the node whose listener you mean: `document` for floating-ui's `useDismiss` (`AuthOverlay.test.tsx:71`), `window` for the two modals, which add their own listener the way `ModelImportModal.test.tsx:114` does.
 - **Error handling policy** (`CLAUDE.md`): never add `console.error` / `console.warn` to `src/components`; existing `console.warn` calls that MOVE with code keep their exact text and count (`src/lib/diagnostics/consoleLedger.consistency.test.ts` pins per-file counts — moving a call between files means updating that ledger in the same commit).
 - **`previewable` semantics** (spec §4.1): the component renders ▶ iff `onPreview && entry.previewable && !entry.disabled`. Absent = inherit the group default: `custom` → true, `builtin` → false.
 - **Removed capability fields** (spec §2.7, §4.2): `presentation` and `curation` disappear from `VoiceLibraryCapability`; so do `renderRow`, the show-all expander, `showAll`/`showFewer` copy, and `supportsBaseSelect` usage *in this component* (`ProviderSection` keeps its own).
@@ -360,6 +361,14 @@ Create `src/components/Settings/sections/VoicePicker.test.tsx`:
 ```tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup, within } from '@testing-library/react';
+// STALE — DO NOT COPY THE INTERACTIONS BELOW. Task 3 is complete, and its
+// committed suite (`src/components/Settings/sections/VoicePicker.test.tsx`)
+// drives everything with `fireEvent`, because `@testing-library/user-event` is
+// not a dependency of this project. The assertions in this block are the ones
+// that shipped; only the interaction mechanism differs. Read the committed file
+// for the real idioms, and see this plan's Global Constraints. Left here
+// unrewritten on purpose: the code is the record for a finished task, and
+// editing 21 dead lines would only invite a diff nobody needs.
 import userEvent from '@testing-library/user-event';
 import VoicePicker from './VoicePicker';
 
@@ -1068,45 +1077,56 @@ describe('VoicePicker keyboard', () => {
 
   it('moves between rows with the arrow keys and lands on the name cell', async () => {
     render(<VoicePicker {...base} voices={THREE} onPreview={vi.fn()} />);
-    await userEvent.click(screen.getByRole('button', { expanded: false }));
-    await userEvent.keyboard('{ArrowDown}');
-    expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus();
-    await userEvent.keyboard('{ArrowDown}');
-    expect(screen.getByRole('gridcell', { name: 'Isla' })).toHaveFocus();
-    await userEvent.keyboard('{ArrowUp}');
-    expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Isla' })).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'ArrowUp' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus());
   });
 
   it('moves within a row with left and right', async () => {
     render(<VoicePicker {...base} voices={THREE} onPreview={vi.fn()} />);
-    await userEvent.click(screen.getByRole('button', { expanded: false }));
-    await userEvent.keyboard('{ArrowDown}{ArrowRight}');
-    expect(screen.getAllByRole('button', { name: /play/i })[0]).toHaveFocus();
-    await userEvent.keyboard('{ArrowLeft}');
-    expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    fireEvent.keyDown(grid, { key: 'ArrowRight' });
+    await vi.waitFor(() => expect(screen.getAllByRole('button', { name: /play/i })[0]).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'ArrowLeft' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus());
   });
 
   it('jumps to the first and last row with Home and End', async () => {
     render(<VoicePicker {...base} voices={THREE} />);
-    await userEvent.click(screen.getByRole('button', { expanded: false }));
-    await userEvent.keyboard('{End}');
-    expect(screen.getByRole('gridcell', { name: 'Victoria' })).toHaveFocus();
-    await userEvent.keyboard('{Home}');
-    expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'End' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Victoria' })).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'Home' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus());
   });
 
   it('jumps to a row by typing its first letters — the search box we did not build', async () => {
     render(<VoicePicker {...base} voices={THREE} />);
-    await userEvent.click(screen.getByRole('button', { expanded: false }));
-    await userEvent.keyboard('vi');
-    expect(screen.getByRole('gridcell', { name: 'Victoria' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    // One keyDown per character: the buffer is what turns 'v' + 'i' into a
+    // two-character match, so a single synthetic event would not exercise it.
+    fireEvent.keyDown(grid, { key: 'v' });
+    fireEvent.keyDown(grid, { key: 'i' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Victoria' })).toHaveFocus());
   });
 
   it('selects with Enter and closes', async () => {
     const onSelect = vi.fn();
     render(<VoicePicker {...base} voices={THREE} onSelect={onSelect} />);
-    await userEvent.click(screen.getByRole('button', { expanded: false }));
-    await userEvent.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    fireEvent.keyDown(grid, { key: 'Enter' });
     expect(onSelect).toHaveBeenCalledWith('builtin:Isla');
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
@@ -1114,15 +1134,24 @@ describe('VoicePicker keyboard', () => {
   it('closes on Escape and gives focus back to the trigger', async () => {
     render(<VoicePicker {...base} voices={THREE} />);
     const trigger = screen.getByRole('button', { expanded: false });
-    await userEvent.click(trigger);
-    await userEvent.keyboard('{Escape}');
+    fireEvent.click(trigger);
+    // `document`, not the grid: this Escape is handled by floating-ui's
+    // `useDismiss`, which binds its listener to the document.
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
+    await vi.waitFor(() => expect(trigger).toHaveFocus());
   });
 });
 ```
 
 - [ ] **Step 2: Run them and watch them fail**
+
+Note what `await vi.waitFor(…)` is doing in every focus assertion above, and do
+not "simplify" it away: `focusActive` moves DOM focus inside a
+`requestAnimationFrame` (so the row that is about to be active is the one it
+reaches into), while `fireEvent` returns synchronously. A bare
+`expect(...).toHaveFocus()` therefore runs before the frame callback and fails
+for a reason that has nothing to do with the keyboard model.
 
 Run: `npx vitest run src/components/Settings/sections/VoicePicker.test.tsx -t keyboard`
 Expected: 5 of 6 FAIL on focus, and read the sixth carefully. Nothing takes
@@ -1304,8 +1333,7 @@ Create `src/components/Settings/sections/VoiceCreateModal.test.tsx`:
 
 ```tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import VoiceCreateModal from './VoiceCreateModal';
 
 const base = { isOpen: true, onClose: vi.fn(), capability: { importModes: ['upload'] as ('upload' | 'record')[] } };
@@ -1338,7 +1366,7 @@ describe('VoiceCreateModal', () => {
       />,
     );
     expect(screen.getByRole('button', { name: /import voice/i })).toBeDisabled();
-    await userEvent.type(screen.getByRole('textbox', { name: /transcript/i }), 'hello there');
+    fireEvent.change(screen.getByRole('textbox', { name: /transcript/i }), { target: { value: 'hello there' } });
     expect(screen.getByRole('button', { name: /import voice/i })).toBeEnabled();
   });
 
@@ -1347,8 +1375,8 @@ describe('VoiceCreateModal', () => {
     render(<VoiceCreateModal {...base} onImport={onImport} />);
     const file = new File([new Uint8Array([1, 2, 3])], 'voice.wav', { type: 'audio/wav' });
     const zone = screen.getByTestId('voice-create-drop');
-    // fireEvent-style drop through userEvent's clipboard-free path: construct
-    // the DataTransfer the handler reads.
+    // jsdom has no DataTransfer, so construct the shape the handler reads and
+    // dispatch the drop directly.
     const dataTransfer = { files: [file], types: ['Files'] } as unknown as DataTransfer;
     zone.dispatchEvent(Object.assign(new Event('drop', { bubbles: true }), { dataTransfer }));
     await vi.waitFor(() => expect(onImport).toHaveBeenCalledTimes(1));
@@ -1370,11 +1398,14 @@ describe('VoiceCreateModal', () => {
   it('closes on Escape, on the backdrop, and on Cancel — but not on a click inside', async () => {
     const onClose = vi.fn();
     render(<VoiceCreateModal {...base} onClose={onClose} onImport={vi.fn()} />);
-    await userEvent.click(screen.getByRole('dialog'));
+    fireEvent.click(screen.getByRole('dialog'));
     expect(onClose).not.toHaveBeenCalled();
-    await userEvent.keyboard('{Escape}');
+    // `window`, not `document`: this modal adds its own Escape listener the way
+    // `ModelImportModal` does (`ModelImportModal.test.tsx:114` fires it the same
+    // way). Nothing here goes through floating-ui.
+    fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
@@ -1533,8 +1564,7 @@ Create `src/components/Settings/sections/VoiceDeleteModal.test.tsx`:
 
 ```tsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import VoiceDeleteModal from './VoiceDeleteModal';
 
 beforeEach(() => { vi.clearAllMocks(); cleanup(); });
@@ -1557,14 +1587,14 @@ describe('VoiceDeleteModal', () => {
     const { rerender } = render(
       <VoiceDeleteModal target={{ id: 'custom:1', label: 'Mine' }} onClose={onClose} onConfirm={onConfirm} />,
     );
-    await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
     expect(onConfirm).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
 
     rerender(<VoiceDeleteModal target={{ id: 'custom:1', label: 'Mine' }} onClose={onClose} onConfirm={onConfirm} />);
     // `/^delete$/i` and not `/delete/i`: the dialog's own accessible name is
     // "Delete voice", so a loose matcher hits two elements and throws.
-    await userEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
     expect(onConfirm).toHaveBeenCalledWith('custom:1');
   });
 });
@@ -1735,7 +1765,7 @@ case that asserted on the `<select>`, the optgroups, the manage block or the
 show-all expander.
 
 `VoiceLibrarySection.facets.test.tsx`: change its renders to open the picker
-first (`await userEvent.click(screen.getByRole('button', { expanded: false }))`)
+first (`fireEvent.click(screen.getByRole('button', { expanded: false }))`)
 and query inside `screen.getByRole('grid')`. Keep all 17 assertions: they are
 about filtering semantics, which did not change.
 
@@ -2048,9 +2078,9 @@ Write the failing list into your report before touching anything.
 In `LocalInferenceVoiceSection.test.tsx`:
 
 ```tsx
-  it('offers no audition control for Supertonic presets', async () => {
+  it('offers no audition control for Supertonic presets', () => {
     render(<LocalInferenceVoiceSection {...props} engine="supertonic" />);
-    await userEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
     expect(screen.queryByRole('button', { name: /play/i })).not.toBeInTheDocument();
   });
 ```
