@@ -150,19 +150,29 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     setPlayingId(null);
   }, []);
 
-  // The second parameter and the return value exist only to satisfy
-  // VoicePicker's `onPreview` prop type — the picker calls this with its OWN
-  // per-row AbortController and never reads what it resolves to (it only
-  // `.catch()`es a rejection; see VoicePicker.tsx's preview button). The
-  // REAL cancellation channel stays the one already below: `stopPreview()`
-  // at the top of every call aborts whatever this component's own
-  // `previewAbortRef`/`previewTokenRef` were tracking, regardless of the
-  // picker's signal, so a second row's click still supersedes the first's
-  // in-flight request correctly — proven by this file's own "aborts an
-  // in-flight preview when the user starts another one" case.
+  // The return value exists only to satisfy VoicePicker's `onPreview` prop
+  // type — the picker never reads what this resolves to (it only
+  // `.catch()`es a rejection; see VoicePicker.tsx's preview button). But the
+  // `signal` PARAMETER is honoured, not ignored: the picker aborts its own
+  // controller on the next click and on its own unmount (VoicePicker.tsx),
+  // and closing the popover must cancel too — a synthesized sample is
+  // billed to the user (Soniox), so a request the user has abandoned must
+  // never be left to resolve and start playback into a popover that is
+  // already gone, with no reachable Stop control. `stopPreview` IS the
+  // cancellation path `signal`'s abort listener uses below: it bumps the
+  // token (invalidating `token`, so the superseded-check after the `await`
+  // catches it too), aborts this SAME `controller` (reaching the underlying
+  // `onPreview` call so the network request itself is cancelled, not just
+  // its result discarded), and stops any playback already under way. A
+  // second row's click still supersedes the first's in-flight request via
+  // the unconditional `stopPreview()` call at the top of every invocation
+  // (proven by this file's own "aborts an in-flight preview when the user
+  // starts another one" case) — the listener below is what closes the gap
+  // that left, the same cancellation reaching a preview the user dismissed
+  // without starting another one.
   const togglePreview = useCallback(async (
     id: string,
-    _signal?: AbortSignal,
+    signal?: AbortSignal,
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
     if (playingId === id) { stopPreview(); return null; }
     stopPreview();
@@ -171,12 +181,19 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     const controller = new AbortController();
     previewAbortRef.current = controller;
     setPreviewLoadingId(id);
+    // Removed on every exit below — success, error, or the abort itself
+    // (`{ once: true }`) — so no listener from a past call ever outlives it.
+    // Precedent: `voiceLibrarySource.ts`'s `retryDelay`/`waitTurn`, whose own
+    // comments spell out the same "every exit, not just the wait-wins path"
+    // requirement for the same reason.
+    signal?.addEventListener('abort', stopPreview, { once: true });
     let payload: { audio: Float32Array; sampleRate: number } | null = null;
     try {
       payload = await onPreview(id, controller.signal);
     } catch {
       payload = null;
     } finally {
+      signal?.removeEventListener('abort', stopPreview);
       if (previewAbortRef.current === controller) previewAbortRef.current = null;
       // Only the newest request owns the spinner — a superseded one must not
       // clear a spinner that now belongs to another row.

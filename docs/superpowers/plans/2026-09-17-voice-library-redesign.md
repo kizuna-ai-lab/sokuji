@@ -1817,6 +1817,19 @@ is the only thing standing between a typo and an unstyled control.
 state off the file rather than from this sentence: an earlier draft called it
 `loadingId`, but the setter is `setPreviewLoadingId` (`:182`) and the state is
 named to match, so grep before you wire it into the picker's `loadingId` prop.
+
+**`togglePreview` must HONOUR the picker's abort signal, not merely accept it.**
+`VoicePicker`'s `onPreview` is `(id, signal?) => Promise<…>` while the section's
+`togglePreview` is `(id) => Promise<void>`, so it has to gain the parameter to
+type-check — and adding `_signal?` and ignoring it is the trap. The picker
+aborts its controller on unmount (`VoicePicker.tsx:91-94`) and on the next click
+(`:516`), and closing the popover unmounts the floating content; so a section
+that ignores the signal loses popover-close cancellation entirely. The request
+runs on, resolves, the token still matches, and playback starts into a dismissed
+popover with no reachable Stop — and for a managed voice that preview was billed.
+Wire the passed signal into the same path `stopPreview()` takes (bump the token,
+abort the section's own controller, stop playback) and remove the listener on
+every exit including the error path.
 Also kept: the
 capture-error-free render, and now three children plus two pieces of modal
 state:

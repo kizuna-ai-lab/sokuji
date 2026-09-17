@@ -90,6 +90,62 @@ describe('VoiceLibrarySection', () => {
     expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
   });
 
+  it('aborts an in-flight preview when the user starts another one', async () => {
+    stubWebAudio();
+    const signals: AbortSignal[] = [];
+    const onPreview = vi.fn((_id: string, signal?: AbortSignal) => {
+      if (signal) signals.push(signal);
+      return new Promise<any>(() => {}); // never settles
+    });
+
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[
+          { id: 'custom:1', label: 'First', group: 'custom', removable: true },
+          { id: 'custom:2', label: 'Second', group: 'custom', removable: true },
+        ]}
+        capability={{ importModes: ['record'] }}
+        onPreview={onPreview}
+      />,
+    );
+    openPicker();
+
+    const [firstBtn, secondBtn] = screen.getAllByRole('button', { name: /^play$/i });
+    fireEvent.click(firstBtn);
+    await waitFor(() => expect(signals).toHaveLength(1));
+    expect(signals[0].aborted).toBe(false);
+
+    fireEvent.click(secondBtn);
+    await waitFor(() => expect(signals[0].aborted).toBe(true));
+  });
+
+  it('aborts an in-flight preview on unmount', async () => {
+    stubWebAudio();
+    const signals: AbortSignal[] = [];
+    const onPreview = vi.fn((_id: string, signal?: AbortSignal) => {
+      if (signal) signals.push(signal);
+      return new Promise<any>(() => {});
+    });
+
+    const { unmount } = render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['record'] }}
+        onPreview={onPreview}
+      />,
+    );
+    openPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+    unmount();
+    expect(signals[0].aborted).toBe(true);
+  });
+
   it('gates the play control on previewable, reaching the picker unchanged', () => {
     render(
       <VoiceLibrarySection

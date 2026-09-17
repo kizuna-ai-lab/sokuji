@@ -44,9 +44,9 @@ import type { VoiceEntry } from './VoiceLibrarySection';
 // facet-value assertion below is therefore against `humanizeFacetValue`'s
 // fallback text, not a real translation. That's deliberate and matches this
 // file's pre-Task-6 precedent — proving the KEYED lookup itself reaches the
-// real locale (as opposed to `humanizeFacetValue` alone) needs a REAL
-// `react-i18next`, so that proof lives in VoicePicker.test.tsx instead
-// ('translates a facet value via the locale catalog...'), and
+// real locale (as opposed to `humanizeFacetValue` alone) needs a `t` that can
+// tell the two apart, so that proof lives in
+// `VoicePicker.facetTranslation.test.tsx` instead, and
 // locales.consistency.test.ts is what pins that every facet value has a key
 // in every catalog.
 vi.mock('react-i18next', () => ({
