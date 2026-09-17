@@ -4,6 +4,7 @@ import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 // Type-only, so this adds no runtime edge from the shared descriptor module to
 // SonioxClient's dependency graph (i18n, the wire components).
 import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from '../clients/ManagedSonioxSession';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /** Transport for realtime providers. Moved here from settingsStore so the
  *  services layer no longer imports from stores. settingsStore re-exports it. */
@@ -69,6 +70,24 @@ export type ClientOptions = {
      */
     announcesSessionOutcome?: boolean;
   };
+  /**
+   * The sentence segmentation stage, shared by both legs and every provider.
+   *
+   * Absent or disabled means today's behaviour exactly: a client that receives
+   * no runtime never seals and never calls a model. Clients never construct
+   * one — MainPanel owns the single instance (useSegmentationRuntime) so no
+   * client has to import a store.
+   */
+  segmentation?: SegmentationRuntime | null;
+  /**
+   * How many sentences fill one bubble (1-5, already clamped by the store).
+   *
+   * It rides here rather than being read from the store by each client for
+   * the same reason `segmentation` does: a client that imports a store cannot
+   * be unit-tested with a fake, and would also start re-rendering on a
+   * setting the running session must not react to.
+   */
+  sentencesPerChunk?: number;
 };
 
 export interface BothModePlan {
