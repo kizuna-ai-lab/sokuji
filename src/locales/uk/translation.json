@@ -287,7 +287,7 @@
     "sentenceSegmentationChunkEffect": "У довгому мовленні нова бульбашка починається кожні {{count}} речень.",
     "sentenceSegmentationLowMemory": "На цьому пристрої недостатньо пам'яті для завантаження моделі сегментації.",
     "sentenceSegmentationModelInUse": "Використовується поточними мовами",
-    "sentenceSegmentationModelLoading": "Підготовка…",
+    "sentenceSegmentationModelLoading": "Завантаження…",
     "sentenceSegmentationModelUnavailable": "Недоступно в цьому сеансі",
     "langSentence": {
       "iSpeak": "Я говорю",
