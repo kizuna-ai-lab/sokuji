@@ -638,8 +638,8 @@ export class LocalInferenceClient implements IClient {
 
   /**
    * True when `text` looks like a truncated re-decode of the SAME utterance
-   * that `previousRaw` already captured more of — i.e., `text` is a raw
-   * prefix of `previousRaw` — rather than genuinely different content.
+   * that `previousRaw` already captured more of — i.e., `text` is a prefix
+   * of `previousRaw` — rather than genuinely different content.
    *
    * Used wherever a new ASR result would otherwise slice to an empty
    * relative tail (see handlePartialAsrResult/handleAsrResult): a seal
@@ -649,6 +649,17 @@ export class LocalInferenceClient implements IClient {
    * this fallback) can land at or below the cursor while still beginning
    * with the same words.
    *
+   * Compares TRIMMED forms, not raw ones: `voxtral-3b-webgpu.worker.ts` and
+   * `cohere-transcribe-webgpu.worker.ts` both build the accumulated partial
+   * from `TextStreamer`'s untrimmed token deltas (`accumulatedText += token`)
+   * but `.trim()` only the final. An anchored `startsWith` on the raw strings
+   * is exactly wrong at that edge — a leading-whitespace token would make a
+   * genuine truncation read as divergence, re-sealing and re-queuing a job
+   * for text already sealed. Trimming only inside this comparison is safe:
+   * the return value is a plain boolean, so no offset math anywhere
+   * downstream ever sees a trimmed string — `sealedChars` and every slice
+   * still operate on the untrimmed raw text exactly as before.
+   *
    * SentenceStream's own notion of "same utterance" is skeleton-based
    * (letters/digits only, case-folded — see sentenceEnd.ts's `skeleton()`,
    * used by SentenceStream.applyResult's stale-answer check). `skeleton()`
@@ -656,11 +667,12 @@ export class LocalInferenceClient implements IClient {
    * it IS reachable from here — but deliberately not used: this client is
    * meant to interact with the segmentation stage only through
    * SentenceStream/SegmentationRuntime, not its internal comparison rules,
-   * and a raw-prefix check answers the narrow question asked here — is this
-   * final a truncation of the same utterance — just as well.
+   * and a trimmed-prefix check answers the narrow question asked here — is
+   * this final a truncation of the same utterance — just as well.
    */
   private isTruncationOfSameUtterance(text: string, previousRaw: string): boolean {
-    return text.length > 0 && previousRaw.startsWith(text);
+    const trimmedText = text.trim();
+    return trimmedText.length > 0 && previousRaw.trim().startsWith(trimmedText);
   }
 
   /** Finish the in-progress user bubble at the seal and queue its translation. */

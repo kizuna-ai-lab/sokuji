@@ -464,6 +464,49 @@ describe('LocalInferenceClient sentence segmentation', () => {
     expect(finalUserItems.every((i) => i.status === 'completed')).toBe(true);
   });
 
+  it('an overlapping final survives a leading-space asymmetry between the accumulated partial and the trimmed final', async () => {
+    // voxtral-3b-webgpu.worker.ts and cohere-transcribe-webgpu.worker.ts both
+    // build the accumulated partial from TextStreamer's untrimmed token
+    // deltas (accumulatedText += token) but .trim() only the final — so the
+    // shape a real canonical re-decode produces is an UNTRIMMED partial
+    // compared against a TRIMMED final. A raw (untrimmed) prefix check is
+    // anchored at exactly the edge where they differ: if the first decoded
+    // piece carries a leading space (a common SentencePiece/BPE quirk), an
+    // untrimmed startsWith reads a genuine truncation as divergence and
+    // reseals text that was already sealed. This case pins the trimmed
+    // comparison that avoids that.
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
+    const runtime = fakeRuntime(true);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 1 });
+    client.setEventHandlers({});
+    await client.connect(STREAM_CONFIG);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+    const engine = hoisted.streamingInstances[0];
+
+    // Leading space on the accumulated partial, as an untrimmed TextStreamer
+    // accumulation would produce.
+    const leadingSpacePartial = ' First sentence done. Second begins';
+    engine.onPartialResult(leadingSpacePartial);
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const sealedChars = (client as any).sealedChars as number;
+    expect(sealedChars).toBe(' First sentence done.'.length);
+
+    // The final is trimmed — no leading space — but is still a truncation of
+    // the SAME utterance the partial already established.
+    const trimmedFinal = 'First sentence done.';
+    expect(trimmedFinal.length).toBeLessThan(sealedChars); // naive slice would be ''
+    engine.onResult({ text: trimmedFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // No second job: this must still be recognised as the SAME utterance,
+    // not a fresh, different one.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const finalUserItems = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.length).toBe(2);
+    expect(finalUserItems.every((i) => i.status === 'completed')).toBe(true);
+  });
+
   it('a seal completes the in-progress item rather than creating a second in-progress one', async () => {
     setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
     const runtime = fakeRuntime(true);
