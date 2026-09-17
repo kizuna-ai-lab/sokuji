@@ -84,12 +84,21 @@ function fakeManagedClient(over: Partial<ManagedVoicesClient> = {}): ManagedVoic
     sessionKey: vi.fn(async () => ({ ttsApiKey: 'tk', region: 'us' as const })),
     previewDone: vi.fn().mockResolvedValue(undefined),
     ...over,
+    // `ManagedVoicesClient` is a CLASS with private fields (its constructor
+    // takes a `getToken`, and every network method is private) — no object
+    // literal can structurally satisfy that, private members included, so
+    // `as unknown as ManagedVoicesClient` is required to duck-type the six
+    // members `managedVoiceSource` actually calls. Same cast, same reason,
+    // as `voiceLibrarySource.test.ts`'s own `fakeClient`.
   } as unknown as ManagedVoicesClient;
 }
 
-const synthesizeMock = vi.fn();
+// Typed against the real signature so it can be injected directly into
+// managedVoiceSource's `synthesize` dependency (see the "auditions a preset"
+// test below) without an `as any` at the call site.
+const synthesizeMock = vi.fn<typeof synthesizeOnce>();
 vi.mock('../../../services/clients/SonioxTtsRest', () => ({
-  synthesizeOnce: (...args: unknown[]) => synthesizeMock(...args),
+  synthesizeOnce: (...args: Parameters<typeof synthesizeOnce>) => synthesizeMock(...args),
 }));
 
 const { default: SonioxVoiceSection } = await import('./SonioxVoiceSection');
@@ -323,8 +332,11 @@ describe('SonioxVoiceSection', () => {
     mount({ managed: true, source: null });
     expect(listMock).not.toHaveBeenCalled();
     openPicker();
-    expect(screen.queryByRole('button', { name: /refresh voice list/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /add a voice/i })).toBeNull();
+    // inGrid() (not bare `screen`): `screen.getByRole('grid')` inside it
+    // throws if the popover never actually opened, so this fails loudly
+    // instead of passing vacuously on a broken openPicker().
+    expect(inGrid().queryByRole('button', { name: /refresh voice list/i })).toBeNull();
+    expect(inGrid().queryByRole('button', { name: /add a voice/i })).toBeNull();
   });
 
   it('marks failed clones and offers no selection benefit (label carries the failed hint)', async () => {
@@ -843,6 +855,12 @@ describe('SonioxVoiceSection', () => {
     // No source, so the raw id is shown verbatim (see SonioxVoiceSection's
     // entries memo) rather than the "(deleted voice)" placeholder text.
     expect(screen.getByRole('button', { name: 'stale-uuid' })).toBeDisabled();
+    // Still grouped under "My Voices", not "Presets" — the picker's own
+    // group label is a `role="columnheader"` (VoicePicker.tsx:771-772), and
+    // this row must sit BEFORE the "Presets" header in the grid, in the
+    // clones section the placeholder was pushed into.
+    const presetsHeader = screen.getByRole('columnheader', { name: /Presets/i }).closest('[role="row"]')!;
+    expect(rowFor('stale-uuid').compareDocumentPosition(presetsHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   // A managed account with a healthy voice cannot replace it by recording
@@ -879,6 +897,16 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openCreateModal();
     expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
+    // The replace-restriction hint is reachable (manageNote renders inside
+    // this same modal — VoiceCreateModal.tsx:364) but must NOT appear here:
+    // creation genuinely is permitted in this state. Scoped to the dialog so
+    // it fences the actual regression (the hint leaking into a state where
+    // it doesn't belong) rather than a coincidental absence elsewhere.
+    expect(
+      within(screen.getByRole('dialog', { name: /add a voice/i })).queryByText(
+        /delete this voice before recording a new one/i
+      )
+    ).toBeNull();
   });
 
   it('BYOK keeps record/import with a healthy clone listed — the replace restriction is managed-only', async () => {
@@ -887,6 +915,13 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openCreateModal();
     expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
+    // Same reasoning as the managed/terminally-failed case above: the hint is
+    // Soniox-managed-only, so a BYOK create modal must never show it.
+    expect(
+      within(screen.getByRole('dialog', { name: /add a voice/i })).queryByText(
+        /delete this voice before recording a new one/i
+      )
+    ).toBeNull();
   });
 
   // Eviction is the NORMAL outcome of a small LRU cache serving unbounded
@@ -990,7 +1025,9 @@ describe('SonioxVoiceSection', () => {
     mount({ managed: true, source: fakeSource({ canPreview: false }) });
     await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
     openPicker();
-    expect(screen.queryByRole('button', { name: /add a voice/i })).toBeNull();
+    // Grid-scoped (see the comment on the same assertion above) so a broken
+    // openPicker() fails loudly instead of passing vacuously.
+    expect(inGrid().queryByRole('button', { name: /add a voice/i })).toBeNull();
   });
 
   it('BYOK keeps record/import after a failed list fetch — the unknown-list rule is managed-only', async () => {
@@ -1345,7 +1382,12 @@ describe('SonioxVoiceSection', () => {
   it('offers no preview affordance and no cost hint without an API key', async () => {
     mount({ settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 }, source: null });
     openPicker();
-    expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
+    // Grid-scoped so a broken openPicker() fails loudly instead of passing
+    // vacuously (see the comment on "managed mode renders built-ins only").
+    // The cost hint below is NOT scoped the same way: it renders inside
+    // VoiceCreateModal, never inside the grid at all, so this correctly
+    // stays a screen-level absence check regardless of popover state.
+    expect(inGrid().queryByRole('button', { name: /^play$/i })).toBeNull();
     expect(screen.queryByText(/your own Soniox quota/i)).toBeNull();
   });
 
@@ -1383,7 +1425,7 @@ describe('SonioxVoiceSection', () => {
     // pipeline a preview travels through — proving a PRESET's id reaches it
     // exactly the way a clone's UUID always has.
     const client = fakeManagedClient();
-    const source = managedVoiceSource(client, 'user-a', { synthesize: synthesizeMock as any });
+    const source = managedVoiceSource(client, 'user-a', { synthesize: synthesizeMock });
     mount({
       managed: true,
       source,
@@ -1398,17 +1440,40 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(client.previewDone).toHaveBeenCalledTimes(1));
   });
 
-  it('caches a preset audition per language and speed, so a second click costs nothing', async () => {
+  it('caches a preset audition per language and speed, but treats a changed speed as a cache miss', async () => {
+    // Fix round 1: the previous version of this case clicked twice at the
+    // SAME language+speed, which only proves a cache HIT, not that the cache
+    // is keyed on language/speed at all (a cache keyed on voice id alone
+    // would pass it too). This proves the keying: change one key component
+    // (speed here) with everything else — the source object included, so a
+    // source swap's own cache-clear effect can't be mistaken for this — held
+    // fixed, and a second synthesis must happen.
     listMock.mockResolvedValue([]);
-    mount();
+    const source = fakeSource();
+    const props = {
+      settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 },
+      onUpdate: vi.fn(),
+      source,
+      managed: false,
+      isSessionActive: false,
+    };
+    const { rerender } = render(<SonioxVoiceSection {...props} />);
     openPicker();
     const row = rowFor('Grace');
     fireEvent.click(within(row).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
     fireEvent.click(within(row).getByRole('button', { name: /^stop$/i }));
+
+    // Same key (same language, same speed): a second click is a cache hit.
     fireEvent.click(within(row).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(within(row).getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
     expect(synthesizeMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(row).getByRole('button', { name: /^stop$/i }));
+
+    // Now change ONLY the speed. A real cache miss, not a repeat.
+    rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, ttsSpeed: 1.2 }} />);
+    fireEvent.click(within(rowFor('Grace')).getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
   });
 
   it('stages the clip and opens the confirm modal once a file is captured from the create modal', async () => {
