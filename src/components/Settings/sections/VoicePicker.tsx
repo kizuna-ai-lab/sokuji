@@ -127,10 +127,23 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       // popover instead of running off-screen.
       size({
         padding: 8,
-        apply({ availableHeight, rects, elements }) {
+        apply({ availableHeight, availableWidth, rects, elements }) {
           Object.assign(elements.floating.style, {
             maxHeight: `${Math.max(160, Math.min(320, availableHeight))}px`,
             minWidth: `${rects.reference.width}px`,
+            // Without a maxWidth the popover's width is unbounded by the
+            // window: it grows to its widest row, and `shift` cannot rescue a
+            // box wider than the viewport. Measured headlessly at a 400px
+            // window (the browser-extension side panel's shape, where Settings
+            // does render): 583px wide in en/de, hanging 191px outside the
+            // viewport, and 792px in ja. `minWidth` still wins in CSS below a
+            // ~316px window, which is an acceptable floor.
+            //
+            // No unit test covers this and none can: jsdom has no layout, so
+            // getBoundingClientRect returns zeros and this apply() never sees
+            // a real availableWidth. The evidence is the Task 10 geometry
+            // harness (see task-10-geometry.md), not the suite.
+            maxWidth: `${availableWidth}px`,
           });
         },
       }),
