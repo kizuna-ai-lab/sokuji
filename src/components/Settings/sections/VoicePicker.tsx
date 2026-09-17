@@ -728,7 +728,24 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
         className="voice-picker__trigger"
         aria-expanded={open}
         aria-haspopup="dialog"
-        disabled={isSessionActive && !onPreview}
+        // Never disabled — not even mid-session. The popover is the ONLY way
+        // to reach import / rename / delete, and this section's contract
+        // (VoiceLibrarySection's `isSessionActive` doc comment) keeps those
+        // three open during a session so users can stage voices for the next
+        // one. A `disabled={isSessionActive && !onPreview}` here took the
+        // whole surface with it for any provider that passes no `onPreview`:
+        // Supertonic (LocalInferenceVoiceSection passes `importModes:
+        // ['upload']`, `onRename` and `onDelete`, never `onPreview`) and
+        // Soniox with no API key, where a returning user's existing clones
+        // became undeletable.
+        //
+        // Opening mid-session is safe because SELECTION — the one thing a
+        // live session must not change — is blocked per row instead, in both
+        // paths that can reach it: the name button's own
+        // `disabled={isSessionActive || v.disabled}` (see `row()`) and the
+        // `!isSessionActive` guard in `onGridKeyDown`'s `Enter` case.
+        // `VoicePicker.test.tsx` pins both, plus this trigger staying
+        // reachable with no `onPreview` at all.
         // `useClick(context)` already toggles `open` on click via
         // `onOpenChange` — an extra onClick handler here would run in the
         // SAME event after useClick's, reading the just-applied `true` and

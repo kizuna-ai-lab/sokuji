@@ -241,6 +241,49 @@ describe('VoicePicker', () => {
     expect(screen.getByRole('button', { name: 'Grace' })).toBeDisabled();
     expect(screen.getByRole('button', { name: /play/i })).toBeEnabled();
   });
+
+  // Final-review finding 1. The trigger used to carry
+  // `disabled={isSessionActive && !onPreview}`, which locked the ENTIRE
+  // surface for any provider that passes no `onPreview` — Supertonic
+  // (`LocalInferenceVoiceSection` passes `importModes: ['upload']`,
+  // `onRename` and `onDelete`, never `onPreview`) and Soniox with no API
+  // key. Starting a session left import, rename and delete unreachable,
+  // contradicting VoiceLibrarySection's own `isSessionActive` contract
+  // ("leaves import / rename / delete available so users can stage voices
+  // for their next session").
+  //
+  // The case above cannot catch it: it supplies `onPreview`, which is
+  // precisely the term that made the expression false there. This one
+  // supplies none — the Supertonic prop shape — and asserts the popover
+  // still opens and all three manage affordances are reachable, while
+  // SELECTION stays blocked (the one thing a live session must not change).
+  it('keeps the popover and its manage controls reachable mid-session for a provider with no onPreview', () => {
+    render(
+      <VoicePicker
+        {...base}
+        voices={[MINE, GRACE]}
+        onRename={vi.fn()}
+        onAddVoice={vi.fn()}
+        isSessionActive
+      />,
+    );
+    const trigger = screen.getByRole('button', { expanded: false });
+    expect(trigger).toBeEnabled();
+
+    fireEvent.click(trigger);
+    // Presence before absence: the popover must genuinely have opened before
+    // "the controls are reachable" means anything.
+    const grid = within(screen.getByRole('dialog')).getByRole('grid');
+    expect(within(grid).getByRole('button', { name: /rename/i })).toBeEnabled();
+    expect(within(grid).getByRole('button', { name: /delete/i })).toBeEnabled();
+    expect(within(grid).getByRole('button', { name: /add a voice/i })).toBeEnabled();
+    // No ▶ anywhere — this provider passes no onPreview at all, which is the
+    // condition that used to disable the trigger.
+    expect(within(grid).queryByRole('button', { name: /play/i })).not.toBeInTheDocument();
+    // Selection is still refused, per row rather than per surface.
+    expect(within(grid).getByRole('button', { name: 'Grace' })).toBeDisabled();
+    expect(within(grid).getByRole('button', { name: 'Mine' })).toBeDisabled();
+  });
 });
 
 describe('VoicePicker keyboard', () => {
