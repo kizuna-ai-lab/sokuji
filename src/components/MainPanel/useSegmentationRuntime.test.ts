@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSegmentationRuntime } from './useSegmentationRuntime';
@@ -44,7 +45,16 @@ vi.mock('../../lib/segmentation/PunctuationRuntime', () => {
   const PunctuationRuntime = vi.fn(function (opts: PunctuationRuntimeOptions) {
     return new FakePunctuationRuntime(opts);
   });
-  return { PunctuationRuntime };
+  // segmentationStore.ts (imported transitively through useSegmentationStore
+  // below) now derives its own model roster from this module's real
+  // MODEL_IDS -- mocking the whole module means that lookup needs a value
+  // here too, or `Object.keys(MODEL_IDS)` throws on an undefined export.
+  const MODEL_IDS = {
+    'fireredpunc': 'punct-zh-fireredpunc',
+    'edge-punct-en': 'punct-en-edge',
+    'sat-3l-sm': 'punct-multi-sat',
+  };
+  return { PunctuationRuntime, MODEL_IDS };
 });
 
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
@@ -88,7 +98,7 @@ describe('useSegmentationRuntime', () => {
 
   it('follows the enabled setting without rebuilding the runtime', () => {
     const { result } = renderHook(() => useSegmentationRuntime());
-    const runtime = result.current;
+    const runtime = result.current!;
     expect(runtime.enabled).toBe(true);
 
     act(() => { useSettingsStore.setState({ sentenceSegmentation: false }); });
@@ -100,21 +110,21 @@ describe('useSegmentationRuntime', () => {
 
   it('forwards a status event to segmentationStore', () => {
     const { result } = renderHook(() => useSegmentationRuntime());
-    act(() => { asFake(result.current).opts.onStatus?.('fireredpunc', 'downloading'); });
+    act(() => { asFake(result.current!).opts.onStatus?.('fireredpunc', 'downloading'); });
 
     expect(useSegmentationStore.getState().models.fireredpunc.status).toBe('downloading');
   });
 
   it('forwards a download progress event to segmentationStore', () => {
     const { result } = renderHook(() => useSegmentationRuntime());
-    act(() => { asFake(result.current).opts.onDownloadProgress?.('edge-punct-en', 42); });
+    act(() => { asFake(result.current!).opts.onDownloadProgress?.('edge-punct-en', 42); });
 
     expect(useSegmentationStore.getState().models['edge-punct-en'].percent).toBe(42);
   });
 
   it('reports a failure once through reportWarning, and not again for an identical second failure', async () => {
     const { result } = renderHook(() => useSegmentationRuntime());
-    const opts = asFake(result.current).opts;
+    const opts = asFake(result.current!).opts;
 
     act(() => { opts.onStatus?.('sat-3l-sm', 'error', 'download failed'); });
     await settleReports();
@@ -130,7 +140,7 @@ describe('useSegmentationRuntime', () => {
 
   it('never puts transcript text into a reported message', async () => {
     const { result } = renderHook(() => useSegmentationRuntime());
-    const opts = asFake(result.current).opts;
+    const opts = asFake(result.current!).opts;
     const transcriptText = 'the quick brown fox jumps over the lazy dog';
 
     // onStatus's signature is (model, status, detail?) — there is no
@@ -157,11 +167,41 @@ describe('useSegmentationRuntime', () => {
     // slice (disposing mid-bootstrap left a live, never-terminated worker).
     // This test ensures the cleanup runs and runs only once.
     const { result, unmount } = renderHook(() => useSegmentationRuntime());
-    const fake = asFake(result.current);
+    const fake = asFake(result.current!);
     const disposeMock = fake.dispose;
 
     unmount();
 
     expect(disposeMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Fix round: the hook used to construct in the render body behind
+  // `if (runtimeRef.current === null)` and dispose in an empty-deps effect
+  // cleanup that never nulled the ref. React 19's StrictMode simulates a
+  // remount in dev (setup -> cleanup -> setup) while preserving the fiber and
+  // its refs, so that cleanup called dispose() once, the second setup did
+  // nothing (the ref guard still saw a non-null, now-disposed instance), and
+  // every call after that silently returned null forever from
+  // PunctuationRuntime.punctuate() -- indistinguishable from "no model
+  // available". `renderHook` on its own does not wrap in StrictMode (see the
+  // 'disposes exactly once' test above, which would not have caught this),
+  // so this needs the wrapper explicitly.
+  it('rebuilds a live, non-disposed runtime after a StrictMode remount', () => {
+    const { result } = renderHook(() => useSegmentationRuntime(), { wrapper: React.StrictMode });
+
+    // StrictMode's dev-mode double-invoke means two runtimes were built...
+    expect(MockedRuntime).toHaveBeenCalledTimes(2);
+    const [first, second] = MockedRuntime.mock.results.map((r) => r.value as FakeRuntimeHandle);
+
+    // ...the first was torn down by the simulated remount's own cleanup...
+    expect(first.dispose).toHaveBeenCalledTimes(1);
+
+    // ...and what the hook actually hands back is the SECOND, live instance
+    // -- not the first, disposed one a ref-based guard would have gotten
+    // stuck returning forever. Checking dispose()'s call count alone cannot
+    // tell these apart: a permanently-disposed runtime never calls dispose()
+    // a second time either -- the bug is entirely in what gets RETURNED.
+    expect(result.current).toBe(second);
+    expect(second.dispose).not.toHaveBeenCalled();
   });
 });
