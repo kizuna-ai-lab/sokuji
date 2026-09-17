@@ -2269,6 +2269,16 @@ Write the failing list into your report before touching anything.
 In `LocalInferenceVoiceSection.test.tsx`:
 
 ```tsx
+  // THIS IS A GUARD, not a failing test — do not wait for it to go red.
+  // Verified before dispatch: `LocalInferenceVoiceSection.tsx` sets
+  // `previewable` nowhere, and `canAuditionVoice` returns
+  // `v.previewable ?? v.group === 'custom'`, so a Supertonic preset
+  // (`group: 'builtin'`, flag absent) already yields false and renders no ▶.
+  // The case passes on arrival, which is the point: it fences the seam so a
+  // later provider marking its presets previewable cannot silently give
+  // Supertonic an audition button it has no way to satisfy. Label it a guard
+  // in your report and move on; contriving a failure here would mean breaking
+  // the behaviour you are trying to protect.
   it('offers no audition control for Supertonic presets', () => {
     // `{...base}` and `ttsModel`, copied from this file's own cases at lines 47
     // and 55. There is NO `engine` prop on `LocalInferenceVoiceSection` — its
