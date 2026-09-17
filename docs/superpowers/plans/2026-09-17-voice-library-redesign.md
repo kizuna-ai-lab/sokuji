@@ -1279,6 +1279,28 @@ cells get a tabindex of -1 except the active cell, and the popover owns one
   };
 ```
 
+Two invariants the sketch above does NOT enforce, and which the implementation
+must. The sketch clamps the ROW (`Math.max(0, Math.min(last, rowIdx))`) but
+passes `cellIdx` through raw, and clamping it only inside `focusActive` fixes
+where focus lands while leaving `activeCell` out of range in state:
+
+1. **`activeCell` is clamped in `go()` against the TARGET row's cell count.**
+   Rows are ragged — a preset row has 2 cells, a clone 4 — so ArrowRight off a
+   row's last cell, or a column-preserving ArrowDown from a clone onto a
+   preset, otherwise puts `activeCell` past the end. `cellTabIndex()` then
+   matches no cell and the row is left with ZERO tab stops (name div and every
+   button all at `-1`), which breaks the roving-tabindex model and makes the
+   next ArrowLeft a dead keypress.
+2. **Every row has exactly one FOCUSABLE tab stop.** A `disabled` button cannot
+   take focus, so it must not be the cell carrying `tabIndex={0}`: horizontal
+   movement skips cells whose control is disabled, and if the active cell's
+   control is disabled anyway the tab stop falls back to cell 0.
+
+Vertical movement PRESERVES the column where the target row has that cell
+(rather than the sketch's implicit reset to cell 0). That is the APG-correct
+behaviour and it is deliberate; comment it as such, and make sure no test title
+claims arrow-down always "lands on the name cell".
+
 Wire it: put `ref={gridRef}` and `onKeyDown={onGridKeyDown}` on the
 `role="grid"` element and give it `tabIndex={-1}`. Initial focus is NOT a
 `useEffect` here — add `initialFocus={gridRef}` to the `FloatingFocusManager`
