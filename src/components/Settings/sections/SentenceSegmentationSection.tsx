@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scissors, Download, Trash2, AlertTriangle } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -11,9 +11,11 @@ import useSettingsStore, {
 } from '../../../stores/settingsStore';
 import type { SettingsStore } from '../../../stores/settingsStore';
 import { useSegmentationStore, useSegmentationModelState } from '../../../stores/segmentationStore';
+import { useModelStore, useModelStatuses } from '../../../stores/modelStore';
 import { modelForLanguage, MODEL_IDS } from '../../../lib/segmentation/PunctuationRuntime';
 import type { PunctuationModelId } from '../../../lib/segmentation/SegmentationRuntime';
 import { ModelManager } from '../../../lib/local-inference/ModelManager';
+import * as modelStorage from '../../../lib/local-inference/modelStorage';
 import { getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { describeCause, reportWarning } from '../../../lib/diagnostics/report';
@@ -92,14 +94,36 @@ function ModelRow({
 
   const download = () => {
     useSegmentationStore.getState().setModelStatus(model, 'downloading');
+    // useModelStore.downloadModel(modelId) takes no per-file progress
+    // callback (it tracks its own `downloads` state internally instead), and
+    // this row needs one for its own progress bar — so the download itself
+    // stays on ModelManager directly rather than routing through the store.
+    // Mirror what useModelStore.downloadModel() does on success/failure
+    // below, so modelStatuses and storageUsedMb do not drift from what is
+    // actually on disk until the next launch.
     ModelManager.getInstance()
       .downloadModel(manifestId, (progress) => {
         useSegmentationStore.getState().setModelProgress(model, progress.percent);
       })
-      .then(() => useSegmentationStore.getState().setModelStatus(model, 'downloaded'))
+      .then(async () => {
+        useSegmentationStore.getState().setModelStatus(model, 'downloaded');
+        useModelStore.setState((state) => ({
+          modelStatuses: { ...state.modelStatuses, [manifestId]: 'downloaded' },
+        }));
+        try {
+          const usedBytes = await modelStorage.estimateStorageUsedBytes();
+          useModelStore.setState({ storageUsedMb: Math.round(usedBytes / (1024 * 1024)) });
+        } catch {
+          // Storage total is cosmetic — the model itself already downloaded
+          // fine, and useModelStore.importModel() treats this the same way.
+        }
+      })
       .catch((err: unknown) => {
         const message = describeCause(err);
         useSegmentationStore.getState().setModelStatus(model, 'error', message);
+        useModelStore.setState((state) => ({
+          modelStatuses: { ...state.modelStatuses, [manifestId]: 'error' },
+        }));
         // Mirrors useSegmentationRuntime.ts's onStatus('error') handling for
         // the runtime-driven path: without this, a manually triggered
         // failure is invisible everywhere but a bare Retry button — nothing
@@ -111,8 +135,10 @@ function ModelRow({
   };
 
   const remove = () => {
-    ModelManager.getInstance()
-      .deleteModel(manifestId)
+    // deleteModel(modelId) needs no per-file progress, so — unlike download
+    // above — this routes straight through useModelStore's own method, which
+    // already keeps modelStatuses and storageUsedMb in sync (modelStore.ts).
+    useModelStore.getState().deleteModel(manifestId)
       .then(() => useSegmentationStore.getState().setModelStatus(model, 'not-downloaded'))
       .catch((err: unknown) => {
         // The delete failed, not the model itself — leave status alone
@@ -221,6 +247,18 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   const setSentenceSegmentation = useSetSentenceSegmentation();
   const chunkSentences = useSentenceSegmentationChunkSentences();
   const setChunkSentences = useSetSentenceSegmentationChunkSentences();
+
+  // Seeds a model row's status from what modelStore has already computed
+  // on disk (see segmentationStore.seedFromModelStatuses's own doc comment):
+  // without this, every model renders 'not-downloaded' on a fresh launch
+  // regardless of what is actually on disk, since nothing else populates this
+  // store's status until the runtime's own punctuate() calls run. A session
+  // fact this store already knows about always takes precedence — this seed
+  // only ever touches a model still at that initial placeholder.
+  const modelStatuses = useModelStatuses();
+  useEffect(() => {
+    useSegmentationStore.getState().seedFromModelStatuses(modelStatuses);
+  }, [modelStatuses]);
 
   // No useCurrentLanguages / useActiveLanguages / useLanguagePair hook
   // exists: sourceLanguage/targetLanguage live on the active provider's own

@@ -56,18 +56,41 @@ const blankModelStates = (): ModelStatesMap => ({
 let modelStates: ModelStatesMap = blankModelStates();
 const setModelStatus = vi.fn();
 const setModelProgress = vi.fn();
+const seedFromModelStatuses = vi.fn();
 
 vi.mock('../../../stores/segmentationStore', () => ({
   useSegmentationModelState: (model: PunctuationModelId) => modelStates[model],
-  useSegmentationStore: { getState: () => ({ setModelStatus, setModelProgress }) },
+  useSegmentationStore: { getState: () => ({ setModelStatus, setModelProgress, seedFromModelStatuses }) },
 }));
 
 // Controllable so a fix-round test can force a download/delete to fail
 // without touching real IndexedDB or the network.
 const downloadModelMock = vi.fn();
-const deleteModelMock = vi.fn();
 vi.mock('../../../lib/local-inference/ModelManager', () => ({
-  ModelManager: { getInstance: () => ({ downloadModel: downloadModelMock, deleteModel: deleteModelMock }) },
+  ModelManager: { getInstance: () => ({ downloadModel: downloadModelMock }) },
+}));
+
+// modelStore.deleteModel() is the real thing this section now routes Delete
+// through (it needs no per-file progress, unlike download — see the file's
+// own comment), and modelStore.setState() is what a successful/failed
+// download refreshes afterward. Both mocked here rather than left real: the
+// real store's own deleteModel/downloadModel/initialize touch IndexedDB via
+// modelStorage, which jsdom has no implementation for at all
+// (modelStore.test.ts mocks the same module for the same reason).
+let mockModelStatuses: Record<string, string> = {};
+const deleteModelStoreMock = vi.fn();
+const modelStoreSetStateMock = vi.fn();
+vi.mock('../../../stores/modelStore', () => ({
+  useModelStatuses: () => mockModelStatuses,
+  useModelStore: {
+    getState: () => ({ deleteModel: deleteModelStoreMock }),
+    setState: modelStoreSetStateMock,
+  },
+}));
+
+const estimateStorageUsedBytesMock = vi.fn();
+vi.mock('../../../lib/local-inference/modelStorage', () => ({
+  estimateStorageUsedBytes: (...args: unknown[]) => estimateStorageUsedBytesMock(...args),
 }));
 
 const reportWarningMock = vi.fn();
@@ -118,8 +141,12 @@ beforeEach(() => {
   modelStates = blankModelStates();
   setModelStatus.mockClear();
   setModelProgress.mockClear();
+  seedFromModelStatuses.mockClear();
+  mockModelStatuses = {};
+  deleteModelStoreMock.mockReset().mockResolvedValue(undefined);
+  modelStoreSetStateMock.mockClear();
+  estimateStorageUsedBytesMock.mockReset().mockResolvedValue(0);
   downloadModelMock.mockReset().mockResolvedValue('default');
-  deleteModelMock.mockReset().mockResolvedValue(undefined);
   reportWarningMock.mockClear();
   localStorage.removeItem('debug:device-memory');
 });
@@ -265,7 +292,7 @@ describe('SentenceSegmentationSection', () => {
   // rejection either.
   it('a failed delete reports a warning instead of silently dropping it', async () => {
     modelStates['fireredpunc'] = { status: 'downloaded', percent: 100, error: null };
-    deleteModelMock.mockRejectedValueOnce(new Error('disk full'));
+    deleteModelStoreMock.mockRejectedValueOnce(new Error('disk full'));
     renderSection();
     const btn = within(modelRow('fireredpunc')).getByTitle('Delete');
     fireEvent.click(btn);
@@ -276,5 +303,68 @@ describe('SentenceSegmentationSection', () => {
         expect.objectContaining({ dedupeKey: 'segmentation:fireredpunc:delete' }),
       ),
     );
+  });
+
+  // Fix round 2, Important 2: model rows must reflect what modelStore already
+  // knows is on disk, not the store's own always-'not-downloaded' placeholder.
+  it('seeds segmentationStore from modelStore.useModelStatuses() on mount', () => {
+    mockModelStatuses = { 'punct-zh-fireredpunc': 'downloaded' };
+    renderSection();
+    expect(seedFromModelStatuses).toHaveBeenCalledWith(mockModelStatuses);
+  });
+
+  // Fix round 2, Important 2: Delete has no per-file progress to carry, so —
+  // unlike Download — it routes straight through useModelStore's own method
+  // rather than ModelManager directly, so modelStatuses/storageUsedMb do not
+  // drift the way the review found them doing.
+  it('delete routes through useModelStore.deleteModel and clears segmentationStore on success', async () => {
+    modelStates['fireredpunc'] = { status: 'downloaded', percent: 100, error: null };
+    renderSection();
+    const btn = within(modelRow('fireredpunc')).getByTitle('Delete');
+    fireEvent.click(btn);
+    await vi.waitFor(() => expect(deleteModelStoreMock).toHaveBeenCalledWith('punct-zh-fireredpunc'));
+    expect(setModelStatus).toHaveBeenCalledWith('fireredpunc', 'not-downloaded');
+  });
+
+  // Fix round 2, Important 2: a successful download must refresh modelStore's
+  // own modelStatuses and storageUsedMb (what StoragePage reads), not just
+  // this section's own segmentationStore — download stays on ModelManager
+  // directly for the per-file progress callback, but the review's whole point
+  // was that nothing was keeping modelStore in sync with what that download
+  // actually put on disk.
+  it('a successful download refreshes modelStore\'s status and storage total', async () => {
+    estimateStorageUsedBytesMock.mockResolvedValue(200 * 1024 * 1024);
+    renderSection();
+    const btn = within(modelRow('edge-punct-en')).getByText('Download').closest('button')!;
+    fireEvent.click(btn);
+    await vi.waitFor(() =>
+      expect(modelStoreSetStateMock).toHaveBeenCalledWith(
+        expect.objectContaining({ storageUsedMb: 200 }),
+      ),
+    );
+    expect(modelStoreSetStateMock.mock.calls.some((call) => {
+      const arg = call[0];
+      if (typeof arg !== 'function') return false;
+      const result = arg({ modelStatuses: {} });
+      return result.modelStatuses?.['punct-en-edge'] === 'downloaded';
+    })).toBe(true);
+  });
+
+  // Fix round 2, Important 2: a failed download must mark modelStore's own
+  // status 'error' too, not just segmentationStore's — otherwise modelStore
+  // still thinks a download is in flight after this section has already
+  // given up and shown Retry.
+  it('a failed download also marks modelStore\'s status error', async () => {
+    downloadModelMock.mockRejectedValueOnce(new Error('network down'));
+    renderSection();
+    const btn = within(modelRow('edge-punct-en')).getByText('Download').closest('button')!;
+    fireEvent.click(btn);
+    await vi.waitFor(() => expect(setModelStatus).toHaveBeenCalledWith('edge-punct-en', 'error', 'network down'));
+    expect(modelStoreSetStateMock.mock.calls.some((call) => {
+      const arg = call[0];
+      if (typeof arg !== 'function') return false;
+      const result = arg({ modelStatuses: {} });
+      return result.modelStatuses?.['punct-en-edge'] === 'error';
+    })).toBe(true);
   });
 });
