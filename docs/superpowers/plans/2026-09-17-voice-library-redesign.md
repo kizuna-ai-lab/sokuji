@@ -1188,7 +1188,13 @@ cells get a tabindex of -1 except the active cell, and the popover owns one
   const focusActive = (rowIdx: number, cellIdx: number) => {
     const grid = gridRef.current;
     if (!grid) return;
-    const rows = Array.from(grid.querySelectorAll('[role="row"]')).filter(
+    // `[role="row"].voice-row` and not every `[role="row"]`: the grid also
+    // contains HEADER rows (the "My Voices" / "Presets" group labels, each a
+    // `role="row"` holding one `role="columnheader"`, with the refresh button
+    // inside the Presets one). Selecting by the `.voice-row` class excludes
+    // them, so arrow keys move between voices only. The add row is excluded
+    // separately because it is a `.voice-row` but not a voice.
+    const rows = Array.from(grid.querySelectorAll('[role="row"].voice-row')).filter(
       (r) => !r.classList.contains('voice-row--add'),
     );
     const cells = rows[rowIdx]?.querySelectorAll<HTMLElement>('[role="gridcell"] button, [role="gridcell"] input');
