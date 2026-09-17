@@ -18,6 +18,7 @@ import { WarningType } from '../shared/hooks';
 import {
   ProviderSection,
   LanguageSection,
+  SentenceSegmentationSection,
   AudioDeviceSection,
   SystemAudioSection,
   VoicePassthroughSection,
@@ -116,6 +117,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
               isSessionActive={isSessionActive}
               showTranslationLanguages={true}
             />
+
+            {/* Subtitle segmentation */}
+            <SentenceSegmentationSection isSessionActive={isSessionActive} />
 
             {/* Provider Selection */}
             <ProviderSection
