@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import LocalInferenceVoiceSection from './LocalInferenceVoiceSection';
 
 vi.mock('react-i18next', () => ({
@@ -82,19 +82,32 @@ describe('LocalInferenceVoiceSection', () => {
   // that stub has no button/grid at all, so it can't stand in for this case,
   // which needs the REAL VoiceLibrarySection (and its VoicePicker) rendered
   // to prove something about actual markup. Unmock for this one case and
-  // re-import a fresh module graph, mirroring providerOrder.test.ts /
-  // kizunaProviderGating.test.ts's own vi.doUnmock + vi.resetModules +
-  // dynamic re-import pattern for "real module here, mocked module
-  // everywhere else in this file". The react-i18next and modelManifest mocks
-  // above stay registered and still apply to the freshly imported module —
-  // only VoiceLibrarySection is unmocked. This is the last test in the file,
-  // so there is nothing after it that would see the unmocked state.
+  // re-import a fresh module graph, using the same primitives as
+  // providerOrder.test.ts / kizunaProviderGating.test.ts (vi.doUnmock +
+  // vi.resetModules + dynamic import) — but the shape here is the INVERSE of
+  // theirs: those files carry no top-level mock of the specifier in question
+  // and reset+unmock it in beforeEach ahead of EVERY test, so each case
+  // starts from the real module and opts INTO its own mock. Here
+  // VoiceLibrarySection is mocked persistently at the top level for every
+  // case, and only this one case opts out, with nothing restoring the mock
+  // afterward. The invariant that keeps that safe is narrower than "last
+  // test in the file": no LATER case in this file dynamically re-imports
+  // './LocalInferenceVoiceSection' without first re-mocking
+  // VoiceLibrarySection.
   it('offers no audition control for Supertonic presets', async () => {
     vi.doUnmock('./VoiceLibrarySection');
     vi.resetModules();
     const { default: RealLocalInferenceVoiceSection } = await import('./LocalInferenceVoiceSection');
     render(<RealLocalInferenceVoiceSection {...base} ttsModel="super-model" />);
     fireEvent.click(screen.getByRole('button', { expanded: false }));
-    expect(screen.queryByRole('button', { name: /play/i })).not.toBeInTheDocument();
+    // Presence before absence: the popover must actually have opened, and
+    // must actually contain the Supertonic voice row, before "no ▶ inside
+    // it" proves anything. Scoped to the grid — not the whole document —
+    // because the trigger's own accessible name concatenates the selected
+    // voice's label with its subtitle, so an unscoped query would also match
+    // the trigger and could pass even if the popover never opened.
+    const grid = within(screen.getByRole('dialog')).getByRole('grid');
+    expect(within(grid).getByText('Sarah')).toBeInTheDocument();
+    expect(within(grid).queryByRole('button', { name: /play/i })).not.toBeInTheDocument();
   });
 });
