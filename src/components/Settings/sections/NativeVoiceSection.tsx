@@ -85,7 +85,7 @@ export interface NativeVoiceSectionProps {
 }
 
 const DEFAULT_LIBRARY_CAPABILITY: VoiceLibraryCapability = {
-  importModes: [], curation: false, presentation: 'dropdown',
+  importModes: [],
 };
 
 const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
@@ -312,6 +312,9 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       label: v.name,
       group: 'builtin',
       removable: false,
+      // Presets audition in THEIR OWN language on the dedicated preview
+      // connection (spec §6.2); Task 5 teaches handlePreview the `builtin:` id.
+      previewable: true,
       meta: { curated: isCurated, unstable: v.unstable, language: v.language },
     });
     const builtinEntries = [

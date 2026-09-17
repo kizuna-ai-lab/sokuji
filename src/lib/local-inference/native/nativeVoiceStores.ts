@@ -148,8 +148,6 @@ class ClipVoiceStore implements NativeVoiceStore {
     this.capability = {
       importModes: ['record', 'upload'],
       accept: 'audio/*',
-      curation: false,
-      presentation: 'dropdown',
       maxClipSeconds: limits.max ?? MAX_CLIP_SECONDS,
       minClipSeconds: limits.min ?? MIN_CLIP_SECONDS,
     };

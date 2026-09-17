@@ -46,7 +46,7 @@ describe('LocalInferenceVoiceSection', () => {
   it('supertonic engine → renders VoiceLibrarySection with dropdown/upload capability', () => {
     render(<LocalInferenceVoiceSection {...base} ttsModel="super-model" />);
     expect(screen.getByTestId('vls')).toBeInTheDocument();
-    expect(lastVLS.capability).toEqual({ importModes: ['upload'], curation: false, presentation: 'dropdown' });
+    expect(lastVLS.capability).toEqual({ importModes: ['upload'] });
     expect(lastVLS.selectedId).toBe('preset:0');
   });
 

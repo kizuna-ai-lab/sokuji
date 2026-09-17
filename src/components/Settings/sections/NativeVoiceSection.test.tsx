@@ -42,7 +42,7 @@ const builtinVoices = [
 function makeClipStore(overrides: Partial<NativeVoiceStore> = {}): NativeVoiceStore {
   return {
     kind: 'clip',
-    capability: { importModes: ['record', 'upload'], accept: 'audio/*', curation: false, presentation: 'dropdown' },
+    capability: { importModes: ['record', 'upload'], accept: 'audio/*' },
     list: vi.fn().mockResolvedValue([]),
     onImport: vi.fn().mockResolvedValue(undefined),
     onRecord: vi.fn().mockResolvedValue(undefined),
@@ -224,7 +224,7 @@ describe('NativeVoiceSection', () => {
 
   it('filters custom clips without transcripts for transcriptRequired models', async () => {
     const store = {
-      kind: 'clip', capability: { importModes: ['record', 'upload'], curation: false, presentation: 'dropdown' },
+      kind: 'clip', capability: { importModes: ['record', 'upload'] },
       list: async () => [{ id: 1, name: 'WithText', hasTranscript: true }, { id: 2, name: 'NoText', hasTranscript: false }],
       onImport: async () => {}, onRecord: async () => {}, rename: async () => {}, delete: async () => {}, resolveApply: async () => null,
     };

@@ -10,6 +10,7 @@ import {
   hasActiveFacets,
   humanizeFacetValue,
 } from '../../../lib/voiceLibrary/voiceFacets';
+import { canAuditionVoice } from '../../../lib/voiceLibrary/voicePreviewable';
 
 /**
  * A single voice as presented to the user. `id` is OPAQUE — each provider
@@ -26,10 +27,19 @@ export interface VoiceEntry {
    *  disabled option) — e.g. a cloned voice still processing or terminally
    *  failed, which a session could not synthesize with. */
   disabled?: boolean;
+  /** Whether THIS entry can be auditioned. Absent = inherit the group default:
+   *  a `custom` entry can (a clip or a cloned voice stands behind it), a
+   *  `builtin` entry cannot. A provider whose presets are auditionable sets it
+   *  true on those entries (Soniox, Local Native); one whose presets are not
+   *  leaves it alone (Supertonic). Auditionability is a property of the VOICE,
+   *  not of the provider: Local Native's clip-required families have clones
+   *  that cannot speak yet, and a future Palabra roster mixes builtins that
+   *  publish a sample URL with clones still processing. */
+  previewable?: boolean;
   meta?: {
     gender?: 'M' | 'F';
-    /** Curated builtins are always visible; non-curated ones hide behind the
-     *  "show all" expander when `capability.curation` is on. */
+    /** Drives curated-first ordering where a provider applies one (e.g.
+     *  Local Native's curated-then-rest builtin list). */
     curated?: boolean;
     /** Flagged in the UI so users know the voice may be lower quality. */
     unstable?: boolean;
@@ -194,9 +204,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   }, [stopPreview]);
 
   const renderPreviewButton = (v: VoiceEntry) => {
-    // A disabled entry (a processing/failed clone, or the "(deleted voice)"
-    // placeholder) has nothing playable behind it.
-    if (!onPreview || !v.removable || v.disabled) return null;
+    if (!onPreview || !canAuditionVoice(v)) return null;
 
     if (previewUnavailableReason) {
       return (
@@ -240,7 +248,6 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [showAll, setShowAll] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordSecondsLeft, setRecordSecondsLeft] = useState<number | null>(null);
   const [transcript, setTranscript] = useState('');
@@ -268,7 +275,10 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
 
   const canUpload = capability.importModes.includes('upload');
   const canRecord = capability.importModes.includes('record');
-  const isDropdown = capability.presentation === 'dropdown';
+  // `presentation` is gone from the capability: there is one presentation now.
+  // The dropdown branch below is deleted in Task 6, which is when this and the
+  // list branch both disappear.
+  const isDropdown = true;
   // Capture (import/record) is gated behind a non-empty reference transcript
   // for models that require in-context-learning text (Task 12). Absent/false
   // → no gating, matching pre-Task-12 behavior exactly.
@@ -298,16 +308,6 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   }, [allBuiltins, matchedBuiltins, facetFilterOn, selectedId]);
   // Manage list (dropdown mode) shows user-owned voices that can be renamed/deleted.
   const removableVoices = useMemo(() => voices.filter((v) => v.removable), [voices]);
-
-  // Curation: when on, non-curated builtins hide behind the "show all" expander.
-  const curatedBuiltins = useMemo(
-    () => (capability.curation ? builtins.filter((v) => v.meta?.curated) : builtins),
-    [builtins, capability.curation],
-  );
-  const hiddenBuiltins = useMemo(
-    () => (capability.curation ? builtins.filter((v) => !v.meta?.curated) : []),
-    [builtins, capability.curation],
-  );
 
   const handleFiles = useCallback(async (files: FileList | null) => {
     if (!onImport || !files || files.length === 0) return;
@@ -897,25 +897,15 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
 
       {renderFacetBar()}
 
-      {/* Built-in group */}
-      {(curatedBuiltins.length > 0 || hiddenBuiltins.length > 0) && (
+      {/* Built-in group. Unreachable while `isDropdown` is hardcoded true
+          above (Task 6 deletes this whole branch along with that constant),
+          kept compiling in the meantime without the removed `curation` flag. */}
+      {builtins.length > 0 && (
         <div className="voice-library-group">
           <div className="voice-library-group-label">{t('voiceLibrary.presets', 'Presets')}</div>
           <ul className="voice-manage-list">
-            {curatedBuiltins.map(renderRow)}
-            {capability.curation && showAll && hiddenBuiltins.map(renderRow)}
+            {builtins.map(renderRow)}
           </ul>
-          {capability.curation && hiddenBuiltins.length > 0 && (
-            <button
-              type="button"
-              className="voice-show-all-btn"
-              onClick={() => setShowAll((s) => !s)}
-            >
-              {showAll
-                ? t('voiceLibrary.showFewer', 'Show fewer voices')
-                : t('voiceLibrary.showAll', 'Show all voices')}
-            </button>
-          )}
         </div>
       )}
 

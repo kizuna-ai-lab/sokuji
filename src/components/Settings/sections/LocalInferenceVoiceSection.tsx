@@ -85,7 +85,7 @@ const LocalInferenceVoiceSection: React.FC<LocalInferenceVoiceSectionProps> = ({
         onImport={onImportVoice}
         onRename={(id, name) => onRenameVoice(sidFromVoiceId(id), name)}
         onDelete={(id) => onDeleteVoice(sidFromVoiceId(id))}
-        capability={{ importModes: ['upload'], curation: false, presentation: 'dropdown' }}
+        capability={{ importModes: ['upload'] }}
         isSessionActive={isSessionActive}
       />
     );

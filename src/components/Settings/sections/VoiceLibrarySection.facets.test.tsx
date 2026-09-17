@@ -59,8 +59,6 @@ const mount = (over: Partial<React.ComponentProps<typeof VoiceLibrarySection>> =
       voices={[...BUILTINS, CLONE]}
       capability={{
         importModes: ['upload'],
-        curation: false,
-        presentation: 'dropdown',
         facetFilter: true,
       }}
       {...over}
@@ -86,7 +84,7 @@ describe('VoiceLibrarySection facet filter', () => {
   beforeEach(() => cleanup());
 
   it('renders no filter bar unless the capability asks for one', () => {
-    mount({ capability: { importModes: ['upload'], curation: false, presentation: 'dropdown' } });
+    mount({ capability: { importModes: ['upload'] } });
     expect(screen.queryByLabelText('Accent')).toBeNull();
     expect(presetOptions()).toEqual(['Sakura', 'Yuto', 'Adrian']);
   });

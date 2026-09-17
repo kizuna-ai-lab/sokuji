@@ -46,12 +46,14 @@ describe('VoiceLibrarySection', () => {
           { id: 'builtin:Ava', label: 'Ava', group: 'builtin', removable: false, meta: { curated: true } },
           { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
         ]}
-        capability={{ importModes: ['record', 'upload'], curation: true }}
+        capability={{ importModes: ['record', 'upload'] }}
         onRecord={async () => {}}
       />,
     );
     expect(screen.getByText('Ava')).toBeInTheDocument();
-    expect(screen.getByText('Mine')).toBeInTheDocument();
+    // "Mine" is removable, so the dropdown presentation renders it twice: once
+    // as a <select> option, once as its own row in the manage list below.
+    expect(screen.getAllByText('Mine').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /record/i })).toBeInTheDocument();
   });
 
@@ -64,7 +66,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record', 'upload'], curation: false }}
+        capability={{ importModes: ['record', 'upload'] }}
         onPreview={onPreview}
       />,
     );
@@ -87,7 +89,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['upload'], curation: false }}
+        capability={{ importModes: ['upload'] }}
       />,
     );
     expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
@@ -102,7 +104,7 @@ describe('VoiceLibrarySection', () => {
           { id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false },
           { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
         ]}
-        capability={{ importModes: ['record'], curation: false, presentation: 'dropdown' }}
+        capability={{ importModes: ['record'] }}
         onRecord={async () => {}}
         manageNote="Costs quota."
       />,
@@ -117,7 +119,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId="preset:0"
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'], curation: false, presentation: 'dropdown' }}
+        capability={{ importModes: ['record'] }}
         onRecord={async () => {}}
       />,
     );
@@ -130,12 +132,13 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId="preset:0"
         voices={[{ id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false }]}
-        capability={{ importModes: ['upload'], curation: false }}
+        capability={{ importModes: ['upload'] }}
       />,
     );
     expect(screen.queryByRole('button', { name: /record/i })).toBeNull();
-    // List mode (default): selection is rendered as buttons, not a <select>.
-    expect(screen.queryByRole('combobox')).toBeNull();
+    // The dropdown presentation is the only one now (Task 6 removes this
+    // branch along with the legacy list-mode fallback it lived beside).
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
   it('renders a dropdown with optgroups and fires onSelect on change (Supertonic)', () => {
@@ -149,7 +152,7 @@ describe('VoiceLibrarySection', () => {
           { id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false, meta: { gender: 'F' } },
           { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
         ]}
-        capability={{ importModes: ['upload'], curation: false, presentation: 'dropdown' }}
+        capability={{ importModes: ['upload'] }}
       />,
     );
 
@@ -170,7 +173,7 @@ describe('VoiceLibrarySection', () => {
     const onImport = vi.fn();
     render(<VoiceLibrarySection voices={[]} selectedId="" onSelect={() => {}}
       onImport={onImport} onRename={async () => {}} onDelete={async () => {}}
-      capability={{ importModes: ['upload'], curation: false, presentation: 'dropdown', transcriptRequired: true }} />);
+      capability={{ importModes: ['upload'], transcriptRequired: true }} />);
     // manage details open → import button disabled while transcript empty
     fireEvent.click(screen.getByText(/manage imported voices/i));
     const btn = screen.getByRole('button', { name: /import voice/i });
@@ -186,10 +189,12 @@ describe('VoiceLibrarySection', () => {
         selectedId=""
         onSelect={() => {}}
         onDelete={async () => {}}
-        capability={{ importModes: ['upload'], curation: false }}
+        capability={{ importModes: ['upload'] }}
       />,
     );
-    expect(screen.getByText('Mine')).toBeInTheDocument();
+    // "Mine" is removable, so the dropdown presentation renders it twice: once
+    // as a <select> option, once as its own row in the manage list below.
+    expect(screen.getAllByText('Mine').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^rename$/i })).toBeNull();
   });
@@ -204,7 +209,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'], curation: false }}
+        capability={{ importModes: ['record'] }}
         onPreview={onPreview}
       />,
     );
@@ -223,7 +228,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Cooking', group: 'custom', removable: true, disabled: true }]}
-        capability={{ importModes: ['record'], curation: false }}
+        capability={{ importModes: ['record'] }}
         onPreview={vi.fn()}
       />,
     );
@@ -247,7 +252,7 @@ describe('VoiceLibrarySection', () => {
           { id: 'custom:1', label: 'First', group: 'custom', removable: true },
           { id: 'custom:2', label: 'Second', group: 'custom', removable: true },
         ]}
-        capability={{ importModes: ['record'], curation: false }}
+        capability={{ importModes: ['record'] }}
         onPreview={onPreview}
       />,
     );
@@ -274,7 +279,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'], curation: false }}
+        capability={{ importModes: ['record'] }}
         onPreview={onPreview}
       />,
     );
@@ -292,7 +297,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'], curation: false }}
+        capability={{ importModes: ['record'] }}
         onPreview={onPreview}
         previewUnavailableReason="Stop the session to preview"
       />,
@@ -308,7 +313,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'], curation: false }}
+        capability={{ importModes: ['record'] }}
         onPreview={onPreview}
         previewUnavailableReason="Stop the session to preview"
       />,
@@ -323,7 +328,7 @@ describe('VoiceLibrarySection', () => {
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'], curation: false }}
+        capability={{ importModes: ['record'] }}
         previewUnavailableReason="whatever"
       />,
     );
@@ -372,7 +377,7 @@ describe('VoiceLibrarySection recording teardown under Activity hide', () => {
       <VoiceLibrarySection
         {...base}
         voices={[{ id: 'builtin:Ava', label: 'Ava', group: 'builtin', removable: false }]}
-        capability={{ importModes: ['record', 'upload'], curation: true }}
+        capability={{ importModes: ['record', 'upload'] }}
         onRecord={async () => {}}
       />
     </Activity>

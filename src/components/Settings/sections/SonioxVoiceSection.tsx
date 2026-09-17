@@ -721,6 +721,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       label: v.id,
       group: 'builtin',
       removable: false,
+      // A Soniox voice id IS the `voice` field of the TTS request for presets
+      // and clones alike, so a preset auditions through the same path (spec §6.1).
+      previewable: true,
       // What the facet bar filters on, and where the one-line character
       // description under each name comes from.
       meta: {
@@ -845,11 +848,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         }
         capability={{
           importModes: canCreate ? ['record', 'upload'] : [],
-          curation: false,
           // 200 built-in voices as of 2026-09-10: too many to scan in a flat
           // dropdown, and each one carries the tags to narrow it down.
           facetFilter: true,
-          presentation: 'dropdown',
           accept: 'audio/*',
           maxClipSeconds: MAX_CLIP_SECONDS,
           minClipSeconds: MIN_CLIP_SECONDS,

@@ -38,7 +38,7 @@ const props = {
     { id: 'preset:0', label: 'Sarah', group: 'builtin' as const, removable: false },
     { id: 'custom:1', label: 'Mine', group: 'custom' as const, removable: true },
   ],
-  capability: { importModes: ['upload' as const], curation: false, presentation: 'dropdown' as const },
+  capability: { importModes: ['upload' as const] },
 };
 
 describe('VoiceLibrarySection dropdown group headers', () => {
