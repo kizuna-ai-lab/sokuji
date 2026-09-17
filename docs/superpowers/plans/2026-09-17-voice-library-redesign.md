@@ -2322,6 +2322,27 @@ git commit -m "test(voice): re-point the section suites at the new picker"
 
 **Files:** none (verification only; any fix found here belongs to the task that owns the file)
 
+**This task does not fit one executor, and pretending otherwise would hand an
+agent work it must fail.** Split it:
+
+*Automatable in this environment* — render the picker headless and look at it
+(the repo's own recipe: headless-chromium plus CDP; see the `settle UI decisions
+by rendering` note). That covers the clipping question at the 300px panel
+minimum, whether a 200-row roster scrolls inside the popover instead of running
+off-screen, whether the facet row wraps, and the ja/de layout checks in Step 4 —
+all of which are geometry, and geometry is measurable without ears or a wallet.
+
+*Only jiangzhuo can do* — everything involving sound, money, or taste. He has to
+hear that the audio is right and that a re-init's spinner actually covers the
+gap; auditioning managed Soniox presets spends his wallet, so no agent should
+trigger one on his behalf; and "does this dead click read as broken" is a
+judgement, not a measurement. Those steps are reported to him as the remaining
+work, not executed.
+
+So this task's deliverable is two things: the headless render pass with its
+findings, and a short, specific list of what he needs to click — not a claim that
+the real-app pass is done.
+
 **Interfaces:**
 - Consumes: the finished feature.
 
