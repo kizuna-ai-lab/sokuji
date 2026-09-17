@@ -82,6 +82,7 @@ describe('voice create modal styling', () => {
     'voice-create-modal__transcript-hint',
     'voice-create-modal__import-btn',
     'voice-create-modal__drop-zone',
+    'is-dragging',
     'voice-create-modal__note',
     'voice-create-modal__cancel',
   ])('styles .%s where the element lives', (cls) => {

@@ -117,34 +117,39 @@
 }
 
 // ── Import / record buttons ────────────────────────────────
+// Value-for-value mirror of .voice-import-btn (VoiceLibrarySection.scss) —
+// the brief asked for a mirror, not a redesign, so every declaration below
+// keeps that rule's computed value (only the color tokens are literally the
+// same tk.* aliases that rule already used).
 .voice-create-modal__import-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 7px 12px;
-  font-size: vars.$font-body;
-  font-weight: vars.$weight-medium;
+  padding: 4px 10px;
+  font-size: 12px;
   color: vars.$color-on-primary;
   background: vars.$color-primary-fill;
   border: none;
-  border-radius: vars.$radius-sm;
+  border-radius: 4px;
   cursor: pointer;
-  &:hover:not(:disabled) { background: vars.$color-primary-fill-hover; }
-  &:disabled { @include vars.disabled-state; }
+  &:hover:not(:disabled) { background: #0d8c6c; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 // ── Drop zone ──────────────────────────────────────────────
+// Value-for-value mirror of .voice-library-drop-hint (VoiceLibrarySection.scss)
+// — an inline hint line, not a dashed drop target. Unlike that rule, this
+// class sits on the element that actually receives the drop (there is no
+// separate manage-body wrapper here), so it needs a dragging-state cue;
+// kept minimal (a color swap, nothing else) so the base look still matches.
 .voice-create-modal__drop-zone {
-  border: 1.5px dashed vars.$border-strong;
-  border-radius: vars.$radius-lg;
-  padding: 14px 12px;
-  text-align: center;
-  font-size: vars.$font-caption;
-  color: vars.$text-disabled;
-  background: vars.$bg-surface;
-  transition: border-color vars.$transition-fast, background vars.$transition-fast;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #808080;
 
-  &.is-dragging { border-color: vars.$color-primary; background: rgba(vars.$color-primary, 0.1); }
+  &.is-dragging { color: vars.$color-primary; }
 }
 
 .voice-create-modal__note {

@@ -129,8 +129,13 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   // The generation counter also invalidates a getUserMedia call still
   // pending at cleanup time, so a late-resolving stream is stopped instead
   // of resurrecting the capture graph.
+  //
+  // Factored out (rather than inlined in the unmount effect, as it is in
+  // VoiceLibrarySection) so close() below can share it: closing the modal
+  // mid-recording must DISCARD the same way, never submit through
+  // stopRecording — stopRecording is the only path that calls onRecord.
   const recGenerationRef = useRef(0);
-  useEffect(() => () => {
+  const releaseCapture = useCallback(() => {
     recGenerationRef.current += 1;
     clearRecTimer();
     const rec = recRef.current;
@@ -142,6 +147,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     void rec.ctx.close();
     setIsRecording(false);
   }, []);
+  useEffect(() => releaseCapture, [releaseCapture]);
 
   const startRecording = useCallback(async () => {
     if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
@@ -227,12 +233,28 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     stopRecordingRef.current = stopRecording;
   }, [stopRecording]);
 
-  // Closing mid-recording discards the capture rather than submitting a
-  // half-finished clip — same rule the section's unmount effect follows.
+  // Closing mid-recording DISCARDS the capture via releaseCapture — the same
+  // teardown the unmount effect uses — rather than going through
+  // stopRecording, which is the submitting path (it awaits onRecord). Review
+  // finding 1 (Task 5): the previous version called stopRecordingRef here,
+  // which uploaded a half-finished clip on Cancel/Escape/backdrop instead of
+  // discarding it as the comment claimed.
   const close = useCallback(() => {
-    if (isRecording) { clearRecTimer(); void stopRecordingRef.current?.(); }
+    releaseCapture();
     onClose();
-  }, [isRecording, onClose]);
+  }, [releaseCapture, onClose]);
+
+  // Reset per-attempt state on open. The modal never unmounts between opens
+  // (isOpen only gates the render below), so without this a transcript typed
+  // and then cancelled would reappear on the next open — and in the
+  // transcriptRequired case, silently re-enable Import with text that
+  // belonged to an abandoned clip.
+  useEffect(() => {
+    if (isOpen) {
+      setTranscript('');
+      setIsDragging(false);
+    }
+  }, [isOpen]);
 
   // Close on Escape (ModelImportModal does the same, on `window` — nothing
   // here goes through floating-ui).
