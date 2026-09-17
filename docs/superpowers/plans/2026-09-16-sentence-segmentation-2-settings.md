@@ -532,7 +532,9 @@ git commit -m "feat(segmentation): build the runtime once and forward its events
 - Create: `src/components/Settings/sections/SentenceSegmentationSection.test.tsx`
 
 **Interfaces:**
-- Consumes: the six settings hooks, `useSegmentationModelState`, `ToggleSwitch`, `Tooltip`, `ModelManager`, `getManifestEntry`, `getModelSizeMb`.
+- Consumes: **four** of Task 1's six settings hooks — `useSentenceSegmentation`, `useSetSentenceSegmentation`, `useSentenceSegmentationChunkSentences`, `useSetSentenceSegmentationChunkSentences` — plus `useSegmentationModelState`, `ToggleSwitch`, `Tooltip`, `ModelManager`, `getManifestEntry`, `getModelSizeMb`.
+
+  The `sentenceSegmentationNoticeShown` / `markSentenceSegmentationNoticeShown` pair is **not** used here. It belongs to slice 4's one-time download notice, which the spec places in MainPanel's in-session notice family beside `EchoNotice` — not on the settings page. Do not wire it into this section to satisfy a count.
 - Consumes: the active provider's language pair. **There is no hook for this** — no `useCurrentLanguages`, `useActiveLanguages` or `useLanguagePair` exists. `sourceLanguage` and `targetLanguage` live on per-provider settings slices, and the sanctioned way to read the active pair is the one at `MainPanel.tsx:653`: resolve `ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey`, index the store with it, then read the field.
 
   ```ts
