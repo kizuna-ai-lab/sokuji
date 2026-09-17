@@ -33,4 +33,13 @@ describe('buildClientOptions', () => {
     expect(buildClientOptions({ transport: 'websocket', segmentation: runtime, sentencesPerChunk: 5 }).sentencesPerChunk).toBe(5);
     expect(buildClientOptions({ transport: 'websocket', segmentation: runtime, sentencesPerChunk: 1, legOptions: undefined }).sentencesPerChunk).toBe(1);
   });
+
+  it('lets a legOptions field that collides with a builder-set field win — the managed Soniox bundle depends on this', () => {
+    const opts = buildClientOptions({
+      transport: 'websocket',
+      segmentation: runtime,
+      legOptions: { transport: 'webrtc' },
+    });
+    expect(opts.transport).toBe('webrtc');
+  });
 });

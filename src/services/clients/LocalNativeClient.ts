@@ -138,6 +138,7 @@ export class LocalNativeClient implements IClient {
     this.stream = null;
     this.sealedChars = 0;
     this.pendingAsrTiming = undefined;
+    this.lastRawPartialText = '';
     this.asr.onResult = (r: any) => this.onAsrResult(r);
     this.asr.onPartialResult = (text: string) => this.onAsrPartial(text);
     this.asr.onError = (e: string) => this.handlers.onError?.(e);
@@ -877,6 +878,7 @@ export class LocalNativeClient implements IClient {
     this.stream = null;
     this.sealedChars = 0;
     this.pendingAsrTiming = undefined;
+    this.lastRawPartialText = '';
     this.emitEvent('local.native.session.closed', 'client', { reason: 'user_disconnect' });
     this.vadWorker?.postMessage({ type: 'dispose' });
     this.vadWorker?.terminate();
@@ -897,6 +899,7 @@ export class LocalNativeClient implements IClient {
     this.stream?.dispose();
     this.stream = null;
     this.sealedChars = 0;
+    this.lastRawPartialText = '';
   }
   getConversationItems(): ConversationItem[] { return [...this.items]; }  // fresh ref so setItems() re-renders
   clearConversationItems(): void {
@@ -910,6 +913,7 @@ export class LocalNativeClient implements IClient {
     this.stream?.dispose();
     this.stream = null;
     this.sealedChars = 0;
+    this.lastRawPartialText = '';
   }
   setEventHandlers(handlers: ClientEventHandlers): void { this.handlers = handlers; }
   getProvider(): ProviderType { return Provider.LOCAL_NATIVE; }

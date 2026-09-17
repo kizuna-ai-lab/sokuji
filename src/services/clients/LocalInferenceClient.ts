@@ -261,6 +261,7 @@ export class LocalInferenceClient implements IClient {
     this.stream = null;
     this.sealedChars = 0;
     this.pendingAsrTiming = undefined;
+    this.lastRawPartialText = '';
 
     try {
       // --- Create engines & set callbacks synchronously ---
@@ -457,6 +458,7 @@ export class LocalInferenceClient implements IClient {
     this.stream = null;
     this.sealedChars = 0;
     this.pendingAsrTiming = undefined;
+    this.lastRawPartialText = '';
 
     this.asrEngine?.dispose();
     this.asrEngine = null;
@@ -492,6 +494,7 @@ export class LocalInferenceClient implements IClient {
     this.stream?.dispose();
     this.stream = null;
     this.sealedChars = 0;
+    this.lastRawPartialText = '';
   }
 
   appendInputAudio(audioData: Int16Array): void {
@@ -534,6 +537,7 @@ export class LocalInferenceClient implements IClient {
     this.stream?.dispose();
     this.stream = null;
     this.sealedChars = 0;
+    this.lastRawPartialText = '';
   }
 
   setEventHandlers(handlers: ClientEventHandlers): void {
