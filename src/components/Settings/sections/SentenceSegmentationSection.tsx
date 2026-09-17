@@ -261,6 +261,40 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
     useSegmentationStore.getState().seedFromModelStatuses(modelStatuses);
   }, [modelStatuses]);
 
+  // Store-independent probe, additive to the seed above rather than a
+  // replacement for it. modelStore.initialize() is gated to the Local
+  // Inference provider (SettingsInitializer.tsx) and, separately, to
+  // modelStore.ensureSelectionReady()'s own local-inference readiness path
+  // -- neither runs for the app's default OPENAI provider. A punctuation
+  // model is downloaded through ModelManager directly and works on ANY
+  // provider (this section is the only surface that offers it), so the
+  // ordinary path is: download a model, restart on the default provider,
+  // open Settings -- modelStatuses stays empty forever, the seed above is a
+  // permanent no-op, and the row offers Download for a model already on
+  // disk. Ask the filesystem directly here too, independent of modelStore
+  // ever having run. If modelStore initialises later in the session, the
+  // seed above still applies on top via its own [modelStatuses] effect.
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all(MODELS.map(async (model) => {
+      const manifestId = MODEL_IDS[model];
+      let ready: boolean;
+      try {
+        ready = await ModelManager.getInstance().isModelReady(manifestId);
+      } catch {
+        return;
+      }
+      if (cancelled || !ready) return;
+      // Re-read the CURRENT status at write time, not what it was before
+      // the await: a runtime event, or the modelStatuses-driven seed above,
+      // may have already landed a richer session fact while this probe was
+      // in flight, and that fact must win over a plain on-disk "yes".
+      if (useSegmentationStore.getState().models[model].status !== 'not-downloaded') return;
+      useSegmentationStore.getState().setModelStatus(model, 'downloaded');
+    }));
+    return () => { cancelled = true; };
+  }, []);
+
   // No useCurrentLanguages / useActiveLanguages / useLanguagePair hook
   // exists: sourceLanguage/targetLanguage live on the active provider's own
   // settings slice, resolved through its descriptor exactly as MainPanel
