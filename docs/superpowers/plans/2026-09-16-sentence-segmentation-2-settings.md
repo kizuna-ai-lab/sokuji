@@ -36,8 +36,8 @@
 | `src/stores/settingsStore.test.ts` | modify — default / persist / rollback per field, plus the 1–5 clamp |
 | `src/stores/segmentationStore.ts` | **new** — per-model status, progress and error; UI reads only |
 | `src/stores/segmentationStore.test.ts` | **new** |
-| `src/hooks/useSegmentationRuntime.ts` | **new** — the app-layer owner: builds the runtime, forwards its events |
-| `src/hooks/useSegmentationRuntime.test.ts` | **new** |
+| `src/components/MainPanel/useSegmentationRuntime.ts` | **new** — the app-layer owner: builds the runtime, forwards its events |
+| `src/components/MainPanel/useSegmentationRuntime.test.ts` | **new** |
 | `src/components/Settings/sections/SentenceSegmentationSection.tsx` | **new** |
 | `src/components/Settings/sections/SentenceSegmentationSection.test.tsx` | **new** |
 | `src/components/Settings/sections/SentenceSegmentationSection.scss` | **new** — the equal-width 1–5 control |
@@ -435,8 +435,13 @@ git commit -m "feat(segmentation): add the segmentation status store"
 `PunctuationRuntime` imports no store and no `report.ts`. This hook is where those two wires are attached, and the only place in the app that constructs a runtime.
 
 **Files:**
-- Create: `src/hooks/useSegmentationRuntime.ts`
-- Create: `src/hooks/useSegmentationRuntime.test.ts`
+- Create: `src/components/MainPanel/useSegmentationRuntime.ts`
+- Create: `src/components/MainPanel/useSegmentationRuntime.test.ts`
+
+Hooks in this repo are colocated with the component that consumes them — all
+nine of them, including `MainPanel/useSubtitleSessionBridge.ts`. There is no
+`src/hooks/` directory, and this is not the plan to invent one. This hook hands
+the runtime to MainPanel, so it lives beside it.
 
 **Interfaces:**
 - Consumes: `PunctuationRuntime`, `useSentenceSegmentation`, `useSegmentationStore`, `reportWarning`.
@@ -505,13 +510,15 @@ export function useSegmentationRuntime(): SegmentationRuntime {
 
 - [ ] **Step 3: Run the tests, the typecheck and the console ledger**
 
-Run: `npm run test -- src/hooks/useSegmentationRuntime.test.ts src/lib/diagnostics/consoleLedger.consistency.test.ts`, then `npx tsc --noEmit` on its own — chaining with `&&` hides the test result, because `tsc` exits non-zero on the 319-error baseline.
-Expected: tests PASS, and `tsc` still reports 319 errors naming none of your files. `src/hooks/` is not under the ledger's scanned roots (`src/stores`, `src/services`, `src/contexts`, `src/components`, `src/lib`, `shared`), but keep it console-free anyway.
+Run: `npm run test -- src/components/MainPanel/useSegmentationRuntime.test.ts src/lib/diagnostics/consoleLedger.consistency.test.ts`, then `npx tsc --noEmit` on its own — chaining with `&&` hides the test result, because `tsc` exits non-zero on the 319-error baseline.
+Expected: tests PASS, and `tsc` still reports 319 errors naming none of your files.
+
+The hook sits under `src/components/`, which **is** one of the ledger's scanned roots — `consoleLedger.consistency.test.ts:40-47` lists `src/stores`, `src/services`, `src/contexts`, `src/components`, `src/lib`, `shared`. An unlisted file must be at zero, so a single `console.error` or `console.warn` here fails that test outright. Diagnostics go through `reportWarning`, which is exactly what this hook exists to attach.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/hooks/useSegmentationRuntime.ts src/hooks/useSegmentationRuntime.test.ts
+git add src/components/MainPanel/useSegmentationRuntime.ts src/components/MainPanel/useSegmentationRuntime.test.ts
 git commit -m "feat(segmentation): build the runtime once and forward its events"
 ```
 
