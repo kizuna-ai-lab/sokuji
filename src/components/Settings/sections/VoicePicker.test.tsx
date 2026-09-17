@@ -53,6 +53,32 @@ describe('VoicePicker', () => {
     expect(within(grid).getByText('Mine')).toBeInTheDocument();
   });
 
+  // Spec §7: "the selected row carries `aria-selected="true"`". Final-review
+  // finding 5 found it on the name GRIDCELL instead — valid ARIA either way,
+  // which is exactly why only an explicit assertion keeps it where the spec
+  // put it. Both halves are pinned so it cannot quietly migrate back down
+  // into the cell.
+  it('marks the selected row, not its name cell, as selected', () => {
+    render(<VoicePicker {...base} voices={[GRACE, ALEX]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+
+    // `base.selectedId` is Grace. Reached via its name cell, whose COMPUTED
+    // name concatenates the label with the row subtitle — hence a regex
+    // rather than an exact string.
+    const graceCell = within(grid).getByRole('gridcell', { name: /Grace/ });
+    const graceRow = graceCell.closest('[role="row"]') as HTMLElement;
+    expect(graceRow).toHaveAttribute('aria-selected', 'true');
+    expect(graceCell).not.toHaveAttribute('aria-selected');
+
+    // The accessibility tree's own view of it, which is what §7 is really
+    // asking for: a row query filtered on selected state resolves to this row.
+    expect(within(grid).getByRole('row', { selected: true })).toBe(graceRow);
+
+    const alexRow = within(grid).getByRole('gridcell', { name: /Alex/ }).closest('[role="row"]') as HTMLElement;
+    expect(alexRow).toHaveAttribute('aria-selected', 'false');
+  });
+
   it('renders a play control only where onPreview and previewable and not disabled all hold', () => {
     render(
       <VoicePicker

@@ -596,7 +596,16 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     if (showRename) cell += 1;
     const deleteTabIndex = v.removable ? cellTabIndex() : -1;
     return (
-      <div role="row" className={`voice-row${isSelected ? ' is-selected' : ''}`} key={v.id}>
+      <div
+        role="row"
+        // Spec §7: "the selected ROW carries `aria-selected="true"`". This
+        // used to sit on the name gridcell below instead — valid ARIA, but it
+        // announces CELL selection, when the thing a user selects here is the
+        // voice, i.e. the whole row.
+        aria-selected={isSelected}
+        className={`voice-row${isSelected ? ' is-selected' : ''}`}
+        key={v.id}
+      >
         {/* A div wrapping a real <button>, like every other cell in this row
             — NOT role="gridcell" on the button itself. Two reasons: Task 4's
             planned cell selector (`[role="gridcell"] button, [role="gridcell"]
@@ -615,7 +624,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             not the button. The button keeps a fixed `tabIndex={-1}` so it is
             never independently reachable by Tab; it stays a normal click
             target regardless. */}
-        <div role="gridcell" aria-selected={isSelected} tabIndex={nameTabIndex}>
+        <div role="gridcell" tabIndex={nameTabIndex}>
           <button
             type="button"
             className="voice-row__pick"
