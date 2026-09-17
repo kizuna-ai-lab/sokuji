@@ -12,7 +12,11 @@
 
 **Depends on:** slices 1 and 2.
 
-**Typecheck:** the repo's baseline is **not clean** — `npx tsc --noEmit` reports 319 errors across 154 files as of `6dd46986`, all pre-existing. Never ask anyone to "confirm tsc is clean"; the bar is **zero contribution**: run it and confirm its output names none of the files your task created or modified. Tests: `npm run test -- <path>`.
+**Typecheck:** the repo's baseline is **not clean** — `npx tsc --noEmit` reports **319 errors across 80 files** (measured at `7112796a`; `grep -c "error TS"` → 319, and the same lines through `cut -d'(' -f1 | sort -u | wc -l` → 80). All pre-existing. Never ask anyone to "confirm tsc is clean"; the bar is **zero contribution**: run it and confirm its output names none of the files your task created or modified.
+
+**Run `tsc` on its own, never chained after the tests with `&&`.** It exits non-zero at the baseline, so a chained command reports failure regardless of the test result. Tests: `npm run test -- <path>`.
+
+*(An earlier draft of this plan said "154 files". The error count was right; the file count was not, and it had been copied forward unchecked since slice 1.)*
 
 ---
 
@@ -112,7 +116,7 @@ In `src/services/providers/ProviderDescriptor.ts`, add to the `ClientOptions` ty
    * one — MainPanel owns the single instance (useSegmentationRuntime) so no
    * client has to import a store.
    */
-  segmentation?: SegmentationRuntime;
+  segmentation?: SegmentationRuntime | null;
   /**
    * How many sentences fill one bubble (1-5, already clamped by the store).
    *
@@ -154,7 +158,7 @@ import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRun
 export function buildClientOptions(input: {
   transport: ClientOptions['transport'];
   webrtcOptions?: ClientOptions['webrtcOptions'];
-  segmentation?: SegmentationRuntime;
+  segmentation?: SegmentationRuntime | null;
   sentencesPerChunk?: number;
   legOptions?: Partial<ClientOptions>;
 }): ClientOptions {
@@ -211,7 +215,7 @@ Add a comment at the `'secondary-port'` branch (`MainPanel.tsx:2547`), because a
 
 - [ ] **Step 7: Run the tests and the typecheck, then commit**
 
-Run: `npm run test -- src/components/MainPanel && npx tsc --noEmit`
+Run: `npm run test -- src/components/MainPanel`, then `npx tsc --noEmit` **on its own** — chaining with `&&` reports failure regardless of the tests, because `tsc` exits non-zero at the 319-error baseline.
 
 ```bash
 git add src/services/providers/ProviderDescriptor.ts src/components/MainPanel/clientOptions.ts src/components/MainPanel/clientOptions.test.ts src/components/MainPanel/MainPanel.tsx
@@ -274,7 +278,7 @@ Add fields next to `partialUserItem` (line 90):
   private stream: SentenceStream | null = null;
 ```
 
-In the constructor, read them off the options the descriptor passed, and read N from the settings store **once per client** — the client must not subscribe:
+In the constructor, read both off the options the descriptor passed. **The client never touches a store** — N rides on `ClientOptions` precisely so it does not have to, and so a running session cannot react to the setting changing:
 
 ```typescript
     this.segmentation = options.segmentation ?? null;
@@ -330,7 +334,9 @@ A small private helper, because three call sites need it:
     }
     // The ASR timing describes the whole utterance, so it rides the final job
     // only — attaching it to each chunk would report one utterance N times.
-    this.ttsQueue.push({ text });
+    // `pendingAsrTiming` is set by handleAsrResult (Step 5) just before it runs
+    // the stream to completion, so only the chunk emitted from end() sees it.
+    this.ttsQueue.push({ text, ...(this.pendingAsrTiming && { asrTiming: this.pendingAsrTiming }) });
     this.processQueue();
   }
 ```
@@ -391,7 +397,7 @@ Where `ttsQueue` is cleared (line 365), also dispose the stream:
 
 - [ ] **Step 7: Run the tests and the typecheck, then commit**
 
-Run: `npm run test -- src/services/clients/LocalInferenceClient.test.ts && npx tsc --noEmit`
+Run: `npm run test -- src/services/clients/LocalInferenceClient.test.ts`, then `npx tsc --noEmit` **on its own** — never chained with `&&`.
 
 ```bash
 git add src/services/clients/LocalInferenceClient.ts src/services/clients/LocalInferenceClient.test.ts
@@ -410,11 +416,20 @@ Structurally identical, with two differences: jobs chain on a promise tail rathe
 
 - [ ] **Step 1: Write the failing tests**
 
-The same eight cases as Task 2, adapted:
-- seals enqueue `runJob` on `this.queue` in order;
-- an offline final of six sentences at N = 3 gives two user items and two `runJob` calls;
-- short utterance unchanged; no runtime unchanged; disabled runtime unchanged;
-- **`currentTranslateItem` never serves two jobs at once** — assert that the second job's partials never land in the first job's bubble. The field is justified in the source by "one in-flight translate per connection is the job queue's guarantee"; chunking multiplies the jobs but they still serialize through `this.queue`, so the invariant holds. Pin it.
+All eight of Task 2's cases, adapted — write eight, not the five summarised below:
+
+1. a long streaming utterance seals every N sentences and chains `runJob` on `this.queue` **in order**;
+2. an offline final of six sentences at N = 3 gives two user items and two `runJob` calls, the second carrying the remainder;
+3. a short utterance still gives exactly one item and one job;
+4. with no runtime (`options.segmentation` undefined) the client behaves exactly as today;
+5. with a disabled runtime the client behaves exactly as today;
+6. AST mode never creates a stream — assert `punctuate` is never called;
+7. the ASR timing rides only the final job;
+8. a seal completes the in-progress item rather than creating a second in-progress one.
+
+Plus one case Task 2 has no equivalent of, because Local Native chains on a promise tail rather than an array queue:
+
+9. **`currentTranslateItem` never serves two jobs at once** — assert that the second job's partials never land in the first job's bubble. The field is justified in the source by "one in-flight translate per connection is the job queue's guarantee"; chunking multiplies the jobs but they still serialize through `this.queue`, so the invariant holds. Pin it.
 
 - [ ] **Step 2: Implement**
 
@@ -447,7 +462,7 @@ Mirror Task 2. `onAsrPartial` (380–394) routes through the stream; the seal ha
 
 - [ ] **Step 3: Run the tests and the typecheck, then commit**
 
-Run: `npm run test -- src/services/clients/LocalNativeClient.test.ts && npx tsc --noEmit`
+Run: `npm run test -- src/services/clients/LocalNativeClient.test.ts`, then `npx tsc --noEmit` **on its own** — never chained with `&&`.
 
 ```bash
 git add src/services/clients/LocalNativeClient.ts src/services/clients/LocalNativeClient.test.ts
@@ -487,5 +502,6 @@ Append the observations to `docs/superpowers/notes/2026-09-14-asr-punctuation-be
 - A long local utterance produces one bubble and one translation job per N sentences, in order.
 - A short one produces exactly one of each, as today.
 - With the switch off, or with no runtime, every pre-existing test and every observed behaviour is unchanged.
-- `npm run test` is green and `npx tsc --noEmit` is clean.
+- `npm run test` passes apart from the three `hfRevision: 'TODO-COMMIT-SHA'` assertions in `modelManifest.punctuation.test.ts`, which fail **by design** until three Hugging Face repositories are published — an outward action needing jiangzhuo's explicit per-repository confirmation. Do not invent a SHA.
+- `npx tsc --noEmit` adds nothing to the pre-existing baseline of 319 errors across 80 files. The bar is zero contribution, not a clean run.
 - The live check above is recorded in the notes.
