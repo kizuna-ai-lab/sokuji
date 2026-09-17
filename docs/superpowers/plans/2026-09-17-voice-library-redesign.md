@@ -2038,7 +2038,15 @@ Add to `SonioxVoiceSection.test.tsx`:
     expect(client.previewDone).toHaveBeenCalledTimes(1);
   });
 
-  it('caches a preset audition per language and speed, so a second click costs nothing', async () => {
+  // This case has TWO halves and an earlier draft of this step specified only
+  // the first, leaving a title that overclaimed: clicking twice at the SAME
+  // language and speed proves the cache HIT and says nothing whatever about the
+  // KEYING. Assert both — a same-key repeat synthesizes once, and a repeat with
+  // one key component changed (a different target language, or a different
+  // speed) synthesizes again. If this suite's fixtures cannot vary a key
+  // component, retitle the case to the half it actually checks rather than
+  // leaving the claim standing.
+  it('caches a preset audition by language and speed: the same key reuses, a different language re-synthesizes', async () => {
     // … click ▶ twice on the same preset row …
     expect(synthesize).toHaveBeenCalledTimes(1);
   });
