@@ -417,7 +417,26 @@ Structurally identical, with two differences: jobs chain on a promise tail rathe
 
 **Files:**
 - Modify: `src/services/clients/LocalNativeClient.ts`
-- Modify: `src/services/clients/LocalNativeClient.test.ts`
+- Modify: `src/services/clients/LocalNativeClient.test.ts` — this file **does** exist (three commits of history, dozens of cases). Every one of them must still pass.
+- Modify: `src/services/providers/LocalNativeProviderConfig.ts` — **not in the original file list; see below.**
+
+### What "Mirror Task 2" means now, and where it must NOT be mirrored
+
+Task 2 shipped materially different from this plan's literal code, because the plan's code was wrong in three ways. All three were confirmed against the source by review. **Mirror the shipped shape, not the snippets below.**
+
+**Mirror these — the causes are identical here:**
+
+1. **`ensureStream()` must test `runtime.enabled`, not merely that a runtime exists.** `active()` requires both (`SentenceStream.ts:135-137`), so a stream built on a disabled runtime shows partials but never seals — and because the new `onAsrResult` path returns early whenever a stream exists, the legacy body that completes the bubble never runs either. The literal snippet in Step 2 below produces **zero items and zero jobs for the whole utterance**.
+2. **`onAsrResult` must call `ensureStream()`, not read the bare `this.stream` field.** Otherwise any final that arrives without preceding partials is never segmented.
+3. **`update()` takes the text since the last seal, not the cumulative hypothesis** — and the same applies here: the sidecar sends cumulative partials (`asr_engine.py:454-455` appends to `_pending` and posts the whole buffer, resetting only at a cut, which is what becomes `onAsrResult`).
+4. **Advance the cursor by RAW CONSUMED, never by the sealed text's length.** On the model path the sealed text carries inserted punctuation that the raw input did not, so `sealedChars += chunk.text.length` over-advances by one character per mark and silently deletes speech. Derive it inside `onPending`, which `seal()` always calls immediately after `onSeal` with the remainder: `sealedCharsBase + lastPassedToStream.length - remainder.length`. This is correct even when one `update()` seals several times, because `pending` is always a raw suffix of the string passed to that `update()`.
+5. **Guard the short or rewritten final.** When the slice would be empty, a final that is a *truncation of the same utterance* must close the open bubble **without** a second job and leave the cursor alone; only genuine divergence resets and reseals. Compare **trimmed** forms — `previousRaw.trim().startsWith(text.trim())` — because the sidecar's `_result_event` applies `.strip()` (`asr_engine.py:419`) while partials are not stripped, so an untrimmed prefix test reads a truncation as divergence and produces a duplicate bubble and a duplicate spoken translation. Keep the normalisation inside the boolean; every offset stays on the untrimmed text.
+
+**Do NOT mirror this — it is where the two clients differ:**
+
+- **Task 2 added a constructor. Do not add one here.** `LocalNativeClient` already has `constructor(deps: Deps = {})` (`:56`), where `Deps` (`:19`) is four optional fields — `asr`, `translate`, `tts`, `vadWorker` — each with a `??` default. **Extend that interface and that constructor**; do not replace `Deps`, which is the seam the existing tests use to inject fakes. Note `segmentation` and `sentencesPerChunk` are configuration rather than collaborators, so there is no sensible default: absent means absent, the same `?? null` shape Task 2 used.
+- **The descriptor discards its options, exactly as Local Inference's did.** `LocalNativeProviderConfig.ts:147` is `createClient(_creds, _options)` returning `new LocalNativeClient()` with no arguments. Until it passes them through, everything else in this task compiles, tests green, and does nothing in production. Task 2's equivalent fix is the model:
+  `return new LocalNativeClient({ segmentation: options.segmentation, sentencesPerChunk: options.sentencesPerChunk });`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -438,7 +457,7 @@ Plus one case Task 2 has no equivalent of, because Local Native chains on a prom
 
 - [ ] **Step 2: Implement**
 
-Mirror Task 2. `onAsrPartial` (380–394) routes through the stream; the seal handler completes the user item and chains a job:
+Mirror Task 2 **as shipped** — see the five corrections above; the snippet in this step predates them and is not sufficient on its own. `onAsrPartial` (380–394) routes through the stream; the seal handler completes the user item and chains a job:
 
 ```typescript
   private sealUserChunk(text: string): void {
