@@ -1823,8 +1823,8 @@ named to match, so grep before you wire it into the picker's `loadingId` prop.
 `togglePreview` is `(id) => Promise<void>`, so it has to gain the parameter to
 type-check — and adding `_signal?` and ignoring it is the trap. The picker
 aborts its controller on unmount (`VoicePicker.tsx:91-94`) and on the next click
-(`:516`), and closing the popover unmounts the floating content; so a section
-that ignores the signal loses popover-close cancellation entirely. The request
+(`:516`), so a section that ignores the signal loses cancellation at both of
+those points. The request
 runs on, resolves, the token still matches, and playback starts into a dismissed
 popover with no reachable Stop — and for a managed voice that preview was billed.
 Wire the passed signal into the same path `stopPreview()` takes (bump the token,

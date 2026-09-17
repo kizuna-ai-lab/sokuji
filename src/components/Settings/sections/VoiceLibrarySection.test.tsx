@@ -146,6 +146,51 @@ describe('VoiceLibrarySection', () => {
     expect(signals[0].aborted).toBe(true);
   });
 
+  it('aborts an in-flight preview when the popover closes, and starts no playback once it resolves', async () => {
+    // Fix round 3: the case the other two never covered. `VoicePicker`'s own
+    // abort-on-unmount effect (`VoicePicker.tsx:92-94`) is scoped to
+    // VoicePicker's OWN unmount, which does not happen when only its popover
+    // content goes away — that needed a separate `open`-keyed effect there
+    // (`VoicePicker.tsx`, right after `previewAbortRef`'s declaration),
+    // wired to the `signal` this file's own `togglePreview` now listens for.
+    const { mockSource } = stubWebAudio();
+    const signals: AbortSignal[] = [];
+    let resolvePreview: (v: { audio: Float32Array; sampleRate: number }) => void = () => {};
+    const onPreview = vi.fn((_id: string, signal?: AbortSignal) => {
+      if (signal) signals.push(signal);
+      return new Promise<{ audio: Float32Array; sampleRate: number }>((resolve) => { resolvePreview = resolve; });
+    });
+
+    render(
+      <VoiceLibrarySection
+        {...base}
+        selectedId=""
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['upload'] }}
+        onPreview={onPreview}
+      />,
+    );
+    openPicker();
+    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(signals).toHaveLength(1));
+    expect(signals[0].aborted).toBe(false);
+
+    // `document`, not the grid: this Escape is handled by floating-ui's
+    // `useDismiss`, which binds its listener to the document (matches
+    // VoicePicker.test.tsx's own "closes on Escape" case).
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    expect(signals[0].aborted).toBe(true);
+
+    // The request was abandoned, not merely marked as such: resolving it
+    // late must not start playback into a popover the user has already
+    // dismissed, with no reachable Stop control.
+    resolvePreview({ audio: new Float32Array(2048), sampleRate: 24000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockSource.start).not.toHaveBeenCalled();
+  });
+
   it('gates the play control on previewable, reaching the picker unchanged', () => {
     render(
       <VoiceLibrarySection

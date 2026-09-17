@@ -92,6 +92,19 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
   useEffect(() => () => {
     previewAbortRef.current?.abort();
   }, []);
+  // Fix round 3: closing the popover must cancel an in-flight preview too,
+  // not just the next click or the whole component unmounting — a
+  // synthesized sample is billed to the user, and a request abandoned
+  // mid-flight must never be left to resolve and start playback into a
+  // popover that is already gone, with no reachable Stop control.
+  // `VoiceLibrarySection.tsx`'s `togglePreview` already listens for this
+  // same signal's `abort` event (its other, previously-unreachable half —
+  // see its own comment). `open` starts `false` on the very first render,
+  // which is harmless: `previewAbortRef.current` is still `null` then, so
+  // `?.abort()` no-ops.
+  useEffect(() => {
+    if (!open) previewAbortRef.current?.abort();
+  }, [open]);
 
   const { refs, floatingStyles, context } = useFloating({
     open,
@@ -508,7 +521,9 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
           title={label}
           // Abort whatever the previous click started, then hand THIS click a
           // controller whose signal actually reaches an abort() call: parked
-          // in previewAbortRef, aborted by the next click or by unmount.
+          // in previewAbortRef, aborted by the next click, by unmount, or by
+          // the popover closing (the effect right after previewAbortRef's
+          // declaration above).
           // (A controller built and dropped in the same expression, as an
           // earlier version of this did, hands the parent a signal that can
           // never fire — a fake cancellation channel.)
