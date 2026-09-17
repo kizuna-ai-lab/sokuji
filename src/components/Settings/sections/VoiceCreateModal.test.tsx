@@ -286,7 +286,12 @@ describe('VoiceCreateModal — closes after a successful recording', () => {
     vi.unstubAllGlobals();
   });
 
-  it('closes once onRecord resolves, without releaseCapture discarding the clip it just submitted', async () => {
+  // Titled for what the body actually establishes. An earlier title also
+  // claimed "without releaseCapture discarding the clip it just submitted",
+  // which this shape cannot prove — see the comment on the onClose assertion
+  // below: `recRef` is already null by the time `close()` runs, so a second
+  // discard would leave `onRecord` at exactly 1 call either way.
+  it('closes once onRecord resolves', async () => {
     const { processor } = installCaptureStubs();
     const onRecord = vi.fn().mockResolvedValue(undefined);
     const onClose = vi.fn();

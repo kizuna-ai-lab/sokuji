@@ -31,5 +31,11 @@ describe('VoiceDeleteModal', () => {
     // "Delete voice", so a loose matcher hits two elements and throws.
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
     expect(onConfirm).toHaveBeenCalledWith('custom:1');
+    // The count, not just the argument: spec §9 asks for "Delete calls
+    // onDelete once", and `toHaveBeenCalledWith` alone passes a double-fire.
+    // (The section-level equivalent is pinned at
+    // VoiceLibrarySection.test.tsx's "confirming calls onDelete exactly
+    // once"; this is the same guarantee at this modal's own seam.)
+    expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 });
