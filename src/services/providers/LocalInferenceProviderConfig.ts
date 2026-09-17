@@ -72,8 +72,8 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
     return '';
   }
 
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new LocalInferenceClient();
+  createClient(_creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new LocalInferenceClient({ segmentation: options.segmentation, sentencesPerChunk: options.sentencesPerChunk });
   }
 
   // Readiness for LOCAL_INFERENCE is model-based, not credential-based: settingsStore's

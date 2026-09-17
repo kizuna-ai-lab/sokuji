@@ -27,6 +27,8 @@ import { splitSentences } from '../../utils/splitSentences';
 import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /**
  * Error thrown when GPU runs out of memory during WebGPU model initialization.
@@ -89,6 +91,35 @@ export class LocalInferenceClient implements IClient {
   // Streaming ASR: in-progress partial result item
   private partialUserItem: ConversationItem | null = null;
 
+  // Sentence segmentation: the runtime and per-bubble sentence count, read
+  // once from ClientOptions in the constructor — the client never touches a
+  // store (see the constructor). Absent or disabled means today's behaviour
+  // exactly; see ensureStream().
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /** One stream per utterance, source side. Null between utterances. */
+  private stream: SentenceStream | null = null;
+  /**
+   * Characters of the current utterance's raw ASR text already folded into a
+   * seal. `SentenceStream.update()` expects "the whole current text since
+   * the last seal" (see SentenceStream.ts's own doc comment and its
+   * "never un-seals" test) — not the cumulative hypothesis a streaming ASR
+   * actually reports on every partial (confirmed against
+   * sherpa-onnx-streaming-asr.worker.js: `getResult()` only resets on
+   * endpoint, never between partials). Re-slicing the raw text by this
+   * cursor on every call is what turns that cumulative growth into the delta
+   * the stream expects; feeding it the raw text unsliced would re-detect and
+   * re-seal the same early sentences on every later partial. Reset to 0
+   * whenever a fresh stream is created (ensureStream()) and advanced by the
+   * sealed length every time a seal happens (sealUserChunk()).
+   */
+  private sealedChars = 0;
+  /** Set by handleAsrResult immediately before it runs the stream to
+   *  completion, and read by sealUserChunk when it pushes the job — so the
+   *  utterance's ASR timing rides the final chunk only. Undefined at every
+   *  other moment, which is what makes the earlier chunks carry none. */
+  private pendingAsrTiming: AsrTiming | undefined;
+
   // AST mode: ASR produces translated text directly, skip translation engine
   private astMode = false;
 
@@ -104,6 +135,20 @@ export class LocalInferenceClient implements IClient {
    * unaffected.
    */
   private keepReplayAudio: boolean = false;
+
+  /**
+   * `options` carries only what LocalInferenceClient needs, not the full
+   * ClientOptions the descriptor sees — mirrors OpenAIWebRTCClient's own
+   * narrow constructor shape rather than depending on the providers layer's
+   * type. The client never touches a store: N and the runtime ride on
+   * ClientOptions precisely so a running session cannot react to either
+   * setting changing, and so a disabled/absent runtime behaves exactly as
+   * today (see ensureStream()).
+   */
+  constructor(options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {}) {
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+  }
 
   /**
    * Helper to wrap an engine init call with per-engine progress event emission and timing.
@@ -366,6 +411,10 @@ export class LocalInferenceClient implements IClient {
     this.ttsProcessing = false;
     this.partialUserItem = null;
     this.astMode = false;
+    this.stream?.dispose();
+    this.stream = null;
+    this.sealedChars = 0;
+    this.pendingAsrTiming = undefined;
 
     this.asrEngine?.dispose();
     this.asrEngine = null;
@@ -463,12 +512,80 @@ export class LocalInferenceClient implements IClient {
   // ─── Pipeline ─────────────────────────────────────────────
 
   /**
+   * The stream for the utterance in progress, created on first text.
+   *
+   * Returns null — meaning "no segmentation, behave exactly as today" — in
+   * AST mode (there the ASR output is already the translation, and the user
+   * bubble only ever shows a placeholder), with no runtime, or with a
+   * disabled one. The disabled check matters here and not just inside
+   * SentenceStream: SentenceStream's own contract for "no runtime or
+   * disabled" is "no sealing at all" (see its `active()`), which means its
+   * `end()` never calls `onSeal` for the tail — if this method still built a
+   * live-but-inert stream for a disabled runtime, the whole utterance would
+   * be silently dropped (no item, no job) instead of completing as one item
+   * and one job the way it does today. Checking segmentation before ever
+   * constructing a stream is what keeps that guarantee.
+   *
+   * An already-open stream is always reused regardless of a later change to
+   * `segmentation`/`astMode` (checked first, before the guards) — mirroring
+   * "N is read once per stream" and avoiding orphaning an in-flight stream
+   * if the setting flips mid-utterance.
+   */
+  private ensureStream(): SentenceStream | null {
+    if (this.stream) return this.stream;
+    if (this.astMode || !this.segmentation || !this.segmentation.enabled) return null;
+    this.sealedChars = 0;
+    this.stream = new SentenceStream({
+      // The leg's own config, not a reversal of the speaker's. The participant
+      // direction already resolves target->source into its own
+      // sourceLanguage (see localParticipantConfig.ts), so reading
+      // config.sourceLanguage here is correct for both legs and there is
+      // nothing to flip.
+      lang: this.config?.sourceLanguage ?? 'auto',
+      runtime: this.segmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealUserChunk(chunk.text),
+      onPending: (text) => this.showPartialUserText(text),
+    });
+    return this.stream;
+  }
+
+  /** Finish the in-progress user bubble at the seal and queue its translation. */
+  private sealUserChunk(text: string): void {
+    // Advances the cursor handlePartialAsrResult/handleAsrResult use to turn
+    // the ASR's cumulative hypothesis into the delta SentenceStream expects —
+    // see the sealedChars field doc.
+    this.sealedChars += text.length;
+    if (this.partialUserItem) {
+      this.partialUserItem.formatted!.transcript = text;
+      this.partialUserItem.status = 'completed';
+      this.handlers.onConversationUpdated?.({ item: this.partialUserItem });
+      this.partialUserItem = null;
+    } else {
+      const item: ConversationItem = {
+        id: `${this.instanceId}_user_${++this.itemCounter}`,
+        role: 'user',
+        type: 'message',
+        status: 'completed',
+        createdAt: Date.now(),
+        formatted: { transcript: text },
+      };
+      this.conversationItems.push(item);
+      this.handlers.onConversationUpdated?.({ item });
+    }
+    // The ASR timing describes the whole utterance, so it rides the final job
+    // only — attaching it to each chunk would report one utterance N times.
+    // pendingAsrTiming is set by handleAsrResult just before it runs the
+    // stream to completion, so only the chunk emitted from end() sees it.
+    this.ttsQueue.push({ text, ...(this.pendingAsrTiming && { asrTiming: this.pendingAsrTiming }) });
+    this.processQueue();
+  }
+
+  /**
    * Handle partial (interim) ASR result from streaming recognizer.
    * Creates or updates an in_progress user item with interim text.
    */
-  private handlePartialAsrResult(text: string): void {
-    this.emitEvent('local.asr.partial', 'server', { text });
-
+  private showPartialUserText(text: string): void {
     if (this.partialUserItem) {
       // Update existing partial item
       this.partialUserItem.formatted!.transcript = text;
@@ -490,7 +607,53 @@ export class LocalInferenceClient implements IClient {
     }
   }
 
+  /**
+   * Route a partial ASR result: through the sentence stream when
+   * segmentation is active, or straight to the bubble when it is not (no
+   * runtime, disabled, or AST mode — see ensureStream()).
+   *
+   * `text` is the ASR's cumulative hypothesis for the whole utterance so far,
+   * not a delta (confirmed against sherpa-onnx-streaming-asr.worker.js:
+   * `getResult()` is only reset on endpoint, never between partials).
+   * SentenceStream.update() wants the text since the last seal, so this
+   * slices off `sealedChars` before handing it over — feeding the raw
+   * cumulative text unsliced would re-detect and re-seal already-sealed
+   * sentences on every later partial.
+   */
+  private handlePartialAsrResult(text: string): void {
+    this.emitEvent('local.asr.partial', 'server', { text });
+    const stream = this.ensureStream();
+    if (stream) stream.update(text.slice(this.sealedChars));
+    else this.showPartialUserText(text);
+  }
+
   private handleAsrResult(text: string, timing?: AsrTiming): void {
+    // ensureStream() — not a bare read of this.stream — is what lets an
+    // offline final (which never fires a partial) still seal: it creates the
+    // stream fresh here, with sealedChars at 0, so update() sees the whole
+    // final text. For a streaming utterance this reuses the stream partials
+    // already opened; its earlier seals already produced their items and
+    // jobs, and what remains here is just the tail.
+    const stream = this.ensureStream();
+    if (stream) {
+      // The final text replaces whatever the partials said, then end() emits
+      // the remainder as the last chunk — which becomes the last item and the
+      // last job, carrying the utterance's timing.
+      this.pendingAsrTiming = timing;
+      stream.update(text.slice(this.sealedChars));
+      stream.end();
+      stream.dispose();
+      this.stream = null;
+      this.sealedChars = 0;
+      this.pendingAsrTiming = undefined;
+      this.emitEvent('local.asr.end', 'server', {
+        text,
+        modelId: this.config?.asrModelId,
+        ...(timing && { durationMs: timing.durationMs, recognitionTimeMs: timing.recognitionTimeMs }),
+      });
+      return;
+    }
+
     // In AST mode, text is already translated — show placeholder for user item
     const userTranscript = this.astMode
       ? i18n.t('mainPanel.speechDetected')
