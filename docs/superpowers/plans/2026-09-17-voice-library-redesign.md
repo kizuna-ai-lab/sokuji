@@ -1454,8 +1454,17 @@ describe('VoiceCreateModal', () => {
   it('closes on Escape, on the backdrop, and on Cancel — but not on a click inside', async () => {
     const onClose = vi.fn();
     render(<VoiceCreateModal {...base} onClose={onClose} onImport={vi.fn()} />);
+    // A click INSIDE the dialog must not close it. Note that this is the inner
+    // panel, NOT the backdrop — the backdrop is its parent, and asserting the
+    // backdrop by clicking the dialog would pass for the wrong reason and stay
+    // green if the overlay's handler were deleted.
     fireEvent.click(screen.getByRole('dialog'));
     expect(onClose).not.toHaveBeenCalled();
+    // The real backdrop. Reached through the dialog's parent rather than a
+    // test-only attribute on production markup.
+    fireEvent.click(screen.getByRole('dialog').parentElement as HTMLElement);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    onClose.mockClear();
     // `window`, not `document`: this modal adds its own Escape listener the way
     // `ModelImportModal` does (`ModelImportModal.test.tsx:114` fires it the same
     // way). Nothing here goes through floating-ui.
@@ -1519,10 +1528,21 @@ Add one behaviour the section did not need: close means stop. A modal that
 closes mid-recording must not leave the graph running, so:
 
 ```tsx
-  // Closing mid-recording discards the capture rather than submitting a
-  // half-finished clip — same rule the section's unmount effect follows.
+  // Closing mid-recording DISCARDS the capture. Do not reach for
+  // `stopRecording` here: that is the SUBMITTING path — it awaits `onRecord` —
+  // so calling it from `close()` uploads the half-finished clip the user just
+  // cancelled, and because `onClose()` runs while it is suspended on
+  // `await ctx.close()`, `onRecord` resolves after the modal is gone and its
+  // errors reach nothing but a `console.warn`.
+  //
+  // Discarding means exactly what the section's unmount effect does: clear the
+  // countdown timer, release the microphone and close the audio context, and
+  // bump the generation counter so a `getUserMedia` still in flight cannot
+  // resurrect the capture. Factor that teardown so `close()` and the unmount
+  // path share it, using the section's own identifiers and ordering, and leave
+  // `stopRecording` as the only caller of `onRecord`.
   const close = () => {
-    if (isRecording) { clearRecTimer(); void stopRecordingRef.current?.(); }
+    if (isRecording) discardRecording();
     onClose();
   };
 ```
