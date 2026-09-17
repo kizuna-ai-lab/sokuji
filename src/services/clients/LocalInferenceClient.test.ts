@@ -294,6 +294,134 @@ describe('LocalInferenceClient sentence segmentation', () => {
     expect((jobSpy.mock.calls[1][0] as any).asrTiming).toEqual({ durationMs: 42, recognitionTimeMs: 7 });
   });
 
+  it('the ASR timing still rides only the final chunk when one offline update() seals >=2N sentences by itself', async () => {
+    // evaluate() loops over full N-sentence groups within a single update()
+    // call, so a >=2N-sentence offline final can seal more than once before
+    // end() ever runs. pendingAsrTiming must not be visible to those earlier,
+    // update()-only seals — only the one end() emits for the true tail.
+    setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+    const runtime = fakeRuntime(true);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    client.setEventHandlers({});
+    await client.connect(OFFLINE_CONFIG);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+
+    const sixSentences = 'One is done. Two is done. Three is done. Four is done. Five is done. Six is done and finished well.';
+    (client as any).handleAsrResult(sixSentences, { durationMs: 99, recognitionTimeMs: 11 });
+    await settle();
+
+    expect(jobSpy.mock.calls.length).toBe(2);
+    expect((jobSpy.mock.calls[0][0] as any).asrTiming).toBeUndefined();
+    expect((jobSpy.mock.calls[1][0] as any).asrTiming).toEqual({ durationMs: 99, recognitionTimeMs: 11 });
+  });
+
+  it('advances the raw cursor by what the stream actually consumed, not by the sealed (punctuated) text length', async () => {
+    // On the model path, SentenceStream.applyResult() seals the PUNCTUATED
+    // output while only advancing the raw tail to where that output's
+    // skeleton maps back onto the raw input (SentenceStream.ts). Those two
+    // lengths differ by exactly the marks the model inserted. Advancing the
+    // client's own cursor by the sealed text's length (rather than by what
+    // was actually consumed) drifts it forward by one character per inserted
+    // mark, silently deleting that many real characters from the next chunk
+    // every time. Only a runtime that actually inserts a mark can catch
+    // this — every other case in this file uses a no-op punctuate, so the
+    // rule path (which seals exact raw prefixes) never exposes the drift.
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
+
+    // 50 unpunctuated characters — long enough to clear the N=1 English gate
+    // (gateChars('en', 1) === 50) and short enough to stay inside the
+    // model's MAX_MODEL_CHARS=300 window, so `dropped` is 0 and this stays
+    // easy to reason about by hand.
+    const digits = '0123456789'.repeat(5);
+    expect(digits.length).toBe(50);
+    // Model inserts one period 10 characters before the end — leaving
+    // exactly 10 (>=8) skeleton characters of right context, the minimum
+    // SentenceStream's hasRightContext requires to count it.
+    const cut = digits.length - 10; // 40
+    const runtime: SegmentationRuntime = {
+      enabled: true,
+      async punctuate(_lang: string, text: string) {
+        const out = `${text.slice(0, cut)}.${text.slice(cut)}`;
+        return { text: out, sentenceEnds: [cut + 1], breakpoints: [cut + 1], model: 'edge-punct-en' as const };
+      },
+    };
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 1 });
+    client.setEventHandlers({});
+    await client.connect(STREAM_CONFIG);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+    const engine = hoisted.streamingInstances[0];
+
+    engine.onPartialResult(digits);
+    await settle(); // the model call is async — let it resolve and seal
+
+    expect(jobSpy.mock.calls.length).toBe(1);
+    // The bug: sealUserChunk used to advance by the SEALED text's length
+    // (cut + 1, counting the inserted period) instead of the raw consumed
+    // length (cut). Assert the corrected cursor directly.
+    expect((client as any).sealedChars).toBe(cut);
+
+    // A short, still-unpunctuated tail — kept under the 50-char gate so no
+    // second model round is needed — becomes the final chunk.
+    const tail = 'ZremainderNoPeriodHere';
+    engine.onResult({ text: digits + tail, durationMs: 5, recognitionTimeMs: 1 });
+    await settle();
+
+    expect(jobSpy.mock.calls.length).toBe(2);
+    const firstSealed = (jobSpy.mock.calls[0][0] as any).text as string;
+    const secondSealed = (jobSpy.mock.calls[1][0] as any).text as string;
+    // With the bug, one raw character (digits[cut]) is silently dropped at
+    // the seam between the two chunks. Stripping the model's own inserted
+    // mark from the first chunk and concatenating must reconstruct the
+    // original raw text exactly, character for character.
+    expect(firstSealed.replace(/\.$/, '') + secondSealed).toBe(digits + tail);
+  });
+
+  it('a final that is shorter than sealedChars restarts the cursor instead of blanking the open bubble', async () => {
+    // Some engines produce the final as a canonical re-decode rather than
+    // reusing the accumulated partial text (voxtral-3b-webgpu.worker.ts
+    // documents this fallback), so it can come back shorter than what
+    // partials already sealed. Slicing by a cursor that no longer applies
+    // must not feed the stream an empty string — that would blank the open
+    // bubble via onPending('') and then end() would never seal an empty
+    // tail, stranding it in_progress with nothing translated.
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
+    const runtime = fakeRuntime(true);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await client.connect(STREAM_CONFIG);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+    const engine = hoisted.streamingInstances[0];
+
+    // Seals "First sentence done." — sealedChars becomes 20.
+    engine.onPartialResult('First sentence done. Second begins');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    expect((client as any).sealedChars).toBe('First sentence done.'.length);
+
+    // A short final, shorter than sealedChars — text.slice(sealedChars) would be ''.
+    const shortFinal = 'Hi.';
+    expect(shortFinal.length).toBeLessThan((client as any).sealedChars);
+    engine.onResult({ text: shortFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // The short final still becomes its own completed item and job — not a
+    // blanked, permanently in_progress bubble. Checked against final state
+    // (not the historical event log, which legitimately passes through
+    // in_progress on the way to completed — see the earlier "no two
+    // in_progress at once" case).
+    expect(jobSpy.mock.calls.length).toBe(2);
+    expect((jobSpy.mock.calls[1][0] as any).text).toBe(shortFinal);
+    const finalUserItems = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.some((i) => i.status === 'in_progress')).toBe(false);
+    expect(finalUserItems.map((i) => i.formatted?.transcript)).toEqual([
+      'First sentence done.',
+      shortFinal,
+    ]);
+  });
+
   it('a seal completes the in-progress item rather than creating a second in-progress one', async () => {
     setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
     const runtime = fakeRuntime(true);

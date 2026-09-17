@@ -110,14 +110,38 @@ export class LocalInferenceClient implements IClient {
    * cursor on every call is what turns that cumulative growth into the delta
    * the stream expects; feeding it the raw text unsliced would re-detect and
    * re-seal the same early sentences on every later partial. Reset to 0
-   * whenever a fresh stream is created (ensureStream()) and advanced by the
-   * sealed length every time a seal happens (sealUserChunk()).
+   * whenever a fresh stream is created (ensureStream()).
+   *
+   * Advanced from the `onPending` callback, NOT by the sealed text's own
+   * length: on the model path, `SentenceStream.applyResult()` seals the
+   * *punctuated* output (`result.text.slice(0, cut)`) while only advancing
+   * the raw tail to `dropped + rawCut` (SentenceStream.ts) — those lengths
+   * differ by exactly the marks the model inserted. Advancing by the sealed
+   * text's length would over-consume the raw text by that many characters
+   * per seal, silently deleting real speech from the next chunk. `onPending`
+   * always reports a suffix of whatever was last passed to `update()` (see
+   * `seal()`, which calls `onPending(remainder)` right after `onSeal`), so
+   * `passed.length - remainder.length` is exactly how many RAW characters
+   * this update() call has consumed so far — see `feedStream()` and the
+   * `onPending` wiring in `ensureStream()`.
    */
   private sealedChars = 0;
-  /** Set by handleAsrResult immediately before it runs the stream to
-   *  completion, and read by sealUserChunk when it pushes the job — so the
-   *  utterance's ASR timing rides the final chunk only. Undefined at every
-   *  other moment, which is what makes the earlier chunks carry none. */
+  /** `sealedChars` at the moment `lastPassedToStream` was handed to
+   *  `stream.update()` — the base the `onPending` recompute in
+   *  `ensureStream()` adds to. Set by `feedStream()`. */
+  private sealedCharsBase = 0;
+  /** The exact string most recently passed to `stream.update()` (already
+   *  sliced by `sealedCharsBase`). Always a suffix relationship holds between
+   *  this and whatever `onPending` reports afterward — see the `sealedChars`
+   *  field doc. Set by `feedStream()`. */
+  private lastPassedToStream = '';
+  /** Set by handleAsrResult AFTER it feeds the final text to the stream but
+   *  BEFORE calling end() — not before feedStream(), because update() alone
+   *  can seal more than one chunk synchronously (evaluate() loops over full
+   *  N-sentence groups, e.g. an offline final of >=2N sentences), and only
+   *  the chunk end() emits for the true tail may carry the timing. Read by
+   *  sealUserChunk when it pushes the job. Undefined at every other moment,
+   *  which is what makes the earlier chunks carry none. */
   private pendingAsrTiming: AsrTiming | undefined;
 
   // AST mode: ASR produces translated text directly, skip translation engine
@@ -219,6 +243,15 @@ export class LocalInferenceClient implements IClient {
     this.itemCounter = 0;
     this.ttsEngine = null;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
+    // A reconnect without an intervening disconnect() must not inherit a
+    // stream opened under the PREVIOUS config: ensureStream() returns an
+    // existing stream before it ever re-checks astMode, so a stale non-AST
+    // stream could otherwise survive into an AST session and bypass its
+    // placeholder-only bubble.
+    this.stream?.dispose();
+    this.stream = null;
+    this.sealedChars = 0;
+    this.pendingAsrTiming = undefined;
 
     try {
       // --- Create engines & set callbacks synchronously ---
@@ -440,6 +473,12 @@ export class LocalInferenceClient implements IClient {
   reset(): void {
     this.conversationItems = [];
     this.itemCounter = 0;
+    // Without this, a stream left open from the utterance in progress could
+    // still deliver a seal (and its job) against a conversation that was
+    // just cleared out from under it.
+    this.stream?.dispose();
+    this.stream = null;
+    this.sealedChars = 0;
   }
 
   appendInputAudio(audioData: Int16Array): void {
@@ -449,7 +488,12 @@ export class LocalInferenceClient implements IClient {
 
   appendInputText(text: string): void {
     if (this.disposed || !text.trim()) return;
-    // Skip ASR, feed text directly to translation pipeline
+    // Skip ASR, feed text directly to translation pipeline. handleAsrResult
+    // also runs this through the sentence stream when segmentation is
+    // active, so a long typed message seals into several bubbles/jobs
+    // exactly like a long spoken utterance would — an accepted consequence
+    // of routing text input through the same finalization path as ASR, not
+    // a special case this method avoids.
     this.handleAsrResult(text.trim());
   }
 
@@ -471,6 +515,12 @@ export class LocalInferenceClient implements IClient {
   clearConversationItems(): void {
     this.conversationItems = [];
     this.partialUserItem = null;
+    // Same reasoning as reset(): a cleared conversation must not still
+    // receive a seal (and its job) from the utterance that was in progress
+    // before the clear.
+    this.stream?.dispose();
+    this.stream = null;
+    this.sealedChars = 0;
   }
 
   setEventHandlers(handlers: ClientEventHandlers): void {
@@ -545,17 +595,36 @@ export class LocalInferenceClient implements IClient {
       runtime: this.segmentation,
       sentencesPerChunk: this.sentencesPerChunk,
       onSeal: (chunk) => this.sealUserChunk(chunk.text),
-      onPending: (text) => this.showPartialUserText(text),
+      onPending: (text) => {
+        // Recompute the RAW cursor from how much of what feedStream() last
+        // handed the stream remains unconsumed — see the sealedChars field
+        // doc. Cannot advance by the sealed text's own length in sealUserChunk
+        // instead: the model path's seal can be a different length than the
+        // raw input it consumed (SentenceStream.applyResult inserts
+        // punctuation), so that would drift the cursor and silently delete
+        // raw characters from the next chunk.
+        this.sealedChars = this.sealedCharsBase + this.lastPassedToStream.length - text.length;
+        this.showPartialUserText(text);
+      },
     });
     return this.stream;
   }
 
+  /**
+   * Slice the raw ASR text by `sealedChars` and feed the relative tail to the
+   * stream, recording what was passed so the `onPending` callback (wired in
+   * ensureStream()) can recompute `sealedChars` from the remainder it
+   * reports afterward.
+   */
+  private feedStream(stream: SentenceStream, text: string): void {
+    const relative = text.slice(this.sealedChars);
+    this.sealedCharsBase = this.sealedChars;
+    this.lastPassedToStream = relative;
+    stream.update(relative);
+  }
+
   /** Finish the in-progress user bubble at the seal and queue its translation. */
   private sealUserChunk(text: string): void {
-    // Advances the cursor handlePartialAsrResult/handleAsrResult use to turn
-    // the ASR's cumulative hypothesis into the delta SentenceStream expects —
-    // see the sealedChars field doc.
-    this.sealedChars += text.length;
     if (this.partialUserItem) {
       this.partialUserItem.formatted!.transcript = text;
       this.partialUserItem.status = 'completed';
@@ -575,8 +644,9 @@ export class LocalInferenceClient implements IClient {
     }
     // The ASR timing describes the whole utterance, so it rides the final job
     // only — attaching it to each chunk would report one utterance N times.
-    // pendingAsrTiming is set by handleAsrResult just before it runs the
-    // stream to completion, so only the chunk emitted from end() sees it.
+    // pendingAsrTiming is set by handleAsrResult only after feedStream()
+    // returns and only right before end(), so only the chunk emitted from
+    // end() sees it — see its field doc for why the ordering matters.
     this.ttsQueue.push({ text, ...(this.pendingAsrTiming && { asrTiming: this.pendingAsrTiming }) });
     this.processQueue();
   }
@@ -615,15 +685,14 @@ export class LocalInferenceClient implements IClient {
    * `text` is the ASR's cumulative hypothesis for the whole utterance so far,
    * not a delta (confirmed against sherpa-onnx-streaming-asr.worker.js:
    * `getResult()` is only reset on endpoint, never between partials).
-   * SentenceStream.update() wants the text since the last seal, so this
-   * slices off `sealedChars` before handing it over — feeding the raw
-   * cumulative text unsliced would re-detect and re-seal already-sealed
-   * sentences on every later partial.
+   * feedStream() slices off `sealedChars` before handing it to the stream —
+   * feeding the raw cumulative text unsliced would re-detect and re-seal
+   * already-sealed sentences on every later partial.
    */
   private handlePartialAsrResult(text: string): void {
     this.emitEvent('local.asr.partial', 'server', { text });
     const stream = this.ensureStream();
-    if (stream) stream.update(text.slice(this.sealedChars));
+    if (stream) this.feedStream(stream, text);
     else this.showPartialUserText(text);
   }
 
@@ -636,11 +705,28 @@ export class LocalInferenceClient implements IClient {
     // jobs, and what remains here is just the tail.
     const stream = this.ensureStream();
     if (stream) {
-      // The final text replaces whatever the partials said, then end() emits
-      // the remainder as the last chunk — which becomes the last item and the
-      // last job, carrying the utterance's timing.
+      // Some engines produce the final as a canonical re-decode rather than
+      // reusing the accumulated partial (voxtral-3b-webgpu.worker.ts
+      // documents this fallback), so the final's prefix is not guaranteed to
+      // still match what earlier partials sealed. Slicing by a cursor that no
+      // longer applies would hand the stream an empty string — blanking the
+      // open bubble via onPending('') and then end() never sealing an empty
+      // tail, stranding it in_progress with nothing translated. Detect that
+      // and restart the cursor so the whole final still seals as (at least)
+      // one chunk.
+      if (text.length > 0 && text.slice(this.sealedChars).length === 0) {
+        this.sealedChars = 0;
+      }
+      // update() first, WITHOUT the timing attached yet: it can seal more
+      // than one chunk synchronously on its own (evaluate() loops over full
+      // N-sentence groups — e.g. an offline final of >=2N sentences), and
+      // those chunks must not carry it. pendingAsrTiming is set only after
+      // update() returns, so only the chunk end() emits for the true tail —
+      // the remainder update() left pending — sees it.
+      this.feedStream(stream, text);
       this.pendingAsrTiming = timing;
-      stream.update(text.slice(this.sealedChars));
+      // The remainder update() left pending becomes the last chunk — the
+      // last item and the last job, carrying the utterance's timing.
       stream.end();
       stream.dispose();
       this.stream = null;
