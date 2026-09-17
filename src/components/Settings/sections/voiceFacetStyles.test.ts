@@ -50,6 +50,22 @@ describe('voice picker styling', () => {
   ])('styles .%s where the element lives', (cls) => {
     expect(pickerCss).toMatch(styled(cls));
   });
+
+  // Not a class, so `styled()` — which anchors on a leading dot — cannot
+  // express it. The row's shrinkable floor has to be keyed on the ARIA role
+  // attribute because nothing gives the gridcell wrapper a class, and it is
+  // that wrapper (not `.voice-row__pick`) which is the row's flex item. A typo
+  // in either selector would be entirely silent: the rows still render, they
+  // just stop truncating long labels at narrow windows — and no vitest case
+  // can measure that, since jsdom has no layout. This asserts only that both
+  // rules are EMITTED; whether they have the intended effect is the Task 10
+  // geometry harness's question (see the stylesheet's own comment).
+  it.each([
+    String.raw`\.voice-row\s*>\s*\[role=["']?gridcell["']?\]\s*\{`,
+    String.raw`\.voice-row\s*>\s*\[role=["']?gridcell["']?\]:first-child\s*\{`,
+  ])('emits the row gridcell rule matching %s', (pattern) => {
+    expect(pickerCss).toMatch(new RegExp(pattern));
+  });
 });
 
 // VoiceCreateModal.scss is also VoiceDeleteModal's stylesheet — the delete

@@ -172,9 +172,45 @@
   border-top: 1px solid vars.$border-subtle;
 }
 
-.voice-row__pick {
-  flex: 1;
+// The row's flex ITEMS are these `[role="gridcell"]` wrapper divs — NOT the
+// controls inside them. Nothing anywhere in `src` styles the gridcell role,
+// so the wrappers are plain block boxes, and that is why `.voice-row__pick`'s
+// own `flex: 1; min-width: 0` was INERT: the button is not a flex item, its
+// parent div is.
+//
+// A flex item's default `min-width: auto` floors it at its min-content width,
+// and for `white-space: nowrap` text neither `overflow: hidden` nor
+// `text-overflow: ellipsis` reduces that floor. So the name cell could not
+// shrink and a long label overflowed instead of truncating — measured at a
+// 400px window (the browser-extension side panel's shape, where Settings does
+// render) as `.voice-pop__grid` `scrollWidth` 572 vs `clientWidth` 384.
+// `min-width: 0` lifts the floor; `flex: 1 1 0` on the first cell is what
+// makes the name column absorb the row's slack, which additionally pushes
+// ▶ / rename / delete to the row's right edge instead of packing them against
+// the label. The action cells keep their natural size: with a `0` basis on the
+// only growing cell there is no free-space deficit to distribute, so nothing
+// shrinks them.
+//
+// Two earlier attempts were applied, measured and reverted because they
+// targeted elements that do not carry the floor: `min-width: 0` on the button
+// (not a flex item) and `overflow: hidden` on the button and on the grid.
+//
+// NO automated gate can see any of this. jsdom has no layout, so no vitest
+// case can measure it, and voiceFacetStyles.test.ts only proves a selector is
+// EMITTED, never that it has an effect. The evidence is the Task 10 geometry
+// harness (task-10-geometry.md), not the suite.
+.voice-row > [role="gridcell"] {
   min-width: 0;
+
+  // The name cell — or, while an inline rename is open, the edit cell — is
+  // the only one that should grow.
+  &:first-child { flex: 1 1 0; }
+}
+
+.voice-row__pick {
+  // `width: 100%` and not `flex: 1`: see the gridcell rule above for why a
+  // flex declaration on this button does nothing.
+  width: 100%;
   display: flex;
   flex-direction: column;
   text-align: left;
@@ -273,8 +309,14 @@
 }
 
 .voice-row__edit {
-  flex: 1;
-  min-width: 0;
+  // Same inert-flex correction as `.voice-row__pick` above — this input sits
+  // inside a `[role="gridcell"]` wrapper too, so the wrapper is the flex item
+  // and a `flex` declaration here had no effect.
+  width: 100%;
+  // Keeps the padding and the 1px border INSIDE the cell's width instead of
+  // widening the row (nothing sets `box-sizing` globally — `.voice-row__spinner`
+  // sets it locally for the same reason).
+  box-sizing: border-box;
   padding: 2px 6px;
   font-size: 13px;
   color: vars.$text-primary;
