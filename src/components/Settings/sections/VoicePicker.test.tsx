@@ -195,6 +195,39 @@ describe('VoicePicker', () => {
     expect(within(screen.getByRole('grid')).getByText('Grace')).toBeInTheDocument();
   });
 
+  // Fix round 1 (2026-09-17): `facetRow()` read/wrote every dimension through
+  // one `string | undefined` cast, which silently dropped `useCase` and
+  // `style` (typed `string[]` in `VoiceFacetCriteria`, unlike the other
+  // three's `string | null`) and used the field's own label ("Gender") as
+  // the neutral option instead of its `any*` wording ("Any gender"). These
+  // two cases are what stop both from recurring.
+  it('offers all five facet dimensions, each with its own "Any …" neutral option', () => {
+    const FULL = {
+      id: 'builtin:Full', label: 'Full', group: 'builtin' as const, removable: false,
+      meta: { facets: { gender: 'female', age: 'young', accent: 'american', useCase: ['narration'], style: ['calm'] } },
+    };
+    render(<VoicePicker {...base} voices={[FULL]} capability={{ importModes: [], facetFilter: true }} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    for (const [label, anyLabel] of [
+      ['Gender', 'Any gender'],
+      ['Age', 'Any age'],
+      ['Accent', 'Any accent'],
+      ['Use case', 'Any use case'],
+      ['Style', 'Any style'],
+    ]) {
+      const select = screen.getByLabelText(label) as HTMLSelectElement;
+      expect(select.querySelector('option[value=""]')).toHaveTextContent(anyLabel);
+    }
+  });
+
+  // A facet VALUE's real translated text (as opposed to the humanized
+  // fallback) needs a `t` that can distinguish a keyed lookup from its
+  // default — this file's react-i18next is the real package with no catalog
+  // loaded, so `t(key, def)` always returns `def` here regardless of `key`,
+  // same as `humanizeFacetValue` would. That proof lives in
+  // VoicePicker.facetTranslation.test.tsx instead, which mocks a small
+  // catalog precisely so the two are distinguishable.
+
   it('disables selection while a session is active but still allows auditioning', () => {
     const onSelect = vi.fn();
     render(<VoicePicker {...base} voices={[GRACE]} onSelect={onSelect} onPreview={vi.fn()} isSessionActive />);

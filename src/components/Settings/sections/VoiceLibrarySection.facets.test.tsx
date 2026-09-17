@@ -4,18 +4,23 @@
  * Soniox's built-in roster went from 70 voices to 200 on 2026-09-10, and its
  * voice library exposes what each one sounds like (gender, age, accent,
  * use-case and style tags). A 200-entry alphabetical list is not a picker, so
- * those tags become filters.
+ * those tags become filters — one choice per dimension, five dropdowns, no
+ * search box.
  *
- * Task 6 moved this bar from VoiceLibrarySection's own `<select>` into
- * VoicePicker's popover (Task 3), which renders it over three dimensions —
- * gender, age, accent — rather than the original five. `useCase` and `style`
- * were deliberately dropped from the FILTER: `matchesVoiceFacets` still
- * understands them (`src/lib/voiceLibrary/voiceFacets.ts`), and a row's own
- * subtitle now surfaces its style tags directly (`female · calm · soft`,
- * VoicePicker's `rowSubtitle`), which is what made a dedicated filter for them
- * feel redundant — see `VoicePicker.tsx`'s `facetRow` and Task 3's brief,
- * which hard-codes the same three dimensions. This file exercises the two
- * rules that are not obvious, over whichever dimensions the picker exposes:
+ * Fix round 1 (2026-09-17): a first pass at VoicePicker's `facetRow()`
+ * (Task 3's own brief) read/wrote every dimension through one `string |
+ * undefined` cast, which silently dropped `useCase` and `style` — both typed
+ * `string[]` in `VoiceFacetCriteria`, unlike the other three's `string |
+ * null` — since neither fit that cast. That trimmed the filter from five
+ * dimensions to three, which was never an approved design decision (the spec
+ * only ever said "no search box"; five-dimension single-select came from
+ * jiangzhuo reviewing the real distribution data). This file restores all
+ * five and adds regression guards for the other two losses the same pass
+ * introduced: the neutral option reading the field's own label ("Gender")
+ * instead of its `any*` wording ("Any gender"), and facet VALUES rendering
+ * as a bare humanized tag instead of going through the locale catalog.
+ *
+ * Rules that are not obvious and are the reason this file exists:
  *
  *  - Filtering narrows the PRESETS group only. Cloned voices carry no metadata
  *    (no provider publishes any), so a facet selection would sweep every one of
@@ -24,12 +29,26 @@
  *  - The selected voice is never filtered out. A row that named no visible
  *    option would read as "my voice is gone" rather than as "it does not
  *    match".
+ *  - `useCase`/`style` criteria are one-element ARRAYS even though this
+ *    control is single-select: `matchesVoiceFacets`'s `hasEvery` requires
+ *    every listed tag to be present, and a voice's OWN style/useCase array
+ *    may carry several, so picking one tag matches any voice that carries it
+ *    among others.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within, cleanup, fireEvent } from '@testing-library/react';
 import VoiceLibrarySection from './VoiceLibrarySection';
 import type { VoiceEntry } from './VoiceLibrarySection';
 
+// `t` is mocked to its English DEFAULT here, not the real catalog: every
+// facet-value assertion below is therefore against `humanizeFacetValue`'s
+// fallback text, not a real translation. That's deliberate and matches this
+// file's pre-Task-6 precedent — proving the KEYED lookup itself reaches the
+// real locale (as opposed to `humanizeFacetValue` alone) needs a REAL
+// `react-i18next`, so that proof lives in VoicePicker.test.tsx instead
+// ('translates a facet value via the locale catalog...'), and
+// locales.consistency.test.ts is what pins that every facet value has a key
+// in every catalog.
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, def?: string) => def ?? _k }),
 }));
@@ -103,6 +122,9 @@ const rowNames = (group: 'My Voices' | 'Presets'): string[] => {
 
 const facet = (name: string) => screen.getByLabelText(name) as HTMLSelectElement;
 
+/** The neutral option's own text — must read "Any gender", not "Gender". */
+const neutralOption = (name: string) => facet(name).querySelector('option[value=""]')?.textContent;
+
 describe('VoiceLibrarySection facet filter', () => {
   beforeEach(() => cleanup());
 
@@ -113,11 +135,11 @@ describe('VoiceLibrarySection facet filter', () => {
     expect(rowNames('Presets')).toEqual(['Sakura', 'Yuto', 'Adrian']);
   });
 
-  it('offers no search box — gender, age and accent are the whole filter', () => {
+  it('offers no search box — all five dimensions are the whole filter', () => {
     mount();
     openPicker();
     expect(screen.queryByRole('searchbox')).toBeNull();
-    for (const dim of ['Gender', 'Age', 'Accent']) {
+    for (const dim of ['Gender', 'Age', 'Accent', 'Use case', 'Style']) {
       expect(facet(dim)).toBeInTheDocument();
     }
   });
@@ -141,9 +163,22 @@ describe('VoiceLibrarySection facet filter', () => {
     // (Settings.scss); anything not carrying it falls back to the OS popup.
     mount();
     openPicker();
-    for (const dim of ['Gender', 'Age', 'Accent']) {
+    for (const dim of ['Gender', 'Age', 'Accent', 'Use case', 'Style']) {
       expect(facet(dim).classList.contains('select-dropdown')).toBe(true);
     }
+  });
+
+  it('gives the neutral option each dimension\'s own "Any …" wording, not its field label', () => {
+    // Fix round 1: a first pass rendered the blank option as the field
+    // label itself ("Gender"), which reads as if nothing had been chosen
+    // FOR you rather than as the "no filter" state.
+    mount();
+    openPicker();
+    expect(neutralOption('Gender')).toBe('Any gender');
+    expect(neutralOption('Age')).toBe('Any age');
+    expect(neutralOption('Accent')).toBe('Any accent');
+    expect(neutralOption('Use case')).toBe('Any use case');
+    expect(neutralOption('Style')).toBe('Any style');
   });
 
   it('narrows the presets by a single-choice facet', () => {
@@ -170,6 +205,34 @@ describe('VoiceLibrarySection facet filter', () => {
     // Sakura is the only voice that is both japanese AND female; Yuto stays
     // only because he is the current selection.
     expect(rowNames('Presets')).toEqual(['Sakura', 'Yuto']);
+  });
+
+  it('matches a voice on any one of the style tags it carries', () => {
+    // Voices carry several style tags at once, so picking `calm` has to
+    // reach a voice whose tags are ['deep', 'calm'], not only one tagged
+    // calm alone — the array-criteria semantics `ARRAY_DIMS` exists for.
+    mount({ selectedId: 'Sakura' });
+    openPicker();
+    fireEvent.change(facet('Style'), { target: { value: 'calm' } });
+    expect(rowNames('Presets')).toEqual(['Sakura', 'Adrian']);
+  });
+
+  it('replaces the chosen style rather than adding to it', () => {
+    mount({ selectedId: 'Adrian' });
+    openPicker();
+    fireEvent.change(facet('Style'), { target: { value: 'bright' } });
+    expect(rowNames('Presets')).toEqual(['Sakura', 'Yuto', 'Adrian']); // Adrian is the selection
+    fireEvent.change(facet('Style'), { target: { value: 'deep' } });
+    expect(rowNames('Presets')).toEqual(['Adrian']);
+  });
+
+  it('picks one use case at a time', () => {
+    mount({ selectedId: 'Adrian' });
+    openPicker();
+    fireEvent.change(facet('Use case'), { target: { value: 'conversational' } });
+    expect(rowNames('Presets')).toEqual(['Yuto', 'Adrian']); // Adrian is the selection
+    fireEvent.change(facet('Use case'), { target: { value: 'educational' } });
+    expect(rowNames('Presets')).toEqual(['Sakura', 'Adrian']);
   });
 
   it('shows the chosen facet back in the control', () => {
@@ -207,10 +270,14 @@ describe('VoiceLibrarySection facet filter', () => {
     openPicker();
     fireEvent.change(facet('Accent'), { target: { value: 'japanese' } });
     fireEvent.change(facet('Gender'), { target: { value: 'male' } });
+    fireEvent.change(facet('Style'), { target: { value: 'deep' } });
+    fireEvent.change(facet('Use case'), { target: { value: 'narration' } });
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(rowNames('Presets')).toEqual(['Sakura', 'Yuto', 'Adrian']);
     expect(facet('Accent').value).toBe('');
     expect(facet('Gender').value).toBe('');
+    expect(facet('Style').value).toBe('');
+    expect(facet('Use case').value).toBe('');
   });
 
   it('offers only the facet values its voices actually carry', () => {
@@ -221,24 +288,31 @@ describe('VoiceLibrarySection facet filter', () => {
     // These are the humanized fallbacks, because `t` is mocked to its English
     // default here. The real labels come from the locale, and
     // locales.consistency.test.ts is what pins that every facet value has one.
-    expect(optionsOf('Accent')).toEqual(['Accent', 'American', 'Japanese']);
-    expect(optionsOf('Gender')).toEqual(['Gender', 'Female', 'Male']);
-    expect(optionsOf('Age')).toEqual(['Age', 'Middle aged', 'Young']);
+    expect(optionsOf('Gender')).toEqual(['Any gender', 'Female', 'Male']);
+    expect(optionsOf('Age')).toEqual(['Any age', 'Middle aged', 'Young']);
+    expect(optionsOf('Accent')).toEqual(['Any accent', 'American', 'Japanese']);
+    expect(optionsOf('Use case')).toEqual([
+      'Any use case',
+      'Conversational',
+      'Educational',
+      'Narration',
+    ]);
+    expect(optionsOf('Style')).toEqual(['Any style', 'Bright', 'Calm', 'Deep', 'Energetic']);
   });
 
-  it('says so when a combination matches nothing but the selection', () => {
+  it('says so when a combination matches nothing but the selection, not the empty-roster hint', () => {
+    // Fix round 1 addendum: the shipped section rendered `filter.empty` in
+    // this spot; the picker's first pass showed nothing at all — narrowing
+    // ~200 Soniox presets to zero would have left a silently empty list.
+    // `emptyHint` ("No imported voices yet.") is a DIFFERENT message for a
+    // different condition (the My Voices group having no clones), and must
+    // not appear here instead.
     mount({ selectedId: 'Adrian' });
     openPicker();
     fireEvent.change(facet('Accent'), { target: { value: 'japanese' } });
-    fireEvent.change(facet('Gender'), { target: { value: 'female' } });
-    // Nobody is both japanese and female except Sakura, and Adrian (male,
-    // american) is kept only for being the selection — so among PRESETS the
-    // filter itself matches nothing besides the pinned selection; Sakura
-    // being female-japanese means she DOES match, so pick a combination with
-    // no real match instead.
-    fireEvent.change(facet('Accent'), { target: { value: 'american' } });
-    fireEvent.change(facet('Gender'), { target: { value: 'female' } });
-    expect(within(grid()).getByText('0 of 3')).toBeInTheDocument();
+    fireEvent.change(facet('Style'), { target: { value: 'deep' } });
+    expect(within(grid()).getByText('No voices match these filters.')).toBeInTheDocument();
+    expect(screen.queryByText('No imported voices yet.')).not.toBeInTheDocument();
   });
 
   it("shows the selected voice's description, which no row has room for", () => {
@@ -267,5 +341,33 @@ describe('VoiceLibrarySection facet filter', () => {
     openPicker();
     expect(facet('Accent').value).toBe('japanese');
     expect(rowNames('Presets')).toEqual(['Sakura', 'Yuto', 'Adrian']);
+  });
+
+  it('flags an unstable voice on its row, and leaves a stable one untagged', () => {
+    // Fix round 1 addendum: the shipped section rendered `voiceLibrary.
+    // unstable` on a flagged voice; Task 6's stylesheet notes said the class
+    // "moved to the picker", but nothing ever rendered the tag there — the
+    // class moved, the warning did not.
+    const STABLE: VoiceEntry = { id: 'Stable', label: 'Stable', group: 'builtin', removable: false };
+    const UNSTABLE: VoiceEntry = {
+      id: 'Shaky', label: 'Shaky', group: 'builtin', removable: false, meta: { unstable: true },
+    };
+    render(
+      <VoiceLibrarySection
+        selectedId="Stable"
+        onSelect={() => {}}
+        onDelete={async () => {}}
+        voices={[STABLE, UNSTABLE]}
+        capability={{ importModes: ['upload'] }}
+      />,
+    );
+    openPicker();
+    // Scoped to the grid: "Stable" also appears on the trigger button (the
+    // current selection's own label), which a bare `screen.getByText` would
+    // match too.
+    const stableRow = within(grid()).getByText('Stable').closest('[role="row"]') as HTMLElement;
+    const unstableRow = within(grid()).getByText('Shaky').closest('[role="row"]') as HTMLElement;
+    expect(within(unstableRow).getByText('unstable')).toBeInTheDocument();
+    expect(within(stableRow).queryByText('unstable')).toBeNull();
   });
 });

@@ -15,6 +15,18 @@ import { canAuditionVoice } from '../../../lib/voiceLibrary/voicePreviewable';
 import './VoicePicker.scss';
 
 /**
+ * The two facet dimensions whose CRITERIA are arrays (`VoiceFacetCriteria`
+ * mirrors Soniox's `GET /v1/shared-voices`, which takes several tags per
+ * dimension and ANDs them — see `voiceFacets.ts`'s `hasEvery`), even though
+ * this single-select control only ever writes one element into either. Fix
+ * round 1: an earlier version of `facetRow()` read/wrote every dimension
+ * through one `string | undefined` cast, which silently dropped `useCase`
+ * and `style` (typed `string[]`) from the filter — this set is what keeps
+ * that from recurring.
+ */
+const ARRAY_DIMS = new Set<keyof VoiceFacetCriteria>(['useCase', 'style']);
+
+/**
  * The voice picker: a trigger that reads like a <select>, and a popover that
  * behaves like a grid.
  *
@@ -584,7 +596,15 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             aria-label={v.label}
             onClick={() => { onSelect(v.id); setOpen(false); }}
           >
-            <span className="voice-row__name">{v.label}</span>
+            <span className="voice-row__name">
+              {v.label}
+              {/* Fix round 1 addendum: Task 6's stylesheet note said this tag
+                  "moved to the picker", but nothing ever rendered it here —
+                  the class moved, the warning did not. */}
+              {v.meta?.unstable && (
+                <span className="voice-unstable-tag">{t('voiceLibrary.unstable', 'unstable')}</span>
+              )}
+            </span>
             <span className="voice-row__sub">{rowSubtitle(v)}</span>
           </button>
         </div>
@@ -613,16 +633,35 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     );
   };
 
+  /** Single-select value for a dimension, regardless of whether its criteria
+   *  slot is a scalar or a one-element array. */
+  const facetValue = (dim: keyof VoiceFacetCriteria): string =>
+    ARRAY_DIMS.has(dim)
+      ? (criteria[dim] as string[] | undefined)?.[0] ?? ''
+      : (criteria[dim] as string | null | undefined) ?? '';
+
+  /** Writes a single chosen value back into whichever shape the dimension's
+   *  criteria slot actually is. A single-element array is exactly what
+   *  `matchesVoiceFacets`'s `hasEvery` expects for `useCase`/`style`: ALL
+   *  listed tags must be present, and there is one. */
+  const setFacetValue = (dim: keyof VoiceFacetCriteria, val: string) =>
+    setCriteria((c) => ({
+      ...c,
+      [dim]: ARRAY_DIMS.has(dim) ? (val ? [val] : undefined) : (val || null),
+    }));
+
   const facetRow = () => {
     if (!facetsOn) return null;
-    const dims: Array<[keyof VoiceFacetCriteria, string]> = [
-      ['gender', t('voiceLibrary.filter.genderLabel', 'Gender')],
-      ['age', t('voiceLibrary.filter.ageLabel', 'Age')],
-      ['accent', t('voiceLibrary.filter.accentLabel', 'Accent')],
+    const dims: Array<[keyof VoiceFacetCriteria, string, string]> = [
+      ['gender', t('voiceLibrary.filter.genderLabel', 'Gender'), t('voiceLibrary.filter.anyGender', 'Any gender')],
+      ['age', t('voiceLibrary.filter.ageLabel', 'Age'), t('voiceLibrary.filter.anyAge', 'Any age')],
+      ['accent', t('voiceLibrary.filter.accentLabel', 'Accent'), t('voiceLibrary.filter.anyAccent', 'Any accent')],
+      ['useCase', t('voiceLibrary.filter.useCaseLabel', 'Use case'), t('voiceLibrary.filter.anyUseCase', 'Any use case')],
+      ['style', t('voiceLibrary.filter.styleLabel', 'Style'), t('voiceLibrary.filter.anyStyle', 'Any style')],
     ];
     return (
       <div className="voice-pop__facets">
-        {dims.map(([dim, label]) => {
+        {dims.map(([dim, label, anyLabel]) => {
           const values = (vocabulary as Record<string, string[] | undefined>)[dim] ?? [];
           if (values.length === 0) return null;
           return (
@@ -630,12 +669,16 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
               key={dim}
               className="select-dropdown voice-pop__facet"
               aria-label={label}
-              value={(criteria[dim] as string | undefined) ?? ''}
-              onChange={(e) => setCriteria((c) => ({ ...c, [dim]: e.target.value || null }))}
+              value={facetValue(dim)}
+              onChange={(e) => setFacetValue(dim, e.target.value)}
             >
-              <option value="">{label}</option>
+              {/* The neutral option reads "Any gender", not "Gender" — the
+                  dimension's own `any*` key, not its field label. */}
+              <option value="">{anyLabel}</option>
               {values.map((val) => (
-                <option key={val} value={val}>{humanizeFacetValue(val)}</option>
+                <option key={val} value={val}>
+                  {t(`voiceLibrary.filter.${dim}.${val}`, humanizeFacetValue(val))}
+                </option>
               ))}
             </select>
           );
@@ -735,9 +778,17 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                         must find an element whose OWN text is exactly that —
                         not that text glued to the separator in front of it. */}
                     <span className="voice-pop__count-value">
-                      {t('voiceLibrary.filterCount', '{shown} of {total}')
-                        .replace('{shown}', String(matched.length))
-                        .replace('{total}', String(presets.length))}
+                      {/* Fix round 1 addendum: the shipped section rendered
+                          `filter.empty` in place of the count when an active
+                          filter matched nothing — this is the count's
+                          replacement, not the DIFFERENT "no imported voices
+                          yet" case below, which is about the My Voices group
+                          having no clones at all. */}
+                      {hasActiveFacets(criteria) && matched.length === 0
+                        ? t('voiceLibrary.filter.empty', 'No voices match these filters.')
+                        : t('voiceLibrary.filterCount', '{shown} of {total}')
+                            .replace('{shown}', String(matched.length))
+                            .replace('{total}', String(presets.length))}
                     </span>
                   </span>
                 )}

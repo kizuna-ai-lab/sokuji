@@ -788,11 +788,34 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
 
   const facetRow = () => {
     if (!facetsOn) return null;
+    // ALL FIVE dimensions the facet model supports, single-select each. The
+    // shipped section filters on five and that is jiangzhuo's settled decision;
+    // an earlier draft of this sketch listed only gender/age/accent, which was
+    // not a design choice but an accident of this loop — `useCase` and `style`
+    // are `string[]` in `VoiceFacetCriteria` while the other three are
+    // `string | null`, so they did not fit the single cast below and were
+    // quietly dropped. Dropping a shipped filter is not this plan's call.
     const dims: Array<[keyof VoiceFacetCriteria, string]> = [
       ['gender', t('voiceLibrary.filter.genderLabel', 'Gender')],
       ['age', t('voiceLibrary.filter.ageLabel', 'Age')],
       ['accent', t('voiceLibrary.filter.accentLabel', 'Accent')],
+      ['useCase', t('voiceLibrary.filter.useCaseLabel', 'Use case')],
+      ['style', t('voiceLibrary.filter.styleLabel', 'Style')],
     ];
+    // Read and write through these rather than casting, because two of the
+    // five are arrays. A single-select over an array dimension stores exactly
+    // one element, which is what `matchesVoiceFacets`'s `hasEvery` wants: ALL
+    // listed tags must be present on the voice, and there is one.
+    const ARRAY_DIMS = new Set<keyof VoiceFacetCriteria>(['useCase', 'style']);
+    const readDim = (dim: keyof VoiceFacetCriteria): string =>
+      ARRAY_DIMS.has(dim)
+        ? ((criteria[dim] as string[] | undefined)?.[0] ?? '')
+        : ((criteria[dim] as string | null | undefined) ?? '');
+    const writeDim = (dim: keyof VoiceFacetCriteria, val: string) =>
+      setCriteria((c) => ({
+        ...c,
+        [dim]: ARRAY_DIMS.has(dim) ? (val ? [val] : undefined) : (val || null),
+      }));
     return (
       <div className="voice-pop__facets">
         {dims.map(([dim, label]) => {
@@ -803,12 +826,27 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
               key={dim}
               className="select-dropdown voice-pop__facet"
               aria-label={label}
-              value={(criteria[dim] as string | undefined) ?? ''}
-              onChange={(e) => setCriteria((c) => ({ ...c, [dim]: e.target.value || null }))}
+              value={readDim(dim)}
+              onChange={(e) => writeDim(dim, e.target.value)}
             >
-              <option value="">{label}</option>
+              {/* The neutral option is the dimension's own `any*` string, not
+                  its label: the shipped section renders "Any gender", and
+                  `anyGender`/`anyAge`/`anyAccent`/`anyUseCase`/`anyStyle` are
+                  already translated in all 30 catalogs. Using the label here
+                  regresses that copy and leaves five keys dead. */}
+              <option value="">{anyLabel(dim)}</option>
               {values.map((val) => (
-                <option key={val} value={val}>{humanizeFacetValue(val)}</option>
+                // Facet VALUES are translated per dimension — the shipped
+                // section does `t('voiceLibrary.filter.<dim>.<value>')` with
+                // `humanizeFacetValue` only as the fallback, and the catalogs
+                // carry 3 genders, 3 ages, 18 accents, 5 use cases and 16
+                // styles. Calling `humanizeFacetValue` alone renders every
+                // option in English in all 30 locales and orphans ~45 strings
+                // per catalog. (The ROW SUBTITLE is different and stays raw
+                // lower-case per R2 — that surface was settled deliberately.)
+                <option key={val} value={val}>
+                  {t(`voiceLibrary.filter.${dim}.${val}`, humanizeFacetValue(val))}
+                </option>
               ))}
             </select>
           );
@@ -873,6 +911,13 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             )}
             {clones.length === 0 && !onAddVoice && (
               <div className="voice-pop__empty">{t('voiceLibrary.emptyHint', 'No imported voices yet.')}</div>
+              {/* TWO empty states, not one. `emptyHint` is "no clones yet";
+                  `voiceLibrary.filter.empty` ("No voices match these filters.")
+                  is what the shipped section rendered when the facets filtered
+                  the roster to nothing, and it must render on that condition —
+                  active criteria plus an empty filtered list. Narrowing ~200
+                  Soniox presets to zero and seeing no message at all is the
+                  regression; both strings already exist in all 30 catalogs. */}
             )}
             {clones.map(row)}
             <div className="voice-pop__group">
@@ -1868,7 +1913,10 @@ From `VoiceLibrarySection.scss` delete `.voice-library-manage`,
 `.voice-library-manage-note`, `.voice-library-group`,
 `.voice-library-group-label`, `.voice-select-btn`, `.voice-show-all-btn`,
 `.voice-manage-list`, `.voice-manage-row`, `.voice-manage-row.selected`,
-`.voice-row-btn`, `.voice-name-edit`, `.voice-unstable-tag` (moved to the
+`.voice-row-btn`, `.voice-name-edit`, `.voice-unstable-tag` (whose CLASS moved
+to the picker in Task 3 — but check the picker actually renders
+`t('voiceLibrary.unstable', …)` on rows whose `meta.unstable` is set. Moving a
+class without its label is how the warning silently disappeared once already),
 picker), `.voice-preview-spinner` together with the
 `&:disabled:not(:has(.voice-preview-spinner))` opacity rule that guards it, and
 the rules COPIED in Tasks 3 and 5 — Task 3 duplicated the `.voice-facet-*`

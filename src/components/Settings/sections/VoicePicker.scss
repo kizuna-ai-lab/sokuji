@@ -204,6 +204,22 @@
   white-space: nowrap;
 }
 
+// Fix round 1 addendum: value-for-value mirror of the pre-Task-6
+// `.voice-unstable-tag` in VoiceLibrarySection.scss (deleted there — this is
+// its one live copy now). `margin-left` replaces that rule's parent `gap`,
+// since this tag sits inline inside `.voice-row__name` rather than as its
+// own flex sibling.
+.voice-unstable-tag {
+  margin-left: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #e0a106;
+  border: 1px solid rgba(224, 161, 6, 0.5);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
 .voice-row__btn {
   flex: none;
   display: inline-flex;

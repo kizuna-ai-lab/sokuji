@@ -46,6 +46,7 @@ describe('voice picker styling', () => {
     'voice-row__add',
     'is-playing',
     'voice-row--add',
+    'voice-unstable-tag',
   ])('styles .%s where the element lives', (cls) => {
     expect(pickerCss).toMatch(styled(cls));
   });
