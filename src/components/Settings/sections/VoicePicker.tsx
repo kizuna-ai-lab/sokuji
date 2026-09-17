@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Play, Square, Pencil, Trash2, Plus, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import {
@@ -72,7 +72,14 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
   const [criteria, setCriteria] = useState<VoiceFacetCriteria>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // The one in-flight (or last-finished) preview request's controller. A
+  // single ref, not one per row: only one preview can be loading/playing at
+  // a time (playingId/loadingId are singular, owned by the parent), so
+  // starting a new one always supersedes whatever this held.
+  const previewAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => {
+    previewAbortRef.current?.abort();
+  }, []);
 
   const { refs, floatingStyles, context } = useFloating({
     open,
@@ -180,13 +187,23 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
           disabled={loading}
           aria-label={label}
           title={label}
-          // A fresh AbortController per click, not a bare `undefined`: the
-          // parent owns playingId/loadingId (and so owns any decision to
-          // cancel a superseded request), but it still needs a real signal to
-          // cancel WITH. This component has no state of its own to decide
-          // when an earlier request is superseded, so it hands off a signal
-          // per call rather than trying to own that decision itself.
-          onClick={() => { void onPreview(v.id, new AbortController().signal); }}
+          // Abort whatever the previous click started, then hand THIS click a
+          // controller whose signal actually reaches an abort() call: parked
+          // in previewAbortRef, aborted by the next click or by unmount.
+          // (A controller built and dropped in the same expression, as an
+          // earlier version of this did, hands the parent a signal that can
+          // never fire — a fake cancellation channel.)
+          onClick={() => {
+            previewAbortRef.current?.abort();
+            const controller = new AbortController();
+            previewAbortRef.current = controller;
+            void onPreview(v.id, controller.signal).catch(() => {
+              // Not this component's failure to report: Tasks 7/8 own
+              // surfacing voiceLibrary.previewFailed. Caught only so a
+              // rejection here is neither an unhandled rejection nor a
+              // crash — there is no local failure state to swallow it into.
+            });
+          }}
         >
           {loading ? <span className="voice-row__spinner" aria-hidden="true" />
             : playing ? <Square size={13} /> : <Play size={13} />}
@@ -219,26 +236,29 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     }
     return (
       <div role="row" className={`voice-row${isSelected ? ' is-selected' : ''}`} key={v.id}>
-        {/* The name cell IS the gridcell (role stamped on the button itself)
-            rather than a div wrapping a button: a session-active picker
-            disables this cell (see `disabled` below), and the only way an
-            assistive-tech-facing "is this cell disabled" check — or
-            `toBeDisabled()` in a test — can see that is by looking at a real
-            form control's `disabled` property. A wrapping div can carry
-            `aria-disabled` but never the native state the row's OTHER cells
-            (▶ / rename / delete, each its own real button) already rely on. */}
-        <button
-          type="button"
-          role="gridcell"
-          aria-selected={isSelected}
-          className="voice-row__pick"
-          disabled={isSessionActive || v.disabled}
-          aria-label={v.label}
-          onClick={() => { onSelect(v.id); setOpen(false); }}
-        >
-          <span className="voice-row__name">{v.label}</span>
-          <span className="voice-row__sub">{rowSubtitle(v)}</span>
-        </button>
+        {/* A div wrapping a real <button>, like every other cell in this row
+            — NOT role="gridcell" on the button itself. Two reasons: Task 4's
+            planned cell selector (`[role="gridcell"] button, [role="gridcell"]
+            input`) is a descendant combinator and would never match a button
+            that IS its own gridcell, silently skipping the row's primary
+            control; and overriding a <button>'s implicit role to "gridcell"
+            suppresses its "button" announcement to assistive tech, while the
+            row's other three controls keep announcing as buttons — an
+            inconsistency within one row. Disabled-state checks (e.g.
+            `toBeDisabled()`) target the button directly, which is a real form
+            control regardless of which element carries the gridcell role. */}
+        <div role="gridcell" aria-selected={isSelected}>
+          <button
+            type="button"
+            className="voice-row__pick"
+            disabled={isSessionActive || v.disabled}
+            aria-label={v.label}
+            onClick={() => { onSelect(v.id); setOpen(false); }}
+          >
+            <span className="voice-row__name">{v.label}</span>
+            <span className="voice-row__sub">{rowSubtitle(v)}</span>
+          </button>
+        </div>
         {previewButton(v)}
         {v.removable && onRename && (
           <div role="gridcell">
@@ -302,7 +322,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     <div className="voice-picker">
       <button
         type="button"
-        ref={(el) => { triggerRef.current = el; refs.setReference(el); }}
+        ref={refs.setReference}
         className="voice-picker__trigger"
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -342,8 +362,19 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
           {...getFloatingProps()}
         >
           {facetRow()}
+          {/* ARIA's `grid` role only allows `row` (or `rowgroup`) direct
+              children — no bare headers, no stray messages. Each group label
+              is its own row with a single `columnheader` cell (the label
+              plus, on the Presets row, the count and the refresh button all
+              live inside that one cell — Task 4's grid selects rows by
+              `[role="row"].voice-row`, so these header rows, which never
+              carry that class, are excluded from its keyboard model without
+              any extra filtering). The "no imported voices" hint isn't a row
+              at all — it renders as a sibling below the grid instead. */}
           <div role="grid" aria-label={t('voiceLibrary.voice', 'Voice')} className="voice-pop__grid">
-            <div className="voice-pop__group">{t('voiceLibrary.myVoices', 'My Voices')}</div>
+            <div role="row" className="voice-pop__group">
+              <div role="columnheader">{t('voiceLibrary.myVoices', 'My Voices')}</div>
+            </div>
             {onAddVoice && (
               <div role="row" className="voice-row voice-row--add">
                 <div role="gridcell">
@@ -353,36 +384,38 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                 </div>
               </div>
             )}
-            {clones.length === 0 && !onAddVoice && (
-              <div className="voice-pop__empty">{t('voiceLibrary.emptyHint', 'No imported voices yet.')}</div>
-            )}
             {clones.map(row)}
-            <div className="voice-pop__group">
-              {t('voiceLibrary.presets', 'Presets')}
-              {facetsOn && presets.length > 0 && (
-                <span className="voice-pop__count">
-                  {' · '}
-                  {/* A nested element, not a sibling text node: the group
-                      label above shares this span with the ` · ` separator,
-                      and a query for the count text alone (e.g. "1 of 2")
-                      must find an element whose OWN text is exactly that —
-                      not that text glued to the separator in front of it. */}
-                  <span className="voice-pop__count-value">
-                    {t('voiceLibrary.filterCount', '{shown} of {total}')
-                      .replace('{shown}', String(matched.length))
-                      .replace('{total}', String(presets.length))}
+            <div role="row" className="voice-pop__group">
+              <div role="columnheader">
+                {t('voiceLibrary.presets', 'Presets')}
+                {facetsOn && presets.length > 0 && (
+                  <span className="voice-pop__count">
+                    {' · '}
+                    {/* A nested element, not a sibling text node: the group
+                        label above shares this span with the ` · ` separator,
+                        and a query for the count text alone (e.g. "1 of 2")
+                        must find an element whose OWN text is exactly that —
+                        not that text glued to the separator in front of it. */}
+                    <span className="voice-pop__count-value">
+                      {t('voiceLibrary.filterCount', '{shown} of {total}')
+                        .replace('{shown}', String(matched.length))
+                        .replace('{total}', String(presets.length))}
+                    </span>
                   </span>
-                </span>
-              )}
-              {onRefresh && (
-                <button type="button" className="voice-pop__refresh" onClick={onRefresh}
-                  aria-label={t('voiceLibrary.refreshList', 'Refresh voice list')} disabled={refreshing}>
-                  <RefreshCw size={12} />
-                </button>
-              )}
+                )}
+                {onRefresh && (
+                  <button type="button" className="voice-pop__refresh" onClick={onRefresh}
+                    aria-label={t('voiceLibrary.refreshList', 'Refresh voice list')} disabled={refreshing}>
+                    <RefreshCw size={12} />
+                  </button>
+                )}
+              </div>
             </div>
             {shownPresets.map(row)}
           </div>
+          {clones.length === 0 && !onAddVoice && (
+            <div className="voice-pop__empty">{t('voiceLibrary.emptyHint', 'No imported voices yet.')}</div>
+          )}
         </div>
         </FloatingFocusManager>
         </FloatingPortal>

@@ -44,9 +44,10 @@ describe('VoicePicker', () => {
     // finds a role="dialog" ancestor. useDismiss's Escape handler stops
     // propagation but never calls preventDefault, so without this role a
     // single Escape would close this popover AND collapse the panel behind
-    // it. Pinned here so a refactor that drops the role fails loudly.
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    const grid = screen.getByRole('grid');
+    // it. Queried via `within` rather than two independent getByRole calls,
+    // so this pins the actual invariant — the grid NESTED inside the dialog —
+    // rather than merely that one of each role exists somewhere on the page.
+    const grid = within(screen.getByRole('dialog')).getByRole('grid');
     expect(within(grid).getByText(/female · calm · soft/)).toBeInTheDocument();
     expect(within(grid).getByText('Grace')).toBeInTheDocument();
     expect(within(grid).getByText('Mine')).toBeInTheDocument();
@@ -76,12 +77,38 @@ describe('VoicePicker', () => {
     expect(onSelect).not.toHaveBeenCalled();
     expect(screen.getByRole('grid')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('gridcell', { name: 'Alex' }));
+    // The name cell is still a real gridcell (Task 4 depends on this): the
+    // wrapping div's accessible name is computed from its button child's
+    // aria-label, proving the row/cell structure the grid markup requires.
+    expect(screen.getByRole('gridcell', { name: 'Alex' })).toBeInTheDocument();
+    // But the CLICK targets the button itself, not the div wrapping it: a
+    // click dispatched at the wrapper does not bubble DOWN into a child's
+    // handler (only up, per normal DOM event flow), so it would never reach
+    // the button's onClick.
+    fireEvent.click(screen.getByRole('button', { name: 'Alex' }));
     expect(onSelect).toHaveBeenCalledWith('builtin:Alex');
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
-  it('shows a spinner on the row being synthesized and a replay icon once it has played', () => {
+  it('aborts the previous preview when a new one starts', () => {
+    const onPreview = vi.fn().mockResolvedValue(null);
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} onPreview={onPreview} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+
+    fireEvent.click(screen.getAllByRole('button', { name: /play/i })[0]);
+    const firstSignal = onPreview.mock.calls[0][1] as AbortSignal;
+    expect(firstSignal.aborted).toBe(false);
+
+    // A second preview — from either row, it doesn't matter which — must
+    // reach back and abort the first request's signal. A signal that is only
+    // ever constructed and handed off, never aborted by anything, would pass
+    // `expect.anything()` in the test above while being unable to do the one
+    // thing its type exists for.
+    fireEvent.click(screen.getAllByRole('button', { name: /play/i })[1]);
+    expect(firstSignal.aborted).toBe(true);
+  });
+
+  it('shows a spinner on the row being synthesized and a stop control once it is playing', () => {
     const { rerender } = render(<VoicePicker {...base} voices={[GRACE]} onPreview={vi.fn()} loadingId="builtin:Grace" />);
     fireEvent.click(screen.getByRole('button', { expanded: false }));
     expect(screen.getByRole('button', { name: /synthesiz/i })).toBeDisabled();
@@ -172,7 +199,13 @@ describe('VoicePicker', () => {
     const onSelect = vi.fn();
     render(<VoicePicker {...base} voices={[GRACE]} onSelect={onSelect} onPreview={vi.fn()} isSessionActive />);
     fireEvent.click(screen.getByRole('button', { expanded: false }));
-    expect(screen.getByRole('gridcell', { name: 'Grace' })).toBeDisabled();
+    // The name cell is a <div role="gridcell"> wrapping a real <button> (see
+    // VoicePicker.tsx) — jest-dom's toBeDisabled() only recognizes actual
+    // form controls, so this targets the button inside the cell, not the
+    // cell itself. Its accessible name is exactly "Grace" (from aria-label),
+    // unlike the trigger button above, whose name also carries the facet
+    // subtitle.
+    expect(screen.getByRole('button', { name: 'Grace' })).toBeDisabled();
     expect(screen.getByRole('button', { name: /play/i })).toBeEnabled();
   });
 });

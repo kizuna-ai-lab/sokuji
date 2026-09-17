@@ -56,6 +56,8 @@ describe('voice picker styling', () => {
     'voice-row__pick',
     'voice-row__btn',
     'voice-row__add',
+    'is-playing',
+    'voice-row--add',
   ])('styles .%s where the element lives', (cls) => {
     expect(pickerCss).toMatch(styled(cls));
   });

@@ -101,15 +101,22 @@
 }
 
 .voice-pop__group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  // A grid's direct children may only be `row`/`rowgroup` (ARIA), so this row
+  // carries a single `columnheader` cell rather than the label/count/button
+  // directly — the flex layout that used to sit here moves down onto that
+  // cell below.
   position: sticky;
   top: 0;
-  padding: 6px 9px 4px;
-  font-size: 12px;
-  color: vars.$text-secondary;
   background: vars.$bg-surface;
+
+  [role="columnheader"] {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 9px 4px;
+    font-size: 12px;
+    color: vars.$text-secondary;
+  }
 }
 
 .voice-pop__count {
@@ -156,6 +163,13 @@
 .voice-row.is-selected {
   box-shadow: inset 2px 0 0 vars.$color-primary;
   background: rgba(vars.$color-primary, 0.12);
+}
+
+// The "＋ Add a voice…" row: set apart from the clones above it with a
+// hairline, the way a trailing "new item" affordance in a list usually reads
+// as distinct from the data rows it follows.
+.voice-row--add {
+  border-top: 1px solid vars.$border-subtle;
 }
 
 .voice-row__pick {
@@ -216,6 +230,13 @@
     color: #fff;
     background: vars.$color-error;
     border-color: vars.$color-error;
+  }
+
+  // The row currently sounding — the Square icon already says "playing", this
+  // just carries that state onto the button chrome too.
+  &.is-playing {
+    color: vars.$color-primary;
+    border-color: vars.$color-primary;
   }
 }
 
