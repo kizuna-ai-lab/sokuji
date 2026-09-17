@@ -5,9 +5,9 @@ beforeEach(() => { useSegmentationStore.getState().resetSession(); });
 
 describe('segmentationStore', () => {
   it('starts every model as not-downloaded with no progress and no error', () => {
-    const state = useSegmentationStore.getState();
+    const initialState = useSegmentationStore.getInitialState();
     for (const model of ['fireredpunc', 'edge-punct-en', 'sat-3l-sm'] as const) {
-      expect(state.models[model]).toEqual({ status: 'not-downloaded', percent: 0, error: null });
+      expect(initialState.models[model]).toEqual({ status: 'not-downloaded', percent: 0, error: null });
     }
   });
 
