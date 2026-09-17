@@ -461,11 +461,11 @@ Cases, each a real `it(...)`:
 
 ```typescript
 import { useEffect, useRef } from 'react';
-import { PunctuationRuntime } from '../lib/segmentation/PunctuationRuntime';
-import type { SegmentationRuntime } from '../lib/segmentation/SegmentationRuntime';
-import { useSentenceSegmentation } from '../stores/settingsStore';
-import { useSegmentationStore } from '../stores/segmentationStore';
-import { reportWarning } from '../lib/diagnostics/report';
+import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { useSentenceSegmentation } from '../../stores/settingsStore';
+import { useSegmentationStore } from '../../stores/segmentationStore';
+import { reportWarning } from '../../lib/diagnostics/report';
 
 /**
  * Builds the app's single PunctuationRuntime and attaches the two wires the
@@ -533,6 +533,16 @@ git commit -m "feat(segmentation): build the runtime once and forward its events
 
 **Interfaces:**
 - Consumes: the six settings hooks, `useSegmentationModelState`, `ToggleSwitch`, `Tooltip`, `ModelManager`, `getManifestEntry`, `getModelSizeMb`.
+- Consumes: the active provider's language pair. **There is no hook for this** — no `useCurrentLanguages`, `useActiveLanguages` or `useLanguagePair` exists. `sourceLanguage` and `targetLanguage` live on per-provider settings slices, and the sanctioned way to read the active pair is the one at `MainPanel.tsx:653`: resolve `ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey`, index the store with it, then read the field.
+
+  ```ts
+  const activeSourceLanguage = useSettingsStore(
+    (s) => (s[ProviderConfigFactory.getDescriptor(s.provider).settingsSliceKey as keyof SettingsStore]
+      as { sourceLanguage?: string } | undefined)?.sourceLanguage,
+  );
+  ```
+
+  Both may be `undefined` before a provider is configured; an undefined language marks no row rather than defaulting to one.
 - Produces: `SentenceSegmentationSection` (default export), props `{ isSessionActive: boolean; className?: string }`.
 
 - [ ] **Step 1: Write the failing test**
@@ -602,7 +612,7 @@ For the 1–5 control, copy the equal-width segmented control. The JSX shape is 
       </div>
 ```
 
-Model rows: one per model, each showing the manifest `name`, `getModelSizeMb(entry)` MB, the store's status, and the actions Download / Delete / Retry. Mark the rows the current languages need — compute from both legs, using `modelForLanguage(sourceLanguage)` and `modelForLanguage(targetLanguage)` from `PunctuationRuntime`, so the mark covers speaker and participant together. Disable Delete while `isSessionActive` and the model is in use. When `deviceMemory <= 4`, grey every row and render the reason.
+Model rows: one per model, each showing the manifest `name`, `getModelSizeMb(entry)` MB, the store's status, and the actions Download / Delete / Retry. Mark the rows the current languages need: take `modelForLanguage` of the active provider's `sourceLanguage` and of its `targetLanguage`, and mark a row if it is either. The speaker leg runs source→target and the participant leg runs target→source, so the two legs together always cover exactly those two languages — the direction changes which way each leg translates, not which models are needed, so do not handle the legs separately and mark the same rows twice. Disable Delete while `isSessionActive` and the model is in use. When `deviceMemory <= 4`, grey every row and render the reason.
 
 - [ ] **Step 3: Write the SCSS**
 
