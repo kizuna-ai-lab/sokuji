@@ -235,6 +235,10 @@ const checkConsent = () => fireEvent.click(screen.getByRole('checkbox'));
 // button shares the exact text "Delete" with the row's trigger, which stays
 // on screen (still open) behind the modal — same reasoning as
 // VoiceLibrarySection.test.tsx's own delete-flow test.
+// Clicks a row's Delete, then confirms in the modal it opens. Mind the side
+// effect: that first click also CLOSES the popover (final-review finding 2),
+// so a caller wanting to inspect the grid afterwards must `openPicker()`
+// again.
 const confirmDelete = () => {
   fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
   const dialog = screen.getByRole('dialog', { name: /delete voice/i });
@@ -491,6 +495,10 @@ describe('SonioxVoiceSection', () => {
     confirmDelete();
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/boom/));
 
+    // Reopened first: the row's Delete closes the popover as it opens the
+    // confirm modal (final-review finding 2), and the refresh control lives
+    // inside the popover's own Presets header.
+    openPicker();
     fireEvent.click(screen.getByRole('button', { name: /refresh voice list/i }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
@@ -637,7 +645,13 @@ describe('SonioxVoiceSection', () => {
 
     // The refreshed (still-processing) list is already reflected in the
     // picker right after close — proving refresh() landed before the close,
-    // not after.
+    // not after. Reopened first because `openCreateModal()` closes the
+    // popover as the modal opens (final-review finding 2), so the rows have
+    // to be brought back on screen before they can be inspected. That does
+    // not weaken the ordering claim this case exists for: the list state
+    // asserted below was captured by the refresh that GATED the close, which
+    // the assertion above already pinned as having happened by then.
+    openPicker();
     await waitFor(() => expect(screen.getByRole('button', { name: /Custom Name.*processing/i })).toBeInTheDocument());
     expect(onUpdate).not.toHaveBeenCalled(); // auto-select hasn't run yet — still awaiting waitUntilReady
 

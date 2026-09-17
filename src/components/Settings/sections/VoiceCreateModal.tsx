@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useFloating, FloatingFocusManager } from '@floating-ui/react';
 import { Plus, Mic, Square, X } from 'lucide-react';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import './VoiceCreateModal.scss';
@@ -284,11 +285,36 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, close]);
 
+  // No reference element: this dialog is centred over the app, anchored to
+  // nothing. `useFloating` is here only for its open-state context, which is
+  // what the focus manager below hangs off — the same use AuthOverlay.tsx (the
+  // repo's other non-anchored dialog) makes of it.
+  const { refs, context } = useFloating({ open: isOpen });
+
   if (!isOpen) return null;
 
   return (
     <div className="voice-modal-overlay" onClick={close}>
+      {/* Spec §7: focus moves in on open and returns to the invoking control
+          on close. `aria-modal="true"` below is a promise to a screen reader;
+          this is what makes part of it true.
+
+          `modal={false}`, not `modal`: the trap also marks every sibling
+          `aria-hidden` (floating-ui's `markOthers`), and Soniox opens
+          `SonioxCloneConfirmModal` as a SEQUENTIAL second modal once a clip is
+          staged (design §6.3) — trapping here would hide the dialog that
+          follows this one from assistive tech, which is worse than the missing
+          Tab trap. `VoicePicker` uses the same `modal={false} returnFocus`
+          shape. The popover that invokes this modal now closes first, so the
+          rows behind the overlay are no longer in the tab order either way.
+
+          `closeOnFocusOut={false}` because this component's close paths are its
+          own `window` Escape listener, the backdrop and Cancel: a focus-out —
+          clicking the dialog's own static text, say — must not silently
+          discard a half-filled form. */}
+      <FloatingFocusManager context={context} modal={false} returnFocus closeOnFocusOut={false}>
       <div
+        ref={refs.setFloating}
         className="voice-modal"
         role="dialog"
         aria-modal="true"
@@ -389,6 +415,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
           </button>
         </div>
       </div>
+      </FloatingFocusManager>
     </div>
   );
 };

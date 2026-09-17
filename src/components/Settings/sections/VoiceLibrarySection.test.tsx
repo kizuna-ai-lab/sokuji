@@ -279,14 +279,18 @@ describe('VoiceLibrarySection', () => {
       />,
     );
     openPicker();
-    // The picker's own row also has a "Delete" button, still on screen once
-    // the confirmation dialog opens over it — scope to the dialog so the
-    // second click cannot land back on the row.
+    // The row's own "Delete" is what opens the confirmation.
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
 
-    // Named, not bare `getByRole('dialog')`: the picker's own floating
-    // wrapper carries `role="dialog"` too (see VoicePicker's doc comment) and
-    // stays open behind this one, so an unnamed query would match both.
+    // An assertion, not an aside (final-review finding 2): the popover used
+    // to stay open behind the modal's opaque overlay, so Tab kept walking its
+    // voice rows while `aria-modal="true"` claimed the modal owned the view,
+    // and a single Escape closed both.
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+
+    // Still named rather than a bare `getByRole('dialog')`: the picker's
+    // floating wrapper carries `role="dialog"` too (see VoicePicker's doc
+    // comment), so this stays unambiguous even if it is ever left open again.
     const dialog = screen.getByRole('dialog', { name: /delete voice/i });
     expect(dialog).toHaveTextContent('Mine');
     fireEvent.click(within(dialog).getByRole('button', { name: /^delete$/i }));
@@ -305,5 +309,8 @@ describe('VoiceLibrarySection', () => {
     openPicker();
     fireEvent.click(screen.getByRole('button', { name: /add a voice/i }));
     expect(screen.getByRole('dialog', { name: /add a voice/i })).toBeInTheDocument();
+    // And the popover closes as the modal opens — the add row's other half of
+    // final-review finding 2, pinned the same way the delete flow above is.
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { useState } from 'react';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import VoiceCreateModal, { type VoiceCreateModalProps } from './VoiceCreateModal';
 
@@ -136,6 +137,63 @@ describe('VoiceCreateModal', () => {
 
     expect(screen.getByRole('textbox', { name: /transcript/i })).toHaveValue('');
     expect(screen.getByRole('button', { name: /import voice/i })).toBeDisabled();
+  });
+});
+
+/**
+ * Spec §7: "focus moves in on open and returns to the invoking control on
+ * close". Final review, finding 2: neither was implemented in either modal.
+ *
+ * Both halves need a real invoking control OUTSIDE the dialog, which is why
+ * these drive a harness rather than rendering with `isOpen` already true: a
+ * modal that is open from the first render can only show where focus ENDED
+ * UP, never that it moved there — and there would be nothing left outside to
+ * return to.
+ */
+describe('VoiceCreateModal — focus', () => {
+  const Harness = () => {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        {/* Named "Open" rather than "Add a voice…" so it cannot be confused
+            with the modal's own Import/Record/Cancel controls. */}
+        <button type="button" onClick={() => setOpen(true)}>Open</button>
+        <VoiceCreateModal {...base} isOpen={open} onClose={() => setOpen(false)} onImport={vi.fn()} />
+      </>
+    );
+  };
+
+  const dialog = () => screen.getByRole('dialog', { name: /add a voice/i });
+
+  it('moves focus into the dialog when it opens', async () => {
+    render(<Harness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    opener.focus();
+    expect(opener).toHaveFocus();
+
+    fireEvent.click(opener);
+    // Awaited, not asserted synchronously: FloatingFocusManager defers its
+    // initial focus (a microtask into its own requestAnimationFrame), so a
+    // synchronous check would pass identically whether focus had been
+    // scheduled or never scheduled at all.
+    await vi.waitFor(() => expect(dialog().contains(document.activeElement)).toBe(true));
+    // The point of the fix: focus is no longer left on a control that the
+    // modal's opaque overlay now paints over.
+    expect(opener).not.toHaveFocus();
+  });
+
+  it('returns focus to the invoking control when it closes', async () => {
+    render(<Harness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    opener.focus();
+    fireEvent.click(opener);
+    await vi.waitFor(() => expect(dialog().contains(document.activeElement)).toBe(true));
+
+    // `window`, not `document`: this modal adds its own Escape listener and
+    // nothing here goes through floating-ui's useDismiss.
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: /add a voice/i })).not.toBeInTheDocument();
+    await vi.waitFor(() => expect(opener).toHaveFocus());
   });
 });
 

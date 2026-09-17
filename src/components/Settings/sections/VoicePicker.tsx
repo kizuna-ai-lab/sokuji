@@ -652,7 +652,10 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             <button type="button" className="voice-row__btn voice-row__btn--danger"
               tabIndex={deleteTabIndex}
               aria-label={t('voiceLibrary.delete', 'Delete')} title={t('voiceLibrary.delete', 'Delete')}
-              onClick={() => onAskDelete(v.id, v.label)}>
+              // Closes the popover first, for the same reasons as the add row
+              // above (see its comment) — the delete modal is the other thing
+              // invoked from inside this popover.
+              onClick={() => { setOpen(false); onAskDelete(v.id, v.label); }}>
               <Trash2 size={13} />
             </button>
           </div>
@@ -804,7 +807,16 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             {onAddVoice && (
               <div role="row" className="voice-row voice-row--add">
                 <div role="gridcell">
-                  <button type="button" className="voice-row__add" onClick={onAddVoice}>
+                  <button type="button" className="voice-row__add"
+                    // Close this popover before the modal opens. Both are
+                    // overlays and the modal's paints above this one
+                    // (z-index 1000 vs 40), so leaving it open parked Tab on
+                    // the rows behind an opaque, blurred scrim while the
+                    // modal's `aria-modal="true"` claimed to own the view —
+                    // and made one Escape close BOTH, since `useDismiss`
+                    // listens on the document here and the modal adds its own
+                    // listener on `window`.
+                    onClick={() => { setOpen(false); onAddVoice?.(); }}>
                     <Plus size={13} /> {t('voiceLibrary.addVoice', 'Add a voice…')}
                   </button>
                 </div>

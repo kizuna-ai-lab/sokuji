@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useFloating, FloatingFocusManager } from '@floating-ui/react';
 import { X } from 'lucide-react';
 import './VoiceCreateModal.scss';
 
@@ -28,11 +29,21 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
     return () => window.removeEventListener('keydown', onKey);
   }, [target, onClose]);
 
+  // Open-state context only — this dialog is centred over the app and anchored
+  // to nothing. See VoiceCreateModal's own comment on the focus manager below
+  // for why `modal={false}` and `closeOnFocusOut={false}`.
+  const { refs, context } = useFloating({ open: target !== null });
+
   if (!target) return null;
 
   return (
     <div className="voice-modal-overlay" onClick={onClose}>
-      <div className="voice-modal" role="dialog" aria-modal="true"
+      {/* Spec §7: focus moves in on open and returns to the invoking control
+          on close. Initial focus lands on the first tabbable control, which is
+          the header's Close button — deliberately not Delete, since the
+          destructive action should never be one stray Enter away. */}
+      <FloatingFocusManager context={context} modal={false} returnFocus closeOnFocusOut={false}>
+      <div ref={refs.setFloating} className="voice-modal" role="dialog" aria-modal="true"
         aria-label={t('voiceLibrary.deleteTitle', 'Delete voice')}
         onClick={(e) => e.stopPropagation()}>
         <div className="voice-modal__head">
@@ -59,6 +70,7 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
           </button>
         </div>
       </div>
+      </FloatingFocusManager>
     </div>
   );
 };
