@@ -51,6 +51,24 @@ describe('VoiceCreateModal', () => {
     expect(onImport.mock.calls[0][0]).toBe(file);
   });
 
+  it('closes after a successful import (spec §6.3: calls onImport, then closes)', async () => {
+    const onImport = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
+    const { rerender } = render(<VoiceCreateModal {...base} onClose={onClose} onImport={onImport} />);
+    const file = new File([new Uint8Array([1, 2, 3])], 'voice.wav', { type: 'audio/wav' });
+    const zone = screen.getByTestId('voice-create-drop');
+    const dataTransfer = { files: [file], types: ['Files'] } as unknown as DataTransfer;
+    zone.dispatchEvent(Object.assign(new Event('drop', { bubbles: true }), { dataTransfer }));
+    await vi.waitFor(() => expect(onImport).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+
+    // A caller that honours onClose stops rendering the modal — simulated via
+    // rerender, the same idiom the "discards" describe below uses for its own
+    // close paths (onClose here is a spy, not a real state toggle).
+    rerender(<VoiceCreateModal {...base} isOpen={false} onClose={onClose} onImport={onImport} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('keeps only the first file when the adapter stages one clip at a time', async () => {
     const onImport = vi.fn().mockResolvedValue(undefined);
     render(<VoiceCreateModal {...base} capability={{ importModes: ['upload'], multipleImport: false }} onImport={onImport} />);
@@ -249,5 +267,50 @@ describe('VoiceCreateModal — discards, rather than submits, a recording in pro
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onRecord).not.toHaveBeenCalled();
     assertGone(rerender, onRecord, onClose);
+  });
+});
+
+/**
+ * Spec §6.3: onRecord, then close(). Separate from the "discards" describe
+ * above — that one's theme is Stop-recording NEVER reaching onRecord on a
+ * discard path; this is the opposite case, Stop-recording SUCCEEDING and the
+ * modal closing on it — so it gets its own capture-stub setup rather than
+ * borrowing that describe's `startRecording`/`assertGone` helpers, which are
+ * scoped to it.
+ */
+describe('VoiceCreateModal — closes after a successful recording', () => {
+  const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
+  afterEach(() => {
+    if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
+    else delete (navigator as { mediaDevices?: unknown }).mediaDevices;
+    vi.unstubAllGlobals();
+  });
+
+  it('closes once onRecord resolves, without releaseCapture discarding the clip it just submitted', async () => {
+    const { processor } = installCaptureStubs();
+    const onRecord = vi.fn().mockResolvedValue(undefined);
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <VoiceCreateModal {...base} capability={{ importModes: ['record'] }} onRecord={onRecord} onClose={onClose} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: /stop recording/i })).toBeInTheDocument());
+    // Feed one buffer of "captured" audio so `chunks` is non-empty — see
+    // installCaptureStubs's own comment for why that matters (an empty
+    // clip no-ops before ever reaching onRecord, proving nothing here).
+    processor.onaudioprocess?.({ inputBuffer: { getChannelData: () => new Float32Array(10).fill(0.1) } });
+
+    fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
+    await vi.waitFor(() => expect(onRecord).toHaveBeenCalledTimes(1));
+    // If close()'s releaseCapture() call discarded a SECOND time (e.g. some
+    // future change routed it through the wrong path), onRecord would still
+    // show exactly 1 call — recRef is already null by the time close() runs
+    // — so the meaningful assertion is that close ran at all.
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <VoiceCreateModal {...base} isOpen={false} capability={{ importModes: ['record'] }} onRecord={onRecord} onClose={onClose} />,
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

@@ -89,11 +89,18 @@ export interface VoiceLibrarySectionProps {
   onRefresh?: () => void;
   /** True while the remote list fetch is in flight; disables the Refresh button. */
   refreshing?: boolean;
-  /** Provider-specific footnote rendered inside the Add-a-voice modal — i.e.
-   *  only when that modal is open, where the import/record controls it
-   *  describes actually live. Kept as a caller-supplied node because the copy
-   *  is provider-specific (e.g. Soniox's preview spends the user's own TTS
-   *  quota) and this component is provider-agnostic. */
+  /** Provider-specific footnote — e.g. Soniox's preview spends the user's own
+   *  TTS quota, or an explanation of why creation is currently withdrawn
+   *  (managed mode already has a healthy voice: delete it before recording a
+   *  new one). Renders inside the Add-a-voice modal when that modal is
+   *  reachable (`capability.importModes` non-empty), where the controls it
+   *  describes live. When it is NOT reachable (no add row — `importModes` is
+   *  empty), the modal can never open, so this renders inline in the section
+   *  instead: the whole reason for the note is usually to explain that
+   *  absence, and it must not become unreachable along with the controls it
+   *  would otherwise sit beside. Never rendered in both places at once. Kept
+   *  as a caller-supplied node because the copy is provider-specific and this
+   *  component is provider-agnostic. */
   manageNote?: React.ReactNode;
   /** Provider-declared capabilities driving which controls render. */
   capability: VoiceLibraryCapability;
@@ -275,13 +282,21 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         )}
       </div>
 
+      {/* manageNote's other home — see the prop's own doc comment. Only
+          reachable here when the create path is NOT (no add row), so this
+          and the modal's own rendering of the same node are mutually
+          exclusive by construction, never both at once. */}
+      {!canCreate && manageNote && (
+        <div className="voice-library-info">{manageNote}</div>
+      )}
+
       <VoiceCreateModal
         isOpen={creating}
         onClose={() => setCreating(false)}
         onImport={onImport}
         onRecord={onRecord}
         capability={capability}
-        note={manageNote}
+        note={canCreate ? manageNote : undefined}
       />
       <VoiceDeleteModal
         target={deleteTarget}

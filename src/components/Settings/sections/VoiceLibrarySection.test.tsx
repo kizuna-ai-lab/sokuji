@@ -231,6 +231,43 @@ describe('VoiceLibrarySection', () => {
     expect(screen.getByRole('button', { name: /add a voice/i })).toBeInTheDocument();
   });
 
+  it('shows manageNote inline when creation is withdrawn (importModes empty), instead of leaving it unreachable', () => {
+    // Cross-task fix: managed Soniox mode with a healthy cloned voice sets
+    // importModes to [], so the picker offers no add row and
+    // VoiceCreateModal — where manageNote used to render exclusively — can
+    // never open. The note explaining WHY creation is withdrawn must not
+    // become unreachable along with the controls it would otherwise sit
+    // beside.
+    render(
+      <VoiceLibrarySection
+        {...base}
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: [] }}
+        manageNote="Delete your existing voice before recording a new one."
+      />,
+    );
+    expect(screen.getByText('Delete your existing voice before recording a new one.')).toBeInTheDocument();
+    openPicker();
+    expect(screen.queryByRole('button', { name: /add a voice/i })).not.toBeInTheDocument();
+  });
+
+  it('renders manageNote only inside the create modal when creation IS reachable, never inline too', () => {
+    render(
+      <VoiceLibrarySection
+        {...base}
+        voices={[]}
+        capability={{ importModes: ['upload'] }}
+        manageNote="Costs quota."
+      />,
+    );
+    // Not rendered inline while the modal is closed...
+    expect(screen.queryByText('Costs quota.')).not.toBeInTheDocument();
+    openPicker();
+    fireEvent.click(screen.getByRole('button', { name: /add a voice/i }));
+    // ...only inside the now-open create modal, and only once.
+    expect(screen.getAllByText('Costs quota.')).toHaveLength(1);
+  });
+
   it('onAskDelete opens the delete modal, and confirming calls onDelete exactly once', async () => {
     const onDelete = vi.fn().mockResolvedValue(undefined);
     render(

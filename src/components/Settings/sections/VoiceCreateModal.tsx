@@ -66,6 +66,54 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     }
   };
 
+  // Release the microphone when the component's effects unmount — a real
+  // unmount, or the settings panel hiding inside its <Activity> boundary.
+  // The capture graph lives only in recRef, so without this the mic would
+  // keep recording invisibly after a panel switch. Partial audio is
+  // deliberately discarded rather than submitted as a half-finished clip.
+  // The generation counter also invalidates a getUserMedia call still
+  // pending at cleanup time, so a late-resolving stream is stopped instead
+  // of resurrecting the capture graph.
+  //
+  // Factored out (rather than inlined in the unmount effect, as it is in
+  // VoiceLibrarySection) so close() below can share it: closing the modal
+  // mid-recording must DISCARD the same way, never submit through
+  // stopRecording — stopRecording is the only path that calls onRecord.
+  //
+  // Declared here — ahead of handleFiles/stopRecording below, which now both
+  // call close() on their success path — rather than beside startRecording,
+  // where it lived before that fix. useCallback's dependency array is
+  // evaluated eagerly on every render, unlike the callback body it wraps, so
+  // referencing close() from a dependency array before its declaration is a
+  // real "used before assignment" error, not just a style nit — the plain
+  // function-body reference below (inside handleFiles/stopRecording) would
+  // have been safe either way, since neither runs until a later user action.
+  const recGenerationRef = useRef(0);
+  const releaseCapture = useCallback(() => {
+    recGenerationRef.current += 1;
+    clearRecTimer();
+    const rec = recRef.current;
+    if (!rec) return;
+    recRef.current = null;
+    rec.processor.disconnect();
+    rec.source.disconnect();
+    rec.stream.getTracks().forEach((track) => track.stop());
+    void rec.ctx.close();
+    setIsRecording(false);
+  }, []);
+  useEffect(() => releaseCapture, [releaseCapture]);
+
+  // Closing mid-recording DISCARDS the capture via releaseCapture — the same
+  // teardown the unmount effect uses — rather than going through
+  // stopRecording, which is the submitting path (it awaits onRecord). Review
+  // finding 1 (Task 5): the previous version called stopRecordingRef here,
+  // which uploaded a half-finished clip on Cancel/Escape/backdrop instead of
+  // discarding it as the comment claimed.
+  const close = useCallback(() => {
+    releaseCapture();
+    onClose();
+  }, [releaseCapture, onClose]);
+
   const canUpload = capability.importModes.includes('upload');
   const canRecord = capability.importModes.includes('record');
   // Capture (import/record) is gated behind a non-empty reference transcript
@@ -105,7 +153,9 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (anySucceeded && capability.transcriptRequired) setTranscript('');
-  }, [onImport, transcriptMissing, capability.transcriptRequired, capability.multipleImport, transcript]);
+    // Spec §6.3: calls onImport, then closes.
+    if (anySucceeded) close();
+  }, [onImport, transcriptMissing, capability.transcriptRequired, capability.multipleImport, transcript, close]);
 
   const onDrop: React.DragEventHandler = (e) => {
     e.preventDefault();
@@ -120,34 +170,6 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     e.preventDefault();
     setIsDragging(false);
   };
-
-  // Release the microphone when the component's effects unmount — a real
-  // unmount, or the settings panel hiding inside its <Activity> boundary.
-  // The capture graph lives only in recRef, so without this the mic would
-  // keep recording invisibly after a panel switch. Partial audio is
-  // deliberately discarded rather than submitted as a half-finished clip.
-  // The generation counter also invalidates a getUserMedia call still
-  // pending at cleanup time, so a late-resolving stream is stopped instead
-  // of resurrecting the capture graph.
-  //
-  // Factored out (rather than inlined in the unmount effect, as it is in
-  // VoiceLibrarySection) so close() below can share it: closing the modal
-  // mid-recording must DISCARD the same way, never submit through
-  // stopRecording — stopRecording is the only path that calls onRecord.
-  const recGenerationRef = useRef(0);
-  const releaseCapture = useCallback(() => {
-    recGenerationRef.current += 1;
-    clearRecTimer();
-    const rec = recRef.current;
-    if (!rec) return;
-    recRef.current = null;
-    rec.processor.disconnect();
-    rec.source.disconnect();
-    rec.stream.getTracks().forEach((track) => track.stop());
-    void rec.ctx.close();
-    setIsRecording(false);
-  }, []);
-  useEffect(() => releaseCapture, [releaseCapture]);
 
   const startRecording = useCallback(async () => {
     if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
@@ -224,25 +246,22 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
       } else {
         await onRecord(clip, sampleRate);
       }
+      // Spec §6.3: calls onRecord, then closes. Safe to route through the
+      // same `close()` the discard paths use, even though recording just
+      // succeeded rather than being abandoned: by this point `recRef.current`
+      // is already `null` and `isRecording` already `false` (both cleared
+      // above, before `onRecord` was ever awaited), so `close`'s
+      // `releaseCapture()` call finds nothing to tear down and no-ops — it
+      // does not discard the clip this function just submitted.
+      close();
     } catch (err) { console.warn('Recording handler failed:', err); }
-  }, [onRecord, capability.transcriptRequired, transcript]);
+  }, [onRecord, capability.transcriptRequired, transcript, close]);
   // Keep the auto-stop ref pointing at the latest committed closure — written
   // in an effect, not the render body (renders can be replayed/discarded,
   // e.g. under an <Activity> boundary).
   useEffect(() => {
     stopRecordingRef.current = stopRecording;
   }, [stopRecording]);
-
-  // Closing mid-recording DISCARDS the capture via releaseCapture — the same
-  // teardown the unmount effect uses — rather than going through
-  // stopRecording, which is the submitting path (it awaits onRecord). Review
-  // finding 1 (Task 5): the previous version called stopRecordingRef here,
-  // which uploaded a half-finished clip on Cancel/Escape/backdrop instead of
-  // discarding it as the comment claimed.
-  const close = useCallback(() => {
-    releaseCapture();
-    onClose();
-  }, [releaseCapture, onClose]);
 
   // Reset per-attempt state on open. The modal never unmounts between opens
   // (isOpen only gates the render below), so without this a transcript typed
