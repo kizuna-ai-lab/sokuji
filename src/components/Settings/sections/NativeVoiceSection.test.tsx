@@ -13,7 +13,7 @@
  * by VoiceLibrarySection.test.tsx.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import NativeVoiceSection, { validateVoiceClip } from './NativeVoiceSection';
 import { VoiceCaptureError, type NativeVoiceStore } from '../../../lib/local-inference/native/nativeVoiceStores';
 import { VoiceImportError } from '../../../lib/local-inference/voiceStorage';
@@ -99,6 +99,26 @@ function stubWebAudio() {
   return { mockCtx, mockSource, playedAudio: () => copied };
 }
 
+// Opens the picker popover — the trigger is the one button with
+// aria-expanded="false" before it opens (mirrors SonioxVoiceSection.test.tsx
+// and VoiceLibrarySection.test.tsx's own openPicker helper).
+const openPicker = () => fireEvent.click(screen.getByRole('button', { expanded: false }));
+
+// Scopes a query to the grid: the picker's own TRIGGER button's accessible
+// name is the concatenation of its value span and its subtitle span (e.g.
+// "Ava en"), so an unscoped query meant for a row can match the trigger too.
+const inGrid = () => within(screen.getByRole('grid'));
+
+// Finds a voice row by its own picker button's `aria-label` (the row's
+// accessible NAME, not the gridcell wrapper's computed accessible name,
+// which concatenates the label with the row's subtitle — see the "Three
+// query traps" note this task's brief carries) and scopes further queries
+// (▶, Rename, Delete) to it. Essential once a row's own name is not unique
+// among BUTTON roles across the grid (e.g. every builtin preset is also
+// previewable, so an unscoped "Play" query matches several rows at once).
+const rowFor = (label: string | RegExp): HTMLElement =>
+  inGrid().getByRole('button', { name: label }).closest('[role="row"]') as HTMLElement;
+
 describe('validateVoiceClip', () => {
   it('rejects too-short, too-long, and silent clips; accepts a valid one', () => {
     expect(validateVoiceClip(new Float32Array(16000).fill(0.3), 16000)).toBe('too_short'); // 1s
@@ -130,15 +150,16 @@ describe('NativeVoiceSection', () => {
     const store = makeClipStore();
     const onSelect = vi.fn();
     render(<NativeVoiceSection {...baseProps} store={store} onSelect={onSelect} />);
-    expect(await screen.findByText('Ava')).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'builtin:Bella' } });
+    openPicker();
+    fireEvent.click(await inGrid().findByRole('button', { name: 'Bella' }));
     expect(onSelect).toHaveBeenCalledWith('builtin:Bella');
   });
 
   it('uses the store capability for the dropdown import affordances (record + upload, audio)', async () => {
     const store = makeClipStore();
     render(<NativeVoiceSection {...baseProps} store={store} />);
-    await screen.findByText('Ava');
+    openPicker();
+    fireEvent.click(await inGrid().findByRole('button', { name: /add a voice/i }));
     expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /import voice/i })).toBeInTheDocument();
   });
@@ -149,7 +170,8 @@ describe('NativeVoiceSection', () => {
     });
     const onCustomChanged = vi.fn();
     render(<NativeVoiceSection {...baseProps} store={store} onCustomChanged={onCustomChanged} />);
-    await screen.findByText('Ava');
+    openPicker();
+    fireEvent.click(await inGrid().findByRole('button', { name: /add a voice/i }));
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File([new Uint8Array(8)], 'voice.wav')] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too short/i));
@@ -166,7 +188,8 @@ describe('NativeVoiceSection', () => {
     });
     const onCustomChanged = vi.fn();
     render(<NativeVoiceSection {...baseProps} store={store} onCustomChanged={onCustomChanged} />);
-    await screen.findByText('Ava');
+    openPicker();
+    fireEvent.click(await inGrid().findByRole('button', { name: /add a voice/i }));
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File([new Uint8Array(8)], 'voice.json');
     fireEvent.change(fileInput, { target: { files: [file] } });
@@ -178,7 +201,8 @@ describe('NativeVoiceSection', () => {
     const store = makeClipStore();
     const onCustomChanged = vi.fn();
     render(<NativeVoiceSection {...baseProps} store={store} onCustomChanged={onCustomChanged} />);
-    await screen.findByText('Ava');
+    openPicker();
+    fireEvent.click(await inGrid().findByRole('button', { name: /add a voice/i }));
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File([new Uint8Array(8)], 'voice.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
@@ -190,14 +214,16 @@ describe('NativeVoiceSection', () => {
   it('renames and deletes a custom voice through the store', async () => {
     const store = makeClipStore({ list: vi.fn().mockResolvedValue([{ id: 5, name: 'MyClone' }]) });
     render(<NativeVoiceSection {...baseProps} store={store} />);
-    await screen.findByText(/manage imported voices/i);
-    fireEvent.click(screen.getByRole('button', { name: /^rename$/i }));
+    openPicker();
+    await inGrid().findByRole('button', { name: 'MyClone' });
+    fireEvent.click(inGrid().getByRole('button', { name: /^rename$/i }));
     fireEvent.change(screen.getByDisplayValue('MyClone'), { target: { value: 'Renamed' } });
     fireEvent.blur(screen.getByDisplayValue('Renamed'));
     await waitFor(() => expect(store.rename).toHaveBeenCalledWith(5, 'Renamed'));
 
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(inGrid().getByRole('button', { name: /^delete$/i }));
+    const dialog = screen.getByRole('dialog', { name: /delete voice/i });
+    fireEvent.click(within(dialog).getByRole('button', { name: /^delete$/i }));
     await waitFor(() => expect(store.delete).toHaveBeenCalledWith(5));
   });
 
@@ -213,7 +239,8 @@ describe('NativeVoiceSection', () => {
     render(<NativeVoiceSection {...baseProps}
       capability={{ builtin: 'named', custom: 'clip', transcriptRequired: true }}
       store={store} />);
-    await screen.findByText('Ava');
+    openPicker();
+    fireEvent.click(await inGrid().findByRole('button', { name: /add a voice/i }));
     const transcriptInput = screen.getByPlaceholderText(/type exactly what the clip says/i);
     fireEvent.change(transcriptInput, { target: { value: 'hello world' } });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -231,11 +258,9 @@ describe('NativeVoiceSection', () => {
     render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip', transcriptRequired: true }}
       builtinVoices={[]} store={store as any} selected="" targetLanguage="en"
       onSelect={() => {}} onCustomChanged={() => {}} ttsModelId="m" ttsLanguages={['en']} />);
-    // 'WithText' appears twice in dropdown presentation (the <select> option AND
-    // the "manage imported voices" row, same duplication as the 'MyVoice' case
-    // above) — any match confirms it's present. 'NoText' must have zero matches.
-    expect((await screen.findAllByText('WithText')).length).toBeGreaterThan(0);
-    expect(screen.queryByText('NoText')).toBeNull();
+    openPicker();
+    expect(await inGrid().findByRole('button', { name: 'WithText' })).toBeInTheDocument();
+    expect(inGrid().queryByRole('button', { name: 'NoText' })).toBeNull();
   });
 
   describe('clone-only voice gate (slice 5 — renderer mirror of the sidecar R16 pre-check)', () => {
@@ -252,10 +277,8 @@ describe('NativeVoiceSection', () => {
       render(<NativeVoiceSection capability={{ builtin: 'none', custom: 'clip' }}
         builtinVoices={[]} store={store} selected="" targetLanguage="en"
         onSelect={() => {}} onCustomChanged={() => {}} ttsModelId="m" ttsLanguages={['en']} />);
-      // 'MyClone' appears twice in dropdown presentation (the <select> option
-      // AND the "manage imported voices" row) — same duplication as the
-      // transcriptRequired filter test above.
-      await waitFor(() => expect(screen.getAllByText('MyClone').length).toBeGreaterThan(0));
+      openPicker();
+      await inGrid().findByRole('button', { name: 'MyClone' });
       expect(screen.queryByRole('alert')).toBeNull();
     });
 
@@ -285,8 +308,11 @@ describe('NativeVoiceSection', () => {
       const store = storeWithClip();
 
       render(<NativeVoiceSection {...baseProps} store={store} />);
-      const btn = await screen.findByRole('button', { name: /play/i });
-      fireEvent.click(btn);
+      openPicker();
+      await inGrid().findByRole('button', { name: 'MyClone' });
+      // Scoped to the row: every builtin preset is ALSO previewable (Task 1),
+      // so an unscoped "Play" query would match Ava/Bella/Adam's rows too.
+      fireEvent.click(within(rowFor('MyClone')).getByRole('button', { name: /play/i }));
 
       // The clip is still read -- it is the reference the clone is built from --
       // but what plays is the SYNTHESIS, so the model must have been asked.
@@ -317,8 +343,9 @@ describe('NativeVoiceSection', () => {
       });
 
       render(<NativeVoiceSection {...baseProps} store={store} />);
-      const btn = await screen.findByRole('button', { name: /play/i });
-      fireEvent.click(btn);
+      openPicker();
+      await inGrid().findByRole('button', { name: 'MyClone' });
+      fireEvent.click(within(rowFor('MyClone')).getByRole('button', { name: /play/i }));
 
       await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(playedAudio()).toEqual(clipAudio));
@@ -333,7 +360,11 @@ describe('NativeVoiceSection', () => {
       const store = storeWithClip();
 
       render(<NativeVoiceSection {...baseProps} store={store} isSessionActive />);
-      const btn = await screen.findByRole('button', { name: /stop the session/i });
+      openPicker();
+      await inGrid().findByRole('button', { name: 'MyClone' });
+      // previewUnavailableReason disables the ▶ on EVERY row uniformly (both
+      // presets and the clone), so any one of them proves the point.
+      const btn = within(rowFor('MyClone')).getByRole('button', { name: /stop the session/i });
       expect(btn).toBeDisabled();
 
       fireEvent.click(btn);
@@ -346,7 +377,9 @@ describe('NativeVoiceSection', () => {
       // so `resolvePreviewSample` returns null and there is nothing to synthesize.
       const store = storeWithClip();
       render(<NativeVoiceSection {...baseProps} store={store} ttsLanguages={['xx']} />);
-      const btn = await screen.findByRole('button', { name: /no sample sentence/i });
+      openPicker();
+      await inGrid().findByRole('button', { name: 'MyClone' });
+      const btn = within(rowFor('MyClone')).getByRole('button', { name: /no sample sentence/i });
       expect(btn).toBeDisabled();
     });
 
@@ -360,8 +393,9 @@ describe('NativeVoiceSection', () => {
       const store = storeWithClip();
 
       const { unmount } = render(<NativeVoiceSection {...baseProps} store={store} />);
-      const btn = await screen.findByRole('button', { name: /play/i });
-      fireEvent.click(btn);
+      openPicker();
+      await inGrid().findByRole('button', { name: 'MyClone' });
+      fireEvent.click(within(rowFor('MyClone')).getByRole('button', { name: /play/i }));
       await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
 
       unmount();
@@ -392,13 +426,26 @@ describe('NativeVoiceSection', () => {
       });
 
       render(<NativeVoiceSection {...baseProps} store={store} />);
-      const buttons = await screen.findAllByRole('button', { name: /play/i });
-      expect(buttons).toHaveLength(2);
+      openPicker();
+      await inGrid().findByRole('button', { name: 'Voice1' });
+      await inGrid().findByRole('button', { name: 'Voice2' });
+      // Scoped per-row, not `findAllByRole('button', {name: /play/i})`: since
+      // Task 1, Ava/Bella/Adam's preset rows are previewable too, so an
+      // unscoped Play query would return 5 buttons here, not 2 -- the
+      // original `buttons[0]`/`buttons[1]` indexing no longer identifies
+      // "the two custom voices" now that the redesign's own earlier task
+      // widened who gets a ▶. Captured ONCE as element references (like the
+      // original `buttons[0]`/`buttons[1]`), not re-queried by name on every
+      // click: the button's own accessible name flips between Play/Stop/
+      // Synthesizing… as state changes, so a live `/play/i` re-query would
+      // stop matching its own target mid-test.
+      const play1 = within(rowFor('Voice1')).getByRole('button', { name: /play/i });
+      const play2 = within(rowFor('Voice2')).getByRole('button', { name: /play/i });
 
-      fireEvent.click(buttons[0]);
+      fireEvent.click(play1);
       await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1)); // first synthesize is now pending
 
-      fireEvent.click(buttons[1]);
+      fireEvent.click(play2);
       await waitFor(() => expect(store.resolveApply).toHaveBeenCalledWith(2));
       // The second request must NOT have started a second, concurrent
       // synthesize() call against the still-busy shared client -- it falls
@@ -413,8 +460,8 @@ describe('NativeVoiceSection', () => {
       // which never reached a real synthesize() call, is what actually
       // proves the GUARD itself cleared rather than a cache hit doing it.)
       resolveFirst({ audio: new Float32Array([0.25]), sampleRate: 24000 });
-      fireEvent.click(buttons[1]); // stop voice 2's clip playback
-      fireEvent.click(buttons[1]); // a fresh request for voice 2
+      fireEvent.click(play2); // stop voice 2's clip playback
+      fireEvent.click(play2); // a fresh request for voice 2
       await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(2));
     });
 
@@ -436,11 +483,18 @@ describe('NativeVoiceSection', () => {
       });
 
       render(<NativeVoiceSection {...baseProps} store={store} />);
-      const buttons = await screen.findAllByRole('button', { name: /play/i });
+      openPicker();
+      await inGrid().findByRole('button', { name: 'Voice1' });
+      await inGrid().findByRole('button', { name: 'Voice2' });
+      // Captured ONCE, not re-queried by name — see the sibling test above's
+      // comment on why a live `/play/i` re-query breaks once a button's own
+      // label flips to Stop/Synthesizing….
+      const play1 = within(rowFor('Voice1')).getByRole('button', { name: /play/i });
+      const play2 = within(rowFor('Voice2')).getByRole('button', { name: /play/i });
 
-      fireEvent.click(buttons[0]); // voice 1 -- synthesize() pending
+      fireEvent.click(play1); // voice 1 -- synthesize() pending
       await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
-      fireEvent.click(buttons[1]); // supersedes voice 1's request (aborts its signal)
+      fireEvent.click(play2); // supersedes voice 1's request (aborts its signal)
       await waitFor(() => expect(store.resolveApply).toHaveBeenCalledWith(2));
 
       // Voice 1's synthesis finishes successfully AFTER being superseded.
@@ -453,12 +507,102 @@ describe('NativeVoiceSection', () => {
       resolveFirst({ audio: new Float32Array([0.42]), sampleRate: 24000 });
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      fireEvent.click(buttons[1]); // stop voice 2's clip playback
-      fireEvent.click(buttons[0]); // voice 1 again -- must be a cache hit
+      fireEvent.click(play2); // stop voice 2's clip playback
+      fireEvent.click(play1); // voice 1 again -- must be a cache hit
       await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.42])));
       // Still exactly 1 real synthesize() call -- the cache served the
       // second voice-1 preview instantly, no re-synthesis.
       expect(synthesize).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('preset preview (Task 8 — presets audition in THEIR OWN language, not the target language)', () => {
+    it('auditions a preset with the sentence for THAT voice language, not the target language', async () => {
+      // targetLanguage is 'en' (baseProps); the preset's OWN meta.language
+      // ('ja') is what must drive the sample and the synthesize() call, not
+      // the target.
+      const { playedAudio } = stubWebAudio();
+      const synthesize = vi.fn().mockResolvedValue({ audio: new Float32Array([0.42]), sampleRate: 24000 });
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+      const store = makeClipStore();
+      const withJa = [...builtinVoices, { name: 'jp-voice', language: 'ja', curated: false, unstable: false, default: false }];
+
+      render(<NativeVoiceSection {...baseProps} builtinVoices={withJa} store={store} ttsLanguages={['en', 'ja']} />);
+      openPicker();
+      await inGrid().findByRole('button', { name: 'jp-voice' });
+      fireEvent.click(within(rowFor('jp-voice')).getByRole('button', { name: /play/i }));
+
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+      expect(synthesize.mock.calls[0][0]).toMatchObject({
+        language: 'ja',
+        voice: { kind: 'name', name: 'jp-voice' },
+      });
+      await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.42])));
+    });
+
+    it('re-inits the engine when the next audition is in another language', async () => {
+      // nativePreviewTts.createPreviewTts is mocked away here (see this file's
+      // top-of-file note), so its own re-init-on-language-change behaviour is
+      // exercised separately in nativePreviewTts.test.ts. What THIS component
+      // owns, and what this proves, is feeding synthesize() the two auditions
+      // 'en' then 'ja' IN THAT ORDER -- the exact sequence that drives the
+      // real handle's re-init.
+      const { playedAudio } = stubWebAudio();
+      const synthesize = vi.fn().mockResolvedValue({ audio: new Float32Array([0.1]), sampleRate: 24000 });
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+      const store = makeClipStore();
+      const withJa = [...builtinVoices, { name: 'jp-voice', language: 'ja', curated: false, unstable: false, default: false }];
+
+      render(<NativeVoiceSection {...baseProps} builtinVoices={withJa} store={store} ttsLanguages={['en', 'ja']} />);
+      openPicker();
+      await inGrid().findByRole('button', { name: 'Ava' });
+      fireEvent.click(within(rowFor('Ava')).getByRole('button', { name: /play/i }));
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+
+      fireEvent.click(within(rowFor('jp-voice')).getByRole('button', { name: /play/i }));
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(2));
+
+      expect(synthesize.mock.calls.map((call) => call[0].language)).toEqual(['en', 'ja']);
+      await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.1])));
+    });
+
+    it('reports a failed preset audition instead of playing a clip', async () => {
+      // A preset has no reference clip behind it, unlike a clone -- so a
+      // synthesis failure has nothing to fall back to.
+      const { playedAudio } = stubWebAudio();
+      const synthesize = vi.fn().mockRejectedValue(new Error('synthesis exploded'));
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+      const store = makeClipStore();
+
+      render(<NativeVoiceSection {...baseProps} store={store} />);
+      openPicker();
+      await inGrid().findByRole('button', { name: 'Ava' });
+      fireEvent.click(within(rowFor('Ava')).getByRole('button', { name: /play/i }));
+
+      expect(await screen.findByText(/could not synthesize a preview/i)).toBeInTheDocument();
+      expect(playedAudio()).toBeNull();
+    });
+
+    it('still falls back to the reference clip when a CLONE fails to synthesize', async () => {
+      // Guard for the sibling describe block above: presets (this block) have
+      // no clip to fall back to, but a clone still does -- proving the new
+      // `builtin:` branch of handlePreview left the pre-existing `custom:`
+      // branch's fallback untouched.
+      const { playedAudio } = stubWebAudio();
+      const synthesize = vi.fn().mockRejectedValue(new Error('synthesis exploded'));
+      vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
+      const clipAudio = new Float32Array([0.33]);
+      const store = storeWithClip({
+        resolveApply: vi.fn().mockResolvedValue({ kind: 'clip', audio: clipAudio, sampleRate: 16000, transcript: 'hi' }),
+      });
+
+      render(<NativeVoiceSection {...baseProps} store={store} />);
+      openPicker();
+      await inGrid().findByRole('button', { name: 'MyClone' });
+      fireEvent.click(within(rowFor('MyClone')).getByRole('button', { name: /play/i }));
+
+      await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(playedAudio()).toEqual(clipAudio));
     });
   });
 });

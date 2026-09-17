@@ -222,15 +222,24 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     onCustomChanged();
   }, [store, reloadCustomVoices, onCustomChanged]);
 
-  // Which language (if any) the preview sentence is spoken in, given what
-  // this TTS model's card claims to speak (`ttsLanguages`). `null` means no
-  // language clears both gates (the engine speaks it AND the sample table has
-  // a sentence for it) -- there is nothing to synthesize with, which is a
-  // disabled-reason case below, not an error.
-  const previewSample = useMemo(
-    () => resolvePreviewSample(targetLanguage, (l) => supportsLanguage({ languages: ttsLanguages }, l)),
+  /** The sample sentence for ONE voice: a preset speaks its own language, a
+   *  clone speaks the target language. Both are still gated on the model
+   *  actually speaking it (`ttsLanguages`), so a voice whose language this
+   *  model cannot speak has no sample and no ▶. */
+  const sampleFor = useCallback(
+    (language?: string) =>
+      resolvePreviewSample(language || targetLanguage, (l) => supportsLanguage({ languages: ttsLanguages }, l)),
     [targetLanguage, ttsLanguages],
   );
+
+  // The sample sentence for the TARGET language -- used by
+  // `previewUnavailableReason` below and by the clone branch of
+  // `handlePreview`, which always previews in the target language (unlike a
+  // preset, which previews in its own -- see `sampleFor`'s doc comment).
+  // `null` means no language clears both gates (the engine speaks it AND the
+  // sample table has a sentence for it) -- there is nothing to synthesize
+  // with, which is a disabled-reason case below, not an error.
+  const previewSample = useMemo(() => sampleFor(), [sampleFor]);
 
   // Distinct reasons, in priority order: a session holds the sidecar's TTS
   // engine (a panel-issued tts_generate would return _not_owner_error, so
@@ -242,18 +251,58 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       ? t('voiceLibrary.previewLanguageUnsupported', 'This model has no sample sentence in a language it speaks.')
       : undefined;
 
-  // Synthesize the sample sentence with the cloned voice so the user hears
-  // what the clone actually sounds like, falling back to replaying the
-  // reference clip (the previous behaviour) on any synthesis failure --
-  // deliberate, not a consolation prize: replaying answers "did I record
-  // clearly?", synthesis answers "does the clone sound like me". `signal`
-  // aborting (a newer preview superseded this one, or the component
-  // unmounted) returns null silently rather than falling back, mirroring
-  // "a superseded request should never reach the network" from
-  // VoiceLibrarySection's own doc comment -- though the actual sidecar call
-  // in flight cannot itself be cancelled (PreviewTtsHandle.synthesize takes
-  // no signal), so this only ever short-circuits around it, never stops it.
+  // Synthesize the sample sentence with the selected voice so the user hears
+  // what it actually sounds like. A `builtin:` id previews the PRESET in its
+  // own language (spec §6.2) -- there is no reference clip behind a preset,
+  // so a synthesis failure has nothing to fall back to and instead reports
+  // voiceLibrary.previewFailed. A `custom:` id previews the CLONE in the
+  // target language, falling back to replaying the reference clip (the
+  // previous behaviour) on any synthesis failure -- deliberate, not a
+  // consolation prize: replaying answers "did I record clearly?", synthesis
+  // answers "does the clone sound like me". `signal` aborting (a newer
+  // preview superseded this one, or the component unmounted) returns null
+  // silently rather than falling back, mirroring "a superseded request
+  // should never reach the network" from VoiceLibrarySection's own doc
+  // comment -- though the actual sidecar call in flight cannot itself be
+  // cancelled (PreviewTtsHandle.synthesize takes no signal), so this only
+  // ever short-circuits around it, never stops it.
   const handlePreview = useCallback(async (id: string, signal?: AbortSignal) => {
+    if (id.startsWith('builtin:')) {
+      const name = id.slice('builtin:'.length);
+      const voice = builtinVoices.find((v) => v.name === name);
+      const sample = sampleFor(voice?.language);
+      // No sentence in a language this model speaks: nothing to synthesize,
+      // and no clip to fall back on -- a preset has no reference audio.
+      if (!sample) return null;
+      const cacheKey = previewCacheKey(`native:${ttsModelId}`, id, sample.language, PREVIEW_SPEED);
+      const cached = getCachedPreview(cacheKey);
+      if (cached) return signal?.aborted ? null : cached;
+      if (!previewTtsRef.current) previewTtsRef.current = createPreviewTts();
+      // See synthInFlightRef's doc comment above: another row's synthesis is
+      // still using the shared client, so don't start an overlapping one.
+      if (synthInFlightRef.current) return null;
+      synthInFlightRef.current = true;
+      try {
+        const result = await previewTtsRef.current.synthesize({
+          modelId: ttsModelId,
+          // The sidecar stores the language on the engine at init, so a
+          // language change re-inits -- seconds, not milliseconds. The row's
+          // spinner covers it.
+          language: sample.language,
+          text: sample.text,
+          speed: PREVIEW_SPEED,
+          voice: { kind: 'name', name },
+        });
+        setCachedPreview(cacheKey, result);
+        return signal?.aborted ? null : result;
+      } catch {
+        setCaptureError(t('voiceLibrary.previewFailed', 'Could not synthesize a preview for this voice.'));
+        return null;
+      } finally {
+        synthInFlightRef.current = false;
+      }
+    }
+
     if (!store || !id.startsWith('custom:')) return null;
     const numId = Number(id.slice('custom:'.length));
     if (!Number.isFinite(numId)) return null;
@@ -303,7 +352,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     } finally {
       synthInFlightRef.current = false;
     }
-  }, [store, previewSample, ttsModelId]);
+  }, [store, previewSample, ttsModelId, builtinVoices, sampleFor]);
 
   const voices = useMemo<VoiceEntry[]>(() => {
     const { curated, rest } = curatedBuiltinVoices(targetLanguage, builtinVoices);
@@ -313,7 +362,9 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       group: 'builtin',
       removable: false,
       // Presets audition in THEIR OWN language on the dedicated preview
-      // connection (spec §6.2); Task 5 teaches handlePreview the `builtin:` id.
+      // connection (spec §6.2); the `builtin:` branch of handlePreview below
+      // resolves the name against builtinVoices and synthesizes in that
+      // voice's own language.
       previewable: true,
       meta: { curated: isCurated, unstable: v.unstable, language: v.language },
     });
