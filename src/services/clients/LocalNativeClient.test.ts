@@ -1435,6 +1435,181 @@ describe('LocalNativeClient sentence segmentation', () => {
     expect(jobSpy.mock.calls[1][1]).toEqual({ durationMs: 42, recognitionTimeMs: 7 });
   });
 
+  it('advances the raw cursor by what the stream actually consumed, not by the sealed (punctuated) text length', async () => {
+    // On the model path, SentenceStream.applyResult() seals the PUNCTUATED
+    // output while only advancing the raw tail to where that output's
+    // skeleton maps back onto the raw input (SentenceStream.ts). Those two
+    // lengths differ by exactly the marks the model inserted. Advancing the
+    // client's own cursor by the sealed text's length (rather than by what
+    // was actually consumed) drifts it forward by one character per inserted
+    // mark, silently deleting that many real characters from the next chunk
+    // every time. Only a runtime that actually inserts a mark can catch
+    // this — every other case in this file uses a no-op punctuate, so the
+    // rule path (which seals exact raw prefixes) never exposes the drift.
+    const digits = '0123456789'.repeat(5); // 50 chars — clears gateChars('en',1)===50
+    expect(digits.length).toBe(50);
+    // Model inserts one period 10 characters before the end — leaving
+    // exactly 10 (>=8) skeleton characters of right context.
+    const cut = digits.length - 10; // 40
+    const runtime: SegmentationRuntime = {
+      enabled: true,
+      async punctuate(_lang: string, text: string) {
+        const out = `${text.slice(0, cut)}.${text.slice(cut)}`;
+        return { text: out, sentenceEnds: [cut + 1], breakpoints: [cut + 1], model: 'edge-punct-en' as const };
+      },
+    };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    deps.asr.onPartialResult(digits);
+    await settle(); // the model call is async — let it resolve and seal
+
+    expect(jobSpy.mock.calls.length).toBe(1);
+    // The bug: sealUserChunk used to advance by the SEALED text's length
+    // (cut + 1, counting the inserted period) instead of the raw consumed
+    // length (cut). Assert the corrected cursor directly.
+    expect((c as any).sealedChars).toBe(cut);
+
+    // A short, still-unpunctuated tail — kept under the 50-char gate so no
+    // second model round is needed — becomes the final chunk.
+    const tail = 'ZremainderNoPeriodHere';
+    deps.asr.onResult({ text: digits + tail, durationMs: 5, recognitionTimeMs: 1 });
+    await settle();
+
+    expect(jobSpy.mock.calls.length).toBe(2);
+    const firstSealed = jobSpy.mock.calls[0][0] as string;
+    const secondSealed = jobSpy.mock.calls[1][0] as string;
+    // With the bug, one raw character (digits[cut]) is silently dropped at
+    // the seam between the two chunks. Stripping the model's own inserted
+    // mark from the first chunk and concatenating must reconstruct the
+    // original raw text exactly, character for character.
+    expect(firstSealed.replace(/\.$/, '') + secondSealed).toBe(digits + tail);
+  });
+
+  it('a final that is shorter than sealedChars restarts the cursor instead of blanking the open bubble', async () => {
+    // Some engines produce the final as a canonical re-decode rather than
+    // reusing the accumulated partial, so it can come back shorter than what
+    // partials already sealed. Slicing by a cursor that no longer applies
+    // must not feed the stream an empty string — that would blank the open
+    // bubble via onPending('') and then end() would never seal an empty
+    // tail, stranding it in_progress with nothing translated.
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    // Seals "First sentence done." — sealedChars becomes 20.
+    deps.asr.onPartialResult('First sentence done. Second begins');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    expect((c as any).sealedChars).toBe('First sentence done.'.length);
+
+    // A short final, shorter than sealedChars — text.slice(sealedChars) would be ''.
+    const shortFinal = 'Hi.';
+    expect(shortFinal.length).toBeLessThan((c as any).sealedChars);
+    deps.asr.onResult({ text: shortFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // The short final still becomes its own completed item and job — not a
+    // blanked, permanently in_progress bubble.
+    expect(jobSpy.mock.calls.length).toBe(2);
+    expect(jobSpy.mock.calls[1][0]).toBe(shortFinal);
+    const finalUserItems = c.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.some((i) => i.status === 'in_progress')).toBe(false);
+    expect(finalUserItems.map((i) => i.formatted?.transcript)).toEqual([
+      'First sentence done.',
+      shortFinal,
+    ]);
+  });
+
+  it('a final that overlaps (is a raw prefix of) the already-sealed text closes the bubble without a second job', async () => {
+    // A seal requires >=8 skeleton characters of right context, so the
+    // partial that triggered it always extended well past the cursor. A
+    // canonical re-decode that drops that retracted tail can land at or
+    // below the cursor while still being an exact prefix of the SAME
+    // utterance — unlike the unrelated 'Hi.' case above, this must NOT be
+    // treated as a fresh, different utterance: doing so would seal and
+    // translate (and, with TTS on, speak) "First sentence done." a second
+    // time.
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    // Seals "First sentence done." — sealedChars becomes 20; the open bubble
+    // holds the unconfirmed remainder " Second begins".
+    deps.asr.onPartialResult('First sentence done. Second begins');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const sealedChars = (c as any).sealedChars as number;
+    expect(sealedChars).toBe('First sentence done.'.length);
+
+    // The final is an exact prefix of the raw text already seen — a
+    // truncated re-decode of the SAME utterance, not new content.
+    const overlappingFinal = 'First sentence done.';
+    expect(overlappingFinal.length).toBe(sealedChars); // <= sealedChars, so the naive slice would be ''
+    deps.asr.onResult({ text: overlappingFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // No second job: the confirmed content was already fully captured by the
+    // first seal.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    // The dangling bubble is closed out (not left in_progress forever), but
+    // without ever being translated a second time.
+    const finalUserItems = c.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.length).toBe(2);
+    expect(finalUserItems.every((i) => i.status === 'completed')).toBe(true);
+  });
+
+  it('an overlapping final survives a leading-space asymmetry between the accumulated partial and the trimmed final', async () => {
+    // voxtral-3b-webgpu.worker.ts and cohere-transcribe-webgpu.worker.ts both
+    // build the accumulated partial from TextStreamer's untrimmed token
+    // deltas (accumulatedText += token) but .trim() only the final — so the
+    // shape a real canonical re-decode produces is an UNTRIMMED partial
+    // compared against a TRIMMED final. A raw (untrimmed) prefix check is
+    // anchored at exactly the edge where they differ: if the first decoded
+    // piece carries a leading space (a common SentencePiece/BPE quirk), an
+    // untrimmed startsWith reads a genuine truncation as divergence and
+    // reseals text that was already sealed. This case pins the trimmed
+    // comparison that avoids that.
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    // Leading space on the accumulated partial, as an untrimmed TextStreamer
+    // accumulation would produce.
+    const leadingSpacePartial = ' First sentence done. Second begins';
+    deps.asr.onPartialResult(leadingSpacePartial);
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const sealedChars = (c as any).sealedChars as number;
+    expect(sealedChars).toBe(' First sentence done.'.length);
+
+    // The final is trimmed — no leading space — but is still a truncation of
+    // the SAME utterance the partial already established.
+    const trimmedFinal = 'First sentence done.';
+    expect(trimmedFinal.length).toBeLessThan(sealedChars); // naive slice would be ''
+    deps.asr.onResult({ text: trimmedFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // No second job: this must still be recognised as the SAME utterance,
+    // not a fresh, different one.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const finalUserItems = c.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.length).toBe(2);
+    expect(finalUserItems.every((i) => i.status === 'completed')).toBe(true);
+  });
+
   it('a seal completes the in-progress item rather than creating a second in-progress one', async () => {
     const runtime = fakeRuntime(true);
     const deps = segDeps();

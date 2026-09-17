@@ -691,8 +691,14 @@ export class LocalNativeClient implements IClient {
       this.items.push(userItem);
     }
     this.emit(userItem);
-    // serialize pipeline jobs so text/audio stay ordered
-    this.queue = this.queue.then(() => this.runJob(r.text, timing)).catch((e) => {
+    // serialize pipeline jobs so text/audio stay ordered. Deliberately no
+    // asrTiming here: this is the legacy (no-stream) path, where
+    // local.native.asr.end above already reports durationMs/recognitionTimeMs
+    // /rtf once for this (sole) job. Passing timing through as well would
+    // duplicate it on translation.start for no reason — asrTiming only earns
+    // its place on the segmented path (sealUserChunk), where it marks which
+    // of several chunks is the final one.
+    this.queue = this.queue.then(() => this.runJob(r.text)).catch((e) => {
       this.emitEvent('local.native.error', 'client', { error: String(e) });
       this.handlers.onError?.(String(e));
     });
