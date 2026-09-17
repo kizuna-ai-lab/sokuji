@@ -425,8 +425,11 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // Guarding on `canPreview` instead would not narrow the type — see
     // voiceLibrarySource.ts.
     if (!requestSource?.preview) return null;
-    // `null`: a cloned Soniox voice is documented any-voice-any-language, so
-    // the language rule collapses to the previous previewSampleFor behaviour.
+    // `null`: a Soniox voice — preset or clone — is documented
+    // any-voice-any-language, so the language rule collapses to the target
+    // language with English then the table as fallbacks. A preset id IS the
+    // `voice` field of the TTS request, so nothing here needs to know which
+    // kind it is.
     const sample = resolvePreviewSample(settings.targetLanguage, null);
     // Cannot be null for a null `speaks` predicate (see resolvePreviewSample's
     // docstring), but narrowed here rather than asserted.

@@ -1,9 +1,11 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { resolve } from 'node:path';
 import { compile } from 'sass';
 import type { VoiceLibrarySource } from './voiceLibrarySource';
+import { managedVoiceSource } from './voiceLibrarySource';
+import type { ManagedVoicesClient } from '../../../services/clients/ManagedVoicesClient';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
 import { clearPreviewCache } from '../../../lib/tts/previewCache';
@@ -66,6 +68,23 @@ function fakeSource(over: Partial<VoiceLibrarySource> = {}): VoiceLibrarySource 
       : {}),
     ...over,
   } as VoiceLibrarySource;
+}
+
+/** A fake `ManagedVoicesClient`, for tests that exercise the REAL
+ *  `managedVoiceSource` wrapper (rather than `fakeSource`'s hand-rolled
+ *  stand-in) to prove a preset travels through the actual mint
+ *  (`sessionKey`) → synthesize → report-done (`previewDone`) pipeline —
+ *  mirrors `voiceLibrarySource.test.ts`'s own `fakeClient`. */
+function fakeManagedClient(over: Partial<ManagedVoicesClient> = {}): ManagedVoicesClient {
+  return {
+    mine: vi.fn().mockResolvedValue(null),
+    ensure: vi.fn(),
+    remove: vi.fn().mockResolvedValue(undefined),
+    region: 'us',
+    sessionKey: vi.fn(async () => ({ ttsApiKey: 'tk', region: 'us' as const })),
+    previewDone: vi.fn().mockResolvedValue(undefined),
+    ...over,
+  } as unknown as ManagedVoicesClient;
 }
 
 const synthesizeMock = vi.fn();
@@ -150,12 +169,68 @@ function mount(over: object = {}) {
   return { onUpdate, ...utils };
 }
 
-const openManageDetails = () => fireEvent.click(screen.getByText(/manage imported voices/i));
+// Opens the picker popover — the entry point for everything below. Mirrors
+// VoiceLibrarySection.test.tsx's own helper: the trigger is the one button
+// with `aria-expanded="false"` before it opens.
+const openPicker = () => fireEvent.click(screen.getByRole('button', { expanded: false }));
+
+// Opens the picker and then the "Add a voice…" modal — the entry point for
+// every import/record test. NOTE (see task-7-report.md): design §6.3 says
+// this modal "calls the same onImport / onRecord callbacks… then closes",
+// but VoiceCreateModal.tsx currently never calls onClose() after a
+// successful onImport/onRecord — so it stays mounted behind
+// SonioxCloneConfirmModal once a clip is staged. Every query below is
+// therefore scoped (`within`) wherever that overlap could be ambiguous,
+// rather than assuming the create modal is gone.
+const openCreateModal = () => {
+  openPicker();
+  fireEvent.click(screen.getByRole('button', { name: /add a voice/i }));
+};
+
+// Scopes a query to the grid: the picker's own TRIGGER button's accessible
+// name is the concatenation of its value span and its subtitle span (e.g.
+// "(deleted voice) My Voices"), so an unscoped `getByRole('button', { name:
+// /deleted voice/i })` matches the trigger too, not just the row — the same
+// "computed accessible name" trap the row's own gridcell has, one level up.
+const inGrid = () => within(screen.getByRole('grid'));
+
+// Finds a voice row by its rendered label (the picker button's own
+// `aria-label`, not the gridcell's computed accessible name — see this
+// file's "Three query traps" note) and scopes further queries (▶, Rename,
+// Delete) to it. Essential once Task 1 made every one of the ~200 presets
+// previewable too: an unscoped `getByRole('button', { name: /^play$/i })`
+// matches all of them, not just the row under test.
+const rowFor = (label: string | RegExp): HTMLElement =>
+  inGrid().getByRole('button', { name: label }).closest('[role="row"]') as HTMLElement;
+
+// The confirm modal (SonioxCloneConfirmModal) carries its own "Play"/"Stop"
+// (staged-clip playback) and "Cancel" controls, sharing that exact text with
+// the picker's per-row ▶ and — while the create-modal-not-closing gap above
+// is unresolved — with VoiceCreateModal's own Cancel. Named, not bare
+// `getByRole('dialog')`, for the same reason VoiceLibrarySection.test.tsx's
+// delete-modal query is: the picker's own floating wrapper is an unnamed
+// `role="dialog"` too and stays open behind this one.
+const cloneDialog = () => screen.getByRole('dialog', { name: /clone voice/i });
+
 const nameInputPlaceholder = /name for a new cloned voice/i;
 const confirmButtonName = /^clone voice$/i;
 // Checks the modal's usage-rights checkbox, without which the confirm
-// button stays disabled.
+// button stays disabled. The only checkbox on the page, so this stays
+// unscoped even while the create modal is also mounted.
 const checkConsent = () => fireEvent.click(screen.getByRole('checkbox'));
+
+// Opens the delete-confirmation modal for the (single) deletable row already
+// on screen and confirms. Safe unscoped for the FIRST click because presets
+// are never removable (only the clone/placeholder row under test has a
+// Delete button); the SECOND click is scoped to the modal, whose own accept
+// button shares the exact text "Delete" with the row's trigger, which stays
+// on screen (still open) behind the modal — same reasoning as
+// VoiceLibrarySection.test.tsx's own delete-flow test.
+const confirmDelete = () => {
+  fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+  const dialog = screen.getByRole('dialog', { name: /delete voice/i });
+  fireEvent.click(within(dialog).getByRole('button', { name: /^delete$/i }));
+};
 
 describe('SonioxVoiceSection', () => {
   beforeEach(() => {
@@ -179,8 +254,9 @@ describe('SonioxVoiceSection', () => {
     // directly on the <audio> ref, so every test needs a stub.
     (window.HTMLMediaElement.prototype as any).play = vi.fn().mockResolvedValue(undefined);
     (window.HTMLMediaElement.prototype as any).pause = vi.fn();
-    // VoiceLibrarySection's delete flow goes through window.confirm, which
-    // jsdom stubs to a falsy no-op — accept it so delete clicks reach onDelete.
+    // VoiceLibrarySection's delete flow goes through the VoiceDeleteModal, not
+    // window.confirm — nothing to stub there any more, but a stray global
+    // confirm() from a leaked earlier stub must not swallow a click either.
     (window as any).confirm = vi.fn(() => true);
     synthesizeMock.mockReset().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
     // VoiceLibrarySection plays the returned sample through Web Audio, which
@@ -201,37 +277,33 @@ describe('SonioxVoiceSection', () => {
 
   it('renders the built-ins immediately and cloned voices after fetch', async () => {
     listMock.mockResolvedValue([cloned()]);
-    const { container } = mount();
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    // Not a count either: any threshold is still a roster-size contract, and
-    // which voices exist is Soniox's to change (see ttsCatalog). The property
-    // is that built-ins are already rendered before the fetch settles, so the
-    // dropdown is never momentarily empty and always offers the default.
-    const optionValues = () => [...select.querySelectorAll('option')].map((o) => o.value);
-    expect(optionValues()).toContain(SONIOX_DEFAULT_VOICE);
-    await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true));
+    mount();
+    openPicker();
+    // Built-ins are static data, not fed by the fetch — the trigger and the
+    // popover both offer the default voice on the very first render.
+    expect(screen.getByRole('button', { name: SONIOX_DEFAULT_VOICE })).toBeInTheDocument();
+    // The cloned voice arrives once the fetch resolves.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
   });
 
   it('selecting a cloned voice writes the UUID through onUpdate', async () => {
     listMock.mockResolvedValue([cloned()]);
-    const { container, onUpdate } = mount();
-    await waitFor(() => expect(listMock).toHaveBeenCalled());
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true));
-    fireEvent.change(select, { target: { value: 'uuid-1' } });
+    const { onUpdate } = mount();
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Me' }));
     expect(onUpdate).toHaveBeenCalledWith({ voice: 'uuid-1' });
   });
 
   it('shows a deleted-voice placeholder when the stored UUID is not in the fetched list', async () => {
     listMock.mockResolvedValue([]);
-    const { container } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    const { onUpdate } = mount({ settings: { voice: 'gone-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    await waitFor(() => {
-      const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'gone-uuid');
-      expect(opt).toBeTruthy();
-    });
-    expect(select.value).toBe('gone-uuid'); // stored setting is not rewritten
+    openPicker();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    // The stored setting is not rewritten — nothing auto-selects a different
+    // voice out from under an id the panel merely doesn't recognize yet.
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 
   it('renders a retired built-in the same way as any other unknown stored voice', async () => {
@@ -240,68 +312,58 @@ describe('SonioxVoiceSection', () => {
     // same shape as a deleted clone, and shown the same way. Nothing rewrites
     // it: the stored setting stands until the user picks something else.
     listMock.mockResolvedValue([]);
-    const { container } = mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
+    const { onUpdate } = mount({ settings: { voice: 'Maya', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    await waitFor(() => {
-      expect([...select.querySelectorAll('option')].some((o) => o.value === 'Maya')).toBe(true);
-    });
-    expect(select.value).toBe('Maya');
+    openPicker();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 
   it('managed mode renders built-ins only: no fetch, no refresh/create affordances', () => {
     mount({ managed: true, source: null });
     expect(listMock).not.toHaveBeenCalled();
-    expect(screen.queryByTitle(/refresh voice list/i)).toBeNull();
-    expect(screen.queryByText(/manage imported voices/i)).toBeNull();
-    expect(screen.queryByText(/Record/i)).toBeNull();
+    openPicker();
+    expect(screen.queryByRole('button', { name: /refresh voice list/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /add a voice/i })).toBeNull();
   });
 
   it('marks failed clones and offers no selection benefit (label carries the failed hint)', async () => {
     listMock.mockResolvedValue([cloned({ id: 'bad', name: 'Broken', models: [{ model: SONIOX_TTS_MODEL, status: 'failed' }] })]);
-    const { container } = mount();
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    await waitFor(() => {
-      const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'bad');
-      expect(opt?.textContent).toMatch(/failed/i);
-    });
+    mount();
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: /broken.*failed/i })).toBeInTheDocument());
   });
 
   it('import/record are available as soon as a client exists (no consent gate)', async () => {
     listMock.mockResolvedValue([]);
     mount();
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
+    openCreateModal();
     expect(screen.getByRole('button', { name: /import voice/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
   });
 
   it('cloned voices are deletable (manage list shows a Delete button)', async () => {
     listMock.mockResolvedValue([cloned()]);
-    const { container } = mount();
-    await waitFor(() => {
-      const select = container.querySelector('select[aria-label="Voice"]')!;
-      expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
-    });
-    openManageDetails();
-    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    mount();
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    expect(within(rowFor('Me')).getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
   });
 
   it('the refresh button re-fetches the voice list', async () => {
     listMock.mockResolvedValueOnce([]).mockResolvedValueOnce([cloned()]);
-    const { container } = mount();
+    mount();
+    openPicker();
     // The refresh button is disabled while the list is loading, and the first
     // fetch having been *called* does not mean it has resolved - clicking in
     // that window is a no-op and the second fetch never happens. Wait for the
     // button a user could actually press.
-    const refreshButton = screen.getByTitle(/refresh voice list/i);
+    const refreshButton = screen.getByRole('button', { name: /refresh voice list/i });
     await waitFor(() => expect(refreshButton).not.toBeDisabled());
     fireEvent.click(refreshButton);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
-    await waitFor(() => {
-      const select = container.querySelector('select[aria-label="Voice"]')!;
-      expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true);
-    });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
   });
 
   // A class name is not a style. `.option-button` exists in Settings.scss, but
@@ -355,11 +417,11 @@ describe('SonioxVoiceSection', () => {
     createMock.mockResolvedValue({ id: 'new-id', name: 'Me', models: [] });
     waitMock.mockRejectedValue(new SonioxVoicesError('network', 'Failed to fetch', 0));
     stubAudioContext(16000, 16000 * 5);
-    const { container } = mount({ managed: true });
-    // Managed: the manage panel renders only once the first list has settled.
+    mount({ managed: true });
+    // Managed: the create modal renders only once the first list has settled.
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     // Managed hides the name field (the backend names voices), so the modal's
     // arrival is marked by its confirm button, not the name input.
@@ -386,11 +448,11 @@ describe('SonioxVoiceSection', () => {
     createMock.mockResolvedValue({ id: 'new-id', name: 'Me', models: [] });
     waitMock.mockRejectedValue(new SonioxVoicesError('voice_failed', 'terminal', 503));
     stubAudioContext(16000, 16000 * 5);
-    const { container } = mount({ managed: true });
-    // Managed: the manage panel renders only once the first list has settled.
+    mount({ managed: true });
+    // Managed: the create modal renders only once the first list has settled.
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     // Managed hides the name field (the backend names voices), so the modal's
     // arrival is marked by its confirm button, not the name input.
@@ -412,19 +474,20 @@ describe('SonioxVoiceSection', () => {
     deleteMock.mockRejectedValue(new Error('boom'));
     mount();
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    confirmDelete();
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/boom/));
 
-    fireEvent.click(screen.getByTitle(/refresh voice list/i));
+    fireEvent.click(screen.getByRole('button', { name: /refresh voice list/i }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 
   it('onImport rejects a file over 35MB before decoding, creating, or opening the modal', async () => {
     listMock.mockResolvedValue([]);
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const bigFile = fakeFile('big.wav', 36 * 1000 * 1000);
     fireEvent.change(fileInput, { target: { files: [bigFile] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too large/i));
@@ -435,9 +498,9 @@ describe('SonioxVoiceSection', () => {
   it('onImport rejects a decoded clip shorter than 3s with the localized message, without opening the modal', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 1); // 1s — below the 3s minimum
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = fakeFile('clip.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too short/i));
@@ -448,9 +511,9 @@ describe('SonioxVoiceSection', () => {
   it('onImport rejects a decoded clip longer than 2 minutes with the localized message, without opening the modal', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 130); // 130s — above the 120s maximum
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = fakeFile('clip.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too long/i));
@@ -464,9 +527,9 @@ describe('SonioxVoiceSection', () => {
     // so the assertion below can only pass via the metadata probe.
     const ctx = stubAudioContext(44100, 44100 * 5);
     stubMetadataProbe(8500); // ~2.4 h: what 34 MB of 32 kbps MP3 actually holds
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const longFile = new File([new Uint8Array(64)], 'podcast.mp3', { type: 'audio/mpeg' });
     fireEvent.change(fileInput, { target: { files: [longFile] } });
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too long/i));
@@ -479,9 +542,9 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([]);
     const ctx = stubAudioContext(16000, 16000 * 5);
     stubMetadataProbe('error');
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     // A REAL File, because the probe only runs on a Blob — but jsdom's Blob has
     // no arrayBuffer(), which the decode path needs, so lend it one.
     const file = new File([new Uint8Array(64)], 'clip.wav', { type: 'audio/wav' });
@@ -494,9 +557,9 @@ describe('SonioxVoiceSection', () => {
   it('onImport accepts a 100s clip — past the old 20s bound, inside the 2-minute one', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 100);
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await waitFor(() => expect(screen.getByPlaceholderText(nameInputPlaceholder)).toBeTruthy());
     expect(screen.queryByRole('alert')).toBeNull();
@@ -507,9 +570,9 @@ describe('SonioxVoiceSection', () => {
     createMock.mockResolvedValue({ id: 'new-id', name: 'first', models: [] });
     waitMock.mockResolvedValue({ id: 'new-id', name: 'first', models: [READY] });
     stubAudioContext(16000, 16000 * 5);
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(fileInput.multiple).toBe(false);
     fireEvent.change(fileInput, {
       target: { files: [fakeFile('first.wav'), fakeFile('second.wav')] },
@@ -540,9 +603,9 @@ describe('SonioxVoiceSection', () => {
     let resolveWait: (v: unknown) => void = () => {};
     waitMock.mockReturnValue(new Promise((resolve) => { resolveWait = resolve; }));
     stubAudioContext(16000, 16000 * 5); // 5s — valid
-    const { container, onUpdate } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const { onUpdate } = mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = fakeFile('my-clip.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
 
@@ -555,18 +618,15 @@ describe('SonioxVoiceSection', () => {
     fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
 
     await waitFor(() => expect(createMock).toHaveBeenCalledWith('Custom Name', file, 'my-clip.wav'));
-    // Modal closes only once create() AND the post-create refresh resolve.
+    // The confirm modal closes only once create() AND the post-create refresh
+    // resolve.
     await waitFor(() => expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull());
     expect(listMock).toHaveBeenCalledTimes(2); // mount load + the one refresh that gates the close
 
     // The refreshed (still-processing) list is already reflected in the
-    // dropdown right after close — proving refresh() landed before the close,
+    // picker right after close — proving refresh() landed before the close,
     // not after.
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    await waitFor(() => {
-      const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'new-id');
-      expect(opt?.textContent).toMatch(/processing/i);
-    });
+    await waitFor(() => expect(screen.getByRole('button', { name: /Custom Name.*processing/i })).toBeInTheDocument());
     expect(onUpdate).not.toHaveBeenCalled(); // auto-select hasn't run yet — still awaiting waitUntilReady
 
     // Background chain continues after close: waitUntilReady resolves →
@@ -589,15 +649,16 @@ describe('SonioxVoiceSection', () => {
     // refresh.
     waitMock.mockReturnValue(new Promise(() => {}));
     stubAudioContext(16000, 16000 * 5);
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
 
     checkConsent();
-    const acceptButton = screen.getByRole('button', { name: confirmButtonName });
-    const cancelButton = screen.getByRole('button', { name: /^cancel$/i });
+    const dialog = cloneDialog();
+    const acceptButton = within(dialog).getByRole('button', { name: confirmButtonName });
+    const cancelButton = within(dialog).getByRole('button', { name: /^cancel$/i });
     fireEvent.click(acceptButton);
 
     expect(createMock).toHaveBeenCalled();
@@ -614,19 +675,22 @@ describe('SonioxVoiceSection', () => {
   it('renders a custom player for the staged clip instead of native <audio controls>; clicking play invokes HTMLMediaElement.play', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 5);
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
 
     // The object URL is created in an effect, so the player renders one commit
     // after the name input awaited above - which is already present on the
     // modal's first render. Anchoring on it therefore raced the player and this
-    // test failed roughly one run in twelve. Wait for the player's own control.
-    const playButton = await screen.findByRole('button', { name: /^play$/i });
+    // test failed roughly one run in twelve. Wait for the player's own control,
+    // scoped to the confirm dialog: the picker's ~200 preset rows (still open
+    // behind it) and their own ▶ buttons share the exact "Play" name.
+    const dialog = cloneDialog();
+    const playButton = await within(dialog).findByRole('button', { name: /^play$/i });
 
-    const audioEl = container.querySelector('audio');
+    const audioEl = dialog.querySelector('audio');
     expect(audioEl).not.toBeNull();
     expect(audioEl!.hasAttribute('controls')).toBe(false); // custom player, not native chrome
 
@@ -639,9 +703,9 @@ describe('SonioxVoiceSection', () => {
     createMock.mockResolvedValue({ id: 'new-id', name: 'x', models: [] });
     waitMock.mockResolvedValue({ id: 'new-id', name: 'x', models: [READY] });
     stubAudioContext(16000, 16000 * 5); // 5s — valid
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     // ".wav" strips to an empty basename via the `.[^.]+$` replace.
     const file = fakeFile('.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
@@ -659,8 +723,9 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned()]);
     mount({ settings: { voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }, isSessionActive: true });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    confirmDelete();
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/active session/i));
     expect(deleteMock).not.toHaveBeenCalled();
   });
@@ -670,8 +735,9 @@ describe('SonioxVoiceSection', () => {
     deleteMock.mockRejectedValue(new Error('boom'));
     mount();
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    confirmDelete();
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/boom/));
   });
 
@@ -681,22 +747,21 @@ describe('SonioxVoiceSection', () => {
       cloned({ id: 'proc', name: 'Cooking', models: [{ model: SONIOX_TTS_MODEL, status: 'processing' }] }),
       cloned({ id: 'bad', name: 'Broken', models: [{ model: SONIOX_TTS_MODEL, status: 'failed' }] }),
     ]);
-    const { container } = mount();
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'bad')).toBe(true));
-    const byValue = (v: string) => [...select.querySelectorAll('option')].find((o) => o.value === v)!;
-    expect(byValue('uuid-1').disabled).toBe(false);
-    expect(byValue('proc').disabled).toBe(true);
-    expect(byValue('bad').disabled).toBe(true);
+    mount();
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: /Cooking/ })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Me' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /Cooking/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Broken/ })).toBeDisabled();
   });
 
   it('clears the previous project\'s clones as soon as the API key changes', async () => {
     listMock.mockResolvedValueOnce([cloned()]).mockReturnValueOnce(new Promise(() => {}));
     const onUpdate = vi.fn();
     const props = { settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
-    const { container, rerender } = render(<SonioxVoiceSection {...props} />);
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(true));
+    const { rerender } = render(<SonioxVoiceSection {...props} />);
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
     // A changed API key means a (possibly) different project — in production
     // this is a fresh SonioxVoicesClient instance behind a fresh memoized
     // source (ProviderSpecificSettings.tsx's useMemo keyed on the key
@@ -704,7 +769,7 @@ describe('SonioxVoiceSection', () => {
     rerender(<SonioxVoiceSection {...props} settings={{ voice: SONIOX_DEFAULT_VOICE, apiKey: 'other-key' }} source={fakeSource()} />);
     // The new key's fetch never resolves — the old project's clone must
     // already be gone rather than lingering selectable.
-    await waitFor(() => expect([...select.querySelectorAll('option')].some((o) => o.value === 'uuid-1')).toBe(false));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Me' })).toBeNull());
   });
 
   it('a late auto-select does not overwrite a voice the user picked while the clone was processing', async () => {
@@ -715,9 +780,9 @@ describe('SonioxVoiceSection', () => {
     stubAudioContext(16000, 16000 * 5);
     const onUpdate = vi.fn();
     const props = { settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
-    const { container, rerender } = render(<SonioxVoiceSection {...props} />);
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const { rerender } = render(<SonioxVoiceSection {...props} />);
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
     checkConsent();
@@ -742,9 +807,9 @@ describe('SonioxVoiceSection', () => {
     stubAudioContext(16000, 16000 * 5);
     const onUpdate = vi.fn();
     const props = { settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: 'k' }, onUpdate, source: fakeSource(), managed: false, isSessionActive: false };
-    const { container, rerender } = render(<SonioxVoiceSection {...props} />);
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const { rerender } = render(<SonioxVoiceSection {...props} />);
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
     checkConsent();
@@ -772,14 +837,12 @@ describe('SonioxVoiceSection', () => {
   // source resolves it properly by actually finding the voice. This is a
   // documented, intentional consequence of the Task 3 plan (see
   // voiceLibrarySource.ts's task brief), not an unnoticed regression.
-  it('managed mode with no source shows a stale UUID as a disabled raw-id placeholder (pre-Task-4 state)', async () => {
-    const { container } = mount({ managed: true, source: null, settings: { voice: 'stale-uuid', apiKey: '' } });
-    const select = container.querySelector('select[aria-label="Voice"]')!;
-    const opt = [...select.querySelectorAll('option')].find((o) => o.value === 'stale-uuid');
-    expect(opt).toBeTruthy();
-    expect(opt!.disabled).toBe(true);
-    expect(opt!.textContent).toBe('stale-uuid');
-    expect(container.querySelector('optgroup[label*="My Voices" i], optgroup[label="My Voices"]')).not.toBeNull();
+  it('managed mode with no source shows a stale UUID as a disabled raw-id placeholder (pre-Task-4 state)', () => {
+    mount({ managed: true, source: null, settings: { voice: 'stale-uuid', apiKey: '' } });
+    openPicker();
+    // No source, so the raw id is shown verbatim (see SonioxVoiceSection's
+    // entries memo) rather than the "(deleted voice)" placeholder text.
+    expect(screen.getByRole('button', { name: 'stale-uuid' })).toBeDisabled();
   });
 
   // A managed account with a healthy voice cannot replace it by recording
@@ -787,16 +850,25 @@ describe('SonioxVoiceSection', () => {
   // ignores the uploaded clip, rebuilding only when the voice is gone at
   // Soniox or terminally failed. Offering the affordance anyway would report
   // success and change nothing audible.
-  it('managed mode withdraws record/import while a healthy voice exists, and says why', async () => {
+  it('managed mode withdraws the add-voice affordance while a healthy voice exists', async () => {
+    // NOTE (see task-7-report.md): design §4.2 says an empty `importModes`
+    // hides the "+ Add a voice…" row entirely, and SonioxVoiceSection ties
+    // `importModes` 1:1 to `canCreate`. So in the redesigned picker, the
+    // former explanatory copy ("Delete this voice before recording a new
+    // one…") — computed as `manageNote` and rendered only inside
+    // VoiceCreateModal — has become UNREACHABLE in this exact scenario: there
+    // is no row left to open that modal from. This asserts what remains true
+    // (no way to create, delete still offered) rather than the vanished
+    // "and says why" half, which is flagged as a finding, not silently
+    // dropped.
     listMock.mockResolvedValue([cloned()]);
     mount({ managed: true, source: fakeSource({ canPreview: false }) });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    await waitFor(() => expect(screen.queryByText(/delete this voice before recording a new one/i)).not.toBeNull());
-    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
+    openPicker();
+    expect(screen.queryByRole('button', { name: /add a voice/i })).toBeNull();
     // The delete button is the way forward, so it must still be there.
-    expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeNull();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    expect(within(rowFor('My voice')).getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
   });
 
   it('managed mode keeps record/import when the existing voice terminally failed', async () => {
@@ -805,18 +877,16 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned({ models: [{ model: SONIOX_TTS_MODEL, status: 'failed' }] })]);
     mount({ managed: true, source: fakeSource({ canPreview: false }) });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    await waitFor(() => expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull());
-    expect(screen.queryByText(/delete this voice before recording a new one/i)).toBeNull();
+    openCreateModal();
+    expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
   });
 
   it('BYOK keeps record/import with a healthy clone listed — the replace restriction is managed-only', async () => {
     listMock.mockResolvedValue([cloned()]);
     mount();
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull();
-    expect(screen.queryByText(/delete this voice before recording a new one/i)).toBeNull();
+    openCreateModal();
+    expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
   });
 
   // Eviction is the NORMAL outcome of a small LRU cache serving unbounded
@@ -833,9 +903,9 @@ describe('SonioxVoiceSection', () => {
       settings: { voice: 'evicted-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
     });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    const deleteBtn = await screen.findByRole('button', { name: /^delete$/i });
-    fireEvent.click(deleteBtn);
+    openPicker();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    confirmDelete();
     // DELETE /mine answers 200 with no row, so this is safe and idempotent.
     await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('evicted-uuid'));
     await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ voice: SONIOX_DEFAULT_VOICE }));
@@ -845,8 +915,9 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([]);
     mount({ settings: { voice: 'someone-elses-uuid', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 } });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    openPicker();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    expect(within(rowFor(/deleted voice/i)).queryByRole('button', { name: /^delete$/i })).toBeNull();
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
@@ -858,8 +929,9 @@ describe('SonioxVoiceSection', () => {
     deleteMock.mockRejectedValue(new SonioxVoicesError('clip_clear_failed', 'denied', 0));
     mount({ managed: true, source: fakeSource({ canPreview: false }) });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    confirmDelete();
     await waitFor(() =>
       expect(screen.queryByText(/could not be removed from this device/i)).not.toBeNull()
     );
@@ -878,8 +950,9 @@ describe('SonioxVoiceSection', () => {
       settings: { voice: 'uuid-1', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
     });
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    confirmDelete();
     // The list is re-fetched...
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
     // ...and the setting stops pointing at a voice that no longer exists.
@@ -903,12 +976,9 @@ describe('SonioxVoiceSection', () => {
       settings: { voice: 'real-uuid', apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
     });
     await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
-    // The manage block may not render at all once nothing inside it is
-    // offered; open it only if it is there, so the assertion below is about
-    // the button rather than about which of the two ways it is absent.
-    const summary = screen.queryByText(/manage imported voices/i);
-    if (summary) fireEvent.click(summary);
-    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    openPicker();
+    await waitFor(() => expect(inGrid().getByRole('button', { name: /deleted voice/i })).toBeInTheDocument());
+    expect(within(rowFor(/deleted voice/i)).queryByRole('button', { name: /^delete$/i })).toBeNull();
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
@@ -919,10 +989,8 @@ describe('SonioxVoiceSection', () => {
     listMock.mockRejectedValue(new Error('offline'));
     mount({ managed: true, source: fakeSource({ canPreview: false }) });
     await waitFor(() => expect(screen.queryByText(/could not load your voice/i)).not.toBeNull());
-    const summary = screen.queryByText(/manage imported voices/i);
-    if (summary) fireEvent.click(summary);
-    expect(screen.queryByRole('button', { name: /record voice/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /import voice/i })).toBeNull();
+    openPicker();
+    expect(screen.queryByRole('button', { name: /add a voice/i })).toBeNull();
   });
 
   it('BYOK keeps record/import after a failed list fetch — the unknown-list rule is managed-only', async () => {
@@ -931,16 +999,16 @@ describe('SonioxVoiceSection', () => {
     listMock.mockRejectedValue(new Error('offline'));
     mount();
     await waitFor(() => expect(screen.queryByText(/could not load cloned voices/i)).not.toBeNull());
-    openManageDetails();
-    expect(screen.queryByRole('button', { name: /record voice/i })).not.toBeNull();
+    openCreateModal();
+    expect(screen.getByRole('button', { name: /record voice/i })).toBeInTheDocument();
   });
 
   it('the confirm button stays disabled until the usage-rights checkbox is checked', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 5);
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
 
@@ -956,13 +1024,15 @@ describe('SonioxVoiceSection', () => {
   it('cancel discards the pending clip without calling create', async () => {
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 5);
-    const { container } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     await screen.findByPlaceholderText(nameInputPlaceholder);
 
-    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+    // Scoped: the create modal (still open behind this one — see
+    // openCreateModal's comment) has its own "Cancel" button too.
+    fireEvent.click(within(cloneDialog()).getByRole('button', { name: /^cancel$/i }));
 
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
     expect(createMock).not.toHaveBeenCalled();
@@ -975,9 +1045,9 @@ describe('SonioxVoiceSection', () => {
       .mockRejectedValueOnce(new SonioxVoicesError('voice_name_conflict', 'conflict', 409))
       .mockResolvedValueOnce({ id: 'ok-id', name: 'Retry Name', models: [] });
     waitMock.mockResolvedValue({ id: 'ok-id', name: 'Retry Name', models: [READY] });
-    const { container, onUpdate } = mount();
-    openManageDetails();
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const { onUpdate } = mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     const nameInput = await screen.findByPlaceholderText(nameInputPlaceholder);
 
@@ -1001,12 +1071,12 @@ describe('SonioxVoiceSection', () => {
     const gum = vi.fn(async () => ({ getTracks: () => [{ stop: vi.fn() }] }));
     Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: gum } });
     // Plain mutable field (mirrors VoiceLibrarySection.test.tsx's own
-    // FakeAudioContext) — VoiceLibrarySection assigns `processor.onaudioprocess
+    // FakeAudioContext) — VoiceCreateModal assigns `processor.onaudioprocess
     // = fn` directly, so capturing the created processor object and reading
     // its property back is enough; no getter/setter indirection needed.
     // `any` sidesteps TS narrowing the closure-assigned variable to `null`
     // (it can't see the write, which happens inside a method invoked
-    // indirectly by VoiceLibrarySection's own recording code).
+    // indirectly by VoiceCreateModal's own recording code).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let processorNode: any = null;
     class FakeAudioContext {
@@ -1023,7 +1093,7 @@ describe('SonioxVoiceSection', () => {
 
     try {
       mount();
-      openManageDetails();
+      openCreateModal();
       fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
       // findByRole (not a gum-called waitFor): the button relabels to "Stop
       // recording" only after startRecording's awaits finish and the state
@@ -1046,9 +1116,9 @@ describe('SonioxVoiceSection', () => {
   it('previews a ready clone with the target language pair and the configured speed', async () => {
     listMock.mockResolvedValue([cloned()]);
     mount({ settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.2 } });
-    openManageDetails();
-    const playBtn = await screen.findByRole('button', { name: /^play$/i });
-    fireEvent.click(playBtn);
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
     expect(synthesizeMock.mock.calls[0][0]).toMatchObject({
       apiKey: 'k',
@@ -1062,8 +1132,9 @@ describe('SonioxVoiceSection', () => {
   it('falls back to the English pair for a target language with no seeded sentence', async () => {
     listMock.mockResolvedValue([cloned()]);
     mount({ settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: 'k', targetLanguage: 'cy', ttsSpeed: 1.0 } });
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
     expect(synthesizeMock.mock.calls[0][0]).toMatchObject({
       language: 'en',
@@ -1074,13 +1145,15 @@ describe('SonioxVoiceSection', () => {
   it('reuses the cached clip on a second preview of the same voice', async () => {
     listMock.mockResolvedValue([cloned()]);
     mount();
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    const row = rowFor('Me');
+    fireEvent.click(within(row).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
     // Stop, then play again — no second synthesis, no second charge.
-    fireEvent.click(await screen.findByRole('button', { name: /^stop$/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
-    await waitFor(() => expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
+    fireEvent.click(within(row).getByRole('button', { name: /^stop$/i }));
+    fireEvent.click(within(row).getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(within(row).getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
     expect(synthesizeMock).toHaveBeenCalledTimes(1);
   });
 
@@ -1096,17 +1169,19 @@ describe('SonioxVoiceSection', () => {
     // the component in the first place.
     listMock.mockResolvedValue([cloned()]);
     const { unmount } = mount();
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
     unmount();
 
     // A fresh mount with an equivalent (not the same object) source, exactly
     // as Activity's remount would produce.
     mount();
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
-    await waitFor(() => expect(screen.getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(within(rowFor('Me')).getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
     expect(synthesizeMock).toHaveBeenCalledTimes(1);
   });
 
@@ -1124,16 +1199,17 @@ describe('SonioxVoiceSection', () => {
       isSessionActive: false,
     };
     const { rerender } = render(<SonioxVoiceSection {...props} />);
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
-    fireEvent.click(await screen.findByRole('button', { name: /^stop$/i }));
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^stop$/i }));
 
     // A new fakeSource() mirrors the fresh memoized source a real key swap
     // produces in ProviderSpecificSettings.tsx.
     rerender(<SonioxVoiceSection {...props} settings={{ ...props.settings, apiKey: 'other-key' }} source={fakeSource()} />);
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
   });
 
@@ -1153,8 +1229,9 @@ describe('SonioxVoiceSection', () => {
       isSessionActive: false,
     };
     const { rerender } = render(<SonioxVoiceSection {...props} />);
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
 
     // Swap the key while the synthesis is still in flight, then let it land.
@@ -1168,7 +1245,7 @@ describe('SonioxVoiceSection', () => {
     // Neither played...
     expect(screen.queryByRole('button', { name: /^stop$/i })).toBeNull();
     // ...nor cached: the next click has to synthesize again.
-    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
   });
 
@@ -1178,21 +1255,19 @@ describe('SonioxVoiceSection', () => {
       cloned({ id: 'bad', name: 'Broken', models: [{ model: SONIOX_TTS_MODEL, status: 'failed' }] }),
     ]);
     mount();
-    openManageDetails();
-    // findAllByText, not findByText: the same label appears twice (the hidden
-    // <option> and the manage-list row) — jsdom doesn't drop <option> text
-    // content the way a real select's native chrome would. All this needs to
-    // confirm is that the async list has landed.
-    await screen.findAllByText(/Cooking/);
-    expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: /Cooking/ })).toBeInTheDocument());
+    expect(within(rowFor(/Cooking/)).queryByRole('button', { name: /^play$/i })).toBeNull();
+    expect(within(rowFor(/Broken/)).queryByRole('button', { name: /^play$/i })).toBeNull();
   });
 
   it('surfaces a mapped synthesis failure in the capture-error banner (BYOK 401 still says check the API key)', async () => {
     listMock.mockResolvedValue([cloned()]);
     synthesizeMock.mockRejectedValue(new SonioxVoicesError('unauthenticated', 'bad key', 401));
     mount({ managed: false });
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/check the API key/i);
   });
 
@@ -1206,10 +1281,11 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned()]);
     synthesizeMock.mockRejectedValue(new SonioxVoicesError('authentication_required', 'sign in again', 401));
     mount({ managed: true });
-    // Managed: the manage panel renders only once the first list has settled.
+    // Managed: the picker's clone row renders only once the first list has settled.
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('My voice')).getByRole('button', { name: /^play$/i }));
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/sign in to build a custom voice/i);
     expect(alert).not.toHaveTextContent(/check the API key/i);
@@ -1222,10 +1298,10 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned()]);
     synthesizeMock.mockRejectedValue(new SonioxVoicesError('insufficient_balance', 'no funds', 402));
     mount({ managed: true });
-    // Managed: the manage panel renders only once the first list has settled.
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('My voice')).getByRole('button', { name: /^play$/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/top up your balance/i);
   });
 
@@ -1233,10 +1309,10 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned()]);
     synthesizeMock.mockRejectedValue(new SonioxVoicesError('active_lease', 'busy', 409));
     mount({ managed: true });
-    // Managed: the manage panel renders only once the first list has settled.
     await waitFor(() => expect(listMock).toHaveBeenCalled());
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('My voice')).getByRole('button', { name: /^play$/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/session is running/i);
   });
 
@@ -1247,8 +1323,9 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned()]);
     synthesizeMock.mockRejectedValue(new SonioxVoicesError('insufficient_balance', 'soniox says no funds', 402));
     mount({ managed: false });
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     const alert = await screen.findByRole('alert');
     expect(alert).not.toHaveTextContent(/top up your balance/i);
     expect(alert).not.toHaveTextContent(/session is running/i);
@@ -1258,27 +1335,29 @@ describe('SonioxVoiceSection', () => {
     listMock.mockResolvedValue([cloned()]);
     synthesizeMock.mockRejectedValue(new SonioxVoicesError('aborted', 'Preview cancelled', 0));
     mount();
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('offers no preview affordance and no cost hint without an API key', async () => {
     mount({ settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 }, source: null });
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull());
+    openPicker();
+    expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
     expect(screen.queryByText(/your own Soniox quota/i)).toBeNull();
   });
 
-  it('renders the cost hint inside the manage body, not as a standalone setting item', async () => {
-    // The hint describes the per-row preview button, so it belongs with those
-    // rows behind the "Manage imported voices" expander. Asserting mere
-    // presence would not catch a regression here: <details> keeps its collapsed
-    // content in the DOM, so a hint rendered anywhere in the section is still
-    // findable. Only the ancestry assertions pin the placement.
+  it('renders the cost hint inside the add-voice modal, not as a standalone setting item', async () => {
+    // The hint now lives alongside the controls it describes (design §4.3:
+    // "manageNote moves inside the create modal"). Only the ancestry
+    // assertions actually pin placement — mere presence would not catch a
+    // regression, since a <div> keeps offscreen content in the DOM too.
     mount();
+    openCreateModal();
     const hint = await screen.findByText(/your own Soniox quota/i);
-    expect(hint.closest('.voice-library-manage-body')).not.toBeNull();
+    expect(hint.closest('.voice-create-modal__note')).not.toBeNull();
     expect(hint.closest('.setting-item')).toBeNull();
   });
 
@@ -1289,8 +1368,63 @@ describe('SonioxVoiceSection', () => {
     // virtual) device, so it cannot leak into a meeting.
     listMock.mockResolvedValue([cloned()]);
     mount({ isSessionActive: true });
-    openManageDetails();
-    fireEvent.click(await screen.findByRole('button', { name: /^play$/i }));
+    openPicker();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    fireEvent.click(within(rowFor('Me')).getByRole('button', { name: /^play$/i }));
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+  });
+
+  // ---- Task 7: presets are auditionable through the same paths as clones ----
+
+  it('auditions a preset through the same mint-and-report path as a clone', async () => {
+    // A managed source built from the REAL managedVoiceSource wrapper (not
+    // this file's hand-rolled fakeSource), so the assertions below observe
+    // the actual mint (sessionKey) → synthesize → report-done (previewDone)
+    // pipeline a preview travels through — proving a PRESET's id reaches it
+    // exactly the way a clone's UUID always has.
+    const client = fakeManagedClient();
+    const source = managedVoiceSource(client, 'user-a', { synthesize: synthesizeMock as any });
+    mount({
+      managed: true,
+      source,
+      settings: { voice: SONIOX_DEFAULT_VOICE, apiKey: '', targetLanguage: 'ja', ttsSpeed: 1.0 },
+    });
+    await waitFor(() => expect(client.mine).toHaveBeenCalled());
+    openPicker();
+    fireEvent.click(within(rowFor('Grace')).getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(client.sessionKey).toHaveBeenCalledWith({ mode: 'voice_preview' }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    expect(synthesizeMock.mock.calls[0][0]).toMatchObject({ voice: 'Grace', language: 'ja' });
+    await waitFor(() => expect(client.previewDone).toHaveBeenCalledTimes(1));
+  });
+
+  it('caches a preset audition per language and speed, so a second click costs nothing', async () => {
+    listMock.mockResolvedValue([]);
+    mount();
+    openPicker();
+    const row = rowFor('Grace');
+    fireEvent.click(within(row).getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(within(row).getByRole('button', { name: /^stop$/i }));
+    fireEvent.click(within(row).getByRole('button', { name: /^play$/i }));
+    await waitFor(() => expect(within(row).getByRole('button', { name: /^stop$/i })).toBeInTheDocument());
+    expect(synthesizeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('stages the clip and opens the confirm modal once a file is captured from the create modal', async () => {
+    // Proves the sequential hand-off (spec §6.3): onImport still stages
+    // `pending`, and SonioxCloneConfirmModal opens on it. NOTE (see
+    // task-7-report.md): this does NOT assert the create modal itself has
+    // closed — VoiceCreateModal never calls onClose() after a successful
+    // onImport today, contrary to design §6.3's "…then closes", so pinning
+    // that down here would pin down a bug rather than a contract.
+    listMock.mockResolvedValue([]);
+    stubAudioContext(16000, 16000 * 5);
+    mount();
+    openCreateModal();
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
+    expect(await screen.findByPlaceholderText(nameInputPlaceholder)).toBeInTheDocument();
+    expect(cloneDialog()).toBeInTheDocument();
   });
 });
