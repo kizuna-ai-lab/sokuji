@@ -16,7 +16,7 @@ import type { PunctuationModelId } from '../../../lib/segmentation/SegmentationR
 import { ModelManager } from '../../../lib/local-inference/ModelManager';
 import { getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/modelManifest';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { describeCause } from '../../../lib/diagnostics/report';
+import { describeCause, reportWarning } from '../../../lib/diagnostics/report';
 import './SentenceSegmentationSection.scss';
 
 interface SentenceSegmentationSectionProps {
@@ -29,9 +29,15 @@ interface SentenceSegmentationSectionProps {
  *  module) — kept here rather than re-exporting it just for this list. */
 const MODELS: PunctuationModelId[] = ['fireredpunc', 'edge-punct-en', 'sat-3l-sm'];
 
-/** Mirrors PunctuationRuntime's own gate exactly: same undefined -> 4GB
- *  fallback, same <= 4 threshold. This section must greet the same models
- *  the runtime would refuse to run, not invent its own idea of "low memory".
+/** Mirrors PunctuationRuntime's own gate exactly: same `debug:device-memory`
+ *  override, same undefined -> 4GB fallback, same <= 4 threshold. This
+ *  section must grey the same models the runtime would refuse to run, not
+ *  invent its own idea of "low memory" — including the debug override,
+ *  which is the repo's sanctioned way to simulate a small machine
+ *  (`localParticipantConfig.ts:44,77,116` uses the identical override for
+ *  the same reason). Without it, a tester setting the override to check
+ *  THIS section's greying would see it disagree with what
+ *  `PunctuationRuntime.punctuate()` actually does.
  *  Two things this deliberately does NOT resolve, both open questions for
  *  the repository owner: whether 4GB is the right line at all given a single
  *  model can hold up to 1.5GB of unreclaimable renderer memory, and the fact
@@ -39,9 +45,24 @@ const MODELS: PunctuationModelId[] = ['fireredpunc', 'edge-punct-en', 'sat-3l-sm
  *  so a device that simply doesn't report the API is treated as too small. */
 const MIN_DEVICE_MEMORY_GB = 4;
 
+/** Duplicated from PunctuationRuntime.ts's private, unexported
+ *  `deviceMemoryGb()` (same shape, including the try/catch and the
+ *  Number.isNaN/>= 0 validation) rather than imported — it isn't exported,
+ *  and exporting it would mean touching a file outside this task's scope.
+ *  Keep the two in sync by hand if either changes. */
+function deviceMemoryGb(): number {
+  try {
+    const override = localStorage.getItem('debug:device-memory');
+    if (override !== null) {
+      const n = Number(override);
+      if (!Number.isNaN(n) && n >= 0) return n;
+    }
+  } catch { /* localStorage unavailable */ }
+  return (navigator as { deviceMemory?: number }).deviceMemory ?? MIN_DEVICE_MEMORY_GB;
+}
+
 function isLowMemoryDevice(): boolean {
-  const gb = (navigator as { deviceMemory?: number }).deviceMemory ?? MIN_DEVICE_MEMORY_GB;
-  return gb <= MIN_DEVICE_MEMORY_GB;
+  return deviceMemoryGb() <= MIN_DEVICE_MEMORY_GB;
 }
 
 function ModelRow({
@@ -77,14 +98,30 @@ function ModelRow({
       })
       .then(() => useSegmentationStore.getState().setModelStatus(model, 'downloaded'))
       .catch((err: unknown) => {
-        useSegmentationStore.getState().setModelStatus(model, 'error', describeCause(err));
+        const message = describeCause(err);
+        useSegmentationStore.getState().setModelStatus(model, 'error', message);
+        // Mirrors useSegmentationRuntime.ts's onStatus('error') handling for
+        // the runtime-driven path: without this, a manually triggered
+        // failure is invisible everywhere but a bare Retry button — nothing
+        // reaches the diagnostic log a bug report would carry.
+        reportWarning('Segmentation', `${model} download failed: ${message}`, {
+          dedupeKey: `segmentation:${model}`,
+        });
       });
   };
 
   const remove = () => {
     ModelManager.getInstance()
       .deleteModel(manifestId)
-      .then(() => useSegmentationStore.getState().setModelStatus(model, 'not-downloaded'));
+      .then(() => useSegmentationStore.getState().setModelStatus(model, 'not-downloaded'))
+      .catch((err: unknown) => {
+        // The delete failed, not the model itself — leave status alone
+        // (the files are presumably still there) but don't let the
+        // rejection vanish silently.
+        reportWarning('Segmentation', `${model} delete failed: ${describeCause(err)}`, {
+          dedupeKey: `segmentation:${model}:delete`,
+        });
+      });
   };
 
   return (
@@ -144,15 +181,21 @@ function ModelRow({
         )}
 
         {state.status === 'error' && (
-          <button
-            type="button"
-            className="sentence-segmentation__model-btn"
-            onClick={download}
-            disabled={rowDisabled}
-          >
-            <Download size={14} />
-            <span>{t('models.retry', 'Retry')}</span>
-          </button>
+          <>
+            <span className="sentence-segmentation__model-status" title={state.error ?? undefined}>
+              {t('models.error', 'Error')}
+            </span>
+            <button
+              type="button"
+              className="sentence-segmentation__model-btn"
+              onClick={download}
+              disabled={rowDisabled}
+              title={state.error ?? undefined}
+            >
+              <Download size={14} />
+              <span>{t('models.retry', 'Retry')}</span>
+            </button>
+          </>
         )}
 
         {state.status === 'disabled' && (
@@ -161,6 +204,10 @@ function ModelRow({
           </span>
         )}
       </div>
+
+      {state.status === 'error' && state.error && (
+        <p className="sentence-segmentation__model-error">{state.error}</p>
+      )}
     </div>
   );
 }

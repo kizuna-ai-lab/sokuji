@@ -62,6 +62,20 @@ vi.mock('../../../stores/segmentationStore', () => ({
   useSegmentationStore: { getState: () => ({ setModelStatus, setModelProgress }) },
 }));
 
+// Controllable so a fix-round test can force a download/delete to fail
+// without touching real IndexedDB or the network.
+const downloadModelMock = vi.fn();
+const deleteModelMock = vi.fn();
+vi.mock('../../../lib/local-inference/ModelManager', () => ({
+  ModelManager: { getInstance: () => ({ downloadModel: downloadModelMock, deleteModel: deleteModelMock }) },
+}));
+
+const reportWarningMock = vi.fn();
+vi.mock('../../../lib/diagnostics/report', () => ({
+  reportWarning: reportWarningMock,
+  describeCause: (e: unknown) => (e instanceof Error ? e.message : String(e)),
+}));
+
 const { default: SentenceSegmentationSection } = await import('./SentenceSegmentationSection');
 
 /** navigator.deviceMemory is undefined in jsdom by default, which the
@@ -104,6 +118,10 @@ beforeEach(() => {
   modelStates = blankModelStates();
   setModelStatus.mockClear();
   setModelProgress.mockClear();
+  downloadModelMock.mockReset().mockResolvedValue('default');
+  deleteModelMock.mockReset().mockResolvedValue(undefined);
+  reportWarningMock.mockClear();
+  localStorage.removeItem('debug:device-memory');
 });
 
 describe('SentenceSegmentationSection', () => {
@@ -195,5 +213,68 @@ describe('SentenceSegmentationSection', () => {
     modelStates['edge-punct-en'] = { status: 'error', percent: 0, error: 'download failed' };
     renderSection();
     expect(within(modelRow('edge-punct-en')).getByText('Retry')).toBeTruthy();
+  });
+
+  // Fix round 1: the low-memory gate must honour the same debug override
+  // PunctuationRuntime.deviceMemoryGb() does, or a tester using it to check
+  // THIS section sees it disagree with what the runtime actually does.
+  it('a debug:device-memory override below the threshold forces low-memory even when navigator reports plenty', () => {
+    setDeviceMemory(8);
+    localStorage.setItem('debug:device-memory', '2');
+    renderSection();
+    expect(screen.getByText(/does not report enough memory/i)).toBeTruthy();
+  });
+
+  it('a debug:device-memory override above the threshold clears low-memory even when navigator reports too little', () => {
+    setDeviceMemory(2);
+    localStorage.setItem('debug:device-memory', '8');
+    renderSection();
+    expect(screen.queryByText(/does not report enough memory/i)).toBeNull();
+  });
+
+  // Fix round 1: a stored error must be visible, not just imply "something
+  // went wrong" — the Retry button's title carries it (ModelManagementSection's
+  // own error-button convention).
+  it('a model in error carries its stored message as the Retry button title', () => {
+    modelStates['edge-punct-en'] = { status: 'error', percent: 0, error: 'download failed: timeout' };
+    renderSection();
+    const retryBtn = within(modelRow('edge-punct-en')).getByText('Retry').closest('button')!;
+    expect(retryBtn.getAttribute('title')).toBe('download failed: timeout');
+  });
+
+  // Fix round 1: a manually triggered download failure must reach the
+  // diagnostic log the same way the runtime-driven one does
+  // (useSegmentationRuntime.ts's onStatus('error') -> reportWarning), not
+  // just flip the row to Retry with no trail.
+  it('a failed download reports a warning and records the model as error', async () => {
+    downloadModelMock.mockRejectedValueOnce(new Error('network down'));
+    renderSection();
+    const btn = within(modelRow('edge-punct-en')).getByText('Download').closest('button')!;
+    fireEvent.click(btn);
+    await vi.waitFor(() =>
+      expect(setModelStatus).toHaveBeenCalledWith('edge-punct-en', 'error', 'network down'),
+    );
+    expect(reportWarningMock).toHaveBeenCalledWith(
+      'Segmentation',
+      expect.stringContaining('edge-punct-en'),
+      expect.objectContaining({ dedupeKey: 'segmentation:edge-punct-en' }),
+    );
+  });
+
+  // Fold-in fix: a failed delete must not become a silent unhandled
+  // rejection either.
+  it('a failed delete reports a warning instead of silently dropping it', async () => {
+    modelStates['fireredpunc'] = { status: 'downloaded', percent: 100, error: null };
+    deleteModelMock.mockRejectedValueOnce(new Error('disk full'));
+    renderSection();
+    const btn = within(modelRow('fireredpunc')).getByTitle('Delete');
+    fireEvent.click(btn);
+    await vi.waitFor(() =>
+      expect(reportWarningMock).toHaveBeenCalledWith(
+        'Segmentation',
+        expect.stringContaining('fireredpunc'),
+        expect.objectContaining({ dedupeKey: 'segmentation:fireredpunc:delete' }),
+      ),
+    );
   });
 });

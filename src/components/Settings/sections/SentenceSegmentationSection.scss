@@ -146,6 +146,17 @@
   color: vars.$text-secondary;
 }
 
+// A visible error line, not just a button title: on the parent's `flex-wrap`
+// row, `flex-basis: 100%` pushes it onto its own line below the info/actions
+// pair rather than fighting them for space.
+.sentence-segmentation__model-error {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  font-size: vars.$font-caption;
+  color: vars.$color-error;
+  word-break: break-word;
+}
+
 .sentence-segmentation__model-btn {
   display: flex;
   align-items: center;
