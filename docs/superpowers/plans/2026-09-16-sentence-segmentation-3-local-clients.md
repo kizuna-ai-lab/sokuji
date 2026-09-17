@@ -276,6 +276,11 @@ Add fields next to `partialUserItem` (line 90):
   private sentencesPerChunk = 3;
   /** One stream per utterance, source side. Null between utterances. */
   private stream: SentenceStream | null = null;
+  /** Set by handleAsrResult immediately before it runs the stream to
+   *  completion, and read by sealUserChunk when it pushes the job — so the
+   *  utterance's ASR timing rides the final chunk only. Undefined at every
+   *  other moment, which is what makes the earlier chunks carry none. */
+  private pendingAsrTiming: AsrTiming | undefined;
 ```
 
 In the constructor, read both off the options the descriptor passed. **The client never touches a store** — N rides on `ClientOptions` precisely so it does not have to, and so a running session cannot react to the setting changing:
