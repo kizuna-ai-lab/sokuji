@@ -618,13 +618,30 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
   // `useClick` gives the trigger Enter/Space activation and toggling for free;
   // `useDismiss` closes on outside press AND on Escape (its `escapeKey` option
   // defaults to true — do NOT hand-roll an Escape branch); `useRole` stamps the
-  // ARIA relationship. `'grid'` is a legal role here: the installed
-  // @floating-ui/react (0.27.19) types `AriaRole` as
-  // 'tooltip'|'dialog'|'alertdialog'|'menu'|'listbox'|'grid'|'tree'.
+  // ARIA relationship — and `'dialog'`, not `'grid'`, is deliberate.
+  //
+  // `PanelBar` (the Settings panel's own bar, rendered by `Settings.tsx:161`)
+  // keeps a document-level Escape listener that COLLAPSES THE WHOLE PANEL. It
+  // stands down in exactly two cases: `e.defaultPrevented`, or
+  // `isVisibleDialogOpen()` finding an element with `role="dialog"` that has no
+  // `display: none` ancestor (`PanelBar.tsx:21-30, 37-39`). floating-ui's
+  // `useDismiss` satisfies NEITHER: its Escape handler calls
+  // `event.stopPropagation()` but never `preventDefault()`
+  // (`floating-ui.react.mjs:2629,2644`), and stopPropagation does not silence a
+  // sibling listener on the same node — both are on `document`. So with
+  // `role="grid"` on the floating element, one Escape would close this popover
+  // AND collapse the settings panel behind it. This is the first floating
+  // popover in `src/components/Settings/`, so nothing existing exercises it.
+  //
+  // `role="dialog"` on the floating WRAPPER is how this repo already solves it
+  // (`SubtitleBar.tsx:146`, `MainPanel.tsx:786` both say so). The grid
+  // semantics are unaffected: the wrapper is a dialog that CONTAINS the facet
+  // row and the `role="grid"` element below, which is well-formed ARIA. Do not
+  // hand-roll an Escape handler to get the same effect.
   const { getReferenceProps, getFloatingProps } = useInteractions([
     useClick(context),
     useDismiss(context),
-    useRole(context, { role: 'grid' }),
+    useRole(context, { role: 'dialog' }),
   ]);
 
   const presets = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
@@ -1446,7 +1463,12 @@ Create `VoiceCreateModal.scss` starting with the same import
 `ModelImportModal.scss` uses — `@use '../shared/variables' as vars;`, which is
 where `$bg-page`, `$border-strong`, `$border-subtle`, `$radius-lg` (8px),
 `$text-primary`, `$color-error` (#ff4444) and the `$space-*` scale live (the
-`styles/tokens` module has none of them) — and mirror that file's overlay and
+`styles/tokens` module has none of them; the precedent also takes
+`$text-muted`, `$text-disabled`, `$font-body` and
+`$weight-normal`/`$weight-medium`/`$weight-semibold` from `vars` for its head,
+sub and hint text, so use those rather than writing literals, and its
+`&__body` is `max-height: 62vh; overflow-y: auto` — mirror that value for a
+form this tall) — and mirror that file's overlay and
 panel (fixed inset, `rgba(0, 0, 0, 0.62)` + `backdrop-filter: blur(2px)`,
 `z-index: 1000`, centred with `padding: 40px 16px`; panel `max-width: 420px`,
 `vars.$bg-page`, `vars.$border-strong`, `vars.$radius-lg`, the same box-shadow
