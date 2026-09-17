@@ -924,7 +924,7 @@
     "deleteTitle": "音声を削除",
     "dropHint": "またはここに音声ファイルをドロップ",
     "emptyHint": "インポートされた音声はまだありません。",
-    "filterCount": "{total} 件中 {shown} 件",
+    "filterCount": "{total}件中{shown}件",
     "importError": "インポートに失敗しました: {error}",
     "importVoice": "音声をインポート…",
     "myVoices": "マイ音声",

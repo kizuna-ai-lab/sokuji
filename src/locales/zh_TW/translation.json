@@ -912,8 +912,8 @@
     "close": "關閉"
   },
   "voiceLibrary": {
-    "addVoice": "新增聲音…",
-    "addVoiceTitle": "新增聲音",
+    "addVoice": "新增語音…",
+    "addVoiceTitle": "新增語音",
     "clipSilent": "未偵測到語音 — 請檢查麥克風後再試一次。",
     "clipTooLong": "錄音太長 — 請控制在 {seconds} 秒以內。",
     "clipTooShort": "錄音太短 — 請至少說滿 {seconds} 秒。",
@@ -921,7 +921,7 @@
     "decodeFailed": "無法讀取該音訊檔案 — 請改用 WAV、MP3 或其他常見格式。",
     "delete": "刪除",
     "deleteBody": "刪除「{name}」？這台裝置上儲存的參考錄音也會被刪除。",
-    "deleteTitle": "刪除聲音",
+    "deleteTitle": "刪除語音",
     "dropHint": "或將語音檔案拖曳至此",
     "emptyHint": "尚未匯入任何語音。",
     "filterCount": "{total} 個中的 {shown} 個",
@@ -931,7 +931,7 @@
     "play": "播放",
     "presets": "預設語音",
     "previewChargedToBalance": "試聽會合成一小段樣本，並從您的帳戶餘額中扣款。",
-    "previewFailed": "無法為這個聲音合成試聽。",
+    "previewFailed": "無法為這個語音合成試聽。",
     "previewLanguageUnsupported": "此模型所支援的語言中沒有可用的範例句。",
     "previewNeedsBalance": "請先為帳戶儲值餘額，再試聽此語音。",
     "previewNeedsSessionStopped": "請先結束工作階段，再試聽此語音。",

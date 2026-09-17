@@ -920,7 +920,7 @@
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "decodeFailed": "Audiodatei konnte nicht gelesen werden — versuchen Sie WAV, MP3 oder ein anderes gängiges Format.",
     "delete": "Löschen",
-    "deleteBody": "„{name}\" löschen? Die auf diesem Gerät gespeicherte Referenzaufnahme wird ebenfalls gelöscht.",
+    "deleteBody": "„{name}“ löschen? Die auf diesem Gerät gespeicherte Referenzaufnahme wird ebenfalls gelöscht.",
     "deleteTitle": "Stimme löschen",
     "dropHint": "oder Stimmdatei hierher ziehen",
     "emptyHint": "Noch keine importierten Stimmen.",

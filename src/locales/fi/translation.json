@@ -920,7 +920,7 @@
     "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
     "decodeFailed": "Äänitiedostoa ei voitu lukea — kokeile WAV-, MP3- tai muuta yleistä muotoa.",
     "delete": "Poista",
-    "deleteBody": "Poistetaanko \"{name}\"? Tämä poistaa myös tälle laitteelle tallennetun viitenauhoituksen.",
+    "deleteBody": "Poistetaanko \"{name}\"? Tämä poistaa myös tälle laitteelle tallennetun viitetallenteen.",
     "deleteTitle": "Poista ääni",
     "dropHint": "tai pudota äänitiedosto tähän",
     "emptyHint": "Ei vielä tuotuja ääniä.",
