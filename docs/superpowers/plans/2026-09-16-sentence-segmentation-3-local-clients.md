@@ -432,6 +432,8 @@ Task 2 shipped materially different from this plan's literal code, because the p
 4. **Advance the cursor by RAW CONSUMED, never by the sealed text's length.** On the model path the sealed text carries inserted punctuation that the raw input did not, so `sealedChars += chunk.text.length` over-advances by one character per mark and silently deletes speech. Derive it inside `onPending`, which `seal()` always calls immediately after `onSeal` with the remainder: `sealedCharsBase + lastPassedToStream.length - remainder.length`. This is correct even when one `update()` seals several times, because `pending` is always a raw suffix of the string passed to that `update()`.
 5. **Guard the short or rewritten final.** When the slice would be empty, a final that is a *truncation of the same utterance* must close the open bubble **without** a second job and leave the cursor alone; only genuine divergence resets and reseals. Compare **trimmed** forms — `previousRaw.trim().startsWith(text.trim())` — because the sidecar's `_result_event` applies `.strip()` (`asr_engine.py:419`) while partials are not stripped, so an untrimmed prefix test reads a truncation as divergence and produces a duplicate bubble and a duplicate spoken translation. Keep the normalisation inside the boolean; every offset stays on the untrimmed text.
 
+6. **Add a `pendingAsrTiming` field — Step 1's case 7 is unsatisfiable without one.** That case requires the ASR timing to ride only the final job, and `sealUserChunk` has no access to the timing otherwise. Declare it alongside the other new fields, set it in `onAsrResult` **after** the stream has been fed and immediately before `stream.end()`, and clear it straight after. It must be `undefined` at every other moment — that, and not a conditional in `sealUserChunk`, is what keeps the timing off the mid-utterance chunks. Nothing async may run between setting it and `end()`; in Task 2 that held because `update()` and its synchronous seals complete before any promise continuation, and the equivalent must be checked here rather than assumed.
+
 **Do NOT mirror this — it is where the two clients differ:**
 
 - **Task 2 added a constructor. Do not add one here.** `LocalNativeClient` already has `constructor(deps: Deps = {})` (`:56`), where `Deps` (`:19`) is four optional fields — `asr`, `translate`, `tts`, `vadWorker` — each with a `??` default. **Extend that interface and that constructor**; do not replace `Deps`, which is the seam the existing tests use to inject fakes. Note `segmentation` and `sentencesPerChunk` are configuration rather than collaborators, so there is no sensible default: absent means absent, the same `?? null` shape Task 2 used.
@@ -482,14 +484,14 @@ Mirror Task 2 **as shipped** — see the five corrections above; the snippet in 
   }
 ```
 
-`onAsrResult` (423–453) runs the stream to completion the same way Task 2's does, keeping its existing `rtf` telemetry and its `emitEvent('local.native.asr.end', …)` exactly as they are. `appendInputText` (line 603) re-enters `onAsrResult`, so it needs no separate handling.
+`onAsrResult` (423–453) runs the stream to completion the same way Task 2's does, keeping its existing `rtf` telemetry and its `emitEvent('local.native.asr.end', …)` exactly as they are. `appendInputText` (line 603) re-enters `onAsrResult`, so it needs no separate *code* — but that re-entry now means **a long typed message is chunked into several bubbles and several jobs**, exactly as it is in Local Inference. Task 2 treated that as a deliberate outcome and recorded it in a comment rather than letting it be an accident. Do the same here: add the comment, or a case, so the behaviour is a choice someone made.
 
 - [ ] **Step 3: Run the tests and the typecheck, then commit**
 
 Run: `npm run test -- src/services/clients/LocalNativeClient.test.ts`, then `npx tsc --noEmit` **on its own** — never chained with `&&`.
 
 ```bash
-git add src/services/clients/LocalNativeClient.ts src/services/clients/LocalNativeClient.test.ts
+git add src/services/clients/LocalNativeClient.ts src/services/clients/LocalNativeClient.test.ts src/services/providers/LocalNativeProviderConfig.ts
 git commit -m "feat(segmentation): seal and translate Local Native utterances in chunks"
 ```
 
