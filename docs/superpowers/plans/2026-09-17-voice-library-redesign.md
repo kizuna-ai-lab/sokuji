@@ -2085,7 +2085,14 @@ In `LocalInferenceVoiceSection.test.tsx`:
 
 ```tsx
   it('offers no audition control for Supertonic presets', () => {
-    render(<LocalInferenceVoiceSection {...props} engine="supertonic" />);
+    // `{...base}` and `ttsModel`, copied from this file's own cases at lines 47
+    // and 55. There is NO `engine` prop on `LocalInferenceVoiceSection` — its
+    // props are `ttsModel`, `edgeVoices`/`edgeVoiceStatus`/`edgeTtsVoice`,
+    // `supertonicVoices`/`supertonicSelectedId`, the three voice callbacks and
+    // `ttsSpeakerId`; the component derives which engine's UI to render FROM
+    // `ttsModel`. An earlier draft of this step passed `engine="supertonic"`,
+    // which would not compile and would not select Supertonic either.
+    render(<LocalInferenceVoiceSection {...base} ttsModel="super-model" />);
     fireEvent.click(screen.getByRole('button', { expanded: false }));
     expect(screen.queryByRole('button', { name: /play/i })).not.toBeInTheDocument();
   });
