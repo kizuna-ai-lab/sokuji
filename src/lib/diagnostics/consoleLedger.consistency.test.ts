@@ -141,12 +141,13 @@ const LEDGER: Record<string, number> = {
   // --- Later, under the ledger: components ---
   'src/components/MainPanel/MainPanel.tsx': 43,
   'src/components/Auth/UserAccountInfo.tsx': 5,
-  'src/components/Settings/sections/VoiceLibrarySection.tsx': 5,
-  // Copied (not moved) from VoiceLibrarySection.tsx: `Voice import failed:`,
-  // `Recording failed to start:` and `Recording handler failed:`. The section
-  // still contains its own copies of the capture code until Task 6 makes it a
-  // composition root, so its row above stays at 5 rather than dropping to 2
-  // here — Task 6 lowers it in the same commit that deletes the duplicates.
+  // `Rename failed:` and `Delete failed:` — the picker takes `onRename`/
+  // `onAskDelete` and VoiceDeleteModal takes `onConfirm` as props, so the
+  // composition root is what reports a failed commit. The other three calls
+  // this file used to hold (`Voice import failed:`, `Recording failed to
+  // start:`, `Recording handler failed:`) moved to VoiceCreateModal.tsx below
+  // when Task 6 deleted the section's own copy of the capture code.
+  'src/components/Settings/sections/VoiceLibrarySection.tsx': 2,
   'src/components/Settings/sections/VoiceCreateModal.tsx': 3,
   'shared/index.tsx': 4,
   'src/components/SettingsInitializer/SettingsInitializer.tsx': 3,

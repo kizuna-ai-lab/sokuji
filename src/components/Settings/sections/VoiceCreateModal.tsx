@@ -268,19 +268,19 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="voice-create-modal-overlay" onClick={close}>
+    <div className="voice-modal-overlay" onClick={close}>
       <div
-        className="voice-create-modal"
+        className="voice-modal"
         role="dialog"
         aria-modal="true"
         aria-label={t('voiceLibrary.addVoiceTitle', 'Add a voice')}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="voice-create-modal__head">
+        <div className="voice-modal__head">
           <h3>{t('voiceLibrary.addVoiceTitle', 'Add a voice')}</h3>
           <button
             type="button"
-            className="voice-create-modal__x"
+            className="voice-modal__x"
             onClick={close}
             aria-label={t('common.close', 'Close')}
           >
@@ -288,7 +288,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
           </button>
         </div>
 
-        <div className="voice-create-modal__body">
+        <div className="voice-modal__body">
           {capability.transcriptRequired && (
             <div className="voice-create-modal__transcript-field">
               <label htmlFor={transcriptInputId} className="voice-create-modal__transcript-label">
@@ -364,8 +364,8 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
           {note && <div className="voice-create-modal__note">{note}</div>}
         </div>
 
-        <div className="voice-create-modal__foot">
-          <button type="button" className="voice-create-modal__cancel" onClick={close}>
+        <div className="voice-modal__foot">
+          <button type="button" className="voice-modal__btn" onClick={close}>
             {t('common.cancel', 'Cancel')}
           </button>
         </div>

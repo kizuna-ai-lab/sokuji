@@ -1,16 +1,10 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, Play, Plus, RefreshCw, Square, Upload } from 'lucide-react';
 import './VoiceLibrarySection.scss';
-import { supportsBaseSelect } from '../../../utils/supportsBaseSelect';
-import type { VoiceLibraryCapability, VoiceFacets, VoiceFacetCriteria } from '../../../types/VoiceLibrary';
-import {
-  matchesVoiceFacets,
-  facetVocabulary,
-  hasActiveFacets,
-  humanizeFacetValue,
-} from '../../../lib/voiceLibrary/voiceFacets';
-import { canAuditionVoice } from '../../../lib/voiceLibrary/voicePreviewable';
+import type { VoiceLibraryCapability, VoiceFacets } from '../../../types/VoiceLibrary';
+import VoicePicker from './VoicePicker';
+import VoiceCreateModal from './VoiceCreateModal';
+import VoiceDeleteModal from './VoiceDeleteModal';
 
 /**
  * A single voice as presented to the user. `id` is OPAQUE — each provider
@@ -90,16 +84,16 @@ export interface VoiceLibrarySectionProps {
    *  sample sentence. */
   previewUnavailableReason?: string;
   /** Re-fetches a remotely-sourced custom-voice list (e.g. Soniox clones live
-   *  server-side). When provided, a Refresh button renders in the manage
-   *  toolbar next to Import/Record. */
+   *  server-side). When provided, a Refresh button renders next to the
+   *  picker's own Presets group. */
   onRefresh?: () => void;
   /** True while the remote list fetch is in flight; disables the Refresh button. */
   refreshing?: boolean;
-  /** Provider-specific footnote rendered at the bottom of the manage body —
-   *  i.e. only once the user has expanded "Manage imported voices", where the
-   *  controls it describes actually live. Kept as a caller-supplied node
-   *  because the copy is provider-specific (e.g. Soniox's preview spends the
-   *  user's own TTS quota) and this component is provider-agnostic. */
+  /** Provider-specific footnote rendered inside the Add-a-voice modal — i.e.
+   *  only when that modal is open, where the import/record controls it
+   *  describes actually live. Kept as a caller-supplied node because the copy
+   *  is provider-specific (e.g. Soniox's preview spends the user's own TTS
+   *  quota) and this component is provider-agnostic. */
   manageNote?: React.ReactNode;
   /** Provider-declared capabilities driving which controls render. */
   capability: VoiceLibraryCapability;
@@ -126,12 +120,6 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   isSessionActive = false,
 }) => {
   const { t } = useTranslation();
-
-  // Whether the dropdown's optgroups get a <legend> label — see the dropdown
-  // branch below. Read once, like ProviderSection does: the answer is a
-  // property of the engine, so re-reading it per render only risks the markup
-  // changing shape mid-life.
-  const [richSelect] = useState(() => supportsBaseSelect());
 
   // ---- local playback (listen back to a voice's sample) -------------------
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -162,10 +150,23 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     setPlayingId(null);
   }, []);
 
-  const togglePreview = useCallback(async (id: string) => {
-    if (playingId === id) { stopPreview(); return; }
+  // The second parameter and the return value exist only to satisfy
+  // VoicePicker's `onPreview` prop type — the picker calls this with its OWN
+  // per-row AbortController and never reads what it resolves to (it only
+  // `.catch()`es a rejection; see VoicePicker.tsx's preview button). The
+  // REAL cancellation channel stays the one already below: `stopPreview()`
+  // at the top of every call aborts whatever this component's own
+  // `previewAbortRef`/`previewTokenRef` were tracking, regardless of the
+  // picker's signal, so a second row's click still supersedes the first's
+  // in-flight request correctly — proven by this file's own "aborts an
+  // in-flight preview when the user starts another one" case.
+  const togglePreview = useCallback(async (
+    id: string,
+    _signal?: AbortSignal,
+  ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
+    if (playingId === id) { stopPreview(); return null; }
     stopPreview();
-    if (!onPreview) return;
+    if (!onPreview) return null;
     const token = previewTokenRef.current;
     const controller = new AbortController();
     previewAbortRef.current = controller;
@@ -181,8 +182,8 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       // clear a spinner that now belongs to another row.
       if (token === previewTokenRef.current) setPreviewLoadingId(null);
     }
-    if (token !== previewTokenRef.current) return; // superseded by a newer toggle
-    if (!payload || payload.audio.length === 0) return;
+    if (token !== previewTokenRef.current) return null; // superseded by a newer toggle
+    if (!payload || payload.audio.length === 0) return null;
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = audioCtxRef.current ?? (audioCtxRef.current = new AudioCtx());
     if (ctx.state === 'suspended') { try { await ctx.resume(); } catch { /* ignore */ } }
@@ -195,6 +196,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     sourceRef.current = src;
     setPlayingId(id);
     src.start();
+    return payload;
   }, [playingId, onPreview, stopPreview]);
 
   // Stop playback + release the context on unmount.
@@ -203,689 +205,31 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     void audioCtxRef.current?.close().catch(() => {});
   }, [stopPreview]);
 
-  const renderPreviewButton = (v: VoiceEntry) => {
-    if (!onPreview || !canAuditionVoice(v)) return null;
+  // ---- modal state ----------------------------------------------------------
+  const [creating, setCreating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
 
-    if (previewUnavailableReason) {
-      return (
-        <button
-          type="button"
-          className="voice-row-btn"
-          disabled
-          aria-label={previewUnavailableReason}
-          title={previewUnavailableReason}
-        >
-          <Play size={14} />
-        </button>
-      );
-    }
-
-    const isLoading = previewLoadingId === v.id;
-    const isPlaying = playingId === v.id;
-    const label = isLoading
-      ? t('voiceLibrary.synthesizing', 'Synthesizing…')
-      : isPlaying
-        ? t('voiceLibrary.stopPreview', 'Stop')
-        : t('voiceLibrary.play', 'Play');
-    return (
-      <button
-        type="button"
-        className="voice-row-btn"
-        // Disabled while loading so a second click cannot start a second
-        // synthesis (which would spend the user's tokens twice).
-        disabled={isLoading}
-        onClick={() => void togglePreview(v.id)}
-        aria-label={label}
-        title={label}
-      >
-        {isLoading
-          ? <span className="voice-preview-spinner" aria-hidden="true" />
-          : isPlaying ? <Square size={14} /> : <Play size={14} />}
-      </button>
-    );
-  };
-
-  const [isDragging, setIsDragging] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordSecondsLeft, setRecordSecondsLeft] = useState<number | null>(null);
-  const [transcript, setTranscript] = useState('');
-  const [facetCriteria, setFacetCriteria] = useState<VoiceFacetCriteria>({});
-  const transcriptInputId = useId();
-  const facetId = useId();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const recRef = useRef<{
-    ctx: AudioContext;
-    stream: MediaStream;
-    source: MediaStreamAudioSourceNode;
-    processor: ScriptProcessorNode;
-    chunks: Float32Array[];
-  } | null>(null);
-  const recTimerRef = useRef<number | null>(null);
-  // stopRecording is defined below startRecording; the countdown interval
-  // reaches it through a ref so the auto-stop always calls the latest closure.
-  const stopRecordingRef = useRef<(() => Promise<void>) | null>(null);
-  const clearRecTimer = () => {
-    if (recTimerRef.current !== null) {
-      window.clearInterval(recTimerRef.current);
-      recTimerRef.current = null;
-    }
-  };
-
-  const canUpload = capability.importModes.includes('upload');
-  const canRecord = capability.importModes.includes('record');
-  // `presentation` is gone from the capability: there is one presentation now.
-  // The dropdown branch below is deleted in Task 6, which is when this and the
-  // list branch both disappear.
-  const isDropdown = true;
-  // Capture (import/record) is gated behind a non-empty reference transcript
-  // for models that require in-context-learning text (Task 12). Absent/false
-  // → no gating, matching pre-Task-12 behavior exactly.
-  const transcriptMissing = !!capability.transcriptRequired && transcript.trim().length === 0;
-
-  const facetFilterOn = !!capability.facetFilter;
-  const allBuiltins = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
-  // The filter narrows PRESETS only. Cloned voices carry no facets, so any
-  // selection would sweep every one of them out — hiding the user's own
-  // recordings behind a filter they set to explore the built-ins.
-  const customs = useMemo(() => voices.filter((v) => v.group === 'custom'), [voices]);
-
-  /** What the filter vocabulary offers: whatever the presets actually carry. */
-  const facetOptions = useMemo(() => facetVocabulary(allBuiltins), [allBuiltins]);
-  const matchedBuiltins = useMemo(
-    () =>
-      facetFilterOn ? allBuiltins.filter((v) => matchesVoiceFacets(v, facetCriteria)) : allBuiltins,
-    [allBuiltins, facetFilterOn, facetCriteria],
-  );
-  // The selected voice is never filtered out: a <select> whose value names no
-  // option renders blank, which reads as "my voice is gone" rather than as "it
-  // does not match".
-  const builtins = useMemo(() => {
-    if (!facetFilterOn) return allBuiltins;
-    const matched = new Set(matchedBuiltins.map((v) => v.id));
-    return allBuiltins.filter((v) => matched.has(v.id) || v.id === selectedId);
-  }, [allBuiltins, matchedBuiltins, facetFilterOn, selectedId]);
-  // Manage list (dropdown mode) shows user-owned voices that can be renamed/deleted.
-  const removableVoices = useMemo(() => voices.filter((v) => v.removable), [voices]);
-
-  const handleFiles = useCallback(async (files: FileList | null) => {
-    if (!onImport || !files || files.length === 0) return;
-    // Drop-zone gating mirrors the disabled Import button: while a required
-    // transcript is empty, dropped files are ignored outright (no partial
-    // import, no error surfaced — the user just hasn't filled in the field).
-    if (transcriptMissing) return;
-    let anySucceeded = false;
-    // Single-import adapters hold one staged clip at a time (see
-    // VoiceLibraryCapability.multipleImport): a multi-file drop would
-    // last-wins overwrite that slot on every iteration, so keep only the
-    // first file rather than silently discarding all but the last.
-    const selected = capability.multipleImport === false
-      ? Array.from(files).slice(0, 1)
-      : Array.from(files);
-    for (const file of selected) {
-      try {
-        // Only pass a second argument when the capability actually requires
-        // one, so the non-gated path's call signature is byte-identical to
-        // pre-Task-12 behavior (`onImport(file)`, not `onImport(file, undefined)`).
-        if (capability.transcriptRequired) {
-          await onImport(file, transcript.trim());
-        } else {
-          await onImport(file);
-        }
-        anySucceeded = true;
-      } catch (err) {
-        // Parent surfaces the error (e.g. toast). Console breadcrumb only.
-        console.warn('Voice import failed:', err);
-      }
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    if (anySucceeded && capability.transcriptRequired) setTranscript('');
-  }, [onImport, transcriptMissing, capability.transcriptRequired, capability.multipleImport, transcript]);
-
-  const onDrop: React.DragEventHandler = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    void handleFiles(e.dataTransfer.files);
-  };
-  const onDragOver: React.DragEventHandler = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-  const onDragLeave: React.DragEventHandler = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const startEdit = (id: string, currentName: string) => {
-    setEditingId(id);
-    setEditName(currentName);
-  };
-
-  const commitEdit = useCallback(async (id: string) => {
-    const name = editName.trim();
-    setEditingId(null);
+  // Wraps the caller's onRename so a rejection is a console breadcrumb rather
+  // than an unhandled rejection — the picker owns the rename UI (the input,
+  // the commit-on-blur/Enter), but reporting a FAILED commit is this
+  // composition root's job, same as the delete confirmation below.
+  const handleRename = useCallback(async (id: string, name: string) => {
     if (!onRename) return;
-    const row = customs.find((v) => v.id === id);
-    if (name && row && name !== row.label) {
-      try { await onRename(id, name); }
-      catch (err) { console.warn('Rename failed:', err); }
-    }
-  }, [editName, customs, onRename]);
+    try { await onRename(id, name); }
+    catch (err) { console.warn('Rename failed:', err); }
+  }, [onRename]);
 
-  const confirmAndDelete = useCallback(async (id: string, name: string) => {
-    const prompt = t('voiceLibrary.deleteConfirm', `Delete voice "${name}"?`).replace('{name}', name);
-    if (!window.confirm(prompt)) return;
+  // Closes the delete modal immediately (optimistic — matches the old
+  // window.confirm flow, which also dismissed before onDelete resolved), then
+  // reports a failure the same way handleRename does above.
+  const handleDeleteConfirm = useCallback(async (id: string) => {
+    setDeleteTarget(null);
     try { await onDelete(id); }
     catch (err) { console.warn('Delete failed:', err); }
-  }, [onDelete, t]);
+  }, [onDelete]);
 
-  // Release the microphone when the component's effects unmount — a real
-  // unmount, or the settings panel hiding inside its <Activity> boundary.
-  // The capture graph lives only in recRef, so without this the mic would
-  // keep recording invisibly after a panel switch. Partial audio is
-  // deliberately discarded rather than submitted as a half-finished clip.
-  // The generation counter also invalidates a getUserMedia call still
-  // pending at cleanup time, so a late-resolving stream is stopped instead
-  // of resurrecting the capture graph.
-  const recGenerationRef = useRef(0);
-  useEffect(() => () => {
-    recGenerationRef.current += 1;
-    clearRecTimer();
-    const rec = recRef.current;
-    if (!rec) return;
-    recRef.current = null;
-    rec.processor.disconnect();
-    rec.source.disconnect();
-    rec.stream.getTracks().forEach((track) => track.stop());
-    void rec.ctx.close();
-    setIsRecording(false);
-  }, []);
-
-  const startRecording = useCallback(async () => {
-    if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
-    try {
-      const generation = recGenerationRef.current;
-      // Voice-cloning reference audio must be captured RAW: the cloning
-      // model mimics everything in the clip, so browser echo-cancellation /
-      // noise-suppression / AGC artifacts get baked into the cloned voice
-      // (Soniox's docs note the model reproduces even background noise from
-      // the reference — the same reasoning applies to the native cloners).
-      // Mono is enough for a voice reference and keeps the encoded clip small.
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: 1,
-        },
-      });
-      if (generation !== recGenerationRef.current) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-      const ctx = new AudioContext();
-      const source = ctx.createMediaStreamSource(stream);
-      const processor = ctx.createScriptProcessor(4096, 1, 1);
-      const chunks: Float32Array[] = [];
-      processor.onaudioprocess = (e) => {
-        chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
-      };
-      source.connect(processor);
-      processor.connect(ctx.destination);
-      recRef.current = { ctx, stream, source, processor, chunks };
-      setIsRecording(true);
-      // Countdown to the model's clip limit; auto-stop at 0 so the capture
-      // can never exceed what the model can actually use.
-      const limit = capability.maxClipSeconds ?? 20;
-      setRecordSecondsLeft(limit);
-      const startedAt = Date.now();
-      recTimerRef.current = window.setInterval(() => {
-        const left = limit - (Date.now() - startedAt) / 1000;
-        setRecordSecondsLeft(Math.max(0, Math.ceil(left)));
-        if (left <= 0) void stopRecordingRef.current?.();
-      }, 250);
-    } catch (err) {
-      console.warn('Recording failed to start:', err);
-    }
-  }, [onRecord, transcriptMissing, capability.maxClipSeconds]);
-
-  const stopRecording = useCallback(async () => {
-    clearRecTimer();
-    setRecordSecondsLeft(null);
-    const rec = recRef.current;
-    recRef.current = null;
-    setIsRecording(false);
-    if (!rec) return;
-    const { ctx, stream, source, processor, chunks } = rec;
-    processor.disconnect();
-    source.disconnect();
-    stream.getTracks().forEach((track) => track.stop());
-    const sampleRate = ctx.sampleRate;
-    await ctx.close();
-    const total = chunks.reduce((n, c) => n + c.length, 0);
-    if (!onRecord || total === 0) return;
-    const clip = new Float32Array(total);
-    let offset = 0;
-    for (const c of chunks) { clip.set(c, offset); offset += c.length; }
-    try {
-      // Same call-signature rule as handleFiles: only widen to the 3-arg form
-      // when the capability requires a transcript.
-      if (capability.transcriptRequired) {
-        await onRecord(clip, sampleRate, transcript.trim());
-        setTranscript('');
-      } else {
-        await onRecord(clip, sampleRate);
-      }
-    } catch (err) { console.warn('Recording handler failed:', err); }
-  }, [onRecord, capability.transcriptRequired, transcript]);
-  // Keep the auto-stop ref pointing at the latest committed closure — written
-  // in an effect, not the render body (renders can be replayed/discarded,
-  // e.g. under an <Activity> boundary).
-  useEffect(() => {
-    stopRecordingRef.current = stopRecording;
-  }, [stopRecording]);
-
-  /**
-   * The selected voice's character description, beside the picker.
-   *
-   * An <option> is one line of plain text, so the sentence that actually
-   * distinguishes 200 voices from one another cannot live inside the dropdown.
-   * Absent for cloned voices, which carry no description — the line simply
-   * does not render rather than reserving empty space.
-   */
-  const renderSelectedDescription = () => {
-    const description = voices.find((v) => v.id === selectedId)?.meta?.facets?.description;
-    if (!description) return null;
-    return <div className="voice-selected-description">{description}</div>;
-  };
-
-  /** A facet value's display text: the locale string when one exists, and
-   *  otherwise the tag itself as words (`middle_aged` → `Middle aged`), so a
-   *  tag Soniox adds tomorrow reads as English rather than as a raw slug. */
-  const facetLabel = (dimension: string, value: string) =>
-    t(`voiceLibrary.filter.${dimension}.${value}`, humanizeFacetValue(value));
-
-  /** Every dimension is a one-of choice. `useCase` and `style` are among them
-   *  even though the criteria hold them as arrays: the array is Soniox's shape
-   *  (its API takes several and ANDs them) and matchesVoiceFacets honours it,
-   *  so a future multi-select needs no change below the UI. */
-  type SingleFacet = 'gender' | 'age' | 'accent' | 'useCase' | 'style';
-  const TAG_FACETS = ['useCase', 'style'] as const;
-  const isTagFacet = (d: SingleFacet): d is 'useCase' | 'style' =>
-    (TAG_FACETS as readonly string[]).includes(d);
-
-  const facetSelectValue = (dimension: SingleFacet) =>
-    isTagFacet(dimension) ? facetCriteria[dimension]?.[0] ?? '' : facetCriteria[dimension] ?? '';
-
-  const setFacet = (dimension: SingleFacet, value: string) =>
-    setFacetCriteria((prev) =>
-      isTagFacet(dimension)
-        ? { ...prev, [dimension]: value ? [value] : [] }
-        : { ...prev, [dimension]: value || null },
-    );
-
-
-  const renderFacetSelect = (dimension: SingleFacet, label: string, anyLabel: string) => {
-    const values = facetOptions[dimension];
-    if (values.length === 0) return null;
-    const id = `${facetId}-${dimension}`;
-    return (
-      <div className="voice-facet-field">
-        <label className="voice-facet-label" htmlFor={id}>
-          {label}
-        </label>
-        <select
-          id={id}
-          // `select-dropdown` first: it carries the opaque background and the
-          // `appearance: base-select` themed picker (Settings.scss). Without
-          // it the OS draws the popup, which inherits the control's colours —
-          // a translucent background lands there as white on white.
-          className="select-dropdown voice-facet-select"
-          value={facetSelectValue(dimension)}
-          onChange={(e) => setFacet(dimension, e.target.value)}
-        >
-          <option value="">{anyLabel}</option>
-          {values.map((value) => (
-            <option key={value} value={value}>
-              {facetLabel(dimension, value)}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  };
-
-
-  const renderFacetBar = () => {
-    if (!facetFilterOn) return null;
-    const active = hasActiveFacets(facetCriteria);
-    return (
-      <div className="voice-facet-bar">
-        <div className="voice-facet-fields">
-          {renderFacetSelect(
-            'gender',
-            t('voiceLibrary.filter.genderLabel', 'Gender'),
-            t('voiceLibrary.filter.anyGender', 'Any gender'),
-          )}
-          {renderFacetSelect(
-            'age',
-            t('voiceLibrary.filter.ageLabel', 'Age'),
-            t('voiceLibrary.filter.anyAge', 'Any age'),
-          )}
-          {renderFacetSelect(
-            'accent',
-            t('voiceLibrary.filter.accentLabel', 'Accent'),
-            t('voiceLibrary.filter.anyAccent', 'Any accent'),
-          )}
-          {renderFacetSelect(
-            'useCase',
-            t('voiceLibrary.filter.useCaseLabel', 'Use case'),
-            t('voiceLibrary.filter.anyUseCase', 'Any use case'),
-          )}
-          {renderFacetSelect(
-            'style',
-            t('voiceLibrary.filter.styleLabel', 'Style'),
-            t('voiceLibrary.filter.anyStyle', 'Any style'),
-          )}
-        </div>
-        <div className="voice-facet-status">
-          {active && matchedBuiltins.length === 0 ? (
-            <span className="voice-facet-empty">
-              {t('voiceLibrary.filter.empty', 'No voices match these filters.')}
-            </span>
-          ) : (
-            <span className="voice-facet-count">
-              {t('voiceLibrary.filter.count', '{shown} of {total} voices')
-                .replace('{shown}', String(matchedBuiltins.length))
-                .replace('{total}', String(allBuiltins.length))}
-            </span>
-          )}
-          {active && (
-            <button
-              type="button"
-              className="voice-facet-clear"
-              onClick={() => setFacetCriteria({})}
-            >
-              {t('voiceLibrary.filter.clear', 'Clear filters')}
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderRow = (v: VoiceEntry) => {
-    const isSelected = v.id === selectedId;
-    const isEditing = editingId === v.id;
-    return (
-      <li key={v.id} className={`voice-manage-row${isSelected ? ' selected' : ''}`}>
-        {isEditing ? (
-          <input
-            autoFocus
-            className="voice-name-edit"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            onBlur={() => void commitEdit(v.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void commitEdit(v.id);
-              if (e.key === 'Escape') setEditingId(null);
-            }}
-          />
-        ) : (
-          <button
-            type="button"
-            className="voice-select-btn"
-            aria-pressed={isSelected}
-            disabled={isSessionActive}
-            onClick={() => onSelect(v.id)}
-          >
-            <span className="voice-name">
-              {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
-            </span>
-            {v.meta?.unstable && (
-              <span className="voice-unstable-tag">{t('voiceLibrary.unstable', 'unstable')}</span>
-            )}
-          </button>
-        )}
-        {v.removable && !isEditing && (
-          <>
-            {renderPreviewButton(v)}
-            {onRename && (
-              <button
-                type="button"
-                className="voice-row-btn"
-                onClick={() => startEdit(v.id, v.label)}
-              >
-                {t('voiceLibrary.rename', 'Rename')}
-              </button>
-            )}
-            <button
-              type="button"
-              className="voice-row-btn voice-row-btn-danger"
-              onClick={() => void confirmAndDelete(v.id, v.label)}
-            >
-              {t('voiceLibrary.delete', 'Delete')}
-            </button>
-          </>
-        )}
-      </li>
-    );
-  };
-
-  // Manage-list row for dropdown mode: name + rename/delete only (selection
-  // happens through the <select>, not these rows). Mirrors the original
-  // Supertonic "Manage imported voices" rows.
-  const renderManageRow = (v: VoiceEntry) => {
-    const isEditing = editingId === v.id;
-    return (
-      <li key={v.id} className="voice-manage-row">
-        {isEditing ? (
-          <input
-            autoFocus
-            className="voice-name-edit"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            onBlur={() => void commitEdit(v.id)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') void commitEdit(v.id);
-              if (e.key === 'Escape') setEditingId(null);
-            }}
-          />
-        ) : (
-          <span className="voice-name">{v.label}</span>
-        )}
-        {!isEditing && renderPreviewButton(v)}
-        {onRename && (
-          <button
-            type="button"
-            className="voice-row-btn"
-            disabled={isEditing}
-            onClick={() => startEdit(v.id, v.label)}
-          >
-            {t('voiceLibrary.rename', 'Rename')}
-          </button>
-        )}
-        <button
-          type="button"
-          className="voice-row-btn voice-row-btn-danger"
-          onClick={() => void confirmAndDelete(v.id, v.label)}
-        >
-          {t('voiceLibrary.delete', 'Delete')}
-        </button>
-      </li>
-    );
-  };
-
-  // Shared import toolbar (upload / record affordances), reused by both
-  // presentations so the dropdown path stays in sync with the list path.
-  const importToolbar = (
-    <div className="voice-library-manage-toolbar">
-      {capability.transcriptRequired && (
-        <div className="voice-transcript-field">
-          <label htmlFor={transcriptInputId} className="voice-transcript-label">
-            {t('voiceLibrary.transcript', 'Transcript')}
-          </label>
-          <input
-            id={transcriptInputId}
-            type="text"
-            className="voice-transcript-input"
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            placeholder={t('voiceLibrary.transcriptPlaceholder', 'Type exactly what the clip says…')}
-          />
-          <span className="voice-transcript-hint">
-            {t('voiceLibrary.transcriptHint', 'Must match the words spoken in the clip.')}
-          </span>
-        </div>
-      )}
-      {canUpload && (
-        <button
-          type="button"
-          className="voice-import-btn"
-          disabled={transcriptMissing}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Plus size={14} />
-          {t('voiceLibrary.importVoice', 'Import voice…')}
-        </button>
-      )}
-      {canRecord && (
-        <button
-          type="button"
-          className="voice-import-btn"
-          // Never disable while a recording is in progress — the button also
-          // serves as "Stop recording" and clearing the transcript field
-          // mid-capture must not trap the user in an unstoppable recording.
-          disabled={!isRecording && transcriptMissing}
-          onClick={() => (isRecording ? void stopRecording() : void startRecording())}
-        >
-          <Mic size={14} />
-          {isRecording
-            ? `${t('voiceLibrary.stopRecording', 'Stop recording')}${recordSecondsLeft !== null ? ` (${recordSecondsLeft}s)` : ''}`
-            : t('voiceLibrary.recordVoice', 'Record voice…')}
-        </button>
-      )}
-      {onRefresh && (
-        <button
-          type="button"
-          className="voice-import-btn"
-          disabled={refreshing}
-          onClick={onRefresh}
-          title={t('voiceLibrary.refreshList', 'Refresh voice list')}
-        >
-          <RefreshCw size={14} />
-          {t('voiceLibrary.refreshList', 'Refresh voice list')}
-        </button>
-      )}
-      {canUpload && (
-        <span className="voice-library-drop-hint">
-          <Upload size={12} />
-          {t('voiceLibrary.dropHint', 'or drop a voice file here')}
-        </span>
-      )}
-      {canUpload && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={capability.accept ?? 'application/json,.json'}
-          style={{ display: 'none' }}
-          multiple={capability.multipleImport !== false}
-          onChange={(e) => void handleFiles(e.target.files)}
-        />
-      )}
-    </div>
-  );
-
-  // Dropdown presentation: restore the original Supertonic <select> + optgroups
-  // for selection and a collapsible "manage" list for imported voices.
-  if (isDropdown) {
-    return (
-      <div className="voice-library-section">
-        <div className="setting-item">
-          <div className="setting-label">
-            <span>{t('voiceLibrary.voice', 'Voice')}</span>
-          </div>
-          {/* Above the picker, not below it: choose what you want, then pick
-              from what is left. */}
-          {renderFacetBar()}
-          <select
-            className="select-dropdown"
-            // Named for assistive tech: the visible "Voice" label above is a
-            // plain <span>, so without this the picker announces as an unnamed
-            // combobox — and the facet bar above adds five more of them.
-            aria-label={t('voiceLibrary.voice', 'Voice')}
-            value={selectedId}
-            onChange={(e) => onSelect(e.target.value)}
-            disabled={isSessionActive}
-          >
-            {/* The `label` attribute names the group and is what a classic
-                popup paints; the <legend> twin is what CSS can reach under
-                appearance: base-select, where the UA paints the attribute in
-                black — invisible on our dark picker. Chromium renders the
-                legend INSTEAD of the attribute, so the two never double up.
-                Gated: without base-select the legend has no renderer, and
-                React's validateDOMNesting rejects it inside <optgroup>. */}
-            <optgroup label={t('voiceLibrary.presets', 'Presets')}>
-              {richSelect && <legend>{t('voiceLibrary.presets', 'Presets')}</legend>}
-              {builtins.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
-                </option>
-              ))}
-            </optgroup>
-            {customs.length > 0 && (
-              <optgroup label={t('voiceLibrary.myVoices', 'My Voices')}>
-                {richSelect && <legend>{t('voiceLibrary.myVoices', 'My Voices')}</legend>}
-                {customs.map((v) => (
-                  <option key={v.id} value={v.id} disabled={v.disabled}>
-                    {v.label}{v.meta?.gender ? ` (${v.meta.gender})` : ''}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-          {renderSelectedDescription()}
-        </div>
-
-        {/* Manage block also renders when there's nothing left to create but
-            something to delete: an adapter without a client yet
-            (SonioxVoiceSection before an API key is entered) gates CREATE by
-            zeroing canUpload/canRecord, but a returning user's already-cloned
-            voices still need a way to reach their delete button. The
-            record/upload affordances inside stay individually gated below,
-            so a clientless render shows the manage list + delete only. */}
-        {(canUpload || canRecord || removableVoices.length > 0) && (
-          <details className="voice-library-manage">
-            <summary>
-              {t('voiceLibrary.manageImported', 'Manage imported voices')}
-              {removableVoices.length > 0 && (
-                <span className="voice-library-manage-count"> ({removableVoices.length})</span>
-              )}
-            </summary>
-            <div
-              className={`voice-library-manage-body${isDragging ? ' dragging' : ''}`}
-              onDrop={canUpload ? onDrop : undefined}
-              onDragOver={canUpload ? onDragOver : undefined}
-              onDragLeave={canUpload ? onDragLeave : undefined}
-            >
-              {importToolbar}
-              {removableVoices.length === 0 ? (
-                <div className="voice-library-empty">
-                  {t('voiceLibrary.emptyHint', 'No imported voices yet.')}
-                </div>
-              ) : (
-                <ul className="voice-manage-list">{removableVoices.map(renderManageRow)}</ul>
-              )}
-              {manageNote && (
-                <div className="voice-library-manage-note">{manageNote}</div>
-              )}
-            </div>
-          </details>
-        )}
-      </div>
-    );
-  }
+  const canCreate = capability.importModes.length > 0;
+  const selectedDescription = voices.find((v) => v.id === selectedId)?.meta?.facets?.description;
 
   return (
     <div className="voice-library-section">
@@ -893,44 +237,40 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
         <div className="setting-label">
           <span>{t('voiceLibrary.voice', 'Voice')}</span>
         </div>
+        <VoicePicker
+          voices={voices}
+          selectedId={selectedId}
+          onSelect={onSelect}
+          onPreview={onPreview ? togglePreview : undefined}
+          previewUnavailableReason={previewUnavailableReason}
+          playingId={playingId}
+          loadingId={previewLoadingId}
+          onRename={onRename ? handleRename : undefined}
+          onAskDelete={(id, label) => setDeleteTarget({ id, label })}
+          onAddVoice={canCreate ? () => setCreating(true) : undefined}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+          capability={capability}
+          isSessionActive={isSessionActive}
+        />
+        {selectedDescription && (
+          <div className="voice-selected-description">{selectedDescription}</div>
+        )}
       </div>
 
-      {renderFacetBar()}
-
-      {/* Built-in group. Unreachable while `isDropdown` is hardcoded true
-          above (Task 6 deletes this whole branch along with that constant),
-          kept compiling in the meantime without the removed `curation` flag. */}
-      {builtins.length > 0 && (
-        <div className="voice-library-group">
-          <div className="voice-library-group-label">{t('voiceLibrary.presets', 'Presets')}</div>
-          <ul className="voice-manage-list">
-            {builtins.map(renderRow)}
-          </ul>
-        </div>
-      )}
-
-      {/* Custom group */}
-      {customs.length > 0 && (
-        <div className="voice-library-group">
-          <div className="voice-library-group-label">{t('voiceLibrary.myVoices', 'My Voices')}</div>
-          <ul className="voice-manage-list">{customs.map(renderRow)}</ul>
-        </div>
-      )}
-
-      {/* Import controls */}
-      {(canUpload || canRecord) && (
-        <div
-          className={`voice-library-manage-body${isDragging ? ' dragging' : ''}`}
-          onDrop={canUpload ? onDrop : undefined}
-          onDragOver={canUpload ? onDragOver : undefined}
-          onDragLeave={canUpload ? onDragLeave : undefined}
-        >
-          {importToolbar}
-          {manageNote && (
-            <div className="voice-library-manage-note">{manageNote}</div>
-          )}
-        </div>
-      )}
+      <VoiceCreateModal
+        isOpen={creating}
+        onClose={() => setCreating(false)}
+        onImport={onImport}
+        onRecord={onRecord}
+        capability={capability}
+        note={manageNote}
+      />
+      <VoiceDeleteModal
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 };

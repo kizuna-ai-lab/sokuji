@@ -1,6 +1,11 @@
 @use '../shared/variables' as vars;
 
-.voice-create-modal-overlay {
+// Shared frame for BOTH voice modals (this create modal and
+// VoiceDeleteModal, which imports this stylesheet rather than owning its
+// own — see that component's doc comment). Task 6 renamed these from
+// `voice-create-modal*` to this `voice-modal*` set so the two modals share
+// one frame instead of each carrying its own copy.
+.voice-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.62);
@@ -13,7 +18,7 @@
   overflow-y: auto;
 }
 
-.voice-create-modal {
+.voice-modal {
   width: 100%;
   max-width: 420px;
   background: vars.$bg-page;
@@ -22,7 +27,7 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   color: vars.$text-primary;
   overflow: hidden;
-  animation: voice-create-modal-in 0.16s ease-out;
+  animation: voice-modal-in 0.16s ease-out;
 
   &__head {
     display: flex;
@@ -75,13 +80,36 @@
     border-top: 1px solid vars.$border-subtle;
     background: vars.$bg-surface;
   }
+
+  // Footer buttons shared by both modals: a plain button (Cancel in both,
+  // Close-by-another-name), and a `--danger` modifier for the one
+  // destructive action (VoiceDeleteModal's Delete). Value-for-value what
+  // `.voice-create-modal__cancel` used to be, before the rename.
+  &__btn {
+    font: inherit;
+    font-size: vars.$font-caption;
+    font-weight: vars.$weight-semibold;
+    cursor: pointer;
+    padding: 7px 12px;
+    border-radius: vars.$radius-md;
+    border: 1px solid vars.$border-strong;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    &:hover:not(:disabled) { border-color: vars.$color-primary; }
+
+    &--danger {
+      border-color: vars.$color-error;
+      color: vars.$color-error;
+      &:hover:not(:disabled) { background: vars.$color-error; color: #fff; }
+    }
+  }
 }
 
-@keyframes voice-create-modal-in {
+@keyframes voice-modal-in {
   from { opacity: 0; transform: translateY(-14px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@media (prefers-reduced-motion: reduce) { .voice-create-modal { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .voice-modal { animation: none; } }
 
 // ── Transcript field ───────────────────────────────────────
 .voice-create-modal__transcript-field {
@@ -156,17 +184,4 @@
   font-size: vars.$font-caption;
   color: vars.$text-muted;
   line-height: 1.4;
-}
-
-.voice-create-modal__cancel {
-  font: inherit;
-  font-size: vars.$font-caption;
-  font-weight: vars.$weight-semibold;
-  cursor: pointer;
-  padding: 7px 12px;
-  border-radius: vars.$radius-md;
-  border: 1px solid vars.$border-strong;
-  background: vars.$bg-control;
-  color: vars.$text-primary;
-  &:hover:not(:disabled) { border-color: vars.$color-primary; }
 }

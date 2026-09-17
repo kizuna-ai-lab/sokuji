@@ -18,28 +18,16 @@ const css = compile(resolve(__dirname, 'VoiceLibrarySection.scss')).css;
  *  assertion about `.voice-facet-tags`, and vice versa. */
 const styled = (cls: string) => new RegExp(String.raw`\.${cls}(?![\w-])`);
 
-describe('facet filter bar styling', () => {
+// Task 6 made VoiceLibrarySection a composition root: the facet bar and its
+// `.voice-facet-*` classes moved to VoicePicker (see the 'voice picker
+// styling' describe below, which Task 3 appended and already covers them),
+// so this describe now pins only what still renders directly in the section
+// itself.
+describe('voice library section styling', () => {
   it.each([
-    'voice-facet-bar',
-    'voice-facet-fields',
-    'voice-facet-field',
-    'voice-facet-label',
-    'voice-facet-select',
-    'voice-facet-status',
-    'voice-facet-count',
-    'voice-facet-empty',
-    'voice-facet-clear',
     'voice-selected-description',
   ])('styles .%s', (cls) => {
     expect(css).toMatch(styled(cls));
-  });
-
-
-  it('keeps the bar clear of the select above it', () => {
-    // .voice-library-section sets no gap — the spacing between its children is
-    // each child's own margin (see the note at the top of the stylesheet), so a
-    // bar without one sits flush against the dropdown.
-    expect(css).toMatch(/\.voice-facet-bar\s*\{[^}]*\bmargin/);
   });
 });
 
@@ -63,19 +51,24 @@ describe('voice picker styling', () => {
   });
 });
 
-// Task 6 renames these into a shared `voice-modal*` set (shared with
-// VoiceDeleteModal) and re-points this describe at that stylesheet instead;
-// expected churn, not drift.
+// VoiceCreateModal.scss is also VoiceDeleteModal's stylesheet — the delete
+// modal imports it rather than owning its own, sharing the `voice-modal*`
+// frame Task 6 renamed these classes into. This describe covers both
+// modals' classes for that reason.
 const createModalCss = compile(resolve(__dirname, 'VoiceCreateModal.scss')).css;
 
-describe('voice create modal styling', () => {
+describe('voice create/delete modal styling', () => {
   it.each([
-    'voice-create-modal-overlay',
-    'voice-create-modal',
-    'voice-create-modal__head',
-    'voice-create-modal__x',
-    'voice-create-modal__body',
-    'voice-create-modal__foot',
+    // Shared frame (both modals)
+    'voice-modal-overlay',
+    'voice-modal',
+    'voice-modal__head',
+    'voice-modal__x',
+    'voice-modal__body',
+    'voice-modal__foot',
+    'voice-modal__btn',
+    'voice-modal__btn--danger',
+    // VoiceCreateModal's own body content
     'voice-create-modal__transcript-field',
     'voice-create-modal__transcript-label',
     'voice-create-modal__transcript-input',
@@ -84,7 +77,6 @@ describe('voice create modal styling', () => {
     'voice-create-modal__drop-zone',
     'is-dragging',
     'voice-create-modal__note',
-    'voice-create-modal__cancel',
   ])('styles .%s where the element lives', (cls) => {
     expect(createModalCss).toMatch(styled(cls));
   });

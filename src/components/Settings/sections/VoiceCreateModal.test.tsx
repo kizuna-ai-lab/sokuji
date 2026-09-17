@@ -73,8 +73,9 @@ describe('VoiceCreateModal', () => {
   it('closes on a click on the backdrop', () => {
     const onClose = vi.fn();
     render(<VoiceCreateModal {...base} onClose={onClose} onImport={vi.fn()} />);
-    // The overlay is the dialog's parent (`.voice-create-modal-overlay` wraps
-    // `.voice-create-modal`) — reached structurally through the accessibility
+    // The overlay is the dialog's parent (`.voice-modal-overlay` wraps
+    // `.voice-modal` — a frame shared with VoiceDeleteModal since Task 6)
+    // — reached structurally through the accessibility
     // tree rather than a test-only attribute on production markup. A test
     // that clicked the dialog itself here would pass even with the overlay's
     // onClick deleted, which is exactly the bug this replaces.

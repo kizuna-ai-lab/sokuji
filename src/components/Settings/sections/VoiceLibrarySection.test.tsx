@@ -1,13 +1,13 @@
 /**
- * Tests for the capability-driven VoiceLibrarySection (Task 9).
+ * Tests for VoiceLibrarySection as a composition root (Task 6).
  *
- * The component is now provider-agnostic: it consumes a normalized
- * `VoiceEntry[]` + `VoiceLibraryCapability` model and treats `id` as opaque.
- * These two render tests are the only automated safety net for the refactor,
- * so they exercise real rendering (no mocks of the component itself):
- *   1. Capability allowing `record` shows a Record button and renders both the
- *      built-in and custom voice groups.
- *   2. Supertonic capability (`upload` only) hides the Record button.
+ * VoicePicker (Tasks 3–4) and the two modals (VoiceCreateModal — Task 5,
+ * VoiceDeleteModal — Task 6) each carry their own suite. This file covers
+ * only what the composition root itself owns: the AudioContext-backed
+ * preview plumbing (`togglePreview`/`stopPreview`, still local to this
+ * component), wiring `onAskDelete` to the delete modal and `onConfirm` back
+ * to `onDelete`, gating the picker's add-voice affordance on
+ * `capability.importModes`, and opening the create modal.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
@@ -21,43 +21,26 @@ const base = {
   onImport: async () => {},
 };
 
+/** Shared Web Audio stub — jsdom has no Web Audio API. */
+function stubWebAudio() {
+  const mockSource: any = { connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null, buffer: null };
+  const mockCtx: any = {
+    state: 'running',
+    resume: vi.fn().mockResolvedValue(undefined),
+    destination: {},
+    createBuffer: vi.fn(() => ({ copyToChannel: vi.fn() })),
+    createBufferSource: vi.fn(() => mockSource),
+    close: vi.fn().mockResolvedValue(undefined),
+  };
+  // regular function (not an arrow) so `new AudioContext()` is constructable
+  (window as any).AudioContext = function AudioContext() { return mockCtx; };
+  return { mockCtx, mockSource };
+}
+
+const openPicker = () => fireEvent.click(screen.getByRole('button', { expanded: false }));
+
 describe('VoiceLibrarySection', () => {
-  /** Shared Web Audio stub — jsdom has no Web Audio API. */
-  function stubWebAudio() {
-    const mockSource: any = { connect: vi.fn(), start: vi.fn(), stop: vi.fn(), onended: null, buffer: null };
-    const mockCtx: any = {
-      state: 'running',
-      resume: vi.fn().mockResolvedValue(undefined),
-      destination: {},
-      createBuffer: vi.fn(() => ({ copyToChannel: vi.fn() })),
-      createBufferSource: vi.fn(() => mockSource),
-      close: vi.fn().mockResolvedValue(undefined),
-    };
-    // regular function (not an arrow) so `new AudioContext()` is constructable
-    (window as any).AudioContext = function AudioContext() { return mockCtx; };
-    return { mockCtx, mockSource };
-  }
-
-  it('renders builtin + custom groups and a record button when capability allows', () => {
-    render(
-      <VoiceLibrarySection
-        {...base}
-        voices={[
-          { id: 'builtin:Ava', label: 'Ava', group: 'builtin', removable: false, meta: { curated: true } },
-          { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
-        ]}
-        capability={{ importModes: ['record', 'upload'] }}
-        onRecord={async () => {}}
-      />,
-    );
-    expect(screen.getByText('Ava')).toBeInTheDocument();
-    // "Mine" is removable, so the dropdown presentation renders it twice: once
-    // as a <select> option, once as its own row in the manage list below.
-    expect(screen.getAllByText('Mine').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /record/i })).toBeInTheDocument();
-  });
-
-  it('plays back a removable clip via onPreview and toggles play/stop', async () => {
+  it('plays back a voice via onPreview and toggles play/stop on a second click', async () => {
     const { mockSource, mockCtx } = stubWebAudio();
     const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
 
@@ -70,12 +53,14 @@ describe('VoiceLibrarySection', () => {
         onPreview={onPreview}
       />,
     );
+    openPicker();
 
     fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
     await waitFor(() =>
       expect(onPreview).toHaveBeenCalledWith('custom:1', expect.any(AbortSignal)));
     await waitFor(() => expect(mockSource.start).toHaveBeenCalled());
     expect(mockSource.connect).toHaveBeenCalledWith(mockCtx.destination);
+
     // now shows a Stop control; clicking it stops playback
     const stopBtn = await screen.findByRole('button', { name: /^stop$/i });
     fireEvent.click(stopBtn);
@@ -83,355 +68,104 @@ describe('VoiceLibrarySection', () => {
     expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
   });
 
-  it('shows no preview control when onPreview is not provided', () => {
-    render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId=""
-        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['upload'] }}
-      />,
-    );
-    expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
-  });
-
-  it('renders manageNote inside the manage body in dropdown presentation', () => {
-    render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId="preset:0"
-        voices={[
-          { id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false },
-          { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
-        ]}
-        capability={{ importModes: ['record'] }}
-        onRecord={async () => {}}
-        manageNote="Costs quota."
-      />,
-    );
-    const note = screen.getByText('Costs quota.');
-    expect(note.closest('.voice-library-manage-body')).not.toBeNull();
-  });
-
-  it('renders nothing extra when manageNote is omitted', () => {
-    const { container } = render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId="preset:0"
-        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'] }}
-        onRecord={async () => {}}
-      />,
-    );
-    expect(container.querySelector('.voice-library-manage-note')).toBeNull();
-  });
-
-  it('hides the record button when record is not an import mode (Supertonic)', () => {
-    render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId="preset:0"
-        voices={[{ id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false }]}
-        capability={{ importModes: ['upload'] }}
-      />,
-    );
-    expect(screen.queryByRole('button', { name: /record/i })).toBeNull();
-    // The dropdown presentation is the only one now (Task 6 removes this
-    // branch along with the legacy list-mode fallback it lived beside).
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
-  });
-
-  it('renders a dropdown with optgroups and fires onSelect on change (Supertonic)', () => {
-    const onSelect = vi.fn();
-    render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId="preset:0"
-        onSelect={onSelect}
-        voices={[
-          { id: 'preset:0', label: 'Sarah', group: 'builtin', removable: false, meta: { gender: 'F' } },
-          { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
-        ]}
-        capability={{ importModes: ['upload'] }}
-      />,
-    );
-
-    const select = screen.getByRole('combobox') as HTMLSelectElement;
-    expect(select).toBeInTheDocument();
-
-    // Built-in entries under "Presets", custom entries under "My Voices".
-    const presets = within(select).getByRole('group', { name: 'Presets' });
-    expect(within(presets).getByRole('option', { name: 'Sarah (F)' })).toBeInTheDocument();
-    const myVoices = within(select).getByRole('group', { name: 'My Voices' });
-    expect(within(myVoices).getByRole('option', { name: 'Mine' })).toBeInTheDocument();
-
-    fireEvent.change(select, { target: { value: 'custom:1' } });
-    expect(onSelect).toHaveBeenCalledWith('custom:1');
-  });
-
-  it('transcriptRequired gates import behind a non-empty transcript', async () => {
-    const onImport = vi.fn();
-    render(<VoiceLibrarySection voices={[]} selectedId="" onSelect={() => {}}
-      onImport={onImport} onRename={async () => {}} onDelete={async () => {}}
-      capability={{ importModes: ['upload'], transcriptRequired: true }} />);
-    // manage details open → import button disabled while transcript empty
-    fireEvent.click(screen.getByText(/manage imported voices/i));
-    const btn = screen.getByRole('button', { name: /import voice/i });
-    expect(btn).toBeDisabled();
-    fireEvent.change(screen.getByLabelText(/transcript/i), { target: { value: 'what the clip says' } });
-    expect(btn).not.toBeDisabled();
-  });
-
-  it('hides the rename affordance when onRename is not provided', () => {
-    render(
-      <VoiceLibrarySection
-        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        selectedId=""
-        onSelect={() => {}}
-        onDelete={async () => {}}
-        capability={{ importModes: ['upload'] }}
-      />,
-    );
-    // "Mine" is removable, so the dropdown presentation renders it twice: once
-    // as a <select> option, once as its own row in the manage list below.
-    expect(screen.getAllByText('Mine').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^rename$/i })).toBeNull();
-  });
-
-  it('shows a spinner and disables the button while the preview is in flight', async () => {
+  it('plays nothing when onPreview resolves null', async () => {
     stubWebAudio();
-    let release: (v: { audio: Float32Array; sampleRate: number }) => void = () => {};
-    const onPreview = vi.fn(() => new Promise<any>((res) => { release = res; }));
+    const onPreview = vi.fn().mockResolvedValue(null);
 
     render(
       <VoiceLibrarySection
         {...base}
         selectedId=""
         voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'] }}
+        capability={{ importModes: ['upload'] }}
         onPreview={onPreview}
       />,
     );
+    openPicker();
 
     fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
-    const busy = await screen.findByRole('button', { name: /synthesizing/i });
-    expect(busy).toBeDisabled();
-
-    release({ audio: new Float32Array(2048), sampleRate: 24000 });
-    await waitFor(() => expect(screen.queryByRole('button', { name: /synthesizing/i })).toBeNull());
+    await waitFor(() => expect(onPreview).toHaveBeenCalled());
+    // Never transitions to a Stop control — there was nothing to play.
+    expect(screen.queryByRole('button', { name: /^stop$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^play$/i })).toBeInTheDocument();
   });
 
-  it('renders no preview button for a disabled entry (processing / failed clone)', () => {
+  it('gates the play control on previewable, reaching the picker unchanged', () => {
     render(
       <VoiceLibrarySection
         {...base}
         selectedId=""
-        voices={[{ id: 'custom:1', label: 'Cooking', group: 'custom', removable: true, disabled: true }]}
-        capability={{ importModes: ['record'] }}
+        voices={[
+          // A builtin gets no play control by default...
+          { id: 'builtin:Grace', label: 'Grace', group: 'builtin', removable: false },
+          // ...unless the provider opts it in.
+          { id: 'builtin:Opted', label: 'Opted', group: 'builtin', removable: false, previewable: true },
+        ]}
+        capability={{ importModes: [] }}
         onPreview={vi.fn()}
       />,
     );
-    expect(screen.queryByRole('button', { name: /^play$/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /synthesizing/i })).toBeNull();
+    openPicker();
+    expect(screen.getAllByRole('button', { name: /^play$/i })).toHaveLength(1);
   });
 
-  it('aborts an in-flight preview when the user starts another one', async () => {
-    stubWebAudio();
-    const signals: AbortSignal[] = [];
-    const onPreview = vi.fn((_id: string, signal?: AbortSignal) => {
-      if (signal) signals.push(signal);
-      return new Promise<any>(() => {}); // never settles
-    });
-
-    render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId=""
-        voices={[
-          { id: 'custom:1', label: 'First', group: 'custom', removable: true },
-          { id: 'custom:2', label: 'Second', group: 'custom', removable: true },
-        ]}
-        capability={{ importModes: ['record'] }}
-        onPreview={onPreview}
-      />,
-    );
-
-    const [firstBtn, secondBtn] = screen.getAllByRole('button', { name: /^play$/i });
-    fireEvent.click(firstBtn);
-    await waitFor(() => expect(signals).toHaveLength(1));
-    expect(signals[0].aborted).toBe(false);
-
-    fireEvent.click(secondBtn);
-    await waitFor(() => expect(signals[0].aborted).toBe(true));
-  });
-
-  it('aborts an in-flight preview on unmount', async () => {
-    stubWebAudio();
-    const signals: AbortSignal[] = [];
-    const onPreview = vi.fn((_id: string, signal?: AbortSignal) => {
-      if (signal) signals.push(signal);
-      return new Promise<any>(() => {});
-    });
-
-    const { unmount } = render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId=""
-        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'] }}
-        onPreview={onPreview}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /^play$/i }));
-    await waitFor(() => expect(signals).toHaveLength(1));
-    unmount();
-    expect(signals[0].aborted).toBe(true);
-  });
-
-  it('renders a disabled preview control with the reason when previewing is unavailable', () => {
-    const onPreview = vi.fn();
-    render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId=""
-        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'] }}
-        onPreview={onPreview}
-        previewUnavailableReason="Stop the session to preview"
-      />,
-    );
-    const btn = screen.getByRole('button', { name: 'Stop the session to preview' });
-    expect(btn).toBeDisabled();
-  });
-
-  it('never calls onPreview while a reason is set', () => {
-    const onPreview = vi.fn();
-    render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId=""
-        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'] }}
-        onPreview={onPreview}
-        previewUnavailableReason="Stop the session to preview"
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Stop the session to preview' }));
-    expect(onPreview).not.toHaveBeenCalled();
-  });
-
-  it('still renders nothing when onPreview is absent, reason or not', () => {
-    render(
-      <VoiceLibrarySection
-        {...base}
-        selectedId=""
-        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
-        capability={{ importModes: ['record'] }}
-        previewUnavailableReason="whatever"
-      />,
-    );
-    expect(screen.queryByRole('button', { name: /preview|play/i })).toBeNull();
-  });
-});
-
-// Recording resources live only in a ref; the teardown effect must release
-// the microphone both on unmount and when the settings panel hides inside
-// its <Activity> boundary (effects unmount on hide).
-describe('VoiceLibrarySection recording teardown under Activity hide', () => {
-  const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
-
-  const restoreMediaDevices = () => {
-    if (originalMediaDevices) {
-      Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
-    } else {
-      delete (navigator as { mediaDevices?: unknown }).mediaDevices;
-    }
-    vi.unstubAllGlobals();
-  };
-
-  const installCaptureStubs = (gum: ReturnType<typeof vi.fn>) => {
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: { getUserMedia: gum },
-    });
-    const closeCtx = vi.fn(async () => {});
-    const disconnectSource = vi.fn();
-    const disconnectProcessor = vi.fn();
-    const ctxConstructed = vi.fn();
-    class FakeAudioContext {
-      sampleRate = 48000;
-      destination = {};
-      constructor() { ctxConstructed(); }
-      createMediaStreamSource() { return { connect: vi.fn(), disconnect: disconnectSource }; }
-      createScriptProcessor() { return { connect: vi.fn(), disconnect: disconnectProcessor, onaudioprocess: null }; }
-      close = closeCtx;
-    }
-    vi.stubGlobal('AudioContext', FakeAudioContext);
-    return { closeCtx, disconnectSource, disconnectProcessor, ctxConstructed };
-  };
-
-  const ui = (Activity: React.ComponentType<{ mode: string; children: React.ReactNode }>, mode: 'visible' | 'hidden') => (
-    <Activity mode={mode}>
+  it('offers the add-voice row iff importModes is non-empty', () => {
+    const { rerender } = render(
       <VoiceLibrarySection
         {...base}
         voices={[{ id: 'builtin:Ava', label: 'Ava', group: 'builtin', removable: false }]}
-        capability={{ importModes: ['record', 'upload'] }}
-        onRecord={async () => {}}
-      />
-    </Activity>
-  );
+        capability={{ importModes: [] }}
+      />,
+    );
+    openPicker();
+    expect(screen.queryByRole('button', { name: /add a voice/i })).not.toBeInTheDocument();
 
-  it('stops the capture graph when the panel hides mid-recording', async () => {
-    const { Activity } = await import('react');
-    const { waitFor } = await import('@testing-library/react');
-
-    const stopTrack = vi.fn();
-    const gum = vi.fn(async () => ({ getTracks: () => [{ stop: stopTrack }] }));
-    const stubs = installCaptureStubs(gum);
-
-    try {
-      const { rerender } = render(ui(Activity as never, 'visible'));
-      fireEvent.click(screen.getByRole('button', { name: /record/i }));
-      await waitFor(() => expect(stubs.ctxConstructed).toHaveBeenCalled());
-
-      rerender(ui(Activity as never, 'hidden'));
-      expect(stopTrack).toHaveBeenCalled();
-      expect(stubs.closeCtx).toHaveBeenCalled();
-      expect(stubs.disconnectProcessor).toHaveBeenCalled();
-      expect(stubs.disconnectSource).toHaveBeenCalled();
-    } finally {
-      restoreMediaDevices();
-    }
+    rerender(
+      <VoiceLibrarySection
+        {...base}
+        voices={[{ id: 'builtin:Ava', label: 'Ava', group: 'builtin', removable: false }]}
+        capability={{ importModes: ['upload'] }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /add a voice/i })).toBeInTheDocument();
   });
 
-  it('stops a getUserMedia stream that resolves only after the panel hid', async () => {
-    const { Activity } = await import('react');
-    const { act, waitFor } = await import('@testing-library/react');
+  it('onAskDelete opens the delete modal, and confirming calls onDelete exactly once', async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+    render(
+      <VoiceLibrarySection
+        {...base}
+        onDelete={onDelete}
+        voices={[{ id: 'custom:1', label: 'Mine', group: 'custom', removable: true }]}
+        capability={{ importModes: ['upload'] }}
+      />,
+    );
+    openPicker();
+    // The picker's own row also has a "Delete" button, still on screen once
+    // the confirmation dialog opens over it — scope to the dialog so the
+    // second click cannot land back on the row.
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
 
-    const stopTrack = vi.fn();
-    let resolveGum: (stream: unknown) => void = () => {};
-    const gum = vi.fn(() => new Promise((resolve) => { resolveGum = resolve; }));
-    const stubs = installCaptureStubs(gum);
+    // Named, not bare `getByRole('dialog')`: the picker's own floating
+    // wrapper carries `role="dialog"` too (see VoicePicker's doc comment) and
+    // stays open behind this one, so an unnamed query would match both.
+    const dialog = screen.getByRole('dialog', { name: /delete voice/i });
+    expect(dialog).toHaveTextContent('Mine');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^delete$/i }));
+    await waitFor(() => expect(onDelete).toHaveBeenCalledTimes(1));
+    expect(onDelete).toHaveBeenCalledWith('custom:1');
+  });
 
-    try {
-      const { rerender } = render(ui(Activity as never, 'visible'));
-      fireEvent.click(screen.getByRole('button', { name: /record/i }));
-      await waitFor(() => expect(gum).toHaveBeenCalled());
-
-      // Panel hides while the permission prompt is still pending…
-      rerender(ui(Activity as never, 'hidden'));
-      // …then the stream arrives late.
-      await act(async () => {
-        resolveGum({ getTracks: () => [{ stop: stopTrack }] });
-      });
-
-      expect(stopTrack).toHaveBeenCalled();
-      // The capture graph must never be built from a stale acquisition.
-      expect(stubs.ctxConstructed).not.toHaveBeenCalled();
-    } finally {
-      restoreMediaDevices();
-    }
+  it('opening the create modal renders its dialog', () => {
+    render(
+      <VoiceLibrarySection
+        {...base}
+        voices={[]}
+        capability={{ importModes: ['upload'] }}
+      />,
+    );
+    openPicker();
+    fireEvent.click(screen.getByRole('button', { name: /add a voice/i }));
+    expect(screen.getByRole('dialog', { name: /add a voice/i })).toBeInTheDocument();
   });
 });
