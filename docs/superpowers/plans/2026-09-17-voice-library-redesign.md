@@ -877,13 +877,38 @@ export default VoicePicker;
 
 - [ ] **Step 4: Write the stylesheet**
 
-Create `src/components/Settings/sections/VoicePicker.scss`. Move the facet-bar
-rules out of `VoiceLibrarySection.scss` (`.voice-facet-bar`, `.voice-facet-fields`,
-`.voice-facet-field`, `.voice-facet-label`, `.voice-facet-select`,
-`.voice-facet-status`, `.voice-facet-count`, `.voice-facet-empty`,
-`.voice-facet-clear`, and `@keyframes voice-preview-spin`) and rename them onto
-this component's classes; keep every declaration value as it is today so the
-visual result does not drift.
+Create `src/components/Settings/sections/VoicePicker.scss`. **COPY** the
+facet-bar rules from `VoiceLibrarySection.scss` (`.voice-facet-bar`,
+`.voice-facet-fields`, `.voice-facet-field`, `.voice-facet-label`,
+`.voice-facet-select`, `.voice-facet-status`, `.voice-facet-count`,
+`.voice-facet-empty`, `.voice-facet-clear`, and `@keyframes
+voice-preview-spin`) and rename them onto this component's classes; keep every
+declaration value as it is today so the visual result does not drift.
+
+**Copy, do not move, and leave `VoiceLibrarySection.scss` untouched by this
+task.** Two independent reasons:
+
+1. Nothing renders `VoicePicker` until Task 6. Until then the SECTION still
+   renders its own facet bar, so deleting those rules now would ship three
+   intermediate commits (Tasks 3, 4, 5) with a visibly unstyled filter bar.
+2. `voiceFacetStyles.test.ts` compiles `VoiceLibrarySection.scss` — and only
+   that file — then asserts nine of those exact classes are styled in it, plus
+   a `.voice-facet-bar { … margin … }` rule. Removing them turns 10 of that
+   file's 11 assertions red, and this task's own gate expects it green.
+
+The duplication is deliberate and temporary: Task 6 deletes the originals when
+it deletes the markup that uses them. A duplicated `@keyframes
+voice-preview-spin` in two stylesheets is harmless — both compile to separate
+CSS with identical content, and the section's `.voice-preview-spinner` still
+needs the original until Task 6.
+
+Do NOT touch `.voice-selected-description`. It appears in that test's list too,
+but it belongs to the section, stays there permanently, and is on Task 6's keep
+list.
+
+Because this task no longer edits `VoiceLibrarySection.scss`, that path may
+legitimately show no diff at commit time; stage it anyway (harmless) or drop it
+from the `git add`.
 
 The stylesheet invariant goes in the EXISTING test
 `src/components/Settings/sections/voiceFacetStyles.test.ts` — do not create a
@@ -959,7 +984,13 @@ Expected: 12 PASS.
 
 Append to `src/components/Settings/sections/voiceFacetStyles.test.ts` a second
 `describe` that compiles `VoicePicker.scss` and asserts the same
-"class is styled where the element lives" property for the new classes:
+"class is styled where the element lives" property for the new classes.
+
+APPEND only. Leave the file's existing `const css = compile(… 'VoiceLibrarySection.scss')`
+and its `describe('facet filter bar styling')` exactly as they are: those 11
+assertions are still live and still true, because Step 4 copied the rules rather
+than moving them. Reuse the file's existing `styled()` helper rather than
+writing a second matcher — it already encodes the `(?![\w-])` rule.
 
 ```ts
 const pickerCss = compile(resolve(__dirname, 'VoicePicker.scss')).css;
@@ -1699,7 +1730,15 @@ From `VoiceLibrarySection.scss` delete `.voice-library-manage`,
 `.voice-row-btn`, `.voice-name-edit`, `.voice-unstable-tag` (moved to the
 picker), `.voice-preview-spinner` together with the
 `&:disabled:not(:has(.voice-preview-spinner))` opacity rule that guards it, and
-the rules moved in Tasks 3 and 5.
+the rules COPIED in Tasks 3 and 5 — Task 3 duplicated the `.voice-facet-*`
+rules and `@keyframes voice-preview-spin` into `VoicePicker.scss` rather than
+moving them (the section kept rendering its own facet bar until this task, and
+`voiceFacetStyles.test.ts` asserts those rules exist in
+`VoiceLibrarySection.scss`), so deleting the originals is THIS task's job. When
+you do, re-point that test's first `describe` at whatever still lives in the
+section — `.voice-selected-description` stays, the `.voice-facet-*` cases move
+to the picker block Task 3 appended — and keep its `.voice-facet-bar` margin
+assertion only if the rule it checks survives.
 
 `.voice-preview-spinner` is easy to miss because Task 3 does not move it — it
 supersedes it, emitting `.voice-row__spinner` in `VoicePicker.scss` off the same
