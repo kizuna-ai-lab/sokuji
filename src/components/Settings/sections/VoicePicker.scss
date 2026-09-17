@@ -1,0 +1,268 @@
+// `../shared/variables` and not `../../../styles/tokens`: the tokens module
+// carries only the 14 accent/status colours, NOT $color-error, $bg-page,
+// $border-*, $radius-* or the spacing scale. Settings/shared/_variables.scss
+// defines those AND re-exports the accent ($color-primary), so one namespace
+// covers everything this stylesheet needs — the same import
+// ModelImportModal.scss uses.
+@use '../shared/variables' as vars;
+
+.voice-picker {
+  position: relative;
+}
+
+.voice-picker__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 6px 8px;
+  font-size: vars.$font-body;
+  color: vars.$text-primary;
+  background: vars.$bg-control;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-sm;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: vars.$border-strong; }
+  &:focus { outline: none; border-color: vars.$color-primary; }
+  &:disabled { @include vars.disabled-state; cursor: not-allowed; }
+}
+
+.voice-picker__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-picker__value-sub {
+  display: block;
+  font-size: 11px;
+  color: vars.$text-muted;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ---- popover ---------------------------------------------------------------
+
+.voice-pop {
+  z-index: 40;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: vars.$bg-surface;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+// ---- facet filter bar -------------------------------------------------------
+// COPIED from VoiceLibrarySection.scss (`.voice-facet-*`), not moved: the
+// section still renders its own facet bar until Task 6 deletes that markup,
+// so both stylesheets must carry these rules in the meantime. See the plan's
+// Task 3 "Global Constraints" note and voiceFacetStyles.test.ts, which pins
+// the section's copy independently of this one.
+
+.voice-pop__facets {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid vars.$border-subtle;
+}
+
+.voice-pop__facet {
+  flex: 1 1 30%;
+  min-width: 0;
+  padding: 4px 22px 4px 8px;
+  font-size: 12px;
+  background-position: right 7px center;
+  background-size: 10px;
+}
+
+.voice-pop__clear {
+  flex: none;
+  padding: 2px 0;
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  color: vars.$color-primary;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
+
+.voice-pop__grid {
+  overflow-y: auto;
+}
+
+.voice-pop__group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  padding: 6px 9px 4px;
+  font-size: 12px;
+  color: vars.$text-secondary;
+  background: vars.$bg-surface;
+}
+
+.voice-pop__count {
+  font-size: 11px;
+  color: vars.$text-muted;
+}
+
+.voice-pop__count-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-pop__refresh {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  color: vars.$text-secondary;
+  border: none;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: vars.$text-primary; }
+  &:disabled { cursor: not-allowed; opacity: 0.5; }
+}
+
+.voice-pop__empty {
+  padding: 10px 9px;
+  font-size: 12px;
+  color: vars.$text-muted;
+}
+
+// ---- rows -------------------------------------------------------------------
+
+.voice-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+
+  &:hover { background: rgba(255, 255, 255, 0.04); }
+}
+
+.voice-row.is-selected {
+  box-shadow: inset 2px 0 0 vars.$color-primary;
+  background: rgba(vars.$color-primary, 0.12);
+}
+
+.voice-row__pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:disabled { cursor: not-allowed; opacity: 0.6; }
+}
+
+.voice-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: vars.$text-primary;
+}
+
+.voice-row__sub {
+  font-size: 11px;
+  color: vars.$text-muted;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-row__btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: transparent;
+  color: vars.$text-secondary;
+  border: 1px solid vars.$border-strong;
+  border-radius: vars.$radius-sm;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: vars.$text-primary; border-color: vars.$text-secondary; }
+  &:disabled { cursor: not-allowed; }
+  // Dim on disabled EXCEPT while showing the loading spinner — mirrors
+  // .voice-row-btn in VoiceLibrarySection.scss: opacity is a group
+  // compositing effect, so a descendant rule cannot cancel an ancestor's
+  // reduced opacity. Skipping the dim outright is what keeps the spinner
+  // legible.
+  &:disabled:not(:has(.voice-row__spinner)) { opacity: 0.4; }
+
+  &--danger:hover:not(:disabled) {
+    color: #fff;
+    background: vars.$color-error;
+    border-color: vars.$color-error;
+  }
+}
+
+.voice-row__add {
+  color: vars.$color-primary;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
+
+.voice-row__edit {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  font-size: 13px;
+  color: vars.$text-primary;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid vars.$color-primary;
+  border-radius: vars.$radius-sm;
+}
+
+.voice-row__spinner {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  border: 2px solid transparent;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: voice-preview-spin 0.8s linear infinite;
+}
+
+// Local keyframes with a unique name, duplicated deliberately from
+// VoiceLibrarySection.scss (see that file's own copy for why): this
+// stylesheet must not depend on another file's @keyframes placement, and a
+// duplicate definition is harmless — both compile to identical, independent
+// CSS.
+@keyframes voice-preview-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

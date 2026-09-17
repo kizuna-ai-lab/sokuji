@@ -42,3 +42,21 @@ describe('facet filter bar styling', () => {
     expect(css).toMatch(/\.voice-facet-bar\s*\{[^}]*\bmargin/);
   });
 });
+
+const pickerCss = compile(resolve(__dirname, 'VoicePicker.scss')).css;
+
+describe('voice picker styling', () => {
+  it.each([
+    'voice-picker',
+    'voice-picker__trigger',
+    'voice-pop',
+    'voice-pop__facets',
+    'voice-pop__grid',
+    'voice-row',
+    'voice-row__pick',
+    'voice-row__btn',
+    'voice-row__add',
+  ])('styles .%s where the element lives', (cls) => {
+    expect(pickerCss).toMatch(styled(cls));
+  });
+});

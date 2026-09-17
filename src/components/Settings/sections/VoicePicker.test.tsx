@@ -1,0 +1,178 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, cleanup, within, fireEvent } from '@testing-library/react';
+import VoicePicker from './VoicePicker';
+
+// This suite drives interactions with `fireEvent`, not `@testing-library/user-event`:
+// the latter is not a dependency of this project (not in package.json, not in
+// node_modules, and nothing else in the codebase imports it — every other
+// Settings/MainPanel test, e.g. ExportButton.test.tsx, uses `fireEvent`). Adding
+// it would mean editing root package.json/package-lock.json, outside this
+// task's file list. Every assertion below is the same one the design called
+// for; only the interaction-simulation mechanism changed.
+
+const base = {
+  selectedId: 'builtin:Grace',
+  onSelect: vi.fn(),
+  onAskDelete: vi.fn(),
+  playingId: null,
+  loadingId: null,
+  capability: { importModes: [] as ('upload' | 'record')[] },
+};
+
+const GRACE = {
+  id: 'builtin:Grace', label: 'Grace', group: 'builtin' as const, removable: false, previewable: true,
+  meta: { facets: { gender: 'female', style: ['calm', 'soft'], description: 'Unhurried American guide voice.' } },
+};
+const ALEX = { id: 'builtin:Alex', label: 'Alex', group: 'builtin' as const, removable: false };
+const MINE = { id: 'custom:1', label: 'Mine', group: 'custom' as const, removable: true };
+
+beforeEach(() => { vi.clearAllMocks(); cleanup(); });
+
+describe('VoicePicker', () => {
+  it('shows the selected voice on the trigger and no rows until it is opened', () => {
+    render(<VoicePicker {...base} voices={[GRACE, ALEX]} />);
+    expect(screen.getByRole('button', { expanded: false })).toHaveTextContent('Grace');
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+  });
+
+  it('opens on click and renders name plus facets for a preset (R2) and a marker for a clone', () => {
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    // The floating wrapper must carry role="dialog", not just the inner
+    // role="grid": Settings' PanelBar keeps a document-level Escape listener
+    // that collapses the whole settings panel unless isVisibleDialogOpen()
+    // finds a role="dialog" ancestor. useDismiss's Escape handler stops
+    // propagation but never calls preventDefault, so without this role a
+    // single Escape would close this popover AND collapse the panel behind
+    // it. Pinned here so a refactor that drops the role fails loudly.
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    const grid = screen.getByRole('grid');
+    expect(within(grid).getByText(/female · calm · soft/)).toBeInTheDocument();
+    expect(within(grid).getByText('Grace')).toBeInTheDocument();
+    expect(within(grid).getByText('Mine')).toBeInTheDocument();
+  });
+
+  it('renders a play control only where onPreview and previewable and not disabled all hold', () => {
+    render(
+      <VoicePicker
+        {...base}
+        voices={[GRACE, ALEX, MINE, { ...MINE, id: 'custom:2', label: 'Busy', disabled: true }]}
+        onPreview={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    // Grace (opted in) and Mine (clone default) — not Alex, not the disabled clone.
+    expect(screen.getAllByRole('button', { name: /play/i })).toHaveLength(2);
+  });
+
+  it('selects and closes on the name, and does neither on play', () => {
+    const onSelect = vi.fn();
+    const onPreview = vi.fn().mockResolvedValue(null);
+    render(<VoicePicker {...base} voices={[GRACE, ALEX]} onSelect={onSelect} onPreview={onPreview} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+
+    fireEvent.click(screen.getAllByRole('button', { name: /play/i })[0]);
+    expect(onPreview).toHaveBeenCalledWith('builtin:Grace', expect.anything());
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('grid')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('gridcell', { name: 'Alex' }));
+    expect(onSelect).toHaveBeenCalledWith('builtin:Alex');
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+  });
+
+  it('shows a spinner on the row being synthesized and a replay icon once it has played', () => {
+    const { rerender } = render(<VoicePicker {...base} voices={[GRACE]} onPreview={vi.fn()} loadingId="builtin:Grace" />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getByRole('button', { name: /synthesiz/i })).toBeDisabled();
+    rerender(<VoicePicker {...base} voices={[GRACE]} onPreview={vi.fn()} playingId="builtin:Grace" />);
+    expect(screen.getByRole('button', { name: /stop/i })).toBeInTheDocument();
+  });
+
+  it('disables every play control with the given reason', () => {
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} onPreview={vi.fn()} previewUnavailableReason="Stop the session to preview this voice." />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const buttons = screen.getAllByRole('button', { name: 'Stop the session to preview this voice.' });
+    expect(buttons).toHaveLength(2);
+    buttons.forEach((b) => expect(b).toBeDisabled());
+  });
+
+  it('renames a clone in place and never offers rename or delete on a preset', () => {
+    const onRename = vi.fn().mockResolvedValue(undefined);
+    const onAskDelete = vi.fn();
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} onRename={onRename} onAskDelete={onAskDelete} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getAllByRole('button', { name: /rename/i })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /delete/i })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /rename/i }));
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'Renamed' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(onRename).toHaveBeenCalledWith('custom:1', 'Renamed');
+  });
+
+  it('asks the parent to delete rather than deleting or confirming itself', () => {
+    const onAskDelete = vi.fn();
+    render(<VoicePicker {...base} voices={[MINE]} onAskDelete={onAskDelete} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }));
+    expect(onAskDelete).toHaveBeenCalledWith('custom:1', 'Mine');
+  });
+
+  it('offers the add row only when a parent handed it a handler', () => {
+    const onAddVoice = vi.fn();
+    const { rerender } = render(<VoicePicker {...base} voices={[GRACE]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.queryByRole('button', { name: /add a voice/i })).not.toBeInTheDocument();
+
+    rerender(<VoicePicker {...base} voices={[GRACE]} onAddVoice={onAddVoice} />);
+    fireEvent.click(screen.getByRole('button', { name: /add a voice/i }));
+    expect(onAddVoice).toHaveBeenCalledTimes(1);
+  });
+
+  it('narrows presets by facet without touching clones, and counts what it shows', () => {
+    // selectedId is overridden to Alex (not base's Grace) so this case stays
+    // about facet narrowing alone: the very next test pins the "selected
+    // preset survives its own filter" rule, and with base's selectedId
+    // (Grace) the two rules would contradict on identical inputs — Grace
+    // would need to be both hidden (this test, filtered out) and shown (next
+    // test, same filter, same voice, kept only for being selected).
+    render(
+      <VoicePicker
+        {...base}
+        selectedId="builtin:Alex"
+        voices={[GRACE, { ...ALEX, meta: { facets: { gender: 'male' } } }, MINE]}
+        capability={{ importModes: [], facetFilter: true }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.change(screen.getByLabelText(/gender/i), { target: { value: 'male' } });
+    const grid = screen.getByRole('grid');
+    expect(within(grid).queryByText('Grace')).not.toBeInTheDocument();
+    expect(within(grid).getByText('Alex')).toBeInTheDocument();
+    expect(within(grid).getByText('Mine')).toBeInTheDocument();     // clones never filtered
+    expect(within(grid).getByText('1 of 2')).toBeInTheDocument();
+  });
+
+  it('keeps the selected preset listed even when the filter excludes it', () => {
+    render(
+      <VoicePicker
+        {...base}
+        voices={[GRACE, { ...ALEX, meta: { facets: { gender: 'male' } } }]}
+        capability={{ importModes: [], facetFilter: true }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.change(screen.getByLabelText(/gender/i), { target: { value: 'male' } });
+    expect(within(screen.getByRole('grid')).getByText('Grace')).toBeInTheDocument();
+  });
+
+  it('disables selection while a session is active but still allows auditioning', () => {
+    const onSelect = vi.fn();
+    render(<VoicePicker {...base} voices={[GRACE]} onSelect={onSelect} onPreview={vi.fn()} isSessionActive />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getByRole('gridcell', { name: 'Grace' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /play/i })).toBeEnabled();
+  });
+});
