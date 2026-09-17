@@ -49,6 +49,7 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 const {
   default: useSettingsStore,
   useTransportType,
+  clampChunkSentences,
 } = await import('./settingsStore');
 
 describe('settingsStore', () => {
@@ -365,6 +366,81 @@ describe('settingsStore', () => {
       await useSettingsStore.getState().setKeepReplayAudio(true);
       // State must roll back to the previous value.
       expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
+    });
+  });
+
+  describe('clampChunkSentences', () => {
+    it.each([
+      [1, 1], [3, 3], [5, 5],
+      [0, 1], [-4, 1], [6, 5], [99, 5],
+      [2.4, 2], [2.6, 3],
+      ['3', 3], [null, 3], [undefined, 3], [NaN, 3], ['abc', 3],
+    ])('clamps %s to %i', (input, expected) => {
+      expect(clampChunkSentences(input)).toBe(expected);
+    });
+  });
+
+  describe('sentenceSegmentation', () => {
+    it('defaults to on', async () => {
+      useSettingsStore.setState({ sentenceSegmentation: false });
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().sentenceSegmentation).toBe(true);
+    });
+
+    it('persists a change', async () => {
+      mockSetSetting.mockResolvedValueOnce(undefined);
+      await useSettingsStore.getState().setSentenceSegmentation(false);
+      expect(useSettingsStore.getState().sentenceSegmentation).toBe(false);
+      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.sentenceSegmentation', false);
+    });
+
+    it('rolls back when persistence fails', async () => {
+      useSettingsStore.setState({ sentenceSegmentation: true });
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setSentenceSegmentation(false);
+      expect(useSettingsStore.getState().sentenceSegmentation).toBe(true);
+    });
+  });
+
+  describe('sentenceSegmentationChunkSentences', () => {
+    it('defaults to 3', async () => {
+      useSettingsStore.setState({ sentenceSegmentationChunkSentences: 5 });
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(3);
+    });
+
+    it('clamps a stored value that is out of range', async () => {
+      mockGetSetting.mockImplementation(async (key: string, fallback: unknown) =>
+        key === 'settings.common.sentenceSegmentationChunkSentences' ? 42 : fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(5);
+    });
+
+    it('persists a change and clamps before writing', async () => {
+      mockSetSetting.mockResolvedValueOnce(undefined);
+      await useSettingsStore.getState().setSentenceSegmentationChunkSentences(9);
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(5);
+      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.sentenceSegmentationChunkSentences', 5);
+    });
+
+    it('rolls back when persistence fails', async () => {
+      useSettingsStore.setState({ sentenceSegmentationChunkSentences: 3 });
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setSentenceSegmentationChunkSentences(1);
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(3);
+    });
+  });
+
+  describe('sentenceSegmentationNoticeShown', () => {
+    it('defaults to false and is written once, fire and forget', async () => {
+      useSettingsStore.setState({ sentenceSegmentationNoticeShown: false });
+      mockSetSetting.mockResolvedValue(undefined);
+      useSettingsStore.getState().markSentenceSegmentationNoticeShown();
+      expect(useSettingsStore.getState().sentenceSegmentationNoticeShown).toBe(true);
+      useSettingsStore.getState().markSentenceSegmentationNoticeShown();
+      expect(mockSetSetting).toHaveBeenCalledTimes(1);
     });
   });
 
