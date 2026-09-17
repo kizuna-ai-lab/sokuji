@@ -422,6 +422,48 @@ describe('LocalInferenceClient sentence segmentation', () => {
     ]);
   });
 
+  it('a final that overlaps (is a raw prefix of) the already-sealed text closes the bubble without a second job', async () => {
+    // A seal requires >=8 skeleton characters of right context, so the
+    // partial that triggered it always extended well past the cursor. A
+    // canonical re-decode that drops that retracted tail can land at or
+    // below the cursor while still being an exact prefix of the SAME
+    // utterance — unlike the unrelated 'Hi.' case above, this must NOT be
+    // treated as a fresh, different utterance: doing so would seal and
+    // translate (and, with TTS on, speak) "First sentence done." a second
+    // time.
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
+    const runtime = fakeRuntime(true);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 1 });
+    client.setEventHandlers({});
+    await client.connect(STREAM_CONFIG);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+    const engine = hoisted.streamingInstances[0];
+
+    // Seals "First sentence done." — sealedChars becomes 20; the open bubble
+    // holds the unconfirmed remainder " Second begins".
+    engine.onPartialResult('First sentence done. Second begins');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const sealedChars = (client as any).sealedChars as number;
+    expect(sealedChars).toBe('First sentence done.'.length);
+
+    // The final is an exact prefix of the raw text already seen — a
+    // truncated re-decode of the SAME utterance, not new content.
+    const overlappingFinal = 'First sentence done.';
+    expect(overlappingFinal.length).toBe(sealedChars); // <= sealedChars, so the naive slice would be ''
+    engine.onResult({ text: overlappingFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // No second job: the confirmed content was already fully captured by the
+    // first seal.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    // The dangling bubble is closed out (not left in_progress forever), but
+    // without ever being translated a second time.
+    const finalUserItems = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.length).toBe(2);
+    expect(finalUserItems.every((i) => i.status === 'completed')).toBe(true);
+  });
+
   it('a seal completes the in-progress item rather than creating a second in-progress one', async () => {
     setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
     const runtime = fakeRuntime(true);
