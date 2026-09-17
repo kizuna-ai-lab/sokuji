@@ -174,6 +174,11 @@ Above `defaultCommonSettings`:
  * the clamp sits on the read and on the write rather than in the picker.
  */
 export function clampChunkSentences(value: unknown): number {
+  // `null` means the setting is absent, so it takes the default like
+  // `undefined` does. Without this line it would fall through to
+  // `Number(null) === 0` and clamp up to 1, silently halving the smallest
+  // bubble for anyone whose stored value went missing.
+  if (value === null || value === undefined) return 3;
   const n = Math.round(Number(value));
   if (!Number.isFinite(n)) return 3;
   return Math.min(5, Math.max(1, n));
@@ -264,8 +269,12 @@ export const useMarkSentenceSegmentationNoticeShown = () => useSettingsStore((st
 
 - [ ] **Step 7: Run the tests and the typecheck**
 
-Run: `npm run test -- src/stores/settingsStore.test.ts && npx tsc --noEmit`
+Run: `npm run test -- src/stores/settingsStore.test.ts`
 Expected: PASS.
+
+Then run `npx tsc --noEmit` on its own — **not** chained with `&&`, because it
+exits non-zero on the 319-error baseline and would mask the test result.
+Expected: it still reports 319 errors and names none of the files you touched.
 
 - [ ] **Step 8: Commit**
 
@@ -409,7 +418,10 @@ export const useSegmentationModelState = (model: PunctuationModelId) =>
 
 - [ ] **Step 3: Run the tests and the typecheck, then commit**
 
-Run: `npm run test -- src/stores/segmentationStore.test.ts && npx tsc --noEmit`
+Run: `npm run test -- src/stores/segmentationStore.test.ts`, then `npx tsc --noEmit`
+separately — chaining with `&&` hides the test result, because `tsc` exits
+non-zero on the 319-error baseline. Expected: tests pass, and `tsc` still reports
+319 errors naming none of your files.
 
 ```bash
 git add src/stores/segmentationStore.ts src/stores/segmentationStore.test.ts
@@ -493,8 +505,8 @@ export function useSegmentationRuntime(): SegmentationRuntime {
 
 - [ ] **Step 3: Run the tests, the typecheck and the console ledger**
 
-Run: `npm run test -- src/hooks/useSegmentationRuntime.test.ts src/lib/diagnostics/consoleLedger.consistency.test.ts && npx tsc --noEmit`
-Expected: PASS. `src/hooks/` is not under the ledger's scanned roots (`src/stores`, `src/services`, `src/contexts`, `src/components`, `src/lib`, `shared`), but keep it console-free anyway.
+Run: `npm run test -- src/hooks/useSegmentationRuntime.test.ts src/lib/diagnostics/consoleLedger.consistency.test.ts`, then `npx tsc --noEmit` on its own — chaining with `&&` hides the test result, because `tsc` exits non-zero on the 319-error baseline.
+Expected: tests PASS, and `tsc` still reports 319 errors naming none of your files. `src/hooks/` is not under the ledger's scanned roots (`src/stores`, `src/services`, `src/contexts`, `src/components`, `src/lib`, `shared`), but keep it console-free anyway.
 
 - [ ] **Step 4: Commit**
 
@@ -652,8 +664,8 @@ The key must equal the DOM id minus `-section`, because both `Settings.tsx:104` 
 
 - [ ] **Step 5: Run the placement tests**
 
-Run: `npm run test -- src/components/Settings/SimpleSettings/SimpleSettings.order.test.tsx src/components/Settings/sections/HelpSection.test.tsx && npx tsc --noEmit`
-Expected: PASS. `SimpleSettings.order.test.tsx` asserts `expect(help).toBe(ids.length - 1)`, so `HelpSection` must stay last — inserting after `LanguageSection` keeps that true. If either suite throws on a missing hook, add the new hooks to its `vi.mock` block (`HelpSection.test.tsx:18-22` mocks the settings store wholesale).
+Run: `npm run test -- src/components/Settings/SimpleSettings/SimpleSettings.order.test.tsx src/components/Settings/sections/HelpSection.test.tsx`, then `npx tsc --noEmit` on its own — chaining with `&&` hides the test result, because `tsc` exits non-zero on the 319-error baseline.
+Expected: tests PASS, and `tsc` still reports 319 errors naming none of your files. `SimpleSettings.order.test.tsx` asserts `expect(help).toBe(ids.length - 1)`, so `HelpSection` must stay last — inserting after `LanguageSection` keeps that true. If either suite throws on a missing hook, add the new hooks to its `vi.mock` block (`HelpSection.test.tsx:18-22` mocks the settings store wholesale).
 
 - [ ] **Step 6: Commit**
 
@@ -718,5 +730,11 @@ git commit -m "i18n(segmentation): add the Sentence segmentation section strings
 - The section renders in both modes after the language picker, and the deep link reaches it.
 - The switch and the 1–5 control persist, roll back on a failed write, and lock during a session.
 - The three model rows show size, status and the right actions, and mark the ones the current language pair needs.
-- `npm run test` is green, including the locale and section-order consistency tests, and `npx tsc --noEmit` is clean.
+- `npm run test` is green — including the locale and section-order consistency
+  tests — apart from the three `hfRevision` assertions in
+  `modelManifest.punctuation.test.ts`, which fail by design until the three
+  Hugging Face repositories are published, an outward action needing jiangzhuo's
+  explicit per-repository confirmation.
+- `npx tsc --noEmit` adds no errors to the pre-existing baseline of 319 across
+  154 files. The bar is zero contribution, not a clean run.
 - Nothing is segmented yet: no client has a runtime. Slice 3 wires the local ones.
