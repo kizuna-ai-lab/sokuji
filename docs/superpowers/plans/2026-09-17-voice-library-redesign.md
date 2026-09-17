@@ -17,10 +17,10 @@
 - **Error handling policy** (`CLAUDE.md`): never add `console.error` / `console.warn` to `src/components`; existing `console.warn` calls that MOVE with code keep their exact text and count (`src/lib/diagnostics/consoleLedger.consistency.test.ts` pins per-file counts — moving a call between files means updating that ledger in the same commit).
 - **`previewable` semantics** (spec §4.1): the component renders ▶ iff `onPreview && entry.previewable && !entry.disabled`. Absent = inherit the group default: `custom` → true, `builtin` → false.
 - **Removed capability fields** (spec §2.7, §4.2): `presentation` and `curation` disappear from `VoiceLibraryCapability`; so do `renderRow`, the show-all expander, `showAll`/`showFewer` copy, and `supportsBaseSelect` usage *in this component* (`ProviderSection` keeps its own).
-- **Retired copy** (spec §8): `voiceLibrary.showAll`, `voiceLibrary.showFewer`, `voiceLibrary.manageImported`, `voiceLibrary.deleteConfirm`. **New copy**: `addVoice`, `addVoiceTitle`, `deleteTitle`, `deleteBody`, `cancel`, `previewFailed`, `filterCount` — added to **all 30** catalogs under `src/locales/<lang>/translation.json`, because `src/locales/locales.consistency.test.ts` asserts every catalog's flattened key set equals `en`'s exactly, with matching `{placeholders}` and no empty strings.
-- **Keyboard contract** (spec §7): popover is `role="grid"`, rows are `role="row"`, controls are `role="gridcell"`; `↑`/`↓` move rows, `←`/`→` move within a row, `Home`/`End` jump, letters type-ahead, `Enter` selects + closes, `Esc` closes and returns focus to the trigger, outside click dismisses. Positioning and dismissal reuse `@floating-ui/react` (`useFloating` + `useDismiss`) the way `ModeDevicePopover` does; the grid navigation and type-ahead are new code.
+- **Retired copy** (spec §8): `voiceLibrary.showAll`, `voiceLibrary.showFewer`, `voiceLibrary.manageImported`, `voiceLibrary.deleteConfirm`. Of those four, only `manageImported` (`VoiceLibrarySection.tsx:861`) and `deleteConfirm` (`:377`) are still read by any code; `showAll`/`showFewer` are already dead keys, so retiring them touches no rendering at all. **New copy** — SIX keys, not seven: `addVoice`, `addVoiceTitle`, `deleteTitle`, `deleteBody`, `previewFailed`, `filterCount`. There is deliberately no `voiceLibrary.cancel`: `common.cancel` already exists, and both modal siblings in this very directory render it as `t('common.cancel', 'Cancel')` (`ModelImportModal.tsx:343`, `SonioxCloneConfirmModal.tsx:223`) — Tasks 5 and 6 do the same. All six are added to **all 30** catalogs under `src/locales/<lang>/translation.json`, because `src/locales/locales.consistency.test.ts` asserts every catalog's flattened key set equals `en`'s exactly, with matching `{placeholders}` and no empty strings.
+- **Keyboard contract** (spec §7): popover is `role="grid"`, rows are `role="row"`, controls are `role="gridcell"`; `↑`/`↓` move rows, `←`/`→` move within a row, `Home`/`End` jump, letters type-ahead, `Enter` selects + closes, `Esc` closes and returns focus to the trigger, outside click dismisses. Positioning and dismissal reuse `@floating-ui/react` the way `ModeDevicePopover` does — and that means ALL of what it does: `useFloating` + `useDismiss` **inside a `FloatingPortal`** (`ModeDevicePopover.tsx:234`). The portal is not optional here: `Settings.scss` sets `overflow: hidden` on the panel (lines 10, 15) and `overflow-y: auto` on the scrolling body, so an in-place popover is clipped by the panel and scrolls away from its trigger. Task 3 therefore also uses `strategy: 'fixed'` and wraps the floating element in `FloatingFocusManager` (`returnFocus`), which is what makes `Esc` return focus to the trigger — so no task hand-rolls an Escape branch (`useDismiss`'s `escapeKey` defaults to true). The installed version is 0.27.19 and types `AriaRole` as `'tooltip'|'dialog'|'alertdialog'|'menu'|'listbox'|'grid'|'tree'`, so `useRole(context, { role: 'grid' })` is available. The two-axis grid navigation and type-ahead are new code: floating-ui's `useListNavigation` (used by `ExportButton.tsx` for its one-cell-per-row menu) models a uniform grid via `cols`, and these rows are ragged — 2 cells for a preset, 4 for a clone.
 - **Modal precedent**: both modals mirror `ModelImportModal` — a fixed overlay that closes on backdrop click, an inner `role="dialog" aria-modal="true"` with `onClick={(e) => e.stopPropagation()}`, an Escape listener, and a `&__x` close button.
-- **Client gates**, run from the worktree root before each commit: `npx vitest run src/components/Settings/sections/` green; `npx tsc --noEmit 2>&1 | grep -E "VoicePicker|VoiceCreateModal|VoiceDeleteModal|VoiceLibrarySection|SonioxVoiceSection|NativeVoiceSection|LocalInferenceVoiceSection|VoiceLibrary"` prints nothing (the repo carries ~313 pre-existing `tsc` errors elsewhere — ignore those); `npx vitest run src/locales/locales.consistency.test.ts src/lib/diagnostics/consoleLedger.consistency.test.ts` green.
+- **Client gates**, run from the worktree root before each commit: `npx vitest run src/components/Settings/sections/` green; `npx tsc --noEmit 2>&1 | grep -E "VoicePicker|VoiceCreateModal|VoiceDeleteModal|VoiceLibrarySection|SonioxVoiceSection|NativeVoiceSection|LocalInferenceVoiceSection|VoiceLibrary"` adds NO LINE that was not already there. It does not print nothing, and expecting that is wrong: at Task 1's commit this grep already prints **10** pre-existing lines — 9 in `SonioxVoiceSection.test.tsx` (an unused import, `Element` narrowing, mock prop-shape mismatches) and 1 at `VoiceLibrarySection.tsx:190` (a `Float32Array<ArrayBufferLike>` vs `<ArrayBuffer>` generic mismatch). The gate is therefore a DIFF against that baseline: capture the grep's output before you start, compare after, and report any line your task added. Fixing the 10 is out of scope. (The repo also carries ~313 `tsc` errors outside this filter — ignore those entirely.); `npx vitest run src/locales/locales.consistency.test.ts src/lib/diagnostics/consoleLedger.consistency.test.ts` green.
 - **Conventional commits**, one per task unless a task says otherwise. Do not push: the branch is PR #542 and the user pushes when the whole feature is done.
 - **Baseline at plan time**: `VoiceLibrarySection.tsx` 948 lines, `VoiceLibrarySection.scss` 399 lines; suites `VoiceLibrarySection.test.tsx` 18, `…facets.test.tsx` 17, `…optgroupLabel.test.tsx` 2, `SonioxVoiceSection.test.tsx` 61, `NativeVoiceSection.test.tsx` 21, `LocalInferenceVoiceSection.test.tsx` 4; `src/components/Settings/sections/` as a directory 413 tests.
 
@@ -68,6 +68,8 @@
 ## Task 1: Capability shrinks and every entry declares auditionability
 
 **Files:**
+- Create: `src/lib/voiceLibrary/voicePreviewable.ts`
+- Create: `src/lib/voiceLibrary/voicePreviewable.test.ts`
 - Modify: `src/types/VoiceLibrary.ts` (`VoiceLibraryCapability`)
 - Modify: `src/components/Settings/sections/VoiceLibrarySection.tsx` (`VoiceEntry`, the `isDropdown`/`curation` reads)
 - Modify: `src/components/Settings/sections/SonioxVoiceSection.tsx:846-860`, `src/components/Settings/sections/LocalInferenceVoiceSection.tsx:88`, `src/components/Settings/sections/NativeVoiceSection.tsx:87-89`, `src/lib/local-inference/native/nativeVoiceStores.ts:148-153`
@@ -84,32 +86,46 @@ constants (`const isDropdown = true;`) with a comment pointing at Task 6.
 
 - [ ] **Step 1: Write the failing test**
 
-In `src/components/Settings/sections/VoiceLibrarySection.test.tsx`, add to the top-level `describe`:
+Create `src/lib/voiceLibrary/voicePreviewable.test.ts`:
 
-```tsx
-  it('renders a preview control only for entries that declare themselves auditionable', () => {
-    const onPreview = vi.fn().mockResolvedValue(null);
-    render(
-      <VoiceLibrarySection
-        {...base}
-        voices={[
-          { id: 'builtin:Grace', label: 'Grace', group: 'builtin', removable: false, previewable: true },
-          { id: 'builtin:Alex', label: 'Alex', group: 'builtin', removable: false },
-          { id: 'custom:1', label: 'Mine', group: 'custom', removable: true },
-        ]}
-        capability={{ importModes: [] }}
-        onPreview={onPreview}
-      />,
-    );
-    // A preset that opted in, and a clone (which inherits true), each get one.
-    expect(screen.getAllByRole('button', { name: /play/i })).toHaveLength(2);
+```ts
+import { describe, it, expect } from 'vitest';
+import { canAuditionVoice } from './voicePreviewable';
+
+describe('canAuditionVoice', () => {
+  it('lets a clone audition by default — a clip or a cloned voice stands behind it', () => {
+    expect(canAuditionVoice({ group: 'custom' })).toBe(true);
   });
+
+  it('refuses a preset by default — most providers publish no way to synthesize one', () => {
+    expect(canAuditionVoice({ group: 'builtin' })).toBe(false);
+  });
+
+  it('honours an explicit flag in both directions', () => {
+    expect(canAuditionVoice({ group: 'builtin', previewable: true })).toBe(true);
+    expect(canAuditionVoice({ group: 'custom', previewable: false })).toBe(false);
+  });
+
+  it('refuses a disabled entry whatever it declares — nothing playable stands behind it', () => {
+    expect(canAuditionVoice({ group: 'custom', disabled: true })).toBe(false);
+    expect(canAuditionVoice({ group: 'builtin', previewable: true, disabled: true })).toBe(false);
+  });
+});
 ```
+
+Why a pure helper and not a rendering assertion here: in the CURRENT UI a ▶
+renders only inside the manage list, which by definition lists removable
+voices — so a preset cannot show one until `VoicePicker` exists (Task 3, whose
+suite has exactly that rendering case). Widening the manage list now would put
+a ▶ on all 200 Soniox presets in a surface Task 6 deletes, and it breaks 14 of
+21 `NativeVoiceSection` cases and 26 of 61 `SonioxVoiceSection` cases on
+duplicate-text queries. The helper is also what keeps the default rule in ONE
+place: Task 3's picker imports it rather than restating it.
 
 - [ ] **Step 2: Run it and watch it fail**
 
-Run: `npx vitest run src/components/Settings/sections/VoiceLibrarySection.test.tsx -t "declare themselves auditionable"`
-Expected: FAIL — TypeScript rejects `previewable` (not a field of `VoiceEntry`) and `capability={{ importModes: [] }}` (missing `curation`), and at runtime only one Play button renders (the clone's), so `toHaveLength(2)` receives 1.
+Run: `npx vitest run src/lib/voiceLibrary/voicePreviewable.test.ts`
+Expected: FAIL at import — `Failed to resolve import "./voicePreviewable"`.
 
 - [ ] **Step 3: Add the field and shrink the capability**
 
@@ -129,16 +145,45 @@ In `src/components/Settings/sections/VoiceLibrarySection.tsx`, add to `VoiceEntr
   previewable?: boolean;
 ```
 
-Add the resolver next to `renderPreviewButton` and use it in that function's guard:
+Create `src/lib/voiceLibrary/voicePreviewable.ts` — the default rule, in one
+place, so the section and (Task 3) the picker cannot drift apart:
 
 ```ts
-  /** `previewable`, with the group default applied. */
-  const canAudition = (v: VoiceEntry) => v.previewable ?? v.group === 'custom';
+/**
+ * Whether a voice can be auditioned.
+ *
+ * `previewable` absent means "inherit the group default": a cloned voice can
+ * (a clip or a cloned voice stands behind it), a preset cannot (most providers
+ * publish no way to synthesize one). A provider whose presets ARE auditionable
+ * sets the flag on those entries — Soniox, whose preset id is the TTS
+ * request's `voice` field, and Local Native, which synthesizes a preset on its
+ * dedicated preview connection. A disabled entry never auditions: a clone
+ * still processing or a "(deleted voice)" placeholder has nothing playable
+ * behind it.
+ *
+ * Takes the fields it reads rather than a whole `VoiceEntry` so it stays a
+ * pure function with no dependency on the component module.
+ */
+export function canAuditionVoice(v: {
+  group: 'builtin' | 'custom';
+  previewable?: boolean;
+  disabled?: boolean;
+}): boolean {
+  if (v.disabled) return false;
+  return v.previewable ?? v.group === 'custom';
+}
 ```
 
+Import it in `VoiceLibrarySection.tsx` and use it in `renderPreviewButton`'s
+guard, replacing the `v.removable` test:
+
 ```ts
-    if (!onPreview || !canAudition(v) || v.disabled) return null;
+    if (!onPreview || !canAuditionVoice(v)) return null;
 ```
+
+This changes no rendering today: the only rows that exist are the manage
+list's, which are removable and therefore auditionable under the same rule.
+Presets get their ▶ when `VoicePicker` renders them (Task 3).
 
 Replace the two removed capability reads:
 
@@ -201,7 +246,7 @@ git commit -m "feat(voice): entries declare auditionability; drop the dead prese
 - Test: `src/locales/locales.consistency.test.ts` (existing; it is the gate, not a new test)
 
 **Interfaces:**
-- Produces: `voiceLibrary.addVoice`, `.addVoiceTitle`, `.deleteTitle`, `.deleteBody` (`{name}`), `.cancel`, `.previewFailed`, `.filterCount` (`{shown}`, `{total}`). Tasks 3, 4, 5, 6 and 7 use these keys.
+- Produces: SIX keys — `voiceLibrary.addVoice`, `.addVoiceTitle`, `.deleteTitle`, `.deleteBody` (`{name}`), `.previewFailed`, `.filterCount` (`{shown}`, `{total}`). There is deliberately NO `.cancel`: `common.cancel` already exists in every catalog and Tasks 5 and 6 render that instead (`ModelImportModal.tsx:343` and `SonioxCloneConfirmModal.tsx:223` are the precedents). Tasks 3, 5, 6, 7 and 8 read these keys; Task 4 is keyboard-only and reads none.
 
 Copy lands before the UI that reads it so no task has to ship an untranslated
 string. The retired keys go in the same commit: leaving them would leave the
@@ -212,7 +257,7 @@ string. The retired keys go in the same commit: leaving them would leave the
 Run: `npx vitest run src/locales/locales.consistency.test.ts`
 Expected: PASS. This is the baseline — it must be green before you start so a failure later is unambiguously yours.
 
-- [ ] **Step 2: Add the seven keys to `en`, remove the four retired ones**
+- [ ] **Step 2: Add the six keys to `en`, remove the four retired ones**
 
 In `src/locales/en/translation.json`, inside `"voiceLibrary"`, add:
 
@@ -221,7 +266,6 @@ In `src/locales/en/translation.json`, inside `"voiceLibrary"`, add:
     "addVoiceTitle": "Add a voice",
     "deleteTitle": "Delete voice",
     "deleteBody": "Delete \"{name}\"? This also removes the reference recording stored on this device.",
-    "cancel": "Cancel",
     "previewFailed": "Could not synthesize a preview for this voice.",
     "filterCount": "{shown} of {total}",
 ```
@@ -245,11 +289,10 @@ Chinese (both), Korean and German strings, for reference:
 | `addVoiceTitle` | `音声を追加` | `添加声音` | `新增聲音` | `음성 추가` | `Stimme hinzufügen` |
 | `deleteTitle` | `音声を削除` | `删除声音` | `刪除聲音` | `음성 삭제` | `Stimme löschen` |
 | `deleteBody` | `「{name}」を削除しますか？この端末に保存された参照音声も削除されます。` | `删除「{name}」？这台设备上保存的参考录音也会被删除。` | `刪除「{name}」？這台裝置上儲存的參考錄音也會被刪除。` | `"{name}"을(를) 삭제하시겠습니까? 이 기기에 저장된 참조 녹음도 삭제됩니다.` | `„{name}" löschen? Die auf diesem Gerät gespeicherte Referenzaufnahme wird ebenfalls gelöscht.` |
-| `cancel` | `キャンセル` | `取消` | `取消` | `취소` | `Abbrechen` |
 | `previewFailed` | `この音声のプレビューを合成できませんでした。` | `无法为这个声音合成试听。` | `無法為這個聲音合成試聽。` | `이 음성의 미리 듣기를 합성할 수 없습니다.` | `Für diese Stimme konnte keine Hörprobe erzeugt werden.` |
 | `filterCount` | `{total} 件中 {shown} 件` | `{total} 个中的 {shown} 个` | `{total} 個中的 {shown} 個` | `{total}개 중 {shown}개` | `{shown} von {total}` |
 
-For the remaining 25 languages (ar, bn, es, fa, fi, fr, he, hi, hu, id, it, ms, nl, no, pl, pt_BR, pt_PT, ro, ru, sv, th, tr, uk, vi, and any other directory present), write the same seven strings in that language, keeping the placeholders and the `…` ellipsis character. Remove the four retired keys from every catalog.
+For the remaining **24** languages, write the same **six** strings in that language, keeping the placeholders and the `…` ellipsis character. The roster is exactly: ar, bn, es, fa, fi, fil, fr, he, hi, id, it, ms, nl, pl, pt_BR, pt_PT, ru, sv, ta, te, th, tr, uk, vi. Verify it against the directory rather than trusting this list (`find src/locales -name translation.json` returns 30: these 24, plus `en` and the five tabled above — ja, zh_CN, zh_TW, ko, de). There is no `hu`, `no` or `ro` catalog in this repo; do not create one. `fil`, `ta` and `te` DO exist and are easy to miss. Remove the four retired keys from every catalog.
 
 - [ ] **Step 5: Run the consistency test to verify it passes**
 
@@ -487,7 +530,9 @@ import React, { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Play, Square, Pencil, Trash2, Plus, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import {
-  useFloating, useDismiss, useInteractions, autoUpdate, offset, flip, shift, size,
+  useFloating, useClick, useDismiss, useRole, useInteractions,
+  FloatingPortal, FloatingFocusManager,
+  autoUpdate, offset, flip, shift, size,
 } from '@floating-ui/react';
 import type { VoiceEntry } from './VoiceLibrarySection';
 import type { VoiceLibraryCapability, VoiceFacetCriteria } from '../../../types/VoiceLibrary';
@@ -546,6 +591,13 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     onOpenChange: setOpen,
     placement: 'bottom-start',
     whileElementsMounted: autoUpdate,
+    // `fixed` + the FloatingPortal below are load-bearing, not taste:
+    // `Settings.scss` sets `overflow: hidden` on the panel (lines 10 and 15)
+    // and `overflow-y: auto` on the scrolling body, so an absolutely
+    // positioned popover inside that subtree is clipped by the panel and
+    // scrolls away from its own trigger. `ExportButton.tsx` is the existing
+    // precedent in this repo and does exactly this pair.
+    strategy: 'fixed',
     middleware: [
       offset(4),
       flip(),
@@ -563,7 +615,17 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       }),
     ],
   });
-  const { getReferenceProps, getFloatingProps } = useInteractions([useDismiss(context)]);
+  // `useClick` gives the trigger Enter/Space activation and toggling for free;
+  // `useDismiss` closes on outside press AND on Escape (its `escapeKey` option
+  // defaults to true — do NOT hand-roll an Escape branch); `useRole` stamps the
+  // ARIA relationship. `'grid'` is a legal role here: the installed
+  // @floating-ui/react (0.27.19) types `AriaRole` as
+  // 'tooltip'|'dialog'|'alertdialog'|'menu'|'listbox'|'grid'|'tree'.
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    useClick(context),
+    useDismiss(context),
+    useRole(context, { role: 'grid' }),
+  ]);
 
   const presets = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
   const clones = useMemo(() => voices.filter((v) => v.group === 'custom'), [voices]);
@@ -581,7 +643,6 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     return presets.filter((v) => keep.has(v.id) || v.id === selectedId);
   }, [presets, matched, facetsOn, selectedId]);
 
-  const canAudition = (v: VoiceEntry) => (v.previewable ?? v.group === 'custom') && !v.disabled;
   const selected = voices.find((v) => v.id === selectedId);
 
   /** `female · calm · soft` — R2's row subtitle, from metadata the roster
@@ -750,6 +811,18 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       </button>
 
       {open && (
+        <FloatingPortal>
+        {/* The portal and `strategy: 'fixed'` are load-bearing, not polish:
+            `Settings.scss` sets `overflow: hidden` on the panel (lines 10, 15)
+            and `overflow-y: auto` on its scrolling body, so a popover rendered
+            in place is clipped by the panel and scrolls away from its trigger.
+            `ModeDevicePopover.tsx:234` — the precedent this plan's Global
+            Constraints name — portals for the same reason.
+            `FloatingFocusManager` owns focus: it moves focus in on open and
+            `returnFocus` puts it back on the trigger when `useDismiss` closes
+            on Escape. Task 4 adds `initialFocus={gridRef}` here and must NOT
+            hand-roll an Escape branch. */}
+        <FloatingFocusManager context={context} modal={false} returnFocus>
         <div
           ref={refs.setFloating}
           style={floatingStyles}
@@ -792,6 +865,8 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             {shownPresets.map(row)}
           </div>
         </div>
+        </FloatingFocusManager>
+        </FloatingPortal>
       )}
     </div>
   );
@@ -808,7 +883,17 @@ rules out of `VoiceLibrarySection.scss` (`.voice-facet-bar`, `.voice-facet-field
 `.voice-facet-status`, `.voice-facet-count`, `.voice-facet-empty`,
 `.voice-facet-clear`, and `@keyframes voice-preview-spin`) and rename them onto
 this component's classes; keep every declaration value as it is today so the
-visual result does not drift. The classes this task introduces:
+visual result does not drift.
+
+The stylesheet invariant goes in the EXISTING test
+`src/components/Settings/sections/voiceFacetStyles.test.ts` — do not create a
+second one. That test compiles the SCSS with `sass` and asserts on the emitted
+selector, which is the only way this repo checks a stylesheet: never walk the
+source text looking for braces, and when you write a selector matcher use
+`(?![\w-])` rather than `\b`, because `-` is a word character to a regex and
+`\b` would let `.voice-row` match `.voice-row-btn`.
+
+The classes this task introduces:
 
 ```scss
 // `../shared/variables` and not `../../../styles/tokens`: the tokens module
@@ -992,7 +1077,14 @@ describe('VoicePicker keyboard', () => {
 - [ ] **Step 2: Run them and watch them fail**
 
 Run: `npx vitest run src/components/Settings/sections/VoicePicker.test.tsx -t keyboard`
-Expected: 6 FAIL — nothing takes focus on `ArrowDown` (the assertions receive `document.body`), and `Escape` neither closes nor restores focus (floating-ui's `useDismiss` handles outside clicks, not key events in this configuration).
+Expected: 5 of 6 FAIL on focus, and read the sixth carefully. Nothing takes
+focus on `ArrowDown`/`ArrowUp`/`ArrowRight`/`ArrowLeft`/`Home`/`End`, so those
+assertions receive `document.body`. The Escape case is the one to watch:
+`useDismiss`'s `escapeKey` option defaults to TRUE, so the popover already
+closes — `queryByRole('grid')` is already null — and that case fails only on
+`expect(trigger).toHaveFocus()`, which the `FloatingFocusManager` added in
+Task 3 is what satisfies. If Escape does NOT close, stop and report it: it
+means Task 3 configured `useDismiss` differently than the plan says.
 
 - [ ] **Step 3: Implement the grid navigation**
 
@@ -1027,6 +1119,11 @@ cells get a tabindex of -1 except the active cell, and the popover owns one
     el?.focus();
   };
 
+  // Hand-rolled rather than floating-ui's `useListNavigation`: that hook's
+  // `cols` option models a UNIFORM grid, and these rows are ragged — a preset
+  // row has two cells (name, ▶) while a clone row has four (name, ▶, rename,
+  // delete). `ExportButton.tsx` uses `useListNavigation` because its menu is a
+  // plain one-cell-per-row list; this control is not that.
   const onGridKeyDown = (e: React.KeyboardEvent) => {
     const last = rowOrder.length - 1;
     if (last < 0) return;
@@ -1055,12 +1152,10 @@ cells get a tabindex of -1 except the active cell, and the popover owns one
         }
         return;
       }
-      case 'Escape': {
-        e.preventDefault();
-        setOpen(false);
-        triggerRef.current?.focus();
-        return;
-      }
+      // Deliberately NO `Escape` branch. `useDismiss` closes on Escape by
+      // default and the `FloatingFocusManager` from Task 3 returns focus to
+      // the trigger; handling it here too would fight both. If `triggerRef`
+      // is now unused in this file, delete it with this task.
       default: break;
     }
     // Type-ahead: printable single characters only, so modifier combinations
@@ -1078,8 +1173,14 @@ cells get a tabindex of -1 except the active cell, and the popover owns one
 ```
 
 Wire it: put `ref={gridRef}` and `onKeyDown={onGridKeyDown}` on the
-`role="grid"` element, give it `tabIndex={-1}`, focus it when the popover opens
-(`useEffect` on `open`), and give each cell's control
+`role="grid"` element and give it `tabIndex={-1}`. Initial focus is NOT a
+`useEffect` here — add `initialFocus={gridRef}` to the `FloatingFocusManager`
+that Task 3 wrapped the popover in, so opening, Escape-closing and focus
+return all stay in one place. (If TypeScript rejects the
+`MutableRefObject<HTMLDivElement | null>` against the prop's
+`MutableRefObject<HTMLElement | null>`, fall back to a `useEffect` on `open`
+that calls `gridRef.current?.focus()` and say so in your report.) Give each
+cell's control
 `tabIndex={rowIdx === activeRow && cellIdx === activeCell ? 0 : -1}` — pass the
 indices into `row()` by mapping with the index and threading a cell counter.
 Reset `activeRow`/`activeCell` to 0 whenever `open` flips to true.
@@ -1107,7 +1208,7 @@ git commit -m "feat(voice): grid keyboard navigation and type-ahead in the voice
 - Modify: `src/lib/diagnostics/consoleLedger.consistency.test.ts`
 
 **Interfaces:**
-- Consumes: `VoiceLibraryCapability` (Task 1); `voiceLibrary.addVoiceTitle` / `.cancel` (Task 2).
+- Consumes: `VoiceLibraryCapability` (Task 1); `voiceLibrary.addVoiceTitle` (Task 2) and the pre-existing shared `common.cancel` / `common.close` — there is no `voiceLibrary.cancel` and Task 2 does not create one.
 - Produces:
 
 ```ts
@@ -1127,8 +1228,27 @@ three drag handlers move here **verbatim** from `VoiceLibrarySection.tsx`
 carry hard-won behaviour (raw capture so the cloner does not learn the
 browser's echo canceller, an auto-stop at the model's clip limit, a generation
 counter that invalidates a `getUserMedia` still in flight, single-import
-adapters keeping only the first dropped file). Their two `console.warn` calls
-move with them, which is why the console ledger changes in this task.
+adapters keeping only the first dropped file). THREE `console.warn` calls move
+with them, which is why the console ledger changes in this task — and get the
+arithmetic right, because `consoleLedger.consistency.test.ts` pins exact
+per-file counts:
+
+`VoiceLibrarySection.tsx` holds five today, and its ledger row (line 144) says
+5: `:339` `'Voice import failed:'`, `:372` `'Rename failed:'`, `:380`
+`'Delete failed:'`, `:449` `'Recording failed to start:'`, `:480`
+`'Recording handler failed:'`. Only the three inside the ranges above — `:339`,
+`:449`, `:480` — move into this modal. Rename and delete stay in the section on
+purpose: the picker receives `onRename` and `onAskDelete` as props and the
+delete modal receives `onConfirm`, so the `try/catch` that logs those two
+failures belongs to the composition root, which the section becomes in Task 6.
+
+So THIS task adds a `VoiceCreateModal.tsx` row of **3** and leaves
+`VoiceLibrarySection.tsx` at **5** — the section still contains its copies
+until Task 6 deletes them, so lowering the row here would fail the test on a
+count that is still accurate. Task 6 lowers the section's row from 5 to 2 in
+the same commit that deletes the capture code. Keep each moved call's text
+byte-for-byte identical; `CLAUDE.md` forbids ADDING `console.warn` to
+`src/components`, and what makes these legal is that they are moves.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1282,8 +1402,12 @@ zone carrying `data-testid="voice-create-drop"` and the three drag handlers when
 and `multiple={capability.multipleImport !== false}`; `note`) → foot (Cancel).
 
 Copy keys: `addVoiceTitle`, `importVoice`, `recordVoice`, `stopRecording`,
-`transcript`, `transcriptHint`, `transcriptPlaceholder`, `dropHint`, `cancel`,
-`common.close`.
+`transcript`, `transcriptHint`, `transcriptPlaceholder`, `dropHint` — all under
+`voiceLibrary.` — plus the two SHARED ones: `common.cancel` for the foot button
+and `common.close` for the `&__x`. There is deliberately no
+`voiceLibrary.cancel` and Task 2 does not create one: `ModelImportModal.tsx:343`
+and `SonioxCloneConfirmModal.tsx:223`, the two modal siblings in this
+directory, both render `t('common.cancel', 'Cancel')`.
 
 - [ ] **Step 4: Write the stylesheet**
 
@@ -1333,6 +1457,7 @@ git commit -m "feat(voice): add-a-voice modal carrying the capture code"
 - Modify: `src/components/Settings/sections/VoiceLibrarySection.scss`
 - Modify: `src/components/Settings/sections/VoiceLibrarySection.test.tsx`
 - Modify: `src/components/Settings/sections/VoiceLibrarySection.facets.test.tsx`
+- Modify: `src/lib/diagnostics/consoleLedger.consistency.test.ts`
 - Delete: `src/components/Settings/sections/VoiceLibrarySection.optgroupLabel.test.tsx`
 
 **Interfaces:**
@@ -1448,7 +1573,11 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
         </div>
         <div className="voice-modal__foot">
           <button type="button" className="voice-modal__btn" onClick={onClose}>
-            {t('voiceLibrary.cancel', 'Cancel')}
+            {/* `common.cancel`, not a new `voiceLibrary.cancel`: the key
+                already exists and both modal siblings in this directory
+                render it this way (`ModelImportModal.tsx:343`,
+                `SonioxCloneConfirmModal.tsx:223`). */}
+            {t('common.cancel', 'Cancel')}
           </button>
           <button type="button" className="voice-modal__btn voice-modal__btn--danger"
             onClick={() => { void onConfirm(target.id); }}>
@@ -1568,8 +1697,34 @@ From `VoiceLibrarySection.scss` delete `.voice-library-manage`,
 `.voice-library-group-label`, `.voice-select-btn`, `.voice-show-all-btn`,
 `.voice-manage-list`, `.voice-manage-row`, `.voice-manage-row.selected`,
 `.voice-row-btn`, `.voice-name-edit`, `.voice-unstable-tag` (moved to the
-picker) and the rules moved in Tasks 3 and 5. Keep `.voice-library-section`,
+picker), `.voice-preview-spinner` together with the
+`&:disabled:not(:has(.voice-preview-spinner))` opacity rule that guards it, and
+the rules moved in Tasks 3 and 5.
+
+`.voice-preview-spinner` is easy to miss because Task 3 does not move it — it
+supersedes it, emitting `.voice-row__spinner` in `VoicePicker.scss` off the same
+`@keyframes voice-preview-spin`. So the old rules (today at
+`VoiceLibrarySection.scss:247–280`) are left behind by that rename, and this is
+the task that removes them. Leaving them would keep styling for markup this
+component no longer renders. Keep `.voice-library-section`,
 `.voice-library-info`, `.voice-capture-error`, `.voice-selected-description`.
+
+- [ ] **Step 6b: Settle the console ledger in this same commit**
+
+Step 4 deleted the capture code, and with it three of the section's five
+`console.warn` calls — `'Voice import failed:'`, `'Recording failed to start:'`
+and `'Recording handler failed:'`, which Task 5 already copied into
+`VoiceCreateModal.tsx`. In `src/lib/diagnostics/consoleLedger.consistency.test.ts`
+lower the `src/components/Settings/sections/VoiceLibrarySection.tsx` row (line
+144) from **5 to 2**.
+
+Two is the right number, not zero: `'Rename failed:'` and `'Delete failed:'`
+stay in the section on purpose, because the picker takes `onRename`/`onAskDelete`
+and the delete modal takes `onConfirm` as props — the `try/catch` that logs
+those failures belongs to the composition root this section has become. The
+ledger pins exact per-file counts, so this edit must land in THIS commit:
+Step 7's gate fails otherwise, and `CLAUDE.md` requires the ledger to move in
+the same diff as the calls.
 
 - [ ] **Step 7: Run everything**
 
@@ -1581,12 +1736,19 @@ assert on voice names and buttons, not on `<option>`s. Any that do assert on
 `<option>`s are Task 7's and Task 8's to fix; note them in your report rather
 than fixing them here.
 
-Run: `npx tsc --noEmit 2>&1 | grep -E "VoicePicker|VoiceCreateModal|VoiceDeleteModal|VoiceLibrarySection"` → no output.
+Run the full gate grep from the Global Constraints, not a narrowed one — this
+task rewrites the section every other voice surface renders through, so an
+error landing in `SonioxVoiceSection` or `NativeVoiceSection` must not slip
+past:
+
+`npx tsc --noEmit 2>&1 | grep -E "VoicePicker|VoiceCreateModal|VoiceDeleteModal|VoiceLibrarySection|SonioxVoiceSection|NativeVoiceSection|LocalInferenceVoiceSection|VoiceLibrary"` → no output.
+
+Also run `npx vitest run src/locales/locales.consistency.test.ts src/lib/diagnostics/consoleLedger.consistency.test.ts` → green, which is what proves Step 6b's count.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/components/Settings/sections/VoiceDeleteModal.tsx src/components/Settings/sections/VoiceDeleteModal.test.tsx src/components/Settings/sections/VoiceCreateModal.scss src/components/Settings/sections/VoiceLibrarySection.tsx src/components/Settings/sections/VoiceLibrarySection.scss src/components/Settings/sections/VoiceLibrarySection.test.tsx src/components/Settings/sections/VoiceLibrarySection.facets.test.tsx
+git add src/components/Settings/sections/VoiceDeleteModal.tsx src/components/Settings/sections/VoiceDeleteModal.test.tsx src/components/Settings/sections/VoiceCreateModal.scss src/components/Settings/sections/VoiceLibrarySection.tsx src/components/Settings/sections/VoiceLibrarySection.scss src/components/Settings/sections/VoiceLibrarySection.test.tsx src/components/Settings/sections/VoiceLibrarySection.facets.test.tsx src/lib/diagnostics/consoleLedger.consistency.test.ts
 git rm src/components/Settings/sections/VoiceLibrarySection.optgroupLabel.test.tsx
 git commit -m "feat(voice): delete-confirm modal; the voice section becomes a composition root"
 ```
@@ -1680,7 +1842,8 @@ git commit -m "feat(voice): audition Soniox presets through the existing preview
 - Test: `src/components/Settings/sections/NativeVoiceSection.test.tsx`
 
 **Interfaces:**
-- Consumes: Task 1's `previewable`; `resolvePreviewSample` and `previewCacheKey` as already imported; `PreviewTtsHandle.synthesize({ modelId, language, text, speed, voice })` where `voice` is `{ kind: 'name'; name: string }` for a preset.
+- Consumes: Task 1's `previewable`; `resolvePreviewSample` and `previewCacheKey` as already imported (they live in `src/lib/tts/previewSample.ts`, not under `src/lib/voiceLibrary/`); `PreviewTtsHandle.synthesize({ modelId, language, text, speed, voice })` from `src/lib/local-inference/native/nativePreviewTts.ts`, where `voice` is `{ kind: 'name'; name: string }` for a preset.
+- Already done for you: Task 1 set `previewable: true` inside `toBuiltin` (`NativeVoiceSection.tsx:317`), so every Native preset is already marked auditionable. Do NOT re-add that field — this task changes only the preview LOGIC.
 - Produces: no new exports.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1722,8 +1885,19 @@ Expected: FAIL — `handlePreview` returns `null` for a `builtin:` id, so nothin
 
 - [ ] **Step 3: Teach `handlePreview` about presets**
 
-Replace the section-level `previewSample` memo with a per-voice resolver and
-branch `handlePreview` on the id's prefix:
+First, a two-line correction Task 1 left behind. The comment it wrote above
+`previewable: true` reads "Presets audition in THEIR OWN language on the
+dedicated preview connection (spec §6.2); Task 5 teaches handlePreview the
+`builtin:` id." The task number is wrong — teaching `handlePreview` about
+preset ids is THIS task. Do not renumber it to "Task 8" either: that file
+already carries seven stale `Task N` references from an older, finished plan
+(lines 36–52 and 324), and a bare task number means nothing to a reader who
+does not have that plan open. Replace the second sentence with what the code
+actually does, e.g. "the `builtin:` branch of `handlePreview` below resolves the
+name against `builtinVoices` and synthesizes in that voice's own language."
+
+Then replace the section-level `previewSample` memo with a per-voice resolver
+and branch `handlePreview` on the id's prefix:
 
 ```ts
   /** The sample sentence for ONE voice: a preset speaks its own language, a
@@ -1913,7 +2087,7 @@ test cases with a leading comment line instead of the full fixture setup, becaus
 both suites build their doubles through file-local helpers (managed/BYOK source
 stubs; store and TTS fakes) that a verbatim snippet would duplicate wrongly.
 Each such step names the existing case to copy from. Task 2's translation table
-gives five languages in full and instructs the same seven strings for the rest —
+gives five languages in full and instructs the same six strings for the rest —
 the alternative, 25 more table rows, would be padding rather than plan.
 
 **Type consistency.** `previewable?: boolean` (Task 1) is read by `canAudition`
@@ -1924,4 +2098,4 @@ consumed with exactly those names in Task 6's render. `VoiceCreateModalProps`
 (`modelId`, `language`, `text`, `speed`, `voice`), and `voice: { kind: 'name',
 name }` matches `PreviewVoice`'s name variant. `previewCacheKey(source, id,
 language, speed)` keeps its four-argument order in Task 8. The copy keys in
-Tasks 3, 5, 6 and 8 are exactly the seven Task 2 adds plus existing ones.
+Tasks 3, 5, 6 and 8 are exactly the six Task 2 adds plus existing ones (`common.cancel` and `common.close` among them).
