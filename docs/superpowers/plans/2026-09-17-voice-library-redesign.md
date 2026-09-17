@@ -1764,9 +1764,14 @@ is the only thing standing between a typo and an unstyled control.
 
 - [ ] **Step 4: Rewrite the section as a composition root**
 
-`VoiceLibrarySection.tsx` keeps: the `VoiceEntry` type and its props interface,
-the AudioContext playback (`playingId`, `loadingId`, `previewTokenRef`,
-`previewAbortRef`, `stopPreview`, `togglePreview` and the unmount effect), the
+`VoiceLibrarySection.tsx` keeps: the `VoiceEntry` type and its props interface
+(both exported, at `:20` and `:54`), the AudioContext playback — `playingId`
+(`:137`), `previewTokenRef` (`:145`), `previewAbortRef` (`:149`), `stopPreview`
+(`:151`), `togglePreview` (`:165`) and the unmount effect. Read the loading
+state off the file rather than from this sentence: an earlier draft called it
+`loadingId`, but the setter is `setPreviewLoadingId` (`:182`) and the state is
+named to match, so grep before you wire it into the picker's `loadingId` prop.
+Also kept: the
 capture-error-free render, and now three children plus two pieces of modal
 state:
 
