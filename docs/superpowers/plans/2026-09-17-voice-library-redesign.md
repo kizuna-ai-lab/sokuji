@@ -2135,6 +2135,13 @@ Add to `NativeVoiceSection.test.tsx`:
     });
   });
 
+  // The title must match what the mock can SEE. `initCalls` as sketched here
+  // records the languages passed to `synthesize`, which is not evidence that
+  // the engine re-initialised — `createPreviewTts` records no creations, so a
+  // case titled "re-inits" would outrun its body. Either strengthen the mock
+  // so creations are observable and keep the re-init title, or assert the
+  // language ordering and title it that way. Do not keep the stronger title
+  // over the weaker assertion.
   it('re-inits the engine when the next audition is in another language', async () => {
     // … audition an 'en' preset, then a 'ja' preset …
     expect(initCalls).toEqual(['en', 'ja']);
@@ -2333,6 +2340,17 @@ Pick a TTS model with presets, audition a preset in the target language and one
 in another language (the second re-inits — confirm the spinner covers it and the
 audio is right), then audition a clone and confirm the clip fallback still works
 when synthesis fails.
+
+**One known wart to judge here, recorded during Task 8's review rather than
+guessed at.** `previewUnavailableReason` is resolved from the TARGET language
+only, and the picker applies that one reason uniformly to every row — so a
+preset whose OWN language has no sample sentence still shows an enabled ▶, and
+clicking it returns null and does nothing at all: no sound, no spinner, no
+message. Find such a voice if the roster has one (a preset in a language the
+model speaks but `PREVIEW_SAMPLES` has no sentence for) and say whether the dead
+click reads as broken. If it does, the fix is per-voice previewability rather
+than the single uniform reason string, and it belongs in its own slice — do not
+start it here.
 
 - [ ] **Step 4: Check one non-Latin locale**
 
