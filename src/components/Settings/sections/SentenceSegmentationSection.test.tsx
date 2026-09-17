@@ -54,20 +54,42 @@ const blankModelStates = (): ModelStatesMap => ({
 });
 
 let modelStates: ModelStatesMap = blankModelStates();
-const setModelStatus = vi.fn();
-const setModelProgress = vi.fn();
+// A real implementation, not a bare spy: the store-independent probe (fix
+// round 3) reads `useSegmentationStore.getState().models[model].status`
+// itself, mid-effect, to decide whether a session fact already beat it to
+// the write -- so this mock needs a `models` field that reflects what
+// setModelStatus/setModelProgress actually did, the same way the real
+// store's own reducer would. Reassigning (not mutating in place) so the
+// `getState()` factory below always returns the current snapshot.
+const setModelStatus = vi.fn((model: PunctuationModelId, status: PunctuationStatus, error?: string) => {
+  modelStates = {
+    ...modelStates,
+    [model]: {
+      status,
+      percent: status === 'ready' || status === 'downloaded' ? 100 : modelStates[model].percent,
+      error: status === 'error' ? (error ?? 'unknown error') : null,
+    },
+  };
+});
+const setModelProgress = vi.fn((model: PunctuationModelId, percent: number) => {
+  modelStates = { ...modelStates, [model]: { ...modelStates[model], percent } };
+});
 const seedFromModelStatuses = vi.fn();
 
 vi.mock('../../../stores/segmentationStore', () => ({
   useSegmentationModelState: (model: PunctuationModelId) => modelStates[model],
-  useSegmentationStore: { getState: () => ({ setModelStatus, setModelProgress, seedFromModelStatuses }) },
+  useSegmentationStore: {
+    getState: () => ({ setModelStatus, setModelProgress, seedFromModelStatuses, models: modelStates }),
+  },
 }));
 
 // Controllable so a fix-round test can force a download/delete to fail
-// without touching real IndexedDB or the network.
+// without touching real IndexedDB or the network. isModelReadyMock backs
+// the fix-round-3 store-independent probe.
 const downloadModelMock = vi.fn();
+const isModelReadyMock = vi.fn();
 vi.mock('../../../lib/local-inference/ModelManager', () => ({
-  ModelManager: { getInstance: () => ({ downloadModel: downloadModelMock }) },
+  ModelManager: { getInstance: () => ({ downloadModel: downloadModelMock, isModelReady: isModelReadyMock }) },
 }));
 
 // modelStore.deleteModel() is the real thing this section now routes Delete
@@ -147,6 +169,10 @@ beforeEach(() => {
   modelStoreSetStateMock.mockClear();
   estimateStorageUsedBytesMock.mockReset().mockResolvedValue(0);
   downloadModelMock.mockReset().mockResolvedValue('default');
+  // Default false: most tests have nothing to do with the store-independent
+  // probe and must not have it silently mark a model 'downloaded' underneath
+  // them.
+  isModelReadyMock.mockReset().mockResolvedValue(false);
   reportWarningMock.mockClear();
   localStorage.removeItem('debug:device-memory');
 });
@@ -366,5 +392,57 @@ describe('SentenceSegmentationSection', () => {
       const result = arg({ modelStatuses: {} });
       return result.modelStatuses?.['punct-en-edge'] === 'error';
     })).toBe(true);
+  });
+
+  // Fix round 3: modelStore.initialize() is gated to the Local Inference
+  // provider (SettingsInitializer.tsx) and, separately, to
+  // modelStore.ensureSelectionReady()'s own local-inference readiness path
+  // -- neither runs on the app's default OPENAI provider. Since a
+  // punctuation model downloads through ModelManager directly and works on
+  // any provider, the ordinary path is: download a model, restart on the
+  // default provider, reopen Settings -- modelStatuses is empty and the
+  // seed above is a permanent no-op. This is the case that was still
+  // broken and this test is the one that covers it.
+  it('probes ModelManager.isModelReady directly when modelStore has nothing to say, and renders the downloaded row', async () => {
+    mockModelStatuses = {}; // modelStore never initialized this session
+    isModelReadyMock.mockImplementation(async (manifestId: string) => manifestId === 'punct-zh-fireredpunc');
+
+    const { rerender } = renderSection();
+
+    await vi.waitFor(() => expect(setModelStatus).toHaveBeenCalledWith('fireredpunc', 'downloaded'));
+    // Only the model the probe actually found ready — not every row.
+    expect(setModelStatus).not.toHaveBeenCalledWith('edge-punct-en', 'downloaded');
+    expect(setModelStatus).not.toHaveBeenCalledWith('sat-3l-sm', 'downloaded');
+
+    // setModelStatus's mock mutates the shared modelStates snapshot but
+    // nothing re-renders this component on its own (it isn't a real,
+    // subscribed Zustand store here) — rerender to observe what the row
+    // looks like now that the store holds 'downloaded'.
+    rerender(<SentenceSegmentationSection isSessionActive={false} />);
+
+    expect(within(modelRow('fireredpunc')).getByTitle('Delete')).toBeTruthy();
+    expect(within(modelRow('fireredpunc')).queryByText('Download')).toBeNull();
+  });
+
+  // The precedence rule the plan called out explicitly: a probe result must
+  // never clobber a session fact that landed first (a runtime event, or the
+  // modelStatuses-driven seed), even though the probe reads current state at
+  // write time specifically to avoid this.
+  it('does not let a slower isModelReady probe overwrite a status a session fact already set', async () => {
+    mockModelStatuses = {};
+    // Simulate a runtime event (e.g. the seed, or a real punctuate() call)
+    // landing 'ready' — a richer status than the probe would ever produce —
+    // before the probe's own await resolves.
+    modelStates['fireredpunc'] = { status: 'ready', percent: 100, error: null };
+    isModelReadyMock.mockImplementation(async () => true);
+
+    renderSection();
+    await vi.waitFor(() => expect(isModelReadyMock).toHaveBeenCalled());
+    // Give the probe's microtask chain a turn to (wrongly, if the guard were
+    // missing) call setModelStatus.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(setModelStatus).not.toHaveBeenCalledWith('fireredpunc', 'downloaded');
   });
 });
