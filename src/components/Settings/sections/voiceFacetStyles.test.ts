@@ -62,3 +62,29 @@ describe('voice picker styling', () => {
     expect(pickerCss).toMatch(styled(cls));
   });
 });
+
+// Task 6 renames these into a shared `voice-modal*` set (shared with
+// VoiceDeleteModal) and re-points this describe at that stylesheet instead;
+// expected churn, not drift.
+const createModalCss = compile(resolve(__dirname, 'VoiceCreateModal.scss')).css;
+
+describe('voice create modal styling', () => {
+  it.each([
+    'voice-create-modal-overlay',
+    'voice-create-modal',
+    'voice-create-modal__head',
+    'voice-create-modal__x',
+    'voice-create-modal__body',
+    'voice-create-modal__foot',
+    'voice-create-modal__transcript-field',
+    'voice-create-modal__transcript-label',
+    'voice-create-modal__transcript-input',
+    'voice-create-modal__transcript-hint',
+    'voice-create-modal__import-btn',
+    'voice-create-modal__drop-zone',
+    'voice-create-modal__note',
+    'voice-create-modal__cancel',
+  ])('styles .%s where the element lives', (cls) => {
+    expect(createModalCss).toMatch(styled(cls));
+  });
+});

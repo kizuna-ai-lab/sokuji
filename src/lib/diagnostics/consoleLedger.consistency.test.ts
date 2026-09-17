@@ -142,6 +142,12 @@ const LEDGER: Record<string, number> = {
   'src/components/MainPanel/MainPanel.tsx': 43,
   'src/components/Auth/UserAccountInfo.tsx': 5,
   'src/components/Settings/sections/VoiceLibrarySection.tsx': 5,
+  // Copied (not moved) from VoiceLibrarySection.tsx: `Voice import failed:`,
+  // `Recording failed to start:` and `Recording handler failed:`. The section
+  // still contains its own copies of the capture code until Task 6 makes it a
+  // composition root, so its row above stays at 5 rather than dropping to 2
+  // here — Task 6 lowers it in the same commit that deletes the duplicates.
+  'src/components/Settings/sections/VoiceCreateModal.tsx': 3,
   'shared/index.tsx': 4,
   'src/components/SettingsInitializer/SettingsInitializer.tsx': 3,
   'src/components/Tour/TourProvider.tsx': 3,
