@@ -859,7 +859,17 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             </div>
             {shownPresets.map((v, i) => row(v, clones.length + i))}
           </div>
-          {clones.length === 0 && !onAddVoice && (
+          {/* Spec §8: the hint shows "when a provider CAN create but has no
+              clones yet", and `onAddVoice` being present is exactly that
+              condition — VoiceLibrarySection passes it only when
+              `capability.importModes` is non-empty. This was inverted, which
+              put "No imported voices yet." in front of the users who had no
+              way to add one, and said nothing in the case the copy was
+              written for (Soniox BYOK, key present, no clones yet). The plan
+              carried the inverted form too; the spec is the authority.
+              Rendered as a sibling BELOW the grid, not a row inside it:
+              ARIA's `grid` role admits only row/rowgroup children. */}
+          {clones.length === 0 && !!onAddVoice && (
             <div className="voice-pop__empty">{t('voiceLibrary.emptyHint', 'No imported voices yet.')}</div>
           )}
         </div>

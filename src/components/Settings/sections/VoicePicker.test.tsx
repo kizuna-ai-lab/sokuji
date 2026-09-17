@@ -158,6 +158,34 @@ describe('VoicePicker', () => {
     expect(onAddVoice).toHaveBeenCalledTimes(1);
   });
 
+  // Spec §8: "`emptyHint` survives: the popover shows it under `MY VOICES`
+  // when a provider CAN create but has no clones yet." Final-review finding
+  // 4: the condition was inverted, so the hint appeared only where the
+  // provider could NOT create — telling users to add a voice exactly where
+  // there is no way to, and staying silent in the case the copy exists for
+  // (Soniox BYOK with a key and no clones yet). The plan carried the inverted
+  // form as well, so this follows the spec over the plan.
+  //
+  // All three branches, because either single case passes on its own under a
+  // condition that ignores one of the two inputs.
+  it('hints at an empty My Voices group only when the provider can create one', () => {
+    const hint = () => screen.queryByText('No imported voices yet.');
+
+    // Can create, no clones yet — the case the copy was written for.
+    const { rerender } = render(<VoicePicker {...base} voices={[GRACE]} onAddVoice={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(hint()).toBeInTheDocument();
+
+    // Cannot create: a hint telling someone to add a voice is useless
+    // precisely where no add affordance exists.
+    rerender(<VoicePicker {...base} voices={[GRACE]} />);
+    expect(hint()).not.toBeInTheDocument();
+
+    // Can create, but a clone already exists — nothing empty to hint about.
+    rerender(<VoicePicker {...base} voices={[GRACE, MINE]} onAddVoice={vi.fn()} />);
+    expect(hint()).not.toBeInTheDocument();
+  });
+
   it('narrows presets by facet without touching clones, and counts what it shows', () => {
     // selectedId is overridden to Alex (not base's Grace) so this case stays
     // about facet narrowing alone: the very next test pins the "selected
