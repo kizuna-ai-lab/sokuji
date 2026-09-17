@@ -23,6 +23,7 @@ import {
   useSubtitleModeActive,
   useKeepReplayAudio,
   useTextOnly,
+  useSentenceSegmentationChunkSentences,
 } from '../../stores/settingsStore';
 import useSettingsStore from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
@@ -72,6 +73,8 @@ import {
   resolveParticipantSlot,
   teardownSessionLegs,
 } from '../../services/providers/managedSonioxSplit';
+import { buildClientOptions } from './clientOptions';
+import { useSegmentationRuntime } from './useSegmentationRuntime';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -281,6 +284,8 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Get settings from store
   const provider = useProvider();
   const uiMode = useUIMode();
+  const segmentationRuntime = useSegmentationRuntime();
+  const sentencesPerChunk = useSentenceSegmentationChunkSentences();
   const subtitleModeActive = useSubtitleModeActive();
   const replayEnabled = useKeepReplayAudio();
   const subtitleTakeover = subtitleModeActive && isExtension();
@@ -894,8 +899,14 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
-    return descriptor.createClient(creds, { transport: effectiveTransportType, webrtcOptions, ...legOptions });
-  }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
+    return descriptor.createClient(creds, buildClientOptions({
+      transport: effectiveTransportType,
+      webrtcOptions,
+      segmentation: segmentationRuntime,
+      sentencesPerChunk,
+      legOptions,
+    }));
+  }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted, segmentationRuntime, sentencesPerChunk]);
 
   // Which legs are reconnecting right now. A ref rather than state: these
   // transitions arrive from socket callbacks that can land several times in one
@@ -2610,6 +2621,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 !!speakerCore && typeof speakerCore.createSecondaryPort === 'function',
             });
             if (participantSlot === 'secondary-port') {
+              // No segmentation runtime here: this participant shares the
+              // speaker's transport and never goes through createAIClient.
+              // Its bubbles keep today's boundaries, which is the same
+              // fallback every provider gets when the stage is unavailable.
               participantClientRef.current = speakerCore!.createSecondaryPort!();
             } else {
               // Only ever `par_stt`: createParticipantSessionConfig forces
