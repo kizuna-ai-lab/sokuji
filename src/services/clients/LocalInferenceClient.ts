@@ -135,6 +135,15 @@ export class LocalInferenceClient implements IClient {
    *  this and whatever `onPending` reports afterward — see the `sealedChars`
    *  field doc. Set by `feedStream()`. */
   private lastPassedToStream = '';
+  /**
+   * The full raw text most recently handed to `handlePartialAsrResult`,
+   * before slicing by `sealedChars` — unlike `lastPassedToStream`, never
+   * itself sliced. Used to tell a genuinely different ASR result apart from
+   * one that merely re-decoded (and truncated) the SAME utterance, wherever
+   * a new result would otherwise slice to an empty relative tail — see
+   * `isTruncationOfSameUtterance()`.
+   */
+  private lastRawPartialText = '';
   /** Set by handleAsrResult AFTER it feeds the final text to the stream but
    *  BEFORE calling end() — not before feedStream(), because update() alone
    *  can seal more than one chunk synchronously (evaluate() loops over full
@@ -473,6 +482,10 @@ export class LocalInferenceClient implements IClient {
   reset(): void {
     this.conversationItems = [];
     this.itemCounter = 0;
+    // Matches clearConversationItems(): without this, the dangling bubble is
+    // no longer in conversationItems, yet the next onPending would still
+    // write into it and the next seal would still complete it.
+    this.partialUserItem = null;
     // Without this, a stream left open from the utterance in progress could
     // still deliver a seal (and its job) against a conversation that was
     // just cleared out from under it.
@@ -623,6 +636,33 @@ export class LocalInferenceClient implements IClient {
     stream.update(relative);
   }
 
+  /**
+   * True when `text` looks like a truncated re-decode of the SAME utterance
+   * that `previousRaw` already captured more of — i.e., `text` is a raw
+   * prefix of `previousRaw` — rather than genuinely different content.
+   *
+   * Used wherever a new ASR result would otherwise slice to an empty
+   * relative tail (see handlePartialAsrResult/handleAsrResult): a seal
+   * requires >=8 skeleton characters of right context, so the partial always
+   * extended well past the cursor at seal time, and a canonical re-decode
+   * that drops that retracted tail (voxtral-3b-webgpu.worker.ts documents
+   * this fallback) can land at or below the cursor while still beginning
+   * with the same words.
+   *
+   * SentenceStream's own notion of "same utterance" is skeleton-based
+   * (letters/digits only, case-folded — see sentenceEnd.ts's `skeleton()`,
+   * used by SentenceStream.applyResult's stale-answer check). `skeleton()`
+   * is a named export of sentenceEnd.ts, not internal to SentenceStream, so
+   * it IS reachable from here — but deliberately not used: this client is
+   * meant to interact with the segmentation stage only through
+   * SentenceStream/SegmentationRuntime, not its internal comparison rules,
+   * and a raw-prefix check answers the narrow question asked here — is this
+   * final a truncation of the same utterance — just as well.
+   */
+  private isTruncationOfSameUtterance(text: string, previousRaw: string): boolean {
+    return text.length > 0 && previousRaw.startsWith(text);
+  }
+
   /** Finish the in-progress user bubble at the seal and queue its translation. */
   private sealUserChunk(text: string): void {
     if (this.partialUserItem) {
@@ -691,9 +731,29 @@ export class LocalInferenceClient implements IClient {
    */
   private handlePartialAsrResult(text: string): void {
     this.emitEvent('local.asr.partial', 'server', { text });
+    const previousRaw = this.lastRawPartialText;
+    this.lastRawPartialText = text;
     const stream = this.ensureStream();
-    if (stream) this.feedStream(stream, text);
-    else this.showPartialUserText(text);
+    if (!stream) {
+      this.showPartialUserText(text);
+      return;
+    }
+    if (text.length > 0 && text.slice(this.sealedChars).length === 0) {
+      if (this.isTruncationOfSameUtterance(text, previousRaw)) {
+        // The engine retracted its hypothesis back to (or below) what's
+        // already sealed — the same question handleAsrResult's final guard
+        // answers, see isTruncationOfSameUtterance(). Nothing new to show
+        // yet: leave the bubble and the cursor alone. Self-healing, since
+        // partials keep growing — the next one either catches back up to
+        // this shape or genuinely supersedes it.
+        return;
+      }
+      // Genuinely different text: the engine changed its mind entirely for
+      // this utterance. Start segmentation over rather than feed a cursor
+      // that no longer describes anything this text contains.
+      this.sealedChars = 0;
+    }
+    this.feedStream(stream, text);
   }
 
   private handleAsrResult(text: string, timing?: AsrTiming): void {
@@ -703,6 +763,7 @@ export class LocalInferenceClient implements IClient {
     // final text. For a streaming utterance this reuses the stream partials
     // already opened; its earlier seals already produced their items and
     // jobs, and what remains here is just the tail.
+    const previousRaw = this.lastRawPartialText;
     const stream = this.ensureStream();
     if (stream) {
       // Some engines produce the final as a canonical re-decode rather than
@@ -711,23 +772,43 @@ export class LocalInferenceClient implements IClient {
       // still match what earlier partials sealed. Slicing by a cursor that no
       // longer applies would hand the stream an empty string — blanking the
       // open bubble via onPending('') and then end() never sealing an empty
-      // tail, stranding it in_progress with nothing translated. Detect that
-      // and restart the cursor so the whole final still seals as (at least)
-      // one chunk.
+      // tail, stranding it in_progress with nothing translated.
+      let skipJob = false;
       if (text.length > 0 && text.slice(this.sealedChars).length === 0) {
-        this.sealedChars = 0;
+        if (this.isTruncationOfSameUtterance(text, previousRaw)) {
+          // A truncated re-decode of the SAME utterance, not genuinely
+          // different content: the confirmed text is already fully captured
+          // by the earlier seal(s). Sealing again here would translate — and
+          // with TTS on, speak — the same sentence a second time. Close out
+          // the open bubble without a job instead, and leave the cursor
+          // alone (the teardown below still resets it for the NEXT
+          // utterance, same as every other path through this method).
+          skipJob = true;
+        } else {
+          // Genuinely different text: restart the cursor so the whole final
+          // still seals as (at least) one chunk instead of feeding ''.
+          this.sealedChars = 0;
+        }
       }
-      // update() first, WITHOUT the timing attached yet: it can seal more
-      // than one chunk synchronously on its own (evaluate() loops over full
-      // N-sentence groups — e.g. an offline final of >=2N sentences), and
-      // those chunks must not carry it. pendingAsrTiming is set only after
-      // update() returns, so only the chunk end() emits for the true tail —
-      // the remainder update() left pending — sees it.
-      this.feedStream(stream, text);
-      this.pendingAsrTiming = timing;
-      // The remainder update() left pending becomes the last chunk — the
-      // last item and the last job, carrying the utterance's timing.
-      stream.end();
+      if (skipJob) {
+        if (this.partialUserItem) {
+          this.partialUserItem.status = 'completed';
+          this.handlers.onConversationUpdated?.({ item: this.partialUserItem });
+          this.partialUserItem = null;
+        }
+      } else {
+        // update() first, WITHOUT the timing attached yet: it can seal more
+        // than one chunk synchronously on its own (evaluate() loops over full
+        // N-sentence groups — e.g. an offline final of >=2N sentences), and
+        // those chunks must not carry it. pendingAsrTiming is set only after
+        // update() returns, so only the chunk end() emits for the true tail —
+        // the remainder update() left pending — sees it.
+        this.feedStream(stream, text);
+        this.pendingAsrTiming = timing;
+        // The remainder update() left pending becomes the last chunk — the
+        // last item and the last job, carrying the utterance's timing.
+        stream.end();
+      }
       stream.dispose();
       this.stream = null;
       this.sealedChars = 0;
