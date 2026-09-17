@@ -284,7 +284,7 @@
     "sentenceSegmentationDesc": "當轉錄文字沒有標點時，會自動補上標點，並每隔幾句就開始一個新的氣泡。只有在第一次需要時才會下載一個小型模型。",
     "sentenceSegmentationChunk": "每個氣泡的句數",
     "sentenceSegmentationChunkTooltip": "新氣泡開始前，一個氣泡可容納多少內容。在本機引擎上，這也是翻譯的單位：設為 1 會逐句翻譯，設為 5 則更接近整句話的翻譯。",
-    "sentenceSegmentationChunkEffect": "長句會每 {{count}} 句開始一個新氣泡。",
+    "sentenceSegmentationChunkEffect": "發言較長時，每 {{count}} 句會另起一個新氣泡。",
     "sentenceSegmentationLowMemory": "此裝置記憶體不足，無法載入分段模型。",
     "sentenceSegmentationModelInUse": "正被目前的語言使用",
     "sentenceSegmentationModelLoading": "載入中…",

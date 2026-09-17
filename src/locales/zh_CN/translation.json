@@ -284,7 +284,7 @@
     "sentenceSegmentationDesc": "当转录文本没有标点时，会自动补充标点，并每隔几句就开始一个新的气泡。仅在首次需要时才会下载一个小模型。",
     "sentenceSegmentationChunk": "每个气泡的句数",
     "sentenceSegmentationChunkTooltip": "新气泡开始前，一个气泡中包含多少内容。在本地引擎上，这也是翻译的单位：设为 1 会逐句翻译，设为 5 则更接近整句话的翻译。",
-    "sentenceSegmentationChunkEffect": "长句会每 {{count}} 句开始一个新气泡。",
+    "sentenceSegmentationChunkEffect": "发言较长时，每 {{count}} 句会另起一个新气泡。",
     "sentenceSegmentationLowMemory": "此设备内存不足，无法加载分段模型。",
     "sentenceSegmentationModelInUse": "正被当前的语言使用",
     "sentenceSegmentationModelLoading": "加载中…",
