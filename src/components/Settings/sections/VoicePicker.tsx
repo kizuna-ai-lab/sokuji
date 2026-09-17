@@ -151,19 +151,22 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
   // once this flips `true`, that race is over for good and later presses
   // only need one frame.
   const pastInitialFocusRaceRef = useRef(false);
-  // requestAnimationFrame handle(s) still pending from the MOST RECENT key
-  // press's focus-scheduling in `onGridKeyDown`'s `go()`. A fast second press
-  // — two keydowns with no yield in between, which real browsers can deliver
+  // requestAnimationFrame handle still pending from the MOST RECENT key
+  // press's focus-scheduling in `onGridKeyDown`'s `go()` — never more than
+  // one at a time (both scheduling branches assign a single handle, and the
+  // outer callback in the two-frame path REPLACES this rather than adding to
+  // it), hence `number | null` rather than an array. A fast second press —
+  // two keydowns with no yield in between, which real browsers can deliver
   // within one frame via OS key-repeat or fast typing, and which this file's
   // own tests do deliberately (`fireEvent.keyDown` has no built-in delay) —
-  // can otherwise have an EARLIER press's still-pending frame(s) resolve
-  // after a LATER press's, overwriting the correct final focus with a stale
-  // target (this happens even between two presses that both still need the
+  // can otherwise have an EARLIER press's still-pending frame resolve after a
+  // LATER press's, overwriting the correct final focus with a stale target
+  // (this happens even between two presses that both still need the
   // two-frame defer above: cancel-and-reschedule, not just "fewer frames",
   // is what keeps them from racing each other). Canceling whatever is still
   // pending before scheduling a new frame makes the LAST key press always
   // win, regardless of how many frames either one was deferred by.
-  const pendingFocusFramesRef = useRef<number[]>([]);
+  const pendingFocusFramesRef = useRef<number | null>(null);
   // Every fresh open starts the grid's roving tabindex back at the first
   // cell of the first row, rather than wherever a previous session left it.
   useEffect(() => {
@@ -172,13 +175,18 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       setActiveCell(0);
       enteredRef.current = false;
       pastInitialFocusRaceRef.current = false;
+      // Not just time-aged (`:377`'s 700ms window): without this, typing
+      // 'v', closing, and reopening within 700ms would have the next 'i'
+      // match against a stale 'v' left over from the PREVIOUS open, jumping
+      // to 'vi' instead of the fresh 'i'.
+      typed.current = { text: '', at: 0 };
     }
     // Closing (or unmounting) mid-flight must not let a still-pending focus
     // frame from before the close fire afterwards, against a popover that is
     // no longer open.
     return () => {
-      pendingFocusFramesRef.current.forEach((id) => cancelAnimationFrame(id));
-      pendingFocusFramesRef.current = [];
+      if (pendingFocusFramesRef.current != null) cancelAnimationFrame(pendingFocusFramesRef.current);
+      pendingFocusFramesRef.current = null;
     };
   }, [open]);
   const facetsOn = !!capability.facetFilter;
@@ -195,9 +203,11 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     return presets.filter((v) => keep.has(v.id) || v.id === selectedId);
   }, [presets, matched, facetsOn, selectedId]);
 
-  // Flat row order as rendered: the add row first (when present), then clones,
-  // then the shown presets. Keyboard order must match visual order, so this is
-  // derived from the same arrays the JSX maps over rather than from `voices`.
+  // Flat row order as rendered: clones, then the shown presets. (The add row
+  // is a `.voice-row` too, but `focusActive` excludes it separately — see its
+  // comment below — so it never appears in this list.) Keyboard order must
+  // match visual order, so this is derived from the same arrays the JSX maps
+  // over rather than from `voices`.
   const rowOrder = useMemo(
     () => [...clones, ...shownPresets].map((v) => v.id),
     [clones, shownPresets],
@@ -225,22 +235,48 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     if (name && onRename) await onRename(id, name);
   };
 
-  /** Move DOM focus to the active cell after a render that changed it. */
-  const focusActive = (rowIdx: number, cellIdx: number) => {
+  // `[role="row"].voice-row` and not every `[role="row"]`: the grid also
+  // contains HEADER rows (the "My Voices" / "Presets" group labels, each a
+  // `role="row"` holding one `role="columnheader"`, with the refresh button
+  // inside the Presets one). Selecting by the `.voice-row` class excludes
+  // them, so arrow keys move between voices only. The add row is excluded
+  // separately because it is a `.voice-row` but not a voice. Shared by
+  // `focusActive` (which cell to move DOM focus to) and `onGridKeyDown`'s
+  // `go()` (how many cells the TARGET row actually has, to clamp
+  // `activeCell` against — see `go()`'s comment on why that clamp lives in
+  // state, not only in `focusActive`'s own `.focus()` call).
+  const gridCellsForRow = (rowIdx: number): NodeListOf<HTMLElement> | undefined => {
     const grid = gridRef.current;
-    if (!grid) return;
-    // `[role="row"].voice-row` and not every `[role="row"]`: the grid also
-    // contains HEADER rows (the "My Voices" / "Presets" group labels, each a
-    // `role="row"` holding one `role="columnheader"`, with the refresh button
-    // inside the Presets one). Selecting by the `.voice-row` class excludes
-    // them, so arrow keys move between voices only. The add row is excluded
-    // separately because it is a `.voice-row` but not a voice.
+    if (!grid) return undefined;
     const rows = Array.from(grid.querySelectorAll('[role="row"].voice-row')).filter(
       (r) => !r.classList.contains('voice-row--add'),
     );
-    const gridcells = rows[rowIdx]?.querySelectorAll<HTMLElement>('[role="gridcell"]');
-    const idx = Math.min(cellIdx, (gridcells?.length ?? 1) - 1);
-    const cell = gridcells?.[idx];
+    return rows[rowIdx]?.querySelectorAll<HTMLElement>('[role="gridcell"]');
+  };
+
+  // The control INSIDE a gridcell — the element every column except the name
+  // column actually focuses (see `focusActive`'s comment on that one
+  // exception). Used only to check whether a cell's control is `disabled`;
+  // not used to decide what `focusActive` itself focuses.
+  const controlOf = (cell: Element | undefined): HTMLButtonElement | HTMLInputElement | null | undefined =>
+    cell?.querySelector<HTMLButtonElement | HTMLInputElement>('button, input');
+
+  // Column 0 (the name cell) is never counted as "disabled" here even when
+  // its OWN button is (`v.disabled` / `isSessionActive`): its roving-tabindex
+  // focus target is the `gridcell` div itself (see `focusActive`), which has
+  // no `disabled` concept, and it doubles as the safety-net destination
+  // `go()` falls back to below — that fallback must always be reachable, or
+  // a row whose every OTHER control happens to be disabled would have
+  // nowhere left to go.
+  const isCellDisabled = (cells: NodeListOf<HTMLElement> | undefined, idx: number): boolean =>
+    idx !== 0 && (controlOf(cells?.[idx])?.disabled ?? false);
+
+  /** Move DOM focus to the active cell after a render that changed it. */
+  const focusActive = (rowIdx: number, cellIdx: number) => {
+    const gridcells = gridCellsForRow(rowIdx);
+    if (!gridcells) return;
+    const idx = Math.min(cellIdx, gridcells.length - 1);
+    const cell = gridcells[idx];
     // Cell 0 (the name cell) is the one place the roving tabindex targets the
     // `role="gridcell"` wrapper itself rather than the `<button>` inside it.
     // That is not a styling choice: the name cell's content IS a `<button>`
@@ -298,14 +334,35 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     const go = (rowIdx: number, cellIdx = 0) => {
       e.preventDefault();
       const r = Math.max(0, Math.min(last, rowIdx));
+      const cells = gridCellsForRow(r);
+      // Clamp the CELL the same way the row above is clamped, against the
+      // TARGET row's actual cell count (a preset row has 2 cells, a clone row
+      // up to 4) — NOT the row being left. `cellIdx` arrives pre-computed
+      // relative to the CURRENT row (e.g. `activeCell + 1` from ArrowRight,
+      // or a preserved `activeCell` from ArrowDown/Up — see the column
+      // preservation comment below), so it can overshoot a narrower target
+      // row. Left unclamped, `cellTabIndex()` in `row()` would match NOTHING
+      // in that row (every cell computes -1): the row ends up with ZERO tab
+      // stops, and the next arrow key is a dead press (decrementing from an
+      // out-of-range value lands back on the cell already focused).
+      // `focusActive`'s own `.focus()` call clamps too, but only for THAT
+      // call — this is what keeps the clamped value in STATE, so `tabIndex`
+      // agrees with where focus actually is.
+      let c = Math.max(0, Math.min((cells?.length ?? 1) - 1, cellIdx));
+      // A second, independent safety net: if the cell this lands on has a
+      // disabled control (e.g. a ▶ mid-synthesis), it can never actually
+      // receive focus (`.focus()` on a `disabled` button is a no-op), so it
+      // must not be left as the row's only tab stop either. Column 0 is
+      // always a valid fallback — see `isCellDisabled`'s comment on why.
+      if (isCellDisabled(cells, c)) c = 0;
       setActiveRow(r);
-      setActiveCell(cellIdx);
+      setActiveCell(c);
       enteredRef.current = true;
       // A press still in flight from BEFORE this one (see
       // `pendingFocusFramesRef`'s comment above) must never be allowed to
       // resolve after this one and overwrite it, so cancel it first.
-      pendingFocusFramesRef.current.forEach((id) => cancelAnimationFrame(id));
-      pendingFocusFramesRef.current = [];
+      if (pendingFocusFramesRef.current != null) cancelAnimationFrame(pendingFocusFramesRef.current);
+      pendingFocusFramesRef.current = null;
       // Focus after the state commit so the row that is about to be active is
       // the one we reach into. Two nested frames while
       // `pastInitialFocusRaceRef` is still `false` (see its comment above):
@@ -319,24 +376,49 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       // actually landed once, that race is over for good and every later
       // press only pays for one frame.
       const runFocus = () => {
-        pendingFocusFramesRef.current = [];
+        pendingFocusFramesRef.current = null;
         pastInitialFocusRaceRef.current = true;
-        focusActive(r, cellIdx);
+        focusActive(r, c);
       };
       if (pastInitialFocusRaceRef.current) {
-        pendingFocusFramesRef.current = [requestAnimationFrame(runFocus)];
+        pendingFocusFramesRef.current = requestAnimationFrame(runFocus);
       } else {
         const outer = requestAnimationFrame(() => {
-          pendingFocusFramesRef.current = [requestAnimationFrame(runFocus)];
+          pendingFocusFramesRef.current = requestAnimationFrame(runFocus);
         });
-        pendingFocusFramesRef.current = [outer];
+        pendingFocusFramesRef.current = outer;
       }
     };
     switch (e.key) {
+      // ArrowDown/Up PRESERVE the active column instead of resetting it to 0
+      // (the brief's sketch was `go(activeRow + 1)`, whose `cellIdx` defaults
+      // to 0) — deliberately: the APG grid pattern moves along one axis at a
+      // time, holding the other fixed, so descending from, say, the rename
+      // column should land on the rename column of the row below, not jump
+      // back to the name column. `go()`'s own cell clamp (see its comment
+      // above) is what keeps this safe when the target row has fewer cells
+      // than the one being left.
       case 'ArrowDown': return go(entering ? activeRow : activeRow + 1, activeCell);
       case 'ArrowUp': return go(entering ? activeRow : activeRow - 1, activeCell);
-      case 'ArrowRight': return go(activeRow, entering ? activeCell : activeCell + 1);
-      case 'ArrowLeft': return go(activeRow, entering ? activeCell : Math.max(0, activeCell - 1));
+      case 'ArrowRight': {
+        if (entering) return go(activeRow, activeCell);
+        // Skip past any disabled control in the direction of travel, rather
+        // than landing the tab stop somewhere it can never receive focus —
+        // `go()`'s own fallback below would otherwise just snap it straight
+        // back to column 0 instead of the next reachable column.
+        const cells = gridCellsForRow(activeRow);
+        const count = cells?.length ?? 1;
+        let c = activeCell + 1;
+        while (c <= count - 1 && isCellDisabled(cells, c)) c += 1;
+        return go(activeRow, c);
+      }
+      case 'ArrowLeft': {
+        if (entering) return go(activeRow, activeCell);
+        const cells = gridCellsForRow(activeRow);
+        let c = Math.max(0, activeCell - 1);
+        while (c > 0 && isCellDisabled(cells, c)) c -= 1;
+        return go(activeRow, c);
+      }
       case 'Home': return go(0);
       case 'End': return go(last);
       case 'Enter': {

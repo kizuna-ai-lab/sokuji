@@ -217,7 +217,19 @@ describe('VoicePicker keyboard', () => {
     { id: 'builtin:Victoria', label: 'Victoria', group: 'builtin' as const, removable: false, previewable: true },
   ];
 
-  it('moves between rows with the arrow keys and lands on the name cell', async () => {
+  // `go()` never moves focus inline — it only SCHEDULES a `focusActive` call,
+  // deferred by one or two animation frames (see VoicePicker.tsx's
+  // `pastInitialFocusRaceRef` comment). A synchronous assertion right after a
+  // keydown proves nothing about whether a focus change was scheduled: it
+  // passes identically whether one was scheduled and just hasn't run yet, or
+  // none was scheduled at all. Flushing two real frames (the worst case) is
+  // what makes "focus did not move" an assertion about the ABSENCE of a
+  // scheduled change, not merely about timing.
+  const flushTwoFrames = () => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+
+  it('moves between rows with the arrow keys, preserving the active column', async () => {
     render(<VoicePicker {...base} voices={THREE} onPreview={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { expanded: false }));
     const grid = screen.getByRole('grid');
@@ -337,13 +349,54 @@ describe('VoicePicker keyboard', () => {
   it('arrow and letter keys stay in the rename input instead of leaking into the grid', async () => {
     render(<VoicePicker {...base} voices={[MINE, ...THREE]} onRename={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { expanded: false }));
+    // Let `FloatingFocusManager`'s own deferred initial-focus action (see
+    // VoicePicker.tsx's `pastInitialFocusRaceRef` comment) land on the grid
+    // BEFORE clicking Rename. A real user's click always arrives long after
+    // that microtask+rAF has resolved; without this wait, that still-pending
+    // action can fire during `flushTwoFrames()` below and steal focus back
+    // from the rename input's `autoFocus` — a jsdom timing artifact from
+    // compressing the two clicks into one synchronous tick, not a
+    // production bug (nothing in this scenario touches `go()`, which is the
+    // only thing this component itself schedules a focus change from).
+    await vi.waitFor(() => expect(screen.getByRole('grid')).toHaveFocus());
     fireEvent.click(screen.getByRole('button', { name: /rename/i }));
     const input = screen.getByRole('textbox');
     fireEvent.keyDown(input, { key: 'ArrowRight' });
     fireEvent.keyDown(input, { key: 'v' });
+    // Without `await flushTwoFrames()` here this assertion is vacuous: `go()`
+    // never moves focus inline, only schedules it, so a synchronous check
+    // would pass whether or not a focus change had been scheduled. See
+    // `flushTwoFrames`'s comment above.
+    await flushTwoFrames();
     expect(input).toHaveFocus();
     // 'v' would jump type-ahead to Victoria if it leaked into the grid; it
     // must not have.
     expect(screen.getByRole('gridcell', { name: 'Victoria' })).not.toHaveFocus();
+  });
+
+  it('skips a disabled ▶ during horizontal movement, keeping exactly one tab stop', async () => {
+    const CLONE = { id: 'custom:1', label: 'Mine', group: 'custom' as const, removable: true, previewable: true };
+    render(
+      <VoicePicker
+        {...base}
+        voices={[CLONE]}
+        onPreview={vi.fn()}
+        onRename={vi.fn()}
+        // Disables only THIS row's ▶ (loadingId is per-voice), leaving name,
+        // rename and delete enabled — the shape a mid-synthesis row is in.
+        loadingId="custom:1"
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' }); // enters at the name cell
+    fireEvent.keyDown(grid, { key: 'ArrowRight' }); // ▶ is disabled: skip to rename
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: /rename/i })).toHaveFocus());
+    // The clone's gridcell computed name is "Mine My Voices" — the name
+    // button's aria-label plus the (non-empty, unlike THREE's builtin rows)
+    // subtitle span's own text, both inside the cell's "name from content"
+    // computation.
+    const row = screen.getByRole('gridcell', { name: /Mine/ }).closest('[role="row"]') as HTMLElement;
+    expect(row.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
   });
 });
