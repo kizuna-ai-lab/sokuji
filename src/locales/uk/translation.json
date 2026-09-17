@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Речень на бульбашку",
     "sentenceSegmentationChunkTooltip": "Скільки мовлення вміщується в одну бульбашку, перш ніж почнеться нова. У локальних рушіях це також одиниця перекладу: 1 перекладає речення за реченням, а 5 залишається ближче до перекладу цілого висловлювання.",
     "sentenceSegmentationChunkEffect": "У довгому мовленні нова бульбашка починається кожні {{count}} речень.",
-    "sentenceSegmentationLowMemory": "На цьому пристрої недостатньо пам'яті для завантаження моделі сегментації.",
+    "sentenceSegmentationLowMemory": "Цей пристрій не повідомляє про достатній обсяг пам'яті для запуску цих моделей, тому тут вони вимкнені.",
     "sentenceSegmentationModelInUse": "Використовується поточними мовами",
     "sentenceSegmentationModelLoading": "Завантаження…",
     "sentenceSegmentationModelUnavailable": "Недоступно в цьому сеансі",

@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Предложений на облачко",
     "sentenceSegmentationChunkTooltip": "Сколько речи помещается в одно облачко, прежде чем начнётся новое. В локальных движках это также единица перевода: при значении 1 перевод идёт предложение за предложением, а при 5 — ближе к переводу целого высказывания.",
     "sentenceSegmentationChunkEffect": "При длинной речи новое облачко начинается каждые {{count}} предложений.",
-    "sentenceSegmentationLowMemory": "На этом устройстве недостаточно памяти для загрузки модели сегментации.",
+    "sentenceSegmentationLowMemory": "Это устройство не сообщает о достаточном объёме памяти для запуска этих моделей, поэтому здесь они отключены.",
     "sentenceSegmentationModelInUse": "Используется текущими языками",
     "sentenceSegmentationModelLoading": "Загрузка…",
     "sentenceSegmentationModelUnavailable": "Недоступно в этой сессии",

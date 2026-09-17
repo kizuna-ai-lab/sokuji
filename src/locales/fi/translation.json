@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Lauseita per puhekupla",
     "sentenceSegmentationChunkTooltip": "Kuinka paljon puhetta mahtuu yhteen puhekuplaan ennen kuin uusi alkaa. Paikallisissa moottoreissa tämä on myös käännösyksikkö: arvolla 1 käännetään lause kerrallaan ja arvolla 5 pysytään lähempänä koko puheenvuoron kääntämistä.",
     "sentenceSegmentationChunkEffect": "Pitkässä puheessa uusi puhekupla alkaa joka {{count}}. lause.",
-    "sentenceSegmentationLowMemory": "Tässä laitteessa ei ole tarpeeksi muistia segmentointimallin lataamiseen.",
+    "sentenceSegmentationLowMemory": "Tämä laite ei ilmoita tarpeeksi muistia näiden mallien suorittamiseen, joten ne on poistettu käytöstä täällä.",
     "sentenceSegmentationModelInUse": "Käytössä nykyisillä kielillä",
     "sentenceSegmentationModelLoading": "Alustetaan…",
     "sentenceSegmentationModelUnavailable": "Ei käytettävissä tässä istunnossa",

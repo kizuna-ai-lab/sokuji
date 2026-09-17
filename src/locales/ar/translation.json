@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "الجمل لكل فقاعة",
     "sentenceSegmentationChunkTooltip": "مقدار الكلام الذي يدخل في فقاعة واحدة قبل أن تبدأ فقاعة جديدة. في المحركات المحلية، هذا هو أيضًا وحدة الترجمة، لذا فإن القيمة 1 تترجم جملة جملة، بينما تبقى القيمة 5 أقرب إلى ترجمة الكلام كاملًا.",
     "sentenceSegmentationChunkEffect": "يبدأ الكلام الطويل فقاعة جديدة كل {{count}} جمل.",
-    "sentenceSegmentationLowMemory": "لا يملك هذا الجهاز ذاكرة كافية لتحميل نموذج تجزئة.",
+    "sentenceSegmentationLowMemory": "لا يُبلغ هذا الجهاز عن ذاكرة كافية لتشغيل هذه النماذج، لذا فهي معطّلة هنا.",
     "sentenceSegmentationModelInUse": "مستخدَم مع اللغات الحالية",
     "sentenceSegmentationModelLoading": "جارٍ التحميل…",
     "sentenceSegmentationModelUnavailable": "غير متاح لهذه الجلسة",

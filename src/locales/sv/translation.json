@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Meningar per pratbubbla",
     "sentenceSegmentationChunkTooltip": "Hur mycket tal som får plats i en pratbubbla innan en ny börjar. På lokala motorer är detta också översättningsenheten, så 1 översätter mening för mening och 5 håller sig nära en översättning av hela yttrandet.",
     "sentenceSegmentationChunkEffect": "Vid längre tal börjar en ny pratbubbla var {{count}}:e mening.",
-    "sentenceSegmentationLowMemory": "Den här enheten har inte tillräckligt med minne för att läsa in en segmenteringsmodell.",
+    "sentenceSegmentationLowMemory": "Den här enheten rapporterar inte tillräckligt med minne för att köra de här modellerna, så de är inaktiverade här.",
     "sentenceSegmentationModelInUse": "Används av nuvarande språk",
     "sentenceSegmentationModelLoading": "Laddar…",
     "sentenceSegmentationModelUnavailable": "Inte tillgänglig i den här sessionen",

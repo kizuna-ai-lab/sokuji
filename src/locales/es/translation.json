@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Frases por burbuja",
     "sentenceSegmentationChunkTooltip": "Cuánto discurso entra en una burbuja antes de que empiece una nueva. En los motores locales, esto también es la unidad de traducción: 1 traduce frase por frase y 5 se mantiene más cerca de la traducción del enunciado completo.",
     "sentenceSegmentationChunkEffect": "En discursos largos, se inicia una nueva burbuja cada {{count}} frases.",
-    "sentenceSegmentationLowMemory": "Este dispositivo no tiene memoria suficiente para cargar un modelo de segmentación.",
+    "sentenceSegmentationLowMemory": "Este dispositivo no informa de memoria suficiente para ejecutar estos modelos, así que están desactivados aquí.",
     "sentenceSegmentationModelInUse": "Se usa con los idiomas actuales",
     "sentenceSegmentationModelLoading": "Cargando…",
     "sentenceSegmentationModelUnavailable": "No disponible en esta sesión",

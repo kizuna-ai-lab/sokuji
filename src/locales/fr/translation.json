@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Phrases par bulle",
     "sentenceSegmentationChunkTooltip": "La quantité de parole contenue dans une bulle avant qu'une nouvelle ne commence. Sur les moteurs locaux, c'est aussi l'unité de traduction : 1 traduit phrase par phrase, 5 reste proche d'une traduction de l'énoncé entier.",
     "sentenceSegmentationChunkEffect": "Pour une parole longue, une nouvelle bulle commence toutes les {{count}} phrases.",
-    "sentenceSegmentationLowMemory": "Cet appareil n'a pas assez de mémoire pour charger un modèle de segmentation.",
+    "sentenceSegmentationLowMemory": "Cet appareil ne signale pas assez de mémoire pour exécuter ces modèles, ils sont donc désactivés ici.",
     "sentenceSegmentationModelInUse": "Utilisé par les langues actuelles",
     "sentenceSegmentationModelLoading": "Chargement…",
     "sentenceSegmentationModelUnavailable": "Indisponible pour cette session",

@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Kalimat per gelembung",
     "sentenceSegmentationChunkTooltip": "Berapa banyak ucapan yang masuk ke satu gelembung sebelum gelembung baru dimulai. Pada mesin lokal, ini juga menjadi unit terjemahan: 1 menerjemahkan kalimat demi kalimat, dan 5 tetap mendekati terjemahan seluruh ucapan.",
     "sentenceSegmentationChunkEffect": "Untuk ucapan panjang, gelembung baru dimulai setiap {{count}} kalimat.",
-    "sentenceSegmentationLowMemory": "Perangkat ini tidak memiliki cukup memori untuk memuat model segmentasi.",
+    "sentenceSegmentationLowMemory": "Perangkat ini tidak melaporkan memori yang cukup untuk menjalankan model-model ini, sehingga model-model tersebut dinonaktifkan di sini.",
     "sentenceSegmentationModelInUse": "Digunakan oleh bahasa saat ini",
     "sentenceSegmentationModelLoading": "Memuat…",
     "sentenceSegmentationModelUnavailable": "Tidak tersedia dalam sesi ini",

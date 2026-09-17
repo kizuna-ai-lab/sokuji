@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Frases por balão",
     "sentenceSegmentationChunkTooltip": "Quanto discurso cabe num balão antes de começar um novo. Nos motores locais, isto é também a unidade de tradução: 1 traduz frase a frase e 5 mantém-se mais próximo da tradução da frase inteira.",
     "sentenceSegmentationChunkEffect": "Em discursos longos, começa um novo balão a cada {{count}} frases.",
-    "sentenceSegmentationLowMemory": "Este dispositivo não tem memória suficiente para carregar um modelo de segmentação.",
+    "sentenceSegmentationLowMemory": "Este dispositivo não reporta memória suficiente para executar estes modelos, pelo que estão desativados aqui.",
     "sentenceSegmentationModelInUse": "Utilizado pelos idiomas atuais",
     "sentenceSegmentationModelLoading": "A carregar…",
     "sentenceSegmentationModelUnavailable": "Indisponível nesta sessão",

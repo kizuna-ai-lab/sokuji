@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "প্রতি বাবলে বাক্যসংখ্যা",
     "sentenceSegmentationChunkTooltip": "নতুন বাবল শুরু হওয়ার আগে একটি বাবলে কতটা কথা থাকবে। স্থানীয় ইঞ্জিনে এটি অনুবাদের এককও বটে, তাই 1 নির্বাচন করলে বাক্য ধরে ধরে অনুবাদ হয় এবং 5 নির্বাচন করলে তা সম্পূর্ণ বাক্যাংশ অনুবাদের কাছাকাছি থাকে।",
     "sentenceSegmentationChunkEffect": "দীর্ঘ কথায় প্রতি {{count}} বাক্য পরপর একটি নতুন বাবল শুরু হয়।",
-    "sentenceSegmentationLowMemory": "বিভাজন মডেল লোড করার জন্য এই ডিভাইসে যথেষ্ট মেমরি নেই।",
+    "sentenceSegmentationLowMemory": "এই ডিভাইসটি এই মডেলগুলো চালানোর জন্য পর্যাপ্ত মেমরি রিপোর্ট করে না, তাই সেগুলো এখানে নিষ্ক্রিয় করা হয়েছে।",
     "sentenceSegmentationModelInUse": "বর্তমান ভাষাগুলোর জন্য ব্যবহৃত হচ্ছে",
     "sentenceSegmentationModelLoading": "লোড হচ্ছে…",
     "sentenceSegmentationModelUnavailable": "এই সেশনে অনুপলব্ধ",

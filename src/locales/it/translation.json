@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Frasi per fumetto",
     "sentenceSegmentationChunkTooltip": "Quanto parlato entra in un fumetto prima che ne inizi uno nuovo. Sui motori locali questa è anche l'unità di traduzione: con 1 si traduce frase per frase, con 5 si resta vicini alla traduzione dell'intera frase pronunciata.",
     "sentenceSegmentationChunkEffect": "Nei discorsi lunghi, un nuovo fumetto inizia ogni {{count}} frasi.",
-    "sentenceSegmentationLowMemory": "Questo dispositivo non ha memoria sufficiente per caricare un modello di segmentazione.",
+    "sentenceSegmentationLowMemory": "Questo dispositivo non segnala memoria sufficiente per eseguire questi modelli, quindi qui sono disattivati.",
     "sentenceSegmentationModelInUse": "Usato dalle lingue attuali",
     "sentenceSegmentationModelLoading": "Caricamento…",
     "sentenceSegmentationModelUnavailable": "Non disponibile in questa sessione",

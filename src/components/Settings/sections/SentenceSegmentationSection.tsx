@@ -26,10 +26,11 @@ interface SentenceSegmentationSectionProps {
   className?: string;
 }
 
-/** Insertion order matches PunctuationRuntime's own MODEL_IDS, which is not
- *  itself exported (only its keys, indirectly, via Object.keys inside that
- *  module) — kept here rather than re-exporting it just for this list. */
-const MODELS: PunctuationModelId[] = ['fireredpunc', 'edge-punct-en', 'sat-3l-sm'];
+/** Derived from PunctuationRuntime's own MODEL_IDS (which IS exported —
+ *  imported two lines up and indexed below) rather than hand-kept: a fourth
+ *  model id added there would otherwise compile here too, silently missing
+ *  a row, since nothing would tie this list back to the real roster. */
+const MODELS: PunctuationModelId[] = Object.keys(MODEL_IDS) as PunctuationModelId[];
 
 /** Mirrors PunctuationRuntime's own gate exactly: same `debug:device-memory`
  *  override, same undefined -> 4GB fallback, same <= 4 threshold. This
@@ -316,6 +317,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         <div className="segmented-control sentence-segmentation__chunk-options">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
+              type="button"
               key={n}
               className={`segmented-option ${chunkSentences === n ? 'active' : ''}`}
               disabled={isSessionActive || !sentenceSegmentation}

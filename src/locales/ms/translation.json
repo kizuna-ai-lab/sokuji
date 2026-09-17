@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Ayat setiap gelembung",
     "sentenceSegmentationChunkTooltip": "Berapa banyak pertuturan yang dimuatkan dalam satu gelembung sebelum gelembung baharu bermula. Pada enjin tempatan, ini juga merupakan unit terjemahan: 1 menterjemah ayat demi ayat, manakala 5 kekal hampir dengan terjemahan keseluruhan pertuturan.",
     "sentenceSegmentationChunkEffect": "Bagi pertuturan panjang, gelembung baharu bermula setiap {{count}} ayat.",
-    "sentenceSegmentationLowMemory": "Peranti ini tidak mempunyai memori yang cukup untuk memuatkan model segmentasi.",
+    "sentenceSegmentationLowMemory": "Peranti ini tidak melaporkan memori yang mencukupi untuk menjalankan model-model ini, jadi model tersebut dilumpuhkan di sini.",
     "sentenceSegmentationModelInUse": "Digunakan oleh bahasa semasa",
     "sentenceSegmentationModelLoading": "Memuatkan…",
     "sentenceSegmentationModelUnavailable": "Tidak tersedia dalam sesi ini",

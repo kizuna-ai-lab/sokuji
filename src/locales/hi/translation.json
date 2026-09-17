@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "प्रति बबल वाक्य",
     "sentenceSegmentationChunkTooltip": "नया बबल शुरू होने से पहले एक बबल में कितना भाषण समाता है। स्थानीय इंजन पर यह अनुवाद की इकाई भी है, इसलिए 1 चुनने पर वाक्य-दर-वाक्य अनुवाद होता है और 5 चुनने पर यह पूरे कथन के अनुवाद के करीब रहता है।",
     "sentenceSegmentationChunkEffect": "लंबे भाषण में हर {{count}} वाक्यों के बाद एक नया बबल शुरू होता है।",
-    "sentenceSegmentationLowMemory": "इस डिवाइस में विभाजन मॉडल लोड करने के लिए पर्याप्त मेमोरी नहीं है।",
+    "sentenceSegmentationLowMemory": "यह डिवाइस इन मॉडलों को चलाने के लिए पर्याप्त मेमोरी रिपोर्ट नहीं करता, इसलिए इन्हें यहाँ अक्षम कर दिया गया है।",
     "sentenceSegmentationModelInUse": "वर्तमान भाषाओं द्वारा उपयोग किया जा रहा है",
     "sentenceSegmentationModelLoading": "लोड हो रहा है…",
     "sentenceSegmentationModelUnavailable": "इस सत्र में उपलब्ध नहीं है",

@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "ఒక్కో బుడగకు వాక్యాలు",
     "sentenceSegmentationChunkTooltip": "కొత్త బుడగ మొదలయ్యే ముందు ఒక బుడగలో ఎంత ప్రసంగం ఇమిడుతుందో సూచిస్తుంది. స్థానిక ఇంజిన్‌లలో ఇది అనువాద యూనిట్ కూడా; కాబట్టి 1 అయితే వాక్యానికి వాక్యం అనువదిస్తుంది, 5 అయితే మొత్తం ప్రసంగానికి దగ్గరగా అనువదిస్తుంది.",
     "sentenceSegmentationChunkEffect": "పొడవైన ప్రసంగంలో ప్రతి {{count}} వాక్యాలకు ఒక కొత్త బుడగ మొదలవుతుంది.",
-    "sentenceSegmentationLowMemory": "విభజన మోడల్‌ను లోడ్ చేయడానికి ఈ పరికరంలో తగినంత మెమరీ లేదు.",
+    "sentenceSegmentationLowMemory": "ఈ పరికరం ఈ మోడల్‌లను రన్ చేయడానికి తగినంత మెమరీని నివేదించడం లేదు, కాబట్టి అవి ఇక్కడ నిలిపివేయబడ్డాయి.",
     "sentenceSegmentationModelInUse": "ప్రస్తుత భాషలచే ఉపయోగించబడుతోంది",
     "sentenceSegmentationModelLoading": "లోడ్ అవుతోంది…",
     "sentenceSegmentationModelUnavailable": "ఈ సెషన్‌లో అందుబాటులో లేదు",

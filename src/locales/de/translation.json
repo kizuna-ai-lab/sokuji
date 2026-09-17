@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Sätze pro Sprechblase",
     "sentenceSegmentationChunkTooltip": "Wie viel Sprache in eine Sprechblase passt, bevor eine neue beginnt. Bei lokalen Engines ist dies auch die Übersetzungseinheit: 1 übersetzt Satz für Satz, 5 bleibt näher an der Übersetzung ganzer Äußerungen.",
     "sentenceSegmentationChunkEffect": "Bei längerer Sprache beginnt alle {{count}} Sätze eine neue Sprechblase.",
-    "sentenceSegmentationLowMemory": "Dieses Gerät hat nicht genug Speicher, um ein Segmentierungsmodell zu laden.",
+    "sentenceSegmentationLowMemory": "Dieses Gerät meldet nicht genug Speicher, um diese Modelle auszuführen, daher sind sie hier deaktiviert.",
     "sentenceSegmentationModelInUse": "Wird von den aktuellen Sprachen verwendet",
     "sentenceSegmentationModelLoading": "Wird geladen…",
     "sentenceSegmentationModelUnavailable": "In dieser Sitzung nicht verfügbar",
