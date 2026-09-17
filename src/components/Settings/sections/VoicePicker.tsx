@@ -136,6 +136,34 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
   // must ENTER at the already-active cell (0,0) rather than move past it —
   // otherwise the very first `ArrowDown` after opening skips row 0 entirely.
   const enteredRef = useRef(false);
+  // Whether `focusActive` has actually RUN (not merely been scheduled) since
+  // open. This is a separate question from `enteredRef` above: `enteredRef`
+  // is about LOGICAL row/cell index math and flips the instant a key is
+  // processed; this is about DOM-focus timing, and must only flip once a
+  // frame has genuinely fired. floating-ui's own `initialFocus={gridRef}`
+  // handling is a ONE-TIME action tied to the open transition (a microtask
+  // into its own `requestAnimationFrame`, wholly outside our control), not to
+  // any particular key press — it is "still in flight" for as long as it
+  // takes real time to resolve, regardless of how many of our OWN key presses
+  // land before then. Every `go()` call while this is still `false` must
+  // defer its own focus() call by an extra frame so floating-ui's pending
+  // action — whenever it actually fires — is guaranteed to resolve first;
+  // once this flips `true`, that race is over for good and later presses
+  // only need one frame.
+  const pastInitialFocusRaceRef = useRef(false);
+  // requestAnimationFrame handle(s) still pending from the MOST RECENT key
+  // press's focus-scheduling in `onGridKeyDown`'s `go()`. A fast second press
+  // — two keydowns with no yield in between, which real browsers can deliver
+  // within one frame via OS key-repeat or fast typing, and which this file's
+  // own tests do deliberately (`fireEvent.keyDown` has no built-in delay) —
+  // can otherwise have an EARLIER press's still-pending frame(s) resolve
+  // after a LATER press's, overwriting the correct final focus with a stale
+  // target (this happens even between two presses that both still need the
+  // two-frame defer above: cancel-and-reschedule, not just "fewer frames",
+  // is what keeps them from racing each other). Canceling whatever is still
+  // pending before scheduling a new frame makes the LAST key press always
+  // win, regardless of how many frames either one was deferred by.
+  const pendingFocusFramesRef = useRef<number[]>([]);
   // Every fresh open starts the grid's roving tabindex back at the first
   // cell of the first row, rather than wherever a previous session left it.
   useEffect(() => {
@@ -143,7 +171,15 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       setActiveRow(0);
       setActiveCell(0);
       enteredRef.current = false;
+      pastInitialFocusRaceRef.current = false;
     }
+    // Closing (or unmounting) mid-flight must not let a still-pending focus
+    // frame from before the close fire afterwards, against a popover that is
+    // no longer open.
+    return () => {
+      pendingFocusFramesRef.current.forEach((id) => cancelAnimationFrame(id));
+      pendingFocusFramesRef.current = [];
+    };
   }, [open]);
   const facetsOn = !!capability.facetFilter;
   const vocabulary = useMemo(() => facetVocabulary(presets), [presets]);
@@ -206,12 +242,26 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     const idx = Math.min(cellIdx, (gridcells?.length ?? 1) - 1);
     const cell = gridcells?.[idx];
     // Cell 0 (the name cell) is the one place the roving tabindex targets the
-    // `role="gridcell"` wrapper itself rather than the `<button>` inside it —
-    // the tests assert `getByRole('gridcell', { name }).toHaveFocus()` there,
-    // while every other cell (▶ / rename / delete) is asserted by its own
-    // `role="button"` name (`getAllByRole('button', { name: /play/i} )`), so
-    // focus must land on the WIDGET for those. Both cells carry `tabIndex`
-    // (see `row()`) matching whichever element is targeted here.
+    // `role="gridcell"` wrapper itself rather than the `<button>` inside it.
+    // That is not a styling choice: the name cell's content IS a `<button>`
+    // (`onSelect` on click), and this same `onGridKeyDown`'s `Enter` case
+    // ALSO calls `onSelect` for the active row. If real DOM focus sat on that
+    // button, a user's Enter would fire the browser's native
+    // button-activation click (invoking the button's own `onClick`) AND
+    // bubble as a keydown to this handler (calling `onSelect` a second time)
+    // — the same double-fire class of bug as the trigger's double-toggle
+    // fixed in Task 3 (see the trigger's `onClick` comment above). Focusing
+    // the DIV instead sidesteps it: a plain `<div>` has no native
+    // Enter-activation, so only this handler's `Enter` case fires `onSelect`,
+    // once. Every OTHER cell (▶ / rename / delete) focuses its own `<button>`
+    // instead, for the opposite reason — a button must receive Enter and
+    // Space NATIVELY to be operable by keyboard, and this handler's `Enter`
+    // case only acts on `activeCell === 0`, so it never contends with them.
+    // The tests confirm which element each column expects:
+    // `getByRole('gridcell', { name }).toHaveFocus()` for the name column,
+    // `getAllByRole('button', { name: /play/i })` for the preview column.
+    // Both cells carry `tabIndex` (see `row()`) matching whichever element is
+    // targeted here.
     const el = idx === 0 ? cell : cell?.querySelector<HTMLElement>('button, input');
     el?.focus();
   };
@@ -224,29 +274,53 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
   const onGridKeyDown = (e: React.KeyboardEvent) => {
     const last = rowOrder.length - 1;
     if (last < 0) return;
+    // The first navigation key since open ENTERS the grid at whatever cell is
+    // already marked active, rather than moving relative to it — see
+    // `enteredRef`'s comment above. Home/End/type-ahead are unaffected: they
+    // always jump to an absolute row, so there is no delta to suppress.
+    // (The SEPARATE question of how many animation frames `go()` defers its
+    // focus() call by is driven by `pastInitialFocusRaceRef`, not this flag —
+    // see its comment above for why those two are not the same thing.)
+    // Captured here, before `go()` flips `enteredRef.current`, so the flag
+    // reflects "was this THE entering press", not "is a row now active".
+    const entering = !enteredRef.current;
     const go = (rowIdx: number, cellIdx = 0) => {
       e.preventDefault();
       const r = Math.max(0, Math.min(last, rowIdx));
       setActiveRow(r);
       setActiveCell(cellIdx);
       enteredRef.current = true;
+      // A press still in flight from BEFORE this one (see
+      // `pendingFocusFramesRef`'s comment above) must never be allowed to
+      // resolve after this one and overwrite it, so cancel it first.
+      pendingFocusFramesRef.current.forEach((id) => cancelAnimationFrame(id));
+      pendingFocusFramesRef.current = [];
       // Focus after the state commit so the row that is about to be active is
-      // the one we reach into. Two nested frames, not one: on the very first
-      // arrow press right after opening, `FloatingFocusManager`'s own
-      // `initialFocus={gridRef}` handling is STILL in flight (its layout
-      // effect defers through a microtask into its own requestAnimationFrame
-      // call) and, if it lands in the same animation-frame batch as a single
-      // rAF here, fires AFTER us and steals focus back onto the grid
-      // container. Deferring one extra frame guarantees floating-ui's
-      // already-queued initial-focus rAF (registered no later than the frame
-      // this event handler runs in) has resolved before ours does.
-      requestAnimationFrame(() => requestAnimationFrame(() => focusActive(r, cellIdx)));
+      // the one we reach into. Two nested frames while
+      // `pastInitialFocusRaceRef` is still `false` (see its comment above):
+      // `FloatingFocusManager`'s own `initialFocus={gridRef}` handling may
+      // STILL be in flight (its layout effect defers through a microtask into
+      // its own requestAnimationFrame call), and if it lands in the same
+      // animation-frame batch as a single rAF here, it fires AFTER us and
+      // steals focus back onto the grid container. Deferring one extra frame
+      // guarantees that already-queued action — if it is still pending at
+      // all — resolves before ours does. Once our own focus() call has
+      // actually landed once, that race is over for good and every later
+      // press only pays for one frame.
+      const runFocus = () => {
+        pendingFocusFramesRef.current = [];
+        pastInitialFocusRaceRef.current = true;
+        focusActive(r, cellIdx);
+      };
+      if (pastInitialFocusRaceRef.current) {
+        pendingFocusFramesRef.current = [requestAnimationFrame(runFocus)];
+      } else {
+        const outer = requestAnimationFrame(() => {
+          pendingFocusFramesRef.current = [requestAnimationFrame(runFocus)];
+        });
+        pendingFocusFramesRef.current = [outer];
+      }
     };
-    // The first arrow key since open ENTERS the grid at whatever cell is
-    // already marked active, rather than moving relative to it — see
-    // `enteredRef`'s comment above. Home/End/type-ahead are unaffected: they
-    // always jump to an absolute row, so there is nothing to suppress.
-    const entering = !enteredRef.current;
     switch (e.key) {
       case 'ArrowDown': return go(entering ? activeRow : activeRow + 1, activeCell);
       case 'ArrowUp': return go(entering ? activeRow : activeRow - 1, activeCell);
