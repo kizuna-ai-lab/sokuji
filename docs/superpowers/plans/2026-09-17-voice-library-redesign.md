@@ -41,7 +41,21 @@
 | `src/components/Settings/sections/VoicePicker.tsx` | Trigger + popover. Renders rows from `VoiceEntry[]`, owns open/close, grid keyboard navigation, type-ahead, inline rename, and the facet row. Calls props for everything else; no data fetching, no audio. |
 | `src/components/Settings/sections/VoicePicker.scss` | Popover, rows, row buttons, facet row (moved from `VoiceLibrarySection.scss`). |
 | `src/components/Settings/sections/VoicePicker.test.tsx` | Rows, ▶ gating, selection, facets, keyboard, dismissal. |
-| `src/components/Settings/sections/VoiceCreateModal.tsx` | Transcript field, Import/Record controls, drop zone, `manageNote`. Owns the capture code moved out of the section (recording graph, countdown, `handleFiles`). |
+| `src/components/Settings/sections/VoiceCreateModal.tsx` | Transcript field, Import/Record controls, drop zone, `manageNote` *while the modal is reachable*. Owns the capture code moved out of the section (recording graph, countdown, `handleFiles`). |
+
+**`manageNote` renders in TWO places, and exactly one of them at a time.** Spec
+§4.3 moves it inside the create modal as "provider copy about creating", and that
+is right whenever the modal can be opened — but it does not cover the state where
+creating is impossible. In managed Soniox mode with a healthy cloned voice,
+`importModes` is empty, so the picker shows no `＋ Add a voice…` row, so the modal
+can never open, so the note — which is the copy telling the user to delete the
+existing voice before recording a new one — would render nowhere at all, and the
+shipped section rendered it inline. So: the composition root renders it inline
+when the create path is withdrawn, the modal renders it when the modal is
+reachable, and the modal's `note` prop is guarded so no state renders it twice.
+Found by Task 7 while re-pointing assertions, fixed outside the numbered tasks,
+and recorded here because the spec's §4.3 predates the question — do not "tidy"
+the inline render away on the strength of the spec sentence alone.
 | `src/components/Settings/sections/VoiceCreateModal.scss` | Overlay + dialog + toolbar + drop zone. |
 | `src/components/Settings/sections/VoiceCreateModal.test.tsx` | `importModes` gating, transcript gating, drop, `multipleImport`, Escape/backdrop, note. |
 | `src/components/Settings/sections/VoiceDeleteModal.tsx` | Name, consequence sentence, Cancel / Delete. |
