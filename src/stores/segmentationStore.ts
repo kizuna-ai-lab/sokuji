@@ -58,7 +58,11 @@ export const useSegmentationStore = create<SegmentationStore>()(
           MODELS.map((m) => {
             const prev = state.models[m];
             // Downloaded bytes survive a session; a loaded model and a
-            // session-scoped disable do not.
+            // session-scoped disable do not. Discarding in-flight state is safe:
+            // ModelManager resumes downloads at file granularity (storage.hasFile
+            // skips files already complete, and cancelled downloads leave partial
+            // files in place), so only the progress bar and current file's
+            // unpersisted bytes are lost.
             const keepsDownload = prev.status === 'ready' || prev.status === 'loading'
               || prev.status === 'downloaded' || prev.status === 'disabled';
             return [m, keepsDownload

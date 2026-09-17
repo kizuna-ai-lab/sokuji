@@ -151,4 +151,17 @@ describe('useSegmentationRuntime', () => {
     expect(warnings[0].message).toBe('[Segmentation] edge-punct-en is unavailable: download failed');
     expect(warnings[0].message).not.toContain(transcriptText);
   });
+
+  it('disposes the runtime exactly once on unmount', () => {
+    // A real dispose() defect was found in this feature area in the previous
+    // slice (disposing mid-bootstrap left a live, never-terminated worker).
+    // This test ensures the cleanup runs and runs only once.
+    const { result, unmount } = renderHook(() => useSegmentationRuntime());
+    const fake = asFake(result.current);
+    const disposeMock = fake.dispose;
+
+    unmount();
+
+    expect(disposeMock).toHaveBeenCalledTimes(1);
+  });
 });
