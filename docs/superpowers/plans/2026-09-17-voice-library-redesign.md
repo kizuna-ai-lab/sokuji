@@ -1126,7 +1126,15 @@ describe('VoicePicker keyboard', () => {
     const grid = screen.getByRole('grid');
     fireEvent.keyDown(grid, { key: 'ArrowDown' });
     fireEvent.keyDown(grid, { key: 'ArrowDown' });
-    fireEvent.keyDown(grid, { key: 'Enter' });
+    // Enter is dispatched on the CELL that actually has focus, not on the grid
+    // container. The `Enter` case requires a `[role="gridcell"]` target — the
+    // same guard that stops a mouse-focused ▶ from selecting row 0 — so firing
+    // on the container would be rejected, and a test that fired there would be
+    // asserting a path no real keypress can take. The arrow cases above may
+    // still fire on the container, because only `Enter` carries the guard.
+    const cell = screen.getByRole('gridcell', { name: 'Isla' });
+    await vi.waitFor(() => expect(cell).toHaveFocus());
+    fireEvent.keyDown(cell, { key: 'Enter' });
     expect(onSelect).toHaveBeenCalledWith('builtin:Isla');
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
@@ -1208,6 +1216,11 @@ cells get a tabindex of -1 except the active cell, and the popover owns one
   // delete). `ExportButton.tsx` uses `useListNavigation` because its menu is a
   // plain one-cell-per-row list; this control is not that.
   const onGridKeyDown = (e: React.KeyboardEvent) => {
+    // While an inline rename is open the grid model is INERT: the input owns
+    // Enter (commit), the arrows (caret movement) and letters (typing, not
+    // type-ahead). Without this, every key in the text field also drives the
+    // grid, because the input's own handler does not stop propagation.
+    if (editingId != null) return;
     const last = rowOrder.length - 1;
     if (last < 0) return;
     const go = (rowIdx: number, cellIdx = 0) => {
@@ -1227,6 +1240,17 @@ cells get a tabindex of -1 except the active cell, and the popover owns one
       case 'Home': return go(0);
       case 'End': return go(last);
       case 'Enter': {
+        // Act on REAL focus, not on remembered coordinates. `activeRow` and
+        // `activeCell` are only ever written by `go()`, which only runs from
+        // keyboard navigation — a mouse click never updates them. So without
+        // this guard, clicking ▶ (or Rename) with the mouse and then pressing
+        // Enter activates that control natively AND falls through to here with
+        // `activeCell` still 0 from the open, selecting `rowOrder[0]` and
+        // closing the popover. Column 0's focus target is the cell element
+        // itself while action columns focus their own control, so requiring a
+        // `gridcell` target rejects both a `<button>` and an `<input>` target.
+        const target = e.target as HTMLElement | null;
+        if (target?.getAttribute('role') !== 'gridcell') return;
         const id = rowOrder[activeRow];
         if (id && activeCell === 0 && !isSessionActive) {
           e.preventDefault();
