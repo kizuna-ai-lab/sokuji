@@ -272,6 +272,17 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
   // delete). `ExportButton.tsx` uses `useListNavigation` because its menu is a
   // plain one-cell-per-row list; this control is not that.
   const onGridKeyDown = (e: React.KeyboardEvent) => {
+    // While an inline rename is open, the grid keyboard model is INERT: the
+    // `<input>` owns every key — Enter commits the rename, ArrowLeft/
+    // ArrowRight move the text caret, and letters type instead of triggering
+    // type-ahead. Without this bailout, those keys leak out of the text
+    // field into row/cell navigation and the type-ahead buffer. The input's
+    // own `onKeyDown` deliberately does NOT call `stopPropagation` on Enter
+    // (that would be the wrong layer to fix this in, and would mask any
+    // other ancestor that legitimately wants to see the key), so this
+    // bailout — not `stopPropagation` — is what keeps its bubbled Enter from
+    // reaching the `Enter` case below.
+    if (editingId != null) return;
     const last = rowOrder.length - 1;
     if (last < 0) return;
     // The first navigation key since open ENTERS the grid at whatever cell is
@@ -330,7 +341,23 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
       case 'End': return go(last);
       case 'Enter': {
         const id = rowOrder[activeRow];
-        if (id && activeCell === 0 && !isSessionActive) {
+        // `activeCell === 0` alone is not enough: `activeRow`/`activeCell`
+        // are only ever updated by `go()`, i.e. by KEYBOARD navigation, so a
+        // user who reaches a control by MOUSE (clicking Rename, clicking ▶)
+        // without arrow-navigating first leaves them at their post-open
+        // default (0, 0) regardless of what is actually focused — a stale
+        // coordinate `onGridKeyDown` cannot tell apart from a genuine "the
+        // name cell is active" state. Requiring the event's REAL target to
+        // be a `role="gridcell"` element closes that gap without consulting
+        // `document.activeElement`: column 0's focus target is deliberately
+        // the gridcell div itself (see `focusActive`'s comment on why), so
+        // this rejects a bubbled Enter from the rename `<input>` and from an
+        // action `<button>` (▶ / rename / delete) alike — neither carries
+        // `role="gridcell"` — while still accepting a genuine Enter on the
+        // name cell reached via arrow keys.
+        const target = e.target;
+        const onGridcell = target instanceof HTMLElement && target.getAttribute('role') === 'gridcell';
+        if (id && activeCell === 0 && !isSessionActive && onGridcell) {
           e.preventDefault();
           onSelect(id);
           setOpen(false);

@@ -268,7 +268,19 @@ describe('VoicePicker keyboard', () => {
     const grid = screen.getByRole('grid');
     fireEvent.keyDown(grid, { key: 'ArrowDown' });
     fireEvent.keyDown(grid, { key: 'ArrowDown' });
-    fireEvent.keyDown(grid, { key: 'Enter' });
+    // Enter is dispatched on the ACTUAL focused gridcell, not on the grid
+    // container: `onGridKeyDown`'s `Enter` case only acts when `e.target`
+    // itself carries `role="gridcell"` (fix round 2 — real focus, not
+    // remembered coordinates), which is what a genuine keydown's target
+    // would be once arrow navigation has moved DOM focus there. Waiting for
+    // focus to actually land (see `focusActive`'s comment on why this is
+    // async) is what makes that target real rather than assumed.
+    const isla = await vi.waitFor(() => {
+      const cell = screen.getByRole('gridcell', { name: 'Isla' });
+      expect(cell).toHaveFocus();
+      return cell;
+    });
+    fireEvent.keyDown(isla, { key: 'Enter' });
     expect(onSelect).toHaveBeenCalledWith('builtin:Isla');
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
@@ -282,5 +294,56 @@ describe('VoicePicker keyboard', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
     await vi.waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  // These three drive the REAL mouse path that exposed the double-fire bug:
+  // click a control directly (no prior arrow-key navigation, so
+  // activeRow/activeCell sit at their post-open default), then fire keydown
+  // on the element that ACTUALLY has focus — never on the grid container.
+  // Firing keydown on the grid, as the six tests above all do, cannot see
+  // this class of bug: the grid's Enter handler used to trust
+  // activeCell === 0 alone, which stays true even when the real focus (and
+  // the real event target) is a rename <input> or an action <button>.
+
+  it('a mouse-driven rename does not also select or close the picker', async () => {
+    const onSelect = vi.fn();
+    const onRename = vi.fn().mockResolvedValue(undefined);
+    render(<VoicePicker {...base} voices={[MINE, ...THREE]} onSelect={onSelect} onRename={onRename} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    // No arrow key pressed — activeRow/activeCell are still (0, 0).
+    fireEvent.click(screen.getByRole('button', { name: /rename/i }));
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'Renamed' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(onRename).toHaveBeenCalledWith('custom:1', 'Renamed');
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('grid')).toBeInTheDocument();
+  });
+
+  it('a mouse-driven ▶ does not also trigger a spurious select', async () => {
+    const onSelect = vi.fn();
+    const onPreview = vi.fn().mockResolvedValue(null);
+    render(<VoicePicker {...base} voices={THREE} onSelect={onSelect} onPreview={onPreview} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    // No arrow key pressed — activeRow/activeCell are still (0, 0), so
+    // rowOrder[activeRow] resolves to Grace: exactly the spurious selection
+    // this guard must prevent.
+    const play = screen.getAllByRole('button', { name: /play/i })[0];
+    fireEvent.click(play);
+    fireEvent.keyDown(play, { key: 'Enter' });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('arrow and letter keys stay in the rename input instead of leaking into the grid', async () => {
+    render(<VoicePicker {...base} voices={[MINE, ...THREE]} onRename={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { name: /rename/i }));
+    const input = screen.getByRole('textbox');
+    fireEvent.keyDown(input, { key: 'ArrowRight' });
+    fireEvent.keyDown(input, { key: 'v' });
+    expect(input).toHaveFocus();
+    // 'v' would jump type-ahead to Victoria if it leaked into the grid; it
+    // must not have.
+    expect(screen.getByRole('gridcell', { name: 'Victoria' })).not.toHaveFocus();
   });
 });
