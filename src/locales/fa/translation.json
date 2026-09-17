@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "تعداد جمله در هر حباب",
     "sentenceSegmentationChunkTooltip": "میزان گفتاری که پیش از شروع حباب جدید در یک حباب جای می‌گیرد. در موتورهای محلی، این همچنین واحد ترجمه است؛ بنابراین ۱ جمله‌به‌جمله ترجمه می‌کند و ۵ به ترجمه کل گفته نزدیک‌تر می‌ماند.",
     "sentenceSegmentationChunkEffect": "در گفتار طولانی، هر {{count}} جمله یک حباب جدید آغاز می‌شود.",
-    "sentenceSegmentationLowMemory": "این دستگاه حافظه کافی برای بارگذاری مدل بخش‌بندی را ندارد.",
+    "sentenceSegmentationLowMemory": "این دستگاه حافظه کافی برای اجرای این مدل‌ها را گزارش نمی‌دهد، بنابراین اینجا غیرفعال شده‌اند.",
     "sentenceSegmentationModelInUse": "توسط زبان‌های فعلی استفاده می‌شود",
     "sentenceSegmentationModelLoading": "در حال بارگذاری…",
     "sentenceSegmentationModelUnavailable": "در این جلسه در دسترس نیست",

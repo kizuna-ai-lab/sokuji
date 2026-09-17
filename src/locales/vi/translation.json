@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Số câu mỗi bong bóng",
     "sentenceSegmentationChunkTooltip": "Lượng lời nói chứa trong một bong bóng trước khi bong bóng mới bắt đầu. Trên các engine cục bộ, đây cũng là đơn vị dịch: 1 dịch từng câu một, còn 5 giữ gần với việc dịch toàn bộ lượt nói.",
     "sentenceSegmentationChunkEffect": "Với lời nói dài, cứ mỗi {{count}} câu lại bắt đầu một bong bóng mới.",
-    "sentenceSegmentationLowMemory": "Thiết bị này không có đủ bộ nhớ để tải mô hình phân đoạn.",
+    "sentenceSegmentationLowMemory": "Thiết bị này không báo cáo đủ bộ nhớ để chạy các mô hình này, vì vậy chúng bị vô hiệu hóa ở đây.",
     "sentenceSegmentationModelInUse": "Đang được dùng bởi ngôn ngữ hiện tại",
     "sentenceSegmentationModelLoading": "Đang tải…",
     "sentenceSegmentationModelUnavailable": "Không khả dụng trong phiên này",

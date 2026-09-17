@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Konuşma balonu başına cümle sayısı",
     "sentenceSegmentationChunkTooltip": "Yeni bir konuşma balonu başlamadan önce bir konuşma balonuna ne kadar konuşma sığacağı. Yerel motorlarda bu aynı zamanda çeviri birimidir: 1 cümle cümle çevirir, 5 ise tüm ifadenin çevirisine daha yakın kalır.",
     "sentenceSegmentationChunkEffect": "Uzun konuşmalarda her {{count}} cümlede bir yeni konuşma balonu başlar.",
-    "sentenceSegmentationLowMemory": "Bu cihazın bir segmentasyon modelini yüklemek için yeterli belleği yok.",
+    "sentenceSegmentationLowMemory": "Bu cihaz bu modelleri çalıştırmak için yeterli bellek bildirmiyor, bu yüzden burada devre dışı bırakıldılar.",
     "sentenceSegmentationModelInUse": "Mevcut diller tarafından kullanılıyor",
     "sentenceSegmentationModelLoading": "Yükleniyor…",
     "sentenceSegmentationModelUnavailable": "Bu oturumda kullanılamıyor",

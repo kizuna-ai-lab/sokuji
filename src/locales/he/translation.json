@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "משפטים לכל בועה",
     "sentenceSegmentationChunkTooltip": "כמה דיבור נכנס לבועה אחת לפני שמתחילה בועה חדשה. במנועים מקומיים זו גם יחידת התרגום, כך ש-1 מתרגם משפט אחר משפט ו-5 נשאר קרוב לתרגום של הביטוי כולו.",
     "sentenceSegmentationChunkEffect": "בדיבור ארוך, בועה חדשה מתחילה כל {{count}} משפטים.",
-    "sentenceSegmentationLowMemory": "למכשיר הזה אין מספיק זיכרון לטעינת מודל חלוקה.",
+    "sentenceSegmentationLowMemory": "המכשיר הזה לא מדווח על מספיק זיכרון להרצת המודלים האלה, ולכן הם מושבתים כאן.",
     "sentenceSegmentationModelInUse": "בשימוש על ידי השפות הנוכחיות",
     "sentenceSegmentationModelLoading": "טוען…",
     "sentenceSegmentationModelUnavailable": "לא זמין בפגישה הזו",

@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "吹き出しごとの文数",
     "sentenceSegmentationChunkTooltip": "新しい吹き出しが始まるまでに、1つの吹き出しにどれだけの発話を含めるかです。ローカルエンジンではこれが翻訳の単位にもなり、1なら文単位で翻訳し、5なら発話全体に近い形で翻訳します。",
     "sentenceSegmentationChunkEffect": "長い発話では{{count}}文ごとに新しい吹き出しが始まります。",
-    "sentenceSegmentationLowMemory": "このデバイスには、分割モデルを読み込むのに十分なメモリがありません。",
+    "sentenceSegmentationLowMemory": "このデバイスはこれらのモデルを実行するのに十分なメモリを報告していないため、ここでは無効になっています。",
     "sentenceSegmentationModelInUse": "現在の言語で使用中",
     "sentenceSegmentationModelLoading": "読み込み中…",
     "sentenceSegmentationModelUnavailable": "このセッションでは利用不可",

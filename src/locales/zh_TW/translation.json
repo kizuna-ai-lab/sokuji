@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "每個氣泡的句數",
     "sentenceSegmentationChunkTooltip": "新氣泡開始前，一個氣泡可容納多少內容。在本機引擎上，這也是翻譯的單位：設為 1 會逐句翻譯，設為 5 則更接近整句話的翻譯。",
     "sentenceSegmentationChunkEffect": "發言較長時，每 {{count}} 句會另起一個新氣泡。",
-    "sentenceSegmentationLowMemory": "此裝置記憶體不足，無法載入分段模型。",
+    "sentenceSegmentationLowMemory": "此裝置未回報足夠的記憶體來執行這些模型，因此它們在此處已停用。",
     "sentenceSegmentationModelInUse": "正被目前的語言使用",
     "sentenceSegmentationModelLoading": "載入中…",
     "sentenceSegmentationModelUnavailable": "此工作階段無法使用",

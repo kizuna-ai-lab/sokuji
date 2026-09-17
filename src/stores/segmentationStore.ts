@@ -10,7 +10,11 @@ export interface SegmentationModelState {
   error: string | null;
 }
 
-const MODELS: PunctuationModelId[] = ['fireredpunc', 'edge-punct-en', 'sat-3l-sm'];
+/** Derived from PunctuationRuntime's own MODEL_IDS rather than hand-kept: a
+ *  fourth model id would otherwise compile here too while this store
+ *  silently lacks the key, and `state.status` would throw the moment a row
+ *  for it rendered. */
+const MODELS: PunctuationModelId[] = Object.keys(MODEL_IDS) as PunctuationModelId[];
 
 const blank = (): Record<PunctuationModelId, SegmentationModelState> =>
   Object.fromEntries(

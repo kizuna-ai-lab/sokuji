@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "Zdania na dymek",
     "sentenceSegmentationChunkTooltip": "Ile mowy mieści się w jednym dymku, zanim zacznie się nowy. W silnikach lokalnych jest to również jednostka tłumaczenia: 1 tłumaczy zdanie po zdaniu, a 5 pozostaje bliżej tłumaczenia całej wypowiedzi.",
     "sentenceSegmentationChunkEffect": "Przy dłuższej mowie nowy dymek zaczyna się co {{count}} zdania.",
-    "sentenceSegmentationLowMemory": "To urządzenie nie ma wystarczającej ilości pamięci, aby wczytać model segmentacji.",
+    "sentenceSegmentationLowMemory": "To urządzenie nie zgłasza wystarczającej ilości pamięci, aby uruchomić te modele, dlatego są tutaj wyłączone.",
     "sentenceSegmentationModelInUse": "Używany przez obecne języki",
     "sentenceSegmentationModelLoading": "Ładowanie…",
     "sentenceSegmentationModelUnavailable": "Niedostępne w tej sesji",

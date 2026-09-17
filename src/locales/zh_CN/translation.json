@@ -285,7 +285,7 @@
     "sentenceSegmentationChunk": "每个气泡的句数",
     "sentenceSegmentationChunkTooltip": "新气泡开始前，一个气泡中包含多少内容。在本地引擎上，这也是翻译的单位：设为 1 会逐句翻译，设为 5 则更接近整句话的翻译。",
     "sentenceSegmentationChunkEffect": "发言较长时，每 {{count}} 句会另起一个新气泡。",
-    "sentenceSegmentationLowMemory": "此设备内存不足，无法加载分段模型。",
+    "sentenceSegmentationLowMemory": "此设备未报告足够的内存来运行这些模型，因此它们在此处被禁用。",
     "sentenceSegmentationModelInUse": "正被当前的语言使用",
     "sentenceSegmentationModelLoading": "加载中…",
     "sentenceSegmentationModelUnavailable": "本次会话不可用",

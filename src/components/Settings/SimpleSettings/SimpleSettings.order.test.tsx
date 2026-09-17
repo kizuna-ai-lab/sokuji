@@ -85,6 +85,10 @@ describe('SimpleSettings - section order', () => {
     expect(translation).toBeGreaterThanOrEqual(0);
     expect(translation).toBeLessThan(help);
     expect(help).toBe(ids.length - 1);
+    // Fix round: this test never referenced the new Sentence segmentation
+    // section, so nothing actually pinned it right after LanguageSection --
+    // a belief recorded earlier in this slice that turned out to be untested.
+    expect(ids[translation + 1]).toContain('sentence-segmentation-section');
   });
 
   // The move's whole point: interface language no longer occupies a section of
