@@ -1731,8 +1731,16 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
 export default VoiceDeleteModal;
 ```
 
-Rename Task 5's overlay/dialog classes to this shared `voice-modal*` set so both
-modals use one frame, and add `&__foot`, `&__btn`, `&__btn--danger`.
+Rename Task 5's overlay/dialog classes — it shipped them as
+`voice-create-modal__*` — to this shared `voice-modal*` set so both modals use
+one frame, and add `&__foot`, `&__btn`, `&__btn--danger`.
+
+That rename has a gate attached, and it is easy to miss: the third `describe`
+in `voiceFacetStyles.test.ts` (added by Task 5, compiling
+`VoiceCreateModal.scss`) lists those `voice-create-modal__*` names, so it fails
+the moment the stylesheet stops emitting them. Re-point it in the SAME commit
+and add the delete modal's classes to it — see Step 6's note for why that file
+is the only thing standing between a typo and an unstyled control.
 
 - [ ] **Step 4: Rewrite the section as a composition root**
 
@@ -1843,10 +1851,21 @@ rules and `@keyframes voice-preview-spin` into `VoicePicker.scss` rather than
 moving them (the section kept rendering its own facet bar until this task, and
 `voiceFacetStyles.test.ts` asserts those rules exist in
 `VoiceLibrarySection.scss`), so deleting the originals is THIS task's job. When
-you do, re-point that test's first `describe` at whatever still lives in the
+you do, re-point that test's FIRST `describe` (`'facet filter bar styling'`,
+the one compiling `VoiceLibrarySection.scss`) at whatever still lives in the
 section — `.voice-selected-description` stays, the `.voice-facet-*` cases move
 to the picker block Task 3 appended — and keep its `.voice-facet-bar` margin
 assertion only if the rule it checks survives.
+
+`voiceFacetStyles.test.ts` now has THREE describes, not two, and the third is
+this task's problem as well. Task 5 appended one compiling
+`VoiceCreateModal.scss` over its `voice-create-modal__*` class names. When you
+rename those classes to the shared `voice-modal*` set below, that describe's
+`it.each` list still names the old ones, so it fails on classes the stylesheet
+no longer emits. Re-point it in the SAME commit as the rename, and add the
+delete modal's own classes to it — this file is the only check that a class
+someone typed is actually styled, so a rename that skips it silently removes
+that protection for both modals.
 
 `.voice-preview-spinner` is easy to miss because Task 3 does not move it — it
 supersedes it, emitting `.voice-row__spinner` in `VoicePicker.scss` off the same
