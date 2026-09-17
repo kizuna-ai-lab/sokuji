@@ -1,0 +1,175 @@
+@use '../shared/variables' as vars;
+
+// The 1-5 "sentences per bubble" control. Based on Settings.scss's
+// noise-suppression-control block: `flex: 1` per option so all five numbers
+// share the row evenly, rather than NativeDeviceControl's inline-flex, which
+// sizes each button to its own label (fine for "Auto"/"CPU"/"GPU", uneven for
+// a five-way row of single digits).
+.sentence-segmentation__chunk {
+  margin-top: vars.$space-3;
+}
+
+.sentence-segmentation__chunk-header {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-1;
+  margin-bottom: vars.$space-1;
+}
+
+.sentence-segmentation__chunk-label {
+  font-size: vars.$font-body;
+  color: vars.$text-secondary;
+}
+
+.sentence-segmentation__chunk-options {
+  display: flex;
+  border-radius: vars.$radius-md;
+  overflow: hidden;
+  border: 1px solid vars.$border-default;
+
+  .segmented-option {
+    flex: 1;
+    padding: 6px 12px;
+    font-size: vars.$font-caption;
+    text-align: center;
+    border: none;
+    background: vars.$bg-control;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    transition: background vars.$transition-fast, color vars.$transition-fast;
+
+    &:not(:last-child) {
+      border-right: 1px solid vars.$border-default;
+    }
+
+    &:hover:not(.active):not(:disabled) {
+      background: vars.$bg-hover;
+    }
+
+    &.active {
+      background: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
+      font-weight: vars.$weight-medium;
+    }
+
+    &:disabled {
+      opacity: vars.$disabled-opacity;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.sentence-segmentation__chunk-effect {
+  margin: vars.$space-1 0 0;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+
+.sentence-segmentation__low-memory {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$space-2;
+  margin-top: vars.$space-3;
+  padding: vars.$space-2 10px;
+  border: 1px solid vars.$color-warning-border;
+  border-radius: vars.$radius-md;
+  background: vars.$color-warning-bg;
+  color: vars.$color-warning;
+  font-size: vars.$font-caption;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+.sentence-segmentation__models {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-2;
+  margin-top: vars.$space-3;
+}
+
+.sentence-segmentation__model {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: vars.$space-2;
+  padding: vars.$space-2 10px;
+  border: 1px solid vars.$border-subtle;
+  border-radius: vars.$radius-sm;
+  background: rgba(255, 255, 255, 0.02);
+
+  &--disabled {
+    opacity: vars.$disabled-opacity;
+  }
+}
+
+.sentence-segmentation__model-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: vars.$space-2;
+  min-width: 0;
+}
+
+.sentence-segmentation__model-name {
+  font-size: vars.$font-body;
+  color: vars.$text-primary;
+}
+
+.sentence-segmentation__model-size {
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+
+.sentence-segmentation__model-badge {
+  font-size: vars.$chip-font-size;
+  line-height: vars.$chip-line-height;
+  padding: vars.$chip-padding-y vars.$space-1;
+  border-radius: vars.$radius-sm;
+  background: rgba(vars.$color-primary, 0.12);
+  color: vars.$color-primary;
+  white-space: nowrap;
+}
+
+.sentence-segmentation__model-actions {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-2;
+  flex-shrink: 0;
+}
+
+.sentence-segmentation__model-status {
+  font-size: vars.$font-caption;
+  color: vars.$text-secondary;
+}
+
+.sentence-segmentation__model-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: vars.$font-caption;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-sm;
+  background: vars.$bg-control;
+  color: vars.$text-secondary;
+  cursor: pointer;
+  transition: background vars.$transition-fast, color vars.$transition-fast;
+
+  &:hover:not(:disabled) {
+    background: vars.$bg-hover;
+    color: vars.$text-primary;
+  }
+
+  &:disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+  }
+
+  &--delete {
+    padding: 4px 6px;
+  }
+}
