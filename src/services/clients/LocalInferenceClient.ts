@@ -599,6 +599,12 @@ export class LocalInferenceClient implements IClient {
    * if the setting flips mid-utterance.
    */
   private ensureStream(): SentenceStream | null {
+    // Reuse the existing stream if already constructed. This is safe only because
+    // SentenceSegmentationSection.tsx holds `disabled={isSessionActive}` on the
+    // toggle, preventing the setting from changing mid-session. If that guard is
+    // ever removed, a mid-utterance toggle-off would reuse this stream even though
+    // runtime.enabled is now false: end() would not seal, the tail would be lost,
+    // and the stranded user bubble would be overwritten by the next utterance.
     if (this.stream) return this.stream;
     if (this.astMode || !this.segmentation || !this.segmentation.enabled) return null;
     this.sealedChars = 0;
