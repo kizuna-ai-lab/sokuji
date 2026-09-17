@@ -144,8 +144,8 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
     return '';
   }
 
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new LocalNativeClient();
+  createClient(_creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new LocalNativeClient({ segmentation: options.segmentation, sentencesPerChunk: options.sentencesPerChunk });
   }
 
   // Readiness for LOCAL_NATIVE is model-based, not credential-based: settingsStore's
