@@ -124,6 +124,27 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
 
   const presets = useMemo(() => voices.filter((v) => v.group === 'builtin'), [voices]);
   const clones = useMemo(() => voices.filter((v) => v.group === 'custom'), [voices]);
+  const [activeRow, setActiveRow] = useState(0);
+  const [activeCell, setActiveCell] = useState(0);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  // Type-ahead buffer: cleared after 700ms of no typing, the interval the APG
+  // grid pattern uses for multi-character matching.
+  const typed = useRef({ text: '', at: 0 });
+  // Whether an arrow/Home/End/type-ahead key has moved focus into the grid
+  // since it opened. `FloatingFocusManager`'s `initialFocus={gridRef}` lands
+  // DOM focus on the grid CONTAINER, not a cell, so the first arrow press
+  // must ENTER at the already-active cell (0,0) rather than move past it —
+  // otherwise the very first `ArrowDown` after opening skips row 0 entirely.
+  const enteredRef = useRef(false);
+  // Every fresh open starts the grid's roving tabindex back at the first
+  // cell of the first row, rather than wherever a previous session left it.
+  useEffect(() => {
+    if (open) {
+      setActiveRow(0);
+      setActiveCell(0);
+      enteredRef.current = false;
+    }
+  }, [open]);
   const facetsOn = !!capability.facetFilter;
   const vocabulary = useMemo(() => facetVocabulary(presets), [presets]);
   const matched = useMemo(
@@ -137,6 +158,14 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     const keep = new Set(matched.map((v) => v.id));
     return presets.filter((v) => keep.has(v.id) || v.id === selectedId);
   }, [presets, matched, facetsOn, selectedId]);
+
+  // Flat row order as rendered: the add row first (when present), then clones,
+  // then the shown presets. Keyboard order must match visual order, so this is
+  // derived from the same arrays the JSX maps over rather than from `voices`.
+  const rowOrder = useMemo(
+    () => [...clones, ...shownPresets].map((v) => v.id),
+    [clones, shownPresets],
+  );
 
   const selected = voices.find((v) => v.id === selectedId);
 
@@ -160,12 +189,106 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     if (name && onRename) await onRename(id, name);
   };
 
-  const previewButton = (v: VoiceEntry) => {
+  /** Move DOM focus to the active cell after a render that changed it. */
+  const focusActive = (rowIdx: number, cellIdx: number) => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    // `[role="row"].voice-row` and not every `[role="row"]`: the grid also
+    // contains HEADER rows (the "My Voices" / "Presets" group labels, each a
+    // `role="row"` holding one `role="columnheader"`, with the refresh button
+    // inside the Presets one). Selecting by the `.voice-row` class excludes
+    // them, so arrow keys move between voices only. The add row is excluded
+    // separately because it is a `.voice-row` but not a voice.
+    const rows = Array.from(grid.querySelectorAll('[role="row"].voice-row')).filter(
+      (r) => !r.classList.contains('voice-row--add'),
+    );
+    const gridcells = rows[rowIdx]?.querySelectorAll<HTMLElement>('[role="gridcell"]');
+    const idx = Math.min(cellIdx, (gridcells?.length ?? 1) - 1);
+    const cell = gridcells?.[idx];
+    // Cell 0 (the name cell) is the one place the roving tabindex targets the
+    // `role="gridcell"` wrapper itself rather than the `<button>` inside it —
+    // the tests assert `getByRole('gridcell', { name }).toHaveFocus()` there,
+    // while every other cell (▶ / rename / delete) is asserted by its own
+    // `role="button"` name (`getAllByRole('button', { name: /play/i} )`), so
+    // focus must land on the WIDGET for those. Both cells carry `tabIndex`
+    // (see `row()`) matching whichever element is targeted here.
+    const el = idx === 0 ? cell : cell?.querySelector<HTMLElement>('button, input');
+    el?.focus();
+  };
+
+  // Hand-rolled rather than floating-ui's `useListNavigation`: that hook's
+  // `cols` option models a UNIFORM grid, and these rows are ragged — a preset
+  // row has two cells (name, ▶) while a clone row has four (name, ▶, rename,
+  // delete). `ExportButton.tsx` uses `useListNavigation` because its menu is a
+  // plain one-cell-per-row list; this control is not that.
+  const onGridKeyDown = (e: React.KeyboardEvent) => {
+    const last = rowOrder.length - 1;
+    if (last < 0) return;
+    const go = (rowIdx: number, cellIdx = 0) => {
+      e.preventDefault();
+      const r = Math.max(0, Math.min(last, rowIdx));
+      setActiveRow(r);
+      setActiveCell(cellIdx);
+      enteredRef.current = true;
+      // Focus after the state commit so the row that is about to be active is
+      // the one we reach into. Two nested frames, not one: on the very first
+      // arrow press right after opening, `FloatingFocusManager`'s own
+      // `initialFocus={gridRef}` handling is STILL in flight (its layout
+      // effect defers through a microtask into its own requestAnimationFrame
+      // call) and, if it lands in the same animation-frame batch as a single
+      // rAF here, fires AFTER us and steals focus back onto the grid
+      // container. Deferring one extra frame guarantees floating-ui's
+      // already-queued initial-focus rAF (registered no later than the frame
+      // this event handler runs in) has resolved before ours does.
+      requestAnimationFrame(() => requestAnimationFrame(() => focusActive(r, cellIdx)));
+    };
+    // The first arrow key since open ENTERS the grid at whatever cell is
+    // already marked active, rather than moving relative to it — see
+    // `enteredRef`'s comment above. Home/End/type-ahead are unaffected: they
+    // always jump to an absolute row, so there is nothing to suppress.
+    const entering = !enteredRef.current;
+    switch (e.key) {
+      case 'ArrowDown': return go(entering ? activeRow : activeRow + 1, activeCell);
+      case 'ArrowUp': return go(entering ? activeRow : activeRow - 1, activeCell);
+      case 'ArrowRight': return go(activeRow, entering ? activeCell : activeCell + 1);
+      case 'ArrowLeft': return go(activeRow, entering ? activeCell : Math.max(0, activeCell - 1));
+      case 'Home': return go(0);
+      case 'End': return go(last);
+      case 'Enter': {
+        const id = rowOrder[activeRow];
+        if (id && activeCell === 0 && !isSessionActive) {
+          e.preventDefault();
+          onSelect(id);
+          setOpen(false);
+        }
+        return;
+      }
+      // Deliberately NO `Escape` branch. `useDismiss` closes on Escape by
+      // default and the `FloatingFocusManager` from Task 3 returns focus to
+      // the trigger; handling it here too would fight both.
+      default: break;
+    }
+    // Type-ahead: printable single characters only, so modifier combinations
+    // and Tab keep their meaning.
+    if (e.key.length !== 1 || e.metaKey || e.ctrlKey || e.altKey) return;
+    const now = Date.now();
+    typed.current = {
+      text: (now - typed.current.at < 700 ? typed.current.text : '') + e.key.toLowerCase(),
+      at: now,
+    };
+    const all = [...clones, ...shownPresets];
+    const hit = all.findIndex((v) => v.label.toLowerCase().startsWith(typed.current.text));
+    if (hit >= 0) go(hit);
+  };
+
+  const previewButton = (v: VoiceEntry, rowIdx: number, cellIdx: number) => {
     if (!onPreview || !canAuditionVoice(v)) return null;
+    const tabIndex = rowIdx === activeRow && cellIdx === activeCell ? 0 : -1;
     if (previewUnavailableReason) {
       return (
         <div role="gridcell">
           <button type="button" className="voice-row__btn" disabled
+            tabIndex={tabIndex}
             aria-label={previewUnavailableReason} title={previewUnavailableReason}>
             <Play size={13} />
           </button>
@@ -185,6 +308,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
           // Disabled while synthesizing so a second click cannot start a
           // second synthesis (which would spend the user's money twice).
           disabled={loading}
+          tabIndex={tabIndex}
           aria-label={label}
           title={label}
           // Abort whatever the previous click started, then hand THIS click a
@@ -212,14 +336,21 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     );
   };
 
-  const row = (v: VoiceEntry) => {
+  const row = (v: VoiceEntry, rowIdx: number) => {
     const isSelected = v.id === selectedId;
+    // A single running counter, not a fixed cell-index-per-control: a preset
+    // row has two cells (name, ▶) while a clone row has four (name, ▶,
+    // rename, delete), so which counter value the rename/delete buttons land
+    // on depends on whether ▶ was rendered at all for this voice.
+    let cell = 0;
+    const cellTabIndex = () => (rowIdx === activeRow && cell === activeCell ? 0 : -1);
     if (editingId === v.id) {
       return (
         <div role="row" className="voice-row" key={v.id}>
           <div role="gridcell">
             <input
               autoFocus
+              tabIndex={cellTabIndex()}
               className="voice-row__edit"
               value={editName}
               aria-label={t('voiceLibrary.rename', 'Rename')}
@@ -234,6 +365,13 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
         </div>
       );
     }
+    const nameTabIndex = cellTabIndex(); cell += 1;
+    const preview = previewButton(v, rowIdx, cell);
+    if (preview) cell += 1;
+    const showRename = v.removable && !!onRename;
+    const renameTabIndex = showRename ? cellTabIndex() : -1;
+    if (showRename) cell += 1;
+    const deleteTabIndex = v.removable ? cellTabIndex() : -1;
     return (
       <div role="row" className={`voice-row${isSelected ? ' is-selected' : ''}`} key={v.id}>
         {/* A div wrapping a real <button>, like every other cell in this row
@@ -247,11 +385,19 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             inconsistency within one row. Disabled-state checks (e.g.
             `toBeDisabled()`) target the button directly, which is a real form
             control regardless of which element carries the gridcell role. */}
-        <div role="gridcell" aria-selected={isSelected}>
+        {/* `tabIndex` lives on THIS div, not the button inside: the name cell
+            is the one place the roving tabindex targets the `gridcell`
+            wrapper itself (see `focusActive`), matching how the picker's
+            tests query it — `getByRole('gridcell', { name }).toHaveFocus()`,
+            not the button. The button keeps a fixed `tabIndex={-1}` so it is
+            never independently reachable by Tab; it stays a normal click
+            target regardless. */}
+        <div role="gridcell" aria-selected={isSelected} tabIndex={nameTabIndex}>
           <button
             type="button"
             className="voice-row__pick"
             disabled={isSessionActive || v.disabled}
+            tabIndex={-1}
             aria-label={v.label}
             onClick={() => { onSelect(v.id); setOpen(false); }}
           >
@@ -259,10 +405,11 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             <span className="voice-row__sub">{rowSubtitle(v)}</span>
           </button>
         </div>
-        {previewButton(v)}
-        {v.removable && onRename && (
+        {preview}
+        {showRename && (
           <div role="gridcell">
             <button type="button" className="voice-row__btn"
+              tabIndex={renameTabIndex}
               aria-label={t('voiceLibrary.rename', 'Rename')} title={t('voiceLibrary.rename', 'Rename')}
               onClick={() => { setEditingId(v.id); setEditName(v.label); }}>
               <Pencil size={13} />
@@ -272,6 +419,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
         {v.removable && (
           <div role="gridcell">
             <button type="button" className="voice-row__btn voice-row__btn--danger"
+              tabIndex={deleteTabIndex}
               aria-label={t('voiceLibrary.delete', 'Delete')} title={t('voiceLibrary.delete', 'Delete')}
               onClick={() => onAskDelete(v.id, v.label)}>
               <Trash2 size={13} />
@@ -354,7 +502,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             `returnFocus` puts it back on the trigger when `useDismiss` closes
             on Escape or outside press. Task 4 adds `initialFocus={gridRef}`
             here and must NOT hand-roll an Escape branch. */}
-        <FloatingFocusManager context={context} modal={false} returnFocus>
+        <FloatingFocusManager context={context} modal={false} returnFocus initialFocus={gridRef}>
         <div
           ref={refs.setFloating}
           style={floatingStyles}
@@ -371,7 +519,14 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
               carry that class, are excluded from its keyboard model without
               any extra filtering). The "no imported voices" hint isn't a row
               at all — it renders as a sibling below the grid instead. */}
-          <div role="grid" aria-label={t('voiceLibrary.voice', 'Voice')} className="voice-pop__grid">
+          <div
+            ref={gridRef}
+            role="grid"
+            aria-label={t('voiceLibrary.voice', 'Voice')}
+            className="voice-pop__grid"
+            tabIndex={-1}
+            onKeyDown={onGridKeyDown}
+          >
             <div role="row" className="voice-pop__group">
               <div role="columnheader">{t('voiceLibrary.myVoices', 'My Voices')}</div>
             </div>
@@ -384,7 +539,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                 </div>
               </div>
             )}
-            {clones.map(row)}
+            {clones.map((v, i) => row(v, i))}
             <div role="row" className="voice-pop__group">
               <div role="columnheader">
                 {t('voiceLibrary.presets', 'Presets')}
@@ -411,7 +566,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                 )}
               </div>
             </div>
-            {shownPresets.map(row)}
+            {shownPresets.map((v, i) => row(v, clones.length + i))}
           </div>
           {clones.length === 0 && !onAddVoice && (
             <div className="voice-pop__empty">{t('voiceLibrary.emptyHint', 'No imported voices yet.')}</div>

@@ -209,3 +209,78 @@ describe('VoicePicker', () => {
     expect(screen.getByRole('button', { name: /play/i })).toBeEnabled();
   });
 });
+
+describe('VoicePicker keyboard', () => {
+  const THREE = [
+    { id: 'builtin:Grace', label: 'Grace', group: 'builtin' as const, removable: false, previewable: true },
+    { id: 'builtin:Isla', label: 'Isla', group: 'builtin' as const, removable: false, previewable: true },
+    { id: 'builtin:Victoria', label: 'Victoria', group: 'builtin' as const, removable: false, previewable: true },
+  ];
+
+  it('moves between rows with the arrow keys and lands on the name cell', async () => {
+    render(<VoicePicker {...base} voices={THREE} onPreview={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Isla' })).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'ArrowUp' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus());
+  });
+
+  it('moves within a row with left and right', async () => {
+    render(<VoicePicker {...base} voices={THREE} onPreview={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    fireEvent.keyDown(grid, { key: 'ArrowRight' });
+    await vi.waitFor(() => expect(screen.getAllByRole('button', { name: /play/i })[0]).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'ArrowLeft' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus());
+  });
+
+  it('jumps to the first and last row with Home and End', async () => {
+    render(<VoicePicker {...base} voices={THREE} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'End' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Victoria' })).toHaveFocus());
+    fireEvent.keyDown(grid, { key: 'Home' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Grace' })).toHaveFocus());
+  });
+
+  it('jumps to a row by typing its first letters — the search box we did not build', async () => {
+    render(<VoicePicker {...base} voices={THREE} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    // One keyDown per character: the buffer is what turns 'v' + 'i' into a
+    // two-character match, so a single synthetic event would not exercise it.
+    fireEvent.keyDown(grid, { key: 'v' });
+    fireEvent.keyDown(grid, { key: 'i' });
+    await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Victoria' })).toHaveFocus());
+  });
+
+  it('selects with Enter and closes', async () => {
+    const onSelect = vi.fn();
+    render(<VoicePicker {...base} voices={THREE} onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const grid = screen.getByRole('grid');
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    fireEvent.keyDown(grid, { key: 'Enter' });
+    expect(onSelect).toHaveBeenCalledWith('builtin:Isla');
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+  });
+
+  it('closes on Escape and gives focus back to the trigger', async () => {
+    render(<VoicePicker {...base} voices={THREE} />);
+    const trigger = screen.getByRole('button', { expanded: false });
+    fireEvent.click(trigger);
+    // `document`, not the grid: this Escape is handled by floating-ui's
+    // `useDismiss`, which binds its listener to the document.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    await vi.waitFor(() => expect(trigger).toHaveFocus());
+  });
+});
