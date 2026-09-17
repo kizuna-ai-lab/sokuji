@@ -225,7 +225,13 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   /** The sample sentence for ONE voice: a preset speaks its own language, a
    *  clone speaks the target language. Both are still gated on the model
    *  actually speaking it (`ttsLanguages`), so a voice whose language this
-   *  model cannot speak has no sample and no ▶. */
+   *  model cannot speak has no sample. `previewUnavailableReason` below is
+   *  target-language-only, though, and VoicePicker applies it uniformly to
+   *  every row -- so such a preset's ▶ still renders enabled and a click on
+   *  it reaches `handlePreview`'s `builtin:` branch, which finds no sample
+   *  and returns null silently (a known wart: fixing it would mean a
+   *  per-voice previewability reason instead of one shared string, which is
+   *  out of scope here). */
   const sampleFor = useCallback(
     (language?: string) =>
       resolvePreviewSample(language || targetLanguage, (l) => supportsLanguage({ languages: ttsLanguages }, l)),
@@ -268,6 +274,12 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   // ever short-circuits around it, never stops it.
   const handlePreview = useCallback(async (id: string, signal?: AbortSignal) => {
     if (id.startsWith('builtin:')) {
+      // Mirrors the clone branch's own early check below (after its await):
+      // a superseded/unmounted request should never reach the network, even
+      // though everything above this point is synchronous and the window it
+      // closes is narrow -- keeping both branches symmetric here means a
+      // reader never has to ask why one bails early and the other doesn't.
+      if (signal?.aborted) return null;
       const name = id.slice('builtin:'.length);
       const voice = builtinVoices.find((v) => v.name === name);
       const sample = sampleFor(voice?.language);
@@ -277,10 +289,12 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       const cacheKey = previewCacheKey(`native:${ttsModelId}`, id, sample.language, PREVIEW_SPEED);
       const cached = getCachedPreview(cacheKey);
       if (cached) return signal?.aborted ? null : cached;
-      if (!previewTtsRef.current) previewTtsRef.current = createPreviewTts();
       // See synthInFlightRef's doc comment above: another row's synthesis is
-      // still using the shared client, so don't start an overlapping one.
+      // still using the shared client, so don't start an overlapping one --
+      // checked BEFORE creating a connection, so a request about to bail
+      // here never pays for one.
       if (synthInFlightRef.current) return null;
+      if (!previewTtsRef.current) previewTtsRef.current = createPreviewTts();
       synthInFlightRef.current = true;
       try {
         const result = await previewTtsRef.current.synthesize({
@@ -322,11 +336,13 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     const cached = getCachedPreview(cacheKey);
     if (cached) return signal?.aborted ? null : cached;
 
-    if (!previewTtsRef.current) previewTtsRef.current = createPreviewTts();
-
     // See synthInFlightRef's doc comment above: another row's synthesis is
-    // still using the shared client, so don't start an overlapping one.
+    // still using the shared client, so don't start an overlapping one --
+    // checked BEFORE creating a connection, so a request about to fall back
+    // to the clip here never pays for one.
     if (synthInFlightRef.current) return signal?.aborted ? null : clip;
+
+    if (!previewTtsRef.current) previewTtsRef.current = createPreviewTts();
 
     synthInFlightRef.current = true;
     try {
@@ -352,7 +368,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     } finally {
       synthInFlightRef.current = false;
     }
-  }, [store, previewSample, ttsModelId, builtinVoices, sampleFor]);
+  }, [store, previewSample, ttsModelId, builtinVoices, sampleFor, t]);
 
   const voices = useMemo<VoiceEntry[]>(() => {
     const { curated, rest } = curatedBuiltinVoices(targetLanguage, builtinVoices);

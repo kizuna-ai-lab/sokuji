@@ -541,14 +541,23 @@ describe('NativeVoiceSection', () => {
     });
 
     it('re-inits the engine when the next audition is in another language', async () => {
-      // nativePreviewTts.createPreviewTts is mocked away here (see this file's
-      // top-of-file note), so its own re-init-on-language-change behaviour is
-      // exercised separately in nativePreviewTts.test.ts. What THIS component
-      // owns, and what this proves, is feeding synthesize() the two auditions
-      // 'en' then 'ja' IN THAT ORDER -- the exact sequence that drives the
-      // real handle's re-init.
+      // A faithful-but-LOCAL fake of nativePreviewTts's own init-per-
+      // (modelId, language) tracking (see nativePreviewTts.ts's synthesize
+      // doc comment and its loadedModelId/loadedLanguage guard) -- scoped to
+      // this one test, not shared with any other case in this file. A plain
+      // `vi.fn().mockResolvedValue(...)`, as every other case here uses, only
+      // records synthesize()'s ARGUMENTS; it cannot tell an init apart from a
+      // reused warm engine, so it cannot make this title true. `initCalls`
+      // below is the actual observable evidence of a re-init: it only grows
+      // when (modelId, language) differs from what was last "loaded".
       const { playedAudio } = stubWebAudio();
-      const synthesize = vi.fn().mockResolvedValue({ audio: new Float32Array([0.1]), sampleRate: 24000 });
+      const initCalls: string[] = [];
+      let loaded: string | null = null;
+      const synthesize = vi.fn(async ({ modelId, language }: { modelId: string; language: string }) => {
+        const key = `${modelId}:${language}`;
+        if (loaded !== key) { initCalls.push(language); loaded = key; }
+        return { audio: new Float32Array([0.1]), sampleRate: 24000 };
+      });
       vi.mocked(createPreviewTts).mockReturnValue({ synthesize, close: vi.fn() });
       const store = makeClipStore();
       const withJa = [...builtinVoices, { name: 'jp-voice', language: 'ja', curated: false, unstable: false, default: false }];
@@ -562,7 +571,10 @@ describe('NativeVoiceSection', () => {
       fireEvent.click(within(rowFor('jp-voice')).getByRole('button', { name: /play/i }));
       await waitFor(() => expect(synthesize).toHaveBeenCalledTimes(2));
 
-      expect(synthesize.mock.calls.map((call) => call[0].language)).toEqual(['en', 'ja']);
+      // Two auditions in different languages -> two inits, in order: this is
+      // what "re-inits the engine" actually means, not merely that two
+      // languages were passed as arguments.
+      expect(initCalls).toEqual(['en', 'ja']);
       await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.1])));
     });
 
