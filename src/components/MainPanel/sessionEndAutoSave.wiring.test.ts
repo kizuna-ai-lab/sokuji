@@ -75,6 +75,22 @@ describe('session-end auto-save wiring (MainPanel.tsx)', () => {
     );
   });
 
+  it('releases the participant client even when its disconnect() throws', () => {
+    // Kept in the ref, it outlives its session: the next speaker-only
+    // session tears it down again on Stop and saves its old lines.
+    const leg = DISCONNECT.slice(at(DISCONNECT, 'participant: async () => {'), at(DISCONNECT, 'afterBothLegs:'));
+    const cleanup = at(leg, '} finally {');
+    expect(cleanup).toBeGreaterThan(at(leg, 'await participantClient.disconnect();'));
+    const capture = at(leg, 'participantFinal = keepRowsDroppedOnDisconnect(');
+    const reset = at(leg, 'participantClient.reset();');
+    expect(cleanup).toBeLessThan(capture);
+    expect(capture).toBeLessThan(reset);
+    // Compare-and-clear: a Start inside the disconnect() gap owns the ref by now.
+    expect(at(leg, 'if (participantClientRef.current === participantClient) participantClientRef.current = null;'))
+      .toBeGreaterThan(reset);
+    expect(leg).not.toMatch(/^\s*participantClientRef\.current = null;/m);
+  });
+
   it('saves before publishing the teardown as done', () => {
     // A queued Start and the close handshake both wait on that promise; the
     // file must be written by then.

@@ -1860,20 +1860,22 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           participant: async () => {
             const participantClient = participantClientRef.current;
             if (!participantClient) return;
-            // Last known items first, so a disconnect() that throws still leaves
-            // the auto-save the other party's lines; refreshed once disconnect()
-            // has flushed the final ones, keeping any row it dropped
-            // (PalabraAIClient empties its items there).
+            // Read before disconnect() too: PalabraAIClient empties its items
+            // there, and the save needs the other party's lines.
             const participantBefore = participantClient.getConversationItems();
-            participantFinal = participantBefore;
             try {
               await participantClient.disconnect();
-              participantFinal = keepRowsDroppedOnDisconnect(participantBefore, participantClient.getConversationItems());
-              participantClient.reset();
-              participantClientRef.current = null;
               console.info('[Sokuji] [MainPanel] Disconnected participant client');
             } catch (error) {
               console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
+            } finally {
+              // Even when disconnect() threw. A client left in the ref outlives
+              // its session: the next speaker-only session tears it down again
+              // on Stop and saves its old lines. Compare-and-clear for the
+              // reason the speaker leg gives.
+              participantFinal = keepRowsDroppedOnDisconnect(participantBefore, participantClient.getConversationItems());
+              participantClient.reset();
+              if (participantClientRef.current === participantClient) participantClientRef.current = null;
             }
           },
           afterBothLegs: () => {

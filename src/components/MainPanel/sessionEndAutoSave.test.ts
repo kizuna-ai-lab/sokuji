@@ -84,6 +84,8 @@ async function stopSession(opts: {
   autoSaveOnStop?: boolean;
   speaker?: Fake;
   participant?: Fake;
+  /** participantClientRef, for cases that follow the client across sessions; else one holding `participant`. */
+  participantRef?: { current: Fake | null };
   done?: { current: Promise<void> | null };
 }) {
   let markDone: () => void = () => {};
@@ -105,15 +107,17 @@ async function stopSession(opts: {
           c.reset();
         },
         participant: async () => {
-          const c = opts.participant;
+          const ref = opts.participantRef ?? { current: opts.participant ?? null };
+          const c = ref.current;
           if (!c) return;
           const before = c.getConversationItems();
-          participantFinal = before;
           try {
             await c.disconnect();
+          } catch { /* MainPanel warns and carries on */ } finally {
             participantFinal = keepRowsDroppedOnDisconnect(before, c.getConversationItems());
             c.reset();
-          } catch { /* MainPanel warns and carries on */ }
+            if (ref.current === c) ref.current = null;
+          }
         },
       });
     } finally {
@@ -147,12 +151,12 @@ async function stopSessionPublishingLate(opts: {
           const c = opts.participant;
           if (!c) return;
           const before = c.getConversationItems();
-          participantFinal = before;
           try {
             await c.disconnect();
+          } catch { /* MainPanel warns and carries on */ } finally {
             participantFinal = keepRowsDroppedOnDisconnect(before, c.getConversationItems());
             c.reset();
-          } catch { /* MainPanel warns and carries on */ }
+          }
         },
       });
     } finally {
@@ -273,6 +277,31 @@ describe('session-end auto-save ordering', () => {
       participant: client([line('p1', 'THEIRS', 2)], [], true),
     });
     expect(texts(saved.mock.calls[0][0])).toEqual(['MINE', 'THEIRS']);
+  });
+
+  it('a participant disconnect that throws still releases the client: the next session saves none of its lines', async () => {
+    const participant = client([line('p1', 'THEIRS', 2)], [], true);
+    const participantRef: { current: Fake | null } = { current: participant };
+    await stopSession({ wasActive: true, speaker: client([line('s1', 'MINE', 1)]), participantRef });
+    expect(texts(saved.mock.calls[0][0])).toEqual(['MINE', 'THEIRS']);
+    expect(participant.getConversationItems()).toEqual([]);
+    expect(participantRef.current).toBeNull();
+    // A later speaker-only session builds no participant client.
+    await stopSession({ wasActive: true, speaker: client([line('s2', 'NEXT', 3)]), participantRef });
+    expect(texts(saved.mock.calls[1][0])).toEqual(['NEXT']);
+  });
+
+  it('a participant client a new Start put in the ref during disconnect() is left there', async () => {
+    const next = client([]);
+    const old = client([line('p1', 'THEIRS', 1)]);
+    const participantRef: { current: Fake | null } = { current: old };
+    const disconnect = old.disconnect;
+    old.disconnect = async () => {
+      await disconnect();
+      participantRef.current = next;
+    };
+    await stopSession({ wasActive: true, participantRef });
+    expect(participantRef.current).toBe(next);
   });
 
   it('a leg that throws out of teardown still gets the save, and the error still propagates', async () => {
