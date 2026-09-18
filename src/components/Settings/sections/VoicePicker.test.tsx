@@ -619,3 +619,62 @@ describe('VoicePicker keyboard', () => {
     expect(row.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
   });
 });
+
+// Reported 2026-09-18: Local Native's supertonic-3 showed a "Custom voices"
+// group with nothing under it. supertonic-3 cannot clone (the sidecar catalog
+// has clones=False), so `voiceStoreFor` hands back no store, `importModes` is
+// empty, and VoiceLibrarySection therefore passes no `onAddVoice` — leaving a
+// header promising a section that has no rows, no add affordance, and not even
+// the "No imported voices yet." hint (which is itself gated on `onAddVoice`).
+//
+// Both headers rendered unconditionally, so the same defect existed in mirror
+// image: moss has no presets at all, and showed a bare "Presets" header.
+describe('group headers with nothing under them', () => {
+  it('omits the custom group when the provider can neither clone nor import', () => {
+    render(<VoicePicker {...base} voices={[GRACE, ALEX]} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.queryByRole('columnheader', { name: /custom voices/i })).toBeNull();
+    expect(screen.getByRole('columnheader', { name: /presets/i })).toBeInTheDocument();
+  });
+
+  it('keeps the custom group when a voice can be added, even with no clones yet', () => {
+    render(<VoicePicker {...base} voices={[GRACE]} onAddVoice={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getByRole('columnheader', { name: /custom voices/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add a voice/i })).toBeInTheDocument();
+  });
+
+  it('omits the presets group for a model that has none', () => {
+    render(<VoicePicker {...base} voices={[MINE]} onAddVoice={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.queryByRole('columnheader', { name: /presets/i })).toBeNull();
+    expect(screen.getByRole('columnheader', { name: /custom voices/i })).toBeInTheDocument();
+  });
+
+  // Guard, not symptom: a facet filter that matches nothing leaves the shown
+  // list empty while the roster still HAS presets, and the header is what
+  // carries "No voices match these filters." Hiding it then would delete the
+  // only feedback that the filter is what emptied the list.
+  it('keeps the presets group when a filter hides every preset', () => {
+    render(
+      <VoicePicker
+        {...base}
+        voices={[GRACE, ALEX]}
+        capability={{ importModes: [], facetFilter: true }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const genderSelect = screen.getAllByRole('combobox')[0];
+    fireEvent.change(genderSelect, { target: { value: 'male' } });
+    expect(screen.getByRole('columnheader', { name: /presets/i })).toBeInTheDocument();
+  });
+
+  // Guard: the Refresh control lives INSIDE the presets header, so a provider
+  // that offers it must keep the header even with an empty preset roster.
+  it('keeps the presets group when it carries the refresh control', () => {
+    render(<VoicePicker {...base} voices={[MINE]} onAddVoice={vi.fn()} onRefresh={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    expect(screen.getByRole('columnheader', { name: /presets/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument();
+  });
+});

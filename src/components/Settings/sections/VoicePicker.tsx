@@ -873,9 +873,18 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             tabIndex={-1}
             onKeyDown={onGridKeyDown}
           >
-            <div role="row" className="voice-pop__group">
-              <div role="columnheader">{t('voiceLibrary.myVoices', 'Custom voices')}</div>
-            </div>
+            {/* Only when there is something under it. Everything in this
+                group is conditional — the add row needs `onAddVoice`, the
+                rows need clones, and even the "No imported voices yet." hint
+                below the grid is gated on `onAddVoice` — so an unconditional
+                header left Local Native's supertonic-3 (which cannot clone,
+                so no store, so no `importModes`, so no `onAddVoice`) showing
+                a "Custom voices" heading over nothing at all. */}
+            {(!!onAddVoice || clones.length > 0) && (
+              <div role="row" className="voice-pop__group">
+                <div role="columnheader">{t('voiceLibrary.myVoices', 'Custom voices')}</div>
+              </div>
+            )}
             {onAddVoice && (
               <div role="row" className="voice-row voice-row--add">
                 <div role="gridcell">
@@ -895,9 +904,19 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
               </div>
             )}
             {clones.map((v, i) => row(v, i))}
-            <div role="row" className="voice-pop__group">
-              <div role="columnheader">
-                {t('voiceLibrary.presets', 'Presets')}
+            {/* Same rule, mirror case: a clone-only family (moss and the
+                others with `builtin: 'none'`) has no presets, and the bare
+                "Presets" heading was the same defect in the other direction.
+                Keyed on the ROSTER, not on `shownPresets`: when a facet
+                filter matches nothing the roster still has presets, and this
+                header is what carries "No voices match these filters." —
+                hiding it then would remove the only sign that the filter is
+                what emptied the list. `onRefresh` also keeps it, because the
+                refresh control lives inside this header. */}
+            {(presets.length > 0 || !!onRefresh) && (
+              <div role="row" className="voice-pop__group">
+                <div role="columnheader">
+                  {t('voiceLibrary.presets', 'Presets')}
                 {facetsOn && presets.length > 0 && (
                   <span className="voice-pop__count">
                     {' · '}
@@ -927,8 +946,9 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
                     <RefreshCw size={12} />
                   </button>
                 )}
+                </div>
               </div>
-            </div>
+            )}
             {shownPresets.map((v, i) => row(v, clones.length + i))}
           </div>
           {/* Spec §8: the hint shows "when a provider CAN create but has no
