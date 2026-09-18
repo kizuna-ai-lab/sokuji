@@ -23,6 +23,9 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   max-width: 80vw;
   animation: toast-in 150ms ease-out;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 
   &.toast-success {
     border-color: tk.$color-success;
@@ -30,6 +33,26 @@
   &.toast-error {
     border-color: #e74c3c;
     background: #3a1a1a;
+  }
+}
+
+.toast-action {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  background: none;
+  border: 1px solid #666;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
   }
 }
 
