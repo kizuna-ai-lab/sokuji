@@ -184,13 +184,11 @@ function mount(over: object = {}) {
 const openPicker = () => fireEvent.click(screen.getByRole('button', { expanded: false }));
 
 // Opens the picker and then the "Add a voice…" modal — the entry point for
-// every import/record test. NOTE (see task-7-report.md): design §6.3 says
-// this modal "calls the same onImport / onRecord callbacks… then closes",
-// but VoiceCreateModal.tsx currently never calls onClose() after a
-// successful onImport/onRecord — so it stays mounted behind
-// SonioxCloneConfirmModal once a clip is staged. Every query below is
-// therefore scoped (`within`) wherever that overlap could be ambiguous,
-// rather than assuming the create modal is gone.
+// every import/record test. There is exactly ONE dialog for the whole flow:
+// staging a clip switches this same modal to its review phase (playback /
+// name / consent) rather than opening a second dialog on top, so the queries
+// below stay scoped with `within` for accessible-name ambiguity, not because
+// two dialogs might overlap.
 const openCreateModal = () => {
   openPicker();
   fireEvent.click(screen.getByRole('button', { name: /add a voice/i }));
@@ -219,14 +217,14 @@ const inGrid = () => within(screen.getByRole('grid'));
 const rowFor = (label: string | RegExp): HTMLElement =>
   inGrid().getByRole('button', { name: label }).closest('[role="row"]') as HTMLElement;
 
-// The confirm modal (SonioxCloneConfirmModal) carries its own "Play"/"Stop"
-// (staged-clip playback) and "Cancel" controls, sharing that exact text with
-// the picker's per-row ▶ and — while the create-modal-not-closing gap above
-// is unresolved — with VoiceCreateModal's own Cancel. Named, not bare
-// `getByRole('dialog')`, for the same reason VoiceLibrarySection.test.tsx's
-// delete-modal query is: the picker's own floating wrapper is an unnamed
-// `role="dialog"` too and stays open behind this one.
-const cloneDialog = () => screen.getByRole('dialog', { name: /clone voice/i });
+// The review phase carries its own "Play"/"Stop" (staged-clip playback) and
+// "Cancel" controls, sharing that exact text with the picker's per-row ▶, so
+// queries for them are scoped to the dialog. That scope is `createDialog()`:
+// the review step renders INSIDE the add-a-voice dialog, and the "Clone
+// voice" dialog it used to be no longer exists. A named query stays necessary
+// for the other reason VoiceLibrarySection.test.tsx's delete-modal query
+// needs one — the picker's own floating wrapper is an unnamed
+// `role="dialog"` that stays open behind this one.
 
 // `role: 'dialog'` is load-bearing, not decoration: `addVoiceTitle` ("Add a
 // voice") names this dialog while `addVoice` ("Add a voice…") labels the row
@@ -279,7 +277,7 @@ describe('SonioxVoiceSection', () => {
     deleteMock.mockReset().mockResolvedValue(undefined);
     waitMock.mockReset();
     (window as any).Audio = REAL_AUDIO;
-    // jsdom has no URL.createObjectURL — the confirm modal's <audio> preview
+    // jsdom has no URL.createObjectURL — the review step's <audio> preview
     // needs it whenever a pending clip opens the modal.
     (URL as any).createObjectURL = vi.fn(() => 'blob:mock');
     (URL as any).revokeObjectURL = vi.fn();
@@ -645,7 +643,7 @@ describe('SonioxVoiceSection', () => {
     expect(createMock.mock.calls[0][0]).toBe('first');
   });
 
-  it('importing a valid file opens the confirm modal with an empty name field; confirm calls create, refreshes the list BEFORE closing the modal, then finishes the ready-wait chain in the background', async () => {
+  it('importing a valid file opens the review phase with an empty name field; confirm calls create, refreshes the list BEFORE closing the dialog, then finishes the ready-wait chain in the background', async () => {
     // Sequenced so each list() call is distinguishable: initial mount load,
     // then the post-create refresh (still processing — this is the one that
     // must land before the modal closes), then finishCreate's refresh once
@@ -676,7 +674,7 @@ describe('SonioxVoiceSection', () => {
     fireEvent.click(screen.getByRole('button', { name: confirmButtonName }));
 
     await waitFor(() => expect(createMock).toHaveBeenCalledWith('Custom Name', file, 'my-clip.wav'));
-    // The confirm modal closes only once create() AND the post-create refresh
+    // The dialog closes only once create() AND the post-create refresh
     // resolve.
     await waitFor(() => expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull());
     expect(listMock).toHaveBeenCalledTimes(2); // mount load + the one refresh that gates the close
@@ -700,7 +698,7 @@ describe('SonioxVoiceSection', () => {
     expect(listMock).toHaveBeenCalledTimes(3);
   });
 
-  it('shows the busy spinner on the accept button while create() is pending, with both buttons disabled; resolving create → refresh closes the modal', async () => {
+  it('shows the busy spinner on the accept button while create() is pending, with both buttons disabled; resolving create → refresh closes the dialog', async () => {
     listMock
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([cloned({ id: 'new-id', name: 'x', models: [] })]);
@@ -720,7 +718,7 @@ describe('SonioxVoiceSection', () => {
     await screen.findByPlaceholderText(nameInputPlaceholder);
 
     checkConsent();
-    const dialog = cloneDialog();
+    const dialog = createDialog();
     const acceptButton = within(dialog).getByRole('button', { name: confirmButtonName });
     const cancelButton = within(dialog).getByRole('button', { name: /^cancel$/i });
     fireEvent.click(acceptButton);
@@ -751,7 +749,7 @@ describe('SonioxVoiceSection', () => {
     // test failed roughly one run in twelve. Wait for the player's own control,
     // scoped to the confirm dialog: the picker's ~200 preset rows (still open
     // behind it) and their own ▶ buttons share the exact "Play" name.
-    const dialog = cloneDialog();
+    const dialog = createDialog();
     const playButton = await within(dialog).findByRole('button', { name: /^play$/i });
 
     const audioEl = dialog.querySelector('audio');
@@ -1121,7 +1119,7 @@ describe('SonioxVoiceSection', () => {
 
     // Scoped: the create modal (still open behind this one — see
     // openCreateModal's comment) has its own "Cancel" button too.
-    fireEvent.click(within(cloneDialog()).getByRole('button', { name: /^cancel$/i }));
+    fireEvent.click(within(createDialog()).getByRole('button', { name: /^cancel$/i }));
 
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
     expect(createMock).not.toHaveBeenCalled();
@@ -1154,7 +1152,7 @@ describe('SonioxVoiceSection', () => {
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
 
-  it('recording a clip opens the confirm modal with the "My Voice N" default name', async () => {
+  it('recording a clip opens the review phase with the "My Voice N" default name', async () => {
     listMock.mockResolvedValue([]);
     const originalMediaDevices = Object.getOwnPropertyDescriptor(navigator, 'mediaDevices');
     const gum = vi.fn(async () => ({ getTracks: () => [{ stop: vi.fn() }] }));
@@ -1528,13 +1526,18 @@ describe('SonioxVoiceSection', () => {
     await waitFor(() => expect(synthesizeMock).toHaveBeenCalledTimes(2));
   });
 
-  it('stages the clip and opens the confirm modal once a file is captured from the create modal', async () => {
-    // Proves the sequential hand-off (spec §6.3): onImport still stages
-    // `pending`, and SonioxCloneConfirmModal opens on it. NOTE (see
-    // task-7-report.md): this does NOT assert the create modal itself has
-    // closed — VoiceCreateModal never calls onClose() after a successful
-    // onImport today, contrary to design §6.3's "…then closes", so pinning
-    // that down here would pin down a bug rather than a contract.
+  it('stages the clip and switches the same dialog to its review phase', async () => {
+    // onImport still stages `pending`; what changed is where that lands. The
+    // clip's review is a phase of the dialog the user already had open, so
+    // this asserts the SINGLE dialog is still present with the name field in
+    // it — and, below, that no second dialog was opened. The modal's own
+    // success path does call onClose(); `isOpen={creating || !!createReview}`
+    // is what keeps it on screen, which is why one dialog remains.
+
+    // Named-dialog count, not `getAllByRole('dialog')`: the picker's floating
+    // wrapper is an unnamed role="dialog" that legitimately stays open too.
+    const namedDialogs = () =>
+      screen.getAllByRole('dialog').filter((d) => d.getAttribute('aria-label'));
     listMock.mockResolvedValue([]);
     stubAudioContext(16000, 16000 * 5);
     mount();
@@ -1542,6 +1545,8 @@ describe('SonioxVoiceSection', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [fakeFile('clip.wav')] } });
     expect(await screen.findByPlaceholderText(nameInputPlaceholder)).toBeInTheDocument();
-    expect(cloneDialog()).toBeInTheDocument();
+    expect(createDialog()).toBeInTheDocument();
+    // The point of the merge: one dialog, not two stacked ones.
+    expect(namedDialogs()).toHaveLength(1);
   });
 });

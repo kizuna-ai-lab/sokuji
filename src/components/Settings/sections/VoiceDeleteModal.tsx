@@ -28,7 +28,7 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
   // dialog, and the dialog was already gone by the time the rejection
   // arrived, so a failed delete said nothing anywhere. It now awaits the
   // result, closes only on success, and shows the failure in place — the same
-  // seam `SonioxCloneConfirmModal` has carried all along.
+  // seam `SonioxCloneReviewStep` has carried all along.
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -80,7 +80,7 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
             {/* `common.cancel`, not a new `voiceLibrary.cancel`: the key
                 already exists and both modal siblings in this directory
                 render it this way (`ModelImportModal.tsx:343`,
-                `SonioxCloneConfirmModal.tsx:223`). */}
+                `SonioxCloneReviewStep.tsx`). */}
             {t('common.cancel', 'Cancel')}
           </button>
           <button type="button" className="voice-modal__btn voice-modal__btn--danger"

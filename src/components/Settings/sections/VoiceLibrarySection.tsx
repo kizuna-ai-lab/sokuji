@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import './VoiceLibrarySection.scss';
 import type { VoiceLibraryCapability, VoiceFacets } from '../../../types/VoiceLibrary';
 import VoicePicker from './VoicePicker';
-import VoiceCreateModal from './VoiceCreateModal';
+import VoiceCreateModal, { type VoiceCreateReview } from './VoiceCreateModal';
 import VoiceDeleteModal from './VoiceDeleteModal';
 
 /**
@@ -67,6 +67,12 @@ export interface VoiceLibrarySectionProps {
   onRename?: (id: string, name: string) => Promise<void>;
   /** Called when the user confirms deletion of a removable voice. */
   onDelete: (id: string) => Promise<void>;
+  /** Handed straight to VoiceCreateModal: non-null puts the add-a-voice
+   *  dialog into its review phase, and keeps it open while it is set even
+   *  though `creating` has already gone false (a successful `onImport` calls
+   *  the modal's own close path). Only a provider that stages a clip for
+   *  confirmation passes it — Soniox cloning today. */
+  createReview?: VoiceCreateReview | null;
   /** Fetch a playable sample of a removable voice — either a stored reference
    *  clip (the native providers keep clips locally) or one synthesized on
    *  demand (Soniox stores nothing locally, so its sample is a TTS audition).
@@ -118,6 +124,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   onRecord,
   onRename,
   onDelete,
+  createReview,
   onPreview,
   previewUnavailableReason,
   onRefresh,
@@ -293,12 +300,19 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
       )}
 
       <VoiceCreateModal
-        isOpen={creating}
+        // `|| !!createReview`: a successful import runs the modal's own
+        // close path, which drops `creating` — but for a provider that
+        // staged the clip for confirmation the flow is not over, and the
+        // review phase has to stay on screen. Deciding it here, from the
+        // state that is already current, avoids the modal having to guess
+        // mid-await whether a clip got staged during its own `onImport`.
+        isOpen={creating || !!createReview}
         onClose={() => setCreating(false)}
         onImport={onImport}
         onRecord={onRecord}
         capability={capability}
         note={canCreate ? manageNote : undefined}
+        review={createReview}
       />
       <VoiceDeleteModal
         target={deleteTarget}

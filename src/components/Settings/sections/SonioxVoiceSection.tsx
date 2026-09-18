@@ -11,11 +11,12 @@
  * shared voice-library look, no gating checkbox) → client-side validation
  * (upload only: ≤35 MB, decoded duration 3-120s, mirroring NativeVoiceSection's
  * `validateVoiceClip` pattern) → the validated/recorded clip is staged as
- * `pending` rather than uploaded immediately, which opens
- * `SonioxCloneConfirmModal` for playback + naming + the consent statement
- * (folded into the modal's accept button) → on confirm, WAV-encode
- * (recordings only) → POST → poll until ready (seconds) → auto-select. A
- * mapped create failure (e.g. `voice_name_conflict`) keeps the modal open so
+ * `pending` rather than uploaded immediately, which switches the add-a-voice
+ * dialog to its review phase (`SonioxCloneReviewStep`) for playback + naming +
+ * the consent statement (folded into its accept button) → on confirm,
+ * WAV-encode (recordings only) → POST → poll until ready (seconds) →
+ * auto-select. A
+ * mapped create failure (e.g. `voice_name_conflict`) keeps that phase up so
  * the user can rename and retry without losing the clip. `voice_failed` is
  * terminal: the entry renders a failed hint and can only be deleted.
  *
@@ -36,7 +37,6 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
-import SonioxCloneConfirmModal from './SonioxCloneConfirmModal';
 import {
   SonioxVoicesError,
   encodeWavPcm16,
@@ -83,7 +83,7 @@ export interface SonioxVoiceSectionProps {
   source: VoiceLibrarySource | null;
   /** Copy variant. Drives: the custom-voice label (managed shows "My voice"
    *  rather than the backend's internal name), the list-error copy, and —
-   *  via the confirm modal's `notice`/`showName` props — the managed-only
+   *  via the review phase's `notice`/`showName` fields — the managed-only
    *  data-destination statement and the hidden name field (the backend names
    *  voices itself). */
   managed: boolean;
@@ -198,7 +198,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   const [listState, setListState] = useState<'idle' | 'loading' | 'error'>(source ? 'loading' : 'idle');
   const [captureError, setCaptureError] = useState<string | null>(null);
   // A clip that's been picked/recorded and passed client-side validation,
-  // staged for the confirm modal (playback + naming + consent) before it's
+  // staged for the review phase (playback + naming + consent) before it's
   // actually uploaded. Non-null ⇔ the modal is open.
   const [pending, setPending] = useState<{ blob: Blob; fileName?: string; suggestedName: string } | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -499,7 +499,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   const defaultName = () => t('settings.sonioxVoiceDefaultName', 'My Voice {{n}}', { n: clones.length + 1 });
 
-  // Modal lifecycle: `pending` non-null opens SonioxCloneConfirmModal.
+  // Dialog lifecycle: `pending` non-null puts the add-a-voice dialog into
+  // its review phase (it is passed down as `createReview`).
   // `closeModal` is also handed to the modal as its Cancel/backdrop/X
   // handler, guarded against `modalBusy` so a create() request in flight
   // can't be orphaned by a mid-request cancel.
@@ -551,7 +552,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   };
 
   // No create call here — the encoded clip is staged as `pending` and the
-  // confirm modal drives the actual upload via handleConfirm above.
+  // review phase drives the actual upload via handleConfirm above.
   const onRecord = async (clip: Float32Array, sampleRate: number) => {
     setCaptureError(null);
     stagePending({ blob: encodeWavPcm16(clip, sampleRate), suggestedName: defaultName() });
@@ -581,7 +582,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // NativeVoiceSection uses. A validation failure surfaces inline via
   // captureError and rethrows (VoiceLibrarySection's contract) without
   // opening the modal. On success, no create() call is made here — the
-  // validated file is staged as `pending` so the confirm modal can play it
+  // validated file is staged as `pending` so the review phase can play it
   // back and take a name before it's uploaded.
   const onImport = async (file: File) => {
     setCaptureError(null);
@@ -872,31 +873,32 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
           accept: 'audio/*',
           maxClipSeconds: MAX_CLIP_SECONDS,
           minClipSeconds: MIN_CLIP_SECONDS,
-          // The confirm modal stages exactly one clip; without this a
+          // The review phase stages exactly one clip; without this a
           // multi-file drop would silently keep only the last file.
           multipleImport: false,
         }}
         isSessionActive={isSessionActive}
+        // The review phase of the SAME dialog the user opened to add a voice —
+        // this used to be a second modal rendered here, on top of that one.
+        createReview={pending === null ? null : {
+          seq: pendingSeq,
+          audioBlob: pending.blob,
+          error: modalError,
+          busy: modalBusy,
+          showName: !managed,
+          notice: managed
+            ? t(
+                'settings.sonioxManagedCloneNotice',
+                'This recording is sent to Kizuna AI and passed on to Soniox to build your voice. It is not stored on our servers — it stays on this device so your voice can be rebuilt later.'
+              )
+            : undefined,
+          onConfirm: (name: string) => void handleConfirm(name),
+          onClose: closeModal,
+        }}
       />
       {captureError && (
         <div className="voice-capture-error" role="alert">{captureError}</div>
       )}
-      <SonioxCloneConfirmModal
-        key={pendingSeq}
-        isOpen={pending !== null}
-        audioBlob={pending?.blob ?? null}
-        error={modalError}
-        busy={modalBusy}
-        showName={!managed}
-        notice={managed
-          ? t(
-              'settings.sonioxManagedCloneNotice',
-              'This recording is sent to Kizuna AI and passed on to Soniox to build your voice. It is not stored on our servers — it stays on this device so your voice can be rebuilt later.'
-            )
-          : undefined}
-        onConfirm={(name) => void handleConfirm(name)}
-        onClose={closeModal}
-      />
     </div>
   );
 };

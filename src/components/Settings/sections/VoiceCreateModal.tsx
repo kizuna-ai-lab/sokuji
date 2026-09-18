@@ -3,7 +3,33 @@ import { useTranslation } from 'react-i18next';
 import { useFloating, FloatingFocusManager } from '@floating-ui/react';
 import { Plus, Mic, Square, X } from 'lucide-react';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
+import SonioxCloneReviewStep from './SonioxCloneReviewStep';
 import './VoiceCreateModal.scss';
+
+/** The post-acquisition confirmation phase, when the provider has one. Passing
+ *  it non-null switches this dialog's body to the review step and hands every
+ *  dismiss path to whoever staged the clip. Soniox cloning is the only
+ *  provider that stages one; for everyone else a successful import finishes
+ *  the flow, and this stays undefined. */
+export interface VoiceCreateReview {
+  /** Bumped by the caller for each newly staged clip, and used as the review
+   *  step's React key — a fresh mount reseeds its name field empty and its
+   *  consent checkbox unchecked. A confirm-error retry deliberately keeps the
+   *  same value, so the name the user just typed survives the failure. The
+   *  key goes on the STEP, not on this dialog: remounting the whole frame
+   *  would throw away the acquire phase and reset focus management with it. */
+  seq: number;
+  audioBlob: Blob | null;
+  error: string | null;
+  busy: boolean;
+  notice?: string;
+  showName?: boolean;
+  onConfirm: (name: string) => void;
+  /** Discard the staged clip. Reached from Confirm's sibling Cancel, and —
+   *  because the clip is the caller's, not this dialog's — from Escape, the
+   *  backdrop and the × too. */
+  onClose: () => void;
+}
 
 export interface VoiceCreateModalProps {
   isOpen: boolean;
@@ -21,6 +47,10 @@ export interface VoiceCreateModalProps {
   /** Provider-specific footnote (e.g. Soniox's preview spends the user's own
    *  TTS quota). Provider-agnostic component, provider-specific copy. */
   note?: React.ReactNode;
+  /** Non-null once a clip is staged for confirmation — see
+   *  {@link VoiceCreateReview}. The caller must also keep `isOpen` true while
+   *  it is set; this component does not force itself open. */
+  review?: VoiceCreateReview | null;
 }
 
 /**
@@ -40,6 +70,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   onRecord,
   capability,
   note,
+  review,
 }) => {
   const { t } = useTranslation();
 
@@ -53,7 +84,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   // `handleRecord` do the same), so the message reaches the catch blocks below
   // — they used to `console.warn` it and rely on the parent's banner, which
   // this modal COVERS. A rejected clip therefore looked like nothing happened
-  // at all. `SonioxCloneConfirmModal` already had this exact seam (`error`
+  // at all. `SonioxCloneReviewStep` already had this exact seam (`error`
   // rendered as `.voice-capture-error` inside the dialog); this matches it.
   const [error, setError] = useState<string | null>(null);
   const transcriptInputId = useId();
@@ -127,6 +158,17 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     releaseCapture();
     onClose();
   }, [releaseCapture, onClose]);
+
+  // While the review phase is up, the thing on screen is the caller's staged
+  // clip, so every way out of the dialog has to discard it — Escape, the
+  // backdrop and the × included, not just the Cancel beside Confirm. Routing
+  // them through `close()` instead would drop `creating` while the caller
+  // still held a clip, leaving the dialog up with no way to dismiss it.
+  //
+  // Read from the current render's props, never from a closure captured
+  // earlier: the clip is staged DURING `onImport`, so anything that latched
+  // `review` before that await is already stale.
+  const dismiss = review ? review.onClose : close;
 
   const canUpload = capability.importModes.includes('upload');
   const canRecord = capability.importModes.includes('record');
@@ -310,10 +352,10 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   // here goes through floating-ui).
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dismiss(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, close]);
+  }, [isOpen, dismiss]);
 
   // No reference element: this dialog is centred over the app, anchored to
   // nothing. `useFloating` is here only for its open-state context, which is
@@ -324,19 +366,25 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="voice-modal-overlay" onClick={close}>
+    <div className="voice-modal-overlay" onClick={dismiss}>
       {/* Spec §7: focus moves in on open and returns to the invoking control
           on close. `aria-modal="true"` below is a promise to a screen reader;
           this is what makes part of it true.
 
           `modal={false}`, not `modal`: the trap also marks every sibling
-          `aria-hidden` (floating-ui's `markOthers`), and Soniox opens
-          `SonioxCloneConfirmModal` as a SEQUENTIAL second modal once a clip is
-          staged (design §6.3) — trapping here would hide the dialog that
-          follows this one from assistive tech, which is worse than the missing
-          Tab trap. `VoicePicker` uses the same `modal={false} returnFocus`
-          shape. The popover that invokes this modal now closes first, so the
-          rows behind the overlay are no longer in the tab order either way.
+          `aria-hidden` (floating-ui's `markOthers`). The reason that used to
+          be recorded here — that Soniox opened a SEQUENTIAL second modal once
+          a clip was staged, which a trap would have hidden from assistive tech
+          — no longer holds: that dialog is now the review PHASE of this one,
+          so there is no second dialog to hide.
+
+          Left as `modal={false}` regardless, deliberately. Turning the trap on
+          is now possible but it is a behaviour change of its own, needing a
+          real-browser keyboard walk (the `<audio>` element and the file input
+          both live inside), and it is not what this change is for.
+          `VoicePicker` uses the same `modal={false} returnFocus` shape. The
+          popover that invokes this modal closes first, so the rows behind the
+          overlay are not in the tab order either way.
 
           `closeOnFocusOut={false}` because this component's close paths are its
           own `window` Escape listener, the backdrop and Cancel: a focus-out —
@@ -356,7 +404,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
           <button
             type="button"
             className="voice-modal__x"
-            onClick={close}
+            onClick={dismiss}
             aria-label={t('common.close', 'Close')}
           >
             <X size={17} />
@@ -364,90 +412,114 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
         </div>
 
         <div className="voice-modal__body">
-          {capability.transcriptRequired && (
-            <div className="voice-create-modal__transcript-field">
-              <label htmlFor={transcriptInputId} className="voice-create-modal__transcript-label">
-                {t('voiceLibrary.transcript', 'Transcript')}
-              </label>
-              <input
-                id={transcriptInputId}
-                type="text"
-                className="voice-create-modal__transcript-input"
-                value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                placeholder={t('voiceLibrary.transcriptPlaceholder', 'Type exactly what the clip says…')}
-              />
-              <span className="voice-create-modal__transcript-hint">
-                {t('voiceLibrary.transcriptHint', 'Must match the words spoken in the clip.')}
-              </span>
-            </div>
-          )}
-
-          {canUpload && (
-            <button
-              type="button"
-              className="voice-create-modal__import-btn"
-              disabled={transcriptMissing}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Plus size={14} />
-              {t('voiceLibrary.importVoice', 'Import voice…')}
-            </button>
-          )}
-
-          {canRecord && (
-            <button
-              type="button"
-              className="voice-create-modal__import-btn"
-              // Never disable while a recording is in progress — the button
-              // also serves as "Stop recording" and clearing the transcript
-              // field mid-capture must not trap the user in an unstoppable
-              // recording.
-              disabled={!isRecording && transcriptMissing}
-              onClick={() => (isRecording ? void stopRecording() : void startRecording())}
-            >
-              {isRecording ? <Square size={14} /> : <Mic size={14} />}
-              {isRecording
-                ? `${t('voiceLibrary.stopRecording', 'Stop recording')}${recordSecondsLeft !== null ? ` (${recordSecondsLeft}s)` : ''}`
-                : t('voiceLibrary.recordVoice', 'Record voice…')}
-            </button>
-          )}
-
-          {canUpload && (
-            <div
-              className={`voice-create-modal__drop-zone${isDragging ? ' is-dragging' : ''}`}
-              data-testid="voice-create-drop"
-              onDrop={onDrop}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-            >
-              {t('voiceLibrary.dropHint', 'or drop a voice file here')}
-            </div>
-          )}
-
-          {canUpload && (
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={capability.accept ?? 'application/json,.json'}
-              style={{ display: 'none' }}
-              multiple={capability.multipleImport !== false}
-              onChange={(e) => void handleFiles(e.target.files)}
+          {/* Two phases, one dialog. `review` is non-null only once the
+              caller has staged a clip for confirmation (Soniox cloning),
+              which is the same scenario the user started in — it used to
+              be a second modal opened on top of this one. */}
+          {review ? (
+            <SonioxCloneReviewStep
+              key={review.seq}
+              audioBlob={review.audioBlob}
+              error={review.error}
+              busy={review.busy}
+              notice={review.notice}
+              showName={review.showName}
+              onConfirm={review.onConfirm}
+              onClose={review.onClose}
             />
+          ) : (
+            <>
+            {capability.transcriptRequired && (
+              <div className="voice-create-modal__transcript-field">
+                <label htmlFor={transcriptInputId} className="voice-create-modal__transcript-label">
+                  {t('voiceLibrary.transcript', 'Transcript')}
+                </label>
+                <input
+                  id={transcriptInputId}
+                  type="text"
+                  className="voice-create-modal__transcript-input"
+                  value={transcript}
+                  onChange={(e) => setTranscript(e.target.value)}
+                  placeholder={t('voiceLibrary.transcriptPlaceholder', 'Type exactly what the clip says…')}
+                />
+                <span className="voice-create-modal__transcript-hint">
+                  {t('voiceLibrary.transcriptHint', 'Must match the words spoken in the clip.')}
+                </span>
+              </div>
+            )}
+
+            {canUpload && (
+              <button
+                type="button"
+                className="voice-create-modal__import-btn"
+                disabled={transcriptMissing}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Plus size={14} />
+                {t('voiceLibrary.importVoice', 'Import voice…')}
+              </button>
+            )}
+
+            {canRecord && (
+              <button
+                type="button"
+                className="voice-create-modal__import-btn"
+                // Never disable while a recording is in progress — the button
+                // also serves as "Stop recording" and clearing the transcript
+                // field mid-capture must not trap the user in an unstoppable
+                // recording.
+                disabled={!isRecording && transcriptMissing}
+                onClick={() => (isRecording ? void stopRecording() : void startRecording())}
+              >
+                {isRecording ? <Square size={14} /> : <Mic size={14} />}
+                {isRecording
+                  ? `${t('voiceLibrary.stopRecording', 'Stop recording')}${recordSecondsLeft !== null ? ` (${recordSecondsLeft}s)` : ''}`
+                  : t('voiceLibrary.recordVoice', 'Record voice…')}
+              </button>
+            )}
+
+            {canUpload && (
+              <div
+                className={`voice-create-modal__drop-zone${isDragging ? ' is-dragging' : ''}`}
+                data-testid="voice-create-drop"
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+              >
+                {t('voiceLibrary.dropHint', 'or drop a voice file here')}
+              </div>
+            )}
+
+            {canUpload && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={capability.accept ?? 'application/json,.json'}
+                style={{ display: 'none' }}
+                multiple={capability.multipleImport !== false}
+                onChange={(e) => void handleFiles(e.target.files)}
+              />
+            )}
+
+            {/* Above the note, not below it: this is the thing the user needs to
+                read after an action failed, and the note is standing advice. */}
+            {error && <div className="voice-capture-error" role="alert">{error}</div>}
+
+            {note && <div className="voice-create-modal__note">{note}</div>}
+            </>
           )}
-
-          {/* Above the note, not below it: this is the thing the user needs to
-              read after an action failed, and the note is standing advice. */}
-          {error && <div className="voice-capture-error" role="alert">{error}</div>}
-
-          {note && <div className="voice-create-modal__note">{note}</div>}
         </div>
 
-        <div className="voice-modal__foot">
-          <button type="button" className="voice-modal__btn" onClick={close}>
-            {t('common.cancel', 'Cancel')}
-          </button>
-        </div>
+        {/* The review step carries its own Cancel/Confirm pair, so this
+            footer belongs to the acquire phase alone — two footers must
+            never coexist. */}
+        {!review && (
+          <div className="voice-modal__foot">
+            <button type="button" className="voice-modal__btn" onClick={close}>
+              {t('common.cancel', 'Cancel')}
+            </button>
+          </div>
+        )}
       </div>
       </FloatingFocusManager>
     </div>

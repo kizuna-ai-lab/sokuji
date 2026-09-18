@@ -27,7 +27,7 @@
 // Clip-validation alert (e.g. "Recording is too long — keep it under 20 seconds").
 // This component no longer renders one itself (that moved to VoiceCreateModal
 // in Task 5), but NativeVoiceSection, SonioxVoiceSection and
-// SonioxCloneConfirmModal all render `.voice-capture-error` directly and rely
+// SonioxCloneReviewStep all render `.voice-capture-error` directly and rely
 // on this stylesheet being bundled transitively through their import of this
 // component. Keep it on the section's small-text scale, in the shared error
 // red.

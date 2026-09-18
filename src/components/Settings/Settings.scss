@@ -852,13 +852,21 @@
   }
 }
 
-// Soniox voice-cloning confirm modal (SonioxCloneConfirmModal): playback +
+// Soniox voice-cloning review step (SonioxCloneReviewStep): playback +
 // naming + the consent statement folded into the accept button. Mirrors
-// .license-consent-modal's layout above. This modal renders inside Modal's
-// .modal-content, OUTSIDE .settings-section/.config-section — the canonical
+// .license-consent-modal's layout above.
+//
+// It used to render inside the shared Modal's .modal-content; since the merge
+// (2026-09-18) it renders inside VoiceCreateModal's `.voice-modal__body`
+// instead — a 420px frame rather than 700px, padded 14px/16px rather than
+// 20px, and a flex column. Verified by rendering at both the default and the
+// managed variant (long notice + error row) before the move was accepted;
+// jsdom has no layout, so nothing in the suite can catch a regression here.
+//
+// Either way it is OUTSIDE .settings-section/.config-section — the canonical
 // .text-input rule and the shared @keyframes spin below are both scoped
 // (nested selector / same-file-only convention) in ways that don't reach in
-// here, so this block is deliberately self-contained: it duplicates the
+// here, so this block stays deliberately self-contained: it duplicates the
 // input treatment and defines its own spin keyframes rather than reaching
 // for either.
 .soniox-clone-confirm-modal {
