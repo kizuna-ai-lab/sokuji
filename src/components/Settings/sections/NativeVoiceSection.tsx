@@ -211,10 +211,21 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     if (!store || !id.startsWith('custom:')) return;
     const numId = Number(id.slice('custom:'.length));
     if (!Number.isFinite(numId)) return;
-    await store.rename(numId, name);
+    try {
+      await store.rename(numId, name);
+    } catch {
+      // Same contract as handleImport/handleRecord: whatever surfaces the
+      // failure renders the message verbatim, so the mapping has to happen
+      // here. `captureErrorMessage` is wrong for this path — its fallback
+      // talks about unreadable audio files — and the store's own text is raw
+      // internals ("Native voice 3 not found", or whatever IndexedDB raised).
+      // The cause is deliberately not forwarded: nothing downstream reads it,
+      // and the picker renders `err.message` straight into the row.
+      throw new Error(t('voiceLibrary.renameFailed', 'Could not rename this voice.'));
+    }
     reloadCustomVoices();
     onCustomChanged();
-  }, [store, reloadCustomVoices, onCustomChanged]);
+  }, [store, reloadCustomVoices, onCustomChanged, t]);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!store || !id.startsWith('custom:')) return;

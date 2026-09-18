@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, cleanup, within, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, within, fireEvent, waitFor } from '@testing-library/react';
 import VoicePicker from './VoicePicker';
 
 // This suite drives interactions with `fireEvent`, not `@testing-library/user-event`:
@@ -150,7 +150,10 @@ describe('VoicePicker', () => {
     buttons.forEach((b) => expect(b).toBeDisabled());
   });
 
-  it('renames a clone in place and never offers rename or delete on a preset', () => {
+  // `async` and awaiting the close is not decoration: the row now closes only
+  // after `onRename` resolves, so a synchronous end-of-test would leave that
+  // state update to land outside `act`.
+  it('renames a clone in place and never offers rename or delete on a preset', async () => {
     const onRename = vi.fn().mockResolvedValue(undefined);
     const onAskDelete = vi.fn();
     render(<VoicePicker {...base} voices={[GRACE, MINE]} onRename={onRename} onAskDelete={onAskDelete} />);
@@ -163,6 +166,86 @@ describe('VoicePicker', () => {
     fireEvent.change(input, { target: { value: 'Renamed' } });
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
     expect(onRename).toHaveBeenCalledWith('custom:1', 'Renamed');
+    await waitFor(() => expect(screen.queryByRole('textbox')).not.toBeInTheDocument());
+  });
+
+  // Where a failed rename is reported was settled by rendering the four
+  // candidates and picking one: under the input, inside the row. The
+  // alternatives were the popover's top (which shoves the whole list down a
+  // line), its bottom (up to a full popover away from the input), and a red
+  // border on the input alone — that last ruled out by measurement, since it
+  // moved 4 pixels: the input's focus ring already paints over
+  // `border-color`.
+  //
+  // Before this, a rejected rename was INVISIBLE. `commitRename` closed the
+  // row before awaiting, so by the time the rejection arrived the input was
+  // unmounted, and `VoiceLibrarySection.handleRename` swallowed it into a
+  // `console.warn` — under a comment claiming reporting was its job.
+  it('reports a failed rename under the input, inside the row, and keeps the row open', async () => {
+    const onRename = vi.fn().mockRejectedValue(new Error('That name is already taken.'));
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} onRename={onRename} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { name: /rename/i }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Taken' } });
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', code: 'Enter' });
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('That name is already taken.');
+    // One alert, not two: the picker owns this failure, so nothing else may
+    // also render it.
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    // The product's own error class, not a bespoke one invented here.
+    expect(alert).toHaveClass('voice-capture-error');
+
+    // Still editable, so the name can be corrected without starting over —
+    // and the message sits in the SAME row as the input, which is the whole
+    // point of the chosen position.
+    const input = screen.getByRole('textbox');
+    expect(input).toHaveValue('Taken');
+    expect(within(input.closest('[role="row"]') as HTMLElement).getByRole('alert')).toBe(alert);
+  });
+
+  it('closes the row and leaves no error behind when the rename succeeds', async () => {
+    const onRename = vi.fn().mockResolvedValue(undefined);
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} onRename={onRename} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { name: /rename/i }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Renamed' } });
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', code: 'Enter' });
+
+    // RTL's `waitFor`, not `vi.waitFor`: only the former wraps its polling in
+    // `act`, and the close lands in a microtask after `onRename` resolves.
+    await waitFor(() => expect(screen.queryByRole('textbox')).not.toBeInTheDocument());
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  // Keeping the row open after a failure re-arms `onBlur`, which also
+  // commits. Without a guard, every click elsewhere on the page fires the
+  // same doomed request again — so the retry has to be gated on the name
+  // actually changing.
+  it('does not re-fire the same failed name on blur, and a new name clears the error', async () => {
+    const onRename = vi.fn().mockRejectedValue(new Error('That name is already taken.'));
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} onRename={onRename} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { name: /rename/i }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Taken' } });
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', code: 'Enter' });
+    await screen.findByRole('alert');
+    expect(onRename).toHaveBeenCalledTimes(1);
+
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(onRename).toHaveBeenCalledTimes(1);
+
+    // Typing again retracts the stale message straight away — leaving it up
+    // while the user edits would keep accusing a name they already changed.
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Free' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', code: 'Enter' });
+    expect(onRename).toHaveBeenLastCalledWith('custom:1', 'Free');
+    expect(onRename).toHaveBeenCalledTimes(2);
+    // The second attempt fails too — await its message so that state update
+    // lands inside `act` rather than after the test has finished.
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
   });
 
   it('asks the parent to delete rather than deleting or confirming itself', () => {
@@ -460,6 +543,8 @@ describe('VoicePicker keyboard', () => {
     expect(onRename).toHaveBeenCalledWith('custom:1', 'Renamed');
     expect(onSelect).not.toHaveBeenCalled();
     expect(screen.getByRole('grid')).toBeInTheDocument();
+    // The row closes after the resolve, so wait for it here too.
+    await waitFor(() => expect(screen.queryByRole('textbox')).not.toBeInTheDocument());
   });
 
   it('a mouse-driven ▶ does not also trigger a spurious select', async () => {

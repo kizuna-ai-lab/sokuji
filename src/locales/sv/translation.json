@@ -932,6 +932,7 @@
     "presets": "Förinställningar",
     "previewChargedToBalance": "Att lyssna på en förhandsgranskning syntetiserar ett kort ljudklipp och debiteras ditt kontosaldo.",
     "previewFailed": "Det gick inte att skapa en förhandsgranskning för den här rösten.",
+    "renameFailed": "Det gick inte att byta namn på den här rösten.",
     "previewLanguageUnsupported": "Den här modellen har ingen exempelmening på ett språk den talar.",
     "previewNeedsBalance": "Fyll på ditt saldo för att lyssna på en förhandsgranskning av den här rösten.",
     "previewNeedsSessionStopped": "Avsluta sessionen för att lyssna på en förhandsgranskning av den här rösten.",

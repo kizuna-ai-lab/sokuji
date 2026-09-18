@@ -932,6 +932,7 @@
     "presets": "Mga Preset",
     "previewChargedToBalance": "Ang pag-preview ay gumagawa ng maikling sample at sinisingil sa balanse ng iyong account.",
     "previewFailed": "Hindi ma-synthesize ang preview para sa boses na ito.",
+    "renameFailed": "Hindi mapalitan ang pangalan ng boses na ito.",
     "previewLanguageUnsupported": "Ang modelong ito ay walang sample na pangungusap sa wikang kaya nitong sabihin.",
     "previewNeedsBalance": "Mag-top up ng iyong balanse para i-preview ang boses na ito.",
     "previewNeedsSessionStopped": "Tapusin ang session para i-preview ang boses na ito.",

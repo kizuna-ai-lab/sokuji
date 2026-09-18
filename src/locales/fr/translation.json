@@ -932,6 +932,7 @@
     "presets": "Préréglages",
     "previewChargedToBalance": "L'écoute d'un aperçu synthétise un court échantillon et est facturée sur le solde de votre compte.",
     "previewFailed": "Impossible de générer un aperçu pour cette voix.",
+    "renameFailed": "Impossible de renommer cette voix.",
     "previewLanguageUnsupported": "Ce modèle n'a aucune phrase d'exemple dans une langue qu'il parle.",
     "previewNeedsBalance": "Rechargez votre solde pour écouter un aperçu de cette voix.",
     "previewNeedsSessionStopped": "Terminez la session pour écouter un aperçu de cette voix.",

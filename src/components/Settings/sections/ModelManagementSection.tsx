@@ -607,10 +607,18 @@ export function ModelManagementSection({
   const handleRenameVoice = useCallback(async (sid: number, newName: string) => {
     const dbKey = dbKeyFromImportedSid(sid);
     if (dbKey === null) return;
-    await voiceStorage.renameVoice(dbKey, newName);
+    try {
+      await voiceStorage.renameVoice(dbKey, newName);
+    } catch {
+      // The picker now renders a failed rename verbatim in the row, so the
+      // message has to be copy by the time it leaves here — `renameVoice`
+      // rejects with whatever IndexedDB raised. Same mapping as
+      // NativeVoiceSection.handleRename, which is the other onRename owner.
+      throw new Error(t('voiceLibrary.renameFailed', 'Could not rename this voice.'));
+    }
     await refreshImportedVoices();
     setHasPendingChanges(true);
-  }, [refreshImportedVoices]);
+  }, [refreshImportedVoices, t]);
 
   const handleDeleteVoice = useCallback(async (sid: number) => {
     const dbKey = dbKeyFromImportedSid(sid);

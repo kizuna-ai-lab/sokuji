@@ -63,6 +63,15 @@ describe('voice picker styling', () => {
   it.each([
     String.raw`\.voice-row\s*>\s*\[role=["']?gridcell["']?\]\s*\{`,
     String.raw`\.voice-row\s*>\s*\[role=["']?gridcell["']?\]:first-child\s*\{`,
+    // The in-row rename error. `styled()` cannot express this one either:
+    // the class is `.voice-capture-error`, which VoiceLibrarySection.scss
+    // also emits, so matching the bare class would pass even if this
+    // stylesheet's adjacency override vanished. What has to be emitted is
+    // the two-class selector — it exists only for its specificity, and a
+    // typo in it would be silent, leaving the message at banner size and
+    // banner spacing inside a roster row. jsdom has no layout, so no
+    // rendering test can catch that.
+    String.raw`\.voice-row__edit\s*\+\s*\.voice-capture-error\s*\{`,
   ])('emits the row gridcell rule matching %s', (pattern) => {
     expect(pickerCss).toMatch(new RegExp(pattern));
   });

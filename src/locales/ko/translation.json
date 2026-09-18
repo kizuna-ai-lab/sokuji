@@ -932,6 +932,7 @@
     "presets": "프리셋",
     "previewChargedToBalance": "미리 듣기를 하면 짧은 샘플이 합성되며 계정 잔액에서 차감됩니다.",
     "previewFailed": "이 음성의 미리 듣기를 합성할 수 없습니다.",
+    "renameFailed": "이 음성의 이름을 변경할 수 없습니다.",
     "previewLanguageUnsupported": "이 모델은 지원하는 언어로 된 샘플 문장이 없습니다.",
     "previewNeedsBalance": "이 음성을 미리 들으려면 잔액을 충전하세요.",
     "previewNeedsSessionStopped": "이 음성을 미리 들으려면 세션을 종료하세요.",

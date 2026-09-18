@@ -391,6 +391,20 @@
   border-radius: vars.$radius-sm;
 }
 
+// A failed rename, reported in the row directly under the input. The class is
+// the section's own error class, reused rather than reinvented, but the
+// section's rule sizes it as a standalone banner (12px, 8px of clearance)
+// and here it sits wedged between two rows of the roster — so the adjacency
+// selector re-scales it to the row's own tighter rhythm.
+//
+// Two classes (0,2,0) deliberately out-specify the section's single-class
+// rule (0,1,0), so this wins regardless of which stylesheet the bundler
+// emits first. That ordering trap already bit `.voice-pop__facet` once.
+.voice-row__edit + .voice-capture-error {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
 .voice-row__spinner {
   display: inline-block;
   box-sizing: border-box;

@@ -932,6 +932,7 @@
     "presets": "Predefinições",
     "previewChargedToBalance": "Ouvir a pré-visualização sintetiza uma pequena amostra e é cobrada do saldo da sua conta.",
     "previewFailed": "Não foi possível gerar uma pré-visualização para esta voz.",
+    "renameFailed": "Não foi possível mudar o nome desta voz.",
     "previewLanguageUnsupported": "Este modelo não tem nenhuma frase de exemplo num idioma que fala.",
     "previewNeedsBalance": "Carregue o seu saldo para ouvir a pré-visualização desta voz.",
     "previewNeedsSessionStopped": "Termine a sessão para ouvir a pré-visualização desta voz.",

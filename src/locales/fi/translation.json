@@ -932,6 +932,7 @@
     "presets": "Esiasetukset",
     "previewChargedToBalance": "Esikatselun kuunteleminen synteesoi lyhyen näytteen ja veloitetaan tililtäsi.",
     "previewFailed": "Tämän äänen esikatselua ei voitu luoda.",
+    "renameFailed": "Tämän äänen nimeä ei voitu muuttaa.",
     "previewLanguageUnsupported": "Tällä mallilla ei ole esimerkkilausetta kielellä, jota se puhuu.",
     "previewNeedsBalance": "Lataa saldoasi kuunnellaksesi tämän äänen esikatselun.",
     "previewNeedsSessionStopped": "Lopeta istunto kuunnellaksesi tämän äänen esikatselun.",

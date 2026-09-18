@@ -1197,6 +1197,7 @@
     "presets": "Presets",
     "previewChargedToBalance": "Previewing synthesizes a short sample and is charged to your account balance.",
     "previewFailed": "Could not synthesize a preview for this voice.",
+    "renameFailed": "Could not rename this voice.",
     "previewLanguageUnsupported": "This model has no sample sentence in a language it speaks.",
     "previewNeedsBalance": "Top up your balance to preview this voice.",
     "previewNeedsSessionStopped": "Stop the session to preview this voice.",

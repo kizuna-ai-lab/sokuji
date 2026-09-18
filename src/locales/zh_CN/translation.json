@@ -932,6 +932,7 @@
     "presets": "预设",
     "previewChargedToBalance": "试听会合成一小段样本，并从您的账户余额中扣费。",
     "previewFailed": "无法为这个声音合成试听。",
+    "renameFailed": "无法重命名这个声音。",
     "previewLanguageUnsupported": "该模型所支持的语言中没有可用的示例句。",
     "previewNeedsBalance": "请先为账户充值余额，再试听此声音。",
     "previewNeedsSessionStopped": "请先结束会话，再试听此声音。",

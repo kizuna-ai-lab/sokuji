@@ -932,6 +932,7 @@
     "presets": "Hazır ayarlar",
     "previewChargedToBalance": "Önizlemeyi dinlemek kısa bir örnek sentezler ve hesap bakiyenizden düşülür.",
     "previewFailed": "Bu ses için önizleme oluşturulamadı.",
+    "renameFailed": "Bu ses yeniden adlandırılamadı.",
     "previewLanguageUnsupported": "Bu modelin konuştuğu bir dilde örnek cümlesi yok.",
     "previewNeedsBalance": "Bu sesin önizlemesini dinlemek için bakiyenizi yükleyin.",
     "previewNeedsSessionStopped": "Bu sesin önizlemesini dinlemek için oturumu sonlandırın.",

@@ -932,6 +932,7 @@
     "presets": "Voreinstellungen",
     "previewChargedToBalance": "Das Anhören einer Vorschau synthetisiert eine kurze Hörprobe und wird von Ihrem Kontoguthaben abgebucht.",
     "previewFailed": "Für diese Stimme konnte keine Hörprobe erzeugt werden.",
+    "renameFailed": "Diese Stimme konnte nicht umbenannt werden.",
     "previewLanguageUnsupported": "Für dieses Modell gibt es keinen Beispielsatz in einer Sprache, die es spricht.",
     "previewNeedsBalance": "Laden Sie Ihr Guthaben auf, um diese Stimme anzuhören.",
     "previewNeedsSessionStopped": "Beenden Sie die Sitzung, um diese Stimme anzuhören.",

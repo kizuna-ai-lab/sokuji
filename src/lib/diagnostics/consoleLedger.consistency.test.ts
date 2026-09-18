@@ -147,12 +147,14 @@ const LEDGER: Record<string, number> = {
   // this file used to hold (`Voice import failed:`, `Recording failed to
   // start:`, `Recording handler failed:`) moved to VoiceCreateModal.tsx below
   // when Task 6 deleted the section's own copy of the capture code.
-  // Lowered from 2: the delete path used to swallow its rejection with a
-  // `console.warn('Delete failed:', err)` breadcrumb, which was the only
-  // record a failed delete left anywhere. VoiceDeleteModal now awaits the
-  // result and shows the reason in place, so there is nothing to swallow and
-  // no breadcrumb to leave.
-  'src/components/Settings/sections/VoiceLibrarySection.tsx': 1,
+  // VoiceLibrarySection.tsx used to have a row here. It is gone, not lowered
+  // to 0: an absent file is held to `?? 0` below, so a returning
+  // `console.warn` fails this gate rather than passing against a zero row.
+  // Both of its calls were rejections it swallowed as the ONLY record the
+  // failure left anywhere — `console.warn('Delete failed:', err)`, then
+  // `console.warn('Rename failed:', err)`. The delete now reports in
+  // VoiceDeleteModal and the rename in the picker row, so in both cases
+  // there is nothing left to swallow and no breadcrumb to leave.
   'src/components/Settings/sections/VoiceCreateModal.tsx': 3,
   'shared/index.tsx': 4,
   'src/components/SettingsInitializer/SettingsInitializer.tsx': 3,

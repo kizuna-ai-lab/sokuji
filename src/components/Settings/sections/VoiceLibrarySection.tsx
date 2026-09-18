@@ -233,15 +233,14 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
 
-  // Wraps the caller's onRename so a rejection is a console breadcrumb rather
-  // than an unhandled rejection — the picker owns the rename UI (the input,
-  // the commit-on-blur/Enter), but reporting a FAILED commit is this
-  // composition root's job, same as the delete confirmation below.
-  const handleRename = useCallback(async (id: string, name: string) => {
-    if (!onRename) return;
-    try { await onRename(id, name); }
-    catch (err) { console.warn('Rename failed:', err); }
-  }, [onRename]);
+  // No rename wrapper here on purpose. There used to be one, catching the
+  // rejection into a `console.warn` under a comment claiming that reporting a
+  // failed commit was this composition root's job — but it had no surface to
+  // report on, so a failed rename was silent to the user and visible only in
+  // DevTools. The rename UI lives entirely in the picker (the input, commit
+  // on blur/Enter), so by the single-owner-by-origin rule the picker both
+  // catches the rejection and renders it, in the row under the input.
+  // `onRename` is therefore handed straight down, unwrapped.
 
   // NOT optimistic any more. This used to close the modal before awaiting —
   // "matches the old window.confirm flow" — and swallow the rejection with a
@@ -272,7 +271,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           previewUnavailableReason={previewUnavailableReason}
           playingId={playingId}
           loadingId={previewLoadingId}
-          onRename={onRename ? handleRename : undefined}
+          onRename={onRename}
           onAskDelete={(id, label) => setDeleteTarget({ id, label })}
           onAddVoice={canCreate ? () => setCreating(true) : undefined}
           onRefresh={onRefresh}

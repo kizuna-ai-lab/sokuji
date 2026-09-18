@@ -932,6 +932,7 @@
     "presets": "Presets",
     "previewChargedToBalance": "Het beluisteren van een voorbeeld synthetiseert een kort fragment en wordt van uw accountsaldo afgeschreven.",
     "previewFailed": "Kon geen voorbeeld genereren voor deze stem.",
+    "renameFailed": "Kon deze stem niet hernoemen.",
     "previewLanguageUnsupported": "Dit model heeft geen voorbeeldzin in een taal die het spreekt.",
     "previewNeedsBalance": "Laad uw saldo op om deze stem te beluisteren.",
     "previewNeedsSessionStopped": "Beëindig de sessie om deze stem te beluisteren.",

@@ -932,6 +932,7 @@
     "presets": "Predefinições",
     "previewChargedToBalance": "Ouvir a prévia sintetiza uma amostra curta e é cobrada do saldo da sua conta.",
     "previewFailed": "Não foi possível gerar uma prévia para esta voz.",
+    "renameFailed": "Não foi possível renomear esta voz.",
     "previewLanguageUnsupported": "Este modelo não tem nenhuma frase de exemplo em um idioma que ele fala.",
     "previewNeedsBalance": "Recarregue seu saldo para ouvir a prévia desta voz.",
     "previewNeedsSessionStopped": "Finalize a sessão para ouvir a prévia desta voz.",

@@ -932,6 +932,7 @@
     "presets": "Presety",
     "previewChargedToBalance": "Odsłuchanie podglądu generuje krótką próbkę i jest rozliczane z salda Twojego konta.",
     "previewFailed": "Nie udało się wygenerować podglądu dla tego głosu.",
+    "renameFailed": "Nie udało się zmienić nazwy tego głosu.",
     "previewLanguageUnsupported": "Ten model nie ma przykładowego zdania w języku, którym mówi.",
     "previewNeedsBalance": "Doładuj saldo, aby odsłuchać podgląd tego głosu.",
     "previewNeedsSessionStopped": "Zakończ sesję, aby odsłuchać podgląd tego głosu.",

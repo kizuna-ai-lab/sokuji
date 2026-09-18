@@ -84,6 +84,16 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
   const [criteria, setCriteria] = useState<VoiceFacetCriteria>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  // A failed rename is reported here, in the row, under the input — the
+  // position picked from a rendered line-up of four. Before this it was
+  // reported nowhere: `commitRename` closed the row before awaiting, so the
+  // rejection arrived after the input had unmounted, and
+  // `VoiceLibrarySection.handleRename` swallowed it into a `console.warn`.
+  const [renameError, setRenameError] = useState<string | null>(null);
+  // The name that just failed. Staying in edit mode after a failure re-arms
+  // `onBlur`, which also commits, so without this every click elsewhere on
+  // the page would re-fire the same doomed request.
+  const failedNameRef = useRef<string | null>(null);
   // The one in-flight (or last-finished) preview request's controller. A
   // single ref, not one per row: only one preview can be loading/playing at
   // a time (playingId/loadingId are singular, owned by the parent), so
@@ -275,10 +285,44 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
     return parts.slice(0, 3).join(' · ');
   };
 
+  // Entering and leaving edit mode each move all three pieces of rename state
+  // together, from one place. Held as helpers rather than repeated at the four
+  // call sites (commit, no-op commit, Escape, opening another row) so no exit
+  // path can leave a stale message to render under the NEXT row's input.
+  const openRename = (v: VoiceEntry) => {
+    setEditingId(v.id);
+    setEditName(v.label);
+    setRenameError(null);
+    failedNameRef.current = null;
+  };
+  const closeRename = () => {
+    setEditingId(null);
+    setRenameError(null);
+    failedNameRef.current = null;
+  };
+
+  // Closes the row only once the rename has actually landed. It used to close
+  // first and await afterwards, which made every failure invisible: the input
+  // and its row were gone before the rejection arrived, leaving nowhere to
+  // put the message and nothing for the user to correct.
   const commitRename = async (id: string) => {
     const name = editName.trim();
-    setEditingId(null);
-    if (name && onRename) await onRename(id, name);
+    // An empty name, or no handler at all, is not a failed rename — it is a
+    // no-op, and closing is the same thing it always did.
+    if (!name || !onRename) { closeRename(); return; }
+    // Never retry the name that just failed: `onBlur` commits too, so an
+    // open row after a failure would fire again on every stray click.
+    if (name === failedNameRef.current) return;
+    try {
+      await onRename(id, name);
+      closeRename();
+    } catch (err) {
+      // The message arrives already mapped by the section that owns the
+      // operation (NativeVoiceSection maps through `captureErrorMessage`).
+      // This component decides WHERE the failure appears; it never words it.
+      failedNameRef.current = name;
+      setRenameError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   // `[role="row"].voice-row` and not every `[role="row"]`: the grid also
@@ -585,13 +629,24 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
               className="voice-row__edit"
               value={editName}
               aria-label={t('voiceLibrary.rename', 'Rename')}
-              onChange={(e) => setEditName(e.target.value)}
+              aria-invalid={renameError ? true : undefined}
+              onChange={(e) => {
+                setEditName(e.target.value);
+                // Retract the message as soon as the name changes: leaving it
+                // up would keep accusing a name the user has already edited.
+                // `failedNameRef` deliberately survives, so blurring back
+                // onto the failed spelling still does not re-fire.
+                if (renameError) setRenameError(null);
+              }}
               onBlur={() => void commitRename(v.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void commitRename(v.id);
-                if (e.key === 'Escape') setEditingId(null);
+                if (e.key === 'Escape') closeRename();
               }}
             />
+            {renameError && (
+              <div className="voice-capture-error" role="alert">{renameError}</div>
+            )}
           </div>
         </div>
       );
@@ -659,7 +714,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             <button type="button" className="voice-row__btn"
               tabIndex={renameTabIndex}
               aria-label={t('voiceLibrary.rename', 'Rename')} title={t('voiceLibrary.rename', 'Rename')}
-              onClick={() => { setEditingId(v.id); setEditName(v.label); }}>
+              onClick={() => openRename(v)}>
               <Pencil size={13} />
             </button>
           </div>

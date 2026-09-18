@@ -932,6 +932,7 @@
     "presets": "プリセット",
     "previewChargedToBalance": "試聴すると短いサンプルが合成され、アカウントの残高から差し引かれます。",
     "previewFailed": "この音声のプレビューを合成できませんでした。",
+    "renameFailed": "この音声の名前を変更できませんでした。",
     "previewLanguageUnsupported": "このモデルには、話せる言語のサンプル文がありません。",
     "previewNeedsBalance": "この音声を試聴するには残高をチャージしてください。",
     "previewNeedsSessionStopped": "この音声を試聴するにはセッションを終了してください。",

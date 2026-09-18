@@ -932,6 +932,7 @@
     "presets": "Pratetap",
     "previewChargedToBalance": "Pratonton mensintesis klip pendek dan dicaj daripada baki akaun anda.",
     "previewFailed": "Tidak dapat menjana pratonton untuk suara ini.",
+    "renameFailed": "Tidak dapat menamakan semula suara ini.",
     "previewLanguageUnsupported": "Model ini tiada ayat contoh dalam bahasa yang boleh dituturkannya.",
     "previewNeedsBalance": "Tambah nilai baki anda untuk mendengar pratonton suara ini.",
     "previewNeedsSessionStopped": "Tamatkan sesi untuk mendengar pratonton suara ini.",

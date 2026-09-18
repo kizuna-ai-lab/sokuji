@@ -932,6 +932,7 @@
     "presets": "Preimpostazioni",
     "previewChargedToBalance": "Ascoltare l'anteprima sintetizza un breve campione ed è addebitato sul saldo del tuo account.",
     "previewFailed": "Impossibile generare un'anteprima per questa voce.",
+    "renameFailed": "Impossibile rinominare questa voce.",
     "previewLanguageUnsupported": "Questo modello non ha una frase di esempio in una lingua che parla.",
     "previewNeedsBalance": "Ricarica il tuo saldo per ascoltare l'anteprima di questa voce.",
     "previewNeedsSessionStopped": "Termina la sessione per ascoltare l'anteprima di questa voce.",

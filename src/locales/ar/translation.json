@@ -932,6 +932,7 @@
     "presets": "الإعدادات المسبقة",
     "previewChargedToBalance": "تُنتج المعاينة مقطعًا صوتيًا قصيرًا ويُخصم من رصيد حسابك.",
     "previewFailed": "تعذّر إنشاء معاينة لهذا الصوت.",
+    "renameFailed": "تعذّر إعادة تسمية هذا الصوت.",
     "previewLanguageUnsupported": "لا يحتوي هذا النموذج على جملة نموذجية بأي لغة يتحدث بها.",
     "previewNeedsBalance": "اشحن رصيدك لمعاينة هذا الصوت.",
     "previewNeedsSessionStopped": "أنهِ الجلسة لمعاينة هذا الصوت.",
