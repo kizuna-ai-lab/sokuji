@@ -4,16 +4,26 @@ import { teardownSessionLegs } from '../../services/providers/managedSonioxSplit
 import { mergeConversationItems } from './conversationMerge';
 
 /**
- * Ordering coverage for MainPanel.disconnectConversation's session-end save.
- * There is no React rendering harness in this repo (see
- * splitDegradedWiring.test.ts), so `stopSession` below replays the steps
- * disconnectConversation takes, around the REAL teardownSessionLegs and
- * mergeConversationItems. Keep it in step with MainPanel.tsx.
+ * Ordering coverage for MainPanel.disconnectConversation's session-end save,
+ * and for the desktop close-handshake listener that waits on it. There is no
+ * React rendering harness in this repo (see splitDegradedWiring.test.ts), so
+ * `stopSession` below replays the steps disconnectConversation takes, around
+ * the REAL teardownSessionLegs and mergeConversationItems, and `onCloseRequested`
+ * replays the 'app:close-requested' listener. Keep both in step with
+ * MainPanel.tsx.
  *
  * THE BUG (PR #537 as submitted): the save was armed inside the speaker leg and
  * fired by an effect on the next render. In split Both mode that render commits
  * while the participant leg is still awaiting disconnect(), so the other
  * party's last line — flushed by that disconnect — is not in the file.
+ *
+ * THE BUG this file's close-in-flight cases guard against (review round 1):
+ * disconnectDoneRef must be published before the save's first await and
+ * resolved only after the save, or a close request racing an in-flight Stop
+ * can answer 'app:close-ready' before the file is written. `stopSession`'s
+ * `done` param models the correct order; `stopSessionPublishingLate` models
+ * the bug and is asserted to reorder ['close-ready', 'saved'] — proof the
+ * assertions above it can actually fail.
  */
 
 type Fake = {
@@ -44,36 +54,116 @@ const LANGS = { sourceLanguage: 'EN', targetLanguage: 'JA' };
 const saved = vi.fn(async (_items: ConversationItem[]) => 'saved' as const);
 const texts = (items: ConversationItem[]) => items.map(i => i.formatted?.text);
 
-/** Replays disconnectConversation's capture-and-save steps. */
-async function stopSession(opts: { wasActive: boolean; speaker?: Fake; participant?: Fake }) {
+/**
+ * Replays disconnectConversation's capture-and-save steps. When `done` is
+ * given, it mirrors disconnectDoneRef the way MainPanel.tsx does: published
+ * synchronously, before the first await (MainPanel.tsx, right after the
+ * re-entry guard), and resolved in this function's own outer `finally` —
+ * after the save, which the inner `finally` above it has already awaited.
+ * Existing callers that omit `done` are unaffected.
+ */
+async function stopSession(opts: {
+  wasActive: boolean;
+  speaker?: Fake;
+  participant?: Fake;
+  done?: { current: Promise<void> | null };
+}) {
+  let markDone: () => void = () => {};
+  if (opts.done) {
+    opts.done.current = new Promise<void>(resolve => { markDone = resolve; });
+  }
   let speakerFinal: ConversationItem[] = [];
   let participantFinal: ConversationItem[] = [];
   try {
-    await teardownSessionLegs({
-      speaker: async () => {
-        const c = opts.speaker;
-        if (!c) return;
-        try { await c.disconnect(); } catch { /* MainPanel warns and carries on */ }
-        speakerFinal = c.getConversationItems();
-        c.reset();
-      },
-      participant: async () => {
-        const c = opts.participant;
-        if (!c) return;
-        participantFinal = c.getConversationItems();
-        try {
-          await c.disconnect();
-          participantFinal = c.getConversationItems();
+    try {
+      await teardownSessionLegs({
+        speaker: async () => {
+          const c = opts.speaker;
+          if (!c) return;
+          try { await c.disconnect(); } catch { /* MainPanel warns and carries on */ }
+          speakerFinal = c.getConversationItems();
           c.reset();
-        } catch { /* MainPanel warns and carries on */ }
-      },
-    });
-  } finally {
-    if (opts.wasActive) {
-      await saved(mergeConversationItems(speakerFinal, participantFinal, () => LANGS));
+        },
+        participant: async () => {
+          const c = opts.participant;
+          if (!c) return;
+          participantFinal = c.getConversationItems();
+          try {
+            await c.disconnect();
+            participantFinal = c.getConversationItems();
+            c.reset();
+          } catch { /* MainPanel warns and carries on */ }
+        },
+      });
+    } finally {
+      if (opts.wasActive) {
+        await saved(mergeConversationItems(speakerFinal, participantFinal, () => LANGS));
+      }
     }
+  } finally {
+    if (opts.done) markDone();
   }
 }
+
+/**
+ * Contrast for the close-in-flight cases below: publishes `done` only after
+ * teardown settles, instead of before the first await like `stopSession`
+ * does. This is the bug the ordering coverage exists to catch — a close
+ * request that reads `done.current` before this line runs sees null, so
+ * `await done.current` resolves at once instead of waiting for the save.
+ */
+async function stopSessionPublishingLate(opts: {
+  wasActive: boolean;
+  participant?: Fake;
+  done: { current: Promise<void> | null };
+}) {
+  let markDone: () => void = () => {};
+  let participantFinal: ConversationItem[] = [];
+  try {
+    try {
+      await teardownSessionLegs({
+        participant: async () => {
+          const c = opts.participant;
+          if (!c) return;
+          participantFinal = c.getConversationItems();
+          try {
+            await c.disconnect();
+            participantFinal = c.getConversationItems();
+            c.reset();
+          } catch { /* MainPanel warns and carries on */ }
+        },
+      });
+    } finally {
+      opts.done.current = new Promise<void>(resolve => { markDone = resolve; });
+      if (opts.wasActive) {
+        await saved(mergeConversationItems([], participantFinal, () => LANGS));
+      }
+    }
+  } finally {
+    markDone();
+  }
+}
+
+/**
+ * Replays MainPanel's 'app:close-requested' listener (MainPanel.tsx): if the
+ * session still reads active, end it; either way, wait for disconnectDoneRef
+ * (covers a Stop already in flight — the re-entry guard makes a second
+ * disconnectConversation() call return at once); answer only once both have
+ * settled.
+ */
+const onCloseRequested = async (
+  isSessionActive: boolean,
+  disconnect: () => Promise<void>,
+  done: { current: Promise<void> | null },
+  ready: () => void,
+) => {
+  try {
+    if (isSessionActive) await disconnect();
+    await done.current;
+  } finally {
+    ready();
+  }
+};
 
 beforeEach(() => saved.mockClear());
 
@@ -137,16 +227,50 @@ describe('session-end auto-save ordering', () => {
   it('a close request during an in-flight Stop answers only after the file is saved', async () => {
     const order: string[] = [];
     saved.mockImplementationOnce(async () => { order.push('saved'); return 'saved'; });
+    // The Stop is already running (e.g. the user clicked Stop just before
+    // closing): isSessionActive already reads false, so the listener skips
+    // its own disconnect() call and only waits on disconnectDoneRef.
+    const done: { current: Promise<void> | null } = { current: null };
     const inFlight = stopSession({
       wasActive: true,
       participant: client([line('p1', 'THEIRS', 1)], [line('p2', 'THEIR-LAST', 2)]),
+      done,
     });
-    // What MainPanel's close listener does: the session already reads
-    // inactive, so it only awaits disconnectDoneRef, then answers.
-    const onCloseRequested = async (done: Promise<void>) => {
-      try { await done; } finally { order.push('close-ready'); }
-    };
-    await onCloseRequested(inFlight);
+    await onCloseRequested(false, async () => {}, done, () => order.push('close-ready'));
+    await inFlight;
     expect(order).toEqual(['saved', 'close-ready']);
+  });
+
+  it('a close request on a still-active session ends it, then answers only after the file is saved', async () => {
+    const order: string[] = [];
+    saved.mockImplementationOnce(async () => { order.push('saved'); return 'saved'; });
+    // The session is still active when the close arrives: the listener calls
+    // disconnectConversation() itself (isSessionActive === true).
+    const done: { current: Promise<void> | null } = { current: null };
+    await onCloseRequested(
+      true,
+      () => stopSession({
+        wasActive: true,
+        participant: client([line('p1', 'THEIRS', 1)], [line('p2', 'THEIR-LAST', 2)]),
+        done,
+      }),
+      done,
+      () => order.push('close-ready'),
+    );
+    expect(order).toEqual(['saved', 'close-ready']);
+  });
+
+  it('contrast: publishing done late lets the close answer race ahead of the save', async () => {
+    const order: string[] = [];
+    saved.mockImplementationOnce(async () => { order.push('saved'); return 'saved'; });
+    const done: { current: Promise<void> | null } = { current: null };
+    const inFlight = stopSessionPublishingLate({
+      wasActive: true,
+      participant: client([line('p1', 'THEIRS', 1)], [line('p2', 'THEIR-LAST', 2)]),
+      done,
+    });
+    await onCloseRequested(false, async () => {}, done, () => order.push('close-ready'));
+    await inFlight;
+    expect(order).toEqual(['close-ready', 'saved']);
   });
 });
