@@ -20,16 +20,16 @@ import type { ConversationItem } from '../../services/interfaces/IClient';
 import type { DisplayMode } from '../../stores/settingsStore';
 import { shouldShowItem, modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
 import {
-  buildSessionMetadata,
-  collectLanguagePairs,
+  buildExportPayload,
+  buildTxtExport,
+  buildTxtI18n,
   copyToClipboard,
-  deriveSessionLanguagePair,
   downloadFile,
+  exportFilename,
   formatAsJson,
   formatAsTxt,
-  formatTimestampForFilename,
-  getActiveModelInfo,
   normalizeMessages,
+  type ExportInput,
   type TxtI18n,
 } from '../../utils/conversationExport';
 import { useToast } from '../Toast';
@@ -236,19 +236,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   ]);
 
   // Collect i18n strings once per render.
-  const txtI18n: TxtI18n = useMemo(() => ({
-    speakerYou: t('mainPanel.export.speakerYou', 'Me'),
-    speakerOther: t('mainPanel.export.speakerOther', 'Other'),
-    translationSuffix: t('mainPanel.export.translationSuffix', '(trans)'),
-    headerTitle: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),
-    headerGenerated: t('mainPanel.export.headerGenerated', 'Generated'),
-    headerProvider: t('mainPanel.export.headerProvider', 'Provider'),
-    headerModels: t('mainPanel.export.headerModels', 'Models'),
-    headerSource: t('mainPanel.export.headerSource', 'My Language'),
-    headerTarget: t('mainPanel.export.headerTarget', "Other's Language"),
-    headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
-    headerNarrowed: t('mainPanel.export.headerNarrowed', 'Note: this export was narrowed at export time — some lines were left out.'),
-  }), [t]);
+  const txtI18n: TxtI18n = useMemo(() => buildTxtI18n((key, def) => t(key, def)), [t]);
 
   // Close whichever host is active; each call no-ops for the inactive one.
   const closeMenu = useCallback(() => {
@@ -256,33 +244,21 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     childMenu.onClose('action');
   }, [childMenu]);
 
-  /** Compute a fresh export payload at click time. */
-  const buildPayload = useCallback(() => {
-    const models = getActiveModelInfo(provider, currentProviderSettings, localInferenceSettings);
-    // Prefer the language pair captured on the messages over the live config
-    // — the conversation may have ended and the user may have since switched
-    // languages, in which case the live config no longer matches the data.
-    const sessionPair = deriveSessionLanguagePair(normalizedMessages, {
-      sourceLanguage,
-      targetLanguage,
-    });
-    const languagePairs = collectLanguagePairs(normalizedMessages);
-    const metadata = buildSessionMetadata({
-      provider,
-      models,
-      sourceLanguage: sessionPair.sourceLanguage,
-      targetLanguage: sessionPair.targetLanguage,
-      languagePairs,
-      // Recorded so the file says whether it is the whole conversation. A
-      // full scope is dropped inside buildSessionMetadata.
-      scope: { speaker: togglesToMode(speaker), participant: togglesToMode(participant) },
-    });
-    return { messages: normalizedMessages, metadata };
-  }, [normalizedMessages, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage, speaker, participant]);
+  /** The export input for the current scope, computed at click time. */
+  const exportInput = useCallback((): ExportInput => ({
+    items: scopedItems,
+    provider,
+    providerSettings: currentProviderSettings,
+    localInferenceSettings,
+    fallbackLanguages: { sourceLanguage, targetLanguage },
+    // Recorded so the file says whether it is the whole conversation. A full
+    // scope is dropped inside buildSessionMetadata.
+    scope: { speaker: togglesToMode(speaker), participant: togglesToMode(participant) },
+  }), [scopedItems, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage, speaker, participant]);
 
   const handleCopy = useCallback(async () => {
     closeMenu();
-    const { messages, metadata } = buildPayload();
+    const { messages, metadata } = buildExportPayload(exportInput());
     const text = formatAsTxt(messages, metadata, txtI18n, { includeHeader: false });
     const ok = await copyToClipboard(text);
     if (ok) {
@@ -290,23 +266,19 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     } else {
       showToast(t('mainPanel.export.copyFailed', 'Failed to copy. Check browser permissions.'), { variant: 'error', durationMs: 4000 });
     }
-  }, [buildPayload, showToast, t, txtI18n, closeMenu]);
+  }, [exportInput, showToast, t, txtI18n, closeMenu]);
 
   const handleDownloadTxt = useCallback(() => {
     closeMenu();
-    const { messages, metadata } = buildPayload();
-    const content = formatAsTxt(messages, metadata, txtI18n, { includeHeader: true });
-    const filename = `sokuji-conversation-${formatTimestampForFilename(Date.now())}.txt`;
+    const { content, filename } = buildTxtExport(exportInput(), txtI18n);
     downloadFile(content, filename, 'text/plain;charset=utf-8');
-  }, [buildPayload, txtI18n, closeMenu]);
+  }, [exportInput, txtI18n, closeMenu]);
 
   const handleDownloadJson = useCallback(() => {
     closeMenu();
-    const { messages, metadata } = buildPayload();
-    const content = formatAsJson(messages, metadata);
-    const filename = `sokuji-conversation-${formatTimestampForFilename(Date.now())}.json`;
-    downloadFile(content, filename, 'application/json');
-  }, [buildPayload, closeMenu]);
+    const { messages, metadata } = buildExportPayload(exportInput());
+    downloadFile(formatAsJson(messages, metadata), exportFilename('json'), 'application/json');
+  }, [exportInput, closeMenu]);
 
   const items = useMemo(() => ([
     { key: 'copy', label: t('mainPanel.export.copyToClipboard', 'Copy to clipboard'), Icon: Copy, onClick: handleCopy },

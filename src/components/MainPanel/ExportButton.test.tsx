@@ -263,4 +263,40 @@ describe('ExportButton scope checkboxes', () => {
     expect(text).not.toContain('THEIR-ORIGINAL');
     expect(text).not.toContain('THEIR-TRANSLATION');
   });
+
+  it('downloads exactly this .txt (golden, pinned before the export refactor)', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 18, 15, 30, 0)); // local time
+    try {
+      renderMenu();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Download as .txt' }));
+
+      const [content, filename, mime] = downloadFile.mock.calls[0];
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const hms = (ts: number) => {
+        const d = new Date(ts);
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      };
+      // Longest label is "Other (trans):" (14), so the column is 15 wide.
+      const row = (ts: number | undefined, label: string, text: string) =>
+        `[${hms(ts!)}] ${`${label}:`.padEnd(15, ' ')}${text}`;
+
+      expect(filename).toBe('sokuji-conversation-20260918-153000.txt');
+      expect(mime).toBe('text/plain;charset=utf-8');
+      expect(content).toBe([
+        'Sokuji conversation export',
+        'Generated: 2026-09-18 15:30:00',
+        'Provider: openai',
+        "My Language: EN → Other's Language: JA",
+        'Note: settings reflect current state at export, not mid-session changes.',
+        '',
+        row(ITEMS[0].createdAt, 'Me', 'MY-ORIGINAL'),
+        row(ITEMS[1].createdAt, 'Me (trans)', 'MY-TRANSLATION'),
+        row(ITEMS[2].createdAt, 'Other', 'THEIR-ORIGINAL'),
+        row(ITEMS[3].createdAt, 'Other (trans)', 'THEIR-TRANSLATION'),
+      ].join('\n') + '\n');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

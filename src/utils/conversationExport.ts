@@ -69,6 +69,36 @@ export interface TxtI18n {
   headerNarrowed: string;
 }
 
+/** A conversation item as the exporters take it: MainPanel's merged, source-tagged rows. */
+export type ExportItem = ConversationItem & {
+  source?: string;
+  sourceLanguage?: string;
+  targetLanguage?: string;
+};
+
+/**
+ * A key lookup with an English default. Narrow on purpose, so a component's
+ * hook `t` and the module-level `i18n.t` both fit behind a one-line adapter.
+ */
+export type Translate = (key: string, defaultValue: string) => string;
+
+/** The .txt labels, looked up once. Shared by the manual export and the auto-save. */
+export function buildTxtI18n(t: Translate): TxtI18n {
+  return {
+    speakerYou: t('mainPanel.export.speakerYou', 'Me'),
+    speakerOther: t('mainPanel.export.speakerOther', 'Other'),
+    translationSuffix: t('mainPanel.export.translationSuffix', '(trans)'),
+    headerTitle: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),
+    headerGenerated: t('mainPanel.export.headerGenerated', 'Generated'),
+    headerProvider: t('mainPanel.export.headerProvider', 'Provider'),
+    headerModels: t('mainPanel.export.headerModels', 'Models'),
+    headerSource: t('mainPanel.export.headerSource', 'My Language'),
+    headerTarget: t('mainPanel.export.headerTarget', "Other's Language"),
+    headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
+    headerNarrowed: t('mainPanel.export.headerNarrowed', 'Note: this export was narrowed at export time — some lines were left out.'),
+  };
+}
+
 const SPEAKER_COLUMN_WIDTH = 8; // includes trailing colon: "You:    " / "Other:  "
 const ARROW = '→'; // →
 
@@ -115,11 +145,7 @@ export function getAppVersion(): string | null {
  * (each item carries a `source: 'speaker' | 'participant'` tag).
  */
 export function normalizeMessages(
-  combinedItems: Array<ConversationItem & {
-    source?: string;
-    sourceLanguage?: string;
-    targetLanguage?: string;
-  }>
+  combinedItems: ExportItem[]
 ): NormalizedMessage[] {
   const out: NormalizedMessage[] = [];
   for (const item of combinedItems) {
@@ -260,6 +286,51 @@ export function buildSessionMetadata(args: {
     targetLanguage: args.targetLanguage,
     languagePairs: args.languagePairs ?? [],
     ...(narrowed ? { scope: args.scope } : {}),
+  };
+}
+
+/** What every export format is built from. */
+export interface ExportInput {
+  /** The rows to export — already scoped by the caller when a scope applies. */
+  items: ExportItem[];
+  provider: string;
+  providerSettings: any;
+  localInferenceSettings: any;
+  /** Used only when no message carries its own language snapshot. */
+  fallbackLanguages: { sourceLanguage: string; targetLanguage: string };
+  /** The manual export's scope; recorded in the file only when it left something out. */
+  scope?: ExportScope;
+}
+
+/** Normalize the items and snapshot the session metadata. */
+export function buildExportPayload(input: ExportInput): { messages: NormalizedMessage[]; metadata: SessionMetadata } {
+  const messages = normalizeMessages(input.items);
+  const models = getActiveModelInfo(input.provider, input.providerSettings, input.localInferenceSettings);
+  // Prefer the pair captured on the messages over the live config — the
+  // conversation may have ended and the user may have since switched languages.
+  const pair = deriveSessionLanguagePair(messages, input.fallbackLanguages);
+  const metadata = buildSessionMetadata({
+    provider: input.provider,
+    models,
+    sourceLanguage: pair.sourceLanguage,
+    targetLanguage: pair.targetLanguage,
+    languagePairs: collectLanguagePairs(messages),
+    scope: input.scope,
+  });
+  return { messages, metadata };
+}
+
+/** The name every export uses: the time, never the content. */
+export function exportFilename(extension: 'txt' | 'json', now: number = Date.now()): string {
+  return `sokuji-conversation-${formatTimestampForFilename(now)}.${extension}`;
+}
+
+/** The .txt file, header included, and its name. */
+export function buildTxtExport(input: ExportInput, i18n: TxtI18n): { content: string; filename: string } {
+  const { messages, metadata } = buildExportPayload(input);
+  return {
+    content: formatAsTxt(messages, metadata, i18n, { includeHeader: true }),
+    filename: exportFilename('txt'),
   };
 }
 
