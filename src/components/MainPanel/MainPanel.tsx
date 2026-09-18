@@ -1883,13 +1883,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           },
         });
       } finally {
-        if (wasActive) {
+        // The setting is read here too, not only inside autoSaveTranscript,
+        // so a session with auto-save off builds no snapshot.
+        if (wasActive && useSettingsStore.getState().autoSaveOnStop) {
           // After both legs are down, and before the `finally` below resolves
           // disconnectDoneRef — so a queued Start, or the desktop close
           // handshake, waits for the file. Reads the language snapshots
           // without recording new ones: the view's useMemo owns that.
-          // autoSaveTranscript never rejects, so a throw from a leg still
-          // propagates unchanged.
+          // autoSaveTranscript never rejects; building its argument can still
+          // throw, and a throw here replaces one propagating from a leg.
           const live = useSettingsStore.getState().getCurrentProviderSettings();
           const fallback = {
             sourceLanguage: live.sourceLanguage ?? 'EN',
@@ -1947,13 +1949,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     disconnectConversationRef.current = disconnectConversation;
   }, [disconnectConversation]);
-
-  // Desktop: the main process holds a close or quit only while a session is
-  // busy. Busy starts here; it ends at the close of disconnectConversation,
-  // after the save, since this value turns false as the teardown begins.
-  useEffect(() => {
-    if (isElectron() && isSessionActive) void window.electron.invoke('app:session-busy', true);
-  }, [isSessionActive]);
 
   // Desktop: closing the window (or quitting) mid-session ends the session
   // first, so its final lines are captured and auto-saved like any other Stop.
@@ -2987,6 +2982,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // Note: Use speakerClientRef.current instead of client variable to handle WebRTC fallback scenario
       setLockedMode(sessionMode);
       setIsSessionActive(true);
+      // Desktop: the main process holds a close or quit only while a session
+      // is busy. Sent here, not from an effect on isSessionActive: a close
+      // landing before that effect ran would pass through unsaved. Busy ends
+      // at the close of disconnectConversation, after the save.
+      if (isElectron()) void window.electron.invoke('app:session-busy', true);
       setItems(speakerClientRef.current?.getConversationItems() || []);
 
       // Appended AFTER the setItems overwrite above: it would otherwise

@@ -31,6 +31,13 @@ const DISCONNECT = (() => {
   return SOURCE.slice(start, start + end);
 })();
 
+/** connectConversation's body: from its declaration to its dependency list. */
+const CONNECT = (() => {
+  const start = at(SOURCE, 'const connectConversation = useCallback(');
+  const end = at(SOURCE.slice(start), '\n  }, [');
+  return SOURCE.slice(start, start + end);
+})();
+
 // Statements, not the comments that mention them.
 const MARK_INACTIVE = /^\s*setIsSessionActive\(false\);/m;
 const READ_WAS_ACTIVE = 'const wasActive = useSessionStore.getState().isSessionActive';
@@ -44,8 +51,13 @@ describe('session-end auto-save wiring (MainPanel.tsx)', () => {
     expect(at(DISCONNECT, READ_WAS_ACTIVE)).toBeLessThan(at(DISCONNECT, MARK_INACTIVE));
   });
 
-  it('saves from disconnectConversation, only for a session that ran', () => {
-    expect(at(DISCONNECT, 'if (wasActive) {')).toBeLessThan(at(DISCONNECT, SAVE));
+  it('saves from disconnectConversation, only for a session that ran with auto-save on', () => {
+    // The setting gates the whole block, not only the save: with auto-save
+    // off, no snapshot is built and no provider settings are read.
+    const gate = at(DISCONNECT, 'if (wasActive && useSettingsStore.getState().autoSaveOnStop) {');
+    expect(gate).toBeLessThan(at(DISCONNECT, 'getCurrentProviderSettings()'));
+    expect(gate).toBeLessThan(at(DISCONNECT, 'mergeConversationItems('));
+    expect(gate).toBeLessThan(at(DISCONNECT, SAVE));
   });
 
   it('keeps the rows a client drops in disconnect(), in both legs', () => {
@@ -71,14 +83,21 @@ describe('session-end auto-save wiring (MainPanel.tsx)', () => {
 });
 
 describe('desktop close hold wiring (MainPanel.tsx)', () => {
-  it('reports busy while the session is active, from an effect on isSessionActive', () => {
+  it('reports busy in the same step that marks the session active', () => {
+    // An effect on isSessionActive runs only after the render commits; a
+    // close landing before it would pass through with busy still false.
     const i = at(SOURCE, BUSY_TRUE);
     expect(SOURCE.lastIndexOf(BUSY_TRUE)).toBe(i);
-    const line = SOURCE.slice(SOURCE.lastIndexOf('\n', i), SOURCE.indexOf('\n', i));
-    expect(line).toContain('if (isElectron() && isSessionActive)');
-    // The first dependency list after it closes its own effect.
-    const rest = SOURCE.slice(i);
-    expect(rest.slice(at(rest, '}, ['))).toMatch(/^\}, \[isSessionActive\]\);/);
+    const line = SOURCE.slice(SOURCE.lastIndexOf('\n', i) + 1, SOURCE.indexOf('\n', i));
+    expect(line.trim()).toBe(`if (isElectron()) void window.electron.${BUSY_TRUE};`);
+    const activate = at(CONNECT, 'setIsSessionActive(true);');
+    const busyLine = CONNECT.lastIndexOf('\n', at(CONNECT, BUSY_TRUE));
+    expect(activate).toBeLessThan(busyLine);
+    // Comments aside, at most a couple of statements between them, none awaiting.
+    const code = CONNECT.slice(activate, busyLine).split('\n').slice(1)
+      .map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+    expect(code.length).toBeLessThanOrEqual(2);
+    expect(code.join('\n')).not.toMatch(/\bawait\b/);
   });
 
   it('reports not-busy only at the end of the teardown, after the save', () => {

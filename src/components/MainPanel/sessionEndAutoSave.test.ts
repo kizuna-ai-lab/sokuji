@@ -64,6 +64,7 @@ function clientThatEmptiesOnDisconnect(items: ConversationItem[]): Fake {
 }
 
 const LANGS = { sourceLanguage: 'EN', targetLanguage: 'JA' };
+const languageOf = vi.fn((_id: string) => LANGS);
 const saved = vi.fn(async (_items: ConversationItem[]) => 'saved' as const);
 /** Stands in for the speaker leg's setItems(): what the stopped view shows. */
 const shown = vi.fn((_items: ConversationItem[]) => {});
@@ -79,6 +80,8 @@ const texts = (items: ConversationItem[]) => items.map(i => i.formatted?.text);
  */
 async function stopSession(opts: {
   wasActive: boolean;
+  /** The auto-save setting; on unless a case says otherwise. */
+  autoSaveOnStop?: boolean;
   speaker?: Fake;
   participant?: Fake;
   done?: { current: Promise<void> | null };
@@ -114,8 +117,8 @@ async function stopSession(opts: {
         },
       });
     } finally {
-      if (opts.wasActive) {
-        await saved(mergeConversationItems(speakerFinal, participantFinal, () => LANGS));
+      if (opts.wasActive && (opts.autoSaveOnStop ?? true)) {
+        await saved(mergeConversationItems(speakerFinal, participantFinal, languageOf));
       }
     }
   } finally {
@@ -184,7 +187,7 @@ const onCloseRequested = async (
   }
 };
 
-beforeEach(() => { saved.mockClear(); shown.mockClear(); });
+beforeEach(() => { saved.mockClear(); shown.mockClear(); languageOf.mockClear(); });
 
 describe('session-end auto-save ordering', () => {
   it('Both mode: the line the other party finishes during disconnect() is in the file', async () => {
@@ -254,6 +257,12 @@ describe('session-end auto-save ordering', () => {
 
   it('a session that never became active (Cancel during Start, connect failure) saves nothing', async () => {
     await stopSession({ wasActive: false, speaker: client([line('s1', 'MINE', 1)]) });
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it('auto-save off: no snapshot is built, nothing is saved', async () => {
+    await stopSession({ wasActive: true, autoSaveOnStop: false, speaker: client([line('s1', 'MINE', 1)]) });
+    expect(languageOf).not.toHaveBeenCalled();
     expect(saved).not.toHaveBeenCalled();
   });
 
