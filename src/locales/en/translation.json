@@ -1182,7 +1182,7 @@
     "clipSilent": "No voice detected — check your microphone and try again.",
     "clipTooLong": "Recording is too long — keep it under {seconds} seconds.",
     "clipTooShort": "Recording is too short — speak for at least {seconds} seconds.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Could not read that audio file — try a WAV, MP3, or other common format.",
     "delete": "Delete",
     "deleteBody": "Delete \"{name}\"? This also removes the reference recording stored on this device.",

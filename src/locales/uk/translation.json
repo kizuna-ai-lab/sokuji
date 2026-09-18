@@ -917,7 +917,7 @@
     "clipSilent": "Голос не виявлено — перевірте мікрофон і спробуйте ще раз.",
     "clipTooLong": "Запис задовгий — не довше {seconds} секунд.",
     "clipTooShort": "Запис закороткий — говоріть щонайменше {seconds} секунд.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Не вдалося прочитати цей аудіофайл — спробуйте WAV, MP3 або інший поширений формат.",
     "delete": "Видалити",
     "deleteBody": "Видалити «{name}»? Це також видалить еталонний запис, збережений на цьому пристрої.",

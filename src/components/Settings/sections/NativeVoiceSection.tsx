@@ -449,7 +449,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       />
       {needsClipBeforeUse && (
         <div className="voice-capture-error" role="alert">
-          {t('voiceLibrary.cloneVoiceRequired', 'This voice needs a clip before it can speak — record or import one below.')}
+          {t('voiceLibrary.cloneVoiceRequired', 'This voice needs a clip before it can speak — open the voice list and add one.')}
         </div>
       )}
       {captureError && (

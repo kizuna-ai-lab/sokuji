@@ -917,7 +917,7 @@
     "clipSilent": "Tidak ada suara terdeteksi — periksa mikrofon Anda dan coba lagi.",
     "clipTooLong": "Rekaman terlalu panjang — jaga di bawah {seconds} detik.",
     "clipTooShort": "Rekaman terlalu pendek — bicaralah setidaknya {seconds} detik.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Tidak dapat membaca file audio itu — coba WAV, MP3, atau format umum lainnya.",
     "delete": "Hapus",
     "deleteBody": "Hapus \"{name}\"? Ini juga menghapus rekaman referensi yang tersimpan di perangkat ini.",

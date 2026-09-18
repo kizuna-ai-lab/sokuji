@@ -917,7 +917,7 @@
     "clipSilent": "Nessuna voce rilevata — controlla il microfono e riprova.",
     "clipTooLong": "La registrazione è troppo lunga — mantienila sotto i {seconds} secondi.",
     "clipTooShort": "La registrazione è troppo breve — parla per almeno {seconds} secondi.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Impossibile leggere quel file audio — prova con un WAV, MP3 o altro formato comune.",
     "delete": "Elimina",
     "deleteBody": "Eliminare \"{name}\"? Verrà eliminata anche la registrazione di riferimento salvata su questo dispositivo.",

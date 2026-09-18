@@ -917,7 +917,7 @@
     "clipSilent": "ไม่พบเสียงพูด — ตรวจสอบไมโครโฟนของคุณแล้วลองใหม่",
     "clipTooLong": "การบันทึกยาวเกินไป — ให้สั้นกว่า {seconds} วินาที",
     "clipTooShort": "การบันทึกสั้นเกินไป — พูดอย่างน้อย {seconds} วินาที",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "ไม่สามารถอ่านไฟล์เสียงนั้นได้ — ลองใช้ WAV, MP3 หรือรูปแบบทั่วไปอื่นๆ",
     "delete": "ลบ",
     "deleteBody": "ลบ \"{name}\"? การดำเนินการนี้จะลบการบันทึกเสียงอ้างอิงที่จัดเก็บไว้ในอุปกรณ์นี้ด้วย",
