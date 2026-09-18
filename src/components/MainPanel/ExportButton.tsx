@@ -352,7 +352,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           onClose={childMenu.onClose}
           anchorEl={childBtnRef.current}
           width={240}
-          height={182}
+          height={311}
         >
           {/* Plain buttons: the child window's native focus handles keyboard
               use; floating-ui's roving tabindex belongs to the inline host. */}
