@@ -1,0 +1,427 @@
+// `../shared/variables` and not `../../../styles/tokens`: the tokens module
+// carries only the 14 accent/status colours, NOT $color-error, $bg-page,
+// $border-*, $radius-* or the spacing scale. Settings/shared/_variables.scss
+// defines those AND re-exports the accent ($color-primary), so one namespace
+// covers everything this stylesheet needs — the same import
+// ModelImportModal.scss uses.
+@use '../shared/variables' as vars;
+
+.voice-picker {
+  position: relative;
+}
+
+.voice-picker__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 6px 8px;
+  font-size: vars.$font-body;
+  color: vars.$text-primary;
+  background: vars.$bg-control;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-sm;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: vars.$border-strong; }
+  &:focus { outline: none; border-color: vars.$color-primary; }
+  &:disabled { @include vars.disabled-state; cursor: not-allowed; }
+}
+
+.voice-picker__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-picker__value-sub {
+  display: block;
+  font-size: 11px;
+  color: vars.$text-muted;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  // The trigger's subtitle comes from the same `rowSubtitle`, so selecting a
+  // clone (which no longer has one) would otherwise leave an empty line box
+  // inside the trigger and make it taller than its text needs.
+  &:empty { display: none; }
+}
+
+// ---- popover ---------------------------------------------------------------
+
+.voice-pop {
+  z-index: 40;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  // A font baseline is load-bearing here, not tidiness. This element is
+  // rendered through `FloatingPortal` into `document.body`, and `index.scss`'s
+  // `body` rule sets a font-FAMILY and no font-size — so the browser default
+  // (16px) is what anything inside inherits. Every other element in this
+  // popover pins its own size (13/12/11/10px), which hid the problem; but
+  // `.voice-row__add` uses `font: inherit` and has no sized child, so it alone
+  // rendered at 16px against the 13px row names beside it. Measured: +3px,
+  // +23%. Pinning the container is the fix that also protects the next element
+  // someone adds without a font-size.
+  font-size: vars.$font-body;
+  background: vars.$bg-surface;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-md;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+// ---- facet filter bar -------------------------------------------------------
+// COPIED from VoiceLibrarySection.scss (`.voice-facet-*`), not moved: the
+// section still renders its own facet bar until Task 6 deletes that markup,
+// so both stylesheets must carry these rules in the meantime. See the plan's
+// Task 3 "Global Constraints" note and voiceFacetStyles.test.ts, which pins
+// the section's copy independently of this one.
+
+// Grid, not wrapping flex — this restores the pre-redesign layout model and
+// the reason the original gave for it: "with five fields, flex-wrap leaves the
+// last one alone on its row stretched to full width, which reads as a
+// different kind of control." The redesign had replaced it with
+// `flex-wrap` + `flex: 1 1 30%` and deleted that comment, and the warning came
+// true — measured at a 300px panel in a 1280px window, the first row held
+// three 184px controls and the orphan row held two stretched to 279px.
+// auto-fit keeps every control the same width and lets the "Clear filters"
+// button (a direct child of this container) sit as an ordinary cell beside
+// them rather than claiming a row of its own.
+.voice-pop__facets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 5px;
+  padding: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid vars.$border-subtle;
+}
+
+// TWO classes deliberately, exactly as the pre-redesign rule was written
+// (`.voice-facet-bar .voice-facet-select`) and for the reason its comment
+// gave: this element also carries `.select-dropdown`, which sets
+// `font-size: $font-title` (14px). A single-class `.voice-pop__facet` ties on
+// specificity, so emission order decides — and it was LOSING: the control
+// rendered at 14px while this rule asked for 12px. The redesign had flattened
+// the selector and dropped the comment. Raising specificity back is what makes
+// the size here actually apply.
+//
+// Five of these share the width one voice picker gets, so they run smaller
+// than a standard select on purpose.
+.voice-pop .voice-pop__facet {
+  min-width: 0;
+  padding: 3px 19px 3px 7px;
+  font-size: 11px;
+  background-position: right 6px center;
+  background-size: 9px;
+}
+
+.voice-pop__clear {
+  // No `flex` declaration: the parent is a grid, so this is a grid item and a
+  // flex shorthand here would be inert. It takes an ordinary cell.
+  padding: 2px 0;
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  color: vars.$color-primary;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
+
+.voice-pop__grid {
+  overflow-y: auto;
+}
+
+.voice-pop__group {
+  // A grid's direct children may only be `row`/`rowgroup` (ARIA), so this row
+  // carries a single `columnheader` cell rather than the label/count/button
+  // directly — the flex layout that used to sit here moves down onto that
+  // cell below.
+  position: sticky;
+  top: 0;
+  // A tint LAYERED over an opaque base, not `rgba()` on its own. This row is
+  // sticky, so a translucent background lets the scrolled rows show through
+  // the header. The candidate render used a bare rgba() and looked correct
+  // only because the roster happened not to be scrolled.
+  //
+  // Why a band at all: measured in zh_CN, the only things separating this
+  // header from a row were one pixel of font size and a slightly dimmer grey
+  // (13px/white vs 12px/#b0b0b0, same weight, same background), so the
+  // custom/preset split was not visible at a glance. The repo's own label
+  // convention -- uppercase plus letter-spacing (ModelManagementSection.scss
+  // :32-35, Settings.scss:1576-1579) -- cannot supply that signal here,
+  // because both are no-ops on CJK text: following it made the header SMALLER
+  // and DIMMER than the content it introduces, reading as a footnote. Weight,
+  // contrast and a band are the three signals that survive translation.
+  background: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)),
+    vars.$bg-surface;
+  border-bottom: 1px solid vars.$border-subtle;
+
+  [role="columnheader"] {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 9px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: vars.$text-secondary;
+  }
+
+  // The count and the refresh button sit inside the columnheader, so they
+  // would inherit its 600 weight and read as part of the title.
+  .voice-pop__count,
+  .voice-pop__refresh {
+    font-weight: 400;
+  }
+}
+
+.voice-pop__count {
+  font-size: 11px;
+  color: vars.$text-muted;
+}
+
+.voice-pop__count-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-pop__refresh {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  color: vars.$text-secondary;
+  border: none;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: vars.$text-primary; }
+  &:disabled { cursor: not-allowed; opacity: 0.5; }
+}
+
+.voice-pop__empty {
+  padding: 10px 9px;
+  font-size: 12px;
+  color: vars.$text-muted;
+}
+
+// ---- rows -------------------------------------------------------------------
+
+.voice-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+
+  &:hover { background: rgba(255, 255, 255, 0.04); }
+}
+
+.voice-row.is-selected {
+  box-shadow: inset 2px 0 0 vars.$color-primary;
+  background: rgba(vars.$color-primary, 0.12);
+}
+
+// The "＋ Add a voice…" row: set apart from the clones above it with a
+// hairline, the way a trailing "new item" affordance in a list usually reads
+// as distinct from the data rows it follows.
+.voice-row--add {
+  border-top: 1px solid vars.$border-subtle;
+}
+
+// The row's flex ITEMS are these `[role="gridcell"]` wrapper divs — NOT the
+// controls inside them. Nothing anywhere in `src` styles the gridcell role,
+// so the wrappers are plain block boxes, and that is why `.voice-row__pick`'s
+// own `flex: 1; min-width: 0` was INERT: the button is not a flex item, its
+// parent div is.
+//
+// A flex item's default `min-width: auto` floors it at its min-content width,
+// and for `white-space: nowrap` text neither `overflow: hidden` nor
+// `text-overflow: ellipsis` reduces that floor. So the name cell could not
+// shrink and a long label overflowed instead of truncating — measured at a
+// 400px window (the browser-extension side panel's shape, where Settings does
+// render) as `.voice-pop__grid` `scrollWidth` 572 vs `clientWidth` 384.
+// `min-width: 0` lifts the floor; `flex: 1 1 0` on the first cell is what
+// makes the name column absorb the row's slack, which additionally pushes
+// ▶ / rename / delete to the row's right edge instead of packing them against
+// the label. The action cells keep their natural size: with a `0` basis on the
+// only growing cell there is no free-space deficit to distribute, so nothing
+// shrinks them.
+//
+// Two earlier attempts were applied, measured and reverted because they
+// targeted elements that do not carry the floor: `min-width: 0` on the button
+// (not a flex item) and `overflow: hidden` on the button and on the grid.
+//
+// NO automated gate can see any of this. jsdom has no layout, so no vitest
+// case can measure it, and voiceFacetStyles.test.ts only proves a selector is
+// EMITTED, never that it has an effect. The evidence is the Task 10 geometry
+// harness (task-10-geometry.md), not the suite.
+.voice-row > [role="gridcell"] {
+  min-width: 0;
+
+  // The name cell — or, while an inline rename is open, the edit cell — is
+  // the only one that should grow.
+  &:first-child { flex: 1 1 0; }
+}
+
+.voice-row__pick {
+  // `width: 100%` and not `flex: 1`: see the gridcell rule above for why a
+  // flex declaration on this button does nothing.
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:disabled { cursor: not-allowed; opacity: 0.6; }
+}
+
+.voice-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: vars.$text-primary;
+}
+
+.voice-row__sub {
+  font-size: 11px;
+  color: vars.$text-muted;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  // An empty subtitle must collapse, not leave an empty line box that keeps
+  // the row two lines tall. Clones now return no subtitle at all, and a
+  // preset with neither facets nor a language always could -- that second
+  // case has been rendering an empty span all along.
+  &:empty { display: none; }
+}
+
+// Fix round 1 addendum: value-for-value mirror of the pre-Task-6
+// `.voice-unstable-tag` in VoiceLibrarySection.scss (deleted there — this is
+// its one live copy now). `margin-left` replaces that rule's parent `gap`,
+// since this tag sits inline inside `.voice-row__name` rather than as its
+// own flex sibling.
+.voice-unstable-tag {
+  margin-left: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #e0a106;
+  border: 1px solid rgba(224, 161, 6, 0.5);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.voice-row__btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: transparent;
+  color: vars.$text-secondary;
+  border: 1px solid vars.$border-strong;
+  border-radius: vars.$radius-sm;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: vars.$text-primary; border-color: vars.$text-secondary; }
+  &:disabled { cursor: not-allowed; }
+  // Dim on disabled EXCEPT while showing the loading spinner — mirrors
+  // .voice-row-btn in VoiceLibrarySection.scss: opacity is a group
+  // compositing effect, so a descendant rule cannot cancel an ancestor's
+  // reduced opacity. Skipping the dim outright is what keeps the spinner
+  // legible.
+  &:disabled:not(:has(.voice-row__spinner)) { opacity: 0.4; }
+
+  &--danger:hover:not(:disabled) {
+    color: #fff;
+    background: vars.$color-error;
+    border-color: vars.$color-error;
+  }
+
+  // The row currently sounding — the Square icon already says "playing", this
+  // just carries that state onto the button chrome too.
+  &.is-playing {
+    color: vars.$color-primary;
+    border-color: vars.$color-primary;
+  }
+}
+
+.voice-row__add {
+  color: vars.$color-primary;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
+
+.voice-row__edit {
+  // Same inert-flex correction as `.voice-row__pick` above — this input sits
+  // inside a `[role="gridcell"]` wrapper too, so the wrapper is the flex item
+  // and a `flex` declaration here had no effect.
+  width: 100%;
+  // Keeps the padding and the 1px border INSIDE the cell's width instead of
+  // widening the row (nothing sets `box-sizing` globally — `.voice-row__spinner`
+  // sets it locally for the same reason).
+  box-sizing: border-box;
+  padding: 2px 6px;
+  font-size: 13px;
+  color: vars.$text-primary;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid vars.$color-primary;
+  border-radius: vars.$radius-sm;
+}
+
+// A failed rename, reported in the row directly under the input. The class is
+// the section's own error class, reused rather than reinvented, but the
+// section's rule sizes it as a standalone banner (12px, 8px of clearance)
+// and here it sits wedged between two rows of the roster — so the adjacency
+// selector re-scales it to the row's own tighter rhythm.
+//
+// Two classes (0,2,0) deliberately out-specify the section's single-class
+// rule (0,1,0), so this wins regardless of which stylesheet the bundler
+// emits first. That ordering trap already bit `.voice-pop__facet` once.
+.voice-row__edit + .voice-capture-error {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.voice-row__spinner {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 13px;
+  height: 13px;
+  border: 2px solid transparent;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: voice-preview-spin 0.8s linear infinite;
+}
+
+// Local keyframes with a unique name, duplicated deliberately from
+// VoiceLibrarySection.scss (see that file's own copy for why): this
+// stylesheet must not depend on another file's @keyframes placement, and a
+// duplicate definition is harmless — both compile to identical, independent
+// CSS.
+@keyframes voice-preview-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

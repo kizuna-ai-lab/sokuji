@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { previewSampleFor, PREVIEW_SAMPLES } from './sonioxPreviewSample';
-import { SonioxProviderConfig } from '../../../services/providers/SonioxProviderConfig';
+import { previewSampleFor, resolvePreviewSample, PREVIEW_SAMPLES } from './previewSample';
+import { SonioxProviderConfig } from '../../services/providers/SonioxProviderConfig';
 
 const supported = new Set(
-  new SonioxProviderConfig().getConfig().languages.map((l) => l.value)
+  new SonioxProviderConfig().getConfig().languages.map((l: { value: string }) => l.value)
 );
 
 describe('previewSampleFor', () => {
@@ -55,5 +55,38 @@ describe('previewSampleFor', () => {
       const sample = previewSampleFor(code);
       expect(sample.text).toBe(PREVIEW_SAMPLES[sample.language]);
     }
+  });
+});
+
+describe('resolvePreviewSample', () => {
+  it('speaks the target language when the engine supports it', () => {
+    const r = resolvePreviewSample('ja', (l) => l === 'ja');
+    expect(r).toEqual({ language: 'ja', text: PREVIEW_SAMPLES.ja });
+  });
+
+  it('falls back to English when the engine cannot speak the target', () => {
+    // `ja` IS in the table — this is the case the old English-fallback could
+    // not catch, because the fallback only fires on a MISSING table entry.
+    const r = resolvePreviewSample('ja', (l) => l === 'en');
+    expect(r).toEqual({ language: 'en', text: PREVIEW_SAMPLES.en });
+  });
+
+  it("uses the engine's own list when it speaks neither the target nor English", () => {
+    const r = resolvePreviewSample('ja', (l) => l === 'ko');
+    expect(r).toEqual({ language: 'ko', text: PREVIEW_SAMPLES.ko });
+  });
+
+  it('returns null when nothing the engine speaks has a sentence', () => {
+    // A family whose only language has no table entry. Synthesising the
+    // English text under that code is exactly the text/language mismatch
+    // `previewSampleFor`'s pair-return exists to prevent, so refuse instead.
+    expect(resolvePreviewSample('ja', (l) => l === 'xx')).toBeNull();
+  });
+
+  it('treats a null predicate as "speaks anything"', () => {
+    // Managed Soniox: cloned voices are any-voice-any-language, so the rule
+    // must collapse to exactly today's behaviour.
+    expect(resolvePreviewSample('ja', null)).toEqual({ language: 'ja', text: PREVIEW_SAMPLES.ja });
+    expect(resolvePreviewSample('xx', null)).toEqual({ language: 'en', text: PREVIEW_SAMPLES.en });
   });
 });

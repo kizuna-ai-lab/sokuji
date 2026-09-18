@@ -852,16 +852,33 @@
   }
 }
 
-// Soniox voice-cloning confirm modal (SonioxCloneConfirmModal): playback +
+// Soniox voice-cloning review step (SonioxCloneReviewStep): playback +
 // naming + the consent statement folded into the accept button. Mirrors
-// .license-consent-modal's layout above. This modal renders inside Modal's
-// .modal-content, OUTSIDE .settings-section/.config-section — the canonical
+// .license-consent-modal's layout above.
+//
+// It used to render inside the shared Modal's .modal-content; since the merge
+// (2026-09-18) it renders inside VoiceCreateModal's `.voice-modal__body`
+// instead — a 420px frame rather than 700px, padded 14px/16px rather than
+// 20px, and a flex column. Verified by rendering at both the default and the
+// managed variant (long notice + error row) before the move was accepted;
+// jsdom has no layout, so nothing in the suite can catch a regression here.
+//
+// Either way it is OUTSIDE .settings-section/.config-section — the canonical
 // .text-input rule and the shared @keyframes spin below are both scoped
 // (nested selector / same-file-only convention) in ways that don't reach in
-// here, so this block is deliberately self-contained: it duplicates the
+// here, so this block stays deliberately self-contained: it duplicates the
 // input treatment and defines its own spin keyframes rather than reaching
 // for either.
-.soniox-clone-confirm-modal {
+//
+// The prefix was `soniox-clone-confirm-modal` until it was renamed to
+// `voice-review` — it named a non-modal after the dialog it used to be. The
+// rename was checked the only way a stylesheet edit can be: the compiled css
+// was diffed with the prefix normalised (identical, so nothing but the name
+// moved) and the rendered dialog was pixel-diffed in two states (0 differing
+// pixels). The block stays in THIS file rather than moving next to the
+// component; moving it would change emission order against `.text-input` and
+// `.voice-capture-error`, which is a separate change with its own risk.
+.voice-review {
   text-align: left;
 
   // .modal-content defines no font-size, so text here would otherwise
@@ -884,10 +901,10 @@
   //
   // Element-qualified (`p#{&}__notice`, not `&__notice`): the notice IS a
   // <p>, so an unqualified class selector (specificity 0,1,0) loses to the
-  // sibling `p` rule above (`.soniox-clone-confirm-modal p`, specificity
+  // sibling `p` rule above (`.voice-review p`, specificity
   // 0,1,1), which sets the same three properties — font-size and margin
   // silently never applied, only opacity survived. This compiles to
-  // `.soniox-clone-confirm-modal p.soniox-clone-confirm-modal__notice`
+  // `.voice-review p.voice-review__notice`
   // (specificity 0,2,1), which beats the sibling `p` rule outright rather
   // than needing to rely on a same-specificity source-order tiebreak.
   // Written via `#{&}` interpolation rather than a bare leading `p&` — Dart

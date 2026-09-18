@@ -1,5 +1,5 @@
 /**
- * Sample sentences spoken when auditioning a Soniox voice.
+ * Sample sentences spoken when auditioning a custom voice.
  *
  * These are TTS *input*, not UI copy: the key is the TTS target language, not
  * the user's UI locale, so they deliberately live here as literals instead of
@@ -70,4 +70,36 @@ export function previewSampleFor(language: string): PreviewSample {
   return text
     ? { language, text }
     : { language: FALLBACK_LANGUAGE, text: PREVIEW_SAMPLES[FALLBACK_LANGUAGE] };
+}
+
+/**
+ * Which language a preview speaks.
+ *
+ * The order is target language, then English, then whatever else the engine
+ * offers — and EVERY tier must clear two gates: the engine can speak it, and
+ * the table has a sentence for it. Requiring a table entry at each tier is
+ * what keeps the mismatch unconstructible: synthesising the English sentence
+ * under some other language code is precisely the defect `previewSampleFor`'s
+ * pair-return was designed to prevent, and a model reading a sentence with the
+ * wrong phonology sounds broken in a way a user would blame on the clone.
+ *
+ * `speaks === null` means the engine speaks anything, which is managed
+ * Soniox's case (cloned voices are documented any-voice-any-language). The
+ * rule then collapses to `previewSampleFor` — today's behaviour, unchanged.
+ *
+ * Returns null when no language clears both gates. That is not an error: the
+ * caller renders the disabled control with `previewUnavailableReason` rather
+ * than dialling out and failing.
+ */
+export function resolvePreviewSample(
+  targetLanguage: string,
+  speaks: ((language: string) => boolean) | null,
+): PreviewSample | null {
+  if (!speaks) return previewSampleFor(targetLanguage);
+  const has = (l: string) => Object.prototype.hasOwnProperty.call(PREVIEW_SAMPLES, l);
+  const candidates = [targetLanguage, FALLBACK_LANGUAGE, ...Object.keys(PREVIEW_SAMPLES)];
+  for (const l of candidates) {
+    if (has(l) && speaks(l)) return { language: l, text: PREVIEW_SAMPLES[l] };
+  }
+  return null;
 }

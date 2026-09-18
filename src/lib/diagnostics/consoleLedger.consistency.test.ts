@@ -141,7 +141,21 @@ const LEDGER: Record<string, number> = {
   // --- Later, under the ledger: components ---
   'src/components/MainPanel/MainPanel.tsx': 43,
   'src/components/Auth/UserAccountInfo.tsx': 5,
-  'src/components/Settings/sections/VoiceLibrarySection.tsx': 5,
+  // `Rename failed:` and `Delete failed:` — the picker takes `onRename`/
+  // `onAskDelete` and VoiceDeleteModal takes `onConfirm` as props, so the
+  // composition root is what reports a failed commit. The other three calls
+  // this file used to hold (`Voice import failed:`, `Recording failed to
+  // start:`, `Recording handler failed:`) moved to VoiceCreateModal.tsx below
+  // when Task 6 deleted the section's own copy of the capture code.
+  // VoiceLibrarySection.tsx used to have a row here. It is gone, not lowered
+  // to 0: an absent file is held to `?? 0` below, so a returning
+  // `console.warn` fails this gate rather than passing against a zero row.
+  // Both of its calls were rejections it swallowed as the ONLY record the
+  // failure left anywhere — `console.warn('Delete failed:', err)`, then
+  // `console.warn('Rename failed:', err)`. The delete now reports in
+  // VoiceDeleteModal and the rename in the picker row, so in both cases
+  // there is nothing left to swallow and no breadcrumb to leave.
+  'src/components/Settings/sections/VoiceCreateModal.tsx': 3,
   'shared/index.tsx': 4,
   'src/components/SettingsInitializer/SettingsInitializer.tsx': 3,
   'src/components/Tour/TourProvider.tsx': 3,

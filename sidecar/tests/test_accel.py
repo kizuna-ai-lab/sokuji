@@ -878,6 +878,36 @@ def test_models_catalog_emits_tts_variants(monkeypatch):
     assert all(v["supported"] for v in by_id.values())
     assert by_id["bf16"]["recommended"] and not by_id["q8_0"]["recommended"]
     assert by_id["bf16"]["repo"] == "org/fake/repo/fake-bf16.gguf"
+    # Nothing is in the cache for a fake card, and the probe is offline
+    # (local_files_only) with every failure swallowed, so every rung reports
+    # not-downloaded rather than raising during catalog build.
+    assert all(v["downloaded"] is False for v in by_id.values())
+
+
+def test_models_catalog_reports_which_rungs_are_cached(monkeypatch):
+    """The renderer cannot honour "downloaded => selectable" without this.
+
+    It holds ONE status boolean per model, meaning "the one repo I asked about
+    is cached", and it asks about the rung it resolved — pin, else recommended.
+    A user who downloaded q8_0 while bf16 is recommended therefore had their
+    card checked against a file they never fetched: it read 'absent', and an
+    'absent' card's click handler silently does nothing (reported 2026-09-18
+    for Qwen3-TTS 0.6B). The sidecar already restricted its own LOAD-time quant
+    pick to cached rungs; it just never said so on the wire.
+    """
+    vulkan_machine = _machine(gpus=_nv_gpus(12000), tc=("vulkan", "cpu"))
+    monkeypatch.setattr(accel, "probe", lambda force=False: vulkan_machine)
+    monkeypatch.setattr(catalog, "tts_models", lambda: [_tts_variant_card()])
+    # The non-recommended rung is the one on disk — the reported shape.
+    monkeypatch.setattr(accel, "_downloaded_quants", lambda model: {"q8_0"})
+    reply, _ = asyncio.run(accel._h_models_catalog({}, {"kind": "tts", "id": 1}, None))
+    by_id = {v["id"]: v for v in reply["models"][0]["variants"]}
+    assert by_id["q8_0"]["downloaded"] is True
+    assert by_id["bf16"]["downloaded"] is False
+    # `recommended` is unchanged by what happens to be cached: it stays the
+    # machine's budget pick, and preferring a cached rung is the renderer's
+    # resolution step (statusReposFor), not a re-recommendation here.
+    assert by_id["bf16"]["recommended"] and not by_id["q8_0"]["recommended"]
 
 
 def test_measure_rtf_tts_with_fake_backend(tmp_path, monkeypatch):
