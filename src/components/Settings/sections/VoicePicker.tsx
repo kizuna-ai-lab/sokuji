@@ -260,7 +260,15 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
    *  is read on its own). Clones carry no facets, so they get the group
    *  marker instead. */
   const rowSubtitle = (v: VoiceEntry): string => {
-    if (v.group === 'custom') return t('voiceLibrary.myVoices', 'My Voices');
+    // Clones get NO subtitle. They used to repeat the group label here, which
+    // made sense when the group was an invisible `<optgroup>` and the row had
+    // no other marker. Now that the popover renders a visible group header,
+    // the same string appeared on the header and then again on every row
+    // beneath it -- and that repetition, more than any styling, is what made
+    // the header impossible to pick out. Rendering is guarded by
+    // `.voice-row__sub:empty` so an empty subtitle collapses instead of
+    // leaving an empty line box.
+    if (v.group === 'custom') return '';
     const f = v.meta?.facets;
     const parts = [f?.gender, ...(f?.style ?? [])].filter(Boolean) as string[];
     if (parts.length === 0 && v.meta?.language) return v.meta.language;

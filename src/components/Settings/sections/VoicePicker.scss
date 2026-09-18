@@ -44,6 +44,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  // The trigger's subtitle comes from the same `rowSubtitle`, so selecting a
+  // clone (which no longer has one) would otherwise leave an empty line box
+  // inside the trigger and make it taller than its text needs.
+  &:empty { display: none; }
 }
 
 // ---- popover ---------------------------------------------------------------
@@ -138,7 +143,23 @@
   // cell below.
   position: sticky;
   top: 0;
-  background: vars.$bg-surface;
+  // A tint LAYERED over an opaque base, not `rgba()` on its own. This row is
+  // sticky, so a translucent background lets the scrolled rows show through
+  // the header. The candidate render used a bare rgba() and looked correct
+  // only because the roster happened not to be scrolled.
+  //
+  // Why a band at all: measured in zh_CN, the only things separating this
+  // header from a row were one pixel of font size and a slightly dimmer grey
+  // (13px/white vs 12px/#b0b0b0, same weight, same background), so the
+  // custom/preset split was not visible at a glance. The repo's own label
+  // convention -- uppercase plus letter-spacing (ModelManagementSection.scss
+  // :32-35, Settings.scss:1576-1579) -- cannot supply that signal here,
+  // because both are no-ops on CJK text: following it made the header SMALLER
+  // and DIMMER than the content it introduces, reading as a footnote. Weight,
+  // contrast and a band are the three signals that survive translation.
+  background: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)),
+    vars.$bg-surface;
+  border-bottom: 1px solid vars.$border-subtle;
 
   [role="columnheader"] {
     display: flex;
@@ -146,7 +167,15 @@
     gap: 6px;
     padding: 6px 9px 4px;
     font-size: 12px;
+    font-weight: 600;
     color: vars.$text-secondary;
+  }
+
+  // The count and the refresh button sit inside the columnheader, so they
+  // would inherit its 600 weight and read as part of the title.
+  .voice-pop__count,
+  .voice-pop__refresh {
+    font-weight: 400;
   }
 }
 
@@ -269,6 +298,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  // An empty subtitle must collapse, not leave an empty line box that keeps
+  // the row two lines tall. Clones now return no subtitle at all, and a
+  // preset with neither facets nor a language always could -- that second
+  // case has been rendering an empty span all along.
+  &:empty { display: none; }
 }
 
 // Fix round 1 addendum: value-for-value mirror of the pre-Task-6

@@ -197,10 +197,17 @@ const openCreateModal = () => {
 };
 
 // Scopes a query to the grid: the picker's own TRIGGER button's accessible
-// name is the concatenation of its value span and its subtitle span (e.g.
-// "(deleted voice) My Voices"), so an unscoped `getByRole('button', { name:
-// /deleted voice/i })` matches the trigger too, not just the row — the same
-// "computed accessible name" trap the row's own gridcell has, one level up.
+// name is the concatenation of its value span and its subtitle span, so an
+// unscoped `getByRole('button', { name: /deleted voice/i })` matches the
+// trigger too, not just the row — the same "computed accessible name" trap
+// the row's own gridcell has, one level up.
+//
+// Clones no longer carry a subtitle, which made this trap SHARPER rather than
+// milder: the trigger used to read "(deleted voice) My Voices" while the row
+// read "(deleted voice)", so a name that happened to be exact matched only
+// one of them. Now both compute to the same string, so any query for the
+// SELECTED voice's name is ambiguous unless it is scoped. Three cases in this
+// file were relying on that accidental difference.
 const inGrid = () => within(screen.getByRole('grid'));
 
 // Finds a voice row by its rendered label (the picker button's own
@@ -750,7 +757,7 @@ describe('SonioxVoiceSection', () => {
     mount({ settings: { voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }, isSessionActive: true });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openPicker();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Me' })).toBeInTheDocument());
     confirmDelete();
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/active session/i));
     expect(deleteMock).not.toHaveBeenCalled();
@@ -868,7 +875,7 @@ describe('SonioxVoiceSection', () => {
     openPicker();
     // No source, so the raw id is shown verbatim (see SonioxVoiceSection's
     // entries memo) rather than the "(deleted voice)" placeholder text.
-    expect(screen.getByRole('button', { name: 'stale-uuid' })).toBeDisabled();
+    expect(inGrid().getByRole('button', { name: 'stale-uuid' })).toBeDisabled();
     // Still grouped under "My Voices", not "Presets" — the picker's own
     // group label is a `role="columnheader"` (VoicePicker.tsx:771-772), and
     // this row must sit BEFORE the "Presets" header in the grid, in the
@@ -1000,7 +1007,7 @@ describe('SonioxVoiceSection', () => {
     });
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(1));
     openPicker();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'My voice' })).toBeInTheDocument());
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'My voice' })).toBeInTheDocument());
     confirmDelete();
     // The list is re-fetched...
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));

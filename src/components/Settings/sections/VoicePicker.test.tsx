@@ -522,10 +522,14 @@ describe('VoicePicker keyboard', () => {
     fireEvent.keyDown(grid, { key: 'ArrowDown' }); // enters at the name cell
     fireEvent.keyDown(grid, { key: 'ArrowRight' }); // ▶ is disabled: skip to rename
     await vi.waitFor(() => expect(screen.getByRole('button', { name: /rename/i })).toHaveFocus());
-    // The clone's gridcell computed name is "Mine My Voices" — the name
-    // button's aria-label plus the (non-empty, unlike THREE's builtin rows)
-    // subtitle span's own text, both inside the cell's "name from content"
-    // computation.
+    // The clone's gridcell computed name is now just "Mine" — the name
+    // button's aria-label and nothing else. Clones no longer carry a
+    // subtitle (it used to repeat the group label, which drowned the group
+    // header once the popover started rendering one), so the cell's "name
+    // from content" computation has only the one string to gather. The regex
+    // below matched before this change too, when the name was
+    // "Mine My Voices"; it is written loosely on purpose, because what this
+    // case is pinning is the single tabbable element per row, not the name.
     const row = screen.getByRole('gridcell', { name: /Mine/ }).closest('[role="row"]') as HTMLElement;
     expect(row.querySelectorAll('[tabindex="0"]')).toHaveLength(1);
   });
