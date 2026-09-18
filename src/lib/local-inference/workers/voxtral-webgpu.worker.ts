@@ -164,8 +164,16 @@ let voxtralProcessor: any = null;
  * When enabled, sentences ending with . 。 ! ? ！ ？ trigger immediate
  * result finalization (and translation) without waiting for VAD silence.
  * Set to false to use VAD-only endpoint detection.
+ *
+ * The renderer turns this off while the sentence-segmentation stage is active.
+ * That stage does the same job against the growing partial and does it better:
+ * it counts a mark only once RIGHT_CONTEXT_CHARS of text follow it, so it never
+ * cuts inside a word the way this does when the decoder emits a period
+ * mid-word, and it honours the user's sentences-per-bubble setting instead of
+ * forcing one. Absent from the init message means true — the historical
+ * default, and what every caller but Local Inference sends.
  */
-const PUNCTUATION_ENDPOINT_ENABLED = true;
+let punctuationEndpointEnabled = true;
 
 let isGenerating = false;
 /** An utterance that arrived while the previous run was still draining its tail. */
@@ -277,7 +285,7 @@ async function runVoxtralGenerate(): Promise<void> {
           });
           segmentStartTime = now;
         },
-        punctuationEndpoint: PUNCTUATION_ENDPOINT_ENABLED,
+        punctuationEndpoint: punctuationEndpointEnabled,
       },
     );
 
@@ -443,6 +451,8 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
 async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
+
+    punctuationEndpointEnabled = msg.punctuationEndpoint ?? true;
 
     // ortEnv wasmPaths must be set before initVad's InferenceSession; the
     // transformers env is configured later via initTransformersEnv.

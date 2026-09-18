@@ -168,6 +168,9 @@ export interface VoxtralAsrInitMessage {
   vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
+  /** Finalize a result on terminal punctuation instead of waiting for the VAD
+   *  endpoint. Absent means true — the worker's historical behaviour. */
+  punctuationEndpoint?: boolean;
 }
 
 export interface CohereTranscribeAsrInitMessage {
