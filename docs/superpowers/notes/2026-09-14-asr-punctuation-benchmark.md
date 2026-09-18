@@ -633,9 +633,10 @@ per-distinct-model-ever-loaded, not per-currently-loaded-model.
 ## Live check in the app (2026-09-19) — slice 3, English source
 
 The manual step the segmentation slices exist for. Local Inference provider,
-source English, target Chinese, `sentencesPerChunk = 3`. The same Fox News
-broadcast was run through voxtral-mini-4b and Qwen3-ASR so the two transcripts
-are directly comparable.
+source English, target Chinese, `sentencesPerChunk = 3`, one Fox News broadcast
+throughout so every transcript below compares directly. Four runs: voxtral
+before the fix, Qwen3-ASR, voxtral after the fix, and voxtral again with
+`minSilenceDuration` at 350 ms.
 
 ### The stage works
 
@@ -665,20 +666,17 @@ because the stage was never handed more than one sentence to count:
 `. 。 ! ? ！ ？` (`SENTENCE_END_PATTERN`, enabled unconditionally). That is a
 hard-coded one-sentence segmenter one layer below the stage.
 
-It also cut inside words, because it tests the tail of the decoded text with no
-right-context guard:
+It has no right-context guard either, so any period the decoder emits — inside
+"Mr.", inside "3.5" — ends the result on the spot, where this stage would wait
+for `RIGHT_CONTEXT_CHARS` of following text.
 
-> …identified and all these**.** / **ous** cases, all these cases worked…
-
-— "all these **various** cases", split at a period the decoder emitted inside
-"various". `ished` and `bese` in the same run are the same failure. Decisively,
-the identical audio through Qwen3-ASR kept `Going through all that metadata`
-intact where voxtral had lost `Going`.
-
-**So these mid-word cuts are the worker's, not the client's cursor.** Risk 3 in
-the task-4 handover — a bubble opening mid-word because the truncation guard
-fires only on an empty slice — is not what was seen here. It remains
-unfalsified in general, but nothing in this run points at it.
+> **Retraction.** This section first blamed that same endpoint for the `ished` /
+> `ous` / `bese` fragments, reading `…all these.` / `ous cases…` as "various"
+> split at a hallucinated period. **That was wrong** — see "The tail-pad
+> hallucination" below, where a later run identifies them as something else
+> entirely. The claim that risk 3 in the task-4 handover (a bubble opening
+> mid-word from the client's cursor) is not what was seen here still holds; the
+> reason is different.
 
 Fixed in `037d4842`: the client turns the worker endpoint off while the stage is
 sealing, and leaves it exactly as it was when the stage is off (the default).
@@ -735,9 +733,11 @@ mid-word and the decoder guesses at the fragment:
 | a former **NYPD**, Intel… | `Intel and counterterrorism…` | NYPD |
 | **Going** through all that metadata | `went through all that metadata` | Going → went |
 
-`Going` is instructive: before the fix the punctuation endpoint deleted it,
-after the fix the 20 s wall garbles it. Two different defects landing on the
-same word.
+`Going` was lost in the pre-fix run too, as `through all that metadata`. What
+took it there is **not established** — the punctuation endpoint only flushes
+text, it never touches the audio feed, so it cannot by itself delete a spoken
+word. Most likely an utterance boundary fell in the same place. Recorded as
+unexplained rather than pinned on the endpoint.
 
 `maxSpeechDuration` is **never set anywhere in `src/`** — eight workers read
 `vadConfig?.maxSpeechDuration ?? 20` and the only other mention is the type
@@ -750,9 +750,65 @@ comment says "a later slice uses it to land a hard span cap on a real boundary
 instead of mid-word". It has test callers only. It does not solve the audio
 cut, which is where the words are actually lost.
 
-The trailing `but nowished` in this run is a different thing again: the partials
-go `"…but now"` → `"…but nowished"` in one step, so the decoder emitted the
-fragment itself after the session was disconnected mid-audio. Not a cut.
+The trailing `but nowished` in this run is not a cut at all — the partials go
+`"…but now"` → `"…but nowished"` in one step, so the decoder emitted it. The
+next section says where it comes from.
+
+### The tail-pad hallucination
+
+A third run, with `minSilenceDuration` lowered to 350 ms, produced eight of
+these in about three and a half minutes — `ished` six times, `ous` twice — plus
+two spurious extra periods. Every one of them is **the last token before
+`asr.end`**, and three of them land after a finished sentence:
+
+```
+" less"  ->  " less important"  ->  " less importantished"      -> asr.end
+" …that the prosecution holds."  ->  " …holds.ished"            -> asr.end
+" …of this magnitude."           ->  " …magnitude.ous"          -> asr.end
+" go about determining whether something is staged or real."
+                                 ->  " …or real.."              -> asr.end
+```
+
+`holds.ished` and `magnitude.ous` settle it: the sentence is complete, the
+period is there, and the fragment follows it. **No word is being truncated.**
+
+The source is the worker's own tail padding. `finishGenerate()` appends
+`utterancePadSamples()` — `TAIL_PAD_TOKENS = 7`, about 560 ms of silence — so
+the model can decode the words it is still lagging behind on. It decodes the
+silence too, and emits one hallucinated token from it. For voxtral that token
+is `ished`, `ous`, or an extra `.`.
+
+This is worker behaviour on `main`, independent of this stage, and it predates
+it: the standalone `ished` bubbles in the first run are the same artifact, made
+to look like separate utterances by the punctuation endpoint clearing
+`pendingText` just before the pad was decoded.
+
+**Lowering `minSilenceDuration` makes it worse**, because the rate is per
+utterance: more endpoints, more pads, more hallucinations.
+
+One lead for a fix, not yet pursued: every real word in these partials arrives
+with a leading space, and every artifact arrives without one.
+
+### What the VAD should be doing now
+
+The 350 ms run also shows the cost of cutting at breath pauses:
+
+```
+utterance: "…how does that kind of impact the investigation? I have to imagine it's not"
+utterance: "less importantished"
+```
+
+"I have to imagine it's not less important" became two bubbles and two
+translations. Eight three-sentence seals still landed in that run, and the 20 s
+wall was still hit five times.
+
+**The VAD's job changed when this stage shipped.** It no longer has to define
+the translation unit — the stage delivers translations continuously inside an
+utterance — so its only remaining job is to *not cut a sentence in half*. That
+argues for raising both `minSilenceDuration` and `maxSpeechDuration`, not
+lowering either. Trading longer utterances for earlier translations is the
+trade this stage already makes; making it twice costs sentence integrity and
+buys nothing.
 
 ### Which ASR actually punctuates
 
@@ -770,7 +826,21 @@ It does not. Every other model on that list is still unverified.
 
 ### Still open
 
-- **The 20 s wall is now the largest remaining defect on this path**, and the
-  only one still costing whole words. See the section above.
+Two defects remain on this path, both in the voxtral worker and both older than
+this stage:
+
+- **The 20 s wall.** The only one still costing whole words. `maxSpeechDuration`
+  is set nowhere in `src/`.
+- **The tail-pad hallucination.** Cosmetic per occurrence, but it reaches the
+  user twice — in the bubble and again in its translation, where Bing renders
+  `So all thatished` as 「所以所有那些都被处理了」.
+
+Both are decided by the same two numbers, and the "What the VAD should be doing
+now" section argues for raising both rather than lowering either. Neither number
+has been measured against the cost of raising it: audio buffer, encoder backlog,
+and voxtral's `max_new_tokens: 4096`.
+
+Also still open:
+
 - **Local Native** (step 4 of the task) needs `npm run sidecar:setup`; not run.
 - **Chinese source** was not exercised here; these findings are English only.
