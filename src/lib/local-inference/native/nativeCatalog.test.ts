@@ -302,6 +302,68 @@ describe('nativeCatalog', () => {
       const repos = statusReposFor(['hy-mt2-1.8b'], vd, {});
       expect(repos).toEqual({ 'hy-mt2-1.8b': 'tencent/Hy-MT2-1.8B' });
     });
+
+    // Reported 2026-09-18: Qwen3-TTS 0.6B downloaded as q8_0 (the sidecar
+    // recommends bf16 on a machine that fits it) could not be re-selected
+    // after the TTS stage moved to another model and back. The pin is dropped
+    // on a model change by design, and this resolution then pointed the
+    // model_status query at the bf16 file — which is absent, so the card read
+    // 'absent' and its click handler no-opped. Selecting q8_0 in the dropdown
+    // worked only because that path writes a pin and bypasses the ready gate.
+    //
+    // `downloaded` comes from the sidecar's per-variant catalog row (it has
+    // always known this — `_downloaded_quants` restricts its own LOAD-time
+    // pick to cached rungs — it just never sent it).
+    describe('with per-variant download state', () => {
+      const dl = {
+        'qwen3-tts-0.6b': { variants: [
+          { id: 'bf16', repo: 'org/qwen3-bf16', downloaded: false },
+          { id: 'q8_0', repo: 'org/qwen3-q8', downloaded: true },
+        ], recommended: 'bf16' },
+      };
+
+      it('prefers a downloaded variant over an absent recommended one', () => {
+        expect(statusReposFor(['qwen3-tts-0.6b'], dl, {})).toEqual({ 'qwen3-tts-0.6b': 'org/qwen3-q8' });
+      });
+
+      it('still prefers the recommended variant when that one is downloaded', () => {
+        const both = { x: { variants: [
+          { id: 'bf16', repo: 'r/bf16', downloaded: true },
+          { id: 'q8_0', repo: 'r/q8', downloaded: true },
+        ], recommended: 'bf16' } };
+        expect(statusReposFor(['x'], both, {})).toEqual({ x: 'r/bf16' });
+      });
+
+      // A pin is the user naming a quant. If it is not downloaded yet, the
+      // status query must keep pointing at it so the download button targets
+      // the file the user asked for.
+      it('lets an explicit pin win over a downloaded sibling', () => {
+        expect(statusReposFor(['qwen3-tts-0.6b'], dl, { 'qwen3-tts-0.6b': 'bf16' }))
+          .toEqual({ 'qwen3-tts-0.6b': 'org/qwen3-bf16' });
+      });
+
+      it('falls back to recommended when nothing is downloaded', () => {
+        const none = { x: { variants: [
+          { id: 'bf16', repo: 'r/bf16', downloaded: false },
+          { id: 'q8_0', repo: 'r/q8', downloaded: false },
+        ], recommended: 'bf16' } };
+        expect(statusReposFor(['x'], none, {})).toEqual({ x: 'r/bf16' });
+      });
+
+      // Mirrors deriveVariantRepos, which already drops a PIN whose variant
+      // the machine cannot run: an unsupported rung is no better a resolution
+      // for being on disk. Variants arrive size-desc, so the first usable
+      // downloaded one is the largest — the same rung the sidecar's own
+      // load-time planner picks among cached ones.
+      it('skips a downloaded rung this machine cannot run', () => {
+        const mixed = { x: { variants: [
+          { id: 'big', repo: 'r/big', downloaded: true, supported: false },
+          { id: 'mid', repo: 'r/mid', downloaded: true, supported: true },
+          { id: 'small', repo: 'r/small', downloaded: true, supported: true },
+        ], recommended: 'big' } };
+        expect(statusReposFor(['x'], mixed, {})).toEqual({ x: 'r/mid' });
+      });
+    });
   });
 
   describe('pinsFromSelections', () => {

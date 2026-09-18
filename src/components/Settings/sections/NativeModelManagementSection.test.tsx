@@ -85,9 +85,9 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     variantIds: ['q4_k_m', 'q8_0'],
     variants: [
       { id: 'q4_k_m', sizeBytes: 8e9, repo: 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf',
-        supported: true, recommended: true },
+        supported: true, recommended: true, downloaded: false },
       { id: 'q8_0', sizeBytes: 15e9, repo: 'tencent/Hy-MT2-7B-GGUF/HY-MT2-7B-Q8_0.gguf',
-        supported: false, recommended: false },
+        supported: false, recommended: false, downloaded: false },
     ],
   },
   'hy-mt15-7b': {
@@ -103,9 +103,9 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     variantIds: ['q4_k_m', 'q8_0'],
     variants: [
       { id: 'q4_k_m', sizeBytes: 8e9, repo: 'tencent/HY-MT1.5-7B-GGUF/HY-MT1.5-7B-Q4_K_M.gguf',
-        supported: true, recommended: true },
+        supported: true, recommended: true, downloaded: false },
       { id: 'q8_0', sizeBytes: 15e9, repo: 'tencent/HY-MT1.5-7B-GGUF/HY-MT1.5-7B-Q8_0.gguf',
-        supported: false, recommended: false },
+        supported: false, recommended: false, downloaded: false },
     ],
   },
   'csukuangfj/vits-piper-en_US-amy-low': {
@@ -161,9 +161,9 @@ const mockCatalog: Record<string, NativeModelInfo> = {
     sizeBytes: 3600000000,
     variantIds: ['bf16', 'fp32', 'int8'],
     variants: [
-      { id: 'bf16', sizeBytes: 3.6e9, repo: 'org/qwen3-tts-1.7b-bf16', supported: true, recommended: true, unsupportedTiers: ['gpu-vulkan'] },
-      { id: 'fp32', sizeBytes: 7.2e9, repo: 'org/qwen3-tts-1.7b-fp32', supported: true, recommended: false },
-      { id: 'int8', sizeBytes: 1.9e9, repo: 'org/qwen3-tts-1.7b-int8', supported: false, recommended: false },
+      { id: 'bf16', sizeBytes: 3.6e9, repo: 'org/qwen3-tts-1.7b-bf16', supported: true, recommended: true, downloaded: false, unsupportedTiers: ['gpu-vulkan'] },
+      { id: 'fp32', sizeBytes: 7.2e9, repo: 'org/qwen3-tts-1.7b-fp32', supported: true, recommended: false, downloaded: false },
+      { id: 'int8', sizeBytes: 1.9e9, repo: 'org/qwen3-tts-1.7b-int8', supported: false, recommended: false, downloaded: false },
     ],
   },
 };
@@ -176,6 +176,7 @@ const mockVariants: VariantInfo[] = [
     sizeBytes: 8e9,
     supported: true,
     reason: 'fits in budget',
+    downloaded: false,
   },
   {
     id: 'q8_0',
@@ -184,6 +185,7 @@ const mockVariants: VariantInfo[] = [
     sizeBytes: 15e9,
     supported: false,
     reason: 'exceeds budget',
+    downloaded: false,
   },
 ];
 

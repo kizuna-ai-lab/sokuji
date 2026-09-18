@@ -40,6 +40,12 @@ export interface NativeModelInfo {
    *  supported (fits this machine) + recommended (stable download pick). */
   variants?: { id: string; sizeBytes: number; needBytes?: number; repo?: string;
                supported: boolean; recommended: boolean;
+               // whether this rung's artifact is already in the local HF cache.
+               // `recommended` is a memory-budget fit-walk and knows nothing
+               // about the disk, so resolving a pinless selection to it pointed
+               // the status query at a file the user had never fetched — their
+               // downloaded card then read 'absent' and would not select.
+               downloaded: boolean;
                // gpu tiers the sidecar's op coverage refused for this rung (spec A); the rung still runs on cpu
                unsupportedTiers?: string[] }[];
   /** Stable budget basis (primary device total memory) the supported flags
@@ -89,6 +95,14 @@ export interface VariantInfo {
   supported: boolean;
   reason: string;
   unsupportedTiers?: string[];
+  /** Whether this rung's artifact is already in the local HF cache. The
+   *  sidecar has always known (its LOAD-time quant pick restricts itself to
+   *  cached rungs — `_downloaded_quants`); it now says so, because the
+   *  renderer cannot otherwise honour "downloaded ⇒ selectable": it holds one
+   *  status boolean per MODEL, whose meaning is "the one repo I asked about is
+   *  cached". Required, not optional — local_native ships gated off, so there
+   *  is no older sidecar in the field to be compatible with. */
+  downloaded: boolean;
 }
 export interface ListVariantsResultMsg {
   type: 'list_variants_result'; id: number; variants: VariantInfo[]; recommended: string;

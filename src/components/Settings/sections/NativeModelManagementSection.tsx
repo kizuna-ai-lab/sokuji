@@ -543,7 +543,8 @@ export const NativeModelManagementSection: React.FC<{
             : t('models.variantWontFitNoMem', 'Needs ~{{need}} of GPU memory', { need }));
           return {
             id: v.id, computeType: v.id, repo: v.repo ?? '', sizeBytes: v.sizeBytes,
-            supported: v.supported, reason, unsupportedTiers: v.unsupportedTiers,
+            supported: v.supported, reason, downloaded: v.downloaded,
+            unsupportedTiers: v.unsupportedTiers,
           };
         }),
         recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,

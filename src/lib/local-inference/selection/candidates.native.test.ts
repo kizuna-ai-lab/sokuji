@@ -79,7 +79,7 @@ describe('nativeCandidates', () => {
     const withVariants = {
       ...CATALOG,
       'qwen2.5-0.5b': M('qwen2.5-0.5b', 'translate', ['multi'], 1, true, {
-        variants: [{ id: 'int8', sizeBytes: 1, needBytes: 1, repo: 'r', supported: true, recommended: true }],
+        variants: [{ id: 'int8', sizeBytes: 1, needBytes: 1, repo: 'r', supported: true, recommended: true, downloaded: false }],
       }),
     };
     const c = nativeCandidates({ catalog: withVariants, statuses: ready })
@@ -97,8 +97,8 @@ describe('nativeCandidates', () => {
       ...CATALOG,
       'qwen2.5-0.5b': M('qwen2.5-0.5b', 'translate', ['multi'], 1, true, {
         variants: [
-          { id: 'int8', sizeBytes: 1, needBytes: 1, repo: 'r', supported: true, recommended: true },
-          { id: 'bf16', sizeBytes: 2, needBytes: 2, repo: 'r2', supported: false, recommended: false },
+          { id: 'int8', sizeBytes: 1, needBytes: 1, repo: 'r', supported: true, recommended: true, downloaded: false },
+          { id: 'bf16', sizeBytes: 2, needBytes: 2, repo: 'r2', supported: false, recommended: false, downloaded: false },
         ],
       }),
     };
