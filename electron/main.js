@@ -5,6 +5,7 @@ const { setupSubtitleHandlers } = require('./subtitle-window.js');
 const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
+const { setupTranscriptSaveHandler } = require('./transcript-save.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 
@@ -544,6 +545,9 @@ app.whenReady().then(async () => {
       console.warn('[Sokuji] [Main] Microphone permission denied - please enable in System Preferences > Privacy & Security > Microphone');
     }
   }
+
+  // Session-end auto-save writes straight into Downloads (no Save As dialog).
+  setupTranscriptSaveHandler({ ipcMain, getDownloadsDir: () => app.getPath('downloads') });
 
   createWindow();
 
