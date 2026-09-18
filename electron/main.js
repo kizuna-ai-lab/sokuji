@@ -136,13 +136,17 @@ const sandboxRecovery = process.platform === 'win32' ? require('./sandbox-recove
 
 // Closing the window or quitting mid-session ends the session first, so its
 // final lines are captured and auto-saved like any other Stop.
+// Both handlers answer the main window's page only: a popover child window is
+// another webContents with the same preload, and must not approve a close.
 const closeHandshake = createCloseHandshake({ quitApp: () => app.quit() });
-ipcMain.handle('app:close-ready', () => {
+ipcMain.handle('app:close-ready', (event) => {
+  if (event.sender !== mainWindow?.webContents) return;
   closeHandshake.ready();
 });
 // Only a running or tearing-down session holds a close: anything else (the
 // setup wizard, a loading page) has nothing to save and may never answer.
 ipcMain.handle('app:session-busy', (event, busy) => {
+  if (event.sender !== mainWindow?.webContents) return;
   closeHandshake.setSessionBusy(busy === true);
 });
 

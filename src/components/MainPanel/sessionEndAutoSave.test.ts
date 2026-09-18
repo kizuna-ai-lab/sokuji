@@ -195,7 +195,7 @@ describe('session-end auto-save ordering', () => {
         participant.reset();
       },
     });
-    expect(texts(file)).not.toContain('THEIR-LAST');
+    expect(texts(file)).toEqual(['MINE', 'THEIRS']);
   });
 
   it('Others mode, no speaker client: still saves', async () => {

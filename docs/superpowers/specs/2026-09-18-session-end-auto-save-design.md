@@ -167,6 +167,21 @@ main: on 'app:close-ready' or timeout → state = approved,
 - After 5 s the window closes regardless; a hung teardown can lose that session's file.
 - Reload (dev) does not emit `close`, so it is unaffected.
 
+#### Amendment (2026-09-18, final review)
+
+The hold applies only while the renderer reports a session as busy over a new invoke channel,
+`app:session-busy`: MainPanel sends `true` when `isSessionActive` turns true and `false` at the
+end of `disconnectConversation`'s outer `finally`, after the save — `isSessionActive` itself
+turns false as the teardown begins. The idle row above becomes "idle, no live page or no
+session busy → pass through", so the setup wizard, a loading page or an error screen (none of
+which mounts the listener) close at once instead of waiting out the timeout; a new main window
+starts not busy, and both handshake channels ignore any sender but the main window's page. An
+update install ends a running session first (`UpdateManager`'s `beforeInstall` →
+`closeHandshake.endSessionThen`), then runs its unchanged install path in place of any pending
+close or quit, so the updater's own quit is not held while the new instance starts. The
+handshake then returns to idle, not approved, so a failed install leaves closing as it was;
+after a timeout it also stops treating the hung page as busy.
+
 ### 4.3 Extension and web
 
 No handshake. `autoSaveTranscript` uses the existing anchor-click `downloadFile`

@@ -272,9 +272,10 @@ export interface SettingsStore {
   // on the next session.
   keepReplayAudio: boolean;
 
-  // Auto-save the conversation as a .txt file (same pipeline as the manual
-  // "Download as .txt" export button) whenever a session ends. Off by
-  // default — exporting is an explicit, opt-in action.
+  // Auto-save the whole conversation — both sides, originals and
+  // translations — as a .txt file whenever a session ends, whatever the
+  // Export menu's scope boxes say (those govern only the manual export). Off
+  // by default — exporting is an explicit, opt-in action.
   autoSaveOnStop: boolean;
   // Diagnostic logs (Help). Opt-in: while off, logStore records nothing and
   // the title bar offers no logs button.

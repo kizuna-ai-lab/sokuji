@@ -8,6 +8,23 @@ import { join } from 'node:path';
 
 const main = readFileSync(join(__dirname, 'main.js'), 'utf8');
 const preload = readFileSync(join(__dirname, 'preload.js'), 'utf8');
+const updater = readFileSync(join(__dirname, 'update-manager.js'), 'utf8');
+
+/** Index of `needle` in `text`; fails (rather than returning -1) when it is gone. */
+function at(text, needle) {
+  const i = text.indexOf(needle);
+  expect(i, `expected to find ${needle}`).toBeGreaterThan(-1);
+  return i;
+}
+
+/** The source of the `ipcMain.handle(channel, …)` registration in `text`. */
+function handler(text, channel) {
+  const start = at(text, `ipcMain.handle('${channel}'`);
+  const rest = text.slice(start);
+  return rest.slice(0, at(rest, '\n});') + 4);
+}
+
+const SENDER_CHECK = 'if (event.sender !== mainWindow?.webContents) return;';
 
 describe('close handshake wiring', () => {
   it('holds the main window close', () => {
@@ -22,7 +39,39 @@ describe('close handshake wiring', () => {
   });
 
   it("answers the renderer's app:close-ready", () => {
-    expect(main).toMatch(/ipcMain\.handle\('app:close-ready'/);
+    const body = handler(main, 'app:close-ready');
+    expect(body).toContain('closeHandshake.ready()');
+  });
+
+  it("takes the renderer's app:session-busy as the hold condition", () => {
+    const body = handler(main, 'app:session-busy');
+    expect(body).toContain('closeHandshake.setSessionBusy(');
+  });
+
+  it("ignores both from anything but the main window's page (a popover child window)", () => {
+    for (const [channel, call] of [
+      ['app:close-ready', 'closeHandshake.ready()'],
+      ['app:session-busy', 'closeHandshake.setSessionBusy('],
+    ]) {
+      const body = handler(main, channel);
+      expect(at(body, SENDER_CHECK), channel).toBeLessThan(at(body, call));
+    }
+  });
+
+  it('ends a running session before an update installs', () => {
+    const rest = main.slice(at(main, 'new UpdateManager('));
+    const call = rest.slice(0, at(rest, ');'));
+    expect(call).toContain('beforeInstall:');
+    expect(call).toContain('closeHandshake.endSessionThen(');
+  });
+
+  it('awaits beforeInstall ahead of both install paths', () => {
+    const rest = updater.slice(at(updater, "ipcMain.handle('update-install'"));
+    const body = rest.slice(0, at(rest, '\n    });'));
+    const hook = at(body, 'await new Promise((resolve) => this.beforeInstall(resolve));');
+    expect(hook).toBeLessThan(at(body, 'autoUpdater.quitAndInstall()'));
+    expect(hook).toBeLessThan(at(body, 'this._installUpdate()'));
+    expect(updater).toContain('this.beforeInstall = beforeInstall;');
   });
 
   it('lets the renderer hear app:close-requested', () => {
