@@ -3343,7 +3343,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     // LanguageTags renderer — compares or displays against that vocabulary.
     languages: ['zh', 'cantonese'],
     hfModelId: 'jiangzhuo9357/fireredpunc-onnx',
-    hfRevision: 'TODO-COMMIT-SHA',
+    hfRevision: '21ae0448b33874552d0c69dfcb0f1db45edf3f79',
     variants: {
       default: {
         dtype: 'default',
@@ -3361,7 +3361,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     name: 'Edge-Punct-Casing (English)',
     languages: ['en'],
     hfModelId: 'jiangzhuo9357/edge-punct-casing-en-onnx',
-    hfRevision: 'TODO-COMMIT-SHA',
+    hfRevision: 'a0897f6d38cc6f60ac9b9f807a31f7033d1fbc89',
     variants: {
       default: {
         dtype: 'default',
@@ -3379,7 +3379,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     languages: ['multilingual'],
     multilingual: true,
     hfModelId: 'jiangzhuo9357/sat-3l-sm-onnx',
-    hfRevision: 'TODO-COMMIT-SHA',
+    hfRevision: '7698b9e41fef7a1e24638b9aaff2108ce1020657',
     variants: {
       default: {
         dtype: 'default',
