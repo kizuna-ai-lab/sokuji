@@ -1788,8 +1788,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // this function. By now the ref may belong to the next session.
             const client = speakerToTearDown;
             if (!client) return;
-            // Read before disconnect() too: PalabraAIClient empties its items
-            // there, and the save and the stopped view need them.
+            // Read before disconnect() too: some clients (e.g. PalabraAIClient,
+            // the Compatible provider's OpenAIClient) empty their items in
+            // disconnect(), and the save and the stopped view need them.
             const speakerBefore = client.getConversationItems();
             // disconnect() emits final completion deltas via the throttle path,
             // which schedules a trailing setItems(client.getConversationItems())
@@ -1860,8 +1861,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           participant: async () => {
             const participantClient = participantClientRef.current;
             if (!participantClient) return;
-            // Read before disconnect() too: PalabraAIClient empties its items
-            // there, and the save needs the other party's lines.
+            // Read before disconnect() too: some clients (e.g. PalabraAIClient,
+            // the Compatible provider's OpenAIClient) empty their items in
+            // disconnect(), and the save needs the other party's lines.
             const participantBefore = participantClient.getConversationItems();
             try {
               await participantClient.disconnect();

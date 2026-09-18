@@ -61,7 +61,8 @@ describe('session-end auto-save wiring (MainPanel.tsx)', () => {
   });
 
   it('keeps the rows a client drops in disconnect(), in both legs', () => {
-    // PalabraAIClient empties its items there: read only afterwards, the file
+    // Some clients (e.g. PalabraAIClient, the Compatible provider's
+    // OpenAIClient) empty their items there: read only afterwards, the file
     // is empty and the stopped view blanks.
     const speakerBefore = at(DISCONNECT, 'const speakerBefore = client.getConversationItems();');
     expect(speakerBefore).toBeLessThan(at(DISCONNECT, 'await client.disconnect();'));

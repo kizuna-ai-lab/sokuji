@@ -52,7 +52,7 @@ describe('mergeConversationItems', () => {
 describe('keepRowsDroppedOnDisconnect', () => {
   const texts = (items: ConversationItem[]) => items.map(i => i.formatted?.text);
 
-  it('keeps every row of a client that empties its items on disconnect (PalabraAI)', () => {
+  it('keeps every row of a client that empties its items on disconnect (PalabraAI, Compatible OpenAI)', () => {
     const before = [item('a', 1), item('b', 2)];
     expect(texts(keepRowsDroppedOnDisconnect(before, []))).toEqual(['a', 'b']);
   });

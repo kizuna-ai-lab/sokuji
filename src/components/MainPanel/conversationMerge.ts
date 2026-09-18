@@ -46,9 +46,10 @@ export function mergeConversationItems(
 
 /**
  * A leg's final items at session end: what its client still holds after
- * disconnect(), plus any row it held before and dropped there. PalabraAIClient
- * empties its list inside disconnect(), so reading only afterwards would save
- * an empty transcript and blank the stopped view. A row present both times
+ * disconnect(), plus any row it held before and dropped there. Some clients
+ * (e.g. PalabraAIClient, the Compatible provider's OpenAIClient) empty their
+ * items in disconnect(), so reading only afterwards would save an empty
+ * transcript and blank the stopped view. A row present both times
  * keeps its later version, which disconnect() may have finalized.
  */
 export function keepRowsDroppedOnDisconnect(

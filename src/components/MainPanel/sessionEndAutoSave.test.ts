@@ -50,7 +50,10 @@ function client(items: ConversationItem[], flushed: ConversationItem[] = [], fai
   };
 }
 
-/** A client that empties its items inside disconnect(), like PalabraAIClient. */
+/**
+ * A client that empties its items inside disconnect(), like PalabraAIClient
+ * and the Compatible provider's OpenAIClient.
+ */
 function clientThatEmptiesOnDisconnect(items: ConversationItem[]): Fake {
   let current = [...items];
   return {
@@ -224,7 +227,7 @@ describe('session-end auto-save ordering', () => {
     expect(texts(file)).toEqual(['MINE', 'THEIRS']);
   });
 
-  it('a speaker client that empties its items on disconnect() (PalabraAI) still saves and shows them', async () => {
+  it('a speaker client that empties its items on disconnect() (PalabraAI, Compatible OpenAI) still saves and shows them', async () => {
     await stopSession({
       wasActive: true,
       speaker: clientThatEmptiesOnDisconnect([line('s1', 'MINE', 1), line('s2', 'MINE-2', 3)]),
@@ -234,7 +237,7 @@ describe('session-end auto-save ordering', () => {
     expect(texts(shown.mock.calls[0][0])).toEqual(['MINE', 'MINE-2']);
   });
 
-  it('a participant client that empties its items on disconnect() (PalabraAI) still saves them', async () => {
+  it('a participant client that empties its items on disconnect() (PalabraAI, Compatible OpenAI) still saves them', async () => {
     await stopSession({
       wasActive: true,
       speaker: client([line('s1', 'MINE', 1)]),

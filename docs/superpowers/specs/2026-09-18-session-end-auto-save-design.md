@@ -115,23 +115,36 @@ here (`MainPanel.tsx:1693`).
    read before `setIsSessionActive(false)` (`MainPanel.tsx:1739`). `isSessionActive` becomes
    true only after both legs are up (`MainPanel.tsx:2949`), so Cancel during Start and
    connect-failure cleanup (which also calls this function) read `false`.
-2. Inside `teardownSessionLegs` each leg records its final items before `reset()`:
-   - speaker: after `disconnect()` and the throttle clear, `speakerFinal =
-     client.getConversationItems()`; `setItems(speakerFinal)` as today;
-   - participant: after `disconnect()`, `participantFinal =
-     participantClient.getConversationItems()`, then `reset()`.
+2. Inside `teardownSessionLegs` each leg records its final items before `reset()`. Some clients
+   (e.g. PalabraAIClient, the Compatible provider's OpenAIClient) empty their items in
+   `disconnect()`, so each leg reads `getConversationItems()` before and after it and combines
+   the two with `keepRowsDroppedOnDisconnect` (`conversationMerge.ts`): rows the client still
+   holds win by id, rows it dropped are kept.
+   - speaker: after `disconnect()` and the throttle clear, `speakerFinal` is that combination;
+     `setItems(speakerFinal)`;
+   - participant: in a `finally` after `disconnect()`, so it also runs when that throws:
+     `participantFinal` likewise, then `reset()`, then the ref is compare-and-cleared like the
+     speaker's. A client left in the ref would be torn down again, and its lines saved, by the
+     next speaker-only session.
    A leg with no client contributes `[]`. Participant items reach React the same way during the
    session (`setParticipantItems(client.getConversationItems())`), so the snapshot has the same
    source as the screen.
 3. After `teardownSessionLegs` resolves, still inside the `try` so it precedes the `finally`
    that resolves `disconnectDoneRef`:
-   `if (wasActive) await autoSaveTranscript(snapshot, { showToast })`, where
+   `if (wasActive && autoSaveOnStop) await autoSaveTranscript(snapshot, { showToast })` — the
+   setting is read with `getState()` here as well as inside the unit, so a session with
+   auto-save off builds no snapshot — where
    `snapshot = mergeConversationItems(speakerFinal, participantFinal, itemLanguagesRef.current,
    liveLanguages)` and provider context is read with `getState()` at that moment, not from the
    render closure. The merge reads the language-snapshot map without mutating it; pruning stays
    in the `useMemo`. `autoSaveTranscript` never rejects, so teardown order is unaffected; the
    save is awaited so that anything awaiting `disconnectDoneRef` (a queued Start, the close
    handshake) also waits for the file.
+
+Desktop: `app:session-busy` `true` is sent right after `setIsSessionActive(true)` in
+`connectConversation`, not from an effect on `isSessionActive`, so the hold is requested with
+activation rather than a render later (§4.2 amendment); `false` is sent at the end of
+`disconnectConversation`'s outer `finally`, after the save.
 
 The two other `teardownSessionLegs` call sites (`MainPanel.tsx:2744`, `:2841`) take down a
 half-built session that never became active; they get no save.
