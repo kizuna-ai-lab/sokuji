@@ -184,16 +184,49 @@ export class SentenceStream {
     return skeleton(text.slice(offset)).length >= RIGHT_CONTEXT_CHARS;
   }
 
-  /** zh and yue only: a very long tail with too few sentence ends seals at the
-   *  latest confirmed comma rather than growing without bound. */
-  private tryLengthFallback(tail: string, countedEnds: number): void {
+  /**
+   * zh and yue only: a very long tail with too few sentence ends seals at the
+   * latest confirmed comma rather than growing without bound.
+   *
+   * `marked` is the model's answer, passed on the model path. Its commas are
+   * what the search runs on there, and searching the raw tail instead would
+   * never find anything — the reason that path ran at all is that the ASR
+   * emitted no marks, so the only commas in existence are the ones the model
+   * just inserted. That was the shipped behaviour until a live Chinese session
+   * sealed nothing at all: `PunctuationResult.breakpoints` ("sentence ends
+   * plus commas") was produced by all three adapters and read by nobody, and
+   * absorbing FireRedPunc's under-emission of sentence ends — 62% of the
+   * reference, the whole reason this fallback exists — was therefore
+   * unreachable on the only input it was written for.
+   *
+   * The cut is expressed against the raw tail either way, through the same
+   * skeleton mapping the sentences path uses, so the cursor advances by
+   * characters consumed and never by the longer sealed text.
+   */
+  private tryLengthFallback(
+    tail: string,
+    countedEnds: number,
+    marked?: { result: PunctuationResult; input: string; dropped: number },
+  ): void {
     if (!LENGTH_FALLBACK_LANGS.has(baseLang(this.lang))) return;
     if (countedEnds >= this.n) return;
     if (tail.length < zhFallbackChars(this.n)) return;
-    const marks = ruleBreakpoints(tail).filter((b) => this.hasRightContext(tail, b));
+
+    if (!marked) {
+      const marks = ruleBreakpoints(tail).filter((b) => this.hasRightContext(tail, b));
+      if (marks.length === 0) return;
+      const at = marks[marks.length - 1];
+      this.seal(tail.slice(0, at), tail.slice(at), 'length');
+      return;
+    }
+
+    const { result, input, dropped } = marked;
+    const marks = result.breakpoints.filter((b) => this.hasRightContext(result.text, b));
     if (marks.length === 0) return;
     const at = marks[marks.length - 1];
-    this.seal(tail.slice(0, at), tail.slice(at), 'length');
+    const sealedText = result.text.slice(0, at);
+    const rawCut = this.rawOffsetFor(input, skeleton(sealedText).length);
+    this.seal(tail.slice(0, dropped) + sealedText, tail.slice(dropped + rawCut), 'length');
   }
 
   private callModel(tail: string): void {
@@ -252,7 +285,7 @@ export class SentenceStream {
       this.seal(tail.slice(0, dropped) + sealedText, tail.slice(dropped + rawCut), 'sentences');
       return true;
     }
-    this.tryLengthFallback(tail, counted.length);
+    this.tryLengthFallback(tail, counted.length, { result, input, dropped });
     return true;
   }
 

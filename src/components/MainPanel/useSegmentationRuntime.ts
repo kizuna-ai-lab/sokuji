@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
-import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import type { PunctuationModelId, SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { useSentenceSegmentation } from '../../stores/settingsStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { reportWarning } from '../../lib/diagnostics/report';
@@ -42,10 +42,47 @@ export function useSegmentationRuntime(): SegmentationRuntime | null {
   const [runtime, setRuntime] = useState<PunctuationRuntime | null>(null);
 
   useEffect(() => {
+    // One line per model for the facts that are otherwise invisible. A live
+    // Chinese session sealed nothing at all and none of the four questions
+    // that would have explained it — did the model load, on which backend,
+    // how slow is it, is its answer usable — could be answered from any
+    // surface the app has. `seen` keeps the per-inference line to the first
+    // one: punctuate() runs up to ~12x a second.
+    const seen = new Set<PunctuationModelId>();
     const instance = new PunctuationRuntime({
       isEnabled: () => enabledRef.current,
+      onLoaded: (model, backend, loadMs) => {
+        console.info(`[Segmentation] ${model} loaded on ${backend} in ${Math.round(loadMs)}ms`);
+      },
+      onInference: (model, info) => {
+        if (!seen.has(model)) {
+          seen.add(model);
+          console.info(
+            `[Segmentation] ${model} first inference: ${info.ms}ms, `
+            + `${info.ends} sentence ends, ${info.breaks} breakpoints, skeletonOk=${info.skeletonOk}`,
+          );
+        }
+        if (!info.skeletonOk) {
+          // The answer cannot be used at all: SentenceStream discards any
+          // result whose letters and digits differ from what it sent, because
+          // the cut it would map back onto the raw text no longer means
+          // anything. Silent until now, and it seals nothing for as long as
+          // it lasts.
+          reportWarning('Segmentation', `${model} returned text that does not match its input`, {
+            dedupeKey: `segmentation:skeleton:${model}`,
+          });
+        }
+      },
       onStatus: (model, status, detail) => {
         useSegmentationStore.getState().setModelStatus(model, status, detail);
+        if (status === 'disabled') {
+          // Session-scoped and unrecoverable — retryDownload() is a no-op for
+          // it by design — so the stage silently stops sealing for the rest of
+          // the session. The reason carries the median that tripped it.
+          reportWarning('Segmentation', `${model} disabled: ${detail ?? 'unknown reason'}`, {
+            dedupeKey: `segmentation:disabled:${model}`,
+          });
+        }
         if (status === 'error') {
           // One line per model per failure class: a settings backend or a
           // network that is down fails for every model at once, and one
