@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { ConversationItem } from '../../services/interfaces/IClient';
-import { mergeConversationItems, type LanguagePair } from './conversationMerge';
+import { keepRowsDroppedOnDisconnect, mergeConversationItems, type LanguagePair } from './conversationMerge';
 
 const item = (id: string, createdAt?: number, source?: 'speaker' | 'participant'): ConversationItem => ({
   id,
@@ -46,5 +46,35 @@ describe('mergeConversationItems', () => {
     const speaker = [item('a', 1)];
     mergeConversationItems(speaker, [], () => EN_JA);
     expect(speaker[0]).not.toHaveProperty('sourceLanguage');
+  });
+});
+
+describe('keepRowsDroppedOnDisconnect', () => {
+  const texts = (items: ConversationItem[]) => items.map(i => i.formatted?.text);
+
+  it('keeps every row of a client that empties its items on disconnect (PalabraAI)', () => {
+    const before = [item('a', 1), item('b', 2)];
+    expect(texts(keepRowsDroppedOnDisconnect(before, []))).toEqual(['a', 'b']);
+  });
+
+  it('takes the version the client still holds, once, when disconnect() finalized a row', () => {
+    const partial = { ...item('a', 1), status: 'in_progress', formatted: { text: 'hal' } } as ConversationItem;
+    const final = { ...item('a', 1), formatted: { text: 'half done' } } as ConversationItem;
+    const out = keepRowsDroppedOnDisconnect([partial], [final]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toBe(final);
+  });
+
+  it('appends a row that only appears after disconnect()', () => {
+    const out = keepRowsDroppedOnDisconnect([item('a', 1)], [item('a', 1), item('b', 2)]);
+    expect(out.map(i => i.id)).toEqual(['a', 'b']);
+  });
+
+  it('does not mutate its inputs', () => {
+    const before = [item('a', 1)];
+    const after = [item('b', 2)];
+    keepRowsDroppedOnDisconnect(before, after);
+    expect(before.map(i => i.id)).toEqual(['a']);
+    expect(after.map(i => i.id)).toEqual(['b']);
   });
 });

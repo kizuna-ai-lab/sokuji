@@ -80,7 +80,7 @@ import { useInitAudioSystemListeners, useCleanupAudioSystemListeners } from '../
 import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
-import { mergeConversationItems } from './conversationMerge';
+import { keepRowsDroppedOnDisconnect, mergeConversationItems } from './conversationMerge';
 import { autoSaveTranscript } from '../../lib/transcript/autoSave';
 import { useToast } from '../Toast';
 import ExportButton from './ExportButton';
@@ -1788,6 +1788,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             // this function. By now the ref may belong to the next session.
             const client = speakerToTearDown;
             if (!client) return;
+            // Read before disconnect() too: PalabraAIClient empties its items
+            // there, and the save and the stopped view need them.
+            const speakerBefore = client.getConversationItems();
             // disconnect() emits final completion deltas via the throttle path,
             // which schedules a trailing setItems(client.getConversationItems())
             // via setTimeout. If we then call client.reset() (which empties the
@@ -1816,7 +1819,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               clearTimeout(throttleTimerRef.current);
               throttleTimerRef.current = null;
             }
-            speakerFinal = client.getConversationItems();
+            speakerFinal = keepRowsDroppedOnDisconnect(speakerBefore, client.getConversationItems());
             setItems(speakerFinal);
             client.reset();
             // Clear the ref, like the participant leg two blocks down has always
@@ -1859,11 +1862,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             if (!participantClient) return;
             // Last known items first, so a disconnect() that throws still leaves
             // the auto-save the other party's lines; refreshed once disconnect()
-            // has flushed the final ones.
-            participantFinal = participantClient.getConversationItems();
+            // has flushed the final ones, keeping any row it dropped
+            // (PalabraAIClient empties its items there).
+            const participantBefore = participantClient.getConversationItems();
+            participantFinal = participantBefore;
             try {
               await participantClient.disconnect();
-              participantFinal = participantClient.getConversationItems();
+              participantFinal = keepRowsDroppedOnDisconnect(participantBefore, participantClient.getConversationItems());
               participantClient.reset();
               participantClientRef.current = null;
               console.info('[Sokuji] [MainPanel] Disconnected participant client');

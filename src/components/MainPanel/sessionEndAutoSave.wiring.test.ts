@@ -48,6 +48,21 @@ describe('session-end auto-save wiring (MainPanel.tsx)', () => {
     expect(at(DISCONNECT, 'if (wasActive) {')).toBeLessThan(at(DISCONNECT, SAVE));
   });
 
+  it('keeps the rows a client drops in disconnect(), in both legs', () => {
+    // PalabraAIClient empties its items there: read only afterwards, the file
+    // is empty and the stopped view blanks.
+    const speakerBefore = at(DISCONNECT, 'const speakerBefore = client.getConversationItems();');
+    expect(speakerBefore).toBeLessThan(at(DISCONNECT, 'await client.disconnect();'));
+    expect(DISCONNECT).toMatch(
+      /speakerFinal = keepRowsDroppedOnDisconnect\(speakerBefore, client\.getConversationItems\(\)\);\s*setItems\(speakerFinal\);/,
+    );
+    const participantBefore = at(DISCONNECT, 'const participantBefore = participantClient.getConversationItems();');
+    expect(participantBefore).toBeLessThan(at(DISCONNECT, 'await participantClient.disconnect();'));
+    expect(DISCONNECT).toContain(
+      'participantFinal = keepRowsDroppedOnDisconnect(participantBefore, participantClient.getConversationItems());',
+    );
+  });
+
   it('saves before publishing the teardown as done', () => {
     // A queued Start and the close handshake both wait on that promise; the
     // file must be written by then.

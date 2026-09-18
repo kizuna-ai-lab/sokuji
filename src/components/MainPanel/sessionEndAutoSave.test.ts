@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ConversationItem } from '../../services/interfaces/IClient';
 import { teardownSessionLegs } from '../../services/providers/managedSonioxSplit';
-import { mergeConversationItems } from './conversationMerge';
+import { keepRowsDroppedOnDisconnect, mergeConversationItems } from './conversationMerge';
 
 /**
  * Ordering coverage for MainPanel.disconnectConversation's session-end save,
@@ -50,8 +50,23 @@ function client(items: ConversationItem[], flushed: ConversationItem[] = [], fai
   };
 }
 
+/** A client that empties its items inside disconnect(), like PalabraAIClient. */
+function clientThatEmptiesOnDisconnect(items: ConversationItem[]): Fake {
+  let current = [...items];
+  return {
+    disconnect: async () => {
+      await Promise.resolve();
+      current = [];
+    },
+    getConversationItems: () => [...current],
+    reset: () => { current = []; },
+  };
+}
+
 const LANGS = { sourceLanguage: 'EN', targetLanguage: 'JA' };
 const saved = vi.fn(async (_items: ConversationItem[]) => 'saved' as const);
+/** Stands in for the speaker leg's setItems(): what the stopped view shows. */
+const shown = vi.fn((_items: ConversationItem[]) => {});
 const texts = (items: ConversationItem[]) => items.map(i => i.formatted?.text);
 
 /**
@@ -80,17 +95,20 @@ async function stopSession(opts: {
         speaker: async () => {
           const c = opts.speaker;
           if (!c) return;
+          const before = c.getConversationItems();
           try { await c.disconnect(); } catch { /* MainPanel warns and carries on */ }
-          speakerFinal = c.getConversationItems();
+          speakerFinal = keepRowsDroppedOnDisconnect(before, c.getConversationItems());
+          shown(speakerFinal);
           c.reset();
         },
         participant: async () => {
           const c = opts.participant;
           if (!c) return;
-          participantFinal = c.getConversationItems();
+          const before = c.getConversationItems();
+          participantFinal = before;
           try {
             await c.disconnect();
-            participantFinal = c.getConversationItems();
+            participantFinal = keepRowsDroppedOnDisconnect(before, c.getConversationItems());
             c.reset();
           } catch { /* MainPanel warns and carries on */ }
         },
@@ -125,10 +143,11 @@ async function stopSessionPublishingLate(opts: {
         participant: async () => {
           const c = opts.participant;
           if (!c) return;
-          participantFinal = c.getConversationItems();
+          const before = c.getConversationItems();
+          participantFinal = before;
           try {
             await c.disconnect();
-            participantFinal = c.getConversationItems();
+            participantFinal = keepRowsDroppedOnDisconnect(before, c.getConversationItems());
             c.reset();
           } catch { /* MainPanel warns and carries on */ }
         },
@@ -165,7 +184,7 @@ const onCloseRequested = async (
   }
 };
 
-beforeEach(() => saved.mockClear());
+beforeEach(() => { saved.mockClear(); shown.mockClear(); });
 
 describe('session-end auto-save ordering', () => {
   it('Both mode: the line the other party finishes during disconnect() is in the file', async () => {
@@ -196,6 +215,36 @@ describe('session-end auto-save ordering', () => {
       },
     });
     expect(texts(file)).toEqual(['MINE', 'THEIRS']);
+  });
+
+  it('a speaker client that empties its items on disconnect() (PalabraAI) still saves and shows them', async () => {
+    await stopSession({
+      wasActive: true,
+      speaker: clientThatEmptiesOnDisconnect([line('s1', 'MINE', 1), line('s2', 'MINE-2', 3)]),
+      participant: client([line('p1', 'THEIRS', 2)]),
+    });
+    expect(texts(saved.mock.calls[0][0])).toEqual(['MINE', 'THEIRS', 'MINE-2']);
+    expect(texts(shown.mock.calls[0][0])).toEqual(['MINE', 'MINE-2']);
+  });
+
+  it('a participant client that empties its items on disconnect() (PalabraAI) still saves them', async () => {
+    await stopSession({
+      wasActive: true,
+      speaker: client([line('s1', 'MINE', 1)]),
+      participant: clientThatEmptiesOnDisconnect([line('p1', 'THEIRS', 2)]),
+    });
+    expect(texts(saved.mock.calls[0][0])).toEqual(['MINE', 'THEIRS']);
+  });
+
+  it('a row disconnect() finalizes is saved once, in its final form', async () => {
+    let current = [line('s1', 'HAL', 1)];
+    const speaker: Fake = {
+      disconnect: async () => { current = [line('s1', 'HALF DONE', 1)]; },
+      getConversationItems: () => [...current],
+      reset: () => { current = []; },
+    };
+    await stopSession({ wasActive: true, speaker });
+    expect(texts(saved.mock.calls[0][0])).toEqual(['HALF DONE']);
   });
 
   it('Others mode, no speaker client: still saves', async () => {
