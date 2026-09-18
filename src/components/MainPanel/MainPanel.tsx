@@ -81,6 +81,7 @@ import { useInitAudioSystemListeners, useCleanupAudioSystemListeners } from '../
 import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
+import { mergeConversationItems } from './conversationMerge';
 import ExportButton from './ExportButton';
 import {
   buildSessionMetadata,
@@ -1291,41 +1292,32 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Combine speaker and participant items for display with source tagging
   const combinedItems = useMemo(() => {
     const liveSettings = getCurrentProviderSettings();
-    const liveSourceLanguage = liveSettings.sourceLanguage ?? 'EN';
-    const liveTargetLanguage = liveSettings.targetLanguage ?? 'EN';
-
-    const tag = (item: ConversationItem, fallbackSource: 'speaker' | 'participant') => {
-      let langs = itemLanguagesRef.current.get(item.id);
-      if (!langs) {
-        langs = { sourceLanguage: liveSourceLanguage, targetLanguage: liveTargetLanguage };
-        itemLanguagesRef.current.set(item.id, langs);
-      }
-      return {
-        ...item,
-        source: item.source ?? fallbackSource,
-        sourceLanguage: langs.sourceLanguage,
-        targetLanguage: langs.targetLanguage,
-      } as ConversationItem & { source: string; sourceLanguage: string; targetLanguage: string };
+    const live = {
+      sourceLanguage: liveSettings.sourceLanguage ?? 'EN',
+      targetLanguage: liveSettings.targetLanguage ?? 'EN',
     };
 
-    const speakerItems = items.map(item => tag(item, 'speaker'));
-    const participantTagged = participantItems.map(item => tag(item, 'participant'));
+    // Record a row's pair the first time it is seen, so switching languages
+    // after a session cannot relabel its history.
+    const languageOf = (id: string) => {
+      let langs = itemLanguagesRef.current.get(id);
+      if (!langs) {
+        langs = { ...live };
+        itemLanguagesRef.current.set(id, langs);
+      }
+      return langs;
+    };
+
+    const merged = mergeConversationItems(items, participantItems, languageOf);
 
     // Prune snapshots for items that no longer exist (handles clearConversation
     // and session restart, which empty both arrays).
-    const liveIds = new Set<string>();
-    for (const it of speakerItems) liveIds.add(it.id);
-    for (const it of participantTagged) liveIds.add(it.id);
+    const liveIds = new Set(merged.map(it => it.id));
     for (const id of Array.from(itemLanguagesRef.current.keys())) {
       if (!liveIds.has(id)) itemLanguagesRef.current.delete(id);
     }
 
-    // Merge and sort by createdAt timestamp for accurate ordering
-    return [...speakerItems, ...participantTagged].sort((a, b) => {
-      const aTime = a.createdAt || 0;
-      const bTime = b.createdAt || 0;
-      return aTime - bTime;
-    });
+    return merged;
   }, [items, participantItems, getCurrentProviderSettings]);
 
   // Filter items based on UI mode and display mode
