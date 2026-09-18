@@ -11,9 +11,9 @@ for: that the translation starts appearing before the speaker stops.
 Slice 3 wires the segmentation stage into the two **local** clients, which carry
 roughly 70% of production minutes. Branch
 `worktree-sentence-segmentation-3-local-clients`, base `7112796a` (slice 2's
-head), head `0527f4c6` — **13 commits, 11 files, +1,819 / −35**. Ten of those
-files are the engineering; the eleventh is the plan document, corrected during
-execution.
+head), head `d886e31a` — **15 commits, 13 files, +2,080 / −38**. Eleven of those
+files are the engineering; the other two are the plan document, corrected during
+execution, and this note.
 
 **Slice 3 is the first slice that actually segments anything.** Slices 1 and 2
 built the runtime, the settings and the UI, but no client had a runtime.
@@ -169,11 +169,13 @@ separate — the two lifecycles are worth keeping in mind together.
 
 ## Standing facts
 
-- **Suite: 4,486 passed / 3 failed / 2 skipped (4,491).** The three are
-  `modelManifest.punctuation.test.ts` asserting
-  `hfRevision: 'TODO-COMMIT-SHA'`, **failing by design** until three Hugging Face
-  repositories are published — an outward action needing jiangzhuo's explicit
-  per-repository confirmation. Do not invent a SHA.
+- **Suite: 4,489 passed / 0 failed / 2 skipped (4,491).** Fully green as of
+  2026-09-19. The three `hfRevision: 'TODO-COMMIT-SHA'` assertions that had been
+  red since slice 1 are retired: the repos are published under `jiangzhuo9357`
+  (public) and their revisions pinned in `modelManifest.ts` (`21ae0448…`,
+  `a0897f6d…`, `7698b9e4…`). The 4 reported *Errors* are the pre-existing
+  unhandled rejections in `settingsStore.nativeGate.test.ts` — unrelated, and
+  counted as errors rather than failures.
 - **Typecheck: 319 errors across 80 files.** Measured, not inherited
   (`grep -c "error TS"` → 319; the same lines through
   `cut -d'(' -f1 | sort -u | wc -l` → 80). The bar is zero contribution. **Never
