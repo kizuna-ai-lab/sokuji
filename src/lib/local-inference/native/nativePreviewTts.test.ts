@@ -170,7 +170,9 @@ describe('createPreviewTts', () => {
     const generate = vi.spyOn(client, 'generate');
     const h = createPreviewTts(() => client);
     await h.synthesize({ modelId: 'm', language: 'ja', text: 'hello there', speed: 1.5, voice: { kind: 'name', name: 'x' } });
-    expect(generate).toHaveBeenCalledWith('hello there', 1.5);
+    // The third argument is the chunk sink, now passed unconditionally so a
+    // streaming family's audio is not dropped — see synthesizeOnce.
+    expect(generate).toHaveBeenCalledWith('hello there', 1.5, expect.any(Function));
   });
 
   it('returns the samples and sample rate from generate() as audio/sampleRate', async () => {
@@ -181,5 +183,75 @@ describe('createPreviewTts', () => {
     const h = createPreviewTts(() => client);
     const out = await h.synthesize({ modelId: 'm', language: 'ja', text: 'a', speed: 1, voice: { kind: 'name', name: 'x' } });
     expect(out).toEqual({ audio: new Float32Array([0.25]), sampleRate: 24000 });
+  });
+});
+
+/**
+ * A double of the STREAMING protocol, which the fake above cannot express:
+ * its `generate()` takes no parameters, so it can never receive an `onChunk`
+ * and every existing case runs the one-shot path. That is why supertonic's
+ * silent previews (reported 2026-09-18) were invisible here.
+ *
+ * Mirrors `NativeTtsClient.generate`'s streaming branch exactly: every sample
+ * is handed to `onChunk`, and the returned `samples` is EMPTY with the
+ * engine's own rate. A caller that reads only `result.samples` therefore gets
+ * a successful, playable-looking, silent buffer.
+ */
+function fakeStreamingTtsClient(chunks: Float32Array[]): NativeTtsClientLike & { sawOnChunk: boolean } {
+  const client = {
+    sawOnChunk: false,
+    async init(): Promise<TtsReady> {
+      return { sampleRate: 24000, loadTimeMs: 1, streaming: true, clones: false };
+    },
+    async setVoice(): Promise<void> {},
+    async setReferenceVoice(): Promise<void> {},
+    async generate(
+      _text: string, _speed?: number, onChunk?: (pcm: Float32Array, seq: number) => void,
+    ): Promise<NativeTtsResult> {
+      client.sawOnChunk = !!onChunk;
+      chunks.forEach((c, i) => onChunk?.(c, i));
+      return { samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: 5 };
+    },
+    dispose(): void {},
+  };
+  return client as unknown as NativeTtsClientLike & { sawOnChunk: boolean };
+}
+
+describe('a streaming TTS family', () => {
+  // supertonic-3 is the only catalog card that both streams and has named
+  // presets, which is why it was the only model whose PRESET preview was
+  // silent: the other streaming families are clone-only, and a clone preview
+  // falls back to replaying the reference clip, so their silence was masked.
+  it('assembles the chunks instead of returning the empty one-shot buffer', async () => {
+    // Values float32 represents EXACTLY, so `toEqual` stays meaningful —
+    // 0.1 round-trips as 0.10000000149011612 and would fail on precision
+    // rather than on behaviour.
+    const client = fakeStreamingTtsClient([new Float32Array([0.25, 0.5]), new Float32Array([0.75])]);
+    const handle = createPreviewTts(() => client);
+    const out = await handle.synthesize({
+      modelId: 'supertonic-3', language: 'en', text: 'hi', speed: 1,
+      voice: { kind: 'name', name: 'F4' },
+    });
+    expect(Array.from(out.audio)).toEqual([0.25, 0.5, 0.75]);
+    expect(out.sampleRate).toBe(24000);
+  });
+
+  // The fix must not depend on knowing which protocol will run: `onChunk` is
+  // passed unconditionally, and the client's own `this.streaming && onChunk`
+  // guard keeps a non-streaming family on the one-shot path.
+  it('passes onChunk unconditionally, leaving a non-streaming family unaffected', async () => {
+    const streaming = fakeStreamingTtsClient([new Float32Array([0.5])]);
+    await createPreviewTts(() => streaming).synthesize({
+      modelId: 'm', language: 'en', text: 'hi', speed: 1, voice: { kind: 'name', name: 'F1' },
+    });
+    expect(streaming.sawOnChunk).toBe(true);
+
+    const oneShot = fakeTtsClient();
+    const out = await createPreviewTts(() => oneShot).synthesize({
+      modelId: 'moss-tts-nano', language: 'en', text: 'hi', speed: 1,
+      voice: { kind: 'name', name: 'x' },
+    });
+    expect(Array.from(out.audio)).toEqual([0.25]);
+    expect(out.sampleRate).toBe(24000);
   });
 });

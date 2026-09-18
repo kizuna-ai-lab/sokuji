@@ -20,7 +20,7 @@
  * reporting a warning here as well would describe a failure the user never
  * sees as one.
  */
-import { NativeTtsClient, type NativeTtsResult } from './NativeTtsClient';
+import { NativeTtsClient } from './NativeTtsClient';
 
 /** The subset of `NativeTtsClient` this module drives. Narrowed from the
  *  concrete class (rather than depending on `NativeTtsClient` itself) so a
@@ -73,8 +73,42 @@ async function applyVoice(client: NativeTtsClientLike, voice: PreviewVoice): Pro
   else await client.setReferenceVoice(voice.audio, voice.sampleRate, voice.refText);
 }
 
-function toHandleResult(result: NativeTtsResult): { audio: Float32Array; sampleRate: number } {
-  return { audio: result.samples, sampleRate: result.sampleRate };
+/**
+ * One synthesis, whichever protocol the loaded family speaks.
+ *
+ * `onChunk` is passed ALWAYS, never conditionally on a streaming flag, and
+ * that is the whole fix for the bug this function exists to prevent: the
+ * SIDECAR decides the protocol, from the loaded engine's own `streaming`
+ * alone (`tts_engine.py`), and for a streaming family it emits chunks and
+ * never sends a `tts_generate_result`. A caller that omitted `onChunk` had
+ * its one-shot request resolved by the first `tts_chunk` instead — and a
+ * chunk message carries no `sampleRate`, so the preview came back
+ * "successful" with one chunk of audio at rate `undefined`. `createBuffer`
+ * then threw on the NaN rate and the picker's catch swallowed it: supertonic
+ * presets previewed as silence while supertonic SESSIONS were fine, because
+ * the session path reads the flag and passes `onChunk` (reported
+ * 2026-09-18).
+ *
+ * Passing it unconditionally is safe for a non-streaming family: the client's
+ * own `this.streaming && onChunk` guard keeps that on the one-shot path,
+ * which returns the whole buffer and never calls back.
+ */
+async function synthesizeOnce(
+  client: NativeTtsClientLike, text: string, speed: number,
+): Promise<{ audio: Float32Array; sampleRate: number }> {
+  const chunks: Float32Array[] = [];
+  const result = await client.generate(text, speed, (pcm) => { chunks.push(pcm); });
+  // The streaming branch hands every sample to `onChunk` and returns an EMPTY
+  // `samples` carrying the engine's rate; the one-shot branch returns the
+  // whole buffer. Preferring the accumulated chunks whenever there are any
+  // covers both without this module having to know which one ran.
+  if (chunks.length === 0) return { audio: result.samples, sampleRate: result.sampleRate };
+  let total = 0;
+  for (const c of chunks) total += c.length;
+  const audio = new Float32Array(total);
+  let at = 0;
+  for (const c of chunks) { audio.set(c, at); at += c.length; }
+  return { audio, sampleRate: result.sampleRate };
 }
 
 /**
@@ -112,7 +146,7 @@ export function createPreviewTts(make: () => NativeTtsClientLike = () => new Nat
       await applyVoice(client, voice);
 
       try {
-        return toHandleResult(await client.generate(text, speed));
+        return await synthesizeOnce(client, text, speed);
       } catch (err) {
         if (!isNotOwnerError(err)) throw err;
         // Recover exactly once: the sidecar may still record a just-closed
@@ -123,7 +157,7 @@ export function createPreviewTts(make: () => NativeTtsClientLike = () => new Nat
         // looping would hang the caller instead of surfacing that.
         await initFor(modelId, language);
         await applyVoice(client, voice);
-        return toHandleResult(await client.generate(text, speed));
+        return await synthesizeOnce(client, text, speed);
       }
     },
 

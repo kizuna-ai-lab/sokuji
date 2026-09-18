@@ -32,6 +32,23 @@ describe('NativeTtsClient init', () => {
 });
 
 describe('NativeTtsClient one-shot', () => {
+  // The exact shape behind the reported supertonic silence: the SIDECAR picks
+  // the protocol from the loaded engine's own `streaming` flag, so a caller
+  // that omits `onChunk` still gets answered with chunks — and a `tts_chunk`
+  // carries no `sampleRate`. This used to be an unchecked cast, so it
+  // resolved SUCCESSFULLY with one chunk of audio at `sampleRate: undefined`,
+  // and the failure only appeared much later as a `createBuffer` throw that
+  // nothing surfaced.
+  it('rejects a streaming reply when no chunk sink was given, instead of inventing a result', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = await initClient(conn, true);
+    const genP = c.generate('hi', 1.0);            // no onChunk -> one-shot branch
+    const genSent = conn.sent.find((m) => m.type === 'tts_generate');
+    conn.emitBinary(new Int16Array([16384]).buffer);
+    conn.emit({ type: 'tts_chunk', id: genSent.id, seq: 0 });
+    await expect(genP).rejects.toThrow(/streams; pass an onChunk/);
+  });
+
   it('generate() pairs the buffered binary with the result reply', async () => {
     const conn = new FakeSidecarConnection();
     const c = await initClient(conn, false);
