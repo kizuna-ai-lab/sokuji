@@ -429,9 +429,7 @@
     "textOnlyDesc": "Vertaal alleen naar tekst — geen spraakuitvoer",
     "textOnlyForcedByMode": "De modus \"{{mode}}\" zet alleen om wat deelnemers zeggen in tekst voor jou en genereert nooit audio, dus \"Alleen tekst\" blijft aan. Wissel van vertaalmodus om je eigen stem met spraak te vertalen.",
     "keepReplayAudio": "Audio bewaren voor herhaling",
-    "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken.",
-    "autoSaveOnStop": "Gesprek automatisch opslaan bij stoppen",
-    "autoSaveOnStopDesc": "Wanneer u een sessie stopt, wordt het gesprek automatisch gedownload als .txt-bestand — hetzelfde bestand dat de .txt-exportknop produceert. Standaard uitgeschakeld."
+    "keepReplayAudioDesc": "Vertaalde audio in het geheugen bewaren zodat u deze later vanuit elk bericht opnieuw kunt afspelen. Standaard uitgeschakeld om geheugengebruik tijdens lange sessies te beperken."
   },
   "providers": {
     "kizunaai_openai_translate": {
@@ -604,7 +602,15 @@
       "headerSource": "Mijn taal",
       "headerTarget": "Taal van de ander",
       "headerNote": "Opmerking: instellingen weerspiegelen de huidige staat bij export, niet wijzigingen tijdens de sessie.",
-      "headerNarrowed": "Let op: deze export is bij het exporteren beperkt — sommige regels ontbreken."
+      "headerNarrowed": "Let op: deze export is bij het exporteren beperkt — sommige regels ontbreken.",
+      "autoSave": {
+        "label": "Automatisch opslaan als de sessie eindigt",
+        "tooltipDesktop": "Als een sessie eindigt, wordt het hele gesprek — beide kanten, originelen en vertalingen — als .txt-bestand opgeslagen in je map Downloads.",
+        "tooltipBrowser": "Als een sessie eindigt, wordt het hele gesprek — beide kanten, originelen en vertalingen — als .txt-bestand gedownload. Het zijpaneel sluiten tijdens een sessie slaat het niet op; beëindig eerst de sessie.",
+        "saved": "Gesprek opgeslagen: {{filename}}",
+        "showInFolder": "Tonen in map",
+        "failed": "Het gesprek kon niet automatisch worden opgeslagen. Je kunt het nog opslaan met ‘{{action}}’ in het exportmenu."
+      }
     },
     "waveformOutputTooltip": "Audio die naar de virtuele microfoon wordt gestuurd (vertaling + doorvoer)",
     "waveformMicTooltip": "Uw microfoon — uw stem die wordt vastgelegd voor vertaling",

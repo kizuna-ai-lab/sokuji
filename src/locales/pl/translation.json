@@ -429,9 +429,7 @@
     "textOnlyDesc": "Tłumacz tylko na tekst — bez wyjścia głosowego",
     "textOnlyForcedByMode": "Tryb \"{{mode}}\" zamienia to, co mówią uczestnicy, wyłącznie w tekst dla Ciebie i nigdy nie generuje dźwięku, dlatego \"Tylko tekst\" pozostaje włączony. Zmień tryb tłumaczenia, aby tłumaczyć własny głos z mową.",
     "keepReplayAudio": "Zachowaj dźwięk do powtórnego odtworzenia",
-    "keepReplayAudioDesc": "Przechowuj przetłumaczony dźwięk w pamięci, abyś mógł go później odtworzyć z każdej wiadomości. Domyślnie wyłączone, aby zmniejszyć zużycie pamięci podczas długich sesji.",
-    "autoSaveOnStop": "Automatycznie zapisuj rozmowę po zatrzymaniu",
-    "autoSaveOnStopDesc": "Gdy zatrzymasz sesję, rozmowa zostanie automatycznie pobrana jako plik .txt — ten sam plik, który tworzy przycisk eksportu .txt. Domyślnie wyłączone."
+    "keepReplayAudioDesc": "Przechowuj przetłumaczony dźwięk w pamięci, abyś mógł go później odtworzyć z każdej wiadomości. Domyślnie wyłączone, aby zmniejszyć zużycie pamięci podczas długich sesji."
   },
   "providers": {
     "kizunaai_openai_translate": {
@@ -604,7 +602,15 @@
       "headerSource": "Mój język",
       "headerTarget": "Język rozmówcy",
       "headerNote": "Uwaga: ustawienia odzwierciedlają stan w momencie eksportu, a nie zmiany wprowadzone w trakcie sesji.",
-      "headerNarrowed": "Uwaga: ten eksport został zawężony podczas eksportowania — pominięto niektóre wiersze."
+      "headerNarrowed": "Uwaga: ten eksport został zawężony podczas eksportowania — pominięto niektóre wiersze.",
+      "autoSave": {
+        "label": "Zapisuj automatycznie po zakończeniu sesji",
+        "tooltipDesktop": "Po zakończeniu sesji cała rozmowa — obie strony, oryginały i tłumaczenia — zostaje zapisana jako plik .txt w folderze Pobrane.",
+        "tooltipBrowser": "Po zakończeniu sesji cała rozmowa — obie strony, oryginały i tłumaczenia — zostaje pobrana jako plik .txt. Zamknięcie panelu bocznego w trakcie sesji jej nie zapisuje; najpierw zakończ sesję.",
+        "saved": "Rozmowa zapisana: {{filename}}",
+        "showInFolder": "Pokaż w folderze",
+        "failed": "Nie udało się automatycznie zapisać rozmowy. Nadal możesz ją zapisać, używając „{{action}}” w menu eksportu."
+      }
     },
     "waveformOutputTooltip": "Dźwięk wysyłany do wirtualnego mikrofonu (tłumaczenie + przepuszczanie)",
     "waveformMicTooltip": "Twój mikrofon — Twój głos przechwytywany do tłumaczenia",

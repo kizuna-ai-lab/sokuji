@@ -429,9 +429,7 @@
     "textOnlyDesc": "Chỉ dịch sang văn bản — không phát âm thanh",
     "textOnlyForcedByMode": "Chế độ \"{{mode}}\" chỉ chuyển lời người tham gia thành văn bản cho bạn và không bao giờ tạo âm thanh, nên \"Chỉ văn bản\" luôn bật. Hãy chuyển chế độ dịch để dịch giọng nói của bạn kèm âm thanh.",
     "keepReplayAudio": "Giữ âm thanh để phát lại",
-    "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài.",
-    "autoSaveOnStop": "Tự động lưu cuộc trò chuyện khi dừng",
-    "autoSaveOnStopDesc": "Khi bạn dừng một phiên, cuộc trò chuyện sẽ tự động được tải xuống dưới dạng tệp .txt — cùng tệp mà nút xuất .txt tạo ra. Mặc định tắt."
+    "keepReplayAudioDesc": "Lưu âm thanh đã dịch trong bộ nhớ để bạn có thể phát lại sau từ mỗi tin nhắn. Tắt theo mặc định để giảm sử dụng bộ nhớ trong các phiên dài."
   },
   "providers": {
     "kizunaai_openai_translate": {
@@ -604,7 +602,15 @@
       "headerSource": "Ngôn ngữ của tôi",
       "headerTarget": "Ngôn ngữ đối phương",
       "headerNote": "Lưu ý: cài đặt phản ánh trạng thái hiện tại tại thời điểm xuất, không phải các thay đổi trong phiên.",
-      "headerNarrowed": "Lưu ý: bản xuất này đã được thu hẹp khi xuất — một số dòng không được đưa vào."
+      "headerNarrowed": "Lưu ý: bản xuất này đã được thu hẹp khi xuất — một số dòng không được đưa vào.",
+      "autoSave": {
+        "label": "Tự động lưu khi kết thúc phiên",
+        "tooltipDesktop": "Khi một phiên kết thúc, toàn bộ hội thoại — cả hai bên, bản gốc và bản dịch — được lưu thành tệp .txt trong thư mục Tải xuống của bạn.",
+        "tooltipBrowser": "Khi một phiên kết thúc, toàn bộ hội thoại — cả hai bên, bản gốc và bản dịch — được tải xuống dưới dạng tệp .txt. Đóng bảng bên khi đang có phiên sẽ không lưu; hãy kết thúc phiên trước.",
+        "saved": "Đã lưu hội thoại: {{filename}}",
+        "showInFolder": "Hiện trong thư mục",
+        "failed": "Không thể tự động lưu hội thoại. Bạn vẫn có thể lưu bằng “{{action}}” trong menu xuất."
+      }
     },
     "waveformOutputTooltip": "Âm thanh gửi đến microphone ảo (bản dịch + truyền âm thanh gốc)",
     "waveformMicTooltip": "Microphone của bạn — giọng nói của bạn đang được thu để dịch",

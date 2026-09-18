@@ -429,9 +429,7 @@
     "textOnlyDesc": "Isalin sa teksto lamang — walang boses na output",
     "textOnlyForcedByMode": "Ang mode na \"{{mode}}\" ay ginagawa lang na teksto para sa iyo ang sinasabi ng mga kalahok at hindi kailanman gumagawa ng audio, kaya nananatiling naka-on ang \"Teksto lamang\". Palitan ang translation mode para isalin ang sarili mong boses nang may tunog.",
     "keepReplayAudio": "Itago ang audio para sa muling pagpapatugtog",
-    "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon.",
-    "autoSaveOnStop": "Awtomatikong i-save ang usapan kapag huminto",
-    "autoSaveOnStopDesc": "Kapag hinihinto mo ang isang session, awtomatikong ida-download ang usapan bilang .txt file — ang parehong file na ginagawa ng .txt export button. Naka-off bilang default."
+    "keepReplayAudioDesc": "Mag-imbak ng isinaling audio sa memorya upang maaari mong patugtugin muli mamaya mula sa bawat mensahe. Naka-off bilang default upang mabawasan ang paggamit ng memorya sa mahahabang sesyon."
   },
   "providers": {
     "kizunaai_openai_translate": {
@@ -604,7 +602,15 @@
       "headerSource": "Aking wika",
       "headerTarget": "Wika ng kausap",
       "headerNote": "Tandaan: ang mga setting ay sumasalamin sa kasalukuyang estado sa pag-export, hindi sa mga pagbabago sa kalagitnaan ng session.",
-      "headerNarrowed": "Tandaan: pinaliit ang saklaw ng export na ito noong nag-export — may ilang linyang hindi kasama."
+      "headerNarrowed": "Tandaan: pinaliit ang saklaw ng export na ito noong nag-export — may ilang linyang hindi kasama.",
+      "autoSave": {
+        "label": "Awtomatikong i-save kapag natapos ang session",
+        "tooltipDesktop": "Kapag natapos ang isang session, ise-save ang buong usapan — parehong panig, mga orihinal at salin — bilang .txt file sa iyong Downloads folder.",
+        "tooltipBrowser": "Kapag natapos ang isang session, ida-download ang buong usapan — parehong panig, mga orihinal at salin — bilang .txt file. Hindi ito nase-save kapag isinara ang side panel habang may session; tapusin muna ang session.",
+        "saved": "Na-save ang usapan: {{filename}}",
+        "showInFolder": "Ipakita sa folder",
+        "failed": "Hindi awtomatikong na-save ang usapan. Maaari mo pa rin itong i-save gamit ang “{{action}}” sa export menu."
+      }
     },
     "waveformOutputTooltip": "Audio na ipinapadala sa virtual microphone (pagsasalin + original audio passthrough)",
     "waveformMicTooltip": "Ang inyong mikropono — ang boses ninyong kinukuha para isalin",

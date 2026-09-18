@@ -429,9 +429,7 @@
     "textOnlyDesc": "Translate to text only — no spoken audio output",
     "textOnlyForcedByMode": "\"{{mode}}\" mode turns what participants say into text for you and never generates audio, so Text Only stays on. Switch the translation mode to translate your own voice with speech.",
     "keepReplayAudio": "Keep audio for replay",
-    "keepReplayAudioDesc": "Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions.",
-    "autoSaveOnStop": "Auto-save conversation on stop",
-    "autoSaveOnStopDesc": "When you stop a session, automatically download the conversation as a .txt file — the same file the .txt export button produces. Off by default."
+    "keepReplayAudioDesc": "Store translated audio in memory so you can replay it later from each message. Off by default to reduce memory use during long sessions."
   },
   "providers": {
     "kizunaai_openai_translate": {
@@ -604,7 +602,15 @@
       "headerSource": "My Language",
       "headerTarget": "Other's Language",
       "headerNote": "Note: settings reflect current state at export, not mid-session changes.",
-      "headerNarrowed": "Note: this export was narrowed at export time — some lines were left out."
+      "headerNarrowed": "Note: this export was narrowed at export time — some lines were left out.",
+      "autoSave": {
+        "label": "Auto-save when session ends",
+        "tooltipDesktop": "When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.",
+        "tooltipBrowser": "When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.",
+        "saved": "Conversation saved: {{filename}}",
+        "showInFolder": "Show in folder",
+        "failed": "Couldn't auto-save the conversation. You can still save it with “{{action}}” in the export menu."
+      }
     },
     "waveformOutputTooltip": "Audio sent to the virtual microphone (translation + passthrough)",
     "waveformMicTooltip": "Your microphone — your voice being captured for translation",

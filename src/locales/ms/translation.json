@@ -429,9 +429,7 @@
     "textOnlyDesc": "Terjemah ke teks sahaja — tiada output suara",
     "textOnlyForcedByMode": "Mod \"{{mode}}\" hanya menukar apa yang diucapkan peserta kepada teks untuk anda dan tidak pernah menghasilkan audio, jadi \"Teks sahaja\" kekal dihidupkan. Tukar mod terjemahan untuk menterjemah suara anda sendiri dengan pertuturan.",
     "keepReplayAudio": "Simpan audio untuk main semula",
-    "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang.",
-    "autoSaveOnStop": "Simpan perbualan secara automatik apabila berhenti",
-    "autoSaveOnStopDesc": "Apabila anda menghentikan sesi, perbualan itu dimuat turun secara automatik sebagai fail .txt — fail yang sama yang dihasilkan oleh butang eksport .txt. Dimatikan secara lalai."
+    "keepReplayAudioDesc": "Simpan audio terjemahan dalam memori supaya anda boleh memainkannya semula kemudian daripada setiap mesej. Dimatikan secara lalai untuk mengurangkan penggunaan memori semasa sesi panjang."
   },
   "providers": {
     "kizunaai_openai_translate": {
@@ -604,7 +602,15 @@
       "headerSource": "Bahasa saya",
       "headerTarget": "Bahasa pihak lain",
       "headerNote": "Nota: tetapan mencerminkan keadaan semasa pada masa eksport, bukan perubahan semasa sesi.",
-      "headerNarrowed": "Nota: eksport ini telah dipersempit semasa mengeksport — sesetengah baris tidak disertakan."
+      "headerNarrowed": "Nota: eksport ini telah dipersempit semasa mengeksport — sesetengah baris tidak disertakan.",
+      "autoSave": {
+        "label": "Simpan secara automatik apabila sesi tamat",
+        "tooltipDesktop": "Apabila sesi tamat, keseluruhan perbualan — kedua-dua pihak, teks asal dan terjemahan — disimpan sebagai fail .txt dalam folder Muat Turun anda.",
+        "tooltipBrowser": "Apabila sesi tamat, keseluruhan perbualan — kedua-dua pihak, teks asal dan terjemahan — dimuat turun sebagai fail .txt. Menutup panel sisi semasa sesi tidak menyimpannya; tamatkan sesi dahulu.",
+        "saved": "Perbualan disimpan: {{filename}}",
+        "showInFolder": "Tunjukkan dalam folder",
+        "failed": "Perbualan tidak dapat disimpan secara automatik. Anda masih boleh menyimpannya dengan “{{action}}” dalam menu eksport."
+      }
     },
     "waveformOutputTooltip": "Audio yang dihantar ke mikrofon maya (terjemahan + passthrough)",
     "waveformMicTooltip": "Mikrofon anda — suara anda yang ditangkap untuk terjemahan",

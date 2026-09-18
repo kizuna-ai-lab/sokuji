@@ -429,9 +429,7 @@
     "textOnlyDesc": "Traduzir apenas para texto — sem saída de voz",
     "textOnlyForcedByMode": "O modo \"{{mode}}\" transforma o que os participantes dizem em texto para você e nunca gera áudio, por isso \"Somente texto\" permanece ativado. Mude o modo de tradução para traduzir sua própria voz com fala.",
     "keepReplayAudio": "Manter áudio para reprodução",
-    "keepReplayAudioDesc": "Armazenar o áudio traduzido na memória para que você possa reproduzi-lo depois a partir de cada mensagem. Desativado por padrão para reduzir o uso de memória em sessões longas.",
-    "autoSaveOnStop": "Salvar automaticamente a conversa ao parar",
-    "autoSaveOnStopDesc": "Ao parar uma sessão, a conversa é baixada automaticamente como um arquivo .txt — o mesmo arquivo gerado pelo botão de exportação .txt. Desativado por padrão."
+    "keepReplayAudioDesc": "Armazenar o áudio traduzido na memória para que você possa reproduzi-lo depois a partir de cada mensagem. Desativado por padrão para reduzir o uso de memória em sessões longas."
   },
   "providers": {
     "kizunaai_openai_translate": {
@@ -604,7 +602,15 @@
       "headerSource": "Meu idioma",
       "headerTarget": "Idioma do outro",
       "headerNote": "Nota: as configurações refletem o estado atual no momento da exportação, não alterações feitas durante a sessão.",
-      "headerNarrowed": "Observação: esta exportação foi restringida no momento da exportação — algumas linhas foram omitidas."
+      "headerNarrowed": "Observação: esta exportação foi restringida no momento da exportação — algumas linhas foram omitidas.",
+      "autoSave": {
+        "label": "Salvar automaticamente ao encerrar a sessão",
+        "tooltipDesktop": "Ao encerrar uma sessão, a conversa inteira — os dois lados, originais e traduções — é salva como arquivo .txt na sua pasta Downloads.",
+        "tooltipBrowser": "Ao encerrar uma sessão, a conversa inteira — os dois lados, originais e traduções — é baixada como arquivo .txt. Fechar o painel lateral durante uma sessão não a salva; encerre a sessão primeiro.",
+        "saved": "Conversa salva: {{filename}}",
+        "showInFolder": "Mostrar na pasta",
+        "failed": "Não foi possível salvar a conversa automaticamente. Você ainda pode salvá-la com “{{action}}” no menu de exportação."
+      }
     },
     "waveformOutputTooltip": "Áudio enviado ao microfone virtual (tradução + passthrough)",
     "waveformMicTooltip": "Seu microfone — sua voz capturada para tradução",
