@@ -648,9 +648,25 @@ describe('LocalNativeClient TTS connect', () => {
 
 describe('LocalNativeClient voice selection', () => {
   it('applies the selected builtin voice after init', async () => {
+    // The catalog entry is what makes this model one that HAS built-in voices.
+    // Without it `voiceCapability(undefined)` yields `{builtin:'none',
+    // custom:'none'}` — a model declaring no presets at all — and a stored
+    // `builtin:` name is then dropped rather than applied, which is the rule
+    // 'drops a stale builtin name when the family has no built-in voices at
+    // all' already pins (applying one means setVoice() against an empty preset
+    // list, the failure that took TTS down when pocket's `builtin:eponine`
+    // reached gpt-sovits). This fixture used to rely on `custom:'none'`
+    // short-circuiting reconciliation BEFORE that check — an ordering accident,
+    // not an intent — so it was asserting the bug's side effect. Seeding a
+    // named-voice model keeps the case testing what its name says.
+    useNativeModelStore.setState({
+      catalog: { 'moss-tts-nano': { id: 'moss-tts-nano', name: 'Presets', languages: ['en'], recommended: false, tiers: [], voice: { builtin: 'named', custom: 'none' } } as any },
+    } as any);
     const m = mocks();
     m.tts.init = vi.fn().mockResolvedValue({ sampleRate: 24000, loadTimeMs: 1, streaming: true });
     m.tts.setVoice = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(await import('../../stores/nativeModelStore'), 'nativeListTtsVoices')
+      .mockResolvedValue([{ name: 'Bella', language: 'en', curated: true, unstable: false, default: true }] as any);
     const c = new LocalNativeClient(m);
     await c.connect({
       provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'en',

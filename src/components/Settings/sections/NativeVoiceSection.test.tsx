@@ -629,3 +629,61 @@ describe('NativeVoiceSection', () => {
     });
   });
 });
+
+// Reported 2026-09-18. `ttsVoice` is ONE global setting shared by every TTS
+// model, and switching models rewrites only `selections[dir].tts.modelId` --
+// so the stored selection routinely belongs to the model you just left. The
+// displayed selection used to be `selected || defaultTtsVoice(...)`, a falsy
+// check, so a non-empty foreign id stayed truthy and reached VoicePicker's
+// `selected?.label ?? selectedId`, which printed it verbatim.
+describe('a selection left behind by the previous TTS model', () => {
+  it('does not print a moss clip id under supertonic, which has no custom voices', async () => {
+    render(
+      <NativeVoiceSection
+        {...baseProps}
+        capability={{ builtin: 'named', custom: 'none' }}
+        store={null}
+        builtinVoices={[{ name: 'F4', language: 'en', curated: true, unstable: false, default: true }]}
+        selected="custom:21"
+        ttsModelId="supertonic-3"
+      />,
+    );
+    const trigger = await screen.findByRole('button', { expanded: false });
+    expect(trigger).not.toHaveTextContent('custom:21');
+    expect(trigger).toHaveTextContent('F4');
+  });
+
+  it('does not print a supertonic preset id under moss, which has no presets', async () => {
+    render(
+      <NativeVoiceSection
+        {...baseProps}
+        capability={{ builtin: 'none', custom: 'clip' }}
+        store={storeWithClip()}
+        builtinVoices={[]}
+        selected="builtin:F4"
+        ttsModelId="moss_tts_nano"
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByRole('button', { expanded: false })).toHaveTextContent('MyClone');
+    });
+    expect(screen.getByRole('button', { expanded: false })).not.toHaveTextContent('builtin:F4');
+  });
+
+  it('leaves the stored value alone, so switching back restores the choice', async () => {
+    const onSelect = vi.fn();
+    render(
+      <NativeVoiceSection
+        {...baseProps}
+        capability={{ builtin: 'named', custom: 'none' }}
+        store={null}
+        builtinVoices={[{ name: 'F4', language: 'en', curated: true, unstable: false, default: true }]}
+        selected="custom:21"
+        ttsModelId="supertonic-3"
+        onSelect={onSelect}
+      />,
+    );
+    await screen.findByRole('button', { expanded: false });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});

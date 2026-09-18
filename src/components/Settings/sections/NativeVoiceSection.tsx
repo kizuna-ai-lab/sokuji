@@ -4,12 +4,15 @@ import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import type { VoiceLibraryCapability } from '../../../types/VoiceLibrary';
 import {
   curatedBuiltinVoices,
-  defaultTtsVoice,
   eligibleCustomVoices,
   requiresVoiceClip,
   supportsLanguage,
   type VoiceCapability,
 } from '../../../lib/local-inference/native/nativeCatalog';
+// The selection shown on the picker is resolved by the SAME function the
+// client applies at session start, so the panel cannot claim a voice the
+// engine will not use.
+import { reconcileTtsVoice } from '../../../lib/local-inference/native/nativeTtsVoiceReconciliation';
 import type { NativeVoiceInfo } from '../../../lib/local-inference/native/nativeProtocol';
 import {
   validateVoiceClip, MIN_CLIP_SECONDS, MAX_CLIP_SECONDS, VoiceCaptureError,
@@ -429,12 +432,33 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
   // even though their voice shape is identical. Same eligibility filter as the pickable list
   // above (transcriptRequired models don't count a clip with no transcript),
   // so this banner and the dropdown's actual contents never disagree.
-  const eligibleCustomVoiceCount =
-    eligibleCustomVoices(customVoices, capability.transcriptRequired).length;
+  const eligibleCustom = eligibleCustomVoices(customVoices, capability.transcriptRequired);
+  const eligibleCustomVoiceCount = eligibleCustom.length;
   const needsClipBeforeUse = requiresVoiceClip(capability) && eligibleCustomVoiceCount === 0;
 
-  // Reconcile for display: an empty choice shows the language default as selected.
-  const selectedId = selected || defaultTtsVoice(targetLanguage, builtinVoices);
+  // Reconcile for display, through the SAME function the client applies at
+  // session start (LocalNativeClient) — so the name on the picker is the voice
+  // that will actually speak.
+  //
+  // This was `selected || defaultTtsVoice(...)`, a falsy check, which only
+  // ever caught an EMPTY selection. `ttsVoice` is one global setting shared by
+  // every TTS model, and switching models rewrites only
+  // `selections[dir].tts.modelId` — so a non-empty selection belonging to the
+  // previous model stayed truthy, sailed through, and reached VoicePicker's
+  // `selected?.label ?? selectedId`, which printed it raw: `custom:21` after
+  // moss -> supertonic, `builtin:F4` after supertonic -> moss.
+  //
+  // Deliberately does NOT write the setting back. The stored value stays as
+  // the user left it, so switching back to the model it belongs to restores
+  // their choice instead of having silently destroyed it.
+  const selectedId = reconcileTtsVoice(
+    selected,
+    eligibleCustom.map((v) => v.id),
+    targetLanguage,
+    builtinVoices,
+    capability.custom !== 'none',
+    capability.builtin === 'named',
+  );
   // Only widen the capability object when the model actually requires a
   // transcript — other models' store.capability objects (MOSS, Supertonic,
   // WASM local-inference) pass through unchanged so VoiceLibrarySection's

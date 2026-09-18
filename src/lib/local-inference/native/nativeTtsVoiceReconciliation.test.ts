@@ -51,3 +51,49 @@ it('R35: a clone-only family (no builtin voices) falls back to the first eligibl
   // reaching here in practice) — still degrades to '' rather than throwing.
   expect(reconcileTtsVoice('custom:99', [], 'en', [], true)).toBe('');
 });
+
+// Reported 2026-09-18: select a moss clone (custom:21), switch the TTS model
+// to supertonic, and the picker showed the raw string `custom:21`. supertonic
+// has NO custom-voice store, so that id is another model's id space arriving
+// through the single global `ttsVoice` setting — the `!hasCustom` early return
+// used to trust it and hand it straight back.
+//
+// The runtime was not crashing, which is why this survived: LocalNativeClient
+// applies a `custom:` id only `&& voiceStore`, and supertonic's store is null,
+// so it silently fell through to "send nothing, speaker 0". The UI said one
+// thing and the engine did another.
+it('drops another model\'s custom id when this model has no custom support', () => {
+  const f4 = [{ name: 'F4', default: true } as any];
+  expect(reconcileTtsVoice('custom:21', [], 'en', f4, false, true)).toBe('builtin:F4');
+});
+
+// The same hole in the other direction: a builtin name from a previous model
+// reaching a no-custom model. Validated against the loaded list, exactly as it
+// already is for custom-capable models.
+it('drops another model\'s builtin name when this model has no custom support', () => {
+  const f4 = [{ name: 'F4', default: true } as any];
+  expect(reconcileTtsVoice('builtin:eponine', [], 'en', f4, false, true)).toBe('builtin:F4');
+});
+
+// Guard for the fix, not the bug: `sid:n` and '' ARE this model's own id
+// space, and an unloaded (empty) voice list still cannot distinguish
+// "unknown name" from "not loaded yet". Both must keep passing through.
+it('still passes through a no-custom model\'s own id space', () => {
+  expect(reconcileTtsVoice('sid:3', [], 'en', [{ name: 'F4', default: true } as any], false)).toBe('sid:3');
+  expect(reconcileTtsVoice('', [], 'en', [{ name: 'F4', default: true } as any], false)).toBe('');
+  expect(reconcileTtsVoice('builtin:F4', [], 'en', [], false)).toBe('builtin:F4');
+});
+
+// `ttsVoice` is typed `string`, but NativeVoiceSection's `selected` reaches
+// this function as undefined from a settings object that has no such field
+// yet (LocalNativeClient only avoids it by passing `config.ttsVoice ?? ''`).
+// The first version of the namespace reordering read the string before
+// checking it and crashed the settings panel with "Cannot read properties of
+// undefined (reading 'startsWith')" -- caught only by the FULL suite, since
+// this file's own cases all pass a string.
+it('tolerates a nullish stored voice from a partially populated settings object', () => {
+  const named = [{ name: 'Ava', default: true } as any];
+  expect(reconcileTtsVoice(undefined as any, [], 'en', named, false)).toBe('');
+  expect(reconcileTtsVoice(undefined as any, [], 'en', named, true)).toBe('builtin:Ava');
+  expect(reconcileTtsVoice(undefined as any, [7], 'en', [], true)).toBe('custom:7');
+});
