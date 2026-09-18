@@ -927,7 +927,7 @@
     "filterCount": "{shown} de {total}",
     "importError": "Error al importar: {error}",
     "importVoice": "Importar voz…",
-    "myVoices": "Mis Voces",
+    "myVoices": "Voces personalizadas",
     "play": "Reproducir",
     "presets": "Preajustes",
     "previewChargedToBalance": "La vista previa sintetiza una breve muestra y se cobra a tu saldo de cuenta.",

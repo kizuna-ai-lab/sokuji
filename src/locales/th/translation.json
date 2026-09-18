@@ -927,7 +927,7 @@
     "filterCount": "{shown} จาก {total}",
     "importError": "นำเข้าไม่สำเร็จ: {error}",
     "importVoice": "นำเข้าเสียง…",
-    "myVoices": "เสียงของฉัน",
+    "myVoices": "เสียงที่กำหนดเอง",
     "play": "เล่น",
     "presets": "พรีเซ็ต",
     "previewChargedToBalance": "การฟังตัวอย่างจะสังเคราะห์คลิปสั้น ๆ และจะถูกเรียกเก็บจากยอดคงเหลือในบัญชีของคุณ",

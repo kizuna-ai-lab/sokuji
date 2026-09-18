@@ -927,7 +927,7 @@
     "filterCount": "{shown} sur {total}",
     "importError": "Échec de l'importation : {error}",
     "importVoice": "Importer une voix…",
-    "myVoices": "Mes voix",
+    "myVoices": "Voix personnalisées",
     "play": "Lire",
     "presets": "Préréglages",
     "previewChargedToBalance": "L'écoute d'un aperçu synthétise un court échantillon et est facturée sur le solde de votre compte.",

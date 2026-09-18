@@ -1192,7 +1192,7 @@
     "filterCount": "{shown} of {total}",
     "importError": "Import failed: {error}",
     "importVoice": "Import voice…",
-    "myVoices": "My Voices",
+    "myVoices": "Custom voices",
     "play": "Play",
     "presets": "Presets",
     "previewChargedToBalance": "Previewing synthesizes a short sample and is charged to your account balance.",

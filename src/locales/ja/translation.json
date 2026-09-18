@@ -927,7 +927,7 @@
     "filterCount": "{total}件中{shown}件",
     "importError": "インポートに失敗しました: {error}",
     "importVoice": "音声をインポート…",
-    "myVoices": "マイ音声",
+    "myVoices": "カスタム音声",
     "play": "再生",
     "presets": "プリセット",
     "previewChargedToBalance": "試聴すると短いサンプルが合成され、アカウントの残高から差し引かれます。",

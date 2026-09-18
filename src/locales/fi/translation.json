@@ -927,7 +927,7 @@
     "filterCount": "{shown}/{total}",
     "importError": "Tuonti epäonnistui: {error}",
     "importVoice": "Tuo ääni…",
-    "myVoices": "Omat äänet",
+    "myVoices": "Mukautetut äänet",
     "play": "Toista",
     "presets": "Esiasetukset",
     "previewChargedToBalance": "Esikatselun kuunteleminen synteesoi lyhyen näytteen ja veloitetaan tililtäsi.",

@@ -927,7 +927,7 @@
     "filterCount": "{shown} z {total}",
     "importError": "Import nie powiódł się: {error}",
     "importVoice": "Importuj głos…",
-    "myVoices": "Moje Głosy",
+    "myVoices": "Niestandardowe Głosy",
     "play": "Odtwórz",
     "presets": "Presety",
     "previewChargedToBalance": "Odsłuchanie podglądu generuje krótką próbkę i jest rozliczane z salda Twojego konta.",

@@ -927,7 +927,7 @@
     "filterCount": "{shown} sa {total}",
     "importError": "Nabigo ang pag-import: {error}",
     "importVoice": "Mag-import ng boses…",
-    "myVoices": "Aking mga Boses",
+    "myVoices": "Mga Custom na Boses",
     "play": "I-play",
     "presets": "Mga Preset",
     "previewChargedToBalance": "Ang pag-preview ay gumagawa ng maikling sample at sinisingil sa balanse ng iyong account.",

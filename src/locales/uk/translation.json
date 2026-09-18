@@ -927,7 +927,7 @@
     "filterCount": "{shown} з {total}",
     "importError": "Помилка імпорту: {error}",
     "importVoice": "Імпортувати голос…",
-    "myVoices": "Мої голоси",
+    "myVoices": "Користувацькі голоси",
     "play": "Відтворити",
     "presets": "Пресети",
     "previewChargedToBalance": "Прослуховування прев'ю синтезує короткий зразок і списується з балансу вашого акаунта.",

@@ -927,7 +927,7 @@
     "filterCount": "{shown} van {total}",
     "importError": "Importeren mislukt: {error}",
     "importVoice": "Stem importeren…",
-    "myVoices": "Mijn stemmen",
+    "myVoices": "Aangepaste stemmen",
     "play": "Afspelen",
     "presets": "Presets",
     "previewChargedToBalance": "Het beluisteren van een voorbeeld synthetiseert een kort fragment en wordt van uw accountsaldo afgeschreven.",

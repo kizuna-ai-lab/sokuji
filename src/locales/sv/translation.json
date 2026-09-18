@@ -927,7 +927,7 @@
     "filterCount": "{shown} av {total}",
     "importError": "Importen misslyckades: {error}",
     "importVoice": "Importera röst…",
-    "myVoices": "Mina röster",
+    "myVoices": "Anpassade röster",
     "play": "Spela upp",
     "presets": "Förinställningar",
     "previewChargedToBalance": "Att lyssna på en förhandsgranskning syntetiserar ett kort ljudklipp och debiteras ditt kontosaldo.",

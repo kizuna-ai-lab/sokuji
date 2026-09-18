@@ -819,7 +819,7 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
             onKeyDown={onGridKeyDown}
           >
             <div role="row" className="voice-pop__group">
-              <div role="columnheader">{t('voiceLibrary.myVoices', 'My Voices')}</div>
+              <div role="columnheader">{t('voiceLibrary.myVoices', 'Custom voices')}</div>
             </div>
             {onAddVoice && (
               <div role="row" className="voice-row voice-row--add">

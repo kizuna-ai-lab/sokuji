@@ -927,7 +927,7 @@
     "filterCount": "{shown}/{total}",
     "importError": "İçe aktarma başarısız: {error}",
     "importVoice": "Ses içe aktar…",
-    "myVoices": "Seslerim",
+    "myVoices": "Özel sesler",
     "play": "Oynat",
     "presets": "Hazır ayarlar",
     "previewChargedToBalance": "Önizlemeyi dinlemek kısa bir örnek sentezler ve hesap bakiyenizden düşülür.",

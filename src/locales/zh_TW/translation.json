@@ -927,7 +927,7 @@
     "filterCount": "{total} 個中的 {shown} 個",
     "importError": "匯入失敗：{error}",
     "importVoice": "匯入語音…",
-    "myVoices": "我的語音",
+    "myVoices": "自訂語音",
     "play": "播放",
     "presets": "預設語音",
     "previewChargedToBalance": "試聽會合成一小段樣本，並從您的帳戶餘額中扣款。",

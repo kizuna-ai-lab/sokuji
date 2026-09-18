@@ -927,7 +927,7 @@
     "filterCount": "{shown} von {total}",
     "importError": "Import fehlgeschlagen: {error}",
     "importVoice": "Stimme importieren…",
-    "myVoices": "Meine Stimmen",
+    "myVoices": "Benutzerdefinierte Stimmen",
     "play": "Abspielen",
     "presets": "Voreinstellungen",
     "previewChargedToBalance": "Das Anhören einer Vorschau synthetisiert eine kurze Hörprobe und wird von Ihrem Kontoguthaben abgebucht.",
