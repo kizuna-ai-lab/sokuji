@@ -140,6 +140,11 @@ const closeHandshake = createCloseHandshake({ quitApp: () => app.quit() });
 ipcMain.handle('app:close-ready', () => {
   closeHandshake.ready();
 });
+// Only a running or tearing-down session holds a close: anything else (the
+// setup wizard, a loading page) has nothing to save and may never answer.
+ipcMain.handle('app:session-busy', (event, busy) => {
+  closeHandshake.setSessionBusy(busy === true);
+});
 
 // sandbox-recovery relaunches via app.exit(), which skips before-quit/will-quit,
 // so it must run the sidecar teardown itself or the native sidecar orphans and

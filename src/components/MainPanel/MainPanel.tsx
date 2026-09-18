@@ -1929,6 +1929,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // not find this same, already-finished teardown.
       disconnectDoneRef.current = null;
       markDisconnectDone();
+      // Desktop: the session is over, save included, so a close or quit need
+      // no longer wait for it. Sent here, not when isSessionActive turns
+      // false: that happens at the start of this teardown.
+      if (isElectron()) void window.electron.invoke('app:session-busy', false);
     }
   }, [refetchAll, setIsReconnecting, showToast]);
 
@@ -1938,6 +1942,13 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     disconnectConversationRef.current = disconnectConversation;
   }, [disconnectConversation]);
+
+  // Desktop: the main process holds a close or quit only while a session is
+  // busy. Busy starts here; it ends at the close of disconnectConversation,
+  // after the save, since this value turns false as the teardown begins.
+  useEffect(() => {
+    if (isElectron() && isSessionActive) void window.electron.invoke('app:session-busy', true);
+  }, [isSessionActive]);
 
   // Desktop: closing the window (or quitting) mid-session ends the session
   // first, so its final lines are captured and auto-saved like any other Stop.

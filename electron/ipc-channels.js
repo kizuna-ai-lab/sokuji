@@ -93,6 +93,8 @@ export const INVOKE_CHANNELS = [
   'transcript:save',
   // Window-close handshake: the renderer has ended its session.
   'app:close-ready',
+  // Window-close handshake: whether a session is running or tearing down.
+  'app:session-busy',
   // Externally-registered (electron-audio-loopback)
   ...EXTERNAL_INVOKE_CHANNELS,
 ];

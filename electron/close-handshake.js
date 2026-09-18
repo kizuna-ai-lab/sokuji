@@ -6,6 +6,11 @@
 // the renderer to end its session, and lets the close through when the
 // renderer answers — or after a timeout, so a hung teardown can never leave a
 // window that will not close.
+//
+// The hold applies only while the renderer reports a session as running or
+// tearing down ('app:session-busy'). Anything else — the setup wizard, a page
+// still loading, an error screen, an idle main panel — closes at once: there is
+// nothing to save, and there may be no listener to answer.
 const DEFAULT_TIMEOUT_MS = 5000;
 
 function createCloseHandshake({
@@ -17,6 +22,7 @@ function createCloseHandshake({
   let win = null;
   let state = 'idle'; // 'idle' | 'waiting' | 'approved'
   let quitPending = false;
+  let sessionBusy = false;
   let timer = null;
 
   const hasLivePage = () =>
@@ -44,7 +50,7 @@ function createCloseHandshake({
       if (quit) quitPending = true;
       return false;
     }
-    if (!hasLivePage()) return true;
+    if (!hasLivePage() || !sessionBusy) return true;
     event.preventDefault();
     state = 'waiting';
     quitPending = quit;
@@ -54,7 +60,7 @@ function createCloseHandshake({
   }
 
   return {
-    /** A new main window starts a fresh handshake. */
+    /** A new main window starts a fresh handshake, and a fresh page is idle. */
     attachWindow(nextWin) {
       if (timer) {
         clearTimer(timer);
@@ -63,6 +69,7 @@ function createCloseHandshake({
       win = nextWin;
       state = 'idle';
       quitPending = false;
+      sessionBusy = false;
     },
     /** The main window's 'close' listener. */
     onWindowClose(event) {
@@ -75,6 +82,10 @@ function createCloseHandshake({
     /** The renderer has ended its session ('app:close-ready'). */
     ready() {
       finish();
+    },
+    /** The renderer's session is running or tearing down ('app:session-busy'). */
+    setSessionBusy(busy) {
+      sessionBusy = !!busy;
     },
   };
 }

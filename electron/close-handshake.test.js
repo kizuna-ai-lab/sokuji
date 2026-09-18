@@ -40,6 +40,9 @@ beforeEach(() => {
 });
 
 describe('close handshake', () => {
+  // Every case here runs mid-session; see 'only while a session is busy' below.
+  beforeEach(() => hs.setSessionBusy(true));
+
   it('holds a close, asks the renderer, and closes once it answers', () => {
     const e = event();
     hs.onWindowClose(e);
@@ -109,6 +112,7 @@ describe('close handshake', () => {
     hs.ready();
     const next = fakeWindow();
     hs.attachWindow(next);
+    hs.setSessionBusy(true);
     const e = event();
     hs.onWindowClose(e);
     expect(e.preventDefault).toHaveBeenCalled();
@@ -119,5 +123,39 @@ describe('close handshake', () => {
     hs.ready();
     expect(win.close).not.toHaveBeenCalled();
     expect(quitApp).not.toHaveBeenCalled();
+  });
+});
+
+describe('only while a session is busy', () => {
+  // The setup wizard, a loading page, an error screen and an idle main panel
+  // have nothing to save and may have no listener to answer.
+  it('lets a close and a quit through at once when no session is busy', () => {
+    const close = event();
+    hs.onWindowClose(close);
+    const quit = event();
+    expect(hs.onBeforeQuit(quit)).toBe(true);
+    expect(close.preventDefault).not.toHaveBeenCalled();
+    expect(quit.preventDefault).not.toHaveBeenCalled();
+    expect(win.sent).toEqual([]);
+    expect(timer).toBeNull();
+  });
+
+  it('stops holding once the renderer reports the session over', () => {
+    hs.setSessionBusy(true);
+    hs.setSessionBusy(false);
+    const e = event();
+    expect(hs.onBeforeQuit(e)).toBe(true);
+    expect(e.preventDefault).not.toHaveBeenCalled();
+    expect(win.sent).toEqual([]);
+  });
+
+  it('a new window starts idle, whatever the old page reported', () => {
+    hs.setSessionBusy(true);
+    const next = fakeWindow();
+    hs.attachWindow(next);
+    const e = event();
+    hs.onWindowClose(e);
+    expect(e.preventDefault).not.toHaveBeenCalled();
+    expect(next.sent).toEqual([]);
   });
 });
