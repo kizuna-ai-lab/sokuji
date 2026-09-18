@@ -700,9 +700,59 @@ streaming ASR, whose partials the stage can seal mid-utterance.
 |---|---|---|
 | offline ASR (qwen3-asr) + stage | three sentences | after the utterance ends — up to 20 s |
 | voxtral before `037d4842` | one sentence, words cut | immediately |
-| voxtral after `037d4842` | three sentences (expected) | as soon as three sentences exist |
+| voxtral after `037d4842` | three sentences | mid-utterance — see below |
 
-The last row is the design's prediction. It has not been run yet.
+### After the fix: the slice does what it was built for
+
+voxtral re-run on the same broadcast, N = 3. The event order inside the first
+utterance is the proof, and it needs no timestamps:
+
+```
+partial            "… 10,000 pages of writings. Police say"
+translation.start  sourceText = three complete sentences     <- the seal
+partial            "… identified 58 people in the photos and videos"
+translation.end    "这是我们目前所知道的情况。调查人员从一处住宅…"   <- Chinese on screen
+partial            "… including at least four,"
+asr.end            durationMs: 20815                          <- utterance ends here
+```
+
+**The translation was on screen while the speaker was still talking.** That is
+the handover's bar, and an offline ASR cannot reach it by construction.
+
+Five utterances, each sealing one exactly-three-sentence chunk plus an `end()`
+remainder — eleven chunks in all, **every seal landing on a sentence terminal
+and not one opening mid-word**.
+
+### What the fix did not touch: the 20 s wall
+
+All the remaining damage is at utterance boundaries, where the audio is cut
+mid-word and the decoder guesses at the fragment:
+
+| spoken | transcribed | lost |
+|---|---|---|
+| …who, quote, **appear** lifeless | `You're lifeless.` | appear → You're |
+| …sparked back **in June** | split across two utterances | — |
+| a former **NYPD**, Intel… | `Intel and counterterrorism…` | NYPD |
+| **Going** through all that metadata | `went through all that metadata` | Going → went |
+
+`Going` is instructive: before the fix the punctuation endpoint deleted it,
+after the fix the 20 s wall garbles it. Two different defects landing on the
+same word.
+
+`maxSpeechDuration` is **never set anywhere in `src/`** — eight workers read
+`vadConfig?.maxSpeechDuration ?? 20` and the only other mention is the type
+field at `types.ts:28`. Twenty seconds is an unfilled wire field's default, not
+a decision. A continuous speaker is therefore always cut at 20 s, mid-word.
+
+One hook already exists for the text half of this: `confirmedBoundary()`
+(`SentenceStream.ts:126`) returns the latest counted sentence end and its
+comment says "a later slice uses it to land a hard span cap on a real boundary
+instead of mid-word". It has test callers only. It does not solve the audio
+cut, which is where the words are actually lost.
+
+The trailing `but nowished` in this run is a different thing again: the partials
+go `"…but now"` → `"…but nowished"` in one step, so the decoder emitted the
+fragment itself after the session was disconnected mid-audio. Not a cut.
 
 ### Which ASR actually punctuates
 
@@ -720,10 +770,7 @@ It does not. Every other model on that list is still unverified.
 
 ### Still open
 
-- **Re-run voxtral after `037d4842`.** The fix is tested at the unit level and
-  unobserved live.
-- **The 20 s wall.** `maxSpeechDuration` is never sent by the client, so a
-  continuous speaker is always cut at 20 s rather than at anything chosen.
-  Worth deciding deliberately instead of inheriting the worker default.
+- **The 20 s wall is now the largest remaining defect on this path**, and the
+  only one still costing whole words. See the section above.
 - **Local Native** (step 4 of the task) needs `npm run sidecar:setup`; not run.
 - **Chinese source** was not exercised here; these findings are English only.
