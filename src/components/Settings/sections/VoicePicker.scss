@@ -53,6 +53,16 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  // A font baseline is load-bearing here, not tidiness. This element is
+  // rendered through `FloatingPortal` into `document.body`, and `index.scss`'s
+  // `body` rule sets a font-FAMILY and no font-size — so the browser default
+  // (16px) is what anything inside inherits. Every other element in this
+  // popover pins its own size (13/12/11/10px), which hid the problem; but
+  // `.voice-row__add` uses `font: inherit` and has no sized child, so it alone
+  // rendered at 16px against the 13px row names beside it. Measured: +3px,
+  // +23%. Pinning the container is the fix that also protects the next element
+  // someone adds without a font-size.
+  font-size: vars.$font-body;
   background: vars.$bg-surface;
   border: 1px solid vars.$border-default;
   border-radius: vars.$radius-md;
@@ -66,26 +76,47 @@
 // Task 3 "Global Constraints" note and voiceFacetStyles.test.ts, which pins
 // the section's copy independently of this one.
 
+// Grid, not wrapping flex — this restores the pre-redesign layout model and
+// the reason the original gave for it: "with five fields, flex-wrap leaves the
+// last one alone on its row stretched to full width, which reads as a
+// different kind of control." The redesign had replaced it with
+// `flex-wrap` + `flex: 1 1 30%` and deleted that comment, and the warning came
+// true — measured at a 300px panel in a 1280px window, the first row held
+// three 184px controls and the orphan row held two stretched to 279px.
+// auto-fit keeps every control the same width and lets the "Clear filters"
+// button (a direct child of this container) sit as an ordinary cell beside
+// them rather than claiming a row of its own.
 .voice-pop__facets {
-  display: flex;
-  gap: 6px;
-  padding: 8px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 5px;
+  padding: 7px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid vars.$border-subtle;
 }
 
-.voice-pop__facet {
-  flex: 1 1 30%;
+// TWO classes deliberately, exactly as the pre-redesign rule was written
+// (`.voice-facet-bar .voice-facet-select`) and for the reason its comment
+// gave: this element also carries `.select-dropdown`, which sets
+// `font-size: $font-title` (14px). A single-class `.voice-pop__facet` ties on
+// specificity, so emission order decides — and it was LOSING: the control
+// rendered at 14px while this rule asked for 12px. The redesign had flattened
+// the selector and dropped the comment. Raising specificity back is what makes
+// the size here actually apply.
+//
+// Five of these share the width one voice picker gets, so they run smaller
+// than a standard select on purpose.
+.voice-pop .voice-pop__facet {
   min-width: 0;
-  padding: 4px 22px 4px 8px;
-  font-size: 12px;
-  background-position: right 7px center;
-  background-size: 10px;
+  padding: 3px 19px 3px 7px;
+  font-size: 11px;
+  background-position: right 6px center;
+  background-size: 9px;
 }
 
 .voice-pop__clear {
-  flex: none;
+  // No `flex` declaration: the parent is a grid, so this is a grid item and a
+  // flex shorthand here would be inert. It takes an ordinary cell.
   padding: 2px 0;
   font-size: 11px;
   background: transparent;
