@@ -65,6 +65,15 @@ describe('keepRowsDroppedOnDisconnect', () => {
     expect(out[0]).toBe(final);
   });
 
+  it('keeps the original order when a client drops only some rows', () => {
+    // No createdAt, so the later stable sort in mergeConversationItems cannot
+    // repair an order this function gets wrong.
+    const first = item('first');
+    const second = item('second');
+    const out = keepRowsDroppedOnDisconnect([first, second], [first]);
+    expect(out.map(i => i.id)).toEqual(['first', 'second']);
+  });
+
   it('appends a row that only appears after disconnect()', () => {
     const out = keepRowsDroppedOnDisconnect([item('a', 1)], [item('a', 1), item('b', 2)]);
     expect(out.map(i => i.id)).toEqual(['a', 'b']);

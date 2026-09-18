@@ -51,11 +51,19 @@ export function mergeConversationItems(
  * items in disconnect(), so reading only afterwards would save an empty
  * transcript and blank the stopped view. A row present both times
  * keeps its later version, which disconnect() may have finalized.
+ *
+ * Rows stay in their pre-disconnect order, with rows that only appear
+ * afterwards appended: createdAt is optional, so the later sort cannot be
+ * relied on to repair an order this gets wrong.
  */
 export function keepRowsDroppedOnDisconnect(
   before: ConversationItem[],
   after: ConversationItem[],
 ): ConversationItem[] {
-  const afterIds = new Set(after.map(item => item.id));
-  return [...before.filter(item => !afterIds.has(item.id)), ...after];
+  const afterById = new Map(after.map(item => [item.id, item]));
+  const beforeIds = new Set(before.map(item => item.id));
+  return [
+    ...before.map(item => afterById.get(item.id) ?? item),
+    ...after.filter(item => !beforeIds.has(item.id)),
+  ];
 }
