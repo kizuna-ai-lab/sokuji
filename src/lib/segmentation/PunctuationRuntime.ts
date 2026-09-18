@@ -18,6 +18,7 @@ import { WorkerSession } from '../local-inference/engine/WorkerSession';
 import { RequestRegistry } from '../local-inference/engine/RequestRegistry';
 import { ModelManager } from '../local-inference/ModelManager';
 import { checkWebGPU } from '../../utils/webgpu';
+import { skeleton } from './sentenceEnd';
 import { baseLang } from './sentenceEnd';
 import { createPunctuationWorker } from './createPunctuationWorker';
 import type {
@@ -83,6 +84,17 @@ export interface PunctuationRuntimeOptions {
   onDownloadProgress?(model: PunctuationModelId, percent: number): void;
   /** Reported once per model load, for the segmentation_model_load event. */
   onLoaded?(model: PunctuationModelId, backend: 'webgpu' | 'wasm', loadMs: number): void;
+  /**
+   * One successful inference. The only window onto the two things that
+   * silently stop this stage sealing: how slow the model is (the 500 ms
+   * median budget disables it for the rest of the session after three
+   * samples) and whether its answer can even be used (`skeletonOk` is the
+   * invariant SentenceStream applies before it will seal on one). Counts and
+   * timings only — no transcript text.
+   */
+  onInference?(model: PunctuationModelId, info: {
+    ms: number; ends: number; breaks: number; skeletonOk: boolean;
+  }): void;
 }
 
 /** Debug override lets a tester simulate a small machine the same way
@@ -360,7 +372,14 @@ export class PunctuationRuntime implements SegmentationRuntime {
         return null;
       }
       state.consecutiveFailures = 0;
-      this.recordLatency(model, Date.now() - startedAt);
+      const ms = Date.now() - startedAt;
+      this.opts.onInference?.(model, {
+        ms,
+        ends: outcome.sentenceEnds.length,
+        breaks: outcome.breakpoints.length,
+        skeletonOk: skeleton(outcome.text) === skeleton(text),
+      });
+      this.recordLatency(model, ms);
       return outcome;
     } catch {
       clearTimeout(timer!);
@@ -388,12 +407,13 @@ export class PunctuationRuntime implements SegmentationRuntime {
     const state = this.models[model];
     state.latencies.push(ms);
     if (state.latencies.length > LATENCY_WINDOW) state.latencies.shift();
-    if (
-      state.latencies.length >= LATENCY_MIN_SAMPLES
-      && median(state.latencies) > LATENCY_BUDGET_MS
-    ) {
+    const med = median(state.latencies);
+    if (state.latencies.length >= LATENCY_MIN_SAMPLES && med > LATENCY_BUDGET_MS) {
       state.status = 'disabled';
-      this.opts.onStatus?.(model, 'disabled', 'too slow');
+      // The number belongs in the reason: "too slow" alone leaves whoever
+      // reads it unable to tell a model that missed by 20 ms from one that
+      // missed by 2 s, and the two want opposite fixes.
+      this.opts.onStatus?.(model, 'disabled', `too slow (median ${Math.round(med)}ms > ${LATENCY_BUDGET_MS}ms)`);
       this.releaseModel(model);
     }
   }

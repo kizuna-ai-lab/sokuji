@@ -126,6 +126,51 @@ describe('SentenceStream sealing', () => {
     expect(seals[0].text.length).toBe(96);
   });
 
+  it('seals Chinese at a comma the MODEL supplied when the raw tail has none', async () => {
+    const seals: SealedChunk[] = [];
+    const pendings: string[] = [];
+    // The case the fallback exists for and the one the test above does NOT
+    // cover: an ASR that emits no punctuation at all, so every comma in
+    // existence is one the model just inserted. 14 x 8 = 112 raw characters,
+    // past zhFallbackChars(3) = 100, and the answer carries commas but no
+    // sentence end, exactly FireRedPunc's under-emission.
+    const raw = '第一段内容很长的'.repeat(14);
+    const marked = '第一段内容很长的，'.repeat(14);
+    const breaks = Array.from({ length: 14 }, (_, i) => (i + 1) * 9);
+    const { runtime } = fakeRuntime({ [raw]: resultOf(marked, [], breaks) });
+    const stream = new SentenceStream({
+      lang: 'zh', runtime, sentencesPerChunk: 3,
+      onSeal: (c) => seals.push(c), onPending: (t) => pendings.push(t),
+    });
+    stream.update(raw);
+
+    await vi.waitFor(() => expect(seals.length).toBe(1));
+    expect(seals[0].reason).toBe('length');
+    // The last comma with RIGHT_CONTEXT_CHARS of text after it: offset 126 has
+    // none, 117 has exactly 8.
+    expect(seals[0].text).toBe('第一段内容很长的，'.repeat(13));
+    // The remainder is RAW — the cursor advanced by characters consumed, not
+    // by the longer sealed text, so no speech is swallowed and no comma the
+    // model invented is shown as though the ASR had produced it.
+    expect(pendings[pendings.length - 1]).toBe('第一段内容很长的');
+  });
+
+  it('does not apply the fallback to a language outside it, however the model marks the text', async () => {
+    const seals: SealedChunk[] = [];
+    // 160 characters, past gateChars('en', 3) = 150 so the model is called at
+    // all, and its answer is all commas and no sentence end.
+    const raw = 'this clause runs on and on '.repeat(6);
+    const marked = 'this clause runs on and on, '.repeat(6);
+    const breaks = Array.from({ length: 6 }, (_, i) => (i + 1) * 28);
+    const { runtime } = fakeRuntime({ [raw]: resultOf(marked, [], breaks) });
+    const stream = new SentenceStream({
+      lang: 'en', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
+    });
+    stream.update(raw);
+    await flush();
+    expect(seals).toEqual([]);
+  });
+
   it('does not apply the Chinese length fallback to Japanese', async () => {
     const seals: SealedChunk[] = [];
     // 123 characters, past zhFallbackChars(3) = 100, and still carrying 、 —
