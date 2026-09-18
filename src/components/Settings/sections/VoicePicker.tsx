@@ -641,7 +641,14 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
               onBlur={() => void commitRename(v.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void commitRename(v.id);
-                if (e.key === 'Escape') closeRename();
+                if (e.key === 'Escape') {
+                  // Escape belongs to the rename while one is open. Without
+                  // this the SAME key press also reached `useDismiss`, whose
+                  // Escape handler is on the document and enabled by default,
+                  // so cancelling a rename closed the whole popover with it.
+                  e.stopPropagation();
+                  closeRename();
+                }
               }}
             />
             {renameError && (

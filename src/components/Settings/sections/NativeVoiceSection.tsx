@@ -22,6 +22,7 @@ import { VoiceImportError } from '../../../lib/local-inference/voiceStorage';
 import { createPreviewTts, type PreviewTtsHandle } from '../../../lib/local-inference/native/nativePreviewTts';
 import { resolvePreviewSample } from '../../../lib/tts/previewSample';
 import { previewCacheKey, getCachedPreview, setCachedPreview } from '../../../lib/tts/previewCache';
+import { reportError, describeCause } from '../../../lib/diagnostics/report';
 
 // The preview audition has no speed control of its own (unlike the session's
 // ttsSpeed slider) -- a neutral 1.0 keeps it simple and matches
@@ -216,7 +217,13 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     if (!Number.isFinite(numId)) return;
     try {
       await store.rename(numId, name);
-    } catch {
+    } catch (err) {
+      // Reported before the copy replaces it: the store rejects with raw
+      // internals ("Native voice 3 not found", or whatever IndexedDB raised),
+      // and throwing localized copy in its place would otherwise discard the
+      // only record of the cause. Same pairing as ModelManagementSection's
+      // rename, the other onRename owner.
+      reportError('NativeVoiceSection', `Failed to rename voice: ${describeCause(err)}`, { cause: err });
       // Same contract as handleImport/handleRecord: whatever surfaces the
       // failure renders the message verbatim, so the mapping has to happen
       // here. `captureErrorMessage` is wrong for this path — its fallback
@@ -323,10 +330,16 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
           text: sample.text,
           speed: PREVIEW_SPEED,
           voice: { kind: 'name', name },
+          signal,
         });
         setCachedPreview(cacheKey, result);
         return signal?.aborted ? null : result;
       } catch {
+        // An abort is the user's own doing (a newer preview, a closed
+        // popover) and now actively cancels the sidecar, so the rejection it
+        // can produce must not read as a failure. The clone branch below has
+        // always made this distinction; this branch did not.
+        if (signal?.aborted) return null;
         setCaptureError(t('voiceLibrary.previewFailed', 'Could not synthesize a preview for this voice.'));
         return null;
       } finally {
@@ -369,6 +382,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
         text: previewSample.text,
         speed: PREVIEW_SPEED,
         voice: { kind: 'clip', audio: clip.audio, sampleRate: clip.sampleRate, refText: payload?.transcript },
+        signal,
       });
       // Cache a successful result even if THIS request was superseded
       // meanwhile: the user already waited and the sidecar already spent the

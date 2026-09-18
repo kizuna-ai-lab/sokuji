@@ -90,3 +90,52 @@ describe('VoiceDeleteModal — focus', () => {
     await vi.waitFor(() => expect(opener).toHaveFocus());
   });
 });
+
+// Review finding (PR #542, 2026-09-18). Disabling Cancel and Delete while the
+// request is in flight closed one door of four: the Escape listener, the
+// backdrop and the header X all called `onClose()` unconditionally. The
+// parent clears `deleteTarget` on close, so this dialog unmounts mid-flight
+// and the rejection lands with no surface — exactly the failure that keeping
+// the dialog open was supposed to remove.
+describe('while the delete is in flight', () => {
+  /** A confirm that never settles, so the dialog stays busy for the test. */
+  const hangingConfirm = () => vi.fn(() => new Promise<void>(() => {}));
+
+  const startDelete = (onClose: () => void, onConfirm: () => Promise<void>) => {
+    render(<VoiceDeleteModal target={{ id: 'custom:1', label: 'Mine' }} onClose={onClose} onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+  };
+
+  it('ignores Escape', () => {
+    const onClose = vi.fn();
+    startDelete(onClose, hangingConfirm());
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('ignores a backdrop click', () => {
+    const onClose = vi.fn();
+    startDelete(onClose, hangingConfirm());
+    const overlay = document.querySelector('.voice-modal-overlay') as HTMLElement;
+    fireEvent.click(overlay);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('ignores the header close button', () => {
+    const onClose = vi.fn();
+    startDelete(onClose, hangingConfirm());
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  // The guard must be the IN-FLIGHT state, not a permanent lock: every exit
+  // works normally before a delete starts.
+  it('leaves all three working before a delete starts', () => {
+    const onClose = vi.fn();
+    render(<VoiceDeleteModal target={{ id: 'custom:1', label: 'Mine' }} onClose={onClose} onConfirm={vi.fn()} />);
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+    fireEvent.click(document.querySelector('.voice-modal-overlay') as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    expect(onClose).toHaveBeenCalledTimes(3);
+  });
+});

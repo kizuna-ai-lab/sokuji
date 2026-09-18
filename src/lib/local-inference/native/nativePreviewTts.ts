@@ -29,7 +29,7 @@ import { NativeTtsClient } from './NativeTtsClient';
  *  cast), and a `Pick` of its public methods sidesteps that without weakening
  *  what production code actually passes (`new NativeTtsClient()` satisfies
  *  this type for free, being a strict superset). */
-export type NativeTtsClientLike = Pick<NativeTtsClient, 'init' | 'setVoice' | 'setReferenceVoice' | 'generate' | 'dispose'>;
+export type NativeTtsClientLike = Pick<NativeTtsClient, 'init' | 'setVoice' | 'setReferenceVoice' | 'generate' | 'cancel' | 'dispose'>;
 
 /** The voice to preview with: a built-in voice selected by name, or a cloned
  *  voice built from a reference clip -- mirrors `NativeTtsClient.setVoice` /
@@ -54,6 +54,15 @@ export interface PreviewTtsHandle {
     text: string;
     speed: number;
     voice: PreviewVoice;
+    /** Abort from the caller (a newer preview superseded this one, the
+     *  popover closed, the component unmounted). Used to tell the SIDECAR to
+     *  stop, not merely to discard the result: without it the abandoned
+     *  synthesis ran to completion and every later preview queued behind it,
+     *  for up to the request budget. Partial by design — `tts_cancel` stops
+     *  STREAMING generation, so this shortens the wait for a streaming family
+     *  and is inert for a one-shot one, whose cancellation needs a sidecar
+     *  contract change (PR #542 review). */
+    signal?: AbortSignal;
   }): Promise<{ audio: Float32Array; sampleRate: number }>;
   /** Tear down the dedicated connection and drop the client. The GB-scale
    *  resident model is released sidecar-side; the next `synthesize()` opens a
@@ -94,9 +103,29 @@ async function applyVoice(client: NativeTtsClientLike, voice: PreviewVoice): Pro
  * which returns the whole buffer and never calls back.
  */
 async function synthesizeOnce(
-  client: NativeTtsClientLike, text: string, speed: number,
+  client: NativeTtsClientLike, text: string, speed: number, signal?: AbortSignal,
 ): Promise<{ audio: Float32Array; sampleRate: number }> {
   const chunks: Float32Array[] = [];
+  // Already abandoned before any work started — `synthesize` awaits `init`
+  // and `applyVoice` first, so an abort can easily land before this point.
+  // Starting the synthesis just to cancel it would spend the sidecar's time
+  // for a result nobody will read. Both callers map an aborted signal to
+  // null, so throwing here is the quiet path, not an error path.
+  if (signal?.aborted) throw new DOMException('Preview aborted', 'AbortError');
+  // Abandoning the RESULT is not abandoning the WORK: the sidecar keeps
+  // synthesising, and the next request queues behind it. Ask it to stop.
+  const onAbort = () => { client.cancel(); };
+  signal?.addEventListener('abort', onAbort, { once: true });
+  try {
+    return await collect(client, chunks, text, speed);
+  } finally {
+    signal?.removeEventListener('abort', onAbort);
+  }
+}
+
+async function collect(
+  client: NativeTtsClientLike, chunks: Float32Array[], text: string, speed: number,
+): Promise<{ audio: Float32Array; sampleRate: number }> {
   const result = await client.generate(text, speed, (pcm) => { chunks.push(pcm); });
   // The streaming branch hands every sample to `onChunk` and returns an EMPTY
   // `samples` carrying the engine's rate; the one-shot branch returns the
@@ -140,13 +169,13 @@ export function createPreviewTts(make: () => NativeTtsClientLike = () => new Nat
   }
 
   return {
-    async synthesize({ modelId, language, text, speed, voice }) {
+    async synthesize({ modelId, language, text, speed, voice, signal }) {
       if (!client) client = make();
       if (loadedModelId !== modelId || loadedLanguage !== language) await initFor(modelId, language);
       await applyVoice(client, voice);
 
       try {
-        return await synthesizeOnce(client, text, speed);
+        return await synthesizeOnce(client, text, speed, signal);
       } catch (err) {
         if (!isNotOwnerError(err)) throw err;
         // Recover exactly once: the sidecar may still record a just-closed
@@ -157,7 +186,7 @@ export function createPreviewTts(make: () => NativeTtsClientLike = () => new Nat
         // looping would hang the caller instead of surfacing that.
         await initFor(modelId, language);
         await applyVoice(client, voice);
-        return await synthesizeOnce(client, text, speed);
+        return await synthesizeOnce(client, text, speed, signal);
       }
     },
 

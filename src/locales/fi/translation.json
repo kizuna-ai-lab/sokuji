@@ -930,7 +930,7 @@
     "myVoices": "Mukautetut äänet",
     "play": "Toista",
     "presets": "Esiasetukset",
-    "previewChargedToBalance": "Esikatselun kuunteleminen synteesoi lyhyen näytteen ja veloitetaan tililtäsi.",
+    "previewChargedToBalance": "Esikatselu syntetisoi lyhyen näytteen, ja sen hinta veloitetaan saldostasi.",
     "previewFailed": "Tämän äänen esikatselua ei voitu luoda.",
     "renameFailed": "Tämän äänen nimeä ei voitu muuttaa.",
     "previewLanguageUnsupported": "Tällä mallilla ei ole esimerkkilausetta kielellä, jota se puhuu.",

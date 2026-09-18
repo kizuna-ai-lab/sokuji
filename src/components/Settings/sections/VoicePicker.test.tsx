@@ -678,3 +678,28 @@ describe('group headers with nothing under them', () => {
     expect(screen.getByRole('button', { name: /refresh/i })).toBeInTheDocument();
   });
 });
+
+// Review finding (PR #542, 2026-09-18), reproduced before fixing: one Escape
+// cancelled the rename AND closed the whole popover. `useDismiss` enables
+// Escape dismissal by default and listens on the document, so the input's own
+// handler ran first and the same native event carried on to floating-ui.
+describe('Escape while renaming', () => {
+  it('cancels the rename without closing the popover', () => {
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} onRename={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.click(screen.getByRole('button', { name: /rename/i }));
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Escape', code: 'Escape' });
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();   // rename cancelled
+    expect(screen.getByRole('grid')).toBeInTheDocument();            // popover survives
+  });
+
+  // The guard: Escape must still dismiss when NOT renaming. Scoping the
+  // rename input's key must not cost the popover its own Escape.
+  it('still closes the popover when no rename is open', () => {
+    render(<VoicePicker {...base} voices={[GRACE, MINE]} onRename={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    fireEvent.keyDown(screen.getByRole('grid'), { key: 'Escape', code: 'Escape' });
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+  });
+});

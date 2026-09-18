@@ -337,6 +337,11 @@ describe('NativeVoiceSection', () => {
         text: PREVIEW_SAMPLES.en,
         speed: 1,
         voice: { kind: 'clip', audio: new Float32Array([0.5, 0.6]), sampleRate: 16000, refText: 'hi' },
+        // The caller's abort signal is threaded through so an abandoned
+        // preview can CANCEL the sidecar's synthesis, not merely discard its
+        // result (PR #542 review). Asserted by shape rather than identity —
+        // what matters is that a real signal arrives, not which one.
+        signal: expect.any(AbortSignal),
       });
       await waitFor(() => expect(playedAudio()).toEqual(new Float32Array([0.25])));
     });

@@ -609,11 +609,15 @@ export function ModelManagementSection({
     if (dbKey === null) return;
     try {
       await voiceStorage.renameVoice(dbKey, newName);
-    } catch {
-      // The picker now renders a failed rename verbatim in the row, so the
-      // message has to be copy by the time it leaves here — `renameVoice`
-      // rejects with whatever IndexedDB raised. Same mapping as
-      // NativeVoiceSection.handleRename, which is the other onRename owner.
+    } catch (err) {
+      // Two surfaces, two audiences. The picker renders a failed rename
+      // verbatim in the row, so what leaves here must be COPY — `renameVoice`
+      // rejects with whatever IndexedDB raised. But replacing the rejection
+      // also threw the cause away, and an IndexedDB failure is exactly what
+      // `reportError` exists to keep: the console line carries the stack, and
+      // LogsPanel gets one redacted sentence. Same mapping as
+      // NativeVoiceSection.handleRename, the other onRename owner.
+      reportError('ModelManagement', `Failed to rename voice: ${describeCause(err)}`, { cause: err });
       throw new Error(t('voiceLibrary.renameFailed', 'Could not rename this voice.'));
     }
     await refreshImportedVoices();

@@ -19,11 +19,14 @@ import type { NativeTtsResult, TtsReady } from './NativeTtsClient';
 function fakeTtsClient(opts: { failFirstGenerateWith?: string; failEveryGenerateWith?: string } = {}): NativeTtsClientLike & {
   initCalls: number;
   closed: boolean;
+  cancels: number;
 } {
   let generateCalls = 0;
   const client = {
     initCalls: 0,
     closed: false,
+    cancels: 0,
+    cancel(): void { client.cancels++; },
     async init(): Promise<TtsReady> {
       client.initCalls++;
       return { sampleRate: 24000, loadTimeMs: 1, streaming: false, clones: false };
@@ -197,9 +200,11 @@ describe('createPreviewTts', () => {
  * engine's own rate. A caller that reads only `result.samples` therefore gets
  * a successful, playable-looking, silent buffer.
  */
-function fakeStreamingTtsClient(chunks: Float32Array[]): NativeTtsClientLike & { sawOnChunk: boolean } {
+function fakeStreamingTtsClient(chunks: Float32Array[]): NativeTtsClientLike & { sawOnChunk: boolean; cancels: number } {
   const client = {
     sawOnChunk: false,
+    cancels: 0,
+    cancel(): void { client.cancels++; },
     async init(): Promise<TtsReady> {
       return { sampleRate: 24000, loadTimeMs: 1, streaming: true, clones: false };
     },
@@ -214,7 +219,7 @@ function fakeStreamingTtsClient(chunks: Float32Array[]): NativeTtsClientLike & {
     },
     dispose(): void {},
   };
-  return client as unknown as NativeTtsClientLike & { sawOnChunk: boolean };
+  return client as unknown as NativeTtsClientLike & { sawOnChunk: boolean; cancels: number };
 }
 
 describe('a streaming TTS family', () => {
@@ -253,5 +258,76 @@ describe('a streaming TTS family', () => {
     });
     expect(Array.from(out.audio)).toEqual([0.25]);
     expect(out.sampleRate).toBe(24000);
+  });
+});
+
+describe('an abandoned preview', () => {
+  // Review finding (PR #542): discarding the RESULT left the sidecar
+  // synthesising, and later previews queued behind the abandoned work for up
+  // to the request budget. The signal now reaches the client.
+  it('cancels the sidecar synthesis when the caller aborts mid-flight', async () => {
+    // Deterministic, not timing-based: the fake announces that generate() has
+    // STARTED, and only then does the test abort. Aborting earlier would take
+    // the pre-start path below instead, and an earlier version of this test
+    // did exactly that and deadlocked — which is how the missing pre-start
+    // handling was found.
+    let started!: () => void;
+    const hasStarted = new Promise<void>((r) => { started = r; });
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const client = {
+      cancels: 0,
+      cancel(): void { client.cancels++; release(); },
+      async init(): Promise<TtsReady> {
+        return { sampleRate: 24000, loadTimeMs: 1, streaming: true, clones: false };
+      },
+      async setVoice(): Promise<void> {},
+      async setReferenceVoice(): Promise<void> {},
+      async generate(): Promise<NativeTtsResult> {
+        started();
+        await gate;   // still "synthesising" until cancel() lands
+        return { samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: 1 };
+      },
+      dispose(): void {},
+    } as unknown as NativeTtsClientLike & { cancels: number };
+
+    const controller = new AbortController();
+    const p = createPreviewTts(() => client).synthesize({
+      modelId: 'supertonic-3', language: 'en', text: 'hi', speed: 1,
+      voice: { kind: 'name', name: 'F4' }, signal: controller.signal,
+    });
+    await hasStarted;
+    controller.abort();
+    await p;
+    expect(client.cancels).toBe(1);
+  });
+
+  // `synthesize` awaits init and applyVoice before any synthesis, so an abort
+  // routinely lands before there is anything to cancel. Spending the
+  // sidecar's time on a result nobody will read is the waste this avoids.
+  it('never starts the synthesis when the signal is already aborted', async () => {
+    const client = fakeTtsClient();
+    const generate = vi.spyOn(client, 'generate');
+    const controller = new AbortController();
+    controller.abort();
+    await expect(createPreviewTts(() => client).synthesize({
+      modelId: 'm', language: 'en', text: 'hi', speed: 1,
+      voice: { kind: 'name', name: 'x' }, signal: controller.signal,
+    })).rejects.toThrow(/aborted/i);
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  // The listener must not outlive the call: a handle is reused across many
+  // previews, and a leaked listener would cancel a LATER synthesis when an
+  // older, already-settled signal aborts.
+  it('stops listening once the synthesis settles', async () => {
+    const client = fakeTtsClient();
+    const controller = new AbortController();
+    await createPreviewTts(() => client).synthesize({
+      modelId: 'm', language: 'en', text: 'hi', speed: 1,
+      voice: { kind: 'name', name: 'x' }, signal: controller.signal,
+    });
+    controller.abort();
+    expect(client.cancels).toBe(0);
   });
 });

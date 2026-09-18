@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFloating, FloatingFocusManager } from '@floating-ui/react';
 import { X } from 'lucide-react';
@@ -38,12 +38,19 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
     setBusy(false);
   }, [target?.id]);
 
+  // Every way out of this dialog, refused while the delete is in flight.
+  // Cancel and Delete carry `disabled={busy}`; Escape, the backdrop and the
+  // header X had nothing, so the parent could clear `deleteTarget` mid-flight
+  // and unmount the only surface the rejection has — the exact failure that
+  // keeping this dialog open was meant to remove (review finding, PR #542).
+  const dismiss = useCallback(() => { if (!busy) onClose(); }, [busy, onClose]);
+
   useEffect(() => {
     if (!target) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dismiss(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [target, onClose]);
+  }, [target, dismiss]);
 
   // Open-state context only — this dialog is centred over the app and anchored
   // to nothing. See VoiceCreateModal's own comment on the focus manager below
@@ -53,7 +60,7 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
   if (!target) return null;
 
   return (
-    <div className="voice-modal-overlay" onClick={onClose}>
+    <div className="voice-modal-overlay" onClick={dismiss}>
       {/* Spec §7: focus moves in on open and returns to the invoking control
           on close. Initial focus lands on the first tabbable control, which is
           the header's Close button — deliberately not Delete, since the
@@ -64,7 +71,7 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
         onClick={(e) => e.stopPropagation()}>
         <div className="voice-modal__head">
           <h3>{t('voiceLibrary.deleteTitle', 'Delete voice')}</h3>
-          <button className="voice-modal__x" onClick={onClose} aria-label={t('common.close', 'Close')}>
+          <button className="voice-modal__x" onClick={dismiss} aria-label={t('common.close', 'Close')}>
             <X size={17} />
           </button>
         </div>
