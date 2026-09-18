@@ -565,8 +565,12 @@ app.whenReady().then(async () => {
 
   createWindow();
 
-  // Initialize auto-update manager
-  global.updateManager = new UpdateManager(mainWindow);
+  // Initialize auto-update manager. An install ends a running session first:
+  // the updater quits the app itself, and holding that quit for the session
+  // keeps this instance alive while the new one starts.
+  global.updateManager = new UpdateManager(mainWindow, {
+    beforeInstall: (fn) => closeHandshake.endSessionThen(fn),
+  });
   global.updateManager.checkAfterDelay(5000);
 
   // electron-audio-loopback handles setDisplayMediaRequestHandler automatically via initMain()

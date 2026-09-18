@@ -159,3 +159,123 @@ describe('only while a session is busy', () => {
     expect(next.sent).toEqual([]);
   });
 });
+
+describe('endSessionThen (update install)', () => {
+  it('runs at once when no session is busy', () => {
+    const fn = vi.fn();
+    hs.endSessionThen(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(win.sent).toEqual([]);
+    expect(timer).toBeNull();
+  });
+
+  it('runs at once when there is no live page to ask', () => {
+    hs.setSessionBusy(true);
+    win.webContents.crashed = true;
+    const fn = vi.fn();
+    hs.endSessionThen(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(win.sent).toEqual([]);
+  });
+
+  it('asks the renderer to end a busy session first, and runs once it answers', () => {
+    hs.setSessionBusy(true);
+    const fn = vi.fn();
+    hs.endSessionThen(fn);
+    expect(win.sent).toEqual(['app:close-requested']);
+    expect(timer.ms).toBe(DEFAULT_TIMEOUT_MS);
+    expect(fn).not.toHaveBeenCalled();
+
+    hs.ready();
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(timer).toBeNull();
+    expect(win.close).not.toHaveBeenCalled();
+    expect(quitApp).not.toHaveBeenCalled();
+
+    hs.ready(); // a stray second answer runs nothing again
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns to idle, not approved: a failed install leaves closing as it was', () => {
+    hs.setSessionBusy(true);
+    hs.endSessionThen(vi.fn());
+    hs.ready();
+
+    // Still busy (a new session, say): a close is held again.
+    const held = event();
+    hs.onWindowClose(held);
+    expect(held.preventDefault).toHaveBeenCalled();
+    expect(win.sent).toEqual(['app:close-requested', 'app:close-requested']);
+    hs.ready();
+    expect(win.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('after it runs, a close with no session busy passes', () => {
+    hs.setSessionBusy(true);
+    hs.endSessionThen(vi.fn());
+    hs.setSessionBusy(false); // what the renderer sends before it answers
+    hs.ready();
+    const e = event();
+    hs.onWindowClose(e);
+    expect(e.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('runs when the renderer never answers, and does not hold the quit that follows', () => {
+    hs.setSessionBusy(true);
+    const fn = vi.fn();
+    hs.endSessionThen(fn);
+    timer.fn();
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    // The install quits the app; waiting on the hung page a second time would
+    // keep the old instance alive while the new one starts.
+    const quit = event();
+    expect(hs.onBeforeQuit(quit)).toBe(true);
+    expect(quit.preventDefault).not.toHaveBeenCalled();
+    expect(win.sent).toEqual(['app:close-requested']);
+  });
+
+  it('takes the place of a close already waiting on the renderer', () => {
+    hs.setSessionBusy(true);
+    hs.onWindowClose(event());
+    const fn = vi.fn();
+    hs.endSessionThen(fn);
+    expect(win.sent).toEqual(['app:close-requested']); // not asked twice
+
+    hs.ready();
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(win.close).not.toHaveBeenCalled();
+    expect(quitApp).not.toHaveBeenCalled();
+  });
+
+  it('takes the place of a quit already waiting on the renderer', () => {
+    hs.setSessionBusy(true);
+    hs.onBeforeQuit(event());
+    const fn = vi.fn();
+    hs.endSessionThen(fn);
+    hs.ready();
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(quitApp).not.toHaveBeenCalled();
+  });
+
+  it('a second request while one waits replaces it (no double install)', () => {
+    hs.setSessionBusy(true);
+    const first = vi.fn();
+    const second = vi.fn();
+    hs.endSessionThen(first);
+    hs.endSessionThen(second);
+    expect(win.sent).toEqual(['app:close-requested']);
+    hs.ready();
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('is not stranded when a new window replaces the page it was waiting on', () => {
+    hs.setSessionBusy(true);
+    const fn = vi.fn();
+    hs.endSessionThen(fn);
+    hs.attachWindow(fakeWindow());
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(timer).toBeNull();
+  });
+});

@@ -6,8 +6,16 @@ const fs = require('fs');
 const path = require('path');
 
 class UpdateManager {
-  constructor(mainWindow) {
+  /**
+   * @param {object} [options]
+   * @param {(proceed: () => void) => void} [options.beforeInstall] - Called
+   *   before an install starts; the install runs once it calls `proceed`.
+   *   main.js ends a running session there first, so the install's own quit
+   *   is not held by the close handshake.
+   */
+  constructor(mainWindow, { beforeInstall = (fn) => fn() } = {}) {
     this.mainWindow = mainWindow;
+    this.beforeInstall = beforeInstall;
     this.downloadPath = null;
     this._updateInfo = null;
     this._downloadPromise = null;
@@ -170,6 +178,8 @@ class UpdateManager {
         this._sendStatus({ status: 'error', message: 'No downloaded update to install' });
         return { success: false, error: 'No downloaded update' };
       }
+
+      await new Promise((resolve) => this.beforeInstall(resolve));
 
       // Native flow: quitAndInstall replaces the AppImage / .app bundle in place.
       // On macOS electron-updater hands the downloaded zip to Squirrel.Mac,
