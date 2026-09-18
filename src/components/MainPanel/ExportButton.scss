@@ -169,3 +169,49 @@
 .export-menu {
   overflow-y: auto;
 }
+
+.export-menu-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: #444;
+}
+
+// The auto-save row is a setting, not an action, so it carries a switch track:
+// the Help section's "Diagnostic logs" shape (help-link__switch in
+// Settings.scss), scaled to a menu row. Like the scope boxes, its state lives
+// in aria-checked. Off track and knob are Settings' $toggle-bg-off (#555) and
+// the menu's muted text (#9aa0a6); on is the scope boxes' #10a37f.
+.export-auto-save__switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 20px;
+  height: 11px;
+  border-radius: 6px;
+  background: #555;
+  transition: background 0.2s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #9aa0a6;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &, &::before { transition: none; }
+  }
+}
+
+.export-auto-save[aria-checked='true'] .export-auto-save__switch {
+  background: #10a37f;
+
+  &::before {
+    transform: translateX(9px);
+    background: #fff;
+  }
+}

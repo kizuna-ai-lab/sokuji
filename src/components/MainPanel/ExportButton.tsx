@@ -34,6 +34,8 @@ import {
 } from '../../utils/conversationExport';
 import { useToast } from '../Toast';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
+import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
+import { isElectron } from '../../utils/environment';
 import './ExportButton.scss';
 
 interface ExportButtonProps {
@@ -88,6 +90,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const listRef = React.useRef<Array<HTMLElement | null>>([]);
+
+  // The session-end auto-save lives here, next to the export it automates.
+  const autoSaveOnStop = useAutoSaveOnStop();
+  const setAutoSaveOnStop = useSetAutoSaveOnStop();
+  const toggleAutoSave = () => { void setAutoSaveOnStop(!autoSaveOnStop); };
 
   // Roving tabindex: when the menu opens, make the first item tabbable so
   // keyboard focus (managed by FloatingFocusManager) lands on something.
@@ -189,7 +196,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         </div>
       ))}
     </div>
-    {!scopeHasContent && (
+    {hasContent && !scopeHasContent && (
       <div className="export-scope-empty">
         {t('mainPanel.export.scopeEmpty', 'Nothing selected')}
       </div>
@@ -286,6 +293,40 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     { key: 'json', label: t('mainPanel.export.downloadJson',    'Download as .json'),   Icon: FileJson, onClick: handleDownloadJson },
   ]), [t, handleCopy, handleDownloadTxt, handleDownloadJson]);
 
+  const autoSaveLabel = t('mainPanel.export.autoSave.label', 'Auto-save when session ends');
+  // A native title, like the toolbar buttons: the Tooltip component clones its
+  // child and would fight the roving-tabindex ref, and the child-window host's
+  // 240px OS window would clip a floating tooltip anyway.
+  const autoSaveTooltip = isElectron()
+    ? t('mainPanel.export.autoSave.tooltipDesktop', 'When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.')
+    : t('mainPanel.export.autoSave.tooltipBrowser', 'When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.');
+  /** Last stop in the keyboard ring, after the three actions. */
+  const autoSaveRingIndex = scopeRingSize + items.length;
+
+  /** The persisted auto-save switch, shared by both menu hosts. */
+  const renderAutoSave = (roving: boolean) => (
+    <>
+      <div className="export-menu-divider" role="separator" />
+      <button
+        type="button"
+        role="menuitemcheckbox"
+        aria-checked={autoSaveOnStop}
+        className="export-menu-item export-auto-save"
+        title={autoSaveTooltip}
+        {...(roving
+          ? {
+              ref: (node: HTMLButtonElement | null) => { listRef.current[autoSaveRingIndex] = node; },
+              tabIndex: activeIndex === autoSaveRingIndex ? 0 : -1,
+              ...getItemProps({ onClick: toggleAutoSave }),
+            }
+          : { onClick: toggleAutoSave })}
+      >
+        <span className="export-auto-save__switch" aria-hidden="true" />
+        <span>{autoSaveLabel}</span>
+      </button>
+    </>
+  );
+
   if (childHosted) {
     return (
       <>
@@ -293,7 +334,6 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           ref={childBtnRef}
           className="export-btn"
           type="button"
-          disabled={!hasContent}
           onClick={() => {
             if (!childMenu.open) seedScope();
             childMenu.toggle();
@@ -312,7 +352,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           onClose={childMenu.onClose}
           anchorEl={childBtnRef.current}
           width={240}
-          height={140}
+          height={182}
         >
           {/* Plain buttons: the child window's native focus handles keyboard
               use; floating-ui's roving tabindex belongs to the inline host. */}
@@ -338,6 +378,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
                 </button>
               );
             })}
+            {renderAutoSave(false)}
           </div>
         </ChildWindowPopover>
       </>
@@ -350,7 +391,6 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         ref={refs.setReference}
         className="export-btn"
         type="button"
-        disabled={!hasContent}
         title={t('mainPanel.toolbar.export', 'Export conversation')}
         aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
         aria-haspopup="menu"
@@ -391,6 +431,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
                   </button>
                 );
               })}
+              {renderAutoSave(true)}
             </div>
           </FloatingFocusManager>
         </FloatingPortal>
