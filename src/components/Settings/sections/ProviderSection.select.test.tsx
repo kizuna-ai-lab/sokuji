@@ -114,7 +114,7 @@ describe('ProviderSection — provider <select>', () => {
     // A classic select popup renders option text only — element children
     // would be flattened or invisible, so the markup must not emit them.
     expect(option?.querySelector('span')).toBeNull();
-    expect(option?.textContent).toBe('OpenAI');
+    expect(option?.textContent).toBe('OpenAI Realtime');
     expect(document.querySelector('.provider-select selectedcontent')).toBeNull();
     // Switching still works through the same handler.
     fireEvent.change(getSelect(), { target: { value: Provider.GEMINI } });

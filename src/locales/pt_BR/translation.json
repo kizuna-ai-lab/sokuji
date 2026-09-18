@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "O Gemini gera para o áudio do outro respostas de áudio que são descartadas, resultando em uso adicional de tokens.",
     "help": "Ajuda",
     "helpEmailTooltip": "Relatar erros ou obter ajuda",
+    "diagnosticLogs": "Logs de diagnóstico",
+    "diagnosticLogsTooltip": "Registra o que o aplicativo faz, para você anexar a um relatório de bug. Desativado por padrão. Enquanto estiver ativado, o botão “Logs” aparece na barra de título, e a opção continua ativada após reiniciar.",
     "helpDiscussions": "Discussões",
     "helpDiscussionsTooltip": "Solicitações de recursos, feedback e discussões da comunidade",
     "auto": "Auto",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Alimentado por modelos GPT"
+      "name": "OpenAI Realtime",
+      "description": "Modelo de voz GPT Realtime de uso geral, totalmente configurável"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Tecnologia de IA do Google"
     },
     "openaiCompatible": {
-      "name": "API compatível com OpenAI",
-      "description": "Endpoint compatível com OpenAI personalizado",
+      "name": "Compatível com OpenAI (Realtime legado)",
+      "description": "Endpoint de terceiros que usa o antigo protocolo Realtime beta da OpenAI. Não serve para a OpenAI.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Modelo dedicado de tradução em tempo real da OpenAI"
+      "description": "Modelo dedicado de tradução que detecta o idioma de origem automaticamente"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "Intérprete GPT-Live-1, cobrado por minuto de sessão, silêncio incluído"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "O Soniox está com capacidade total no momento. Tente novamente em breve.",
     "sonioxBudgetExhausted": "O saldo da sua sessão acabou. Recarregue seu saldo para continuar traduzindo.",
     "sonioxTtsFailed": "A tradução falada parou. A transcrição e a tradução de texto continuam funcionando.",
+    "sonioxTtsSegmentLost": "Não foi possível reproduzir parte da tradução falada. A transcrição e a tradução de texto não foram afetadas.",
     "sonioxSegmentEnded": "Este segmento terminou — toque em “Iniciar sessão” para continuar.",
     "sonioxConnectionLost": "A conexão foi interrompida — toque em “Iniciar sessão” daqui a pouco para continuar.",
+    "openaiLiveConnectionLost": "A conexão foi interrompida — toque em “Iniciar sessão” daqui a pouco para continuar.",
     "sonioxVoiceClipMissing": "Este dispositivo não tem nenhuma gravação de voz, então esta sessão usa uma voz predefinida. Grave uma em Configurações para falar aqui com sua própria voz.",
     "sonioxVoicePoolBusy": "Todas as vagas de vozes personalizadas estão em uso no momento, então esta sessão usa uma voz predefinida. Sua própria voz será usada novamente na próxima vez.",
     "sonioxVoiceBuildFailed": "Não foi possível criar sua voz personalizada, então esta sessão usa uma voz predefinida. Tente gravar um trecho mais claro em Configurações.",
@@ -914,26 +922,34 @@
     "close": "Fechar"
   },
   "voiceLibrary": {
+    "addVoice": "Adicionar uma voz…",
+    "addVoiceTitle": "Adicionar uma voz",
     "clipSilent": "Nenhuma voz detectada — verifique seu microfone e tente novamente.",
     "clipTooLong": "A gravação é muito longa — mantenha-a abaixo de {seconds} segundos.",
     "clipTooShort": "A gravação é muito curta — fale por pelo menos {seconds} segundos.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Não foi possível ler esse arquivo de áudio — tente WAV, MP3 ou outro formato comum.",
     "delete": "Excluir",
-    "deleteConfirm": "Excluir a voz \"{name}\"?",
+    "deleteBody": "Excluir \"{name}\"? Isso também remove a gravação de referência armazenada neste dispositivo.",
+    "deleteTitle": "Excluir voz",
     "dropHint": "ou solte um arquivo de voz aqui",
     "emptyHint": "Nenhuma voz importada ainda.",
+    "filterCount": "{shown} de {total}",
     "importError": "Falha na importação: {error}",
     "importVoice": "Importar voz…",
-    "manageImported": "Gerenciar vozes importadas",
-    "myVoices": "Minhas Vozes",
+    "myVoices": "Vozes personalizadas",
     "play": "Reproduzir",
     "presets": "Predefinições",
+    "previewChargedToBalance": "Ouvir a prévia sintetiza uma amostra curta e é cobrada do saldo da sua conta.",
+    "previewFailed": "Não foi possível gerar uma prévia para esta voz.",
+    "renameFailed": "Não foi possível renomear esta voz.",
+    "previewLanguageUnsupported": "Este modelo não tem nenhuma frase de exemplo em um idioma que ele fala.",
+    "previewNeedsBalance": "Recarregue seu saldo para ouvir a prévia desta voz.",
+    "previewNeedsSessionStopped": "Finalize a sessão para ouvir a prévia desta voz.",
+    "previewSessionRunning": "Uma sessão está em andamento. Tente novamente em instantes.",
     "recordVoice": "Gravar voz…",
     "rename": "Renomear",
     "restartHint": "Reinicie a sessão para aplicar as alterações de vozes importadas.",
-    "showAll": "Mostrar todas as vozes",
-    "showFewer": "Mostrar menos vozes",
     "stopPreview": "Parar",
     "stopRecording": "Parar gravação",
     "synthesizing": "Sintetizando…",

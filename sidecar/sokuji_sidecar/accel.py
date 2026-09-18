@@ -1105,6 +1105,16 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             else:
                 rec = _tc_pick_quant(mdl, m, None, budget, op_coverage=cov)
             variants = []
+            # Which rungs are already in the local HF cache. Computed ONCE per
+            # card, not per rung: it probes the cache per deployment. The
+            # renderer needs this to honour "downloaded => selectable" -- it
+            # holds a single status boolean per MODEL (meaning "the one repo I
+            # asked about is cached"), so without this it resolved a pinless
+            # selection to the machine-recommended rung and then asked about a
+            # file the user had never fetched, which read back as 'absent'.
+            # LOAD-time quant selection has always restricted itself to these
+            # (see resolve_tts); this only reports the same knowledge outward.
+            cached_cts = _downloaded_quants(mdl)
             factor = _LLAMA_RESIDENT_FACTOR if is_llama else _TC_RESIDENT_FACTOR
             for ct, size in sorted(sizes_by_ct.items(), key=lambda kv: -kv[1]):
                 need = int(size * factor)                  # fit-check figure, for UI reasons
@@ -1116,7 +1126,8 @@ async def _h_models_catalog(state, msg, _b, conn=None):
                     supported = need <= budget
                 entry_v = {"id": ct, "sizeBytes": size, "needBytes": need,
                           "repo": artifact_by_ct.get(ct),
-                          "supported": supported, "recommended": ct == rec}
+                          "supported": supported, "recommended": ct == rec,
+                          "downloaded": ct in cached_cts}
                 # A tier-refused rung stays "supported" (it still fits, and CPU
                 # fallback still runs it) — unsupportedTiers is a narrower,
                 # additive signal for which GPU tiers specifically refuse it.

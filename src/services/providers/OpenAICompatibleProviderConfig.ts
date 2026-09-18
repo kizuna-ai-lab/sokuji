@@ -76,7 +76,13 @@ export class OpenAICompatibleProviderConfig extends OpenAIProviderConfig {
     return {
       ...baseConfig,
       id: Provider.OPENAI_COMPATIBLE,
-      displayName: 'OpenAI Compatible API',
+      // "Legacy Realtime" is load-bearing, not decoration: this provider speaks
+      // the older beta Realtime protocol (createClient below builds the beta
+      // `openai-realtime-api` OpenAIClient, while the built-in OpenAI provider
+      // builds OpenAIGAClient against the current API). OpenAI has retired that
+      // beta, so "OpenAI Compatible" on its own now reads as a promise this
+      // provider cannot keep — pointing it at api.openai.com does not work.
+      displayName: 'OpenAI Compatible (Legacy Realtime)',
       apiKeyLabel: 'API Key',
       apiKeyPlaceholder: 'Enter your API key...',
       supportsCustomEndpoint: true,

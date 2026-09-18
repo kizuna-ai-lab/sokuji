@@ -11,11 +11,12 @@
  * shared voice-library look, no gating checkbox) → client-side validation
  * (upload only: ≤35 MB, decoded duration 3-120s, mirroring NativeVoiceSection's
  * `validateVoiceClip` pattern) → the validated/recorded clip is staged as
- * `pending` rather than uploaded immediately, which opens
- * `SonioxCloneConfirmModal` for playback + naming + the consent statement
- * (folded into the modal's accept button) → on confirm, WAV-encode
- * (recordings only) → POST → poll until ready (seconds) → auto-select. A
- * mapped create failure (e.g. `voice_name_conflict`) keeps the modal open so
+ * `pending` rather than uploaded immediately, which switches the add-a-voice
+ * dialog to its review phase (`SonioxCloneReviewStep`) for playback + naming +
+ * the consent statement (folded into its accept button) → on confirm,
+ * WAV-encode (recordings only) → POST → poll until ready (seconds) →
+ * auto-select. A
+ * mapped create failure (e.g. `voice_name_conflict`) keeps that phase up so
  * the user can rename and retry without losing the clip. `voice_failed` is
  * terminal: the entry renders a failed hint and can only be deleted.
  *
@@ -26,21 +27,23 @@
  *
  * Previewing (auditioning) a voice is a separate capability from the
  * create/delete affordances above: it needs a Soniox key to synthesize a
- * sample, which a managed account's source does not have, so it is gated on
- * `source.canPreview` rather than on `source` merely being non-null.
+ * sample — BYOK's own permanent key, or (as of the managed source) one
+ * single-use key minted per preview — so it is gated on `source.preview`
+ * existing rather than on `source` merely being non-null; the actual
+ * synthesis happens behind that seam (`voiceLibrarySource.ts`), not here —
+ * this component only clamps speed, resolves the sample sentence, and maps a
+ * rejection to the capture-error banner.
  */
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
-import SonioxCloneConfirmModal from './SonioxCloneConfirmModal';
 import {
   SonioxVoicesError,
   encodeWavPcm16,
   type SonioxVoice,
 } from '../../../services/clients/SonioxVoicesClient';
-import { synthesizeOnce } from '../../../services/clients/SonioxTtsRest';
-import { asSonioxRegion } from '../../../lib/soniox/regions';
-import { previewSampleFor } from './sonioxPreviewSample';
+import { resolvePreviewSample } from '../../../lib/tts/previewSample';
+import { previewCacheKey, getCachedPreview, setCachedPreview, clearPreviewCache } from '../../../lib/tts/previewCache';
 import { clampNumber } from '../../../services/providers/SonioxProviderConfig';
 import { SONIOX_TTS_MODEL, SONIOX_DEFAULT_VOICE } from '../../../lib/soniox/ttsCatalog';
 import { SONIOX_VOICE_ROSTER } from '../../../lib/soniox/sonioxVoiceRoster';
@@ -53,17 +56,18 @@ import type { VoiceLibrarySource } from './voiceLibrarySource';
 
 export interface SonioxVoiceSectionProps {
   /** `targetLanguage` and `ttsSpeed` drive the preview audition so it matches
-   *  what the session would actually speak. `apiKey` is BYOK-only and is
-   *  empty for managed accounts — the preview path is gated on
-   *  `source.canPreview`, not on this field. */
+   *  what the session would actually speak. `apiKey`/`region` are NOT read
+   *  by this component: preview synthesizes through `source.preview`, which
+   *  already carries the credential it was constructed with (see
+   *  `byokVoiceSource` in `voiceLibrarySource.ts`) — the preview path is
+   *  gated on `source.preview` existing, not on either field. Both fields
+   *  stay in the shape only because callers pass the full Soniox settings
+   *  slice here. */
   settings: {
     voice: string;
     apiKey: string;
     targetLanguage: string;
     ttsSpeed: number;
-    /** Which Soniox deployment `apiKey` belongs to, so the preview is
-     *  synthesized on the host that key authenticates against. Optional so the
-     *  existing tests' fixtures keep compiling; absent reads as US. */
     region?: string;
   };
   onUpdate: (patch: { voice: string }) => void;
@@ -79,7 +83,7 @@ export interface SonioxVoiceSectionProps {
   source: VoiceLibrarySource | null;
   /** Copy variant. Drives: the custom-voice label (managed shows "My voice"
    *  rather than the backend's internal name), the list-error copy, and —
-   *  via the confirm modal's `notice`/`showName` props — the managed-only
+   *  via the review phase's `notice`/`showName` fields — the managed-only
    *  data-destination statement and the hidden name field (the backend names
    *  voices itself). */
   managed: boolean;
@@ -194,7 +198,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   const [listState, setListState] = useState<'idle' | 'loading' | 'error'>(source ? 'loading' : 'idle');
   const [captureError, setCaptureError] = useState<string | null>(null);
   // A clip that's been picked/recorded and passed client-side validation,
-  // staged for the confirm modal (playback + naming + consent) before it's
+  // staged for the review phase (playback + naming + consent) before it's
   // actually uploaded. Non-null ⇔ the modal is open.
   const [pending, setPending] = useState<{ blob: Blob; fileName?: string; suggestedName: string } | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -318,6 +322,38 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // a synthesis call can produce.
   const mapTtsError = (e: unknown): Error => {
     if (e instanceof SonioxVoicesError) {
+      // Two outcomes specific to a MANAGED preview's session-key mint
+      // (ManagedVoicesClient.sessionKey) — checked ahead of the generic arms
+      // below, which describe a direct Soniox call and would otherwise
+      // misdescribe these as an auth or rate-limit problem. Gated on
+      // `managed`: a BYOK user's OWN Soniox account can also answer 402 (out
+      // of Soniox credit) or 409, and telling them to top up their SOKUJI
+      // balance — a page that is perfectly healthy — would be actively
+      // wrong, not just imprecise. 503 stays ungated below: Soniox capacity
+      // being full reads the same regardless of which credential hit it.
+      if (managed && e.status === 402) {
+        return new Error(t('voiceLibrary.previewNeedsBalance', 'Top up your balance to preview this voice.'));
+      }
+      if (managed && e.status === 409) {
+        return new Error(t('voiceLibrary.previewSessionRunning', 'A session is running. Try again in a moment.'));
+      }
+      if (e.status === 503) {
+        // Same wording a managed session-key 503 already uses — see
+        // ManagedSonioxSession.describeError's `mainPanel.sonioxServiceBusy`.
+        return new Error(t('mainPanel.sonioxServiceBusy', 'Soniox is at capacity right now. Please try again shortly.'));
+      }
+      // Gated on `managed` for the same reason the 402/409 arms above are:
+      // `ManagedVoicesClient`'s timed request path (`withTimedRequest`, behind
+      // `fetchWithAuth` / `fetchJsonWithAuth`) throws `authentication_required`
+      // (401) whenever the Better Auth token is missing or expired — routine,
+      // not exotic — and a backend 401 reaches this same arm through
+      // `throwBackendError`. A managed user has no API key to check, so
+      // "check the API key" points at a fix that does not exist for them;
+      // the correct remedy (sign in) is sitting in the error's own message,
+      // reused from `mapCreateError`'s identical condition above.
+      if (managed && (e.status === 401 || e.errorType === 'authentication_required')) {
+        return new Error(t('settings.sonioxVoiceSignInRequired', 'Sign in to build a custom voice.'));
+      }
       if (e.status === 401 || e.errorType === 'unauthenticated') {
         return new Error(t('settings.sonioxVoicePreviewAuthError', 'Preview failed — check the API key'));
       }
@@ -334,34 +370,82 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // Synthesized samples are effectively deterministic for a fixed text, so a
   // repeat listen carries no new information but would spend the user's tokens
   // again. Keyed by voice + language + speed so changing either re-synthesizes.
-  const previewCacheRef = useRef(new Map<string, { audio: Float32Array; sampleRate: number }>());
-  // A changed source means a (possibly) different voice project: audio cached
-  // against the old project's UUIDs must not replay under the new key.
-  useEffect(() => { previewCacheRef.current.clear(); }, [source]);
+  // The cache itself now lives outside the component (src/lib/tts/previewCache.ts)
+  // so it survives a panel close/reopen; this effect clears the LEAVING
+  // source's namespace whenever the source actually changes, since audio
+  // cached against the OLD project's UUIDs must not replay under a new one.
+  //
+  // Deliberately NOT `useEffect(() => clearPreviewCache(), [source])`: a
+  // `useEffect` runs on every MOUNT, not only when its dependency changes,
+  // and the settings panel lives inside `<Activity>` (MainLayout.tsx), which
+  // tears down and recreates this component's effects on every hide/show.
+  // Clearing unconditionally there would wipe the whole app-session cache on
+  // every reopen of the settings panel — spending the user's balance and
+  // taking the account's exclusivity lease again on the very next listen —
+  // which is exactly the cost the cache was moved out of the component to
+  // avoid (see previewCache.ts's module docstring). The ref below is seeded
+  // from the FIRST render's own source, so the effect sees "no change" on
+  // its first run and only clears on a real swap thereafter.
+  //
+  // Also namespace-scoped rather than a full `clearPreviewCache()`: the
+  // cache is shared with Local Native's `native:<modelId>` entries, and a
+  // Soniox source swap has nothing to do with those.
+  //
+  // Tracks the SOURCE OBJECT, not its `cacheNamespace` string: BYOK's
+  // namespace is `soniox:${region}` — keyed on region, not on the API key —
+  // so two different projects in the same region share one namespace
+  // string. Comparing namespace values would then treat a real key swap
+  // (still the same region) as "no change" and skip the clear, silently
+  // reviving the old project's audio under the new key. Comparing object
+  // identity instead means "the caller handed us a materially different
+  // source" is exactly what a real swap looks like — see this component's
+  // own doc comment: "The caller mints a NEW `source` object whenever the
+  // signed-in account changes".
+  const previousSourceRef = useRef(source);
+  useEffect(() => {
+    const leavingSource = previousSourceRef.current;
+    previousSourceRef.current = source;
+    if (leavingSource !== source && leavingSource?.cacheNamespace !== undefined) {
+      clearPreviewCache(leavingSource.cacheNamespace);
+    }
+  }, [source]);
 
   const handlePreview = useCallback(async (
     id: string,
     signal?: AbortSignal
   ): Promise<{ audio: Float32Array; sampleRate: number } | null> => {
-    if (!source?.canPreview) return null;
     // Pinned for the post-await staleness check below — same guard the
-    // list/create paths use via sourceRef.
+    // list/create paths use via sourceRef. Narrowed via THIS reference (not
+    // `source` directly) so the `.preview` guard below narrows the exact
+    // expression `preview()` is called through further down — narrowing an
+    // optional method through one variable does not carry over to a copy of
+    // it, since it tracks the access path, not the object's type.
     const requestSource = source;
-    const sample = previewSampleFor(settings.targetLanguage);
+    // Narrows `requestSource` so `.preview` below is known to exist.
+    // Guarding on `canPreview` instead would not narrow the type — see
+    // voiceLibrarySource.ts.
+    if (!requestSource?.preview) return null;
+    // `null`: a Soniox voice — preset or clone — is documented
+    // any-voice-any-language, so the language rule collapses to the target
+    // language with English then the table as fallbacks. A preset id IS the
+    // `voice` field of the TTS request, so nothing here needs to know which
+    // kind it is.
+    const sample = resolvePreviewSample(settings.targetLanguage, null);
+    // Cannot be null for a null `speaks` predicate (see resolvePreviewSample's
+    // docstring), but narrowed here rather than asserted.
+    if (!sample) return null;
     // Same choke point the session path uses (SonioxProviderConfig.
     // buildSessionConfig): the slider already constrains this in practice, so
     // clamping here is defensive, but the two paths reading the same setting
     // should agree on its bounds rather than one trusting the raw value.
     const speed = clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0);
-    const cacheKey = `${id}|${sample.language}|${speed}`;
+    const cacheKey = previewCacheKey(requestSource.cacheNamespace ?? '', id, sample.language, speed);
     setCaptureError(null);
-    const cached = previewCacheRef.current.get(cacheKey);
+    const cached = getCachedPreview(cacheKey);
     if (cached) return cached;
     try {
-      const result = await synthesizeOnce({
-        apiKey: settings.apiKey,
-        region: asSonioxRegion(settings.region),
-        voice: id,
+      const result = await requestSource.preview({
+        id,
         language: sample.language,
         text: sample.text,
         speed,
@@ -374,7 +458,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       // Discard instead; nothing was cancelled, so the user simply hears
       // nothing and can click again.
       if (sourceRef.current !== requestSource) return null;
-      previewCacheRef.current.set(cacheKey, result);
+      setCachedPreview(cacheKey, result);
       return result;
     } catch (e) {
       // A user-initiated cancel (switching rows, closing the panel) is not a
@@ -383,7 +467,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       setCaptureError(mapTtsError(e).message);
       return null;
     }
-  }, [source, settings.apiKey, settings.targetLanguage, settings.ttsSpeed, t]);
+  }, [source, settings.targetLanguage, settings.ttsSpeed, t]);
 
   // Latest selection, read at auto-select time: the ready-wait below runs for
   // up to a minute in the background, and a choice the user made meanwhile
@@ -415,7 +499,8 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
 
   const defaultName = () => t('settings.sonioxVoiceDefaultName', 'My Voice {{n}}', { n: clones.length + 1 });
 
-  // Modal lifecycle: `pending` non-null opens SonioxCloneConfirmModal.
+  // Dialog lifecycle: `pending` non-null puts the add-a-voice dialog into
+  // its review phase (it is passed down as `createReview`).
   // `closeModal` is also handed to the modal as its Cancel/backdrop/X
   // handler, guarded against `modalBusy` so a create() request in flight
   // can't be orphaned by a mid-request cancel.
@@ -467,7 +552,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   };
 
   // No create call here — the encoded clip is staged as `pending` and the
-  // confirm modal drives the actual upload via handleConfirm above.
+  // review phase drives the actual upload via handleConfirm above.
   const onRecord = async (clip: Float32Array, sampleRate: number) => {
     setCaptureError(null);
     stagePending({ blob: encodeWavPcm16(clip, sampleRate), suggestedName: defaultName() });
@@ -497,7 +582,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
   // NativeVoiceSection uses. A validation failure surfaces inline via
   // captureError and rethrows (VoiceLibrarySection's contract) without
   // opening the modal. On success, no create() call is made here — the
-  // validated file is staged as `pending` so the confirm modal can play it
+  // validated file is staged as `pending` so the review phase can play it
   // back and take a name before it's uploaded.
   const onImport = async (file: File) => {
     setCaptureError(null);
@@ -539,7 +624,10 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       stagePending({ blob: file, fileName: file.name, suggestedName: stripped || defaultName() });
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
-      setCaptureError(err.message);
+      // Rethrow only. VoiceCreateModal — the dialog that owns the file input
+      // this rejection came from — renders the message itself. Setting the
+      // section banner too would put the same text in the DOM twice, once
+      // under an overlay that hides it.
       throw err;
     }
   };
@@ -550,10 +638,15 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // and reuses it for every TTS stream — deleting it server-side would break
     // spoken translation for the rest of the session.
     if (isSessionActive && settings.voice === id) {
-      setCaptureError(
-        t('settings.sonioxVoiceDeleteInUse', 'This voice is being used by the active session — end the session before deleting it')
+      const message = t(
+        'settings.sonioxVoiceDeleteInUse',
+        'This voice is being used by the active session — end the session before deleting it'
       );
-      return;
+      // Throw, where this used to `return` quietly. The refusal used to land
+      // only on the banner behind the delete dialog, which then closed as if
+      // the delete had worked — a deliberate refusal the user could not see.
+      // VoiceDeleteModal now awaits this and shows the reason in place.
+      throw new Error(message);
     }
     // `clip_clear_failed` is the one failure where the BACKEND delete already
     // succeeded — the voice is gone at Soniox and from our table, and only
@@ -571,10 +664,12 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       if (e instanceof SonioxVoicesError && e.errorType === 'clip_clear_failed') {
         clipClearFailure = e;
       } else {
-        // VoiceLibrarySection's own catch only console.warns — surface the
-        // failure in the banner or a failed delete is silent.
-        setCaptureError(mapCreateError(e).message);
-        throw e;
+        // VoiceDeleteModal awaits this and shows the reason without closing.
+        // Throw the MAPPED message, not `e`: mapCreateError is what turns a
+        // SonioxVoicesError code into copy a user can read, and that mapping
+        // used to happen on its way to the banner. Throwing the raw error
+        // would put its internal `.message` in front of the user.
+        throw new Error(mapCreateError(e).message);
       }
     }
     await refresh();
@@ -588,8 +683,13 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // Same guard, for the same reason, as finishCreate's auto-select.
     if (selectedVoiceRef.current === id) onUpdate({ voice: DEFAULT_VOICE });
     if (clipClearFailure) {
-      setCaptureError(mapCreateError(clipClearFailure).message);
-      throw clipClearFailure;
+      // Reported by the dialog, like every other delete failure, and mapped
+      // for the same reason as above — the raw error's message is 'denied'.
+      // Note the shape this leaves: the voice IS gone from the list and the
+      // setting is already reset (both above, deliberately, so the panel
+      // tells the truth), while the dialog stays open saying the on-device
+      // clip could not be cleared. Accurate, if initially surprising.
+      throw new Error(mapCreateError(clipClearFailure).message);
     }
   };
 
@@ -640,6 +740,9 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       label: v.id,
       group: 'builtin',
       removable: false,
+      // A Soniox voice id IS the `voice` field of the TTS request for presets
+      // and clones alike, so a preset auditions through the same path (spec §6.1).
+      previewable: true,
       // What the facet bar filters on, and where the one-line character
       // description under each name comes from.
       meta: {
@@ -732,63 +835,70 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
         onImport={canCreate ? onImport : undefined}
         onRecord={canCreate ? onRecord : undefined}
         onDelete={onDelete}
-        onPreview={source?.canPreview ? handlePreview : undefined}
+        onPreview={source?.preview ? handlePreview : undefined}
         onRefresh={source ? () => void refresh() : undefined}
         refreshing={listState === 'loading'}
         // Footnote, not a standalone setting: it describes controls that live
         // inside the expanded manage body (the per-row preview button, the
         // record/import buttons), so it belongs there rather than above the
-        // collapsed expander where they aren't even visible. The two cases
-        // are mutually exclusive — only a managed source can block create,
-        // and a managed source can never preview.
+        // collapsed expander where they aren't even visible. `managed` can
+        // now preview too, so the two cases are no longer mutually
+        // exclusive by construction — `managedVoiceBlocksCreate` still takes
+        // priority, because a managed account with an existing voice has
+        // nothing to gain from the preview cost hint while create is
+        // withdrawn anyway.
         manageNote={
           managedVoiceBlocksCreate
             ? t(
                 'settings.sonioxManagedVoiceReplaceHint',
                 'Delete this voice before recording a new one — recording again on its own keeps the voice you already have.'
               )
-            : source?.canPreview
-              ? t(
-                  'settings.sonioxVoicePreviewCostHint',
-                  'Previewing a voice synthesizes a short clip using your own Soniox quota.'
-                )
+            : source?.preview
+              ? managed
+                ? t(
+                    'voiceLibrary.previewChargedToBalance',
+                    'Previewing synthesizes a short sample and is charged to your account balance.'
+                  )
+                : t(
+                    'settings.sonioxVoicePreviewCostHint',
+                    'Previewing a voice synthesizes a short clip using your own Soniox quota.'
+                  )
               : undefined
         }
         capability={{
           importModes: canCreate ? ['record', 'upload'] : [],
-          curation: false,
           // 200 built-in voices as of 2026-09-10: too many to scan in a flat
           // dropdown, and each one carries the tags to narrow it down.
           facetFilter: true,
-          presentation: 'dropdown',
           accept: 'audio/*',
           maxClipSeconds: MAX_CLIP_SECONDS,
           minClipSeconds: MIN_CLIP_SECONDS,
-          // The confirm modal stages exactly one clip; without this a
+          // The review phase stages exactly one clip; without this a
           // multi-file drop would silently keep only the last file.
           multipleImport: false,
         }}
         isSessionActive={isSessionActive}
+        // The review phase of the SAME dialog the user opened to add a voice —
+        // this used to be a second modal rendered here, on top of that one.
+        createReview={pending === null ? null : {
+          seq: pendingSeq,
+          audioBlob: pending.blob,
+          error: modalError,
+          busy: modalBusy,
+          showName: !managed,
+          notice: managed
+            ? t(
+                'settings.sonioxManagedCloneNotice',
+                'This recording is sent to Kizuna AI and passed on to Soniox to build your voice. It is not stored on our servers — it stays on this device so your voice can be rebuilt later.'
+              )
+            : undefined,
+          onConfirm: (name: string) => void handleConfirm(name),
+          onClose: closeModal,
+        }}
       />
       {captureError && (
         <div className="voice-capture-error" role="alert">{captureError}</div>
       )}
-      <SonioxCloneConfirmModal
-        key={pendingSeq}
-        isOpen={pending !== null}
-        audioBlob={pending?.blob ?? null}
-        error={modalError}
-        busy={modalBusy}
-        showName={!managed}
-        notice={managed
-          ? t(
-              'settings.sonioxManagedCloneNotice',
-              'This recording is sent to Kizuna AI and passed on to Soniox to build your voice. It is not stored on our servers — it stays on this device so your voice can be rebuilt later.'
-            )
-          : undefined}
-        onConfirm={(name) => void handleConfirm(name)}
-        onClose={closeModal}
-      />
     </div>
   );
 };

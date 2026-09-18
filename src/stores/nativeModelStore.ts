@@ -206,9 +206,10 @@ const client = new NativeModelClient();
  * Q8_0) read 'absent' from the default-repo check and the ASR chip showed
  * "None" until a variant-aware caller happened to run.
  */
-/** A card's CHOSEN (pinned ?? recommended) variant repo, for each multi-variant
- * card in `cards`. Single-variant cards are skipped (their status uses the
- * default-repo cache). Pure: no store/settings reads — pins are injected.
+/** A card's CHOSEN (pinned ?? downloaded ?? recommended) variant repo, for each
+ * multi-variant card in `cards`. Single-variant cards are skipped (their status
+ * uses the default-repo cache). Pure: no store/settings reads — pins are
+ * injected, and download state rides along on the card's own variant rows.
  * Exported for direct unit testing (avoids routing through the store's async
  * settingsStore-import path in tests).
  *
@@ -219,13 +220,22 @@ const client = new NativeModelClient();
  * pin is therefore ignored here (falls back to the recommended variant),
  * mirroring what the picker itself already enforces visually. */
 export function deriveVariantRepos(cards: NativeModelInfo[], pins: Record<string, string>): Record<string, string> {
-  const vd: Record<string, { variants: { id: string; repo: string }[]; recommended: string }> = {};
+  const vd: Record<string, {
+    variants: { id: string; repo: string; downloaded?: boolean; supported?: boolean }[];
+    recommended: string;
+  }> = {};
   const effectivePins: Record<string, string> = { ...pins };
   for (const m of cards) {
     const vs = m.variants;
     if (!vs || vs.length < 2) continue;
     vd[m.id] = {
-      variants: vs.map((v) => ({ id: v.id, repo: v.repo ?? '' })),
+      // `downloaded`/`supported` ride along: without them statusReposFor
+      // cannot prefer a rung that is actually on disk, and this is the copy
+      // that feeds the readiness gate (ASR and translation included, where an
+      // unselectable card also blocks Start).
+      variants: vs.map((v) => ({
+        id: v.id, repo: v.repo ?? '', downloaded: v.downloaded, supported: v.supported,
+      })),
       recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
     };
     const pinned = pins[m.id];

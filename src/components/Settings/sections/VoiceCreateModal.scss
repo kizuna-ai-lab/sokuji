@@ -1,0 +1,187 @@
+@use '../shared/variables' as vars;
+
+// Shared frame for BOTH voice modals (this create modal and
+// VoiceDeleteModal, which imports this stylesheet rather than owning its
+// own — see that component's doc comment). Task 6 renamed these from
+// `voice-create-modal*` to this `voice-modal*` set so the two modals share
+// one frame instead of each carrying its own copy.
+.voice-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+
+.voice-modal {
+  width: 100%;
+  max-width: 420px;
+  background: vars.$bg-page;
+  border: 1px solid vars.$border-strong;
+  border-radius: vars.$radius-lg;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  color: vars.$text-primary;
+  overflow: hidden;
+  animation: voice-modal-in 0.16s ease-out;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 14px 16px;
+    border-bottom: 1px solid vars.$border-subtle;
+
+    h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: vars.$weight-semibold;
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__x {
+    background: none;
+    border: 0;
+    color: vars.$text-muted;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: vars.$radius-sm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:hover { background: vars.$bg-hover; color: vars.$text-primary; }
+  }
+
+  // Same value as ModelImportModal: a form this tall (transcript field +
+  // import/record buttons + drop zone) needs the same scroll ceiling rather
+  // than pushing the footer off-screen.
+  &__body {
+    padding: 14px 16px;
+    max-height: 62vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid vars.$border-subtle;
+    background: vars.$bg-surface;
+  }
+
+  // Footer buttons shared by both modals: a plain button (Cancel in both,
+  // Close-by-another-name), and a `--danger` modifier for the one
+  // destructive action (VoiceDeleteModal's Delete). Value-for-value what
+  // `.voice-create-modal__cancel` used to be, before the rename.
+  &__btn {
+    font: inherit;
+    font-size: vars.$font-caption;
+    font-weight: vars.$weight-semibold;
+    cursor: pointer;
+    padding: 7px 12px;
+    border-radius: vars.$radius-md;
+    border: 1px solid vars.$border-strong;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    &:hover:not(:disabled) { border-color: vars.$color-primary; }
+
+    &--danger {
+      border-color: vars.$color-error;
+      color: vars.$color-error;
+      &:hover:not(:disabled) { background: vars.$color-error; color: #fff; }
+    }
+  }
+}
+
+@keyframes voice-modal-in {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .voice-modal { animation: none; } }
+
+// ── Transcript field ───────────────────────────────────────
+.voice-create-modal__transcript-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.voice-create-modal__transcript-label {
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+  font-weight: vars.$weight-medium;
+}
+
+.voice-create-modal__transcript-input {
+  padding: 4px 8px;
+  font-size: vars.$font-body;
+  color: vars.$text-primary;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid vars.$border-strong;
+  border-radius: vars.$radius-sm;
+
+  &:focus {
+    outline: none;
+    border-color: vars.$color-primary;
+  }
+}
+
+.voice-create-modal__transcript-hint {
+  font-size: vars.$font-caption;
+  color: vars.$text-disabled;
+}
+
+// ── Import / record buttons ────────────────────────────────
+// Value-for-value mirror of .voice-import-btn (VoiceLibrarySection.scss) —
+// the brief asked for a mirror, not a redesign, so every declaration below
+// keeps that rule's computed value (only the color tokens are literally the
+// same tk.* aliases that rule already used).
+.voice-create-modal__import-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: vars.$color-on-primary;
+  background: vars.$color-primary-fill;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  &:hover:not(:disabled) { background: #0d8c6c; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+// ── Drop zone ──────────────────────────────────────────────
+// Value-for-value mirror of .voice-library-drop-hint (VoiceLibrarySection.scss)
+// — an inline hint line, not a dashed drop target. Unlike that rule, this
+// class sits on the element that actually receives the drop (there is no
+// separate manage-body wrapper here), so it needs a dragging-state cue;
+// kept minimal (a color swap, nothing else) so the base look still matches.
+.voice-create-modal__drop-zone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #808080;
+
+  &.is-dragging { color: vars.$color-primary; }
+}
+
+.voice-create-modal__note {
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+  line-height: 1.4;
+}

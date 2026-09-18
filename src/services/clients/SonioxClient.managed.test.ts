@@ -37,7 +37,6 @@ class MockTts {
   constructor(options: SonioxTtsOptions) { this.options = options; ttsInstances.push(this); }
   setHandlers(h: SonioxTtsStreamHandlers) { this.handlers = h; }
   connect() { return Promise.resolve(); }
-  prewarm() {}
   sendText() {}
   endUtterance() {}
   close() { this.closed = true; }

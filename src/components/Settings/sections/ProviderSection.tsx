@@ -23,6 +23,7 @@ import {
   useUpdateOpenAICompatible,
   useUpdatePalabraAI,
   useUpdateOpenAITranslate,
+  useUpdateOpenAILive,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateZoomAI,
@@ -74,6 +75,7 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
   [Provider.GEMINI]: GeminiIcon,
   [Provider.OPENAI_COMPATIBLE]: Zap,
   [Provider.OPENAI_TRANSLATE]: OpenAIIcon,
+  [Provider.OPENAI_LIVE]: OpenAIIcon,
   [Provider.PALABRA_AI]: PalabraAIIcon,
   [Provider.VOLCENGINE_ST]: VolcengineIcon,
   [Provider.VOLCENGINE_AST2]: VolcengineIcon,
@@ -120,6 +122,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updateOpenAICompatibleSettings = useUpdateOpenAICompatible();
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
+  const updateOpenAILiveSettings = useUpdateOpenAILive();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateZoomAISettings = useUpdateZoomAI();
@@ -484,6 +487,9 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
         break;
       case Provider.OPENAI_TRANSLATE:
         updateOpenAITranslateSettings({ apiKey: value });
+        break;
+      case Provider.OPENAI_LIVE:
+        updateOpenAILiveSettings({ apiKey: value });
         break;
       case Provider.VOLCENGINE_ST:
         updateVolcengineSTSettings({ accessKeyId: value });

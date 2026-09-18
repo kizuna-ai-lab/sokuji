@@ -382,6 +382,69 @@ async function edgeTtsClearDNRHeaders() {
   }
 }
 
+// ─── OpenAI Live declarativeNetRequest header injection ────────────────────
+// Like the Volcengine functions, these chain through the shared dnrUpdatePromise
+// to serialize updates. The rule is scoped to the Live path so it never touches
+// the Realtime upgrade the OpenAI provider makes, and it is removed as soon as
+// the session has started.
+const OPENAI_LIVE_DNR_RULE_ID = 4000;
+const OPENAI_LIVE_URL_FILTER = '||api.openai.com/v1/live/';
+
+async function openaiLiveSetDNRHeaders(apiKey) {
+  // Validate before touching the shared chain: a throw inside it would leave
+  // dnrUpdatePromise rejected for every later caller.
+  if (!apiKey) throw new Error('OpenAI Live: apiKey is required');
+  const run = dnrUpdatePromise.then(async () => {
+    const rules = [{
+      id: OPENAI_LIVE_DNR_RULE_ID,
+      priority: 1,
+      action: {
+        type: 'modifyHeaders',
+        requestHeaders: [
+          { header: 'Authorization', operation: 'set', value: `Bearer ${apiKey}` },
+          // The Live endpoint answers 403 to any upgrade carrying a browser
+          // Origin header (verified 2026-09-12); the extension page's
+          // chrome-extension:// origin is no exception.
+          { header: 'Origin', operation: 'remove' },
+        ],
+      },
+      condition: {
+        urlFilter: OPENAI_LIVE_URL_FILTER,
+        resourceTypes: ['websocket'],
+        // While the rule is live it would hand the user's key to ANY page that
+        // opens a Live socket; only the extension's own pages get it.
+        initiatorDomains: [chrome.runtime.id],
+      },
+    }];
+    const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+      .filter(r => r.id === OPENAI_LIVE_DNR_RULE_ID)
+      .map(r => r.id);
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingRuleIds,
+      addRules: rules,
+    });
+    console.debug('[Sokuji] [Background] OpenAI Live DNR rule registered');
+  });
+  // The shared chain must never stay rejected; the caller still sees the failure via `run`.
+  dnrUpdatePromise = run.catch(() => {});
+  return run;
+}
+
+async function openaiLiveClearDNRHeaders() {
+  const run = dnrUpdatePromise.then(async () => {
+    const existingRuleIds = (await chrome.declarativeNetRequest.getDynamicRules())
+      .filter(r => r.id === OPENAI_LIVE_DNR_RULE_ID)
+      .map(r => r.id);
+    if (existingRuleIds.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: existingRuleIds });
+      console.debug('[Sokuji] [Background] OpenAI Live DNR rule cleared');
+    }
+  });
+  // The shared chain must never stay rejected; the caller still sees the failure via `run`.
+  dnrUpdatePromise = run.catch(() => {});
+  return run;
+}
+
 // ─── Bing Translator declarativeNetRequest header injection ───────────────────
 // Bing Translator's /ttranslatev3 endpoint requires browser-like headers or it
 // returns 403/empty responses. We inject them via declarativeNetRequest so the
@@ -515,6 +578,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
         console.error('[Sokuji] [Background] Failed to clear Edge TTS DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  // Handle OpenAI Live DNR header injection
+  if (message.type === 'OPENAI_LIVE_SET_HEADERS') {
+    openaiLiveSetDNRHeaders(message.apiKey)
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to set OpenAI Live DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  if (message.type === 'OPENAI_LIVE_CLEAR_HEADERS') {
+    openaiLiveClearDNRHeaders()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to clear OpenAI Live DNR headers:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;

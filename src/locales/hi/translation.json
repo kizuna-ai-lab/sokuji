@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini दूसरे के ऑडियो के लिए ऑडियो प्रतिक्रियाएँ बनाता है जो हटा दी जाती हैं, जिससे अतिरिक्त टोकन खर्च होता है।",
     "help": "सहायता",
     "helpEmailTooltip": "बग रिपोर्ट करें या सहायता लें",
+    "diagnosticLogs": "डायग्नोस्टिक लॉग",
+    "diagnosticLogsTooltip": "ऐप क्या कर रहा है उसे दर्ज करता है, ताकि आप इसे बग रिपोर्ट के साथ जोड़ सकें। डिफ़ॉल्ट रूप से बंद। चालू रहने पर शीर्षक पट्टी में “लॉग्स” बटन दिखता है, और रीस्टार्ट के बाद भी यह चालू रहता है।",
     "helpDiscussions": "चर्चाएँ",
     "helpDiscussionsTooltip": "फ़ीचर अनुरोध, फीडबैक और सामुदायिक चर्चाएँ",
     "auto": "स्वतः",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT मॉडल द्वारा संचालित"
+      "name": "OpenAI Realtime",
+      "description": "सामान्य-उद्देश्य GPT Realtime वाक् मॉडल, पूरी तरह विन्यास योग्य"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Google की AI तकनफ0940क"
     },
     "openaiCompatible": {
-      "name": "OpenAI संगत API",
-      "description": "कस्टम OpenAI-संगत एंडपॉइंट",
+      "name": "OpenAI संगत (लीगेसी Realtime)",
+      "description": "OpenAI के पुराने beta Realtime प्रोटोकॉल का उपयोग करने वाला थर्ड-पार्टी एंडपॉइंट। OpenAI के लिए नहीं।",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI का समर्पित रियल-टाइम अनुवाद मॉडल"
+      "description": "समर्पित अनुवाद मॉडल जो स्रोत भाषा स्वतः पहचानता है"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 दुभाषिया, मौन सहित सत्र के प्रति मिनट बिलिंग"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox फ़िलहाल पूरी क्षमता पर है। कृपया शीघ्र ही फिर से प्रयास करें।",
     "sonioxBudgetExhausted": "आपके सत्र का बैलेंस समाप्त हो गया है। अनुवाद जारी रखने के लिए अपना बैलेंस टॉप अप करें।",
     "sonioxTtsFailed": "बोली गई अनुवाद रुक गया है। प्रतिलेखन और पाठ अनुवाद अभी भी चल रहे हैं।",
+    "sonioxTtsSegmentLost": "बोले गए अनुवाद का एक हिस्सा चलाया नहीं जा सका। ट्रांसक्रिप्शन और टेक्स्ट अनुवाद पर कोई असर नहीं पड़ा।",
     "sonioxSegmentEnded": "यह सेगमेंट समाप्त हो गया है — जारी रखने के लिए “सत्र शुरू करें” पर टैप करें।",
     "sonioxConnectionLost": "कनेक्शन बाधित हो गया — कुछ ही क्षण में जारी रखने के लिए “सत्र शुरू करें” पर टैप करें।",
+    "openaiLiveConnectionLost": "कनेक्शन बाधित हो गया — कुछ ही क्षण में जारी रखने के लिए “सत्र शुरू करें” पर टैप करें।",
     "sonioxVoiceClipMissing": "इस डिवाइस पर कोई आवाज़ रिकॉर्डिंग नहीं है, इसलिए यह सत्र एक प्रीसेट आवाज़ का उपयोग कर रहा है। यहाँ अपनी आवाज़ में बोलने के लिए सेटिंग्स में एक रिकॉर्ड करें।",
     "sonioxVoicePoolBusy": "अभी सभी कस्टम आवाज़ स्लॉट उपयोग में हैं, इसलिए यह सत्र एक प्रीसेट आवाज़ का उपयोग कर रहा है। अगली बार आपकी अपनी आवाज़ फिर से उपयोग की जाएगी।",
     "sonioxVoiceBuildFailed": "आपकी कस्टम आवाज़ नहीं बनाई जा सकी, इसलिए यह सत्र एक प्रीसेट आवाज़ का उपयोग कर रहा है। सेटिंग्स में एक स्पष्ट क्लिप रिकॉर्ड करने का प्रयास करें।",
@@ -914,26 +922,34 @@
     "close": "बंद करें"
   },
   "voiceLibrary": {
+    "addVoice": "आवाज़ जोड़ें…",
+    "addVoiceTitle": "आवाज़ जोड़ें",
     "clipSilent": "कोई आवाज़ नहीं मिली — अपना माइक्रोफ़ोन जाँचें और पुनः प्रयास करें।",
     "clipTooLong": "रिकॉर्डिंग बहुत लंबी है — इसे {seconds} सेकंड से कम रखें।",
     "clipTooShort": "रिकॉर्डिंग बहुत छोटी है — कम से कम {seconds} सेकंड बोलें।",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "वह ऑडियो फ़ाइल पढ़ी नहीं जा सकी — WAV, MP3 या कोई अन्य सामान्य प्रारूप आज़माएं।",
     "delete": "हटाएं",
-    "deleteConfirm": "आवाज़ \"{name}\" हटाएं?",
+    "deleteBody": "\"{name}\" हटाएं? इससे इस डिवाइस पर सहेजी गई संदर्भ रिकॉर्डिंग भी हट जाएगी।",
+    "deleteTitle": "आवाज़ हटाएं",
     "dropHint": "या यहाँ एक आवाज़ फ़ाइल छोड़ें",
     "emptyHint": "अभी तक कोई आयातित आवाज़ नहीं।",
+    "filterCount": "{total} में से {shown}",
     "importError": "आयात विफल: {error}",
     "importVoice": "आवाज़ आयात करें…",
-    "manageImported": "आयातित आवाज़ें प्रबंधित करें",
-    "myVoices": "मेरी आवाज़ें",
+    "myVoices": "कस्टम आवाज़ें",
     "play": "चलाएं",
     "presets": "प्रीसेट",
+    "previewChargedToBalance": "पूर्वावलोकन सुनने पर एक छोटा नमूना संश्लेषित होता है और आपके खाते के बैलेंस से शुल्क लिया जाता है।",
+    "previewFailed": "इस आवाज़ के लिए पूर्वावलोकन नहीं बनाया जा सका।",
+    "renameFailed": "इस आवाज़ का नाम नहीं बदला जा सका।",
+    "previewLanguageUnsupported": "इस मॉडल के पास उस भाषा में कोई नमूना वाक्य नहीं है जो यह बोल सकता है।",
+    "previewNeedsBalance": "इस आवाज़ का पूर्वावलोकन सुनने के लिए अपना बैलेंस टॉप अप करें।",
+    "previewNeedsSessionStopped": "इस आवाज़ का पूर्वावलोकन सुनने के लिए सत्र समाप्त करें।",
+    "previewSessionRunning": "एक सत्र चल रहा है। कृपया थोड़ी देर बाद फिर से प्रयास करें।",
     "recordVoice": "आवाज़ रिकॉर्ड करें…",
     "rename": "नाम बदलें",
     "restartHint": "आयातित आवाज़ के बदलाव लागू करने के लिए सत्र पुनः आरंभ करें।",
-    "showAll": "सभी आवाज़ें दिखाएं",
-    "showFewer": "कम आवाज़ें दिखाएं",
     "stopPreview": "रोकें",
     "stopRecording": "रिकॉर्डिंग रोकें",
     "synthesizing": "संश्लेषित हो रहा है…",

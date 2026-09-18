@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini는 상대방 오디오에 대해 폐기되는 오디오 응답을 생성하므로 추가 토큰이 사용됩니다.",
     "help": "도움말",
     "helpEmailTooltip": "버그 신고 또는 도움 받기",
+    "diagnosticLogs": "진단 로그",
+    "diagnosticLogsTooltip": "앱의 동작을 기록하여 버그 신고에 첨부할 수 있게 합니다. 기본값은 꺼짐입니다. 켜면 제목 표시줄에 ‘로그’ 버튼이 나타나며, 다시 시작한 후에도 켜진 상태로 유지됩니다.",
     "helpDiscussions": "토론",
     "helpDiscussionsTooltip": "기능 요청, 피드백 및 커뮤니티 토론",
     "auto": "자동",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT 모델 기반"
+      "name": "OpenAI Realtime",
+      "description": "범용 GPT Realtime 음성 모델, 자유롭게 설정 가능"
     },
     "gemini": {
       "name": "구글 제미나이",
       "description": "구글의 AI 기술"
     },
     "openaiCompatible": {
-      "name": "OpenAI 호환 API",
-      "description": "사용자 정의 OpenAI 호환 엔드포인트",
+      "name": "OpenAI 호환 (레거시 Realtime)",
+      "description": "OpenAI의 구 beta Realtime 프로토콜을 사용하는 서드파티 엔드포인트. OpenAI 자체용이 아닙니다.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI 전용 실시간 번역 모델"
+      "description": "번역 전용 모델, 원어 자동 감지"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 통역, 세션 시간 기준 분당 과금(무음 포함)"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox가 현재 용량이 가득 찼습니다. 잠시 후 다시 시도해 주세요.",
     "sonioxBudgetExhausted": "세션 잔액이 모두 소진되었습니다. 번역을 계속하려면 잔액을 충전하세요.",
     "sonioxTtsFailed": "음성 번역이 중지되었습니다. 전사와 텍스트 번역은 계속 작동합니다.",
+    "sonioxTtsSegmentLost": "음성 번역의 일부를 재생하지 못했습니다. 전사와 텍스트 번역에는 영향이 없습니다.",
     "sonioxSegmentEnded": "이 세그먼트가 종료되었습니다 — 계속하려면 ‘세션 시작’을 탭하세요.",
     "sonioxConnectionLost": "연결이 끊어졌습니다 — 잠시 후 계속하려면 ‘세션 시작’을 탭하세요.",
+    "openaiLiveConnectionLost": "연결이 끊어졌습니다 — 잠시 후 계속하려면 ‘세션 시작’을 탭하세요.",
     "sonioxVoiceClipMissing": "이 기기에 음성 녹음이 없어 이 세션은 프리셋 음성을 사용합니다. 여기서 본인 목소리로 말하려면 설정에서 녹음하세요.",
     "sonioxVoicePoolBusy": "지금은 모든 맞춤 음성 슬롯이 사용 중이라 이 세션은 프리셋 음성을 사용합니다. 다음 번에는 본인 음성이 다시 사용됩니다.",
     "sonioxVoiceBuildFailed": "맞춤 음성을 만들지 못해 이 세션은 프리셋 음성을 사용합니다. 설정에서 더 또렷한 클립을 녹음해 보세요.",
@@ -914,26 +922,34 @@
     "close": "닫기"
   },
   "voiceLibrary": {
+    "addVoice": "음성 추가…",
+    "addVoiceTitle": "음성 추가",
     "clipSilent": "음성이 감지되지 않았습니다 — 마이크를 확인하고 다시 시도하세요.",
     "clipTooLong": "녹음이 너무 깁니다 — {seconds}초 이내로 유지하세요.",
     "clipTooShort": "녹음이 너무 짧습니다 — 최소 {seconds}초 이상 말하세요.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "이 오디오 파일을 읽을 수 없습니다 — WAV, MP3 등 일반적인 형식을 사용해 보세요.",
     "delete": "삭제",
-    "deleteConfirm": "음성 \"{name}\"을(를) 삭제하시겠습니까?",
+    "deleteBody": "\"{name}\"을(를) 삭제하시겠습니까? 이 기기에 저장된 참조 녹음도 삭제됩니다.",
+    "deleteTitle": "음성 삭제",
     "dropHint": "또는 음성 파일을 여기에 놓으세요",
     "emptyHint": "가져온 음성이 아직 없습니다.",
+    "filterCount": "{total}개 중 {shown}개",
     "importError": "가져오기 실패: {error}",
     "importVoice": "음성 가져오기…",
-    "manageImported": "가져온 음성 관리",
-    "myVoices": "내 음성",
+    "myVoices": "사용자 정의 음성",
     "play": "재생",
     "presets": "프리셋",
+    "previewChargedToBalance": "미리 듣기를 하면 짧은 샘플이 합성되며 계정 잔액에서 차감됩니다.",
+    "previewFailed": "이 음성의 미리 듣기를 합성할 수 없습니다.",
+    "renameFailed": "이 음성의 이름을 변경할 수 없습니다.",
+    "previewLanguageUnsupported": "이 모델은 지원하는 언어로 된 샘플 문장이 없습니다.",
+    "previewNeedsBalance": "이 음성을 미리 들으려면 잔액을 충전하세요.",
+    "previewNeedsSessionStopped": "이 음성을 미리 들으려면 세션을 종료하세요.",
+    "previewSessionRunning": "세션이 실행 중입니다. 잠시 후 다시 시도해 주세요.",
     "recordVoice": "음성 녹음…",
     "rename": "이름 변경",
     "restartHint": "가져온 음성 변경 사항을 적용하려면 세션을 다시 시작하세요.",
-    "showAll": "모든 음성 표시",
-    "showFewer": "음성 적게 표시",
     "stopPreview": "정지",
     "stopRecording": "녹음 중지",
     "synthesizing": "합성 중…",

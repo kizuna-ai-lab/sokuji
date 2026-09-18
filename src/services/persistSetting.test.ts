@@ -12,6 +12,12 @@ import useLogStore from '../stores/logStore';
 
 const panel = () => useLogStore.getState().allLogs.map((l) => `${l.type}:${l.message}`);
 
+// These tests assert what reaches the log store, which records nothing unless
+// diagnostic logs are switched on (they are off by default in the app).
+beforeEach(() => {
+  useLogStore.getState().setEnabled(true);
+});
+
 describe('persistSetting', () => {
   beforeEach(() => {
     setSetting.mockReset();

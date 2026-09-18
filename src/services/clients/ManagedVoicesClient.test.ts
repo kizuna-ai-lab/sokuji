@@ -238,3 +238,114 @@ describe('ManagedVoicesClient.remove', () => {
     await expect(make().remove()).rejects.toMatchObject({ errorType: 'voice_pinned', status: 409 });
   });
 });
+
+describe('ManagedVoicesClient.sessionKey', () => {
+  it('posts to /soniox/session-key (never /soniox/voices) with this client\'s own region in the body', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'eu' }));
+    const client = new ManagedVoicesClient(async () => TOKEN, 'eu');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result).toEqual({ ttsApiKey: 'tk', region: 'eu' });
+    const [url, init] = fetchMock.mock.calls[0];
+    // No /voices segment and no ?region= query param: this route lives
+    // outside the voices-CRUD path shape `request()` builds for mine/ensure/remove.
+    expect(String(url)).toMatch(/\/soniox\/session-key$/);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(JSON.parse(init.body as string)).toEqual({ mode: 'voice_preview', region: 'eu' });
+  });
+
+  it('defaults to US when constructed with no region, same as every other method', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'us' }));
+    await make().sessionKey({ mode: 'voice_preview' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ mode: 'voice_preview', region: 'us' });
+  });
+
+  it('narrows a missing response region to THIS CLIENT\'s own region, not the global default', async () => {
+    // Constructed with 'eu', deliberately NOT the default 'us' — `make()`
+    // would leave `this.region` and DEFAULT_SONIOX_REGION both 'us', so the
+    // assertion would pass under either a correct or a regressed
+    // implementation and prove nothing. A eu account whose response omits
+    // `region` must still get a eu-hosted key back, never a US one.
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk' }));
+    const client = new ManagedVoicesClient(async () => TOKEN, 'eu');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result.region).toBe('eu');
+  });
+
+  it('narrows an unrecognized response region to THIS CLIENT\'s own region too', async () => {
+    fetchMock.mockResolvedValue(json(200, { ttsApiKey: 'tk', region: 'mars' }));
+    const client = new ManagedVoicesClient(async () => TOKEN, 'jp');
+    const result = await client.sessionKey({ mode: 'voice_preview' });
+    expect(result.region).toBe('jp');
+  });
+
+  it('throws loudly when the response is missing ttsApiKey — a contract break, not a silent undefined credential', async () => {
+    fetchMock.mockResolvedValue(json(200, { region: 'us' }));
+    await expect(make().sessionKey({ mode: 'voice_preview' })).rejects.toBeInstanceOf(SonioxVoicesError);
+  });
+
+  it.each([
+    [402, 'Insufficient balance'],
+    [409, 'Another session is already active'],
+    [503, 'Soniox capacity is temporarily full'],
+  ])('surfaces the backend\'s own %i verdict rather than mapping it away', async (status, message) => {
+    fetchMock.mockResolvedValue(json(status, { error: message }));
+    await expect(make().sessionKey({ mode: 'voice_preview' })).rejects.toMatchObject({
+      errorType: message,
+      status,
+    });
+  });
+
+  it('rejects with the same timeout shape as fetchWithAuth when a 2xx body never arrives', async () => {
+    // sessionKey now reads the JSON body through fetchJsonWithAuth, which
+    // keeps the deadline armed until the body settles (fetchWithAuth alone
+    // releases it the moment headers arrive). Without this, a mint whose
+    // response never finishes streaming would hang forever — and under
+    // managedVoiceSource's per-source preview serialization, every later
+    // preview on that source would then queue behind it forever too.
+    //
+    // Same simulation shape as SonioxTtsRest.test.ts's `stalledBodyResponse`:
+    // `json()` only settles when the INTERNAL controller's signal aborts
+    // (the one `withTimedRequest` passes to `fetch()`), which is exactly
+    // what the timer does at the deadline — a real Response's body read is
+    // tied to that same signal.
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => new Promise((_res, rej) => {
+          const internalSignal = init.signal as AbortSignal;
+          if (internalSignal.aborted) { rej(internalSignal.reason); return; }
+          internalSignal.addEventListener('abort', () => rej(internalSignal.reason));
+        }),
+      }));
+      // The assertion is wired up BEFORE advancing the fake timer — see
+      // "still maps to timeout when the caller signal never fires" above for
+      // why (a race against Node's unhandled-rejection detector otherwise).
+      const promise = make().sessionKey({ mode: 'voice_preview' });
+      const assertion = expect(promise).rejects.toMatchObject({ errorType: 'timeout', status: 408 });
+      await vi.advanceTimersByTimeAsync(15_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('ManagedVoicesClient.previewDone', () => {
+  it('posts an empty body to /soniox/preview-done — the backend resolves the account\'s own lease', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(make().previewDone()).resolves.toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toMatch(/\/soniox\/preview-done$/);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(init.body).toBeUndefined();
+  });
+
+  it('rejects on a 404 (nothing to complete) — the caller is expected to swallow this, not this method', async () => {
+    fetchMock.mockResolvedValue(json(404, { error: 'No preview lease to complete' }));
+    await expect(make().previewDone()).rejects.toMatchObject({ status: 404 });
+  });
+});

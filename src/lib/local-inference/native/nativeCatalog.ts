@@ -341,22 +341,45 @@ export function formatRtf(rtf: number): string {
 }
 
 /**
- * The per-model status repo overrides: each card's CHOSEN variant repo (pinned,
- * else recommended). Cards without variant data are omitted → the sidecar checks
- * their default repo. Feeds the variant-aware model_status query.
+ * The per-model status repo overrides: each card's CHOSEN variant repo —
+ * pinned, else a rung that is actually downloaded, else recommended. Cards
+ * without variant data are omitted → the sidecar checks their default repo.
+ * Feeds the variant-aware model_status query.
+ *
+ * The downloaded-first step is what makes "downloaded ⇒ selectable" true.
+ * `recommended` is the sidecar's memory-budget fit-walk, which knows nothing
+ * about what is on disk, so resolving to it unconditionally pointed the status
+ * query at a file the user never fetched: their card read 'absent' and its
+ * click handler silently did nothing (reported 2026-09-18 for a Qwen3-TTS
+ * 0.6B downloaded as q8_0 while bf16 is recommended).
  */
 export function statusReposFor(
   ids: string[],
-  // Structural minimum — only id/repo are read, so both the settings-store's
-  // slim {id, repo} maps and full VariantInfo[] ladders satisfy it.
-  variantData: Record<string, { variants: { id: string; repo: string }[]; recommended: string }>,
+  // Structural minimum — only id/repo are required, so both the settings-store's
+  // slim {id, repo} maps and full VariantInfo[] ladders satisfy it. `downloaded`
+  // and `supported` are optional on purpose: a caller that cannot know them
+  // gets exactly the previous pin-then-recommended behaviour.
+  variantData: Record<string, {
+    variants: { id: string; repo: string; downloaded?: boolean; supported?: boolean }[];
+    recommended: string;
+  }>,
   variantByModel: Record<string, string>,
 ): Record<string, string> {
   const repos: Record<string, string> = {};
   for (const id of ids) {
     const vd = variantData[id];
     if (!vd) continue;
-    const chosenId = variantByModel[id] ?? vd.recommended;
+    // Downloaded AND runnable: an unsupported rung is no better a resolution
+    // for being on disk, which is the same call `deriveVariantRepos` already
+    // makes when it drops a pin whose variant this machine cannot run.
+    // Variants arrive size-desc, so `usable[0]` is the largest usable cached
+    // rung — the same one the sidecar's own load-time planner settles on.
+    const usable = vd.variants.filter((v) => v.downloaded === true && v.supported !== false);
+    const chosenId = variantByModel[id]
+      // A pin is the user naming a quant, so it wins even when that file is
+      // not here yet — the download button has to target what they asked for.
+      ?? (usable.some((v) => v.id === vd.recommended) ? vd.recommended : usable[0]?.id)
+      ?? vd.recommended;
     const repo = vd.variants.find((v) => v.id === chosenId)?.repo;
     if (repo) repos[id] = repo;
   }

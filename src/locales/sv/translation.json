@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini genererar ljudsvar för den andras ljud som kastas bort, vilket ger extra tokenanvändning.",
     "help": "Hjälp",
     "helpEmailTooltip": "Rapportera fel eller få hjälp",
+    "diagnosticLogs": "Diagnostikloggar",
+    "diagnosticLogsTooltip": "Loggar vad appen gör så att du kan bifoga det till en felrapport. Av som standard. När det är på visas knappen ”Loggar” i namnlisten, och inställningen förblir på efter en omstart.",
     "helpDiscussions": "Diskussioner",
     "helpDiscussionsTooltip": "Funktionsförslag, feedback och communitydiskussioner",
     "auto": "Auto",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Drivs av GPT modeller"
+      "name": "OpenAI Realtime",
+      "description": "Allmän GPT Realtime-talmodell, helt konfigurerbar"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Googles AI teknologi"
     },
     "openaiCompatible": {
-      "name": "OpenAI Kompatibel API",
-      "description": "Anpassad OpenAI-kompatibel slutpunkt",
+      "name": "OpenAI-kompatibel (äldre Realtime)",
+      "description": "Tredjepartsslutpunkt som använder OpenAI:s äldre beta-Realtime-protokoll. Inte för OpenAI själv.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAIs särskilda realtidsöversättningsmodell"
+      "description": "Dedikerad översättningsmodell som identifierar källspråket automatiskt"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1-tolk, debiteras per sessionsminut inklusive tystnad"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox är för närvarande fullbelastat. Försök igen snart.",
     "sonioxBudgetExhausted": "Ditt sessionssaldo är slut. Fyll på ditt saldo för att fortsätta översätta.",
     "sonioxTtsFailed": "Den talade översättningen har stoppats. Transkribering och textöversättning fungerar fortfarande.",
+    "sonioxTtsSegmentLost": "En del av den talade översättningen kunde inte spelas upp. Transkribering och textöversättning påverkas inte.",
     "sonioxSegmentEnded": "Det här avsnittet har avslutats — tryck på ”Starta session” för att fortsätta.",
     "sonioxConnectionLost": "Anslutningen avbröts — tryck på ”Starta session” om en stund för att fortsätta.",
+    "openaiLiveConnectionLost": "Anslutningen avbröts — tryck på ”Starta session” om en stund för att fortsätta.",
     "sonioxVoiceClipMissing": "Den här enheten har ingen röstinspelning, så den här sessionen använder en förinställd röst. Spela in en i Inställningar för att tala med din egen röst här.",
     "sonioxVoicePoolBusy": "Alla platser för anpassade röster används just nu, så den här sessionen använder en förinställd röst. Din egen röst används igen nästa gång.",
     "sonioxVoiceBuildFailed": "Din anpassade röst kunde inte byggas, så den här sessionen använder en förinställd röst. Försök spela in ett tydligare klipp i Inställningar.",
@@ -914,26 +922,34 @@
     "close": "Stäng"
   },
   "voiceLibrary": {
+    "addVoice": "Lägg till en röst…",
+    "addVoiceTitle": "Lägg till en röst",
     "clipSilent": "Ingen röst upptäcktes — kontrollera din mikrofon och försök igen.",
     "clipTooLong": "Inspelningen är för lång — håll den under {seconds} sekunder.",
     "clipTooShort": "Inspelningen är för kort — tala i minst {seconds} sekunder.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Kunde inte läsa den ljudfilen — prova WAV, MP3 eller ett annat vanligt format.",
     "delete": "Radera",
-    "deleteConfirm": "Radera rösten \"{name}\"?",
+    "deleteBody": "Radera \"{name}\"? Detta tar även bort referensinspelningen som sparats på den här enheten.",
+    "deleteTitle": "Radera röst",
     "dropHint": "eller släpp en röstfil här",
     "emptyHint": "Inga importerade röster ännu.",
+    "filterCount": "{shown} av {total}",
     "importError": "Importen misslyckades: {error}",
     "importVoice": "Importera röst…",
-    "manageImported": "Hantera importerade röster",
-    "myVoices": "Mina röster",
+    "myVoices": "Anpassade röster",
     "play": "Spela upp",
     "presets": "Förinställningar",
+    "previewChargedToBalance": "Att lyssna på en förhandsgranskning syntetiserar ett kort ljudklipp och debiteras ditt kontosaldo.",
+    "previewFailed": "Det gick inte att skapa en förhandsgranskning för den här rösten.",
+    "renameFailed": "Det gick inte att byta namn på den här rösten.",
+    "previewLanguageUnsupported": "Den här modellen har ingen exempelmening på ett språk den talar.",
+    "previewNeedsBalance": "Fyll på ditt saldo för att lyssna på en förhandsgranskning av den här rösten.",
+    "previewNeedsSessionStopped": "Avsluta sessionen för att lyssna på en förhandsgranskning av den här rösten.",
+    "previewSessionRunning": "En session pågår. Försök igen om en stund.",
     "recordVoice": "Spela in röst…",
     "rename": "Byt namn",
     "restartHint": "Starta om sessionen för att tillämpa ändringar av importerade röster.",
-    "showAll": "Visa alla röster",
-    "showFewer": "Visa färre röster",
     "stopPreview": "Stoppa",
     "stopRecording": "Stoppa inspelning",
     "synthesizing": "Syntetiserar…",

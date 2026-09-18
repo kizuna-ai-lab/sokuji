@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "يولّد Gemini لصوت الآخر ردودًا صوتية يتم تجاهلها، مما يؤدي إلى استهلاك إضافي للرموز.",
     "help": "مساعدة",
     "helpEmailTooltip": "الإبلاغ عن الأخطاء أو الحصول على مساعدة",
+    "diagnosticLogs": "سجلات التشخيص",
+    "diagnosticLogsTooltip": "يسجّل ما يفعله التطبيق لتتمكن من إرفاقه ببلاغ عن خطأ. متوقف افتراضيًا. عند تشغيله يظهر زر «السجلات» في شريط العنوان، ويبقى الإعداد مفعّلًا بعد إعادة التشغيل.",
     "helpDiscussions": "المناقشات",
     "helpDiscussionsTooltip": "طلبات الميزات والملاحظات ومناقشات المجتمع",
     "auto": "تلقائي",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "مدعوم بنماذج GPT"
+      "name": "OpenAI Realtime",
+      "description": "نموذج GPT Realtime الصوتي للأغراض العامة، قابل للتخصيص بالكامل"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "تقنية الذكاء الاصطناعي من Google"
     },
     "openaiCompatible": {
-      "name": "واجهة برمجة التطبيقات المتوافقة مع OpenAI",
-      "description": "نقطة نهاية مخصصة متوافقة مع OpenAI",
+      "name": "متوافق مع OpenAI (Realtime القديم)",
+      "description": "نقطة نهاية من طرف ثالث تستخدم بروتوكول Realtime التجريبي القديم من OpenAI. ليست مخصصة لـ OpenAI نفسها.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "نموذج الترجمة الفورية المخصص من OpenAI"
+      "description": "نموذج ترجمة مخصص يكتشف لغة المصدر تلقائيًا"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "مترجم GPT-Live-1، الفوترة لكل دقيقة جلسة شاملة الصمت"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "خدمة Soniox في طاقتها القصوى حاليًا. يرجى المحاولة مرة أخرى بعد قليل.",
     "sonioxBudgetExhausted": "تم استهلاك رصيد الجلسة بالكامل. يرجى شحن رصيدك لمواصلة الترجمة.",
     "sonioxTtsFailed": "توقفت الترجمة الصوتية. لا يزال النسخ والترجمة النصية يعملان.",
+    "sonioxTtsSegmentLost": "تعذّر تشغيل جزء من الترجمة الصوتية. لم يتأثر النسخ ولا الترجمة النصية.",
     "sonioxSegmentEnded": "انتهى هذا المقطع — اضغط على \"بدء الجلسة\" للمتابعة.",
     "sonioxConnectionLost": "انقطع الاتصال — اضغط على \"بدء الجلسة\" بعد قليل للمتابعة.",
+    "openaiLiveConnectionLost": "انقطع الاتصال — اضغط على \"بدء الجلسة\" بعد قليل للمتابعة.",
     "sonioxVoiceClipMissing": "لا يوجد تسجيل صوتي على هذا الجهاز، لذا تستخدم هذه الجلسة صوتًا افتراضيًا. سجّل واحدًا في الإعدادات لتتحدث بصوتك الخاص هنا.",
     "sonioxVoicePoolBusy": "جميع أماكن الأصوات المخصصة مُستخدمة حاليًا، لذا تستخدم هذه الجلسة صوتًا افتراضيًا. سيُستخدم صوتك الخاص مرة أخرى في المرة القادمة.",
     "sonioxVoiceBuildFailed": "تعذّر إنشاء صوتك المخصص، لذا تستخدم هذه الجلسة صوتًا افتراضيًا. جرّب تسجيل مقطع أوضح في الإعدادات.",
@@ -914,26 +922,34 @@
     "close": "إغلاق"
   },
   "voiceLibrary": {
+    "addVoice": "إضافة صوت…",
+    "addVoiceTitle": "إضافة صوت",
     "clipSilent": "لم يتم اكتشاف صوت — تحقق من الميكروفون وحاول مرة أخرى.",
     "clipTooLong": "التسجيل طويل جدًا — أبقِه أقل من {seconds} ثانية.",
     "clipTooShort": "التسجيل قصير جدًا — تحدّث لمدة {seconds} ثانية على الأقل.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "تعذّرت قراءة ذلك الملف الصوتي — جرّب WAV أو MP3 أو تنسيقًا شائعًا آخر.",
     "delete": "حذف",
-    "deleteConfirm": "حذف الصوت \"{name}\"؟",
+    "deleteBody": "حذف \"{name}\"؟ سيؤدي هذا أيضًا إلى حذف التسجيل المرجعي المخزَّن على هذا الجهاز.",
+    "deleteTitle": "حذف الصوت",
     "dropHint": "أو أفلِت ملف صوت هنا",
     "emptyHint": "لا توجد أصوات مستوردة بعد.",
+    "filterCount": "{shown} من {total}",
     "importError": "فشل الاستيراد: {error}",
     "importVoice": "استيراد صوت…",
-    "manageImported": "إدارة الأصوات المستوردة",
-    "myVoices": "أصواتي",
+    "myVoices": "الأصوات المخصصة",
     "play": "تشغيل",
     "presets": "الإعدادات المسبقة",
+    "previewChargedToBalance": "تُنتج المعاينة مقطعًا صوتيًا قصيرًا ويُخصم من رصيد حسابك.",
+    "previewFailed": "تعذّر إنشاء معاينة لهذا الصوت.",
+    "renameFailed": "تعذّر إعادة تسمية هذا الصوت.",
+    "previewLanguageUnsupported": "لا يحتوي هذا النموذج على جملة نموذجية بأي لغة يتحدث بها.",
+    "previewNeedsBalance": "اشحن رصيدك لمعاينة هذا الصوت.",
+    "previewNeedsSessionStopped": "أنهِ الجلسة لمعاينة هذا الصوت.",
+    "previewSessionRunning": "هناك جلسة قيد التشغيل حاليًا. يرجى المحاولة مرة أخرى بعد قليل.",
     "recordVoice": "تسجيل صوت…",
     "rename": "إعادة تسمية",
     "restartHint": "أعد تشغيل الجلسة لتطبيق تغييرات الأصوات المستوردة.",
-    "showAll": "عرض جميع الأصوات",
-    "showFewer": "عرض أصوات أقل",
     "stopPreview": "إيقاف",
     "stopRecording": "إيقاف التسجيل",
     "synthesizing": "جارٍ التوليد…",

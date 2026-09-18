@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini จะสร้างการตอบสนองด้วยเสียงสำหรับเสียงอีกฝ่ายแต่ถูกทิ้งไป ทำให้ใช้โทเค็นเพิ่มขึ้น",
     "help": "ช่วยเหลือ",
     "helpEmailTooltip": "รายงานข้อบกพร่องหรือขอความช่วยเหลือ",
+    "diagnosticLogs": "บันทึกการวินิจฉัย",
+    "diagnosticLogsTooltip": "บันทึกการทำงานของแอป เพื่อให้คุณแนบไปกับรายงานข้อบกพร่องได้ ปิดไว้เป็นค่าเริ่มต้น เมื่อเปิด ปุ่ม “บันทึก” จะปรากฏในแถบชื่อ และการตั้งค่านี้จะยังเปิดอยู่หลังรีสตาร์ท",
     "helpDiscussions": "การสนทนา",
     "helpDiscussionsTooltip": "คำขอฟีเจอร์ ข้อเสนอแนะ และการสนทนาในชุมชน",
     "auto": "อัตโนมัติ",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "ขับเคลื่อนโดยโมเดล GPT"
+      "name": "OpenAI Realtime",
+      "description": "โมเดลเสียง GPT Realtime อเนกประสงค์ ปรับแต่งได้เต็มที่"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "เทคโนโลยี AI ของ Google"
     },
     "openaiCompatible": {
-      "name": "OpenAI API ที่เข้ากันได้",
-      "description": "จุดปลายที่กำหนดเองที่เข้ากันได้กับ OpenAI",
+      "name": "เข้ากันได้กับ OpenAI (Realtime รุ่นเก่า)",
+      "description": "เอ็นด์พอยต์ของบุคคลที่สามที่ใช้โปรโตคอล Realtime เบต้ารุ่นเก่าของ OpenAI ไม่ใช่สำหรับ OpenAI เอง",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "โมเดลการแปลแบบเรียลไทม์เฉพาะของ OpenAI"
+      "description": "โมเดลแปลภาษาโดยเฉพาะ ตรวจจับภาษาต้นทางอัตโนมัติ"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "ล่าม GPT-Live-1 คิดค่าบริการต่อนาทีของเซสชัน รวมช่วงเงียบ"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "ขณะนี้ Soniox มีการใช้งานเต็มความจุ กรุณาลองใหม่อีกครั้งเร็วๆ นี้",
     "sonioxBudgetExhausted": "ยอดคงเหลือของเซสชันหมดแล้ว กรุณาเติมยอดคงเหลือเพื่อแปลภาษาต่อ",
     "sonioxTtsFailed": "การแปลด้วยเสียงหยุดทำงานแล้ว การถอดเสียงและการแปลข้อความยังคงทำงานอยู่",
+    "sonioxTtsSegmentLost": "ไม่สามารถเล่นเสียงแปลบางส่วนได้ การถอดเสียงและการแปลข้อความไม่ได้รับผลกระทบ",
     "sonioxSegmentEnded": "ส่วนนี้สิ้นสุดลงแล้ว — แตะ “เริ่มเซสชัน” เพื่อดำเนินการต่อ",
     "sonioxConnectionLost": "การเชื่อมต่อถูกขัดจังหวะ — แตะ “เริ่มเซสชัน” อีกสักครู่เพื่อดำเนินการต่อ",
+    "openaiLiveConnectionLost": "การเชื่อมต่อถูกขัดจังหวะ — แตะ “เริ่มเซสชัน” อีกสักครู่เพื่อดำเนินการต่อ",
     "sonioxVoiceClipMissing": "อุปกรณ์เครื่องนี้ไม่มีการบันทึกเสียง เซสชันนี้จึงใช้เสียงพรีเซ็ต บันทึกเสียงในการตั้งค่าเพื่อพูดด้วยเสียงของคุณเองที่นี่",
     "sonioxVoicePoolBusy": "ขณะนี้ช่องเสียงที่กำหนดเองทั้งหมดถูกใช้งานอยู่ เซสชันนี้จึงใช้เสียงพรีเซ็ต เสียงของคุณเองจะถูกใช้อีกครั้งในครั้งถัดไป",
     "sonioxVoiceBuildFailed": "ไม่สามารถสร้างเสียงที่กำหนดเองของคุณได้ เซสชันนี้จึงใช้เสียงพรีเซ็ต ลองบันทึกคลิปที่ชัดเจนกว่านี้ในการตั้งค่า",
@@ -914,26 +922,34 @@
     "close": "ปิด"
   },
   "voiceLibrary": {
+    "addVoice": "เพิ่มเสียง…",
+    "addVoiceTitle": "เพิ่มเสียง",
     "clipSilent": "ไม่พบเสียงพูด — ตรวจสอบไมโครโฟนของคุณแล้วลองใหม่",
     "clipTooLong": "การบันทึกยาวเกินไป — ให้สั้นกว่า {seconds} วินาที",
     "clipTooShort": "การบันทึกสั้นเกินไป — พูดอย่างน้อย {seconds} วินาที",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "ไม่สามารถอ่านไฟล์เสียงนั้นได้ — ลองใช้ WAV, MP3 หรือรูปแบบทั่วไปอื่นๆ",
     "delete": "ลบ",
-    "deleteConfirm": "ลบเสียง \"{name}\"?",
+    "deleteBody": "ลบ \"{name}\"? การดำเนินการนี้จะลบการบันทึกเสียงอ้างอิงที่จัดเก็บไว้ในอุปกรณ์นี้ด้วย",
+    "deleteTitle": "ลบเสียง",
     "dropHint": "หรือวางไฟล์เสียงที่นี่",
     "emptyHint": "ยังไม่มีเสียงที่นำเข้า",
+    "filterCount": "{shown} จาก {total}",
     "importError": "นำเข้าไม่สำเร็จ: {error}",
     "importVoice": "นำเข้าเสียง…",
-    "manageImported": "จัดการเสียงที่นำเข้า",
-    "myVoices": "เสียงของฉัน",
+    "myVoices": "เสียงที่กำหนดเอง",
     "play": "เล่น",
     "presets": "พรีเซ็ต",
+    "previewChargedToBalance": "การฟังตัวอย่างจะสังเคราะห์คลิปสั้น ๆ และจะถูกเรียกเก็บจากยอดคงเหลือในบัญชีของคุณ",
+    "previewFailed": "ไม่สามารถสร้างตัวอย่างเสียงนี้ได้",
+    "renameFailed": "ไม่สามารถเปลี่ยนชื่อเสียงนี้ได้",
+    "previewLanguageUnsupported": "โมเดลนี้ไม่มีประโยคตัวอย่างในภาษาที่มันพูดได้",
+    "previewNeedsBalance": "เติมยอดคงเหลือเพื่อฟังตัวอย่างเสียงนี้",
+    "previewNeedsSessionStopped": "สิ้นสุดเซสชันเพื่อฟังตัวอย่างเสียงนี้",
+    "previewSessionRunning": "มีเซสชันกำลังทำงานอยู่ กรุณาลองใหม่อีกครั้งในอีกสักครู่",
     "recordVoice": "บันทึกเสียง…",
     "rename": "เปลี่ยนชื่อ",
     "restartHint": "รีสตาร์ทเซสชันเพื่อใช้การเปลี่ยนแปลงเสียงที่นำเข้า",
-    "showAll": "แสดงเสียงทั้งหมด",
-    "showFewer": "แสดงเสียงน้อยลง",
     "stopPreview": "หยุด",
     "stopRecording": "หยุดบันทึก",
     "synthesizing": "กำลังสังเคราะห์…",

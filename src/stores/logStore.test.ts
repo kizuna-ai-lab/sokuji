@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import useLogStore from './logStore';
+import useLogStore, { MAX_EVENTS_PER_GROUP } from './logStore';
+
+// These tests assert what reaches the log store, which records nothing unless
+// diagnostic logs are switched on (they are off by default in the app).
+beforeEach(() => {
+  useLogStore.getState().setEnabled(true);
+});
 
 // Characterization tests for how addRealtimeEvent groups consecutive events.
 //
@@ -38,6 +44,41 @@ describe('logStore — per-client event grouping', () => {
     expect(speaker).toHaveLength(1);
     expect(speaker[0].events).toHaveLength(3);
     expect(speaker[0].groupingKey).toBe('input_audio_buffer');
+  });
+
+  // The Live API names the same microphone stream `session.input_audio.append`
+  // (no `_buffer`); one entry per frame drowned the panel in a real session.
+  it('collapses the Live wire name for mic appends under the same key', () => {
+    for (let seq = 0; seq < 3; seq++) {
+      useLogStore.getState().addRealtimeEvent(
+        { type: 'session.input_audio.append', audio: `chunk-${seq}` } as any,
+        'client',
+        'session.input_audio.append',
+        'speaker'
+      );
+    }
+    const speaker = entriesFor('speaker');
+    expect(speaker).toHaveLength(1);
+    expect(speaker[0].events).toHaveLength(3);
+    expect(speaker[0].groupingKey).toBe('input_audio_buffer');
+  });
+
+  // A session nobody speaks in sends nothing but mic appends, and they all
+  // share one groupingKey, so they land in ONE entry for as long as the silence
+  // lasts. Uncapped, that entry grew for the whole session and every append
+  // copied its entire history (#531).
+  it('caps the events one group keeps and still counts all of them', () => {
+    const total = MAX_EVENTS_PER_GROUP + 50;
+    for (let i = 0; i < total; i++) append('speaker', i);
+
+    const speaker = entriesFor('speaker');
+    expect(speaker).toHaveLength(1);
+    const events = speaker[0].events!;
+    expect(events).toHaveLength(MAX_EVENTS_PER_GROUP);
+    expect(speaker[0].groupCount).toBe(total);
+    // The newest are kept; the oldest are the ones dropped.
+    expect((events[events.length - 1] as any).audio).toBe(`chunk-${total - 1}`);
+    expect((events[0] as any).audio).toBe('chunk-50');
   });
 
   it('keeps interleaved clients in separate groups', () => {
@@ -203,5 +244,76 @@ describe('logStore — bounded memory', () => {
     const ids = useLogStore.getState().allLogs.map(l => l.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (let i = 1; i < ids.length; i++) expect(ids[i]).toBeGreaterThan(ids[i - 1]);
+  });
+});
+
+// Off until something says otherwise. Only the main window loads the settings
+// that can switch it on; any other context that imports the store — the
+// extension's subtitle overlay, or whatever comes next — must record nothing
+// on its own (PR #538 review).
+describe('logStore — initial state', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('records nothing until told to', async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    const { default: fresh } = await import('./logStore');
+
+    expect(fresh.getState().enabled).toBe(false);
+    fresh.getState().addLog('before any setting was read', 'error');
+    vi.advanceTimersByTime(1000);
+    expect(fresh.getState().allLogs).toHaveLength(0);
+  });
+});
+
+// Diagnostic logs are opt-in (Help → diagnostic logs). While they are off the
+// store records nothing — not the entry, and not the sanitize pass that would
+// build it; a realtime session sends ~20 events a second.
+describe('logStore — diagnostic logs switch', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+  });
+  afterEach(() => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    vi.useRealTimers();
+  });
+
+  it('records nothing while switched off', () => {
+    useLogStore.getState().setEnabled(false);
+    let touched = 0;
+    const event = { type: 'response.created', get data() { touched++; return {}; } } as never;
+    useLogStore.getState().addRealtimeEvent(event, 'server', 'response.created', 'speaker');
+    useLogStore.getState().addLog('settings failed to load', 'error');
+    vi.advanceTimersByTime(1000);
+
+    expect(useLogStore.getState().allLogs).toHaveLength(0);
+    // Not even sanitised: nothing read the event's fields.
+    expect(touched).toBe(0);
+  });
+
+  it('drops what it holds when switched off', () => {
+    useLogStore.getState().addLog('flushed', 'error');
+    vi.advanceTimersByTime(1000);
+    useLogStore.getState().addLog('still pending', 'error');
+    expect(useLogStore.getState().allLogs).toHaveLength(2);
+
+    useLogStore.getState().setEnabled(false);
+
+    expect(useLogStore.getState().allLogs).toHaveLength(0);
+    expect(useLogStore.getState().pendingLogs).toHaveLength(0);
+    vi.advanceTimersByTime(1000);
+    expect(useLogStore.getState().logs).toHaveLength(0);
+  });
+
+  it('records again once switched back on', () => {
+    useLogStore.getState().setEnabled(false);
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().addLog('after', 'error');
+    vi.advanceTimersByTime(1000);
+
+    expect(useLogStore.getState().allLogs.map(l => l.message)).toEqual(['after']);
   });
 });

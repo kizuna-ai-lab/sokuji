@@ -16,6 +16,11 @@ vi.mock('../../locales', () => ({
 vi.mock('openai-realtime-api', () => {
   class RealtimeClient {
     realtime = { send: vi.fn() };
+    // The SDK's own connection flag — the one `realtime.send()` tests before
+    // throwing `RealtimeAPI is not connected` (dist/index.js:338-340), and what
+    // OpenAIClient.isConnected() returns. Defaults to open; tests that care
+    // about a dead socket set it false.
+    isConnected = true;
     inputAudioBuffer = new Int16Array(0);
     turnDetectionType: string | undefined = 'server_vad';
     createResponse = vi.fn();
@@ -26,9 +31,39 @@ vi.mock('openai-realtime-api', () => {
       merged.set(chunk, this.inputAudioBuffer.length);
       this.inputAudioBuffer = merged;
     });
+    // Reproduces the real SDK (dist/index.js:976-988): the item goes out over
+    // `realtime.send` — so it throws on a dead socket exactly like every other
+    // send — and a response is requested afterwards.
+    sendUserMessageContent = vi.fn((content: unknown[]) => {
+      if (content.length) {
+        this.realtime.send('conversation.item.create', {
+          item: { type: 'message', role: 'user', content }
+        });
+      }
+      this.createResponse();
+    });
+    // Mirrors the SDK's RealtimeEventHandler contract: an array of handlers per
+    // event, `on` appends, `off(event, cb)` removes only that callback.
+    // OpenAIClient registers two 'realtime.event' handlers - the forwarder and
+    // waitForSessionWithErrorHandling's temporary errorHandler - so a single
+    // slot would silently drop one. (The SDK throws when `cb` is missing; that
+    // is its own defect, and deliberately not modelled here.)
+    handlers: Record<string, Array<(payload: any) => void>> = {};
     constructor(_opts: unknown) {}
-    on() {}
-    off() {}
+    on(event: string, handler: (payload: any) => void) {
+      if (!this.handlers[event]) this.handlers[event] = [];
+      this.handlers[event].push(handler);
+    }
+    off(event: string, handler?: (payload: any) => void) {
+      if (!handler) { delete this.handlers[event]; return; }
+      const list = this.handlers[event];
+      if (!list) return;
+      const i = list.indexOf(handler);
+      if (i >= 0) list.splice(i, 1);
+    }
+    emit(event: string, payload: any) {
+      for (const h of [...(this.handlers[event] || [])]) h(payload);
+    }
     getTurnDetectionType() { return this.turnDetectionType; }
   }
   return { RealtimeClient, arrayBufferToBase64: () => 'BASE64' };
@@ -290,6 +325,62 @@ describe('OpenAIClient — realtime send failure handling', () => {
     expect(reportedOps()).toEqual(['response.create']);
   });
 
+  // #546. The anchor is an out-of-band response we send on the conversation's
+  // own timer to keep the model on-task — the user never asked for it and
+  // cannot act on its failure. Reporting it raised `RealtimeAPI is not
+  // connected` as a conversation bubble seconds after Start, with nothing typed
+  // and nothing clicked.
+  //
+  // The sibling clients already drop sends on a dead transport in exactly this
+  // place: OpenAIGAClient.createResponse opens with `if (!this.rt) return`, and
+  // OpenAIWebRTCClient.sendEvent has a "per-send guard: silent" on the data
+  // channel's readyState. This client was the only one without one.
+  it('drops an out-of-band response on a closed socket instead of reporting it', () => {
+    sdk.isConnected = false;
+    failEverySend();
+
+    client.createResponse({ conversation: 'none', modalities: ['text'], metadata: { purpose: 'anchor' } });
+
+    expect(sdk.realtime.send).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(reportedOps()).toEqual([]);
+  });
+
+  it('still sends an out-of-band response while the socket is open', () => {
+    sdk.isConnected = true;
+
+    client.createResponse({ conversation: 'none', modalities: ['text'], metadata: { purpose: 'anchor' } });
+
+    expect(sentTypes()).toEqual(['response.create']);
+  });
+
+  // A user-initiated response must stay loud: someone is waiting on an answer,
+  // so a silent drop would be the #544 failure mode all over again.
+  it('still reports a user-initiated response failure on a closed socket', () => {
+    sdk.isConnected = false;
+    sdk.turnDetectionType = 'server_vad';
+    failEverySend();
+
+    expect(() => client.createResponse()).not.toThrow();
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  // The counterpart to the guard above, and the reason it is keyed on
+  // `conversation: 'none'`: appendInputText is the one send that must NOT be
+  // swallowed. Every caller wraps it already, and MainPanel.handleSendText
+  // depends on the throw to tell a failed send from a completed one — on the
+  // success path it runs `setItems(client.getConversationItems())`, which would
+  // wipe the error bubble onError just appended, and records `text_input_sent`
+  // for a message the server never received.
+  it('propagates a text-input failure to the caller', () => {
+    failEverySend();
+
+    expect(() => client.appendInputText('hello')).toThrow('RealtimeAPI is not connected');
+    // The throw also stops the SDK's trailing createResponse(): a response over
+    // an item that never arrived would answer the previous turn.
+    expect(sdk.createResponse).not.toHaveBeenCalled();
+  });
+
   it('catches failures on the keepReplayAudio path too', () => {
     client.keepReplayAudio = true;
     sdk.appendInputAudio.mockImplementation(() => {
@@ -298,5 +389,79 @@ describe('OpenAIClient — realtime send failure handling', () => {
 
     expect(() => client.appendInputAudio(chunk())).not.toThrow();
     expect(reportedOps()).toEqual(['input_audio_buffer.append']);
+  });
+});
+
+// The mirror image of #406, on the output side. The SDK's RealtimeConversation
+// keeps every item for the whole session -- `items` and `itemLookup` are only
+// emptied by clear(), which we call at teardown -- and its
+// "response.audio.delta" handler merges each chunk of translated speech onto
+// `item.formatted.audio` (dist/index.js:640). convertToConversationItem already
+// drops that field from the copy handed to the UI, but the SDK's own copy stayed
+// reachable, so an hours-long session retained every second of audio it had ever
+// played. Issue #531.
+describe('OpenAIClient — output audio retention in the SDK conversation (#531)', () => {
+  let client: any;
+  let sdk: any;
+
+  beforeEach(() => {
+    client = new OpenAIClient('test-api-key');
+    sdk = client.client;
+    client.setEventHandlers({ onConversationUpdated: () => {} });
+  });
+
+  /** An SDK item shaped like the one `conversation.updated` carries. */
+  const sdkItem = (samples = 24000) => ({
+    id: 'item_1',
+    role: 'assistant',
+    type: 'message',
+    status: 'in_progress',
+    formatted: { text: '', transcript: 'hello', audio: new Int16Array(samples) },
+    content: [],
+  });
+
+  it('releases the SDK copy of the audio when keepReplayAudio is off', () => {
+    client.keepReplayAudio = false;
+    const item = sdkItem();
+
+    sdk.emit('conversation.updated', { item, delta: { audio: new Int16Array(480) } });
+
+    // Empty, not undefined: the SDK merges the next delta onto this field via
+    // mergeInt16Arrays (which throws on anything but an Int16Array) and
+    // "conversation.item.truncated" slices it.
+    expect(item.formatted.audio).toBeInstanceOf(Int16Array);
+    expect(item.formatted.audio.length).toBe(0);
+  });
+
+  it('does not retain audio across a run of deltas', () => {
+    client.keepReplayAudio = false;
+    const item = sdkItem(0);
+
+    // Stand in for the SDK's own delta handler: merge, then hand us the item.
+    for (let i = 0; i < 100; i++) {
+      const merged = new Int16Array(item.formatted.audio.length + 480);
+      merged.set(item.formatted.audio, 0);
+      item.formatted.audio = merged;
+      sdk.emit('conversation.updated', { item, delta: { audio: new Int16Array(480) } });
+    }
+
+    // Without the fix this is 48000 samples and still climbing.
+    expect(item.formatted.audio.length).toBe(0);
+  });
+
+  it('leaves the audio alone when the user opted into replay', () => {
+    client.keepReplayAudio = true;
+    const item = sdkItem();
+
+    sdk.emit('conversation.updated', { item, delta: { audio: new Int16Array(480) } });
+
+    expect(item.formatted.audio.length).toBe(24000);
+  });
+
+  it('tolerates an item with no formatted block', () => {
+    client.keepReplayAudio = false;
+    const item: any = { id: 'item_2', role: 'user', type: 'message', content: [] };
+
+    expect(() => sdk.emit('conversation.updated', { item, delta: undefined })).not.toThrow();
   });
 });

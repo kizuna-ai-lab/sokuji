@@ -8,7 +8,11 @@ vi.mock('../Subtitle/SubtitleApp', () => ({ default: () => null }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));
 vi.mock('../Settings', () => ({ Settings: () => null }));
-vi.mock('../TitleBar/TitleBar', () => ({ default: () => <div data-testid="title-bar" /> }));
+vi.mock('../TitleBar/TitleBar', () => ({
+  default: ({ showLogsButton }: { showLogsButton: boolean }) => (
+    <div data-testid="title-bar" data-logs-button={String(showLogsButton)} />
+  ),
+}));
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: ({ variant }: { variant: string }) => <div data-testid={`wizard-${variant}`} /> }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 let signedIn = false;
@@ -24,7 +28,7 @@ vi.mock('../../services/providers/ProviderConfigFactory', () => ({
 // vi.hoisted, not a plain `let`: ProviderConfigFactory's static initializer
 // calls isElectron() while this module is still evaluating, which a `let`
 // would answer from its temporal dead zone.
-const flags = vi.hoisted(() => ({ electron: false, subtitleActive: false }));
+const flags = vi.hoisted(() => ({ electron: false, subtitleActive: false, diagnosticLogs: false }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isElectron: () => flags.electron, isKizunaAIEnabled: () => false,
@@ -32,6 +36,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 vi.mock('../../stores/settingsStore', () => ({
   useProvider: () => 'openai', useUIMode: () => 'basic', useSetProvider: () => setProvider,
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => flags.subtitleActive,
+  useDiagnosticLogs: () => flags.diagnosticLogs,
 }));
 let loaded = true; let complete = true; let wizardOpen = false;
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => loaded, useSetupComplete: () => complete }));
@@ -43,7 +48,7 @@ vi.mock('../../stores/layoutStore', () => ({
 beforeEach(() => {
   cleanup();
   loaded = true; complete = true; wizardOpen = false; signedIn = false;
-  flags.electron = false; flags.subtitleActive = false;
+  flags.electron = false; flags.subtitleActive = false; flags.diagnosticLogs = false;
   setProvider.mockClear();
 });
 
@@ -133,5 +138,21 @@ describe('sign-in auto-switch vs the setup wizard', () => {
     wizardOpen = false;
     rerender(<MainLayout />);
     expect(setProvider).not.toHaveBeenCalled();
+  });
+});
+
+// Diagnostic logs are opt-in (Help), and the logs button follows that switch
+// alone. This file renders in Basic mode, where the button used never to
+// exist: a user asked for logs must not have to find Advanced mode first.
+describe('logs button follows the diagnostic logs switch', () => {
+  it('offers the logs button in Basic mode once diagnostic logs are on', () => {
+    flags.diagnosticLogs = true;
+    render(<MainLayout />);
+    expect(screen.getByTestId('title-bar').dataset.logsButton).toBe('true');
+  });
+
+  it('offers no logs button while diagnostic logs are off', () => {
+    render(<MainLayout />);
+    expect(screen.getByTestId('title-bar').dataset.logsButton).toBe('false');
   });
 });

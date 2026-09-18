@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini, karşı tarafın sesi için atılan ses yanıtları üretir ve bu da ek token kullanımına yol açar.",
     "help": "Yardım",
     "helpEmailTooltip": "Hataları bildirin veya yardım alın",
+    "diagnosticLogs": "Tanılama günlükleri",
+    "diagnosticLogsTooltip": "Uygulamanın ne yaptığını kaydeder, böylece bir hata raporuna ekleyebilirsiniz. Varsayılan olarak kapalıdır. Açıkken başlık çubuğunda “Günlükler” düğmesi görünür ve ayar yeniden başlatmadan sonra da açık kalır.",
     "helpDiscussions": "Tartışmalar",
     "helpDiscussionsTooltip": "Özellik istekleri, geri bildirim ve topluluk tartışmaları",
     "auto": "Otomatik",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT modelleri ile çalışır"
+      "name": "OpenAI Realtime",
+      "description": "Genel amaçlı GPT Realtime konuşma modeli, tamamen yapılandırılabilir"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Google'un AI teknolojisi"
     },
     "openaiCompatible": {
-      "name": "OpenAI Uyumlu API",
-      "description": "Özel OpenAI uyumlu uç nokta",
+      "name": "OpenAI uyumlu (eski Realtime)",
+      "description": "OpenAI'nin eski beta Realtime protokolünü kullanan üçüncü taraf uç noktası. OpenAI'nin kendisi için değil.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI'nin özel gerçek zamanlı çeviri modeli"
+      "description": "Kaynak dili otomatik algılayan özel çeviri modeli"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 tercüman, sessizlik dahil oturum dakikası başına ücretlendirilir"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox şu anda tam kapasitede çalışıyor. Lütfen kısa süre sonra tekrar deneyin.",
     "sonioxBudgetExhausted": "Oturum bakiyeniz tükendi. Çeviriye devam etmek için bakiyenizi yükleyin.",
     "sonioxTtsFailed": "Sesli çeviri durdu. Deşifre ve metin çevirisi çalışmaya devam ediyor.",
+    "sonioxTtsSegmentLost": "Sesli çevirinin bir kısmı oynatılamadı. Deşifre ve metin çevirisi etkilenmedi.",
     "sonioxSegmentEnded": "Bu bölüm sona erdi — devam etmek için “Oturumu başlat”a dokunun.",
     "sonioxConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun.",
+    "openaiLiveConnectionLost": "Bağlantı kesildi — devam etmek için birazdan “Oturumu başlat”a dokunun.",
     "sonioxVoiceClipMissing": "Bu cihazda ses kaydı yok, bu yüzden bu oturum hazır bir ses kullanıyor. Burada kendi sesinizle konuşmak için Ayarlar'dan bir kayıt yapın.",
     "sonioxVoicePoolBusy": "Şu anda tüm özel ses yuvaları kullanımda olduğundan bu oturum hazır bir ses kullanıyor. Kendi sesiniz bir sonraki sefer tekrar kullanılacak.",
     "sonioxVoiceBuildFailed": "Özel sesiniz oluşturulamadı, bu yüzden bu oturum hazır bir ses kullanıyor. Ayarlar'dan daha net bir kayıt yapmayı deneyin.",
@@ -914,26 +922,34 @@
     "close": "Kapat"
   },
   "voiceLibrary": {
+    "addVoice": "Ses ekle…",
+    "addVoiceTitle": "Ses ekle",
     "clipSilent": "Ses algılanmadı — mikrofonunuzu kontrol edip tekrar deneyin.",
     "clipTooLong": "Kayıt çok uzun — {seconds} saniyenin altında tutun.",
     "clipTooShort": "Kayıt çok kısa — en az {seconds} saniye konuşun.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Bu ses dosyası okunamadı — WAV, MP3 veya başka yaygın bir format deneyin.",
     "delete": "Sil",
-    "deleteConfirm": "\"{name}\" sesi silinsin mi?",
+    "deleteBody": "\"{name}\" silinsin mi? Bu, bu cihazda saklanan referans kaydını da siler.",
+    "deleteTitle": "Sesi sil",
     "dropHint": "veya buraya bir ses dosyası bırakın",
     "emptyHint": "Henüz içe aktarılmış ses yok.",
+    "filterCount": "{shown}/{total}",
     "importError": "İçe aktarma başarısız: {error}",
     "importVoice": "Ses içe aktar…",
-    "manageImported": "İçe aktarılan sesleri yönet",
-    "myVoices": "Seslerim",
+    "myVoices": "Özel sesler",
     "play": "Oynat",
     "presets": "Hazır ayarlar",
+    "previewChargedToBalance": "Önizlemeyi dinlemek kısa bir örnek sentezler ve hesap bakiyenizden düşülür.",
+    "previewFailed": "Bu ses için önizleme oluşturulamadı.",
+    "renameFailed": "Bu ses yeniden adlandırılamadı.",
+    "previewLanguageUnsupported": "Bu modelin konuştuğu bir dilde örnek cümlesi yok.",
+    "previewNeedsBalance": "Bu sesin önizlemesini dinlemek için bakiyenizi yükleyin.",
+    "previewNeedsSessionStopped": "Bu sesin önizlemesini dinlemek için oturumu sonlandırın.",
+    "previewSessionRunning": "Bir oturum çalışıyor. Lütfen biraz sonra tekrar deneyin.",
     "recordVoice": "Ses kaydet…",
     "rename": "Yeniden adlandır",
     "restartHint": "İçe aktarılan ses değişikliklerini uygulamak için oturumu yeniden başlatın.",
-    "showAll": "Tüm sesleri göster",
-    "showFewer": "Daha az ses göster",
     "stopPreview": "Durdur",
     "stopRecording": "Kaydı durdur",
     "synthesizing": "Sentezleniyor…",

@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini genereert voor de audio van de ander audioantwoorden die worden weggegooid, wat extra tokenverbruik veroorzaakt.",
     "help": "Help",
     "helpEmailTooltip": "Bugs melden of hulp krijgen",
+    "diagnosticLogs": "Diagnostische logboeken",
+    "diagnosticLogsTooltip": "Legt vast wat de app doet, zodat je het bij een bugmelding kunt voegen. Standaard uit. Zolang dit aan staat, verschijnt er een knop ‘Logs’ in de titelbalk, en de instelling blijft aan na een herstart.",
     "helpDiscussions": "Discussies",
     "helpDiscussionsTooltip": "Functieverzoeken, feedback en communitydiscussies",
     "auto": "Auto",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Aangedreven door GPT modellen"
+      "name": "OpenAI Realtime",
+      "description": "Algemeen GPT Realtime-spraakmodel, volledig instelbaar"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Google's AI technologie"
     },
     "openaiCompatible": {
-      "name": "OpenAI Compatibele API",
-      "description": "Aangepast OpenAI-compatibel eindpunt",
+      "name": "OpenAI-compatibel (verouderde Realtime)",
+      "description": "Endpoint van derden met OpenAI's oudere beta-Realtime-protocol. Niet voor OpenAI zelf.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI's speciale realtime vertalingsmodel"
+      "description": "Speciaal vertaalmodel dat de brontaal automatisch herkent"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1-tolk, gefactureerd per sessieminuut inclusief stilte"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox zit momenteel aan zijn volledige capaciteit. Probeer het binnenkort opnieuw.",
     "sonioxBudgetExhausted": "Het saldo van uw sessie is op. Laad uw saldo op om door te gaan met vertalen.",
     "sonioxTtsFailed": "De gesproken vertaling is gestopt. Transcriptie en tekstvertaling werken nog steeds.",
+    "sonioxTtsSegmentLost": "Een deel van de gesproken vertaling kon niet worden afgespeeld. Transcriptie en tekstvertaling werken gewoon door.",
     "sonioxSegmentEnded": "Dit segment is beëindigd — tik op ‘Sessie starten’ om door te gaan.",
     "sonioxConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan.",
+    "openaiLiveConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan.",
     "sonioxVoiceClipMissing": "Dit apparaat heeft geen stemopname, dus deze sessie gebruikt een preset-stem. Neem er een op in Instellingen om hier met uw eigen stem te spreken.",
     "sonioxVoicePoolBusy": "Alle plekken voor aangepaste stemmen zijn op dit moment bezet, dus deze sessie gebruikt een preset-stem. Uw eigen stem wordt de volgende keer weer gebruikt.",
     "sonioxVoiceBuildFailed": "Uw aangepaste stem kon niet worden gebouwd, dus deze sessie gebruikt een preset-stem. Probeer een duidelijkere opname te maken in Instellingen.",
@@ -914,26 +922,34 @@
     "close": "Sluiten"
   },
   "voiceLibrary": {
+    "addVoice": "Stem toevoegen…",
+    "addVoiceTitle": "Stem toevoegen",
     "clipSilent": "Geen stem gedetecteerd — controleer uw microfoon en probeer het opnieuw.",
     "clipTooLong": "Opname is te lang — houd deze onder {seconds} seconden.",
     "clipTooShort": "Opname is te kort — spreek minstens {seconds} seconden.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Kon dat audiobestand niet lezen — probeer een WAV, MP3 of ander gangbaar formaat.",
     "delete": "Verwijderen",
-    "deleteConfirm": "Stem \"{name}\" verwijderen?",
+    "deleteBody": "\"{name}\" verwijderen? Dit verwijdert ook de referentieopname die op dit apparaat is opgeslagen.",
+    "deleteTitle": "Stem verwijderen",
     "dropHint": "of sleep een stembestand hierheen",
     "emptyHint": "Nog geen geïmporteerde stemmen.",
+    "filterCount": "{shown} van {total}",
     "importError": "Importeren mislukt: {error}",
     "importVoice": "Stem importeren…",
-    "manageImported": "Geïmporteerde stemmen beheren",
-    "myVoices": "Mijn stemmen",
+    "myVoices": "Aangepaste stemmen",
     "play": "Afspelen",
     "presets": "Presets",
+    "previewChargedToBalance": "Het beluisteren van een voorbeeld synthetiseert een kort fragment en wordt van uw accountsaldo afgeschreven.",
+    "previewFailed": "Kon geen voorbeeld genereren voor deze stem.",
+    "renameFailed": "Kon deze stem niet hernoemen.",
+    "previewLanguageUnsupported": "Dit model heeft geen voorbeeldzin in een taal die het spreekt.",
+    "previewNeedsBalance": "Laad uw saldo op om deze stem te beluisteren.",
+    "previewNeedsSessionStopped": "Beëindig de sessie om deze stem te beluisteren.",
+    "previewSessionRunning": "Er loopt een sessie. Probeer het straks opnieuw.",
     "recordVoice": "Stem opnemen…",
     "rename": "Hernoemen",
     "restartHint": "Start de sessie opnieuw om de wijzigingen aan geïmporteerde stemmen toe te passen.",
-    "showAll": "Alle stemmen tonen",
-    "showFewer": "Minder stemmen tonen",
     "stopPreview": "Stoppen",
     "stopRecording": "Opname stoppen",
     "synthesizing": "Synthetiseren…",

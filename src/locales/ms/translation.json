@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini menjana respons audio untuk audio pihak lain yang dibuang, menyebabkan penggunaan token tambahan.",
     "help": "Bantuan",
     "helpEmailTooltip": "Laporkan pepijat atau dapatkan bantuan",
+    "diagnosticLogs": "Log diagnostik",
+    "diagnosticLogsTooltip": "Merekod perkara yang dilakukan oleh aplikasi supaya anda boleh melampirkannya pada laporan pepijat. Dimatikan secara lalai. Apabila dihidupkan, butang “Log” muncul di bar tajuk, dan tetapan kekal hidup selepas dimulakan semula.",
     "helpDiscussions": "Perbincangan",
     "helpDiscussionsTooltip": "Permintaan ciri, maklum balas dan perbincangan komuniti",
     "auto": "Automatik",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Dikuasakan oleh model GPT"
+      "name": "OpenAI Realtime",
+      "description": "Model suara GPT Realtime serba guna, boleh dikonfigurasi sepenuhnya"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Teknologi AI Google"
     },
     "openaiCompatible": {
-      "name": "API Serasi OpenAI",
-      "description": "Titik akhir tersuai yang serasi dengan OpenAI",
+      "name": "Serasi OpenAI (Realtime lama)",
+      "description": "Titik akhir pihak ketiga yang menggunakan protokol Realtime beta lama OpenAI. Bukan untuk OpenAI sendiri.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Model terjemahan masa nyata khusus daripada OpenAI"
+      "description": "Model terjemahan khusus yang mengesan bahasa sumber secara automatik"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "Jurubahasa GPT-Live-1, dicaj mengikut minit sesi termasuk senyap"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox kini pada kapasiti penuh. Sila cuba lagi tidak lama lagi.",
     "sonioxBudgetExhausted": "Baki sesi anda telah habis. Tambah nilai baki anda untuk terus menterjemah.",
     "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
+    "sonioxTtsSegmentLost": "Sebahagian terjemahan suara tidak dapat dimainkan. Transkripsi dan terjemahan teks tidak terjejas.",
     "sonioxSegmentEnded": "Segmen ini telah berakhir — ketik “Mula sesi” untuk meneruskan.",
     "sonioxConnectionLost": "Sambungan terputus — ketik “Mula sesi” sebentar lagi untuk meneruskan.",
+    "openaiLiveConnectionLost": "Sambungan terputus — ketik “Mula sesi” sebentar lagi untuk meneruskan.",
     "sonioxVoiceClipMissing": "Peranti ini tiada rakaman suara, jadi sesi ini menggunakan suara pratetap. Rakam satu dalam Tetapan untuk bercakap dengan suara anda sendiri di sini.",
     "sonioxVoicePoolBusy": "Semua slot suara tersuai sedang digunakan sekarang, jadi sesi ini menggunakan suara pratetap. Suara anda sendiri akan digunakan semula pada masa akan datang.",
     "sonioxVoiceBuildFailed": "Suara tersuai anda tidak dapat dibina, jadi sesi ini menggunakan suara pratetap. Cuba rakam klip yang lebih jelas dalam Tetapan.",
@@ -914,26 +922,34 @@
     "close": "Tutup"
   },
   "voiceLibrary": {
+    "addVoice": "Tambah suara…",
+    "addVoiceTitle": "Tambah suara",
     "clipSilent": "Tiada suara dikesan — semak mikrofon anda dan cuba lagi.",
     "clipTooLong": "Rakaman terlalu panjang — pastikan ia kurang daripada {seconds} saat.",
     "clipTooShort": "Rakaman terlalu pendek — bercakap sekurang-kurangnya {seconds} saat.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Tidak dapat membaca fail audio itu — cuba WAV, MP3 atau format biasa yang lain.",
     "delete": "Padam",
-    "deleteConfirm": "Padam suara \"{name}\"?",
+    "deleteBody": "Padam \"{name}\"? Ini juga akan memadam rakaman rujukan yang disimpan pada peranti ini.",
+    "deleteTitle": "Padam suara",
     "dropHint": "atau lepaskan fail suara di sini",
     "emptyHint": "Belum ada suara yang diimport.",
+    "filterCount": "{shown} daripada {total}",
     "importError": "Import gagal: {error}",
     "importVoice": "Import suara…",
-    "manageImported": "Urus suara yang diimport",
-    "myVoices": "Suara Saya",
+    "myVoices": "Suara Tersuai",
     "play": "Main",
     "presets": "Pratetap",
+    "previewChargedToBalance": "Pratonton mensintesis klip pendek dan dicaj daripada baki akaun anda.",
+    "previewFailed": "Tidak dapat menjana pratonton untuk suara ini.",
+    "renameFailed": "Tidak dapat menamakan semula suara ini.",
+    "previewLanguageUnsupported": "Model ini tiada ayat contoh dalam bahasa yang boleh dituturkannya.",
+    "previewNeedsBalance": "Tambah nilai baki anda untuk mendengar pratonton suara ini.",
+    "previewNeedsSessionStopped": "Tamatkan sesi untuk mendengar pratonton suara ini.",
+    "previewSessionRunning": "Satu sesi sedang berjalan. Cuba lagi sebentar lagi.",
     "recordVoice": "Rakam suara…",
     "rename": "Namakan semula",
     "restartHint": "Mulakan semula sesi untuk menggunakan perubahan suara yang diimport.",
-    "showAll": "Tunjukkan semua suara",
-    "showFewer": "Tunjukkan kurang suara",
     "stopPreview": "Berhenti",
     "stopRecording": "Henti rakaman",
     "synthesizing": "Mensintesis…",

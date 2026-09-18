@@ -74,6 +74,12 @@ export interface EventData {
     | 'session.input_audio_buffer.append'
     | 'conversation.item.create' | 'conversation.item.truncate' | 'conversation.item.delete'
     | 'response.create' | 'response.cancel'
+    // OpenAI Live (gpt-live-1) client events — the primary WebSocket's
+    // session.start/session.close handshake and its own audio-append name
+    // (distinct from the Realtime API's input_audio_buffer.append)
+    | 'session.start' | 'session.close' | 'session.close_timeout'
+    | 'session.input_audio.append'
+    | 'session.connection_lost'
     // openai-realtime-api custom events (for beta clients)
     | 'conversation.item.appended' | 'conversation.item.completed'
     | 'conversation.updated' | 'conversation.interrupted'
@@ -180,6 +186,11 @@ export interface LogEntry {
   eventType?: string; // The type of the event (e.g., 'session.created', 'response.text.delta')
   groupingKey?: string; // Custom grouping key for specific event types
   /**
+   * How many events this entry has grouped in total. `events` keeps only the
+   * newest MAX_EVENTS_PER_GROUP of them, so this is the count to show.
+   */
+  groupCount?: number;
+  /**
    * Which session leg produced this, or undefined for an app-scope failure
    * (settings, auth, devices, models). LogsPanel shows undefined under BOTH
    * tabs; it is not a synonym for 'speaker'.
@@ -196,6 +207,12 @@ interface LogStore {
   addRealtimeEvent: (event: EventData, source: RealtimeEventSource, eventType: string, clientId?: ClientId) => void;
   clearLogs: () => void;
   flushPendingLogs: () => void;
+  /**
+   * Whether anything is recorded. Diagnostic logs are opt-in (Help), so this
+   * is false for most users; see `setEnabled`.
+   */
+  enabled: boolean;
+  setEnabled: (enabled: boolean) => void;
 }
 
 // Batch update configuration - increased for better performance
@@ -210,6 +227,17 @@ const BATCH_DELAY_MS = 150; // Batch updates every 150ms for better performance
  * trimming cannot orphan one.
  */
 const MAX_LOG_ENTRIES = 2000;
+
+/**
+ * How many events one grouped entry keeps; `groupCount` still counts them all.
+ *
+ * MAX_LOG_ENTRIES bounds entries, not the events inside one. A session nobody
+ * speaks in sends nothing but mic appends (~12/s), which all share one
+ * groupingKey, so they land in a single entry for as long as the silence
+ * lasts: uncapped, it grew for the whole session and every append copied the
+ * entry's entire history (#531).
+ */
+export const MAX_EVENTS_PER_GROUP = 100;
 
 let nextLogId = 0;
 const takeLogId = (): number => ++nextLogId;
@@ -254,6 +282,16 @@ const useLogStore = create<LogStore>(
     pendingLogs: [],
     allLogs: [], // Initialize combined logs
     batchTimer: null,
+    // Off until the main window's settings say otherwise: settingsStore reads
+    // this switch before any other setting. A context that imports the store
+    // but never loads those settings — the extension's subtitle overlay —
+    // therefore records nothing (PR #538 review).
+    enabled: false,
+    setEnabled: (enabled: boolean) => {
+      set({ enabled });
+      // Off means nothing is kept, including what was recorded before.
+      if (!enabled) get().clearLogs();
+    },
 
     flushPendingLogs: () => {
       const state = get();
@@ -279,6 +317,7 @@ const useLogStore = create<LogStore>(
     },
 
     addLog: (message: string, type: LogEntry['type'] = 'info', clientId?: ClientId) => {
+      if (!get().enabled) return;
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
       const newLog: LogEntry = {
@@ -307,6 +346,10 @@ const useLogStore = create<LogStore>(
     },
 
     addRealtimeEvent: (event: EventData, source: RealtimeEventSource, eventType: string, clientId?: ClientId) => {
+      // Before sanitizeEvent, not after: with diagnostic logs off (the default)
+      // a realtime session would otherwise still clean ~20 events a second
+      // only to discard them.
+      if (!get().enabled) return;
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
       // Undefined stays undefined: an app-scope event (MainPanel's
@@ -324,8 +367,10 @@ const useLogStore = create<LogStore>(
       let groupingKey: string | undefined;
       
       // OpenAI-specific grouping. The translate API prefixes the same wire
-      // event with `session.`, so collapse both variants under the same key.
-      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append') {
+      // event with `session.`, and the Live API names it without `_buffer`;
+      // all three are the microphone stream, collapsed under one key.
+      if (eventType === 'input_audio_buffer.append' || eventType === 'session.input_audio_buffer.append'
+          || eventType === 'session.input_audio.append') {
         groupingKey = 'input_audio_buffer';
       }
       // For other delta events, group by event type only
@@ -471,10 +516,17 @@ const useLogStore = create<LogStore>(
           groupingKey !== undefined
         ) {
           // Update the log with new event
+          // Keep only the newest MAX_EVENTS_PER_GROUP events, so each append
+          // copies a bounded array instead of the group's whole history;
+          // groupCount keeps the true total for the panel.
+          const kept = lastLogForClient.events || [];
           const updatedLog = {
             ...lastLogForClient,
             timestamp, // Update timestamp to the latest
-            events: [...(lastLogForClient.events || []), sanitizedEvent]
+            events: kept.length >= MAX_EVENTS_PER_GROUP
+              ? [...kept.slice(kept.length - MAX_EVENTS_PER_GROUP + 1), sanitizedEvent]
+              : [...kept, sanitizedEvent],
+            groupCount: (lastLogForClient.groupCount ?? kept.length) + 1,
           };
 
           const timer = scheduleFlush(state, () => get().flushPendingLogs());
@@ -514,6 +566,7 @@ const useLogStore = create<LogStore>(
           message,
           type: severityForEventType(eventType),
           events: [sanitizedEvent], // Initialize events array with the sanitized event
+          groupCount: 1,
           source,
           eventType,
           groupingKey,

@@ -37,7 +37,12 @@ const BACKEND = 'https://sokuji.kizuna.ai';
 let userDataDir;
 let webRequestHandlers;
 
-function loadAdapter() {
+/**
+ * Require the adapter module against a fake 'electron'. Every load must go
+ * through here: a bare require would let electron-conf bind the real module
+ * (a path string under Node) and stay cached that way for the whole file.
+ */
+function loadModule() {
   webRequestHandlers = new Map();
   const fakeElectron = {
     app: { getPath: () => userDataDir },
@@ -62,8 +67,13 @@ function loadAdapter() {
     exports: fakeElectron,
   };
   delete nodeRequire.cache[modulePath]; // fresh jar per test
-  const { betterAuthAdapter } = nodeRequire(modulePath);
-  betterAuthAdapter({ backendUrl: BACKEND, origin: 'file:///opt/Sokuji/resources/app' });
+  return nodeRequire(modulePath);
+}
+
+function loadAdapter() {
+  const { betterAuthAdapter, PACKAGED_ORIGIN } = loadModule();
+  // Same call main.js makes in a packaged build.
+  betterAuthAdapter({ backendUrl: BACKEND, origin: PACKAGED_ORIGIN });
   return betterAuthAdapter;
 }
 
@@ -73,12 +83,59 @@ function receiveSetCookie(...cookieStrings) {
   onHeadersReceived({ responseHeaders: { 'set-cookie': cookieStrings } }, () => {});
 }
 
+/** Drive the real onHeadersReceived callback and return the headers it emits. */
+function receiveResponse(responseHeaders = {}) {
+  let emitted;
+  webRequestHandlers.get('headersReceived')({ responseHeaders }, (result) => {
+    emitted = result.responseHeaders;
+  });
+  return emitted;
+}
+
 beforeEach(() => {
   userDataDir = mkdtempSync(join(tmpdir(), 'sokuji-auth-'));
 });
 
 afterEach(() => {
   rmSync(userDataDir, { recursive: true, force: true });
+});
+
+// Issue #535. The packaged build used to send `file://${__dirname}` as Origin
+// and Referer on every backend request. On Windows that path sits under
+// C:\Users\<username>\AppData\Local\sokuji, so the account name left the
+// machine twice per request and landed verbatim in the Worker's logs, with a
+// runtime warning per header whenever the name was non-ASCII. The backend only
+// checks that the value starts with `file://` (better-auth matches non-http(s)
+// origins by prefix), so nothing depends on the path that followed.
+describe('packaged origin', () => {
+  it('is a fixed printable-ASCII value, so no header warning and no install path', () => {
+    const { PACKAGED_ORIGIN } = loadModule();
+
+    expect(PACKAGED_ORIGIN).toMatch(/^[\x21-\x7e]+$/);
+  });
+
+  it('keeps the file:// prefix the backend trusts desktop requests by', () => {
+    const { PACKAGED_ORIGIN } = loadModule();
+
+    expect(PACKAGED_ORIGIN.startsWith('file://')).toBe(true);
+  });
+
+  it('carries no path, so nothing from the local filesystem can ride along', () => {
+    const { PACKAGED_ORIGIN } = loadModule();
+    const rest = PACKAGED_ORIGIN.slice('file://'.length);
+
+    expect(rest).not.toMatch(/[\\/:]/);
+    expect(rest).not.toBe('');
+  });
+
+  it('is what the adapter echoes back as access-control-allow-origin', () => {
+    const adapter = loadAdapter();
+
+    const headers = receiveResponse();
+
+    expect(adapter._sendHeadersConfig.origin).toBe('file://sokuji');
+    expect(headers['access-control-allow-origin']).toEqual(['file://sokuji']);
+  });
 });
 
 describe('cookie capture', () => {

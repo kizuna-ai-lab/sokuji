@@ -191,9 +191,23 @@ export class NativeTtsClient {
     this.inFlightId = id;
     this.lastBinary = null;
     const msg = await this.conn.request({ type: 'tts_generate', text, speed }, { id, timeoutMs: this.budgetMs(text) });
-    const r = msg as Extract<ServerMsg, { type: 'tts_generate_result' }>;
     const binary = this.lastBinary; this.lastBinary = null;
-    return { samples: int16ToFloat32(binary!), sampleRate: r.sampleRate, generationTimeMs: r.generationTimeMs };
+    // Verified, not cast. The SIDECAR picks the protocol from the loaded
+    // engine's own `streaming` flag, so this request can be resolved by the
+    // first `tts_chunk` when the caller did not ask for chunks — and a chunk
+    // message carries no `sampleRate`. The old cast turned that into
+    // `sampleRate: undefined` and handed the caller one chunk of audio as a
+    // SUCCESS: `createBuffer` then threw on the NaN rate, somewhere far away,
+    // where a swallowed rejection made supertonic's previews silent instead
+    // of failed. Failing here names the actual mistake.
+    if (msg.type !== 'tts_generate_result') {
+      throw new Error(
+        `tts_generate resolved with '${msg.type}', not 'tts_generate_result' — `
+        + 'this family streams; pass an onChunk callback to generate()',
+      );
+    }
+    if (!binary) throw new Error('tts_generate sent no audio frame');
+    return { samples: int16ToFloat32(binary), sampleRate: msg.sampleRate, generationTimeMs: msg.generationTimeMs };
   }
 
   cancel(): void {

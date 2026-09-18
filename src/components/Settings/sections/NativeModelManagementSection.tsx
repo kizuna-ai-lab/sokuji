@@ -543,7 +543,8 @@ export const NativeModelManagementSection: React.FC<{
             : t('models.variantWontFitNoMem', 'Needs ~{{need}} of GPU memory', { need }));
           return {
             id: v.id, computeType: v.id, repo: v.repo ?? '', sizeBytes: v.sizeBytes,
-            supported: v.supported, reason, unsupportedTiers: v.unsupportedTiers,
+            supported: v.supported, reason, downloaded: v.downloaded,
+            unsupportedTiers: v.unsupportedTiers,
           };
         }),
         recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
@@ -733,6 +734,11 @@ export const NativeModelManagementSection: React.FC<{
       store={store}
       selected={settings.ttsVoice}
       targetLanguage={tgtLang}
+      // The card's own id + languages -- Task 7's preview synthesis dials
+      // this exact model, and drives which language the preview sentence is
+      // spoken in.
+      ttsModelId={reserveTtsId || ''}
+      ttsLanguages={catalog[reserveTtsId || '']?.languages ?? []}
       isSessionActive={isSessionActive}
       onSelect={(id) => update({ ttsVoice: id })}
       // NativeVoiceSection owns and refreshes its own custom-voice list

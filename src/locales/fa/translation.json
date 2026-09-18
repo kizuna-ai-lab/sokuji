@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini برای صدای طرف مقابل پاسخ‌های صوتی تولید می‌کند که دور ریخته می‌شوند و باعث مصرف توکن اضافی می‌شود.",
     "help": "راهنما",
     "helpEmailTooltip": "گزارش اشکال یا دریافت کمک",
+    "diagnosticLogs": "گزارش‌های عیب‌یابی",
+    "diagnosticLogsTooltip": "کارهای برنامه را ثبت می‌کند تا بتوانید آن را به گزارش خطا پیوست کنید. به‌طور پیش‌فرض خاموش است. وقتی روشن باشد، دکمهٔ «گزارش‌ها» در نوار عنوان نمایش داده می‌شود و این تنظیم پس از راه‌اندازی مجدد هم روشن می‌ماند.",
     "helpDiscussions": "گفت‌وگوها",
     "helpDiscussionsTooltip": "درخواست ویژگی، بازخورد و گفت‌وگوهای انجمن",
     "auto": "خودکار",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "قدرت گرفته از مدل‌های GPT"
+      "name": "OpenAI Realtime",
+      "description": "مدل گفتاری همه‌منظورهٔ GPT Realtime، کاملاً قابل تنظیم"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "فناوری هوش مصنوعی Google"
     },
     "openaiCompatible": {
-      "name": "API سازگار با OpenAI",
-      "description": "نقطه پایانی سفارشی سازگار با OpenAI",
+      "name": "سازگار با OpenAI (Realtime قدیمی)",
+      "description": "نقطه پایانی شخص ثالث با پروتکل قدیمی Realtime بتای OpenAI. برای خود OpenAI نیست.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "مدل ترجمه بلادرنگ اختصاصی OpenAI"
+      "description": "مدل ترجمهٔ اختصاصی با تشخیص خودکار زبان مبدأ"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "مترجم GPT-Live-1، محاسبهٔ هزینه به ازای هر دقیقه جلسه شامل سکوت"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox در حال حاضر با ظرفیت کامل کار می‌کند. لطفاً کمی بعد دوباره تلاش کنید.",
     "sonioxBudgetExhausted": "موجودی نشست شما به پایان رسیده است. برای ادامه ترجمه، موجودی خود را شارژ کنید.",
     "sonioxTtsFailed": "ترجمه گفتاری متوقف شد. رونویسی و ترجمه متنی همچنان کار می‌کنند.",
+    "sonioxTtsSegmentLost": "بخشی از ترجمه گفتاری پخش نشد. رونویسی و ترجمه متنی تحت تأثیر قرار نگرفته‌اند.",
     "sonioxSegmentEnded": "این بخش به پایان رسید — برای ادامه روی «شروع جلسه» ضربه بزنید.",
     "sonioxConnectionLost": "اتصال قطع شد — لحظه‌ای بعد برای ادامه روی «شروع جلسه» ضربه بزنید.",
+    "openaiLiveConnectionLost": "اتصال قطع شد — لحظه‌ای بعد برای ادامه روی «شروع جلسه» ضربه بزنید.",
     "sonioxVoiceClipMissing": "این دستگاه هیچ ضبط صوتی‌ای ندارد، بنابراین این نشست از یک صدای پیش‌فرض استفاده می‌کند. برای صحبت با صدای خودتان در اینجا، یکی را در تنظیمات ضبط کنید.",
     "sonioxVoicePoolBusy": "در حال حاضر همه جایگاه‌های صدای سفارشی در حال استفاده هستند، بنابراین این نشست از یک صدای پیش‌فرض استفاده می‌کند. صدای خودتان دفعه بعد دوباره استفاده خواهد شد.",
     "sonioxVoiceBuildFailed": "صدای سفارشی شما ساخته نشد، بنابراین این نشست از یک صدای پیش‌فرض استفاده می‌کند. یک کلیپ واضح‌تر در تنظیمات ضبط کنید.",
@@ -914,26 +922,34 @@
     "close": "بستن"
   },
   "voiceLibrary": {
+    "addVoice": "افزودن صدا…",
+    "addVoiceTitle": "افزودن صدا",
     "clipSilent": "صدایی شناسایی نشد — میکروفون خود را بررسی کرده و دوباره تلاش کنید.",
     "clipTooLong": "ضبط خیلی طولانی است — آن را زیر {seconds} ثانیه نگه دارید.",
     "clipTooShort": "ضبط خیلی کوتاه است — حداقل {seconds} ثانیه صحبت کنید.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "خواندن آن فایل صوتی ممکن نشد — یک WAV، MP3 یا قالب رایج دیگر را امتحان کنید.",
     "delete": "حذف",
-    "deleteConfirm": "صدای \"{name}\" حذف شود؟",
+    "deleteBody": "\"{name}\" حذف شود؟ این کار ضبط مرجع ذخیره‌شده روی این دستگاه را نیز حذف می‌کند.",
+    "deleteTitle": "حذف صدا",
     "dropHint": "یا یک فایل صوتی را اینجا رها کنید",
     "emptyHint": "هنوز صدایی وارد نشده است.",
+    "filterCount": "{shown} از {total}",
     "importError": "وارد کردن ناموفق بود: {error}",
     "importVoice": "وارد کردن صدا…",
-    "manageImported": "مدیریت صداهای وارد‌شده",
-    "myVoices": "صداهای من",
+    "myVoices": "صداهای سفارشی",
     "play": "پخش",
     "presets": "پیش‌تنظیم‌ها",
+    "previewChargedToBalance": "پیش‌نمایش یک نمونه کوتاه تولید می‌کند و هزینه آن از موجودی حساب شما کسر می‌شود.",
+    "previewFailed": "پیش‌نمایش این صدا ساخته نشد.",
+    "renameFailed": "تغییر نام این صدا انجام نشد.",
+    "previewLanguageUnsupported": "این مدل هیچ جمله نمونه‌ای به زبانی که صحبت می‌کند ندارد.",
+    "previewNeedsBalance": "برای گوش دادن به پیش‌نمایش این صدا، موجودی خود را شارژ کنید.",
+    "previewNeedsSessionStopped": "برای گوش دادن به پیش‌نمایش این صدا، نشست را پایان دهید.",
+    "previewSessionRunning": "یک نشست در حال اجراست. کمی بعد دوباره تلاش کنید.",
     "recordVoice": "ضبط صدا…",
     "rename": "تغییر نام",
     "restartHint": "برای اعمال تغییرات صداهای وارد‌شده، جلسه را دوباره راه‌اندازی کنید.",
-    "showAll": "نمایش همه صداها",
-    "showFewer": "نمایش صداهای کمتر",
     "stopPreview": "توقف",
     "stopRecording": "توقف ضبط",
     "synthesizing": "در حال سنتز…",

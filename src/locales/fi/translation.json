@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini tuottaa toisen äänelle äänivastauksia, jotka hylätään, mikä lisää token-kulutusta.",
     "help": "Ohje",
     "helpEmailTooltip": "Ilmoita virheistä tai pyydä apua",
+    "diagnosticLogs": "Diagnostiikkalokit",
+    "diagnosticLogsTooltip": "Tallentaa sovelluksen toiminnan, jotta voit liittää sen virheraporttiin. Oletuksena pois päältä. Kun asetus on päällä, otsikkorivillä näkyy ”Lokit”-painike, ja asetus pysyy päällä uudelleenkäynnistyksen jälkeen.",
     "helpDiscussions": "Keskustelut",
     "helpDiscussionsTooltip": "Ominaisuuspyynnöt, palaute ja yhteisökeskustelut",
     "auto": "Auto",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPT-mallien voimalla"
+      "name": "OpenAI Realtime",
+      "description": "Yleiskäyttöinen GPT Realtime -puhemalli, täysin muokattavissa"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Googlen tekoälyteknologia"
     },
     "openaiCompatible": {
-      "name": "OpenAI-yhteensopiva API",
-      "description": "Mukautettu OpenAI-yhteensopiva päätepiste",
+      "name": "OpenAI-yhteensopiva (vanha Realtime)",
+      "description": "Kolmannen osapuolen päätepiste, joka käyttää OpenAI:n vanhaa beta-Realtime-protokollaa. Ei OpenAI:lle itselleen.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI:n erityinen reaaliaikainen käännösmalli"
+      "description": "Erillinen käännösmalli, joka tunnistaa lähdekielen automaattisesti"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1-tulkki, laskutus istuntominuuteittain hiljaisuus mukaan lukien"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox on juuri nyt täydessä kapasiteetissa. Yritä pian uudelleen.",
     "sonioxBudgetExhausted": "Istuntosi saldo on käytetty loppuun. Lataa saldoasi jatkaaksesi kääntämistä.",
     "sonioxTtsFailed": "Puhuttu käännös on pysähtynyt. Litterointi ja tekstikäännös toimivat edelleen.",
+    "sonioxTtsSegmentLost": "Osaa puhutusta käännöksestä ei voitu toistaa. Litterointi ja tekstikäännös toimivat edelleen.",
     "sonioxSegmentEnded": "Tämä jakso on päättynyt — jatka napauttamalla ”Aloita istunto”.",
     "sonioxConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”.",
+    "openaiLiveConnectionLost": "Yhteys katkesi — jatka hetken kuluttua napauttamalla ”Aloita istunto”.",
     "sonioxVoiceClipMissing": "Tällä laitteella ei ole äänitallennetta, joten tämä istunto käyttää esiasetettua ääntä. Äänitä sellainen asetuksista, jotta voit puhua täällä omalla äänelläsi.",
     "sonioxVoicePoolBusy": "Kaikki mukautettujen äänten paikat ovat juuri nyt käytössä, joten tämä istunto käyttää esiasetettua ääntä. Omaa ääntäsi käytetään taas ensi kerralla.",
     "sonioxVoiceBuildFailed": "Mukautettua ääntäsi ei voitu luoda, joten tämä istunto käyttää esiasetettua ääntä. Kokeile äänittää selkeämpi näyte asetuksista.",
@@ -914,26 +922,34 @@
     "close": "Sulje"
   },
   "voiceLibrary": {
+    "addVoice": "Lisää ääni…",
+    "addVoiceTitle": "Lisää ääni",
     "clipSilent": "Ääntä ei havaittu — tarkista mikrofonisi ja yritä uudelleen.",
     "clipTooLong": "Tallenne on liian pitkä — pidä se alle {seconds} sekunnissa.",
     "clipTooShort": "Tallenne on liian lyhyt — puhu vähintään {seconds} sekuntia.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Äänitiedostoa ei voitu lukea — kokeile WAV-, MP3- tai muuta yleistä muotoa.",
     "delete": "Poista",
-    "deleteConfirm": "Poistetaanko ääni \"{name}\"?",
+    "deleteBody": "Poistetaanko \"{name}\"? Tämä poistaa myös tälle laitteelle tallennetun viitetallenteen.",
+    "deleteTitle": "Poista ääni",
     "dropHint": "tai pudota äänitiedosto tähän",
     "emptyHint": "Ei vielä tuotuja ääniä.",
+    "filterCount": "{shown}/{total}",
     "importError": "Tuonti epäonnistui: {error}",
     "importVoice": "Tuo ääni…",
-    "manageImported": "Hallitse tuotuja ääniä",
-    "myVoices": "Omat äänet",
+    "myVoices": "Mukautetut äänet",
     "play": "Toista",
     "presets": "Esiasetukset",
+    "previewChargedToBalance": "Esikatselu syntetisoi lyhyen näytteen, ja sen hinta veloitetaan saldostasi.",
+    "previewFailed": "Tämän äänen esikatselua ei voitu luoda.",
+    "renameFailed": "Tämän äänen nimeä ei voitu muuttaa.",
+    "previewLanguageUnsupported": "Tällä mallilla ei ole esimerkkilausetta kielellä, jota se puhuu.",
+    "previewNeedsBalance": "Lataa saldoasi kuunnellaksesi tämän äänen esikatselun.",
+    "previewNeedsSessionStopped": "Lopeta istunto kuunnellaksesi tämän äänen esikatselun.",
+    "previewSessionRunning": "Istunto on käynnissä. Yritä uudelleen hetken kuluttua.",
     "recordVoice": "Nauhoita ääni…",
     "rename": "Nimeä uudelleen",
     "restartHint": "Käynnistä istunto uudelleen ottaaksesi tuodut äänimuutokset käyttöön.",
-    "showAll": "Näytä kaikki äänet",
-    "showFewer": "Näytä vähemmän ääniä",
     "stopPreview": "Pysäytä",
     "stopRecording": "Lopeta nauhoitus",
     "synthesizing": "Syntetisoidaan…",

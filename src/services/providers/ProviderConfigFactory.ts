@@ -4,6 +4,7 @@ import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 import { GeminiProviderConfig } from './GeminiProviderConfig';
 import { OpenAICompatibleProviderConfig } from './OpenAICompatibleProviderConfig';
 import { OpenAITranslateProviderConfig } from './OpenAITranslateProviderConfig';
+import { OpenAILiveProviderConfig } from './OpenAILiveProviderConfig';
 import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIOpenAITranslateProviderConfig } from './KizunaAIOpenAITranslateProviderConfig';
 import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2ProviderConfig';
@@ -23,48 +24,21 @@ export class ProviderConfigFactory {
   static {
     // Registration order here defines the order providers appear in the UI
     // list (the configs Map preserves insertion order). Each provider keeps
-    // its own environment / feature-flag guard.
+    // its own environment / feature-flag guard. The order is a product
+    // decision (2026-09-12): Kizuna-managed first, then Free, Gemini, Doubao
+    // AST 2.0, the three OpenAI providers, Soniox, OpenAI Compatible, Palabra,
+    // then everything else.
 
-    ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
-
-    // Kizuna-managed Soniox — behind the master Kizuna gate plus its own gate.
-    // Each managed provider carries its OWN gate: they are released
-    // independently, and they bill on different models whose rates the wallet
-    // page publishes one at a time. A shared gate could not express "ship this
-    // one alone", which is what independent release means.
-    if (isKizunaAIEnabled() && isKizunaSonioxEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
-    }
-
-    ProviderConfigFactory.configs.set(Provider.OPENAI_TRANSLATE, new OpenAITranslateProviderConfig());
-
-    // Local inference is always available (no API key or feature flag required)
-    ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
-
-    // Volcengine AST 2.0 — always available, but only in Electron (IPC proxy) and
-    // Extension (declarativeNetRequest header injection), which it technically requires
-    if (isElectron() || isExtension()) {
-      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
-    }
-
-    ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
-
-    // Soniox speech-to-speech translation — always available (BYOK)
-    ProviderConfigFactory.configs.set(Provider.SONIOX, new SonioxProviderConfig());
-
-    // Only register Palabra AI if the feature flag is enabled
-    if (isPalabraAIEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
-    }
-
-    // Native (Electron sidecar) local inference — Electron only, behind feature flag
-    if (isElectron() && isLocalNativeEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
-    }
-
-    // The remaining Kizuna-managed providers, each behind the master gate plus
-    // its own gate (see the Kizuna Soniox registration above).
+    // 1. Kizuna-managed providers — behind the master Kizuna gate plus their
+    //    own gates. Each managed provider carries its OWN gate: they are
+    //    released independently, and they bill on different models whose
+    //    rates the wallet page publishes one at a time. A shared gate could
+    //    not express "ship this one alone", which is what independent release
+    //    means. Same order as getDefaultManagedProvider's preference list.
     if (isKizunaAIEnabled()) {
+      if (isKizunaSonioxEnabled()) {
+        ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_SONIOX, new KizunaAISonioxProviderConfig());
+      }
       if (isKizunaOpenAITranslateEnabled()) {
         ProviderConfigFactory.configs.set(Provider.KIZUNA_AI_OPENAI_TRANSLATE, new KizunaAIOpenAITranslateProviderConfig());
       }
@@ -73,15 +47,51 @@ export class ProviderConfigFactory {
       }
     }
 
-    // Only register OpenAI Compatible provider in Electron environment
+    // 2. Free (local inference) — always available, no API key or flag.
+    ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
+
+    // 3. Gemini
+    ProviderConfigFactory.configs.set(Provider.GEMINI, new GeminiProviderConfig());
+
+    // 4. Doubao AST 2.0 — always available, but only in Electron (IPC proxy) and
+    //    the extension (declarativeNetRequest header injection), which it
+    //    technically requires.
+    if (isElectron() || isExtension()) {
+      ProviderConfigFactory.configs.set(Provider.VOLCENGINE_AST2, new VolcengineAST2ProviderConfig());
+    }
+
+    // 5. The three OpenAI providers: Realtime, Translate, Live.
+    ProviderConfigFactory.configs.set(Provider.OPENAI, new OpenAIProviderConfig());
+    ProviderConfigFactory.configs.set(Provider.OPENAI_TRANSLATE, new OpenAITranslateProviderConfig());
+    // OpenAI Live (gpt-live-1) — the Live WebSocket needs an Authorization
+    // header on the upgrade, which only Electron (webRequest) and the
+    // extension (declarativeNetRequest) can inject. The web build has no way
+    // to, so the provider is not offered there.
+    if (isElectron() || isExtension()) {
+      ProviderConfigFactory.configs.set(Provider.OPENAI_LIVE, new OpenAILiveProviderConfig());
+    }
+
+    // 6. Soniox speech-to-speech translation — always available (BYOK).
+    ProviderConfigFactory.configs.set(Provider.SONIOX, new SonioxProviderConfig());
+
+    // 7. OpenAI Compatible — Electron only.
     if (isElectron()) {
       ProviderConfigFactory.configs.set(Provider.OPENAI_COMPATIBLE, new OpenAICompatibleProviderConfig());
     }
 
-    // Volcengine Speech Translate — always available (stable)
-    ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
+    // 8. Palabra AI — behind its feature flag.
+    if (isPalabraAIEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
+    }
 
-    // Zoom AI Services — always available (stable)
+    // 9. Everything else.
+    // Native (Electron sidecar) local inference — Electron only, behind feature flag.
+    if (isElectron() && isLocalNativeEnabled()) {
+      ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
+    }
+    // Volcengine Speech Translate — always available (stable).
+    ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
+    // Zoom AI Services — always available (stable).
     ProviderConfigFactory.configs.set(Provider.ZOOM_AI, new ZoomAIProviderConfig());
   }
 

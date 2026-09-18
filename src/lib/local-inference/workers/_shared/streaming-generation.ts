@@ -19,9 +19,71 @@
  */
 export const TAIL_PAD_TOKENS = 7;
 
+/** Keep individual audio-encoder calls small even when a backlog accumulated. */
+export const MAX_AUDIO_TOKENS_PER_ENCODER_CALL = 32;
+
 /** Samples of silence to append at an utterance end. */
 export function tailPadSamples(rawAudioLengthPerTok: number): number {
   return TAIL_PAD_TOKENS * rawAudioLengthPerTok;
+}
+
+/**
+ * Extend a required encoder chunk by whole audio-token steps, up to a hard cap.
+ *
+ * The streaming worker used to extend a chunk to all currently buffered audio.
+ * A lifecycle delay could therefore turn one ORT call into a minutes-long input.
+ */
+export function boundedBatchEndSample(
+  endNeeded: number,
+  availableSamples: number,
+  samplesPerTok: number,
+  maxTokens = MAX_AUDIO_TOKENS_PER_ENCODER_CALL,
+): number {
+  if (!Number.isFinite(samplesPerTok) || samplesPerTok <= 0) return endNeeded;
+  const extraAvailable = Math.max(0, Math.floor((availableSamples - endNeeded) / samplesPerTok));
+  const extraAllowed = Math.max(0, Math.floor(maxTokens) - 1);
+  return endNeeded + Math.min(extraAvailable, extraAllowed) * samplesPerTok;
+}
+
+export type QueuedUtteranceState = 'open' | 'finish' | 'stop';
+
+/** Endpoint state for an utterance staged while the preceding run drains. */
+export class QueuedUtterance {
+  private queue: QueuedUtteranceState[] = [];
+
+  get pending(): boolean {
+    return this.queue.length > 0;
+  }
+
+  start(): void {
+    this.queue.push('open');
+  }
+
+  finish(): boolean {
+    return this.setLatestOpenEndpoint('finish');
+  }
+
+  stop(): boolean {
+    return this.setLatestOpenEndpoint('stop');
+  }
+
+  take(): QueuedUtteranceState | null {
+    return this.queue.shift() ?? null;
+  }
+
+  clear(): void {
+    this.queue = [];
+  }
+
+  private setLatestOpenEndpoint(endpoint: Exclude<QueuedUtteranceState, 'open'>): boolean {
+    for (let i = this.queue.length - 1; i >= 0; i--) {
+      if (this.queue[i] === 'open') {
+        this.queue[i] = endpoint;
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 function concat(a: Float32Array, b: Float32Array): Float32Array {
@@ -48,6 +110,7 @@ function concat(a: Float32Array, b: Float32Array): Float32Array {
 export class StreamingAudioFeed {
   private active: Float32Array = new Float32Array(0);
   private staged: Float32Array = new Float32Array(0);
+  private stagedSegments: Float32Array[] = [];
   private _finishing = false;
   private _stopped = false;
 
@@ -77,6 +140,31 @@ export class StreamingAudioFeed {
     }
   }
 
+  /**
+   * Bound audio retained before a generate run starts.
+   *
+   * The worker continuously receives silence while VAD is idle. Keeping that
+   * entire history makes the next utterance feed an arbitrarily large first
+   * backlog into ORT. Preserve only the recent pre-roll needed for speech onset.
+   */
+  retainLatest(maxSamples: number): void {
+    if (this._finishing || this._stopped) return;
+    const limit = Number.isFinite(maxSamples) ? Math.max(0, Math.floor(maxSamples)) : 0;
+    if (this.active.length <= limit) return;
+    this.active = this.active.slice(this.active.length - limit);
+  }
+
+  /**
+   * Seal the staged utterance at its VAD endpoint while the active run drains.
+   *
+   * No padding here: the tail pad is added once, by `requestFinish()`, when the
+   * sealed segment is promoted to a run of its own.
+   */
+  sealStaged(): void {
+    this.stagedSegments.push(this.staged);
+    this.staged = new Float32Array(0);
+  }
+
   /** End the run gracefully, padding with `padSamples` of silence first. */
   requestFinish(padSamples: number): void {
     if (this._finishing) return;
@@ -103,8 +191,12 @@ export class StreamingAudioFeed {
 
   /** The run is over: staged audio becomes the next run's starting buffer. */
   complete(): void {
-    this.active = this.staged;
-    this.staged = new Float32Array(0);
+    if (this.stagedSegments.length > 0) {
+      this.active = this.stagedSegments.shift()!;
+    } else {
+      this.active = this.staged;
+      this.staged = new Float32Array(0);
+    }
     this._finishing = false;
     this._stopped = false;
   }
@@ -112,9 +204,33 @@ export class StreamingAudioFeed {
   clear(): void {
     this.active = new Float32Array(0);
     this.staged = new Float32Array(0);
+    this.stagedSegments = [];
     this._finishing = false;
     this._stopped = false;
   }
+}
+
+/**
+ * Hand the feed to the next queued utterance, after a run's `complete()`.
+ *
+ * `QueuedUtterance` and the feed's sealed segments are two FIFOs kept in
+ * lockstep: each sealed entry ('finish' or 'stop') owns one segment, and a
+ * trailing 'open' entry owns the staged audio not yet sealed. A queued misfire
+ * is dropped here and the utterance behind it promoted in the same call, so no
+ * entry is left waiting for a run that will never start.
+ *
+ * Returns how the utterance now in `feed.audio` ends, or null when nothing is
+ * queued — the feed then holds the audio after the last endpoint, as pre-roll.
+ */
+export function promoteQueued(
+  feed: StreamingAudioFeed,
+  queue: QueuedUtterance,
+): Exclude<QueuedUtteranceState, 'stop'> | null {
+  for (let state = queue.take(); state !== null; state = queue.take()) {
+    if (state !== 'stop') return state;
+    feed.complete();
+  }
+  return null;
 }
 
 /** Sentence terminators that finalize a result without waiting for VAD silence. */

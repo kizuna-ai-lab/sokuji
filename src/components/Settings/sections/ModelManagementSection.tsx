@@ -607,10 +607,22 @@ export function ModelManagementSection({
   const handleRenameVoice = useCallback(async (sid: number, newName: string) => {
     const dbKey = dbKeyFromImportedSid(sid);
     if (dbKey === null) return;
-    await voiceStorage.renameVoice(dbKey, newName);
+    try {
+      await voiceStorage.renameVoice(dbKey, newName);
+    } catch (err) {
+      // Two surfaces, two audiences. The picker renders a failed rename
+      // verbatim in the row, so what leaves here must be COPY — `renameVoice`
+      // rejects with whatever IndexedDB raised. But replacing the rejection
+      // also threw the cause away, and an IndexedDB failure is exactly what
+      // `reportError` exists to keep: the console line carries the stack, and
+      // LogsPanel gets one redacted sentence. Same mapping as
+      // NativeVoiceSection.handleRename, the other onRename owner.
+      reportError('ModelManagement', `Failed to rename voice: ${describeCause(err)}`, { cause: err });
+      throw new Error(t('voiceLibrary.renameFailed', 'Could not rename this voice.'));
+    }
     await refreshImportedVoices();
     setHasPendingChanges(true);
-  }, [refreshImportedVoices]);
+  }, [refreshImportedVoices, t]);
 
   const handleDeleteVoice = useCallback(async (sid: number) => {
     const dbKey = dbKeyFromImportedSid(sid);

@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini 會為對方音訊產生並捨棄音訊回應，因此會增加權杖用量。",
     "help": "說明",
     "helpEmailTooltip": "回報問題或取得協助",
+    "diagnosticLogs": "診斷日誌",
+    "diagnosticLogsTooltip": "記錄應用程式的執行情況，方便附在問題回報中。預設關閉；開啟後標題列會出現「日誌」按鈕，重新啟動後仍保持開啟。",
     "helpDiscussions": "討論區",
     "helpDiscussionsTooltip": "功能建議、意見回饋與社群討論",
     "auto": "自動",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "由 GPT 模型驅動"
+      "name": "OpenAI Realtime",
+      "description": "通用 GPT Realtime 語音模型，可自由設定"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Google 的 AI 技術"
     },
     "openaiCompatible": {
-      "name": "OpenAI 相容 API",
-      "description": "自訂 OpenAI 相容端點",
+      "name": "OpenAI 相容（舊版 Realtime）",
+      "description": "使用 OpenAI 舊版 beta Realtime 協定的第三方端點。不適用於 OpenAI 官方。",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI 專用的即時翻譯模型"
+      "description": "專用翻譯模型，自動辨識來源語言"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 口譯，依工作階段時長計費（含靜音）"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox 目前容量已滿。請稍後再試一次。",
     "sonioxBudgetExhausted": "您的工作階段餘額已用盡。請儲值以繼續翻譯。",
     "sonioxTtsFailed": "語音翻譯已停止。轉錄與文字翻譯仍在繼續。",
+    "sonioxTtsSegmentLost": "有一段語音翻譯未能播放。轉錄和文字翻譯不受影響。",
     "sonioxSegmentEnded": "此段落已結束——點一下「開始」以繼續。",
     "sonioxConnectionLost": "連線已中斷——請稍候點一下「開始」以繼續。",
+    "openaiLiveConnectionLost": "連線已中斷——請稍候點一下「開始」以繼續。",
     "sonioxVoiceClipMissing": "此裝置沒有語音錄音，因此本次工作階段使用預設語音。請在設定中錄製一段，以便在此使用您自己的聲音。",
     "sonioxVoicePoolBusy": "目前所有自訂語音名額都在使用中，因此本次工作階段使用預設語音。您自己的語音將於下次再次使用。",
     "sonioxVoiceBuildFailed": "無法建立您的自訂語音，因此本次工作階段使用預設語音。請嘗試在設定中錄製更清晰的片段。",
@@ -914,26 +922,34 @@
     "close": "關閉"
   },
   "voiceLibrary": {
+    "addVoice": "新增語音…",
+    "addVoiceTitle": "新增語音",
     "clipSilent": "未偵測到語音 — 請檢查麥克風後再試一次。",
     "clipTooLong": "錄音太長 — 請控制在 {seconds} 秒以內。",
     "clipTooShort": "錄音太短 — 請至少說滿 {seconds} 秒。",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "無法讀取該音訊檔案 — 請改用 WAV、MP3 或其他常見格式。",
     "delete": "刪除",
-    "deleteConfirm": "刪除語音「{name}」？",
+    "deleteBody": "刪除「{name}」？這台裝置上儲存的參考錄音也會被刪除。",
+    "deleteTitle": "刪除語音",
     "dropHint": "或將語音檔案拖曳至此",
     "emptyHint": "尚未匯入任何語音。",
+    "filterCount": "{total} 個中的 {shown} 個",
     "importError": "匯入失敗：{error}",
     "importVoice": "匯入語音…",
-    "manageImported": "管理匯入的語音",
-    "myVoices": "我的語音",
+    "myVoices": "自訂語音",
     "play": "播放",
     "presets": "預設語音",
+    "previewChargedToBalance": "試聽會合成一小段樣本，並從您的帳戶餘額中扣款。",
+    "previewFailed": "無法為這個語音合成試聽。",
+    "renameFailed": "無法重新命名這個語音。",
+    "previewLanguageUnsupported": "此模型所支援的語言中沒有可用的範例句。",
+    "previewNeedsBalance": "請先為帳戶儲值餘額，再試聽此語音。",
+    "previewNeedsSessionStopped": "請先結束工作階段，再試聽此語音。",
+    "previewSessionRunning": "有工作階段正在進行。請稍後再試一次。",
     "recordVoice": "錄製語音…",
     "rename": "重新命名",
     "restartHint": "請重新啟動工作階段以套用匯入的語音變更。",
-    "showAll": "顯示所有語音",
-    "showFewer": "顯示較少語音",
     "stopPreview": "停止",
     "stopRecording": "停止錄音",
     "synthesizing": "合成中…",

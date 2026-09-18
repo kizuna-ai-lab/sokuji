@@ -6,7 +6,7 @@ import { isElectron } from '../../../utils/environment';
 import { useStartBasicsTour } from '../../Tour/useStartBasicsTour';
 import { useSetSetupWizardOpen } from '../../../stores/layoutStore';
 import { useUpdateStatus, useCheckForUpdates, useOpenUpdateDialog } from '../../../stores/updateStore';
-import { useSetUILanguage } from '../../../stores/settingsStore';
+import { useSetUILanguage, useDiagnosticLogs, useSetDiagnosticLogs } from '../../../stores/settingsStore';
 import { useAnalytics } from '../../../lib/analytics';
 import { changeLanguageWithLoad } from '../../../locales';
 import { INTERFACE_LANGUAGES } from './interfaceLanguages';
@@ -24,6 +24,8 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
   const checkForUpdates = useCheckForUpdates();
   const openUpdateDialog = useOpenUpdateDialog();
   const setUILanguage = useSetUILanguage();
+  const diagnosticLogs = useDiagnosticLogs();
+  const setDiagnosticLogs = useSetDiagnosticLogs();
   const { trackEvent } = useAnalytics();
 
   // Opening the picker puts its list exactly where the tooltip sits, so the
@@ -194,6 +196,30 @@ const HelpSection: React.FC<HelpSectionProps> = ({ toggleSettings, isSessionActi
             ))}
           </select>
         </label>
+        </Tooltip>
+        {/*
+          Diagnostic logs are opt-in: while off, nothing is recorded and the
+          title bar offers no logs button. Help is where a user asked for a
+          bug report is sent to turn them on, so it sits just before the
+          support address, the next step.
+
+          A help link like its neighbours, carrying a switch track scaled to
+          the row: the shape every other switch in Settings has, so the state
+          reads at a glance, where a line-art toggle icon only moved a dot.
+          The label stays a single phrase, since a "label: value" entry is
+          what pushes Discussions onto a third line (see the picker above).
+        */}
+        <Tooltip content={t('settings.diagnosticLogsTooltip', 'Record what the app does, so you can attach it to a bug report. Off by default. While on, a “Logs” button appears in the title bar, and the setting stays on after a restart.')} position="top">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={diagnosticLogs}
+            className={`help-link help-link--toggle${diagnosticLogs ? ' is-on' : ''}`}
+            onClick={() => { void setDiagnosticLogs(!diagnosticLogs); }}
+          >
+            <span className="help-link__switch" aria-hidden="true" />
+            <span>{t('settings.diagnosticLogs', 'Diagnostic logs')}</span>
+          </button>
         </Tooltip>
         <Tooltip content={t('settings.helpEmailTooltip', 'Report bugs or get help')} position="top">
           <button type="button" className="help-link" onClick={() => openExternalUrl('mailto:support@kizuna.ai')}>

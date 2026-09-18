@@ -185,7 +185,7 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
     return result;
   }
 
-  private static readonly LANGUAGES: LanguageOption[] = [
+  static readonly LANGUAGES: LanguageOption[] = [
     { name: 'العربية', value: 'ar', englishName: 'Arabic' },
     { name: 'አማርኛ', value: 'am', englishName: 'Amharic' },
     { name: 'Български', value: 'bg', englishName: 'Bulgarian' },
@@ -243,7 +243,7 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
     { name: '中文 (台灣)', value: 'zh_TW', englishName: 'Chinese (Taiwan)' },
   ];
 
-  private static readonly VOICES: VoiceOption[] = [
+  static readonly VOICES: VoiceOption[] = [
     { name: 'Alloy', value: 'alloy' },
     { name: 'Ash', value: 'ash' },
     { name: 'Ballad', value: 'ballad' },

@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini は相手の音声に対して音声応答を生成しますが破棄されるため、追加のトークン消費が発生します。",
     "help": "ヘルプ",
     "helpEmailTooltip": "バグの報告やヘルプの取得",
+    "diagnosticLogs": "診断ログ",
+    "diagnosticLogsTooltip": "アプリの動作を記録し、不具合報告に添付できるようにします。既定ではオフです。オンにするとタイトルバーに「ログ」ボタンが表示され、再起動後もオンのままです。",
     "helpDiscussions": "ディスカッション",
     "helpDiscussionsTooltip": "機能リクエスト、フィードバック、コミュニティでの議論",
     "auto": "自動",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "GPTモデル搭載"
+      "name": "OpenAI Realtime",
+      "description": "汎用 GPT Realtime 音声モデル、自由に設定可能"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "GoogleのAI技術"
     },
     "openaiCompatible": {
-      "name": "OpenAI 互換 API",
-      "description": "カスタム OpenAI 互換エンドポイント",
+      "name": "OpenAI 互換（旧 Realtime）",
+      "description": "OpenAI の旧 beta Realtime プロトコルを使うサードパーティ製エンドポイント。OpenAI 本体には非対応。",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "OpenAI 専用のリアルタイム翻訳モデル"
+      "description": "翻訳専用モデル、ソース言語を自動検出"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 による通訳、セッション時間で分単位課金（無音含む）"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Sonioxは現在利用が集中しています。しばらくしてからもう一度お試しください。",
     "sonioxBudgetExhausted": "セッションの残高がなくなりました。翻訳を続けるには残高をチャージしてください。",
     "sonioxTtsFailed": "音声翻訳が停止しました。文字起こしとテキスト翻訳は続いています。",
+    "sonioxTtsSegmentLost": "音声翻訳の一部を再生できませんでした。文字起こしとテキスト翻訳には影響ありません。",
     "sonioxSegmentEnded": "このセグメントは終了しました——続けるには「セッション開始」をタップしてください。",
     "sonioxConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。",
+    "openaiLiveConnectionLost": "接続が中断されました——少ししてから「セッション開始」をタップして続けてください。",
     "sonioxVoiceClipMissing": "この端末には音声の録音がないため、このセッションではプリセット音声を使用します。ここでご自身の声で話すには、設定で録音してください。",
     "sonioxVoicePoolBusy": "現在、カスタム音声の枠がすべて使用中のため、このセッションではプリセット音声を使用します。次回はご自身の音声が再び使用されます。",
     "sonioxVoiceBuildFailed": "カスタム音声を作成できなかったため、このセッションではプリセット音声を使用します。設定でより聞き取りやすいクリップを録音してみてください。",
@@ -914,26 +922,34 @@
     "close": "閉じる"
   },
   "voiceLibrary": {
+    "addVoice": "音声を追加…",
+    "addVoiceTitle": "音声を追加",
     "clipSilent": "音声が検出されませんでした — マイクを確認してもう一度お試しください。",
     "clipTooLong": "録音が長すぎます — {seconds}秒以内にしてください。",
     "clipTooShort": "録音が短すぎます — {seconds}秒以上話してください。",
-    "cloneVoiceRequired": "この音声はまだ話せません — 下から音声クリップを録音またはインポートしてください。",
+    "cloneVoiceRequired": "この音声はまだ話せません — 音声リストを開いて音声クリップを追加してください。",
     "decodeFailed": "その音声ファイルを読み込めませんでした — WAV、MP3 などの一般的な形式をお試しください。",
     "delete": "削除",
-    "deleteConfirm": "音声「{name}」を削除しますか？",
+    "deleteBody": "「{name}」を削除しますか？この端末に保存された参照音声も削除されます。",
+    "deleteTitle": "音声を削除",
     "dropHint": "またはここに音声ファイルをドロップ",
     "emptyHint": "インポートされた音声はまだありません。",
+    "filterCount": "{total}件中{shown}件",
     "importError": "インポートに失敗しました: {error}",
     "importVoice": "音声をインポート…",
-    "manageImported": "インポートした音声を管理",
-    "myVoices": "マイ音声",
+    "myVoices": "カスタム音声",
     "play": "再生",
     "presets": "プリセット",
+    "previewChargedToBalance": "試聴すると短いサンプルが合成され、アカウントの残高から差し引かれます。",
+    "previewFailed": "この音声のプレビューを合成できませんでした。",
+    "renameFailed": "この音声の名前を変更できませんでした。",
+    "previewLanguageUnsupported": "このモデルには、話せる言語のサンプル文がありません。",
+    "previewNeedsBalance": "この音声を試聴するには残高をチャージしてください。",
+    "previewNeedsSessionStopped": "この音声を試聴するにはセッションを終了してください。",
+    "previewSessionRunning": "セッションが実行中です。しばらくしてからもう一度お試しください。",
     "recordVoice": "音声を録音…",
     "rename": "名前を変更",
     "restartHint": "インポートした音声の変更を適用するにはセッションを再開してください。",
-    "showAll": "すべての音声を表示",
-    "showFewer": "表示する音声を減らす",
     "stopPreview": "停止",
     "stopRecording": "録音を停止",
     "synthesizing": "合成中…",

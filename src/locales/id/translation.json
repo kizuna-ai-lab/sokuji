@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gemini menghasilkan respons audio untuk audio lawan bicara yang dibuang, sehingga menimbulkan penggunaan token tambahan.",
     "help": "Bantuan",
     "helpEmailTooltip": "Laporkan bug atau dapatkan bantuan",
+    "diagnosticLogs": "Log diagnostik",
+    "diagnosticLogsTooltip": "Mencatat apa yang dilakukan aplikasi agar Anda dapat melampirkannya ke laporan bug. Nonaktif secara default. Saat aktif, tombol “Log” muncul di bilah judul, dan pengaturan tetap aktif setelah dimulai ulang.",
     "helpDiscussions": "Diskusi",
     "helpDiscussionsTooltip": "Permintaan fitur, masukan, dan diskusi komunitas",
     "auto": "Otomatis",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Didukung oleh model GPT"
+      "name": "OpenAI Realtime",
+      "description": "Model suara GPT Realtime serbaguna, dapat dikonfigurasi sepenuhnya"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "Teknologi AI Google"
     },
     "openaiCompatible": {
-      "name": "API Kompatibel OpenAI",
-      "description": "Endpoint kustom yang kompatibel dengan OpenAI",
+      "name": "Kompatibel OpenAI (Realtime lama)",
+      "description": "Endpoint pihak ketiga yang memakai protokol Realtime beta lama OpenAI. Bukan untuk OpenAI sendiri.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Model terjemahan real-time khusus dari OpenAI"
+      "description": "Model terjemahan khusus yang mendeteksi bahasa sumber secara otomatis"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "Juru bahasa GPT-Live-1, ditagih per menit sesi termasuk keheningan"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Soniox sedang berada pada kapasitas penuh. Silakan coba lagi sebentar lagi.",
     "sonioxBudgetExhausted": "Saldo sesi Anda telah habis. Isi ulang saldo Anda untuk terus menerjemahkan.",
     "sonioxTtsFailed": "Terjemahan suara telah berhenti. Transkripsi dan terjemahan teks masih berjalan.",
+    "sonioxTtsSegmentLost": "Sebagian terjemahan suara tidak dapat diputar. Transkripsi dan terjemahan teks tidak terpengaruh.",
     "sonioxSegmentEnded": "Segmen ini telah berakhir — ketuk “Mulai sesi” untuk melanjutkan.",
     "sonioxConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan.",
+    "openaiLiveConnectionLost": "Koneksi terputus — ketuk “Mulai sesi” sebentar lagi untuk melanjutkan.",
     "sonioxVoiceClipMissing": "Perangkat ini tidak memiliki rekaman suara, sehingga sesi ini menggunakan suara preset. Rekam satu di Pengaturan untuk berbicara dengan suara Anda sendiri di sini.",
     "sonioxVoicePoolBusy": "Semua slot suara kustom sedang digunakan saat ini, sehingga sesi ini menggunakan suara preset. Suara Anda sendiri akan digunakan lagi lain kali.",
     "sonioxVoiceBuildFailed": "Suara kustom Anda tidak dapat dibangun, sehingga sesi ini menggunakan suara preset. Coba rekam klip yang lebih jelas di Pengaturan.",
@@ -914,26 +922,34 @@
     "close": "Tutup"
   },
   "voiceLibrary": {
+    "addVoice": "Tambahkan suara…",
+    "addVoiceTitle": "Tambahkan suara",
     "clipSilent": "Tidak ada suara terdeteksi — periksa mikrofon Anda dan coba lagi.",
     "clipTooLong": "Rekaman terlalu panjang — jaga di bawah {seconds} detik.",
     "clipTooShort": "Rekaman terlalu pendek — bicaralah setidaknya {seconds} detik.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Tidak dapat membaca file audio itu — coba WAV, MP3, atau format umum lainnya.",
     "delete": "Hapus",
-    "deleteConfirm": "Hapus suara \"{name}\"?",
+    "deleteBody": "Hapus \"{name}\"? Ini juga menghapus rekaman referensi yang tersimpan di perangkat ini.",
+    "deleteTitle": "Hapus suara",
     "dropHint": "atau letakkan file suara di sini",
     "emptyHint": "Belum ada suara yang diimpor.",
+    "filterCount": "{shown} dari {total}",
     "importError": "Impor gagal: {error}",
     "importVoice": "Impor suara…",
-    "manageImported": "Kelola suara yang diimpor",
-    "myVoices": "Suara Saya",
+    "myVoices": "Suara Kustom",
     "play": "Putar",
     "presets": "Preset",
+    "previewChargedToBalance": "Pratinjau mensintesis klip pendek dan dikenakan biaya dari saldo akun Anda.",
+    "previewFailed": "Tidak dapat membuat pratinjau untuk suara ini.",
+    "renameFailed": "Tidak dapat mengganti nama suara ini.",
+    "previewLanguageUnsupported": "Model ini tidak memiliki kalimat contoh dalam bahasa yang dapat diucapkannya.",
+    "previewNeedsBalance": "Isi ulang saldo Anda untuk mendengarkan pratinjau suara ini.",
+    "previewNeedsSessionStopped": "Akhiri sesi untuk mendengarkan pratinjau suara ini.",
+    "previewSessionRunning": "Sesi sedang berjalan. Coba lagi sebentar lagi.",
     "recordVoice": "Rekam suara…",
     "rename": "Ganti nama",
     "restartHint": "Mulai ulang sesi untuk menerapkan perubahan suara yang diimpor.",
-    "showAll": "Tampilkan semua suara",
-    "showFewer": "Tampilkan lebih sedikit suara",
     "stopPreview": "Berhenti",
     "stopRecording": "Hentikan perekaman",
     "synthesizing": "Mensintesis…",

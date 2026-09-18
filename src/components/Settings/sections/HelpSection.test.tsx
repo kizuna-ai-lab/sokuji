@@ -13,8 +13,12 @@ const changeLanguageWithLoad = vi.fn<(lang: string) => Promise<void>>();
 vi.mock('../../../locales', () => ({ changeLanguageWithLoad }));
 
 const setUILanguage = vi.fn<(lang: string) => Promise<void>>();
+let diagnosticLogsOn = false;
+const setDiagnosticLogs = vi.fn<(on: boolean) => Promise<void>>();
 vi.mock('../../../stores/settingsStore', () => ({
   useSetUILanguage: () => setUILanguage,
+  useDiagnosticLogs: () => diagnosticLogsOn,
+  useSetDiagnosticLogs: () => setDiagnosticLogs,
 }));
 
 const trackEvent = vi.fn();
@@ -42,9 +46,10 @@ vi.mock('../../../stores/updateStore', () => ({
 // renders children either way, as the real one does.
 //
 // Only the tooltips that are actually controlled are recorded. Help renders
-// three — the picker's, support's and Discussions' — and the last two pass no
-// `suppressed` at all, so recording every render would leave the reader of
-// this array looking at Discussions' constant false.
+// four — the picker's, the diagnostic logs switch's, support's and
+// Discussions' — and the last three pass no `suppressed` at all, so recording
+// every render would leave the reader of this array looking at Discussions'
+// constant false.
 const tooltipSuppressed: boolean[] = [];
 // `.at(-1)` needs ES2022; this project targets ES2020.
 const lastSuppressed = () => tooltipSuppressed[tooltipSuppressed.length - 1];
@@ -69,6 +74,9 @@ beforeEach(() => {
   setUILanguage.mockReset();
   setUILanguage.mockResolvedValue(undefined);
   trackEvent.mockClear();
+  diagnosticLogsOn = false;
+  setDiagnosticLogs.mockReset();
+  setDiagnosticLogs.mockResolvedValue(undefined);
 });
 
 const picker = () => screen.getByLabelText(/interface language/i) as HTMLSelectElement;
@@ -282,5 +290,54 @@ describe('interface language in Help', () => {
     const tour = links.findIndex((x) => /restart setup guide/i.test(x));
     expect(setup).toBeGreaterThanOrEqual(0);
     expect(setup).toBeLessThan(tour);
+  });
+});
+
+// Diagnostic logs are opt-in, and Help is where a user asked for a bug
+// report is sent to turn them on. It sits in the links row at a link's
+// weight, like every other entry there, with a single phrase for its label —
+// a "label: value" entry is what pushes Discussions onto a third line (see the
+// picker). Its state is shown by a small switch track, the shape every other
+// switch in Settings has: a line-art toggle icon only moved a dot from one
+// side to the other, which could not be read without the other state beside
+// it.
+describe('diagnostic logs switch in Help', () => {
+  const toggle = () => screen.getByRole('switch', { name: /diagnostic logs/i });
+
+  it('is a help link in the links row, off by default', () => {
+    render(<HelpSection />);
+    expect(toggle().closest('.help-links')).not.toBeNull();
+    expect(toggle().tagName).toBe('BUTTON');
+    expect(toggle().classList.contains('help-link')).toBe(true);
+    expect(toggle().getAttribute('aria-checked')).toBe('false');
+    expect(toggle().textContent?.trim()).toBe('Diagnostic logs');
+  });
+
+  it('shows its state with a switch track, not a toggle icon', () => {
+    render(<HelpSection />);
+    expect(toggle().querySelector('.help-link__switch')).not.toBeNull();
+    expect(toggle().querySelector('svg')).toBeNull();
+  });
+
+  it('comes right before the support address, the next step of a bug report', () => {
+    const { container } = render(<HelpSection />);
+    const links = Array.from(container.querySelectorAll('.help-links .help-link')).map((a) => a.textContent?.trim() ?? '');
+    const logs = links.indexOf('Diagnostic logs');
+    expect(logs).toBeGreaterThanOrEqual(0);
+    expect(links[logs + 1]).toBe('support@kizuna.ai');
+  });
+
+  it('turns diagnostic logs on', () => {
+    render(<HelpSection />);
+    fireEvent.click(toggle());
+    expect(setDiagnosticLogs).toHaveBeenCalledWith(true);
+  });
+
+  it('turns them off again', () => {
+    diagnosticLogsOn = true;
+    render(<HelpSection />);
+    expect(toggle().getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(toggle());
+    expect(setDiagnosticLogs).toHaveBeenCalledWith(false);
   });
 });

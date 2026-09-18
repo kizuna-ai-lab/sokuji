@@ -109,6 +109,8 @@
     "geminiParticipantTokenWarning": "Gumagawa ang Gemini ng mga audio response para sa audio ng kausap na itinatapon, kaya may karagdagang paggamit ng token.",
     "help": "Tulong",
     "helpEmailTooltip": "Mag-report ng bug o humingi ng tulong",
+    "diagnosticLogs": "Mga diagnostic log",
+    "diagnosticLogsTooltip": "Itinatala ang ginagawa ng app para mailakip mo ito sa isang ulat ng bug. Naka-off bilang default. Habang naka-on, may lalabas na button na “Mga Log” sa title bar, at mananatili itong naka-on pagkatapos mag-restart.",
     "helpDiscussions": "Mga Talakayan",
     "helpDiscussionsTooltip": "Mga feature request, feedback, at talakayan ng komunidad",
     "auto": "Awtomatiko",
@@ -448,21 +450,25 @@
       "vendor": "Soniox"
     },
     "openai": {
-      "name": "OpenAI",
-      "description": "Powered ng GPT models"
+      "name": "OpenAI Realtime",
+      "description": "Pangkalahatang GPT Realtime speech model, ganap na maisasaayos"
     },
     "gemini": {
       "name": "Google Gemini",
       "description": "AI technology ng Google"
     },
     "openaiCompatible": {
-      "name": "OpenAI Compatible API",
-      "description": "Custom na OpenAI-compatible endpoint",
+      "name": "Tugma sa OpenAI (Legacy Realtime)",
+      "description": "Third-party endpoint na gumagamit ng lumang beta Realtime protocol ng OpenAI. Hindi para sa OpenAI mismo.",
       "customEndpointPlaceholder": "https://your-api-endpoint.com"
     },
     "openai_translate": {
       "name": "OpenAI Translate",
-      "description": "Dedicated real-time translation model ng OpenAI"
+      "description": "Nakalaang modelo sa pagsasalin na awtomatikong tumutukoy sa pinagmulang wika"
+    },
+    "openai_live": {
+      "name": "OpenAI Live",
+      "description": "GPT-Live-1 interpreter, sinisingil kada minuto ng session kasama ang katahimikan"
     },
     "palabraai": {
       "name": "Palabra AI",
@@ -613,8 +619,10 @@
     "sonioxServiceBusy": "Ganap sa kapasidad ang Soniox sa ngayon. Pakisubukang muli sa madaling panahon.",
     "sonioxBudgetExhausted": "Naubos na ang balanse ng iyong session. Mag-top up ng iyong balanse para magpatuloy sa pagsasalin.",
     "sonioxTtsFailed": "Huminto na ang binibigkas na pagsasalin. Patuloy pa ring gumagana ang transcription at pagsasalin ng teksto.",
+    "sonioxTtsSegmentLost": "Hindi na-play ang bahagi ng binigkas na pagsasalin. Hindi apektado ang transcription at pagsasalin ng teksto.",
     "sonioxSegmentEnded": "Natapos na ang segment na ito — pindutin ang “Simulan ang session” para magpatuloy.",
     "sonioxConnectionLost": "Naputol ang koneksyon — pindutin ang “Simulan ang session” maya-maya para magpatuloy.",
+    "openaiLiveConnectionLost": "Naputol ang koneksyon — pindutin ang “Simulan ang session” maya-maya para magpatuloy.",
     "sonioxVoiceClipMissing": "Walang voice recording ang device na ito, kaya gumagamit ang session na ito ng preset na boses. Mag-record ng isa sa Mga Setting para makapagsalita gamit ang sarili mong boses dito.",
     "sonioxVoicePoolBusy": "Ginagamit ngayon ang lahat ng custom na voice slot, kaya gumagamit ang session na ito ng preset na boses. Gagamitin muli ang sarili mong boses sa susunod.",
     "sonioxVoiceBuildFailed": "Hindi mabuo ang custom mong boses, kaya gumagamit ang session na ito ng preset na boses. Subukang mag-record ng mas malinaw na clip sa Mga Setting.",
@@ -914,26 +922,34 @@
     "close": "Isara"
   },
   "voiceLibrary": {
+    "addVoice": "Magdagdag ng boses…",
+    "addVoiceTitle": "Magdagdag ng boses",
     "clipSilent": "Walang natukoy na boses — suriin ang iyong mikropono at subukang muli.",
     "clipTooLong": "Masyadong mahaba ang recording — panatilihin itong wala pang {seconds} segundo.",
     "clipTooShort": "Masyadong maikli ang recording — magsalita nang hindi bababa sa {seconds} segundo.",
-    "cloneVoiceRequired": "This voice needs a clip before it can speak — record or import one below.",
+    "cloneVoiceRequired": "This voice needs a clip before it can speak — open the voice list and add one.",
     "decodeFailed": "Hindi mabasa ang audio file na iyon — subukan ang WAV, MP3, o ibang karaniwang format.",
     "delete": "I-delete",
-    "deleteConfirm": "I-delete ang boses na \"{name}\"?",
+    "deleteBody": "I-delete ang \"{name}\"? Tatanggalin din nito ang reference recording na naka-imbak sa device na ito.",
+    "deleteTitle": "I-delete ang boses",
     "dropHint": "o mag-drop ng voice file dito",
     "emptyHint": "Wala pang na-import na boses.",
+    "filterCount": "{shown} sa {total}",
     "importError": "Nabigo ang pag-import: {error}",
     "importVoice": "Mag-import ng boses…",
-    "manageImported": "Pamahalaan ang mga na-import na boses",
-    "myVoices": "Aking mga Boses",
+    "myVoices": "Mga Custom na Boses",
     "play": "I-play",
     "presets": "Mga Preset",
+    "previewChargedToBalance": "Ang pag-preview ay gumagawa ng maikling sample at sinisingil sa balanse ng iyong account.",
+    "previewFailed": "Hindi ma-synthesize ang preview para sa boses na ito.",
+    "renameFailed": "Hindi mapalitan ang pangalan ng boses na ito.",
+    "previewLanguageUnsupported": "Ang modelong ito ay walang sample na pangungusap sa wikang kaya nitong sabihin.",
+    "previewNeedsBalance": "Mag-top up ng iyong balanse para i-preview ang boses na ito.",
+    "previewNeedsSessionStopped": "Tapusin ang session para i-preview ang boses na ito.",
+    "previewSessionRunning": "May isang session na tumatakbo. Subukang muli sa ilang sandali.",
     "recordVoice": "Mag-record ng boses…",
     "rename": "Palitan ang pangalan",
     "restartHint": "I-restart ang session para mailapat ang mga pagbabago sa na-import na boses.",
-    "showAll": "Ipakita lahat ng boses",
-    "showFewer": "Magpakita ng mas kaunting boses",
     "stopPreview": "Ihinto",
     "stopRecording": "Itigil ang pag-record",
     "synthesizing": "Sinisintesa…",

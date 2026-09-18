@@ -47,16 +47,9 @@ export interface VoiceLibraryCapability {
   /** Which import affordances to render. `upload` → file picker + drop zone;
    *  `record` → microphone Record button. */
   importModes: ('upload' | 'record')[];
-  /** When true, only curated builtins are shown by default with a "show all"
-   *  expander revealing the rest. When false, all builtins are shown. */
-  curation: boolean;
   /** `accept` filter for the upload file input. Defaults to the JSON voice-card
    *  filter (Supertonic) when unset; native voice cloning passes an audio filter. */
   accept?: string;
-  /** How voice SELECTION is presented. `'list'` (default) renders a clickable
-   *  list of voices; `'dropdown'` renders a `<select>` with optgroups (the
-   *  original Supertonic affordance). Curation does not apply in dropdown mode. */
-  presentation?: 'list' | 'dropdown';
   /** When true, captured clips must carry a reference transcript (native
    *  zero-shot cloning models that require ICL text). Renders a labeled
    *  transcript input in the manage toolbar and disables Import/Record until
