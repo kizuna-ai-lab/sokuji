@@ -4315,8 +4315,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       <AudioSystemBanner />
       <UpdateDialog />
       <div className="main-panel">
-        {/* Conversation toolbar */}
-        {(isSessionActive || combinedItems.length > 0) && (
+        {/* Conversation toolbar. Always shown: it once held only the Clear
+            button, which is why it used to wait for a conversation, and the
+            Export menu now carries a setting worth reaching before a
+            session. While the extension's subtitle overlay owns the
+            conversation, the old condition still applies. */}
+        {(!subtitleTakeover || isSessionActive || combinedItems.length > 0) && (
           <>
           <div className="conversation-toolbar">
             {/*
@@ -4409,6 +4413,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
             <button
               className="clear-conversation-btn"
               onClick={requestClearConversation}
+              disabled={combinedItems.length === 0}
               title={t('mainPanel.clearConversation', 'Clear conversation')}
               aria-label={t('mainPanel.clearConversation', 'Clear conversation')}
               type="button"
