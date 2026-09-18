@@ -1,0 +1,180 @@
+{
+ "onnxruntime": "1.30.0",
+ "onnx": "1.22.0",
+ "builds": {
+  "fp32": {
+   "file": "/home/jiangzhuo/.cache/sokuji-punct-bench/sat/sat-3l-sm/model_fp32.onnx",
+   "bytes": 855082196,
+   "ops": {
+    "Add": 16,
+    "Cast": 2,
+    "Constant": 29,
+    "ConstantOfShape": 1,
+    "CumSum": 1,
+    "Div": 3,
+    "Equal": 2,
+    "Expand": 1,
+    "Gather": 4,
+    "LayerNormalization": 1,
+    "MatMul": 25,
+    "Mul": 3,
+    "Not": 1,
+    "Reshape": 12,
+    "Shape": 3,
+    "Slice": 1,
+    "Softmax": 3,
+    "Sub": 1,
+    "Transpose": 12,
+    "Unsqueeze": 3,
+    "Where": 1,
+    "com.microsoft:BiasGelu": 3,
+    "com.microsoft:SkipLayerNormalization": 6
+   },
+   "inputs": {
+    "input_ids": "int64",
+    "attention_mask": "float32"
+   },
+   "outputs": {
+    "logits": "float32"
+   }
+  },
+  "q8w": {
+   "file": "/home/jiangzhuo/.cache/sokuji-punct-bench/sat/sat-3l-sm-q8w/model.onnx",
+   "bytes": 793953242,
+   "ops": {
+    "Add": 16,
+    "Cast": 2,
+    "Constant": 29,
+    "ConstantOfShape": 1,
+    "CumSum": 1,
+    "Div": 3,
+    "Equal": 2,
+    "Expand": 1,
+    "Gather": 4,
+    "LayerNormalization": 1,
+    "MatMul": 6,
+    "Mul": 3,
+    "Not": 1,
+    "Reshape": 12,
+    "Shape": 3,
+    "Slice": 1,
+    "Softmax": 3,
+    "Sub": 1,
+    "Transpose": 12,
+    "Unsqueeze": 3,
+    "Where": 1,
+    "com.microsoft:BiasGelu": 3,
+    "com.microsoft:MatMulNBits": 19,
+    "com.microsoft:SkipLayerNormalization": 6
+   },
+   "inputs": {
+    "input_ids": "int64",
+    "attention_mask": "float32"
+   },
+   "outputs": {
+    "logits": "float32"
+   }
+  },
+  "q8w-gather": {
+   "file": "/home/jiangzhuo/.cache/sokuji-punct-bench/sat/sat-3l-sm-q8w-gather/model.onnx",
+   "bytes": 241945842,
+   "ops": {
+    "Add": 16,
+    "Cast": 2,
+    "Constant": 29,
+    "ConstantOfShape": 1,
+    "CumSum": 1,
+    "Div": 3,
+    "Equal": 2,
+    "Expand": 1,
+    "Gather": 3,
+    "LayerNormalization": 1,
+    "MatMul": 6,
+    "Mul": 3,
+    "Not": 1,
+    "Reshape": 12,
+    "Shape": 3,
+    "Slice": 1,
+    "Softmax": 3,
+    "Sub": 1,
+    "Transpose": 12,
+    "Unsqueeze": 3,
+    "Where": 1,
+    "com.microsoft:BiasGelu": 3,
+    "com.microsoft:GatherBlockQuantized": 1,
+    "com.microsoft:MatMulNBits": 19,
+    "com.microsoft:SkipLayerNormalization": 6
+   },
+   "inputs": {
+    "input_ids": "int64",
+    "attention_mask": "float32"
+   },
+   "outputs": {
+    "logits": "float32"
+   },
+   "embedding_quantization": {
+    "table": [
+     250002,
+     768
+    ],
+    "max_abs_err": 0.004357647150754929,
+    "mean_abs_err": 0.0008691100520081818,
+    "max_abs_weight": 1.123046875
+   }
+  }
+ },
+ "native_cpu_sanity_vs_fp32": {
+  "q8w": {
+   "ja": {
+    "tokens": 512,
+    "max_abs_logit": 0.11237311363220215,
+    "max_abs_p": 0.01718307770624805,
+    "decisions_p_gt_0.25_differ": 1
+   },
+   "zh": {
+    "tokens": 512,
+    "max_abs_logit": 0.14893722534179688,
+    "max_abs_p": 0.02384056768248355,
+    "decisions_p_gt_0.25_differ": 0
+   },
+   "en": {
+    "tokens": 512,
+    "max_abs_logit": 0.3434157371520996,
+    "max_abs_p": 0.07490883688882721,
+    "decisions_p_gt_0.25_differ": 1
+   },
+   "ko": {
+    "tokens": 435,
+    "max_abs_logit": 0.4217824935913086,
+    "max_abs_p": 0.01873536321289271,
+    "decisions_p_gt_0.25_differ": 0
+   }
+  },
+  "q8w-gather": {
+   "ja": {
+    "tokens": 512,
+    "max_abs_logit": 0.12929964065551758,
+    "max_abs_p": 0.01828918379794575,
+    "decisions_p_gt_0.25_differ": 0
+   },
+   "zh": {
+    "tokens": 512,
+    "max_abs_logit": 0.15740251541137695,
+    "max_abs_p": 0.026582018057714762,
+    "decisions_p_gt_0.25_differ": 1
+   },
+   "en": {
+    "tokens": 512,
+    "max_abs_logit": 0.6309215426445007,
+    "max_abs_p": 0.12987218262530886,
+    "decisions_p_gt_0.25_differ": 1
+   },
+   "ko": {
+    "tokens": 435,
+    "max_abs_logit": 0.10410928726196289,
+    "max_abs_p": 0.022566880383858123,
+    "decisions_p_gt_0.25_differ": 0
+   }
+  }
+ }
+}

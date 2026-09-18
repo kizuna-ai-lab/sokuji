@@ -31,6 +31,11 @@ import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { EventData } from '../../stores/logStore';
+import {
+  LEADING_PUNCT_RE,
+  lastSentenceEnd,
+  lastClauseEnd,
+} from '../../lib/segmentation/sentenceEnd';
 
 export const LIVE_WS_URL = 'wss://api.openai.com/v1/live/sessions';
 export const LIVE_HOST = 'api.openai.com';
@@ -39,26 +44,6 @@ const DEFAULT_VOICE = 'marin';
 /** PCM16 sample rate on both directions of the socket. */
 const SAMPLE_RATE = 24000;
 const SILENCE_TIMEOUT_MS = 1000;
-/**
- * A translation is cut into items at sentence ends: Live has no per-response
- * "done" event and a continuous speaker gives the silence timer no gap, so a
- * two-minute monologue would otherwise become one assistant item. The text
- * side closes on a sentence-final mark (optionally followed by closing quotes
- * or brackets); the audio side follows once the session timeline passes the
- * sentence's `end_ms`, so the karaoke anchors and replay audio stay with the
- * sentence they belong to.
- */
-const SENTENCE_TERMINALS = '。．！？!?.';
-const SENTENCE_CLOSERS = '"\'”’」』）)]';
-/** Words whose trailing period is not a sentence end (lower-case, inner dots kept). */
-const ABBREVIATIONS = new Set([
-  'mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr', 'st', 'mt', 'vs', 'etc', 'inc', 'ltd', 'co', 'corp', 'bros',
-  'fig', 'vol', 'al', 'e.g', 'i.e', 'a.m', 'p.m', 'u.s', 'u.k',
-]);
-/** Marks a long item may be cut at when no sentence end comes. */
-const CLAUSE_MARKS = ',，、;；:：—–';
-/** Punctuation and whitespace at the head of a delta belong to the text before it. */
-const LEADING_PUNCT_RE = /^[\s。．！？!?.,，、;；:：—–"'”’」』）)\]]+/;
 /**
  * Output frames at or below this RMS are the stream's noise floor, not speech.
  *
@@ -85,51 +70,6 @@ const USER_SPAN_CAP_MS = 12_000;
 const ASSISTANT_SOFT_CAP_MS = 20_000;
 const ASSISTANT_SPAN_CAP_MS = 30_000;
 
-/** True when the period at `dot` is part of an abbreviation, an initial, a
- *  decimal or a dotted token (e.g., U.S., example.com) rather than a sentence end. */
-function periodIsNotSentenceEnd(text: string, dot: number): boolean {
-  const next = text[dot + 1];
-  if (next !== undefined && /[A-Za-z0-9]/.test(next)) return true; // 3.5, e.g, U.S, a.b
-  if (next === '.' || text[dot - 1] === '.') return true; // an ellipsis is a pause, not an end
-  if (next === ',' || next === ';' || next === ':') return true; // "Co., Ltd": the clause goes on
-  if (next !== undefined && /\s/.test(next) && /^\s+[a-z]/.test(text.slice(dot + 1))) return true; // "no. then"
-  let start = dot;
-  while (start > 0 && /[A-Za-z.]/.test(text[start - 1])) start--;
-  const word = text.slice(start, dot).replace(/^\.+/, '');
-  if (word.length === 0) return false;
-  if (word.length === 1 && /[A-Z]/.test(word)) return true; // an initial: "J. Smith"
-  return ABBREVIATIONS.has(word.toLowerCase());
-}
-
-/**
- * Index just past the last sentence end inside `text` (closing quotes and
- * brackets included), or -1 when the text has none. Live places the terminal
- * of one sentence at the end of a delta or at the start of the next one, so
- * callers split the delta itself: `[0, idx)` finishes the current item, the
- * rest opens a new one. `prefix` is the item's transcript so far: a period
- * whose word began in an earlier delta ("Dr" + ". Andrew") is judged on the
- * whole word.
- */
-function lastSentenceEnd(text: string, prefix = ''): number {
-  const full = prefix + text;
-  for (let i = full.length - 1; i >= prefix.length; i--) {
-    const ch = full[i];
-    if (!SENTENCE_TERMINALS.includes(ch)) continue;
-    if (ch === '.' && periodIsNotSentenceEnd(full, i)) continue;
-    let end = i + 1;
-    while (end < full.length && SENTENCE_CLOSERS.includes(full[end])) end++;
-    return end - prefix.length;
-  }
-  return -1;
-}
-
-/** Index just past the last clause mark in `text`, or -1. */
-function lastClauseEnd(text: string): number {
-  for (let i = text.length - 1; i >= 0; i--) {
-    if (CLAUSE_MARKS.includes(text[i])) return i + 1;
-  }
-  return -1;
-}
 const SILENCE_TIMEOUT_MIN_MS = 100;
 const SILENCE_TIMEOUT_MAX_MS = 3000;
 const SESSION_START_TIMEOUT_MS = 30000;

@@ -1,0 +1,93 @@
+{
+ "sizes_bytes": {
+  "42ailab_int8": 102189962,
+  "export_fp32": 406958439,
+  "export_int8_perchannel_matmul": 152742030
+ },
+ "models": {
+  "42ailab_int8": {
+   "token_class_agree_vs_torch": 0.9686292339167992,
+   "text_exact_vs_torch": 0.28104575163398693,
+   "terminal_marks_torch": 353,
+   "terminal_marks_model": 173,
+   "diffs": [
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "stripped",
+     "torch": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign.",
+     "model": "Hi everyone, let's go over the plan for next quarter, first, the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign."
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "commas",
+     "torch": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign.",
+     "model": "Hi everyone, let's go over the plan for next quarter, first, the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign."
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "lower",
+     "torch": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign.",
+     "model": "Hi everyone, let's go over the plan for next quarter, first, the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign."
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "raw",
+     "torch": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign.",
+     "model": "Hi everyone, let's go over the plan for next quarter, first, the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign."
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "stripped",
+     "torch": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning.",
+     "model": "Good afternoon everyone, let me start with last week's progress, the mobile subtitle feature has finished internal testing feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week also the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+    }
+   ]
+  },
+  "export_fp32": {
+   "token_class_agree_vs_torch": 1.0,
+   "text_exact_vs_torch": 1.0,
+   "terminal_marks_torch": 353,
+   "terminal_marks_model": 353,
+   "diffs": []
+  },
+  "export_int8_perchannel_matmul": {
+   "token_class_agree_vs_torch": 0.9694248692884746,
+   "text_exact_vs_torch": 0.28104575163398693,
+   "terminal_marks_torch": 353,
+   "terminal_marks_model": 180,
+   "diffs": [
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "stripped",
+     "torch": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign.",
+     "model": "Hi everyone, let's go over the plan for next quarter, first the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign."
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "commas",
+     "torch": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign.",
+     "model": "Hi everyone, let's go over the plan for next quarter, first the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign."
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "lower",
+     "torch": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign.",
+     "model": "Hi everyone, let's go over the plan for next quarter, first the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign."
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "raw",
+     "torch": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign.",
+     "model": "Hi everyone, let's go over the plan for next quarter, first the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign."
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "stripped",
+     "torch": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning.",
+     "model": "Good afternoon everyone, let me start with last week's progress, the mobile subtitle feature has finished internal testing feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+    }
+   ]
+  }
+ },
+ "torch_eager_vs_torch_sdpa_token_agree": 1.0
+}

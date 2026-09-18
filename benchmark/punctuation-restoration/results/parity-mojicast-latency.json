@@ -1,0 +1,59 @@
+{
+ "runtime": "onnxruntime-web 1.26 WASM, numThreads=1, Node",
+ "cpus": 20,
+ "cpuModel": "unknown",
+ "models": {
+  "mojicast": {
+   "loadMs": 536,
+   "rows": [
+    {
+     "seqLen": 64,
+     "loadavg1": 4.83,
+     "medianMs": 182,
+     "p10Ms": 181.5,
+     "p90Ms": 182.5
+    },
+    {
+     "seqLen": 128,
+     "loadavg1": 4.93,
+     "medianMs": 362.6,
+     "p10Ms": 361.8,
+     "p90Ms": 362.9
+    },
+    {
+     "seqLen": 254,
+     "loadavg1": 4.85,
+     "medianMs": 746.2,
+     "p10Ms": 743.9,
+     "p90Ms": 749.7
+    }
+   ]
+  },
+  "mojicast-fp32": {
+   "loadMs": 846,
+   "rows": [
+    {
+     "seqLen": 64,
+     "loadavg1": 4.72,
+     "medianMs": 211.4,
+     "p10Ms": 210.6,
+     "p90Ms": 212.7
+    },
+    {
+     "seqLen": 128,
+     "loadavg1": 4.58,
+     "medianMs": 419.3,
+     "p10Ms": 418.7,
+     "p90Ms": 420.3
+    },
+    {
+     "seqLen": 254,
+     "loadavg1": 4.42,
+     "medianMs": 851.7,
+     "p10Ms": 850.6,
+     "p90Ms": 853.9
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,4671 @@
+{
+ "runtime": {
+  "node": "22.23.1",
+  "acorn": "8.16.0",
+  "ada": "2.9.2",
+  "amaro": "1.1.8",
+  "ares": "1.34.6",
+  "brotli": "1.1.0",
+  "cjs_module_lexer": "2.2.0",
+  "cldr": "48.0",
+  "icu": "78.2",
+  "llhttp": "9.4.2",
+  "modules": "127",
+  "napi": "10",
+  "nbytes": "0.1.3",
+  "ncrypto": "0.0.1",
+  "nghttp2": "1.69.0",
+  "openssl": "3.5.7",
+  "simdjson": "4.5.0",
+  "simdutf": "6.4.2",
+  "sqlite": "3.51.3",
+  "tz": "2026a",
+  "undici": "6.27.0",
+  "unicode": "17.0",
+  "uv": "1.51.0",
+  "uvwasi": "0.0.23",
+  "v8": "12.4.254.21-node.56",
+  "zlib": "1.3.1-e00f703",
+  "zstd": "1.5.7"
+ },
+ "results": {
+  "fr/gold": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 14,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.5185185185185185,
+    "f": 0.6829268292682926,
+    "tp": 14,
+    "fp": 0,
+    "fn": 13
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 13
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "de/gold": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 14,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.6086956521739131,
+    "f": 0.7567567567567568,
+    "tp": 14,
+    "fp": 0,
+    "fn": 9
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 9
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "es/gold": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 14,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.5833333333333334,
+    "f": 0.7368421052631579,
+    "tp": 14,
+    "fp": 0,
+    "fn": 10
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "pt/gold": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 14,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.5833333333333334,
+    "f": 0.7368421052631579,
+    "tp": 14,
+    "fp": 0,
+    "fn": 10
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "en/gold": {
+   "items": 23,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0.972972972972973,
+    "r": 1,
+    "f": 0.9863013698630138,
+    "tp": 36,
+    "fp": 1,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 0.972972972972973,
+    "r": 0.4931506849315068,
+    "f": 0.6545454545454545,
+    "tp": 36,
+    "fp": 1,
+    "fn": 37
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 49
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 37
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 4
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "ja/gold": {
+   "items": 24,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 42,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.56,
+    "f": 0.717948717948718,
+    "tp": 42,
+    "fp": 0,
+    "fn": 33
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 55
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 33
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 7
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 3
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "zh/gold": {
+   "items": 34,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 71,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.36787564766839376,
+    "f": 0.5378787878787878,
+    "tp": 71,
+    "fp": 0,
+    "fn": 122
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 91
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 122
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 4
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "ko/gold": {
+   "items": 20,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 24,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.7058823529411765,
+    "f": 0.8275862068965517,
+    "tp": 24,
+    "fp": 0,
+    "fn": 10
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 34
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 7
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 3
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "fr/stripped": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 27
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 13
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "de/stripped": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 23
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 9
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "es/stripped": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "pt/stripped": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "en/stripped": {
+   "items": 23,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 36
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 73
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 49
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 37
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 4
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "ja/stripped": {
+   "items": 24,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 42
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 75
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 55
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 33
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 7
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 3
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "zh/stripped": {
+   "items": 34,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 71
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 193
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 91
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 122
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 4
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "ko/stripped": {
+   "items": 20,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 34
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 34
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 7
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 3
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "en/lower": {
+   "items": 23,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 36
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 73
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 49
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 37
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 4
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "fr/commas": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 27
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 13
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "de/commas": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 23
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 9
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "es/commas": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "pt/commas": {
+   "items": 10,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 14
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 16
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 2
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "en/commas": {
+   "items": 23,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 36
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 73
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 49
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 37
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 6
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 4
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "ja/commas": {
+   "items": 24,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 42
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 75
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 55
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 33
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 7
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 3
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "zh/commas": {
+   "items": 34,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 71
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 193
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 91
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 122
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 4
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "ko/commas": {
+   "items": 20,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 24
+   },
+   "breakpoint": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 34
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 34
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 10
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 7
+   },
+   "exclaim": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 3
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "fr/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  },
+  "de/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  },
+  "es/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  },
+  "pt/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  },
+  "en/raw": {
+   "items": 3,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 0.5833333333333334,
+    "f": 0.7368421052631579,
+    "tp": 7,
+    "fp": 0,
+    "fn": 5
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.25925925925925924,
+    "f": 0.4117647058823529,
+    "tp": 7,
+    "fp": 0,
+    "fn": 20
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 15
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 15
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "ja/raw": {
+   "items": 3,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 13,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.5909090909090909,
+    "f": 0.7428571428571429,
+    "tp": 13,
+    "fp": 0,
+    "fn": 9
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 15
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 9
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "zh/raw": {
+   "items": 13,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 0.23404255319148937,
+    "f": 0.3793103448275862,
+    "tp": 11,
+    "fp": 0,
+    "fn": 36
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 0.07692307692307693,
+    "f": 0.14285714285714288,
+    "tp": 11,
+    "fp": 0,
+    "fn": 132
+   },
+   "period": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 56
+   },
+   "comma": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 96
+   },
+   "question": {
+    "p": 0,
+    "r": 0,
+    "f": 0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 4
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": 0
+  },
+  "ko/raw": {
+   "items": 0,
+   "skelMismatch": 0,
+   "boundary": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "breakpoint": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "period": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "comma": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "question": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "exclaim": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "upper": {
+    "p": 1,
+    "r": 1,
+    "f": 1,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "finalTerm": null
+  }
+ },
+ "examples": [
+  {
+   "id": "fr-meeting-01",
+   "variant": "stripped",
+   "input": "Bon on va commencer la réunion D'abord est-ce que tout le monde voit mon écran Parfait alors voici l'ordre du jour",
+   "segments": [
+    "Bon on va commencer la réunion D'abord est-ce que tout le monde voit mon écran Parfait alors voici l'ordre du jour"
+   ]
+  },
+  {
+   "id": "fr-question-01",
+   "variant": "stripped",
+   "input": "Vous avez des questions pour l'instant Sinon je passe à la diapositive suivante",
+   "segments": [
+    "Vous avez des questions pour l'instant Sinon je passe à la diapositive suivante"
+   ]
+  },
+  {
+   "id": "fr-numbers-01",
+   "variant": "stripped",
+   "input": "Le chiffre d'affaires a augmenté de 12 % sur un an pour atteindre 4,2 millions d'euros La plupart vient de nos clients entreprises",
+   "segments": [
+    "Le chiffre d'affaires a augmenté de 12 % sur un an pour atteindre 4,2 millions d'euros La plupart vient de nos clients entreprises"
+   ]
+  },
+  {
+   "id": "fr-stream-01",
+   "variant": "stripped",
+   "input": "Salut tout le monde Bienvenue sur le stream Aujourd'hui on va enfin battre le boss final",
+   "segments": [
+    "Salut tout le monde Bienvenue sur le stream Aujourd'hui on va enfin battre le boss final"
+   ]
+  },
+  {
+   "id": "fr-lecture-01",
+   "variant": "stripped",
+   "input": "Aujourd'hui nous allons parler de la photosynthèse La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie Elle se produit surtout dans les feuilles Sans elle la vie sur Terre serait impossible",
+   "segments": [
+    "Aujourd'hui nous allons parler de la photosynthèse La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie Elle se produit surtout dans les feuilles Sans elle la vie sur Terre serait impossible"
+   ]
+  },
+  {
+   "id": "fr-short-01",
+   "variant": "stripped",
+   "input": "Oui ça me va",
+   "segments": [
+    "Oui ça me va"
+   ]
+  },
+  {
+   "id": "fr-support-01",
+   "variant": "stripped",
+   "input": "Merci d'avoir appelé le service client Je m'appelle Julie Comment puis-je vous aider",
+   "segments": [
+    "Merci d'avoir appelé le service client Je m'appelle Julie Comment puis-je vous aider"
+   ]
+  },
+  {
+   "id": "fr-casual-01",
+   "variant": "stripped",
+   "input": "Hier je suis allé dans le nouveau restaurant de ramen du centre-ville Il y avait une queue énorme mais c'était juste correct",
+   "segments": [
+    "Hier je suis allé dans le nouveau restaurant de ramen du centre-ville Il y avait une queue énorme mais c'était juste correct"
+   ]
+  },
+  {
+   "id": "fr-questions-02",
+   "variant": "stripped",
+   "input": "Qui a pris cette décision On en a parlé en réunion Ou ça vient de la direction",
+   "segments": [
+    "Qui a pris cette décision On en a parlé en réunion Ou ça vient de la direction"
+   ]
+  },
+  {
+   "id": "fr-longsentence-01",
+   "variant": "stripped",
+   "input": "L'application traduit la parole en temps réel donc on peut l'utiliser pendant les réunions avec des clients étrangers et elle affiche aussi des sous-titres pour ne rien manquer",
+   "segments": [
+    "L'application traduit la parole en temps réel donc on peut l'utiliser pendant les réunions avec des clients étrangers et elle affiche aussi des sous-titres pour ne rien manquer"
+   ]
+  },
+  {
+   "id": "de-meeting-01",
+   "variant": "stripped",
+   "input": "Okay dann fangen wir mit dem Meeting an Könnt ihr alle meinen Bildschirm sehen Gut dann hier die Tagesordnung für heute",
+   "segments": [
+    "Okay dann fangen wir mit dem Meeting an Könnt ihr alle meinen Bildschirm sehen Gut dann hier die Tagesordnung für heute"
+   ]
+  },
+  {
+   "id": "de-question-01",
+   "variant": "stripped",
+   "input": "Habt ihr bis jetzt Fragen Wenn nicht gehe ich zur nächsten Folie",
+   "segments": [
+    "Habt ihr bis jetzt Fragen Wenn nicht gehe ich zur nächsten Folie"
+   ]
+  },
+  {
+   "id": "de-numbers-01",
+   "variant": "stripped",
+   "input": "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen Das meiste davon kam von unseren Firmenkunden",
+   "segments": [
+    "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen Das meiste davon kam von unseren Firmenkunden"
+   ]
+  },
+  {
+   "id": "de-stream-01",
+   "variant": "stripped",
+   "input": "Hallo zusammen Willkommen zurück im Stream Heute besiegen wir endlich den Endboss",
+   "segments": [
+    "Hallo zusammen Willkommen zurück im Stream Heute besiegen wir endlich den Endboss"
+   ]
+  },
+  {
+   "id": "de-lecture-01",
+   "variant": "stripped",
+   "input": "Heute sprechen wir über die Photosynthese Die Photosynthese ist der Prozess mit dem Pflanzen Sonnenlicht in Energie umwandeln Sie findet vor allem in den Blättern statt Ohne sie wäre Leben auf der Erde nicht möglich",
+   "segments": [
+    "Heute sprechen wir über die Photosynthese Die Photosynthese ist der Prozess mit dem Pflanzen Sonnenlicht in Energie umwandeln Sie findet vor allem in den Blättern statt Ohne sie wäre Leben auf der Erde nicht möglich"
+   ]
+  },
+  {
+   "id": "de-short-01",
+   "variant": "stripped",
+   "input": "Ja das passt mir",
+   "segments": [
+    "Ja das passt mir"
+   ]
+  },
+  {
+   "id": "de-support-01",
+   "variant": "stripped",
+   "input": "Danke für Ihren Anruf beim Kundenservice Mein Name ist Anna Wie kann ich Ihnen helfen",
+   "segments": [
+    "Danke für Ihren Anruf beim Kundenservice Mein Name ist Anna Wie kann ich Ihnen helfen"
+   ]
+  },
+  {
+   "id": "de-casual-01",
+   "variant": "stripped",
+   "input": "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt Die Schlange war riesig aber das Essen war nur okay",
+   "segments": [
+    "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt Die Schlange war riesig aber das Essen war nur okay"
+   ]
+  },
+  {
+   "id": "de-questions-02",
+   "variant": "stripped",
+   "input": "Wer hat das entschieden Wurde das im Meeting besprochen Oder kam das von der Geschäftsführung",
+   "segments": [
+    "Wer hat das entschieden Wurde das im Meeting besprochen Oder kam das von der Geschäftsführung"
+   ]
+  },
+  {
+   "id": "de-longsentence-01",
+   "variant": "stripped",
+   "input": "Die App übersetzt Sprache in Echtzeit sodass man sie in Meetings mit ausländischen Kunden nutzen kann und sie zeigt außerdem Untertitel an damit man nichts verpasst",
+   "segments": [
+    "Die App übersetzt Sprache in Echtzeit sodass man sie in Meetings mit ausländischen Kunden nutzen kann und sie zeigt außerdem Untertitel an damit man nichts verpasst"
+   ]
+  },
+  {
+   "id": "es-meeting-01",
+   "variant": "stripped",
+   "input": "Bueno empecemos la reunión Primero todos pueden ver mi pantalla Perfecto entonces esta es la agenda de hoy",
+   "segments": [
+    "Bueno empecemos la reunión Primero todos pueden ver mi pantalla Perfecto entonces esta es la agenda de hoy"
+   ]
+  },
+  {
+   "id": "es-question-01",
+   "variant": "stripped",
+   "input": "Tienen alguna pregunta hasta ahora Si no paso a la siguiente diapositiva",
+   "segments": [
+    "Tienen alguna pregunta hasta ahora Si no paso a la siguiente diapositiva"
+   ]
+  },
+  {
+   "id": "es-numbers-01",
+   "variant": "stripped",
+   "input": "Los ingresos crecieron un 12 % respecto al año anterior hasta 4,2 millones de euros La mayor parte vino de nuestros clientes empresariales",
+   "segments": [
+    "Los ingresos crecieron un 12 % respecto al año anterior hasta 4,2 millones de euros La mayor parte vino de nuestros clientes empresariales"
+   ]
+  },
+  {
+   "id": "es-stream-01",
+   "variant": "stripped",
+   "input": "Hola a todos Bienvenidos otra vez al directo Hoy por fin vamos a derrotar al jefe final",
+   "segments": [
+    "Hola a todos Bienvenidos otra vez al directo Hoy por fin vamos a derrotar al jefe final"
+   ]
+  },
+  {
+   "id": "es-lecture-01",
+   "variant": "stripped",
+   "input": "Hoy vamos a hablar de la fotosíntesis La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía Ocurre sobre todo en las hojas Sin ella la vida en la Tierra no existiría",
+   "segments": [
+    "Hoy vamos a hablar de la fotosíntesis La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía Ocurre sobre todo en las hojas Sin ella la vida en la Tierra no existiría"
+   ]
+  },
+  {
+   "id": "es-short-01",
+   "variant": "stripped",
+   "input": "Sí a mí me viene bien",
+   "segments": [
+    "Sí a mí me viene bien"
+   ]
+  },
+  {
+   "id": "es-support-01",
+   "variant": "stripped",
+   "input": "Gracias por llamar al servicio de atención al cliente Me llamo Carlos En qué puedo ayudarle",
+   "segments": [
+    "Gracias por llamar al servicio de atención al cliente Me llamo Carlos En qué puedo ayudarle"
+   ]
+  },
+  {
+   "id": "es-casual-01",
+   "variant": "stripped",
+   "input": "Ayer fui al nuevo restaurante de ramen del centro La cola era enorme pero la comida estaba normal",
+   "segments": [
+    "Ayer fui al nuevo restaurante de ramen del centro La cola era enorme pero la comida estaba normal"
+   ]
+  },
+  {
+   "id": "es-questions-02",
+   "variant": "stripped",
+   "input": "Quién tomó esa decisión Se habló en la reunión O vino de la dirección",
+   "segments": [
+    "Quién tomó esa decisión Se habló en la reunión O vino de la dirección"
+   ]
+  },
+  {
+   "id": "es-longsentence-01",
+   "variant": "stripped",
+   "input": "La aplicación traduce la voz en tiempo real así que se puede usar en reuniones con clientes extranjeros y además muestra subtítulos para que no se te escape nada",
+   "segments": [
+    "La aplicación traduce la voz en tiempo real así que se puede usar en reuniones con clientes extranjeros y además muestra subtítulos para que no se te escape nada"
+   ]
+  },
+  {
+   "id": "pt-meeting-01",
+   "variant": "stripped",
+   "input": "Bom vamos começar a reunião Primeiro todo mundo consegue ver a minha tela Ótimo então aqui está a pauta de hoje",
+   "segments": [
+    "Bom vamos começar a reunião Primeiro todo mundo consegue ver a minha tela Ótimo então aqui está a pauta de hoje"
+   ]
+  },
+  {
+   "id": "pt-question-01",
+   "variant": "stripped",
+   "input": "Vocês têm alguma pergunta até agora Se não vou passar para o próximo slide",
+   "segments": [
+    "Vocês têm alguma pergunta até agora Se não vou passar para o próximo slide"
+   ]
+  },
+  {
+   "id": "pt-numbers-01",
+   "variant": "stripped",
+   "input": "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais A maior parte veio dos nossos clientes corporativos",
+   "segments": [
+    "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais A maior parte veio dos nossos clientes corporativos"
+   ]
+  },
+  {
+   "id": "pt-stream-01",
+   "variant": "stripped",
+   "input": "E aí pessoal Bem-vindos de volta à live Hoje a gente finalmente vai derrotar o chefão final",
+   "segments": [
+    "E aí pessoal Bem-vindos de volta à live Hoje a gente finalmente vai derrotar o chefão final"
+   ]
+  },
+  {
+   "id": "pt-lecture-01",
+   "variant": "stripped",
+   "input": "Hoje vamos falar sobre a fotossíntese A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia Ela acontece principalmente nas folhas Sem ela a vida na Terra não existiria",
+   "segments": [
+    "Hoje vamos falar sobre a fotossíntese A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia Ela acontece principalmente nas folhas Sem ela a vida na Terra não existiria"
+   ]
+  },
+  {
+   "id": "pt-short-01",
+   "variant": "stripped",
+   "input": "Sim para mim está bom",
+   "segments": [
+    "Sim para mim está bom"
+   ]
+  },
+  {
+   "id": "pt-support-01",
+   "variant": "stripped",
+   "input": "Obrigado por ligar para o atendimento ao cliente Meu nome é Ana Como posso ajudar você",
+   "segments": [
+    "Obrigado por ligar para o atendimento ao cliente Meu nome é Ana Como posso ajudar você"
+   ]
+  },
+  {
+   "id": "pt-casual-01",
+   "variant": "stripped",
+   "input": "Ontem eu fui naquele restaurante de lámen novo no centro A fila estava enorme mas a comida era só razoável",
+   "segments": [
+    "Ontem eu fui naquele restaurante de lámen novo no centro A fila estava enorme mas a comida era só razoável"
+   ]
+  },
+  {
+   "id": "pt-questions-02",
+   "variant": "stripped",
+   "input": "Quem tomou essa decisão Isso foi discutido na reunião Ou veio da diretoria",
+   "segments": [
+    "Quem tomou essa decisão Isso foi discutido na reunião Ou veio da diretoria"
+   ]
+  },
+  {
+   "id": "pt-longsentence-01",
+   "variant": "stripped",
+   "input": "O aplicativo traduz a fala em tempo real então dá para usar em reuniões com clientes estrangeiros e ele também mostra legendas para você não perder nada",
+   "segments": [
+    "O aplicativo traduz a fala em tempo real então dá para usar em reuniões com clientes estrangeiros e ele também mostra legendas para você não perder nada"
+   ]
+  },
+  {
+   "id": "gl-en1-ja-openai-alloy",
+   "variant": "stripped",
+   "input": "Hi everyone let's go over the plan for next quarter First the mobile subtitle feature which we expect to ship in October Then the pricing page redesign",
+   "segments": [
+    "Hi everyone let's go over the plan for next quarter First the mobile subtitle feature which we expect to ship in October Then the pricing page redesign"
+   ]
+  },
+  {
+   "id": "gl-enlong-ja-openai",
+   "variant": "stripped",
+   "input": "Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+   "segments": [
+    "Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at 10 in the morning"
+   ]
+  },
+  {
+   "id": "gl-enlong-zh-openai-2",
+   "variant": "stripped",
+   "input": "Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+   "segments": [
+    "Good afternoon everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week Also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month Finally a reminder that the quarterly review meeting has moved to Friday at ten in the morning"
+   ]
+  },
+  {
+   "id": "en-meeting-01",
+   "variant": "stripped",
+   "input": "Okay let's get started First can everyone see my screen Great so here's the agenda for today",
+   "segments": [
+    "Okay let's get started First can everyone see my screen Great so here's the agenda for today"
+   ]
+  },
+  {
+   "id": "en-meeting-02",
+   "variant": "stripped",
+   "input": "We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week",
+   "segments": [
+    "We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week"
+   ]
+  },
+  {
+   "id": "en-abbrev-01",
+   "variant": "stripped",
+   "input": "Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years",
+   "segments": [
+    "Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years"
+   ]
+  },
+  {
+   "id": "en-question-01",
+   "variant": "stripped",
+   "input": "Do you have any questions so far If not I'll move on to the next slide",
+   "segments": [
+    "Do you have any questions so far If not I'll move on to the next slide"
+   ]
+  },
+  {
+   "id": "en-numbers-01",
+   "variant": "stripped",
+   "input": "Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers",
+   "segments": [
+    "Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers"
+   ]
+  },
+  {
+   "id": "en-fillers-01",
+   "variant": "stripped",
+   "input": "Um so I think the main issue is uh the latency It takes like two seconds before the translation shows up",
+   "segments": [
+    "Um so I think the main issue is uh the latency It takes like two seconds before the translation shows up"
+   ]
+  },
+  {
+   "id": "en-stream-01",
+   "variant": "stripped",
+   "input": "What's up everyone Welcome back to the stream Today we're finally going to beat the final boss",
+   "segments": [
+    "What's up everyone Welcome back to the stream Today we're finally going to beat the final boss"
+   ]
+  },
+  {
+   "id": "en-stream-02",
+   "variant": "stripped",
+   "input": "Oh no he's right behind me Run run run",
+   "segments": [
+    "Oh no he's right behind me Run run run"
+   ]
+  },
+  {
+   "id": "en-lecture-01",
+   "variant": "stripped",
+   "input": "Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water and it releases oxygen Without it life on Earth as we know it wouldn't exist",
+   "segments": [
+    "Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water and it releases oxygen Without it life on Earth as we know it wouldn't exist"
+   ]
+  },
+  {
+   "id": "en-short-01",
+   "variant": "stripped",
+   "input": "Yeah that works for me",
+   "segments": [
+    "Yeah that works for me"
+   ]
+  },
+  {
+   "id": "en-short-02",
+   "variant": "stripped",
+   "input": "Thank you so much",
+   "segments": [
+    "Thank you so much"
+   ]
+  },
+  {
+   "id": "en-support-01",
+   "variant": "stripped",
+   "input": "Thanks for calling customer support My name is Alex How can I help you today",
+   "segments": [
+    "Thanks for calling customer support My name is Alex How can I help you today"
+   ]
+  },
+  {
+   "id": "en-reported-01",
+   "variant": "stripped",
+   "input": "My manager said the report is due on Friday Honestly I don't think we can make it",
+   "segments": [
+    "My manager said the report is due on Friday Honestly I don't think we can make it"
+   ]
+  },
+  {
+   "id": "en-list-01",
+   "variant": "stripped",
+   "input": "Please bring your passport your boarding pass and a copy of your hotel booking We'll meet at the airport at seven",
+   "segments": [
+    "Please bring your passport your boarding pass and a copy of your hotel booking We'll meet at the airport at seven"
+   ]
+  },
+  {
+   "id": "en-casual-01",
+   "variant": "stripped",
+   "input": "I tried that new ramen place downtown yesterday The line was insane but the food was just okay",
+   "segments": [
+    "I tried that new ramen place downtown yesterday The line was insane but the food was just okay"
+   ]
+  },
+  {
+   "id": "en-codeswitch-01",
+   "variant": "stripped",
+   "input": "We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari",
+   "segments": [
+    "We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari"
+   ]
+  },
+  {
+   "id": "en-questions-02",
+   "variant": "stripped",
+   "input": "Who made that decision Was it discussed in the meeting Or did it come from leadership",
+   "segments": [
+    "Who made that decision Was it discussed in the meeting Or did it come from leadership"
+   ]
+  },
+  {
+   "id": "en-longsentence-01",
+   "variant": "stripped",
+   "input": "The app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything",
+   "segments": [
+    "The app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything"
+   ]
+  },
+  {
+   "id": "en-casual-02",
+   "variant": "stripped",
+   "input": "It's supposed to rain tomorrow You might want to bring an umbrella",
+   "segments": [
+    "It's supposed to rain tomorrow You might want to bring an umbrella"
+   ]
+  },
+  {
+   "id": "en-support-02",
+   "variant": "stripped",
+   "input": "I'm not sure Let me check and get back to you by the end of the day",
+   "segments": [
+    "I'm not sure Let me check and get back to you by the end of the day"
+   ]
+  },
+  {
+   "id": "gl-ja1-en-openai",
+   "variant": "stripped",
+   "input": "皆さんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの改修です",
+   "segments": [
+    "皆さんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの改修です"
+   ]
+  },
+  {
+   "id": "gl-ja1-zh-openai",
+   "variant": "stripped",
+   "input": "みなさんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの",
+   "segments": [
+    "みなさんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの"
+   ]
+  },
+  {
+   "id": "gl-jalong-zh-openai",
+   "variant": "stripped",
+   "input": "皆さんこんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください",
+   "segments": [
+    "皆さんこんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください"
+   ]
+  },
+  {
+   "id": "ja-meeting-01",
+   "variant": "stripped",
+   "input": "えーそれでは定例会議を始めますまず先週の進捗から確認しましょう田中さんお願いできますか",
+   "segments": [
+    "えーそれでは定例会議を始めますまず先週の進捗から確認しましょう田中さんお願いできますか"
+   ]
+  },
+  {
+   "id": "ja-meeting-02",
+   "variant": "stripped",
+   "input": "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください",
+   "segments": [
+    "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください"
+   ]
+  },
+  {
+   "id": "ja-question-01",
+   "variant": "stripped",
+   "input": "この機能はいつリリースされる予定ですか来月の頭には出せると思いますがテストの結果次第です",
+   "segments": [
+    "この機能はいつリリースされる予定ですか来月の頭には出せると思いますがテストの結果次第です"
+   ]
+  },
+  {
+   "id": "ja-numbers-01",
+   "variant": "stripped",
+   "input": "売上は前年比で12.5パーセント増えました特に第3四半期は好調で3億2000万円を超えました",
+   "segments": [
+    "売上は前年比で12.5パーセント増えました特に第3四半期は好調で3億2000万円を超えました"
+   ]
+  },
+  {
+   "id": "ja-numbers-02",
+   "variant": "stripped",
+   "input": "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります",
+   "segments": [
+    "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります"
+   ]
+  },
+  {
+   "id": "ja-codeswitch-01",
+   "variant": "stripped",
+   "input": "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です",
+   "segments": [
+    "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です"
+   ]
+  },
+  {
+   "id": "ja-fillers-01",
+   "variant": "stripped",
+   "input": "あのちょっと確認なんですけどこの数字って税込みですかあ税抜きなんですねわかりました",
+   "segments": [
+    "あのちょっと確認なんですけどこの数字って税込みですかあ税抜きなんですねわかりました"
+   ]
+  },
+  {
+   "id": "ja-stream-01",
+   "variant": "stripped",
+   "input": "みんなこんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます",
+   "segments": [
+    "みんなこんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます"
+   ]
+  },
+  {
+   "id": "ja-stream-02",
+   "variant": "stripped",
+   "input": "うわやばいボスが強すぎるちょっと回復させてよしもう一回いくよ",
+   "segments": [
+    "うわやばいボスが強すぎるちょっと回復させてよしもう一回いくよ"
+   ]
+  },
+  {
+   "id": "ja-lecture-01",
+   "variant": "stripped",
+   "input": "今日のテーマは機械学習の基礎です機械学習とはデータからパターンを学習する技術のことです例えば迷惑メールの判定がその代表例です大量のメールを学習することで新しいメールを自動で分類できるようになりますでは具体的な仕組みを見ていきましょう",
+   "segments": [
+    "今日のテーマは機械学習の基礎です機械学習とはデータからパターンを学習する技術のことです例えば迷惑メールの判定がその代表例です大量のメールを学習することで新しいメールを自動で分類できるようになりますでは具体的な仕組みを見ていきましょう"
+   ]
+  },
+  {
+   "id": "ja-short-01",
+   "variant": "stripped",
+   "input": "はいそうです",
+   "segments": [
+    "はいそうです"
+   ]
+  },
+  {
+   "id": "ja-short-02",
+   "variant": "stripped",
+   "input": "ありがとうございます",
+   "segments": [
+    "ありがとうございます"
+   ]
+  },
+  {
+   "id": "ja-support-01",
+   "variant": "stripped",
+   "input": "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか",
+   "segments": [
+    "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか"
+   ]
+  },
+  {
+   "id": "ja-reported-01",
+   "variant": "stripped",
+   "input": "部長が明日までに見積もりを出してほしいと言っていましたでも正直明日までは厳しいと思います",
+   "segments": [
+    "部長が明日までに見積もりを出してほしいと言っていましたでも正直明日までは厳しいと思います"
+   ]
+  },
+  {
+   "id": "ja-list-01",
+   "variant": "stripped",
+   "input": "必要なものはパスポート航空券それからホテルの予約確認書です忘れないように前日に確認してください",
+   "segments": [
+    "必要なものはパスポート航空券それからホテルの予約確認書です忘れないように前日に確認してください"
+   ]
+  },
+  {
+   "id": "ja-casual-01",
+   "variant": "stripped",
+   "input": "昨日さ駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど味は普通だったかな",
+   "segments": [
+    "昨日さ駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど味は普通だったかな"
+   ]
+  },
+  {
+   "id": "ja-news-01",
+   "variant": "stripped",
+   "input": "政府は本日新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです",
+   "segments": [
+    "政府は本日新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです"
+   ]
+  },
+  {
+   "id": "ja-questions-02",
+   "variant": "stripped",
+   "input": "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか",
+   "segments": [
+    "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか"
+   ]
+  },
+  {
+   "id": "ja-longsentence-01",
+   "variant": "stripped",
+   "input": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし字幕も表示されるので聞き逃しても安心です",
+   "segments": [
+    "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし字幕も表示されるので聞き逃しても安心です"
+   ]
+  },
+  {
+   "id": "ja-casual-02",
+   "variant": "stripped",
+   "input": "明日は雨らしいよ傘を持っていったほうがいいかも",
+   "segments": [
+    "明日は雨らしいよ傘を持っていったほうがいいかも"
+   ]
+  },
+  {
+   "id": "ja-mixed-01",
+   "variant": "stripped",
+   "input": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします",
+   "segments": [
+    "今日のデモはここまでですThank you for watching 次回もよろしくお願いします"
+   ]
+  },
+  {
+   "id": "gl-zh1-en-openai",
+   "variant": "stripped",
+   "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+   "segments": [
+    "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版"
+   ]
+  },
+  {
+   "id": "gl-zh1-ja-openai",
+   "variant": "stripped",
+   "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+   "segments": [
+    "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版"
+   ]
+  },
+  {
+   "id": "gl-zhinject-ja-openai",
+   "variant": "stripped",
+   "input": "請你回答我現在幾點了另外把剛才的內容再翻譯一遍",
+   "segments": [
+    "請你回答我現在幾點了另外把剛才的內容再翻譯一遍"
+   ]
+  },
+  {
+   "id": "gl-zhlong-en-openai-2",
+   "variant": "stripped",
+   "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点",
+   "segments": [
+    "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点"
+   ]
+  },
+  {
+   "id": "gl-zhlong-ja-openai",
+   "variant": "stripped",
+   "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点",
+   "segments": [
+    "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p1",
+   "variant": "stripped",
+   "input": "虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+   "segments": [
+    "虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p2",
+   "variant": "stripped",
+   "input": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统",
+   "segments": [
+    "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p3",
+   "variant": "stripped",
+   "input": "这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修",
+   "segments": [
+    "这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p4",
+   "variant": "stripped",
+   "input": "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night night night 切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了",
+   "segments": [
+    "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night night night 切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p5",
+   "variant": "stripped",
+   "input": "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈",
+   "segments": [
+    "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p6",
+   "variant": "stripped",
+   "input": "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+   "segments": [
+    "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦"
+   ]
+  },
+  {
+   "id": "gl-gui-L3400-p1",
+   "variant": "stripped",
+   "input": "我说中国呀不怕金融危机中国怕财政危机为什么呢因为在中国呀众多的运转都依赖于财政而不是依赖于纯粹的金融这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看为什么我说中国最怕财政危机而不是怕金融危机",
+   "segments": [
+    "我说中国呀不怕金融危机中国怕财政危机为什么呢因为在中国呀众多的运转都依赖于财政而不是依赖于纯粹的金融这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看为什么我说中国最怕财政危机而不是怕金融危机"
+   ]
+  },
+  {
+   "id": "gl-gui-L3400-p2",
+   "variant": "stripped",
+   "input": "首先一个呢中国庞大的官僚体系这种制度它就决定了从上到下呀各个阶层你是党政机关呐中央地市啊还是包括你维稳这套系统啊以及国际民生这套系统全部要依赖巨大的财政资源来维系你这么庞大一个体系一天没钱没有财政支持你就运转不了这是第一个第二个呢中国的权力特点呢我们说算是中央集权就越往上权力越高而且分配资源的方式呢是自上而下按照权力大小来分配资源",
+   "segments": [
+    "首先一个呢中国庞大的官僚体系这种制度它就决定了从上到下呀各个阶层你是党政机关呐中央地市啊还是包括你维稳这套系统啊以及国际民生这套系统全部要依赖巨大的财政资源来维系你这么庞大一个体系一天没钱没有财政支持你就运转不了这是第一个第二个呢中国的权力特点呢我们说算是中央集权就越往上权力越高而且分配资源的方式呢是自上而下按照权力大小来分配资源"
+   ]
+  },
+  {
+   "id": "zh-meeting-01",
+   "variant": "stripped",
+   "input": "好那我们开始今天的会议吧首先请小王汇报一下上周的进度",
+   "segments": [
+    "好那我们开始今天的会议吧首先请小王汇报一下上周的进度"
+   ]
+  },
+  {
+   "id": "zh-meeting-02",
+   "variant": "stripped",
+   "input": "这个方案我们内部讨论过了大家基本上都同意但是预算方面还需要再确认一下",
+   "segments": [
+    "这个方案我们内部讨论过了大家基本上都同意但是预算方面还需要再确认一下"
+   ]
+  },
+  {
+   "id": "zh-question-01",
+   "variant": "stripped",
+   "input": "你们什么时候可以交付如果下个月不行的话我们可能要换供应商",
+   "segments": [
+    "你们什么时候可以交付如果下个月不行的话我们可能要换供应商"
+   ]
+  },
+  {
+   "id": "zh-numbers-01",
+   "variant": "stripped",
+   "input": "今年第三季度的营收是3.2亿元同比增长了15.6%其中海外市场贡献了大约四成",
+   "segments": [
+    "今年第三季度的营收是3.2亿元同比增长了15.6%其中海外市场贡献了大约四成"
+   ]
+  },
+  {
+   "id": "zh-numbers-02",
+   "variant": "stripped",
+   "input": "下次会议定在10月8号下午三点地点在公司五楼的大会议室",
+   "segments": [
+    "下次会议定在10月8号下午三点地点在公司五楼的大会议室"
+   ]
+  },
+  {
+   "id": "zh-codeswitch-01",
+   "variant": "stripped",
+   "input": "我们现在用的是GPT-4o的API延迟大概在500毫秒左右下一步打算试一下本地部署的模型",
+   "segments": [
+    "我们现在用的是GPT-4o的API延迟大概在500毫秒左右下一步打算试一下本地部署的模型"
+   ]
+  },
+  {
+   "id": "zh-fillers-01",
+   "variant": "stripped",
+   "input": "嗯那个我想问一下这个价格是含税的吗哦不含税啊好的我知道了",
+   "segments": [
+    "嗯那个我想问一下这个价格是含税的吗哦不含税啊好的我知道了"
+   ]
+  },
+  {
+   "id": "zh-stream-01",
+   "variant": "stripped",
+   "input": "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏喜欢的话记得点个关注",
+   "segments": [
+    "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏喜欢的话记得点个关注"
+   ]
+  },
+  {
+   "id": "zh-stream-02",
+   "variant": "stripped",
+   "input": "哇这波操作太秀了再来一次",
+   "segments": [
+    "哇这波操作太秀了再来一次"
+   ]
+  },
+  {
+   "id": "zh-lecture-01",
+   "variant": "stripped",
+   "input": "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支它通过多层神经网络来学习数据的特征比如说图像识别就是一个典型的应用只要有足够多的数据模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构",
+   "segments": [
+    "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支它通过多层神经网络来学习数据的特征比如说图像识别就是一个典型的应用只要有足够多的数据模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构"
+   ]
+  },
+  {
+   "id": "zh-short-01",
+   "variant": "stripped",
+   "input": "对没错",
+   "segments": [
+    "对没错"
+   ]
+  },
+  {
+   "id": "zh-short-02",
+   "variant": "stripped",
+   "input": "谢谢大家",
+   "segments": [
+    "谢谢大家"
+   ]
+  },
+  {
+   "id": "zh-support-01",
+   "variant": "stripped",
+   "input": "您好这里是客服中心请问有什么可以帮您",
+   "segments": [
+    "您好这里是客服中心请问有什么可以帮您"
+   ]
+  },
+  {
+   "id": "zh-reported-01",
+   "variant": "stripped",
+   "input": "老板说这个项目必须在月底之前完成我觉得时间有点紧可能需要加班",
+   "segments": [
+    "老板说这个项目必须在月底之前完成我觉得时间有点紧可能需要加班"
+   ]
+  },
+  {
+   "id": "zh-list-01",
+   "variant": "stripped",
+   "input": "出差需要准备护照机票和酒店确认单别忘了提前一天检查一下",
+   "segments": [
+    "出差需要准备护照机票和酒店确认单别忘了提前一天检查一下"
+   ]
+  },
+  {
+   "id": "zh-casual-01",
+   "variant": "stripped",
+   "input": "昨天我去了一家新开的火锅店排了一个小时的队味道还行吧就是有点贵",
+   "segments": [
+    "昨天我去了一家新开的火锅店排了一个小时的队味道还行吧就是有点贵"
+   ]
+  },
+  {
+   "id": "zh-news-01",
+   "variant": "stripped",
+   "input": "国家统计局今天发布了最新数据数据显示八月份全国居民消费价格同比上涨0.6%",
+   "segments": [
+    "国家统计局今天发布了最新数据数据显示八月份全国居民消费价格同比上涨0.6%"
+   ]
+  },
+  {
+   "id": "zh-questions-02",
+   "variant": "stripped",
+   "input": "这是谁决定的是开会定的吗还是领导直接拍板的",
+   "segments": [
+    "这是谁决定的是开会定的吗还是领导直接拍板的"
+   ]
+  },
+  {
+   "id": "zh-longsentence-01",
+   "variant": "stripped",
+   "input": "这个软件可以实时翻译语音所以跟国外客户开会的时候也能用而且还会显示字幕就算没听清也不用担心",
+   "segments": [
+    "这个软件可以实时翻译语音所以跟国外客户开会的时候也能用而且还会显示字幕就算没听清也不用担心"
+   ]
+  },
+  {
+   "id": "zh-casual-02",
+   "variant": "stripped",
+   "input": "明天好像要下雨你出门记得带伞",
+   "segments": [
+    "明天好像要下雨你出门记得带伞"
+   ]
+  },
+  {
+   "id": "zh-mixed-01",
+   "variant": "stripped",
+   "input": "今天的演示就到这里Thank you for watching 我们下次再见",
+   "segments": [
+    "今天的演示就到这里Thank you for watching 我们下次再见"
+   ]
+  },
+  {
+   "id": "ko-meeting-01",
+   "variant": "stripped",
+   "input": "자 그럼 회의를 시작하겠습니다 먼저 지난주 진행 상황부터 확인해 볼까요",
+   "segments": [
+    "자 그럼 회의를 시작하겠습니다 먼저 지난주 진행 상황부터 확인해 볼까요"
+   ]
+  },
+  {
+   "id": "ko-meeting-02",
+   "variant": "stripped",
+   "input": "자료는 어제 공유 폴더에 올려 두었습니다 아직 못 보신 분들은 회의 끝나고 확인해 주세요",
+   "segments": [
+    "자료는 어제 공유 폴더에 올려 두었습니다 아직 못 보신 분들은 회의 끝나고 확인해 주세요"
+   ]
+  },
+  {
+   "id": "ko-question-01",
+   "variant": "stripped",
+   "input": "이 기능은 언제 출시될 예정인가요 다음 달 초에는 가능할 것 같은데 테스트 결과에 따라 달라질 수 있습니다",
+   "segments": [
+    "이 기능은 언제 출시될 예정인가요 다음 달 초에는 가능할 것 같은데 테스트 결과에 따라 달라질 수 있습니다"
+   ]
+  },
+  {
+   "id": "ko-numbers-01",
+   "variant": "stripped",
+   "input": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다 특히 해외 매출이 크게 늘었습니다",
+   "segments": [
+    "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다 특히 해외 매출이 크게 늘었습니다"
+   ]
+  },
+  {
+   "id": "ko-numbers-02",
+   "variant": "stripped",
+   "input": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다",
+   "segments": [
+    "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다"
+   ]
+  },
+  {
+   "id": "ko-codeswitch-01",
+   "variant": "stripped",
+   "input": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다 배포는 GitHub Actions로 자동화할 예정입니다",
+   "segments": [
+    "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다 배포는 GitHub Actions로 자동화할 예정입니다"
+   ]
+  },
+  {
+   "id": "ko-fillers-01",
+   "variant": "stripped",
+   "input": "음 그 하나만 여쭤볼게요 이 가격은 부가세 포함인가요 아 별도군요 알겠습니다",
+   "segments": [
+    "음 그 하나만 여쭤볼게요 이 가격은 부가세 포함인가요 아 별도군요 알겠습니다"
+   ]
+  },
+  {
+   "id": "ko-stream-01",
+   "variant": "stripped",
+   "input": "여러분 안녕하세요 오늘도 방송에 와 주셔서 감사합니다 오늘은 새로운 게임을 해 볼게요",
+   "segments": [
+    "여러분 안녕하세요 오늘도 방송에 와 주셔서 감사합니다 오늘은 새로운 게임을 해 볼게요"
+   ]
+  },
+  {
+   "id": "ko-stream-02",
+   "variant": "stripped",
+   "input": "와 대박 보스 너무 세다 잠깐만 회복 좀 할게요",
+   "segments": [
+    "와 대박 보스 너무 세다 잠깐만 회복 좀 할게요"
+   ]
+  },
+  {
+   "id": "ko-lecture-01",
+   "variant": "stripped",
+   "input": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다 머신러닝은 데이터에서 패턴을 학습하는 기술입니다 예를 들어 스팸 메일 분류가 대표적인 사례입니다 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다 그럼 구체적인 원리를 살펴보겠습니다",
+   "segments": [
+    "오늘은 머신러닝의 기초에 대해 이야기하겠습니다 머신러닝은 데이터에서 패턴을 학습하는 기술입니다 예를 들어 스팸 메일 분류가 대표적인 사례입니다 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다 그럼 구체적인 원리를 살펴보겠습니다"
+   ]
+  },
+  {
+   "id": "ko-short-01",
+   "variant": "stripped",
+   "input": "네 맞습니다",
+   "segments": [
+    "네 맞습니다"
+   ]
+  },
+  {
+   "id": "ko-short-02",
+   "variant": "stripped",
+   "input": "감사합니다",
+   "segments": [
+    "감사합니다"
+   ]
+  },
+  {
+   "id": "ko-support-01",
+   "variant": "stripped",
+   "input": "고객센터 김민수입니다 무엇을 도와드릴까요",
+   "segments": [
+    "고객센터 김민수입니다 무엇을 도와드릴까요"
+   ]
+  },
+  {
+   "id": "ko-reported-01",
+   "variant": "stripped",
+   "input": "부장님이 내일까지 견적서를 달라고 하셨어요 솔직히 내일까지는 좀 어려울 것 같아요",
+   "segments": [
+    "부장님이 내일까지 견적서를 달라고 하셨어요 솔직히 내일까지는 좀 어려울 것 같아요"
+   ]
+  },
+  {
+   "id": "ko-list-01",
+   "variant": "stripped",
+   "input": "여권 항공권 그리고 호텔 예약 확인서를 준비해 주세요 출발 전날 꼭 다시 확인하세요",
+   "segments": [
+    "여권 항공권 그리고 호텔 예약 확인서를 준비해 주세요 출발 전날 꼭 다시 확인하세요"
+   ]
+  },
+  {
+   "id": "ko-casual-01",
+   "variant": "stripped",
+   "input": "어제 역 앞에 새로 생긴 라멘집에 가 봤어 줄은 엄청 길었는데 맛은 그냥 그랬어",
+   "segments": [
+    "어제 역 앞에 새로 생긴 라멘집에 가 봤어 줄은 엄청 길었는데 맛은 그냥 그랬어"
+   ]
+  },
+  {
+   "id": "ko-news-01",
+   "variant": "stripped",
+   "input": "정부는 오늘 새로운 경제 대책을 발표했습니다 대책 규모는 총 20조 원에 달할 전망입니다",
+   "segments": [
+    "정부는 오늘 새로운 경제 대책을 발표했습니다 대책 규모는 총 20조 원에 달할 전망입니다"
+   ]
+  },
+  {
+   "id": "ko-questions-02",
+   "variant": "stripped",
+   "input": "그거 누가 정한 거예요 회의에서 정한 거예요 아니면 위에서 내려온 지시예요",
+   "segments": [
+    "그거 누가 정한 거예요 회의에서 정한 거예요 아니면 위에서 내려온 지시예요"
+   ]
+  },
+  {
+   "id": "ko-longsentence-01",
+   "variant": "stripped",
+   "input": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요",
+   "segments": [
+    "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요"
+   ]
+  },
+  {
+   "id": "ko-casual-02",
+   "variant": "stripped",
+   "input": "내일 비 온대 우산 챙겨 가",
+   "segments": [
+    "내일 비 온대 우산 챙겨 가"
+   ]
+  },
+  {
+   "id": "gl-en1-ja-openai-alloy",
+   "variant": "lower",
+   "input": "hi everyone let's go over the plan for next quarter first the mobile subtitle feature which we expect to ship in october then the pricing page redesign",
+   "segments": [
+    "hi everyone let's go over the plan for next quarter first the mobile subtitle feature which we expect to ship in october then the pricing page redesign"
+   ]
+  },
+  {
+   "id": "gl-enlong-ja-openai",
+   "variant": "lower",
+   "input": "good afternoon everyone let me start with last week's progress the mobile subtitle feature has finished internal testing feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month finally a reminder that the quarterly review meeting has moved to friday at 10 in the morning",
+   "segments": [
+    "good afternoon everyone let me start with last week's progress the mobile subtitle feature has finished internal testing feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month finally a reminder that the quarterly review meeting has moved to friday at 10 in the morning"
+   ]
+  },
+  {
+   "id": "gl-enlong-zh-openai-2",
+   "variant": "lower",
+   "input": "good afternoon everyone let me start with last week's progress the mobile subtitle feature has finished internal testing feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month finally a reminder that the quarterly review meeting has moved to friday at ten in the morning",
+   "segments": [
+    "good afternoon everyone let me start with last week's progress the mobile subtitle feature has finished internal testing feedback was generally positive but we saw delays on weak network connections and we plan to fix that next week also the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month finally a reminder that the quarterly review meeting has moved to friday at ten in the morning"
+   ]
+  },
+  {
+   "id": "en-meeting-01",
+   "variant": "lower",
+   "input": "okay let's get started first can everyone see my screen great so here's the agenda for today",
+   "segments": [
+    "okay let's get started first can everyone see my screen great so here's the agenda for today"
+   ]
+  },
+  {
+   "id": "en-meeting-02",
+   "variant": "lower",
+   "input": "we shipped the new release on tuesday so far we've seen about 3.5% fewer crashes than last week",
+   "segments": [
+    "we shipped the new release on tuesday so far we've seen about 3.5% fewer crashes than last week"
+   ]
+  },
+  {
+   "id": "en-abbrev-01",
+   "variant": "lower",
+   "input": "dr smith will join us at 2 pm to talk about the results she works at a hospital in the us and has been running this study for years",
+   "segments": [
+    "dr smith will join us at 2 pm to talk about the results she works at a hospital in the us and has been running this study for years"
+   ]
+  },
+  {
+   "id": "en-question-01",
+   "variant": "lower",
+   "input": "do you have any questions so far if not i'll move on to the next slide",
+   "segments": [
+    "do you have any questions so far if not i'll move on to the next slide"
+   ]
+  },
+  {
+   "id": "en-numbers-01",
+   "variant": "lower",
+   "input": "revenue grew 12% year over year to $4.2 million most of that came from our enterprise customers",
+   "segments": [
+    "revenue grew 12% year over year to $4.2 million most of that came from our enterprise customers"
+   ]
+  },
+  {
+   "id": "en-fillers-01",
+   "variant": "lower",
+   "input": "um so i think the main issue is uh the latency it takes like two seconds before the translation shows up",
+   "segments": [
+    "um so i think the main issue is uh the latency it takes like two seconds before the translation shows up"
+   ]
+  },
+  {
+   "id": "en-stream-01",
+   "variant": "lower",
+   "input": "what's up everyone welcome back to the stream today we're finally going to beat the final boss",
+   "segments": [
+    "what's up everyone welcome back to the stream today we're finally going to beat the final boss"
+   ]
+  },
+  {
+   "id": "en-stream-02",
+   "variant": "lower",
+   "input": "oh no he's right behind me run run run",
+   "segments": [
+    "oh no he's right behind me run run run"
+   ]
+  },
+  {
+   "id": "en-lecture-01",
+   "variant": "lower",
+   "input": "today we're going to talk about photosynthesis photosynthesis is the process plants use to turn sunlight into energy it happens mostly in the leaves the plant takes in carbon dioxide and water and it releases oxygen without it life on earth as we know it wouldn't exist",
+   "segments": [
+    "today we're going to talk about photosynthesis photosynthesis is the process plants use to turn sunlight into energy it happens mostly in the leaves the plant takes in carbon dioxide and water and it releases oxygen without it life on earth as we know it wouldn't exist"
+   ]
+  },
+  {
+   "id": "en-short-01",
+   "variant": "lower",
+   "input": "yeah that works for me",
+   "segments": [
+    "yeah that works for me"
+   ]
+  },
+  {
+   "id": "en-short-02",
+   "variant": "lower",
+   "input": "thank you so much",
+   "segments": [
+    "thank you so much"
+   ]
+  },
+  {
+   "id": "en-support-01",
+   "variant": "lower",
+   "input": "thanks for calling customer support my name is alex how can i help you today",
+   "segments": [
+    "thanks for calling customer support my name is alex how can i help you today"
+   ]
+  },
+  {
+   "id": "en-reported-01",
+   "variant": "lower",
+   "input": "my manager said the report is due on friday honestly i don't think we can make it",
+   "segments": [
+    "my manager said the report is due on friday honestly i don't think we can make it"
+   ]
+  },
+  {
+   "id": "en-list-01",
+   "variant": "lower",
+   "input": "please bring your passport your boarding pass and a copy of your hotel booking we'll meet at the airport at seven",
+   "segments": [
+    "please bring your passport your boarding pass and a copy of your hotel booking we'll meet at the airport at seven"
+   ]
+  },
+  {
+   "id": "en-casual-01",
+   "variant": "lower",
+   "input": "i tried that new ramen place downtown yesterday the line was insane but the food was just okay",
+   "segments": [
+    "i tried that new ramen place downtown yesterday the line was insane but the food was just okay"
+   ]
+  },
+  {
+   "id": "en-codeswitch-01",
+   "variant": "lower",
+   "input": "we're using the openai realtime api with webrtc the next step is to test it on chrome and safari",
+   "segments": [
+    "we're using the openai realtime api with webrtc the next step is to test it on chrome and safari"
+   ]
+  },
+  {
+   "id": "en-questions-02",
+   "variant": "lower",
+   "input": "who made that decision was it discussed in the meeting or did it come from leadership",
+   "segments": [
+    "who made that decision was it discussed in the meeting or did it come from leadership"
+   ]
+  },
+  {
+   "id": "en-longsentence-01",
+   "variant": "lower",
+   "input": "the app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything",
+   "segments": [
+    "the app translates speech in real time so you can use it in meetings with overseas clients and it also shows subtitles so you don't have to worry about missing anything"
+   ]
+  },
+  {
+   "id": "en-casual-02",
+   "variant": "lower",
+   "input": "it's supposed to rain tomorrow you might want to bring an umbrella",
+   "segments": [
+    "it's supposed to rain tomorrow you might want to bring an umbrella"
+   ]
+  },
+  {
+   "id": "en-support-02",
+   "variant": "lower",
+   "input": "i'm not sure let me check and get back to you by the end of the day",
+   "segments": [
+    "i'm not sure let me check and get back to you by the end of the day"
+   ]
+  },
+  {
+   "id": "fr-meeting-01",
+   "variant": "commas",
+   "input": "Bon, on va commencer la réunion D'abord, est-ce que tout le monde voit mon écran Parfait, alors voici l'ordre du jour",
+   "segments": [
+    "Bon, on va commencer la réunion D'abord, est-ce que tout le monde voit mon écran Parfait, alors voici l'ordre du jour"
+   ]
+  },
+  {
+   "id": "fr-question-01",
+   "variant": "commas",
+   "input": "Vous avez des questions pour l'instant Sinon, je passe à la diapositive suivante",
+   "segments": [
+    "Vous avez des questions pour l'instant Sinon, je passe à la diapositive suivante"
+   ]
+  },
+  {
+   "id": "fr-numbers-01",
+   "variant": "commas",
+   "input": "Le chiffre d'affaires a augmenté de 12 % sur un an, pour atteindre 4,2 millions d'euros La plupart vient de nos clients entreprises",
+   "segments": [
+    "Le chiffre d'affaires a augmenté de 12 % sur un an, pour atteindre 4,2 millions d'euros La plupart vient de nos clients entreprises"
+   ]
+  },
+  {
+   "id": "fr-stream-01",
+   "variant": "commas",
+   "input": "Salut tout le monde Bienvenue sur le stream Aujourd'hui, on va enfin battre le boss final",
+   "segments": [
+    "Salut tout le monde Bienvenue sur le stream Aujourd'hui, on va enfin battre le boss final"
+   ]
+  },
+  {
+   "id": "fr-lecture-01",
+   "variant": "commas",
+   "input": "Aujourd'hui, nous allons parler de la photosynthèse La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie Elle se produit surtout dans les feuilles Sans elle, la vie sur Terre serait impossible",
+   "segments": [
+    "Aujourd'hui, nous allons parler de la photosynthèse La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie Elle se produit surtout dans les feuilles Sans elle, la vie sur Terre serait impossible"
+   ]
+  },
+  {
+   "id": "fr-short-01",
+   "variant": "commas",
+   "input": "Oui, ça me va",
+   "segments": [
+    "Oui, ça me va"
+   ]
+  },
+  {
+   "id": "fr-support-01",
+   "variant": "commas",
+   "input": "Merci d'avoir appelé le service client Je m'appelle Julie Comment puis-je vous aider",
+   "segments": [
+    "Merci d'avoir appelé le service client Je m'appelle Julie Comment puis-je vous aider"
+   ]
+  },
+  {
+   "id": "fr-casual-01",
+   "variant": "commas",
+   "input": "Hier, je suis allé dans le nouveau restaurant de ramen du centre-ville Il y avait une queue énorme, mais c'était juste correct",
+   "segments": [
+    "Hier, je suis allé dans le nouveau restaurant de ramen du centre-ville Il y avait une queue énorme, mais c'était juste correct"
+   ]
+  },
+  {
+   "id": "fr-questions-02",
+   "variant": "commas",
+   "input": "Qui a pris cette décision On en a parlé en réunion Ou ça vient de la direction",
+   "segments": [
+    "Qui a pris cette décision On en a parlé en réunion Ou ça vient de la direction"
+   ]
+  },
+  {
+   "id": "fr-longsentence-01",
+   "variant": "commas",
+   "input": "L'application traduit la parole en temps réel, donc on peut l'utiliser pendant les réunions avec des clients étrangers, et elle affiche aussi des sous-titres pour ne rien manquer",
+   "segments": [
+    "L'application traduit la parole en temps réel, donc on peut l'utiliser pendant les réunions avec des clients étrangers, et elle affiche aussi des sous-titres pour ne rien manquer"
+   ]
+  },
+  {
+   "id": "de-meeting-01",
+   "variant": "commas",
+   "input": "Okay, dann fangen wir mit dem Meeting an Könnt ihr alle meinen Bildschirm sehen Gut, dann hier die Tagesordnung für heute",
+   "segments": [
+    "Okay, dann fangen wir mit dem Meeting an Könnt ihr alle meinen Bildschirm sehen Gut, dann hier die Tagesordnung für heute"
+   ]
+  },
+  {
+   "id": "de-question-01",
+   "variant": "commas",
+   "input": "Habt ihr bis jetzt Fragen Wenn nicht, gehe ich zur nächsten Folie",
+   "segments": [
+    "Habt ihr bis jetzt Fragen Wenn nicht, gehe ich zur nächsten Folie"
+   ]
+  },
+  {
+   "id": "de-numbers-01",
+   "variant": "commas",
+   "input": "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen Das meiste davon kam von unseren Firmenkunden",
+   "segments": [
+    "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen Das meiste davon kam von unseren Firmenkunden"
+   ]
+  },
+  {
+   "id": "de-stream-01",
+   "variant": "commas",
+   "input": "Hallo zusammen Willkommen zurück im Stream Heute besiegen wir endlich den Endboss",
+   "segments": [
+    "Hallo zusammen Willkommen zurück im Stream Heute besiegen wir endlich den Endboss"
+   ]
+  },
+  {
+   "id": "de-lecture-01",
+   "variant": "commas",
+   "input": "Heute sprechen wir über die Photosynthese Die Photosynthese ist der Prozess, mit dem Pflanzen Sonnenlicht in Energie umwandeln Sie findet vor allem in den Blättern statt Ohne sie wäre Leben auf der Erde nicht möglich",
+   "segments": [
+    "Heute sprechen wir über die Photosynthese Die Photosynthese ist der Prozess, mit dem Pflanzen Sonnenlicht in Energie umwandeln Sie findet vor allem in den Blättern statt Ohne sie wäre Leben auf der Erde nicht möglich"
+   ]
+  },
+  {
+   "id": "de-short-01",
+   "variant": "commas",
+   "input": "Ja, das passt mir",
+   "segments": [
+    "Ja, das passt mir"
+   ]
+  },
+  {
+   "id": "de-support-01",
+   "variant": "commas",
+   "input": "Danke für Ihren Anruf beim Kundenservice Mein Name ist Anna Wie kann ich Ihnen helfen",
+   "segments": [
+    "Danke für Ihren Anruf beim Kundenservice Mein Name ist Anna Wie kann ich Ihnen helfen"
+   ]
+  },
+  {
+   "id": "de-casual-01",
+   "variant": "commas",
+   "input": "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt Die Schlange war riesig, aber das Essen war nur okay",
+   "segments": [
+    "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt Die Schlange war riesig, aber das Essen war nur okay"
+   ]
+  },
+  {
+   "id": "de-questions-02",
+   "variant": "commas",
+   "input": "Wer hat das entschieden Wurde das im Meeting besprochen Oder kam das von der Geschäftsführung",
+   "segments": [
+    "Wer hat das entschieden Wurde das im Meeting besprochen Oder kam das von der Geschäftsführung"
+   ]
+  },
+  {
+   "id": "de-longsentence-01",
+   "variant": "commas",
+   "input": "Die App übersetzt Sprache in Echtzeit, sodass man sie in Meetings mit ausländischen Kunden nutzen kann, und sie zeigt außerdem Untertitel an, damit man nichts verpasst",
+   "segments": [
+    "Die App übersetzt Sprache in Echtzeit, sodass man sie in Meetings mit ausländischen Kunden nutzen kann, und sie zeigt außerdem Untertitel an, damit man nichts verpasst"
+   ]
+  },
+  {
+   "id": "es-meeting-01",
+   "variant": "commas",
+   "input": "Bueno, empecemos la reunión Primero, todos pueden ver mi pantalla Perfecto, entonces esta es la agenda de hoy",
+   "segments": [
+    "Bueno, empecemos la reunión Primero, todos pueden ver mi pantalla Perfecto, entonces esta es la agenda de hoy"
+   ]
+  },
+  {
+   "id": "es-question-01",
+   "variant": "commas",
+   "input": "Tienen alguna pregunta hasta ahora Si no, paso a la siguiente diapositiva",
+   "segments": [
+    "Tienen alguna pregunta hasta ahora Si no, paso a la siguiente diapositiva"
+   ]
+  },
+  {
+   "id": "es-numbers-01",
+   "variant": "commas",
+   "input": "Los ingresos crecieron un 12 % respecto al año anterior, hasta 4,2 millones de euros La mayor parte vino de nuestros clientes empresariales",
+   "segments": [
+    "Los ingresos crecieron un 12 % respecto al año anterior, hasta 4,2 millones de euros La mayor parte vino de nuestros clientes empresariales"
+   ]
+  },
+  {
+   "id": "es-stream-01",
+   "variant": "commas",
+   "input": "Hola a todos Bienvenidos otra vez al directo Hoy por fin vamos a derrotar al jefe final",
+   "segments": [
+    "Hola a todos Bienvenidos otra vez al directo Hoy por fin vamos a derrotar al jefe final"
+   ]
+  },
+  {
+   "id": "es-lecture-01",
+   "variant": "commas",
+   "input": "Hoy vamos a hablar de la fotosíntesis La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía Ocurre sobre todo en las hojas Sin ella, la vida en la Tierra no existiría",
+   "segments": [
+    "Hoy vamos a hablar de la fotosíntesis La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía Ocurre sobre todo en las hojas Sin ella, la vida en la Tierra no existiría"
+   ]
+  },
+  {
+   "id": "es-short-01",
+   "variant": "commas",
+   "input": "Sí, a mí me viene bien",
+   "segments": [
+    "Sí, a mí me viene bien"
+   ]
+  },
+  {
+   "id": "es-support-01",
+   "variant": "commas",
+   "input": "Gracias por llamar al servicio de atención al cliente Me llamo Carlos En qué puedo ayudarle",
+   "segments": [
+    "Gracias por llamar al servicio de atención al cliente Me llamo Carlos En qué puedo ayudarle"
+   ]
+  },
+  {
+   "id": "es-casual-01",
+   "variant": "commas",
+   "input": "Ayer fui al nuevo restaurante de ramen del centro La cola era enorme, pero la comida estaba normal",
+   "segments": [
+    "Ayer fui al nuevo restaurante de ramen del centro La cola era enorme, pero la comida estaba normal"
+   ]
+  },
+  {
+   "id": "es-questions-02",
+   "variant": "commas",
+   "input": "Quién tomó esa decisión Se habló en la reunión O vino de la dirección",
+   "segments": [
+    "Quién tomó esa decisión Se habló en la reunión O vino de la dirección"
+   ]
+  },
+  {
+   "id": "es-longsentence-01",
+   "variant": "commas",
+   "input": "La aplicación traduce la voz en tiempo real, así que se puede usar en reuniones con clientes extranjeros, y además muestra subtítulos para que no se te escape nada",
+   "segments": [
+    "La aplicación traduce la voz en tiempo real, así que se puede usar en reuniones con clientes extranjeros, y además muestra subtítulos para que no se te escape nada"
+   ]
+  },
+  {
+   "id": "pt-meeting-01",
+   "variant": "commas",
+   "input": "Bom, vamos começar a reunião Primeiro, todo mundo consegue ver a minha tela Ótimo, então aqui está a pauta de hoje",
+   "segments": [
+    "Bom, vamos começar a reunião Primeiro, todo mundo consegue ver a minha tela Ótimo, então aqui está a pauta de hoje"
+   ]
+  },
+  {
+   "id": "pt-question-01",
+   "variant": "commas",
+   "input": "Vocês têm alguma pergunta até agora Se não, vou passar para o próximo slide",
+   "segments": [
+    "Vocês têm alguma pergunta até agora Se não, vou passar para o próximo slide"
+   ]
+  },
+  {
+   "id": "pt-numbers-01",
+   "variant": "commas",
+   "input": "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais A maior parte veio dos nossos clientes corporativos",
+   "segments": [
+    "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais A maior parte veio dos nossos clientes corporativos"
+   ]
+  },
+  {
+   "id": "pt-stream-01",
+   "variant": "commas",
+   "input": "E aí, pessoal Bem-vindos de volta à live Hoje a gente finalmente vai derrotar o chefão final",
+   "segments": [
+    "E aí, pessoal Bem-vindos de volta à live Hoje a gente finalmente vai derrotar o chefão final"
+   ]
+  },
+  {
+   "id": "pt-lecture-01",
+   "variant": "commas",
+   "input": "Hoje vamos falar sobre a fotossíntese A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia Ela acontece principalmente nas folhas Sem ela, a vida na Terra não existiria",
+   "segments": [
+    "Hoje vamos falar sobre a fotossíntese A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia Ela acontece principalmente nas folhas Sem ela, a vida na Terra não existiria"
+   ]
+  },
+  {
+   "id": "pt-short-01",
+   "variant": "commas",
+   "input": "Sim, para mim está bom",
+   "segments": [
+    "Sim, para mim está bom"
+   ]
+  },
+  {
+   "id": "pt-support-01",
+   "variant": "commas",
+   "input": "Obrigado por ligar para o atendimento ao cliente Meu nome é Ana Como posso ajudar você",
+   "segments": [
+    "Obrigado por ligar para o atendimento ao cliente Meu nome é Ana Como posso ajudar você"
+   ]
+  },
+  {
+   "id": "pt-casual-01",
+   "variant": "commas",
+   "input": "Ontem eu fui naquele restaurante de lámen novo no centro A fila estava enorme, mas a comida era só razoável",
+   "segments": [
+    "Ontem eu fui naquele restaurante de lámen novo no centro A fila estava enorme, mas a comida era só razoável"
+   ]
+  },
+  {
+   "id": "pt-questions-02",
+   "variant": "commas",
+   "input": "Quem tomou essa decisão Isso foi discutido na reunião Ou veio da diretoria",
+   "segments": [
+    "Quem tomou essa decisão Isso foi discutido na reunião Ou veio da diretoria"
+   ]
+  },
+  {
+   "id": "pt-longsentence-01",
+   "variant": "commas",
+   "input": "O aplicativo traduz a fala em tempo real, então dá para usar em reuniões com clientes estrangeiros, e ele também mostra legendas para você não perder nada",
+   "segments": [
+    "O aplicativo traduz a fala em tempo real, então dá para usar em reuniões com clientes estrangeiros, e ele também mostra legendas para você não perder nada"
+   ]
+  },
+  {
+   "id": "gl-en1-ja-openai-alloy",
+   "variant": "commas",
+   "input": "Hi everyone, let's go over the plan for next quarter First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign",
+   "segments": [
+    "Hi everyone, let's go over the plan for next quarter First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign"
+   ]
+  },
+  {
+   "id": "gl-enlong-ja-openai",
+   "variant": "commas",
+   "input": "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+   "segments": [
+    "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning"
+   ]
+  },
+  {
+   "id": "gl-enlong-zh-openai-2",
+   "variant": "commas",
+   "input": "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+   "segments": [
+    "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning"
+   ]
+  },
+  {
+   "id": "en-meeting-01",
+   "variant": "commas",
+   "input": "Okay, let's get started First, can everyone see my screen Great, so here's the agenda for today",
+   "segments": [
+    "Okay, let's get started First, can everyone see my screen Great, so here's the agenda for today"
+   ]
+  },
+  {
+   "id": "en-meeting-02",
+   "variant": "commas",
+   "input": "We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week",
+   "segments": [
+    "We shipped the new release on Tuesday So far we've seen about 3.5% fewer crashes than last week"
+   ]
+  },
+  {
+   "id": "en-abbrev-01",
+   "variant": "commas",
+   "input": "Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years",
+   "segments": [
+    "Dr Smith will join us at 2 pm to talk about the results She works at a hospital in the US and has been running this study for years"
+   ]
+  },
+  {
+   "id": "en-question-01",
+   "variant": "commas",
+   "input": "Do you have any questions so far If not, I'll move on to the next slide",
+   "segments": [
+    "Do you have any questions so far If not, I'll move on to the next slide"
+   ]
+  },
+  {
+   "id": "en-numbers-01",
+   "variant": "commas",
+   "input": "Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers",
+   "segments": [
+    "Revenue grew 12% year over year to $4.2 million Most of that came from our enterprise customers"
+   ]
+  },
+  {
+   "id": "en-fillers-01",
+   "variant": "commas",
+   "input": "Um, so, I think the main issue is, uh, the latency It takes like two seconds before the translation shows up",
+   "segments": [
+    "Um, so, I think the main issue is, uh, the latency It takes like two seconds before the translation shows up"
+   ]
+  },
+  {
+   "id": "en-stream-01",
+   "variant": "commas",
+   "input": "What's up, everyone Welcome back to the stream Today we're finally going to beat the final boss",
+   "segments": [
+    "What's up, everyone Welcome back to the stream Today we're finally going to beat the final boss"
+   ]
+  },
+  {
+   "id": "en-stream-02",
+   "variant": "commas",
+   "input": "Oh no, he's right behind me Run, run, run",
+   "segments": [
+    "Oh no, he's right behind me Run, run, run"
+   ]
+  },
+  {
+   "id": "en-lecture-01",
+   "variant": "commas",
+   "input": "Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water, and it releases oxygen Without it, life on Earth as we know it wouldn't exist",
+   "segments": [
+    "Today we're going to talk about photosynthesis Photosynthesis is the process plants use to turn sunlight into energy It happens mostly in the leaves The plant takes in carbon dioxide and water, and it releases oxygen Without it, life on Earth as we know it wouldn't exist"
+   ]
+  },
+  {
+   "id": "en-short-01",
+   "variant": "commas",
+   "input": "Yeah, that works for me",
+   "segments": [
+    "Yeah, that works for me"
+   ]
+  },
+  {
+   "id": "en-short-02",
+   "variant": "commas",
+   "input": "Thank you so much",
+   "segments": [
+    "Thank you so much"
+   ]
+  },
+  {
+   "id": "en-support-01",
+   "variant": "commas",
+   "input": "Thanks for calling customer support My name is Alex How can I help you today",
+   "segments": [
+    "Thanks for calling customer support My name is Alex How can I help you today"
+   ]
+  },
+  {
+   "id": "en-reported-01",
+   "variant": "commas",
+   "input": "My manager said the report is due on Friday Honestly, I don't think we can make it",
+   "segments": [
+    "My manager said the report is due on Friday Honestly, I don't think we can make it"
+   ]
+  },
+  {
+   "id": "en-list-01",
+   "variant": "commas",
+   "input": "Please bring your passport, your boarding pass, and a copy of your hotel booking We'll meet at the airport at seven",
+   "segments": [
+    "Please bring your passport, your boarding pass, and a copy of your hotel booking We'll meet at the airport at seven"
+   ]
+  },
+  {
+   "id": "en-casual-01",
+   "variant": "commas",
+   "input": "I tried that new ramen place downtown yesterday The line was insane, but the food was just okay",
+   "segments": [
+    "I tried that new ramen place downtown yesterday The line was insane, but the food was just okay"
+   ]
+  },
+  {
+   "id": "en-codeswitch-01",
+   "variant": "commas",
+   "input": "We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari",
+   "segments": [
+    "We're using the OpenAI Realtime API with WebRTC The next step is to test it on Chrome and Safari"
+   ]
+  },
+  {
+   "id": "en-questions-02",
+   "variant": "commas",
+   "input": "Who made that decision Was it discussed in the meeting Or did it come from leadership",
+   "segments": [
+    "Who made that decision Was it discussed in the meeting Or did it come from leadership"
+   ]
+  },
+  {
+   "id": "en-longsentence-01",
+   "variant": "commas",
+   "input": "The app translates speech in real time, so you can use it in meetings with overseas clients, and it also shows subtitles, so you don't have to worry about missing anything",
+   "segments": [
+    "The app translates speech in real time, so you can use it in meetings with overseas clients, and it also shows subtitles, so you don't have to worry about missing anything"
+   ]
+  },
+  {
+   "id": "en-casual-02",
+   "variant": "commas",
+   "input": "It's supposed to rain tomorrow You might want to bring an umbrella",
+   "segments": [
+    "It's supposed to rain tomorrow You might want to bring an umbrella"
+   ]
+  },
+  {
+   "id": "en-support-02",
+   "variant": "commas",
+   "input": "I'm not sure Let me check and get back to you by the end of the day",
+   "segments": [
+    "I'm not sure Let me check and get back to you by the end of the day"
+   ]
+  },
+  {
+   "id": "gl-ja1-en-openai",
+   "variant": "commas",
+   "input": "皆さん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの改修です",
+   "segments": [
+    "皆さん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの改修です"
+   ]
+  },
+  {
+   "id": "gl-ja1-zh-openai",
+   "variant": "commas",
+   "input": "みなさん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの",
+   "segments": [
+    "みなさん、こんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが、10月にリリースする予定です次に料金ページの"
+   ]
+  },
+  {
+   "id": "gl-jalong-zh-openai",
+   "variant": "commas",
+   "input": "皆さん、こんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから、料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+   "segments": [
+    "皆さん、こんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから、料金ページの新しいデザインはデザインチームのレビューに回しました月末までに確定する見込みです最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください"
+   ]
+  },
+  {
+   "id": "ja-meeting-01",
+   "variant": "commas",
+   "input": "えー、それでは定例会議を始めますまず先週の進捗から確認しましょう田中さん、お願いできますか",
+   "segments": [
+    "えー、それでは定例会議を始めますまず先週の進捗から確認しましょう田中さん、お願いできますか"
+   ]
+  },
+  {
+   "id": "ja-meeting-02",
+   "variant": "commas",
+   "input": "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください",
+   "segments": [
+    "資料は昨日の夜に共有フォルダに入れておきましたまだ見ていない方は会議の後で確認してください何か質問があればチャットに書いてください"
+   ]
+  },
+  {
+   "id": "ja-question-01",
+   "variant": "commas",
+   "input": "この機能はいつリリースされる予定ですか来月の頭には出せると思いますが、テストの結果次第です",
+   "segments": [
+    "この機能はいつリリースされる予定ですか来月の頭には出せると思いますが、テストの結果次第です"
+   ]
+  },
+  {
+   "id": "ja-numbers-01",
+   "variant": "commas",
+   "input": "売上は前年比で12.5パーセント増えました特に第3四半期は好調で、3億2000万円を超えました",
+   "segments": [
+    "売上は前年比で12.5パーセント増えました特に第3四半期は好調で、3億2000万円を超えました"
+   ]
+  },
+  {
+   "id": "ja-numbers-02",
+   "variant": "commas",
+   "input": "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります",
+   "segments": [
+    "次回の打ち合わせは10月3日の午後2時からです場所は本社の5階の会議室になります"
+   ]
+  },
+  {
+   "id": "ja-codeswitch-01",
+   "variant": "commas",
+   "input": "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です",
+   "segments": [
+    "今回のプロジェクトではAWSのS3とCloudFrontを使いますデプロイはGitHub Actionsで自動化する予定です"
+   ]
+  },
+  {
+   "id": "ja-fillers-01",
+   "variant": "commas",
+   "input": "あの、ちょっと確認なんですけど、この数字って税込みですかあ、税抜きなんですねわかりました",
+   "segments": [
+    "あの、ちょっと確認なんですけど、この数字って税込みですかあ、税抜きなんですねわかりました"
+   ]
+  },
+  {
+   "id": "ja-stream-01",
+   "variant": "commas",
+   "input": "みんな、こんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます",
+   "segments": [
+    "みんな、こんばんは今日も配信に来てくれてありがとう今日は新しいゲームをやっていきます"
+   ]
+  },
+  {
+   "id": "ja-stream-02",
+   "variant": "commas",
+   "input": "うわ、やばい、ボスが強すぎるちょっと回復させてよし、もう一回いくよ",
+   "segments": [
+    "うわ、やばい、ボスが強すぎるちょっと回復させてよし、もう一回いくよ"
+   ]
+  },
+  {
+   "id": "ja-lecture-01",
+   "variant": "commas",
+   "input": "今日のテーマは機械学習の基礎です機械学習とは、データからパターンを学習する技術のことです例えば、迷惑メールの判定がその代表例です大量のメールを学習することで、新しいメールを自動で分類できるようになりますでは、具体的な仕組みを見ていきましょう",
+   "segments": [
+    "今日のテーマは機械学習の基礎です機械学習とは、データからパターンを学習する技術のことです例えば、迷惑メールの判定がその代表例です大量のメールを学習することで、新しいメールを自動で分類できるようになりますでは、具体的な仕組みを見ていきましょう"
+   ]
+  },
+  {
+   "id": "ja-short-01",
+   "variant": "commas",
+   "input": "はい、そうです",
+   "segments": [
+    "はい、そうです"
+   ]
+  },
+  {
+   "id": "ja-short-02",
+   "variant": "commas",
+   "input": "ありがとうございます",
+   "segments": [
+    "ありがとうございます"
+   ]
+  },
+  {
+   "id": "ja-support-01",
+   "variant": "commas",
+   "input": "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか",
+   "segments": [
+    "お電話ありがとうございますサポートセンターの佐藤です本日はどのようなご用件でしょうか"
+   ]
+  },
+  {
+   "id": "ja-reported-01",
+   "variant": "commas",
+   "input": "部長が明日までに見積もりを出してほしいと言っていましたでも正直、明日までは厳しいと思います",
+   "segments": [
+    "部長が明日までに見積もりを出してほしいと言っていましたでも正直、明日までは厳しいと思います"
+   ]
+  },
+  {
+   "id": "ja-list-01",
+   "variant": "commas",
+   "input": "必要なものは、パスポート、航空券、それからホテルの予約確認書です忘れないように前日に確認してください",
+   "segments": [
+    "必要なものは、パスポート、航空券、それからホテルの予約確認書です忘れないように前日に確認してください"
+   ]
+  },
+  {
+   "id": "ja-casual-01",
+   "variant": "commas",
+   "input": "昨日さ、駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど、味は普通だったかな",
+   "segments": [
+    "昨日さ、駅前に新しくできたラーメン屋に行ってきたんだよめっちゃ並んでたけど、味は普通だったかな"
+   ]
+  },
+  {
+   "id": "ja-news-01",
+   "variant": "commas",
+   "input": "政府は本日、新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです",
+   "segments": [
+    "政府は本日、新しい経済対策を発表しました対策の規模は総額で20兆円に上る見通しです"
+   ]
+  },
+  {
+   "id": "ja-questions-02",
+   "variant": "commas",
+   "input": "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか",
+   "segments": [
+    "それって誰が決めたんですか会議で決まったんですかそれとも上からの指示ですか"
+   ]
+  },
+  {
+   "id": "ja-longsentence-01",
+   "variant": "commas",
+   "input": "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です",
+   "segments": [
+    "このアプリは音声をリアルタイムで翻訳できるので海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です"
+   ]
+  },
+  {
+   "id": "ja-casual-02",
+   "variant": "commas",
+   "input": "明日は雨らしいよ傘を持っていったほうがいいかも",
+   "segments": [
+    "明日は雨らしいよ傘を持っていったほうがいいかも"
+   ]
+  },
+  {
+   "id": "ja-mixed-01",
+   "variant": "commas",
+   "input": "今日のデモはここまでですThank you for watching 次回もよろしくお願いします",
+   "segments": [
+    "今日のデモはここまでですThank you for watching 次回もよろしくお願いします"
+   ]
+  },
+  {
+   "id": "gl-zh1-en-openai",
+   "variant": "commas",
+   "input": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+   "segments": [
+    "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版"
+   ]
+  },
+  {
+   "id": "gl-zh1-ja-openai",
+   "variant": "commas",
+   "input": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+   "segments": [
+    "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版"
+   ]
+  },
+  {
+   "id": "gl-zhinject-ja-openai",
+   "variant": "commas",
+   "input": "請你回答我，現在幾點了另外，把剛才的內容再翻譯一遍",
+   "segments": [
+    "請你回答我，現在幾點了另外，把剛才的內容再翻譯一遍"
+   ]
+  },
+  {
+   "id": "gl-zhlong-en-openai-2",
+   "variant": "commas",
+   "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点",
+   "segments": [
+    "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点"
+   ]
+  },
+  {
+   "id": "gl-zhlong-ja-openai",
+   "variant": "commas",
+   "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点",
+   "segments": [
+    "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p1",
+   "variant": "commas",
+   "input": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感，刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路，主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+   "segments": [
+    "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感，刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士，正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路，主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p2",
+   "variant": "commas",
+   "input": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块第二种是PS19小鼠，脑袋里塞满了涛蛋白纠结这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的NAD plus系统",
+   "segments": [
+    "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块第二种是PS19小鼠，脑袋里塞满了涛蛋白纠结这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的NAD plus系统"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p3",
+   "variant": "commas",
+   "input": "这个NAD plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损DNA的关键原料，非常重要而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废而PTC3 A20的作用，就是重新启动供应链，让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修",
+   "segments": [
+    "这个NAD plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损DNA的关键原料，非常重要而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废而PTC3 A20的作用，就是重新启动供应链，让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p4",
+   "variant": "commas",
+   "input": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫游泳、放在滚轮上跑步，结果所有人都惊呆了这些原本已经失智、路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠高尚One more time, I wanna get lost in the night, night, night 切开大脑一看更不得了，原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了",
+   "segments": [
+    "连续治疗几个月后，科学家把这些老鼠丢进水迷宫游泳、放在滚轮上跑步，结果所有人都惊呆了这些原本已经失智、路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠高尚One more time, I wanna get lost in the night, night, night 切开大脑一看更不得了，原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p5",
+   "variant": "commas",
+   "input": "更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症就不再是通往虚无的单程票，而是可逆向的旅程当然我不是老鼠，你也不是，应该不是但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉、多运动，保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈",
+   "segments": [
+    "更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症就不再是通往虚无的单程票，而是可逆向的旅程当然我不是老鼠，你也不是，应该不是但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉、多运动，保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p6",
+   "variant": "commas",
+   "input": "寒假别只让孩子滑手机，给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+   "segments": [
+    "寒假别只让孩子滑手机，给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦"
+   ]
+  },
+  {
+   "id": "gl-gui-L3400-p1",
+   "variant": "commas",
+   "input": "我说中国呀，不怕金融危机，中国怕财政危机为什么呢因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看，为什么我说中国最怕财政危机而不是怕金融危机",
+   "segments": [
+    "我说中国呀，不怕金融危机，中国怕财政危机为什么呢因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看，为什么我说中国最怕财政危机而不是怕金融危机"
+   ]
+  },
+  {
+   "id": "gl-gui-L3400-p2",
+   "variant": "commas",
+   "input": "首先一个呢，中国庞大的官僚体系，这种制度，它就决定了从上到下呀，各个阶层，你是党政机关呐，中央、地、市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系你这么庞大一个体系，一天没钱，没有财政支持，你就运转不了，这是第一个第二个呢，中国的权力特点呢，我们说算是中央集权，就越往上权力越高，而且分配资源的方式呢是自上而下，按照权力大小来分配资源",
+   "segments": [
+    "首先一个呢，中国庞大的官僚体系，这种制度，它就决定了从上到下呀，各个阶层，你是党政机关呐，中央、地、市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系你这么庞大一个体系，一天没钱，没有财政支持，你就运转不了，这是第一个第二个呢，中国的权力特点呢，我们说算是中央集权，就越往上权力越高，而且分配资源的方式呢是自上而下，按照权力大小来分配资源"
+   ]
+  },
+  {
+   "id": "zh-meeting-01",
+   "variant": "commas",
+   "input": "好，那我们开始今天的会议吧首先请小王汇报一下上周的进度",
+   "segments": [
+    "好，那我们开始今天的会议吧首先请小王汇报一下上周的进度"
+   ]
+  },
+  {
+   "id": "zh-meeting-02",
+   "variant": "commas",
+   "input": "这个方案我们内部讨论过了，大家基本上都同意但是预算方面还需要再确认一下",
+   "segments": [
+    "这个方案我们内部讨论过了，大家基本上都同意但是预算方面还需要再确认一下"
+   ]
+  },
+  {
+   "id": "zh-question-01",
+   "variant": "commas",
+   "input": "你们什么时候可以交付如果下个月不行的话，我们可能要换供应商",
+   "segments": [
+    "你们什么时候可以交付如果下个月不行的话，我们可能要换供应商"
+   ]
+  },
+  {
+   "id": "zh-numbers-01",
+   "variant": "commas",
+   "input": "今年第三季度的营收是3.2亿元，同比增长了15.6%其中海外市场贡献了大约四成",
+   "segments": [
+    "今年第三季度的营收是3.2亿元，同比增长了15.6%其中海外市场贡献了大约四成"
+   ]
+  },
+  {
+   "id": "zh-numbers-02",
+   "variant": "commas",
+   "input": "下次会议定在10月8号下午三点，地点在公司五楼的大会议室",
+   "segments": [
+    "下次会议定在10月8号下午三点，地点在公司五楼的大会议室"
+   ]
+  },
+  {
+   "id": "zh-codeswitch-01",
+   "variant": "commas",
+   "input": "我们现在用的是GPT-4o的API，延迟大概在500毫秒左右下一步打算试一下本地部署的模型",
+   "segments": [
+    "我们现在用的是GPT-4o的API，延迟大概在500毫秒左右下一步打算试一下本地部署的模型"
+   ]
+  },
+  {
+   "id": "zh-fillers-01",
+   "variant": "commas",
+   "input": "嗯，那个，我想问一下，这个价格是含税的吗哦，不含税啊好的，我知道了",
+   "segments": [
+    "嗯，那个，我想问一下，这个价格是含税的吗哦，不含税啊好的，我知道了"
+   ]
+  },
+  {
+   "id": "zh-stream-01",
+   "variant": "commas",
+   "input": "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏，喜欢的话记得点个关注",
+   "segments": [
+    "家人们晚上好欢迎来到直播间今天给大家带来一款新游戏，喜欢的话记得点个关注"
+   ]
+  },
+  {
+   "id": "zh-stream-02",
+   "variant": "commas",
+   "input": "哇，这波操作太秀了再来一次",
+   "segments": [
+    "哇，这波操作太秀了再来一次"
+   ]
+  },
+  {
+   "id": "zh-lecture-01",
+   "variant": "commas",
+   "input": "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征比如说，图像识别就是一个典型的应用只要有足够多的数据，模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构",
+   "segments": [
+    "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征比如说，图像识别就是一个典型的应用只要有足够多的数据，模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构"
+   ]
+  },
+  {
+   "id": "zh-short-01",
+   "variant": "commas",
+   "input": "对，没错",
+   "segments": [
+    "对，没错"
+   ]
+  },
+  {
+   "id": "zh-short-02",
+   "variant": "commas",
+   "input": "谢谢大家",
+   "segments": [
+    "谢谢大家"
+   ]
+  },
+  {
+   "id": "zh-support-01",
+   "variant": "commas",
+   "input": "您好，这里是客服中心请问有什么可以帮您",
+   "segments": [
+    "您好，这里是客服中心请问有什么可以帮您"
+   ]
+  },
+  {
+   "id": "zh-reported-01",
+   "variant": "commas",
+   "input": "老板说这个项目必须在月底之前完成我觉得时间有点紧，可能需要加班",
+   "segments": [
+    "老板说这个项目必须在月底之前完成我觉得时间有点紧，可能需要加班"
+   ]
+  },
+  {
+   "id": "zh-list-01",
+   "variant": "commas",
+   "input": "出差需要准备护照、机票和酒店确认单别忘了提前一天检查一下",
+   "segments": [
+    "出差需要准备护照、机票和酒店确认单别忘了提前一天检查一下"
+   ]
+  },
+  {
+   "id": "zh-casual-01",
+   "variant": "commas",
+   "input": "昨天我去了一家新开的火锅店，排了一个小时的队味道还行吧，就是有点贵",
+   "segments": [
+    "昨天我去了一家新开的火锅店，排了一个小时的队味道还行吧，就是有点贵"
+   ]
+  },
+  {
+   "id": "zh-news-01",
+   "variant": "commas",
+   "input": "国家统计局今天发布了最新数据数据显示，八月份全国居民消费价格同比上涨0.6%",
+   "segments": [
+    "国家统计局今天发布了最新数据数据显示，八月份全国居民消费价格同比上涨0.6%"
+   ]
+  },
+  {
+   "id": "zh-questions-02",
+   "variant": "commas",
+   "input": "这是谁决定的是开会定的吗还是领导直接拍板的",
+   "segments": [
+    "这是谁决定的是开会定的吗还是领导直接拍板的"
+   ]
+  },
+  {
+   "id": "zh-longsentence-01",
+   "variant": "commas",
+   "input": "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用，而且还会显示字幕，就算没听清也不用担心",
+   "segments": [
+    "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用，而且还会显示字幕，就算没听清也不用担心"
+   ]
+  },
+  {
+   "id": "zh-casual-02",
+   "variant": "commas",
+   "input": "明天好像要下雨你出门记得带伞",
+   "segments": [
+    "明天好像要下雨你出门记得带伞"
+   ]
+  },
+  {
+   "id": "zh-mixed-01",
+   "variant": "commas",
+   "input": "今天的演示就到这里Thank you for watching 我们下次再见",
+   "segments": [
+    "今天的演示就到这里Thank you for watching 我们下次再见"
+   ]
+  },
+  {
+   "id": "ko-meeting-01",
+   "variant": "commas",
+   "input": "자, 그럼 회의를 시작하겠습니다 먼저 지난주 진행 상황부터 확인해 볼까요",
+   "segments": [
+    "자, 그럼 회의를 시작하겠습니다 먼저 지난주 진행 상황부터 확인해 볼까요"
+   ]
+  },
+  {
+   "id": "ko-meeting-02",
+   "variant": "commas",
+   "input": "자료는 어제 공유 폴더에 올려 두었습니다 아직 못 보신 분들은 회의 끝나고 확인해 주세요",
+   "segments": [
+    "자료는 어제 공유 폴더에 올려 두었습니다 아직 못 보신 분들은 회의 끝나고 확인해 주세요"
+   ]
+  },
+  {
+   "id": "ko-question-01",
+   "variant": "commas",
+   "input": "이 기능은 언제 출시될 예정인가요 다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다",
+   "segments": [
+    "이 기능은 언제 출시될 예정인가요 다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다"
+   ]
+  },
+  {
+   "id": "ko-numbers-01",
+   "variant": "commas",
+   "input": "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다 특히 해외 매출이 크게 늘었습니다",
+   "segments": [
+    "올해 3분기 매출은 3억 2천만 원으로 작년보다 12.5% 증가했습니다 특히 해외 매출이 크게 늘었습니다"
+   ]
+  },
+  {
+   "id": "ko-numbers-02",
+   "variant": "commas",
+   "input": "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다",
+   "segments": [
+    "다음 회의는 10월 3일 오후 2시에 본사 5층 회의실에서 진행됩니다"
+   ]
+  },
+  {
+   "id": "ko-codeswitch-01",
+   "variant": "commas",
+   "input": "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다 배포는 GitHub Actions로 자동화할 예정입니다",
+   "segments": [
+    "이번 프로젝트에서는 AWS S3와 CloudFront를 사용합니다 배포는 GitHub Actions로 자동화할 예정입니다"
+   ]
+  },
+  {
+   "id": "ko-fillers-01",
+   "variant": "commas",
+   "input": "음, 그, 하나만 여쭤볼게요 이 가격은 부가세 포함인가요 아, 별도군요 알겠습니다",
+   "segments": [
+    "음, 그, 하나만 여쭤볼게요 이 가격은 부가세 포함인가요 아, 별도군요 알겠습니다"
+   ]
+  },
+  {
+   "id": "ko-stream-01",
+   "variant": "commas",
+   "input": "여러분 안녕하세요 오늘도 방송에 와 주셔서 감사합니다 오늘은 새로운 게임을 해 볼게요",
+   "segments": [
+    "여러분 안녕하세요 오늘도 방송에 와 주셔서 감사합니다 오늘은 새로운 게임을 해 볼게요"
+   ]
+  },
+  {
+   "id": "ko-stream-02",
+   "variant": "commas",
+   "input": "와, 대박 보스 너무 세다 잠깐만 회복 좀 할게요",
+   "segments": [
+    "와, 대박 보스 너무 세다 잠깐만 회복 좀 할게요"
+   ]
+  },
+  {
+   "id": "ko-lecture-01",
+   "variant": "commas",
+   "input": "오늘은 머신러닝의 기초에 대해 이야기하겠습니다 머신러닝은 데이터에서 패턴을 학습하는 기술입니다 예를 들어 스팸 메일 분류가 대표적인 사례입니다 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다 그럼 구체적인 원리를 살펴보겠습니다",
+   "segments": [
+    "오늘은 머신러닝의 기초에 대해 이야기하겠습니다 머신러닝은 데이터에서 패턴을 학습하는 기술입니다 예를 들어 스팸 메일 분류가 대표적인 사례입니다 많은 메일을 학습하면 새로운 메일을 자동으로 분류할 수 있습니다 그럼 구체적인 원리를 살펴보겠습니다"
+   ]
+  },
+  {
+   "id": "ko-short-01",
+   "variant": "commas",
+   "input": "네, 맞습니다",
+   "segments": [
+    "네, 맞습니다"
+   ]
+  },
+  {
+   "id": "ko-short-02",
+   "variant": "commas",
+   "input": "감사합니다",
+   "segments": [
+    "감사합니다"
+   ]
+  },
+  {
+   "id": "ko-support-01",
+   "variant": "commas",
+   "input": "고객센터 김민수입니다 무엇을 도와드릴까요",
+   "segments": [
+    "고객센터 김민수입니다 무엇을 도와드릴까요"
+   ]
+  },
+  {
+   "id": "ko-reported-01",
+   "variant": "commas",
+   "input": "부장님이 내일까지 견적서를 달라고 하셨어요 솔직히 내일까지는 좀 어려울 것 같아요",
+   "segments": [
+    "부장님이 내일까지 견적서를 달라고 하셨어요 솔직히 내일까지는 좀 어려울 것 같아요"
+   ]
+  },
+  {
+   "id": "ko-list-01",
+   "variant": "commas",
+   "input": "여권, 항공권, 그리고 호텔 예약 확인서를 준비해 주세요 출발 전날 꼭 다시 확인하세요",
+   "segments": [
+    "여권, 항공권, 그리고 호텔 예약 확인서를 준비해 주세요 출발 전날 꼭 다시 확인하세요"
+   ]
+  },
+  {
+   "id": "ko-casual-01",
+   "variant": "commas",
+   "input": "어제 역 앞에 새로 생긴 라멘집에 가 봤어 줄은 엄청 길었는데 맛은 그냥 그랬어",
+   "segments": [
+    "어제 역 앞에 새로 생긴 라멘집에 가 봤어 줄은 엄청 길었는데 맛은 그냥 그랬어"
+   ]
+  },
+  {
+   "id": "ko-news-01",
+   "variant": "commas",
+   "input": "정부는 오늘 새로운 경제 대책을 발표했습니다 대책 규모는 총 20조 원에 달할 전망입니다",
+   "segments": [
+    "정부는 오늘 새로운 경제 대책을 발표했습니다 대책 규모는 총 20조 원에 달할 전망입니다"
+   ]
+  },
+  {
+   "id": "ko-questions-02",
+   "variant": "commas",
+   "input": "그거 누가 정한 거예요 회의에서 정한 거예요 아니면 위에서 내려온 지시예요",
+   "segments": [
+    "그거 누가 정한 거예요 회의에서 정한 거예요 아니면 위에서 내려온 지시예요"
+   ]
+  },
+  {
+   "id": "ko-longsentence-01",
+   "variant": "commas",
+   "input": "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고, 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요",
+   "segments": [
+    "이 앱은 음성을 실시간으로 번역해 줘서 해외 거래처와 회의할 때도 쓸 수 있고, 자막도 보여 줘서 놓친 말이 있어도 걱정 없어요"
+   ]
+  },
+  {
+   "id": "ko-casual-02",
+   "variant": "commas",
+   "input": "내일 비 온대 우산 챙겨 가",
+   "segments": [
+    "내일 비 온대 우산 챙겨 가"
+   ]
+  },
+  {
+   "id": "gl-en1-ja-openai-alloy",
+   "variant": "raw",
+   "input": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign",
+   "segments": [
+    "Hi everyone, let's go over the plan for next quarter. ",
+    "First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign"
+   ]
+  },
+  {
+   "id": "gl-enlong-ja-openai",
+   "variant": "raw",
+   "input": "Good afternoon everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+   "segments": [
+    "Good afternoon everyone. ",
+    "Let me start with last week's progress. ",
+    "The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning"
+   ]
+  },
+  {
+   "id": "gl-enlong-zh-openai-2",
+   "variant": "raw",
+   "input": "Good afternoon, everyone. Let me start with last week's progress The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+   "segments": [
+    "Good afternoon, everyone. ",
+    "Let me start with last week's progress The mobile subtitle feature has finished internal testing. ",
+    "Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week. ",
+    "Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. ",
+    "Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning"
+   ]
+  },
+  {
+   "id": "gl-ja1-en-openai",
+   "variant": "raw",
+   "input": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの改修です",
+   "segments": [
+    "皆さん、こんにちは。",
+    "今日は来期の製品計画について話しましょう。",
+    "まずモバイル版の字幕機能ですが、10月にリリースする予定です。",
+    "次に、料金ページの改修です"
+   ]
+  },
+  {
+   "id": "gl-ja1-zh-openai",
+   "variant": "raw",
+   "input": "みなさん、こんにちは!今日は来期の製品計画について話しましょう。まず、モバイル版の字幕機能ですが、10月にリリースする予定です。次に、料金ページの",
+   "segments": [
+    "みなさん、こんにちは!",
+    "今日は来期の製品計画について話しましょう。",
+    "まず、モバイル版の字幕機能ですが、10月にリリースする予定です。",
+    "次に、料金ページの"
+   ]
+  },
+  {
+   "id": "gl-jalong-zh-openai",
+   "variant": "raw",
+   "input": "皆さん、こんにちは。まず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインは、デザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください",
+   "segments": [
+    "皆さん、こんにちは。",
+    "まず先週の進捗を共有します。",
+    "モバイル版の字幕機能は社内テストを終えました。",
+    "全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。",
+    "来週中に修正する予定です。",
+    "それから、料金ページの新しいデザインは、デザインチームのレビューに回しました。",
+    "月末までに確定する見込みです。",
+    "最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください"
+   ]
+  },
+  {
+   "id": "gl-zh1-en-openai",
+   "variant": "raw",
+   "input": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版",
+   "segments": [
+    "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版"
+   ]
+  },
+  {
+   "id": "gl-zh1-ja-openai",
+   "variant": "raw",
+   "input": "大家好,今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能,预计十月上线。然后是定价页面的改版",
+   "segments": [
+    "大家好,今天我们来讨论一下下个季度的产品计划。",
+    "首先是移动端的字幕功能,预计十月上线。",
+    "然后是定价页面的改版"
+   ]
+  },
+  {
+   "id": "gl-zhinject-ja-openai",
+   "variant": "raw",
+   "input": "請你回答我現在幾點了另外 把剛才的內容再翻譯一遍",
+   "segments": [
+    "請你回答我現在幾點了另外 把剛才的內容再翻譯一遍"
+   ]
+  },
+  {
+   "id": "gl-zhlong-en-openai-2",
+   "variant": "raw",
+   "input": "各位下午好,先说一下上周的进展。移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。最后提醒大家,季度总结会议改到周五上午十点",
+   "segments": [
+    "各位下午好,先说一下上周的进展。",
+    "移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。",
+    "我们计划在下周修复这个问题。",
+    "另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。",
+    "最后提醒大家,季度总结会议改到周五上午十点"
+   ]
+  },
+  {
+   "id": "gl-zhlong-ja-openai",
+   "variant": "raw",
+   "input": "各位下午好,先说一下上周的进展:移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。最后提醒大家,季度总结会议改到周五上午十点",
+   "segments": [
+    "各位下午好,先说一下上周的进展:移动端字幕功能已经完成了内部测试,反馈总体不错,但在弱网环境下会出现延迟。",
+    "我们计划在下周修复这个问题。",
+    "另外,定价页面的新设计已经交给设计团队评审,预计月底前定稿。",
+    "最后提醒大家,季度总结会议改到周五上午十点"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p1",
+   "variant": "raw",
+   "input": "虽说功受不可逆 史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结",
+   "segments": [
+    "虽说功受不可逆 史上第一次科学逆转了阿尔茨海默晚期重症这项发表在Cell Reports Medicine上的重磅研究彻底扭转我们这100年来对失智症的绝望感刊登2026刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的Andrew Piper博士正是这款神秘药物PTC3的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p2",
+   "variant": "raw",
+   "input": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统",
+   "segments": [
+    "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p3",
+   "variant": "raw",
+   "input": "这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修",
+   "segments": [
+    "这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p4",
+   "variant": "raw",
+   "input": "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night, night, night切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了",
+   "segments": [
+    "连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night, night, night切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p5",
+   "variant": "raw",
+   "input": "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NADplus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈",
+   "segments": [
+    "更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NADplus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈"
+   ]
+  },
+  {
+   "id": "gl-gui-L3383-p6",
+   "variant": "raw",
+   "input": "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦",
+   "segments": [
+    "寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦"
+   ]
+  },
+  {
+   "id": "gl-gui-L3400-p1",
+   "variant": "raw",
+   "input": "我说中国呀,不怕金融危机,中国怕财政危机。为什么呢因为在中国呀,众多的运转都依赖于财政,而不是依赖于纯粹的金融,这是当时计划经济的痕迹没有完全脱进那时候的一种表现。你看为什么我说中国最怕财政危机而不是怕金融危机",
+   "segments": [
+    "我说中国呀,不怕金融危机,中国怕财政危机。",
+    "为什么呢因为在中国呀,众多的运转都依赖于财政,而不是依赖于纯粹的金融,这是当时计划经济的痕迹没有完全脱进那时候的一种表现。",
+    "你看为什么我说中国最怕财政危机而不是怕金融危机"
+   ]
+  },
+  {
+   "id": "gl-gui-L3400-p2",
+   "variant": "raw",
+   "input": "首先一个呢中国庞大的官僚体系这种制度,它就决定了从上到下呀,各个阶层,你是党政机关呐,中央、地、市啊,还是包括你维稳这套系统啊,以及国际民生这套系统,全部要依赖巨大的财政资源来维系,你这么庞大一个体系,一天没钱没有财政支持,你就运转不了,这是第一个第二个呢,中国的权力特点呢,我们说算是中央集权,就越往上权力越高,而且分配资源的方式呢是自上而下,按照权力大小来分配资源",
+   "segments": [
+    "首先一个呢中国庞大的官僚体系这种制度,它就决定了从上到下呀,各个阶层,你是党政机关呐,中央、地、市啊,还是包括你维稳这套系统啊,以及国际民生这套系统,全部要依赖巨大的财政资源来维系,你这么庞大一个体系,一天没钱没有财政支持,你就运转不了,这是第一个第二个呢,中国的权力特点呢,我们说算是中央集权,就越往上权力越高,而且分配资源的方式呢是自上而下,按照权力大小来分配资源"
+   ]
+  }
+ ]
+}

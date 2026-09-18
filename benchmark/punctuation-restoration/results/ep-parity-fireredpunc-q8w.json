@@ -1,0 +1,641 @@
+{
+ "model": "fireredpunc-q8w",
+ "eps": [
+  "wasm",
+  "webgpu"
+ ],
+ "threads": "4",
+ "runs": {
+  "wasm": {
+   "id": "fireredpunc-q8w",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "fireredpunc-q8w",
+    "name": "FireRedPunc q8 weight-only (MatMulNBits)",
+    "langs": [
+     "zh",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/fireredpunc-onnx",
+    "files": [
+     "punc.q8w.onnx",
+     "tokenizer.json",
+     "out_dict"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1841207,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1208.7349998950958,
+   "outputs": [
+    {
+     "id": "zh-meeting-01",
+     "variant": "stripped",
+     "out": "好，那我们开始今天的会议吧，首先请小王汇报一下上周的进度。"
+    },
+    {
+     "id": "zh-meeting-02",
+     "variant": "stripped",
+     "out": "这个方案我们内部讨论过了，大家基本上都同意，但是预算方面还需要再确认一下。"
+    },
+    {
+     "id": "zh-question-01",
+     "variant": "stripped",
+     "out": "你们什么时候可以交付？如果下个月不行的话，我们可能要换供应商。"
+    },
+    {
+     "id": "zh-numbers-01",
+     "variant": "stripped",
+     "out": "今年第三季度的营收是3.2亿元，同比增长了15.6%，其中海外市场贡献了大约四成。"
+    },
+    {
+     "id": "zh-numbers-02",
+     "variant": "stripped",
+     "out": "下次会议定在10月8号下午三点，地点在公司五楼的大会议室。"
+    },
+    {
+     "id": "zh-codeswitch-01",
+     "variant": "stripped",
+     "out": "我们现在用的是gpt-4o的api，延迟大概在500毫秒左右，下一步打算试一下本地部署的模型。"
+    },
+    {
+     "id": "zh-fillers-01",
+     "variant": "stripped",
+     "out": "嗯那个我想问一下这个价格是含税的吗？哦不含税啊，好的我知道了。"
+    },
+    {
+     "id": "zh-stream-01",
+     "variant": "stripped",
+     "out": "家人们晚上好，欢迎来到直播间，今天给大家带来一款新游戏，喜欢的话记得点个关注。"
+    },
+    {
+     "id": "zh-stream-02",
+     "variant": "stripped",
+     "out": "哇，这波操作太秀了，再来一次。"
+    },
+    {
+     "id": "zh-lecture-01",
+     "variant": "stripped",
+     "out": "今天我们讲的是深度学习的基本概念。深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征。比如说图像识别就是一个典型的应用，只要有足够多的数据，模型就能学会识别猫和狗。那么接下来我们看一下具体的网络结构。"
+    },
+    {
+     "id": "zh-short-01",
+     "variant": "stripped",
+     "out": "对没错。"
+    },
+    {
+     "id": "zh-short-02",
+     "variant": "stripped",
+     "out": "谢谢大家。"
+    },
+    {
+     "id": "zh-support-01",
+     "variant": "stripped",
+     "out": "您好，这里是客服中心，请问有什么可以帮您？"
+    },
+    {
+     "id": "zh-reported-01",
+     "variant": "stripped",
+     "out": "老板说这个项目必须在月底之前完成，我觉得时间有点紧，可能需要加班。"
+    },
+    {
+     "id": "zh-list-01",
+     "variant": "stripped",
+     "out": "出差需要准备护照，机票和酒店确认单，别忘了提前一天检查一下。"
+    },
+    {
+     "id": "zh-casual-01",
+     "variant": "stripped",
+     "out": "昨天我去了一家新开的火锅店，排了一个小时的队，味道还行吧，就是有点贵。"
+    },
+    {
+     "id": "zh-news-01",
+     "variant": "stripped",
+     "out": "国家统计局今天发布了最新数据，数据显示，八月份全国居民消费价格同比上涨0.6%。"
+    },
+    {
+     "id": "zh-questions-02",
+     "variant": "stripped",
+     "out": "这是谁决定的？是开会定的吗？还是领导直接拍板的？"
+    },
+    {
+     "id": "zh-longsentence-01",
+     "variant": "stripped",
+     "out": "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用。而且还会显示字幕，就算没听清也不用担心。"
+    },
+    {
+     "id": "zh-casual-02",
+     "variant": "stripped",
+     "out": "明天好像要下雨，你出门记得带伞。"
+    },
+    {
+     "id": "zh-mixed-01",
+     "variant": "stripped",
+     "out": "今天的演示就到这里，thank you for watching，我们下次再见。"
+    },
+    {
+     "id": "en-meeting-01",
+     "variant": "lower",
+     "out": "Okay, let's get started first. Can everyone see my screen? Great! So here's the agenda for today."
+    },
+    {
+     "id": "en-meeting-02",
+     "variant": "lower",
+     "out": "We shipped the new release on tuesday. So far we've seen about 3.5%fewer crashes than last week."
+    },
+    {
+     "id": "en-abbrev-01",
+     "variant": "lower",
+     "out": "Dr. Smith will join us at 2 pm to talk about the results. She works at a hospital in the us and has been running this study for years."
+    },
+    {
+     "id": "en-question-01",
+     "variant": "lower",
+     "out": "Do you have any questions so far? If not, I'll move on to the next slide."
+    },
+    {
+     "id": "en-numbers-01",
+     "variant": "lower",
+     "out": "Revenue grew 12%year over year to$4.2 million. Most of that came from our enterprise customers."
+    },
+    {
+     "id": "en-fillers-01",
+     "variant": "lower",
+     "out": "Um so I think the main issue is uh the latency it takes like two seconds before the translation shows up."
+    },
+    {
+     "id": "en-stream-01",
+     "variant": "lower",
+     "out": "What's up everyone? Welcome back to the stream. Today we're finally going to beat the final boss."
+    },
+    {
+     "id": "en-stream-02",
+     "variant": "lower",
+     "out": "Oh no he's right behind me, run run run."
+    },
+    {
+     "id": "en-lecture-01",
+     "variant": "lower",
+     "out": "Today we're going to talk about photosynthesis. Photosynthesis is the process plants use to turn sunlight into energy. It happens mostly in the leaves, the plant takes in carbon dioxide and water, and it releases oxygen. Without it, life on earth as we know it wouldn't exist!"
+    },
+    {
+     "id": "en-short-01",
+     "variant": "lower",
+     "out": "Yeah that works for me."
+    },
+    {
+     "id": "en-short-02",
+     "variant": "lower",
+     "out": "Thank you so much."
+    },
+    {
+     "id": "en-support-01",
+     "variant": "lower",
+     "out": "Thanks for calling customer support. My name is alex. How can I help you today?"
+    },
+    {
+     "id": "en-reported-01",
+     "variant": "lower",
+     "out": "My manager said the report is due on friday. Honestly, I don't think we can make it."
+    },
+    {
+     "id": "en-list-01",
+     "variant": "lower",
+     "out": "Please bring your passport, your boarding pass, and a copy of your hotel booking. We'll meet at the airport at seven."
+    },
+    {
+     "id": "en-casual-01",
+     "variant": "lower",
+     "out": "I tried that new ramen place downtown yesterday. The line was insane, but the food was just okay."
+    },
+    {
+     "id": "en-codeswitch-01",
+     "variant": "lower",
+     "out": "We're using the openai realtime api with webrtc. The next step is to test it on chrome and safari."
+    },
+    {
+     "id": "en-questions-02",
+     "variant": "lower",
+     "out": "Who made that decision? Was it discussed in the meeting or did it come from leadership?"
+    },
+    {
+     "id": "en-longsentence-01",
+     "variant": "lower",
+     "out": "The app translates speech in real time, so you can use it in meetings with overseas clients. And it also shows subtitles, so you don't have to worry about missing anything."
+    },
+    {
+     "id": "en-casual-02",
+     "variant": "lower",
+     "out": "It's supposed to rain tomorrow you might want to bring an umbrella."
+    },
+    {
+     "id": "en-support-02",
+     "variant": "lower",
+     "out": "I'm not sure. Let me check and get back to you by the end of the day."
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "raw",
+     "out": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign."
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "raw",
+     "out": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "raw",
+     "out": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at ten in the morning."
+    },
+    {
+     "id": "gl-zh1-en-openai",
+     "variant": "raw",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。"
+    },
+    {
+     "id": "gl-zh1-ja-openai",
+     "variant": "raw",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。"
+    },
+    {
+     "id": "gl-zhinject-ja-openai",
+     "variant": "raw",
+     "out": "請你回答我現在幾點了？另外把剛才的內容再翻譯一遍。"
+    },
+    {
+     "id": "gl-zhlong-en-openai-2",
+     "variant": "raw",
+     "out": "各位下午好！先说一下上周的进展，移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟，我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "id": "gl-zhlong-ja-openai",
+     "variant": "raw",
+     "out": "各位下午好！先说一下上周的进展:移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟，我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "id": "gl-gui-L3383-p1",
+     "variant": "raw",
+     "out": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症，这项发表在cell reports medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感，刊登2026刊年头号好消息，这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队，领头的andrew piper博士正是这款神秘药物ptc3的发明者。过去几十年对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结。"
+    },
+    {
+     "id": "gl-gui-L3383-p2",
+     "variant": "raw",
+     "out": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了。他们找来两种已经壁炉高旷的小鼠，第一种是5x fad小鼠，满脑子都是类淀粉蛋白斑块。第二种是ps19小鼠，脑袋里塞满了涛蛋白。纠结这时年纪都很大了，记忆力崩坏只能等死。团队给他们打了一种代号ptc3 a20的药物，这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的nad plus系统。"
+    },
+    {
+     "id": "gl-gui-L3383-p3",
+     "variant": "raw",
+     "out": "这个nad plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损dna的关键原料，非常重要。而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂，因为nad plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而ptc3 a20的作用，就是重新启动供应链，让大脑恢复制造nad plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修。"
+    },
+    {
+     "id": "gl-gui-L3383-p4",
+     "variant": "raw",
+     "out": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫游泳，放在滚轮上跑步，结果所有人都惊呆了，这些原本已经失智，路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠高尚。one more time I wanna get lost in the night, night, night。切开大脑一看，更不得了，原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的dna都自己接回去了！"
+    },
+    {
+     "id": "gl-gui-L3383-p5",
+     "variant": "raw",
+     "out": "更重要的是团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里nadplus的合成酵素也有一样的崩坏现象，这强力暗示，如果我们能修复人类大脑的nad plus系统，或许失智症就不再是通往虚无的单程票，而是可逆向的旅程。当然我不是老鼠，你也不是，应该不是，但这研究告诉我们，大脑的韧性比我们想象的还要强，多睡觉多运动，保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈。"
+    },
+    {
+     "id": "gl-gui-L3383-p6",
+     "variant": "raw",
+     "out": "寒假别只让孩子滑手机，给他一本比手游还好玩的秘密武器，科学生，由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦！"
+    },
+    {
+     "id": "gl-gui-L3400-p1",
+     "variant": "raw",
+     "out": "我说中国呀不怕金融危机，中国怕财政危机，为什么呢？因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹没有完全脱进那时候的一种表现。你看为什么我说中国最怕财政危机，而不是怕金融危机。"
+    },
+    {
+     "id": "gl-gui-L3400-p2",
+     "variant": "raw",
+     "out": "首先一个呢，中国庞大的官僚体系，这种制度它就决定了从上到下呀，各个阶层，你是党政机关呐，中央地市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系，你这么庞大一个体系，一天没钱没有财政支持，你就运转不了，这是第一个。第二个呢，中国的权力特点呢，我们说算是中央集权，就越往上权力越高，而且分配资源的方式呢，是自上而下，按照权力大小来分配资源。"
+    }
+   ]
+  },
+  "webgpu": {
+   "id": "fireredpunc-q8w",
+   "ep": "webgpu",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "fireredpunc-q8w",
+    "name": "FireRedPunc q8 weight-only (MatMulNBits)",
+    "langs": [
+     "zh",
+     "en"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/fireredpunc-onnx",
+    "files": [
+     "punc.q8w.onnx",
+     "tokenizer.json",
+     "out_dict"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1841211,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1487.7450001239777,
+   "outputs": [
+    {
+     "id": "zh-meeting-01",
+     "variant": "stripped",
+     "out": "好，那我们开始今天的会议吧，首先请小王汇报一下上周的进度。"
+    },
+    {
+     "id": "zh-meeting-02",
+     "variant": "stripped",
+     "out": "这个方案我们内部讨论过了，大家基本上都同意，但是预算方面还需要再确认一下。"
+    },
+    {
+     "id": "zh-question-01",
+     "variant": "stripped",
+     "out": "你们什么时候可以交付？如果下个月不行的话，我们可能要换供应商。"
+    },
+    {
+     "id": "zh-numbers-01",
+     "variant": "stripped",
+     "out": "今年第三季度的营收是3.2亿元，同比增长了15.6%，其中海外市场贡献了大约四成。"
+    },
+    {
+     "id": "zh-numbers-02",
+     "variant": "stripped",
+     "out": "下次会议定在10月8号下午三点，地点在公司五楼的大会议室。"
+    },
+    {
+     "id": "zh-codeswitch-01",
+     "variant": "stripped",
+     "out": "我们现在用的是gpt-4o的api，延迟大概在500毫秒左右，下一步打算试一下本地部署的模型。"
+    },
+    {
+     "id": "zh-fillers-01",
+     "variant": "stripped",
+     "out": "嗯那个我想问一下这个价格是含税的吗？哦不含税啊，好的我知道了。"
+    },
+    {
+     "id": "zh-stream-01",
+     "variant": "stripped",
+     "out": "家人们晚上好，欢迎来到直播间，今天给大家带来一款新游戏，喜欢的话记得点个关注。"
+    },
+    {
+     "id": "zh-stream-02",
+     "variant": "stripped",
+     "out": "哇，这波操作太秀了，再来一次。"
+    },
+    {
+     "id": "zh-lecture-01",
+     "variant": "stripped",
+     "out": "今天我们讲的是深度学习的基本概念。深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征。比如说图像识别就是一个典型的应用，只要有足够多的数据，模型就能学会识别猫和狗。那么接下来我们看一下具体的网络结构。"
+    },
+    {
+     "id": "zh-short-01",
+     "variant": "stripped",
+     "out": "对没错。"
+    },
+    {
+     "id": "zh-short-02",
+     "variant": "stripped",
+     "out": "谢谢大家。"
+    },
+    {
+     "id": "zh-support-01",
+     "variant": "stripped",
+     "out": "您好，这里是客服中心，请问有什么可以帮您？"
+    },
+    {
+     "id": "zh-reported-01",
+     "variant": "stripped",
+     "out": "老板说这个项目必须在月底之前完成，我觉得时间有点紧，可能需要加班。"
+    },
+    {
+     "id": "zh-list-01",
+     "variant": "stripped",
+     "out": "出差需要准备护照，机票和酒店确认单，别忘了提前一天检查一下。"
+    },
+    {
+     "id": "zh-casual-01",
+     "variant": "stripped",
+     "out": "昨天我去了一家新开的火锅店，排了一个小时的队，味道还行吧，就是有点贵。"
+    },
+    {
+     "id": "zh-news-01",
+     "variant": "stripped",
+     "out": "国家统计局今天发布了最新数据，数据显示，八月份全国居民消费价格同比上涨0.6%。"
+    },
+    {
+     "id": "zh-questions-02",
+     "variant": "stripped",
+     "out": "这是谁决定的？是开会定的吗？还是领导直接拍板的？"
+    },
+    {
+     "id": "zh-longsentence-01",
+     "variant": "stripped",
+     "out": "这个软件可以实时翻译语音，所以跟国外客户开会的时候也能用。而且还会显示字幕，就算没听清也不用担心。"
+    },
+    {
+     "id": "zh-casual-02",
+     "variant": "stripped",
+     "out": "明天好像要下雨，你出门记得带伞。"
+    },
+    {
+     "id": "zh-mixed-01",
+     "variant": "stripped",
+     "out": "今天的演示就到这里，thank you for watching，我们下次再见。"
+    },
+    {
+     "id": "en-meeting-01",
+     "variant": "lower",
+     "out": "Okay, let's get started first. Can everyone see my screen? Great! So here's the agenda for today."
+    },
+    {
+     "id": "en-meeting-02",
+     "variant": "lower",
+     "out": "We shipped the new release on tuesday. So far we've seen about 3.5%fewer crashes than last week."
+    },
+    {
+     "id": "en-abbrev-01",
+     "variant": "lower",
+     "out": "Dr. Smith will join us at 2 pm to talk about the results. She works at a hospital in the us and has been running this study for years."
+    },
+    {
+     "id": "en-question-01",
+     "variant": "lower",
+     "out": "Do you have any questions so far? If not, I'll move on to the next slide."
+    },
+    {
+     "id": "en-numbers-01",
+     "variant": "lower",
+     "out": "Revenue grew 12%year over year to$4.2 million. Most of that came from our enterprise customers."
+    },
+    {
+     "id": "en-fillers-01",
+     "variant": "lower",
+     "out": "Um so I think the main issue is uh the latency it takes like two seconds before the translation shows up."
+    },
+    {
+     "id": "en-stream-01",
+     "variant": "lower",
+     "out": "What's up everyone? Welcome back to the stream. Today we're finally going to beat the final boss."
+    },
+    {
+     "id": "en-stream-02",
+     "variant": "lower",
+     "out": "Oh no he's right behind me, run run run."
+    },
+    {
+     "id": "en-lecture-01",
+     "variant": "lower",
+     "out": "Today we're going to talk about photosynthesis. Photosynthesis is the process plants use to turn sunlight into energy. It happens mostly in the leaves, the plant takes in carbon dioxide and water, and it releases oxygen. Without it, life on earth as we know it wouldn't exist!"
+    },
+    {
+     "id": "en-short-01",
+     "variant": "lower",
+     "out": "Yeah that works for me."
+    },
+    {
+     "id": "en-short-02",
+     "variant": "lower",
+     "out": "Thank you so much."
+    },
+    {
+     "id": "en-support-01",
+     "variant": "lower",
+     "out": "Thanks for calling customer support. My name is alex. How can I help you today?"
+    },
+    {
+     "id": "en-reported-01",
+     "variant": "lower",
+     "out": "My manager said the report is due on friday. Honestly, I don't think we can make it."
+    },
+    {
+     "id": "en-list-01",
+     "variant": "lower",
+     "out": "Please bring your passport, your boarding pass, and a copy of your hotel booking. We'll meet at the airport at seven."
+    },
+    {
+     "id": "en-casual-01",
+     "variant": "lower",
+     "out": "I tried that new ramen place downtown yesterday. The line was insane, but the food was just okay."
+    },
+    {
+     "id": "en-codeswitch-01",
+     "variant": "lower",
+     "out": "We're using the openai realtime api with webrtc. The next step is to test it on chrome and safari."
+    },
+    {
+     "id": "en-questions-02",
+     "variant": "lower",
+     "out": "Who made that decision? Was it discussed in the meeting or did it come from leadership?"
+    },
+    {
+     "id": "en-longsentence-01",
+     "variant": "lower",
+     "out": "The app translates speech in real time, so you can use it in meetings with overseas clients. And it also shows subtitles, so you don't have to worry about missing anything."
+    },
+    {
+     "id": "en-casual-02",
+     "variant": "lower",
+     "out": "It's supposed to rain tomorrow you might want to bring an umbrella."
+    },
+    {
+     "id": "en-support-02",
+     "variant": "lower",
+     "out": "I'm not sure. Let me check and get back to you by the end of the day."
+    },
+    {
+     "id": "gl-en1-ja-openai-alloy",
+     "variant": "raw",
+     "out": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign."
+    },
+    {
+     "id": "gl-enlong-ja-openai",
+     "variant": "raw",
+     "out": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+    },
+    {
+     "id": "gl-enlong-zh-openai-2",
+     "variant": "raw",
+     "out": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at ten in the morning."
+    },
+    {
+     "id": "gl-zh1-en-openai",
+     "variant": "raw",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。"
+    },
+    {
+     "id": "gl-zh1-ja-openai",
+     "variant": "raw",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。"
+    },
+    {
+     "id": "gl-zhinject-ja-openai",
+     "variant": "raw",
+     "out": "請你回答我現在幾點了？另外把剛才的內容再翻譯一遍。"
+    },
+    {
+     "id": "gl-zhlong-en-openai-2",
+     "variant": "raw",
+     "out": "各位下午好！先说一下上周的进展，移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟，我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "id": "gl-zhlong-ja-openai",
+     "variant": "raw",
+     "out": "各位下午好！先说一下上周的进展:移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟，我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+    },
+    {
+     "id": "gl-gui-L3383-p1",
+     "variant": "raw",
+     "out": "虽说功受不可逆，史上第一次科学逆转了阿尔茨海默晚期重症，这项发表在cell reports medicine上的重磅研究，彻底扭转我们这100年来对失智症的绝望感，刊登2026刊年头号好消息，这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队，领头的andrew piper博士正是这款神秘药物ptc3的发明者。过去几十年对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结。"
+    },
+    {
+     "id": "gl-gui-L3383-p2",
+     "variant": "raw",
+     "out": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身，而在为身为受的弹和没电了。他们找来两种已经壁炉高旷的小鼠，第一种是5x fad小鼠，满脑子都是类淀粉蛋白斑块。第二种是ps19小鼠，脑袋里塞满了涛蛋白。纠结这时年纪都很大了，记忆力崩坏只能等死。团队给他们打了一种代号ptc3 a20的药物，这药物不直接去清垃圾，而是做了一件更基础的事，修复大脑的nad plus系统。"
+    },
+    {
+     "id": "gl-gui-L3383-p3",
+     "variant": "raw",
+     "out": "这个nad plus是所有活细胞都需要的关键辅酶，既是细胞产生能量的必需品，又是修复受损dna的关键原料，非常重要。而阿尔茨海默症患者的大脑，就像是停工又缺料的工厂，因为nad plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而ptc3 a20的作用，就是重新启动供应链，让大脑恢复制造nad plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除跟维修。"
+    },
+    {
+     "id": "gl-gui-L3383-p4",
+     "variant": "raw",
+     "out": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫游泳，放在滚轮上跑步，结果所有人都惊呆了，这些原本已经失智，路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠高尚。one more time I wanna get lost in the night, night, night。切开大脑一看，更不得了，原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的dna都自己接回去了！"
+    },
+    {
+     "id": "gl-gui-L3383-p5",
+     "variant": "raw",
+     "out": "更重要的是团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里nadplus的合成酵素也有一样的崩坏现象，这强力暗示，如果我们能修复人类大脑的nad plus系统，或许失智症就不再是通往虚无的单程票，而是可逆向的旅程。当然我不是老鼠，你也不是，应该不是，但这研究告诉我们，大脑的韧性比我们想象的还要强，多睡觉多运动，保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈。"
+    },
+    {
+     "id": "gl-gui-L3383-p6",
+     "variant": "raw",
+     "out": "寒假别只让孩子滑手机，给他一本比手游还好玩的秘密武器，科学生，由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦！"
+    },
+    {
+     "id": "gl-gui-L3400-p1",
+     "variant": "raw",
+     "out": "我说中国呀不怕金融危机，中国怕财政危机，为什么呢？因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹没有完全脱进那时候的一种表现。你看为什么我说中国最怕财政危机，而不是怕金融危机。"
+    },
+    {
+     "id": "gl-gui-L3400-p2",
+     "variant": "raw",
+     "out": "首先一个呢，中国庞大的官僚体系，这种制度它就决定了从上到下呀，各个阶层，你是党政机关呐，中央地市啊，还是包括你维稳这套系统啊，以及国际民生这套系统，全部要依赖巨大的财政资源来维系，你这么庞大一个体系，一天没钱没有财政支持，你就运转不了，这是第一个。第二个呢，中国的权力特点呢，我们说算是中央集权，就越往上权力越高，而且分配资源的方式呢，是自上而下，按照权力大小来分配资源。"
+    }
+   ]
+  }
+ },
+ "diffs": []
+}

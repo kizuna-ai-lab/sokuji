@@ -1,0 +1,307 @@
+{
+ "model": "mojicast-q8w-nonan",
+ "eps": [
+  "wasm",
+  "webgpu"
+ ],
+ "threads": "4",
+ "runs": {
+  "wasm": {
+   "id": "mojicast-q8w-nonan",
+   "ep": "wasm",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "mojicast-q8w-nonan",
+    "name": "Mojicast punct BERT q8 weight-only, no IsNaN guard (WebGPU)",
+    "langs": [
+     "ja"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/mojicast",
+    "files": [
+     "punct_bert.q8w-nonan.onnx",
+     "vocab.txt"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1826991,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1191.5149998664856,
+   "outputs": [
+    {
+     "id": "ja-meeting-01",
+     "variant": "stripped",
+     "out": "えーそれでは定例会議を始めます。まず先週の進捗から確認しましょう。田中さんお願いできますか。"
+    },
+    {
+     "id": "ja-meeting-02",
+     "variant": "stripped",
+     "out": "資料は昨日の夜に共有フォルダに入れておきました。まだ見ていない方は会議の後で確認してください。何か質問があればチャットに書いてください。"
+    },
+    {
+     "id": "ja-question-01",
+     "variant": "stripped",
+     "out": "この機能はいつリリースされる予定ですか。来月の頭には出せると思いますが、テストの結果次第です。"
+    },
+    {
+     "id": "ja-numbers-01",
+     "variant": "stripped",
+     "out": "売上は前年比で12.5パーセント増えました。特に第3四半期は好調で3億2000万円を超えました。"
+    },
+    {
+     "id": "ja-numbers-02",
+     "variant": "stripped",
+     "out": "次回の打ち合わせは10月3日の午後2時からです。場所は本社の5階の会議室になります。"
+    },
+    {
+     "id": "ja-codeswitch-01",
+     "variant": "stripped",
+     "out": "今回のプロジェクトではAWSのS3とCloudFrontを使います。デプロイはGitHub Actionsで自動化する予定です。"
+    },
+    {
+     "id": "ja-fillers-01",
+     "variant": "stripped",
+     "out": "あのちょっと確認なんですけどこの数字って税込みですか。あ。税抜きなんですね。わかりました。"
+    },
+    {
+     "id": "ja-stream-01",
+     "variant": "stripped",
+     "out": "みんなこんばんは今日も配信に来てくれてありがとう。今日は新しいゲームをやっていきます。"
+    },
+    {
+     "id": "ja-stream-02",
+     "variant": "stripped",
+     "out": "うわやばい。ボスが強すぎる。ちょっと回復させてよしもう一回いくよ。"
+    },
+    {
+     "id": "ja-lecture-01",
+     "variant": "stripped",
+     "out": "今日のテーマは機械学習の基礎です。機械学習とはデータからパターンを学習する技術のことです。例えば迷惑メールの判定がその代表例です。大量のメールを学習することで新しいメールを自動で分類できるようになります。では具体的な仕組みを見ていきましょう。"
+    },
+    {
+     "id": "ja-short-01",
+     "variant": "stripped",
+     "out": "はいそうです。"
+    },
+    {
+     "id": "ja-short-02",
+     "variant": "stripped",
+     "out": "ありがとうございます。"
+    },
+    {
+     "id": "ja-support-01",
+     "variant": "stripped",
+     "out": "お電話ありがとうございます。サポートセンターの佐藤です。本日はどのようなご用件でしょうか。"
+    },
+    {
+     "id": "ja-reported-01",
+     "variant": "stripped",
+     "out": "部長が明日までに見積もりを出してほしいと言っていました。でも正直明日までは厳しいと思います。"
+    },
+    {
+     "id": "ja-list-01",
+     "variant": "stripped",
+     "out": "必要なものはパスポート航空券。それからホテルの予約確認書です。忘れないように前日に確認してください。"
+    },
+    {
+     "id": "ja-casual-01",
+     "variant": "stripped",
+     "out": "昨日さ。駅前に新しくできたラーメン屋に行ってきたんだよ。めっちゃ並んでたけど味は普通だったかな。"
+    },
+    {
+     "id": "ja-news-01",
+     "variant": "stripped",
+     "out": "政府は本日新しい経済対策を発表しました。対策の規模は総額で20兆円に上る見通しです。"
+    },
+    {
+     "id": "ja-questions-02",
+     "variant": "stripped",
+     "out": "それって誰が決めたんですか。会議で決まったんですか。それとも上からの指示ですか。"
+    },
+    {
+     "id": "ja-longsentence-01",
+     "variant": "stripped",
+     "out": "このアプリは音声をリアルタイムで翻訳できるので、海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です。"
+    },
+    {
+     "id": "ja-casual-02",
+     "variant": "stripped",
+     "out": "明日は雨らしいよ。傘を持っていったほうがいいかも。"
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "stripped",
+     "out": "今日のデモはここまでです。Thank you for watching 次回もよろしくお願いします。"
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "raw",
+     "out": "皆さんこんにちは今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの改修です。"
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "raw",
+     "out": "みなさんこんにちは!。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの"
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "raw",
+     "out": "皆さんこんにちはまず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから料金ページの新しいデザインはデザインチームのレビューに回しました。月末までに確定する見込みです。最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください。"
+    }
+   ]
+  },
+  "webgpu": {
+   "id": "mojicast-q8w-nonan",
+   "ep": "webgpu",
+   "threads": 4,
+   "crossOriginIsolated": true,
+   "ua": "Mozilla/5.0 (X11; Linux aarch64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.236 Electron/40.8.5 Safari/537.36",
+   "done": true,
+   "info": {
+    "id": "mojicast-q8w-nonan",
+    "name": "Mojicast punct BERT q8 weight-only, no IsNaN guard (WebGPU)",
+    "langs": [
+     "ja"
+    ],
+    "output": "punct",
+    "localDir": "/home/jiangzhuo/.cache/sokuji-punct-bench/mojicast",
+    "files": [
+     "punct_bert.q8w-nonan.onnx",
+     "vocab.txt"
+    ]
+   },
+   "memBefore": {
+    "bytes": 1827019,
+    "source": "usedJSHeapSize"
+   },
+   "loadMs": 1410.0299999713898,
+   "outputs": [
+    {
+     "id": "ja-meeting-01",
+     "variant": "stripped",
+     "out": "えーそれでは定例会議を始めます。まず先週の進捗から確認しましょう。田中さんお願いできますか。"
+    },
+    {
+     "id": "ja-meeting-02",
+     "variant": "stripped",
+     "out": "資料は昨日の夜に共有フォルダに入れておきました。まだ見ていない方は会議の後で確認してください。何か質問があればチャットに書いてください。"
+    },
+    {
+     "id": "ja-question-01",
+     "variant": "stripped",
+     "out": "この機能はいつリリースされる予定ですか。来月の頭には出せると思いますが、テストの結果次第です。"
+    },
+    {
+     "id": "ja-numbers-01",
+     "variant": "stripped",
+     "out": "売上は前年比で12.5パーセント増えました。特に第3四半期は好調で3億2000万円を超えました。"
+    },
+    {
+     "id": "ja-numbers-02",
+     "variant": "stripped",
+     "out": "次回の打ち合わせは10月3日の午後2時からです。場所は本社の5階の会議室になります。"
+    },
+    {
+     "id": "ja-codeswitch-01",
+     "variant": "stripped",
+     "out": "今回のプロジェクトではAWSのS3とCloudFrontを使います。デプロイはGitHub Actionsで自動化する予定です。"
+    },
+    {
+     "id": "ja-fillers-01",
+     "variant": "stripped",
+     "out": "あのちょっと確認なんですけどこの数字って税込みですか。あ。税抜きなんですね。わかりました。"
+    },
+    {
+     "id": "ja-stream-01",
+     "variant": "stripped",
+     "out": "みんなこんばんは今日も配信に来てくれてありがとう。今日は新しいゲームをやっていきます。"
+    },
+    {
+     "id": "ja-stream-02",
+     "variant": "stripped",
+     "out": "うわやばい。ボスが強すぎる。ちょっと回復させてよしもう一回いくよ。"
+    },
+    {
+     "id": "ja-lecture-01",
+     "variant": "stripped",
+     "out": "今日のテーマは機械学習の基礎です。機械学習とはデータからパターンを学習する技術のことです。例えば迷惑メールの判定がその代表例です。大量のメールを学習することで新しいメールを自動で分類できるようになります。では具体的な仕組みを見ていきましょう。"
+    },
+    {
+     "id": "ja-short-01",
+     "variant": "stripped",
+     "out": "はいそうです。"
+    },
+    {
+     "id": "ja-short-02",
+     "variant": "stripped",
+     "out": "ありがとうございます。"
+    },
+    {
+     "id": "ja-support-01",
+     "variant": "stripped",
+     "out": "お電話ありがとうございます。サポートセンターの佐藤です。本日はどのようなご用件でしょうか。"
+    },
+    {
+     "id": "ja-reported-01",
+     "variant": "stripped",
+     "out": "部長が明日までに見積もりを出してほしいと言っていました。でも正直明日までは厳しいと思います。"
+    },
+    {
+     "id": "ja-list-01",
+     "variant": "stripped",
+     "out": "必要なものはパスポート航空券。それからホテルの予約確認書です。忘れないように前日に確認してください。"
+    },
+    {
+     "id": "ja-casual-01",
+     "variant": "stripped",
+     "out": "昨日さ。駅前に新しくできたラーメン屋に行ってきたんだよ。めっちゃ並んでたけど味は普通だったかな。"
+    },
+    {
+     "id": "ja-news-01",
+     "variant": "stripped",
+     "out": "政府は本日新しい経済対策を発表しました。対策の規模は総額で20兆円に上る見通しです。"
+    },
+    {
+     "id": "ja-questions-02",
+     "variant": "stripped",
+     "out": "それって誰が決めたんですか。会議で決まったんですか。それとも上からの指示ですか。"
+    },
+    {
+     "id": "ja-longsentence-01",
+     "variant": "stripped",
+     "out": "このアプリは音声をリアルタイムで翻訳できるので、海外の取引先との会議でも使えますし、字幕も表示されるので聞き逃しても安心です。"
+    },
+    {
+     "id": "ja-casual-02",
+     "variant": "stripped",
+     "out": "明日は雨らしいよ。傘を持っていったほうがいいかも。"
+    },
+    {
+     "id": "ja-mixed-01",
+     "variant": "stripped",
+     "out": "今日のデモはここまでです。Thank you for watching 次回もよろしくお願いします。"
+    },
+    {
+     "id": "gl-ja1-en-openai",
+     "variant": "raw",
+     "out": "皆さんこんにちは今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの改修です。"
+    },
+    {
+     "id": "gl-ja1-zh-openai",
+     "variant": "raw",
+     "out": "みなさんこんにちは!。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが10月にリリースする予定です。次に料金ページの"
+    },
+    {
+     "id": "gl-jalong-zh-openai",
+     "variant": "raw",
+     "out": "皆さんこんにちはまず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから料金ページの新しいデザインはデザインチームのレビューに回しました。月末までに確定する見込みです。最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください。"
+    }
+   ]
+  }
+ },
+ "diffs": []
+}

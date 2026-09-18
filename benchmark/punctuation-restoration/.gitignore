@@ -1,0 +1,15 @@
+# Per-row reference and replay dumps from the parity runs: regenerable with the
+# parity/ scripts and too large to keep. The summaries (results/parity-<id>.json)
+# and all quality/resource/segmenter results stay tracked.
+results/inputs.json
+results/parity-*-ref*.json
+results/parity-*.ref-*.json
+results/parity-*-rows.json
+results/parity-*.rows.json
+results/parity-*-js-*.json
+results/parity-*-upstream.json
+results/parity-*-python.json
+results/parity-sat-3l-sm-fp*.json
+results/parity-sat-3l-sm-*int8.json
+# Early runner outputs from the porting agents, superseded by results/quality-final-*.json.
+results/parity-*-quality*.json

@@ -1,0 +1,464 @@
+{
+ "onnxruntime": "1.30.0",
+ "rows": 248,
+ "thresholds": {
+  "cap_preds": 0.5,
+  "seg_preds": 0.05000000074505806
+ },
+ "fp32_label_recompute_mismatches": {
+  "pre": 0,
+  "post": 0,
+  "seg": 0,
+  "cap": 0
+ },
+ "fp32_margin_quantiles": {
+  "pre": {
+   "0.001": 6.8054304122924805,
+   "0.01": 7.8107805252075195,
+   "0.05": 8.925745964050293,
+   "0.5": 13.463698387145996
+  },
+  "post": {
+   "0.001": 0.025397300720214844,
+   "0.01": 0.19366422295570374,
+   "0.05": 0.9243276119232178,
+   "0.5": 8.219385147094727
+  },
+  "seg": {
+   "0.001": 0.004731142172319741,
+   "0.01": 0.026767277654947876,
+   "0.05": 0.046794749068450735,
+   "0.5": 0.04998277781785955
+  },
+  "cap": {
+   "0.001": 0.028373244523601793,
+   "0.01": 0.21785105869134427,
+   "0.05": 0.4589604572599238,
+   "0.5": 0.499889874047157
+  }
+ },
+ "wasm_sym32_rows": {
+  "punct": [
+   "en-long/long",
+   "en-numbers-01/commas",
+   "en-numbers-01/lower",
+   "en-numbers-01/stripped",
+   "gl-gui-L3383-p2/commas",
+   "gl-gui-L3383-p2/raw",
+   "gl-gui-L3383-p2/stripped",
+   "gl-zhlong-ja-openai/raw",
+   "zh-long/long"
+  ],
+  "sbd": [
+   "en-abbrev-01/commas",
+   "en-abbrev-01/lower",
+   "en-abbrev-01/stripped",
+   "en-long/long",
+   "en-numbers-01/commas",
+   "en-numbers-01/lower",
+   "en-numbers-01/stripped",
+   "gl-gui-L3383-p2/commas",
+   "gl-gui-L3383-p2/raw",
+   "gl-gui-L3383-p2/stripped",
+   "gl-zhlong-ja-openai/raw",
+   "zh-long/long"
+  ]
+ },
+ "recipes": {
+  "sym32": {
+   "symmetric": true,
+   "block_size": 32,
+   "decoder_heads_fp32": false,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/pcs47-recipes/model.sym32.onnx",
+   "bytes": 866596583,
+   "label_flips": {
+    "pre": 0,
+    "post": 14,
+    "seg": 7,
+    "cap": 7
+   },
+   "rows_with_punct_label_flip": 14,
+   "rows_with_any_label_flip": 17,
+   "max_fp32_margin_at_flip": {
+    "pre": null,
+    "post": 0.20163869857788086,
+    "seg": 0.9334809099413444,
+    "cap": 0.4987324206073399
+   },
+   "fp32_positions_at_or_below_that_margin": {
+    "pre": 0,
+    "post": 122,
+    "seg": 10639,
+    "cap": 2469
+   },
+   "fp32_positions": {
+    "pre": 11378,
+    "post": 11378,
+    "seg": 11378,
+    "cap": 11168
+   },
+   "flip_margins": {
+    "pre": [],
+    "post": [
+     0.00353,
+     0.00353,
+     0.00353,
+     0.00717,
+     0.00717,
+     0.00717,
+     0.01331,
+     0.03264,
+     0.04539,
+     0.10722,
+     0.15131,
+     0.20164,
+     0.20164,
+     0.20164
+    ],
+    "seg": [
+     0.00053,
+     0.00053,
+     0.00053,
+     0.0046,
+     0.93348,
+     0.93348,
+     0.93348
+    ],
+    "cap": [
+     0.00394,
+     0.00501,
+     0.00501,
+     0.00937,
+     0.49873,
+     0.49873,
+     0.49873
+    ]
+   },
+   "rows_punct": [
+    "gl-zhlong-ja-openai/raw",
+    "gl-gui-L3383-p2/stripped",
+    "gl-gui-L3383-p2/commas",
+    "gl-gui-L3383-p2/raw",
+    "zh-codeswitch-01/stripped",
+    "zh-codeswitch-01/commas",
+    "en-numbers-01/stripped",
+    "en-numbers-01/commas",
+    "en-numbers-01/lower",
+    "en-longsentence-01/stripped",
+    "en-longsentence-01/commas",
+    "en-longsentence-01/lower",
+    "zh-long/long",
+    "en-long/long"
+   ]
+  },
+  "sym32-noheads": {
+   "symmetric": true,
+   "block_size": 32,
+   "decoder_heads_fp32": true,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/pcs47-recipes/model.sym32-noheads.onnx",
+   "bytes": 868305097,
+   "label_flips": {
+    "pre": 0,
+    "post": 10,
+    "seg": 6,
+    "cap": 2
+   },
+   "rows_with_punct_label_flip": 9,
+   "rows_with_any_label_flip": 12,
+   "max_fp32_margin_at_flip": {
+    "pre": null,
+    "post": 0.20163869857788086,
+    "seg": 0.9334809099413444,
+    "cap": 0.009368241441839342
+   },
+   "fp32_positions_at_or_below_that_margin": {
+    "pre": 0,
+    "post": 122,
+    "seg": 10639,
+    "cap": 6
+   },
+   "fp32_positions": {
+    "pre": 11378,
+    "post": 11378,
+    "seg": 11378,
+    "cap": 11168
+   },
+   "flip_margins": {
+    "pre": [],
+    "post": [
+     0.00717,
+     0.00717,
+     0.00717,
+     0.01331,
+     0.04539,
+     0.10722,
+     0.15131,
+     0.20164,
+     0.20164,
+     0.20164
+    ],
+    "seg": [
+     0.00053,
+     0.00053,
+     0.00053,
+     0.93348,
+     0.93348,
+     0.93348
+    ],
+    "cap": [
+     0.00394,
+     0.00937
+    ]
+   },
+   "rows_punct": [
+    "gl-zhlong-ja-openai/raw",
+    "gl-gui-L3383-p2/stripped",
+    "gl-gui-L3383-p2/commas",
+    "gl-gui-L3383-p2/raw",
+    "en-numbers-01/stripped",
+    "en-numbers-01/commas",
+    "en-numbers-01/lower",
+    "zh-long/long",
+    "en-long/long"
+   ],
+   "matches_wasm_rows": {
+    "punct_native_minus_wasm": [],
+    "punct_wasm_minus_native": [],
+    "sbd_native_minus_wasm": [],
+    "sbd_wasm_minus_native": []
+   }
+  },
+  "asym32": {
+   "symmetric": false,
+   "block_size": 32,
+   "decoder_heads_fp32": false,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/pcs47-recipes/model.asym32.onnx",
+   "bytes": 869275837,
+   "label_flips": {
+    "pre": 0,
+    "post": 19,
+    "seg": 5,
+    "cap": 4
+   },
+   "rows_with_punct_label_flip": 14,
+   "rows_with_any_label_flip": 14,
+   "max_fp32_margin_at_flip": {
+    "pre": null,
+    "post": 0.2068486213684082,
+    "seg": 0.9315786434270517,
+    "cap": 0.4987324206073399
+   },
+   "fp32_positions_at_or_below_that_margin": {
+    "pre": 0,
+    "post": 124,
+    "seg": 10634,
+    "cap": 2469
+   },
+   "fp32_positions": {
+    "pre": 11378,
+    "post": 11378,
+    "seg": 11378,
+    "cap": 11168
+   },
+   "flip_margins": {
+    "pre": [],
+    "post": [
+     0.00353,
+     0.00353,
+     0.00353,
+     0.01331,
+     0.01605,
+     0.01659,
+     0.02379,
+     0.03264,
+     0.04539,
+     0.06165,
+     0.06832,
+     0.06832,
+     0.06832,
+     0.09503,
+     0.10722,
+     0.11104,
+     0.11104,
+     0.11104,
+     0.20685
+    ],
+    "seg": [
+     0.0023,
+     0.04402,
+     0.93158,
+     0.93158,
+     0.93158
+    ],
+    "cap": [
+     0.01845,
+     0.49873,
+     0.49873,
+     0.49873
+    ]
+   },
+   "rows_punct": [
+    "gl-zhlong-ja-openai/raw",
+    "gl-gui-L3383-p2/stripped",
+    "gl-gui-L3383-p2/commas",
+    "gl-gui-L3383-p2/raw",
+    "gl-gui-L3383-p4/raw",
+    "gl-gui-L3383-p6/stripped",
+    "gl-gui-L3383-p6/commas",
+    "gl-gui-L3383-p6/raw",
+    "en-longsentence-01/stripped",
+    "en-longsentence-01/commas",
+    "en-longsentence-01/lower",
+    "ja-long/long",
+    "zh-long/long",
+    "en-long/long"
+   ]
+  },
+  "asym32-noheads": {
+   "symmetric": false,
+   "block_size": 32,
+   "decoder_heads_fp32": true,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/pcs47-recipes/model.asym32-noheads.onnx",
+   "bytes": 870964849,
+   "label_flips": {
+    "pre": 0,
+    "post": 19,
+    "seg": 5,
+    "cap": 4
+   },
+   "rows_with_punct_label_flip": 14,
+   "rows_with_any_label_flip": 14,
+   "max_fp32_margin_at_flip": {
+    "pre": null,
+    "post": 0.2068486213684082,
+    "seg": 0.9315786434270517,
+    "cap": 0.4987324206073399
+   },
+   "fp32_positions_at_or_below_that_margin": {
+    "pre": 0,
+    "post": 124,
+    "seg": 10634,
+    "cap": 2469
+   },
+   "fp32_positions": {
+    "pre": 11378,
+    "post": 11378,
+    "seg": 11378,
+    "cap": 11168
+   },
+   "flip_margins": {
+    "pre": [],
+    "post": [
+     0.00353,
+     0.00353,
+     0.00353,
+     0.01331,
+     0.01605,
+     0.01659,
+     0.02379,
+     0.03264,
+     0.04539,
+     0.06165,
+     0.06832,
+     0.06832,
+     0.06832,
+     0.09503,
+     0.10722,
+     0.11104,
+     0.11104,
+     0.11104,
+     0.20685
+    ],
+    "seg": [
+     0.0023,
+     0.04402,
+     0.93158,
+     0.93158,
+     0.93158
+    ],
+    "cap": [
+     0.01845,
+     0.49873,
+     0.49873,
+     0.49873
+    ]
+   },
+   "rows_punct": [
+    "gl-zhlong-ja-openai/raw",
+    "gl-gui-L3383-p2/stripped",
+    "gl-gui-L3383-p2/commas",
+    "gl-gui-L3383-p2/raw",
+    "gl-gui-L3383-p4/raw",
+    "gl-gui-L3383-p6/stripped",
+    "gl-gui-L3383-p6/commas",
+    "gl-gui-L3383-p6/raw",
+    "en-longsentence-01/stripped",
+    "en-longsentence-01/commas",
+    "en-longsentence-01/lower",
+    "ja-long/long",
+    "zh-long/long",
+    "en-long/long"
+   ]
+  },
+  "sym16-noheads": {
+   "symmetric": true,
+   "block_size": 16,
+   "decoder_heads_fp32": true,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/pcs47-recipes/model.sym16-noheads.onnx",
+   "bytes": 878921953,
+   "label_flips": {
+    "pre": 0,
+    "post": 7,
+    "seg": 0,
+    "cap": 2
+   },
+   "rows_with_punct_label_flip": 8,
+   "rows_with_any_label_flip": 8,
+   "max_fp32_margin_at_flip": {
+    "pre": null,
+    "post": 0.07106494903564453,
+    "seg": null,
+    "cap": 0.009368241441839342
+   },
+   "fp32_positions_at_or_below_that_margin": {
+    "pre": 0,
+    "post": 35,
+    "seg": 0,
+    "cap": 6
+   },
+   "fp32_positions": {
+    "pre": 11378,
+    "post": 11378,
+    "seg": 11378,
+    "cap": 11168
+   },
+   "flip_margins": {
+    "pre": [],
+    "post": [
+     0.01331,
+     0.0428,
+     0.04304,
+     0.04304,
+     0.07106,
+     0.07106,
+     0.07106
+    ],
+    "seg": [],
+    "cap": [
+     0.00394,
+     0.00937
+    ]
+   },
+   "rows_punct": [
+    "gl-gui-L3383-p1/raw",
+    "gl-gui-L3383-p4/stripped",
+    "gl-gui-L3383-p4/commas",
+    "gl-gui-L3383-p6/stripped",
+    "gl-gui-L3383-p6/commas",
+    "gl-gui-L3383-p6/raw",
+    "zh-long/long",
+    "en-long/long"
+   ]
+  }
+ }
+}

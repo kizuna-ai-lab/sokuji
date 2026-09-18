@@ -1,0 +1,48 @@
+{
+  "description": "Hand-written spoken-style passages in French, German, Spanish and Portuguese with reference punctuation, mirroring the categories of synthetic.gold.json (meeting, question, numbers with decimal commas, stream, lecture, short turn, support call, casual, question chain, long single sentence). No abbreviations. Spanish keeps its inverted marks, which inputs strip and the scorer ignores.",
+  "items": [
+    {"id": "fr-meeting-01", "lang": "fr", "cat": "meeting", "ref": "Bon, on va commencer la réunion. D'abord, est-ce que tout le monde voit mon écran ? Parfait, alors voici l'ordre du jour."},
+    {"id": "fr-question-01", "lang": "fr", "cat": "question", "ref": "Vous avez des questions pour l'instant ? Sinon, je passe à la diapositive suivante."},
+    {"id": "fr-numbers-01", "lang": "fr", "cat": "numbers", "ref": "Le chiffre d'affaires a augmenté de 12 % sur un an, pour atteindre 4,2 millions d'euros. La plupart vient de nos clients entreprises."},
+    {"id": "fr-stream-01", "lang": "fr", "cat": "stream", "ref": "Salut tout le monde ! Bienvenue sur le stream. Aujourd'hui, on va enfin battre le boss final !"},
+    {"id": "fr-lecture-01", "lang": "fr", "cat": "lecture", "ref": "Aujourd'hui, nous allons parler de la photosynthèse. La photosynthèse est le processus qui permet aux plantes de transformer la lumière en énergie. Elle se produit surtout dans les feuilles. Sans elle, la vie sur Terre serait impossible."},
+    {"id": "fr-short-01", "lang": "fr", "cat": "short", "ref": "Oui, ça me va."},
+    {"id": "fr-support-01", "lang": "fr", "cat": "support", "ref": "Merci d'avoir appelé le service client. Je m'appelle Julie. Comment puis-je vous aider ?"},
+    {"id": "fr-casual-01", "lang": "fr", "cat": "casual", "ref": "Hier, je suis allé dans le nouveau restaurant de ramen du centre-ville. Il y avait une queue énorme, mais c'était juste correct."},
+    {"id": "fr-questions-02", "lang": "fr", "cat": "question", "ref": "Qui a pris cette décision ? On en a parlé en réunion ? Ou ça vient de la direction ?"},
+    {"id": "fr-longsentence-01", "lang": "fr", "cat": "longsentence", "ref": "L'application traduit la parole en temps réel, donc on peut l'utiliser pendant les réunions avec des clients étrangers, et elle affiche aussi des sous-titres pour ne rien manquer."},
+
+    {"id": "de-meeting-01", "lang": "de", "cat": "meeting", "ref": "Okay, dann fangen wir mit dem Meeting an. Könnt ihr alle meinen Bildschirm sehen? Gut, dann hier die Tagesordnung für heute."},
+    {"id": "de-question-01", "lang": "de", "cat": "question", "ref": "Habt ihr bis jetzt Fragen? Wenn nicht, gehe ich zur nächsten Folie."},
+    {"id": "de-numbers-01", "lang": "de", "cat": "numbers", "ref": "Der Umsatz ist im Vergleich zum Vorjahr um 12 % auf 4,2 Millionen Euro gestiegen. Das meiste davon kam von unseren Firmenkunden."},
+    {"id": "de-stream-01", "lang": "de", "cat": "stream", "ref": "Hallo zusammen! Willkommen zurück im Stream. Heute besiegen wir endlich den Endboss!"},
+    {"id": "de-lecture-01", "lang": "de", "cat": "lecture", "ref": "Heute sprechen wir über die Photosynthese. Die Photosynthese ist der Prozess, mit dem Pflanzen Sonnenlicht in Energie umwandeln. Sie findet vor allem in den Blättern statt. Ohne sie wäre Leben auf der Erde nicht möglich."},
+    {"id": "de-short-01", "lang": "de", "cat": "short", "ref": "Ja, das passt mir."},
+    {"id": "de-support-01", "lang": "de", "cat": "support", "ref": "Danke für Ihren Anruf beim Kundenservice. Mein Name ist Anna. Wie kann ich Ihnen helfen?"},
+    {"id": "de-casual-01", "lang": "de", "cat": "casual", "ref": "Ich war gestern in dem neuen Ramen-Laden in der Innenstadt. Die Schlange war riesig, aber das Essen war nur okay."},
+    {"id": "de-questions-02", "lang": "de", "cat": "question", "ref": "Wer hat das entschieden? Wurde das im Meeting besprochen? Oder kam das von der Geschäftsführung?"},
+    {"id": "de-longsentence-01", "lang": "de", "cat": "longsentence", "ref": "Die App übersetzt Sprache in Echtzeit, sodass man sie in Meetings mit ausländischen Kunden nutzen kann, und sie zeigt außerdem Untertitel an, damit man nichts verpasst."},
+
+    {"id": "es-meeting-01", "lang": "es", "cat": "meeting", "ref": "Bueno, empecemos la reunión. Primero, ¿todos pueden ver mi pantalla? Perfecto, entonces esta es la agenda de hoy."},
+    {"id": "es-question-01", "lang": "es", "cat": "question", "ref": "¿Tienen alguna pregunta hasta ahora? Si no, paso a la siguiente diapositiva."},
+    {"id": "es-numbers-01", "lang": "es", "cat": "numbers", "ref": "Los ingresos crecieron un 12 % respecto al año anterior, hasta 4,2 millones de euros. La mayor parte vino de nuestros clientes empresariales."},
+    {"id": "es-stream-01", "lang": "es", "cat": "stream", "ref": "¡Hola a todos! Bienvenidos otra vez al directo. ¡Hoy por fin vamos a derrotar al jefe final!"},
+    {"id": "es-lecture-01", "lang": "es", "cat": "lecture", "ref": "Hoy vamos a hablar de la fotosíntesis. La fotosíntesis es el proceso que usan las plantas para convertir la luz del sol en energía. Ocurre sobre todo en las hojas. Sin ella, la vida en la Tierra no existiría."},
+    {"id": "es-short-01", "lang": "es", "cat": "short", "ref": "Sí, a mí me viene bien."},
+    {"id": "es-support-01", "lang": "es", "cat": "support", "ref": "Gracias por llamar al servicio de atención al cliente. Me llamo Carlos. ¿En qué puedo ayudarle?"},
+    {"id": "es-casual-01", "lang": "es", "cat": "casual", "ref": "Ayer fui al nuevo restaurante de ramen del centro. La cola era enorme, pero la comida estaba normal."},
+    {"id": "es-questions-02", "lang": "es", "cat": "question", "ref": "¿Quién tomó esa decisión? ¿Se habló en la reunión? ¿O vino de la dirección?"},
+    {"id": "es-longsentence-01", "lang": "es", "cat": "longsentence", "ref": "La aplicación traduce la voz en tiempo real, así que se puede usar en reuniones con clientes extranjeros, y además muestra subtítulos para que no se te escape nada."},
+
+    {"id": "pt-meeting-01", "lang": "pt", "cat": "meeting", "ref": "Bom, vamos começar a reunião. Primeiro, todo mundo consegue ver a minha tela? Ótimo, então aqui está a pauta de hoje."},
+    {"id": "pt-question-01", "lang": "pt", "cat": "question", "ref": "Vocês têm alguma pergunta até agora? Se não, vou passar para o próximo slide."},
+    {"id": "pt-numbers-01", "lang": "pt", "cat": "numbers", "ref": "A receita cresceu 12 % em relação ao ano passado e chegou a 4,2 milhões de reais. A maior parte veio dos nossos clientes corporativos."},
+    {"id": "pt-stream-01", "lang": "pt", "cat": "stream", "ref": "E aí, pessoal! Bem-vindos de volta à live. Hoje a gente finalmente vai derrotar o chefão final!"},
+    {"id": "pt-lecture-01", "lang": "pt", "cat": "lecture", "ref": "Hoje vamos falar sobre a fotossíntese. A fotossíntese é o processo que as plantas usam para transformar a luz do sol em energia. Ela acontece principalmente nas folhas. Sem ela, a vida na Terra não existiria."},
+    {"id": "pt-short-01", "lang": "pt", "cat": "short", "ref": "Sim, para mim está bom."},
+    {"id": "pt-support-01", "lang": "pt", "cat": "support", "ref": "Obrigado por ligar para o atendimento ao cliente. Meu nome é Ana. Como posso ajudar você?"},
+    {"id": "pt-casual-01", "lang": "pt", "cat": "casual", "ref": "Ontem eu fui naquele restaurante de lámen novo no centro. A fila estava enorme, mas a comida era só razoável."},
+    {"id": "pt-questions-02", "lang": "pt", "cat": "question", "ref": "Quem tomou essa decisão? Isso foi discutido na reunião? Ou veio da diretoria?"},
+    {"id": "pt-longsentence-01", "lang": "pt", "cat": "longsentence", "ref": "O aplicativo traduz a fala em tempo real, então dá para usar em reuniões com clientes estrangeiros, e ele também mostra legendas para você não perder nada."}
+  ]
+}
