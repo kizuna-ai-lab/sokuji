@@ -11,6 +11,28 @@
  * is the thin Blob-reading wrapper used by the download and import paths.
  */
 
+/**
+ * Whether the first bytes look like a CDN error body rather than a model file.
+ *
+ * This used to be `head[0] === 0x3c` — any file starting with '<'. That rejected
+ * two files in the manifest that legitimately start with one: FireRedPunc's
+ * `out_dict` opens with `<space> 0` and Edge-Punct's `bpe.vocab` with `<unk>`,
+ * so both punctuation models failed every download attempt. No test caught it
+ * because no fixture happened to start with '<'; the slice 3 live check did.
+ *
+ * `validateModelFile` reads four bytes, and four is enough to tell the cases
+ * apart: an error body opens `<!DO…` (doctype), `<htm…`, or `<?xm…` (the XML
+ * bodies S3-style CDNs return), while a vocabulary entry opens `<spa…`/`<unk…`.
+ * Nothing in the manifest is HTML or XML, so those three prefixes stay fatal.
+ */
+function looksLikeErrorPage(head: Uint8Array): boolean {
+  if (head[0] !== 0x3c) return false; // '<'
+  if (head[1] === 0x21 || head[1] === 0x3f) return true; // '<!' or '<?'
+  // '<htm', case-insensitive: OR 0x20 lowercases an ASCII letter.
+  const lower = (b: number | undefined) => (b === undefined ? -1 : b | 0x20);
+  return lower(head[1]) === 0x68 && lower(head[2]) === 0x74 && lower(head[3]) === 0x6d;
+}
+
 /** Thrown when a model file fails a structural/size sanity check. */
 export class ModelFileValidationError extends Error {
   constructor(message: string) {
@@ -43,8 +65,7 @@ export function checkModelFile(params: ModelFileCheck): void {
   const ext = filename.split('.').pop()?.toLowerCase();
 
   // 1. HTML check — any file type could get a 404/error HTML page from the CDN.
-  if (head[0] === 0x3c) {
-    // '<'
+  if (looksLikeErrorPage(head)) {
     throw new ModelFileValidationError(
       `Invalid file ${filename}: received HTML instead of expected content (likely 404 or CDN error)`,
     );

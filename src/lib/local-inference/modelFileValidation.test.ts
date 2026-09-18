@@ -23,7 +23,10 @@ describe('checkModelFile', () => {
       }),
     ).toThrow(ModelFileValidationError);
     try {
-      checkModelFile({ filename: 'x.onnx', size: 1, expectedSizeBytes: 1, head: new Uint8Array([0x3c]) });
+      checkModelFile({
+        filename: 'x.onnx', size: 1, expectedSizeBytes: 1,
+        head: new Uint8Array([0x3c, 0x21]), // '<!'
+      });
     } catch (e) {
       expect((e as Error).message).toMatch(/HTML/i);
     }
@@ -117,5 +120,48 @@ describe('checkModelFile', () => {
         text: '{"ok": true}',
       }),
     ).not.toThrow();
+  });
+});
+
+describe("checkModelFile's HTML guard does not fire on files that legitimately start with '<'", () => {
+  // Found by the slice 3 live check, not by any test: both punctuation models
+  // failed to download because the guard only looked at the first byte. A 404
+  // page and a vocabulary file both start with '<'; only one of them is HTML.
+  it("accepts FireRedPunc's out_dict, whose first line is '<space> 0'", () => {
+    expect(() =>
+      checkModelFile({
+        filename: 'out_dict',
+        size: 33,
+        expectedSizeBytes: 33,
+        head: new Uint8Array([0x3c, 0x73, 0x70, 0x61]),
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepts Edge-Punct's bpe.vocab, whose first token is '<unk>'", () => {
+    expect(() =>
+      checkModelFile({
+        filename: 'bpe.vocab',
+        size: 149_430,
+        expectedSizeBytes: 149_430,
+        head: new Uint8Array([0x3c, 0x75, 0x6e, 0x6b]),
+      }),
+    ).not.toThrow();
+  });
+
+  it.each([
+    ['a doctype', '<!DOCTYPE html>'],
+    ['a bare html tag', '<html><body>404'],
+    ['an uppercase html tag', '<HTML><BODY>404'],
+    ['an XML error body, which S3-style CDNs return', '<?xml version="1.0"?>'],
+  ])('still rejects %s', (_label, content) => {
+    expect(() =>
+      checkModelFile({
+        filename: 'out_dict',
+        size: 500,
+        expectedSizeBytes: 500,
+        head: new Uint8Array(Array.from(content.slice(0, 4), (c) => c.charCodeAt(0))),
+      }),
+    ).toThrow(/HTML/i);
   });
 });
