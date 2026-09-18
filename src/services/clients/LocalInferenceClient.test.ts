@@ -531,3 +531,50 @@ describe('LocalInferenceClient sentence segmentation', () => {
     expect(inProgressCounts.every((n) => n <= 1)).toBe(true);
   });
 });
+
+/**
+ * The voxtral worker finalizes an utterance the moment its decoded text ends
+ * with `. 。 ! ? ！ ？` (`streaming-generation.ts` SENTENCE_END_PATTERN), which
+ * is a hard-coded one-sentence segmenter sitting a layer below this stage: it
+ * caps every bubble at one sentence however `sentencesPerChunk` is set, and,
+ * having no right-context guard, it cuts inside a word whenever the decoder
+ * emits a period mid-word ("all these. / ous cases"). When this stage is
+ * sealing, that lower splitter is redundant and harmful, so the client turns
+ * it off; when it is not, the worker keeps today's behaviour exactly.
+ */
+describe('LocalInferenceClient worker punctuation endpoint', () => {
+  beforeEach(() => {
+    hoisted.manifestEntries.clear();
+    hoisted.streamingInstances.length = 0;
+    hoisted.offlineInstances.length = 0;
+  });
+
+  /** The options object the client passed to StreamingAsrEngine.init(). */
+  function initOptions(): any {
+    return hoisted.streamingInstances[0].init.mock.calls[0][1];
+  }
+
+  it('is off while this stage is sealing', async () => {
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'voxtral' } });
+    const client = makeClient({ segmentation: fakeRuntime(true), sentencesPerChunk: 3 });
+    await client.connect(STREAM_CONFIG);
+
+    expect(initOptions().punctuationEndpoint).toBe(false);
+  });
+
+  it('stays on when there is no runtime', async () => {
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'voxtral' } });
+    const client = makeClient({});
+    await client.connect(STREAM_CONFIG);
+
+    expect(initOptions().punctuationEndpoint).toBe(true);
+  });
+
+  it('stays on when the runtime is disabled', async () => {
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'voxtral' } });
+    const client = makeClient({ segmentation: fakeRuntime(false), sentencesPerChunk: 3 });
+    await client.connect(STREAM_CONFIG);
+
+    expect(initOptions().punctuationEndpoint).toBe(true);
+  });
+});

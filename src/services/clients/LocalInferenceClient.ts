@@ -371,7 +371,16 @@ export class LocalInferenceClient implements IClient {
           minSpeechDuration: config.vadMinSpeechDuration,
         };
         if (asrModel?.type === 'asr-stream') {
-          return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId, { language: config.sourceLanguage, vadConfig });
+          return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId, {
+            language: config.sourceLanguage,
+            vadConfig,
+            // The negation of ensureStream()'s condition, and it must stay that
+            // way: whichever of the two layers seals, exactly one must. AST
+            // mode is unreachable here today (both granite cards are type
+            // 'asr'), but an AST stream with both endpoints off would never
+            // seal at all.
+            punctuationEndpoint: isAstMode || !this.segmentation?.enabled,
+          });
         } else {
           const taskConfig = isAstMode
             ? { task: 'translate' as const, targetLanguage: config.targetLanguage }
