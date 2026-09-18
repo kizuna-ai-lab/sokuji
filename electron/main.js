@@ -6,6 +6,7 @@ const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { setupTranscriptSaveHandler } = require('./transcript-save.js');
+const { createCloseHandshake } = require('./close-handshake.js');
 const { applyLinuxGpuFlags } = require('./linux-gpu-flags');
 const { acquireSingleInstanceLock, createFocusRelay } = require('./single-instance');
 
@@ -132,6 +133,14 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 // ready, and register the passive GPU-crash detector. Recovery mode itself runs
 // in whenReady (below), before the transparent main window is created.
 const sandboxRecovery = process.platform === 'win32' ? require('./sandbox-recovery') : null;
+
+// Closing the window or quitting mid-session ends the session first, so its
+// final lines are captured and auto-saved like any other Stop.
+const closeHandshake = createCloseHandshake({ quitApp: () => app.quit() });
+ipcMain.handle('app:close-ready', () => {
+  closeHandshake.ready();
+});
+
 // sandbox-recovery relaunches via app.exit(), which skips before-quit/will-quit,
 // so it must run the sidecar teardown itself or the native sidecar orphans and
 // keeps its Windows file locks. (removeVirtualAudioDevices is a Linux-only no-op.)
@@ -395,6 +404,8 @@ function createWindow() {
   // An Electron-drawn Minimize/Maximize/Close menu takes its place.
   setupCaptionContextMenu(mainWindow);
   setupPopoverWindowHandlers(mainWindow);
+  closeHandshake.attachWindow(mainWindow);
+  mainWindow.on('close', (event) => closeHandshake.onWindowClose(event));
 
   // Set custom User Agent for the window
   mainWindow.webContents.setUserAgent(customUserAgent);
@@ -439,13 +450,11 @@ function createWindow() {
 
   // Emitted when the window is closed
   mainWindow.on('closed', function () {
-    // Ensure audio devices are cleaned up when window is closed
-    if (process.platform === 'darwin') {
-      // On macOS, we only clean up devices if the app is actually quitting
-      // This is because on macOS, closing all windows doesn't quit the app
-      app.on('before-quit', cleanupAndExit);
-    } else {
-      // On other platforms, clean up when the window is closed
+    // On macOS closing the window does not quit the app; the before-quit
+    // listener below runs the cleanup when it actually quits. (This used to
+    // register a second before-quit listener per close, which would run the
+    // cleanup while the close handshake holds a quit.)
+    if (process.platform !== 'darwin') {
       cleanupAndExit();
     }
     mainWindow = null;
@@ -579,8 +588,13 @@ const handleExit = (signal) => {
   process.exit(exitCode);
 };
 
-// Register cleanup function with app's before-quit event
-app.on('before-quit', cleanupAndExit);
+// Register cleanup with before-quit — but not while the close handshake holds
+// the quit for the renderer to end its session: cleanup stops the native host
+// and removes the virtual audio devices that session may still be using.
+app.on('before-quit', (event) => {
+  if (!closeHandshake.onBeforeQuit(event)) return;
+  cleanupAndExit();
+});
 
 // Register our exit handler for various signals
 process.on('SIGINT', () => handleExit('SIGINT'));

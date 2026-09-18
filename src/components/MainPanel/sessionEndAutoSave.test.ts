@@ -133,4 +133,20 @@ describe('session-end auto-save ordering', () => {
     await expect(stopSession({ wasActive: true, speaker })).rejects.toThrow('reset blew up');
     expect(texts(saved.mock.calls[0][0])).toEqual(['MINE']);
   });
+
+  it('a close request during an in-flight Stop answers only after the file is saved', async () => {
+    const order: string[] = [];
+    saved.mockImplementationOnce(async () => { order.push('saved'); return 'saved'; });
+    const inFlight = stopSession({
+      wasActive: true,
+      participant: client([line('p1', 'THEIRS', 1)], [line('p2', 'THEIR-LAST', 2)]),
+    });
+    // What MainPanel's close listener does: the session already reads
+    // inactive, so it only awaits disconnectDoneRef, then answers.
+    const onCloseRequested = async (done: Promise<void>) => {
+      try { await done; } finally { order.push('close-ready'); }
+    };
+    await onCloseRequested(inFlight);
+    expect(order).toEqual(['saved', 'close-ready']);
+  });
 });

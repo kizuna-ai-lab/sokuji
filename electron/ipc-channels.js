@@ -91,6 +91,8 @@ export const INVOKE_CHANNELS = [
   // Session-end auto-save: the renderer hands over the text, main names and
   // writes the file into Downloads.
   'transcript:save',
+  // Window-close handshake: the renderer has ended its session.
+  'app:close-ready',
   // Externally-registered (electron-audio-loopback)
   ...EXTERNAL_INVOKE_CHANNELS,
 ];

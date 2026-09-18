@@ -1939,6 +1939,27 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     disconnectConversationRef.current = disconnectConversation;
   }, [disconnectConversation]);
 
+  // Desktop: closing the window (or quitting) mid-session ends the session
+  // first, so its final lines are captured and auto-saved like any other Stop.
+  // The main process holds the close until this answers, or 5 s pass.
+  useEffect(() => {
+    if (!isElectron()) return;
+    const onCloseRequested = async () => {
+      try {
+        if (useSessionStore.getState().isSessionActive) {
+          await disconnectConversationRef.current?.();
+        }
+        // Covers a Stop already in flight: disconnectConversation's re-entry
+        // guard returns at once, so wait for that teardown — save included.
+        await disconnectDoneRef.current;
+      } finally {
+        void window.electron.invoke('app:close-ready');
+      }
+    };
+    window.electron.receive('app:close-requested', onCloseRequested);
+    return () => window.electron.removeListener('app:close-requested', onCloseRequested);
+  }, []);
+
   /**
    * Connect to conversation:
    * ModernAudioRecorder takes speech input, audio service provides output, client is API client
