@@ -67,3 +67,15 @@ describe('macOS signing entitlements (#458)', () => {
     }
   });
 });
+
+describe('macOS privacy usage strings', () => {
+  it('explains the Downloads prompt the session-end auto-save raises', () => {
+    // transcript-save.js writes into ~/Downloads without a Save dialog, so
+    // macOS asks for access on the first auto-save; without this key the
+    // prompt names the folder but gives the user no reason.
+    const text = mac.extendInfo?.NSDownloadsFolderUsageDescription;
+    expect(typeof text).toBe('string');
+    expect(text).toMatch(/Downloads/);
+    expect(text).toMatch(/auto-save/);
+  });
+});

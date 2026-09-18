@@ -114,6 +114,7 @@ export interface CommonSettings {
   participantSystemInstructions: string;
   textOnly: boolean;
   keepReplayAudio: boolean;
+  autoSaveOnStop: boolean;
   diagnosticLogs: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
@@ -140,6 +141,7 @@ const defaultCommonSettings: CommonSettings = {
   uiMode: 'basic',
   textOnly: false,
   keepReplayAudio: false,
+  autoSaveOnStop: false,
   diagnosticLogs: false,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
@@ -270,6 +272,11 @@ export interface SettingsStore {
   // on the next session.
   keepReplayAudio: boolean;
 
+  // Auto-save the whole conversation — both sides, originals and
+  // translations — as a .txt file whenever a session ends, whatever the
+  // Export menu's scope boxes say (those govern only the manual export). Off
+  // by default — exporting is an explicit, opt-in action.
+  autoSaveOnStop: boolean;
   // Diagnostic logs (Help). Opt-in: while off, logStore records nothing and
   // the title bar offers no logs button.
   diagnosticLogs: boolean;
@@ -294,6 +301,7 @@ export interface SettingsStore {
   setUIMode: (mode: 'basic' | 'advanced') => void;
   setTextOnly: (textOnly: boolean) => void;
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
+  setAutoSaveOnStop: (autoSaveOnStop: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
@@ -739,6 +747,14 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    setAutoSaveOnStop: async (autoSaveOnStop) => {
+      const previous = get().autoSaveOnStop;
+      set({autoSaveOnStop});
+      if (!await persistSetting('settings.common.autoSaveOnStop', autoSaveOnStop)) {
+        set({autoSaveOnStop: previous});
+      }
+    },
+
     // The log store follows this switch. Applied before the write so the
     // panel reacts at once, and rolled back with it if the write fails.
     setDiagnosticLogs: async (diagnosticLogs) => {
@@ -1169,6 +1185,7 @@ const useSettingsStore = create<SettingsStore>()(
         const participantSystemInstructions = await service.getSetting('settings.common.participantSystemInstructions', defaultCommonSettings.participantSystemInstructions);
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
+        const autoSaveOnStop = await service.getSetting('settings.common.autoSaveOnStop', defaultCommonSettings.autoSaveOnStop);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
         // Subtitle settings now hydrated by subtitleStore.hydrate(); see stores/subtitleStore.ts.
@@ -1229,6 +1246,7 @@ const useSettingsStore = create<SettingsStore>()(
           participantSystemInstructions,
           textOnly,
           keepReplayAudio,
+          autoSaveOnStop,
           diagnosticLogs,
           speakerDisplayMode,
           participantDisplayMode,
@@ -1445,6 +1463,7 @@ export const useSettingsLoaded = () => useSettingsStore((state) => state.setting
 // Actions
 export const useTextOnly = () => useSettingsStore((state) => state.textOnly);
 export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepReplayAudio);
+export const useAutoSaveOnStop = () => useSettingsStore((state) => state.autoSaveOnStop);
 export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
 export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
 
@@ -1453,6 +1472,7 @@ export const useSetUILanguage = () => useSettingsStore((state) => state.setUILan
 export const useSetUIMode = () => useSettingsStore((state) => state.setUIMode);
 export const useSetTextOnly = () => useSettingsStore((state) => state.setTextOnly);
 export const useSetKeepReplayAudio = () => useSettingsStore((state) => state.setKeepReplayAudio);
+export const useSetAutoSaveOnStop = () => useSettingsStore((state) => state.setAutoSaveOnStop);
 export const useSetSpeakerDisplayMode = () => useSettingsStore((state) => state.setSpeakerDisplayMode);
 export const useSetParticipantDisplayMode = () => useSettingsStore((state) => state.setParticipantDisplayMode);
 export const useSetSystemInstructions = () => useSettingsStore((state) => state.setSystemInstructions);

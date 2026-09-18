@@ -602,7 +602,15 @@
       "headerSource": "我的語言",
       "headerTarget": "對方語言",
       "headerNote": "注意：設定反映匯出時的當前狀態，不含會話中途的更改。",
-      "headerNarrowed": "注意：本次匯出在匯出時已縮小範圍，部分內容未包含。"
+      "headerNarrowed": "注意：本次匯出在匯出時已縮小範圍，部分內容未包含。",
+      "autoSave": {
+        "label": "工作階段結束時自動儲存",
+        "tooltipDesktop": "工作階段結束時，將完整對話（雙方的原文與譯文）儲存為 .txt 檔案，放在「下載」資料夾。",
+        "tooltipBrowser": "工作階段結束時，將完整對話（雙方的原文與譯文）下載為 .txt 檔案。工作階段進行中關閉側邊欄不會儲存，請先結束工作階段。",
+        "saved": "對話已儲存：{{filename}}",
+        "showInFolder": "在資料夾中顯示",
+        "failed": "對話自動儲存失敗。你仍可在匯出選單中使用「{{action}}」儲存。"
+      }
     },
     "waveformOutputTooltip": "傳送到虛擬麥克風的音訊（翻譯 + 原聲直通）",
     "waveformMicTooltip": "您的麥克風 —— 正在擷取您的聲音用於翻譯",

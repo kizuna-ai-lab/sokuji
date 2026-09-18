@@ -2,9 +2,13 @@ import { describe, it, expect } from 'vitest';
 import type { ConversationItem } from '../services/interfaces/IClient';
 import type { DisplayMode } from '../stores/settingsStore';
 import {
+  buildExportPayload,
   buildSessionMetadata,
+  buildTxtExport,
+  buildTxtI18n,
   collectLanguagePairs,
   deriveSessionLanguagePair,
+  exportFilename,
   formatAsJson,
   formatAsTxt,
   normalizeMessages,
@@ -245,5 +249,62 @@ describe('formatAsJson — per-message language and pairs', () => {
   it('does not emit the legacy "settings reflect current state" note', () => {
     const out = JSON.parse(formatAsJson([], metadata([])));
     expect(out.session.note).toBeUndefined();
+  });
+});
+
+describe('buildTxtI18n', () => {
+  it('looks up every label under mainPanel.export with its English default', () => {
+    const seen: string[] = [];
+    const out = buildTxtI18n((key, def) => { seen.push(key); return def; });
+
+    expect(out.speakerYou).toBe('Me');
+    expect(out.headerTarget).toBe("Other's Language");
+    expect(seen).toHaveLength(11);
+    expect(seen.every(k => k.startsWith('mainPanel.export.'))).toBe(true);
+  });
+});
+
+describe('buildExportPayload / buildTxtExport', () => {
+  const input = {
+    items: [
+      makeItem({ id: 'a', source: 'speaker', role: 'user', formatted: { text: 'hello' } }),
+      makeItem({ id: 'b', source: 'participant', role: 'assistant', formatted: { text: 'bonjour' } }),
+      makeItem({ id: 'c', status: 'in_progress', formatted: { text: 'unfinished' } }),
+    ],
+    provider: 'openai',
+    providerSettings: { model: 'gpt-x' },
+    localInferenceSettings: {},
+    fallbackLanguages: { sourceLanguage: 'EN', targetLanguage: 'FR' },
+  };
+
+  it('normalizes the items and snapshots the metadata', () => {
+    const { messages, metadata } = buildExportPayload(input);
+    expect(messages.map(m => m.text)).toEqual(['hello', 'bonjour']);
+    expect(metadata.provider).toBe('openai');
+    expect(metadata.models).toEqual({ translation: 'gpt-x' });
+    expect(metadata.sourceLanguage).toBe('EN');
+    expect(metadata.scope).toBeUndefined();
+  });
+
+  it('writes the full conversation with no narrowed note when no scope is given', () => {
+    const { content } = buildTxtExport(input, i18n);
+    expect(content).toContain('hello');
+    expect(content).toContain('bonjour');
+    expect(content).not.toContain('unfinished');
+    expect(content).not.toContain(i18n.headerNarrowed);
+  });
+
+  it('names the file after the time only', () => {
+    const { filename } = buildTxtExport(input, i18n);
+    expect(filename).toMatch(/^sokuji-conversation-\d{8}-\d{6}\.txt$/);
+    expect(filename).not.toContain('hello');
+  });
+});
+
+describe('exportFilename', () => {
+  it('stamps local time and the extension', () => {
+    const ts = new Date(2026, 8, 18, 9, 5, 7).getTime();
+    expect(exportFilename('txt', ts)).toBe('sokuji-conversation-20260918-090507.txt');
+    expect(exportFilename('json', ts)).toBe('sokuji-conversation-20260918-090507.json');
   });
 });

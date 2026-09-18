@@ -602,7 +602,15 @@
       "headerSource": "Meine Sprache",
       "headerTarget": "Sprache des Gegenübers",
       "headerNote": "Hinweis: Die Einstellungen spiegeln den aktuellen Stand beim Export wider, nicht Änderungen während der Sitzung.",
-      "headerNarrowed": "Hinweis: Dieser Export wurde beim Exportieren eingeschränkt – einige Zeilen fehlen."
+      "headerNarrowed": "Hinweis: Dieser Export wurde beim Exportieren eingeschränkt – einige Zeilen fehlen.",
+      "autoSave": {
+        "label": "Bei Sitzungsende automatisch speichern",
+        "tooltipDesktop": "Wenn eine Sitzung endet, wird die gesamte Unterhaltung – beide Seiten, Originale und Übersetzungen – als .txt-Datei im Downloads-Ordner gespeichert.",
+        "tooltipBrowser": "Wenn eine Sitzung endet, wird die gesamte Unterhaltung – beide Seiten, Originale und Übersetzungen – als .txt-Datei heruntergeladen. Wird die Seitenleiste während einer Sitzung geschlossen, wird nichts gespeichert; zuerst die Sitzung beenden.",
+        "saved": "Unterhaltung gespeichert: {{filename}}",
+        "showInFolder": "Im Ordner anzeigen",
+        "failed": "Die Unterhaltung konnte nicht automatisch gespeichert werden. Sie lässt sich weiterhin über „{{action}}“ im Exportmenü speichern."
+      }
     },
     "waveformOutputTooltip": "Audio, das an das virtuelle Mikrofon gesendet wird (Übersetzung + Durchleitung)",
     "waveformMicTooltip": "Ihr Mikrofon — Ihre Stimme, die zur Übersetzung erfasst wird",

@@ -602,7 +602,15 @@
       "headerSource": "我的语言",
       "headerTarget": "对方语言",
       "headerNote": "注意：设置反映导出时的当前状态，不包含会话中途的更改。",
-      "headerNarrowed": "注意：本次导出在导出时已缩小范围，部分内容未包含。"
+      "headerNarrowed": "注意：本次导出在导出时已缩小范围，部分内容未包含。",
+      "autoSave": {
+        "label": "会话结束时自动保存",
+        "tooltipDesktop": "会话结束时，把完整对话（双方的原文和译文）保存为 .txt 文件，放在「下载」文件夹。",
+        "tooltipBrowser": "会话结束时，把完整对话（双方的原文和译文）下载为 .txt 文件。会话进行中关闭侧边栏不会保存，请先结束会话。",
+        "saved": "对话已保存：{{filename}}",
+        "showInFolder": "在文件夹中显示",
+        "failed": "对话自动保存失败。你仍可以在导出菜单中用「{{action}}」保存。"
+      }
     },
     "waveformOutputTooltip": "发送到虚拟麦克风的音频（翻译 + 原声直通）",
     "waveformMicTooltip": "您的麦克风 —— 正在捕获您的声音用于翻译",

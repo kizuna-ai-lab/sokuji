@@ -602,7 +602,15 @@
       "headerSource": "Minun kieleni",
       "headerTarget": "Toisen kieli",
       "headerNote": "Huom: asetukset heijastavat tilaa viennin hetkellä, eivät istunnon aikaisia muutoksia.",
-      "headerNarrowed": "Huomio: tätä vientiä rajattiin vietäessä – osa riveistä jätettiin pois."
+      "headerNarrowed": "Huomio: tätä vientiä rajattiin vietäessä – osa riveistä jätettiin pois.",
+      "autoSave": {
+        "label": "Tallenna automaattisesti istunnon päättyessä",
+        "tooltipDesktop": "Kun istunto päättyy, koko keskustelu – molemmat osapuolet, alkuperäiset ja käännökset – tallennetaan .txt-tiedostona Lataukset-kansioon.",
+        "tooltipBrowser": "Kun istunto päättyy, koko keskustelu – molemmat osapuolet, alkuperäiset ja käännökset – ladataan .txt-tiedostona. Sivupaneelin sulkeminen istunnon aikana ei tallenna sitä; lopeta istunto ensin.",
+        "saved": "Keskustelu tallennettu: {{filename}}",
+        "showInFolder": "Näytä kansiossa",
+        "failed": "Keskustelun automaattinen tallennus epäonnistui. Voit yhä tallentaa sen vientivalikon kohdasta ”{{action}}”."
+      }
     },
     "waveformOutputTooltip": "Virtuaalimikrofoniin lähetetty ääni (käännös + alkuperäisen äänen läpivienti)",
     "waveformMicTooltip": "Mikrofonisi — äänesi, joka kaapataan käännöstä varten",

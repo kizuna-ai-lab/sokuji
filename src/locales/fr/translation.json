@@ -602,7 +602,15 @@
       "headerSource": "Ma langue",
       "headerTarget": "Langue de l'autre",
       "headerNote": "Remarque : les paramètres reflètent l'état actuel au moment de l'export, pas les modifications en cours de session.",
-      "headerNarrowed": "Remarque : cet export a été restreint au moment de l'export — certaines lignes ont été omises."
+      "headerNarrowed": "Remarque : cet export a été restreint au moment de l'export — certaines lignes ont été omises.",
+      "autoSave": {
+        "label": "Enregistrer automatiquement en fin de session",
+        "tooltipDesktop": "À la fin d'une session, la conversation complète — les deux côtés, originaux et traductions — est enregistrée en fichier .txt dans votre dossier Téléchargements.",
+        "tooltipBrowser": "À la fin d'une session, la conversation complète — les deux côtés, originaux et traductions — est téléchargée en fichier .txt. Fermer le panneau latéral pendant une session ne l'enregistre pas ; terminez d'abord la session.",
+        "saved": "Conversation enregistrée : {{filename}}",
+        "showInFolder": "Afficher dans le dossier",
+        "failed": "Impossible d'enregistrer automatiquement la conversation. Vous pouvez toujours l'enregistrer avec « {{action}} » dans le menu d'exportation."
+      }
     },
     "waveformOutputTooltip": "Audio envoyé au microphone virtuel (traduction + passage audio original)",
     "waveformMicTooltip": "Votre microphone — votre voix captée pour la traduction",

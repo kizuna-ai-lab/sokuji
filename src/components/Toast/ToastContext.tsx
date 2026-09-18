@@ -1,16 +1,23 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import Toast, { type ToastVariant } from './Toast';
+import Toast, { type ToastVariant, type ToastAction } from './Toast';
 
 interface ToastEntry {
   id: string;
   text: string;
   variant: ToastVariant;
   durationMs: number;
+  action?: ToastAction;
+}
+
+export interface ToastOptions {
+  variant?: ToastVariant;
+  durationMs?: number;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  showToast: (text: string, opts?: { variant?: ToastVariant; durationMs?: number }) => void;
+  showToast: (text: string, opts?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -29,6 +36,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       text,
       variant: opts?.variant ?? 'success',
       durationMs: opts?.durationMs ?? 2000,
+      action: opts?.action,
     }]);
   }, []);
 
@@ -46,6 +54,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               text={t.text}
               variant={t.variant}
               durationMs={t.durationMs}
+              action={t.action}
               onDismiss={dismiss}
             />
           ))}

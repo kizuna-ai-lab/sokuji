@@ -88,6 +88,13 @@ export const INVOKE_CHANNELS = [
   'subtitle:get-screen-bounds',
   // Popover child-window visibility (see popover-windows.js)
   'popover-window:set-visible',
+  // Session-end auto-save: the renderer hands over the text, main names and
+  // writes the file into Downloads.
+  'transcript:save',
+  // Window-close handshake: the renderer has ended its session.
+  'app:close-ready',
+  // Window-close handshake: whether a session is running or tearing down.
+  'app:session-busy',
   // Externally-registered (electron-audio-loopback)
   ...EXTERNAL_INVOKE_CHANNELS,
 ];

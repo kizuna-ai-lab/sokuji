@@ -602,7 +602,15 @@
       "headerSource": "Benim dilim",
       "headerTarget": "Karşı tarafın dili",
       "headerNote": "Not: ayarlar dışa aktarma anındaki mevcut durumu yansıtır, oturum sırasındaki değişiklikleri değil.",
-      "headerNarrowed": "Not: bu dışa aktarmanın kapsamı aktarma sırasında daraltıldı — bazı satırlar dahil edilmedi."
+      "headerNarrowed": "Not: bu dışa aktarmanın kapsamı aktarma sırasında daraltıldı — bazı satırlar dahil edilmedi.",
+      "autoSave": {
+        "label": "Oturum bitince otomatik kaydet",
+        "tooltipDesktop": "Bir oturum bittiğinde sohbetin tamamı — iki taraf, orijinaller ve çeviriler — .txt dosyası olarak İndirilenler klasörüne kaydedilir.",
+        "tooltipBrowser": "Bir oturum bittiğinde sohbetin tamamı — iki taraf, orijinaller ve çeviriler — .txt dosyası olarak indirilir. Oturum sırasında yan paneli kapatmak sohbeti kaydetmez; önce oturumu sonlandırın.",
+        "saved": "Sohbet kaydedildi: {{filename}}",
+        "showInFolder": "Klasörde göster",
+        "failed": "Sohbet otomatik olarak kaydedilemedi. Dışa aktarma menüsündeki “{{action}}” ile yine de kaydedebilirsiniz."
+      }
     },
     "waveformOutputTooltip": "Sanal mikrofona gönderilen ses (çeviri + orijinal ses geçişi)",
     "waveformMicTooltip": "Mikrofonunuz — sesiniz çeviri için kaydediliyor",

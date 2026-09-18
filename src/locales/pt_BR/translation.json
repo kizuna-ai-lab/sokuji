@@ -602,7 +602,15 @@
       "headerSource": "Meu idioma",
       "headerTarget": "Idioma do outro",
       "headerNote": "Nota: as configurações refletem o estado atual no momento da exportação, não alterações feitas durante a sessão.",
-      "headerNarrowed": "Observação: esta exportação foi restringida no momento da exportação — algumas linhas foram omitidas."
+      "headerNarrowed": "Observação: esta exportação foi restringida no momento da exportação — algumas linhas foram omitidas.",
+      "autoSave": {
+        "label": "Salvar automaticamente ao encerrar a sessão",
+        "tooltipDesktop": "Ao encerrar uma sessão, a conversa inteira — os dois lados, originais e traduções — é salva como arquivo .txt na sua pasta Downloads.",
+        "tooltipBrowser": "Ao encerrar uma sessão, a conversa inteira — os dois lados, originais e traduções — é baixada como arquivo .txt. Fechar o painel lateral durante uma sessão não a salva; encerre a sessão primeiro.",
+        "saved": "Conversa salva: {{filename}}",
+        "showInFolder": "Mostrar na pasta",
+        "failed": "Não foi possível salvar a conversa automaticamente. Você ainda pode salvá-la com “{{action}}” no menu de exportação."
+      }
     },
     "waveformOutputTooltip": "Áudio enviado ao microfone virtual (tradução + passthrough)",
     "waveformMicTooltip": "Seu microfone — sua voz capturada para tradução",

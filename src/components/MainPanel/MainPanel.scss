@@ -65,9 +65,14 @@
   border-radius: 4px;
   transition: color 0.15s, background-color 0.15s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     color: #e74c3c;
     background: rgba(231, 76, 60, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
   }
 }
 

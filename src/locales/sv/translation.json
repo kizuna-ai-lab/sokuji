@@ -602,7 +602,15 @@
       "headerSource": "Mitt språk",
       "headerTarget": "Den andras språk",
       "headerNote": "Obs: inställningarna speglar det aktuella tillståndet vid export, inte ändringar under sessionen.",
-      "headerNarrowed": "Obs: den här exporten begränsades vid exporten – vissa rader utelämnades."
+      "headerNarrowed": "Obs: den här exporten begränsades vid exporten – vissa rader utelämnades.",
+      "autoSave": {
+        "label": "Spara automatiskt när sessionen avslutas",
+        "tooltipDesktop": "När en session avslutas sparas hela konversationen – båda sidor, original och översättningar – som en .txt-fil i mappen Hämtade filer.",
+        "tooltipBrowser": "När en session avslutas laddas hela konversationen – båda sidor, original och översättningar – ned som en .txt-fil. Om sidopanelen stängs under en session sparas den inte; avsluta sessionen först.",
+        "saved": "Konversationen sparad: {{filename}}",
+        "showInFolder": "Visa i mapp",
+        "failed": "Konversationen kunde inte sparas automatiskt. Du kan fortfarande spara den med ”{{action}}” i exportmenyn."
+      }
     },
     "waveformOutputTooltip": "Ljud som skickas till den virtuella mikrofonen (översättning + genomströmning av originalljud)",
     "waveformMicTooltip": "Din mikrofon — din röst som fångas för översättning",

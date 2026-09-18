@@ -602,7 +602,15 @@
       "headerSource": "My Language",
       "headerTarget": "Other's Language",
       "headerNote": "Note: settings reflect current state at export, not mid-session changes.",
-      "headerNarrowed": "Note: this export was narrowed at export time — some lines were left out."
+      "headerNarrowed": "Note: this export was narrowed at export time — some lines were left out.",
+      "autoSave": {
+        "label": "Auto-save when session ends",
+        "tooltipDesktop": "When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.",
+        "tooltipBrowser": "When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.",
+        "saved": "Conversation saved: {{filename}}",
+        "showInFolder": "Show in folder",
+        "failed": "Couldn't auto-save the conversation. You can still save it with “{{action}}” in the export menu."
+      }
     },
     "waveformOutputTooltip": "Audio sent to the virtual microphone (translation + passthrough)",
     "waveformMicTooltip": "Your microphone — your voice being captured for translation",

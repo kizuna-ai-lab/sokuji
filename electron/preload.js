@@ -73,6 +73,8 @@ const validReceiveChannels = [
   // Per-application audio capture: PCM chunks and helper lifecycle events
   'app-audio:pcm',
   'app-audio:event',
+  // Window close / app quit: end the session before the window goes
+  'app:close-requested',
 ];
 
 // Expose protected methods that allow the renderer process to use

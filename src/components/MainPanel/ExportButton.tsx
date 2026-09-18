@@ -20,20 +20,22 @@ import type { ConversationItem } from '../../services/interfaces/IClient';
 import type { DisplayMode } from '../../stores/settingsStore';
 import { shouldShowItem, modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
 import {
-  buildSessionMetadata,
-  collectLanguagePairs,
+  buildExportPayload,
+  buildTxtExport,
+  buildTxtI18n,
   copyToClipboard,
-  deriveSessionLanguagePair,
   downloadFile,
+  exportFilename,
   formatAsJson,
   formatAsTxt,
-  formatTimestampForFilename,
-  getActiveModelInfo,
   normalizeMessages,
+  type ExportInput,
   type TxtI18n,
 } from '../../utils/conversationExport';
 import { useToast } from '../Toast';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
+import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
+import { isElectron } from '../../utils/environment';
 import './ExportButton.scss';
 
 interface ExportButtonProps {
@@ -88,6 +90,11 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const listRef = React.useRef<Array<HTMLElement | null>>([]);
+
+  // The session-end auto-save lives here, next to the export it automates.
+  const autoSaveOnStop = useAutoSaveOnStop();
+  const setAutoSaveOnStop = useSetAutoSaveOnStop();
+  const toggleAutoSave = () => { void setAutoSaveOnStop(!autoSaveOnStop); };
 
   // Roving tabindex: when the menu opens, make the first item tabbable so
   // keyboard focus (managed by FloatingFocusManager) lands on something.
@@ -189,7 +196,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         </div>
       ))}
     </div>
-    {!scopeHasContent && (
+    {hasContent && !scopeHasContent && (
       <div className="export-scope-empty">
         {t('mainPanel.export.scopeEmpty', 'Nothing selected')}
       </div>
@@ -236,19 +243,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   ]);
 
   // Collect i18n strings once per render.
-  const txtI18n: TxtI18n = useMemo(() => ({
-    speakerYou: t('mainPanel.export.speakerYou', 'Me'),
-    speakerOther: t('mainPanel.export.speakerOther', 'Other'),
-    translationSuffix: t('mainPanel.export.translationSuffix', '(trans)'),
-    headerTitle: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),
-    headerGenerated: t('mainPanel.export.headerGenerated', 'Generated'),
-    headerProvider: t('mainPanel.export.headerProvider', 'Provider'),
-    headerModels: t('mainPanel.export.headerModels', 'Models'),
-    headerSource: t('mainPanel.export.headerSource', 'My Language'),
-    headerTarget: t('mainPanel.export.headerTarget', "Other's Language"),
-    headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
-    headerNarrowed: t('mainPanel.export.headerNarrowed', 'Note: this export was narrowed at export time — some lines were left out.'),
-  }), [t]);
+  const txtI18n: TxtI18n = useMemo(() => buildTxtI18n((key, def) => t(key, def)), [t]);
 
   // Close whichever host is active; each call no-ops for the inactive one.
   const closeMenu = useCallback(() => {
@@ -256,33 +251,21 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     childMenu.onClose('action');
   }, [childMenu]);
 
-  /** Compute a fresh export payload at click time. */
-  const buildPayload = useCallback(() => {
-    const models = getActiveModelInfo(provider, currentProviderSettings, localInferenceSettings);
-    // Prefer the language pair captured on the messages over the live config
-    // — the conversation may have ended and the user may have since switched
-    // languages, in which case the live config no longer matches the data.
-    const sessionPair = deriveSessionLanguagePair(normalizedMessages, {
-      sourceLanguage,
-      targetLanguage,
-    });
-    const languagePairs = collectLanguagePairs(normalizedMessages);
-    const metadata = buildSessionMetadata({
-      provider,
-      models,
-      sourceLanguage: sessionPair.sourceLanguage,
-      targetLanguage: sessionPair.targetLanguage,
-      languagePairs,
-      // Recorded so the file says whether it is the whole conversation. A
-      // full scope is dropped inside buildSessionMetadata.
-      scope: { speaker: togglesToMode(speaker), participant: togglesToMode(participant) },
-    });
-    return { messages: normalizedMessages, metadata };
-  }, [normalizedMessages, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage, speaker, participant]);
+  /** The export input for the current scope, computed at click time. */
+  const exportInput = useCallback((): ExportInput => ({
+    items: scopedItems,
+    provider,
+    providerSettings: currentProviderSettings,
+    localInferenceSettings,
+    fallbackLanguages: { sourceLanguage, targetLanguage },
+    // Recorded so the file says whether it is the whole conversation. A full
+    // scope is dropped inside buildSessionMetadata.
+    scope: { speaker: togglesToMode(speaker), participant: togglesToMode(participant) },
+  }), [scopedItems, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage, speaker, participant]);
 
   const handleCopy = useCallback(async () => {
     closeMenu();
-    const { messages, metadata } = buildPayload();
+    const { messages, metadata } = buildExportPayload(exportInput());
     const text = formatAsTxt(messages, metadata, txtI18n, { includeHeader: false });
     const ok = await copyToClipboard(text);
     if (ok) {
@@ -290,29 +273,59 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     } else {
       showToast(t('mainPanel.export.copyFailed', 'Failed to copy. Check browser permissions.'), { variant: 'error', durationMs: 4000 });
     }
-  }, [buildPayload, showToast, t, txtI18n, closeMenu]);
+  }, [exportInput, showToast, t, txtI18n, closeMenu]);
 
   const handleDownloadTxt = useCallback(() => {
     closeMenu();
-    const { messages, metadata } = buildPayload();
-    const content = formatAsTxt(messages, metadata, txtI18n, { includeHeader: true });
-    const filename = `sokuji-conversation-${formatTimestampForFilename(Date.now())}.txt`;
+    const { content, filename } = buildTxtExport(exportInput(), txtI18n);
     downloadFile(content, filename, 'text/plain;charset=utf-8');
-  }, [buildPayload, txtI18n, closeMenu]);
+  }, [exportInput, txtI18n, closeMenu]);
 
   const handleDownloadJson = useCallback(() => {
     closeMenu();
-    const { messages, metadata } = buildPayload();
-    const content = formatAsJson(messages, metadata);
-    const filename = `sokuji-conversation-${formatTimestampForFilename(Date.now())}.json`;
-    downloadFile(content, filename, 'application/json');
-  }, [buildPayload, closeMenu]);
+    const { messages, metadata } = buildExportPayload(exportInput());
+    downloadFile(formatAsJson(messages, metadata), exportFilename('json'), 'application/json');
+  }, [exportInput, closeMenu]);
 
   const items = useMemo(() => ([
     { key: 'copy', label: t('mainPanel.export.copyToClipboard', 'Copy to clipboard'), Icon: Copy, onClick: handleCopy },
     { key: 'txt',  label: t('mainPanel.export.downloadTxt',     'Download as .txt'),    Icon: FileText, onClick: handleDownloadTxt },
     { key: 'json', label: t('mainPanel.export.downloadJson',    'Download as .json'),   Icon: FileJson, onClick: handleDownloadJson },
   ]), [t, handleCopy, handleDownloadTxt, handleDownloadJson]);
+
+  const autoSaveLabel = t('mainPanel.export.autoSave.label', 'Auto-save when session ends');
+  // A native title, like the toolbar buttons: the Tooltip component clones its
+  // child and would fight the roving-tabindex ref, and the child-window host's
+  // 240px OS window would clip a floating tooltip anyway.
+  const autoSaveTooltip = isElectron()
+    ? t('mainPanel.export.autoSave.tooltipDesktop', 'When a session ends, save the whole conversation — both sides, originals and translations — as a .txt file in your Downloads folder.')
+    : t('mainPanel.export.autoSave.tooltipBrowser', 'When a session ends, download the whole conversation — both sides, originals and translations — as a .txt file. Closing the side panel during a session does not save it; stop the session first.');
+  /** Last stop in the keyboard ring, after the three actions. */
+  const autoSaveRingIndex = scopeRingSize + items.length;
+
+  /** The persisted auto-save switch, shared by both menu hosts. */
+  const renderAutoSave = (roving: boolean) => (
+    <>
+      <div className="export-menu-divider" role="separator" />
+      <button
+        type="button"
+        role="menuitemcheckbox"
+        aria-checked={autoSaveOnStop}
+        className="export-menu-item export-auto-save"
+        title={autoSaveTooltip}
+        {...(roving
+          ? {
+              ref: (node: HTMLButtonElement | null) => { listRef.current[autoSaveRingIndex] = node; },
+              tabIndex: activeIndex === autoSaveRingIndex ? 0 : -1,
+              ...getItemProps({ onClick: toggleAutoSave }),
+            }
+          : { onClick: toggleAutoSave })}
+      >
+        <span className="export-auto-save__switch" aria-hidden="true" />
+        <span>{autoSaveLabel}</span>
+      </button>
+    </>
+  );
 
   if (childHosted) {
     return (
@@ -321,7 +334,6 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           ref={childBtnRef}
           className="export-btn"
           type="button"
-          disabled={!hasContent}
           onClick={() => {
             if (!childMenu.open) seedScope();
             childMenu.toggle();
@@ -340,7 +352,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
           onClose={childMenu.onClose}
           anchorEl={childBtnRef.current}
           width={240}
-          height={140}
+          height={311}
         >
           {/* Plain buttons: the child window's native focus handles keyboard
               use; floating-ui's roving tabindex belongs to the inline host. */}
@@ -366,6 +378,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
                 </button>
               );
             })}
+            {renderAutoSave(false)}
           </div>
         </ChildWindowPopover>
       </>
@@ -378,7 +391,6 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         ref={refs.setReference}
         className="export-btn"
         type="button"
-        disabled={!hasContent}
         title={t('mainPanel.toolbar.export', 'Export conversation')}
         aria-label={t('mainPanel.toolbar.export', 'Export conversation')}
         aria-haspopup="menu"
@@ -419,6 +431,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
                   </button>
                 );
               })}
+              {renderAutoSave(true)}
             </div>
           </FloatingFocusManager>
         </FloatingPortal>

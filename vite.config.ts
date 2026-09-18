@@ -155,6 +155,8 @@ export default defineConfig(({ command, mode }) => {
             'topmost-level': 'electron/topmost-level.js',
             'subtitle-window': 'electron/subtitle-window.js',
             'popover-windows': 'electron/popover-windows.js',
+            'transcript-save': 'electron/transcript-save.js',
+            'close-handshake': 'electron/close-handshake.js',
             'update-manager': 'electron/update-manager.js',
             'update-payload': 'electron/update-payload.js',
             'window-caption-dblclick': 'electron/window-caption-dblclick.js',

@@ -602,7 +602,15 @@
       "headerSource": "Bahasa saya",
       "headerTarget": "Bahasa lawan bicara",
       "headerNote": "Catatan: pengaturan mencerminkan kondisi saat ekspor, bukan perubahan selama sesi berlangsung.",
-      "headerNarrowed": "Catatan: ekspor ini dipersempit saat mengekspor — beberapa baris tidak disertakan."
+      "headerNarrowed": "Catatan: ekspor ini dipersempit saat mengekspor — beberapa baris tidak disertakan.",
+      "autoSave": {
+        "label": "Simpan otomatis saat sesi berakhir",
+        "tooltipDesktop": "Saat sesi berakhir, seluruh percakapan — kedua pihak, teks asli dan terjemahan — disimpan sebagai file .txt di folder Unduhan Anda.",
+        "tooltipBrowser": "Saat sesi berakhir, seluruh percakapan — kedua pihak, teks asli dan terjemahan — diunduh sebagai file .txt. Menutup panel samping selama sesi tidak menyimpannya; akhiri sesi terlebih dahulu.",
+        "saved": "Percakapan disimpan: {{filename}}",
+        "showInFolder": "Tampilkan di folder",
+        "failed": "Percakapan tidak dapat disimpan otomatis. Anda masih bisa menyimpannya dengan “{{action}}” di menu ekspor."
+      }
     },
     "waveformOutputTooltip": "Audio yang dikirim ke mikrofon virtual (terjemahan + passthrough audio asli)",
     "waveformMicTooltip": "Mikrofon Anda — suara Anda yang ditangkap untuk diterjemahkan",

@@ -602,7 +602,15 @@
       "headerSource": "Bahasa saya",
       "headerTarget": "Bahasa pihak lain",
       "headerNote": "Nota: tetapan mencerminkan keadaan semasa pada masa eksport, bukan perubahan semasa sesi.",
-      "headerNarrowed": "Nota: eksport ini telah dipersempit semasa mengeksport — sesetengah baris tidak disertakan."
+      "headerNarrowed": "Nota: eksport ini telah dipersempit semasa mengeksport — sesetengah baris tidak disertakan.",
+      "autoSave": {
+        "label": "Simpan secara automatik apabila sesi tamat",
+        "tooltipDesktop": "Apabila sesi tamat, keseluruhan perbualan — kedua-dua pihak, teks asal dan terjemahan — disimpan sebagai fail .txt dalam folder Muat Turun anda.",
+        "tooltipBrowser": "Apabila sesi tamat, keseluruhan perbualan — kedua-dua pihak, teks asal dan terjemahan — dimuat turun sebagai fail .txt. Menutup panel sisi semasa sesi tidak menyimpannya; tamatkan sesi dahulu.",
+        "saved": "Perbualan disimpan: {{filename}}",
+        "showInFolder": "Tunjukkan dalam folder",
+        "failed": "Perbualan tidak dapat disimpan secara automatik. Anda masih boleh menyimpannya dengan “{{action}}” dalam menu eksport."
+      }
     },
     "waveformOutputTooltip": "Audio yang dihantar ke mikrofon maya (terjemahan + passthrough)",
     "waveformMicTooltip": "Mikrofon anda — suara anda yang ditangkap untuk terjemahan",

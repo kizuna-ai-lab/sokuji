@@ -21,6 +21,19 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('../Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 
+let autoSaveOn = false;
+const setAutoSaveOnStop = vi.fn(async (v: boolean) => { autoSaveOn = v; });
+vi.mock('../../stores/settingsStore', () => ({
+  useAutoSaveOnStop: () => autoSaveOn,
+  useSetAutoSaveOnStop: () => setAutoSaveOnStop,
+}));
+
+let electronEnv = true;
+vi.mock('../../utils/environment', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  isElectron: () => electronEnv,
+}));
+
 // Only the two functions that touch the browser are stubbed; normalizeMessages
 // and formatAsTxt run for real so assertions are made against the actual
 // exported bytes.
@@ -85,11 +98,15 @@ const closeMenu = async () => {
 };
 
 const box = (name: string) => screen.getByRole('menuitemcheckbox', { name });
+const autoSaveRow = () => screen.getByRole('menuitemcheckbox', { name: 'Auto-save when session ends' });
 
 beforeEach(() => {
   cleanup();
   downloadFile.mockClear();
   copyToClipboard.mockClear();
+  autoSaveOn = false;
+  electronEnv = true;
+  setAutoSaveOnStop.mockClear();
 });
 
 describe('ExportButton scope checkboxes', () => {
@@ -227,6 +244,7 @@ describe('ExportButton scope checkboxes', () => {
       box('Me — Src'), box('Me — Trans'), box('Other — Src'), box('Other — Trans'),
       ...['Copy to clipboard', 'Download as .txt', 'Download as .json']
         .map((name) => screen.getByRole('menuitem', { name })),
+      autoSaveRow(),
     ];
 
     // Arrow-key navigation is roving-tabindex driven: every stop carries one,
@@ -235,7 +253,7 @@ describe('ExportButton scope checkboxes', () => {
     expect(ring.filter((el) => el.getAttribute('tabindex') === '0')).toHaveLength(1);
   });
 
-  it('still disables the button when the conversation itself is empty', () => {
+  it('keeps the button usable with an empty conversation, so auto-save can be set before anyone speaks', () => {
     render(
       <ExportButton
         combinedItems={[]}
@@ -248,8 +266,15 @@ describe('ExportButton scope checkboxes', () => {
         participantMode="both"
       />,
     );
+    fireEvent.click(button());
 
-    expect(screen.getByLabelText('Export conversation')).toBeDisabled();
+    expect(button()).not.toBeDisabled();
+    for (const name of ['Copy to clipboard', 'Download as .txt', 'Download as .json']) {
+      expect(screen.getByRole('menuitem', { name })).toBeDisabled();
+    }
+    // "Nothing selected" means the scope left out a conversation that exists.
+    expect(screen.queryByText('Nothing selected')).not.toBeInTheDocument();
+    expect(autoSaveRow()).not.toBeDisabled();
   });
 
   it('scopes the clipboard copy the same way as the download', async () => {
@@ -262,5 +287,70 @@ describe('ExportButton scope checkboxes', () => {
     expect(text).toContain('MY-ORIGINAL');
     expect(text).not.toContain('THEIR-ORIGINAL');
     expect(text).not.toContain('THEIR-TRANSLATION');
+  });
+
+  it('downloads exactly this .txt (golden, pinned before the export refactor)', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 18, 15, 30, 0)); // local time
+    try {
+      renderMenu();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Download as .txt' }));
+
+      const [content, filename, mime] = downloadFile.mock.calls[0];
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const hms = (ts: number) => {
+        const d = new Date(ts);
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      };
+      // Longest label is "Other (trans):" (14), so the column is 15 wide.
+      const row = (ts: number | undefined, label: string, text: string) =>
+        `[${hms(ts!)}] ${`${label}:`.padEnd(15, ' ')}${text}`;
+
+      expect(filename).toBe('sokuji-conversation-20260918-153000.txt');
+      expect(mime).toBe('text/plain;charset=utf-8');
+      expect(content).toBe([
+        'Sokuji conversation export',
+        'Generated: 2026-09-18 15:30:00',
+        'Provider: openai',
+        "My Language: EN → Other's Language: JA",
+        'Note: settings reflect current state at export, not mid-session changes.',
+        '',
+        row(ITEMS[0].createdAt, 'Me', 'MY-ORIGINAL'),
+        row(ITEMS[1].createdAt, 'Me (trans)', 'MY-TRANSLATION'),
+        row(ITEMS[2].createdAt, 'Other', 'THEIR-ORIGINAL'),
+        row(ITEMS[3].createdAt, 'Other (trans)', 'THEIR-TRANSLATION'),
+      ].join('\n') + '\n');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('ExportButton auto-save row', () => {
+  it('shows the stored state', () => {
+    autoSaveOn = true;
+    renderMenu();
+    expect(autoSaveRow()).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('writes the store on click and leaves the menu open', () => {
+    renderMenu();
+    expect(autoSaveRow()).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(autoSaveRow());
+
+    expect(setAutoSaveOnStop).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('menuitem', { name: 'Download as .txt' })).toBeInTheDocument();
+  });
+
+  it('explains where the file goes on desktop', () => {
+    renderMenu();
+    expect(autoSaveRow().getAttribute('title')).toContain('Downloads folder');
+  });
+
+  it('warns about the side panel in the browser', () => {
+    electronEnv = false;
+    renderMenu();
+    expect(autoSaveRow().getAttribute('title')).toContain('side panel');
   });
 });
