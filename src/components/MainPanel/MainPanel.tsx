@@ -22,7 +22,6 @@ import {
   useCurrentTurnDetectionMode,
   useSubtitleModeActive,
   useKeepReplayAudio,
-  useAutoSaveOnStop,
   useTextOnly,
 } from '../../stores/settingsStore';
 import useSettingsStore from '../../stores/settingsStore';
@@ -82,19 +81,9 @@ import DisplayModeButton from './DisplayModeButton';
 import ConversationRow from './ConversationRow';
 import { shouldShowItem } from './conversationFilter';
 import { mergeConversationItems } from './conversationMerge';
+import { autoSaveTranscript } from '../../lib/transcript/autoSave';
+import { useToast } from '../Toast';
 import ExportButton from './ExportButton';
-import {
-  buildSessionMetadata,
-  collectLanguagePairs,
-  deriveAutoSaveTitle,
-  deriveSessionLanguagePair,
-  downloadFile,
-  formatAsTxt,
-  formatTimestampForFilename,
-  getActiveModelInfo,
-  normalizeMessages,
-  type TxtI18n,
-} from '../../utils/conversationExport';
 import {
   useFloating, useClick, useDismiss, useRole, useInteractions, offset, flip, shift, size,
   autoUpdate, FloatingPortal,
@@ -294,7 +283,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const uiMode = useUIMode();
   const subtitleModeActive = useSubtitleModeActive();
   const replayEnabled = useKeepReplayAudio();
-  const autoSaveOnStop = useAutoSaveOnStop();
   const subtitleTakeover = subtitleModeActive && isExtension();
   const conversationFontSize = useConversationDisplayFontSize();
   const setConversationFontSize = useSetConversationDisplayFontSize();
@@ -313,6 +301,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const availableModels = useAvailableModels();
   const loadingModels = useLoadingModels();
   const getCurrentProviderSettings = useGetCurrentProviderSettings();
+  const { showToast } = useToast();
   const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
   const getProcessedLocalPrompt = useGetProcessedLocalPrompt();
   const createSessionConfig = useCreateSessionConfig();
@@ -779,14 +768,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
-
-  // Armed by disconnectConversation's speaker-leg teardown, right where it
-  // captures the session's final items into `items` state. Consumed by the
-  // auto-save effect below, which fires on the very next [items,
-  // participantItems] change — i.e. the render that carries those final
-  // items — so the export sees the real end-of-session conversation rather
-  // than a stale snapshot from before teardown finished.
-  const pendingAutoSaveRef = useRef(false);
 
   // Add state variables to track if test tone is playing and currently playing audio item
   const [isTestTonePlaying, setIsTestTonePlaying] = useState(false);
@@ -1717,6 +1698,15 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // object this Stop owns is the one in the ref at this instant.
     const speakerToTearDown = speakerClientRef.current;
 
+    // Read BEFORE setIsSessionActive(false) below. isSessionActive turns true
+    // only once both legs are up, so Cancel during Start and the
+    // connect-failure cleanup (which also runs this) read false: those never
+    // ran a session, and never auto-save.
+    const wasActive = useSessionStore.getState().isSessionActive;
+    // Each leg's final items, captured before its reset() empties the client.
+    let speakerFinal: ConversationItem[] = [];
+    let participantFinal: ConversationItem[] = [];
+
     // Discard any in-flight Start: its prepare patches and its acquired
     // resources would target the session this teardown is ending.
     startAbortRef.current?.abort();
@@ -1791,100 +1781,121 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // make a throw in either leg unable to strand the other leg's socket or
       // the lease. In split Both the participant ref is a REAL second
       // SonioxClient, not the inert secondary port of the shared path.
-      await teardownSessionLegs({
-        speaker: async () => {
-          // Not `speakerClientRef.current` — see the capture at the top of
-          // this function. By now the ref may belong to the next session.
-          const client = speakerToTearDown;
-          if (!client) return;
-          // disconnect() emits final completion deltas via the throttle path,
-          // which schedules a trailing setItems(client.getConversationItems())
-          // via setTimeout. If we then call client.reset() (which empties the
-          // client's internal items), the trailing timer fires *after* reset
-          // and pushes [] to React, blanking the conversation. This is most
-          // visible with high-delta-rate providers like OpenAI Translate where
-          // a throttle timer is almost always pending when the user hits stop
-          // mid-utterance.
-          //
-          // Fix: after disconnect() finalizes any in-flight pair, cancel the
-          // pending throttle timer and synchronously capture the final state
-          // into React, then reset.
-          //
-          // Guarded because the managed Soniox lease release now depends on
-          // reaching the steps after it: SonioxClient.disconnect() used to POST
-          // session-end early inside itself, so a throw later in teardown could
-          // not strand the lease. It posts nothing now. The steps after it must
-          // run too: they are what stop the trailing throttle timer from
-          // blanking the transcript.
-          try {
-            await client.disconnect();
-          } catch (error) {
-            console.warn('[Sokuji] [MainPanel] Error disconnecting speaker client:', error);
-          }
-          if (throttleTimerRef.current) {
-            clearTimeout(throttleTimerRef.current);
-            throttleTimerRef.current = null;
-          }
-          setItems(client.getConversationItems());
-          // Arm the auto-save effect: a real speaker client existed, so a
-          // session actually ran and there may be something worth saving.
-          // The effect itself checks the setting and whether there is any
-          // content once the final items land in state.
-          pendingAutoSaveRef.current = true;
-          client.reset();
-          // Clear the ref, like the participant leg two blocks down has always
-          // done. Without this the object outlives its session, and the next
-          // session that builds NO speaker client — participant-only "Others"
-          // mode skips the whole `if (speakerWillStart)` block — reaches this
-          // same leg on Stop holding the previous session's dead client. Three
-          // things then happen, none of them wanted:
-          //
-          //  - `disconnect()` runs a second time, on a client whose handlers
-          //    are the PREVIOUS session's closures, re-emitting `session.closed`
-          //    (a spurious speaker-tagged row in the log panel) and, on the
-          //    managed-Soniox path, calling `detachLeg` on the old session.
-          //  - `setItems(client.getConversationItems())` becomes `setItems([])`,
-          //    because `reset()` already emptied it. In Others mode `items` is
-          //    NOT empty — it carries the participant-channel warning and the
-          //    descriptor's prepare notices — so those rows are silently wiped
-          //    at Stop. That one is user-visible, with no error and no log.
-          //  - LocalNativeClient.disconnect() disposes its ASR/translate/TTS
-          //    handles a second time, before the live participant leg is torn
-          //    down.
-          //
-          // It also retires the "a non-null ref here belongs to a previous
-          // session" reasoning that three comments in this file and
-          // sessionStartGate.ts were written around.
-          //
-          // Compare-and-clear, not a bare assignment: `await client.disconnect()`
-          // above is a real macrotask gap on providers whose disconnect hits
-          // the network (PalabraAI deletes its session and leaves the LiveKit
-          // room), and a Start clicked inside that gap has already put the
-          // NEXT session's client in the ref. Clearing unconditionally here
-          // would wipe it — a live session with a null ref, every audio frame
-          // dropped, nothing on screen. Only clear what this Stop owns.
-          if (speakerClientRef.current === client) {
-            speakerClientRef.current = null;
-          }
-        },
-        participant: async () => {
-          const participantClient = participantClientRef.current;
-          if (!participantClient) return;
-          try {
-            await participantClient.disconnect();
-            participantClient.reset();
-            participantClientRef.current = null;
-            console.info('[Sokuji] [MainPanel] Disconnected participant client');
-          } catch (error) {
-            console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
-          }
-        },
-        afterBothLegs: () => {
-          const resources = sessionResourcesRef.current;
-          sessionResourcesRef.current = null;
-          resources?.release('disconnect');
-        },
-      });
+      try {
+        await teardownSessionLegs({
+          speaker: async () => {
+            // Not `speakerClientRef.current` — see the capture at the top of
+            // this function. By now the ref may belong to the next session.
+            const client = speakerToTearDown;
+            if (!client) return;
+            // disconnect() emits final completion deltas via the throttle path,
+            // which schedules a trailing setItems(client.getConversationItems())
+            // via setTimeout. If we then call client.reset() (which empties the
+            // client's internal items), the trailing timer fires *after* reset
+            // and pushes [] to React, blanking the conversation. This is most
+            // visible with high-delta-rate providers like OpenAI Translate where
+            // a throttle timer is almost always pending when the user hits stop
+            // mid-utterance.
+            //
+            // Fix: after disconnect() finalizes any in-flight pair, cancel the
+            // pending throttle timer and synchronously capture the final state
+            // into React, then reset.
+            //
+            // Guarded because the managed Soniox lease release now depends on
+            // reaching the steps after it: SonioxClient.disconnect() used to POST
+            // session-end early inside itself, so a throw later in teardown could
+            // not strand the lease. It posts nothing now. The steps after it must
+            // run too: they are what stop the trailing throttle timer from
+            // blanking the transcript.
+            try {
+              await client.disconnect();
+            } catch (error) {
+              console.warn('[Sokuji] [MainPanel] Error disconnecting speaker client:', error);
+            }
+            if (throttleTimerRef.current) {
+              clearTimeout(throttleTimerRef.current);
+              throttleTimerRef.current = null;
+            }
+            speakerFinal = client.getConversationItems();
+            setItems(speakerFinal);
+            client.reset();
+            // Clear the ref, like the participant leg two blocks down has always
+            // done. Without this the object outlives its session, and the next
+            // session that builds NO speaker client — participant-only "Others"
+            // mode skips the whole `if (speakerWillStart)` block — reaches this
+            // same leg on Stop holding the previous session's dead client. Three
+            // things then happen, none of them wanted:
+            //
+            //  - `disconnect()` runs a second time, on a client whose handlers
+            //    are the PREVIOUS session's closures, re-emitting `session.closed`
+            //    (a spurious speaker-tagged row in the log panel) and, on the
+            //    managed-Soniox path, calling `detachLeg` on the old session.
+            //  - `setItems(client.getConversationItems())` becomes `setItems([])`,
+            //    because `reset()` already emptied it. In Others mode `items` is
+            //    NOT empty — it carries the participant-channel warning and the
+            //    descriptor's prepare notices — so those rows are silently wiped
+            //    at Stop. That one is user-visible, with no error and no log.
+            //  - LocalNativeClient.disconnect() disposes its ASR/translate/TTS
+            //    handles a second time, before the live participant leg is torn
+            //    down.
+            //
+            // It also retires the "a non-null ref here belongs to a previous
+            // session" reasoning that three comments in this file and
+            // sessionStartGate.ts were written around.
+            //
+            // Compare-and-clear, not a bare assignment: `await client.disconnect()`
+            // above is a real macrotask gap on providers whose disconnect hits
+            // the network (PalabraAI deletes its session and leaves the LiveKit
+            // room), and a Start clicked inside that gap has already put the
+            // NEXT session's client in the ref. Clearing unconditionally here
+            // would wipe it — a live session with a null ref, every audio frame
+            // dropped, nothing on screen. Only clear what this Stop owns.
+            if (speakerClientRef.current === client) {
+              speakerClientRef.current = null;
+            }
+          },
+          participant: async () => {
+            const participantClient = participantClientRef.current;
+            if (!participantClient) return;
+            // Last known items first, so a disconnect() that throws still leaves
+            // the auto-save the other party's lines; refreshed once disconnect()
+            // has flushed the final ones.
+            participantFinal = participantClient.getConversationItems();
+            try {
+              await participantClient.disconnect();
+              participantFinal = participantClient.getConversationItems();
+              participantClient.reset();
+              participantClientRef.current = null;
+              console.info('[Sokuji] [MainPanel] Disconnected participant client');
+            } catch (error) {
+              console.warn('[Sokuji] [MainPanel] Error disconnecting participant client:', error);
+            }
+          },
+          afterBothLegs: () => {
+            const resources = sessionResourcesRef.current;
+            sessionResourcesRef.current = null;
+            resources?.release('disconnect');
+          },
+        });
+      } finally {
+        if (wasActive) {
+          // After both legs are down, and before the `finally` below resolves
+          // disconnectDoneRef — so a queued Start, or the desktop close
+          // handshake, waits for the file. Reads the language snapshots
+          // without recording new ones: the view's useMemo owns that.
+          // autoSaveTranscript never rejects, so a throw from a leg still
+          // propagates unchanged.
+          const live = useSettingsStore.getState().getCurrentProviderSettings();
+          const fallback = {
+            sourceLanguage: live.sourceLanguage ?? 'EN',
+            targetLanguage: live.targetLanguage ?? 'EN',
+          };
+          await autoSaveTranscript(
+            mergeConversationItems(speakerFinal, participantFinal, id => itemLanguagesRef.current.get(id) ?? fallback),
+            { showToast },
+          );
+        }
+      }
 
       // Now fully end the recorder after client is reset
       if (audioService) {
@@ -1919,7 +1930,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       disconnectDoneRef.current = null;
       markDisconnectDone();
     }
-  }, [refetchAll, setIsReconnecting]);
+  }, [refetchAll, setIsReconnecting, showToast]);
 
   // Keep the ref in sync so client onClose handlers can call disconnectConversation
   // without creating a useCallback dep cycle. The ref is read inside async event
@@ -4268,59 +4279,6 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const targetLanguage = currentSettings.targetLanguage ?? 'EN';
 
   // (renderConversationItem has been extracted to ConversationBubble above the component.)
-
-  // Auto-save the conversation as a .txt file after a session ends — same
-  // pipeline (normalize → format → download) as ExportButton's manual
-  // "Download as .txt" action. Gated on `pendingAutoSaveRef`, armed by
-  // disconnectConversation right where it captures the session's final
-  // items; this effect runs on the resulting [items, participantItems]
-  // change (combinedItems is derived from both), so it sees the real
-  // end-of-session conversation rather than a stale snapshot.
-  useEffect(() => {
-    if (!pendingAutoSaveRef.current) return;
-    pendingAutoSaveRef.current = false;
-    if (!autoSaveOnStop) return;
-
-    const messages = normalizeMessages(combinedItems);
-    if (messages.length === 0) return; // nothing to save
-
-    const models = getActiveModelInfo(provider, currentSettings, localInferenceSettings);
-    // Same as ExportButton.buildPayload: prefer the language pair captured
-    // on the messages over the live config, which may have since changed.
-    const sessionPair = deriveSessionLanguagePair(messages, { sourceLanguage, targetLanguage });
-    const metadata = buildSessionMetadata({
-      provider,
-      models,
-      sourceLanguage: sessionPair.sourceLanguage,
-      targetLanguage: sessionPair.targetLanguage,
-      languagePairs: collectLanguagePairs(messages),
-    });
-    const txtI18n: TxtI18n = {
-      speakerYou: t('mainPanel.export.speakerYou', 'Me'),
-      speakerOther: t('mainPanel.export.speakerOther', 'Other'),
-      translationSuffix: t('mainPanel.export.translationSuffix', '(trans)'),
-      headerTitle: t('mainPanel.export.headerTitle', 'Sokuji conversation export'),
-      headerGenerated: t('mainPanel.export.headerGenerated', 'Generated'),
-      headerProvider: t('mainPanel.export.headerProvider', 'Provider'),
-      headerModels: t('mainPanel.export.headerModels', 'Models'),
-      headerSource: t('mainPanel.export.headerSource', 'My Language'),
-      headerTarget: t('mainPanel.export.headerTarget', "Other's Language"),
-      headerNote: t('mainPanel.export.headerNote', 'Note: settings reflect current state at export, not mid-session changes.'),
-      headerNarrowed: t('mainPanel.export.headerNarrowed', 'Note: this export was narrowed at export time — some lines were left out.'),
-    };
-    const content = formatAsTxt(messages, metadata, txtI18n, { includeHeader: true });
-
-    // The filename's title comes from the conversation itself (the first
-    // original line, trimmed and sanitized) so a folder of auto-saves reads
-    // as a list of what was actually said, not a wall of identical names
-    // differing only by timestamp. Falls back to the manual export's generic
-    // name when no usable title can be derived (e.g. translation-only rows).
-    const title = deriveAutoSaveTitle(messages);
-    const filename = title
-      ? `sokuji-${title}-${formatTimestampForFilename(Date.now())}.txt`
-      : `sokuji-conversation-${formatTimestampForFilename(Date.now())}.txt`;
-    downloadFile(content, filename, 'text/plain;charset=utf-8');
-  }, [combinedItems, autoSaveOnStop, provider, currentSettings, localInferenceSettings, sourceLanguage, targetLanguage, t]);
 
   // Unified render for both modes
   return (
