@@ -180,11 +180,14 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       reloadCustomVoices();
       onCustomChanged();
     } catch (err) {
-      setCaptureError(captureErrorMessage(err));
-      // Rethrow so VoiceLibrarySection's own try/catch sees the failure and
-      // leaves the transcript field filled in (it only clears it after an
-      // awaited onImport call resolves — see its JSDoc).
-      throw err;
+      // No banner — VoiceCreateModal renders this itself, and it covers the
+      // section where the banner would appear. But throw the MAPPED message,
+      // not the raw error: the store throws codes ('too_short'), and
+      // captureErrorMessage is what turns them into localized copy. A bare
+      // rethrow would show the user "Voice clip failed validation: too_short".
+      // The throw is also what keeps the transcript field filled in —
+      // VoiceLibrarySection only clears it after an awaited onImport resolves.
+      throw new Error(captureErrorMessage(err));
     }
   }, [store, reloadCustomVoices, onCustomChanged, captureErrorMessage]);
 
@@ -197,10 +200,10 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       reloadCustomVoices();
       onCustomChanged();
     } catch (err) {
-      setCaptureError(captureErrorMessage(err));
-      // Same rethrow rationale as handleImport above: keep the transcript
-      // field populated on a failed recording rather than wiping it.
-      throw err;
+      // Same as handleImport: the modal owns the message, it must be the
+      // MAPPED one, and the throw keeps the transcript field populated on a
+      // failed recording.
+      throw new Error(captureErrorMessage(err));
     }
   }, [store, reloadCustomVoices, onCustomChanged, captureErrorMessage]);
 

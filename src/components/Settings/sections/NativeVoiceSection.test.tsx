@@ -109,6 +109,17 @@ const openPicker = () => fireEvent.click(screen.getByRole('button', { expanded: 
 // "Ava en"), so an unscoped query meant for a row can match the trigger too.
 const inGrid = () => within(screen.getByRole('grid'));
 
+// See SonioxVoiceSection.test.tsx's copy of this: `role: 'dialog'` matters
+// because /add a voice/i also matches the row button that opens the dialog.
+const createDialog = () => screen.getByRole('dialog', { name: /add a voice/i });
+
+// One alert, in the dialog that raised it. An unscoped alert query cannot
+// tell "the user can read this" from "this is painted behind the modal".
+const expectDialogAlert = (dialog: HTMLElement, pattern: RegExp) => {
+  expect(within(dialog).getByRole('alert')).toHaveTextContent(pattern);
+  expect(screen.getAllByRole('alert')).toHaveLength(1);
+};
+
 // Finds a voice row by its own picker button's `aria-label` (the row's
 // accessible NAME, not the gridcell wrapper's computed accessible name,
 // which concatenates the label with the row's subtitle — see the "Three
@@ -174,7 +185,7 @@ describe('NativeVoiceSection', () => {
     fireEvent.click(await inGrid().findByRole('button', { name: /add a voice/i }));
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File([new Uint8Array(8)], 'voice.wav')] } });
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too short/i));
+    await waitFor(() => expectDialogAlert(createDialog(), /too short/i));
     expect(onCustomChanged).not.toHaveBeenCalled();
   });
 
@@ -193,7 +204,7 @@ describe('NativeVoiceSection', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File([new Uint8Array(8)], 'voice.json');
     fireEvent.change(fileInput, { target: { files: [file] } });
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Not a valid JSON file'));
+    await waitFor(() => expectDialogAlert(createDialog(), /Not a valid JSON file/));
     expect(onCustomChanged).not.toHaveBeenCalled();
   });
 
@@ -245,7 +256,7 @@ describe('NativeVoiceSection', () => {
     fireEvent.change(transcriptInput, { target: { value: 'hello world' } });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File([new Uint8Array(8)], 'voice.wav')] } });
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too short/i));
+    await waitFor(() => expectDialogAlert(createDialog(), /too short/i));
     expect(transcriptInput).toHaveValue('hello world');
   });
 

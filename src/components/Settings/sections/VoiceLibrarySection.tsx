@@ -243,13 +243,16 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
     catch (err) { console.warn('Rename failed:', err); }
   }, [onRename]);
 
-  // Closes the delete modal immediately (optimistic — matches the old
-  // window.confirm flow, which also dismissed before onDelete resolved), then
-  // reports a failure the same way handleRename does above.
+  // NOT optimistic any more. This used to close the modal before awaiting —
+  // "matches the old window.confirm flow" — and swallow the rejection with a
+  // console.warn. That reasoning died when deletion moved into a modal: the
+  // only failure surface was this section's banner, which the modal covers,
+  // and by the time the rejection arrived the modal was already unmounted, so
+  // a failed delete was silent everywhere. The modal now owns the outcome: it
+  // awaits, closes itself on success, and shows the reason on failure, so this
+  // rethrows instead of reporting.
   const handleDeleteConfirm = useCallback(async (id: string) => {
-    setDeleteTarget(null);
-    try { await onDelete(id); }
-    catch (err) { console.warn('Delete failed:', err); }
+    await onDelete(id);
   }, [onDelete]);
 
   const canCreate = capability.importModes.length > 0;

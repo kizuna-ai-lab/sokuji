@@ -623,7 +623,10 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       stagePending({ blob: file, fileName: file.name, suggestedName: stripped || defaultName() });
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
-      setCaptureError(err.message);
+      // Rethrow only. VoiceCreateModal — the dialog that owns the file input
+      // this rejection came from — renders the message itself. Setting the
+      // section banner too would put the same text in the DOM twice, once
+      // under an overlay that hides it.
       throw err;
     }
   };
@@ -634,10 +637,15 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // and reuses it for every TTS stream — deleting it server-side would break
     // spoken translation for the rest of the session.
     if (isSessionActive && settings.voice === id) {
-      setCaptureError(
-        t('settings.sonioxVoiceDeleteInUse', 'This voice is being used by the active session — end the session before deleting it')
+      const message = t(
+        'settings.sonioxVoiceDeleteInUse',
+        'This voice is being used by the active session — end the session before deleting it'
       );
-      return;
+      // Throw, where this used to `return` quietly. The refusal used to land
+      // only on the banner behind the delete dialog, which then closed as if
+      // the delete had worked — a deliberate refusal the user could not see.
+      // VoiceDeleteModal now awaits this and shows the reason in place.
+      throw new Error(message);
     }
     // `clip_clear_failed` is the one failure where the BACKEND delete already
     // succeeded — the voice is gone at Soniox and from our table, and only
@@ -655,10 +663,12 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
       if (e instanceof SonioxVoicesError && e.errorType === 'clip_clear_failed') {
         clipClearFailure = e;
       } else {
-        // VoiceLibrarySection's own catch only console.warns — surface the
-        // failure in the banner or a failed delete is silent.
-        setCaptureError(mapCreateError(e).message);
-        throw e;
+        // VoiceDeleteModal awaits this and shows the reason without closing.
+        // Throw the MAPPED message, not `e`: mapCreateError is what turns a
+        // SonioxVoicesError code into copy a user can read, and that mapping
+        // used to happen on its way to the banner. Throwing the raw error
+        // would put its internal `.message` in front of the user.
+        throw new Error(mapCreateError(e).message);
       }
     }
     await refresh();
@@ -672,8 +682,13 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // Same guard, for the same reason, as finishCreate's auto-select.
     if (selectedVoiceRef.current === id) onUpdate({ voice: DEFAULT_VOICE });
     if (clipClearFailure) {
-      setCaptureError(mapCreateError(clipClearFailure).message);
-      throw clipClearFailure;
+      // Reported by the dialog, like every other delete failure, and mapped
+      // for the same reason as above — the raw error's message is 'denied'.
+      // Note the shape this leaves: the voice IS gone from the list and the
+      // setting is already reset (both above, deliberately, so the panel
+      // tells the truth), while the dialog stays open saying the on-device
+      // clip could not be cleared. Accurate, if initially surprising.
+      throw new Error(mapCreateError(clipClearFailure).message);
     }
   };
 

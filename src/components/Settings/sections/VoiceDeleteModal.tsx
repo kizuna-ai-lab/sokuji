@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFloating, FloatingFocusManager } from '@floating-ui/react';
 import { X } from 'lucide-react';
@@ -21,6 +21,22 @@ export interface VoiceDeleteModalProps {
 
 const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, onConfirm }) => {
   const { t } = useTranslation();
+  // This dialog used to fire `void onConfirm(id)` and let the parent close it
+  // immediately, "optimistic — matches the old window.confirm flow". That
+  // reasoning stopped holding the moment deletion moved into a modal: the
+  // parent's failure banner renders in the settings section BEHIND this
+  // dialog, and the dialog was already gone by the time the rejection
+  // arrived, so a failed delete said nothing anywhere. It now awaits the
+  // result, closes only on success, and shows the failure in place — the same
+  // seam `SonioxCloneConfirmModal` has carried all along.
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // A new target is a new question: never show the previous voice's failure.
+  useEffect(() => {
+    setError(null);
+    setBusy(false);
+  }, [target?.id]);
 
   useEffect(() => {
     if (!target) return;
@@ -56,8 +72,11 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
           {t('voiceLibrary.deleteBody', 'Delete "{name}"? This also removes the reference recording stored on this device.')
             .replace('{name}', target.label)}
         </div>
+        {error && (
+          <div className="voice-capture-error" role="alert">{error}</div>
+        )}
         <div className="voice-modal__foot">
-          <button type="button" className="voice-modal__btn" onClick={onClose}>
+          <button type="button" className="voice-modal__btn" onClick={onClose} disabled={busy}>
             {/* `common.cancel`, not a new `voiceLibrary.cancel`: the key
                 already exists and both modal siblings in this directory
                 render it this way (`ModelImportModal.tsx:343`,
@@ -65,7 +84,21 @@ const VoiceDeleteModal: React.FC<VoiceDeleteModalProps> = ({ target, onClose, on
             {t('common.cancel', 'Cancel')}
           </button>
           <button type="button" className="voice-modal__btn voice-modal__btn--danger"
-            onClick={() => { void onConfirm(target.id); }}>
+            disabled={busy}
+            onClick={() => {
+              // Awaited, and the dialog closes only on success. A rejection
+              // keeps it open with the reason in place: the parent's banner
+              // sits in the settings section behind this overlay, so letting
+              // the parent report it meant reporting it nowhere.
+              setError(null);
+              setBusy(true);
+              void onConfirm(target.id)
+                .then(() => { onClose(); })
+                .catch((err: unknown) => {
+                  setError(err instanceof Error ? err.message : String(err));
+                })
+                .finally(() => { setBusy(false); });
+            }}>
             {t('voiceLibrary.delete', 'Delete')}
           </button>
         </div>

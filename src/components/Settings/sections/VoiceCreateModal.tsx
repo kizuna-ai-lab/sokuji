@@ -47,6 +47,15 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   const [recordSecondsLeft, setRecordSecondsLeft] = useState<number | null>(null);
   const [transcript, setTranscript] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  // The modal owns its own error surface. Both providers already build a
+  // user-facing message and rethrow it (SonioxVoiceSection's `onImport`
+  // rethrows after setting its banner, NativeVoiceSection's `handleImport` and
+  // `handleRecord` do the same), so the message reaches the catch blocks below
+  // — they used to `console.warn` it and rely on the parent's banner, which
+  // this modal COVERS. A rejected clip therefore looked like nothing happened
+  // at all. `SonioxCloneConfirmModal` already had this exact seam (`error`
+  // rendered as `.voice-capture-error` inside the dialog); this matches it.
+  const [error, setError] = useState<string | null>(null);
   const transcriptInputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<{
@@ -111,6 +120,10 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
   // which uploaded a half-finished clip on Cancel/Escape/backdrop instead of
   // discarding it as the comment claimed.
   const close = useCallback(() => {
+    // Clear on the way out, not on the way in: this component stays mounted
+    // with `isOpen={false}`, so an error left behind here would be the first
+    // thing visible the next time the modal opens.
+    setError(null);
     releaseCapture();
     onClose();
   }, [releaseCapture, onClose]);
@@ -128,6 +141,9 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     // transcript is empty, dropped files are ignored outright (no partial
     // import, no error surfaced — the user just hasn't filled in the field).
     if (transcriptMissing) return;
+    // A new attempt clears the previous failure, or a retry that succeeds
+    // would leave the old message sitting there claiming otherwise.
+    setError(null);
     let anySucceeded = false;
     // Single-import adapters hold one staged clip at a time (see
     // VoiceLibraryCapability.multipleImport): a multi-file drop would
@@ -148,7 +164,14 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
         }
         anySucceeded = true;
       } catch (err) {
-        // Parent surfaces the error (e.g. toast). Console breadcrumb only.
+        // Surface it HERE. The parent does set its own banner, but that banner
+        // renders in the settings section this modal sits on top of, so it is
+        // unreachable while the modal is open — a rejected clip (over the
+        // 2-minute limit, silent, undecodable) looked like nothing happened.
+        // The message is already user-facing: both providers build it with
+        // `t('voiceLibrary.clipTooLong' | 'decodeFailed' | ...)` before
+        // rethrowing.
+        setError(err instanceof Error ? err.message : String(err));
         console.warn('Voice import failed:', err);
       }
     }
@@ -174,6 +197,9 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
 
   const startRecording = useCallback(async () => {
     if (!onRecord || !navigator.mediaDevices?.getUserMedia || transcriptMissing) return;
+    // Same reason as handleFiles: starting a new capture clears the last one's
+    // failure.
+    setError(null);
     try {
       const generation = recGenerationRef.current;
       // Voice-cloning reference audio must be captured RAW: the cloning
@@ -255,7 +281,11 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
       // `releaseCapture()` call finds nothing to tear down and no-ops — it
       // does not discard the clip this function just submitted.
       close();
-    } catch (err) { console.warn('Recording handler failed:', err); }
+    } catch (err) {
+      // Same reason as handleFiles: the parent's banner is behind this modal.
+      setError(err instanceof Error ? err.message : String(err));
+      console.warn('Recording handler failed:', err);
+    }
   }, [onRecord, capability.transcriptRequired, transcript, close]);
   // Keep the auto-stop ref pointing at the latest committed closure — written
   // in an effect, not the render body (renders can be replayed/discarded,
@@ -405,6 +435,10 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
               onChange={(e) => void handleFiles(e.target.files)}
             />
           )}
+
+          {/* Above the note, not below it: this is the thing the user needs to
+              read after an action failed, and the note is standing advice. */}
+          {error && <div className="voice-capture-error" role="alert">{error}</div>}
 
           {note && <div className="voice-create-modal__note">{note}</div>}
         </div>

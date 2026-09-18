@@ -228,6 +228,20 @@ const rowFor = (label: string | RegExp): HTMLElement =>
 // `role="dialog"` too and stays open behind this one.
 const cloneDialog = () => screen.getByRole('dialog', { name: /clone voice/i });
 
+// `role: 'dialog'` is load-bearing, not decoration: `addVoiceTitle` ("Add a
+// voice") names this dialog while `addVoice` ("Add a voice…") labels the row
+// button that opens it, and /add a voice/i matches both.
+const createDialog = () => screen.getByRole('dialog', { name: /add a voice/i });
+const deleteDialog = () => screen.getByRole('dialog', { name: /delete voice/i });
+
+// One alert, in the dialog that owns the failure. Unscoped `getByRole('alert')`
+// passed while the message rendered behind an overlay the user could not see,
+// and also while it rendered twice; neither is what these cases mean.
+const expectDialogAlert = (dialog: HTMLElement, pattern: RegExp) => {
+  expect(within(dialog).getByRole('alert')).toHaveTextContent(pattern);
+  expect(screen.getAllByRole('alert')).toHaveLength(1);
+};
+
 const nameInputPlaceholder = /name for a new cloned voice/i;
 const confirmButtonName = /^clone voice$/i;
 // Checks the modal's usage-rights checkbox, without which the confirm
@@ -492,21 +506,38 @@ describe('SonioxVoiceSection', () => {
   // outlived the outage until the user happened to start a new capture. A
   // successful list load is positive evidence that whatever last went wrong
   // has been superseded, so it clears the banner.
-  it('a successful list refresh clears a stale capture-error alert', async () => {
+  // REWRITTEN once the delete dialog became the owner of its own failure.
+  // The old version asserted that a successful list refresh cleared a stale
+  // capture-error BANNER, which only made sense while the section owned the
+  // message. It does not any more: a failure raised by an action taken inside
+  // a dialog is shown by that dialog, so it clears when the user retries or
+  // closes — not because a refresh happened behind the overlay. Asserting the
+  // old premise now would be asserting that the error vanishes while the user
+  // is still reading it.
+  it('a failed delete is reported by the dialog, and clearing it is the dialog closing — not a refresh behind it', async () => {
     listMock.mockResolvedValue([cloned()]);
     deleteMock.mockRejectedValue(new Error('boom'));
     mount();
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openPicker();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
+    await waitFor(() => expect(inGrid().getByRole('button', { name: 'Me' })).toBeInTheDocument());
     confirmDelete();
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/boom/));
 
-    // Reopened first: the row's Delete closes the popover as it opens the
-    // confirm modal (final-review finding 2), and the refresh control lives
-    // inside the popover's own Presets header.
-    openPicker();
-    fireEvent.click(screen.getByRole('button', { name: /refresh voice list/i }));
+    // Exactly one alert, and it is inside the delete dialog rather than in the
+    // section behind it. `getByRole` (not `queryAll`) is the assertion that
+    // the message is not duplicated: two identical role="alert" nodes would
+    // be announced twice by a screen reader, which is what an earlier version
+    // of this fix produced.
+    const dialog = await screen.findByRole('dialog', { name: /delete voice/i });
+    await waitFor(() => expect(within(dialog).getByRole('alert')).toHaveTextContent(/boom/));
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+
+    // The dialog stays open on failure, so the user can read the reason and
+    // decide. The old code closed it before the rejection even arrived.
+    expect(dialog).toBeInTheDocument();
+
+    // Dismissing is what clears it.
+    fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 
@@ -517,7 +548,7 @@ describe('SonioxVoiceSection', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const bigFile = fakeFile('big.wav', 36 * 1000 * 1000);
     fireEvent.change(fileInput, { target: { files: [bigFile] } });
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too large/i));
+    await waitFor(() => expectDialogAlert(createDialog(), /too large/i));
     expect(createMock).not.toHaveBeenCalled();
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
@@ -530,7 +561,7 @@ describe('SonioxVoiceSection', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = fakeFile('clip.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too short/i));
+    await waitFor(() => expectDialogAlert(createDialog(), /too short/i));
     expect(createMock).not.toHaveBeenCalled();
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
@@ -543,7 +574,7 @@ describe('SonioxVoiceSection', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = fakeFile('clip.wav');
     fireEvent.change(fileInput, { target: { files: [file] } });
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too long/i));
+    await waitFor(() => expectDialogAlert(createDialog(), /too long/i));
     expect(createMock).not.toHaveBeenCalled();
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
   });
@@ -559,7 +590,7 @@ describe('SonioxVoiceSection', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const longFile = new File([new Uint8Array(64)], 'podcast.mp3', { type: 'audio/mpeg' });
     fireEvent.change(fileInput, { target: { files: [longFile] } });
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/too long/i));
+    await waitFor(() => expectDialogAlert(createDialog(), /too long/i));
     expect(ctx.decodeAudioData).not.toHaveBeenCalled();
     expect(createMock).not.toHaveBeenCalled();
     expect(screen.queryByPlaceholderText(nameInputPlaceholder)).toBeNull();
@@ -752,18 +783,18 @@ describe('SonioxVoiceSection', () => {
     expect(createMock.mock.calls[0][0]).toBe('My Voice {{n}}');
   });
 
-  it('refuses to delete the selected voice while a session is active (banner, no API call)', async () => {
+  it('refuses to delete the selected voice while a session is active (reported in the dialog, no API call)', async () => {
     listMock.mockResolvedValue([cloned()]);
     mount({ settings: { voice: 'uuid-1', apiKey: 'k', targetLanguage: 'ja', ttsSpeed: 1.0 }, isSessionActive: true });
     await waitFor(() => expect(listMock).toHaveBeenCalled());
     openPicker();
     await waitFor(() => expect(inGrid().getByRole('button', { name: 'Me' })).toBeInTheDocument());
     confirmDelete();
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/active session/i));
+    await waitFor(() => expectDialogAlert(deleteDialog(), /active session/i));
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
-  it('surfaces a failed delete in the error banner', async () => {
+  it('surfaces a failed delete in the delete dialog, which stays open', async () => {
     listMock.mockResolvedValue([cloned()]);
     deleteMock.mockRejectedValue(new Error('boom'));
     mount();
@@ -771,7 +802,7 @@ describe('SonioxVoiceSection', () => {
     openPicker();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Me' })).toBeInTheDocument());
     confirmDelete();
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/boom/));
+    await waitFor(() => expectDialogAlert(deleteDialog(), /boom/));
   });
 
   it('renders processing/failed clones as disabled options; ready clones stay selectable', async () => {
