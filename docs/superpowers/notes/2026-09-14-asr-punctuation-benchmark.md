@@ -317,6 +317,10 @@ participant minutes. Most of it runs on ASR that already emits punctuation:
 - voxtral-mini-4b: 62k / 87k;
 - parakeet-tdt, qwen3-asr, sensevoice.
 
+**That claim was never measured, and it is wrong about the largest model.** See
+"Live check in the app" at the end of this note: cohere-transcribe emits no
+punctuation in either Chinese or English.
+
 The sherpa streaming families carry about 6% of speaker minutes and 3% of participant minutes:
 stream-zh-2025, stream-multi-8lang, *-kroko, zipformer-ru/vi, vosk-ru, nemo-ctc-80ms. Their
 punctuation was not verified in the survey; these families are normally trained on unpunctuated
@@ -622,3 +626,104 @@ per-distinct-model-ever-loaded, not per-currently-loaded-model.
    released after upload?" → No — not via dropping the byte-array reference, not via
    `session.release()`, and only partially (0–20%, model-dependent) via a forced GC pass that a
    packaged Electron app cannot even invoke on demand.
+
+
+---
+
+## Live check in the app (2026-09-19) — slice 3, English source
+
+The manual step the segmentation slices exist for. Local Inference provider,
+source English, target Chinese, `sentencesPerChunk = 3`. The same Fox News
+broadcast was run through voxtral-mini-4b and Qwen3-ASR so the two transcripts
+are directly comparable.
+
+### The stage works
+
+Qwen3-ASR, N = 3, bubbles as designed:
+
+> And ten thousand pages of writings, police say they have identified fifty
+> eight people… / One of the videos, Fox twenty nine reports, appears to show…
+> / And metadata reportedly shows some of the photos were taken back nearly ten
+> years ago in twenty seventeen.
+
+Three sentences, one bubble, repeatedly. Four times two bubbles shared a
+timestamp: three of those are a full chunk plus the utterance remainder that
+`end()` flushed behind it, and at 03:29:01 both bubbles hold three sentences —
+the shape the `for (;;)` loop in `SentenceStream.evaluate()` produces from a
+single six-sentence final. That loop's comment names qwen3-asr as its motivating
+case; this is the first sighting of it on real audio.
+
+The stage sealed mid-utterance many times across that run and **not one bubble
+opened mid-word**. That is direct evidence for the cursor arithmetic of rule 4
+(advance by raw consumed), the part no unit test could exercise on a real model.
+
+### voxtral ignored N, and the cause was below us
+
+voxtral-mini-4b produced one sentence per bubble at N = 3. N could not matter,
+because the stage was never handed more than one sentence to count:
+`voxtral-webgpu.worker.ts` finalizes the moment its decoded text ends with
+`. 。 ! ? ！ ？` (`SENTENCE_END_PATTERN`, enabled unconditionally). That is a
+hard-coded one-sentence segmenter one layer below the stage.
+
+It also cut inside words, because it tests the tail of the decoded text with no
+right-context guard:
+
+> …identified and all these**.** / **ous** cases, all these cases worked…
+
+— "all these **various** cases", split at a period the decoder emitted inside
+"various". `ished` and `bese` in the same run are the same failure. Decisively,
+the identical audio through Qwen3-ASR kept `Going through all that metadata`
+intact where voxtral had lost `Going`.
+
+**So these mid-word cuts are the worker's, not the client's cursor.** Risk 3 in
+the task-4 handover — a bubble opening mid-word because the truncation guard
+fires only on an empty slice — is not what was seen here. It remains
+unfalsified in general, but nothing in this run points at it.
+
+Fixed in `037d4842`: the client turns the worker endpoint off while the stage is
+sealing, and leaves it exactly as it was when the stage is off (the default).
+
+### Offline ASR does not deliver the latency goal
+
+Qwen3-ASR bubbles arrived at 03:28:21, 03:28:41, 03:29:01 — **twenty seconds
+apart**. That is `maxSpeechDuration`, which `LocalInferenceClient` never sets,
+so 20 s is always the effective value. A news anchor never pauses the 1.4 s
+`minSilenceDuration` wants, so every utterance runs to the wall, and an offline
+ASR emits nothing until it does.
+
+So the stage gave good bubble structure and no latency benefit: three-sentence
+chunks, all landing at once, twenty seconds late. The handover's bar — "watch
+the translation land while you are still talking" — is reachable only on a
+streaming ASR, whose partials the stage can seal mid-utterance.
+
+| | bubble structure | when the translation starts |
+|---|---|---|
+| offline ASR (qwen3-asr) + stage | three sentences | after the utterance ends — up to 20 s |
+| voxtral before `037d4842` | one sentence, words cut | immediately |
+| voxtral after `037d4842` | three sentences (expected) | as soon as three sentences exist |
+
+The last row is the design's prediction. It has not been run yet.
+
+### Which ASR actually punctuates
+
+Observed, not inferred:
+
+| model | punctuates | note |
+|---|---|---|
+| voxtral-mini-4b | yes | commas, periods, question marks |
+| qwen3-asr | yes | spells numerals out — "fifty eight", "twenty seventeen" |
+| cohere-transcribe | **no** | neither Chinese nor English; seen on other material, not this broadcast |
+
+cohere is the largest single model by minutes (102k speaker / 133k participant)
+and the "Production language mix" section above lists it as already punctuating.
+It does not. Every other model on that list is still unverified.
+
+### Still open
+
+- **Re-run voxtral after `037d4842`.** The fix is tested at the unit level and
+  unobserved live.
+- **The 20 s wall.** `maxSpeechDuration` is never sent by the client, so a
+  continuous speaker is always cut at 20 s rather than at anything chosen.
+  Worth deciding deliberately instead of inheriting the worker default.
+- **Local Native** (step 4 of the task) needs `npm run sidecar:setup`; not run.
+- **Chinese source** was not exercised here; these findings are English only.
