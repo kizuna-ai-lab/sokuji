@@ -42,19 +42,21 @@ export interface SonioxCloneReviewStepProps {
  * this voice") gates the confirm button — unchecked, the upload cannot be
  * submitted.
  *
- * NOT a modal, despite what its class names say. It used to be a second
- * dialog built on the shared Modal primitive, opening on top of
- * VoiceCreateModal; jiangzhuo pointed out (2026-09-18) that the two were one
- * scenario, so this is now the second PHASE inside VoiceCreateModal's single
- * frame. That also removed the committed render in which both dialogs were
- * open at once, which is why the create modal could never trap focus: a trap
- * would have `aria-hidden` the later dialog and hidden this consent statement
- * from screen-reader users.
+ * NOT a modal. It used to be a second dialog built on the shared Modal
+ * primitive, opening on top of VoiceCreateModal; jiangzhuo pointed out
+ * (2026-09-18) that the two were one scenario, so this is now the second
+ * PHASE inside VoiceCreateModal's single frame. That also removed the
+ * committed render in which both dialogs were open at once, which is why the
+ * create modal could never trap focus: a trap would have `aria-hidden` the
+ * later dialog and hidden this consent statement from screen-reader users.
  *
- * The `soniox-clone-confirm-modal*` class prefix is historical and kept on
- * purpose — its rules live in Settings.scss, and renaming a prefix across a
- * shared stylesheet is the silent-visual-regression shape this branch has
- * already been bitten by twice, for no user-visible gain.
+ * Its classes are `voice-review*`, matching the neighbourhood (`voice-modal`,
+ * `voice-create-modal`, `voice-row`, `voice-pop`); the rules live in
+ * Settings.scss. They were `soniox-clone-confirm-modal*` until the prefix was
+ * renamed — a rename verified the only way a stylesheet change can be, by
+ * diffing the COMPILED css with the prefix normalised and pixel-diffing the
+ * rendered dialog, since jsdom has no layout and nothing in the suite would
+ * have failed either way.
  *
  * Purely presentational: the caller owns `pending` (this is mounted ⇔
  * non-null), performs the actual `create()` call from `onConfirm`, and — on a
@@ -135,7 +137,7 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
   };
 
   return (
-    <div className="soniox-clone-confirm-modal">
+    <div className="voice-review">
       <p>
         {/* The default copy tells the user to name the voice, which is only
             true where the name field exists. Managed accounts do not name
@@ -146,11 +148,11 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
           : t('settings.sonioxVoiceCloneReviewNoName', 'Listen to your clip before uploading.')}
       </p>
       {audioUrl && (
-        <div className="soniox-clone-confirm-modal__player">
+        <div className="voice-review__player">
           {/* eslint-disable-next-line jsx-a11y/media-has-caption -- a locally captured reference clip has no captions to provide */}
           <audio
             ref={audioRef}
-            className="soniox-clone-confirm-modal__audio-el"
+            className="voice-review__audio-el"
             src={audioUrl}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
@@ -160,7 +162,7 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
           />
           <button
             type="button"
-            className="soniox-clone-confirm-modal__play-toggle"
+            className="voice-review__play-toggle"
             onClick={togglePlay}
             aria-label={isPlaying ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
             title={isPlaying ? t('voiceLibrary.stopPreview', 'Stop') : t('voiceLibrary.play', 'Play')}
@@ -168,7 +170,7 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
             {isPlaying ? <Square size={14} /> : <Play size={14} />}
           </button>
           <div
-            className="soniox-clone-confirm-modal__progress"
+            className="voice-review__progress"
             ref={progressRef}
             onClick={handleSeek}
             role="progressbar"
@@ -177,17 +179,17 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
             aria-valuenow={currentTime}
           >
             <div
-              className="soniox-clone-confirm-modal__progress-fill"
+              className="voice-review__progress-fill"
               style={{ width: duration ? `${(currentTime / duration) * 100}%` : '0%' }}
             />
           </div>
-          <span className="soniox-clone-confirm-modal__time">
+          <span className="voice-review__time">
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
         </div>
       )}
       {notice && (
-        <p className="soniox-clone-confirm-modal__notice">{notice}</p>
+        <p className="voice-review__notice">{notice}</p>
       )}
       {showName && (
         <input
@@ -200,7 +202,7 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
           disabled={busy}
         />
       )}
-      <label className="soniox-clone-confirm-modal__consent">
+      <label className="voice-review__consent">
         {/* Native input kept for semantics/a11y but visually replaced by the
             drawn box below — a raw OS checkbox clashes with the design
             system (the app's only other native checkbox is the tiny
@@ -211,7 +213,7 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
           disabled={busy}
           onChange={(e) => setConsent(e.target.checked)}
         />
-        <span className="soniox-clone-confirm-modal__consent-box" aria-hidden="true">
+        <span className="voice-review__consent-box" aria-hidden="true">
           {consent && <Check size={12} strokeWidth={3} />}
         </span>
         <span>{t('settings.sonioxVoiceConsent', 'I confirm I have the right to use this voice')}</span>
@@ -219,10 +221,10 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
       {error && (
         <div className="voice-capture-error" role="alert">{error}</div>
       )}
-      <div className="soniox-clone-confirm-modal__actions">
+      <div className="voice-review__actions">
         <button
           type="button"
-          className="soniox-clone-confirm-modal__cancel"
+          className="voice-review__cancel"
           onClick={onClose}
           disabled={busy}
         >
@@ -230,14 +232,14 @@ const SonioxCloneReviewStep: React.FC<SonioxCloneReviewStepProps> = ({
         </button>
         <button
           type="button"
-          className="soniox-clone-confirm-modal__accept"
+          className="voice-review__accept"
           onClick={() => onConfirm(name)}
           disabled={busy || !consent}
         >
           {busy && (
             <Loader2
               size={14}
-              className="soniox-clone-confirm-modal__spinner"
+              className="voice-review__spinner"
               data-testid="soniox-clone-confirm-busy-spinner"
             />
           )}
