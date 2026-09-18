@@ -565,7 +565,13 @@ app.whenReady().then(async () => {
   }
 
   // Session-end auto-save writes straight into Downloads (no Save As dialog).
-  setupTranscriptSaveHandler({ ipcMain, getDownloadsDir: () => app.getPath('downloads') });
+  // The sender check reads mainWindow at call time: it does not exist yet,
+  // and it can be recreated.
+  setupTranscriptSaveHandler({
+    ipcMain,
+    getDownloadsDir: () => app.getPath('downloads'),
+    isTrustedSender: (sender) => sender === mainWindow?.webContents,
+  });
 
   createWindow();
 

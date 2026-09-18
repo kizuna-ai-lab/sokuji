@@ -45,14 +45,22 @@ describe('saveTranscript', () => {
 });
 
 describe('the transcript:save handler', () => {
-  it('ignores any name or path the renderer sends and writes into the downloads dir', async () => {
+  const MAIN = { id: 1 };
+  const POPOVER = { id: 2 };
+
+  /** Registers the handler against a fake ipcMain; returns the channel's function. */
+  function register() {
     const handlers = new Map();
     setupTranscriptSaveHandler({
       ipcMain: { handle: (channel, fn) => handlers.set(channel, fn) },
       getDownloadsDir: () => dir,
+      isTrustedSender: (sender) => sender === MAIN,
     });
+    return handlers.get('transcript:save');
+  }
 
-    const res = await handlers.get('transcript:save')({}, {
+  it('ignores any name or path the renderer sends and writes into the downloads dir', async () => {
+    const res = await register()({ sender: MAIN }, {
       content: 'x',
       filename: '../../evil.txt',
       path: '/etc/passwd',
@@ -62,5 +70,24 @@ describe('the transcript:save handler', () => {
     expect(res.dir).toBe(dir);
     expect(readdirSync(dir)).toHaveLength(1);
     expect(readdirSync(dir)[0]).toMatch(/^sokuji-conversation-\d{8}-\d{6}\.txt$/);
+  });
+
+  it("refuses anything but the main window's page (a popover child window) and writes nothing", async () => {
+    const res = await register()({ sender: POPOVER }, { content: 'x' });
+
+    expect(res).toEqual({ ok: false, error: 'Transcript save refused: not the main window' });
+    expect(readdirSync(dir)).toEqual([]);
+  });
+});
+
+describe('main.js wiring of transcript:save', () => {
+  it('trusts only the current main window, read at call time', () => {
+    // A getter, not a captured webContents: the handler is registered before
+    // the window exists, and the window can be recreated.
+    const main = readFileSync(join(__dirname, 'main.js'), 'utf8');
+    const start = main.indexOf('setupTranscriptSaveHandler({');
+    expect(start).toBeGreaterThan(-1);
+    const call = main.slice(start, main.indexOf('});', start));
+    expect(call).toContain('isTrustedSender: (sender) => sender === mainWindow?.webContents');
   });
 });

@@ -41,10 +41,19 @@ async function saveTranscript({ dir, content, now = new Date() }) {
   return { ok: false, error: `Too many transcripts named ${base}` };
 }
 
-/** Register the renderer's `transcript:save` channel. Call once, at startup. */
-function setupTranscriptSaveHandler({ ipcMain, getDownloadsDir }) {
-  ipcMain.handle('transcript:save', (_event, payload) =>
-    saveTranscript({ dir: getDownloadsDir(), content: payload && payload.content }));
+/**
+ * Register the renderer's `transcript:save` channel. Call once, at startup.
+ * `isTrustedSender(webContents)` answers whether a call comes from the main
+ * window's page: a popover child window shares its preload bridge, and must
+ * not be able to write into Downloads.
+ */
+function setupTranscriptSaveHandler({ ipcMain, getDownloadsDir, isTrustedSender }) {
+  ipcMain.handle('transcript:save', async (event, payload) => {
+    if (!isTrustedSender(event.sender)) {
+      return { ok: false, error: 'Transcript save refused: not the main window' };
+    }
+    return saveTranscript({ dir: getDownloadsDir(), content: payload && payload.content });
+  });
 }
 
 module.exports = { saveTranscript, setupTranscriptSaveHandler };
