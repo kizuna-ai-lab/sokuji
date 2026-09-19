@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
 
 // Partial mock (not a full replacement, unlike SlotRow.test.tsx): StoragePage
@@ -147,6 +147,49 @@ describe('StoragePage (wasm)', () => {
     expect(screen.getByTestId(`storage-delete-${asrId()}`)).toBeDisabled();
     expect(screen.getByRole('button', { name: /Clear all/ })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Import/ })).toBeDisabled();
+  });
+
+  // Task 6: the spec has always said punctuation models are filtered out of
+  // StoragePage — modelStore's initialize() scans the WHOLE manifest
+  // (including type: 'punctuation'), so once the pack is downloaded through
+  // segmentationStore/ModelManager these ids land in modelStatuses as
+  // 'downloaded' just like any engine model. Without a filter they showed up
+  // here as nameless rows a user could delete behind the feature's back.
+  it('does not list punctuation models among the downloaded rows', () => {
+    const punctId = getManifestByType('punctuation')[0].id;
+    useModelStore.setState({
+      modelStatuses: { [asrId()]: 'downloaded', [punctId]: 'downloaded' }, webgpuAvailable: true,
+    });
+    render(<StoragePage provider="wasm" />);
+    expect(screen.getByTestId(`storage-row-${asrId()}`)).toBeInTheDocument();
+    expect(screen.queryByTestId(`storage-row-${punctId}`)).toBeNull();
+  });
+
+  // Clear all wipes the whole IndexedDB, punctuation models included — the
+  // segmentation pack's own store must be told, or the Sentence segmentation
+  // section keeps claiming the models are ready after they are gone.
+  it('re-checks the segmentation pack after Clear all', async () => {
+    const { useSegmentationStore } = await import('../../../stores/segmentationStore');
+    const originalRefresh = useSegmentationStore.getState().refresh;
+    const originalDeleteAllModels = useModelStore.getState().deleteAllModels;
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    // deleteAllModels itself reaches real IndexedDB, which jsdom does not
+    // provide — stub it the way the segmentation store's own action is
+    // stubbed, so this test exercises only what StoragePage does around it.
+    const deleteAllModels = vi.fn().mockResolvedValue(undefined);
+    useSegmentationStore.setState({ refresh });
+    useModelStore.setState({
+      modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true, deleteAllModels,
+    });
+    try {
+      render(<StoragePage provider="wasm" />);
+      fireEvent.click(screen.getByRole('button', { name: /Clear all/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+      await waitFor(() => expect(refresh).toHaveBeenCalled());
+    } finally {
+      useSegmentationStore.setState({ refresh: originalRefresh });
+      useModelStore.setState({ deleteAllModels: originalDeleteAllModels });
+    }
   });
 
   // I4: the delete confirm used to render only the (possibly empty) fallback
