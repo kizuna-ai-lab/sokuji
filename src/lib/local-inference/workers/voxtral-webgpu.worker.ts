@@ -25,6 +25,7 @@ import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import {
   boundedBatchEndSample,
   promoteQueued,
@@ -83,6 +84,17 @@ let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
+
+// The longest speech one generate() run is fed. No text is lost past it — a
+// 60 s run transcribes completely — but the run has to stay under 512 audio
+// tokens (80 ms each: 2.56 s left pad + 0.8 s pre-roll + speech + 0.56 s tail
+// pad) to keep up with real time. Past that the float32 decoder KV tensors
+// leave the 2 MiB allocation class and every token costs ~130 ms more: on a
+// GB10 a 40 s run finished 10 s late and a 60 s one 38-59 s late, and Stop
+// pressed while it lags discards the backlog. 35 s is 488 tokens. Not lower —
+// each forced cut damages about one word. Measured on q4 only; q4f16's
+// float16 KV is predicted to reach the step at ~78 s, which nobody has run.
+const VOXTRAL_REALTIME_MAX_SPEECH_SECONDS = 35;
 let preSpeechPadSamples = Math.ceil(0.8 * VAD_SAMPLE_RATE);
 
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
@@ -113,9 +125,10 @@ async function initVad(vadConfig?: VoxtralAsrInitMessage['vadConfig'], vadModelU
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
 
-  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, {
+    maxSpeechSeconds: VOXTRAL_REALTIME_MAX_SPEECH_SECONDS,
+  });
   preSpeechPadSamples = Math.ceil((preSpeechPadMs / 1000) * VAD_SAMPLE_RATE);
   // NaN would survive the idle trim's Math.max() and discard the first chunk too.
   if (!Number.isFinite(preSpeechPadSamples) || preSpeechPadSamples < 0) preSpeechPadSamples = 0;

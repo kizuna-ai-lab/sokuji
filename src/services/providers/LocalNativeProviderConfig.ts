@@ -32,7 +32,6 @@ export interface LocalNativeSettings {
   vadThreshold: number;                // 0.0-1.0 silero speech threshold
   vadMinSilenceDuration: number;       // seconds — silero min_silence_duration
   vadMinSpeechDuration: number;        // seconds — silero min_speech_duration
-  vadMaxSpeechDuration: number;        // seconds — hard cap on one segment
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode prompt (Qwen path only; '' = default)
   asrDevice: 'auto' | 'cpu' | 'gpu'; // override the sidecar's device selection
@@ -50,7 +49,6 @@ export const defaultLocalNativeSettings: LocalNativeSettings = {
   vadThreshold: 0.3,
   vadMinSilenceDuration: 1.4,
   vadMinSpeechDuration: 0.4,
-  vadMaxSpeechDuration: 30,
   useTemplateMode: true,
   systemPrompt: '',
   asrDevice: 'auto',
@@ -115,7 +113,6 @@ export function createLocalNativeSessionConfig(
     vadThreshold: settings.vadThreshold,
     vadMinSilenceDuration: settings.vadMinSilenceDuration,
     vadMinSpeechDuration: settings.vadMinSpeechDuration,
-    vadMaxSpeechDuration: settings.vadMaxSpeechDuration,
     turnDetectionMode: settings.turnDetectionMode,
     wrapTranscript,
     asrDevice: settings.asrDevice,

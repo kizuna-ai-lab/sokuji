@@ -11,6 +11,7 @@ import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import type { VadWebConfig } from '../types';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 
 const VAD_SAMPLE_RATE = 16000;
 const VAD_FRAME_SAMPLES = 512; // 32ms @ 16kHz
@@ -22,6 +23,15 @@ let frameProcessor: FrameProcessor | null = null;
 let audioBuffer = new Float32Array(0);
 let maxSpeechFrames = Math.ceil(20000 / VAD_FRAME_MS);
 let speechFramesSinceStart = 0;
+
+// The longest speech one segment runs. Not the client's to raise on this
+// path: the sidecar never receives the cap and keeps backstops of its own —
+// 30 s of ring + segment on offline cards, 20 s on streaming ones
+// (asr_engine.py). A client cut at 30 s therefore lands just AFTER the
+// sidecar's: the model gets 30.04 s and then the 0.7-0.85 s left over as a
+// segment of its own, which whisper-tiny turned into a 300-450 character
+// invented paragraph. 20 s is the only value verified clean for every card.
+const NATIVE_MAX_SPEECH_SECONDS = 20;
 
 type WorkerInbound =
   | { type: 'init'; ortWasmBaseUrl?: string; vadModelUrl?: string; vadConfig?: VadWebConfig }
@@ -84,7 +94,9 @@ async function initVad(vadConfig?: VadWebConfig, vadModelUrl?: string): Promise<
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  maxSpeechFrames = Math.ceil(((vadConfig?.maxSpeechDuration ?? 20) * 1000) / VAD_FRAME_MS);
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, {
+    maxSpeechSeconds: NATIVE_MAX_SPEECH_SECONDS,
+  });
 
   frameProcessor = new FrameProcessor(
     vadInfer,

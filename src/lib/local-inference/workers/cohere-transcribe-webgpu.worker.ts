@@ -24,6 +24,7 @@ import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 
 import type {
   CohereTranscribeAsrInitMessage,
@@ -103,9 +104,11 @@ async function initVad(vadConfig?: CohereTranscribeAsrInitMessage['vadConfig'], 
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
 
-  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  // No engine limit: transformers.js splits a segment longer than 35 s at its
+  // quietest point and loses nothing — 30.8 s and 60.8 s segments transcribed
+  // completely in English and Chinese.
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs);
 
   frameProcessor = new FrameProcessor(
     vadInfer,

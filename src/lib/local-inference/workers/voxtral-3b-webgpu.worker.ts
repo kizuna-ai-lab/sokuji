@@ -29,6 +29,7 @@ import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 
 import type {
   Voxtral3BAsrInitMessage,
@@ -80,6 +81,14 @@ let frameProcessor: FrameProcessor | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
 
+// The longest segment this engine is handed, pre-speech pad included: one
+// 30 s encoder chunk. Nothing is lost past it — transformers.js splits a
+// longer segment into 30 s chunks — but a 30 s cap makes a 30.8 s segment, so
+// every capped segment would pay a second encoder pass and 375 more prefill
+// tokens for its last 0.8 s, on a multi-chunk WebGPU path this app has never
+// run (the old 20 s cap never reached it).
+const VOXTRAL_3B_MAX_SEGMENT_SAMPLES = 30 * VAD_SAMPLE_RATE;
+
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
   if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
   const input = new Tensor('float32', frame, [1, VAD_FRAME_SAMPLES]);
@@ -108,9 +117,10 @@ async function initVad(vadConfig?: Voxtral3BAsrInitMessage['vadConfig'], vadMode
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
 
-  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, {
+    maxSegmentSamples: VOXTRAL_3B_MAX_SEGMENT_SAMPLES,
+  });
 
   frameProcessor = new FrameProcessor(
     vadInfer,
