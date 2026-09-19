@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { countNonWhitespace } from '../../lib/segmentation/whitespaceCursor';
+import { countSkeleton } from '../../lib/segmentation/sealCursor';
 
 vi.mock('../../locales', () => ({ default: { t: (key: string) => key } }));
 
@@ -359,7 +359,7 @@ describe('LocalInferenceClient sentence segmentation', () => {
     // The bug: sealUserChunk used to advance by the SEALED text's length
     // (cut + 1, counting the inserted period) instead of the raw consumed
     // length (cut). Assert the corrected cursor directly.
-    expect((client as any).sealedNonWhitespace).toBe(cut);
+    expect((client as any).sealedSkeleton).toBe(cut);
 
     // A short, still-unpunctuated tail — kept under the 50-char gate so no
     // second model round is needed — becomes the final chunk.
@@ -400,11 +400,11 @@ describe('LocalInferenceClient sentence segmentation', () => {
     engine.onPartialResult('First sentence done. Second begins');
     await settle();
     expect(jobSpy.mock.calls.length).toBe(1);
-    expect((client as any).sealedNonWhitespace).toBe(countNonWhitespace('First sentence done.'));
+    expect((client as any).sealedSkeleton).toBe(countSkeleton('First sentence done.'));
 
     // A short final that holds less than the cursor — slicing it there would give ''.
     const shortFinal = 'Hi.';
-    expect(countNonWhitespace(shortFinal)).toBeLessThan((client as any).sealedNonWhitespace);
+    expect(countSkeleton(shortFinal)).toBeLessThan((client as any).sealedSkeleton);
     engine.onResult({ text: shortFinal, durationMs: 1, recognitionTimeMs: 1 });
     await settle();
 
@@ -445,13 +445,13 @@ describe('LocalInferenceClient sentence segmentation', () => {
     engine.onPartialResult('First sentence done. Second begins');
     await settle();
     expect(jobSpy.mock.calls.length).toBe(1);
-    const sealed = (client as any).sealedNonWhitespace as number;
-    expect(sealed).toBe(countNonWhitespace('First sentence done.'));
+    const sealed = (client as any).sealedSkeleton as number;
+    expect(sealed).toBe(countSkeleton('First sentence done.'));
 
     // The final is an exact prefix of the raw text already seen — a
     // truncated re-decode of the SAME utterance, not new content.
     const overlappingFinal = 'First sentence done.';
-    expect(countNonWhitespace(overlappingFinal)).toBe(sealed); // nothing past the cursor, so the slice would be ''
+    expect(countSkeleton(overlappingFinal)).toBe(sealed); // nothing past the cursor, so the slice would be ''
     engine.onResult({ text: overlappingFinal, durationMs: 1, recognitionTimeMs: 1 });
     await settle();
 
@@ -490,13 +490,13 @@ describe('LocalInferenceClient sentence segmentation', () => {
     engine.onPartialResult(leadingSpacePartial);
     await settle();
     expect(jobSpy.mock.calls.length).toBe(1);
-    const sealed = (client as any).sealedNonWhitespace as number;
-    expect(sealed).toBe(countNonWhitespace('First sentence done.'));
+    const sealed = (client as any).sealedSkeleton as number;
+    expect(sealed).toBe(countSkeleton('First sentence done.'));
 
     // The final is trimmed — no leading space — but is still a truncation of
     // the SAME utterance the partial already established.
     const trimmedFinal = 'First sentence done.';
-    expect(countNonWhitespace(trimmedFinal)).toBe(sealed); // nothing past the cursor, so the slice would be ''
+    expect(countSkeleton(trimmedFinal)).toBe(sealed); // nothing past the cursor, so the slice would be ''
     engine.onResult({ text: trimmedFinal, durationMs: 1, recognitionTimeMs: 1 });
     await settle();
 
@@ -506,6 +506,65 @@ describe('LocalInferenceClient sentence segmentation', () => {
     const finalUserItems = client.getConversationItems().filter((i) => i.role === 'user');
     expect(finalUserItems.length).toBe(2);
     expect(finalUserItems.every((i) => i.status === 'completed')).toBe(true);
+  });
+
+  it('a final that drops a mark its partial carried loses no letter', async () => {
+
+  // Captured from the real sidecar with moonshine-streaming-tiny: a streaming
+  // final is a fresh decode, not the last partial with more text on the end,
+  // so it revises punctuation. A cursor that counted non-whitespace
+  // characters walked one letter too far into a final that had dropped a
+  // mark, and queued "'m pretty sure ..." for "I'm pretty sure ...".
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'moonshine' } });
+    const client = makeClient({ segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    client.setEventHandlers({});
+    await client.connect(STREAM_CONFIG);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+    const engine = hoisted.streamingInstances[0];
+
+    engine.onPartialResult(' Lorena and I have a wonderful family together. I\'m pretty sure');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+
+    engine.onResult({
+      text: 'Lorena and I have a wonderful family together I\'m pretty sure none of this would have happened.',
+      durationMs: 1, recognitionTimeMs: 1,
+    });
+    await settle();
+
+    expect(jobSpy.mock.calls.map((c) => (c[0] as any).text.trim())).toEqual([
+      'Lorena and I have a wonderful family together.',
+      'I\'m pretty sure none of this would have happened.',
+    ]);
+  });
+
+  it('a final that adds a mark before the seal point queues no bubble of bare punctuation', async () => {
+    // The same capture, the other way round: an added comma used to leave the
+    // cursor short, so the remainder began with the sealed sentence's full
+    // stop and the rule path sealed "." as a chunk of its own — a bubble, a
+    // translation job, and with TTS on, a spoken full stop.
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'moonshine' } });
+    const client = makeClient({ segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    client.setEventHandlers({});
+    await client.connect(STREAM_CONFIG);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+    const engine = hoisted.streamingInstances[0];
+
+    engine.onPartialResult('And so my fellow Americans, ask not what your country can do for you. When I was young');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+
+    engine.onResult({
+      text: 'And so, my fellow Americans, ask not what your country can do for you. When I was young there was an amazing publication.',
+      durationMs: 1, recognitionTimeMs: 1,
+    });
+    await settle();
+
+    const jobs = jobSpy.mock.calls.map((c) => (c[0] as any).text.trim());
+    expect(jobs).toEqual([
+      'And so my fellow Americans, ask not what your country can do for you.',
+      'When I was young there was an amazing publication.',
+    ]);
   });
 
   it('a trimmed final loses no character to the leading space its partials carried', async () => {
