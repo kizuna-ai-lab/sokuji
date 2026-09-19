@@ -94,10 +94,21 @@ export class LocalInferenceClient implements IClient {
 
   // Sentence segmentation: the runtime and per-bubble sentence count, read
   // once from ClientOptions in the constructor — the client never touches a
-  // store (see the constructor). Absent or disabled means today's behaviour
-  // exactly; see ensureStream().
+  // store (see the constructor). Absent, or disabled at connect, means
+  // today's behaviour exactly; see `segmentationActive` and ensureStream().
   private segmentation: SegmentationRuntime | null = null;
   private sentencesPerChunk = 3;
+  /**
+   * Whether this stage seals for THIS session. Read once, in `connect()`:
+   * the punctuation pack downloads on demand, so `runtime.enabled` can go
+   * from false to true while a session is open. Exactly one of the two
+   * layers that can seal — the ASR worker's own punctuation endpoint and
+   * this stage — must do so, and the worker was told which at init time off
+   * this same answer; re-reading `enabled` per utterance would wake this
+   * stage up under a worker that is still splitting, and both would seal.
+   * Reset in `disconnect()`.
+   */
+  private segmentationActive = false;
   /** One stream per utterance, source side. Null between utterances. */
   private stream: SentenceStream | null = null;
   /**
@@ -190,7 +201,9 @@ export class LocalInferenceClient implements IClient {
    * type. The client never touches a store: N and the runtime ride on
    * ClientOptions precisely so a running session cannot react to either
    * setting changing, and so a disabled/absent runtime behaves exactly as
-   * today (see ensureStream()).
+   * today (see ensureStream()). The runtime object itself is live — its
+   * `enabled` can turn true when the punctuation pack finishes downloading —
+   * which is why connect() freezes that answer into `segmentationActive`.
    */
   constructor(options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {}) {
     this.segmentation = options.segmentation ?? null;
@@ -347,6 +360,10 @@ export class LocalInferenceClient implements IClient {
       const isAstMode = asrModel?.asrEngine === 'granite-speech'
         && config.translationModelId === config.asrModelId;
       this.astMode = isAstMode;
+      // The one read of `enabled` this session gets — see the field doc. It
+      // has to happen before the ASR init below, which derives
+      // `punctuationEndpoint` from the same answer.
+      this.segmentationActive = !isAstMode && this.segmentation?.enabled === true;
 
       if (isAstMode) {
         console.info('[LocalInference] AST mode: Granite Speech handles translation, skipping translation engine');
@@ -389,12 +406,14 @@ export class LocalInferenceClient implements IClient {
           return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId, {
             language: config.sourceLanguage,
             vadConfig,
-            // The negation of ensureStream()'s condition, and it must stay that
-            // way: whichever of the two layers seals, exactly one must. AST
+            // The negation of ensureStream()'s condition, and it must stay
+            // that way: whichever of the two layers seals, exactly one must.
+            // Both read `segmentationActive`, which is why a pack that
+            // finishes downloading mid-session cannot pull them apart. AST
             // mode is unreachable here today (both granite cards are type
             // 'asr'), but an AST stream with both endpoints off would never
-            // seal at all.
-            punctuationEndpoint: isAstMode || !this.segmentation?.enabled,
+            // seal at all — it is folded into `segmentationActive`.
+            punctuationEndpoint: !this.segmentationActive,
           });
         } else {
           const taskConfig = isAstMode
@@ -478,6 +497,7 @@ export class LocalInferenceClient implements IClient {
     this.ttsProcessing = false;
     this.partialUserItem = null;
     this.astMode = false;
+    this.segmentationActive = false;
     this.stream?.dispose();
     this.stream = null;
     this.sealedSkeleton = 0;
@@ -605,32 +625,33 @@ export class LocalInferenceClient implements IClient {
   /**
    * The stream for the utterance in progress, created on first text.
    *
-   * Returns null — meaning "no segmentation, behave exactly as today" — in
-   * AST mode (there the ASR output is already the translation, and the user
-   * bubble only ever shows a placeholder), with no runtime, or with a
-   * disabled one. The disabled check matters here and not just inside
-   * SentenceStream: SentenceStream's own contract for "no runtime or
-   * disabled" is "no sealing at all" (see its `active()`), which means its
-   * `end()` never calls `onSeal` for the tail — if this method still built a
-   * live-but-inert stream for a disabled runtime, the whole utterance would
-   * be silently dropped (no item, no job) instead of completing as one item
-   * and one job the way it does today. Checking segmentation before ever
-   * constructing a stream is what keeps that guarantee.
+   * Returns null — meaning "no segmentation, behave exactly as today" —
+   * whenever `segmentationActive` is false: AST mode (there the ASR output is
+   * already the translation, and the user bubble only ever shows a
+   * placeholder), no runtime, or a runtime that was disabled at connect. That
+   * check matters here and not just inside SentenceStream: SentenceStream's
+   * own contract for "no runtime or disabled" is "no sealing at all" (see its
+   * `active()`), which means its `end()` never calls `onSeal` for the tail —
+   * if this method still built a live-but-inert stream, the whole utterance
+   * would be silently dropped (no item, no job) instead of completing as one
+   * item and one job the way it does today. Deciding before ever constructing
+   * a stream is what keeps that guarantee.
    *
-   * An already-open stream is always reused regardless of a later change to
-   * `segmentation`/`astMode` (checked first, before the guards) — mirroring
-   * "N is read once per stream" and avoiding orphaning an in-flight stream
-   * if the setting flips mid-utterance.
+   * An already-open stream is always reused (checked first, before the
+   * guard) — mirroring "N is read once per stream".
    */
   private ensureStream(): SentenceStream | null {
-    // Reuse the existing stream if already constructed. This is safe only because
-    // SentenceSegmentationSection.tsx holds `disabled={isSessionActive}` on the
-    // toggle, preventing the setting from changing mid-session. If that guard is
-    // ever removed, a mid-utterance toggle-off would reuse this stream even though
-    // runtime.enabled is now false: end() would not seal, the tail would be lost,
-    // and the stranded user bubble would be overwritten by the next utterance.
+    // Reuse the existing stream if already constructed. Safe because
+    // `segmentationActive` is read once per session (see its field doc), so
+    // the answer cannot change under an open stream: neither the pack
+    // finishing its download nor the toggle moving reaches this decision
+    // until the next connect(). Reading `this.segmentation.enabled` here
+    // instead would reintroduce exactly that: a mid-utterance flip to false
+    // would reuse this stream while SentenceStream went inert, and the tail
+    // would be lost with the stranded user bubble overwritten by the next
+    // utterance.
     if (this.stream) return this.stream;
-    if (this.astMode || !this.segmentation || !this.segmentation.enabled) return null;
+    if (!this.segmentationActive || !this.segmentation) return null;
     this.sealedSkeleton = 0;
     this.stream = new SentenceStream({
       // The leg's own config, not a reversal of the speaker's. The participant

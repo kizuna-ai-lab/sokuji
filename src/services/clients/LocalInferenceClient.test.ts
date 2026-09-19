@@ -645,6 +645,55 @@ describe('LocalInferenceClient sentence segmentation', () => {
     expect(inProgressCounts.length).toBeGreaterThan(0);
     expect(inProgressCounts.every((n) => n <= 1)).toBe(true);
   });
+
+  it('ignores a runtime that becomes enabled mid-session', async () => {
+    // The punctuation pack downloads on demand, so `runtime.enabled` can go
+    // from false to true while a session is open. The session must keep the
+    // answer it got at connect: `punctuationEndpoint` was already handed to
+    // the worker off that same answer, and if this stage woke up now both
+    // layers would seal the same utterance.
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
+    // Not fakeRuntime(): SegmentationRuntime declares `enabled` readonly, and
+    // this test is precisely about the value changing underneath the client.
+    const runtime = { enabled: false, punctuate: vi.fn(async () => null) };
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; id: string }> = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ role: item.role, status: item.status, id: item.id }),
+    });
+    await client.connect(STREAM_CONFIG);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+    const engine = hoisted.streamingInstances[0];
+
+    runtime.enabled = true; // the download finished
+
+    const fullText = 'One is done. Two is done. Three is done and finished well.';
+    engine.onPartialResult(fullText);
+    engine.onResult({ text: fullText, durationMs: 10, recognitionTimeMs: 5 });
+    await settle();
+
+    // One item, one job: the stage stayed off for this session.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(new Set(userItems.map((i) => i.id)).size).toBe(1);
+    expect(userItems.filter((i) => i.status === 'completed').length).toBe(1);
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+    // The other half of the invariant: the worker kept its own endpoint, so
+    // exactly one layer sealed rather than none.
+    expect(engine.init.mock.calls[0][1].punctuationEndpoint).toBe(true);
+  });
+
+  it('forgets the session answer on disconnect', async () => {
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
+    const client = makeClient({ segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    client.setEventHandlers({});
+    await client.connect(STREAM_CONFIG);
+    expect((client as any).segmentationActive).toBe(true);
+
+    await client.disconnect();
+
+    expect((client as any).segmentationActive).toBe(false);
+  });
 });
 
 /**

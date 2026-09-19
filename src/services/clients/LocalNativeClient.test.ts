@@ -1793,4 +1793,48 @@ describe('LocalNativeClient sentence segmentation', () => {
     // ...and the two jobs never share that item id.
     expect(forFirst[0].id).not.toBe(forSecond[0].id);
   });
+
+  it('ignores a runtime that becomes enabled mid-session', async () => {
+    // The punctuation pack downloads on demand, so `runtime.enabled` can go
+    // from false to true while a session is open. A session keeps the answer
+    // it got at connect rather than waking this stage up under an utterance
+    // already in flight.
+    // Not fakeRuntime(): SegmentationRuntime declares `enabled` readonly, and
+    // this test is precisely about the value changing underneath the client.
+    const runtime = { enabled: false, punctuate: vi.fn(async () => null) };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; id: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, id: item.id }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    runtime.enabled = true; // the download finished
+
+    const fullText = 'One is done. Two is done. Three is done and finished well.';
+    deps.asr.onPartialResult(fullText);
+    deps.asr.onResult({ text: fullText, durationMs: 10, recognitionTimeMs: 5 });
+    await settle();
+
+    // One item, one job: the stage stayed off for this session.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(new Set(userItems.map((i) => i.id)).size).toBe(1);
+    expect(userItems.filter((i) => i.status === 'completed').length).toBe(1);
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+  });
+
+  it('forgets the session answer on disconnect', async () => {
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    expect((c as any).segmentationActive).toBe(true);
+
+    await c.disconnect();
+
+    expect((c as any).segmentationActive).toBe(false);
+  });
 });

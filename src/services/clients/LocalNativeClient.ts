@@ -24,8 +24,10 @@ interface Deps {
   translate?: NativeTranslateClient | any;
   tts?: NativeTtsClient | any;
   vadWorker?: () => Worker | null;
-  /** The sentence segmentation stage. Absent or disabled means today's
-   *  behaviour exactly — see ensureStream(). */
+  /** The sentence segmentation stage. Absent, or disabled at connect, means
+   *  today's behaviour exactly — see ensureStream(). The object is live: its
+   *  `enabled` can turn true when the punctuation pack finishes downloading,
+   *  which is why connect() freezes that answer for the session. */
   segmentation?: SegmentationRuntime | null;
   /** How many sentences fill one bubble. Configuration, not a collaborator —
    *  there is no sensible default to fall back to besides "absent". */
@@ -69,9 +71,20 @@ export class LocalNativeClient implements IClient {
 
   // Sentence segmentation: the runtime and per-bubble sentence count, read
   // once from Deps in the constructor — the client never touches a store.
-  // Absent or disabled means today's behaviour exactly; see ensureStream().
+  // Absent, or disabled at connect, means today's behaviour exactly; see
+  // `segmentationActive` and ensureStream().
   private segmentation: SegmentationRuntime | null = null;
   private sentencesPerChunk = 3;
+  /**
+   * Whether this stage seals for THIS session. Read once, in `connect()`: the
+   * punctuation pack downloads on demand, so the runtime's `enabled` can go
+   * from false to true while a session is open, and an utterance that started
+   * without this stage must not find it awake halfway through. Reset in
+   * `disconnect()`. (LocalInferenceClient carries the same field for the same
+   * reason, plus the ASR worker's own punctuation endpoint, which it derives
+   * from the same one answer.)
+   */
+  private segmentationActive = false;
   /** One stream per utterance, source side. Null between utterances. */
   private stream: SentenceStream | null = null;
   /**
@@ -148,6 +161,9 @@ export class LocalNativeClient implements IClient {
   async connect(config: SessionConfig): Promise<void> {
     if (!isLocalNativeSessionConfig(config)) throw new Error('LocalNativeClient requires a local_native config');
     this.cfg = config;
+    // The one read of the runtime's `enabled` this session gets — see the
+    // `segmentationActive` field doc.
+    this.segmentationActive = this.segmentation?.enabled === true;
     // A reconnect without an intervening disconnect() must not inherit a
     // stream opened under the PREVIOUS config.
     this.stream?.dispose();
@@ -463,28 +479,30 @@ export class LocalNativeClient implements IClient {
   /**
    * The stream for the utterance in progress, created on first text.
    *
-   * Returns null — meaning "no segmentation, behave exactly as today" — with
-   * no runtime or a disabled one. The disabled check matters here and not
-   * just inside SentenceStream: SentenceStream's own contract for "no runtime
-   * or disabled" is "no sealing at all" (see its `active()`), so if this
-   * method still built a live-but-inert stream for a disabled runtime, the
-   * whole utterance would be silently dropped (no item, no job) instead of
-   * completing as one item and one job the way it does today.
+   * Returns null — meaning "no segmentation, behave exactly as today" —
+   * whenever `segmentationActive` is false: no runtime, or one that was
+   * disabled at connect. That check matters here and not just inside
+   * SentenceStream: SentenceStream's own contract for "no runtime or
+   * disabled" is "no sealing at all" (see its `active()`), so if this method
+   * still built a live-but-inert stream, the whole utterance would be
+   * silently dropped (no item, no job) instead of completing as one item and
+   * one job the way it does today.
    *
-   * An already-open stream is always reused regardless of a later change to
-   * `segmentation` (checked first, before the guard) — "N is read once per
-   * stream", and this avoids orphaning an in-flight stream if the setting
-   * flips mid-utterance.
+   * An already-open stream is always reused (checked first, before the
+   * guard) — "N is read once per stream".
    */
   private ensureStream(): SentenceStream | null {
-    // Reuse the existing stream if already constructed. This is safe only because
-    // SentenceSegmentationSection.tsx holds `disabled={isSessionActive}` on the
-    // toggle, preventing the setting from changing mid-session. If that guard is
-    // ever removed, a mid-utterance toggle-off would reuse this stream even though
-    // runtime.enabled is now false: end() would not seal, the tail would be lost,
-    // and the stranded user bubble would be overwritten by the next utterance.
+    // Reuse the existing stream if already constructed. Safe because
+    // `segmentationActive` is read once per session (see its field doc), so
+    // the answer cannot change under an open stream: neither the pack
+    // finishing its download nor the toggle moving reaches this decision
+    // until the next connect(). Reading `this.segmentation.enabled` here
+    // instead would reintroduce exactly that: a mid-utterance flip to false
+    // would reuse this stream while SentenceStream went inert, and the tail
+    // would be lost with the stranded user bubble overwritten by the next
+    // utterance.
     if (this.stream) return this.stream;
-    if (!this.segmentation || !this.segmentation.enabled) return null;
+    if (!this.segmentationActive || !this.segmentation) return null;
     this.sealedSkeleton = 0;
     this.stream = new SentenceStream({
       lang: this.cfg?.sourceLanguage ?? 'auto',
@@ -901,6 +919,7 @@ export class LocalNativeClient implements IClient {
     this.connected = false;
     this.partialUserItem = null;
     this.currentTranslateItem = null;
+    this.segmentationActive = false;
     this.stream?.dispose();
     this.stream = null;
     this.sealedSkeleton = 0;
