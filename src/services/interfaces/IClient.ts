@@ -284,6 +284,7 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   vadNegativeThreshold?: number;
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
+  vadMaxSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   /**
    * Whether the active system prompt expects `<transcript>` wrapping around
@@ -311,6 +312,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   vadThreshold?: number;
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
+  vadMaxSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   wrapTranscript?: boolean;
   asrDevice?: string;

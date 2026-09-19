@@ -171,6 +171,8 @@
     "vadNegativeThresholdAuto": "自動",
     "vadMinSilenceDuration": "最小無音時間",
     "vadMinSilenceDurationTooltip": "発話を分割するための最小無音時間。短い値は文をすばやく分割し、長い値はより自然な間で分割します。",
+    "vadMaxSpeechDuration": "最大発話時間",
+    "vadMaxSpeechDurationTooltip": "1つの発話区間が分割されるまでの最長時間。長くすると文が途切れにくくなり、短くするとメモリ使用量が減ります。",
     "vadMinSpeechDuration": "最小発話時間",
     "vadMinSpeechDurationTooltip": "有効な発話として認識する最小時間。クリック音や咳などの短い音をフィルタリングします。",
     "geminiVadTooltip": "Geminiが発話の区切りを検出する方法を制御します。この設定を調整することで、継続的な発話に対する翻訳の応答性を改善できます。\nプッシュトゥトーク：キーを押している間に音声を送信します。\nプッシュトゥトランスレート：プッシュトゥトークと同様ですが、アイドル時に生のマイク音声を仮想マイクへパススルーするので、翻訳せずに直接話せます。",

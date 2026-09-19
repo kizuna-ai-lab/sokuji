@@ -570,6 +570,26 @@ describe('LocalInferenceClient worker punctuation endpoint', () => {
     expect(initOptions().punctuationEndpoint).toBe(true);
   });
 
+  it('sends the max speech duration to a streaming worker', async () => {
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'voxtral' } });
+    const client = makeClient({});
+    await client.connect({ ...STREAM_CONFIG, vadMaxSpeechDuration: 30 });
+
+    // Until this was wired the field existed only as a type (`types.ts`
+    // VadWebConfig) and every worker fell back to its own `?? 20`, so the cap
+    // no caller had ever chosen was the one every session ran under.
+    expect(initOptions().vadConfig.maxSpeechDuration).toBe(30);
+  });
+
+  it('sends the max speech duration to an offline worker too', async () => {
+    setManifest({ 'offline-model': { type: 'asr', asrEngine: 'cohere-transcribe' } });
+    const client = makeClient({});
+    await client.connect({ ...OFFLINE_CONFIG, vadMaxSpeechDuration: 45 });
+
+    // The offline engine takes the vadConfig as its second positional argument.
+    expect(hoisted.offlineInstances[0].init.mock.calls[0][1].maxSpeechDuration).toBe(45);
+  });
+
   it('stays on when the runtime is disabled', async () => {
     setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'voxtral' } });
     const client = makeClient({ segmentation: fakeRuntime(false), sentencesPerChunk: 3 });

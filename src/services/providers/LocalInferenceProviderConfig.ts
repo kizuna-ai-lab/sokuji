@@ -28,6 +28,7 @@ export interface LocalInferenceSettings {
   vadNegativeThreshold: number; // 0.0-1.0, 0 = derive from vadThreshold (vad-web workers only)
   vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
   vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
+  vadMaxSpeechDuration: number;  // seconds, default 30 — hard cap on one segment
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode speaker prompt (default '')
   participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
@@ -45,6 +46,7 @@ export const defaultLocalInferenceSettings: LocalInferenceSettings = {
   vadNegativeThreshold: 0,   // auto: vadThreshold - 0.15
   vadMinSilenceDuration: 1.4,
   vadMinSpeechDuration: 0.4,
+  vadMaxSpeechDuration: 30,
   useTemplateMode: true,
   systemPrompt: '',
   participantSystemPrompt: '',
@@ -150,6 +152,7 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
       vadNegativeThreshold: settings.vadNegativeThreshold,
       vadMinSilenceDuration: settings.vadMinSilenceDuration,
       vadMinSpeechDuration: settings.vadMinSpeechDuration,
+      vadMaxSpeechDuration: settings.vadMaxSpeechDuration,
       turnDetectionMode: settings.turnDetectionMode,
       wrapTranscript,
     } as LocalInferenceSessionConfig;

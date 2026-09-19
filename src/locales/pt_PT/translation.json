@@ -171,6 +171,8 @@
     "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Duração mín. de silêncio",
     "vadMinSilenceDurationTooltip": "Duração mínima de silêncio para dividir segmentos de fala. Valores mais curtos dividem frases mais rápido, valores mais longos aguardam pausas mais naturais.",
+    "vadMaxSpeechDuration": "Duração máx. de fala",
+    "vadMaxSpeechDurationTooltip": "Duração máxima de um segmento de fala antes de ser dividido. Valores maiores mantêm as frases inteiras, valores menores usam menos memória.",
     "vadMinSpeechDuration": "Duração mín. de fala",
     "vadMinSpeechDurationTooltip": "Duração mínima para considerar como fala válida. Filtra sons muito curtos como cliques ou tosses.",
     "geminiVadTooltip": "Controla como o Gemini deteta pausas na fala para dividir os turnos. Ajustar estas definições pode melhorar a capacidade de resposta da tradução para fala contínua. \nPremir para falar: mantenha premida uma tecla para enviar áudio. \nPremir para traduzir: como o Premir para falar, mas encaminha o seu microfone em bruto para o microfone virtual quando inativo, para que possa falar diretamente sem tradução.",

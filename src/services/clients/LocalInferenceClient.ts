@@ -369,6 +369,7 @@ export class LocalInferenceClient implements IClient {
           negativeThreshold: config.vadNegativeThreshold || undefined,
           minSilenceDuration: config.vadMinSilenceDuration,
           minSpeechDuration: config.vadMinSpeechDuration,
+          maxSpeechDuration: config.vadMaxSpeechDuration,
         };
         if (asrModel?.type === 'asr-stream') {
           return (this.asrEngine as StreamingAsrEngine).init(config.asrModelId, {
