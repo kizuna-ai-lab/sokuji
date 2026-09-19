@@ -1,11 +1,20 @@
 # Sentence Segmentation for Transcripts — Design
 
 **Date**: 2026-09-16
-**Status**: Approved section by section in brainstorming (2026-09-14 → 2026-09-16); written spec pending review
+**Status**: Approved section by section in brainstorming (2026-09-14 → 2026-09-16); written spec pending review.
+Amendment A1 approved in chat 2026-09-20.
 **Evidence**:
 - `docs/superpowers/notes/2026-09-14-asr-punctuation-restoration-survey.md` (primary-source survey)
 - `docs/superpowers/notes/2026-09-14-asr-punctuation-benchmark.md` (measured quality, renderer cost, production language mix)
 - `benchmark/punctuation-restoration/` (corpus, ported models, parity scripts, results)
+
+**Amendment A1 (2026-09-20): the three models are one opt-in download.** It replaces D11 and
+D12 as first written. The feature is off by default. Turning it on asks once, naming the three
+models and their combined size, then downloads all three. The feature, including the Sentences
+per bubble control, works only once all three are on disk. Gone: the background download on
+first need, the per-model rows in the section, and the one-time notice. Sections changed:
+Summary, Decisions, Components, Injection, Lifecycle, Settings UI, Diagnostics and analytics,
+Failure handling, Testing and the phasing list.
 
 ## Summary
 
@@ -26,9 +35,9 @@ This design adds a renderer-side **sentence segmentation stage** shared by every
 
 The models are FireRedPunc (zh), Edge-Punct-en (en) and SaT `sat-3l-sm` (every other language).
 - **Runtime:** one app-wide runtime and one worker.
-- **Loading:** a model is downloaded in the background the first time it is needed.
-- **Settings:** the feature is on by default and has its own "Sentence segmentation" section,
-  visible for every provider.
+- **Loading:** the three models download together, once, when the user turns the feature on.
+- **Settings:** the feature is off by default and has its own "Sentence segmentation" section,
+  visible for every provider. It works only once all three models are downloaded.
 - **Failures:** any failure falls back to today's behaviour.
 
 ## Problem (verified)
@@ -95,8 +104,8 @@ minutes.
 | D8 | Chinese fallback | Tail ≥ N × 33 characters (~100 at N = 3) with < N sentence ends → seal at the latest confirmed breakpoint (sentence end or comma) |
 | D9 | Architecture | Shared stage: `SentenceStream` + `PunctuationRuntime` + one worker, injected through `ClientOptions` |
 | D10 | UI | Independent "Sentence segmentation" section, visible for every provider |
-| D11 | Download | Automatic, in the background, on first need; manual download also offered |
-| D12 | Default | On; one-time notice on the first background download |
+| D11 | Download | All three models as one download (402 MB), started when the user turns the feature on, after a confirmation that names each model and the total. Nothing downloads in the background. (A1) |
+| D12 | Default | Off. The feature, including Sentences per bubble, works only once all three models are downloaded. (A1) |
 | D13 | Hosting | Own Hugging Face repos (`jiangzhuo9357`), pinned `hfRevision` |
 | D14 | Extension | Enabled as on desktop |
 | D15 | Sentences per bubble | A user setting: 1–5, default 3, shown as a segmented control. The model gate and the Chinese fallback scale with it. At 1, local paths translate sentence by sentence. |
@@ -178,7 +187,7 @@ interface PunctuationResult {
 
 **`PunctuationRuntime`: the implementation, one per app**
 - Routes each language to a model.
-- Downloads models through `ModelManager`.
+- Loads models that are already on disk. It never downloads one (A1).
 - Creates the worker lazily.
 - Tracks health and unloads idle models.
 - Emits status events.
@@ -191,19 +200,19 @@ interface PunctuationResult {
   `edgePunctEn`, `sat`), ported from `benchmark/punctuation-restoration/models/*.mjs`.
 - Protocol: `load` / `run` / `unload` / `dispose`, over the existing `WorkerSession` + `RequestRegistry`.
 
-**`segmentationStore` (zustand)**
-- Per model: status, download progress and error.
-- Status values: `not-downloaded | downloading | downloaded | loading | ready | error | disabled`.
-- UI reads only.
+**`segmentationStore` (zustand)** (A1)
+- The three models as one download: phase `unknown | missing | downloading | ready | error`,
+  bytes done and total, and the error.
+- Actions: check the disk, download, cancel, delete. The download fetches one model after another
+  through `ModelManager`, and progress is summed over the three.
+- The runtime's per-model status goes to diagnostics only. The UI does not show it.
 
 **Settings (`CommonSettings`)**
-- `sentenceSegmentation: boolean`, default `true`.
+- `sentenceSegmentation: boolean`, default `false` (A1).
 - `sentenceSegmentationChunkSentences: number`, default `3`, clamped to 1–5 on read.
-- `sentenceSegmentationNoticeShown: boolean`.
 
 **UI**
-- `SentenceSegmentationSection.tsx`.
-- The first-download notice component.
+- `SentenceSegmentationSection.tsx` and its download confirmation.
 
 ### Injection
 
@@ -213,6 +222,10 @@ interface PunctuationResult {
   `sonioxManaged` (`legOptions`).
 - Clients never construct the runtime and never import a store. A client that receives no runtime,
   or a disabled one, behaves exactly as today.
+- `enabled` is true only when the toggle is on, all three models are on disk and the memory guard
+  passes (A1).
+- A client reads `enabled` once, at connect, and keeps that answer for the session. The download
+  can finish mid-session, and Local Inference decides at connect which of two layers seals.
 - Tests pass a fake.
 
 ## Data flow and rules
@@ -376,13 +389,13 @@ Uploading is an outward action that needs explicit confirmation at the time.
 
 ### Lifecycle
 
-- **First need, not yet downloaded:** if the toggle is on, start a background download and return
-  `null`. On the first download ever, show the notice.
+- **Not all downloaded:** the runtime is disabled. Nothing downloads on need (A1).
 - **Downloaded but not loaded:** load (0.5–2.4 s) and return `null` meanwhile.
 - **Loaded:** models stay while any session is active.
 - **After a session ends:** models the current language pair does not need unload after 2 minutes
   idle, and the worker terminates when it holds none.
-- **Memory guard:** if `navigator.deviceMemory` ≤ 4, no model loads; the rule alone runs.
+- **Memory guard:** if `navigator.deviceMemory` ≤ 4, the feature cannot be turned on and the
+  runtime is disabled (A1).
 
 ### Memory
 
@@ -405,29 +418,39 @@ set. Candidates to try: releasing the model bytes after session creation, and OR
 `persistSetting` with rollback.
 
 **Description.** One sentence: long unsegmented transcripts get punctuation and a new bubble every
-N sentences, and a model is downloaded only when needed.
+N sentences.
+
+**Turning it on** (A1). When the three models are not all on disk, turning the toggle on opens a
+confirmation instead: the shared `Modal`, as `LicenseConsentModal` does before a native model
+download. It lists each model with its size, then the total, with Cancel and Download. Download
+turns the toggle on and starts the download; Cancel leaves the toggle off. When all three are
+already on disk, the toggle turns on without asking.
+
+**Download state** (A1). One line under the toggle while it is on and the models are not ready:
+- downloading: a progress bar, bytes done of the total, and Cancel. Cancel turns the toggle off
+  and keeps the finished files, so the next download resumes from them.
+- failed: the error and Retry, which resumes.
+- missing (on, but the files are not on disk: an interrupted download, or storage cleared
+  elsewhere): Download, which opens the confirmation again.
+
+There is no line once the models are ready.
 
 **Sentences per bubble.** A segmented control with 1–5, default 3, directly under the toggle and
-greyed out with it, plus a line naming the effect ("long speech starts a new bubble every 3
+greyed out unless the toggle is on and the models are ready (A1), plus a line naming the effect ("long speech starts a new bubble every 3
 sentences"). It is the only tuning knob exposed; the gate and the Chinese fallback follow it. On
 Local Inference and Local Native it also sets the translation unit, so 1 means sentence-by-sentence
 translation and 5 stays close to today's whole-utterance behaviour.
 
-**Model rows.** One row per model:
-- name (Chinese / English / Other languages), size and status;
-- actions: download, delete, retry;
-- a "used by current languages" mark covering both legs.
+**Deleting** (A1). Turning the toggle off keeps the files, so turning it on again is instant.
+While it is off and files exist, a "Delete models" link with their size removes all three. The
+models do not appear in `StoragePage` (see Manifest and hosting), so this link is the one place to
+delete them, whatever the provider. "Clear all" there still removes them with everything else;
+the section re-checks the disk and shows them as missing.
 
-During a session, deleting a model in use is disabled (`isSessionActive`). On low-memory devices
-the rows are greyed out with the reason.
+**Low memory** (A1). The toggle cannot be turned on, and the section says why. If it is already on
+from an earlier build, it can still be turned off.
 
-**One-time notice**
-- **Trigger:** the first background download ever.
-- **Content:** which model, its size and purpose, and a link to the section.
-- **Pattern:** reuses MainPanel's existing in-session notice family (`EchoNotice`,
-  `AudioSystemBanner`). No new chip, since chip patterns for device state were rejected before
-  (#468).
-- **Visual:** settled by rendering candidates during implementation.
+During a session the toggle, the download actions and the delete link are disabled.
 
 **i18n.** Every locale gets real translations, not English placeholders.
 `locales.consistency.test.ts` enforces identical keys.
@@ -446,8 +469,11 @@ the rows are greyed out with the reason.
 **Analytics (PostHog)**
 - `translation_session_start` gains `sentence_segmentation_enabled` and
   `sentence_segmentation_chunk_sentences`.
+- `translation_session_start` also gains `sentence_segmentation_active`: the toggle is on and the
+  models are ready (A1).
 - New events:
-  - `segmentation_model_download` `{ model, size_mb, result, duration_ms }`
+  - `segmentation_models_download` `{ size_mb, result: 'ok' | 'error' | 'cancelled', duration_ms }`,
+    one per download of the three (A1)
   - `segmentation_model_load` `{ model, backend: 'webgpu' | 'wasm', load_ms, result }`
 - `translation_session_end` gains per-leg counters:
   - seals by reason;
@@ -464,8 +490,10 @@ failure class is reported once.
 | Situation | Handling |
 |---|---|
 | Toggle off | Disabled runtime: no sealing, no model calls. GPT-Live's moved sentence-end rule still applies as before. |
-| Model not downloaded / downloading / loading | `punctuate` → `null`. Punctuated text is still counted and sealed; unpunctuated long text is not sealed and client caps behave as today. |
-| Download failure (network, HF unreachable, validation, storage full) | Error + retry in the section. No automatic retry in the same app launch; one automatic retry on need in a later launch; manual retry any time. |
+| Toggle on, models not all downloaded (A1) | Disabled runtime, as with the toggle off. The section shows the download state. |
+| Model loading | `punctuate` → `null`. Punctuated text is still counted and sealed; unpunctuated long text is not sealed and client caps behave as today. |
+| Download failure (network, HF unreachable, validation, storage full) | Error + Retry in the section; Retry resumes from the files already stored. No automatic retry. (A1) |
+| Model files gone at load (storage cleared mid-session) | That model is disabled for the session; rule only. The section shows the models as missing on its next check. (A1) |
 | WebGPU load failure or device lost | WebGPU disabled for this app launch; worker recreated with the WASM entry, models reloaded; one warning |
 | Single call error or timeout (3 s) | That call → `null`, treated as no model |
 | 3 consecutive failures for a model | Model disabled for the session; rule only; reason shown |
@@ -474,7 +502,7 @@ failure class is reported once.
 | Output skeleton ≠ input skeleton | Result discarded; one diagnostic |
 | ASR rewrites counted text | Re-anchor by skeleton; if alignment fails, restart counting at the current end; never un-seal |
 | Unknown or unsupported language | SaT; if SaT is unavailable, rule only |
-| `deviceMemory` ≤ 4 GB | No model; rule only |
+| `deviceMemory` ≤ 4 GB | The toggle cannot be turned on; disabled runtime (A1) |
 | Session ends mid-call | Pending calls cancelled, streams disposed; late results cannot touch items (session generation check) |
 | Setting persistence fails | Existing rollback pattern |
 
@@ -494,12 +522,13 @@ failure class is reported once.
   - null-runtime parity with today;
   - discard on a skeleton mismatch.
 - **`PunctuationRuntime`:** with a fake worker (the `WorkerSession.test.ts` pattern), cover:
-  - lazy creation and single download trigger;
+  - lazy creation, and no download from the runtime (A1);
   - failure counting, crash restart and WebGPU → WASM fallback;
   - the 2-minute idle unload (fake timers) and the memory guard.
 - **Model adapters:** golden tests on fixed token ids and canned logits, covering tokenization
   mapping and decoding. No ONNX runs in vitest.
-- **Settings and store:** the default is on, persistence rolls back, and the notice flag works.
+- **Settings and store:** the default is off and persistence rolls back. The store's download sums
+  progress over the three models, resumes, cancels and deletes (A1).
 
 **Client integration**
 - **Local Inference and Local Native:**
@@ -538,7 +567,8 @@ skips when the models are not cached locally.
 - **Resources:**
   - renderer and GPU process memory via `app.getAppMetrics()`, including the WebGPU RSS question;
   - WebGPU on the fleet: GB10, Windows RTX, Mac M4.
-- **UI:** rendered candidates for the section and the notice; every locale checked for width.
+- **UI:** the section's download states and the confirmation rendered and looked at; every locale
+  checked for width.
 
 **After release (PostHog).** Watch download success, load failures, seals per session by reason,
 and terminals per 100 characters per ASR model. Tune from those numbers: the default N, the gate's
@@ -559,7 +589,8 @@ R = 8, the 3 s timeout and the 500 ms latency budget.
 4. **Local Inference and Local Native integration.**
 5. **Timer/regex online providers integration.**
 6. **Server-definite providers:** punctuation fill-in.
-7. **Notice, diagnostics, analytics;** then real-environment validation and fleet runs.
+7. **Diagnostics, analytics;** then real-environment validation and fleet runs. (A1 replaced the
+   notice with the confirmation; it lands before this step.)
 
 ## Risks and open questions
 

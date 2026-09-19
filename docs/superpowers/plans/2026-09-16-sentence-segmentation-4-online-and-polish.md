@@ -1,14 +1,14 @@
-# Sentence Segmentation — Slice 4: Online Providers, Notice, Diagnostics — Implementation Plan
+# Sentence Segmentation — Slice 4: Online Providers, Diagnostics — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Finish the feature: display segmentation for the timer/regex online providers, punctuation fill-in for the server-definite ones, the one-time download notice, diagnostics, analytics, and the real-environment validation that decides whether the thresholds hold.
+**Goal:** Finish the feature: display segmentation for the timer/regex online providers, punctuation fill-in for the server-definite ones, diagnostics, analytics, and the real-environment validation that decides whether the thresholds hold.
 
 **Architecture:** For timer/regex providers the stage only changes *display*: two streams per client (source and translation), a seal closes the current conversation item at the cut and opens the next. Every existing cut rule stays; the only change to them is that a hard span cap now prefers a confirmed boundary. Server-definite providers get no stream at all — when a segment becomes definite and is long and unpunctuated, one `punctuate` call replaces its text and the boundary is untouched.
 
 **Tech Stack:** TypeScript, React, PostHog, Vitest.
 
-**Spec:** `docs/superpowers/specs/2026-09-16-sentence-segmentation-design.md`, sections "Timer/regex online providers", "Server-definite providers", "Settings UI" (notice), "Diagnostics and analytics", "Testing".
+**Spec:** `docs/superpowers/specs/2026-09-16-sentence-segmentation-design.md`, sections "Timer/regex online providers", "Server-definite providers", "Settings UI", "Diagnostics and analytics", "Testing".
 
 **Depends on:** slices 1–3.
 
@@ -39,12 +39,10 @@
 | `src/services/clients/punctuateDefinite.ts` | **new** — the shared fill-in helper |
 | `src/services/clients/punctuateDefinite.test.ts` | **new** |
 | `src/services/clients/SonioxClient.ts`, `VolcengineAST2Client.ts`, `VolcengineSTClient.ts`, `PalabraAIClient.ts`, `OpenAIGAClient.ts`, `OpenAIClient.ts`, `ZoomAIClient.ts` | modify — one call each |
-| `src/components/SegmentationNotice/SegmentationNotice.tsx` | **new** |
-| `src/components/MainPanel/MainPanel.tsx` | modify — render the notice; two analytics edits |
+| `src/components/MainPanel/MainPanel.tsx` | modify — two analytics edits |
 | `src/components/MainPanel/segmentationTelemetry.ts` | **new** — pure, because MainPanel has no harness |
 | `src/lib/analytics.ts` | modify — two events, four properties |
 | `docs/ANALYTICS_EVENTS.md` | modify |
-| `src/locales/*/translation.json` | modify — notice strings, 30 catalogs |
 
 ---
 
@@ -303,40 +301,15 @@ git commit -m "feat(segmentation): fill in punctuation on server-definite segmen
 
 ---
 
-## Task 4: The one-time download notice
+## Task 4: withdrawn (Amendment A1, 2026-09-20)
 
-**Files:**
-- Create: `src/components/SegmentationNotice/SegmentationNotice.tsx` (+ `.scss`, `.test.tsx`)
-- Modify: `src/components/MainPanel/MainPanel.tsx`
-- Modify: `src/locales/*/translation.json`
+The one-time download notice is gone. Amendment A1 replaced the background download on first
+need with one confirmation in the section: the user is asked before anything downloads, so an
+after-the-fact notice in MainPanel has nothing left to announce. `SegmentationNotice` is never
+built, and `sentenceSegmentationNoticeShown` is deleted from `CommonSettings`.
 
-- [ ] **Step 1: Write the failing test**
-
-Cases: renders nothing when `sentenceSegmentationNoticeShown` is true; renders on the first `downloading` status; names the model and its size; dismiss calls `markSentenceSegmentationNoticeShown`; the link navigates to `sentence-segmentation`; it never appears twice in one session.
-
-- [ ] **Step 2: Implement**
-
-Copy `EchoNotice`'s shape (`src/components/EchoNotice/EchoNotice.tsx`): a props-driven component (`{ state, onDismiss }`), `role="alert"`, an icon, two lines of text and an `X` dismiss button. Render it in MainPanel as the last child inside `<div className="main-panel">`, next to `<EchoNotice …>` at line 4707 — not at the top level with `AudioSystemBanner`, which is for app-wide states.
-
-The "show once ever" flag is the settings field from slice 2, written through `markSentenceSegmentationNoticeShown` — a fire-and-forget marker with no rollback, the same shape as `audioStore`'s `markParticipantTapAudioSeen`.
-
-- [ ] **Step 3: Add the locale keys to all 30 catalogs**
-
-```json
-"segmentationNoticeTitle": "Downloading a segmentation model",
-"segmentationNoticeBody": "Sokuji is fetching {{model}} ({{size}} MB) so it can punctuate transcripts that arrive without it. This happens once.",
-"segmentationNoticeLink": "Manage in settings",
-"segmentationNoticeDismiss": "Dismiss"
-```
-
-Both `{{model}}` and `{{size}}` must appear verbatim in every translation.
-
-- [ ] **Step 4: Settle the visuals by rendering**, then run the tests and commit
-
-```bash
-git add src/components/SegmentationNotice src/components/MainPanel/MainPanel.tsx src/locales
-git commit -m "feat(segmentation): announce the first background model download once"
-```
+The work A1 does need is its own slice, landing before this one:
+`docs/superpowers/plans/2026-09-20-sentence-segmentation-3b-download-gate.md`.
 
 ---
 
@@ -384,13 +357,16 @@ in `'translation_session_end'` (line 53):
 and two new events:
 
 ```typescript
-  'segmentation_model_download': { model: string; size_mb: number; result: 'ok' | 'error'; duration_ms: number };
+  'segmentation_models_download': { size_mb: number; result: 'ok' | 'error' | 'cancelled'; duration_ms: number };
   'segmentation_model_load': { model: string; backend: 'webgpu' | 'wasm'; load_ms: number; result: 'ok' | 'error' };
 ```
 
 - [ ] **Step 3: Emit them**
 
-At `MainPanel.tsx:4003`, add the two start properties. At `:4024`, spread `segmentationTelemetry(...)` into the end event. The two model events fire from `useSegmentationRuntime`'s `onStatus` / `onLoaded` callbacks (slice 2), which is already the place that knows about downloads and loads.
+At `MainPanel.tsx:4003`, add the start properties, including `sentence_segmentation_active`
+(the toggle is on AND the models are ready — see the spec's Amendment A1). At `:4024`, spread `segmentationTelemetry(...)` into the end event. `segmentation_model_load` fires from `useSegmentationRuntime`'s `onLoaded` callback (slice 2).
+`segmentation_models_download` fires once per download of the three models, from
+`segmentationStore`'s download action (slice 3b) — the runtime no longer downloads anything.
 
 - [ ] **Step 4: LogsPanel lines**
 
@@ -455,7 +431,7 @@ WebGPU on GB10 (linux-arm64), the Windows RTX box and the Mac M4, per the test-f
 
 - [ ] **Step 6: UI**
 
-Every locale checked for width on the section and the notice.
+Every locale checked for width on the section.
 
 - [ ] **Step 7: Record the results** in the notes file and commit.
 
@@ -465,7 +441,6 @@ Every locale checked for width on the section and the notice.
 
 - Every provider family shows segmented bubbles, and the server-definite ones show punctuated text on unchanged boundaries.
 - GPT-Live's hard cap no longer cuts inside a word when a boundary is available.
-- The notice appears exactly once, ever.
 - The analytics answer "where is punctuation actually missing" without carrying any text.
 - Thresholds are either measured or explicitly recorded as unmeasured defaults.
 - `npm run test` is green, `npx tsc --noEmit` is clean, and the fleet runs are recorded.
