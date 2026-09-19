@@ -172,7 +172,7 @@
     "vadMinSilenceDuration": "Min. czas ciszy",
     "vadMinSilenceDurationTooltip": "Minimalna cisza do podziału segmentów mowy. Krótsze wartości dzielą zdania szybciej, dłuższe czekają na bardziej naturalne pauzy.",
     "vadMaxSpeechDuration": "Maks. czas mowy",
-    "vadMaxSpeechDurationTooltip": "Najdłuższy czas trwania jednego segmentu mowy przed podziałem. Większe wartości zachowują całe zdania, mniejsze zużywają mniej pamięci.",
+    "vadMaxSpeechDurationTooltip": "Najdłuższy czas trwania pojedynczego segmentu mowy przed podziałem. Niektóre modele dzielą wcześniej, przy najdłuższym segmencie, który transkrybują poprawnie.",
     "vadMinSpeechDuration": "Min. czas mowy",
     "vadMinSpeechDurationTooltip": "Minimalna długość mowy uznawanej za prawidłową. Filtruje bardzo krótkie dźwięki, takie jak kliknięcia lub kaszel.",
     "geminiVadTooltip": "Kontroluje sposób wykrywania przez Gemini przerw w mowie w celu podziału na tury. Dostosowanie tych ustawień może poprawić szybkość reagowania tłumaczenia na ciągłą mowę. \nNaciśnij i mów: przytrzymaj klawisz, aby wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",

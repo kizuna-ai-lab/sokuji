@@ -91,9 +91,19 @@ let speechFramesSinceStart = 0;
 // pad) to keep up with real time. Past that the float32 decoder KV tensors
 // leave the 2 MiB allocation class and every token costs ~130 ms more: on a
 // GB10 a 40 s run finished 10 s late and a 60 s one 38-59 s late, and Stop
-// pressed while it lags discards the backlog. 35 s is 488 tokens. Not lower —
-// each forced cut damages about one word. Measured on q4 only; q4f16's
-// float16 KV is predicted to reach the step at ~78 s, which nobody has run.
+// pressed while it lags discards the backlog. 35 s is 488-489 tokens. Not
+// lower — each forced cut damages about one word. Measured on q4 only;
+// q4f16's float16 KV is predicted to reach the step at ~78 s, which nobody
+// has run.
+//
+// The 24 tokens of headroom are not all slack: an utterance that starts while
+// the previous run is still draining is staged untrimmed, so it carries every
+// sample since the last endpoint instead of the 0.8 s pre-roll (the idle trim
+// at feedAudio is gated on `!isGenerating`). A drain longer than ~2.8 s then
+// pushes the carrying run past 512 — 513 to 527 tokens in simulation at a
+// drain of 4.6 s, against the 1.2-2.65 s measured on the GB10. Latency only,
+// no text lost, and the same at any cap; trimming the staged buffer is a
+// separate change.
 const VOXTRAL_REALTIME_MAX_SPEECH_SECONDS = 35;
 let preSpeechPadSamples = Math.ceil(0.8 * VAD_SAMPLE_RATE);
 

@@ -172,7 +172,7 @@
     "vadMinSilenceDuration": "Durée min. de silence",
     "vadMinSilenceDurationTooltip": "Durée minimale de silence pour séparer les segments de parole. Des valeurs plus courtes séparent les phrases plus rapidement, des valeurs plus longues attendent des pauses plus naturelles.",
     "vadMaxSpeechDuration": "Durée max. de parole",
-    "vadMaxSpeechDurationTooltip": "Durée maximale d'un segment de parole avant qu'il ne soit découpé. Les valeurs élevées gardent les phrases entières, les valeurs faibles consomment moins de mémoire.",
+    "vadMaxSpeechDurationTooltip": "Durée maximale d'un segment de parole avant qu'il ne soit découpé. Certains modèles découpent plus tôt, au plus long segment qu'ils transcrivent correctement.",
     "vadMinSpeechDuration": "Durée min. de parole",
     "vadMinSpeechDurationTooltip": "Durée minimale pour considérer comme parole valide. Filtre les sons très courts comme les clics ou la toux.",
     "geminiVadTooltip": "Contrôle la façon dont Gemini détecte les pauses de parole pour diviser les tours. Ajuster ces paramètres peut améliorer la réactivité de la traduction pour la parole continue. \nAppuyer pour parler: maintenez une touche pour envoyer l'audio. \nAppuyer pour traduire: comme Appuyer pour parler, mais achemine votre micro brut vers le micro virtuel en veille pour que vous puissiez parler directement sans traduction.",

@@ -77,13 +77,16 @@ let speechFramesSinceStart = 0;
 // and posted as an ordinary result. In seconds that depends on how the
 // tokenizer treats the language. Real English and Japanese need 58-78 s to
 // fill it (and at 60 s the decode runs at 0.8-1.3x real time, so the queue
-// never drains). Thai fills it at about 31-37 s, and Hindi — 4.67 tokens per
-// word — at 19-25 s, which is why Hindi stays at the old 20 s. The Hindi and
-// Thai figures are tokenizer estimates; no audio for either was available.
+// never drains). Hindi and Thai are far denser, and both were measured on
+// FLEURS audio through the shipped graphs: at 20.8 s four of six Hindi
+// windows overflowed, losing 3 to 49 characters and sometimes ending in
+// U+FFFD, and at 30.8 s every fast Thai window overflowed, losing 45 to 86.
+// At 15.8 s and 20.8 s respectively they fit, needing 230 and 209 tokens at
+// p99 pace.
 // Raising the budget instead needs a repetition stop first: given 400 tokens,
 // the 1.7B model looped "doctor, doctor, ..." on clean English until they
 // ran out.
-const QWEN3_ASR_MAX_SPEECH_SECONDS: Record<string, number> = { hi: 20, th: 30 };
+const QWEN3_ASR_MAX_SPEECH_SECONDS: Record<string, number> = { hi: 15, th: 20 };
 const QWEN3_ASR_DEFAULT_MAX_SPEECH_SECONDS = 40;
 let totalSamplesFed = 0;
 let speechStartSample = 0;

@@ -172,7 +172,7 @@
     "vadMinSilenceDuration": "Min. hiljaisuusaika",
     "vadMinSilenceDurationTooltip": "Minimi hiljaisuus puhesegmenttien jakamiseen. Lyhyemmät arvot jakavat lauseet nopeammin, pidemmät odottavat luonnollisempia taukoja.",
     "vadMaxSpeechDuration": "Maks. puheaika",
-    "vadMaxSpeechDurationTooltip": "Pisin aika, jonka yksittäinen puhejakso voi kestää ennen katkaisua. Suuremmat arvot pitävät lauseet ehjinä, pienemmät käyttävät vähemmän muistia.",
+    "vadMaxSpeechDurationTooltip": "Pisin aika, jonka yksittäinen puhejakso voi kestää ennen jakamista. Osa malleista jakaa aiemmin, pisimpään jaksoon, jonka ne litteroivat oikein.",
     "vadMinSpeechDuration": "Min. puheaika",
     "vadMinSpeechDurationTooltip": "Vähimmäisaika, jotta puhe tunnistetaan. Suodattaa erittäin lyhyet äänet, kuten napsautukset tai yskähdykset.",
     "geminiVadTooltip": "Hallitsee, miten Gemini havaitsee puhetauot vuorojen jakamiseksi. Näiden asetusten säätäminen voi parantaa käännöksen reagointikykyä jatkuvan puheen osalta. \nPaina ja puhu: pidä näppäintä painettuna lähettääksesi ääntä. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",

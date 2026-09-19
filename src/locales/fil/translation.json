@@ -172,7 +172,7 @@
     "vadMinSilenceDuration": "Min. Tagal ng Katahimikan",
     "vadMinSilenceDurationTooltip": "Minimum na katahimikan para hatiin ang mga speech segment. Mas maikling halaga ay naghahati ng mga pangungusap nang mas mabilis, mas mahabang halaga ay naghihintay ng mas natural na paghinto.",
     "vadMaxSpeechDuration": "Maks. Tagal ng Pagsasalita",
-    "vadMaxSpeechDurationTooltip": "Pinakamahabang tagal ng isang segment ng pagsasalita bago ito hatiin. Mas malaking halaga ay pinapanatiling buo ang mga pangungusap, mas maliit ay mas kaunting memory.",
+    "vadMaxSpeechDurationTooltip": "Pinakamahabang tagal ng isang segment ng pagsasalita bago ito hatiin. May mga modelong mas maagang naghahati, sa pinakamahabang segment na tumpak nilang naisusulat.",
     "vadMinSpeechDuration": "Min. Tagal ng Pagsasalita",
     "vadMinSpeechDurationTooltip": "Minimum na tagal para ituring na valid na pagsasalita. Sinasala ang napakaikling tunog tulad ng mga click o ubo.",
     "geminiVadTooltip": "Kinokontrol kung paano natutuklas ng Gemini ang mga pag-pause sa pagsasalita upang hatiin ang mga turn. Ang pag-aayos ng mga setting na ito ay maaaring mapabuti ang pagiging responsibo ng pagsasalin para sa tuloy-tuloy na pagsasalita. \nPush-to-Talk: pindutin nang matagal ang isang key para magpadala ng audio. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
