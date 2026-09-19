@@ -970,7 +970,8 @@ Two defects remain on this path, both in the voxtral worker and both older than
 this stage:
 
 - **The 20 s wall.** The only one still costing whole words. `maxSpeechDuration`
-  is set nowhere in `src/`.
+  is set nowhere in `src/`. *Since: it is a setting now (`879208a5`), held per
+  engine — see "How long a segment each engine survives" below.*
 - **The tail-pad hallucination.** Cosmetic per occurrence, but it reaches the
   user twice — in the bubble and again in its translation, where Bing renders
   `So all thatished` as 「所以所有那些都被处理了」.
@@ -987,7 +988,141 @@ Also still open:
   fires is right, so the number to change is the 20 s cap, not
   `zhFallbackChars`.
 - **`end()` seals raw.** One chunk per utterance, always unpunctuated.
-- **Edge-Punct on the model path** (unpunctuated English, i.e. cohere) is still
-  unrun; only FireRedPunc has been exercised live.
-- **N = 5, and changing N mid-session** (it must take effect only on the next
-  utterance) are unrun.
+- **Edge-Punct on the model path** (unpunctuated English, i.e. cohere) was
+  unrun when this was written; it has since been run live with no problems
+  reported. No log was kept, so there are no numbers for it here.
+- **N = 5** is unrun. Changing N mid-session is not a case: the control is
+  disabled while a session is active.
+
+### The character the final ate (2026-09-19)
+
+The cohere N = 3 run above lost one Chinese character per utterance — 还, 倒,
+完 — always the first character of the utterance's last chunk. Not the ASR and
+not the punctuation model: the client's own cursor.
+
+The clients remember how much of an utterance is sealed and slice each later
+hypothesis there. The cursor was a character offset into the partial. The
+partial and the final are not spaced alike:
+
+| path | partial | final |
+|---|---|---|
+| cohere-transcribe, voxtral-3b | TextStreamer's untrimmed accumulation: `' 今天…'` | `.trim()`med in the engine's `onResult` |
+| cohere, segment > 35 s (two chunks) | a second space at the chunk seam: `'…问我, 你有…'` | chunks joined with `''`: `'…问我,你有…'` |
+| sidecar, gated streaming (`_drive_utterance`) | `"".join(self._partial_acc)`, unstripped | `final.strip()` (`_finalize`) |
+
+An offset taken in the partial lands too far into the final by exactly the
+whitespace the final lacks: one character, or two past a seam. English never
+showed it because the character dropped there is the space between two
+sentences, and every assertion in both client test files compared `.trim()`med
+job text. The field comment said "every slice still operates on the untrimmed
+raw text", which was true of the partial and never of the final.
+
+The first fix counted non-whitespace characters. An adversarial review of it
+found that unit wrong too, on real sidecar output: a streaming final is a
+fresh decode, not the last partial with more text on the end, so it also
+revises punctuation. moonshine's final dropped a full stop its partial had —
+`…family together. I'm pretty sure` became `…family together I'm pretty
+sure` — and a cursor that counts the dropped mark walks one letter too far,
+queuing `'m pretty sure …`. The old character offset happened to be right
+there, because the mark's slot was taken by the space.
+
+So the unit is LETTERS AND DIGITS (`src/lib/segmentation/sealCursor.ts`), the
+same `skeleton()` the segmentation stage compares by — the only part of the
+text that both spacing and punctuation edits leave alone. Mapping back, the
+cursor also steps over the whitespace and closing marks between the last
+counted letter and the next chunk, stopping at a letter, an opening bracket
+or quote, or the end: without that, a mark the final KEPT would come back as
+the head of the next chunk, and the rule path sealed it as a bubble of its
+own (an added comma produced exactly that — a `.` bubble, a `.` translation
+job, and with TTS on, a spoken full stop).
+
+Both clients, same change. Six regression cases, all from captured output:
+the leading space and the seam space fail on the parent with `们出去走走吧…`
+for `我们出去走走吧…`, and the two mark revisions fail on the non-whitespace
+unit with `'m pretty sure …` and the `.` bubble.
+
+What no count can fix, and is left alone: a final that revises WORDS before
+the seal point (`There to help me…` → `To help me…`) loses letters on both
+the old and the new unit. It needs an anchor search rather than a count, it
+predates all of this, and in 58 captures it was moonshine-streaming at N = 1
+only — 8 of 116 runs, 0 of 50 for parakeet and Voxtral Realtime.
+
+### How long a segment each engine survives (2026-09-19)
+
+`879208a5` turned the 20 s wall into a setting (Max Speech Duration, 10–60 s,
+default 30 s). Before pushing it, every local ASR path was audited for the
+longest segment it transcribes correctly — one agent per engine, then a second
+that re-derived each conclusion on its own audio. A correction to the section
+above first: **seven** workers read `maxSpeechDuration ?? 20`, not eight;
+`zoom-vad.worker.ts` hard-codes it.
+
+No engine reports a segment that is too long for it. The 30 s default was
+itself a regression on three of the eight paths.
+
+| engine | 30 s | 60 s | what binds | now |
+|---|---|---|---|---|
+| whisper-webgpu (6 models) | **loses speech** | **loses speech** | `WhisperFeatureExtractor` keeps 480000 samples and `logger.warn`s. A 30 s cap is a 30.816 s segment (0.8 s pre-speech pad), so every capped segment lost its tail; a completely full window can also end the decode early — whisper-small: 135 characters at 29.984 s, 69 at 30.000 s, on four concatenated Japanese clips; not on 11 windows of single-speaker speech | segment ≤ 29 s, pad included (881 frames of speech) |
+| granite-speech (2) | **cuts text** | **cuts text** | `max_new_tokens: 256`. Real Japanese runs 8.0–10.2 tokens/s → exhausted at ~29.5 s, stops mid-sentence (once mid-character, ending `ほ�`), posted as a normal result. Separately the model ends early at sentence/speaker boundaries: up to 6.7 s of 20.8 s, 8.7 s of 30.8 s, 41.6 s of a 60.8 s segment with two speaker changes | budget = max(256, 14 tokens/s); speech ≤ 30 s, ≤ 20 s in translate mode |
+| Local Native sidecar (66 cards) | **double cut** | **double cut** | the sidecar never receives the cap; `asr_engine.py` re-cuts at 30 s of ring + segment (offline) and 20 s of in-speech audio (streaming). A 30 s client cut lands just after it: the model gets 30.04 s, then a 0.68–0.85 s orphan. whisper-tiny turned that orphan into a 300–450 character invented paragraph — its own bubble, translation and TTS | setting removed from this provider; `native-vad.worker` holds **19 s**, not 20: at 20 the client and the streaming backstop cut at the same 320000 in-speech samples and the two sample counters differ by a rounding step per chunk, so the sidecar won 3 of 21 simulated cuts |
+| qwen3-asr (2) | ok, except Hindi and Thai | **cuts text** | decode budget 256 (`prompt_config.json`); no audio-side limit. Real English/Japanese fill it at 58–78 s; at 60.8 s RTF was 0.8–1.3 on a contended GB10, so the queue never drains. Hindi and Thai are denser: on FLEURS audio through the shipped graphs, four of six Hindi windows overflowed at 20.8 s (3–49 characters lost, some ending in U+FFFD) and every fast Thai window overflowed at 30.8 s (45–86 lost) | speech ≤ 40 s; **Hindi 15 s, Thai 20 s** (both fit, 230 and 209 tokens at p99) |
+| voxtral-mini-4b (streaming) | ok | text intact, **falls behind** | past 512 audio tokens (≈ 37 s cap) the float32 decoder KV tensors leave the 2 MiB allocation class: +~130 ms per token. 40.8 s finished 10.6 s late, 60.8 s 38–59 s late, and Stop while lagging discards the backlog. A model-free WebGPU benchmark shows the same cliff at 4 MiB buffers. q4 only; q4f16 (float16 KV) is predicted to reach it at ~78 s — unrun | speech ≤ 35 s (488 tokens) |
+| voxtral-mini-3b | ok, wasteful | ok | nothing lost, but 30.8 s is 16 ms past the 30 s encoder chunk: a second encoder pass and 375 more prefill tokens per capped segment, on a multi-chunk WebGPU path this app has never run | segment ≤ 30 s, pad included (912 frames) |
+| cohere-transcribe | ok | ok | none. transformers.js splits at 35 s on the quietest 100 ms window, zero samples lost; 30.8 s and 60.8 s complete in English and Chinese on the real q4 weights | nothing |
+| sherpa-onnx (33 models) | inert | inert | the offline worker hard-codes `maxSpeechDuration: 20`, the streaming one `rule3MinUtteranceLength: 20` | slider hidden |
+
+Where a limit is below the slider, the worker cuts sooner and the next segment
+continues from the cut with no gap. Not free, though, and this is true of any
+cap, old or new: what follows a forced cut is judged as a fresh utterance, so
+a tail shorter than `minSpeechDuration` is dropped as a VAD misfire (measured
+at 5–11 frames, 160–352 ms) and speech that resumes below the positive
+threshold is not picked up at all. A limit is therefore only set where the
+alternative is losing more. The arithmetic is one helper
+(`workers/_shared/max-speech-frames.ts`); each worker states its own limit
+beside the engine code it describes, and a mutation-checked consistency test
+pins both.
+
+The slider now stops at 40 s rather than 60: above 40 only cohere delivers
+what the number says.
+
+What this does **not** fix, all older than the setting:
+
+- **moonshine-v2 (sherpa-onnx, 9 model ids) errors on any segment longer than
+  ~9.3 s.** Executed on `moonshine-tiny-ja-quant` through the unmodified
+  worker: 8 s fine, 12 s → `ASR processing error`, twice. A mask-shape mismatch
+  past 384 encoder frames throws a C++ exception the bundled wasm cannot catch.
+  One model executed; the other eight share the export. *Now capped at 9 s in
+  `sherpa-onnx-asr.worker.js`, for this engine only — the Max Speech Duration
+  setting never reached sherpa-onnx at all.*
+- **qwen3-asr's decode budget itself.** Holding Hindi to 15 s and Thai to 20 s
+  keeps them inside 256 tokens, but the budget is the real limit and it is
+  still fixed. Scaling it needs a repetition stop first: with 400 tokens the
+  1.7B model looped `doctor, doctor, …` on clean English until they ran out,
+  and the budget is the decoder's only other stop.
+- **cohere `max_new_tokens: 1024`** plus its 10-token prompt overran the
+  decoder's 1024 positions; a runaway decode threw at 1025 and the worker
+  posted only `error`, losing the text of every chunk in the segment. 1014
+  stops cleanly and real speech needs ≤ ~280 per chunk. *Now 448.*
+- **whisper `no_repeat_ngram_size: 3`** deletes genuinely repeated words —
+  jfk.wav comes back `ask what you can do your country`.
+- **cohere at exactly 35 s** splits every segment into a 30–34.9 s chunk plus a
+  stub as short as 0.108 s, which decoded to a wrong word appended to the final.
+- **The sidecar's proper fix** needs a release: carry the cap in `asr_init`,
+  derive the three backstops from it, report the capability on `ready` (old
+  bundles ignore unknown fields), and move `_cut()` off the asyncio loop — a
+  60 s decode would otherwise stall `translate` past its 30 s timeout.
+- **Voxtral Realtime's queued utterances.** An utterance that starts while the
+  previous run is still draining is staged untrimmed, so it carries every
+  sample since the last endpoint rather than the 0.8 s pre-roll the 35 s limit
+  budgets for: a drain over ~2.8 s pushes that run past the 512-token knee
+  (513–527 in simulation at a 4.6 s drain, against 1.2–2.65 s measured). Costs
+  latency, not text, and is the same at any cap. Trimming the staged buffer is
+  a separate change.
+- **cohere at a 35 s cap** splits every segment into a 30–34.9 s chunk plus a
+  stub as short as 0.108 s, decoded without context and appended to the final;
+  one such stub contributed a wrong word. Capping lower would cut more often,
+  so it stands.
+
+Everything model-level here ran on one GB10 while other jobs shared the GPU, so
+the text results carry and the absolute latencies do not. whisper was decodable
+locally only as whisper-small q4 on WASM — the reason for a 1 s margin rather
+than one frame.
