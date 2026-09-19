@@ -29,7 +29,7 @@ import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnosti
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { countNonWhitespace, offsetAfterNonWhitespace } from '../../lib/segmentation/whitespaceCursor';
+import { countSkeleton, offsetAfterSkeleton } from '../../lib/segmentation/sealCursor';
 
 /**
  * Error thrown when GPU runs out of memory during WebGPU model initialization.
@@ -102,7 +102,7 @@ export class LocalInferenceClient implements IClient {
   private stream: SentenceStream | null = null;
   /**
    * How much of the current utterance's raw ASR text is already folded into
-   * a seal, counted in NON-WHITESPACE UTF-16 units (see whitespaceCursor.ts).
+   * a seal, counted in LETTERS AND DIGITS (see sealCursor.ts).
    * `SentenceStream.update()` expects "the whole current text since the last
    * seal" (see SentenceStream.ts's own doc comment and its "never un-seals"
    * test) — not the cumulative hypothesis a streaming ASR actually reports on
@@ -114,15 +114,17 @@ export class LocalInferenceClient implements IClient {
    * every later partial. Reset to 0 whenever a fresh stream is created
    * (ensureStream()).
    *
-   * Not a character offset, because the texts it is applied to are not
-   * spaced alike: cohere-transcribe and voxtral-3b post TextStreamer's
-   * untrimmed accumulation as the partial (a leading space, and for cohere a
-   * second one at a chunk seam) while the final is trimmed — here, in the
-   * engine's onResult — and joined without the seam space. An offset taken
-   * in the partial lands too far into the final by the whitespace the final
-   * lacks, which deleted the first character of every Chinese utterance's
-   * last chunk in a live session. The non-whitespace count is the same in
-   * every spacing of the same words.
+   * Not a character offset, and not a count of non-whitespace characters
+   * either, because a final is not the last partial with more text on the
+   * end: cohere-transcribe and voxtral-3b post TextStreamer's untrimmed
+   * accumulation as the partial (a leading space, and for cohere a second
+   * one at a chunk seam) while the final is trimmed — here, in the engine's
+   * onResult — and joined without the seam space, and a streaming re-decode
+   * also revises punctuation. Either edit moves a character offset; a
+   * punctuation edit also moves a non-whitespace count, which cost the first
+   * LETTER of the next chunk on a final that dropped a full stop. Letters
+   * and digits are what both spellings agree on, and they are the unit the
+   * segmentation stage compares by (`skeleton()` in sentenceEnd.ts).
    *
    * Advanced from the `onPending` callback, NOT by the sealed text's own
    * length: on the model path, `SentenceStream.applyResult()` seals the
@@ -137,19 +139,19 @@ export class LocalInferenceClient implements IClient {
    * call has consumed so far — see `feedStream()` and the `onPending` wiring
    * in `ensureStream()`.
    */
-  private sealedNonWhitespace = 0;
-  /** `sealedNonWhitespace` at the moment `lastPassedToStream` was handed to
+  private sealedSkeleton = 0;
+  /** `sealedSkeleton` at the moment `lastPassedToStream` was handed to
    *  `stream.update()` — the base the `onPending` recompute in
    *  `ensureStream()` adds to. Set by `feedStream()`. */
-  private sealedNonWhitespaceBase = 0;
+  private sealedSkeletonBase = 0;
   /** The exact string most recently passed to `stream.update()` (already
-   *  sliced at `sealedNonWhitespaceBase`). Always a suffix relationship holds
+   *  sliced at `sealedSkeletonBase`). Always a suffix relationship holds
    *  between this and whatever `onPending` reports afterward — see the
-   *  `sealedNonWhitespace` field doc. Set by `feedStream()`. */
+   *  `sealedSkeleton` field doc. Set by `feedStream()`. */
   private lastPassedToStream = '';
   /**
    * The full raw text most recently handed to `handlePartialAsrResult`,
-   * before slicing at `sealedNonWhitespace` — unlike `lastPassedToStream`,
+   * before slicing at `sealedSkeleton` — unlike `lastPassedToStream`,
    * never itself sliced. Used to tell a genuinely different ASR result apart from
    * one that merely re-decoded (and truncated) the SAME utterance, wherever
    * a new result would otherwise slice to an empty relative tail — see
@@ -271,7 +273,7 @@ export class LocalInferenceClient implements IClient {
     // placeholder-only bubble.
     this.stream?.dispose();
     this.stream = null;
-    this.sealedNonWhitespace = 0;
+    this.sealedSkeleton = 0;
     this.pendingAsrTiming = undefined;
     this.lastRawPartialText = '';
 
@@ -478,7 +480,7 @@ export class LocalInferenceClient implements IClient {
     this.astMode = false;
     this.stream?.dispose();
     this.stream = null;
-    this.sealedNonWhitespace = 0;
+    this.sealedSkeleton = 0;
     this.pendingAsrTiming = undefined;
     this.lastRawPartialText = '';
 
@@ -515,7 +517,7 @@ export class LocalInferenceClient implements IClient {
     // just cleared out from under it.
     this.stream?.dispose();
     this.stream = null;
-    this.sealedNonWhitespace = 0;
+    this.sealedSkeleton = 0;
     this.lastRawPartialText = '';
   }
 
@@ -558,7 +560,7 @@ export class LocalInferenceClient implements IClient {
     // before the clear.
     this.stream?.dispose();
     this.stream = null;
-    this.sealedNonWhitespace = 0;
+    this.sealedSkeleton = 0;
     this.lastRawPartialText = '';
   }
 
@@ -629,7 +631,7 @@ export class LocalInferenceClient implements IClient {
     // and the stranded user bubble would be overwritten by the next utterance.
     if (this.stream) return this.stream;
     if (this.astMode || !this.segmentation || !this.segmentation.enabled) return null;
-    this.sealedNonWhitespace = 0;
+    this.sealedSkeleton = 0;
     this.stream = new SentenceStream({
       // The leg's own config, not a reversal of the speaker's. The participant
       // direction already resolves target->source into its own
@@ -642,14 +644,14 @@ export class LocalInferenceClient implements IClient {
       onSeal: (chunk) => this.sealUserChunk(chunk.text),
       onPending: (text) => {
         // Recompute the cursor from how much of what feedStream() last
-        // handed the stream remains unconsumed — see the sealedNonWhitespace
+        // handed the stream remains unconsumed — see the sealedSkeleton
         // field doc. Cannot advance by the sealed text in sealUserChunk
         // instead: the model path's seal can differ from the raw input it
         // consumed (SentenceStream.applyResult inserts punctuation), so that
         // would drift the cursor and silently delete raw characters from the
         // next chunk.
-        this.sealedNonWhitespace = this.sealedNonWhitespaceBase
-          + countNonWhitespace(this.lastPassedToStream) - countNonWhitespace(text);
+        this.sealedSkeleton = this.sealedSkeletonBase
+          + countSkeleton(this.lastPassedToStream) - countSkeleton(text);
         this.showPartialUserText(text);
       },
     });
@@ -657,14 +659,14 @@ export class LocalInferenceClient implements IClient {
   }
 
   /**
-   * Slice the raw ASR text at `sealedNonWhitespace` and feed the relative
+   * Slice the raw ASR text at `sealedSkeleton` and feed the relative
    * tail to the stream, recording what was passed so the `onPending` callback
    * (wired in ensureStream()) can recompute the cursor from the remainder it
    * reports afterward.
    */
   private feedStream(stream: SentenceStream, text: string): void {
-    const relative = text.slice(offsetAfterNonWhitespace(text, this.sealedNonWhitespace));
-    this.sealedNonWhitespaceBase = this.sealedNonWhitespace;
+    const relative = text.slice(offsetAfterSkeleton(text, this.sealedSkeleton));
+    this.sealedSkeletonBase = this.sealedSkeleton;
     this.lastPassedToStream = relative;
     stream.update(relative);
   }
@@ -689,7 +691,7 @@ export class LocalInferenceClient implements IClient {
    * is exactly wrong at that edge — a leading-whitespace token would make a
    * genuine truncation read as divergence, re-sealing and re-queuing a job
    * for text already sealed. The cursor is whitespace-insensitive for the
-   * same reason — see the `sealedNonWhitespace` field doc.
+   * same reason — see the `sealedSkeleton` field doc.
    *
    * SentenceStream's own notion of "same utterance" is skeleton-based
    * (letters/digits only, case-folded — see sentenceEnd.ts's `skeleton()`,
@@ -783,7 +785,7 @@ export class LocalInferenceClient implements IClient {
     }
     // Everything this text holds is already sealed: slicing it at the cursor
     // would hand the stream an empty string.
-    if (text.length > 0 && offsetAfterNonWhitespace(text, this.sealedNonWhitespace) >= text.length) {
+    if (text.length > 0 && offsetAfterSkeleton(text, this.sealedSkeleton) >= text.length) {
       if (this.isTruncationOfSameUtterance(text, previousRaw)) {
         // The engine retracted its hypothesis back to (or below) what's
         // already sealed — the same question handleAsrResult's final guard
@@ -796,7 +798,7 @@ export class LocalInferenceClient implements IClient {
       // Genuinely different text: the engine changed its mind entirely for
       // this utterance. Start segmentation over rather than feed a cursor
       // that no longer describes anything this text contains.
-      this.sealedNonWhitespace = 0;
+      this.sealedSkeleton = 0;
     }
     this.feedStream(stream, text);
   }
@@ -819,7 +821,7 @@ export class LocalInferenceClient implements IClient {
       // open bubble via onPending('') and then end() never sealing an empty
       // tail, stranding it in_progress with nothing translated.
       let skipJob = false;
-      if (text.length > 0 && offsetAfterNonWhitespace(text, this.sealedNonWhitespace) >= text.length) {
+      if (text.length > 0 && offsetAfterSkeleton(text, this.sealedSkeleton) >= text.length) {
         if (this.isTruncationOfSameUtterance(text, previousRaw)) {
           // A truncated re-decode of the SAME utterance, not genuinely
           // different content: the confirmed text is already fully captured
@@ -832,7 +834,7 @@ export class LocalInferenceClient implements IClient {
         } else {
           // Genuinely different text: restart the cursor so the whole final
           // still seals as (at least) one chunk instead of feeding ''.
-          this.sealedNonWhitespace = 0;
+          this.sealedSkeleton = 0;
         }
       }
       if (skipJob) {
@@ -856,7 +858,7 @@ export class LocalInferenceClient implements IClient {
       }
       stream.dispose();
       this.stream = null;
-      this.sealedNonWhitespace = 0;
+      this.sealedSkeleton = 0;
       this.pendingAsrTiming = undefined;
       this.emitEvent('local.asr.end', 'server', {
         text,
