@@ -335,6 +335,7 @@ export class LocalNativeClient implements IClient {
           threshold: config.vadThreshold,
           minSilenceDuration: config.vadMinSilenceDuration,
           minSpeechDuration: config.vadMinSpeechDuration,
+          maxSpeechDuration: config.vadMaxSpeechDuration,
         },
       });
     });

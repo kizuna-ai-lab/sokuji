@@ -171,6 +171,8 @@
     "vadNegativeThresholdAuto": "Automatik",
     "vadMinSilenceDuration": "Tempoh Senyap Minimum",
     "vadMinSilenceDurationTooltip": "Tempoh senyap minimum untuk memisahkan segmen pertuturan. Nilai lebih pendek memisahkan ayat lebih cepat, nilai lebih panjang menunggu jeda yang lebih semula jadi.",
+    "vadMaxSpeechDuration": "Tempoh Pertuturan Maksimum",
+    "vadMaxSpeechDurationTooltip": "Tempoh terpanjang satu segmen pertuturan sebelum dipotong. Nilai lebih besar mengekalkan ayat utuh, nilai lebih kecil menggunakan kurang memori.",
     "vadMinSpeechDuration": "Tempoh Pertuturan Minimum",
     "vadMinSpeechDurationTooltip": "Tempoh minimum untuk dianggap sebagai pertuturan sah. Menapis bunyi yang sangat pendek seperti klik atau batuk.",
     "geminiVadTooltip": "Mengawal cara Gemini mengesan jeda pertuturan untuk membahagikan giliran. Melaraskan tetapan ini boleh meningkatkan responsiviti terjemahan untuk pertuturan berterusan. \nTekan untuk Bercakap: tahan kekunci untuk menghantar audio. \nTekan untuk Terjemah: seperti Tekan untuk Bercakap, tetapi menghalakan mikrofon mentah anda ke mikrofon maya apabila tidak aktif supaya anda boleh bercakap secara langsung tanpa terjemahan.",

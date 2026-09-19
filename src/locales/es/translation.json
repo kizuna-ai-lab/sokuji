@@ -171,6 +171,8 @@
     "vadNegativeThresholdAuto": "Auto",
     "vadMinSilenceDuration": "Duración mín. de silencio",
     "vadMinSilenceDurationTooltip": "Duración mínima de silencio para dividir segmentos de habla. Valores más cortos dividen las frases más rápido, valores más largos esperan pausas más naturales.",
+    "vadMaxSpeechDuration": "Duración máx. de habla",
+    "vadMaxSpeechDurationTooltip": "Duración máxima de un segmento de voz antes de dividirse. Los valores más altos mantienen las frases completas, los más bajos usan menos memoria.",
     "vadMinSpeechDuration": "Duración mín. de habla",
     "vadMinSpeechDurationTooltip": "Duración mínima para considerar como habla válida. Filtra sonidos muy cortos como clics o tos.",
     "geminiVadTooltip": "Controla cómo Gemini detecta las pausas del habla para dividir los turnos. Ajustar esta configuración puede mejorar la capacidad de respuesta de la traducción para habla continua. \nPulsar para hablar: mantenga una tecla para enviar audio. \nPulsar para traducir: como Pulsar para hablar, pero enruta su micrófono original al micrófono virtual cuando está inactivo para que pueda hablar directamente sin traducción.",
