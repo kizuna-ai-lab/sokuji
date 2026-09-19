@@ -11,6 +11,9 @@ import useLogStore from '../../../stores/logStore';
 beforeEach(async () => {
   await resetVoiceClipStorageForTesting();
   resetReportThrottle();
+  // The panel only records while diagnostic logs are switched on (they are off
+  // by default in the app), and a test here asserts what reached it.
+  useLogStore.getState().setEnabled(true);
   useLogStore.getState().clearLogs();
 });
 
