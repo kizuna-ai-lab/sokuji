@@ -116,12 +116,13 @@ export interface CommonSettings {
   keepReplayAudio: boolean;
   autoSaveOnStop: boolean;
   diagnosticLogs: boolean;
-  /** The sentence segmentation stage. On by default; see the design's D12. */
+  /**
+   * The sentence segmentation stage. Off by default; the feature is inert
+   * until the three punctuation models are downloaded (Amendment A1).
+   */
   sentenceSegmentation: boolean;
   /** How many sentences fill one bubble. 1-5, clamped on read. */
   sentenceSegmentationChunkSentences: number;
-  /** The first background model download has already been announced once. */
-  sentenceSegmentationNoticeShown: boolean;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 }
@@ -168,9 +169,8 @@ const defaultCommonSettings: CommonSettings = {
   keepReplayAudio: false,
   autoSaveOnStop: false,
   diagnosticLogs: false,
-  sentenceSegmentation: true,
+  sentenceSegmentation: false,
   sentenceSegmentationChunkSentences: 3,
-  sentenceSegmentationNoticeShown: false,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -309,12 +309,13 @@ export interface SettingsStore {
   // the title bar offers no logs button.
   diagnosticLogs: boolean;
 
-  /** The sentence segmentation stage. On by default; see the design's D12. */
+  /**
+   * The sentence segmentation stage. Off by default; the feature is inert
+   * until the three punctuation models are downloaded (Amendment A1).
+   */
   sentenceSegmentation: boolean;
   /** How many sentences fill one bubble. 1-5, clamped on read. */
   sentenceSegmentationChunkSentences: number;
-  /** The first background model download has already been announced once. */
-  sentenceSegmentationNoticeShown: boolean;
 
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
@@ -340,7 +341,6 @@ export interface SettingsStore {
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
   setSentenceSegmentation: (enabled: boolean) => Promise<void>;
   setSentenceSegmentationChunkSentences: (n: number) => Promise<void>;
-  markSentenceSegmentationNoticeShown: () => void;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   enterSubtitleMode: () => Promise<void>;
@@ -822,16 +822,6 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    // A seen-marker, not a preference: fire and forget with no rollback, the
-    // same shape as audioStore's markParticipantTapAudioSeen. Showing the
-    // notice twice after a failed write is a smaller harm than a dialog that
-    // blocks on storage.
-    markSentenceSegmentationNoticeShown: () => {
-      if (get().sentenceSegmentationNoticeShown) return;
-      set({sentenceSegmentationNoticeShown: true});
-      void persistSetting('settings.common.sentenceSegmentationNoticeShown', true);
-    },
-
     setSpeakerDisplayMode: async (speakerDisplayMode) => {
       const previous = get().speakerDisplayMode;
       set({speakerDisplayMode});
@@ -1255,7 +1245,6 @@ const useSettingsStore = create<SettingsStore>()(
         const sentenceSegmentationChunkSentences = clampChunkSentences(
           await service.getSetting('settings.common.sentenceSegmentationChunkSentences', defaultCommonSettings.sentenceSegmentationChunkSentences),
         );
-        const sentenceSegmentationNoticeShown = await service.getSetting('settings.common.sentenceSegmentationNoticeShown', defaultCommonSettings.sentenceSegmentationNoticeShown);
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
         // Subtitle settings now hydrated by subtitleStore.hydrate(); see stores/subtitleStore.ts.
@@ -1320,7 +1309,6 @@ const useSettingsStore = create<SettingsStore>()(
           diagnosticLogs,
           sentenceSegmentation,
           sentenceSegmentationChunkSentences,
-          sentenceSegmentationNoticeShown,
           speakerDisplayMode,
           participantDisplayMode,
           ...loadedSlices,
@@ -1543,8 +1531,6 @@ export const useSentenceSegmentation = () => useSettingsStore((state) => state.s
 export const useSetSentenceSegmentation = () => useSettingsStore((state) => state.setSentenceSegmentation);
 export const useSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.sentenceSegmentationChunkSentences);
 export const useSetSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.setSentenceSegmentationChunkSentences);
-export const useSentenceSegmentationNoticeShown = () => useSettingsStore((state) => state.sentenceSegmentationNoticeShown);
-export const useMarkSentenceSegmentationNoticeShown = () => useSettingsStore((state) => state.markSentenceSegmentationNoticeShown);
 
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);

@@ -381,11 +381,15 @@ describe('settingsStore', () => {
   });
 
   describe('sentenceSegmentation', () => {
-    it('defaults to on', async () => {
-      useSettingsStore.setState({ sentenceSegmentation: false });
+    it('defaults sentence segmentation to off', () => {
+      expect(useSettingsStore.getState().sentenceSegmentation).toBe(false);
+    });
+
+    it('defaults to off', async () => {
+      useSettingsStore.setState({ sentenceSegmentation: true });
       mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
       await useSettingsStore.getState().loadSettings();
-      expect(useSettingsStore.getState().sentenceSegmentation).toBe(true);
+      expect(useSettingsStore.getState().sentenceSegmentation).toBe(false);
     });
 
     it('persists a change', async () => {
@@ -430,17 +434,6 @@ describe('settingsStore', () => {
       mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
       await useSettingsStore.getState().setSentenceSegmentationChunkSentences(1);
       expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(3);
-    });
-  });
-
-  describe('sentenceSegmentationNoticeShown', () => {
-    it('defaults to false and is written once, fire and forget', async () => {
-      useSettingsStore.setState({ sentenceSegmentationNoticeShown: false });
-      mockSetSetting.mockResolvedValue(undefined);
-      useSettingsStore.getState().markSentenceSegmentationNoticeShown();
-      expect(useSettingsStore.getState().sentenceSegmentationNoticeShown).toBe(true);
-      useSettingsStore.getState().markSentenceSegmentationNoticeShown();
-      expect(mockSetSetting).toHaveBeenCalledTimes(1);
     });
   });
 
