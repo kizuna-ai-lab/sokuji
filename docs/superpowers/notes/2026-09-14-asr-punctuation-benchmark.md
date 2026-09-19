@@ -908,6 +908,48 @@ utterance, which is the third finding above holding with perfect regularity.
 At N = 1 they are a sixth of the output; at N = 3, where neither other path can
 fire inside 20 s, they were all of it.
 
+### N = 3 on Chinese is a coin flip on utterance length (2026-09-19)
+
+Same material through **cohere-transcribe** (offline) at N = 3. Six utterances,
+and the threshold behaves as a step function:
+
+| # | seconds | raw chars | ≥ 100 | sealed | sealed chars | ends |
+|---|---|---|---|---|---|---|
+| 1 | 20.8 | 110 | yes | ✓ | 94 | `，` |
+| 2 | 20.1 | 129 | yes | ✓ | 97 | `？` |
+| 3 | 20.0 | 49 | no | ✗ | — | |
+| 4 | 20.0 | 76 | no | ✗ | — | |
+| 5 | 20.0 | 125 | yes | ✓ | 92 | `，` |
+| 6 | 4.0 | 11 | no | ✗ | — | |
+
+**Every utterance over `zhFallbackChars(3) = 100` sealed; every one under it did
+not. No exceptions.**
+
+All three seals are the fallback. Two end at a comma, which the sentences path
+cannot produce. The third ends at `？`, but its sealed text carries only that
+one sentence mark where N = 3 needs three, so it too is the fallback cutting at
+its last breakpoint, which happened to be a question mark. **`3fd5b382` is what
+makes N = 3 work on Chinese at all.**
+
+**This retires the idea of lowering the threshold.** When it fires the chunk is
+92-97 characters — about three sentences at the 22-character average, which is
+exactly what N = 3 asks for. The size is right. The only fault is that it fires
+half the time.
+
+**What is wrong is the 20 s cap.** Chinese runs 4.8 characters per second, so
+20 s yields 49-129 characters depending on how fast the speaker happens to be
+going — straddling the 100-character line. Whether an utterance gets segmented
+at all is decided by that coin flip. At 40 s every one of these would clear it
+with room for two seals.
+
+**That is the third defect traced to the same wall**: on English it garbles a
+word at every boundary, on Chinese at N = 3 it makes segmentation random, and by
+keeping tails short it inflates the share of raw `end()` bubbles — in this run
+three sealed utterances each left one, plus three that never sealed, so half the
+bubbles carried no punctuation.
+
+cohere emitting no punctuation is confirmed again here: every partial is bare.
+
 ### Which ASR actually punctuates
 
 Observed, not inferred:
@@ -940,9 +982,10 @@ and voxtral's `max_new_tokens: 4096`.
 
 Also still open:
 
-- **N = 3 on Chinese.** The fix is proven at N = 1. At N = 3 both gates still
-  need a tail the 20 s cap cannot produce, so that is a calibration question —
-  `zhFallbackChars`, or the wall, or both.
+- **N = 3 on Chinese** is decided by whether the utterance clears 100
+  characters — measured as a clean step function, 3 of 6. The chunk size when it
+  fires is right, so the number to change is the 20 s cap, not
+  `zhFallbackChars`.
 - **`end()` seals raw.** One chunk per utterance, always unpunctuated.
 - **Edge-Punct on the model path** (unpunctuated English, i.e. cohere) is still
   unrun; only FireRedPunc has been exercised live.
