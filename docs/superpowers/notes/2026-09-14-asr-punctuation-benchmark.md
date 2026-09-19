@@ -810,6 +810,66 @@ lowering either. Trading longer utterances for earlier translations is the
 trade this stage already makes; making it twice costs sentence integrity and
 buys nothing.
 
+### Chinese: the model path, and why it sealed nothing (2026-09-19)
+
+Two live sessions on sherpa `stream-zh-2025-int8`, source Chinese, N = 3. Both
+produced **zero seals** — one translation per utterance, every bubble an
+`end()` flush. The model was not the problem: Settings read **Active**
+mid-session, so FireRedPunc had downloaded, loaded and reached `ready`, and
+`punctuate()` had been called (nothing else can trigger a load).
+
+**Measured Chinese rate, five utterances across the two runs:**
+
+| utterance | seconds | characters |
+|---|---|---|
+| run 1 #1 | 18.5 | 81 |
+| run 1 #2 | 20.3 | **126** |
+| run 1 #3 | 19.1 | 98 |
+| run 2 #1 | 20.3 | 99 |
+| run 2 #2 | 15.0 | 61 |
+
+**5.0 characters per second. A 20 s utterance yields about 100 characters, and
+`zhFallbackChars(3)` is exactly 100.** The VAD cap and the fallback threshold
+land on the same number.
+
+Three separate things follow.
+
+**1. The length fallback was wired to the wrong string** (fixed in `3fd5b382`).
+Run 1 #2 is the proof: at 126 characters it cleared the 100-character guard and
+still sealed nothing, because `tryLengthFallback` searched the raw tail for
+commas and an unpunctuated ASR has none. `PunctuationResult.breakpoints` —
+"sentence ends plus commas", produced by all three adapters — had no consumer
+anywhere in `src/`.
+
+**2. At N = 3 both gates are calibrated beyond what a 20 s utterance can
+produce.** The sentences path needs 3 sentence ends each carrying
+`RIGHT_CONTEXT_CHARS` of following text; the expectation in 100 characters is
+**1.8** (4.5 real sentences at the 22-character average, times FireRedPunc's
+62% recall, minus the last one for want of right context). The fallback needs
+≥ 100 characters and gets ~100 — four of the five utterances lost that coin
+flip. `zhFallbackChars` is derived as "the length by which N *detected*
+sentences should have appeared", so it is deliberately set at the point the
+sentences path should already have fired; that leaves it no headroom at all
+when the utterance ends at exactly that length. **This is the 20 s wall again**
+— on English it garbles words, on Chinese it puts both segmentation gates out
+of reach.
+
+**3. `end()` seals the raw tail, never a punctuated one.**
+
+```ts
+if (this.active() && tail.length > 0) this.opts.onSeal({ text: tail, reason: 'end' });
+```
+
+`tail` is `this.pending`, and no step downstream adds marks
+(`onSeal: (chunk) => this.sealUserChunk(chunk.text)`). A sentences seal on the
+model path carries the model's punctuation — it seals `result.text.slice(0,
+cut)` — and so does a length seal after `3fd5b382`. An `end()` seal never does.
+Since at N = 3 on Chinese neither of the other two can fire, **every bubble is
+an `end()` bubble and every bubble is therefore unpunctuated**, which is the
+symptom originally reported. Giving `end()` the punctuation would mean caching
+the last valid model answer for the current pending text; nothing caches it
+today, and whether to is a design call, not an oversight to patch in passing.
+
 ### Which ASR actually punctuates
 
 Observed, not inferred:
