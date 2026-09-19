@@ -870,6 +870,44 @@ symptom originally reported. Giving `end()` the punctuation would mean caching
 the last valid model answer for the current pending text; nothing caches it
 today, and whether to is a design call, not an oversight to patch in passing.
 
+### Chinese after the fix: the model path works (2026-09-19)
+
+Same setup at **N = 1**, where `gateChars('zh', 1) = 20` and
+`zhFallbackChars(1) = 30` put both gates well inside a 20 s utterance. Six
+utterances, ~2 minutes, **38 sealed chunks**:
+
+| chunk ends at | count | path |
+|---|---|---|
+| `，` | **27** | length fallback — unreachable before `3fd5b382` |
+| `。` `？` | 5 | sentences |
+| no mark | 6 | `end()`, exactly one per utterance |
+
+**32 of 38 chunks carry punctuation the ASR never produced**, and 27 of those 32
+came from the fallback. The raw partials are unbroken
+(`多米多萝出事了各位他跟姿姿已经分手了而且引起了热议啊…`); the sealed chunks come
+out as `多米多萝出事了各位，他跟姿姿已经分手了，`. A chunk ending in a comma cannot
+come from the sentences path, which only ever cuts at `。！？`, so those 27 are
+direct evidence for the fix.
+
+That FireRedPunc supplies mostly commas is the premise the fallback was built
+on, now measured: on conversational speech it emitted a sentence end only five
+times in two minutes.
+
+**The three remaining candidates are all dead.** Seals kept arriving through
+the final utterance, so the model was never disabled and its median latency
+stayed inside the 500 ms budget. Seals happened at all, so its answers passed
+the skeleton invariant. And the load plainly completed.
+
+**The latency bar is met on Chinese too.** The first `translation.start` fired
+while the partials were still at `…来看看怎么回事`, with that utterance's
+`asr.end` at 20916 ms — the translation was on screen while the speaker was
+still talking.
+
+**The six unpunctuated chunks are exactly the six `end()` flushes**, one per
+utterance, which is the third finding above holding with perfect regularity.
+At N = 1 they are a sixth of the output; at N = 3, where neither other path can
+fire inside 20 s, they were all of it.
+
 ### Which ASR actually punctuates
 
 Observed, not inferred:
@@ -902,5 +940,11 @@ and voxtral's `max_new_tokens: 4096`.
 
 Also still open:
 
-- **Local Native** (step 4 of the task) needs `npm run sidecar:setup`; not run.
-- **Chinese source** was not exercised here; these findings are English only.
+- **N = 3 on Chinese.** The fix is proven at N = 1. At N = 3 both gates still
+  need a tail the 20 s cap cannot produce, so that is a calibration question —
+  `zhFallbackChars`, or the wall, or both.
+- **`end()` seals raw.** One chunk per utterance, always unpunctuated.
+- **Edge-Punct on the model path** (unpunctuated English, i.e. cohere) is still
+  unrun; only FireRedPunc has been exercised live.
+- **N = 5, and changing N mid-session** (it must take effect only on the next
+  utterance) are unrun.
