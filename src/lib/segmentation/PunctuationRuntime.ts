@@ -6,7 +6,8 @@
  * `Map<PunctuationModelId, PunctuationAdapter>`, so one worker can hold
  * FireRedPunc and Edge-Punct-en loaded at the same time — both legs of a
  * zh<->en session need a model simultaneously). Routes a language to a
- * model, drives that model's download and load through `ModelManager`, and
+ * model, loads that model's already-downloaded files through `ModelManager`
+ * (A1: the settings section owns the one download; nothing here fetches), and
  * tracks per-model health (consecutive failures, latency, idle unload) plus
  * whole-worker health (crash restart, WebGPU -> WASM fallback).
  *
@@ -76,12 +77,12 @@ const LATENCY_WINDOW = 5;
 const LATENCY_MIN_SAMPLES = 3;
 
 export interface PunctuationRuntimeOptions {
-  /** The user setting. A disabled runtime never downloads and never loads. */
+  /** The user setting AND the pack being on disk. A disabled runtime never
+   *  loads — and it never downloads either, because nothing here does. */
   isEnabled(): boolean;
-  /** Status, progress and failure events for the app layer to forward to the
-   *  store and to diagnostics. The runtime itself imports neither. */
+  /** Status and failure events for the app layer to forward to diagnostics.
+   *  The runtime itself imports no store and no report.ts. */
   onStatus?(model: PunctuationModelId, status: PunctuationStatus, detail?: string): void;
-  onDownloadProgress?(model: PunctuationModelId, percent: number): void;
   /** Reported once per model load, for the segmentation_model_load event. */
   onLoaded?(model: PunctuationModelId, backend: 'webgpu' | 'wasm', loadMs: number): void;
   /**
@@ -108,6 +109,12 @@ function deviceMemoryGb(): number {
     }
   } catch { /* localStorage unavailable */ }
   return (navigator as { deviceMemory?: number }).deviceMemory ?? MIN_DEVICE_MEMORY_GB;
+}
+
+/** Exported so the settings section and the app-level hook apply the same gate
+ *  the runtime does, instead of keeping their own copy of the threshold. */
+export function isLowMemoryDevice(): boolean {
+  return deviceMemoryGb() <= MIN_DEVICE_MEMORY_GB;
 }
 
 /** Pinned deliberately, not inherited from ORT's default: Edge-Punct's int8
@@ -171,7 +178,7 @@ export class PunctuationRuntime implements SegmentationRuntime {
   }
 
   get enabled(): boolean {
-    return this.opts.isEnabled();
+    return this.opts.isEnabled() && !isLowMemoryDevice();
   }
 
   async punctuate(
@@ -182,7 +189,7 @@ export class PunctuationRuntime implements SegmentationRuntime {
     if (this.disposed) return null;
     if (opts?.signal?.aborted) return null;
     if (!this.opts.isEnabled()) return null;
-    if (deviceMemoryGb() <= MIN_DEVICE_MEMORY_GB) return null;
+    if (isLowMemoryDevice()) return null;
 
     const model = modelForLanguage(lang);
     const state = this.models[model];
@@ -192,17 +199,6 @@ export class PunctuationRuntime implements SegmentationRuntime {
     if (!ready || this.disposed || state.status !== 'ready') return null;
 
     return this.runInference(model, text);
-  }
-
-  /**
-   * Manual retry for a model stuck in `'error'` (a download failure). A
-   * no-op for any other status: `'disabled'` models are rule-only for the
-   * rest of the session by design, and every other status is already moving
-   * on its own.
-   */
-  retryDownload(model: PunctuationModelId): void {
-    if (this.models[model].status !== 'error') return;
-    this.startDownload(model);
   }
 
   /** For the app-layer owner to call on unmount. Not part of
@@ -221,11 +217,10 @@ export class PunctuationRuntime implements SegmentationRuntime {
 
   // ─── Per-model state machine ────────────────────────────────────────────
 
-  /** Advances the model one step (check readiness, start a download, start a
-   *  load) and returns whether it is immediately usable. Every step that
-   *  needs the network or the worker is fire-and-forget: this never blocks a
-   *  `punctuate()` call on a download or a load, matching "return null
-   *  meanwhile" in the spec's lifecycle section. */
+  /** Advances the model one step (check the files are on disk, start a load)
+   *  and returns whether it is immediately usable. The load is
+   *  fire-and-forget: this never blocks a `punctuate()` call on it, matching
+   *  "return null meanwhile" in the spec's lifecycle section. */
   private async prepareModel(model: PunctuationModelId): Promise<boolean> {
     const state = this.models[model];
     if (state.status === 'ready') return true;
@@ -249,7 +244,12 @@ export class PunctuationRuntime implements SegmentationRuntime {
         return false;
       }
       if (!alreadyReady) {
-        this.startDownload(model);
+        // A1: nothing downloads here. The section owns the download, and
+        // `enabled` is false until all three models are on disk — so reaching
+        // this means the files went away underneath us (storage cleared, or a
+        // delete from another surface). Rule-only for the rest of the session.
+        state.status = 'error';
+        this.opts.onStatus?.(model, 'error', 'model files missing');
         return false;
       }
       state.status = 'downloaded';
@@ -260,27 +260,6 @@ export class PunctuationRuntime implements SegmentationRuntime {
       this.startLoad(model);
     }
     return false;
-  }
-
-  private startDownload(model: PunctuationModelId): void {
-    const state = this.models[model];
-    state.status = 'downloading';
-    this.opts.onStatus?.(model, 'downloading');
-    const manifestId = MODEL_IDS[model];
-    const manager = ModelManager.getInstance();
-    manager.downloadModel(manifestId, (progress) => {
-      this.opts.onDownloadProgress?.(model, progress.percent);
-    }).then(() => {
-      if (this.disposed || state.status !== 'downloading') return;
-      state.status = 'downloaded';
-      this.opts.onStatus?.(model, 'downloaded');
-    }).catch(() => {
-      if (this.disposed || state.status !== 'downloading') return;
-      // No automatic retry in the same launch: stays 'error' until
-      // retryDownload() or the next app launch.
-      state.status = 'error';
-      this.opts.onStatus?.(model, 'error', 'download failed');
-    });
   }
 
   private startLoad(model: PunctuationModelId): void {

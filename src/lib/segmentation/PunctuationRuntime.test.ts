@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
-import { PunctuationRuntime, modelForLanguage, MODEL_IDS } from './PunctuationRuntime';
+import { PunctuationRuntime, modelForLanguage, isLowMemoryDevice } from './PunctuationRuntime';
 import { MockWorker } from '../local-inference/engine/testing/mockWorker';
 import { ModelManager } from '../local-inference/ModelManager';
 import { checkWebGPU } from '../../utils/webgpu';
@@ -101,6 +101,10 @@ describe('PunctuationRuntime', () => {
     isModelReady = vi.spyOn(ModelManager.prototype, 'isModelReady').mockResolvedValue(false) as unknown as Mock;
     getModelBlobUrls = vi.spyOn(ModelManager.prototype, 'getModelBlobUrls').mockResolvedValue({}) as unknown as Mock;
     revokeBlobUrls = vi.spyOn(ModelManager.prototype, 'revokeBlobUrls').mockImplementation(() => {}) as unknown as Mock;
+    // Kept purely as a tripwire: A1 says the runtime never fetches, so every
+    // assertion on this spy is `not.toHaveBeenCalled()`. It is still stubbed
+    // so a regression hangs on an unresolved promise rather than reaching the
+    // network.
     downloadModel = vi.spyOn(ModelManager.prototype, 'downloadModel').mockImplementation(
       () => new Promise(() => {}),
     ) as unknown as Mock;
@@ -114,15 +118,13 @@ describe('PunctuationRuntime', () => {
 
   function makeRuntime(enabled = true) {
     const onStatus = vi.fn();
-    const onDownloadProgress = vi.fn();
     const onLoaded = vi.fn();
     const runtime = new PunctuationRuntime({
       isEnabled: () => enabled,
       onStatus,
-      onDownloadProgress,
       onLoaded,
     });
-    return { runtime, onStatus, onDownloadProgress, onLoaded };
+    return { runtime, onStatus, onLoaded };
   }
 
   /** Drives the edge-punct-en model (via lang 'en') all the way to 'ready'
@@ -153,16 +155,48 @@ describe('PunctuationRuntime', () => {
     expect(createPunctuationWorker).not.toHaveBeenCalled();
   });
 
-  it('starts one download when the model is not downloaded, and does not start a second on the next call', async () => {
-    const { runtime } = makeRuntime();
+  it('never downloads a model that is not on disk', async () => {
+    // A1: the settings section owns the one download, and `enabled` is false
+    // until all three models are on disk. Reaching prepareModel with files
+    // missing therefore means they went away underneath the session, and the
+    // runtime's answer is to go rule-only for that model, never to fetch.
+    const { runtime, onStatus } = makeRuntime();
     isModelReady.mockResolvedValue(false);
 
     await expect(runtime.punctuate('en', 'hello')).resolves.toBeNull();
-    expect(downloadModel).toHaveBeenCalledTimes(1);
-    expect(downloadModel).toHaveBeenCalledWith(MODEL_IDS['edge-punct-en'], expect.any(Function));
+    expect(downloadModel).not.toHaveBeenCalled();
+    expect(MockWorker.instances.length).toBe(0);
+    expect(onStatus).toHaveBeenCalledWith(
+      'edge-punct-en', 'error', expect.stringContaining('missing'),
+    );
 
+    // Rule-only for the rest of the session: a second call retries nothing.
+    onStatus.mockClear();
     await expect(runtime.punctuate('en', 'hello again')).resolves.toBeNull();
-    expect(downloadModel).toHaveBeenCalledTimes(1);
+    expect(downloadModel).not.toHaveBeenCalled();
+    expect(onStatus).not.toHaveBeenCalled();
+  });
+
+  it('loads a model that is already on disk', async () => {
+    const { runtime, onStatus } = makeRuntime();
+    const worker = await bringReady(runtime, onStatus, 'en', 'edge-punct-en');
+    expect(downloadModel).not.toHaveBeenCalled();
+
+    const p = runtime.punctuate('en', 'hello');
+    const runMsg = await waitForMessageAt(worker, 'run', 1);
+    const result = fakeResult('edge-punct-en', 'Hello.');
+    worker.emit({ type: 'result', id: runMsg.id, result, inferenceMs: 5 });
+    await expect(p).resolves.toEqual(result);
+  });
+
+  it('is disabled on a low-memory device even when the toggle is on', async () => {
+    localStorage.setItem('debug:device-memory', '4');
+    const { runtime } = makeRuntime(true);
+
+    expect(isLowMemoryDevice()).toBe(true);
+    expect(runtime.enabled).toBe(false);
+    await expect(runtime.punctuate('en', 'hello')).resolves.toBeNull();
+    expect(isModelReady).not.toHaveBeenCalled();
     expect(MockWorker.instances.length).toBe(0);
   });
 
@@ -604,39 +638,6 @@ describe('PunctuationRuntime', () => {
     expect(isModelReady).not.toHaveBeenCalled();
     expect(downloadModel).not.toHaveBeenCalled();
     expect(MockWorker.instances.length).toBe(0);
-  });
-
-  it('a download failure does not retry automatically in the same launch', async () => {
-    const { runtime, onStatus } = makeRuntime();
-    isModelReady.mockResolvedValue(false);
-    downloadModel.mockRejectedValueOnce(new Error('network down'));
-
-    await expect(runtime.punctuate('en', 'hello')).resolves.toBeNull();
-    await vi.waitFor(() =>
-      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'error', expect.any(String)),
-    );
-    expect(downloadModel).toHaveBeenCalledTimes(1);
-
-    await expect(runtime.punctuate('en', 'hello again')).resolves.toBeNull();
-    expect(downloadModel).toHaveBeenCalledTimes(1);
-  });
-
-  it('a manual retry after a failure starts exactly one new download', async () => {
-    const { runtime, onStatus } = makeRuntime();
-    isModelReady.mockResolvedValue(false);
-    downloadModel.mockRejectedValueOnce(new Error('network down'));
-
-    await runtime.punctuate('en', 'hello');
-    await vi.waitFor(() =>
-      expect(onStatus).toHaveBeenCalledWith('edge-punct-en', 'error', expect.any(String)),
-    );
-
-    downloadModel.mockImplementationOnce(() => new Promise(() => {}));
-    runtime.retryDownload('edge-punct-en');
-    expect(downloadModel).toHaveBeenCalledTimes(2);
-
-    runtime.retryDownload('edge-punct-en'); // status is now 'downloading', not 'error' -> no-op
-    expect(downloadModel).toHaveBeenCalledTimes(2);
   });
 
   it('once the median call latency stays above 500 ms, that model goes rule-only for the session', async () => {

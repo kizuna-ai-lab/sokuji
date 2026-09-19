@@ -31,8 +31,8 @@ import { reportWarning } from '../../lib/diagnostics/report';
  * same way is the same contract, one level up.
  *
  * It reads the enabled flag through a getter rather than a prop, so flipping
- * the switch takes effect on the next call without tearing down a loaded
- * model.
+ * the switch -- or the pack's download finishing -- takes effect on the next
+ * call without tearing down a loaded model.
  */
 export function useSegmentationRuntime(): SegmentationRuntime | null {
   const enabled = useSentenceSegmentation();
@@ -42,6 +42,13 @@ export function useSegmentationRuntime(): SegmentationRuntime | null {
   const [runtime, setRuntime] = useState<PunctuationRuntime | null>(null);
 
   useEffect(() => {
+    // Ask the disk once per launch. `isEnabled` below is "toggle on AND pack
+    // ready", and the pack's phase starts at 'unknown' — so without this, a
+    // launch that never opens the Settings panel would seal nothing, with all
+    // three models sitting on disk the whole time. Safe unconditionally:
+    // refresh() early-returns while a download is in flight.
+    void useSegmentationStore.getState().refresh();
+
     // One line per model for the facts that are otherwise invisible. A live
     // Chinese session sealed nothing at all and none of the four questions
     // that would have explained it — did the model load, on which backend,
@@ -50,7 +57,10 @@ export function useSegmentationRuntime(): SegmentationRuntime | null {
     // one: punctuate() runs up to ~12x a second.
     const seen = new Set<PunctuationModelId>();
     const instance = new PunctuationRuntime({
-      isEnabled: () => enabledRef.current,
+      // A1: the toggle alone is not enough. The runtime no longer downloads
+      // anything, so it must not be told it is on until all three models are
+      // actually on disk.
+      isEnabled: () => enabledRef.current && useSegmentationStore.getState().phase === 'ready',
       onLoaded: (model, backend, loadMs) => {
         console.info(`[Segmentation] ${model} loaded on ${backend} in ${Math.round(loadMs)}ms`);
       },
@@ -73,28 +83,28 @@ export function useSegmentationRuntime(): SegmentationRuntime | null {
           });
         }
       },
+      // Diagnostics only. Nothing here reaches segmentationStore: the pack's
+      // phase describes the disk, and a model that goes rule-only mid-session
+      // must not make the Settings panel claim the download is gone.
       onStatus: (model, status, detail) => {
-        useSegmentationStore.getState().setModelStatus(model, status, detail);
         if (status === 'disabled') {
-          // Session-scoped and unrecoverable — retryDownload() is a no-op for
-          // it by design — so the stage silently stops sealing for the rest of
-          // the session. The reason carries the median that tripped it.
+          // Session-scoped and unrecoverable — nothing brings the model back
+          // before the next launch — so the stage silently stops sealing for
+          // the rest of the session. The reason carries the median that
+          // tripped it.
           reportWarning('Segmentation', `${model} disabled: ${detail ?? 'unknown reason'}`, {
             dedupeKey: `segmentation:disabled:${model}`,
           });
         }
         if (status === 'error') {
-          // One line per model per failure class: a settings backend or a
-          // network that is down fails for every model at once, and one
-          // entry per attempt would bury the session's real events. No
-          // transcript text is in scope here — only the model id.
+          // One line per model per failure class: storage cleared out from
+          // under the session takes every model at once, and one entry per
+          // attempt would bury the session's real events. No transcript text
+          // is in scope here — only the model id.
           reportWarning('Segmentation', `${model} is unavailable: ${detail ?? 'unknown error'}`, {
             dedupeKey: `segmentation:${model}`,
           });
         }
-      },
-      onDownloadProgress: (model, percent) => {
-        useSegmentationStore.getState().setModelProgress(model, percent);
       },
     });
     setRuntime(instance);

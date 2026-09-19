@@ -74,9 +74,19 @@ function asFake(runtime: SegmentationRuntime): FakeRuntimeHandle {
   return runtime as unknown as FakeRuntimeHandle;
 }
 
+/** Stands in for the store's own `refresh()`, which reaches IndexedDB through
+ *  ModelManager. The hook fires it on mount; what it does on the way to the
+ *  disk belongs to segmentationStore.test.ts, so here it only has to be
+ *  countable. Swapped in through `setState` because a zustand action is a
+ *  field of the state like any other. */
+let refresh: Mock;
+
 beforeEach(() => {
   MockedRuntime.mockClear();
-  useSegmentationStore.getState().resetSession();
+  refresh = vi.fn().mockResolvedValue(undefined);
+  // 'ready' is the interesting default: every test but the phase one below
+  // wants a pack that is on disk, so `enabled` follows the toggle alone.
+  useSegmentationStore.setState({ phase: 'ready', downloadedBytes: 0, error: null, refresh });
   useSettingsStore.setState({ sentenceSegmentation: true });
   // These tests assert what reaches the log store, which records nothing
   // unless diagnostic logs are switched on (off by default in the app).
@@ -108,18 +118,43 @@ describe('useSegmentationRuntime', () => {
     expect(runtime.enabled).toBe(false);
   });
 
-  it('forwards a status event to segmentationStore', () => {
-    const { result } = renderHook(() => useSegmentationRuntime());
-    act(() => { asFake(result.current!).opts.onStatus?.('fireredpunc', 'downloading'); });
-
-    expect(useSegmentationStore.getState().models.fireredpunc.status).toBe('downloading');
+  it('asks the pack for its phase on mount, without the Settings panel ever being opened', () => {
+    // `enabled` is "toggle on AND pack ready", so a launch that never opens
+    // Settings would sit on phase 'unknown' forever and seal nothing, with
+    // the models sitting on disk the whole time.
+    renderHook(() => useSegmentationRuntime());
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('forwards a download progress event to segmentationStore', () => {
+  it('is enabled only when the toggle is on AND the pack is ready', () => {
+    useSegmentationStore.setState({ phase: 'missing' });
     const { result } = renderHook(() => useSegmentationRuntime());
-    act(() => { asFake(result.current!).opts.onDownloadProgress?.('edge-punct-en', 42); });
+    const runtime = result.current!;
+    expect(runtime.enabled).toBe(false);
 
-    expect(useSegmentationStore.getState().models['edge-punct-en'].percent).toBe(42);
+    // Read through a getter, so a download finishing mid-session is picked up
+    // without rebuilding the runtime or reloading a model.
+    act(() => { useSegmentationStore.setState({ phase: 'ready' }); });
+    expect(runtime.enabled).toBe(true);
+
+    act(() => { useSettingsStore.setState({ sentenceSegmentation: false }); });
+    expect(runtime.enabled).toBe(false);
+  });
+
+  it('writes nothing to segmentationStore when a model reports its status', async () => {
+    // The pack's phase describes the disk, not a running model: a model that
+    // fails to load or goes rule-only mid-session must not make the Settings
+    // panel claim the download is gone.
+    const { result } = renderHook(() => useSegmentationRuntime());
+    const before = useSegmentationStore.getState();
+
+    act(() => { asFake(result.current!).opts.onStatus?.('fireredpunc', 'error', 'model files missing'); });
+    await settleReports();
+
+    const after = useSegmentationStore.getState();
+    expect(after.phase).toBe(before.phase);
+    expect(after.downloadedBytes).toBe(before.downloadedBytes);
+    expect(after.error).toBe(before.error);
   });
 
   it('reports a failure once through reportWarning, and not again for an identical second failure', async () => {
