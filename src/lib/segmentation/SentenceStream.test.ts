@@ -478,6 +478,37 @@ describe('SentenceStream end and disposal', () => {
     expect(seals).toEqual([]);
   });
 
+  it('stays inert when a disabled runtime becomes enabled under it', async () => {
+    const seals: SealedChunk[] = [];
+    const runtime: SegmentationRuntime = { enabled: false, async punctuate() { return null; } };
+    const stream = new SentenceStream({
+      lang: 'en', runtime, sentencesPerChunk: 1, onSeal: (c) => seals.push(c), onPending: () => {},
+    });
+    // The pack finished downloading mid-utterance.
+    (runtime as { enabled: boolean }).enabled = true;
+    stream.update('One. Two. Three.');
+    stream.end();
+    await flush();
+    expect(seals).toEqual([]);
+  });
+
+  it('still seals its tail when the runtime goes disabled under it', async () => {
+    const seals: SealedChunk[] = [];
+    const runtime: SegmentationRuntime = { enabled: true, async punctuate() { return null; } };
+    const stream = new SentenceStream({
+      lang: 'en', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
+    });
+    stream.update('the files went away halfway through this sentence');
+    // Storage cleared underneath the session: without one answer per stream,
+    // end() would decline to seal and this text would be lost entirely.
+    (runtime as { enabled: boolean }).enabled = false;
+    stream.end();
+    await flush();
+    expect(seals).toEqual([
+      { text: 'the files went away halfway through this sentence', reason: 'end' },
+    ]);
+  });
+
   it('emits nothing after dispose', async () => {
     const seals: SealedChunk[] = [];
     const { runtime } = fakeRuntime({});

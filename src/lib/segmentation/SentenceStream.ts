@@ -84,11 +84,29 @@ export class SentenceStream {
   /** Skeleton of the text last handed to the model, so a stale answer is
    *  recognised even after the ASR rewrote the tail. */
   private inFlightSkeleton = '';
+  /**
+   * `runtime.enabled` as it was when this stream was built, not as it is now.
+   *
+   * The runtime's answer can change under an open stream: the three
+   * punctuation models download as one pack, and `enabled` turns true the
+   * moment that finishes. Reading it live would let a stream go from inert to
+   * sealing — or, if the files were removed, from sealing to inert, which
+   * loses the tail outright: `end()` would decline to seal, the client has
+   * already routed that text here instead of to a bubble, and the next
+   * utterance overwrites the stranded one. One answer per stream matches the
+   * clients, which read the same flag once per session.
+   *
+   * A runtime that becomes unusable mid-stream is still handled, one layer
+   * down: `punctuate()` returns null and the stream seals on the punctuation
+   * that is already there, exactly as it does while a model is loading.
+   */
+  private readonly runtimeEnabled: boolean;
 
   constructor(opts: SentenceStreamOptions) {
     this.opts = opts;
     this.lang = opts.lang;
     this.n = Math.min(5, Math.max(1, Math.round(opts.sentencesPerChunk)));
+    this.runtimeEnabled = opts.runtime?.enabled === true;
   }
 
   setLanguage(lang: string): void {
@@ -133,7 +151,7 @@ export class SentenceStream {
   // ----- internals -----
 
   private active(): boolean {
-    return !this.disposed && !!this.opts.runtime && this.opts.runtime.enabled;
+    return !this.disposed && this.runtimeEnabled;
   }
 
   private evaluate(): void {
