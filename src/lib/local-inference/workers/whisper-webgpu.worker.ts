@@ -21,6 +21,7 @@ import {InferenceSession, Tensor, env as ortEnv} from './_shared/onnxruntime-all
 import {initTransformersEnv} from './_shared/transformers-env';
 import {FrameProcessor, Message} from '@ricky0123/vad-web';
 import {resolveVadThresholds} from './_shared/vad-thresholds';
+import {resolveMaxSpeechFrames} from './_shared/max-speech-frames';
 import type {FrameProcessorEvent} from '@ricky0123/vad-web/dist/frame-processor';
 
 import type {
@@ -80,6 +81,18 @@ let frameProcessor: FrameProcessor | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
 
+// The longest segment this engine is handed, pre-speech pad included.
+// WhisperFeatureExtractor reads the first 480000 samples (30 s) and drops the
+// rest with nothing but a console warning, and a window that is completely
+// full — no zero padding left — can also end the no-timestamp decode after
+// the first sentence: whisper-small returned 69 characters for a 30.000 s
+// segment it transcribed as 135 at 29.984 s. One second under the window
+// rather than one frame, because only whisper-small could be decoded locally.
+// `chunk_length_s` is not the way out: without timestamps its merge is a
+// longest-common-sequence over raw tokens, which dropped or duplicated speech
+// in every language tried and took 2-4x as long.
+const WHISPER_MAX_SEGMENT_SAMPLES = 29 * VAD_SAMPLE_RATE;
+
 // For startSample tracking in result messages
 let totalSamplesFed = 0;
 let speechStartSample = 0;
@@ -136,9 +149,10 @@ async function initVad(config?: WhisperAsrInitMessage['vadConfig'], vadModelUrl?
   const redemptionMs = (config?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (config?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (config?.preSpeechPadDuration ?? 0.8) * 1000;
-  const maxSpeechDurationMs = (config?.maxSpeechDuration ?? 20) * 1000;
 
-  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  maxSpeechFrames = resolveMaxSpeechFrames(config?.maxSpeechDuration, preSpeechPadMs, {
+    maxSegmentSamples: WHISPER_MAX_SEGMENT_SAMPLES,
+  });
 
   frameProcessor = new FrameProcessor(
     vadInfer,

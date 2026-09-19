@@ -26,6 +26,7 @@ import { InferenceSession as VadInferenceSession, Tensor as VadTensor, env as va
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import { logMel, type MelFilterbank } from './_shared/log-mel';
 import { createBpeDecoder, type BpeDecoder } from './_shared/bpe-decoder';
 import {
@@ -69,6 +70,21 @@ let frameProcessor: FrameProcessor | null = null;
 
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
+
+// The longest speech this engine is handed, by source language. There is no
+// audio-side limit; the limit is the decode budget, prompt_config.json's
+// max_new_tokens = 256, and a transcript that needs more is cut at the tail
+// and posted as an ordinary result. In seconds that depends on how the
+// tokenizer treats the language. Real English and Japanese need 58-78 s to
+// fill it (and at 60 s the decode runs at 0.8-1.3x real time, so the queue
+// never drains). Thai fills it at about 31-37 s, and Hindi — 4.67 tokens per
+// word — at 19-25 s, which is why Hindi stays at the old 20 s. The Hindi and
+// Thai figures are tokenizer estimates; no audio for either was available.
+// Raising the budget instead needs a repetition stop first: given 400 tokens,
+// the 1.7B model looped "doctor, doctor, ..." on clean English until they
+// ran out.
+const QWEN3_ASR_MAX_SPEECH_SECONDS: Record<string, number> = { hi: 20, th: 30 };
+const QWEN3_ASR_DEFAULT_MAX_SPEECH_SECONDS = 40;
 let totalSamplesFed = 0;
 let speechStartSample = 0;
 
@@ -94,7 +110,11 @@ function vadResetStates() {
   vadSession.state = new VadTensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
 }
 
-async function initVad(vadConfig?: Qwen3AsrInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
+async function initVad(
+  vadConfig: Qwen3AsrInitMessage['vadConfig'] | undefined,
+  vadModelUrl: string | undefined,
+  language: string | undefined,
+): Promise<void> {
   const session = await VadInferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
     executionProviders: ['wasm'],
   });
@@ -108,9 +128,11 @@ async function initVad(vadConfig?: Qwen3AsrInitMessage['vadConfig'], vadModelUrl
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
 
-  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  const primaryLanguage = (language ?? '').toLowerCase().split(/[-_]/)[0];
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, {
+    maxSpeechSeconds: QWEN3_ASR_MAX_SPEECH_SECONDS[primaryLanguage] ?? QWEN3_ASR_DEFAULT_MAX_SPEECH_SECONDS,
+  });
 
   frameProcessor = new FrameProcessor(
     vadInfer,
@@ -379,7 +401,7 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
     }
 
     post({ type: 'status', message: 'Loading VAD model...' });
-    await initVad(msg.vadConfig, msg.vadModelUrl);
+    await initVad(msg.vadConfig, msg.vadModelUrl, msg.language);
 
     const file = (name: string) => {
       const url = msg.fileUrls[name];

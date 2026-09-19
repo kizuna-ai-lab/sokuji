@@ -925,6 +925,19 @@ describe('LocalNativeClient native-vad worker wiring', () => {
     });
   });
 
+  // The sidecar never receives the cap and re-cuts at lengths of its own
+  // (30 s offline, 20 s streaming), so a longer client cut only adds a second
+  // cut and a sub-second orphan segment the engines hallucinate text for.
+  it('never forwards a max speech duration, even when the session config carries one', async () => {
+    const m = mocks();
+    const w = new FakeVadWorker();
+    const c = new LocalNativeClient({ ...m, vadWorker: () => w as unknown as Worker });
+    c.setEventHandlers({});
+    await c.connect({ ...VAD_LOCAL_NATIVE_CONFIG, vadMaxSpeechDuration: 45 } as any);
+    const init = w.posted.find((p) => p.type === 'init');
+    expect(init.vadConfig).not.toHaveProperty('maxSpeechDuration');
+  });
+
   it('worker edges become vad_mark sends (start/end/cancel)', () => {
     worker.emit({ type: 'speech_start' });
     worker.emit({ type: 'speech_end' });

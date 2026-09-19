@@ -312,7 +312,6 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
   vadThreshold?: number;
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
-  vadMaxSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   wrapTranscript?: boolean;
   asrDevice?: string;

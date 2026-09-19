@@ -2240,7 +2240,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               vadThreshold: localNativeSettings.vadThreshold,
               vadMinSilenceDuration: localNativeSettings.vadMinSilenceDuration,
               vadMinSpeechDuration: localNativeSettings.vadMinSpeechDuration,
-              vadMaxSpeechDuration: localNativeSettings.vadMaxSpeechDuration,
             }}
             onChange={(patch) => updateLocalNativeSettings(patch)}
             disabled={isSessionActive}
@@ -2365,12 +2364,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               vadThreshold: localInferenceSettings.vadThreshold,
               vadMinSilenceDuration: localInferenceSettings.vadMinSilenceDuration,
               vadMinSpeechDuration: localInferenceSettings.vadMinSpeechDuration,
-              vadMaxSpeechDuration: localInferenceSettings.vadMaxSpeechDuration,
-              // vad-web workers only — the sherpa-onnx engine has its own hysteresis.
+              // vad-web workers only — the sherpa-onnx engine has its own
+              // hysteresis and cuts at a fixed 20 s.
               ...(() => {
                 const workerType = getManifestEntry(selectedAsr)?.asrWorkerType;
                 return workerType && workerType !== 'sherpa-onnx'
-                  ? { vadNegativeThreshold: localInferenceSettings.vadNegativeThreshold ?? 0 }
+                  ? {
+                      vadMaxSpeechDuration: localInferenceSettings.vadMaxSpeechDuration,
+                      vadNegativeThreshold: localInferenceSettings.vadNegativeThreshold ?? 0,
+                    }
                   : {};
               })(),
             }}
