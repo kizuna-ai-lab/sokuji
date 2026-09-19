@@ -172,7 +172,7 @@
     "vadMinSilenceDuration": "최소 무음 시간",
     "vadMinSilenceDurationTooltip": "음성 세그먼트를 분할하기 위한 최소 무음 시간. 짧은 값은 문장을 빠르게 분할하고, 긴 값은 더 자연스러운 일시 중지를 기다립니다.",
     "vadMaxSpeechDuration": "최대 발화 시간",
-    "vadMaxSpeechDurationTooltip": "하나의 발화 구간이 분할되기까지의 최대 길이입니다. 값이 크면 문장이 온전하게 유지되고, 작으면 메모리를 덜 사용합니다.",
+    "vadMaxSpeechDurationTooltip": "하나의 발화 구간이 분할되기까지의 최대 길이입니다. 일부 모델은 정확하게 전사할 수 있는 최대 길이에서 더 일찍 분할합니다.",
     "vadMinSpeechDuration": "최소 발화 시간",
     "vadMinSpeechDurationTooltip": "유효한 음성으로 인식하기 위한 최소 시간. 클릭이나 기침과 같은 매우 짧은 소리를 필터링합니다.",
     "geminiVadTooltip": "Gemini가 발화 구분을 위해 음성 중단을 감지하는 방식을 제어합니다. 이 설정을 조정하면 연속적인 발화에 대한 번역 응답성을 향상시킬 수 있습니다. \n푸시 투 토크: 키를 눌러 오디오를 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",

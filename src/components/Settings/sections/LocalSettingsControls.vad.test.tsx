@@ -28,8 +28,20 @@ describe('VadControl max speech duration', () => {
     const { container } = render(
       <VadControl values={{ ...BASE, vadMaxSpeechDuration: 30 }} onChange={onChange} disabled={false} />,
     );
-    const slider = container.querySelector('input[type="range"][max="60"]') as HTMLInputElement;
-    fireEvent.change(slider, { target: { value: '45' } });
-    expect(onChange).toHaveBeenCalledWith({ vadMaxSpeechDuration: 45 });
+    const slider = container.querySelector('input[type="range"][max="40"]') as HTMLInputElement;
+    fireEvent.change(slider, { target: { value: '35' } });
+    expect(onChange).toHaveBeenCalledWith({ vadMaxSpeechDuration: 35 });
+  });
+
+  // 60 would promise what no engine delivers: only cohere transcribes a
+  // segment that long, and every other worker holds itself to 29-40 s.
+  it('stops at 40 seconds', () => {
+    const { container } = render(
+      <VadControl values={{ ...BASE, vadMaxSpeechDuration: 30 }} onChange={() => {}} disabled={false} />,
+    );
+    const sliders = [...container.querySelectorAll('input[type="range"]')] as HTMLInputElement[];
+    const maxSpeech = sliders.find((s) => s.step === '5' && s.value === '30');
+    expect(maxSpeech?.max).toBe('40');
+    expect(maxSpeech?.min).toBe('10');
   });
 });

@@ -172,7 +172,7 @@
     "vadMinSilenceDuration": "最小静音时长",
     "vadMinSilenceDurationTooltip": "分割语音段的最小静音时长。较短的值会更快地分割句子，较长的值会等待更自然的停顿。",
     "vadMaxSpeechDuration": "最大语音时长",
-    "vadMaxSpeechDurationTooltip": "单个语音片段被切分前可持续的最长时间。数值越大句子越完整，数值越小占用内存越少。",
+    "vadMaxSpeechDurationTooltip": "单个语音片段被切分前可持续的最长时间。部分模型会更早切分，切在它能准确转写的最长长度上。",
     "vadMinSpeechDuration": "最小语音时长",
     "vadMinSpeechDurationTooltip": "被视为有效语音的最小时长。过滤掉非常短的声音，如点击声或咳嗽声。",
     "geminiVadTooltip": "控制 Gemini 如何检测语音停顿以分割对话轮次。调整这些设置可以改善连续语音的翻译响应速度。\n按住说话：按住按键发送音频。\n按住翻译：与按住说话类似，但空闲时将原始麦克风音频直通到虚拟麦克风，您可以直接讲话而不进行翻译。",

@@ -172,7 +172,7 @@
     "vadMinSilenceDuration": "Min. Sessizlik Süresi",
     "vadMinSilenceDurationTooltip": "Konuşma segmentlerini ayırmak için minimum sessizlik. Daha kısa değerler cümleleri daha hızlı ayırır, daha uzun değerler daha doğal duraklamaları bekler.",
     "vadMaxSpeechDuration": "Maks. Konuşma Süresi",
-    "vadMaxSpeechDurationTooltip": "Tek bir konuşma bölümünün bölünmeden önce sürebileceği en uzun süre. Yüksek değerler cümleleri bütün tutar, düşük değerler daha az bellek kullanır.",
+    "vadMaxSpeechDurationTooltip": "Tek bir konuşma bölümünün bölünmeden önce sürebileceği en uzun süre. Bazı modeller daha erken böler; doğru yazıya döktükleri en uzun bölümde.",
     "vadMinSpeechDuration": "Min. Konuşma Süresi",
     "vadMinSpeechDurationTooltip": "Geçerli konuşma olarak kabul edilecek minimum süre. Tıklama veya öksürük gibi çok kısa sesleri filtreler.",
     "geminiVadTooltip": "Gemini'nin sıraları bölmek için konuşma duraklamalarını nasıl algıladığını kontrol eder. Bu ayarların düzenlenmesi, sürekli konuşma için çeviri yanıt hızını iyileştirebilir. \nBas-Konuş: ses göndermek için bir tuşu basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",

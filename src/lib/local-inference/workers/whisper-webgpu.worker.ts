@@ -84,13 +84,15 @@ let speechFramesSinceStart = 0;
 // The longest segment this engine is handed, pre-speech pad included.
 // WhisperFeatureExtractor reads the first 480000 samples (30 s) and drops the
 // rest with nothing but a console warning, and a window that is completely
-// full — no zero padding left — can also end the no-timestamp decode after
-// the first sentence: whisper-small returned 69 characters for a 30.000 s
-// segment it transcribed as 135 at 29.984 s. One second under the window
-// rather than one frame, because only whisper-small could be decoded locally.
-// `chunk_length_s` is not the way out: without timestamps its merge is a
-// longest-common-sequence over raw tokens, which dropped or duplicated speech
-// in every language tried and took 2-4x as long.
+// full — no zero padding left — can also cut the no-timestamp decode short:
+// whisper-small returned 69 characters for a 30.000 s segment it transcribed
+// as 135 at 29.984 s. That was on clips from several speakers concatenated;
+// 11 windows of single-speaker speech lost only the truncated tail. One
+// second under the window rather than one frame, because only whisper-small
+// could be decoded locally. `chunk_length_s` is not the way out: without
+// timestamps its merge is a longest-common-sequence over raw tokens, which
+// dropped or duplicated speech in every language tried and took 1.5-4x as
+// long.
 const WHISPER_MAX_SEGMENT_SAMPLES = 29 * VAD_SAMPLE_RATE;
 
 // For startSample tracking in result messages

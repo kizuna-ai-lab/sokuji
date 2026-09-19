@@ -26,12 +26,21 @@ let speechFramesSinceStart = 0;
 
 // The longest speech one segment runs. Not the client's to raise on this
 // path: the sidecar never receives the cap and keeps backstops of its own —
-// 30 s of ring + segment on offline cards, 20 s on streaming ones
-// (asr_engine.py). A client cut at 30 s therefore lands just AFTER the
-// sidecar's: the model gets 30.04 s and then the 0.7-0.85 s left over as a
-// segment of its own, which whisper-tiny turned into a 300-450 character
-// invented paragraph. 20 s is the only value verified clean for every card.
-const NATIVE_MAX_SPEECH_SECONDS = 20;
+// 30 s of ring + segment on offline cards, 20 s of in-speech audio on
+// streaming ones (asr_engine.py). Whichever fires first owns the cut, and
+// when the sidecar wins, whatever arrives before the client's own mark is
+// transcribed as a segment of its own: whisper-tiny turned a 0.7 s remainder
+// into a 300-450 character invented paragraph, and moonshine answered a
+// 0.17 s one with "Here's the".
+//
+// So this has to sit strictly BELOW both backstops, not level with them. At
+// 20 the client and the streaming backstop both cut at 320000 in-speech
+// samples, and their sample counters differ by a rounding step per
+// 4096-sample chunk (this worker resamples 24 kHz to 2730 samples, the
+// sidecar to 2731): the sidecar won 3 of 21 simulated forced cuts. 19 puts
+// the client about a second ahead, which covered an end mark up to 6 chunks
+// late in replay.
+const NATIVE_MAX_SPEECH_SECONDS = 19;
 
 type WorkerInbound =
   | { type: 'init'; ortWasmBaseUrl?: string; vadModelUrl?: string; vadConfig?: VadWebConfig }

@@ -172,7 +172,7 @@
     "vadMinSilenceDuration": "Thời gian im lặng tối thiểu",
     "vadMinSilenceDurationTooltip": "Thời gian im lặng tối thiểu để chia đoạn giọng nói. Giá trị ngắn hơn chia câu nhanh hơn, giá trị dài hơn chờ ngắt nghỉ tự nhiên hơn.",
     "vadMaxSpeechDuration": "Thời gian nói tối đa",
-    "vadMaxSpeechDurationTooltip": "Thời lượng tối đa của một đoạn nói trước khi bị cắt. Giá trị lớn hơn giữ nguyên câu, giá trị nhỏ hơn dùng ít bộ nhớ hơn.",
+    "vadMaxSpeechDurationTooltip": "Thời lượng tối đa của một đoạn lời nói trước khi bị cắt. Một số mô hình cắt sớm hơn, ở đoạn dài nhất mà chúng phiên âm chính xác.",
     "vadMinSpeechDuration": "Thời gian nói tối thiểu",
     "vadMinSpeechDurationTooltip": "Thời gian nói tối thiểu để được coi là giọng nói hợp lệ. Lọc bỏ các âm thanh rất ngắn như tiếng click hoặc ho.",
     "geminiVadTooltip": "Kiểm soát cách Gemini phát hiện các khoảng dừng trong giọng nói để phân chia lượt. Điều chỉnh các cài đặt này có thể cải thiện khả năng phản hồi của bản dịch cho giọng nói liên tục. \nNhấn để nói: giữ một phím để gửi âm thanh. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",

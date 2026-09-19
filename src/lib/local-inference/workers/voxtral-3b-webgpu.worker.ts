@@ -83,10 +83,12 @@ let speechFramesSinceStart = 0;
 
 // The longest segment this engine is handed, pre-speech pad included: one
 // 30 s encoder chunk. Nothing is lost past it — transformers.js splits a
-// longer segment into 30 s chunks — but a 30 s cap makes a 30.8 s segment, so
-// every capped segment would pay a second encoder pass and 375 more prefill
-// tokens for its last 0.8 s, on a multi-chunk WebGPU path this app has never
-// run (the old 20 s cap never reached it).
+// longer segment into 30 s chunks — but a 30 s cap makes a segment of 30.016
+// to 30.816 s, so every capped segment would pay a second encoder pass and
+// 375 more prefill tokens for the 16 to 816 ms that overflow (16 to 176 ms
+// for most of them, since only a segment that follows silence carries the
+// full pre-speech pad), on a multi-chunk WebGPU path this app has never run
+// (the old 20 s cap never reached it).
 const VOXTRAL_3B_MAX_SEGMENT_SAMPLES = 30 * VAD_SAMPLE_RATE;
 
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {

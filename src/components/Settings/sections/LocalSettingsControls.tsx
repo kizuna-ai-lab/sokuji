@@ -200,14 +200,18 @@ export const VadControl: React.FC<{
           <div className="setting-label">
             <span>
               {t('settings.vadMaxSpeechDuration', 'Max Speech Duration')}
-              <Tooltip content={t('settings.vadMaxSpeechDurationTooltip', 'Longest a single speech segment can run before it is split. Longer values keep sentences whole, shorter values use less memory.')} position="top">{inlineHelpIcon}</Tooltip>
+              <Tooltip content={t('settings.vadMaxSpeechDurationTooltip', 'Longest a single speech segment can run before it is split. Some models split sooner, at the longest segment they transcribe correctly.')} position="top">{inlineHelpIcon}</Tooltip>
             </span>
             {/* Whole seconds: this dial is tens of seconds wide, and "30.00s"
                 reads as false precision next to a 0.05 s silence threshold. */}
             <span className="setting-value">{values.vadMaxSpeechDuration}s</span>
           </div>
+          {/* 40, not 60: past it the slider would only promise what no engine
+              delivers. cohere is the one that transcribes a 60 s segment
+              correctly; every other worker holds itself to 29-40 s
+              (workers/_shared/max-speech-frames.ts). */}
           <input
-            type="range" min="10" max="60" step="5" value={values.vadMaxSpeechDuration}
+            type="range" min="10" max="40" step="5" value={values.vadMaxSpeechDuration}
             onChange={(e) => onChange({ vadMaxSpeechDuration: parseFloat(e.target.value) })}
             className="slider" disabled={disabled}
           />

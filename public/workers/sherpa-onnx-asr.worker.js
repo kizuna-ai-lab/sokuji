@@ -272,7 +272,16 @@ function handleInit(msg) {
             threshold: vadConfig.threshold || 0.50,
             minSilenceDuration: vadConfig.minSilenceDuration || 0.50,
             minSpeechDuration: vadConfig.minSpeechDuration || 0.25,
-            maxSpeechDuration: 20,
+            // moonshine-v2 throws on any segment past ~9.3 s: its decoder's
+            // mask shape does not match the encoder past 384 frames, and the
+            // bundled wasm cannot catch the C++ exception, so the whole
+            // segment comes back as "ASR processing error" and one error
+            // bubble. Executed on moonshine-tiny-ja-quant through this
+            // worker: 8 s fine, 12 s throws, twice. Nine seconds is the
+            // largest safe multiple of a second. Every other engine here
+            // keeps the 20 s this worker has always used — the Max Speech
+            // Duration setting does not reach sherpa-onnx at all.
+            maxSpeechDuration: asrEngine === 'moonshine-v2' ? 9 : 20,
             windowSize: 512,
           },
           sampleRate: 16000,

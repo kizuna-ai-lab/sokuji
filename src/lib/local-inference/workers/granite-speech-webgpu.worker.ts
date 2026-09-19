@@ -83,8 +83,9 @@ let frameProcessor: FrameProcessor | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
 
-// The longest speech this engine is handed. There is no audio-side limit; the
-// model itself ends the transcript early at a sentence or speaker boundary,
+// The longest speech this engine is handed. There is no audio-side limit, and
+// the decode budget below removes the other one, so what is left is the model
+// itself: it ends the transcript early at a sentence or speaker boundary,
 // and what it drops grows with the segment: up to 6.7 s of a 20.8 s segment,
 // 8.7 s of 30.8 s, 11.7 s of 35.8 s, and 41.6 s of a 60.8 s one with two
 // speaker changes. No length above 30 s was reliably complete. Translate mode

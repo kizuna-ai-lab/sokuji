@@ -78,25 +78,82 @@ describe('resolveMaxSpeechFrames', () => {
 
 // Every worker that force-ends a segment must get its frame cap from the
 // helper above — a hand-written Math.ceil(ms / VAD_FRAME_MS) is how a worker
-// ends up honouring a slider value its engine cannot transcribe.
-const CAPPING_WORKERS = [
-  'whisper-webgpu.worker.ts',
-  'cohere-transcribe-webgpu.worker.ts',
-  'voxtral-3b-webgpu.worker.ts',
-  'voxtral-webgpu.worker.ts',
-  'granite-speech-webgpu.worker.ts',
-  'qwen3-asr-webgpu.worker.ts',
-  'native-vad.worker.ts',
+// ends up honouring a slider value its engine cannot transcribe — and must
+// pass the limit its engine was measured at. Each `limit` below is matched
+// against the resolveMaxSpeechFrames CALL, with comments stripped, so a limit
+// that survives only as prose does not count; each `constant` is matched
+// against the file. An earlier version of this test asserted the call's
+// prefix alone, and dropping whisper's limit (the regression the commit
+// exists to prevent) passed it.
+const CAPPING_WORKERS: Array<{ name: string; limit: RegExp | null; constant?: RegExp }> = [
+  {
+    name: 'whisper-webgpu.worker.ts',
+    limit: /maxSegmentSamples:\s*WHISPER_MAX_SEGMENT_SAMPLES/,
+    constant: /WHISPER_MAX_SEGMENT_SAMPLES\s*=\s*29\s*\*\s*VAD_SAMPLE_RATE/,
+  },
+  // No limit: it splits a long segment itself, at the quietest point.
+  { name: 'cohere-transcribe-webgpu.worker.ts', limit: null },
+  {
+    name: 'voxtral-3b-webgpu.worker.ts',
+    limit: /maxSegmentSamples:\s*VOXTRAL_3B_MAX_SEGMENT_SAMPLES/,
+    constant: /VOXTRAL_3B_MAX_SEGMENT_SAMPLES\s*=\s*30\s*\*\s*VAD_SAMPLE_RATE/,
+  },
+  {
+    name: 'voxtral-webgpu.worker.ts',
+    limit: /maxSpeechSeconds:\s*VOXTRAL_REALTIME_MAX_SPEECH_SECONDS/,
+    constant: /VOXTRAL_REALTIME_MAX_SPEECH_SECONDS\s*=\s*35\b/,
+  },
+  {
+    name: 'granite-speech-webgpu.worker.ts',
+    limit: /\{\s*maxSpeechSeconds\s*\}/,
+    constant: /GRANITE_MAX_SPEECH_SECONDS\s*=\s*30\b[\s\S]*GRANITE_TRANSLATE_MAX_SPEECH_SECONDS\s*=\s*20\b/,
+  },
+  {
+    name: 'qwen3-asr-webgpu.worker.ts',
+    limit: /maxSpeechSeconds:\s*QWEN3_ASR_MAX_SPEECH_SECONDS\[/,
+    constant: /QWEN3_ASR_MAX_SPEECH_SECONDS[^=]*=\s*\{\s*hi:\s*15,\s*th:\s*20\s*\}/,
+  },
+  {
+    name: 'native-vad.worker.ts',
+    limit: /maxSpeechSeconds:\s*NATIVE_MAX_SPEECH_SECONDS/,
+    constant: /NATIVE_MAX_SPEECH_SECONDS\s*=\s*19\b/,
+  },
 ];
 
 const here = import.meta.url;
 
+function read(name: string): string {
+  return readFileSync(fileURLToPath(new URL(`../${name}`, here)), 'utf8');
+}
+
+/** The resolveMaxSpeechFrames call, from the callee to its closing paren,
+ *  with `//` comments removed so prose cannot satisfy an assertion. */
+function resolveCall(src: string): string {
+  const start = src.indexOf('resolveMaxSpeechFrames(');
+  expect(start, 'no resolveMaxSpeechFrames call').toBeGreaterThan(-1);
+  let depth = 0;
+  let end = start;
+  for (let i = src.indexOf('(', start); i < src.length; i++) {
+    if (src[i] === '(') depth++;
+    else if (src[i] === ')' && --depth === 0) { end = i + 1; break; }
+  }
+  return src.slice(start, end).replace(/\/\/[^\n]*/g, '');
+}
+
 describe('max speech duration routing', () => {
-  it.each(CAPPING_WORKERS)('%s resolves its frame cap through the shared helper', (name) => {
-    const src = readFileSync(fileURLToPath(new URL(`../${name}`, here)), 'utf8');
+  it.each(CAPPING_WORKERS)('$name resolves its frame cap through the shared helper', ({ name, limit, constant }) => {
+    const src = read(name);
     expect(src, `${name} does not import resolveMaxSpeechFrames`).toMatch(/from\s+['"]\.\/_shared\/max-speech-frames['"]/);
     expect(src, `${name} does not call resolveMaxSpeechFrames`).toMatch(/maxSpeechFrames\s*=\s*resolveMaxSpeechFrames\(/);
     expect(src, `${name} still converts maxSpeechDuration to frames by hand`).not.toMatch(/maxSpeechDuration\s*\?\?\s*20/);
+
+    const call = resolveCall(src);
+    if (limit === null) {
+      expect(call, `${name} gained a limit this test does not know about`).not.toMatch(/max(SpeechSeconds|SegmentSamples)\s*:/);
+    } else {
+      expect(call, `${name} no longer passes its engine's limit`).toMatch(limit);
+      if (constant) expect(src, `${name}'s limit constant changed`).toMatch(constant);
+    }
   });
 
   // A fixed 256 cut fast Japanese off mid-sentence at 29.5 s — inside the
