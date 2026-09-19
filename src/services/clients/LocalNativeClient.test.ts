@@ -1826,15 +1826,47 @@ describe('LocalNativeClient sentence segmentation', () => {
     expect(runtime.punctuate).not.toHaveBeenCalled();
   });
 
+  it('keeps sealing when the runtime turns disabled mid-session', async () => {
+    // The other direction of the same flip, and the one that loses data: the
+    // pack can be deleted — or the memory-debug override moved — under an open
+    // session. The session's answer was frozen at connect, so this stage must
+    // keep sealing whatever the runtime says now. Reading `enabled` again at
+    // stream construction instead builds an inert stream the client still
+    // routes into: no bubble, no translation, for this utterance and every
+    // later one.
+    const runtime = { enabled: true, punctuate: vi.fn(async () => null) };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; id: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, id: item.id }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    runtime.enabled = false; // the pack was deleted from under the session
+
+    const fullText = 'One is done. Two is done. Three is done and finished well.';
+    deps.asr.onPartialResult(fullText);
+    deps.asr.onResult({ text: fullText, durationMs: 10, recognitionTimeMs: 5 });
+    await settle();
+
+    // N = 1, so three sentences are three bubbles and three jobs — and, above
+    // all, not zero of either.
+    expect(jobSpy.mock.calls.length).toBe(3);
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(userItems.filter((i) => i.status === 'completed').length).toBe(3);
+  });
+
   it('forgets the session answer on disconnect', async () => {
     const deps = segDeps();
     const c = new LocalNativeClient({ ...deps, segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
     c.setEventHandlers({});
     await c.connect(SEG_CONFIG);
-    expect((c as any).segmentationActive).toBe(true);
+    expect((c as any).sessionSegmentation).not.toBeNull();
 
     await c.disconnect();
 
-    expect((c as any).segmentationActive).toBe(false);
+    expect((c as any).sessionSegmentation).toBeNull();
   });
 });

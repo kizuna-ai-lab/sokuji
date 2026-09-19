@@ -683,16 +683,51 @@ describe('LocalInferenceClient sentence segmentation', () => {
     expect(engine.init.mock.calls[0][1].punctuationEndpoint).toBe(true);
   });
 
+  it('keeps sealing when the runtime turns disabled mid-session', async () => {
+    // The other direction of the same flip, and the one that loses data: the
+    // pack can be deleted — or the memory-debug override moved — under an open
+    // session. The session's answer was frozen at connect, the worker was told
+    // off it not to seal, and this stage must therefore keep sealing whatever
+    // the runtime says now. Reading `enabled` again at stream construction
+    // instead builds an inert stream the client still routes into: no bubble,
+    // no translation, for this utterance and every later one.
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
+    const runtime = { enabled: true, punctuate: vi.fn(async () => null) };
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; id: string }> = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ role: item.role, status: item.status, id: item.id }),
+    });
+    await client.connect(STREAM_CONFIG);
+    const engine = hoisted.streamingInstances[0];
+    // The worker was told at init that this stage owns the sealing.
+    expect(engine.init.mock.calls[0][1].punctuationEndpoint).toBe(false);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+
+    runtime.enabled = false; // the pack was deleted from under the session
+
+    const fullText = 'One is done. Two is done. Three is done and finished well.';
+    engine.onPartialResult(fullText);
+    engine.onResult({ text: fullText, durationMs: 10, recognitionTimeMs: 5 });
+    await settle();
+
+    // N = 1, so three sentences are three bubbles and three jobs — and, above
+    // all, not zero of either.
+    expect(jobSpy.mock.calls.length).toBe(3);
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(userItems.filter((i) => i.status === 'completed').length).toBe(3);
+  });
+
   it('forgets the session answer on disconnect', async () => {
     setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
     const client = makeClient({ segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
     client.setEventHandlers({});
     await client.connect(STREAM_CONFIG);
-    expect((client as any).segmentationActive).toBe(true);
+    expect((client as any).sessionSegmentation).not.toBeNull();
 
     await client.disconnect();
 
-    expect((client as any).segmentationActive).toBe(false);
+    expect((client as any).sessionSegmentation).toBeNull();
   });
 });
 
