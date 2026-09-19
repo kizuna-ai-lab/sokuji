@@ -241,7 +241,40 @@ export interface StreamingTextAccumulatorOptions {
   onResult: (text: string) => void;
   /** Finalize on terminal punctuation instead of waiting for the VAD endpoint. */
   punctuationEndpoint?: boolean;
+  /**
+   * The caller's `decode` is position-independent: decoding tokens a..c gives
+   * the text of a..b followed by the text of b..c whenever the text of a..b
+   * does not end in U+FFFD. Lets the accumulator decode only the tokens since
+   * the last character boundary instead of the whole utterance on every push.
+   *
+   * True of a pure ByteLevel decoder with clean_up_tokenization_spaces off,
+   * which is Voxtral's (verified on 259,991 split points of its real
+   * tokenizer). NOT true of SentencePiece's Metaspace decoder, which drops the
+   * space at the start of every window ("Hello,world."), or of any decoder
+   * with cleanup on, which rewrites text already printed. Off, the whole
+   * utterance is decoded on every push, as it always was.
+   */
+  positionIndependentDecode?: boolean;
 }
+
+/**
+ * Pushes in a row that may print nothing, while the window's text still ends
+ * in U+FFFD, before the held tail is given up on and printed as it stands. A
+ * UTF-8 character is at most four bytes, so one still arriving leaves at most
+ * three such pushes in a row; only bytes that were never going to form a
+ * character stall longer — 300 lone lead bytes otherwise held 300 tokens,
+ * printed nothing and decoded 45,000 — and the U+FFFD printed for them is
+ * what a whole-utterance decode shows anyway.
+ *
+ * It counts pushes that printed nothing, NOT the window's length. A run of one
+ * repeated letter — 40 × ה, 34 × 萡 — makes the tokenizer cut every token
+ * mid-character ([94 d7] ends one ה and starts the next), so the window never
+ * ends between characters while text keeps flowing. A cap on its length
+ * turned one letter into "��" there; 11 of all 108,875 multi-byte code points
+ * do this, 萡 the one among Voxtral's languages. Such a run keeps the window
+ * open, and costs what every utterance used to: the whole run decoded per push.
+ */
+const MAX_STALLED_PUSHES = 32;
 
 /**
  * Turns the model's token stream into partials and results.
@@ -249,11 +282,16 @@ export interface StreamingTextAccumulatorOptions {
  * `end()` flushes whatever the model produced — tokens decoded but not yet
  * emitted are real transcription, and dropping them silently truncates the last
  * words of every utterance. Only an explicit `discard` (teardown) throws them away.
+ * A character still unfinished when the run ends is the one thing `end()`
+ * drops: its remaining bytes are not coming.
  */
 export class StreamingTextAccumulator {
   private cache: bigint[] = [];
   private printLen = 0;
   private pendingText = '';
+  /** Pushes in a row that printed nothing while the window's text ended in
+   *  U+FFFD — see MAX_STALLED_PUSHES. */
+  private stalledPushes = 0;
 
   constructor(
     private readonly decode: (tokens: bigint[]) => string,
@@ -286,20 +324,41 @@ export class StreamingTextAccumulator {
     this.cache = [];
     this.printLen = 0;
     this.pendingText = '';
+    this.stalledPushes = 0;
   }
 
   private flush(): void {
     if (this.cache.length === 0) return;
     const decoded = this.decode(this.cache);
-    const newText = decoded.slice(this.printLen);
-    if (newText.length === 0) return;
 
-    // Hold back a partial multi-byte character (U+FFFD) until its rest arrives.
-    const replacementIdx = newText.indexOf('�');
-    const safeToPrint = replacementIdx === -1 ? newText : newText.slice(0, replacementIdx);
+    // Hold back only a TRAILING run of U+FFFD: that is the one place a
+    // character whose remaining bytes are still to come can show, while a
+    // U+FFFD with text after it is final. Holding back from the FIRST one
+    // instead stopped the accumulator for the rest of the utterance at a
+    // single byte that was never going to form a character, and end() then
+    // dropped every word after it.
+    let safeEnd = decoded.length;
+    while (safeEnd > this.printLen && decoded.charCodeAt(safeEnd - 1) === 0xfffd) safeEnd--;
+
+    const windowed = this.options.positionIndependentDecode === true;
+    this.stalledPushes = safeEnd < decoded.length && safeEnd === this.printLen ? this.stalledPushes + 1 : 0;
+    if (windowed && this.stalledPushes > MAX_STALLED_PUSHES) safeEnd = decoded.length;
+    const safeToPrint = decoded.slice(this.printLen, safeEnd);
+
+    if (windowed && safeEnd === decoded.length) {
+      // The window ends between two characters, so no later token can change
+      // its text: the next decode starts from the next token. Clearing it
+      // whenever anything was printed instead would drop the unfinished tail
+      // of a token that also carried a whole character ([61 E5 9B] is "a"
+      // plus two bytes of 园), and 园 would never print.
+      this.cache = [];
+      this.printLen = 0;
+      this.stalledPushes = 0;
+    } else {
+      this.printLen = safeEnd;
+    }
     if (safeToPrint.length === 0) return;
 
-    this.printLen += safeToPrint.length;
     this.pendingText += safeToPrint;
     this.options.onPartial(this.pendingText);
 

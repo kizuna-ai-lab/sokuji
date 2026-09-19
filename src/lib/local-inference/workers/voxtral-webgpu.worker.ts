@@ -309,6 +309,11 @@ async function runVoxtralGenerate(): Promise<void> {
           segmentStartTime = now;
         },
         punctuationEndpoint: punctuationEndpointEnabled,
+        // Tekken's decoder is pure ByteLevel with clean_up_tokenization_spaces
+        // false (tokenizer.json / tokenizer_config.json), so a window that
+        // starts at a character boundary decodes to exactly the text the
+        // whole utterance would have there.
+        positionIndependentDecode: true,
       },
     );
 
