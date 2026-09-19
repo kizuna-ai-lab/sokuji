@@ -303,6 +303,49 @@ describe('SentenceSegmentationSection', () => {
     expect(setSentenceSegmentation).not.toHaveBeenCalled();
   });
 
+  it('a low-memory device cannot start the download from the status line either', () => {
+    // The toggle is not the only way in: a user who had the setting on before
+    // the guard applied still sees the status line, whose Download and Retry
+    // spend 402 MB on a feature `PunctuationRuntime.enabled` refuses to run.
+    setDeviceMemory(2);
+    mockSentenceSegmentation = true;
+    useSegmentationStore.setState({ phase: 'missing' });
+    renderSection();
+
+    const downloadBtn = screen.getByText('Download').closest('button')!;
+    expect(downloadBtn.disabled).toBe(true);
+    fireEvent.click(downloadBtn);
+    expect(confirmation()).toBeNull();
+
+    cleanup();
+    useSegmentationStore.setState({ phase: 'error', error: 'network down' });
+    renderSection();
+
+    const retryBtn = screen.getByText('Retry').closest('button')!;
+    expect(retryBtn.disabled).toBe(true);
+    fireEvent.click(retryBtn);
+    expect(download).not.toHaveBeenCalled();
+  });
+
+  it('a settings write that rolls back mid-download keeps Cancel and withholds the delete link', () => {
+    // `setSentenceSegmentation` writes the value, then rolls it back when
+    // `persistSetting` returns false — while the download it started keeps
+    // running. Gating the status line on the setting alone would take Cancel
+    // away with it and put the delete link up over a live fetch.
+    useSegmentationStore.setState({ phase: 'missing' });
+    const { rerender } = renderSection();
+    fireEvent.click(segmentationToggle());
+    fireEvent.click(screen.getByText(`Download ${formatBytes(PACK_TOTAL_BYTES)}`));
+    expect(download).toHaveBeenCalledTimes(1);
+
+    useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1024 });
+    mockSentenceSegmentation = false; // the persist failed and rolled it back
+    rerender(<SentenceSegmentationSection isSessionActive={false} />);
+
+    expect(screen.getByTestId('segmentation-download-cancel')).toBeTruthy();
+    expect(screen.queryByText(/Delete models/)).toBeNull();
+  });
+
   it('a user who already had it on can still turn it off on a low-memory device', () => {
     setDeviceMemory(2);
     mockSentenceSegmentation = true;

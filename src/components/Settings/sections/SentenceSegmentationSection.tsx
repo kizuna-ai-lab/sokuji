@@ -81,10 +81,19 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
     void useSegmentationStore.getState().download();
   };
 
+  // Every route to the 402 MB, in one place. `lowMemory` is not only the
+  // toggle's guard: the status line's Download and Retry are reachable
+  // whenever the setting is already on, and they would spend the download on a
+  // feature `PunctuationRuntime.enabled` refuses to run.
+  const askToDownload = () => {
+    if (lowMemory) return;
+    setConfirmOpen(true);
+  };
+
   const onToggle = () => {
     if (sentenceSegmentation) { turnOff(); return; }
     if (phase === 'ready') { void setSentenceSegmentation(true); return; }
-    setConfirmOpen(true);
+    askToDownload();
   };
 
   const remove = () => {
@@ -102,7 +111,15 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   // A low-memory device cannot turn this on — but a user who had it on before
   // the guard applied can still turn it off.
   const toggleDisabled = isSessionActive || (lowMemory && !sentenceSegmentation);
-  const showDelete = !sentenceSegmentation && downloadedBytes > 0;
+  // The same guard on the two buttons that also start the download.
+  const downloadDisabled = isSessionActive || lowMemory;
+  // `phase === 'downloading'` and not just the setting: `setSentenceSegmentation`
+  // rolls the setting back when its persist fails, and the download it started
+  // is still running. Dropping the line then would take Cancel with it.
+  const showPack = sentenceSegmentation || phase === 'downloading';
+  // ...and the delete link is the same fact from the other side: offering it
+  // mid-download would delete files out from under the live fetch.
+  const showDelete = !sentenceSegmentation && phase !== 'downloading' && downloadedBytes > 0;
 
   return (
     <div className={`config-section ${className}`} id="sentence-segmentation-section">
@@ -127,10 +144,11 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         tooltip={t('settings.sentenceSegmentationDesc', 'When a transcript arrives without punctuation, add it and start a new bubble every few sentences. Turning this on downloads three small models.')}
       />
 
-      {/* One status line, and only while the setting is on and the pack is not
-          ready: with it off, the toggle itself already says everything, and
-          'unknown' is a state the disk hasn't answered for yet. */}
-      {sentenceSegmentation && !packReady && (
+      {/* One status line, and only while the pack is in play and not ready:
+          with the setting off and nothing downloading, the toggle itself
+          already says everything, and 'unknown' is a state the disk hasn't
+          answered for yet. */}
+      {showPack && !packReady && (
         <div className="sentence-segmentation__pack">
           {phase === 'downloading' && (
             <div className="sentence-segmentation__progress">
@@ -173,7 +191,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
                 type="button"
                 className="sentence-segmentation__pack-btn"
                 onClick={() => { void useSegmentationStore.getState().download(); }}
-                disabled={isSessionActive}
+                disabled={downloadDisabled}
               >
                 <RotateCw size={12} />
                 <span>{t('settings.sentenceSegmentationRetry', 'Retry')}</span>
@@ -189,8 +207,8 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
               <button
                 type="button"
                 className="sentence-segmentation__pack-btn"
-                onClick={() => setConfirmOpen(true)}
-                disabled={isSessionActive}
+                onClick={askToDownload}
+                disabled={downloadDisabled}
               >
                 <Download size={12} />
                 <span>{t('settings.sentenceSegmentationDownloadAction', 'Download')}</span>

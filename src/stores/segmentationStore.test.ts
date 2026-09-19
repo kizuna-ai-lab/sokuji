@@ -5,14 +5,21 @@ vi.mock('../lib/local-inference/ModelManager', () => ({
   ModelManager: { getInstance: vi.fn() },
 }));
 
+vi.mock('../lib/local-inference/modelStorage', async () => {
+  const actual = await vi.importActual<any>('../lib/local-inference/modelStorage');
+  return { ...actual, estimateStorageUsedBytes: () => mockEstimate() };
+});
+
 vi.mock('../lib/diagnostics/report', async () => {
   const actual = await vi.importActual<any>('../lib/diagnostics/report');
   return { ...actual, reportWarning: (...args: any[]) => mockReportWarning(...args) };
 });
 
 const mockReportWarning = vi.fn();
+const mockEstimate = vi.fn(async () => 0);
 
 const { ModelManager } = await import('../lib/local-inference/ModelManager');
+const { useModelStore } = await import('./modelStore');
 const {
   useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES,
   useSegmentationPhase, useSegmentationProgress,
@@ -68,6 +75,8 @@ beforeEach(() => {
     isModelReady, downloadModel, cancelDownload, deleteModel,
   });
   useSegmentationStore.setState({ phase: 'unknown', downloadedBytes: 0, error: null });
+  mockEstimate.mockReset().mockResolvedValue(0);
+  useModelStore.setState({ storageUsedMb: 0 });
 });
 
 describe('the pack roster', () => {
@@ -117,6 +126,39 @@ describe('refresh', () => {
     await useSegmentationStore.getState().refresh();
     expect(useSegmentationStore.getState().phase).toBe('missing');
     expect(useSegmentationStore.getState().downloadedBytes).toBe(BYTES[ZH] + BYTES[SAT]);
+  });
+
+  it('a refresh whose reads land after a later refresh started does not write', async () => {
+    // `deleteModels()` wipes the disk and refreshes; `StoragePage`'s Clear all
+    // does the same. Either can land while an earlier refresh is still reading,
+    // and that earlier read answered "present" — it was issued before the
+    // delete. Without a generation bump of its own it writes 'ready' over a
+    // disk that no longer holds anything.
+    const parked: Array<(ready: boolean) => void> = [];
+    let parkReads = true;
+    isModelReady.mockImplementation((_id: string) =>
+      parkReads
+        ? new Promise<boolean>((resolve) => { parked.push(resolve); })
+        : Promise.resolve(false));
+
+    const stale = useSegmentationStore.getState().refresh();
+    await vi.waitFor(() => expect(parked).toHaveLength(1));
+
+    // Everything is deleted, and the delete's own refresh reads an empty disk.
+    parkReads = false;
+    await useSegmentationStore.getState().refresh();
+    expect(useSegmentationStore.getState().phase).toBe('missing');
+
+    // Only now do the earlier refresh's reads come back, still saying "present".
+    parkReads = true;
+    for (let i = 0; i < PACK_MODELS.length; i++) {
+      await vi.waitFor(() => expect(parked).toHaveLength(i + 1));
+      parked[i](true);
+    }
+    await stale;
+
+    expect(useSegmentationStore.getState().phase).toBe('missing');
+    expect(useSegmentationStore.getState().downloadedBytes).toBe(0);
   });
 
   it('does not touch the phase during a download', async () => {
@@ -318,5 +360,54 @@ describe('deleteModels', () => {
     expect(deleteModel.mock.calls.map((c) => c[0])).toEqual([ZH, EN, SAT]);
     expect(useSegmentationStore.getState().phase).toBe('missing');
     expect(useSegmentationStore.getState().downloadedBytes).toBe(0);
+  });
+});
+
+/**
+ * The pack goes straight to `ModelManager`, so nothing else moves the Storage
+ * page's used-storage figure: without these writes it stays at whatever
+ * `modelStore.initialize()` measured at launch, and drifts by 402 MB for the
+ * rest of it.
+ */
+describe('the Storage page figure', () => {
+  it('is re-estimated after a download', async () => {
+    downloadsInstantly();
+    mockEstimate.mockResolvedValue(500 * 1024 * 1024);
+
+    await useSegmentationStore.getState().download();
+
+    expect(useModelStore.getState().storageUsedMb).toBe(500);
+  });
+
+  it('is re-estimated after a delete', async () => {
+    useModelStore.setState({ storageUsedMb: 500 });
+    mockEstimate.mockResolvedValue(98 * 1024 * 1024);
+
+    await useSegmentationStore.getState().deleteModels();
+
+    expect(useModelStore.getState().storageUsedMb).toBe(98);
+  });
+
+  it('is not re-estimated after a failed download', async () => {
+    useModelStore.setState({ storageUsedMb: 500 });
+    downloadModel.mockRejectedValue(new Error('network unreachable'));
+
+    await useSegmentationStore.getState().download();
+
+    expect(mockEstimate).not.toHaveBeenCalled();
+    expect(useModelStore.getState().storageUsedMb).toBe(500);
+  });
+
+  it('is cosmetic: an estimate that throws fails neither operation', async () => {
+    downloadsInstantly();
+    mockEstimate.mockRejectedValue(new Error('estimate unavailable'));
+
+    await expect(useSegmentationStore.getState().download()).resolves.toBeUndefined();
+    expect(useSegmentationStore.getState().phase).toBe('ready');
+
+    onDisk();
+    await expect(useSegmentationStore.getState().deleteModels()).resolves.toBeUndefined();
+    expect(useSegmentationStore.getState().phase).toBe('missing');
+    expect(useModelStore.getState().storageUsedMb).toBe(0);
   });
 });

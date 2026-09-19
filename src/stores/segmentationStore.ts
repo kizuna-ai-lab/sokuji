@@ -5,6 +5,8 @@ import type { PunctuationModelId } from '../lib/segmentation/SegmentationRuntime
 import { MODEL_IDS } from '../lib/segmentation/PunctuationRuntime';
 import { getManifestEntry } from '../lib/local-inference/modelManifest';
 import { ModelManager } from '../lib/local-inference/ModelManager';
+import * as modelStorage from '../lib/local-inference/modelStorage';
+import { useModelStore } from './modelStore';
 import { reportWarning, describeCause } from '../lib/diagnostics/report';
 
 /**
@@ -53,12 +55,20 @@ export const PACK_MODELS: PackModel[] = (Object.keys(MODEL_IDS) as PunctuationMo
 export const PACK_TOTAL_BYTES = PACK_MODELS.reduce((sum, m) => sum + m.sizeBytes, 0);
 
 /**
- * Bumped by every `download()` and every `cancel()`. A download captures it and
- * checks it before each write, so a fetch that resolves, rejects or reports
- * progress after the user cancelled — or after a second download started —
- * cannot flip the phase or move the bar under the run that replaced it.
+ * Bumped by every `download()`, every `cancel()` and every `refresh()` that
+ * gets past its early return. A download captures it and checks it before each
+ * write, so a fetch that resolves, rejects or reports progress after the user
+ * cancelled — or after a second download started — cannot flip the phase or
+ * move the bar under the run that replaced it.
  * `ModelManager.cancelDownload` aborts the request but never unhooks the
  * callbacks already in flight, which is why the guard lives here.
+ *
+ * `refresh()` bumps it too, so the later of two overlapping refreshes wins.
+ * Reading the disk is not instant, and a delete lands between the read and the
+ * write often enough to matter: `deleteModels()` ends with a refresh of its
+ * own, and the Storage page's Clear all triggers one. Without the bump, a
+ * refresh that read "present" before the delete writes `ready` over a wiped
+ * disk, and the section then offers a feature whose models are gone.
  */
 let generation = 0;
 
@@ -78,6 +88,23 @@ interface SegmentationStore {
   cancel(): void;
   /** Delete all three models' files. */
   deleteModels(): Promise<void>;
+}
+
+/**
+ * Best-effort refresh of the Storage page's used-storage figure.
+ *
+ * The pack's download and delete go straight to `ModelManager`, so nothing
+ * updates `modelStore`'s own estimate; without this it stays at whatever
+ * `modelStore.initialize()` measured at launch and drifts by up to 402 MB for
+ * the rest of it. Same call and same rounding `modelStore` uses, and swallowed
+ * the same way: the figure is cosmetic and the operation that just succeeded is
+ * not failed over it.
+ */
+async function refreshStorageEstimate(): Promise<void> {
+  try {
+    const usedBytes = await modelStorage.estimateStorageUsedBytes();
+    useModelStore.setState({ storageUsedMb: Math.round(usedBytes / (1024 * 1024)) });
+  } catch { /* estimate is cosmetic */ }
 }
 
 /** `isModelReady` reaches IndexedDB; a storage failure means "not usable", not a crash. */
@@ -103,7 +130,10 @@ export const useSegmentationStore = create<SegmentationStore>()(
       // A download already knows more than the disk does: mid-fetch, files are
       // half-written and `isModelReady` would report the pack missing.
       if (get().phase === 'downloading') return;
-      const gen = generation;
+      // Bumped, not merely captured, and only past the early return above — so
+      // the later of two overlapping refreshes wins, while a live download is
+      // never invalidated by one.
+      const gen = ++generation;
 
       let present = 0;
       let all = true;
@@ -152,6 +182,7 @@ export const useSegmentationStore = create<SegmentationStore>()(
         // Needs no generation check of its own: the loop cannot exit without
         // having passed one since its last await.
         set({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES, error: null });
+        await refreshStorageEstimate();
       } catch (err) {
         // `cancel()` has already written 'missing' and bumped the generation;
         // this branch is what catches an abort from anywhere else.
@@ -190,6 +221,7 @@ export const useSegmentationStore = create<SegmentationStore>()(
         await ModelManager.getInstance().deleteModel(m.manifestId);
       }
       await get().refresh();
+      await refreshStorageEstimate();
     },
   })),
 );

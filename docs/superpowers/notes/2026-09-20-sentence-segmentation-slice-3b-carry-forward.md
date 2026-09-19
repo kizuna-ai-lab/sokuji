@@ -63,14 +63,57 @@ Nothing needed changing. Worth recording:
    a click — deliberate, since "storage cleared on purpose" and "app quit
    mid-download" look identical from disk.
 
+## Fixed after review
+
+A whole-branch review found five defects; all five are fixed on this branch,
+after the eight commits in the table above.
+
+1. **Two freezes of `runtime.enabled` at different times.** `connect()` froze
+   one answer and every `SentenceStream` read `enabled` again at its own
+   construction. True -> false in between — a delete, or the memory-debug
+   override — left `ensureStream()` building a stream the client routes into
+   while the stream itself is inert: no bubble, no translation, for that
+   utterance and every later one in the session. Both clients now build ONE
+   frozen view at connect (`enabled: true`, `punctuate` delegated) and hand it
+   to every stream; `segmentationActive` is replaced by `sessionSegmentation`
+   rather than kept beside it.
+2. **A low-memory device could start the download.** `lowMemory` gated only the
+   toggle, so the status line's Download and Retry still spent 402 MB on a
+   feature `PunctuationRuntime.enabled` refuses to run. Both buttons are now
+   disabled, and opening the confirmation is refused outright.
+3. **A failed settings write stranded a running download.** `persistSetting`
+   rolls `sentenceSegmentation` back while the download it started keeps going;
+   the status line (and its Cancel) vanished and the delete link appeared over a
+   live fetch. The line now shows on `sentenceSegmentation || phase ===
+   'downloading'`, the delete link only when neither holds.
+4. **A delete landing during a `refresh()` could resurrect `ready`.**
+   `refresh()` captured the generation without bumping it, so a read issued
+   before the delete could write `ready` over a wiped disk. It bumps now, after
+   its `phase === 'downloading'` early return, so the later refresh wins and a
+   live download is never invalidated.
+5. **The Storage page's figure drifted.** The pack goes straight to
+   `ModelManager`, so `useModelStore.storageUsedMb` neither grew after a
+   download nor shrank after a delete until the next launch. `segmentationStore`
+   now re-estimates best-effort on both paths, the way `modelStore` does.
+
 ## Known, and left alone
 
 - `refresh()` clears the error, so a failure message survives only while the
-  section stays mounted. Reopening Settings after a failure shows `missing` with
-  a Download button instead of the message. The next attempt resumes either way.
+  section stays mounted — and the section refreshes on its own mount, so the
+  message is only ever visible in the Settings session where the failure
+  happened. Reopening Settings after a failure shows `missing` with a Download
+  button instead. The next attempt resumes either way.
+- The confirmation always names the full 402.2 MB, even when it is offered as
+  Download over a partially fetched pack. The number is what the pack costs, not
+  what this click will fetch.
+- A cancel before any single model has finished leaves that model's partial
+  files on disk with nothing in the UI offering to delete them: the delete link
+  is gated on `downloadedBytes > 0`, and a cancel re-asks the disk, which counts
+  only whole models. The next Download resumes over them.
 - `deleteModels()` does not cancel an in-flight download. Unreachable from the
-  UI: the delete link only appears with the setting off, and turning it off
-  cancels first.
+  UI, and now genuinely so: the delete link appears only with the setting off
+  AND nothing downloading (fix 3 above), and turning the setting off cancels
+  first.
 - The status-line cancel is an icon-only button with a `title` and no
   `aria-label`, matching `ModelManagementSection`'s cancel exactly. If that
   precedent is ever fixed, fix both.
