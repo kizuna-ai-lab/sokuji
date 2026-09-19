@@ -101,6 +101,18 @@ vi.mock('../../../services/clients/SonioxTtsRest', () => ({
   synthesizeOnce: (...args: Parameters<typeof synthesizeOnce>) => synthesizeMock(...args),
 }));
 
+// The picker renders every built-in voice, and each getByRole-with-name query
+// and floating-ui's tabbable scan run getComputedStyle over all of them: the
+// full 200-voice roster made this file take ~45 s, enough to time out under
+// load. The tests only need the default voice (Adrian), the preview row
+// (Grace) and more than one accent; retired or unknown names ('Maya',
+// 'Orion') must stay absent.
+vi.mock('../../../lib/soniox/sonioxVoiceRoster', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../lib/soniox/sonioxVoiceRoster')>();
+  const keep = new Set(['Adrian', 'Grace', 'Daniel', 'Nina']);
+  return { ...actual, SONIOX_VOICE_ROSTER: actual.SONIOX_VOICE_ROSTER.filter((v) => keep.has(v.id)) };
+});
+
 const { default: SonioxVoiceSection } = await import('./SonioxVoiceSection');
 const { SonioxVoicesError } = await import('../../../services/clients/SonioxVoicesClient');
 
