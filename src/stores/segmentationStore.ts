@@ -1,133 +1,203 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { useShallow } from 'zustand/shallow';
 import type { PunctuationModelId } from '../lib/segmentation/SegmentationRuntime';
-import { MODEL_IDS, type PunctuationStatus } from '../lib/segmentation/PunctuationRuntime';
-import type { ModelStatus } from '../lib/local-inference/modelManifest';
-
-export interface SegmentationModelState {
-  status: PunctuationStatus;
-  percent: number;
-  error: string | null;
-}
-
-/** Derived from PunctuationRuntime's own MODEL_IDS rather than hand-kept: a
- *  fourth model id would otherwise compile here too while this store
- *  silently lacks the key, and `state.status` would throw the moment a row
- *  for it rendered. */
-const MODELS: PunctuationModelId[] = Object.keys(MODEL_IDS) as PunctuationModelId[];
-
-const blank = (): Record<PunctuationModelId, SegmentationModelState> =>
-  Object.fromEntries(
-    MODELS.map((m) => [m, { status: 'not-downloaded', percent: 0, error: null }]),
-  ) as Record<PunctuationModelId, SegmentationModelState>;
+import { MODEL_IDS } from '../lib/segmentation/PunctuationRuntime';
+import { getManifestEntry } from '../lib/local-inference/modelManifest';
+import { ModelManager } from '../lib/local-inference/ModelManager';
+import { reportWarning, describeCause } from '../lib/diagnostics/report';
 
 /**
- * Maps modelStore's on-disk status vocabulary onto this store's own
- * `PunctuationStatus`. The two differ in spelling (`not_downloaded` vs
- * `not-downloaded`) and in richness — modelStore has no notion of `loading`,
- * `ready` or `disabled`, all of which are session facts this store's own
- * runtime events already own. Returns null for "nothing to seed": either
- * modelStore has no data yet, or the on-disk status is one this store never
- * seeds — `not_downloaded` needs no seeding (it is already the placeholder),
- * and `downloading` is never resumed automatically (modelStore.initialize()
- * always resets an in-flight download back to `not_downloaded` on a fresh
- * launch), so it would never legitimately describe an on-disk fact at seed
- * time anyway.
+ * Sentence segmentation's three punctuation models are one thing to the user:
+ * a single opt-in download, all three or none. This store owns that one
+ * download — its phase, how many bytes of it are on disk, and why it stopped
+ * — and nothing else. Per-model status is deliberately not modelled: no
+ * surface offers a model on its own, and a partial pack is not a usable state
+ * (a zh<->en session needs two of the three at once).
+ *
+ * Bytes, never formatted strings: the UI owns `formatBytes`.
  */
-function fromOnDiskStatus(status: ModelStatus | undefined): PunctuationStatus | null {
-  switch (status) {
-    case 'downloaded': return 'downloaded';
-    case 'error': return 'error';
-    case 'not_downloaded':
-    case 'downloading':
-    case undefined:
-      return null;
+
+export type PackPhase = 'unknown' | 'missing' | 'downloading' | 'ready' | 'error';
+
+export interface PackModel {
+  model: PunctuationModelId;
+  manifestId: string;
+  /** The manifest's display name, e.g. "FireRedPunc (Chinese)". */
+  name: string;
+  sizeBytes: number;
+}
+
+/**
+ * The three models, in manifest order, with their sizes read from the
+ * manifest. Derived rather than hand-kept, so a file list or a size edited in
+ * the manifest moves the confirmation dialog's total with it — the number the
+ * user is asked to approve can never drift from the number that downloads.
+ * Each punctuation entry has exactly one variant (no dtype ladder, no
+ * device-dependent pick), so the first variant is the variant.
+ */
+export const PACK_MODELS: PackModel[] = (Object.keys(MODEL_IDS) as PunctuationModelId[])
+  .map((model) => {
+    const manifestId = MODEL_IDS[model];
+    const entry = getManifestEntry(manifestId);
+    if (!entry) throw new Error(`Punctuation model missing from the manifest: ${manifestId}`);
+    const variant = entry.variants[Object.keys(entry.variants)[0]];
+    return {
+      model,
+      manifestId,
+      name: entry.name,
+      sizeBytes: variant.files.reduce((sum, f) => sum + f.sizeBytes, 0),
+    };
+  });
+
+export const PACK_TOTAL_BYTES = PACK_MODELS.reduce((sum, m) => sum + m.sizeBytes, 0);
+
+/**
+ * Bumped by every `download()` and every `cancel()`. A download captures it and
+ * checks it before each write, so a fetch that resolves, rejects or reports
+ * progress after the user cancelled — or after a second download started —
+ * cannot flip the phase or move the bar under the run that replaced it.
+ * `ModelManager.cancelDownload` aborts the request but never unhooks the
+ * callbacks already in flight, which is why the guard lives here.
+ */
+let generation = 0;
+
+/** The manifest id currently being fetched, so `cancel()` knows what to abort. */
+let inFlightModelId: string | null = null;
+
+interface SegmentationStore {
+  phase: PackPhase;
+  /** Bytes on disk or fetched so far, summed over the three models. */
+  downloadedBytes: number;
+  error: string | null;
+  /** Ask the disk. Never interrupts an in-flight download. */
+  refresh(): Promise<void>;
+  /** Download every model that is not already on disk, one after another. */
+  download(): Promise<void>;
+  /** Abort the in-flight download. Finished files stay for the next resume. */
+  cancel(): void;
+  /** Delete all three models' files. */
+  deleteModels(): Promise<void>;
+}
+
+/** `isModelReady` reaches IndexedDB; a storage failure means "not usable", not a crash. */
+async function onDisk(manifestId: string): Promise<boolean> {
+  try {
+    return await ModelManager.getInstance().isModelReady(manifestId);
+  } catch {
+    return false;
   }
 }
 
-interface SegmentationStore {
-  models: Record<PunctuationModelId, SegmentationModelState>;
-  setModelStatus(model: PunctuationModelId, status: PunctuationStatus, error?: string): void;
-  setModelProgress(model: PunctuationModelId, percent: number): void;
-  /** Drop what was only true for the session that just ended. */
-  resetSession(): void;
-  /**
-   * Seed a model's on-launch status from modelStore's already-computed
-   * on-disk facts (`modelStore.initialize()` / `useModelStatuses()`). This
-   * store otherwise starts every model 'not-downloaded' with nothing to tell
-   * it otherwise, so a model already on disk would render a Download button
-   * and re-download bytes the user already has. A session fact always wins:
-   * only a model still at the initial 'not-downloaded' placeholder is ever
-   * touched here.
-   */
-  seedFromModelStatuses(modelStatuses: Record<string, ModelStatus>): void;
+function isAbort(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError';
 }
 
-/**
- * What the Sentence segmentation section renders.
- *
- * The runtime owns the truth and pushes into here; nothing reads back out of
- * the store into the runtime. That is what keeps PunctuationRuntime free of a
- * store import, so it stays unit-testable with a fake worker.
- */
 export const useSegmentationStore = create<SegmentationStore>()(
-  subscribeWithSelector((set) => ({
-    models: blank(),
+  subscribeWithSelector((set, get) => ({
+    phase: 'unknown',
+    downloadedBytes: 0,
+    error: null,
 
-    setModelStatus: (model, status, error) =>
-      set((state) => ({
-        models: {
-          ...state.models,
-          [model]: {
-            status,
-            percent: status === 'ready' || status === 'downloaded' ? 100 : state.models[model].percent,
-            error: status === 'error' ? (error ?? 'unknown error') : null,
-          },
-        },
-      })),
+    refresh: async () => {
+      // A download already knows more than the disk does: mid-fetch, files are
+      // half-written and `isModelReady` would report the pack missing.
+      if (get().phase === 'downloading') return;
+      const gen = generation;
 
-    setModelProgress: (model, percent) =>
-      set((state) => ({
-        models: { ...state.models, [model]: { ...state.models[model], percent } },
-      })),
+      let present = 0;
+      let all = true;
+      for (const m of PACK_MODELS) {
+        if (await onDisk(m.manifestId)) present += m.sizeBytes;
+        else all = false;
+      }
 
-    resetSession: () =>
-      set((state) => ({
-        models: Object.fromEntries(
-          MODELS.map((m) => {
-            const prev = state.models[m];
-            // Downloaded bytes survive a session; a loaded model and a
-            // session-scoped disable do not. Discarding in-flight state is safe:
-            // ModelManager resumes downloads at file granularity (storage.hasFile
-            // skips files already complete, and cancelled downloads leave partial
-            // files in place), so only the progress bar and current file's
-            // unpersisted bytes are lost.
-            const keepsDownload = prev.status === 'ready' || prev.status === 'loading'
-              || prev.status === 'downloaded' || prev.status === 'disabled';
-            return [m, keepsDownload
-              ? { status: 'downloaded' as PunctuationStatus, percent: 100, error: null }
-              : { status: 'not-downloaded' as PunctuationStatus, percent: 0, error: null }];
-          }),
-        ) as Record<PunctuationModelId, SegmentationModelState>,
-      })),
+      // A download that started while we were asking owns the state now.
+      if (gen !== generation || get().phase === 'downloading') return;
+      set({ phase: all ? 'ready' : 'missing', downloadedBytes: present, error: null });
+    },
 
-    seedFromModelStatuses: (modelStatuses) =>
-      set((state) => {
-        let changed = false;
-        const models = { ...state.models };
-        for (const model of MODELS) {
-          // A session fact — a runtime event, or an earlier seed — always
-          // wins: only the initial placeholder is ever replaced here.
-          if (state.models[model].status !== 'not-downloaded') continue;
-          const mapped = fromOnDiskStatus(modelStatuses[MODEL_IDS[model]]);
-          if (mapped === null) continue;
-          changed = true;
-          models[model] = { status: mapped, percent: mapped === 'downloaded' ? 100 : 0, error: null };
+    download: async () => {
+      const gen = ++generation;
+      const current = () => gen === generation;
+      set({ phase: 'downloading', error: null });
+
+      // Bytes of the models already finished — on disk before we started, or
+      // fetched by this run. The bar is this plus the current model's progress.
+      let completed = 0;
+      try {
+        for (const m of PACK_MODELS) {
+          const ready = await onDisk(m.manifestId);
+          // Re-checked after every await: a run that has been replaced must
+          // not write `inFlightModelId`, or `cancel()` would abort a fetch
+          // belonging to the run that replaced it.
+          if (!current()) return;
+          if (ready) {
+            completed += m.sizeBytes;
+            set({ downloadedBytes: completed });
+            continue;
+          }
+          inFlightModelId = m.manifestId;
+          // Frozen, so a tick arriving late cannot be added to a later model's
+          // running total and jump the bar forward.
+          const base = completed;
+          await ModelManager.getInstance().downloadModel(m.manifestId, (p) => {
+            if (current()) set({ downloadedBytes: base + p.downloadedBytes });
+          });
+          if (!current()) return;
+          inFlightModelId = null;
+          completed += m.sizeBytes;
+          set({ downloadedBytes: completed });
         }
-        return changed ? { models } : state;
-      }),
+        // Needs no generation check of its own: the loop cannot exit without
+        // having passed one since its last await.
+        set({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES, error: null });
+      } catch (err) {
+        // `cancel()` has already written 'missing' and bumped the generation;
+        // this branch is what catches an abort from anywhere else.
+        if (!current()) return;
+        inFlightModelId = null;
+        if (isAbort(err)) {
+          set({ phase: 'missing', error: null });
+          return;
+        }
+        const message = describeCause(err);
+        set({ phase: 'error', error: message });
+        reportWarning('Segmentation', `Punctuation model download failed: ${message}`, {
+          cause: err,
+          dedupeKey: 'segmentation:download',
+        });
+      }
+    },
+
+    cancel: () => {
+      // A Cancel button clicked in the frame after the download finished must
+      // not un-say 'ready' — there is nothing left to abort by then.
+      if (get().phase !== 'downloading') return;
+      generation++;
+      if (inFlightModelId) {
+        ModelManager.getInstance().cancelDownload(inFlightModelId);
+        inFlightModelId = null;
+      }
+      // Whatever was fetched stays on disk, file by file, and the next
+      // download resumes over it — so the bytes count survives the cancel.
+      set({ phase: 'missing', error: null });
+    },
+
+    deleteModels: async () => {
+      for (const m of PACK_MODELS) {
+        // Deleting a model that was never downloaded is a no-op, not an error.
+        await ModelManager.getInstance().deleteModel(m.manifestId);
+      }
+      await get().refresh();
+    },
   })),
 );
 
-export const useSegmentationModelState = (model: PunctuationModelId) =>
-  useSegmentationStore((state) => state.models[model]);
+export const useSegmentationPhase = (): PackPhase =>
+  useSegmentationStore((state) => state.phase);
+
+export const useSegmentationProgress = (): { downloadedBytes: number; totalBytes: number } =>
+  useSegmentationStore(
+    useShallow((state) => ({ downloadedBytes: state.downloadedBytes, totalBytes: PACK_TOTAL_BYTES })),
+  );
