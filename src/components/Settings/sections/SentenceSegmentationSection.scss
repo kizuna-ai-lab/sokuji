@@ -83,84 +83,59 @@
   }
 }
 
-.sentence-segmentation__models {
-  display: flex;
-  flex-direction: column;
-  gap: vars.$space-2;
-  margin-top: vars.$space-3;
+// The pack's one status line, under the toggle. The bar itself is
+// ModelManagementSection's `.model-card__progress` block, kept to the same
+// 4px track, 2px radius and primary fill so a download here reads as the same
+// kind of thing as a download there.
+.sentence-segmentation__pack {
+  margin-top: vars.$space-2;
 }
 
-.sentence-segmentation__model {
+.sentence-segmentation__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sentence-segmentation__progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sentence-segmentation__progress-fill {
+  height: 100%;
+  background: vars.$color-primary;
+  border-radius: 2px;
+  transition: width vars.$transition-normal;
+}
+
+.sentence-segmentation__progress-info,
+.sentence-segmentation__pack-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: vars.$space-2;
-  padding: vars.$space-2 10px;
-  border: 1px solid vars.$border-subtle;
-  border-radius: vars.$radius-sm;
-  background: rgba(255, 255, 255, 0.02);
-
-  &--disabled {
-    opacity: vars.$disabled-opacity;
-  }
 }
 
-.sentence-segmentation__model-info {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: vars.$space-2;
-  min-width: 0;
-}
-
-.sentence-segmentation__model-name {
-  font-size: vars.$font-body;
-  color: vars.$text-primary;
-}
-
-.sentence-segmentation__model-size {
+.sentence-segmentation__pack-status {
   font-size: vars.$font-caption;
   color: vars.$text-muted;
 }
 
-.sentence-segmentation__model-badge {
-  font-size: vars.$chip-font-size;
-  line-height: vars.$chip-line-height;
-  padding: vars.$chip-padding-y vars.$space-1;
-  border-radius: vars.$radius-sm;
-  background: rgba(vars.$color-primary, 0.12);
-  color: vars.$color-primary;
-  white-space: nowrap;
-}
-
-.sentence-segmentation__model-actions {
-  display: flex;
-  align-items: center;
-  gap: vars.$space-2;
-  flex-shrink: 0;
-}
-
-.sentence-segmentation__model-status {
-  font-size: vars.$font-caption;
-  color: vars.$text-secondary;
-}
-
-// A visible error line, not just a button title: on the parent's `flex-wrap`
-// row, `flex-basis: 100%` pushes it onto its own line below the info/actions
-// pair rather than fighting them for space.
-.sentence-segmentation__model-error {
-  flex-basis: 100%;
-  margin: 4px 0 0;
+.sentence-segmentation__pack-error {
   font-size: vars.$font-caption;
   color: vars.$color-error;
   word-break: break-word;
 }
 
-.sentence-segmentation__model-btn {
+.sentence-segmentation__pack-btn,
+.sentence-segmentation__delete {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
   padding: 4px 8px;
   font-size: vars.$font-caption;
   border: 1px solid vars.$border-default;
@@ -179,8 +154,93 @@
     opacity: vars.$disabled-opacity;
     cursor: not-allowed;
   }
+}
 
-  &--delete {
-    padding: 4px 6px;
+.sentence-segmentation__delete {
+  margin-top: vars.$space-3;
+}
+
+// The confirmation (SegmentationDownloadModal). It renders inside Modal's
+// .modal-content, outside .config-section, so this block is self-contained —
+// laid out like .license-consent-modal in Settings.scss, the other gate that
+// stands between a user and a download, down to the full-width action pair.
+// It lives in this file rather than Settings.scss because the section is its
+// only mount point and this stylesheet is what loads with it.
+.segmentation-download-modal {
+  text-align: left;
+  font-size: vars.$font-body;
+
+  p {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+  }
+
+  &__models {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: vars.$space-3;
+    padding: 6px 0;
+    border-bottom: 1px solid vars.$border-subtle;
+
+    &--total {
+      border-bottom: none;
+      font-weight: vars.$weight-semibold;
+    }
+  }
+
+  &__name {
+    color: vars.$text-primary;
+  }
+
+  &__size {
+    flex-shrink: 0;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+  }
+
+  &__row--total &__size {
+    color: vars.$text-primary;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+
+    button {
+      flex: 1;
+      padding: 10px 20px;
+      border: none;
+      border-radius: vars.$radius-sm;
+      cursor: pointer;
+      font-size: vars.$font-title;
+      transition: background-color vars.$transition-fast;
+    }
+  }
+
+  &__cancel {
+    background-color: vars.$bg-surface;
+    color: vars.$text-primary;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__accept {
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
+
+    &:hover {
+      background-color: vars.$color-primary-fill-hover;
+    }
   }
 }

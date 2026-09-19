@@ -43,8 +43,11 @@ export const MODEL_IDS: Record<PunctuationModelId, string> = {
 
 const MODEL_KEYS = Object.keys(MODEL_IDS) as PunctuationModelId[];
 
+/** No 'downloading' member: this runtime never downloads anything. The pack is
+ *  fetched once, by `segmentationStore`, from the settings section — here a
+ *  model is either on disk or it is not. */
 export type PunctuationStatus =
-  | 'not-downloaded' | 'downloading' | 'downloaded'
+  | 'not-downloaded' | 'downloaded'
   | 'loading' | 'ready' | 'error' | 'disabled';
 
 /**
@@ -224,7 +227,7 @@ export class PunctuationRuntime implements SegmentationRuntime {
   private async prepareModel(model: PunctuationModelId): Promise<boolean> {
     const state = this.models[model];
     if (state.status === 'ready') return true;
-    if (state.status === 'downloading' || state.status === 'loading') return false;
+    if (state.status === 'loading') return false;
     if (state.status === 'error' || state.status === 'disabled') return false;
 
     if (state.status === 'not-downloaded') {
