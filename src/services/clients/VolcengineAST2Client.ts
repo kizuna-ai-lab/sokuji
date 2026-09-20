@@ -43,6 +43,7 @@ import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnosti
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { punctuateAndSplitDefinite, splitDefinite, createSegmentLane } from './punctuateDefinite';
+import type { EventData } from '../../stores/logStore';
 
 const TranslateRequest = data.speech.ast.TranslateRequest;
 const TranslateResponse = data.speech.ast.TranslateResponse;
@@ -241,7 +242,7 @@ export class VolcengineAST2Client implements IClient {
       return this.connectViaRelay();
     }
 
-    if (isElectron() && window.electron?.invoke) {
+    if (isElectron() && window.electron) {
       return this.connectViaElectronHeaderInjection();
     }
     if (isExtension()) {
@@ -529,11 +530,16 @@ export class VolcengineAST2Client implements IClient {
       const response = TranslateResponse.decode(new Uint8Array(data));
       this.parseFailed = false;
       const eventType: number = response.event;
+      // The name is the proto enum's reverse mapping, so TypeScript sees a
+      // plain string and the union in logStore cannot enumerate the generated
+      // names — see its Volcengine AST2 note. The cast covers exactly that
+      // lookup; the `message.<number>` fallback below is type-checked.
+      const eventName = EventType[eventType] as EventData['type'] | undefined;
 
       this.eventHandlers.onRealtimeEvent?.({
         source: 'server',
         event: {
-          type: EventType[eventType] || `message.${eventType}`,
+          type: eventName ?? `message.${eventType}`,
           data: {
             event: eventType,
             eventName: EventType[eventType] || `unknown(${eventType})`,
@@ -998,7 +1004,7 @@ export class VolcengineAST2Client implements IClient {
 
     // Clean up any remaining header injection rules (normally already
     // consumed one-shot by the handler, but clear as a safety net)
-    if (isElectron() && window.electron?.invoke) {
+    if (isElectron() && window.electron) {
       this.clearElectronHeaders();
     } else if (isExtension()) {
       this.clearExtensionDNR();
@@ -1037,7 +1043,7 @@ export class VolcengineAST2Client implements IClient {
     return this.isConnectedState && this.websocket?.readyState === WebSocket.OPEN;
   }
 
-  updateSession(config: Partial<SessionConfig>): void {
+  updateSession(_config: Partial<SessionConfig>): void {
     // Unreachable: no capability advertises runtime session updates.
   }
 
@@ -1096,15 +1102,15 @@ export class VolcengineAST2Client implements IClient {
     return output;
   }
 
-  appendInputText(text: string): void {
+  appendInputText(_text: string): void {
     // Unreachable: MainPanel gates text input on capabilities.supportsTextInput.
   }
 
-  createResponse(config?: ResponseConfig): void {
+  createResponse(_config?: ResponseConfig): void {
     // Volcengine automatically generates responses when audio is received
   }
 
-  cancelResponse(trackId?: string, offset?: number): void {
+  cancelResponse(_trackId?: string, _offset?: number): void {
     // Unreachable: no capability advertises response cancellation.
   }
 
