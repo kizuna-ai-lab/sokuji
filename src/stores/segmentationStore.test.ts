@@ -74,7 +74,7 @@ beforeEach(() => {
   (ModelManager.getInstance as any).mockReturnValue({
     isModelReady, downloadModel, cancelDownload, deleteModel,
   });
-  useSegmentationStore.setState({ phase: 'unknown', downloadedBytes: 0, error: null });
+  useSegmentationStore.setState({ phase: 'unknown', downloadedBytes: 0, error: null, modeBeforeDownload: null });
   mockEstimate.mockReset().mockResolvedValue(0);
   useModelStore.setState({ storageUsedMb: 0 });
 });
@@ -176,7 +176,7 @@ describe('refresh', () => {
     expect(isModelReady).not.toHaveBeenCalledWith(SAT);
 
     useSegmentationStore.getState().cancel();
-    release();
+    release!();
     await inFlight;
   });
 });
@@ -236,6 +236,47 @@ describe('download', () => {
     const inFlight = useSegmentationStore.getState().download();
     await Promise.resolve();
     expect(useSegmentationStore.getState().error).toBeNull();
+    await inFlight;
+  });
+});
+
+// The mode the user was in when the 402 MB was agreed to belongs to the
+// download, not to the settings section: that section unmounts whenever
+// Advanced settings changes tab, while the download keeps running here.
+describe('the mode a download was started from', () => {
+  it('is held for as long as the download runs, and dropped when it succeeds', async () => {
+    downloadsInstantly();
+    const inFlight = useSegmentationStore.getState().download('pause');
+    expect(useSegmentationStore.getState().modeBeforeDownload).toBe('pause');
+    await inFlight;
+    expect(useSegmentationStore.getState().phase).toBe('ready');
+    expect(useSegmentationStore.getState().modeBeforeDownload).toBeNull();
+  });
+
+  it('is null when the caller did not say — the status line Retry', async () => {
+    downloadsInstantly();
+    const inFlight = useSegmentationStore.getState().download();
+    expect(useSegmentationStore.getState().modeBeforeDownload).toBeNull();
+    await inFlight;
+  });
+
+  it('is dropped when the download fails', async () => {
+    downloadModel.mockImplementation(async () => { throw new Error('network unreachable'); });
+    await useSegmentationStore.getState().download('pause');
+    expect(useSegmentationStore.getState().phase).toBe('error');
+    expect(useSegmentationStore.getState().modeBeforeDownload).toBeNull();
+  });
+
+  it('is dropped when the download is cancelled', async () => {
+    let release: (() => void) | undefined;
+    downloadModel.mockImplementation(() => new Promise<string>((resolve) => { release = () => resolve('default'); }));
+    const inFlight = useSegmentationStore.getState().download('pause');
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'));
+    expect(useSegmentationStore.getState().modeBeforeDownload).toBe('pause');
+
+    useSegmentationStore.getState().cancel();
+    expect(useSegmentationStore.getState().modeBeforeDownload).toBeNull();
+    release!();
     await inFlight;
   });
 });

@@ -129,7 +129,12 @@ beforeEach(() => {
   setSourcePause.mockClear();
   setTranslationPause.mockClear();
   refresh.mockReset().mockResolvedValue(undefined);
-  download.mockReset().mockResolvedValue(undefined);
+  // The real `download()` records the mode it was started from and drops it
+  // when the download settles; the Cancel path reads that field back, so the
+  // spy keeps that half of the contract.
+  download.mockReset().mockImplementation(async (modeBefore?: string) => {
+    useSegmentationStore.setState({ modeBeforeDownload: (modeBefore ?? null) as never });
+  });
   cancel.mockReset();
   deleteModels.mockReset().mockResolvedValue(undefined);
   reportWarningMock.mockClear();
@@ -138,6 +143,7 @@ beforeEach(() => {
     phase: 'unknown',
     downloadedBytes: 0,
     error: null,
+    modeBeforeDownload: null,
     refresh,
     download,
     cancel,
@@ -285,6 +291,34 @@ describe('SentenceSegmentationSection', () => {
       act(() => {
         useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1000 });
       });
+      fireEvent.click(screen.getByTestId('segmentation-download-cancel'));
+
+      expect(cancel).toHaveBeenCalled();
+      expect(setSegmentationMode).toHaveBeenLastCalledWith('pause');
+    });
+
+    it('still puts the mode back after the section has been unmounted and remounted', () => {
+      // Switching Advanced settings to another tab and back unmounts this
+      // section — `AdvancedSettings` keys `.settings-content` on the active
+      // tab — while the download carries on in the store. Anything the
+      // component remembered about the pre-download mode is gone by the time
+      // Cancel is clicked, so the download has to be the one remembering.
+      mockMode = 'pause';
+      useSegmentationStore.setState({ phase: 'missing' });
+      const first = renderSection();
+      fireEvent.click(modeButton('By sentences'));
+      fireEvent.click(screen.getByRole('button', { name: /^Download / }));
+      expect(setSegmentationMode).toHaveBeenLastCalledWith('sentences');
+
+      mockMode = 'sentences';
+      act(() => {
+        useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1000 });
+      });
+
+      // Away to another tab, and back.
+      first.unmount();
+      renderSection();
+
       fireEvent.click(screen.getByTestId('segmentation-download-cancel'));
 
       expect(cancel).toHaveBeenCalled();

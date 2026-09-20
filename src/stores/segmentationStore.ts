@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useShallow } from 'zustand/shallow';
 import type { PunctuationModelId } from '../lib/segmentation/SegmentationRuntime';
+import type { SegmentationMode } from '../lib/segmentation/segmentationMode';
 import { MODEL_IDS } from '../lib/segmentation/PunctuationRuntime';
 import { getManifestEntry } from '../lib/local-inference/modelManifest';
 import { ModelManager } from '../lib/local-inference/ModelManager';
@@ -80,10 +81,26 @@ interface SegmentationStore {
   /** Bytes on disk or fetched so far, summed over the three models. */
   downloadedBytes: number;
   error: string | null;
+  /**
+   * The segmentation mode the user was in when this download was agreed to,
+   * so cancelling it can put them back there rather than on Off.
+   *
+   * It lives here rather than in the settings section because the download
+   * outlives that section: `AdvancedSettings` keys `.settings-content` on the
+   * active tab, so switching tab and back unmounts and remounts it, and
+   * anything it remembered in a ref is gone — Cancel would then quietly take
+   * By pause away from someone who only changed their mind about the 402 MB.
+   *
+   * Null while nothing is running, and null for a download whose caller did
+   * not say where it came from (the status line's Retry), which the section
+   * reads as Off.
+   */
+  modeBeforeDownload: SegmentationMode | null;
   /** Ask the disk. Never interrupts an in-flight download. */
   refresh(): Promise<void>;
-  /** Download every model that is not already on disk, one after another. */
-  download(): Promise<void>;
+  /** Download every model that is not already on disk, one after another.
+   *  `modeBefore` is remembered for the life of the download; see above. */
+  download(modeBefore?: SegmentationMode): Promise<void>;
   /** Abort the in-flight download. Finished files stay for the next resume. */
   cancel(): void;
   /** Delete all three models' files. */
@@ -125,6 +142,7 @@ export const useSegmentationStore = create<SegmentationStore>()(
     phase: 'unknown',
     downloadedBytes: 0,
     error: null,
+    modeBeforeDownload: null,
 
     refresh: async () => {
       // A download already knows more than the disk does: mid-fetch, files are
@@ -147,10 +165,10 @@ export const useSegmentationStore = create<SegmentationStore>()(
       set({ phase: all ? 'ready' : 'missing', downloadedBytes: present, error: null });
     },
 
-    download: async () => {
+    download: async (modeBefore) => {
       const gen = ++generation;
       const current = () => gen === generation;
-      set({ phase: 'downloading', error: null });
+      set({ phase: 'downloading', error: null, modeBeforeDownload: modeBefore ?? null });
 
       // Bytes of the models already finished — on disk before we started, or
       // fetched by this run. The bar is this plus the current model's progress.
@@ -181,7 +199,7 @@ export const useSegmentationStore = create<SegmentationStore>()(
         }
         // Needs no generation check of its own: the loop cannot exit without
         // having passed one since its last await.
-        set({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES, error: null });
+        set({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES, error: null, modeBeforeDownload: null });
         await refreshStorageEstimate();
       } catch (err) {
         // `cancel()` has already written 'missing' and bumped the generation;
@@ -189,11 +207,11 @@ export const useSegmentationStore = create<SegmentationStore>()(
         if (!current()) return;
         inFlightModelId = null;
         if (isAbort(err)) {
-          set({ phase: 'missing', error: null });
+          set({ phase: 'missing', error: null, modeBeforeDownload: null });
           return;
         }
         const message = describeCause(err);
-        set({ phase: 'error', error: message });
+        set({ phase: 'error', error: message, modeBeforeDownload: null });
         reportWarning('Segmentation', `Punctuation model download failed: ${message}`, {
           cause: err,
           dedupeKey: 'segmentation:download',
@@ -212,7 +230,9 @@ export const useSegmentationStore = create<SegmentationStore>()(
       }
       // Whatever was fetched stays on disk, file by file, and the next
       // download resumes over it — so the bytes count survives the cancel.
-      set({ phase: 'missing', error: null });
+      // The mode this download came from is dropped with it; the one caller
+      // that needs it reads it before calling this.
+      set({ phase: 'missing', error: null, modeBeforeDownload: null });
     },
 
     deleteModels: async () => {

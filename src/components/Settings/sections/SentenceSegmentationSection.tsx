@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scissors, Download, Trash2, AlertTriangle, X, RotateCw } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -77,9 +77,6 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   const { downloadedBytes } = useSegmentationProgress();
   const error = useSegmentationStore((state) => state.error);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  /** What the mode was before the download was agreed to, so cancelling it
-   *  puts the user back where they were. */
-  const modeBeforeDownload = useRef<SegmentationMode>('off');
   const { trackEvent } = useAnalytics();
 
   // What this provider offers, and therefore what the stored mode and size
@@ -131,9 +128,9 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
    * never rejects, and a cancel leaves 'missing' behind. That is also why
    * `cancelled` is a phase and not a caught exception.
    */
-  const runDownload = () => {
+  const runDownload = (modeBefore?: SegmentationMode) => {
     const startedAt = Date.now();
-    void useSegmentationStore.getState().download().then(() => {
+    void useSegmentationStore.getState().download(modeBefore).then(() => {
       const durationMs = Date.now() - startedAt;
       const phase = useSegmentationStore.getState().phase;
       const result = phase === 'ready' ? 'ok' : phase === 'error' ? 'error' : 'cancelled';
@@ -166,8 +163,13 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
 
   const confirmDownload = () => {
     setConfirmOpen(false);
+    // `mode` is this render's value, so it is still the pre-download one — the
+    // write below is what changes it. The download keeps it, because this
+    // section can be unmounted and remounted (Advanced settings changes tab)
+    // long before Cancel is clicked.
+    const from = mode;
     void setSegmentationMode('sentences');
-    runDownload();
+    runDownload(from);
   };
 
   // Every route to the 402 MB, in one place. `lowMemory` is not only the mode
@@ -176,10 +178,6 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   // download on a feature `PunctuationRuntime.enabled` refuses to run.
   const askToDownload = () => {
     if (lowMemory) return;
-    // Remembered here rather than read at cancel time: by then the mode is
-    // already By sentences, and this is the only moment the previous one is
-    // still on screen.
-    modeBeforeDownload.current = mode;
     setConfirmOpen(true);
   };
 
@@ -194,10 +192,16 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
    * whatever it was when the download was agreed to. Landing on Off instead
    * would quietly take By pause away from someone who had it and changed their
    * mind about the 402 MB — on those three providers that is a different way
-   * of cutting bubbles, not a no-op.
+   * of cutting bubbles, not a no-op. The download is what remembers it, not
+   * this component: a tab change in Advanced settings remounts the section
+   * while the fetch carries on. Read before `stopDownload()`, which drops it.
    */
   const cancelDownload = () => {
-    if (mode === 'sentences') void setSegmentationMode(modeBeforeDownload.current);
+    const from = useSegmentationStore.getState().modeBeforeDownload;
+    // Null means the download did not say where it came from — the status
+    // line's Retry, which is only reachable from By sentences in the first
+    // place.
+    if (mode === 'sentences') void setSegmentationMode(from ?? 'off');
     stopDownload();
   };
 
@@ -418,7 +422,9 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
               <button
                 type="button"
                 className="sentence-segmentation__pack-btn"
-                onClick={runDownload}
+                // Retry says nothing about where it came from: it is only
+                // reachable from By sentences, which is where it stays.
+                onClick={() => runDownload()}
                 disabled={downloadDisabled}
               >
                 <RotateCw size={12} />
