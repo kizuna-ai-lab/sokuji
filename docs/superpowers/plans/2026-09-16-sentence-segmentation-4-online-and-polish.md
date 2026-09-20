@@ -401,11 +401,11 @@ git commit -m "feat(segmentation): report segmentation health and where punctuat
 
 ## Task 6: Tune the thresholds on recorded deltas, before release
 
-`benchmark/punctuation-restoration/corpus/gpt-live-log-extract.json` holds **140 items with real `deltas`, `delta_timeline_ms` and `delta_arrival_ms`** (zh 57, en 57, ja 26). Replaying those through `SentenceStream` measures seal counts, commit lag and false cuts without waiting for production data.
+`benchmark/punctuation-restoration/corpus/gpt-live-log-extract.json` holds 140 items, of which **58 carry a real delta sequence** (ja 26, zh 22, en 10) — an earlier draft of this plan said all 140 do, which is wrong. All 58 carry `delta_arrival_ms`; only 35 also carry `delta_timeline_ms`, so a measurement that needs the media timeline runs on those 35 and says so. Replaying them through `SentenceStream` measures seal counts, commit lag and false cuts without waiting for production data.
 
 - [ ] **Step 1: Build the replay** under `benchmark/punctuation-restoration/tools/`, driving `SentenceStream` with the recorded delta sequence and timings for a grid of threshold sets.
 - [ ] **Step 2: Sweep** right context R ∈ {4, 8, 16}; the gate's per-sentence constants ∈ {15, 20, 25} CJK and {40, 50, 60} other; the Chinese fallback ∈ {28, 33, 40}. Report per set: seals per minute, mean commit lag, cuts landing mid-word.
-- [ ] **Step 3: Answer the Korean question.** Korean averages 16 characters per sentence, so N = 3 is ~48 — below the 60-character gate, and Korean therefore seals later than every other language. The corpus has 20 Korean passages. Measure whether 50 per sentence fits better, and either change the constant with the measurement behind it or record why it stays.
+- [ ] **Step 3: Answer the Korean question.** Korean averages 16 characters per sentence, so N = 3 is ~48 — below the 60-character gate, and Korean therefore seals later than every other language. There are no Korean deltas: the 20 Korean passages live in `synthetic.gold.json` as whole texts, so this one is measured by feeding each text through `SentenceStream` in one update rather than as a delta stream, and the result is reported with that caveat. Either change the constant with the measurement behind it, or record why it stays.
 - [ ] **Step 4: Record and apply.** Write the table into `docs/superpowers/notes/2026-09-14-asr-punctuation-benchmark.md` and change only the constants the measurement moves.
 
 ---
