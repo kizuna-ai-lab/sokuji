@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scissors, Download, Trash2, AlertTriangle, X, RotateCw } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -77,6 +77,9 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   const { downloadedBytes } = useSegmentationProgress();
   const error = useSegmentationStore((state) => state.error);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  /** What the mode was before the download was agreed to, so cancelling it
+   *  puts the user back where they were. */
+  const modeBeforeDownload = useRef<SegmentationMode>('off');
   const { trackEvent } = useAnalytics();
 
   // What this provider offers, and therefore what the stored mode and size
@@ -173,6 +176,10 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   // download on a feature `PunctuationRuntime.enabled` refuses to run.
   const askToDownload = () => {
     if (lowMemory) return;
+    // Remembered here rather than read at cancel time: by then the mode is
+    // already By sentences, and this is the only moment the previous one is
+    // still on screen.
+    modeBeforeDownload.current = mode;
     setConfirmOpen(true);
   };
 
@@ -183,12 +190,14 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
    * this through `chooseMode('off')` would then hit its "already there" guard
    * and leave the fetch alive with no way to stop it.
    *
-   * The mode only moves if it is still on By sentences, and it lands on Off:
-   * the download was what made that mode possible, and By pause stays one
-   * click away wherever it is offered.
+   * The mode only moves if it is still on By sentences, and it goes back to
+   * whatever it was when the download was agreed to. Landing on Off instead
+   * would quietly take By pause away from someone who had it and changed their
+   * mind about the 402 MB — on those three providers that is a different way
+   * of cutting bubbles, not a no-op.
    */
   const cancelDownload = () => {
-    if (mode === 'sentences') void setSegmentationMode('off');
+    if (mode === 'sentences') void setSegmentationMode(modeBeforeDownload.current);
     stopDownload();
   };
 

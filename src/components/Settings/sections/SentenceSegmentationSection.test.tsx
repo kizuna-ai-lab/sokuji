@@ -22,7 +22,7 @@
  * HelpSection.test.tsx).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -266,6 +266,29 @@ describe('SentenceSegmentationSection', () => {
       expect(setSegmentationMode).not.toHaveBeenCalled();
       expect(download).not.toHaveBeenCalled();
       expect(modeButton('By pause').className).toContain('active');
+    });
+
+    it('cancelling the download puts the mode back where it was, not on Off', () => {
+      // By pause is a different way of cutting bubbles on the three providers
+      // that offer it, so a user who changed their mind about the 402 MB must
+      // not quietly lose it.
+      mockMode = 'pause';
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
+      fireEvent.click(modeButton('By sentences'));
+      fireEvent.click(screen.getByRole('button', { name: /^Download / }));
+      expect(setSegmentationMode).toHaveBeenLastCalledWith('sentences');
+
+      // The same mounted section, the way it is in the app: the mode it reads
+      // is now By sentences and the store is mid-download.
+      mockMode = 'sentences';
+      act(() => {
+        useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1000 });
+      });
+      fireEvent.click(screen.getByTestId('segmentation-download-cancel'));
+
+      expect(cancel).toHaveBeenCalled();
+      expect(setSegmentationMode).toHaveBeenLastCalledWith('pause');
     });
 
     it('sets the mode without asking when the models are already there', () => {
