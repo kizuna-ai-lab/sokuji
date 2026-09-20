@@ -2,6 +2,10 @@ import { sentenceEnds, skeleton } from '../../lib/segmentation/sentenceEnd';
 import { gateChars } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
+/** How long a definite segment may wait for its punctuation before it is shown
+ *  raw. See punctuateDefinite's doc for why it is not the runtime's 3 s. */
+const FILL_IN_BUDGET_MS = 1_000;
+
 /**
  * Fill in missing punctuation on a segment the server already decided.
  *
@@ -12,6 +16,16 @@ import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRun
  *
  * Returns the input unchanged on every failure path, so a caller can assign
  * the result unconditionally.
+ *
+ * Bounded by `FILL_IN_BUDGET_MS`, because callers wait for this answer before
+ * they show the segment at all. These providers are the ones chosen for
+ * latency, and a visible bubble is worth more than its commas: past the budget
+ * the raw text is returned and a late answer is discarded. The runtime's own
+ * 3 s inference timeout is the wrong bound here — it is there to stop a wedged
+ * worker, not to decide how long a finished sentence may be withheld from the
+ * screen. The number is an engineering default above the benchmark's slowest
+ * measured call (394 ms, zh, 480 characters, 4-thread WASM) with headroom;
+ * Task 6's tuning is where a measured one would come from.
  */
 export async function punctuateDefinite(
   runtime: SegmentationRuntime | null,
@@ -24,7 +38,13 @@ export async function punctuateDefinite(
   if (sentenceEnds(text).length > 0) return text;
   // A runtime is contracted never to reject, but a caller that assigns this
   // unconditionally must not be able to lose a segment if one ever does.
-  const result = await runtime.punctuate(lang, text).catch(() => null);
+  const answer = runtime.punctuate(lang, text).catch(() => null);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const budget = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), FILL_IN_BUDGET_MS);
+  });
+  const result = await Promise.race([answer, budget]);
+  clearTimeout(timer);
   if (!result) return text;
   if (skeleton(result.text) !== skeleton(text)) return text;
   return result.text;

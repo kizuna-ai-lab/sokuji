@@ -111,4 +111,24 @@ describe('createSegmentLane', () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(order).toEqual(['after']);
   });
+
+  it('gives up on a slow model and shows the segment raw', async () => {
+    vi.useFakeTimers();
+    try {
+      const raw = 'a'.repeat(200);
+      let resolveLate: ((r: PunctuationResult | null) => void) | undefined;
+      const slow: SegmentationRuntime = {
+        enabled: true,
+        punctuate: () => new Promise<PunctuationResult | null>((resolve) => { resolveLate = resolve; }),
+      };
+      const pending = punctuateDefinite(slow, 'en', raw);
+      await vi.advanceTimersByTimeAsync(1_001);
+      expect(await pending).toBe(raw);
+      // The answer that arrives after the budget changes nothing: the caller
+      // has already been given the raw text and assigned it.
+      resolveLate?.({ text: 'Something. Else.', sentenceEnds: [], breakpoints: [], model: 'edge-punct-en' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
