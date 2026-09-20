@@ -45,9 +45,13 @@ describe('OpenAILiveProviderConfig.getConfig', () => {
 });
 
 describe('OpenAILiveProviderConfig.buildSessionConfig', () => {
-  it('carries the rendered instructions, voice, pair and silence thresholds in ms', () => {
+  // The silence thresholds used to be built here from two fields of this
+  // provider's own slice. A2 made them one global pair, so they reach the
+  // client through ClientOptions instead and the session config carries
+  // nothing about them.
+  it('carries the rendered instructions, voice and pair, and no silence thresholds', () => {
     const cfg = descriptor.buildSessionConfig(
-      { ...defaultOpenAILiveSettings, voice: 'cedar', sourceLanguage: 'ja', targetLanguage: 'en', userSilenceDuration: 0.8, assistantSilenceDuration: 2 },
+      { ...defaultOpenAILiveSettings, voice: 'cedar', sourceLanguage: 'ja', targetLanguage: 'en' },
       'INSTR',
     ) as OpenAILiveSessionConfig;
     expect(cfg).toEqual({
@@ -57,8 +61,6 @@ describe('OpenAILiveProviderConfig.buildSessionConfig', () => {
       instructions: 'INSTR',
       sourceLanguage: 'ja',
       targetLanguage: 'en',
-      userSilenceDurationMs: 800,
-      assistantSilenceDurationMs: 2000,
     });
   });
 
@@ -74,6 +76,21 @@ describe('OpenAILiveProviderConfig.createClient / validation', () => {
     const client = descriptor.createClient({ ok: true, primary: 'k' }, { transport: 'webrtc' });
     expect(client).toBeInstanceOf(OpenAILiveClient);
     expect(client.getProvider()).toBe('openai_live');
+  });
+
+  it('hands the client the pause pair in milliseconds — the source side, then the translation side', () => {
+    const client = descriptor.createClient(
+      { ok: true, primary: 'k' },
+      { transport: 'websocket', sourcePause: 0.8, translationPause: 2 },
+    );
+    expect((client as any).userSilenceTimeoutMs).toBe(800);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(2000);
+  });
+
+  it('falls back to 1.5 s a side when no pause reaches it', () => {
+    const client = descriptor.createClient({ ok: true, primary: 'k' }, { transport: 'websocket' });
+    expect((client as any).userSilenceTimeoutMs).toBe(1500);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(1500);
   });
 
   it('accepts a key whose model list contains gpt-live-1 and rejects one without it', async () => {

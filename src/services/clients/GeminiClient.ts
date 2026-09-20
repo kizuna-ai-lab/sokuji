@@ -15,6 +15,7 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import { lastSentenceEnd } from '../../lib/segmentation/sentenceEnd';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { clampSegmentPauseMs, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 /**
  * Gemini Live API client adapter
@@ -99,7 +100,7 @@ export class GeminiClient implements IClient {
    * routinely spans several input sentences and lags behind the speech that
    * produced it, so a boundary on one side is not a boundary on the other.
    *
-   * The threshold is picked from the model's measured delivery cadence rather
+   * The threshold was picked from the model's measured delivery cadence rather
    * than borrowed from OpenAI Translate, whose 1.0s/0.5s defaults are far too
    * eager here. Two utterances separated by 2.5s of silence, measured
    * 2026-08-11:
@@ -107,12 +108,16 @@ export class GeminiClient implements IClient {
    *   transcript fragments *within* an utterance   ~1000 ms apart (median)
    *   the pause *between* the two utterances       ~4250 ms (output side)
    *
-   * so anything at or under a second splits on nearly every fragment. 2s sits
-   * with roughly 2x margin on both sides. Note this is one measured sample; if
-   * it proves wrong in the field, it is one constant to move.
+   * so anything at or under a second splits on nearly every fragment. 2s sat
+   * with roughly 2x margin on both sides. Note this is one measured sample.
+   *
+   * A2 made the two a setting — the global pause pair, 1.5 s by default, which
+   * leaves 1.5x of margin over those 1 s fragment gaps instead of 2x. Still one
+   * sample, and now the user can raise it rather than us moving a constant.
+   * These two are what a client built without a pair falls back to.
    */
-  private static readonly INPUT_SEGMENT_SILENCE_MS = 2000;
-  private static readonly ASSISTANT_SEGMENT_SILENCE_MS = 2000;
+  private inputSegmentSilenceMs = DEFAULT_SEGMENT_PAUSE_MS;
+  private assistantSegmentSilenceMs = DEFAULT_SEGMENT_PAUSE_MS;
 
   // ----- Sentence segmentation stage -----
   //
@@ -163,11 +168,20 @@ export class GeminiClient implements IClient {
 
   constructor(
     apiKey: string,
-    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+    options: {
+      segmentation?: SegmentationRuntime | null;
+      sentencesPerChunk?: number;
+      sourcePauseMs?: number;
+      translationPauseMs?: number;
+    } = {},
   ) {
     this.apiKey = apiKey;
     this.segmentation = options.segmentation ?? null;
     this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+    // Clamped to what a timer can usefully take, as the two OpenAI clients do:
+    // the store clamps the same range, so this only catches a direct build.
+    this.inputSegmentSilenceMs = clampSegmentPauseMs(options.sourcePauseMs);
+    this.assistantSegmentSilenceMs = clampSegmentPauseMs(options.translationPauseMs);
     this.client = new GoogleGenAI({ apiKey });
     // Generate a unique instance ID that remains constant for this client instance
     this.instanceId = `gemini_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -765,7 +779,7 @@ export class GeminiClient implements IClient {
     if (this.inputSegmentTimer) clearTimeout(this.inputSegmentTimer);
     this.inputSegmentTimer = setTimeout(
       () => { this.inputSegmentTimer = null; this.closeInputSegment(); },
-      GeminiClient.INPUT_SEGMENT_SILENCE_MS,
+      this.inputSegmentSilenceMs,
     );
   }
 
@@ -790,7 +804,7 @@ export class GeminiClient implements IClient {
         this.assistantTimerFiredOnce = false;
         this.closeAssistantSegment();
       },
-      GeminiClient.ASSISTANT_SEGMENT_SILENCE_MS,
+      this.assistantSegmentSilenceMs,
     );
   }
 

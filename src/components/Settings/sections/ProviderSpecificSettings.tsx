@@ -442,9 +442,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       // resolves to the kizuna slice when managed.
       return activeOpenAITranslateSettings;
     } else if (provider === Provider.OPENAI_LIVE) {
-      // Carries userSilenceDuration / assistantSilenceDuration for the
-      // segmentation sliders; every other shared field is absent and the
-      // capability flags keep those sections hidden.
+      // The two segmentation sliders used to read this slice; they are the
+      // global pause pair now (A2) and live in the segmentation section. Every
+      // shared field here is absent and the capability flags keep those
+      // sections hidden.
       return openAILiveSettings;
     }
     return null;

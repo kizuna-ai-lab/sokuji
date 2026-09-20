@@ -150,7 +150,11 @@ describe('OpenAITranslateGAClient state machine', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    client = new OpenAITranslateGAClient('test-key');
+    // 1 s a side, which is what these scenarios were written against — the
+    // pause pair's own default (1.5 s) is exercised by its own test below.
+    client = new OpenAITranslateGAClient('test-key', undefined, {
+      sourcePauseMs: 1000, translationPauseMs: 1000,
+    });
     updates = [];
     realtimeEvents = [];
     const handlers: ClientEventHandlers = {
@@ -555,6 +559,21 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
+  // A2: the pair is a global setting handed over at construction, not a field
+  // of the session config. connect() must not reset it, and a client built
+  // without one runs on the 1.5 s the store defaults to.
+  it('keeps the pause pair it was built with, and defaults both sides to 1.5 s', () => {
+    const built = new OpenAITranslateGAClient('test-key', undefined, {
+      sourcePauseMs: 700, translationPauseMs: 2500,
+    });
+    expect((built as any).userSilenceTimeoutMs).toBe(700);
+    expect((built as any).assistantSilenceTimeoutMs).toBe(2500);
+
+    const bare = new OpenAITranslateGAClient('test-key');
+    expect((bare as any).userSilenceTimeoutMs).toBe(1500);
+    expect((bare as any).assistantSilenceTimeoutMs).toBe(1500);
+  });
+
   it('honours configured per-side silence thresholds', () => {
     (client as any).userSilenceTimeoutMs = 600;
     (client as any).assistantSilenceTimeoutMs = 1500;
@@ -580,12 +599,15 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
-  it('exports the correct silence-timeout constants', async () => {
-    const { SILENCE_TIMEOUT_MS, SILENCE_TIMEOUT_MIN_MS, SILENCE_TIMEOUT_MAX_MS } =
-      await import('./OpenAITranslateGAClient');
-    expect(SILENCE_TIMEOUT_MS).toBe(1000);
-    expect(SILENCE_TIMEOUT_MIN_MS).toBe(100);
-    expect(SILENCE_TIMEOUT_MAX_MS).toBe(3000);
+  // The three silence-timeout constants this client used to own are now the
+  // pause pair's, shared by all four pause clients; what is left to pin here
+  // is that this client honours the range.
+  it('clamps a pause outside the 100-3000 ms a timer accepts', () => {
+    const client = new OpenAITranslateGAClient('test-key', undefined, {
+      sourcePauseMs: 5, translationPauseMs: 99_000,
+    });
+    expect((client as any).userSilenceTimeoutMs).toBe(100);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(3000);
   });
 });
 
@@ -811,7 +833,10 @@ describe('OpenAITranslateGAClient with the segmentation stage', () => {
     await p;
   }
 
-  function makeClient(options: { segmentation?: any; sentencesPerChunk?: number }) {
+  function makeClient(options: {
+    segmentation?: any; sentencesPerChunk?: number;
+    sourcePauseMs?: number; translationPauseMs?: number;
+  }) {
     return new OpenAITranslateGAClient('test-key', undefined, options);
   }
 
@@ -838,6 +863,16 @@ describe('OpenAITranslateGAClient with the segmentation stage', () => {
   const feedTo = (client: OpenAITranslateGAClient) => (event: unknown) => (client as any).handleServerEvent(event);
   const usersOf = (client: OpenAITranslateGAClient) => client.getConversationItems().filter((i) => i.role === 'user');
   const assistantsOf = (client: OpenAITranslateGAClient) => client.getConversationItems().filter((i) => i.role === 'assistant');
+
+  // The pair arrives beside the runtime and the size, and survives connect —
+  // it is no longer a field of the session config for connect() to re-read.
+  it('keeps the pause pair across a real connect', async () => {
+    const client = makeClient({ sourcePauseMs: 700, translationPauseMs: 2500 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    expect((client as any).userSilenceTimeoutMs).toBe(700);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(2500);
+  });
 
   it('seals an unpunctuated source item every N sentences, mid-delta', async () => {
     const runtime = markingRuntime(10);
@@ -912,7 +947,9 @@ describe('OpenAITranslateGAClient with the segmentation stage', () => {
   });
 
   it("a silence timer closing a source item ends its stream, and the tail is that item's last text", async () => {
-    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    // 1 s so the advance below is unambiguous; the threshold is not what this
+    // test is about.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2, sourcePauseMs: 1000 });
     client.setEventHandlers({} as ClientEventHandlers);
     await connectStage(client);
     feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(30) });
@@ -935,7 +972,7 @@ describe('OpenAITranslateGAClient with the segmentation stage', () => {
     // The seal closes the item through completeUserItem, which clears the
     // timer the delta armed. Without a re-arm the remainder's item would
     // never close on its own.
-    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2, sourcePauseMs: 1000 });
     client.setEventHandlers({} as ClientEventHandlers);
     await connectStage(client);
     feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });

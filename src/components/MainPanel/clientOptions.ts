@@ -19,6 +19,9 @@ export function buildClientOptions(input: {
   webrtcOptions?: ClientOptions['webrtcOptions'];
   segmentation?: SegmentationRuntime | null;
   sentencesPerChunk?: number;
+  /** Seconds, as stored. The descriptor converts to its client's milliseconds. */
+  sourcePause?: number;
+  translationPause?: number;
   legOptions?: Partial<ClientOptions>;
 }): ClientOptions {
   return {
@@ -26,6 +29,8 @@ export function buildClientOptions(input: {
     webrtcOptions: input.webrtcOptions,
     segmentation: input.segmentation,
     sentencesPerChunk: input.sentencesPerChunk,
+    sourcePause: input.sourcePause,
+    translationPause: input.translationPause,
     ...input.legOptions,
   };
 }

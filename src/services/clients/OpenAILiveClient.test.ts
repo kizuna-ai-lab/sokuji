@@ -117,6 +117,34 @@ describe('OpenAILiveClient connect (Electron header injection)', () => {
     expect(client.isConnected()).toBe(true);
   });
 
+  // A2: the pause pair is a global setting handed over at construction, not a
+  // field of the session config. connect() must leave it alone — it used to
+  // read the pair off the config and would now reset both timers to the
+  // fallback on every session.
+  it('keeps the pause pair it was built with across connect', async () => {
+    const client = new OpenAILiveClient('sk-test', { sourcePauseMs: 700, translationPauseMs: 2500 });
+    expect((client as any).userSilenceTimeoutMs).toBe(700);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(2500);
+    const p = client.connect(baseConfig);
+    await flush();
+    completeHandshake(ws);
+    await p;
+    expect((client as any).userSilenceTimeoutMs).toBe(700);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(2500);
+  });
+
+  it('runs on 1.5 s a side when it is built without a pause', () => {
+    const client = new OpenAILiveClient('sk-test');
+    expect((client as any).userSilenceTimeoutMs).toBe(1500);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(1500);
+  });
+
+  it('clamps a pause outside the 100-3000 ms a timer accepts', () => {
+    const tooShort = new OpenAILiveClient('sk-test', { sourcePauseMs: 5, translationPauseMs: 99_000 });
+    expect((tooShort as any).userSilenceTimeoutMs).toBe(100);
+    expect((tooShort as any).assistantSilenceTimeoutMs).toBe(3000);
+  });
+
   it('a Stop during the header registration ends the attempt before any socket is opened', async () => {
     let releaseRegistration!: () => void;
     const registration = new Promise<{ success: boolean }>((resolve) => {
@@ -363,7 +391,9 @@ describe('OpenAILiveClient state machine', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    client = new OpenAILiveClient('sk-test');
+    // 1 s a side, which is what the scenarios below were written against; the
+    // pause pair's own 1.5 s default has its own test above.
+    client = new OpenAILiveClient('sk-test', { sourcePauseMs: 1000, translationPauseMs: 1000 });
     updates = [];
     realtimeEvents = [];
     client.setEventHandlers({

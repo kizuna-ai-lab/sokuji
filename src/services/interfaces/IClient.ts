@@ -132,14 +132,10 @@ export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
   sourceLanguage?: string;
   inputAudioTranscription?: { model: string };
   inputAudioNoiseReduction?: { type: 'near_field' | 'far_field' };
-  // Client-side utterance segmentation. The user (input) and assistant
-  // (output) sides run independent state machines because translation
-  // often crosses input sentence boundaries — coupling them caused
-  // assistant items to be cut mid-clause when input paused. Both range
-  // 100–3000ms. The translate API has no server-side turn detection, so
-  // these only control UI message splitting.
-  userSilenceDurationMs?: number;
-  assistantSilenceDurationMs?: number;
+  // Client-side utterance segmentation used to ride here as two per-provider
+  // silence thresholds. A2 made them one global pause pair, so the client
+  // takes them through ClientOptions instead and nothing about them belongs
+  // in a session config.
 }
 
 /**
@@ -152,9 +148,8 @@ export interface OpenAILiveSessionConfig extends BaseSessionConfig {
   provider: 'openai_live';
   sourceLanguage?: string;
   targetLanguage: string;
-  /** Client-side utterance segmentation, ms. Clamped to 100–3000 by the client. */
-  userSilenceDurationMs?: number;
-  assistantSilenceDurationMs?: number;
+  // Client-side utterance segmentation is the global pause pair now (A2); it
+  // reaches the client through ClientOptions, not through here.
 }
 
 /**

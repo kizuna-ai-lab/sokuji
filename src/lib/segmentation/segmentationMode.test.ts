@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+  clampSegmentPauseMs,
+  DEFAULT_SEGMENT_PAUSE_MS,
   resolveSegmentationMode,
   resolveSegmentationSize,
+  segmentPauseMs,
   type SegmentationMode,
   type SegmentationOffer,
 } from './segmentationMode';
@@ -88,5 +91,44 @@ describe('resolveSegmentationSize', () => {
   it('rounds a fractional size to a whole one', () => {
     expect(resolveSegmentationSize(2.4, LOCAL_ENGINE)).toBe(2);
     expect(resolveSegmentationSize(2.6, LOCAL_ENGINE)).toBe(3);
+  });
+});
+
+describe('segmentPauseMs', () => {
+  it('converts the stored seconds into the milliseconds a timer takes', () => {
+    expect(segmentPauseMs(1.5)).toBe(1500);
+    expect(segmentPauseMs(0.8)).toBe(800);
+    expect(segmentPauseMs(3)).toBe(3000);
+  });
+
+  it('rounds, because a timer takes whole milliseconds', () => {
+    expect(segmentPauseMs(0.1234)).toBe(123);
+  });
+
+  // A client built without one — a test, or a path that never reaches the
+  // store — runs on the same 1.5 s the store defaults to.
+  it('falls back to the stored default when there is no value', () => {
+    expect(DEFAULT_SEGMENT_PAUSE_MS).toBe(1500);
+    expect(segmentPauseMs(undefined)).toBe(DEFAULT_SEGMENT_PAUSE_MS);
+    expect(segmentPauseMs(NaN)).toBe(DEFAULT_SEGMENT_PAUSE_MS);
+    expect(segmentPauseMs('1.2' as unknown as number)).toBe(DEFAULT_SEGMENT_PAUSE_MS);
+  });
+});
+
+describe('clampSegmentPauseMs', () => {
+  it('leaves a pause inside the range the store allows', () => {
+    expect(clampSegmentPauseMs(100)).toBe(100);
+    expect(clampSegmentPauseMs(1500)).toBe(1500);
+    expect(clampSegmentPauseMs(3000)).toBe(3000);
+  });
+
+  it('pulls a pause that would fire between two words, or never, back in', () => {
+    expect(clampSegmentPauseMs(5)).toBe(100);
+    expect(clampSegmentPauseMs(99_000)).toBe(3000);
+  });
+
+  it('falls back to the default when there is nothing to clamp', () => {
+    expect(clampSegmentPauseMs(undefined)).toBe(DEFAULT_SEGMENT_PAUSE_MS);
+    expect(clampSegmentPauseMs(NaN)).toBe(DEFAULT_SEGMENT_PAUSE_MS);
   });
 });

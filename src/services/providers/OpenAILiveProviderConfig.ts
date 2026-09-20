@@ -3,6 +3,7 @@ import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDe
 import { IClient, FilteredModel, SessionConfig, OpenAILiveSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAILiveClient, LIVE_MODEL } from '../clients/OpenAILiveClient';
+import { segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 
 // OpenAI Live settings (gpt-live-1 on the Live API, WebSocket only).
@@ -53,6 +54,8 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
     return new OpenAILiveClient(creds.primary, {
       segmentation: options.segmentation,
       sentencesPerChunk: options.sentencesPerChunk,
+      sourcePauseMs: segmentPauseMs(options.sourcePause),
+      translationPauseMs: segmentPauseMs(options.translationPause),
     });
   }
 
@@ -78,8 +81,9 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
       instructions: systemInstructions,
       sourceLanguage: settings.sourceLanguage,
       targetLanguage: settings.targetLanguage,
-      userSilenceDurationMs: Math.round(settings.userSilenceDuration * 1000),
-      assistantSilenceDurationMs: Math.round(settings.assistantSilenceDuration * 1000),
+      // The two silence thresholds used to be built here from this slice. They
+      // are the global pause pair now (A2) and reach the client through
+      // ClientOptions, beside the rest of the segmentation settings.
     } as OpenAILiveSessionConfig;
   }
 

@@ -17,12 +17,9 @@ import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnosti
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { clampSegmentPauseMs, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
-/** Default silence threshold for both user (input) and assistant (output) timers. */
-const SILENCE_TIMEOUT_MS = 1000;
-const SILENCE_TIMEOUT_MIN_MS = 100;
-const SILENCE_TIMEOUT_MAX_MS = 3000;
 /** 200 ms @ 24 kHz = 4800 samples — the API's heartbeat frame size. Kept for
  *  reference / tests; runtime detection now uses {@link isSilenceFrame} so we
  *  don't break if the API ever changes the heartbeat duration. */
@@ -56,11 +53,6 @@ export function isSilenceFrame(audio: Int16Array): boolean {
     if (sumSq !== 0) return false;
   }
   return true;
-}
-
-function clampSilenceTimeout(value: number | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return SILENCE_TIMEOUT_MS;
-  return Math.max(SILENCE_TIMEOUT_MIN_MS, Math.min(SILENCE_TIMEOUT_MAX_MS, value));
 }
 
 /** Shape of the `session` field inside `session.update` for translate.
@@ -108,8 +100,10 @@ export class OpenAITranslateGAClient implements IClient {
   private currentAssistantItemId: string | null = null;
   private userSilenceTimer: ReturnType<typeof setTimeout> | null = null;
   private assistantSilenceTimer: ReturnType<typeof setTimeout> | null = null;
-  private userSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
-  private assistantSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
+  /** The By pause mode's two timers, set once at construction from the global
+   *  pause pair. Never re-read: a running session does not follow the slider. */
+  private userSilenceTimeoutMs: number = DEFAULT_SEGMENT_PAUSE_MS;
+  private assistantSilenceTimeoutMs: number = DEFAULT_SEGMENT_PAUSE_MS;
   private audioChunks: Map<string, Int16Array[]> = new Map();
   /**
    * Cached from `config.keepReplayAudio` at connect(). See OpenAIGAClient
@@ -174,12 +168,19 @@ export class OpenAITranslateGAClient implements IClient {
   constructor(
     apiKey: string,
     relay?: { wsUrl: string },
-    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+    options: {
+      segmentation?: SegmentationRuntime | null;
+      sentencesPerChunk?: number;
+      sourcePauseMs?: number;
+      translationPauseMs?: number;
+    } = {},
   ) {
     this.apiKey = apiKey;
     this.relay = relay;
     this.segmentation = options.segmentation ?? null;
     this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+    this.userSilenceTimeoutMs = clampSegmentPauseMs(options.sourcePauseMs);
+    this.assistantSilenceTimeoutMs = clampSegmentPauseMs(options.translationPauseMs);
   }
 
   /**
@@ -654,8 +655,6 @@ export class OpenAITranslateGAClient implements IClient {
     this.keepReplayAudio = config.keepReplayAudio ?? false;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
-    this.userSilenceTimeoutMs = clampSilenceTimeout(config.userSilenceDurationMs);
-    this.assistantSilenceTimeoutMs = clampSilenceTimeout(config.assistantSilenceDurationMs);
     this.discardUserStream();
     this.sourceLanguage = config.sourceLanguage ?? 'auto';
     // R2: the one read of `enabled` this session gets. Everything downstream —
@@ -827,15 +826,12 @@ export class OpenAITranslateGAClient implements IClient {
     return this.connected && this.ws?.readyState === 1;
   }
 
+  /** The two silence thresholds are deliberately not here: they are the global
+   *  pause pair now, read once at construction, so a session keeps the pauses
+   *  it started with (A2). */
   updateSession(config: Partial<SessionConfig>): void {
     if (!this.ws || !isOpenAITranslateSessionConfig(config as SessionConfig)) return;
     const tConfig = config as OpenAITranslateSessionConfig;
-    if (tConfig.userSilenceDurationMs !== undefined) {
-      this.userSilenceTimeoutMs = clampSilenceTimeout(tConfig.userSilenceDurationMs);
-    }
-    if (tConfig.assistantSilenceDurationMs !== undefined) {
-      this.assistantSilenceTimeoutMs = clampSilenceTimeout(tConfig.assistantSilenceDurationMs);
-    }
     const updatePayload = OpenAITranslateGAClient.buildSessionUpdate(tConfig);
     this.ws.send(JSON.stringify(updatePayload));
     this.eventHandlers.onRealtimeEvent?.({
@@ -933,8 +929,5 @@ export type { ApiKeyValidationResult, FilteredModel };
 // Internal constants exported for use by later-task helpers / WebRTC client.
 export {
   TRANSLATE_WS_URL,
-  SILENCE_TIMEOUT_MS,
-  SILENCE_TIMEOUT_MIN_MS,
-  SILENCE_TIMEOUT_MAX_MS,
   HEARTBEAT_SAMPLES,
 };

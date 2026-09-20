@@ -4,6 +4,7 @@ import { IClient, FilteredModel, SessionConfig, OpenAITranslateSessionConfig, Tr
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { OpenAITranslateWebRTCClient } from '../clients/OpenAITranslateWebRTCClient';
+import { segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 
 /** The transcript model this provider sends. Kept a single value rather than a
  *  choice: with one option there is no user preference for the load-time
@@ -69,11 +70,16 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
         outputDeviceId: options.webrtcOptions?.outputDeviceId,
         segmentation: options.segmentation,
         sentencesPerChunk: options.sentencesPerChunk,
+        // The source pause has nowhere to go on this transport: one timer
+        // closes the pair, and it is the translation side that keeps it alive.
+        translationPauseMs: segmentPauseMs(options.translationPause),
       });
     }
     return new OpenAITranslateGAClient(creds.primary, undefined, {
       segmentation: options.segmentation,
       sentencesPerChunk: options.sentencesPerChunk,
+      sourcePauseMs: segmentPauseMs(options.sourcePause),
+      translationPauseMs: segmentPauseMs(options.translationPause),
     });
   }
 
@@ -106,8 +112,9 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
       inputAudioNoiseReduction: settings.noiseReduction !== 'None' ? {
         type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
       } : undefined,
-      userSilenceDurationMs: Math.round(settings.userSilenceDuration * 1000),
-      assistantSilenceDurationMs: Math.round(settings.assistantSilenceDuration * 1000),
+      // The two silence thresholds used to be built here from this slice. They
+      // are the global pause pair now (A2) and reach the client through
+      // ClientOptions, beside the rest of the segmentation settings.
     } as OpenAITranslateSessionConfig;
   }
 

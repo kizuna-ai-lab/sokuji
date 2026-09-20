@@ -38,6 +38,7 @@ import {
 } from '../../lib/segmentation/sentenceEnd';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { clampSegmentPauseMs, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 export const LIVE_WS_URL = 'wss://api.openai.com/v1/live/sessions';
 export const LIVE_HOST = 'api.openai.com';
@@ -45,7 +46,6 @@ export const LIVE_MODEL = 'gpt-live-1';
 const DEFAULT_VOICE = 'marin';
 /** PCM16 sample rate on both directions of the socket. */
 const SAMPLE_RATE = 24000;
-const SILENCE_TIMEOUT_MS = 1000;
 /**
  * Output frames at or below this RMS are the stream's noise floor, not speech.
  *
@@ -72,8 +72,6 @@ const USER_SPAN_CAP_MS = 12_000;
 const ASSISTANT_SOFT_CAP_MS = 20_000;
 const ASSISTANT_SPAN_CAP_MS = 30_000;
 
-const SILENCE_TIMEOUT_MIN_MS = 100;
-const SILENCE_TIMEOUT_MAX_MS = 3000;
 const SESSION_START_TIMEOUT_MS = 30000;
 /** How long disconnect() waits for session.closed before closing the socket anyway. */
 const CLOSE_TIMEOUT_MS = 5000;
@@ -107,11 +105,6 @@ export interface LiveSessionStart {
     audio: { format: { type: 'audio/pcm'; rate: 24000 }; output: { voice: string } };
     delegation: { type: 'client' };
   };
-}
-
-function clampSilenceTimeout(value: number | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return SILENCE_TIMEOUT_MS;
-  return Math.max(SILENCE_TIMEOUT_MIN_MS, Math.min(SILENCE_TIMEOUT_MAX_MS, value));
 }
 
 export class OpenAILiveClient implements IClient {
@@ -165,8 +158,10 @@ export class OpenAILiveClient implements IClient {
   /** The user silence timer already fired once for the current (short) item. */
   private userTimerFiredOnce = false;
   private assistantSilenceTimer: ReturnType<typeof setTimeout> | null = null;
-  private userSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
-  private assistantSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
+  /** The By pause mode's two timers, set once at construction from the global
+   *  pause pair. Never re-read: a running session does not follow the slider. */
+  private userSilenceTimeoutMs: number = DEFAULT_SEGMENT_PAUSE_MS;
+  private assistantSilenceTimeoutMs: number = DEFAULT_SEGMENT_PAUSE_MS;
   private audioChunks: Map<string, Int16Array[]> = new Map();
   private keepReplayAudio: boolean = false;
   private audioCumSamples: Map<string, number> = new Map();
@@ -217,11 +212,18 @@ export class OpenAILiveClient implements IClient {
 
   constructor(
     apiKey: string,
-    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+    options: {
+      segmentation?: SegmentationRuntime | null;
+      sentencesPerChunk?: number;
+      sourcePauseMs?: number;
+      translationPauseMs?: number;
+    } = {},
   ) {
     this.apiKey = apiKey;
     this.segmentation = options.segmentation ?? null;
     this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+    this.userSilenceTimeoutMs = clampSegmentPauseMs(options.sourcePauseMs);
+    this.assistantSilenceTimeoutMs = clampSegmentPauseMs(options.translationPauseMs);
   }
 
   // ----- Static helpers -----
@@ -1439,8 +1441,6 @@ export class OpenAILiveClient implements IClient {
         }
       : null;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
-    this.userSilenceTimeoutMs = clampSilenceTimeout(config.userSilenceDurationMs);
-    this.assistantSilenceTimeoutMs = clampSilenceTimeout(config.assistantSilenceDurationMs);
 
     await this.openSession(config);
 
@@ -1493,15 +1493,14 @@ export class OpenAILiveClient implements IClient {
     return this.connected && this.ws?.readyState === 1;
   }
 
-  /** Every startup field is immutable on the wire; only the local thresholds move. */
-  updateSession(config: Partial<SessionConfig>): void {
-    const live = config as Partial<OpenAILiveSessionConfig>;
-    if (live.userSilenceDurationMs !== undefined) {
-      this.userSilenceTimeoutMs = clampSilenceTimeout(live.userSilenceDurationMs);
-    }
-    if (live.assistantSilenceDurationMs !== undefined) {
-      this.assistantSilenceTimeoutMs = clampSilenceTimeout(live.assistantSilenceDurationMs);
-    }
+  /**
+   * Nothing here moves under an open session. Every startup field is immutable
+   * on the wire, and the two local silence thresholds — the only fields that
+   * used to move — are now the global pause pair, read once at construction
+   * (A2): a session keeps the pauses it started with.
+   */
+  updateSession(_config: Partial<SessionConfig>): void {
+    /* no session field is mutable */
   }
 
   reset(): void {
@@ -1558,4 +1557,4 @@ export function int16ArrayToBase64(data: Int16Array): string {
   return btoa(binary);
 }
 
-export { SAMPLE_RATE as LIVE_SAMPLE_RATE, SILENCE_TIMEOUT_MS, SILENCE_TIMEOUT_MIN_MS, SILENCE_TIMEOUT_MAX_MS };
+export { SAMPLE_RATE as LIVE_SAMPLE_RATE };

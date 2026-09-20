@@ -749,8 +749,9 @@ describe('GeminiClient — Live Translate wire config', () => {
 describe('GeminiClient — Live Translate silence segmentation', () => {
   let client: InstanceType<typeof GeminiClient>;
 
-  const INPUT_SILENCE_MS = 2000;
-  const ASSISTANT_SILENCE_MS = 2000;
+  // The client's fallback, which is also the pause pair's stored default.
+  const INPUT_SILENCE_MS = 1500;
+  const ASSISTANT_SILENCE_MS = 1500;
 
   const translateConfig = {
     ...baseConfig,
@@ -795,6 +796,28 @@ describe('GeminiClient — Live Translate silence segmentation', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  // A2: what used to be two hard-coded 2 s constants is now the global pause
+  // pair, handed over at construction. The constants stayed as the fallback,
+  // at the pair's own default.
+  it('runs each side on the pause it was built with', async () => {
+    client = new GeminiClient('test-api-key', { sourcePauseMs: 700, translationPauseMs: 2500 });
+    client.setEventHandlers({} as any);
+    setupSuccessfulConnect();
+    await client.connect(translateConfig as any);
+
+    sendInput('first utterance');
+    await vi.advanceTimersByTimeAsync(699);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+    await vi.advanceTimersByTimeAsync(2);
+    expect(itemsOf('user')[0].status).toBe('completed');
+
+    sendOutput('最初の翻訳。');
+    await vi.advanceTimersByTimeAsync(2499);
+    expect(itemsOf('assistant')[0].status).toBe('in_progress');
+    await vi.advanceTimersByTimeAsync(2);
+    expect(itemsOf('assistant')[0].status).toBe('completed');
   });
 
   it('starts a new user item once the speaker has been quiet', async () => {
@@ -970,8 +993,9 @@ describe('GeminiClient — model filtering', () => {
 describe('GeminiClient with the segmentation stage', () => {
   let client: InstanceType<typeof GeminiClient>;
 
-  const INPUT_SILENCE_MS = 2000;
-  const ASSISTANT_SILENCE_MS = 2000;
+  // The client's fallback, which is also the pause pair's stored default.
+  const INPUT_SILENCE_MS = 1500;
+  const ASSISTANT_SILENCE_MS = 1500;
 
   /** Both sides CJK, so `gateChars` is 20 characters per sentence and the
    *  unpunctuated fixtures below stay short enough to read. Neither is

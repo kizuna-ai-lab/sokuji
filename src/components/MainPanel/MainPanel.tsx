@@ -25,6 +25,8 @@ import {
   useTextOnly,
   useSentenceSegmentation,
   useSentenceSegmentationChunkSentences,
+  useSegmentationSourcePause,
+  useSegmentationTranslationPause,
 } from '../../stores/settingsStore';
 import useSettingsStore from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
@@ -294,6 +296,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const segmentationRuntime = useSegmentationRuntime(trackEvent);
   const sentenceSegmentationOn = useSentenceSegmentation();
   const sentencesPerChunk = useSentenceSegmentationChunkSentences();
+  // The By pause mode's two timers, in seconds as stored. They ride to the
+  // client beside the runtime and the size; each descriptor converts.
+  const sourcePause = useSegmentationSourcePause();
+  const translationPause = useSegmentationTranslationPause();
   /**
    * One session's segmentation counts, filled by the per-leg wrappers
    * `createAIClient` builds and drained by `translation_session_end`.
@@ -967,9 +973,11 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         }
       }),
       sentencesPerChunk,
+      sourcePause,
+      translationPause,
       legOptions,
     }));
-  }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted, segmentationRuntime, sentencesPerChunk]);
+  }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted, segmentationRuntime, sentencesPerChunk, sourcePause, translationPause]);
 
   // Which legs are reconnecting right now. A ref rather than state: these
   // transitions arrive from socket callbacks that can land several times in one

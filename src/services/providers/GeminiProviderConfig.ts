@@ -3,6 +3,7 @@ import { BaseProviderDescriptor, Credentials, ClientOptions, ParticipantSessionR
 import { IClient, FilteredModel, SessionConfig, GeminiSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { GeminiClient } from '../clients/GeminiClient';
+import { segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import {
   buildGeminiTranslationConfig,
   isGeminiTranslateModel,
@@ -49,6 +50,8 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
     return new GeminiClient(creds.primary, {
       segmentation: options.segmentation,
       sentencesPerChunk: options.sentencesPerChunk,
+      sourcePauseMs: segmentPauseMs(options.sourcePause),
+      translationPauseMs: segmentPauseMs(options.translationPause),
     });
   }
 

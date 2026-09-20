@@ -34,6 +34,21 @@ describe('buildClientOptions', () => {
     expect(buildClientOptions({ transport: 'websocket', segmentation: runtime, sentencesPerChunk: 1, legOptions: undefined }).sentencesPerChunk).toBe(1);
   });
 
+  // Seconds here, as stored; each descriptor converts to the milliseconds its
+  // client's timers take.
+  it('carries the pause pair, including on the fallback path', () => {
+    const opts = buildClientOptions({
+      transport: 'websocket', segmentation: runtime, sourcePause: 0.8, translationPause: 2.5,
+    });
+    expect(opts.sourcePause).toBe(0.8);
+    expect(opts.translationPause).toBe(2.5);
+    const fallback = buildClientOptions({
+      transport: 'websocket', segmentation: runtime, sourcePause: 0.8, translationPause: 2.5, legOptions: undefined,
+    });
+    expect(fallback.sourcePause).toBe(0.8);
+    expect(fallback.translationPause).toBe(2.5);
+  });
+
   it('lets a legOptions field that collides with a builder-set field win — the managed Soniox bundle depends on this', () => {
     const opts = buildClientOptions({
       transport: 'websocket',

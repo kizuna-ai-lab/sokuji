@@ -535,6 +535,60 @@ describe('S1 capability flags', () => {
     }
   });
 
+  // The private fields each pause client keeps its two timers in. Four
+  // providers offer By pause and their clients name the pair differently —
+  // this map is the only place that knows, so the invariant below can be a
+  // loop rather than four copies of the same assertion.
+  const PAUSE_FIELDS: Partial<Record<Provider, [source: string, translation: string]>> = {
+    [Provider.OPENAI_LIVE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
+    [Provider.OPENAI_TRANSLATE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
+    [Provider.GEMINI]: ['inputSegmentSilenceMs', 'assistantSegmentSilenceMs'],
+  };
+
+  // A2: one stored pause pair, in seconds, converted to milliseconds at the
+  // descriptor. A provider that starts offering By pause and forgets to hand
+  // the pair on would run its timers on the fallback for ever, silently.
+  it('every descriptor that offers By pause hands its client the pair, in milliseconds', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      if (!resolveSegmentationOffer(caps).pause) continue;
+      const fields = PAUSE_FIELDS[id];
+      expect(fields, `pause fields known for ${id}`).toBeDefined();
+      const client = ProviderConfigFactory.getDescriptor(id).createClient(
+        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
+        { transport: 'websocket', sourcePause: 0.8, translationPause: 2.5 },
+      );
+      expect((client as any)[fields![0]], `source pause for ${id}`).toBe(800);
+      expect((client as any)[fields![1]], `translation pause for ${id}`).toBe(2500);
+    }
+  });
+
+  it('a client built with no pause runs on the 1.5 s the store defaults to', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      if (!resolveSegmentationOffer(caps).pause) continue;
+      const [source, translation] = PAUSE_FIELDS[id]!;
+      const client = ProviderConfigFactory.getDescriptor(id).createClient(
+        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
+        { transport: 'websocket' },
+      );
+      expect((client as any)[source], `source fallback for ${id}`).toBe(1500);
+      expect((client as any)[translation], `translation fallback for ${id}`).toBe(1500);
+    }
+  });
+
+  // Translate over WebRTC has ONE timer for the pair, not two: it closes the
+  // source and the translation item together. It takes the translation pause,
+  // because the last delta of a pair is the translation's — see the client.
+  it('translate over WebRTC gives its single pair timer the translation pause', () => {
+    const client = ProviderConfigFactory.getDescriptor(Provider.OPENAI_TRANSLATE).createClient(
+      { ok: true, primary: 'k' },
+      { transport: 'webrtc', sourcePause: 0.8, translationPause: 2.5 },
+    );
+    expect((client as any).pairSilenceMs).toBe(2500);
+  });
+
   it('forcedTransport only on PalabraAI, and it names a real transport', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;

@@ -40,9 +40,9 @@ import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnosti
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { clampSegmentPauseMs, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 const TRANSLATE_CALLS_ENDPOINT_PATH = '/v1/realtime/translations/calls';
-const SILENCE_TIMEOUT_MS = 1500;
 const DEFAULT_API_HOST = 'https://api.openai.com';
 const ICE_GATHERING_TIMEOUT_MS = 5000;
 const DATA_CHANNEL_OPEN_TIMEOUT_MS = 10000;
@@ -60,6 +60,13 @@ interface WebRTCClientOptions {
   segmentation?: SegmentationRuntime | null;
   /** How many sentences fill a bubble once the stage is on. */
   sentencesPerChunk?: number;
+  /**
+   * The translation half of the global pause pair, in milliseconds. This
+   * client takes only that half — see `pairSilenceMs` — and deliberately does
+   * not accept the source one: there is no timer here for it to drive, and an
+   * option that is quietly ignored is worse than one that is absent.
+   */
+  translationPauseMs?: number;
 }
 
 interface ServerEvent {
@@ -152,6 +159,19 @@ export class OpenAITranslateWebRTCClient implements IClient {
    * session clock passes it. Nothing here can be rebuilt from without guessing.
    */
   private userStream: SentenceStream | null = null;
+  /**
+   * The one timer this transport has: it closes the source item and the
+   * translation item together, and both sides re-arm it.
+   *
+   * It takes the TRANSLATION pause of the global pair, not the source one. The
+   * last delta of a pair is the translation's — the speaker stopped before the
+   * translation caught up — so the gap this timer ends up measuring is
+   * translation-side silence. There is no second timer to give the source
+   * pause to: unlike the WebSocket client, this one has no translation-side
+   * stream and cannot close the two sides at different moments (see
+   * `userStream` above for why).
+   */
+  private pairSilenceMs = DEFAULT_SEGMENT_PAUSE_MS;
   /** The raw text the stream still holds, mirrored from its onPending. */
   private userPending = '';
   /** Set while a seal from the stream is closing an item, so the close does not
@@ -167,6 +187,7 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.outputDeviceId = options.outputDeviceId;
     this.segmentation = options.segmentation ?? null;
     this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+    this.pairSilenceMs = clampSegmentPauseMs(options.translationPauseMs);
 
     // Match OpenAIWebRTCClient: 24 kHz PCM with 200 ms buffer for smooth
     // playback through ModernAudioPlayer's queue-based pipeline.
@@ -192,7 +213,7 @@ export class OpenAITranslateWebRTCClient implements IClient {
     if (this.deltaTimer) clearTimeout(this.deltaTimer);
     this.deltaTimer = setTimeout(() => {
       this.completeCurrentPair();
-    }, SILENCE_TIMEOUT_MS);
+    }, this.pairSilenceMs);
   }
 
   /** Create, register and announce one side's item, and return its id. */

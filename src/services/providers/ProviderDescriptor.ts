@@ -88,6 +88,18 @@ export type ClientOptions = {
    * setting the running session must not react to.
    */
   sentencesPerChunk?: number;
+  /**
+   * The By pause mode's two silence timers, **in seconds** as stored — the
+   * source side and the translation side. One global pair (A2), not a field
+   * of any provider slice, so it reaches a client the same way the rest of
+   * the segmentation settings do rather than through `buildSessionConfig`.
+   *
+   * Only the four providers whose clients cut on their own timers read them;
+   * every other descriptor ignores them. Each converts to milliseconds with
+   * `segmentPauseMs`, and absent means that function's 1.5 s default.
+   */
+  sourcePause?: number;
+  translationPause?: number;
 };
 
 export interface BothModePlan {

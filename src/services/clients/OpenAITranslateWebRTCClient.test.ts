@@ -51,7 +51,7 @@ describe('OpenAITranslateWebRTCClient with the segmentation stage', () => {
     targetLanguage: 'ja',
   };
 
-  /** The client's own 1.5 s pair timer. */
+  /** The client's own pair timer, on the pause pair's default. */
   const PAIR_SILENCE_MS = 1500;
 
   /** A runtime that marks a sentence end every `every` characters. It inserts
@@ -110,7 +110,10 @@ describe('OpenAITranslateWebRTCClient with the segmentation stage', () => {
     globalThis.fetch = originalFetch as typeof fetch;
   });
 
-  async function connectStage(options: { segmentation?: any; sentencesPerChunk?: number }) {
+  async function connectStage(options: {
+    segmentation?: any; sentencesPerChunk?: number;
+    sourcePauseMs?: number; translationPauseMs?: number;
+  }) {
     const client = new OpenAITranslateWebRTCClient({ apiKey: 'sk-test', ...options });
     client.setEventHandlers({} as ClientEventHandlers);
     vi.spyOn((client as any).audioBridge, 'getLocalStream').mockResolvedValue({ getTracks: () => [] });
@@ -202,6 +205,24 @@ describe('OpenAITranslateWebRTCClient with the segmentation stage', () => {
     expect(user.formatted?.text).toBe('あ'.repeat(30));
     expect(assistant.status).toBe('completed');
     expect(assistant.formatted?.text).toBe('い'.repeat(30));
+  });
+
+  // One timer closes both sides here, so only one of the two pauses can drive
+  // it: the translation one. The last delta of a pair is the translation's —
+  // the source side stopped talking before the translation caught up — so the
+  // gap this timer actually measures is translation-side silence.
+  it('the pair timer runs on the translation pause, not the source one', async () => {
+    const client = await connectStage({ sourcePauseMs: 300, translationPauseMs: 2500 });
+    const feed = feedTo(client);
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(10) });
+    feed({ type: 'session.output_transcript.delta', delta: 'い'.repeat(10) });
+
+    vi.advanceTimersByTime(2000);
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    vi.advanceTimersByTime(501);
+    expect(usersOf(client)[0].status).toBe('completed');
+    expect(assistantsOf(client)[0].status).toBe('completed');
   });
 
   it('a runtime that is disabled at connect leaves the client exactly as it is today', async () => {
