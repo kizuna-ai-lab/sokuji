@@ -328,6 +328,24 @@ describe('SentenceSegmentationSection', () => {
       expect(setSegmentationMode).toHaveBeenLastCalledWith('pause');
     });
 
+    it('cancelling a retry leaves the mode where it already was', () => {
+      // Retry is only reachable from By sentences and says nothing about an
+      // earlier mode. Dropping the user to Off there would change how bubbles
+      // cut on the three pause providers, over a download they merely stopped
+      // retrying.
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'error', error: 'network', modeBeforeDownload: null });
+      renderSection();
+      fireEvent.click(screen.getByRole('button', { name: /Retry/ }));
+      act(() => {
+        useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1000 });
+      });
+      fireEvent.click(screen.getByTestId('segmentation-download-cancel'));
+
+      expect(cancel).toHaveBeenCalled();
+      expect(setSegmentationMode).not.toHaveBeenCalled();
+    });
+
     it('still puts the mode back after the section has been unmounted and remounted', () => {
       // Switching Advanced settings to another tab and back unmounts this
       // section — `AdvancedSettings` keys `.settings-content` on the active
@@ -624,14 +642,18 @@ describe('SentenceSegmentationSection', () => {
       expect(screen.getByTestId('segmentation-download-cancel')).toBeTruthy();
     });
 
-    it('cancelling the download drops the mode back to Off', () => {
+    it('cancelling a download that recorded no origin leaves the mode alone', () => {
+      // A download with no `modeBeforeDownload` was started from inside By
+      // sentences — the status line's Retry or Download. The models are
+      // missing either way and the section says so; moving the user to Off
+      // would change how bubbles cut on the three pause providers.
       mockMode = 'sentences';
-      useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1024 });
+      useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1024, modeBeforeDownload: null });
       renderSection();
 
       fireEvent.click(screen.getByTestId('segmentation-download-cancel'));
 
-      expect(setSegmentationMode).toHaveBeenCalledWith('off');
+      expect(setSegmentationMode).not.toHaveBeenCalled();
       expect(cancel).toHaveBeenCalledTimes(1);
       expect(refresh).toHaveBeenCalledTimes(2);
     });

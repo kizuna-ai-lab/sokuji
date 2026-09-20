@@ -209,10 +209,12 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
    */
   const cancelDownload = () => {
     const from = useSegmentationStore.getState().modeBeforeDownload;
-    // Null means the download did not say where it came from — the status
-    // line's Retry, which is only reachable from By sentences in the first
-    // place.
-    if (mode === 'sentences') void setSegmentationMode(from ?? 'off');
+    // Null means the download did not say where it came from: the status
+    // line's Retry, which is only reachable from By sentences. Cancelling a
+    // retry leaves the user where they already were — the models are missing
+    // either way, and the section says so — rather than moving them to Off,
+    // which on the three pause providers would quietly change how bubbles cut.
+    if (from !== null && mode === 'sentences') void setSegmentationMode(from);
     stopDownload();
   };
 
