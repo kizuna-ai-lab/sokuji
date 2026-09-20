@@ -1126,3 +1126,79 @@ Everything model-level here ran on one GB10 while other jobs shared the GPU, so
 the text results carry and the absolute latencies do not. whisper was decodable
 locally only as whisper-small q4 on WASM — the reason for a 1 s margin rather
 than one frame.
+
+### The thresholds, measured on the recorded deltas (2026-09-20)
+
+Slice 4's Task 6. The replay is
+`benchmark/punctuation-restoration/tools/threshold-sweep.test.ts`, off unless
+`SOKUJI_SWEEP=1`. It drives the real `SentenceStream` with the 58 corpus items
+that carry a delta sequence (ja 26, zh 22, en 10 — an earlier note said all 140
+do, which was wrong), against an oracle model that answers with the corpus's
+own reference punctuation. Quality is measured elsewhere; this isolates the
+gating and sealing.
+
+**Replayed as recorded, the stage barely runs.** ja and zh made **zero** model
+calls: GPT-Live's own output for those languages already carries marks, so
+every seal came from the rule path. Only English reached the gate at all (11
+calls). The feature's own case therefore has to be simulated, by stripping the
+marks from the deltas and keeping them in the reference:
+
+| | seals | of which by N sentences | model calls | mean commit lag |
+|---|---|---|---|---|
+| en | 16 | 6 | 119 | 5.2 s |
+| ja | 34 | 8 | 142 | 4.1 s |
+| zh | 31 | 9 | 13 | 6.1 s |
+
+Commit lag is from the delta that completed a sealed sentence to the delta
+during which it sealed. Four to six seconds is not the gate being slow: at
+N = 3 a finished sentence waits for two more to be spoken, and that is the
+setting working as designed. It is the number to quote when someone asks why
+N = 1 feels so much more responsive.
+
+**The Chinese length fallback never fired** in either mode — the recorded zh
+utterances do not reach the 100-character tail it needs. It stays unexercised
+by this corpus, which is not evidence against it: the live Chinese sessions in
+the sections above are where it was seen working.
+
+**Characters per sentence, across every corpus file** — the measurement the
+gate's constants never had:
+
+| lang | sentences | mean | median | p90 | gate at N = 3 | 3 x mean |
+|---|---|---|---|---|---|---|
+| ja | 138 | 20.6 | 18 | 37 | 60 | 61.8 |
+| ko | 45 | 19.7 | 18 | 31 | 60 | 59.2 |
+| zh | 213 | 25.2 | 18 | 51 | 60 | 75.6 |
+| en | 162 | 69.1 | 52 | 138 | 150 | 207.4 |
+| de | 24 | 44.5 | 39.5 | 58 | 150 | 133.5 |
+| fr | 24 | 46.5 | 39.5 | 70 | 150 | 139.4 |
+| es | 24 | 43.7 | 37.5 | 54 | 150 | 131.1 |
+| pt | 24 | 43.6 | 38 | 56 | 150 | 130.8 |
+| ru | 24 | 42.4 | 34 | 46 | 150 | 127.2 |
+
+**Korean needs no change, and the question as posed was wrong.** The plan asked
+whether Korean should move to 50 characters per sentence because it sits at the
+60-character gate; but `ko` is in `CJK_LANGS`, so its gate is 3 x 20 = 60, and
+its measured mean is 19.7. Three Korean sentences are 59.2 characters against a
+60-character gate: the closest fit of any language in the table. It stays at 20.
+
+Nothing else moves either. Asking the model early is cheap — it answers with
+fewer than N ends and nothing seals — so a gate below 3 x mean (ja, zh, en)
+costs only a call. A gate above it delays the seal, and the five European
+languages sit 11-23 characters above, about a third of a sentence. Not enough
+to spend a constant on without a European recording to check it against; the
+corpus has no European deltas.
+
+**What the right-context guard costs**, mean added latency per boundary, on the
+recorded arrival times:
+
+| lang | boundaries | R = 4 | R = 8 (shipped) | R = 16 |
+|---|---|---|---|---|
+| en | 28 | 738 ms | 973 ms | 1361 ms |
+| ja | 66 | 920 ms | 1284 ms | 2021 ms |
+| zh | 54 | 1784 ms | 2294 ms | 3446 ms |
+
+R = 8 stays. Dropping to 4 would save 0.24-0.51 s per boundary, and this corpus
+cannot show what that buys back: it is all GPT-Live, whose deltas are
+append-only, so the revision R exists to survive never happens in it. The two
+cursor bugs slice 3 fixed came from exactly those revisions on the local paths,
+where the same guard is load-bearing.
