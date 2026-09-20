@@ -13,7 +13,7 @@ import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
+import { punctuateAndSplitDefinite, splitDefinite, createSegmentLane } from './punctuateDefinite';
 
 /**
  * Volcengine ST Real-time Speech Translation response subtitle
@@ -342,7 +342,8 @@ export class VolcengineSTClient implements IClient {
   //
   // Both come from ClientOptions and are never re-read from a store. The
   // server decides its own boundaries (`Definite`), so the stage only fills in
-  // punctuation it never sent — see punctuateDefinite.
+  // punctuation it never sent and, at a size of 1-5, cuts inside that
+  // boundary — see punctuateAndSplitDefinite.
   private segmentation: SegmentationRuntime | null = null;
   private sentencesPerChunk = 3;
   /**
@@ -772,13 +773,20 @@ export class VolcengineSTClient implements IClient {
       }
     }
 
-    const write = (finalText: string) => {
+    const writePiece = (finalText: string, index: number) => {
       const conversationItem: ConversationItem = {
-        id: itemId,
+        // The first piece IS the segment's item; a later one is a fresh item,
+        // because a size of 1-5 cuts inside the boundary the server chose (A2's
+        // revision of D6). Nothing here carries audio — this client writes
+        // text only — so a cut strands no timing.
+        id: index === 0 ? itemId : this.generateItemId(isSourceLanguage ? 'source' : 'translation'),
         role,
         type: 'message',
         status: subtitle.Definite ? 'completed' : 'in_progress',
-        createdAt,
+        // MainPanel sorts by createdAt, and the base stamp is the segment's own
+        // — captured before the model call — so the pieces stay in order and
+        // together even when a later segment's item is already listed.
+        createdAt: createdAt + index,
         formatted: {
           text: finalText,
           transcript: finalText,
@@ -805,9 +813,10 @@ export class VolcengineSTClient implements IClient {
         }
       });
     };
+    const write = (pieces: string[]) => pieces.forEach(writePiece);
 
     const runtime = subtitle.Definite ? this.sessionSegmentation : null;
-    if (!runtime) { write(subtitle.Text); return; }
+    if (!runtime) { write([subtitle.Text]); return; }
     // `subtitle.Language` is the wire's own per-subtitle language — the only
     // one this provider reports — so it, not the configured pair, routes the
     // punctuation model. The call starts NOW so two segments punctuate
@@ -816,14 +825,14 @@ export class VolcengineSTClient implements IClient {
     const lang = subtitle.Language
       || (isSourceLanguage ? this.currentConfig?.sourceLanguage : this.currentConfig?.targetLanguages?.[0])
       || '';
-    const pending = punctuateDefinite(runtime, lang, subtitle.Text, this.sentencesPerChunk);
+    const pending = punctuateAndSplitDefinite(runtime, lang, subtitle.Text, this.sentencesPerChunk);
     this.punctuationLane.queue(async (cancelled) => {
-      const finalText = await pending;
+      const pieces = await pending;
       // `cancelled()`: disconnect() already wrote this segment raw. The
       // identity check is the reconnect case — a genuinely stale answer.
       if (cancelled() || this.sessionSegmentation !== runtime) return;
-      write(finalText);
-    }, () => write(subtitle.Text));
+      write(pieces);
+    }, () => write(splitDefinite(subtitle.Text, this.sentencesPerChunk)));
   }
 
   async disconnect(): Promise<void> {

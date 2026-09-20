@@ -22,7 +22,7 @@ import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
+import { punctuateAndSplitDefinite, splitDefinite, createSegmentLane } from './punctuateDefinite';
 
 /**
  * Soniox speech-to-speech translation client.
@@ -87,8 +87,9 @@ export interface SonioxClientOptions {
    *  leg of a split one. */
   announcesSessionOutcome?: boolean;
   /** The sentence segmentation stage. Soniox decides its own boundaries, so
-   *  the stage only fills in punctuation the server never sent — see
-   *  punctuateDefinite. Null or disabled is today's behaviour, byte for byte. */
+   *  the stage fills in punctuation the server never sent and, at a size of
+   *  1-5, cuts inside that boundary — see punctuateAndSplitDefinite. Null or
+   *  disabled is today's behaviour, byte for byte. */
   segmentation?: SegmentationRuntime | null;
   sentencesPerChunk?: number;
 }
@@ -710,15 +711,50 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       ? this.currentConfig?.targetLanguage
       : this.currentConfig?.sourceLanguage;
     const lang = detected ?? configured ?? '';
-    const pending = punctuateDefinite(runtime, lang, text, this.sentencesPerChunk);
+    const pending = punctuateAndSplitDefinite(runtime, lang, text, this.sentencesPerChunk);
     this.punctuationLane.queue(async (cancelled) => {
-      const finalText = await pending;
+      const pieces = await pending;
       // `cancelled()`: disconnect() already completed this item with the raw
       // text. The identity check is the reconnect case — an answer that lands
       // after one belongs to a session nobody renders.
       if (cancelled() || this.sessionSegmentation !== runtime) return;
-      this.writeCompletedItem(role, existingId, finalText, detected, side, createdAt);
-    }, () => this.writeCompletedItem(role, existingId, text, detected, side, createdAt));
+      this.writeCompletedPieces(role, existingId, pieces, detected, side, createdAt);
+    }, () => this.writeCompletedPieces(
+      role, existingId, splitDefinite(text, this.sentencesPerChunk), detected, side, createdAt,
+    ));
+  }
+
+  /**
+   * completeItem's write, as one item per piece.
+   *
+   * A size of 1-5 cuts inside the boundary Soniox chose (A2's revision of D6);
+   * Auto and a segment with too few sentences hand this one piece and it
+   * behaves exactly as it always did.
+   *
+   * The FIRST piece keeps the segment's own item, and with it the segment's
+   * replay audio: `formatted.audio` is the whole segment's TTS audio, kept
+   * only under `keepReplayAudio` (off by default) and read by a replay button,
+   * not by karaoke timing. It cannot be cut with the text — there is no
+   * per-sentence timing to cut it on — and the first bubble is where a user
+   * reaches for it, so it stays there and the later pieces have none.
+   *
+   * `createdAt + i` rather than one stamp for all: MainPanel sorts by
+   * `createdAt`, equal keys keep insertion order only as long as nothing else
+   * lands between them, and the next utterance's item may already be listed by
+   * the time a deferred write runs. The base stamp is the segment's own,
+   * captured before the model call.
+   */
+  private writeCompletedPieces(
+    role: 'user' | 'assistant',
+    existingId: string | null,
+    pieces: string[],
+    detected: string | null,
+    side: 'speaker' | 'participant' | null,
+    createdAt: number,
+  ): void {
+    pieces.forEach((piece, i) => {
+      this.writeCompletedItem(role, i === 0 ? existingId : null, piece, detected, side, createdAt + i);
+    });
   }
 
   /** completeItem's write, with the per-utterance state it needs passed in so

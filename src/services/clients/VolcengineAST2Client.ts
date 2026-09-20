@@ -42,7 +42,7 @@ import { data } from './volcengine-ast2/ast2-proto.js';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
+import { punctuateAndSplitDefinite, splitDefinite, createSegmentLane } from './punctuateDefinite';
 
 const TranslateRequest = data.speech.ast.TranslateRequest;
 const TranslateResponse = data.speech.ast.TranslateResponse;
@@ -166,7 +166,8 @@ export class VolcengineAST2Client implements IClient {
   //
   // Both come from ClientOptions and are never re-read from a store. Doubao
   // decides its own boundaries (the Definite/`end` phase), so the stage only
-  // fills in punctuation the server never sent — see punctuateDefinite.
+  // fills in punctuation the server never sent and, at a size of 1-5, cuts
+  // inside that boundary — see punctuateAndSplitDefinite.
   private segmentation: SegmentationRuntime | null = null;
   private sentencesPerChunk = 3;
   /**
@@ -742,13 +743,20 @@ export class VolcengineAST2Client implements IClient {
     // own this field.
     if (isDefinite) this.currentSourceItemId = null;
 
-    const write = (finalText: string) => {
+    const writePiece = (finalText: string, index: number) => {
       const item: ConversationItem = {
-        id: itemId,
+        // The first piece IS the segment's item; a later one is a fresh item,
+        // because a size of 1-5 cuts inside the boundary the server chose (A2's
+        // revision of D6). The source side carries no audio, so a cut here
+        // strands nothing.
+        id: index === 0 ? itemId : this.generateItemId('source'),
         role: 'user',
         type: 'message',
         status: isDefinite ? 'completed' : 'in_progress',
-        createdAt,
+        // MainPanel sorts by createdAt, and the base stamp is the segment's own
+        // — captured before the model call — so the pieces stay in order and
+        // together even when a later segment's item is already listed.
+        createdAt: createdAt + index,
         formatted: { text: finalText, transcript: finalText },
         content: [{ type: 'text', text: finalText }]
       };
@@ -768,20 +776,21 @@ export class VolcengineAST2Client implements IClient {
         }
       });
     };
+    const write = (pieces: string[]) => pieces.forEach(writePiece);
 
     const runtime = isDefinite ? this.sessionSegmentation : null;
-    if (!runtime) { write(text); return; }
+    if (!runtime) { write([text]); return; }
     // The model call starts NOW so two segments punctuate concurrently; the
     // write waits its turn in the lane so the answers cannot list the later
     // segment first.
-    const pending = punctuateDefinite(runtime, this.currentConfig?.sourceLanguage ?? '', text, this.sentencesPerChunk);
+    const pending = punctuateAndSplitDefinite(runtime, this.currentConfig?.sourceLanguage ?? '', text, this.sentencesPerChunk);
     this.punctuationLane.queue(async (cancelled) => {
-      const finalText = await pending;
+      const pieces = await pending;
       // `cancelled()`: disconnect() already wrote this segment raw. The
       // identity check is the reconnect case — a genuinely stale answer.
       if (cancelled() || this.sessionSegmentation !== runtime) return;
-      write(finalText);
-    }, () => write(text));
+      write(pieces);
+    }, () => write(splitDefinite(text, this.sentencesPerChunk)));
   }
 
   private handleTranslationSubtitle(response: any, phase: 'start' | 'response' | 'end'): void {
@@ -810,13 +819,21 @@ export class VolcengineAST2Client implements IClient {
       this.currentTranslationItemId = null;
     }
 
-    const write = (finalText: string) => {
+    const writePiece = (finalText: string, index: number) => {
       const item: ConversationItem = {
-        id: itemId,
+        // The first piece IS the segment's item, and it is also where the
+        // segment's TTS audio lands: `decodeTTSAndPlay` resolves its target
+        // through `ttsSentenceTargetItemId`/`currentTranslationItemId`/
+        // `lastCompletedTranslationItemId`, all of which are `itemId`. The
+        // audio is the whole segment's, there is no per-sentence timing to cut
+        // it on, and the first bubble is where a user reaches for the replay
+        // button — so it stays there and the later pieces have none.
+        id: index === 0 ? itemId : this.generateItemId('translation'),
         role: 'assistant',
         type: 'message',
         status: isDefinite ? 'completed' : 'in_progress',
-        createdAt,
+        // MainPanel sorts by createdAt; see the source side's note.
+        createdAt: createdAt + index,
         formatted: { text: finalText, transcript: finalText },
         content: [{ type: 'text', text: finalText }]
       };
@@ -836,15 +853,16 @@ export class VolcengineAST2Client implements IClient {
         }
       });
     };
+    const write = (pieces: string[]) => pieces.forEach(writePiece);
 
     const runtime = isDefinite ? this.sessionSegmentation : null;
-    if (!runtime) { write(text); return; }
-    const pending = punctuateDefinite(runtime, this.currentConfig?.targetLanguage ?? '', text, this.sentencesPerChunk);
+    if (!runtime) { write([text]); return; }
+    const pending = punctuateAndSplitDefinite(runtime, this.currentConfig?.targetLanguage ?? '', text, this.sentencesPerChunk);
     this.punctuationLane.queue(async (cancelled) => {
-      const finalText = await pending;
+      const pieces = await pending;
       if (cancelled() || this.sessionSegmentation !== runtime) return;
-      write(finalText);
-    }, () => write(text));
+      write(pieces);
+    }, () => write(splitDefinite(text, this.sentencesPerChunk)));
   }
 
   private handleTTSResponse(response: any): void {

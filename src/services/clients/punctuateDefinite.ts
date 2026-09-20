@@ -10,10 +10,16 @@ const FILL_IN_BUDGET_MS = 1_000;
 /**
  * Fill in missing punctuation on a segment the server already decided.
  *
- * Boundaries are the server's and are never touched: these providers split on
- * their own signal (Soniox's <end>, Volcengine's Definite, Palabra's
- * validated_transcription, a server turn, one Zoom REST utterance), and a
- * client-side split would fight it. The only change is the text.
+ * Boundaries are the server's and are never touched: these providers close a
+ * segment on their own signal (Soniox's <end>, Volcengine's Definite,
+ * Palabra's validated_transcription, a server turn, one Zoom REST utterance).
+ * The only change is the text.
+ *
+ * This is the whole of Auto, and the whole of what OpenAI Realtime GA and the
+ * OpenAI-compatible provider ever do — their items carry per-item audio
+ * timing, so a cut would strand it. A provider that CAN be cut calls
+ * `punctuateAndSplitDefinite` instead, which adds cuts inside this same
+ * boundary at a size of 1-5 (A2's revision of D6).
  *
  * Returns the input unchanged on every failure path, so a caller can assign
  * the result unconditionally.
@@ -60,6 +66,73 @@ export async function punctuateDefinite(
   if (!result) return text;
   if (skeleton(result.text) !== skeleton(text)) return text;
   return result.text;
+}
+
+/**
+ * Fill in missing punctuation on a segment the server already decided, and cut
+ * it into the pieces the user asked for.
+ *
+ * The same call as `punctuateDefinite` with a second job: A2 revises D6's
+ * "never split". A size of 0 is Auto and still means "punctuate, do not split",
+ * so it returns exactly one piece — the string `punctuateDefinite` returns, and
+ * nothing else. A size of 1-5 cuts the punctuated text after every Nth sentence
+ * end, with whatever is left over as a last piece.
+ *
+ * What it will not do is move the server's own boundary. Every cut is *inside*
+ * the segment it was handed: the pieces rejoin to it in order, two segments are
+ * never merged, and the outer edges are exactly where the server put them. A
+ * segment with fewer than N sentence ends — including one the model declined to
+ * punctuate — comes back whole, because there is nothing to count into.
+ *
+ * The cut positions come from `sentenceEnds`, the one rule the whole stage
+ * counts with, so "Dr. Smith went home." is one sentence here exactly as it is
+ * to a `SentenceStream`.
+ *
+ * A caller on a `SegmentLane` writes all of one segment's pieces inside ONE
+ * queued work item. The lane orders segments against each other; the pieces of
+ * a segment are one unit within it, and must not have the next segment's write
+ * land between them.
+ */
+export async function punctuateAndSplitDefinite(
+  runtime: SegmentationRuntime | null,
+  lang: string,
+  text: string,
+  sentencesPerChunk: number,
+): Promise<string[]> {
+  const filled = await punctuateDefinite(runtime, lang, text, sentencesPerChunk);
+  return splitDefinite(filled, sentencesPerChunk);
+}
+
+/**
+ * `text` cut after every `n`th sentence end, remainder last. `n` of 0 (Auto),
+ * and a text with fewer than `n` sentence ends, are returned as one piece.
+ *
+ * Pieces are trimmed and empty ones dropped: a cut lands just past a terminal,
+ * so the next piece would otherwise open with the space that separated the two
+ * sentences, and a text ending exactly on its Nth end would produce a bubble
+ * with nothing in it.
+ *
+ * Exported for the raw path only — `SegmentLane.flush()`'s fallback, which
+ * runs at Stop and must be synchronous. A segment the server punctuated itself
+ * still splits there; one the model never got to does not, because there is
+ * nothing to count. Everything else goes through `punctuateAndSplitDefinite`.
+ */
+export function splitDefinite(text: string, n: number): string[] {
+  if (n <= 0) return [text];
+  const ends = sentenceEnds(text);
+  if (ends.length < n) return [text];
+  const pieces: string[] = [];
+  let start = 0;
+  for (let i = n - 1; i < ends.length; i += n) {
+    pieces.push(text.slice(start, ends[i]));
+    start = ends[i];
+  }
+  if (start < text.length) pieces.push(text.slice(start));
+  const kept = pieces.map((piece) => piece.trim()).filter((piece) => piece.length > 0);
+  // Unreachable with any real segment — a text with a sentence end has a
+  // non-empty piece — but a caller that assigns this must never be handed an
+  // empty list and lose the segment.
+  return kept.length > 0 ? kept : [text];
 }
 
 /**

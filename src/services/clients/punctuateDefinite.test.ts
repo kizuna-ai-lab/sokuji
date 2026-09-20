@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
+import { punctuateDefinite, punctuateAndSplitDefinite, splitDefinite, createSegmentLane } from './punctuateDefinite';
 import type {
   PunctuationResult,
   SegmentationObservation,
@@ -133,6 +133,81 @@ describe('punctuateDefinite', () => {
       (runtime as { enabled: boolean }).enabled = false;
       await punctuateDefinite(runtime, 'ja', LONG_JA);
       expect(events).toEqual([]);
+    });
+  });
+});
+
+describe('punctuateAndSplitDefinite', () => {
+  it('returns one piece under Auto, byte-identical to what punctuateDefinite returns', async () => {
+    // Auto is "punctuate, do not split". The two functions must not be able to
+    // disagree about the text itself, so the expectation is the other
+    // function's own answer rather than a literal copied from it.
+    const expected = await punctuateDefinite(marking(20), 'ja', LONG_JA, 0);
+    expect(await punctuateAndSplitDefinite(marking(20), 'ja', LONG_JA, 0)).toEqual([expected]);
+  });
+
+  it('returns one piece under Auto with no runtime at all', async () => {
+    expect(await punctuateAndSplitDefinite(null, 'ja', LONG_JA, 0)).toEqual([LONG_JA]);
+  });
+
+  it('cuts the punctuated text every N sentence ends, remainder last', async () => {
+    // 100 characters become five 20-character sentences; at N = 2 that is
+    // 2 + 2 + 1.
+    const pieces = await punctuateAndSplitDefinite(marking(20), 'ja', 'あ'.repeat(100), 2);
+    const two = `${'あ'.repeat(20)}。${'あ'.repeat(20)}。`;
+    expect(pieces).toEqual([two, two, `${'あ'.repeat(20)}。`]);
+  });
+
+  it('keeps the server\'s outer boundary: the pieces rejoin to the whole segment', async () => {
+    const text = 'あ'.repeat(100);
+    const pieces = await punctuateAndSplitDefinite(marking(20), 'ja', text, 2);
+    expect(pieces.join('')).toBe(await punctuateDefinite(marking(20), 'ja', text, 2));
+  });
+
+  it('never returns an empty piece when the text ends exactly on a cut', async () => {
+    // Four sentences at N = 2 leaves no remainder; the empty tail is dropped
+    // rather than listed as a bubble with nothing in it.
+    const pieces = await punctuateAndSplitDefinite(marking(20), 'ja', 'あ'.repeat(80), 2);
+    expect(pieces).toHaveLength(2);
+    expect(pieces.every((p) => p.length > 0)).toBe(true);
+  });
+
+  it('keeps a text with fewer than N sentence ends whole', async () => {
+    const pieces = await punctuateAndSplitDefinite(marking(60), 'ja', LONG_JA, 3);
+    expect(pieces).toEqual([`${'あ'.repeat(60)}。`]);
+  });
+
+  it('keeps a segment the model could not punctuate whole', async () => {
+    const declining = runtimeAnswering(() => null);
+    expect(await punctuateAndSplitDefinite(declining, 'ja', LONG_JA, 1)).toEqual([LONG_JA]);
+  });
+
+  it('cuts on the shared sentence-end rule, so an abbreviation is not a cut', async () => {
+    // `sentenceEnds` from sentenceEnd.ts, the same rule the stage counts with:
+    // the period in "Dr." is not a sentence end. A fresh regex here would put
+    // "Smith went home." in its own bubble.
+    const text = 'Dr. Smith went home. He slept.';
+    expect(await punctuateAndSplitDefinite(null, 'en', text, 1))
+      .toEqual(['Dr. Smith went home.', 'He slept.']);
+  });
+
+  it('trims the whitespace a cut leaves at a piece\'s edges', async () => {
+    const text = 'One sentence.   Another one.  ';
+    expect(await punctuateAndSplitDefinite(null, 'en', text, 1))
+      .toEqual(['One sentence.', 'Another one.']);
+  });
+
+  describe('splitDefinite, the synchronous half the raw path uses', () => {
+    it('splits a segment the server punctuated itself, with no model in sight', () => {
+      // This is what a `SegmentLane.flush()` fallback calls at Stop. It has to
+      // be synchronous — Stop must not wait out the fill-in budget — and it
+      // still honours the user's size where the text allows it.
+      expect(splitDefinite('One. Two. Three. Four.', 2))
+        .toEqual(['One. Two.', 'Three. Four.']);
+    });
+
+    it('keeps an unpunctuated segment whole, because there is nothing to count', () => {
+      expect(splitDefinite(LONG_JA, 2)).toEqual([LONG_JA]);
     });
   });
 });

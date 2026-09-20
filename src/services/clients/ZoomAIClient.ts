@@ -8,7 +8,7 @@ import { ZoomJwtSigner } from './zoom/ZoomJwtSigner';
 import { encodeWavDataUri, transcribe, translate, ZoomApiError } from './zoom/zoomApi';
 import { createVadWorker } from './zoom/createVadWorker';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { punctuateDefinite } from './punctuateDefinite';
+import { punctuateAndSplitDefinite } from './punctuateDefinite';
 
 const VAD_INPUT_SAMPLE_RATE = 24000; // Sokuji recorder output
 
@@ -27,7 +27,8 @@ export class ZoomAIClient implements IClient {
   //
   // Both come from ClientOptions and are never re-read from a store. One REST
   // utterance is one segment and the VAD decided where it ended, so the stage
-  // only fills in punctuation Zoom never sent — see punctuateDefinite.
+  // fills in punctuation Zoom never sent and, at a size of 1-5, cuts inside
+  // that boundary — see punctuateAndSplitDefinite.
   // No lane is needed here: `utteranceChain` already runs one utterance at a
   // time, so these awaits are ordered by construction.
   private segmentation: SegmentationRuntime | null = null;
@@ -129,41 +130,57 @@ export class ZoomAIClient implements IClient {
       // `utteranceChain`, so there is no way for a later utterance's item to
       // overtake this one. `this.connected` below is the teardown guard the
       // rest of the method already uses.
-      const transcriptText = await punctuateDefinite(
+      const transcriptPieces = await punctuateAndSplitDefinite(
         this.segmentationFor(), cfg.sourceLanguage, rawTranscript, this.sentencesPerChunk,
       );
       if (!this.connected) return;
 
-      const userItem: ConversationItem = {
-        id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
-        createdAt: Date.now(),
-        formatted: { transcript: transcriptText, text: transcriptText },
-        content: [{ type: 'text', text: transcriptText }],
-      };
-      this.conversationItems.push(userItem);
-      this.eventHandlers.onConversationUpdated?.({ item: userItem });
+      this.writePieces('user', transcriptPieces);
 
       if (!this.connected) return;
       // The RAW transcript, not the punctuated one: the stage changes what the
       // user reads, never what a provider is asked to translate.
       const rawTranslation = await translate(token, rawTranscript, cfg.sourceLanguage, target);
       if (!rawTranslation || !this.connected) return;
-      const translated = await punctuateDefinite(
+      const translatedPieces = await punctuateAndSplitDefinite(
         this.segmentationFor(), target, rawTranslation, this.sentencesPerChunk,
       );
       if (!this.connected) return;
 
-      const asstItem: ConversationItem = {
-        id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'completed',
-        createdAt: Date.now(),
-        formatted: { transcript: translated, text: translated },
-        content: [{ type: 'text', text: translated }],
-      };
-      this.conversationItems.push(asstItem);
-      this.eventHandlers.onConversationUpdated?.({ item: asstItem });
+      this.writePieces('assistant', translatedPieces);
     } catch (err) {
       if (this.connected) this.emitError(err);
     }
+  }
+
+  /**
+   * One utterance's text, as one item per piece.
+   *
+   * A2's revision of D6 lets a size of 1-5 cut inside the boundary the VAD
+   * chose; Auto, and an utterance with too few sentences, hand this one piece
+   * and it is the write this client has always done. No Zoom item carries
+   * audio — the WAV goes to the REST call and is never attached to an item —
+   * so a cut strands no timing.
+   *
+   * `createdAt + i`: MainPanel sorts by `createdAt`, and two pieces written in
+   * the same millisecond would otherwise rely on insertion order surviving
+   * that sort.
+   */
+  private writePieces(role: 'user' | 'assistant', pieces: string[]): void {
+    const createdAt = Date.now();
+    pieces.forEach((text, i) => {
+      const item: ConversationItem = {
+        id: this.nextId(role === 'user' ? 'user' : 'asst'),
+        role,
+        type: 'message',
+        status: 'completed',
+        createdAt: createdAt + i,
+        formatted: { transcript: text, text },
+        content: [{ type: 'text', text }],
+      };
+      this.conversationItems.push(item);
+      this.eventHandlers.onConversationUpdated?.({ item });
+    });
   }
 
   /** The session's frozen runtime, or null once the session is over. */
