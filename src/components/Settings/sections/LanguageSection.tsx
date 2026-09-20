@@ -716,7 +716,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
               registered provider is currently 'always' — the last two that were
               (Zoom AI, Volcengine ST) were removed on 2026-09-20 — but
               textOnlyCapability is a three-valued descriptor contract, so this
-              branch stays as the handling for the value. */}
+              branch stays as the handling for the value. It is executed by
+              LanguageSection.sentence.test.tsx's stubbed-capability case, which
+              is the only thing reaching it while no provider declares it. */}
           {providerConfig.capabilities.textOnlyCapability === 'always' && (
             <ToggleSwitch
               checked={true}

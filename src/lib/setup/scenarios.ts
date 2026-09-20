@@ -52,11 +52,12 @@ export type ProviderFit =
 
 /** Whether a provider can serve a scenario, judged on its
  *  ProviderCapabilities.textOnlyCapability alone (spec §1.2, step 2).
- *  No registered provider is currently 'always' — the last two that were
- *  (Zoom AI, Volcengine ST) were removed on 2026-09-20 — so the 'cannot-speak'
- *  branch is unexercised today. It stays because textOnlyCapability is a
- *  three-valued descriptor contract: a future text-only provider registers,
- *  it does not re-derive this. */
+ *  No registered provider currently carries 'always' — the last two that did
+ *  (Zoom AI, Volcengine ST) were removed on 2026-09-20 — so no live provider
+ *  reaches the 'cannot-speak' branch today; scenarios.test.ts does exercise it
+ *  directly, since the capability is a plain parameter here. The branch stays
+ *  because textOnlyCapability is a three-valued descriptor contract: a future
+ *  text-only provider registers, it does not re-derive this. */
 export function providerFitForScenario(
   textOnlyCapability: 'always' | 'optional' | 'never',
   scenario: ScenarioPreset,

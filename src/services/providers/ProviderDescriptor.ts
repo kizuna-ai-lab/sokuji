@@ -307,7 +307,6 @@ export interface ProviderDescriptor {
 
   resolveSourceLanguages(): LanguageOption[];
   resolveTargetLanguages(source: string): LanguageOption[];
-  reconcileTarget(source: string, currentTarget: string): string;
 
   /** Session shape for Both mode. Base: neither — one client per channel,
    *  the historical fall-through every non-Soniox provider runs today.
@@ -428,11 +427,6 @@ export abstract class BaseProviderDescriptor implements ProviderDescriptor {
   resolveTargetLanguages(_source: string): LanguageOption[] {
     const cfg = this.getConfig();
     return cfg.targetLanguages ?? cfg.languages;
-  }
-
-  reconcileTarget(source: string, currentTarget: string): string {
-    const allowed = this.resolveTargetLanguages(source).map(l => l.value);
-    return allowed.includes(currentTarget) ? currentTarget : (allowed[0] ?? currentTarget);
   }
 
   planBothMode(_slice: unknown, _mode: string): BothModePlan {

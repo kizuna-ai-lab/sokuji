@@ -68,8 +68,10 @@ describe('PalabraAI language codes match the API enums', () => {
 
   it('exposes the target list through getConfig(), which is what the settings dropdown reads', () => {
     // LanguageSection resolves its target dropdown as
-    // `providerConfig.targetLanguages ?? providerConfig.languages`, and only
-    // consults resolveTargetLanguages() for LOCAL_INFERENCE/LOCAL_NATIVE.
+    // `providerConfig.targetLanguages ?? providerConfig.languages`, and
+    // consults resolveTargetLanguages() for no provider today —
+    // LOCAL_INFERENCE/LOCAL_NATIVE resolve their targets through
+    // getTranslationTargetLanguages() instead.
     // A provider that leaves `targetLanguages` unset therefore offers its *source*
     // list as targets, no matter what resolveTargetLanguages() returns.
     const cfg = ProviderConfigFactory.getConfig(Provider.PALABRA_AI);

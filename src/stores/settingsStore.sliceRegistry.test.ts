@@ -109,7 +109,7 @@ describe('provider settings update actions (behavior lock)', () => {
   // line. Neither was visible to the user, and which slice got which was
   // arbitrary.
   //
-  // All twelve now go through `persistSetting`: state is applied, the promise
+  // All ten now go through `persistSetting`: state is applied, the promise
   // resolves, and the failure becomes one panel entry per key. Both failure
   // channels are exercised because the service can produce either.
   const ALL_SLICES: Array<[string, string, Record<string, unknown>]> = [
