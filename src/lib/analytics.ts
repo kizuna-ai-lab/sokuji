@@ -49,12 +49,14 @@ export interface AnalyticsEvents {
     /** Symmetric channel composition — which clients actually started.
      *  ['speaker'] = scenario 1, ['participant'] = scenario 2, both = scenario 3. */
     channels?: string[];
-    /** The sentence segmentation toggle. On its own it says only what the user
-     *  asked for. */
+    /** A2: the mode resolved to By sentences for this provider. On its own it
+     *  says only what the user asked for. */
     sentence_segmentation_enabled?: boolean;
-    /** A1: the toggle is on AND all three models are on disk. The only one of
-     *  the two that says whether this session could seal anything. */
+    /** A1: the mode is By sentences AND all three models are on disk. The only
+     *  one of the two that says whether this session could seal anything. */
     sentence_segmentation_active?: boolean;
+    /** The resolved size: 0 is Auto (punctuate, never seal), 1-5 seal every N
+     *  sentences. */
     sentence_segmentation_chunk_sentences?: number;
   };
   'translation_session_end': {

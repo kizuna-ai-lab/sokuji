@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
 import type { PunctuationModelId, SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { useSentenceSegmentation } from '../../stores/settingsStore';
+import { resolveSegmentationMode } from '../../lib/segmentation/segmentationMode';
+import { useProvider, useSegmentationMode } from '../../stores/settingsStore';
+import { segmentationOfferFor } from './segmentationForProvider';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import useLogStore from '../../stores/logStore';
 import type { AnalyticsEvents } from '../../lib/analytics';
@@ -45,12 +47,26 @@ export type TrackSegmentationEvent = (
  * `punctuate()` result as "no model available"; treating a null runtime the
  * same way is the same contract, one level up.
  *
- * It reads the enabled flag through a getter rather than a prop, so flipping
- * the switch -- or the pack's download finishing -- takes effect on the next
- * call without tearing down a loaded model.
+ * It reads the enabled flag through a getter rather than a prop, so changing
+ * the mode, switching provider -- or the pack's download finishing -- takes
+ * effect on the next call without tearing down a loaded model.
  */
 export function useSegmentationRuntime(trackEvent?: TrackSegmentationEvent): SegmentationRuntime | null {
-  const enabled = useSentenceSegmentation();
+  // A2: one stored mode, clamped on read to what the current provider offers.
+  // Only By sentences runs this stage. Off asks for nothing, and By pause is
+  // the client's own silence timer cutting the bubble -- a runtime sealing
+  // alongside it would be a second rule on the same text. `pause` is also the
+  // stored default, and on a provider without timers it clamps to `off`, so
+  // this one comparison covers both halves of that default.
+  // Memoised only because MainPanel re-renders often and reading the offer
+  // rebuilds the provider's whole config object; the answer itself moves twice
+  // a session at most.
+  const storedMode = useSegmentationMode();
+  const provider = useProvider();
+  const enabled = useMemo(
+    () => resolveSegmentationMode(storedMode, segmentationOfferFor(provider)) === 'sentences',
+    [storedMode, provider],
+  );
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
 
@@ -79,7 +95,7 @@ export function useSegmentationRuntime(trackEvent?: TrackSegmentationEvent): Seg
     // one: punctuate() runs up to ~12x a second.
     const seen = new Set<PunctuationModelId>();
     const instance = new PunctuationRuntime({
-      // A1: the toggle alone is not enough. The runtime no longer downloads
+      // A1: the mode alone is not enough. The runtime no longer downloads
       // anything, so it must not be told it is on until all three models are
       // actually on disk.
       isEnabled: () => enabledRef.current && useSegmentationStore.getState().phase === 'ready',

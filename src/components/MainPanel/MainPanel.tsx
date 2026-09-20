@@ -23,7 +23,7 @@ import {
   useSubtitleModeActive,
   useKeepReplayAudio,
   useTextOnly,
-  useSentenceSegmentation,
+  useSegmentationMode,
   useSentenceSegmentationChunkSentences,
   useSegmentationSourcePause,
   useSegmentationTranslationPause,
@@ -77,6 +77,7 @@ import {
   teardownSessionLegs,
 } from '../../services/providers/managedSonioxSplit';
 import { buildClientOptions } from './clientOptions';
+import { segmentationForProvider, segmentationOfferFor } from './segmentationForProvider';
 import { useSegmentationRuntime } from './useSegmentationRuntime';
 import {
   SegmentationCounters,
@@ -294,8 +295,21 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   const provider = useProvider();
   const uiMode = useUIMode();
   const segmentationRuntime = useSegmentationRuntime(trackEvent);
-  const sentenceSegmentationOn = useSentenceSegmentation();
-  const sentencesPerChunk = useSentenceSegmentationChunkSentences();
+  // A2: one stored mode and one stored size, both clamped on read to what this
+  // provider offers. `mode` is what the session ran in — the stage itself is
+  // gated inside useSegmentationRuntime above, from the same two values — and
+  // `sentencesPerChunk` is the 1-5 the clients are contracted to receive,
+  // which is not always `size` (see segmentationForProvider).
+  const storedSegmentationMode = useSegmentationMode();
+  const storedChunkSentences = useSentenceSegmentationChunkSentences();
+  const { mode: segmentationMode, size: segmentationSize, sentencesPerChunk } = useMemo(
+    () => segmentationForProvider({
+      storedMode: storedSegmentationMode,
+      storedSize: storedChunkSentences,
+      offer: segmentationOfferFor(provider),
+    }),
+    [storedSegmentationMode, storedChunkSentences, provider],
+  );
   // The By pause mode's two timers, in seconds as stored. They ride to the
   // client beside the runtime and the size; each descriptor converts.
   const sourcePause = useSegmentationSourcePause();
@@ -4171,12 +4185,16 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           provider: provider,
           model: sessionConfig.model,
           ...modelProps,
-          sentence_segmentation_enabled: sentenceSegmentationOn,
-          // A1: the toggle alone is not the feature. `runtime.enabled` is the
-          // toggle AND all three models on disk AND the memory guard, which is
+          // A2: the resolved mode, not the stored one — By pause on a provider
+          // without timers is Off, and the stage did not run there either.
+          sentence_segmentation_enabled: segmentationMode === 'sentences',
+          // A1: the mode alone is not the feature. `runtime.enabled` is the
+          // mode AND all three models on disk AND the memory guard, which is
           // the only thing that says whether this session could seal at all.
           sentence_segmentation_active: segmentationRuntime?.enabled === true,
-          sentence_segmentation_chunk_sentences: sentencesPerChunk,
+          // The resolved size, so 0 reads as Auto rather than as the 1-5 the
+          // clients were handed in its place.
+          sentence_segmentation_chunk_sentences: segmentationSize,
           noise_suppression_enabled: noiseSuppressionMode !== 'off',
           noise_suppression_mode: noiseSuppressionMode,
           real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,

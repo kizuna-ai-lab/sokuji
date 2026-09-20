@@ -7,6 +7,7 @@ import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRun
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import useSettingsStore from '../../stores/settingsStore';
 import useLogStore from '../../stores/logStore';
+import { Provider } from '../../types/Provider';
 import { settleReports } from '../../lib/diagnostics/report';
 
 // settingsStore's static import graph reaches ModernBrowserAudioService's
@@ -87,7 +88,10 @@ beforeEach(() => {
   // 'ready' is the interesting default: every test but the phase one below
   // wants a pack that is on disk, so `enabled` follows the toggle alone.
   useSegmentationStore.setState({ phase: 'ready', downloadedBytes: 0, error: null, refresh });
-  useSettingsStore.setState({ sentenceSegmentation: true });
+  // By sentences is the one mode that runs the stage, and OpenAI offers it
+  // (Auto), so this is the interesting default too: every test but the mode
+  // ones below wants a runtime that is on.
+  useSettingsStore.setState({ segmentationMode: 'sentences', provider: Provider.OPENAI });
   // These tests assert what reaches the log store, which records nothing
   // unless diagnostic logs are switched on (off by default in the app).
   useLogStore.getState().setEnabled(true);
@@ -106,16 +110,65 @@ describe('useSegmentationRuntime', () => {
     expect(MockedRuntime).toHaveBeenCalledTimes(1);
   });
 
-  it('follows the enabled setting without rebuilding the runtime', () => {
+  it('follows the mode without rebuilding the runtime', () => {
     const { result } = renderHook(() => useSegmentationRuntime());
     const runtime = result.current!;
     expect(runtime.enabled).toBe(true);
 
-    act(() => { useSettingsStore.setState({ sentenceSegmentation: false }); });
+    act(() => { useSettingsStore.setState({ segmentationMode: 'off' }); });
 
     expect(result.current).toBe(runtime);
     expect(MockedRuntime).toHaveBeenCalledTimes(1);
     expect(runtime.enabled).toBe(false);
+  });
+
+  // A2: the stage is one of three ways a bubble gets cut, and only By
+  // sentences is this one. Off asks for nothing, and By pause is the client's
+  // own silence timer doing the cutting — a runtime that ran alongside either
+  // would seal on top of a boundary somebody else already decided.
+  it('runs the stage only in By sentences', () => {
+    const { result } = renderHook(() => useSegmentationRuntime());
+    const runtime = result.current!;
+
+    act(() => { useSettingsStore.setState({ segmentationMode: 'off' }); });
+    expect(runtime.enabled).toBe(false);
+
+    act(() => { useSettingsStore.setState({ segmentationMode: 'pause' }); });
+    expect(runtime.enabled).toBe(false);
+
+    act(() => { useSettingsStore.setState({ segmentationMode: 'sentences' }); });
+    expect(runtime.enabled).toBe(true);
+  });
+
+  // The mode is stored once and clamped on read, so By pause means By pause
+  // on the three clients that have timers and Off on every other provider —
+  // and it leaves the stage off either way.
+  it('leaves the stage off in By pause, on a provider that offers By pause and on one that does not', () => {
+    const { result } = renderHook(() => useSegmentationRuntime());
+    const runtime = result.current!;
+
+    act(() => {
+      useSettingsStore.setState({ segmentationMode: 'pause', provider: Provider.GEMINI });
+    });
+    expect(runtime.enabled).toBe(false);
+
+    act(() => { useSettingsStore.setState({ provider: Provider.SONIOX }); });
+    expect(runtime.enabled).toBe(false);
+  });
+
+  // Switching provider is not a reason to drop a loaded model: the mode is
+  // read through the same getter the toggle always was.
+  it('picks up a provider change without rebuilding the runtime', () => {
+    useSettingsStore.setState({ segmentationMode: 'sentences', provider: Provider.GEMINI });
+    const { result } = renderHook(() => useSegmentationRuntime());
+    const runtime = result.current!;
+    expect(runtime.enabled).toBe(true);
+
+    act(() => { useSettingsStore.setState({ provider: Provider.SONIOX }); });
+
+    expect(result.current).toBe(runtime);
+    expect(MockedRuntime).toHaveBeenCalledTimes(1);
+    expect(runtime.enabled).toBe(true);
   });
 
   it('asks the pack for its phase on mount, without the Settings panel ever being opened', () => {
@@ -126,7 +179,7 @@ describe('useSegmentationRuntime', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('is enabled only when the toggle is on AND the pack is ready', () => {
+  it('is enabled only when the mode is By sentences AND the pack is ready', () => {
     useSegmentationStore.setState({ phase: 'missing' });
     const { result } = renderHook(() => useSegmentationRuntime());
     const runtime = result.current!;
@@ -137,7 +190,7 @@ describe('useSegmentationRuntime', () => {
     act(() => { useSegmentationStore.setState({ phase: 'ready' }); });
     expect(runtime.enabled).toBe(true);
 
-    act(() => { useSettingsStore.setState({ sentenceSegmentation: false }); });
+    act(() => { useSettingsStore.setState({ segmentationMode: 'off' }); });
     expect(runtime.enabled).toBe(false);
   });
 
