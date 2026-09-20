@@ -36,6 +36,8 @@ import {
   lastSentenceEnd,
   lastClauseEnd,
 } from '../../lib/segmentation/sentenceEnd';
+import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 export const LIVE_WS_URL = 'wss://api.openai.com/v1/live/sessions';
 export const LIVE_HOST = 'api.openai.com';
@@ -178,8 +180,45 @@ export class OpenAILiveClient implements IClient {
   private conversationItems: ConversationItem[] = [];
   private deltaSequenceNumber: number = 0;
 
-  constructor(apiKey: string) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both fields come from ClientOptions and are never re-read from a store, so
+  // a running session cannot react to either setting changing. A null or
+  // disabled runtime means today's behaviour, byte for byte.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). See LocalInferenceClient.ts:119 for the full reasoning —
+   * briefly, `runtime.enabled` moves in BOTH directions under an open session
+   * (the punctuation pack finishing its download turns it true, deleting it
+   * turns it false) and `SentenceStream` reads `enabled` once at its own
+   * construction. A stream built from a flipped value goes inert while this
+   * client still routes text into it, which loses the item outright. One
+   * frozen view handed to every stream is what makes those reads one answer.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** One stream per side: the speaker's transcript and the model's output seal
+   *  independently, because each has its own items and its own caps. */
+  private userStream: SentenceStream | null = null;
+  private assistantStream: SentenceStream | null = null;
+  /** The raw text each stream still holds, mirrored from its onPending so the
+   *  next delta can be handed the whole unsealed tail. */
+  private userPending = '';
+  private assistantPending = '';
+  /** Set while a seal from the stream is closing an item, so the close does not
+   *  turn around and end() the stream that produced it: the remainder that
+   *  stream still holds is what opens the next item. */
+  private sealingUser = false;
+  private sealingAssistant = false;
+
+  constructor(
+    apiKey: string,
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.apiKey = apiKey;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
   }
 
   // ----- Static helpers -----
@@ -341,6 +380,10 @@ export class OpenAILiveClient implements IClient {
     this.currentAssistantStartMs = null;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
+    // Discarded, not ended: the items these streams were feeding are being
+    // forgotten too, so a final seal would have nowhere to land.
+    this.discardUserStream();
+    this.discardAssistantStream();
   }
 
   private resetSessionState(): void {
@@ -726,25 +769,62 @@ export class OpenAILiveClient implements IClient {
           // The speaker paused: the mark Live put at the head of this delta
           // still belongs to the clause before the pause.
           const mark = lead.trimEnd();
-          if (mark.length > 0) this.appendUserText(mark, startMs);
+          if (mark.length > 0) {
+            this.appendUserText(mark, startMs);
+            // The stage's stream has to see the mark too. completeUserItem
+            // below ends the stream, and that final seal rewrites the item
+            // with the tail the stream holds — without this, the mark that
+            // was just appended would be rewritten away again.
+            this.userStream?.update(this.userPending + mark);
+          }
           this.completeUserItem();
           text = delta.slice(lead.length);
           prefix = '';
         }
         if (text.length > 0) {
-          let split = lastSentenceEnd(text, prefix);
           const itemStart = this.userItemStartMs ?? startMs;
           const span = itemStart !== null && endMs !== null ? endMs - itemStart : null;
-          // A long item is cut at the next clause mark; a very long one anywhere.
-          if (split <= 0 && span !== null && span >= USER_SOFT_CAP_MS) split = lastClauseEnd(text);
-          if (split > 0) {
-            this.appendUserText(text.slice(0, split), startMs);
-            this.completeUserItem();
-            const tail = text.slice(split);
-            if (tail.length > 0) this.appendUserText(tail, startMs);
-          } else {
+          const stream = this.ensureUserStream();
+          if (stream) {
+            // R1: with the stage active the stream's N-sentence seal is what
+            // ends an item, so the per-delta lastSentenceEnd split is skipped —
+            // it is N = 1 by another name, and leaving it in would make the
+            // setting inert for the one provider the feature was designed on.
+            // The two timeline caps stay: they are the safety net for speech
+            // the stage never finds a boundary in.
             this.appendUserText(text, startMs);
-            if (span !== null && span >= USER_SPAN_CAP_MS) this.completeUserItem();
+            const openBefore = this.currentUserItemId;
+            stream.update(this.userPending + text);
+            // A seal inside that update already ended this item and opened the
+            // next one; `span` belongs to the item that just closed, so the
+            // caps below have nothing left to say about it.
+            if (this.currentUserItemId === openBefore) {
+              // Offsets are counted back from the end of the text, because the
+              // item's transcript and the stream's tail can differ by the
+              // leading space appendUserText strips when it opens an item.
+              const whole = this.userTranscript();
+              const clause = span !== null && span >= USER_SOFT_CAP_MS ? lastClauseEnd(text) : -1;
+              if (clause > 0) {
+                this.cutUserItemAt(whole.length - (text.length - clause));
+              } else if (span !== null && span >= USER_SPAN_CAP_MS) {
+                const at = stream.confirmedBoundary();
+                if (at > 0) this.cutUserItemAt(whole.length - (this.userPending.length - at));
+                else this.completeUserItem();
+              }
+            }
+          } else {
+            let split = lastSentenceEnd(text, prefix);
+            // A long item is cut at the next clause mark; a very long one anywhere.
+            if (split <= 0 && span !== null && span >= USER_SOFT_CAP_MS) split = lastClauseEnd(text);
+            if (split > 0) {
+              this.appendUserText(text.slice(0, split), startMs);
+              this.completeUserItem();
+              const tail = text.slice(split);
+              if (tail.length > 0) this.appendUserText(tail, startMs);
+            } else {
+              this.appendUserText(text, startMs);
+              if (span !== null && span >= USER_SPAN_CAP_MS) this.completeUserItem();
+            }
           }
         }
         if (endMs !== null) this.userLastEndMs = endMs;
@@ -761,18 +841,37 @@ export class OpenAILiveClient implements IClient {
           ? delta
           : delta.slice((LEADING_PUNCT_RE.exec(delta)?.[0] ?? '').length);
         if (text.length > 0) {
-          let split = lastSentenceEnd(text, this.assistantTranscript());
           const itemStart = this.currentAssistantStartMs ?? startMs;
           const span = itemStart !== null && endMs !== null ? endMs - itemStart : null;
-          // A long item is cut at the next clause mark; a very long one anywhere.
-          if (split <= 0 && span !== null && span >= ASSISTANT_SOFT_CAP_MS) split = lastClauseEnd(text);
-          if (split > 0) {
-            this.closeAssistantText(this.appendAssistantText(text.slice(0, split), startMs, endMs));
-            const tail = text.slice(split);
-            if (tail.length > 0) this.appendAssistantText(tail, startMs, endMs);
+          const stream = this.ensureAssistantStream();
+          if (stream) {
+            // R1, translation side. Structurally identical to the source side
+            // above, down to the two caps; only the close path differs.
+            const openBefore = this.appendAssistantText(text, startMs, endMs);
+            stream.update(this.assistantPending + text);
+            if (this.currentAssistantItemId === openBefore) {
+              const whole = this.assistantTranscript();
+              const clause = span !== null && span >= ASSISTANT_SOFT_CAP_MS ? lastClauseEnd(text) : -1;
+              if (clause > 0) {
+                this.cutAssistantItemAt(whole.length - (text.length - clause));
+              } else if (span !== null && span >= ASSISTANT_SPAN_CAP_MS) {
+                const at = stream.confirmedBoundary();
+                if (at > 0) this.cutAssistantItemAt(whole.length - (this.assistantPending.length - at));
+                else this.closeAssistantText(openBefore);
+              }
+            }
           } else {
-            const itemId = this.appendAssistantText(text, startMs, endMs);
-            if (span !== null && span >= ASSISTANT_SPAN_CAP_MS) this.closeAssistantText(itemId);
+            let split = lastSentenceEnd(text, this.assistantTranscript());
+            // A long item is cut at the next clause mark; a very long one anywhere.
+            if (split <= 0 && span !== null && span >= ASSISTANT_SOFT_CAP_MS) split = lastClauseEnd(text);
+            if (split > 0) {
+              this.closeAssistantText(this.appendAssistantText(text.slice(0, split), startMs, endMs));
+              const tail = text.slice(split);
+              if (tail.length > 0) this.appendAssistantText(tail, startMs, endMs);
+            } else {
+              const itemId = this.appendAssistantText(text, startMs, endMs);
+              if (span !== null && span >= ASSISTANT_SPAN_CAP_MS) this.closeAssistantText(itemId);
+            }
           }
         }
         this.resetAssistantSilenceTimer();
@@ -1020,7 +1119,126 @@ export class OpenAILiveClient implements IClient {
     return id;
   }
 
+  // ----- Segmentation stage, source side -----
+  //
+  // The reference integration for the timer/regex providers. The shape is:
+  // one stream per side, built lazily and wound up wherever its item closes;
+  // the delta appends to the item first and hands the stream the whole
+  // unsealed tail second; a seal rewrites the item it closed and lets the
+  // remainder open the next one.
+
+  /** The stream feeding the open source item, or null when the stage is off
+   *  for this session. Mirrors ensureUserItem: lazy, and rebuilt after the
+   *  item it fed closes. */
+  private ensureUserStream(): SentenceStream | null {
+    if (this.userStream) return this.userStream;
+    if (!this.sessionSegmentation) return null;
+    this.userStream = new SentenceStream({
+      // The speaker's own language, straight off the session config. Live
+      // reports no detected language per item, so setLanguage() is never called.
+      lang: this.config?.sourceLanguage ?? 'auto',
+      // The frozen view, never `this.segmentation`: SentenceStream reads
+      // `enabled` once at construction, and that read must give the session's
+      // one answer (R2).
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealUserItem(chunk.text),
+      onPending: (text) => {
+        this.userPending = text;
+        // seal() fires onSeal — which closed the item — and then this, with
+        // the remainder. Nothing else holds that text any more, so it opens
+        // the next item here. After an ordinary update the item is already
+        // open and already holds it (appendUserText ran first), so this is a
+        // no-op. No timeline stamp: a seal can land on a model answer that
+        // arrives long after the delta that provoked it, and anchoring the new
+        // item to that stale start would trip its span caps early. The next
+        // delta anchors it.
+        if (!this.currentUserItemId && text.length > 0) this.appendUserText(text, null);
+      },
+    });
+    return this.userStream;
+  }
+
+  /** The stage decided this item ends here. The sealed text carries the marks
+   *  the model inserted, so the item is rewritten rather than merely closed. */
+  private sealUserItem(sealed: string): void {
+    const id = this.currentUserItemId;
+    if (!id) return;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      // A cut lands just past a sentence end, so a later chunk can start with
+      // the space that followed it — the same trim appendUserText applies.
+      item.formatted.transcript = sealed.replace(/^\s+/, '');
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.sealingUser = true;
+    try {
+      this.completeUserItem();
+    } finally {
+      this.sealingUser = false;
+    }
+  }
+
+  /** Cut the open source item at `offset` in its accumulated transcript: the
+   *  prefix completes as its own item, the remainder opens the next. The two
+   *  timeline caps use it to land on a mark instead of at wherever the delta
+   *  happened to end — the cut that landed inside a word in the PR #552
+   *  recording. */
+  private cutUserItemAt(offset: number): void {
+    const id = this.currentUserItemId;
+    const whole = id ? this.itemLookup.get(id)?.formatted?.transcript ?? '' : '';
+    if (!id || offset <= 0 || offset >= whole.length) {
+      this.completeUserItem();
+      return;
+    }
+    const remainder = whole.slice(offset);
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = whole.slice(0, offset);
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    // Dropped rather than ended: this cut already decided where the item's
+    // text stops, and end()'s final raw seal would rewrite it back to the
+    // whole tail. The next item gets a fresh stream, seeded through
+    // `userPending` with exactly what is still open.
+    this.discardUserStream();
+    this.completeUserItem();
+    this.appendUserText(remainder, null);
+    this.userPending = this.userTranscript();
+  }
+
+  /** Seal whatever the stream still holds into the item it was feeding, then
+   *  drop it. Re-entrant by design: the seal closes that item through
+   *  completeUserItem, which lands back here with the stream already gone. */
+  private endUserStream(): void {
+    // A seal is mid-flight and owns the remainder; it is opening the next item
+    // with it as this returns.
+    if (this.sealingUser) return;
+    const stream = this.userStream;
+    if (stream) {
+      this.userStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    // Cleared even with no stream to end: a cut leaves the next item's text in
+    // `userPending` ahead of the stream that will be built for it, and closing
+    // that item before any further delta arrives would otherwise strand the
+    // text there, to be prepended to whatever item comes next.
+    this.userPending = '';
+  }
+
+  /** Drop the stream without its final seal. */
+  private discardUserStream(): void {
+    this.userStream?.dispose();
+    this.userStream = null;
+    this.userPending = '';
+  }
+
   private completeUserItem(): void {
+    // Every path that ends a source item goes through here, so this is the one
+    // place the stage's stream has to be wound up; the seal it emits closes
+    // the item on its own, and the code below then finds nothing left to do.
+    this.endUserStream();
     this.userItemStartMs = null;
     if (!this.currentUserItemId) return;
     const item = this.itemLookup.get(this.currentUserItemId);
@@ -1039,9 +1257,98 @@ export class OpenAILiveClient implements IClient {
 
   // ----- Sentence segmentation (assistant side) -----
 
+  /** The translation twin of ensureUserStream. Separate because the two sides
+   *  have their own items, their own caps and their own language. */
+  private ensureAssistantStream(): SentenceStream | null {
+    if (this.assistantStream) return this.assistantStream;
+    if (!this.sessionSegmentation) return null;
+    this.assistantStream = new SentenceStream({
+      // What the model speaks, which is this leg's target language.
+      lang: this.config?.targetLanguage ?? 'auto',
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealAssistantItem(chunk.text),
+      onPending: (text) => {
+        this.assistantPending = text;
+        // See the source side's onPending: after a seal this is what opens the
+        // remainder's item, and after an ordinary update it is a no-op.
+        if (!this.currentAssistantItemId && text.length > 0) this.appendAssistantText(text, null, null);
+      },
+    });
+    return this.assistantStream;
+  }
+
+  /** The stage decided this translation item ends here. */
+  private sealAssistantItem(sealed: string): void {
+    const id = this.currentAssistantItemId;
+    if (!id) return;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = sealed.replace(/^\s+/, '');
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    // closeAssistantText, not completeAssistantItem: the audio hand-off
+    // (pendingAudioItems) is what keeps this item receiving frames until its
+    // timeline end passes, and completing it outright would cut that short.
+    this.sealingAssistant = true;
+    try {
+      this.closeAssistantText(id);
+    } finally {
+      this.sealingAssistant = false;
+    }
+  }
+
+  /** The translation twin of cutUserItemAt. */
+  private cutAssistantItemAt(offset: number): void {
+    const id = this.currentAssistantItemId;
+    const whole = id ? this.itemLookup.get(id)?.formatted?.transcript ?? '' : '';
+    if (!id) return;
+    if (offset <= 0 || offset >= whole.length) {
+      this.closeAssistantText(id);
+      return;
+    }
+    const remainder = whole.slice(offset);
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = whole.slice(0, offset);
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.discardAssistantStream();
+    this.closeAssistantText(id);
+    this.appendAssistantText(remainder, null, null);
+    this.assistantPending = this.assistantTranscript();
+  }
+
+  /** The translation twin of endUserStream, down to why the tail is cleared
+   *  even when there is no stream to end. */
+  private endAssistantStream(): void {
+    if (this.sealingAssistant) return;
+    const stream = this.assistantStream;
+    if (stream) {
+      this.assistantStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    this.assistantPending = '';
+  }
+
+  /** Drop the stream without its final seal. */
+  private discardAssistantStream(): void {
+    this.assistantStream?.dispose();
+    this.assistantStream = null;
+    this.assistantPending = '';
+  }
+
   /** The text of `itemId` is complete; later transcript deltas open a new item
    *  while audio keeps attaching to this one until its timeline end passes. */
   private closeAssistantText(itemId: string): void {
+    // As in completeUserItem: every path that ends a translation item's text
+    // comes through here, so this is where the stage's stream is wound up.
+    this.endAssistantStream();
+    // That end() may have sealed the tail, and the seal already closed this
+    // item through sealAssistantItem. Queueing it twice would hand its audio
+    // over twice.
+    if (this.currentAssistantItemId !== itemId) return;
     this.pendingAudioItems.push({ id: itemId, endMs: this.assistantTextEndMs.get(itemId) ?? null });
     this.currentAssistantItemId = null;
     this.currentAssistantStartMs = null;
@@ -1084,6 +1391,10 @@ export class OpenAILiveClient implements IClient {
 
   /** Every assistant item is done: the model stopped, or the session ended. */
   private completeAssistantItem(): void {
+    // First, so the stream's tail lands in the item it belongs to: the seal
+    // routes through closeAssistantText, which queues that item for the audio
+    // hand-off the loop below then flushes.
+    this.endAssistantStream();
     if (this.audioHandoffTimer) {
       clearTimeout(this.audioHandoffTimer);
       this.audioHandoffTimer = null;
@@ -1137,6 +1448,13 @@ export class OpenAILiveClient implements IClient {
     }
     this.config = config;
     this.resetSessionState();
+    // R2: the one read of `enabled` this session gets. Everything downstream —
+    // both streams, every rebuild of them — sees this frozen view, never the
+    // live runtime. See the `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+      : null;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
     this.userSilenceTimeoutMs = clampSilenceTimeout(config.userSilenceDurationMs);
     this.assistantSilenceTimeoutMs = clampSilenceTimeout(config.assistantSilenceDurationMs);
@@ -1180,9 +1498,12 @@ export class OpenAILiveClient implements IClient {
     this.connected = false;
     this.closing = false;
     this.clearUpgradeHeader();
-    // Finalise in-flight items so partial transcripts/audio aren't lost.
+    // Finalise in-flight items so partial transcripts/audio aren't lost. Both
+    // seal their stream's tail into the item on the way out, so this has to
+    // run before the session's frozen answer is dropped.
     this.completeUserItem();
     this.completeAssistantItem();
+    this.sessionSegmentation = null;
   }
 
   isConnected(): boolean {

@@ -56,8 +56,11 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'openaiLive';
   readonly supportsWebRTC: boolean = false;
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new OpenAILiveClient(creds.primary);
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new OpenAILiveClient(creds.primary, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
