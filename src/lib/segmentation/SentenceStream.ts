@@ -31,10 +31,19 @@ const CJK_CHARS_PER_SENTENCE = 20;
 const DEFAULT_CHARS_PER_SENTENCE = 50;
 const CJK_LANGS = new Set(['zh', 'yue', 'ja', 'ko']);
 
-/** Languages that get the length fallback. Japanese is deliberately absent:
- *  the fallback exists because FireRedPunc under-emits sentence ends, and
- *  Japanese does not route to FireRedPunc. */
+/** Languages whose fallback threshold is FireRedPunc-shaped. Everything else
+ *  falls back at `LENGTH_FALLBACK_GATES` times its own gate: the fallback is
+ *  no longer Chinese-only, because the clients' time caps no longer cut a
+ *  bubble the stage was about to seal, so the stage itself has to be what
+ *  bounds one. */
 const LENGTH_FALLBACK_LANGS = new Set(['zh', 'yue']);
+
+/** How many N-sentence gates a tail may reach before it seals at whatever
+ *  confirmed mark it has. Two, so a bubble can hold at most about twice the
+ *  text N asks for — measured sentence lengths put N = 3 at roughly 15 s of
+ *  speech in every language in the corpus, so this is around half a minute at
+ *  the outside, and only when nothing else sealed first. */
+const LENGTH_FALLBACK_GATES = 2;
 
 /** FireRedPunc emits only 62% of the reference sentence ends, so N detected
  *  sentences are roughly 1.6 x N real ones; 33 characters per sentence is that
@@ -222,8 +231,35 @@ export class SentenceStream {
   }
 
   /**
-   * zh and yue only: a very long tail with too few sentence ends seals at the
-   * latest confirmed comma rather than growing without bound.
+   * Where a length fallback cuts: the last sentence end it can confirm, and
+   * only failing that the last comma.
+   *
+   * One or two sentences is a better bubble than one and a half. The fallback
+   * fires precisely when N sentences did not arrive in time, so the text it is
+   * asked to cut usually holds some — and cutting at the last comma, as this
+   * did until now, would step past a perfectly good boundary to land on a
+   * worse one. A comma is still the answer when the text holds no sentence end
+   * at all, which in Chinese is the common case: FireRedPunc emits 62% of the
+   * reference's ends.
+   */
+  private fallbackCut(text: string, ends: number[], breaks: number[]): number {
+    const confirmed = (offsets: number[]) => offsets.filter((o) => this.hasRightContext(text, o));
+    const sentences = confirmed(ends);
+    if (sentences.length > 0) return sentences[sentences.length - 1];
+    const marks = confirmed(breaks);
+    return marks.length > 0 ? marks[marks.length - 1] : -1;
+  }
+
+  /**
+   * A very long tail with too few sentence ends seals at the latest confirmed
+   * comma rather than growing without bound.
+   *
+   * zh and yue keep their own threshold (`zhFallbackChars`, derived from
+   * FireRedPunc emitting 62% of the reference's sentence ends); every other
+   * language falls back at twice its gate. Both exist for the same reason and
+   * it is now load-bearing for all of them: with the stage active the clients
+   * no longer cut a bubble on a timer, so this is what bounds one when the
+   * marks never add up to N.
    *
    * `marked` is the model's answer, passed on the model path. Its commas are
    * what the search runs on there, and searching the raw tail instead would
@@ -245,22 +281,22 @@ export class SentenceStream {
     countedEnds: number,
     marked?: { result: PunctuationResult; input: string; dropped: number },
   ): void {
-    if (!LENGTH_FALLBACK_LANGS.has(baseLang(this.lang))) return;
     if (countedEnds >= this.n) return;
-    if (tail.length < zhFallbackChars(this.n)) return;
+    const threshold = LENGTH_FALLBACK_LANGS.has(baseLang(this.lang))
+      ? zhFallbackChars(this.n)
+      : LENGTH_FALLBACK_GATES * gateChars(this.lang, this.n);
+    if (tail.length < threshold) return;
 
     if (!marked) {
-      const marks = ruleBreakpoints(tail).filter((b) => this.hasRightContext(tail, b));
-      if (marks.length === 0) return;
-      const at = marks[marks.length - 1];
+      const at = this.fallbackCut(tail, ruleSentenceEnds(tail), ruleBreakpoints(tail));
+      if (at < 0) return;
       this.seal(tail.slice(0, at), tail.slice(at), 'length');
       return;
     }
 
     const { result, input, dropped } = marked;
-    const marks = result.breakpoints.filter((b) => this.hasRightContext(result.text, b));
-    if (marks.length === 0) return;
-    const at = marks[marks.length - 1];
+    const at = this.fallbackCut(result.text, result.sentenceEnds, result.breakpoints);
+    if (at < 0) return;
     const sealedText = result.text.slice(0, at);
     const rawCut = this.rawOffsetFor(input, skeleton(sealedText).length);
     this.seal(tail.slice(0, dropped) + sealedText, tail.slice(dropped + rawCut), 'length');

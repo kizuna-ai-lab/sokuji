@@ -175,20 +175,68 @@ describe('SentenceStream sealing', () => {
     expect(seals).toEqual([]);
   });
 
-  it('does not apply the Chinese length fallback to Japanese', async () => {
+  it('holds Japanese to its own fallback threshold, not the Chinese one', async () => {
     const seals: SealedChunk[] = [];
-    // 123 characters, past zhFallbackChars(3) = 100, and still carrying 、 —
-    // so if 'ja' were ever added to LENGTH_FALLBACK_LANGS this test would
-    // fail. At 74 characters it could not, because the length guard returned
-    // before the language was ever consulted.
-    const tail = 'これは長い日本語の文章です、'.repeat(8) + '句点がないまま続きます';
+    // 98 characters: past zhFallbackChars(3) = 100 is what the Chinese
+    // threshold would be, and this is under it as well as under Japanese's own
+    // 2 x gateChars('ja', 3) = 120. Nothing seals.
+    const short = 'これは長い日本語の文章です、'.repeat(7);
+    const { runtime } = fakeRuntime({ [short]: null });
+    const stream = new SentenceStream({
+      lang: 'ja', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
+    });
+    stream.update(short);
+    await flush();
+    expect(seals).toEqual([]);
+  });
+
+  it('falls back at twice the gate in a language outside the Chinese threshold', async () => {
+    const seals: SealedChunk[] = [];
+    // 126 characters, past Japanese's own 120, still carrying 、 and no 。:
+    // the tail seals at the latest comma that has right context after it.
+    const tail = 'これは長い日本語の文章です、'.repeat(9);
     const { runtime } = fakeRuntime({ [tail]: null });
     const stream = new SentenceStream({
       lang: 'ja', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
     });
     stream.update(tail);
-    await flush();
-    expect(seals).toEqual([]);
+    await vi.waitFor(() => expect(seals.length).toBe(1));
+    expect(seals[0].reason).toBe('length');
+    expect(seals[0].text).toBe('これは長い日本語の文章です、'.repeat(8));
+  });
+
+  it('cuts a too-long tail at the sentence end it has, not at a later comma', async () => {
+    const seals: SealedChunk[] = [];
+    // 108 characters, past zhFallbackChars(3) = 100, holding ONE full stop
+    // early and ten commas after it. Two sentences short of N, so the fallback
+    // decides — and one whole sentence is a better bubble than one and a half.
+    const tail = '第一句话结束了。' + '然后又说了很多很多，'.repeat(10);
+    const { runtime } = fakeRuntime({});
+    const stream = new SentenceStream({
+      lang: 'zh', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
+    });
+    stream.update(tail);
+    await vi.waitFor(() => expect(seals.length).toBe(1));
+    expect(seals[0].reason).toBe('length');
+    expect(seals[0].text).toBe('第一句話結束了。'.replace('話', '话').replace('結', '结'));
+  });
+
+  it('prefers the model\u2019s sentence end over the commas it put after it', async () => {
+    const seals: SealedChunk[] = [];
+    // Nothing in the raw tail, so the model path runs: 110 characters past the
+    // 60-character gate. Its answer marks one sentence end and then commas.
+    const raw = '第一句话结束了' + '然后又说了很多很多'.repeat(11);
+    const marked = '第一句话结束了。' + '然后又说了很多很多，'.repeat(11);
+    const ends = [8];
+    const breaks = [8, ...Array.from({ length: 11 }, (_, i) => 8 + (i + 1) * 10)];
+    const { runtime } = fakeRuntime({ [raw]: resultOf(marked, ends, breaks) });
+    const stream = new SentenceStream({
+      lang: 'zh', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
+    });
+    stream.update(raw);
+    await vi.waitFor(() => expect(seals.length).toBe(1));
+    expect(seals[0].reason).toBe('length');
+    expect(seals[0].text).toBe('第一句话结束了。');
   });
 
   it('reads N when the stream is created, so a setting change never cuts mid-bubble', async () => {

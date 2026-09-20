@@ -799,27 +799,23 @@ export class OpenAILiveClient implements IClient {
             // next one; `span` belongs to the item that just closed, so the
             // caps below have nothing left to say about it.
             if (this.currentUserItemId === openBefore) {
-              // Offsets are counted back from the end of the text, because the
-              // item's transcript and the stream's tail can differ by the
-              // leading space appendUserText strips when it opens an item.
-              const whole = this.userTranscript();
-              // No soft cap while the stage is running. Its job is to cut a
-              // long item at the next comma when nothing else will, and the
-              // stage is that something else — but at 8 s it fires before
-              // three sentences can accumulate, so N never got to act: a live
-              // Chinese session produced five bubbles in a row, every one of
-              // them ended at a comma 9-11 s apart, with a full stop sitting
-              // in the middle of one. The 12 s cap below is the net now.
-              if (span !== null && span >= USER_SPAN_CAP_MS) {
-                // A full stop first, a comma second, a blind cut last. In
-                // Chinese the tail often holds only commas — FireRedPunc emits
-                // 62% of the reference's sentence ends — and a comma is a far
-                // better place to end a bubble than wherever the delta stopped.
-                const at = stream.confirmedBoundary() > 0
-                  ? stream.confirmedBoundary()
-                  : stream.confirmedBreakpoint();
-                if (at > 0) this.cutUserItemAt(whole.length - (this.userPending.length - at));
-                else this.completeUserItem();
+              // Neither timer competes with the stage any more.
+              //
+              // The soft cap is gone outright: at 8 s it cut at the nearest
+              // comma before three sentences could accumulate, so N never got
+              // to act — a live Chinese session produced five bubbles in a
+              // row, all ending at a comma 9-11 s apart, with a full stop
+              // sitting in the middle of one of them.
+              //
+              // The hard cap now fires only when the tail holds nothing to cut
+              // on at all: no sentence end, no comma, from the ASR or from the
+              // model. That is the one case the stage cannot bound, and the
+              // bubble would otherwise grow until the speaker stops. When
+              // there IS a mark, the stage decides — by the N-sentence seal,
+              // or by its own length fallback, which is what keeps a bubble
+              // from running away.
+              if (span !== null && span >= USER_SPAN_CAP_MS && stream.confirmedBreakpoint() <= 0) {
+                this.completeUserItem();
               }
             }
           } else {
@@ -860,15 +856,10 @@ export class OpenAILiveClient implements IClient {
             const openBefore = this.appendAssistantText(text, startMs, endMs);
             stream.update(this.assistantPending + text);
             if (this.currentAssistantItemId === openBefore) {
-              const whole = this.assistantTranscript();
               // Same as the source side: no soft cap under an active stream,
-              // and the hard cap prefers a full stop, then a comma.
-              if (span !== null && span >= ASSISTANT_SPAN_CAP_MS) {
-                const at = stream.confirmedBoundary() > 0
-                  ? stream.confirmedBoundary()
-                  : stream.confirmedBreakpoint();
-                if (at > 0) this.cutAssistantItemAt(whole.length - (this.assistantPending.length - at));
-                else this.closeAssistantText(openBefore);
+              // and the hard cap only for a tail with no mark anywhere in it.
+              if (span !== null && span >= ASSISTANT_SPAN_CAP_MS && stream.confirmedBreakpoint() <= 0) {
+                this.closeAssistantText(openBefore);
               }
             }
           } else {
@@ -1198,34 +1189,6 @@ export class OpenAILiveClient implements IClient {
     }
   }
 
-  /** Cut the open source item at `offset` in its accumulated transcript: the
-   *  prefix completes as its own item, the remainder opens the next. The two
-   *  timeline caps use it to land on a mark instead of at wherever the delta
-   *  happened to end — the cut that landed inside a word in the PR #552
-   *  recording. */
-  private cutUserItemAt(offset: number): void {
-    const id = this.currentUserItemId;
-    const whole = id ? this.itemLookup.get(id)?.formatted?.transcript ?? '' : '';
-    if (!id || offset <= 0 || offset >= whole.length) {
-      this.completeUserItem();
-      return;
-    }
-    const remainder = whole.slice(offset);
-    const item = this.itemLookup.get(id);
-    if (item?.formatted) {
-      item.formatted.transcript = whole.slice(0, offset);
-      this.eventHandlers.onConversationUpdated?.({ item });
-    }
-    // Dropped rather than ended: this cut already decided where the item's
-    // text stops, and end()'s final raw seal would rewrite it back to the
-    // whole tail. The next item gets a fresh stream, seeded through
-    // `userPending` with exactly what is still open.
-    this.discardUserStream();
-    this.completeUserItem();
-    this.appendUserText(remainder, null);
-    this.userPending = this.userTranscript();
-  }
-
   /** Seal whatever the stream still holds into the item it was feeding, then
    *  drop it. Re-entrant by design: the seal closes that item through
    *  completeUserItem, which lands back here with the stream already gone. */
@@ -1315,27 +1278,6 @@ export class OpenAILiveClient implements IClient {
     } finally {
       this.sealingAssistant = false;
     }
-  }
-
-  /** The translation twin of cutUserItemAt. */
-  private cutAssistantItemAt(offset: number): void {
-    const id = this.currentAssistantItemId;
-    const whole = id ? this.itemLookup.get(id)?.formatted?.transcript ?? '' : '';
-    if (!id) return;
-    if (offset <= 0 || offset >= whole.length) {
-      this.closeAssistantText(id);
-      return;
-    }
-    const remainder = whole.slice(offset);
-    const item = this.itemLookup.get(id);
-    if (item?.formatted) {
-      item.formatted.transcript = whole.slice(0, offset);
-      this.eventHandlers.onConversationUpdated?.({ item });
-    }
-    this.discardAssistantStream();
-    this.closeAssistantText(id);
-    this.appendAssistantText(remainder, null, null);
-    this.assistantPending = this.assistantTranscript();
   }
 
   /** The translation twin of endUserStream, down to why the tail is cleared

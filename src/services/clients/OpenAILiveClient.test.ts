@@ -1298,7 +1298,7 @@ describe('OpenAILiveClient with the segmentation stage', () => {
     expect(usersOf(one).map(i => i.formatted?.transcript)).toEqual(['これはテストです。', 'つづきの文章があります']);
   });
 
-  it('the 12 s source cap lands on a boundary the stage confirmed when one precedes it', async () => {
+  it('the 12 s source cap stands down while the tail still holds a mark', async () => {
     const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 3 });
     client.setEventHandlers({} as ClientEventHandlers);
     await connectStage(client);
@@ -1307,22 +1307,17 @@ describe('OpenAILiveClient with the segmentation stage', () => {
     feed({ type: 'session.input_transcript.delta', delta: 'あああああ。いいいいいいいい', start_ms: 0, end_ms: 4000 });
     await flush();
     expect(usersOf(client)).toHaveLength(1);
-    // Past 12 s with no clause mark in the delta and no pause before it: the
-    // cap fires, and the confirmed boundary is where it lands instead of the
-    // delta's end.
+
+    // Past 12 s. The cap used to cut here; now it defers to the stage, which
+    // has a full stop in the tail and its own length fallback to fall back on.
+    // Cutting on a timer is what made every bubble of a live Chinese session
+    // end at a comma 9-11 s apart.
     feed({ type: 'session.input_transcript.delta', delta: 'ううう', start_ms: 4000, end_ms: 12500 });
     await flush();
-    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['あああああ。', 'いいいいいいいいううう']);
-
-    // The cut seeds the next item's stream through `userPending`, and that
-    // stream is only built by the next delta. Closing the item before one
-    // arrives must not strand the text there for the item after it.
-    vi.advanceTimersByTime(1001);
-    expect(usersOf(client)[1].status).toBe('completed');
-    expect((client as any).userPending).toBe('');
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['あああああ。いいいいいいいいううう']);
   });
 
-  it('the 12 s source cap with no confirmed boundary cuts exactly where it does today', async () => {
+  it('the 12 s source cap still fires when the tail holds no mark at all', async () => {
     const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 3 });
     client.setEventHandlers({} as ClientEventHandlers);
     await connectStage(client);
@@ -1528,14 +1523,20 @@ describe('OpenAILiveClient with the segmentation stage', () => {
     await flush();
     expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['まず最初の話があって、そのあと']);
 
-    // Past the 12 s cap, with no sentence end anywhere in the tail: the cut
-    // lands on the comma rather than wherever this delta happens to stop.
+    // Past the 12 s cap too. It stands down: the tail holds a comma, so the
+    // stage owns the cut and its length fallback is what bounds the bubble.
     feed({ type: 'session.input_transcript.delta', delta: 'の話が続きます', start_ms: 9000, end_ms: 12500 });
     await flush();
-    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual([
-      'まず最初の話があって、',
-      'そのあとの話が続きます',
-    ]);
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['まず最初の話があって、そのあとの話が続きます']);
+
+    // What does end the bubble: 120 characters, twice the gate for N = 3 in a
+    // CJK language, sealed at the last comma it can confirm.
+    feed({ type: 'session.input_transcript.delta', delta: 'さらに話は続いて、'.repeat(12), start_ms: 12500, end_ms: 20000 });
+    await flush();
+    const texts = usersOf(client).map(i => i.formatted?.transcript ?? '');
+    expect(texts.length).toBe(2);
+    expect(texts[0].endsWith('、')).toBe(true);
+    expect(texts[0].length).toBeGreaterThan(60);
   });
 
   it('still cuts at the soft cap when the stage is off', async () => {
