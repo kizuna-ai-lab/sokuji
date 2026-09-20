@@ -198,7 +198,11 @@ Five things the review named that this pass deliberately leaves alone.
 - **Zoom's fill-in is awaited inline, not laned**, so it has no flush. A Stop
   inside its wait still drops the utterance — but so does a Stop at any of the
   other `if (!this.connected) return` checks that surround its two REST calls,
-  and those predate the stage.
+  and those predate the stage. Left alone deliberately: a Zoom utterance is
+  already held for a transcribe round trip and a translate round trip, seconds
+  each, so the fill-in adds at most one second to a window that was always
+  wide. Fixing it means giving Zoom the lane, which is worth doing the day its
+  REST calls stop being the dominant term, and not before.
 - **`FILL_IN_BUDGET_MS` is an engineering default, not a measured number.** Task
   6 measured the model; nobody has measured how long a user will accept an empty
   bubble.
