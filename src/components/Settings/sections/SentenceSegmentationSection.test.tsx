@@ -1,18 +1,27 @@
 /**
  * SentenceSegmentationSection — the settings surface for the punctuation
- * stage after A1: an on/off toggle that asks once before downloading all
- * three models, one status line for that single download, the 1-5 "sentences
- * per bubble" control, and a delete link. There are no per-model rows any
- * more; the pack is one thing to the user and one thing here.
+ * stage after Amendment A2: one three-way mode (Off, By pause, By sentences)
+ * stored once and clamped on read to what the current provider offers, the
+ * size control under By sentences, the two pause sliders under By pause, and
+ * — unchanged from A1 — one confirmation, one download, one delete for the
+ * three-model pack.
+ *
+ * The offers are the REAL ones: `ProviderConfigFactory` is not mocked, so
+ * every "this provider offers X" case below is the descriptor's own answer
+ * rather than a literal this file made up. Three shapes exist in phase 1 and
+ * all three are reachable from a provider registered in every environment:
+ * Gemini (pause + sizes), Local Inference (sizes only) and OpenAI (Auto
+ * only). The fourth shape, Auto + sizes, arrives in phase 2 and is the one
+ * case that has to be stubbed.
  *
  * `segmentationStore` is the REAL store, with its four actions swapped for
  * spies through `setState` — the store keeps its real `PACK_MODELS` and
  * `PACK_TOTAL_BYTES` (so every size asserted below comes from the manifest,
  * not a literal) while nothing reaches IndexedDB. `settingsStore` is mocked
- * with just the four hooks this component calls (house pattern, see
+ * with just the hooks this component calls (house pattern, see
  * HelpSection.test.tsx).
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 
 vi.mock('react-i18next', async (importOriginal) => {
@@ -28,16 +37,28 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-let mockSentenceSegmentation = false;
-const setSentenceSegmentation = vi.fn();
+const { Provider } = await import('../../../types/Provider');
+
+let mockProvider: string = Provider.GEMINI;
+let mockMode = 'off';
+const setSegmentationMode = vi.fn();
 let mockChunkSentences = 3;
 const setChunkSentences = vi.fn();
+let mockSourcePause = 1.5;
+const setSourcePause = vi.fn();
+let mockTranslationPause = 1.5;
+const setTranslationPause = vi.fn();
 
 vi.mock('../../../stores/settingsStore', () => ({
-  useSentenceSegmentation: () => mockSentenceSegmentation,
-  useSetSentenceSegmentation: () => setSentenceSegmentation,
+  useProvider: () => mockProvider,
+  useSegmentationMode: () => mockMode,
+  useSetSegmentationMode: () => setSegmentationMode,
   useSentenceSegmentationChunkSentences: () => mockChunkSentences,
   useSetSentenceSegmentationChunkSentences: () => setChunkSentences,
+  useSegmentationSourcePause: () => mockSourcePause,
+  useSetSegmentationSourcePause: () => setSourcePause,
+  useSegmentationTranslationPause: () => mockTranslationPause,
+  useSetSegmentationTranslationPause: () => setTranslationPause,
 }));
 
 // The real store never reaches the disk here: its four actions are replaced
@@ -62,6 +83,7 @@ const { default: useLogStore } = await import('../../../stores/logStore');
 const { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } =
   await import('../../../stores/segmentationStore');
 const { formatBytes } = await import('../../../lib/local-inference/formatBytes');
+const { ProviderConfigFactory } = await import('../../../services/providers/ProviderConfigFactory');
 
 const refresh = vi.fn();
 const download = vi.fn();
@@ -70,7 +92,7 @@ const deleteModels = vi.fn();
 
 /** navigator.deviceMemory is undefined in jsdom, which `isLowMemoryDevice`
  *  reads as exactly the 4GB threshold — i.e. low-memory. Every test but the
- *  low-memory one needs a value above it, or the toggle renders disabled
+ *  low-memory one needs a value above it, or By sentences renders disabled
  *  everywhere. */
 function setDeviceMemory(gb: number | undefined): void {
   if (gb === undefined) {
@@ -83,24 +105,29 @@ function setDeviceMemory(gb: number | undefined): void {
 const renderSection = (isSessionActive = false) =>
   render(<SentenceSegmentationSection isSessionActive={isSessionActive} />);
 
-/** The shared ToggleSwitch renders role="switch" with no accessible name from
- *  content, so — as LanguageSection.textOnly.test.tsx does — match on
- *  textContent instead of the `name` option. */
-const segmentationToggle = () =>
-  screen.getAllByRole('switch').find((el) => el.textContent?.includes('Subtitle segmentation'))!;
+const modeButton = (label: string) =>
+  screen.getAllByText(label).find((el) => el.tagName === 'BUTTON') as HTMLButtonElement;
 
-const chunkButton = (n: number) =>
-  screen.getAllByText(String(n)).find((el) => el.tagName === 'BUTTON') as HTMLButtonElement;
+const queryModeButton = (label: string) =>
+  screen.queryAllByText(label).find((el) => el.tagName === 'BUTTON');
+
+const sizeButton = (label: string) =>
+  screen.getAllByText(label).find((el) => el.tagName === 'BUTTON') as HTMLButtonElement;
 
 const confirmation = () => screen.queryByRole('dialog');
 
 beforeEach(() => {
   cleanup();
   setDeviceMemory(8);
-  mockSentenceSegmentation = false;
+  mockProvider = Provider.GEMINI;
+  mockMode = 'off';
   mockChunkSentences = 3;
-  setSentenceSegmentation.mockClear();
+  mockSourcePause = 1.5;
+  mockTranslationPause = 1.5;
+  setSegmentationMode.mockClear();
   setChunkSentences.mockClear();
+  setSourcePause.mockClear();
+  setTranslationPause.mockClear();
   refresh.mockReset().mockResolvedValue(undefined);
   download.mockReset().mockResolvedValue(undefined);
   cancel.mockReset();
@@ -119,6 +146,10 @@ beforeEach(() => {
   localStorage.removeItem('debug:device-memory');
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('SentenceSegmentationSection', () => {
   it('renders the section with id="sentence-segmentation-section"', () => {
     renderSection();
@@ -130,29 +161,243 @@ describe('SentenceSegmentationSection', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('turning the toggle on with no models opens the confirmation and does not enable yet', () => {
-    useSegmentationStore.setState({ phase: 'missing' });
-    renderSection();
-    expect(confirmation()).toBeNull();
+  describe('the mode control', () => {
+    it('offers all three modes on a provider that cuts on its own timers', () => {
+      mockProvider = Provider.GEMINI;
+      renderSection();
 
-    fireEvent.click(segmentationToggle());
+      expect(modeButton('Off')).toBeTruthy();
+      expect(modeButton('By pause')).toBeTruthy();
+      expect(modeButton('By sentences')).toBeTruthy();
+    });
 
-    expect(confirmation()).not.toBeNull();
-    expect(screen.getByText('Download segmentation models')).toBeTruthy();
-    expect(setSentenceSegmentation).not.toHaveBeenCalled();
-    expect(download).not.toHaveBeenCalled();
+    it('drops By pause on a provider whose boundaries a server decides', () => {
+      mockProvider = Provider.OPENAI;
+      renderSection();
+
+      expect(modeButton('Off')).toBeTruthy();
+      expect(queryModeButton('By pause')).toBeUndefined();
+      expect(modeButton('By sentences')).toBeTruthy();
+    });
+
+    it('drops By pause on the local engines too', () => {
+      mockProvider = Provider.LOCAL_INFERENCE;
+      renderSection();
+
+      expect(queryModeButton('By pause')).toBeUndefined();
+    });
+
+    it('shows the resolved mode as selected, not the stored one', () => {
+      // 'pause' is the stored default; on a provider without timers it
+      // resolves to Off, and Off is what has to look chosen.
+      mockMode = 'pause';
+      mockProvider = Provider.OPENAI;
+      renderSection();
+
+      expect(modeButton('Off').className).toContain('active');
+    });
+
+    it('stores the mode the user picked', () => {
+      mockProvider = Provider.GEMINI;
+      renderSection();
+
+      fireEvent.click(modeButton('By pause'));
+      expect(setSegmentationMode).toHaveBeenCalledWith('pause');
+    });
+
+    it('turning the mode off cancels a download in flight', () => {
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1024 });
+      renderSection();
+
+      fireEvent.click(modeButton('Off'));
+
+      expect(setSegmentationMode).toHaveBeenCalledWith('off');
+      expect(cancel).toHaveBeenCalledTimes(1);
+      // cancel() leaves downloadedBytes counting bytes that were fetched but not
+      // necessarily stored as whole models, so the disk has to be re-asked or the
+      // delete link would offer a size that isn't there.
+      expect(refresh).toHaveBeenCalledTimes(2);
+    });
+
+    it('disables every mode during a session', () => {
+      renderSection(true);
+      for (const label of ['Off', 'By pause', 'By sentences']) {
+        expect(modeButton(label).disabled).toBe(true);
+      }
+    });
   });
 
-  it('confirming enables the setting and starts the download', () => {
-    useSegmentationStore.setState({ phase: 'missing' });
-    renderSection();
-    fireEvent.click(segmentationToggle());
+  describe('choosing By sentences', () => {
+    it('opens the confirmation and leaves the mode alone until it is confirmed', () => {
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
+      expect(confirmation()).toBeNull();
 
-    fireEvent.click(screen.getByText(`Download ${formatBytes(PACK_TOTAL_BYTES)}`));
+      fireEvent.click(modeButton('By sentences'));
 
-    expect(setSentenceSegmentation).toHaveBeenCalledWith(true);
-    expect(download).toHaveBeenCalledTimes(1);
-    expect(confirmation()).toBeNull();
+      expect(confirmation()).not.toBeNull();
+      expect(screen.getByText('Download segmentation models')).toBeTruthy();
+      expect(setSegmentationMode).not.toHaveBeenCalled();
+      expect(download).not.toHaveBeenCalled();
+    });
+
+    it('confirming sets the mode and starts the download', () => {
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
+      fireEvent.click(modeButton('By sentences'));
+
+      fireEvent.click(screen.getByText(`Download ${formatBytes(PACK_TOTAL_BYTES)}`));
+
+      expect(setSegmentationMode).toHaveBeenCalledWith('sentences');
+      expect(download).toHaveBeenCalledTimes(1);
+      expect(confirmation()).toBeNull();
+    });
+
+    it('cancelling the confirmation leaves the previous mode intact', () => {
+      mockMode = 'pause';
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
+      fireEvent.click(modeButton('By sentences'));
+
+      fireEvent.click(screen.getByText('Cancel'));
+
+      expect(confirmation()).toBeNull();
+      expect(setSegmentationMode).not.toHaveBeenCalled();
+      expect(download).not.toHaveBeenCalled();
+      expect(modeButton('By pause').className).toContain('active');
+    });
+
+    it('sets the mode without asking when the models are already there', () => {
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+
+      fireEvent.click(modeButton('By sentences'));
+
+      expect(setSegmentationMode).toHaveBeenCalledWith('sentences');
+      expect(confirmation()).toBeNull();
+      expect(download).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the size control', () => {
+    it('shows 1-5 and no Auto where only sizes are offered', () => {
+      mockProvider = Provider.LOCAL_INFERENCE;
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+
+      for (let n = 1; n <= 5; n++) expect(sizeButton(String(n))).toBeTruthy();
+      expect(screen.queryByText('Auto')).toBeNull();
+    });
+
+    it('is absent where Auto is the only thing offered — one option is no choice', () => {
+      mockProvider = Provider.OPENAI;
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+
+      expect(screen.queryByText('Sentences per bubble')).toBeNull();
+      expect(screen.queryByText('Auto')).toBeNull();
+      expect(screen.queryByText('1')).toBeNull();
+    });
+
+    it('shows Auto alongside 1-5 where both are offered', () => {
+      // No phase-1 provider offers both; phase 2 gives the server-definite
+      // providers `sizes: true` on top of their Auto. Stubbed rather than
+      // waited for, because the rendering rule ships now.
+      const real = ProviderConfigFactory.getConfig(Provider.SONIOX);
+      vi.spyOn(ProviderConfigFactory, 'getConfig').mockReturnValue({
+        ...real,
+        capabilities: { ...real.capabilities, segmentation: { auto: true, sizes: true } },
+      });
+      mockProvider = Provider.SONIOX;
+      mockMode = 'sentences';
+      mockChunkSentences = 0;
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+
+      expect(sizeButton('Auto').className).toContain('active');
+      for (let n = 1; n <= 5; n++) expect(sizeButton(String(n))).toBeTruthy();
+      fireEvent.click(sizeButton('2'));
+      expect(setChunkSentences).toHaveBeenCalledWith(2);
+    });
+
+    it('is absent unless the mode is By sentences', () => {
+      mockProvider = Provider.GEMINI;
+      mockMode = 'pause';
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+      expect(screen.queryByText('Sentences per bubble')).toBeNull();
+
+      cleanup();
+      mockMode = 'off';
+      renderSection();
+      expect(screen.queryByText('Sentences per bubble')).toBeNull();
+    });
+
+    it('stays disabled until the models are ready', () => {
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
+      for (let n = 1; n <= 5; n++) expect(sizeButton(String(n)).disabled).toBe(true);
+
+      cleanup();
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+      for (let n = 1; n <= 5; n++) expect(sizeButton(String(n)).disabled).toBe(false);
+      fireEvent.click(sizeButton('5'));
+      expect(setChunkSentences).toHaveBeenCalledWith(5);
+    });
+  });
+
+  describe('the pause sliders', () => {
+    it('appear only in By pause, and carry the global seconds', () => {
+      mockProvider = Provider.GEMINI;
+      mockMode = 'pause';
+      mockSourcePause = 0.8;
+      mockTranslationPause = 2.2;
+      renderSection();
+
+      const source = screen.getByTestId('segmentation-source-pause') as HTMLInputElement;
+      const translation = screen.getByTestId('segmentation-translation-pause') as HTMLInputElement;
+      expect(source.value).toBe('0.8');
+      expect(translation.value).toBe('2.2');
+      expect(screen.getByText('0.80s')).toBeTruthy();
+      expect(screen.getByText('2.20s')).toBeTruthy();
+
+      fireEvent.change(source, { target: { value: '1.2' } });
+      expect(setSourcePause).toHaveBeenCalledWith(1.2);
+      fireEvent.change(translation, { target: { value: '0.5' } });
+      expect(setTranslationPause).toHaveBeenCalledWith(0.5);
+    });
+
+    it('are gone in Off and in By sentences', () => {
+      mockProvider = Provider.GEMINI;
+      mockMode = 'off';
+      renderSection();
+      expect(screen.queryByTestId('segmentation-source-pause')).toBeNull();
+
+      cleanup();
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+      expect(screen.queryByTestId('segmentation-source-pause')).toBeNull();
+    });
+
+    it('are gone on a provider whose stored pause mode resolves to Off', () => {
+      mockProvider = Provider.OPENAI;
+      mockMode = 'pause';
+      renderSection();
+      expect(screen.queryByTestId('segmentation-source-pause')).toBeNull();
+    });
+
+    it('are frozen during a session', () => {
+      mockMode = 'pause';
+      renderSection(true);
+      expect((screen.getByTestId('segmentation-source-pause') as HTMLInputElement).disabled).toBe(true);
+      expect((screen.getByTestId('segmentation-translation-pause') as HTMLInputElement).disabled).toBe(true);
+    });
   });
 
   describe('download telemetry', () => {
@@ -167,7 +412,7 @@ describe('SentenceSegmentationSection', () => {
     const startFromConfirmation = () => {
       useSegmentationStore.setState({ phase: 'missing' });
       renderSection();
-      fireEvent.click(segmentationToggle());
+      fireEvent.click(modeButton('By sentences'));
     };
 
     it('reports the confirmed download, its size and how long it took', async () => {
@@ -221,7 +466,7 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('reports the status line Retry the same way as the confirmation', async () => {
-      mockSentenceSegmentation = true;
+      mockMode = 'sentences';
       useSegmentationStore.setState({ phase: 'error', error: 'network down' });
       renderSection();
 
@@ -232,111 +477,99 @@ describe('SentenceSegmentationSection', () => {
     });
   });
 
-  it('cancelling the confirmation leaves the setting off', () => {
-    useSegmentationStore.setState({ phase: 'missing' });
-    renderSection();
-    fireEvent.click(segmentationToggle());
+  describe('the pack status line', () => {
+    it('shows progress and a cancel action while downloading', () => {
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 100 * 1024 * 1024 });
+      renderSection();
 
-    fireEvent.click(screen.getByText('Cancel'));
+      expect(screen.getByText(`Downloading 100.0 MB of ${formatBytes(PACK_TOTAL_BYTES)}`)).toBeTruthy();
+      const fill = screen.getByTestId('segmentation-progress-fill');
+      expect(fill.style.width).toBe(`${(100 * 1024 * 1024 / PACK_TOTAL_BYTES) * 100}%`);
+      expect(screen.getByTestId('segmentation-download-cancel')).toBeTruthy();
+    });
 
-    expect(confirmation()).toBeNull();
-    expect(setSentenceSegmentation).not.toHaveBeenCalled();
-    expect(download).not.toHaveBeenCalled();
+    it('cancelling the download drops the mode back to Off', () => {
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1024 });
+      renderSection();
+
+      fireEvent.click(screen.getByTestId('segmentation-download-cancel'));
+
+      expect(setSegmentationMode).toHaveBeenCalledWith('off');
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(refresh).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows the error and a retry action after a failed download', () => {
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'error', error: 'network down' });
+      renderSection();
+
+      expect(screen.getByText('Download failed: network down')).toBeTruthy();
+      fireEvent.click(screen.getByText('Retry'));
+      expect(download).toHaveBeenCalledTimes(1);
+      // A retry resumes over what is already there; it never re-asks.
+      expect(confirmation()).toBeNull();
+    });
+
+    it('offers Download again when the mode is By sentences but the files are missing', () => {
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
+
+      expect(screen.getByText('The models are not on this device.')).toBeTruthy();
+      fireEvent.click(screen.getByText('Download'));
+      expect(confirmation()).not.toBeNull();
+    });
+
+    it('says nothing while the phase is still unknown', () => {
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'unknown' });
+      renderSection();
+
+      expect(screen.queryByText('The models are not on this device.')).toBeNull();
+      expect(screen.queryByTestId('segmentation-progress-fill')).toBeNull();
+      expect(screen.queryByText('Retry')).toBeNull();
+    });
+
+    it('says nothing once the pack is ready', () => {
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+
+      expect(screen.queryByText('The models are not on this device.')).toBeNull();
+      expect(screen.queryByTestId('segmentation-progress-fill')).toBeNull();
+    });
+
+    it('a settings write that rolls back mid-download keeps Cancel and withholds the delete link', () => {
+      // `setSegmentationMode` writes the value, then rolls it back when
+      // `persistSetting` returns false — while the download it started keeps
+      // running. Gating the status line on the mode alone would take Cancel
+      // away with it and put the delete link up over a live fetch.
+      useSegmentationStore.setState({ phase: 'missing' });
+      const { rerender } = renderSection();
+      fireEvent.click(modeButton('By sentences'));
+      fireEvent.click(screen.getByText(`Download ${formatBytes(PACK_TOTAL_BYTES)}`));
+      expect(download).toHaveBeenCalledTimes(1);
+
+      useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1024 });
+      mockMode = 'off'; // the persist failed and rolled it back
+      rerender(<SentenceSegmentationSection isSessionActive={false} />);
+
+      expect(screen.getByTestId('segmentation-download-cancel')).toBeTruthy();
+      expect(screen.queryByText(/Delete models/)).toBeNull();
+
+      // ...and it still cancels. The mode already reads Off, so a Cancel that
+      // went through the mode control's "already there" guard would leave the
+      // fetch running with nothing left to stop it.
+      fireEvent.click(screen.getByTestId('segmentation-download-cancel'));
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(setSegmentationMode).toHaveBeenCalledTimes(1); // the confirmation's, not a second one
+    });
   });
 
-  it('turning the toggle on when the models are ready enables it without asking', () => {
-    useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
-    renderSection();
-
-    fireEvent.click(segmentationToggle());
-
-    expect(setSentenceSegmentation).toHaveBeenCalledWith(true);
-    expect(confirmation()).toBeNull();
-    expect(download).not.toHaveBeenCalled();
-  });
-
-  it('shows progress and a cancel action while downloading', () => {
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 100 * 1024 * 1024 });
-    renderSection();
-
-    expect(screen.getByText(`Downloading 100.0 MB of ${formatBytes(PACK_TOTAL_BYTES)}`)).toBeTruthy();
-    const fill = screen.getByTestId('segmentation-progress-fill');
-    expect(fill.style.width).toBe(`${(100 * 1024 * 1024 / PACK_TOTAL_BYTES) * 100}%`);
-    expect(screen.getByTestId('segmentation-download-cancel')).toBeTruthy();
-  });
-
-  it('cancelling the download turns the setting back off', () => {
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1024 });
-    renderSection();
-
-    fireEvent.click(screen.getByTestId('segmentation-download-cancel'));
-
-    expect(setSentenceSegmentation).toHaveBeenCalledWith(false);
-    expect(cancel).toHaveBeenCalledTimes(1);
-    // cancel() leaves downloadedBytes counting bytes that were fetched but not
-    // necessarily stored as whole models, so the disk has to be re-asked or the
-    // delete link would offer a size that isn't there.
-    expect(refresh).toHaveBeenCalledTimes(2);
-  });
-
-  it('shows the error and a retry action after a failed download', () => {
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'error', error: 'network down' });
-    renderSection();
-
-    expect(screen.getByText('Download failed: network down')).toBeTruthy();
-    fireEvent.click(screen.getByText('Retry'));
-    expect(download).toHaveBeenCalledTimes(1);
-    // A retry resumes over what is already there; it never re-asks.
-    expect(confirmation()).toBeNull();
-  });
-
-  it('offers Download again when the setting is on but the files are missing', () => {
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'missing' });
-    renderSection();
-
-    expect(screen.getByText('The models are not on this device.')).toBeTruthy();
-    fireEvent.click(screen.getByText('Download'));
-    expect(confirmation()).not.toBeNull();
-  });
-
-  it('says nothing under the toggle while the phase is still unknown', () => {
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'unknown' });
-    renderSection();
-
-    expect(screen.queryByText('The models are not on this device.')).toBeNull();
-    expect(screen.queryByTestId('segmentation-progress-fill')).toBeNull();
-    expect(screen.queryByText('Retry')).toBeNull();
-  });
-
-  it('says nothing under the toggle once the pack is ready', () => {
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
-    renderSection();
-
-    expect(screen.queryByText('The models are not on this device.')).toBeNull();
-    expect(screen.queryByTestId('segmentation-progress-fill')).toBeNull();
-  });
-
-  it('disables the sentences-per-bubble control until the models are ready', () => {
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'missing' });
-    renderSection();
-    for (let n = 1; n <= 5; n++) expect(chunkButton(n).disabled).toBe(true);
-
-    cleanup();
-    useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
-    renderSection();
-    for (let n = 1; n <= 5; n++) expect(chunkButton(n).disabled).toBe(false);
-    fireEvent.click(chunkButton(5));
-    expect(setChunkSentences).toHaveBeenCalledWith(5);
-  });
-
-  it('offers a delete link, with the size, only when the setting is off and files exist', () => {
+  it('offers a delete link, with the size, only outside By sentences and when files exist', () => {
     const partial = PACK_MODELS[1].sizeBytes;
     useSegmentationStore.setState({ phase: 'missing', downloadedBytes: partial });
     renderSection();
@@ -350,9 +583,9 @@ describe('SentenceSegmentationSection', () => {
     renderSection();
     expect(screen.queryByText(/Delete models/)).toBeNull();
 
-    // On, with files: the pack is in use, so it is not offered either.
+    // By sentences, with files: the pack is in use, so it is not offered either.
     cleanup();
-    mockSentenceSegmentation = true;
+    mockMode = 'sentences';
     useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
     renderSection();
     expect(screen.queryByText(/Delete models/)).toBeNull();
@@ -374,87 +607,69 @@ describe('SentenceSegmentationSection', () => {
     );
   });
 
-  it('cannot be turned on on a low-memory device, and says why', () => {
-    setDeviceMemory(2);
-    useSegmentationStore.setState({ phase: 'missing' });
-    renderSection();
+  describe('low-memory devices', () => {
+    it('cannot choose By sentences, and are told why', () => {
+      setDeviceMemory(2);
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
 
-    expect(screen.getByText(/does not report enough memory/i)).toBeTruthy();
-    const toggle = segmentationToggle();
-    expect(toggle.getAttribute('aria-disabled')).toBe('true');
-    fireEvent.click(toggle);
-    expect(confirmation()).toBeNull();
-    expect(setSentenceSegmentation).not.toHaveBeenCalled();
+      expect(screen.getByText(/does not report enough memory/i)).toBeTruthy();
+      const sentences = modeButton('By sentences');
+      expect(sentences.disabled).toBe(true);
+      fireEvent.click(sentences);
+      expect(confirmation()).toBeNull();
+      expect(setSegmentationMode).not.toHaveBeenCalled();
+    });
+
+    it('can still leave By sentences if they were already in it', () => {
+      setDeviceMemory(2);
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+      renderSection();
+
+      const off = modeButton('Off');
+      expect(off.disabled).toBe(false);
+      fireEvent.click(off);
+      expect(setSegmentationMode).toHaveBeenCalledWith('off');
+    });
+
+    it('cannot start the download from the status line either', () => {
+      // The mode control is not the only way in: a user who was already in By
+      // sentences before the guard applied still sees the status line, whose
+      // Download and Retry would spend 402 MB on a feature
+      // `PunctuationRuntime.enabled` refuses to run.
+      setDeviceMemory(2);
+      mockMode = 'sentences';
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
+
+      const downloadBtn = screen.getByText('Download').closest('button')!;
+      expect(downloadBtn.disabled).toBe(true);
+      fireEvent.click(downloadBtn);
+      expect(confirmation()).toBeNull();
+
+      cleanup();
+      useSegmentationStore.setState({ phase: 'error', error: 'network down' });
+      renderSection();
+
+      const retryBtn = screen.getByText('Retry').closest('button')!;
+      expect(retryBtn.disabled).toBe(true);
+      fireEvent.click(retryBtn);
+      expect(download).not.toHaveBeenCalled();
+    });
+
+    it('honours the debug:device-memory override the runtime uses', () => {
+      setDeviceMemory(8);
+      localStorage.setItem('debug:device-memory', '2');
+      renderSection();
+      expect(screen.getByText(/does not report enough memory/i)).toBeTruthy();
+    });
   });
 
-  it('a low-memory device cannot start the download from the status line either', () => {
-    // The toggle is not the only way in: a user who had the setting on before
-    // the guard applied still sees the status line, whose Download and Retry
-    // spend 402 MB on a feature `PunctuationRuntime.enabled` refuses to run.
-    setDeviceMemory(2);
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'missing' });
-    renderSection();
-
-    const downloadBtn = screen.getByText('Download').closest('button')!;
-    expect(downloadBtn.disabled).toBe(true);
-    fireEvent.click(downloadBtn);
-    expect(confirmation()).toBeNull();
-
-    cleanup();
-    useSegmentationStore.setState({ phase: 'error', error: 'network down' });
-    renderSection();
-
-    const retryBtn = screen.getByText('Retry').closest('button')!;
-    expect(retryBtn.disabled).toBe(true);
-    fireEvent.click(retryBtn);
-    expect(download).not.toHaveBeenCalled();
-  });
-
-  it('a settings write that rolls back mid-download keeps Cancel and withholds the delete link', () => {
-    // `setSentenceSegmentation` writes the value, then rolls it back when
-    // `persistSetting` returns false — while the download it started keeps
-    // running. Gating the status line on the setting alone would take Cancel
-    // away with it and put the delete link up over a live fetch.
-    useSegmentationStore.setState({ phase: 'missing' });
-    const { rerender } = renderSection();
-    fireEvent.click(segmentationToggle());
-    fireEvent.click(screen.getByText(`Download ${formatBytes(PACK_TOTAL_BYTES)}`));
-    expect(download).toHaveBeenCalledTimes(1);
-
-    useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: 1024 });
-    mockSentenceSegmentation = false; // the persist failed and rolled it back
-    rerender(<SentenceSegmentationSection isSessionActive={false} />);
-
-    expect(screen.getByTestId('segmentation-download-cancel')).toBeTruthy();
-    expect(screen.queryByText(/Delete models/)).toBeNull();
-  });
-
-  it('a user who already had it on can still turn it off on a low-memory device', () => {
-    setDeviceMemory(2);
-    mockSentenceSegmentation = true;
-    useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
-    renderSection();
-
-    const toggle = segmentationToggle();
-    expect(toggle.getAttribute('aria-disabled')).toBe('false');
-    fireEvent.click(toggle);
-    expect(setSentenceSegmentation).toHaveBeenCalledWith(false);
-  });
-
-  it('honours the debug:device-memory override the runtime uses', () => {
-    setDeviceMemory(8);
-    localStorage.setItem('debug:device-memory', '2');
-    renderSection();
-    expect(screen.getByText(/does not report enough memory/i)).toBeTruthy();
-  });
-
-  it('disables the toggle, the download actions and the delete link during a session', () => {
-    mockSentenceSegmentation = true;
+  it('disables the download actions and the delete link during a session', () => {
+    mockMode = 'sentences';
     useSegmentationStore.setState({ phase: 'error', error: 'network down' });
     renderSection(true);
-
-    expect(segmentationToggle().getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByText('Retry').closest('button')!.disabled).toBe(true);
 
     cleanup();
@@ -468,7 +683,7 @@ describe('SentenceSegmentationSection', () => {
     expect(screen.getByText('Download').closest('button')!.disabled).toBe(true);
 
     cleanup();
-    mockSentenceSegmentation = false;
+    mockMode = 'off';
     useSegmentationStore.setState({ phase: 'missing', downloadedBytes: 1024 });
     renderSection(true);
     expect(screen.getByText(/Delete models/).closest('button')!.disabled).toBe(true);

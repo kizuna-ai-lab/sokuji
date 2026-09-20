@@ -1,15 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Scissors, Download, Trash2, AlertTriangle, X, RotateCw } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
-import ToggleSwitch from '../shared/ToggleSwitch';
 import SegmentationDownloadModal from './SegmentationDownloadModal';
 import {
-  useSentenceSegmentation,
-  useSetSentenceSegmentation,
+  useProvider,
+  useSegmentationMode,
+  useSetSegmentationMode,
   useSentenceSegmentationChunkSentences,
   useSetSentenceSegmentationChunkSentences,
+  useSegmentationSourcePause,
+  useSetSegmentationSourcePause,
+  useSegmentationTranslationPause,
+  useSetSegmentationTranslationPause,
 } from '../../../stores/settingsStore';
+import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
+import { resolveSegmentationOffer, type ProviderCapabilities } from '../../../services/providers/ProviderConfig';
+import {
+  resolveSegmentationMode,
+  resolveSegmentationSize,
+  type SegmentationMode,
+} from '../../../lib/segmentation/segmentationMode';
 import {
   useSegmentationStore,
   useSegmentationPhase,
@@ -31,31 +42,59 @@ interface SentenceSegmentationSectionProps {
 /**
  * Sentence segmentation's settings surface. The three punctuation models are
  * one thing to the user — one confirmation, one download, one delete — so this
- * section shows one toggle and one status line, never a row per model.
+ * section shows one status line, never a row per model.
  *
- * The toggle is the whole decision: turning it on with the pack absent opens
- * the confirmation and downloads all three; turning it off mid-download
- * cancels. The setting and the pack are deliberately separate facts, because
- * they come apart in both directions — a download can be cancelled with the
- * setting on (offer Download again), and the files can be deleted from the
- * Storage page's Clear all while the setting stays on, which is why the disk
- * is re-asked on mount.
+ * The whole decision is one three-way mode (Amendment A2): Off, By pause, By
+ * sentences. It is stored once for every provider and clamped on read to what
+ * the current one offers, so this section renders the RESOLVED mode as
+ * selected and stores the raw choice — a user who picks By pause on Gemini and
+ * then switches to Soniox sees Off, and switching back shows By pause again.
+ *
+ * By sentences is the only mode that needs the 402 MB: choosing it with the
+ * pack absent opens the confirmation and leaves the mode untouched until the
+ * user confirms. The mode and the pack are deliberately separate facts,
+ * because they come apart in both directions — a download can be cancelled
+ * with the mode set (offer Download again), and the files can be deleted from
+ * the Storage page's Clear all while the mode stays By sentences, which is why
+ * the disk is re-asked on mount.
  */
 const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = ({
   isSessionActive,
   className = '',
 }) => {
   const { t } = useTranslation();
-  const sentenceSegmentation = useSentenceSegmentation();
-  const setSentenceSegmentation = useSetSentenceSegmentation();
-  const chunkSentences = useSentenceSegmentationChunkSentences();
+  const provider = useProvider();
+  const storedMode = useSegmentationMode();
+  const setSegmentationMode = useSetSegmentationMode();
+  const storedSize = useSentenceSegmentationChunkSentences();
   const setChunkSentences = useSetSentenceSegmentationChunkSentences();
+  const sourcePause = useSegmentationSourcePause();
+  const setSourcePause = useSetSegmentationSourcePause();
+  const translationPause = useSegmentationTranslationPause();
+  const setTranslationPause = useSetSegmentationTranslationPause();
 
   const phase = useSegmentationPhase();
   const { downloadedBytes } = useSegmentationProgress();
   const error = useSegmentationStore((state) => state.error);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { trackEvent } = useAnalytics();
+
+  // What this provider offers, and therefore what the stored mode and size
+  // mean here.
+  const offer = useMemo(() => {
+    try {
+      return resolveSegmentationOffer(ProviderConfigFactory.getConfig(provider).capabilities);
+    } catch {
+      // An id this build did not register — a provider behind a gate that is
+      // off, or a stale stored value. `resolveSegmentationOffer` reads only
+      // `capabilities.segmentation`, so an empty object yields exactly the
+      // documented default without this file restating it.
+      return resolveSegmentationOffer({} as ProviderCapabilities);
+    }
+  }, [provider]);
+
+  const mode = resolveSegmentationMode(storedMode, offer);
+  const size = resolveSegmentationSize(storedSize, offer);
 
   // Settings can be opened long after a Clear all on the Storage page, or on a
   // launch where nothing else has asked the disk yet: `phase` starts 'unknown'
@@ -67,8 +106,9 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   // so the section can never grey a control the runtime would happily run.
   const lowMemory = isLowMemoryDevice();
 
-  const turnOff = () => {
-    void setSentenceSegmentation(false);
+  /** Leaving By sentences: a download that is still running has lost its
+   *  reason to run. */
+  const stopDownload = () => {
     const store = useSegmentationStore.getState();
     if (store.phase !== 'downloading') return;
     store.cancel();
@@ -123,23 +163,47 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
 
   const confirmDownload = () => {
     setConfirmOpen(false);
-    void setSentenceSegmentation(true);
+    void setSegmentationMode('sentences');
     runDownload();
   };
 
-  // Every route to the 402 MB, in one place. `lowMemory` is not only the
-  // toggle's guard: the status line's Download and Retry are reachable
-  // whenever the setting is already on, and they would spend the download on a
-  // feature `PunctuationRuntime.enabled` refuses to run.
+  // Every route to the 402 MB, in one place. `lowMemory` is not only the mode
+  // control's guard: the status line's Download and Retry are reachable
+  // whenever the mode is already By sentences, and they would spend the
+  // download on a feature `PunctuationRuntime.enabled` refuses to run.
   const askToDownload = () => {
     if (lowMemory) return;
     setConfirmOpen(true);
   };
 
-  const onToggle = () => {
-    if (sentenceSegmentation) { turnOff(); return; }
-    if (phase === 'ready') { void setSentenceSegmentation(true); return; }
-    askToDownload();
+  /**
+   * The progress line's Cancel. It stops the fetch whatever the mode currently
+   * reads, because a `setSegmentationMode` whose persist failed has already
+   * rolled the mode back while the download it started keeps running — routing
+   * this through `chooseMode('off')` would then hit its "already there" guard
+   * and leave the fetch alive with no way to stop it.
+   *
+   * The mode only moves if it is still on By sentences, and it lands on Off:
+   * the download was what made that mode possible, and By pause stays one
+   * click away wherever it is offered.
+   */
+  const cancelDownload = () => {
+    if (mode === 'sentences') void setSegmentationMode('off');
+    stopDownload();
+  };
+
+  const chooseMode = (next: SegmentationMode) => {
+    if (next === mode) return;
+    if (next === 'sentences') {
+      if (lowMemory) return;
+      // The pack is the price of this mode, so the mode does not change until
+      // the user has agreed to pay it.
+      if (phase !== 'ready') { askToDownload(); return; }
+      void setSegmentationMode('sentences');
+      return;
+    }
+    void setSegmentationMode(next);
+    stopDownload();
   };
 
   const remove = () => {
@@ -154,18 +218,32 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   };
 
   const packReady = phase === 'ready';
-  // A low-memory device cannot turn this on — but a user who had it on before
-  // the guard applied can still turn it off.
-  const toggleDisabled = isSessionActive || (lowMemory && !sentenceSegmentation);
+  // The three modes in the order A2 names them, minus the one this provider
+  // cannot run. Off and By sentences survive everywhere — By sentences is
+  // runnable wherever either Auto or a size is, which is every provider.
+  const modes: SegmentationMode[] = offer.pause
+    ? ['off', 'pause', 'sentences']
+    : ['off', 'sentences'];
+  const modeLabels: Record<SegmentationMode, string> = {
+    off: t('settings.segmentationModeOff', 'Off'),
+    pause: t('settings.segmentationModePause', 'By pause'),
+    sentences: t('settings.segmentationModeSentences', 'By sentences'),
+  };
+  // 0 is Auto. A control with one option is not a choice, which is why a
+  // provider that offers Auto alone gets no size row at all.
+  const sizeOptions: number[] = [
+    ...(offer.auto ? [0] : []),
+    ...(offer.sizes ? [1, 2, 3, 4, 5] : []),
+  ];
   // The same guard on the two buttons that also start the download.
   const downloadDisabled = isSessionActive || lowMemory;
-  // `phase === 'downloading'` and not just the setting: `setSentenceSegmentation`
-  // rolls the setting back when its persist fails, and the download it started
+  // `phase === 'downloading'` and not just the mode: `setSegmentationMode`
+  // rolls the mode back when its persist fails, and the download it started
   // is still running. Dropping the line then would take Cancel with it.
-  const showPack = sentenceSegmentation || phase === 'downloading';
+  const showPack = mode === 'sentences' || phase === 'downloading';
   // ...and the delete link is the same fact from the other side: offering it
   // mid-download would delete files out from under the live fetch.
-  const showDelete = !sentenceSegmentation && phase !== 'downloading' && downloadedBytes > 0;
+  const showDelete = mode !== 'sentences' && phase !== 'downloading' && downloadedBytes > 0;
 
   return (
     <div className={`config-section ${className}`} id="sentence-segmentation-section">
@@ -182,16 +260,111 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         />
       </h3>
 
-      <ToggleSwitch
-        checked={sentenceSegmentation}
-        onChange={onToggle}
-        label={t('settings.sentenceSegmentation', 'Subtitle segmentation')}
-        disabled={toggleDisabled}
-        tooltip={t('settings.sentenceSegmentationDesc', 'When a transcript arrives without punctuation, add it and start a new bubble every few sentences. Turning this on downloads three small models.')}
-      />
+      <div className="sentence-segmentation__mode">
+        <div className="sentence-segmentation__row-header">
+          <span className="sentence-segmentation__row-label">
+            {t('settings.sentenceSegmentation', 'Subtitle segmentation')}
+          </span>
+          <Tooltip
+            content={t('settings.sentenceSegmentationDesc', 'How a bubble is cut. Off keeps what this provider already produces. By pause cuts on a silence you tune below. By sentences adds the punctuation a transcript is missing and starts a new bubble every few sentences; it downloads three small models.')}
+            position="top"
+            icon="help"
+            maxWidth={350}
+          />
+        </div>
+        <div className="segmented-control sentence-segmentation__mode-options">
+          {modes.map((m) => (
+            <button
+              type="button"
+              key={m}
+              className={`segmented-option ${mode === m ? 'active' : ''}`}
+              disabled={isSessionActive || (m === 'sentences' && lowMemory && mode !== 'sentences')}
+              onClick={() => chooseMode(m)}
+            >
+              {modeLabels[m]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {mode === 'sentences' && sizeOptions.length > 1 && (
+        <div className="sentence-segmentation__chunk">
+          <div className="sentence-segmentation__row-header">
+            <span className="sentence-segmentation__row-label">
+              {t('settings.sentenceSegmentationChunk', 'Sentences per bubble')}
+            </span>
+            <Tooltip
+              content={t('settings.sentenceSegmentationChunkTooltip', 'How much speech goes into one bubble before a new one starts. On local engines this is also the translation unit, so 1 translates sentence by sentence and 5 stays close to whole-utterance translation.')}
+              position="top"
+              icon="help"
+              maxWidth={350}
+            />
+          </div>
+          <div className="segmented-control sentence-segmentation__chunk-options">
+            {sizeOptions.map((n) => (
+              <button
+                type="button"
+                key={n}
+                className={`segmented-option ${size === n ? 'active' : ''}`}
+                disabled={isSessionActive || !packReady}
+                onClick={() => { if (size !== n) void setChunkSentences(n); }}
+              >
+                {n === 0 ? t('settings.sentenceSegmentationChunkAuto', 'Auto') : n}
+              </button>
+            ))}
+          </div>
+          <p className="sentence-segmentation__chunk-effect">
+            {size === 0
+              ? t('settings.sentenceSegmentationChunkAutoEffect', 'Bubbles are cut where they are today; only the missing punctuation is added.')
+              : t('settings.sentenceSegmentationChunkEffect', 'Long speech starts a new bubble every {{count}} sentences.', { count: size })}
+          </p>
+        </div>
+      )}
+
+      {/* The two silence timers the pause clients cut on. They used to live in
+          each provider's own settings; A2 made them one global pair, shown
+          only by the mode that uses them. */}
+      {mode === 'pause' && (
+        <div className="sentence-segmentation__pause">
+          <div className="sentence-segmentation__row-header">
+            <span className="sentence-segmentation__row-label">
+              {t('settings.userSilenceDuration', 'Source pause')}
+            </span>
+            <span className="sentence-segmentation__pause-value">{sourcePause.toFixed(2)}s</span>
+          </div>
+          <input
+            type="range"
+            min="0.1"
+            max="3"
+            step="0.1"
+            className="sentence-segmentation__pause-slider"
+            data-testid="segmentation-source-pause"
+            value={sourcePause}
+            onChange={(e) => void setSourcePause(parseFloat(e.target.value))}
+            disabled={isSessionActive}
+          />
+          <div className="sentence-segmentation__row-header">
+            <span className="sentence-segmentation__row-label">
+              {t('settings.assistantSilenceDuration', 'Translation pause')}
+            </span>
+            <span className="sentence-segmentation__pause-value">{translationPause.toFixed(2)}s</span>
+          </div>
+          <input
+            type="range"
+            min="0.1"
+            max="3"
+            step="0.1"
+            className="sentence-segmentation__pause-slider"
+            data-testid="segmentation-translation-pause"
+            value={translationPause}
+            onChange={(e) => void setTranslationPause(parseFloat(e.target.value))}
+            disabled={isSessionActive}
+          />
+        </div>
+      )}
 
       {/* One status line, and only while the pack is in play and not ready:
-          with the setting off and nothing downloading, the toggle itself
+          outside By sentences and with nothing downloading, the mode control
           already says everything, and 'unknown' is a state the disk hasn't
           answered for yet. */}
       {showPack && !packReady && (
@@ -216,7 +389,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
                   type="button"
                   className="sentence-segmentation__pack-btn"
                   data-testid="segmentation-download-cancel"
-                  onClick={turnOff}
+                  onClick={cancelDownload}
                   disabled={isSessionActive}
                   title={t('settings.sentenceSegmentationDownloadCancel', 'Cancel')}
                 >
@@ -264,36 +437,6 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         </div>
       )}
 
-      <div className="sentence-segmentation__chunk">
-        <div className="sentence-segmentation__chunk-header">
-          <span className="sentence-segmentation__chunk-label">
-            {t('settings.sentenceSegmentationChunk', 'Sentences per bubble')}
-          </span>
-          <Tooltip
-            content={t('settings.sentenceSegmentationChunkTooltip', 'How much speech goes into one bubble before a new one starts. On local engines this is also the translation unit, so 1 translates sentence by sentence and 5 stays close to whole-utterance translation.')}
-            position="top"
-            icon="help"
-            maxWidth={350}
-          />
-        </div>
-        <div className="segmented-control sentence-segmentation__chunk-options">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              type="button"
-              key={n}
-              className={`segmented-option ${chunkSentences === n ? 'active' : ''}`}
-              disabled={isSessionActive || !sentenceSegmentation || !packReady}
-              onClick={() => { if (chunkSentences !== n) void setChunkSentences(n); }}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <p className="sentence-segmentation__chunk-effect">
-          {t('settings.sentenceSegmentationChunkEffect', 'Long speech starts a new bubble every {{count}} sentences.', { count: chunkSentences })}
-        </p>
-      </div>
-
       {lowMemory && (
         <div className="sentence-segmentation__low-memory" role="status">
           <AlertTriangle size={14} aria-hidden="true" />
@@ -306,7 +449,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         </div>
       )}
 
-      {/* Only with the stage off: the pack is 402 MB the user may want back,
+      {/* Only outside By sentences: the pack is 402 MB the user may want back,
           and deleting it out from under a session — or under an enabled
           runtime — is not a thing this offers. */}
       {showDelete && (

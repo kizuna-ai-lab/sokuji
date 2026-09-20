@@ -815,72 +815,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
-  // Standalone silence-duration sliders for providers (currently only
-  // OPENAI_TRANSLATE) that segment user (input) and assistant (output)
-  // independently. Translate's API has no server-side turn detection, so
-  // these only control UI message splitting. Range 0.1–3.0s.
-  const renderSilenceDurationOnlySetting = () => {
-    if (!config.capabilities.turnDetection.hasSilenceDuration) return null;
-    if (config.capabilities.hasTurnDetection) return null;
-
-    const compatibleSettings = getOpenAICompatibleSettings();
-    if (
-      !compatibleSettings ||
-      !('userSilenceDuration' in compatibleSettings) ||
-      !('assistantSilenceDuration' in compatibleSettings)
-    ) {
-      return null;
-    }
-    const userValue = (compatibleSettings as { userSilenceDuration: number }).userSilenceDuration;
-    const assistantValue = (compatibleSettings as { assistantSilenceDuration: number }).assistantSilenceDuration;
-
-    return (
-      <div className="settings-section">
-        <h2>
-          {t('settings.silenceDuration')}
-          <Tooltip
-            content={t('settings.silenceDurationTranslateTooltip', t('settings.silenceDurationTooltip'))}
-            position="top"
-          >
-            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-          </Tooltip>
-        </h2>
-        <div className="setting-item">
-          <div className="setting-label">
-            <span>{t('settings.userSilenceDuration', 'Source pause')}</span>
-            <span className="setting-value">{userValue.toFixed(2)}s</span>
-          </div>
-          <input
-            type="range"
-            min="0.1"
-            max="3"
-            step="0.1"
-            value={userValue}
-            onChange={(e) => updateOpenAICompatibleSettingsHelper({ userSilenceDuration: parseFloat(e.target.value) })}
-            className="slider"
-            disabled={isSessionActive}
-          />
-        </div>
-        <div className="setting-item">
-          <div className="setting-label">
-            <span>{t('settings.assistantSilenceDuration', 'Translation pause')}</span>
-            <span className="setting-value">{assistantValue.toFixed(2)}s</span>
-          </div>
-          <input
-            type="range"
-            min="0.1"
-            max="3"
-            step="0.1"
-            value={assistantValue}
-            onChange={(e) => updateOpenAICompatibleSettingsHelper({ assistantSilenceDuration: parseFloat(e.target.value) })}
-            className="slider"
-            disabled={isSessionActive}
-          />
-        </div>
-      </div>
-    );
-  };
-
   const renderNoiseReductionSettings = () => {
     if (!config.capabilities.hasNoiseReduction || config.noiseReductionModes.length === 0) {
       return null;
@@ -2494,7 +2428,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {/* Provider-specific settings */}
       {renderVoiceSettings()}
       {renderTurnDetectionSettings()}
-      {renderSilenceDurationOnlySetting()}
       {renderModelSettings()}
       {renderTranscriptSettings()}
       {renderNoiseReductionSettings()}
