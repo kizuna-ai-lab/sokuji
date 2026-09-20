@@ -1,5 +1,6 @@
 import { sentenceEnds, skeleton } from '../../lib/segmentation/sentenceEnd';
 import { gateChars } from '../../lib/segmentation/SentenceStream';
+import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /** How long a definite segment may wait for its punctuation before it is shown
@@ -40,7 +41,12 @@ export async function punctuateDefinite(
   // cases "how often is punctuation missing" is asking about. `text` itself
   // never crosses — two integers about it do.
   runtime.observe?.({ kind: 'definite', lang, chars: text.length, terminals: ends.length });
-  if (text.length < gateChars(lang, sentencesPerChunk)) return text;
+  // 0 is Auto — "punctuate, do not split" — and the gate still has to mean
+  // something there, or `gateChars(lang, 0)` is zero and every three-word
+  // segment waits out the fill-in budget for marks it does not need. Auto
+  // asks the same question a bubble of three sentences would.
+  const gateSentences = sentencesPerChunk > 0 ? sentencesPerChunk : DEFAULT_CHUNK_SENTENCES;
+  if (text.length < gateChars(lang, gateSentences)) return text;
   if (ends.length > 0) return text;
   // A runtime is contracted never to reject, but a caller that assigns this
   // unconditionally must not be able to lose a segment if one ever does.

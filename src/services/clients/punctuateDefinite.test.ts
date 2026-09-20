@@ -230,6 +230,22 @@ describe('createSegmentLane', () => {
     });
   });
 
+  it('keeps the length gate under Auto, which is a size of 0', async () => {
+    // Auto means "punctuate, do not split", not "punctuate anything at all":
+    // gateChars(lang, 0) is zero, so without this a three-word segment would
+    // call the model and wait out the fill-in budget for marks it does not
+    // need.
+    const called = vi.fn(async () => null);
+    const rt: SegmentationRuntime = { enabled: true, punctuate: called };
+    expect(await punctuateDefinite(rt, 'en', 'too short to bother', 0)).toBe('too short to bother');
+    expect(called).not.toHaveBeenCalled();
+
+    // Long enough for three sentences of English: Auto still asks.
+    const long = 'a'.repeat(160);
+    expect(await punctuateDefinite(rt, 'en', long, 0)).toBe(long);
+    expect(called).toHaveBeenCalledTimes(1);
+  });
+
   it('gives up on a slow model and shows the segment raw', async () => {
     vi.useFakeTimers();
     try {
