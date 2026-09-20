@@ -137,20 +137,28 @@ export class OpenAITranslateWebRTCClient implements IClient {
    * routes text into it. See OpenAITranslateGAClient's field doc.
    */
   private sessionSegmentation: SegmentationRuntime | null = null;
-  /** One stream per side of the pair: a boundary the stage finds in the
-   *  translation is not a boundary in the speech that produced it. */
+  /**
+   * The source side of the pair only.
+   *
+   * There is deliberately no translation-side stream. `handleBufferedAudio`
+   * attaches every remote frame to whichever assistant item is open when it
+   * arrives, and this API reports no per-item timeline — the deltas carry no
+   * timing at all — so a split translation item cannot be told where its own
+   * audio ends. The frames belonging to a sealed sentence would land on the
+   * next bubble and put every later karaoke highlight one bubble out. GPT-Live
+   * segments both sides because it has that timeline:
+   * `OpenAILiveClient.closeAssistantText` queues the closed item on
+   * `pendingAudioItems` with its `end_ms` and keeps feeding it frames until the
+   * session clock passes it. Nothing here can be rebuilt from without guessing.
+   */
   private userStream: SentenceStream | null = null;
-  private assistantStream: SentenceStream | null = null;
-  /** The raw text each stream still holds, mirrored from its onPending. */
+  /** The raw text the stream still holds, mirrored from its onPending. */
   private userPending = '';
-  private assistantPending = '';
   /** Set while a seal from the stream is closing an item, so the close does not
    *  turn around and end() the stream that produced it. */
   private sealingUser = false;
-  private sealingAssistant = false;
-  /** The pair the streams punctuate in, read once at connect(). */
+  /** The language the stream punctuates in, read once at connect(). */
   private sourceLanguage = 'auto';
-  private targetLanguage = 'auto';
 
   constructor(options: WebRTCClientOptions) {
     this.apiKey = options.apiKey;
@@ -221,7 +229,9 @@ export class OpenAITranslateWebRTCClient implements IClient {
     return pair.userItemId;
   }
 
-  /** The translation twin of ensureUserItemId. */
+  /** The translation twin of ensureUserItemId. Nothing but the pair timer ever
+   *  closes this item mid-stream, which is what keeps its audio attached to it
+   *  — see the `userStream` field doc. */
   private ensureAssistantItemId(): string {
     const pair = this.ensurePair();
     if (!pair.assistantItemId) pair.assistantItemId = this.openItem('assistant');
@@ -248,7 +258,8 @@ export class OpenAITranslateWebRTCClient implements IClient {
 
   /** Close just the translation item, handing over its buffered audio. */
   private closeAssistantItem(): void {
-    this.endAssistantStream();
+    // No stream to wind up: the stage does not run on this side. See the
+    // `userStream` field doc for why.
     const pair = this.currentPair;
     if (!pair?.assistantItemId) return;
     const assistantItemId = pair.assistantItemId;
@@ -367,63 +378,6 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.userPending = '';
   }
 
-  private ensureAssistantStream(): SentenceStream | null {
-    if (this.assistantStream) return this.assistantStream;
-    if (!this.sessionSegmentation) return null;
-    this.assistantStream = new SentenceStream({
-      lang: this.targetLanguage,
-      runtime: this.sessionSegmentation,
-      sentencesPerChunk: this.sentencesPerChunk,
-      onSeal: (chunk) => this.sealAssistantItem(chunk.text),
-      onPending: (text) => this.onAssistantPending(text),
-    });
-    return this.assistantStream;
-  }
-
-  private onAssistantPending(text: string): void {
-    this.assistantPending = text;
-    if (text.length === 0) return;
-    const item = this.itemLookup.get(this.ensureAssistantItemId());
-    const shown = text.replace(/^\s+/, '');
-    if (item?.formatted && item.formatted.transcript !== shown) {
-      item.formatted.transcript = shown;
-      this.eventHandlers.onConversationUpdated?.({ item });
-    }
-  }
-
-  private sealAssistantItem(sealed: string): void {
-    const id = this.currentPair?.assistantItemId;
-    if (!id) return;
-    const item = this.itemLookup.get(id);
-    if (item?.formatted) {
-      item.formatted.transcript = sealed.replace(/^\s+/, '');
-      this.eventHandlers.onConversationUpdated?.({ item });
-    }
-    this.sealingAssistant = true;
-    try {
-      this.closeAssistantItem();
-    } finally {
-      this.sealingAssistant = false;
-    }
-  }
-
-  private endAssistantStream(): void {
-    if (this.sealingAssistant) return;
-    const stream = this.assistantStream;
-    if (stream) {
-      this.assistantStream = null;
-      stream.end();
-      stream.dispose();
-    }
-    this.assistantPending = '';
-  }
-
-  private discardAssistantStream(): void {
-    this.assistantStream?.dispose();
-    this.assistantStream = null;
-    this.assistantPending = '';
-  }
-
   /**
    * Handle PCM frames produced by WebRTCAudioBridge from the remote audio
    * track. Attach the audio to the current pair's assistant item so it
@@ -441,8 +395,6 @@ export class OpenAITranslateWebRTCClient implements IClient {
       console.debug('[OpenAITranslateWebRTCClient] Received audio with no active pair; ignoring');
       return;
     }
-    // The pair is open, so a null assistant id means only that a seal just
-    // closed that half; the frames belong to its replacement.
     const assistantItemId = this.ensureAssistantItemId();
 
     const assistantItem = this.itemLookup.get(assistantItemId);
@@ -523,7 +475,7 @@ export class OpenAITranslateWebRTCClient implements IClient {
           item: assistantItem!,
           delta: { transcript: event.delta },
         });
-        if (event.delta) this.ensureAssistantStream()?.update(this.assistantPending + event.delta);
+        // No stage on this side: see the `userStream` field doc.
         this.resetDeltaTimer();
         break;
       }
@@ -610,11 +562,9 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.currentPair = null;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
     this.discardUserStream();
-    this.discardAssistantStream();
     this.sourceLanguage = config.sourceLanguage ?? 'auto';
-    this.targetLanguage = config.targetLanguage;
     // R2: the one read of `enabled` this session gets. Everything downstream —
-    // both streams, every rebuild of them — sees this frozen view, never the
+    // the stream and every rebuild of it — sees this frozen view, never the
     // live runtime. See the `sessionSegmentation` field doc.
     const runtime = this.segmentation;
     this.sessionSegmentation = runtime?.enabled === true
@@ -921,10 +871,9 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.itemLookup.clear();
     this.audioChunks.clear();
     this.deltaSequenceNumber = 0;
-    // Dropped rather than ended: the items these streams were feeding are
-    // being forgotten too.
+    // Dropped rather than ended: the items this stream was feeding are being
+    // forgotten too.
     this.discardUserStream();
-    this.discardAssistantStream();
   }
 
   /**

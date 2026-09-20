@@ -149,23 +149,40 @@ describe('OpenAITranslateWebRTCClient with the segmentation stage', () => {
     expect(pending.formatted?.transcript).not.toContain('。');
   });
 
-  it('seals one side without closing the other half of the pair', async () => {
-    // The pair is this client's unit of segmentation, but a boundary the
-    // stage found on the translation side is not a boundary in the speech
-    // that produced it — so a seal closes only the item it belongs to.
+  it('leaves the translation side unsegmented, so its audio keeps its bubble', async () => {
+    // The stage is source-side only here: this client reports no per-item
+    // timeline, so a split translation item cannot be told where its audio
+    // ends, and the frames that belong to the sealed sentence would attach to
+    // the next bubble — putting every later karaoke highlight one bubble out.
+    const client = await connectStage({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    const updates: Array<{ item: { id: string }; delta?: { audio?: Int16Array } }> = [];
+    client.setEventHandlers({ onConversationUpdated: (u) => updates.push(u as never) } as ClientEventHandlers);
+    const feed = feedTo(client);
+    // Three sentence ends: enough for the stage to have sealed twice, had it
+    // been running on this side.
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。あいたかったです。またあいましょう' });
+    await flush();
+    (client as any).handleBufferedAudio(new Int16Array(9600), { sequenceNumber: 1, timestamp: 1 });
+    await flush();
+
+    const assistants = assistantsOf(client);
+    expect(assistants.map((i) => i.formatted?.transcript)).toEqual([
+      'こんにちは。げんきですか。あいたかったです。またあいましょう',
+    ]);
+    expect((client as any).assistantStream).toBeUndefined();
+    const audioUpdate = updates.find((u) => u.delta?.audio instanceof Int16Array);
+    expect(audioUpdate?.item.id).toBe(assistants[0].id);
+  });
+
+  it('still segments the source side while the translation side stays whole', async () => {
     const client = await connectStage({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
     const feed = feedTo(client);
-    feed({ type: 'session.input_transcript.delta', delta: 'これはテストです。つづきの文章' });
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
     feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。あいたかったです。またあいましょう' });
     await flush();
 
-    const users = usersOf(client);
-    expect(users.map((i) => i.formatted?.transcript)).toEqual(['これはテストです。つづきの文章']);
-    expect(users[0].status).toBe('in_progress');
-    expect(assistantsOf(client).map((i) => i.formatted?.transcript)).toEqual([
-      'こんにちは。げんきですか。',
-      'あいたかったです。またあいましょう',
-    ]);
+    expect(usersOf(client)).toHaveLength(2);
+    expect(assistantsOf(client)).toHaveLength(1);
   });
 
   it('the 1.5 s pair timer still closes both sides, and each stream tail lands in its own item', async () => {
@@ -178,7 +195,6 @@ describe('OpenAITranslateWebRTCClient with the segmentation stage', () => {
     vi.advanceTimersByTime(PAIR_SILENCE_MS + 1);
 
     expect((client as any).userStream).toBeNull();
-    expect((client as any).assistantStream).toBeNull();
     expect((client as any).currentPair).toBeNull();
     const [user] = usersOf(client);
     const [assistant] = assistantsOf(client);

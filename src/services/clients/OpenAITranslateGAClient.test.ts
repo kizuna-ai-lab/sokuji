@@ -871,24 +871,44 @@ describe('OpenAITranslateGAClient with the segmentation stage', () => {
     expect(pending.formatted?.transcript).not.toContain('。');
   });
 
-  it('the translation side seals on its own schedule, independently of the source side', async () => {
+  it('leaves the translation side unsegmented, so its audio keeps its bubble', async () => {
+    // The stage is source-side only here: this client reports no per-item
+    // timeline, so a split translation item cannot be told where its audio
+    // ends, and the frames that belong to the sealed sentence would attach to
+    // the next bubble — putting every later karaoke highlight one bubble out.
+    const runtime = markingRuntime(10);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    const updates: Array<{ item: { id: string }; delta?: { audio?: Int16Array } }> = [];
+    client.setEventHandlers({ onConversationUpdated: (u) => updates.push(u as never) } as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+    // Three sentence ends: enough for the stage to have sealed twice, had it
+    // been running on this side.
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。あいたかったです。またあいましょう' });
+    await flush();
+    feed({ type: 'session.output_audio.delta', delta: CONTENT_DELTA });
+    await flush();
+
+    const assistants = assistantsOf(client);
+    expect(assistants.map((i) => i.formatted?.transcript)).toEqual([
+      'こんにちは。げんきですか。あいたかったです。またあいましょう',
+    ]);
+    expect((client as any).assistantStream).toBeUndefined();
+    const audioUpdate = updates.find((u) => u.delta?.audio instanceof Int16Array);
+    expect(audioUpdate?.item.id).toBe(assistants[0].id);
+  });
+
+  it('still segments the source side while the translation side stays whole', async () => {
     const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
     client.setEventHandlers({} as ClientEventHandlers);
     await connectStage(client);
     const feed = feedTo(client);
-    // One sentence end and a tail short of the 40-character gate: the source
-    // item stays open and whole.
-    feed({ type: 'session.input_transcript.delta', delta: 'これはテストです。つづきの文章' });
-    // Three sentence ends on the translation side: the stream seals after the
-    // second.
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
     feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。あいたかったです。またあいましょう' });
     await flush();
 
-    expect(usersOf(client).map((i) => i.formatted?.transcript)).toEqual(['これはテストです。つづきの文章']);
-    expect(assistantsOf(client).map((i) => i.formatted?.transcript)).toEqual([
-      'こんにちは。げんきですか。',
-      'あいたかったです。またあいましょう',
-    ]);
+    expect(usersOf(client)).toHaveLength(2);
+    expect(assistantsOf(client)).toHaveLength(1);
   });
 
   it("a silence timer closing a source item ends its stream, and the tail is that item's last text", async () => {
