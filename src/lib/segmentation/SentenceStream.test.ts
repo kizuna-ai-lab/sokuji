@@ -306,7 +306,9 @@ describe('SentenceStream model results', () => {
   });
 
   it('discards a result whose skeleton differs from the input', async () => {
-    const raw = 'a'.repeat(160);
+    // Past the 50-character gate for N = 1 and under the 100-character length
+    // fallback, so what happens here is the discard and nothing else.
+    const raw = 'a'.repeat(60);
     const seals: SealedChunk[] = [];
     const { runtime } = fakeRuntime({ [raw]: resultOf('completely different text.', [26]) });
     const stream = new SentenceStream({
@@ -450,9 +452,11 @@ describe('SentenceStream rewrites and re-anchoring', () => {
     const stream = new SentenceStream({
       lang: 'en', runtime, sentencesPerChunk: 1, onSeal: (c) => seals.push(c), onPending: () => {},
     });
-    stream.update('a'.repeat(150));
+    // Past the 50-character gate for N = 1, under the 100-character length
+    // fallback: the discard is the only thing that can happen here.
+    stream.update('a'.repeat(60));
     // The tail is rewritten from the start while the call is in flight.
-    stream.update('b'.repeat(150));
+    stream.update('b'.repeat(60));
     release();
     // Not named in the fix-round list, but the same anti-pattern Finding 1
     // describes: this checks that nothing happened right after release(),

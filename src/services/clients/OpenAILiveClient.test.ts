@@ -1317,18 +1317,34 @@ describe('OpenAILiveClient with the segmentation stage', () => {
     expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['あああああ。いいいいいいいいううう']);
   });
 
-  it('the 12 s source cap still fires when the tail holds no mark at all', async () => {
-    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 3 });
+  it('bounds an unpunctuated bubble by characters, not by seconds', async () => {
+    // Nothing the model can mark and nothing the ASR marked: the bubble is
+    // still bounded, at twice the 60-character gate for N = 3 in a CJK
+    // language, and by text rather than by a timer — 12 s of speech is a
+    // different amount of text for every speaker, and the 12 s cap used to cut
+    // at exactly the point the model was first being asked, so no punctuation
+    // ever reached the screen.
+    const silent = { enabled: true, punctuate: vi.fn(async () => null) };
+    const client = makeClient({ segmentation: silent, sentencesPerChunk: 3 });
     client.setEventHandlers({} as ClientEventHandlers);
     await connectStage(client);
     const feed = feedTo(client);
-    // Kept under the 60-character gate for N = 3, so the model is never asked.
-    feed({ type: 'session.input_transcript.delta', delta: 'あああああ', start_ms: 0, end_ms: 4000 });
-    feed({ type: 'session.input_transcript.delta', delta: 'いいいいい', start_ms: 4000, end_ms: 11000 });
-    feed({ type: 'session.input_transcript.delta', delta: 'ううううう', start_ms: 11000, end_ms: 12100 });
-    feed({ type: 'session.input_transcript.delta', delta: 'えええええ', start_ms: 12100, end_ms: 12300 });
+
+    // 90 characters over 30 s: well past the old 12 s cap, under 120. The
+    // bubble is still open.
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(90), start_ms: 0, end_ms: 30000 });
     await flush();
-    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['あああああいいいいいううううう', 'えええええ']);
+    expect(usersOf(client)).toHaveLength(1);
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // Past 120 characters, in a delta that ends barely any later: the length
+    // fallback closes it. There is no remainder, so the next delta is what
+    // opens the next bubble.
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(40), start_ms: 30000, end_ms: 30500 });
+    await flush();
+    const [only] = usersOf(client);
+    expect(only.status).toBe('completed');
+    expect(only.formatted?.transcript).toBe('あ'.repeat(130));
   });
 
   it('the translation side seals on its own schedule, independently of the source side', async () => {

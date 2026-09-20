@@ -160,21 +160,6 @@ export class SentenceStream {
     return counted.length > 0 ? counted[counted.length - 1] : -1;
   }
 
-  /**
-   * The latest counted sentence end OR clause mark in the current tail, or -1.
-   *
-   * The second choice for a cap that has to cut somewhere. A comma is a worse
-   * place to end a bubble than a full stop, and a far better one than the
-   * arbitrary character the cap would otherwise land on — which matters most
-   * in Chinese, where FireRedPunc emits 62% of the reference's sentence ends
-   * and commas are often the only marks in the tail at all. Side-effect free.
-   */
-  confirmedBreakpoint(): number {
-    const tail = this.pending;
-    if (tail.length === 0) return -1;
-    const counted = ruleBreakpoints(tail).filter((b) => this.hasRightContext(tail, b));
-    return counted.length > 0 ? counted[counted.length - 1] : -1;
-  }
 
   // ----- internals -----
 
@@ -247,7 +232,20 @@ export class SentenceStream {
     const sentences = confirmed(ends);
     if (sentences.length > 0) return sentences[sentences.length - 1];
     const marks = confirmed(breaks);
-    return marks.length > 0 ? marks[marks.length - 1] : -1;
+    if (marks.length > 0) return marks[marks.length - 1];
+    // No mark anywhere: neither the ASR nor the model found one, which is what
+    // a disabled or silent model looks like from here. The bubble is still
+    // bounded — by its text, the only unit that means the same thing at every
+    // speech rate — so cut at the last word boundary that has text after it,
+    // and at the end of the tail in a language that writes without spaces.
+    const spaces: number[] = [];
+    for (let i = 0; i < text.length; i++) if (/\s/.test(text[i])) spaces.push(i);
+    const atSpace = confirmed(spaces);
+    if (atSpace.length > 0) return atSpace[atSpace.length - 1];
+    // Not while the model is still answering: its marks are seconds away, and
+    // cutting blind in that instant is exactly how a live Chinese session
+    // ended up with bubble after bubble of unpunctuated text.
+    return this.inFlight ? -1 : text.length;
   }
 
   /**

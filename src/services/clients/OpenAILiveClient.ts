@@ -793,31 +793,22 @@ export class OpenAILiveClient implements IClient {
             // The two timeline caps stay: they are the safety net for speech
             // the stage never finds a boundary in.
             this.appendUserText(text, startMs);
-            const openBefore = this.currentUserItemId;
+            // Neither timer runs while the stage does, and `span` is no
+            // longer read on this path at all.
+            //
+            // The 8 s soft cap cut at the nearest comma before three sentences
+            // could accumulate, so N never acted: a live Chinese session gave
+            // five bubbles in a row ending at a comma, 9-11 s apart, with a
+            // full stop in the middle of one. The 12 s hard cap was worse on
+            // the input this feature exists for — 60 unpunctuated characters
+            // is about 12 s of Chinese, the same point the model is first
+            // asked, so every bubble was cut raw in the instant the answer was
+            // being computed and no punctuation ever reached the screen.
+            //
+            // A bubble is bounded by its text instead, inside SentenceStream:
+            // seconds mean different amounts of speech at different speaking
+            // rates, and characters do not.
             stream.update(this.userPending + text);
-            // A seal inside that update already ended this item and opened the
-            // next one; `span` belongs to the item that just closed, so the
-            // caps below have nothing left to say about it.
-            if (this.currentUserItemId === openBefore) {
-              // Neither timer competes with the stage any more.
-              //
-              // The soft cap is gone outright: at 8 s it cut at the nearest
-              // comma before three sentences could accumulate, so N never got
-              // to act — a live Chinese session produced five bubbles in a
-              // row, all ending at a comma 9-11 s apart, with a full stop
-              // sitting in the middle of one of them.
-              //
-              // The hard cap now fires only when the tail holds nothing to cut
-              // on at all: no sentence end, no comma, from the ASR or from the
-              // model. That is the one case the stage cannot bound, and the
-              // bubble would otherwise grow until the speaker stops. When
-              // there IS a mark, the stage decides — by the N-sentence seal,
-              // or by its own length fallback, which is what keeps a bubble
-              // from running away.
-              if (span !== null && span >= USER_SPAN_CAP_MS && stream.confirmedBreakpoint() <= 0) {
-                this.completeUserItem();
-              }
-            }
           } else {
             let split = lastSentenceEnd(text, prefix);
             // A long item is cut at the next clause mark; a very long one anywhere.
@@ -853,15 +844,10 @@ export class OpenAILiveClient implements IClient {
           if (stream) {
             // R1, translation side. Structurally identical to the source side
             // above, down to the two caps; only the close path differs.
-            const openBefore = this.appendAssistantText(text, startMs, endMs);
+            // Same as the source side: no timer competes with the stage, which
+            // bounds the bubble by text inside SentenceStream.
+            this.appendAssistantText(text, startMs, endMs);
             stream.update(this.assistantPending + text);
-            if (this.currentAssistantItemId === openBefore) {
-              // Same as the source side: no soft cap under an active stream,
-              // and the hard cap only for a tail with no mark anywhere in it.
-              if (span !== null && span >= ASSISTANT_SPAN_CAP_MS && stream.confirmedBreakpoint() <= 0) {
-                this.closeAssistantText(openBefore);
-              }
-            }
           } else {
             let split = lastSentenceEnd(text, this.assistantTranscript());
             // A long item is cut at the next clause mark; a very long one anywhere.
