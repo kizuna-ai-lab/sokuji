@@ -1511,4 +1511,42 @@ describe('OpenAILiveClient with the segmentation stage', () => {
     await flush();
     expect(assistantsOf(client)[1].status).toBe('completed');
   });
+  it('does not let the 8 s soft cap pre-empt the stage, and lands the 12 s cap on a comma', async () => {
+    // A live Chinese session produced five bubbles in a row that all ended at
+    // a comma, 9-11 s apart, with a full stop sitting in the middle of one:
+    // the soft cap was cutting at the nearest clause mark before three
+    // sentences could accumulate, so N never acted. With the stage on the soft
+    // cap is gone and the 12 s cap is the net.
+    const silent = { enabled: true, punctuate: vi.fn(async () => null) };
+    const client = makeClient({ segmentation: silent, sentencesPerChunk: 3 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+
+    // Past the 8 s soft cap with a comma mid-delta. The old rule cut here.
+    feed({ type: 'session.input_transcript.delta', delta: 'まず最初の話があって、そのあと', start_ms: 0, end_ms: 9000 });
+    await flush();
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['まず最初の話があって、そのあと']);
+
+    // Past the 12 s cap, with no sentence end anywhere in the tail: the cut
+    // lands on the comma rather than wherever this delta happens to stop.
+    feed({ type: 'session.input_transcript.delta', delta: 'の話が続きます', start_ms: 9000, end_ms: 12500 });
+    await flush();
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual([
+      'まず最初の話があって、',
+      'そのあとの話が続きます',
+    ]);
+  });
+
+  it('still cuts at the soft cap when the stage is off', async () => {
+    const client = makeClient({});
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'まず最初の話があって、そのあと', start_ms: 0, end_ms: 9000 });
+    await flush();
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual([
+      'まず最初の話があって、',
+      'そのあと',
+    ]);
+  });
 });

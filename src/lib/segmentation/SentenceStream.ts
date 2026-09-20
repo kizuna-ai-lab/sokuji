@@ -142,12 +142,28 @@ export class SentenceStream {
   }
 
   /** The latest counted sentence end in the current tail, or -1. Side-effect
-   *  free: a later slice uses it to land a hard span cap on a real boundary
-   *  instead of mid-word. */
+   *  free: a hard span cap uses it to land on a real boundary instead of
+   *  mid-word. */
   confirmedBoundary(): number {
     const tail = this.pending;
     if (tail.length === 0) return -1;
     const counted = ruleSentenceEnds(tail).filter((e) => this.hasRightContext(tail, e));
+    return counted.length > 0 ? counted[counted.length - 1] : -1;
+  }
+
+  /**
+   * The latest counted sentence end OR clause mark in the current tail, or -1.
+   *
+   * The second choice for a cap that has to cut somewhere. A comma is a worse
+   * place to end a bubble than a full stop, and a far better one than the
+   * arbitrary character the cap would otherwise land on — which matters most
+   * in Chinese, where FireRedPunc emits 62% of the reference's sentence ends
+   * and commas are often the only marks in the tail at all. Side-effect free.
+   */
+  confirmedBreakpoint(): number {
+    const tail = this.pending;
+    if (tail.length === 0) return -1;
+    const counted = ruleBreakpoints(tail).filter((b) => this.hasRightContext(tail, b));
     return counted.length > 0 ? counted[counted.length - 1] : -1;
   }
 

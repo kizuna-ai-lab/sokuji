@@ -803,11 +803,21 @@ export class OpenAILiveClient implements IClient {
               // item's transcript and the stream's tail can differ by the
               // leading space appendUserText strips when it opens an item.
               const whole = this.userTranscript();
-              const clause = span !== null && span >= USER_SOFT_CAP_MS ? lastClauseEnd(text) : -1;
-              if (clause > 0) {
-                this.cutUserItemAt(whole.length - (text.length - clause));
-              } else if (span !== null && span >= USER_SPAN_CAP_MS) {
-                const at = stream.confirmedBoundary();
+              // No soft cap while the stage is running. Its job is to cut a
+              // long item at the next comma when nothing else will, and the
+              // stage is that something else — but at 8 s it fires before
+              // three sentences can accumulate, so N never got to act: a live
+              // Chinese session produced five bubbles in a row, every one of
+              // them ended at a comma 9-11 s apart, with a full stop sitting
+              // in the middle of one. The 12 s cap below is the net now.
+              if (span !== null && span >= USER_SPAN_CAP_MS) {
+                // A full stop first, a comma second, a blind cut last. In
+                // Chinese the tail often holds only commas — FireRedPunc emits
+                // 62% of the reference's sentence ends — and a comma is a far
+                // better place to end a bubble than wherever the delta stopped.
+                const at = stream.confirmedBoundary() > 0
+                  ? stream.confirmedBoundary()
+                  : stream.confirmedBreakpoint();
                 if (at > 0) this.cutUserItemAt(whole.length - (this.userPending.length - at));
                 else this.completeUserItem();
               }
@@ -851,11 +861,12 @@ export class OpenAILiveClient implements IClient {
             stream.update(this.assistantPending + text);
             if (this.currentAssistantItemId === openBefore) {
               const whole = this.assistantTranscript();
-              const clause = span !== null && span >= ASSISTANT_SOFT_CAP_MS ? lastClauseEnd(text) : -1;
-              if (clause > 0) {
-                this.cutAssistantItemAt(whole.length - (text.length - clause));
-              } else if (span !== null && span >= ASSISTANT_SPAN_CAP_MS) {
-                const at = stream.confirmedBoundary();
+              // Same as the source side: no soft cap under an active stream,
+              // and the hard cap prefers a full stop, then a comma.
+              if (span !== null && span >= ASSISTANT_SPAN_CAP_MS) {
+                const at = stream.confirmedBoundary() > 0
+                  ? stream.confirmedBoundary()
+                  : stream.confirmedBreakpoint();
                 if (at > 0) this.cutAssistantItemAt(whole.length - (this.assistantPending.length - at));
                 else this.closeAssistantText(openBefore);
               }
