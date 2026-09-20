@@ -222,6 +222,19 @@ git commit -m "feat(segmentation): segment GPT-Live display and land hard caps o
 
 ---
 
+## What Task 1 learned, which Tasks 2 and 3 must copy
+
+Task 1 shipped (`8597c43e`) and found four things the plan did not say. Read `OpenAILiveClient.ts` for the shape; these are the parts that are not obvious from it.
+
+1. **A re-entrancy flag per side.** `end()` lives inside `completeUserItem`, and the seal it produces calls back into the code that is closing the item. Without a `sealingUser` / `sealingAssistant` guard, the final seal re-enters and immediately seals the remainder as a second item.
+2. **A cut discards its stream; a close ends it.** After `cutUserItemAt`, calling `end()` would seal the whole raw tail and rewrite the prefix the cut just created. The cut path therefore disposes the stream instead of ending it, and the next item starts a fresh one.
+3. **Text the client writes behind the stream's back must reach the stream.** GPT-Live's pause branch appends the delta's leading terminal directly to the item; the stream never saw that mark, so its final seal rewrote it away — every paused clause lost its terminal with the stage on. Anything a client appends outside `stream.update()` has to be fed to the stream too, or not written at all.
+4. **A close helper called twice must be idempotent.** The hard-cap path can reach `closeAssistantText` for an item that is already closed, which queued its audio twice.
+
+Also decided: **the soft cap stays under an active stream**, per R1's literal wording, even though it can now pre-empt a seal the stage was about to make. It is one line to remove if Task 6's tuning shows it is noisy; removing it before there is a measurement would be guessing.
+
+---
+
 ## Task 2: The other three timer/regex providers
 
 **Files:** `OpenAITranslateGAClient.ts`, `OpenAITranslateWebRTCClient.ts`, `GeminiClient.ts`, their tests, and `OpenAITranslateProviderConfig.ts` / `GeminiProviderConfig.ts`.
