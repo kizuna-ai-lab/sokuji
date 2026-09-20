@@ -640,12 +640,13 @@ export class OpenAIGAClient implements IClient {
       // write waits its turn in the lane so the answers cannot emit the later
       // segment first.
       const pending = punctuateDefinite(runtime, this.sourceLanguage, transcript, this.sentencesPerChunk);
-      this.punctuationLane(async () => {
+      this.punctuationLane.queue(async (cancelled) => {
         const finalText = await pending;
-        // disconnect() drops the frozen view and a reconnect replaces it.
-        if (this.sessionSegmentation !== runtime) return;
+        // `cancelled()`: disconnect() already wrote this segment raw. The
+        // identity check is the reconnect case — a genuinely stale answer.
+        if (cancelled() || this.sessionSegmentation !== runtime) return;
         write(finalText);
-      });
+      }, () => write(transcript));
     }
   }
 
@@ -689,11 +690,11 @@ export class OpenAIGAClient implements IClient {
         const runtime = spoken ? this.sessionSegmentation : null;
         if (!runtime) { complete(null); continue; }
         const pending = punctuateDefinite(runtime, this.targetLanguage, spoken, this.sentencesPerChunk);
-        this.punctuationLane(async () => {
+        this.punctuationLane.queue(async (cancelled) => {
           const finalText = await pending;
-          if (this.sessionSegmentation !== runtime) return;
+          if (cancelled() || this.sessionSegmentation !== runtime) return;
           complete(finalText);
-        });
+        }, () => complete(null));
       }
     }
   }
@@ -750,13 +751,17 @@ export class OpenAIGAClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a definite segment still
+    // waiting for its punctuation is text the user said, and MainPanel reads
+    // `getConversationItems()` on the turn after this resolves.
+    this.punctuationLane.flush();
     if (this.rt) {
       this.rt.close();
       this.rt = null;
     }
-    // A punctuation answer still in flight checks this identity before it
-    // writes, so clearing it here keeps a dead session's items out of a list
-    // nobody renders any more.
+    // Dropped after the flush above, so the next session cannot be served this
+    // one's answer. It is not what protects the items — the flush is; this
+    // identity is the reconnect guard.
     this.sessionSegmentation = null;
 
     if (this.connected) {

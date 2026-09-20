@@ -775,12 +775,13 @@ export class VolcengineAST2Client implements IClient {
     // write waits its turn in the lane so the answers cannot list the later
     // segment first.
     const pending = punctuateDefinite(runtime, this.currentConfig?.sourceLanguage ?? '', text, this.sentencesPerChunk);
-    this.punctuationLane(async () => {
+    this.punctuationLane.queue(async (cancelled) => {
       const finalText = await pending;
-      // disconnect() drops the frozen view and a reconnect replaces it.
-      if (this.sessionSegmentation !== runtime) return;
+      // `cancelled()`: disconnect() already wrote this segment raw. The
+      // identity check is the reconnect case — a genuinely stale answer.
+      if (cancelled() || this.sessionSegmentation !== runtime) return;
       write(finalText);
-    });
+    }, () => write(text));
   }
 
   private handleTranslationSubtitle(response: any, phase: 'start' | 'response' | 'end'): void {
@@ -839,11 +840,11 @@ export class VolcengineAST2Client implements IClient {
     const runtime = isDefinite ? this.sessionSegmentation : null;
     if (!runtime) { write(text); return; }
     const pending = punctuateDefinite(runtime, this.currentConfig?.targetLanguage ?? '', text, this.sentencesPerChunk);
-    this.punctuationLane(async () => {
+    this.punctuationLane.queue(async (cancelled) => {
       const finalText = await pending;
-      if (this.sessionSegmentation !== runtime) return;
+      if (cancelled() || this.sessionSegmentation !== runtime) return;
       write(finalText);
-    });
+    }, () => write(text));
   }
 
   private handleTTSResponse(response: any): void {
@@ -948,6 +949,10 @@ export class VolcengineAST2Client implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a definite segment still
+    // waiting for its punctuation is text the user said, and MainPanel reads
+    // `getConversationItems()` on the turn after this resolves.
+    this.punctuationLane.flush();
     this.stopKeepalive();
     // Send FinishSession before closing
     try {
@@ -980,9 +985,9 @@ export class VolcengineAST2Client implements IClient {
 
     this.isConnectedState = false;
     this.ttsChunks = [];
-    // A punctuation answer still in flight checks this identity before it
-    // writes, so clearing it here keeps a dead session's items out of a list
-    // nobody renders any more.
+    // Dropped after the flush above, so the next session cannot be served this
+    // one's answer. It is not what protects the items — the flush is; this
+    // identity is the reconnect guard.
     this.sessionSegmentation = null;
 
     // Close the decode AudioContext

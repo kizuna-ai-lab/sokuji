@@ -321,6 +321,10 @@ export class PalabraAIClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a validated transcription still
+    // waiting for its punctuation would otherwise leave its item carrying the
+    // partial text the seal was meant to replace.
+    this.punctuationLane.flush();
     try {
       // Send end_task before disconnecting
       if (this.room && this.isConnectedState) {
@@ -367,9 +371,9 @@ export class PalabraAIClient implements IClient {
       this.isConnectedState = false;
       this.sessionConfig = null;
       this.conversationItems = [];
-      // A punctuation answer still in flight checks this identity before it
-      // writes, so clearing it here keeps a dead session's items out of a list
-      // nobody renders any more.
+      // Dropped after the flush above, so the next session cannot be served
+      // this one's answer. It is not what protects the items — the flush is;
+      // this identity is the reconnect guard.
       this.sessionSegmentation = null;
       
       console.info("[Sokuji] [PalabraAIClient] Disconnected successfully");
@@ -904,12 +908,13 @@ export class PalabraAIClient implements IClient {
         // the write waits its turn in the lane so the answers cannot emit the
         // later segment first.
         const pending = punctuateDefinite(runtime, this.currentSessionConfig?.targetLanguage ?? '', text, this.sentencesPerChunk);
-        this.punctuationLane(async () => {
+        this.punctuationLane.queue(async (cancelled) => {
           const finalText = await pending;
-          // disconnect() drops the frozen view and a reconnect replaces it.
-          if (this.sessionSegmentation !== runtime) return;
+          // `cancelled()`: disconnect() already wrote this segment raw. The
+          // identity check is the reconnect case — a genuinely stale answer.
+          if (cancelled() || this.sessionSegmentation !== runtime) return;
           write(finalText);
-        });
+        }, () => write(text));
       }
       // If item already exists, it's a duplicate - ignore it
     }
@@ -1079,11 +1084,11 @@ export class PalabraAIClient implements IClient {
         const runtime = this.sessionSegmentation;
         if (!runtime) { write(text); return; }
         const pending = punctuateDefinite(runtime, this.currentSessionConfig?.sourceLanguage ?? '', text, this.sentencesPerChunk);
-        this.punctuationLane(async () => {
+        this.punctuationLane.queue(async (cancelled) => {
           const finalText = await pending;
-          if (this.sessionSegmentation !== runtime) return;
+          if (cancelled() || this.sessionSegmentation !== runtime) return;
           write(finalText);
-        });
+        }, () => write(text));
       }
       // If validated item already exists, it's a duplicate - ignore it
     }

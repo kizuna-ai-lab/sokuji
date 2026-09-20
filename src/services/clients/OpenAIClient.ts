@@ -456,14 +456,18 @@ export class OpenAIClient implements IClient {
       // segment first.
       const lang = conversationItem.role === 'assistant' ? this.targetLanguage : this.sourceLanguage;
       const pending = punctuateDefinite(runtime, lang, source, this.sentencesPerChunk);
-      this.punctuationLane(async () => {
+      this.punctuationLane.queue(async (cancelled) => {
         const finalText = await pending;
-        // disconnect() drops the frozen view and a reconnect replaces it.
-        if (this.sessionSegmentation !== runtime) return;
+        // `cancelled()`: disconnect() already emitted this item unpunctuated.
+        // The identity check is the reconnect case — a genuinely stale answer.
+        if (cancelled() || this.sessionSegmentation !== runtime) return;
         // Recorded even when nothing changed, so a later update of the same
         // completed item does not ask the model the same question again.
         this.punctuatedText.set(conversationItem.id, { source, text: finalText });
         this.applyPunctuation(conversationItem);
+        this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
+      }, () => {
+        // Exactly the stage-off emit above: the item as the SDK built it.
         this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
       });
     });
@@ -676,10 +680,14 @@ export class OpenAIClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a definite segment still
+    // waiting for its punctuation is text the user said, and MainPanel reads
+    // `getConversationItems()` on the turn after this resolves.
+    this.punctuationLane.flush();
     this.client.disconnect();
-    // A punctuation answer still in flight checks this identity before it
-    // writes, so clearing it here keeps a dead session's items out of a list
-    // nobody renders any more.
+    // Dropped after the flush above, so the next session cannot be served this
+    // one's answer. It is not what protects the items — the flush is; this
+    // identity is the reconnect guard.
     this.sessionSegmentation = null;
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',

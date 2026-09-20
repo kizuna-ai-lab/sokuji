@@ -702,13 +702,14 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     // clears the per-utterance state the moment this returns.
     const lang = detected ?? this.currentConfig?.sourceLanguage ?? '';
     const pending = punctuateDefinite(runtime, lang, text, this.sentencesPerChunk);
-    this.punctuationLane(async () => {
+    this.punctuationLane.queue(async (cancelled) => {
       const finalText = await pending;
-      // disconnect() drops the frozen view and a reconnect replaces it: an
-      // answer that lands after either belongs to a session nobody renders.
-      if (this.sessionSegmentation !== runtime) return;
+      // `cancelled()`: disconnect() already completed this item with the raw
+      // text. The identity check is the reconnect case — an answer that lands
+      // after one belongs to a session nobody renders.
+      if (cancelled() || this.sessionSegmentation !== runtime) return;
       this.writeCompletedItem(role, existingId, finalText, detected, side);
-    });
+    }, () => this.writeCompletedItem(role, existingId, text, detected, side));
   }
 
   /** completeItem's write, with the per-utterance state it needs passed in so
@@ -1484,6 +1485,10 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: an utterance still waiting for
+    // its punctuation is text the user said, and MainPanel reads
+    // `getConversationItems()` on the turn after this resolves.
+    this.punctuationLane.flush();
     // Invalidate any in-flight connect()/ensureTts(): a socket whose connect
     // await resolves after this point must not be installed or fed.
     this.generation++;
@@ -1522,9 +1527,9 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       this.tts = null;
     }
     this.isConnectedState = false;
-    // Dropped LAST: a punctuation answer still in flight checks this identity
-    // before it writes, so clearing it here is what keeps a dead session's
-    // items out of a list nobody renders any more.
+    // Dropped after the flush at the top, so the next session cannot be served
+    // this one's answer. It is not what protects the items — the flush is;
+    // this identity is the reconnect guard.
     this.sessionSegmentation = null;
     this.emitRealtime('client', 'session.closed', { provider: 'soniox', reason: 'client_disconnect' });
     this.eventHandlers.onClose?.({});

@@ -1665,7 +1665,31 @@ describe('SonioxClient with the segmentation stage', () => {
     expect(late.punctuate).not.toHaveBeenCalled();
   });
 
-  it('drops an answer that lands after the session was torn down', async () => {
+  it('writes the segment raw when Stop lands inside the punctuation wait', async () => {
+    // MainPanel's teardown is `await client.disconnect()` then
+    // `setItems(client.getConversationItems())`, so whatever the lane has not
+    // written by the time disconnect() returns is text the user never gets
+    // back. The lane writes it raw rather than waiting for the model.
+    // Never released: the model's answer must not be what the item ends up
+    // carrying, and Stop must not wait for it either.
+    const runtime = {
+      enabled: true,
+      punctuate: vi.fn(() => new Promise<never>(() => {})),
+    };
+    const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    // Two messages, so the in-progress item exists before <end> defers its
+    // completion — that item is the one the raw write has to finish.
+    stt.emit({ tokens: [tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' })] });
+    stt.emit({ tokens: [tok('<end>')] });
+    await client.disconnect();
+
+    const user = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(user).toHaveLength(1);
+    expect(user[0].status).toBe('completed');
+    expect(user[0].formatted?.text).toBe(LONG_ZH);
+  });
+
+  it('drops the punctuated answer that lands after that raw write', async () => {
     let release: (() => void) | null = null;
     const gate = new Promise<void>((r) => { release = r; });
     const runtime = {
@@ -1676,8 +1700,6 @@ describe('SonioxClient with the segmentation stage', () => {
       }),
     };
     const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
-    // Two messages, so the in-progress item exists before <end> defers its
-    // completion — that item is what a dropped write leaves behind.
     stt.emit({ tokens: [tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' })] });
     stt.emit({ tokens: [tok('<end>')] });
     await client.disconnect();
@@ -1686,7 +1708,6 @@ describe('SonioxClient with the segmentation stage', () => {
 
     const user = client.getConversationItems().filter((i) => i.role === 'user');
     expect(user).toHaveLength(1);
-    expect(user[0].formatted?.text).toBe(LONG_ZH); // the in-progress text, untouched
-    expect(user[0].status).toBe('in_progress');
+    expect(user[0].formatted?.text).toBe(LONG_ZH); // still the raw write's text
   });
 });

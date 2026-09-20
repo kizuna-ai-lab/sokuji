@@ -817,15 +817,20 @@ export class VolcengineSTClient implements IClient {
       || (isSourceLanguage ? this.currentConfig?.sourceLanguage : this.currentConfig?.targetLanguages?.[0])
       || '';
     const pending = punctuateDefinite(runtime, lang, subtitle.Text, this.sentencesPerChunk);
-    this.punctuationLane(async () => {
+    this.punctuationLane.queue(async (cancelled) => {
       const finalText = await pending;
-      // disconnect() drops the frozen view and a reconnect replaces it.
-      if (this.sessionSegmentation !== runtime) return;
+      // `cancelled()`: disconnect() already wrote this segment raw. The
+      // identity check is the reconnect case — a genuinely stale answer.
+      if (cancelled() || this.sessionSegmentation !== runtime) return;
       write(finalText);
-    });
+    }, () => write(subtitle.Text));
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a definite segment still
+    // waiting for its punctuation is text the user said, and MainPanel reads
+    // `getConversationItems()` on the turn after this resolves.
+    this.punctuationLane.flush();
     if (this.websocket) {
       // Send end signal
       const endMessage: VolcengineSTEndMessage = { End: true };
@@ -840,9 +845,9 @@ export class VolcengineSTClient implements IClient {
     }
 
     this.isConnectedState = false;
-    // A punctuation answer still in flight checks this identity before it
-    // writes, so clearing it here keeps a dead session's items out of a list
-    // nobody renders any more.
+    // Dropped after the flush above, so the next session cannot be served this
+    // one's answer. It is not what protects the items — the flush is; this
+    // identity is the reconnect guard.
     this.sessionSegmentation = null;
 
     this.eventHandlers.onRealtimeEvent?.({

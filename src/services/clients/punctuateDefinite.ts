@@ -73,7 +73,65 @@ export async function punctuateDefinite(
  *
  * A rejection cannot wedge the lane: the next piece runs regardless.
  */
-export function createSegmentLane(): (work: () => Promise<void>) => void {
+export interface SegmentLane {
+  /**
+   * Defer one segment's write.
+   *
+   * `work` is the punctuated write; it is handed a `cancelled` predicate it
+   * must consult after its await, because `flush()` may have written the
+   * segment raw in the meantime. `writeRaw` is that fallback: the same write,
+   * with the text the server sent.
+   */
+  queue(work: (cancelled: () => boolean) => Promise<void>, writeRaw: () => void): void;
+  /**
+   * The session is ending. Write every queued segment that has not been
+   * written yet with its raw text, synchronously and in arrival order, and
+   * cancel the punctuated counterparts so a late answer writes nothing.
+   *
+   * Called from every `disconnect()`, because MainPanel's teardown is
+   * `await client.disconnect()` then `setItems(client.getConversationItems())`
+   * — anything the lane has not written by then is a sentence the user said
+   * and never gets back. Synchronous by contract: Stop must not wait out the
+   * fill-in budget.
+   */
+  flush(): void;
+}
+
+export function createSegmentLane(): SegmentLane {
   let tail: Promise<void> = Promise.resolve();
-  return (work) => { tail = tail.then(work).catch(() => {}); };
+  /** Queued pieces that have not written yet, in arrival order. */
+  let unwritten: Array<{ raw: () => void; written: boolean }> = [];
+  return {
+    queue(work, writeRaw) {
+      const piece = { raw: writeRaw, written: false };
+      unwritten.push(piece);
+      tail = tail.then(async () => {
+        // flush() already wrote this one raw while it waited its turn.
+        if (piece.written) return;
+        try {
+          await work(() => piece.written);
+        } finally {
+          piece.written = true;
+          const at = unwritten.indexOf(piece);
+          if (at !== -1) unwritten.splice(at, 1);
+        }
+      }).catch(() => {});
+    },
+    flush() {
+      const queued = unwritten;
+      unwritten = [];
+      for (const piece of queued) {
+        if (piece.written) continue;
+        // Set BEFORE the write, so the punctuated counterpart of a piece that
+        // is already awaiting its answer sees `cancelled()` the moment it
+        // resumes — whichever order the two land in.
+        piece.written = true;
+        try {
+          piece.raw();
+        } catch {
+          // One item's write failing must not cost the rest of them theirs.
+        }
+      }
+    },
+  };
 }

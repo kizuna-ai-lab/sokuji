@@ -142,8 +142,8 @@ describe('createSegmentLane', () => {
     const lane = createSegmentLane();
     const order: string[] = [];
     const slow = new Promise<void>((resolve) => setTimeout(resolve, 10));
-    lane(async () => { await slow; order.push('first'); });
-    lane(async () => { order.push('second'); });
+    lane.queue(async () => { await slow; order.push('first'); }, () => {});
+    lane.queue(async () => { order.push('second'); }, () => {});
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(order).toEqual(['first', 'second']);
   });
@@ -151,10 +151,83 @@ describe('createSegmentLane', () => {
   it('keeps running after a piece of work rejects', async () => {
     const lane = createSegmentLane();
     const order: string[] = [];
-    lane(async () => { throw new Error('boom'); });
-    lane(async () => { order.push('after'); });
+    lane.queue(async () => { throw new Error('boom'); }, () => {});
+    lane.queue(async () => { order.push('after'); }, () => {});
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(order).toEqual(['after']);
+  });
+
+  describe('flush', () => {
+    it('writes every unwritten segment raw, synchronously, in arrival order', () => {
+      const lane = createSegmentLane();
+      const written: string[] = [];
+      const never = new Promise<void>(() => {});
+      lane.queue(async () => { await never; written.push('punctuated one'); }, () => written.push('raw one'));
+      lane.queue(async () => { await never; written.push('punctuated two'); }, () => written.push('raw two'));
+
+      lane.flush();
+
+      // Synchronously: Stop must not wait for the model, and MainPanel reads
+      // `getConversationItems()` on the turn after `disconnect()` resolves.
+      expect(written).toEqual(['raw one', 'raw two']);
+    });
+
+    it('cancels the punctuated counterpart of a piece it wrote raw', async () => {
+      const lane = createSegmentLane();
+      const written: string[] = [];
+      let release: (() => void) | undefined;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      // Queued behind a piece that is still waiting, so this one has not
+      // started when flush() runs.
+      lane.queue(async () => { await gate; written.push('punctuated head'); }, () => written.push('raw head'));
+      lane.queue(async () => { written.push('punctuated tail'); }, () => written.push('raw tail'));
+
+      lane.flush();
+      release!();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(written).toEqual(['raw head', 'raw tail']);
+    });
+
+    it('leaves a piece that already wrote alone', async () => {
+      const lane = createSegmentLane();
+      const written: string[] = [];
+      lane.queue(async () => { written.push('punctuated'); }, () => written.push('raw'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      lane.flush();
+
+      expect(written).toEqual(['punctuated']);
+    });
+
+    it('tells the work it was cancelled, so a piece already awaiting writes nothing', async () => {
+      const lane = createSegmentLane();
+      const written: string[] = [];
+      let release: (() => void) | undefined;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      lane.queue(async (cancelled) => {
+        await gate;
+        if (cancelled()) return;
+        written.push('punctuated');
+      }, () => written.push('raw'));
+      // Let the piece start and reach its await before the flush.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      lane.flush();
+      release!();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(written).toEqual(['raw']);
+    });
+
+    it('keeps the lane usable afterwards, for the session a reconnect opens', async () => {
+      const lane = createSegmentLane();
+      const written: string[] = [];
+      lane.flush();
+      lane.queue(async () => { written.push('punctuated'); }, () => written.push('raw'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(written).toEqual(['punctuated']);
+    });
   });
 
   it('gives up on a slow model and shows the segment raw', async () => {
