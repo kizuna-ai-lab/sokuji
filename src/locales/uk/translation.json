@@ -88,8 +88,6 @@
     "loadingModels": "Завантаження доступних моделей...",
     "modelsFound": "{{count}} моделей доступно",
     "invalidApiKeyFormat": "Невірний формат API-ключа",
-    "volcengineSTInfo": "Інформація про Volcengine",
-    "volcengineSTInfoText": "Голосовий переклад Volcengine у реальному часі забезпечує лише текстовий вивід перекладу. Синтез звуку в цьому режимі не підтримується.",
     "volcengineAST2Info": "Інформація про Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 забезпечує переклад мовлення в мовлення з автоматичним клонуванням голосу. Перекладене аудіо зберігає голосові характеристики оригінального мовця.",
     "volcengineAST2TurnDetectionTooltip": "Авто: серверне виявлення голосової активності. \nНатисни і говори: утримуйте пробіл або кнопку мікрофона, щоб надіслати аудіо вручну. \nНатисни і переклади: як Натисни і говори, але в режимі очікування передає ваш необроблений мікрофон до віртуального мікрофона, щоб ви могли говорити безпосередньо без перекладу.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API-ключ",
       "authModePlatform": "API-ключ Platform",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Голосовий Переклад",
-      "description": "Голосовий переклад ByteDance",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

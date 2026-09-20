@@ -88,8 +88,6 @@
     "loadingModels": "جاري تحميل النماذج المتاحة...",
     "modelsFound": "{{count}} نماذج متاحة",
     "invalidApiKeyFormat": "تنسيق مفتاح API غير صالح",
-    "volcengineSTInfo": "معلومات Volcengine",
-    "volcengineSTInfoText": "توفر ترجمة الكلام في الوقت الفعلي من Volcengine مخرجات ترجمة نصية فقط. لا يتم دعم تركيب الصوت في هذا الوضع.",
     "volcengineAST2Info": "معلومات Doubao AST 2.0",
     "volcengineAST2InfoText": "يوفر Doubao AST 2.0 ترجمة من كلام إلى كلام مع استنساخ تلقائي للصوت. يحافظ الصوت المترجم على خصائص صوت المتحدث الأصلي.",
     "volcengineAST2TurnDetectionTooltip": "تلقائي: اكتشاف نشاط الصوت من جانب الخادم. \nاضغط للتحدث: استمر في الضغط على مفتاح المسافة أو زر الميكروفون لإرسال الصوت يدويًا. \nاضغط للترجمة: مثل اضغط للتحدث، ولكنه يوجّه ميكروفونك الخام إلى الميكروفون الافتراضي عند الخمول لتتمكن من التحدث مباشرة بدون ترجمة.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "مفتاح API",
       "authModePlatform": "مفتاح Platform API",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine ترجمة الكلام",
-      "description": "ترجمة الكلام من ByteDance",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

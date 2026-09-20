@@ -34,7 +34,7 @@ describe('isPushGatedMode', () => {
   });
 
   it('never push-gated for providers without a speech-mode vocabulary (mode falls back to Auto)', () => {
-    for (const p of [Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.OPENAI_TRANSLATE, Provider.PALABRA_AI, Provider.VOLCENGINE_ST]) {
+    for (const p of [Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.OPENAI_TRANSLATE, Provider.PALABRA_AI]) {
       expect(isPushGatedMode(p, 'Auto'), `Auto for ${p}`).toBe(false);
       expect(isPushGatedMode(p, 'Push-to-Talk'), `PTT for ${p}`).toBe(false);
     }

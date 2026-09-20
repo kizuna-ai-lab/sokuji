@@ -88,8 +88,6 @@
     "loadingModels": "উপলব্ধ মডেল লোড হচ্ছে...",
     "modelsFound": "{{count}}টি মডেল উপলব্ধ",
     "invalidApiKeyFormat": "অবৈধ API কী ফরম্যাট",
-    "volcengineSTInfo": "Volcengine তথ্য",
-    "volcengineSTInfoText": "Volcengine রিয়েল-টাইম স্পিচ ট্রান্সলেশন শুধুমাত্র টেক্সট অনুবাদ আউটপুট প্রদান করে। এই মোডে অডিও সংশ্লেষণ সমর্থিত নয়।",
     "volcengineAST2Info": "Doubao AST 2.0 তথ্য",
     "volcengineAST2InfoText": "Doubao AST 2.0 স্বয়ংক্রিয় ভয়েস ক্লোনিং সহ স্পিচ-টু-স্পিচ অনুবাদ প্রদান করে। অনুবাদিত অডিও মূল বক্তার কণ্ঠস্বরের বৈশিষ্ট্য সংরক্ষণ করে।",
     "volcengineAST2TurnDetectionTooltip": "অটো: সার্ভার-সাইড ভয়েস অ্যাক্টিভিটি ডিটেকশন। \nপুশ-টু-টক: ম্যানুয়ালি অডিও পাঠাতে স্পেস বা মাইক বোতাম ধরে রাখুন। \nপুশ-টু-ট্রান্সলেট: পুশ-টু-টকের মতো, তবে নিষ্ক্রিয় থাকার সময় আপনার মূল মাইক্রোফোনকে ভার্চুয়াল মাইক্রোফোনে রাউট করে যাতে আপনি অনুবাদ ছাড়াই সরাসরি কথা বলতে পারেন।",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API কী",
       "authModePlatform": "Platform API কী",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine স্পিচ ট্রান্সলেট",
-      "description": "ByteDance স্পিচ ট্রান্সলেশন",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

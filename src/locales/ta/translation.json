@@ -88,8 +88,6 @@
     "loadingModels": "கிடைக்கக்கூடிய மாதிரிகள் ஏற்றப்படுகின்றன...",
     "modelsFound": "{{count}} மாதிரிகள் உள்ளன",
     "invalidApiKeyFormat": "தவறான API விசை வடிவம்",
-    "volcengineSTInfo": "Volcengine தகவல்",
-    "volcengineSTInfoText": "Volcengine நிகழ்நேர பேச்சு மொழிபெயர்ப்பு உரை மட்டும் மொழிபெயர்ப்பு வெளியீட்டை வழங்குகிறது. இந்த பயன்முறையில் ஒலி தொகுப்பு ஆதரிக்கப்படவில்லை.",
     "volcengineAST2Info": "Doubao AST 2.0 தகவல்",
     "volcengineAST2InfoText": "Doubao AST 2.0 தானியங்கி குரல் குளோனிங்குடன் பேச்சிலிருந்து பேச்சுக்கான மொழிபெயர்ப்பை வழங்குகிறது. மொழிபெயர்க்கப்பட்ட ஒலி அசல் பேச்சாளரின் குரல் பண்புகளைப் பாதுகாக்கிறது.",
     "volcengineAST2TurnDetectionTooltip": "ஆட்டோ: சர்வர் பக்க குரல் செயல்பாடு கண்டறிதல். \nபுஷ்-டு-டாக்: ஒலியை கைமுறையாக அனுப்ப ஸ்பேஸ் அல்லது மைக் பொத்தானை அழுத்திப் பிடிக்கவும். \nபுஷ்-டு-ட்ரான்ஸ்லேட்: புஷ்-டு-டாக் போன்றது, ஆனால் செயலற்ற நிலையில் உங்கள் மூல மைக்கை மெய்நிகர் மைக்கிற்கு வழிநடத்துகிறது, இதனால் நீங்கள் மொழிபெயர்ப்பு இல்லாமல் நேரடியாகப் பேசலாம்.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API விசை",
       "authModePlatform": "Platform API விசை",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine பேச்சு மொழிபெயர்ப்பு",
-      "description": "ByteDance பேச்சு மொழிபெயர்ப்பு",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

@@ -88,8 +88,6 @@
     "loadingModels": "అందుబాటులో ఉన్న మోడల్‌లు లోడ్ అవుతున్నాయి...",
     "modelsFound": "{{count}} మోడల్‌లు అందుబాటులో ఉన్నాయి",
     "invalidApiKeyFormat": "చెల్లని API కీ ఫార్మాట్",
-    "volcengineSTInfo": "Volcengine సమాచారం",
-    "volcengineSTInfoText": "Volcengine రియల్-టైమ్ స్పీచ్ ట్రాన్స్‌లేషన్ టెక్స్ట్ మాత్రమే అనువాద అవుట్‌పుట్‌ను అందిస్తుంది. ఈ మోడ్‌లో ఆడియో సింథసిస్ మద్దతు లేదు.",
     "volcengineAST2Info": "Doubao AST 2.0 సమాచారం",
     "volcengineAST2InfoText": "Doubao AST 2.0 ఆటోమేటిక్ వాయిస్ క్లోనింగ్‌తో స్పీచ్-టు-స్పీచ్ అనువాదాన్ని అందిస్తుంది. అనువదించిన ఆడియో అసలు స్పీకర్ యొక్క వాయిస్ లక్షణాలను భద్రపరుస్తుంది.",
     "volcengineAST2TurnDetectionTooltip": "ఆటో: సర్వర్-సైడ్ వాయిస్ యాక్టివిటీ డిటెక్షన్. \nపుష్-టు-టాక్: ఆడియోను మాన్యువల్‌గా పంపడానికి స్పేస్ లేదా మైక్ బటన్‌ను నొక్కి పట్టుకోండి. \nపుష్-టు-ట్రాన్స్‌లేట్: పుష్-టు-టాక్ లాగానే, కానీ నిష్క్రియంగా ఉన్నప్పుడు మీ ముడి మైక్‌ను వర్చువల్ మైక్‌కు రూట్ చేస్తుంది, తద్వారా మీరు అనువాదం లేకుండా నేరుగా మాట్లాడవచ్చు.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API కీ",
       "authModePlatform": "Platform API కీ",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine స్పీచ్ ట్రాన్స్‌లేట్",
-      "description": "ByteDance స్పీచ్ ట్రాన్స్‌లేషన్",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

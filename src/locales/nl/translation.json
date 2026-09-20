@@ -88,8 +88,6 @@
     "loadingModels": "Beschikbare modellen laden...",
     "modelsFound": "{{count}} modellen beschikbaar",
     "invalidApiKeyFormat": "Ongeldig API-sleutelformaat",
-    "volcengineSTInfo": "Volcengine-informatie",
-    "volcengineSTInfoText": "Volcengine realtime spraakvertaling biedt alleen tekstvertaling als uitvoer. Audiosynthese wordt in deze modus niet ondersteund.",
     "volcengineAST2Info": "Doubao AST 2.0-informatie",
     "volcengineAST2InfoText": "Doubao AST 2.0 biedt spraak-naar-spraakvertaling met automatische stemkloning. De vertaalde audio behoudt de stemkenmerken van de oorspronkelijke spreker.",
     "volcengineAST2TurnDetectionTooltip": "Auto: servergestuurde spraakactiviteitsdetectie. \nPush-to-Talk: houd de spatiebalk of microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API-sleutel",
       "authModePlatform": "Platform-API-sleutel",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Spraakvertaling",
-      "description": "ByteDance spraakvertaling",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

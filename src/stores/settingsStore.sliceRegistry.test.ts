@@ -31,7 +31,6 @@ const PLAIN: Array<[string, string, Record<string, unknown>]> = [
   ['updateGemini', 'gemini', { apiKey: 'k1' }],
   ['updatePalabraAI', 'palabraai', { clientId: 'c1' }],
   ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'k2' }],
-  ['updateVolcengineST', 'volcengineST', { accessKeyId: 'a1' }],
   ['updateVolcengineAST2', 'volcengineAST2', { appId: 'p1' }],
   ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
   ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
@@ -120,7 +119,6 @@ describe('provider settings update actions (behavior lock)', () => {
     ['updatePalabraAI', 'palabraai', { clientId: 'x' }],
     ['updateOpenAITranslate', 'openaiTranslate', { apiKey: 'x' }],
     ['updateKizunaOpenaiTranslate', 'kizunaOpenaiTranslate', { sourceLanguage: 'ja' }],
-    ['updateVolcengineST', 'volcengineST', { accessKeyId: 'x' }],
     ['updateVolcengineAST2', 'volcengineAST2', { appId: 'x' }],
     ['updateKizunaVolcengineAst2', 'kizunaVolcengineAst2', { sourceLanguage: 'zh' }],
     ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
@@ -175,7 +173,7 @@ describe('provider settings update actions (behavior lock)', () => {
     // Spot every slice key is a populated object after load.
     for (const sliceKey of [
       'openai', 'gemini', 'openaiCompatible', 'palabraai', 'openaiTranslate',
-      'volcengineST', 'volcengineAST2', 'kizunaOpenaiTranslate',
+      'volcengineAST2', 'kizunaOpenaiTranslate',
       'kizunaVolcengineAst2', 'localInference', 'localNative',
     ]) {
       expect(s[sliceKey], sliceKey).toBeTypeOf('object');

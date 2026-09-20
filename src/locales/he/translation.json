@@ -88,8 +88,6 @@
     "loadingModels": "טוען מודלים זמינים...",
     "modelsFound": "{{count}} מודלים זמינים",
     "invalidApiKeyFormat": "פורמט מפתח API לא תקין",
-    "volcengineSTInfo": "מידע על Volcengine",
-    "volcengineSTInfoText": "תרגום דיבור בזמן אמת של Volcengine מספק פלט תרגום טקסט בלבד. סינתזת שמע אינה נתמכת במצב זה.",
     "volcengineAST2Info": "מידע על Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 מספק תרגום דיבור לדיבור עם שכפול קול אוטומטי. השמע המתורגם שומר על מאפייני הקול של הדובר המקורי.",
     "volcengineAST2TurnDetectionTooltip": "אוטומטי: זיהוי פעילות קולית בצד השרת. \nלחץ כדי לדבר: החזק את מקש הרווח או כפתור המיקרופון כדי לשלוח שמע ידנית. \nלחץ כדי לתרגם: כמו לחץ כדי לדבר, אך מנתב את המיקרופון הגולמי שלך אל המיקרופון הווירטואלי כשאינו פעיל, כדי שתוכל לדבר ישירות ללא תרגום.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "מפתח API",
       "authModePlatform": "מפתח API של Platform",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine תרגום דיבור",
-      "description": "תרגום דיבור ByteDance",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 // Force the remaining provider gates on — Kizuna/Palabra/Local-Native feature
 // flags plus Electron/Extension platform detection — so ALL descriptors register
-// regardless of build env. (Volcengine ST/AST2 are now always-on, no flag.)
+// regardless of build env. (Volcengine AST2 is now always-on, no flag.)
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
@@ -29,7 +29,6 @@ import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig'
 import { defaultOpenAILiveSettings } from './OpenAILiveProviderConfig';
 import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
-import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
 import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
@@ -50,7 +49,6 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   openaiLive: defaultOpenAILiveSettings,
   gemini: defaultGeminiSettings,
   palabraai: defaultPalabraAISettings,
-  volcengineST: defaultVolcengineSTSettings,
   volcengineAST2: defaultVolcengineAST2Settings,
   localInference: defaultLocalInferenceSettings,
   localNative: defaultLocalNativeSettings,
@@ -63,7 +61,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(14);
+    expect(ids.length).toBe(13);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -178,7 +176,6 @@ describe('descriptor.extractCredentials', () => {
       [Provider.OPENAI, { apiKey: 'sk-1' }, { primary: 'sk-1' }],
       [Provider.OPENAI_COMPATIBLE, { apiKey: 'k', customEndpoint: 'https://e' }, { primary: 'k', endpoint: 'https://e' }],
       [Provider.PALABRA_AI, { clientId: 'id', clientSecret: 'sec' }, { primary: 'id', secret: 'sec' }],
-      [Provider.VOLCENGINE_ST, { accessKeyId: 'ak', secretAccessKey: 'sk' }, { primary: 'ak', secret: 'sk' }],
       [Provider.VOLCENGINE_AST2, { appId: 123, accessToken: 'tok' }, { primary: '123', secret: 'tok' }],
     ];
     for (const [id, slice, want] of cases) {
@@ -221,7 +218,7 @@ describe('descriptor.buildSessionConfig', () => {
     const wireTag: Record<string, string> = {
       openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
       openai_live: 'openai_live',
-      gemini: 'gemini', palabraai: 'palabraai', volcengine_st: 'volcengine_st',
+      gemini: 'gemini', palabraai: 'palabraai',
       volcengine_ast2: 'volcengine_ast2', local_inference: 'local_inference',
       local_native: 'local_native',
       kizunaai_openai_translate: 'openai_translate', kizunaai_volcengine_ast2: 'volcengine_ast2',
@@ -279,7 +276,6 @@ describe('registry invariants', () => {
     [Provider.OPENAI_LIVE]: 'openaiLive',
     [Provider.GEMINI]: 'gemini',
     [Provider.PALABRA_AI]: 'palabraai',
-    [Provider.VOLCENGINE_ST]: 'volcengineST',
     [Provider.VOLCENGINE_AST2]: 'volcengineAST2',
     [Provider.LOCAL_INFERENCE]: 'localInference',
     // Registered only under Electron (isElectron() gate), so the availability
@@ -311,7 +307,6 @@ describe('registry invariants', () => {
     [Provider.OPENAI_LIVE]: false,
     [Provider.GEMINI]: false,
     [Provider.PALABRA_AI]: false,
-    [Provider.VOLCENGINE_ST]: false,
     [Provider.VOLCENGINE_AST2]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
@@ -362,7 +357,6 @@ describe('S1 capability flags', () => {
     [Provider.SONIOX]: undefined,
     [Provider.KIZUNA_AI_SONIOX]: undefined,
     [Provider.PALABRA_AI]: undefined,
-    [Provider.VOLCENGINE_ST]: undefined,
   };
 
   const TEXT_INPUT: Record<Provider, boolean | undefined> = {
@@ -379,7 +373,6 @@ describe('S1 capability flags', () => {
     [Provider.VOLCENGINE_AST2]: undefined,
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: undefined,
     [Provider.PALABRA_AI]: undefined,
-    [Provider.VOLCENGINE_ST]: undefined,
   };
 
   const QUEUES_TEXT: Provider[] = [Provider.OPENAI, Provider.OPENAI_COMPATIBLE];
@@ -399,7 +392,6 @@ describe('S1 capability flags', () => {
     [Provider.SONIOX]: undefined,
     [Provider.KIZUNA_AI_SONIOX]: undefined,
     [Provider.PALABRA_AI]: undefined,
-    [Provider.VOLCENGINE_ST]: undefined,
   };
 
   // The segmentation offer of every provider, resolved — the default already
@@ -426,11 +418,10 @@ describe('S1 capability flags', () => {
     // AST2's `decodeTTSAndPlay` target — and the ruling is that it stays on
     // the FIRST piece: it is the whole segment's audio, there is no
     // per-sentence timing to cut it on, and the first bubble is where a user
-    // reaches for the replay button. Volcengine ST and Palabra write text
-    // only. Auto stays what it always was — keep the server's segment.
+    // reaches for the replay button. Palabra writes text only. Auto stays
+    // what it always was — keep the server's segment.
     [Provider.SONIOX]: { pause: false, auto: true, sizes: true },
     [Provider.KIZUNA_AI_SONIOX]: { pause: false, auto: true, sizes: true }, // twin spread
-    [Provider.VOLCENGINE_ST]: { pause: false, auto: true, sizes: true },
     [Provider.VOLCENGINE_AST2]: { pause: false, auto: true, sizes: true },
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: { pause: false, auto: true, sizes: true }, // twin spread
     [Provider.PALABRA_AI]: { pause: false, auto: true, sizes: true },
@@ -462,7 +453,6 @@ describe('S1 capability flags', () => {
     [Provider.PALABRA_AI]: false,
     [Provider.SONIOX]: false,
     [Provider.KIZUNA_AI_SONIOX]: false,
-    [Provider.VOLCENGINE_ST]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
   };
@@ -587,7 +577,7 @@ describe('S1 capability flags', () => {
     }
   });
 
-  // Thirteen clients each write `options.sentencesPerChunk ?? 3`, and the
+  // Eleven clients each write `options.sentencesPerChunk ?? 3`, and the
   // number also lives in the store's clamp, in `defaultSize()` and in
   // `segmentationForProvider`. This is what ties every one of those copies to
   // the single exported constant: change it, and any client still on a
@@ -692,7 +682,6 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
   it('two-field providers reject a filled primary with a missing secret', async () => {
     const { ClientOperations } = await import('../ClientOperations');
     const cases: Array<[Provider, RegExp]> = [
-      [Provider.VOLCENGINE_ST, /Access Key ID and Secret Access Key/],
       [Provider.VOLCENGINE_AST2, /APP ID and Access Token/],
     ];
     for (const [id, msg] of cases) {

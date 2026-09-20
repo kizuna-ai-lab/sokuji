@@ -51,9 +51,6 @@ import {
   PalabraAISettings, defaultPalabraAISettings,
 } from '../services/providers/PalabraAIProviderConfig';
 import {
-  VolcengineSTSettings, defaultVolcengineSTSettings,
-} from '../services/providers/VolcengineSTProviderConfig';
-import {
   VolcengineAST2Settings, defaultVolcengineAST2Settings,
 } from '../services/providers/VolcengineAST2ProviderConfig';
 import {
@@ -89,7 +86,7 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
   OpenAITranslateSettings, OpenAILiveSettings, GeminiSettings, PalabraAISettings,
-  VolcengineSTSettings, VolcengineAST2Settings, LocalInferenceSettings,
+  VolcengineAST2Settings, LocalInferenceSettings,
   LocalNativeSettings, SonioxSettings,
 };
 
@@ -97,7 +94,7 @@ export type {
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
-  | OpenAITranslateSettings | OpenAILiveSettings | VolcengineSTSettings
+  | OpenAITranslateSettings | OpenAILiveSettings
   | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
 // ==================== Type Definitions ====================
@@ -291,7 +288,6 @@ export interface SettingsStore {
   palabraai: PalabraAISettings;
   openaiTranslate: OpenAITranslateSettings;
   openaiLive: OpenAILiveSettings;
-  volcengineST: VolcengineSTSettings;
   volcengineAST2: VolcengineAST2Settings;
   soniox: SonioxSettings;
   kizunaOpenaiTranslate: OpenAITranslateSettings;
@@ -422,7 +418,6 @@ export interface SettingsStore {
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateOpenAILive: (settings: Partial<OpenAILiveSettings>) => Promise<void>;
-  updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateSoniox: (settings: Partial<SonioxSettings>) => void;
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
@@ -659,7 +654,6 @@ const PROVIDER_SLICE_REGISTRY = {
   palabraai: { defaults: defaultPalabraAISettings },
   openaiTranslate: { defaults: defaultOpenAITranslateSettings },
   openaiLive: { defaults: defaultOpenAILiveSettings },
-  volcengineST: { defaults: defaultVolcengineSTSettings },
   volcengineAST2: { defaults: defaultVolcengineAST2Settings },
   soniox: { defaults: defaultSonioxSettings },
   // Relay twins authenticate through the relay with a short-lived Better Auth
@@ -709,7 +703,6 @@ const useSettingsStore = create<SettingsStore>()(
     palabraai: defaultPalabraAISettings,
     openaiTranslate: defaultOpenAITranslateSettings,
     openaiLive: defaultOpenAILiveSettings,
-    volcengineST: defaultVolcengineSTSettings,
     volcengineAST2: defaultVolcengineAST2Settings,
     soniox: defaultSonioxSettings,
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
@@ -975,7 +968,6 @@ const useSettingsStore = create<SettingsStore>()(
     updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
     updateOpenAILive: (settings) => updateProviderSlice(set, 'openaiLive', settings),
-    updateVolcengineST: (settings) => updateProviderSlice(set, 'volcengineST', settings),
     updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
     updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
     updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
@@ -1544,7 +1536,6 @@ export const useOpenAICompatibleSettings = () => useSettingsStore((state) => sta
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
 export const useOpenAILiveSettings = () => useSettingsStore((state) => state.openaiLive);
-export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
 export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
@@ -1629,7 +1620,6 @@ export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
 export const useUpdateOpenAILive = () => useSettingsStore((state) => state.updateOpenAILive);
-export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
 export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
@@ -1667,7 +1657,7 @@ export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.l
 
 // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers
 // whose settings slice has no turnDetectionMode field (e.g. OpenAI Translate,
-// Palabra, Volcengine ST). Resolved via the active descriptor's slice key.
+// Palabra). Resolved via the active descriptor's slice key.
 export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state) => {
   const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
   const slice = state[descriptor.settingsSliceKey as keyof SettingsStore] as { turnDetectionMode?: string };

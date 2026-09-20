@@ -88,8 +88,6 @@
     "loadingModels": "Memuatkan model yang tersedia...",
     "modelsFound": "{{count}} model tersedia",
     "invalidApiKeyFormat": "Format kunci API tidak sah",
-    "volcengineSTInfo": "Maklumat Volcengine",
-    "volcengineSTInfoText": "Terjemahan pertuturan masa nyata Volcengine hanya menyediakan output terjemahan teks. Sintesis audio tidak disokong dalam mod ini.",
     "volcengineAST2Info": "Maklumat Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 menyediakan terjemahan pertuturan ke pertuturan dengan pengklonan suara automatik. Audio yang diterjemahkan mengekalkan ciri-ciri suara penutur asal.",
     "volcengineAST2TurnDetectionTooltip": "Auto: pengesanan aktiviti suara di bahagian pelayan. \nTekan untuk Bercakap: tahan kekunci Space atau butang mikrofon untuk menghantar audio secara manual. \nTekan untuk Terjemah: seperti Tekan untuk Bercakap, tetapi menghalakan mikrofon mentah anda ke mikrofon maya apabila tidak aktif supaya anda boleh bercakap secara langsung tanpa terjemahan.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "Kunci API",
       "authModePlatform": "Kunci API Platform",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Terjemahan Pertuturan",
-      "description": "Terjemahan pertuturan ByteDance",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

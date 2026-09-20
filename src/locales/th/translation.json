@@ -88,8 +88,6 @@
     "loadingModels": "กำลังโหลดโมเดลที่ใช้ได้...",
     "modelsFound": "มีโมเดล {{count}} ตัวที่ใช้ได้",
     "invalidApiKeyFormat": "รูปแบบคีย์ API ไม่ถูกต้อง",
-    "volcengineSTInfo": "ข้อมูล Volcengine",
-    "volcengineSTInfoText": "การแปลเสียงพูดแบบเรียลไทม์ของ Volcengine ให้ผลลัพธ์การแปลเป็นข้อความเท่านั้น โหมดนี้ไม่รองรับการสังเคราะห์เสียง",
     "volcengineAST2Info": "ข้อมูล Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 ให้บริการแปลเสียงพูดเป็นเสียงพูดพร้อมการโคลนเสียงอัตโนมัติ เสียงที่แปลจะรักษาคุณลักษณะเสียงของผู้พูดต้นฉบับไว้",
     "volcengineAST2TurnDetectionTooltip": "อัตโนมัติ: การตรวจจับกิจกรรมเสียงฝั่งเซิร์ฟเวอร์ \nกดเพื่อพูด: กดแป้นเว้นวรรคหรือปุ่มไมโครโฟนค้างไว้เพื่อส่งเสียงด้วยตนเอง \nกดเพื่อแปล: เหมือนกับกดเพื่อพูด แต่จะส่งเสียงไมค์ดิบของคุณไปยังไมค์เสมือนเมื่อไม่ได้กด เพื่อให้คุณพูดโดยตรงได้โดยไม่ต้องแปล",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "คีย์ API",
       "authModePlatform": "คีย์ API Platform",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine การแปลเสียงพูด",
-      "description": "การแปลเสียงพูด ByteDance",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

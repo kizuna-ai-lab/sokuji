@@ -173,12 +173,11 @@ describe('LanguageSection — the sentence labels apply to EVERY provider', () =
   });
 
   // The subject was a provider that never synthesizes audio, so the toggle is
-  // irrelevant to it. It has been removed, and the one remaining 'always'
-  // provider (Volcengine ST) is itself slated for removal — so the case is
-  // parked rather than re-pointed at a subject that is about to go. It comes
-  // back with the next provider whose textOnlyCapability is 'always'; if none
-  // arrives, the 'always' arm of `pairSentence` is dead code and this case
-  // should be deleted with it.
+  // irrelevant to it. Both providers that declared textOnlyCapability 'always'
+  // have now been removed (Zoom AI, then Volcengine ST, on 2026-09-20), so the
+  // case is parked for want of a subject rather than deleted: the 'always' arm
+  // of `pairSentence` is still the handling for a three-valued descriptor
+  // contract, and this case comes back with the next provider that declares it.
   it.todo("an 'always' text-only provider reads, with the toggle off");
 
   it("a 'never' text-only provider hears, even with the toggle left on", () => {

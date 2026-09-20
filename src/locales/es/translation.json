@@ -88,8 +88,6 @@
     "loadingModels": "Cargando modelos disponibles...",
     "modelsFound": "{{count}} modelos disponibles",
     "invalidApiKeyFormat": "Formato de clave API no válido",
-    "volcengineSTInfo": "Información de Volcengine",
-    "volcengineSTInfoText": "La traducción de voz en tiempo real de Volcengine proporciona solo salida de traducción de texto. La síntesis de audio no es compatible en este modo.",
     "volcengineAST2Info": "Información de Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 proporciona traducción de voz a voz con clonación automática de voz. El audio traducido conserva las características vocales del hablante original.",
     "volcengineAST2TurnDetectionTooltip": "Auto: detección de actividad de voz del lado del servidor. \nPulsar para hablar: mantenga la barra espaciadora o el botón del micrófono para enviar audio manualmente. \nPulsar para traducir: como Pulsar para hablar, pero enruta su micrófono original al micrófono virtual cuando está inactivo para que pueda hablar directamente sin traducción.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "Clave API",
       "authModePlatform": "Clave API de Platform",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Traducción de Voz",
-      "description": "Traducción de voz de ByteDance",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

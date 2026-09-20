@@ -88,8 +88,6 @@
     "loadingModels": "사용 가능한 모델 로딩 중...",
     "modelsFound": "{{count}}개의 모델 사용 가능",
     "invalidApiKeyFormat": "API 키 형식이 올바르지 않습니다",
-    "volcengineSTInfo": "Volcengine 정보",
-    "volcengineSTInfoText": "Volcengine 실시간 음성 번역은 텍스트 전용 번역 출력을 제공합니다. 이 모드에서는 음성 합성이 지원되지 않습니다.",
     "volcengineAST2Info": "Doubao AST 2.0 정보",
     "volcengineAST2InfoText": "Doubao AST 2.0은 자동 음성 복제를 통한 음성 대 음성 번역을 제공합니다. 번역된 오디오는 원래 화자의 음성 특성을 유지합니다.",
     "volcengineAST2TurnDetectionTooltip": "자동: 서버 측 음성 활동 감지. \n푸시 투 토크: 스페이스 또는 마이크 버튼을 눌러 오디오를 수동으로 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API 키",
       "authModePlatform": "Platform API 키",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine 음성 번역",
-      "description": "ByteDance 음성 번역",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

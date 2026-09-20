@@ -22,7 +22,7 @@ because phase 1's note was written before them.
 | provider | offers |
 |---|---|
 | OpenAI Live, OpenAI Translate (+ Kizuna twin), Gemini | pause, 1-5 |
-| Soniox (+ twin), Volcengine ST, Volcengine AST2 (+ twin), Palabra | **Auto, 1-5** |
+| Soniox (+ twin), Volcengine AST2 (+ twin), Palabra | **Auto, 1-5** |
 | OpenAI Realtime GA, OpenAI-Compatible | Auto only |
 | Local Inference, Local Native | **Auto**, 1-5 |
 
@@ -101,9 +101,10 @@ segment collides with piece *i* of another whenever their base stamps are within
 `max(pieces) - 1` ms — which on Soniox is not a race but a certainty, because
 `finishUtterance` completes the source and the translation in the same
 synchronous tick off the same stamp. The sort then renders
-`u₀ a₀ u₁ a₁ u₂ a₂` instead of `u₀ a₀ u₁ u₂ a₁ a₂`. Volcengine ST and AST2 hit
-the same thing when their two Definite frames land in one millisecond. Fixed on
-2026-09-20 by dropping the `+ i` at all five sites; `SonioxClient.test.ts`'s
+`u₀ a₀ u₁ a₁ u₂ a₂` instead of `u₀ a₀ u₁ u₂ a₁ a₂`. Volcengine AST2 hits
+the same thing when its two Definite frames land in one millisecond. Fixed on
+2026-09-20 by dropping the `+ i` at all five sites, of which three survive the
+provider removals recorded at the end of this note; `SonioxClient.test.ts`'s
 "keeps each segment's pieces together once MainPanel has sorted the items" is
 the regression test, and it runs the panel's real comparator rather than a copy.
 
@@ -113,15 +114,15 @@ not a per-segment offset off a wall clock.
 
 **Palabra has no `createdAt` at all** and lists items synchronously, so its later
 pieces are spliced in behind the first rather than pushed. That exception is
-unchanged and remains correct — worth knowing before a sixth client joins the
+unchanged and remains correct — worth knowing before a fourth client joins the
 splittable set.
 
 ## Decisions taken inside the slice
 
-- **Replay audio stays on the FIRST piece.** Three of the four splittable
-  clients attach it — Soniox's `formatted.audio`, AST2's `decodeTTSAndPlay`
-  target, and *not* Palabra, whose PCM rides a synthetic envelope keyed to the
-  client instance and never touches an item. Volcengine ST writes text only.
+- **Replay audio stays on the FIRST piece.** Two of the three splittable
+  clients attach it — Soniox's `formatted.audio` and AST2's `decodeTTSAndPlay`
+  target — but *not* Palabra, whose PCM rides a synthetic envelope keyed to the
+  client instance and never touches an item.
   Where there is audio it is the whole segment's, with no per-sentence timing
   to cut it on, so it stays on the piece a user reaches for and the later
   pieces have none. `keepReplayAudio` is off by default, so in the default
@@ -138,7 +139,7 @@ splittable set.
 - **Live playback is unaffected by splitting.** Audio goes to the shared
   `ai-assistant` track and the item id is ordering metadata, not a routing key.
   Nothing a user hears changes.
-- **Karaoke is unaffected.** None of the five splittable clients carries
+- **Karaoke is unaffected.** None of the three splittable clients carries
   `asrTiming` — that is a local-engine field, and the local engines emit one
   piece under Auto.
 
@@ -190,8 +191,18 @@ from the compiled stylesheet, with the probe in
   own live GPT-Live and Gemini sessions, but not across the fleet.
 - **Under Auto on an offline local ASR model** there are no partials, so nothing
   is on screen until the utterance completes — and then the bubble can appear up
-  to the 1 s fill-in budget later. The same trade the five server-definite
+  to the 1 s fill-in budget later. The same trade the three server-definite
   clients already make, but more visible there because nothing preceded it.
-- **A sixth splittable client** would inherit the `createdAt + i` convention and
+- **A fourth splittable client** would inherit the `createdAt + i` convention and
   Palabra's splice exception. Read the Ordering section above first.
 - **The audio/bubble refactor** above, whenever it is scheduled.
+
+## Providers removed after this slice landed (2026-09-20)
+
+Zoom AI Services and Volcengine ST were both removed from the app on 2026-09-20,
+after the commits above. Both were split-capable, so the counts in this note were
+edited down with them: the capability table lost two rows, the splittable set went
+from five clients to three (Soniox + twin, Volcengine AST2 + twin, Palabra), and
+the `createdAt` ordering fix's five sites became three. Nothing about the slice's
+design changed — only how many clients it applies to. Volcengine **AST2** and its
+Kizuna twin stay; only the separate `volcengine_st` provider went.

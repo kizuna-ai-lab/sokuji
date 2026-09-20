@@ -88,8 +88,6 @@
     "loadingModels": "Đang tải các mô hình có sẵn...",
     "modelsFound": "{{count}} mô hình có sẵn",
     "invalidApiKeyFormat": "Định dạng khóa API không hợp lệ",
-    "volcengineSTInfo": "Thông tin Volcengine",
-    "volcengineSTInfoText": "Dịch giọng nói thời gian thực của Volcengine chỉ cung cấp đầu ra dịch văn bản. Tổng hợp âm thanh không được hỗ trợ trong chế độ này.",
     "volcengineAST2Info": "Thông tin Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 cung cấp dịch giọng nói sang giọng nói với nhân bản giọng nói tự động. Âm thanh đã dịch giữ nguyên đặc điểm giọng nói của người nói gốc.",
     "volcengineAST2TurnDetectionTooltip": "Tự động: phát hiện hoạt động giọng nói phía máy chủ. \nNhấn để nói: giữ phím cách hoặc nút micrô để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API Key",
       "authModePlatform": "Platform API Key",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Dịch Giọng Nói",
-      "description": "Dịch giọng nói ByteDance",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

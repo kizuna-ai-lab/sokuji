@@ -13,7 +13,6 @@ import {
   useProvider,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useIsApiKeyValid,
   useSetProvider,
@@ -23,7 +22,6 @@ import {
   useUpdatePalabraAI,
   useUpdateOpenAITranslate,
   useUpdateOpenAILive,
-  useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateSoniox,
   useValidateApiKey,
@@ -75,7 +73,6 @@ const PROVIDER_ICONS: Partial<Record<ProviderType, React.ComponentType<{ size?: 
   [Provider.OPENAI_TRANSLATE]: OpenAIIcon,
   [Provider.OPENAI_LIVE]: OpenAIIcon,
   [Provider.PALABRA_AI]: PalabraAIIcon,
-  [Provider.VOLCENGINE_ST]: VolcengineIcon,
   [Provider.VOLCENGINE_AST2]: VolcengineIcon,
   [Provider.SONIOX]: SonioxIcon,
   // The Kizuna-managed twins get "Kizuna AI, powered by <vendor>" composites —
@@ -108,7 +105,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const provider = useProvider();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
-  const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const isApiKeyValid = useIsApiKeyValid();
 
@@ -119,7 +115,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateOpenAILiveSettings = useUpdateOpenAILive();
-  const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateSonioxSettings = useUpdateSoniox();
   const validateApiKey = useValidateApiKey();
@@ -486,9 +481,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       case Provider.OPENAI_LIVE:
         updateOpenAILiveSettings({ apiKey: value });
         break;
-      case Provider.VOLCENGINE_ST:
-        updateVolcengineSTSettings({ accessKeyId: value });
-        break;
       case Provider.VOLCENGINE_AST2:
         updateVolcengineAST2Settings({ appId: value });
         break;
@@ -726,7 +718,7 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
       ) : (!isKizunaManagedProvider(provider)) ? (
         provider === Provider.VOLCENGINE_AST2 ? (
           // Volcengine AST2 requires both APP ID and Access Token
-          <div className="volcengine-st-credentials-group">
+          <div className="volcengine-credentials-group">
             <div className="api-key-input-group">
               <input
                 type="text"
@@ -750,44 +742,6 @@ const ProviderSection: React.FC<ProviderSectionProps> = ({
                 className="validate-button"
                 onClick={handleValidateApiKey}
                 disabled={!volcengineAST2Settings.appId || !volcengineAST2Settings.accessToken || isValidating || isSessionActive}
-                title={t('simpleSettings.validate')}
-              >
-                {isValidating ? (
-                  <span className="spinner" />
-                ) : isApiKeyValid ? (
-                  <CheckCircle size={16} />
-                ) : (
-                  t('simpleSettings.validate')
-                )}
-              </button>
-            </div>
-          </div>
-        ) : provider === Provider.VOLCENGINE_ST ? (
-          // Volcengine ST requires both Access Key ID and Secret Access Key
-          <div className="volcengine-st-credentials-group">
-            <div className="api-key-input-group">
-              <input
-                type="text"
-                value={volcengineSTSettings.accessKeyId}
-                onChange={(e) => updateVolcengineSTSettings({ accessKeyId: e.target.value })}
-                placeholder={t('providers.volcengine_st.accessKeyIdPlaceholder', 'Access Key ID')}
-                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
-                disabled={isSessionActive}
-              />
-            </div>
-            <div className="api-key-input-group">
-              <input
-                type="password"
-                value={volcengineSTSettings.secretAccessKey}
-                onChange={(e) => updateVolcengineSTSettings({ secretAccessKey: e.target.value })}
-                placeholder={t('providers.volcengine_st.secretAccessKeyPlaceholder', 'Secret Access Key')}
-                className={`api-key-input ${isApiKeyValid === true ? 'valid' : isApiKeyValid === false ? 'invalid' : ''}`}
-                disabled={isSessionActive}
-              />
-              <button
-                className="validate-button"
-                onClick={handleValidateApiKey}
-                disabled={!volcengineSTSettings.accessKeyId || !volcengineSTSettings.secretAccessKey || isValidating || isSessionActive}
                 title={t('simpleSettings.validate')}
               >
                 {isValidating ? (

@@ -88,8 +88,6 @@
     "loadingModels": "Naglo-load ng mga available na model...",
     "modelsFound": "{{count}} na mga model ang available",
     "invalidApiKeyFormat": "Hindi wastong format ng API key",
-    "volcengineSTInfo": "Impormasyon ng Volcengine",
-    "volcengineSTInfoText": "Ang real-time na pagsasalin ng pananalita ng Volcengine ay nagbibigay lamang ng output na pagsasalin ng teksto. Hindi sinusuportahan ang audio synthesis sa mode na ito.",
     "volcengineAST2Info": "Impormasyon ng Doubao AST 2.0",
     "volcengineAST2InfoText": "Ang Doubao AST 2.0 ay nagbibigay ng pagsasalin ng pananalita-sa-pananalita na may awtomatikong voice cloning. Pinapanatili ng naisaling audio ang mga katangian ng boses ng orihinal na nagsasalita.",
     "volcengineAST2TurnDetectionTooltip": "Auto: server-side voice activity detection. \nPush-to-Talk: pindutin nang matagal ang Space o ang mic button para magpadala ng audio nang manual. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API Key",
       "authModePlatform": "Platform API Key",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Pagsasalin ng Pananalita",
-      "description": "ByteDance pagsasalin ng pananalita",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

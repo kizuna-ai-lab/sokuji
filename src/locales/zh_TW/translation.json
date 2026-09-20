@@ -88,8 +88,6 @@
     "loadingModels": "載入可用模型中...",
     "modelsFound": "找到 {{count}} 個模型",
     "invalidApiKeyFormat": "API 金鑰格式無效",
-    "volcengineSTInfo": "火山引擎資訊",
-    "volcengineSTInfoText": "火山引擎即時語音翻譯僅提供文字翻譯輸出，此模式不支援語音合成。",
     "volcengineAST2Info": "豆包同聲傳譯 2.0 資訊",
     "volcengineAST2InfoText": "豆包同聲傳譯 2.0 提供語音到語音的同聲傳譯，支援自動聲音複製。翻譯後的音訊保留原始說話者的聲音特徵。",
     "volcengineAST2TurnDetectionTooltip": "自動：伺服器端語音活動偵測。\n按住說話：按住空白鍵或麥克風按鈕手動發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API 金鑰",
       "authModePlatform": "Platform API 金鑰",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "火山引擎語音翻譯",
-      "description": "字節跳動即時語音翻譯",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

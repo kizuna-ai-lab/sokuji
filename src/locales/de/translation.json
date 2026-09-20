@@ -88,8 +88,6 @@
     "loadingModels": "Verfügbare Modelle werden geladen...",
     "modelsFound": "{{count}} Modelle verfügbar",
     "invalidApiKeyFormat": "Ungültiges API-Schlüsselformat",
-    "volcengineSTInfo": "Volcengine-Informationen",
-    "volcengineSTInfoText": "Volcengine Echtzeit-Sprachübersetzung bietet nur Textübersetzungsausgabe. Audiosynthese wird in diesem Modus nicht unterstützt.",
     "volcengineAST2Info": "Doubao AST 2.0-Informationen",
     "volcengineAST2InfoText": "Doubao AST 2.0 bietet Sprache-zu-Sprache-Übersetzung mit automatischer Stimmklonung. Das übersetzte Audio behält die Stimmcharakteristiken des ursprünglichen Sprechers bei.",
     "volcengineAST2TurnDetectionTooltip": "Auto: serverseitige Sprachaktivitätserkennung. \nPush-to-Talk: Halten Sie die Leertaste oder die Mikrofontaste, um Audio manuell zu senden. \nPush-to-Translate: Wie Push-to-Talk, leitet aber Ihr Roh-Mikrofon im Leerlauf an das virtuelle Mikrofon weiter, sodass Sie ohne Übersetzung direkt sprechen können.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API-Schlüssel",
       "authModePlatform": "Platform-API-Schlüssel",
       "authModeApp": "App Client-ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Sprachübersetzung",
-      "description": "ByteDance Sprachübersetzung",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

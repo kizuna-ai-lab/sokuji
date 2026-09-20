@@ -25,7 +25,6 @@ import { Provider } from '../../types/Provider';
 import { defaultSonioxSettings } from './SonioxProviderConfig';
 import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
-import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
 import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
@@ -115,33 +114,9 @@ describe('participant config: direction lives in config fields', () => {
     expect(c.sourceLanguage).toBe(base.targetLanguage);
     expect(c.targetLanguage).toBe(base.sourceLanguage);
   });
-
-  it('volcengine_st rotates sourceLanguage through targetLanguages[0]', () => {
-    for (const [id, defaults] of [
-      [Provider.VOLCENGINE_ST, defaultVolcengineSTSettings],
-    ] as const) {
-      const d = ProviderConfigFactory.getDescriptor(id);
-      const slice = { ...defaults };
-      const base = d.buildSessionConfig(slice, 'i') as { sourceLanguage: string; targetLanguages: string[] };
-      const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as { sourceLanguage: string; targetLanguages: string[] };
-      expect(c.sourceLanguage, `rotate for ${id}`).toBe(base.targetLanguages[0] || base.sourceLanguage);
-      expect(c.targetLanguages, `rotate for ${id}`).toEqual([base.sourceLanguage]);
-    }
-  });
 });
 
 describe('participant config: reversed pairs the provider catalog cannot run', () => {
-  it('volcengine_st rejects a reversed pair whose new source is outside SOURCE_LANGUAGES (zh -> ko reverses to ko as source)', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.VOLCENGINE_ST);
-    const slice = { ...defaultVolcengineSTSettings, sourceLanguage: 'zh', targetLanguage: 'ko' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).toBeNull();
-    expect(notices).toHaveLength(1);
-    expect(notices[0].channel).toBe('error');
-    expect(notices[0].message).toContain('ko');
-    expect(notices[0].message).toContain('zh');
-  });
-
   it('palabraai rejects a reversed target from the five source-only codes (eu is not a valid target)', () => {
     const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
     const slice = { ...defaultPalabraAISettings, sourceLanguage: 'eu', targetLanguage: 'ja' };

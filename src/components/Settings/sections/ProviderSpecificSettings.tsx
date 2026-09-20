@@ -17,7 +17,6 @@ import {
   usePalabraAISettings,
   useOpenAITranslateSettings,
   useOpenAILiveSettings,
-  useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useSonioxSettings,
   useKizunaOpenaiTranslateSettings,
@@ -38,7 +37,6 @@ import {
   useUpdatePalabraAI,
   useUpdateOpenAITranslate,
   useUpdateOpenAILive,
-  useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateSoniox,
   useUpdateKizunaOpenaiTranslate,
@@ -130,7 +128,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const palabraAISettings = usePalabraAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
   const openAILiveSettings = useOpenAILiveSettings();
-  const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   const sonioxSettings = useSonioxSettings();
   const mode = useMode();
@@ -155,7 +152,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateOpenAILiveSettings = useUpdateOpenAILive();
-  const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateSonioxSettings = useUpdateSoniox();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
@@ -394,8 +390,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateGeminiSettings({ [key]: value });
     } else if (provider === Provider.PALABRA_AI) {
       updatePalabraAISettings({ [key]: value });
-    } else if (provider === Provider.VOLCENGINE_ST) {
-      updateVolcengineSTSettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
     } else if (provider === Provider.SONIOX) {
@@ -1707,7 +1701,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="settings-section">
           <h2>{t('settings.volcengineAST2Info', 'Doubao AST 2.0 Info')}</h2>
           <div className="setting-item">
-            <div className="volcengine-st-info-notice" style={{
+            <div className="volcengine-info-notice" style={{
               padding: '12px',
               backgroundColor: 'rgba(16, 163, 127, 0.1)',
               border: '1px solid rgba(16, 163, 127, 0.3)',
@@ -1717,92 +1711,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             }}>
               <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
               {t('settings.volcengineAST2InfoText', 'Doubao AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker\'s voice characteristics.')}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  };
-
-  const renderVolcengineSTSettings = () => {
-    if (provider !== Provider.VOLCENGINE_ST) {
-      return null;
-    }
-
-    // Get target and source languages from the provider config
-    const stDescriptor = ProviderConfigFactory.getDescriptor(provider);
-    const targetLanguages = stDescriptor.resolveTargetLanguages(volcengineSTSettings.sourceLanguage);
-    const sourceLanguages = stDescriptor.resolveSourceLanguages();
-
-    return (
-      <>
-        <div className="settings-section">
-          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.sourceLanguage')}</span>
-            </div>
-            <select
-              className="select-dropdown"
-              value={volcengineSTSettings.sourceLanguage}
-              onChange={(e) => {
-                const oldSourceLang = volcengineSTSettings.sourceLanguage;
-                const newSourceLang = e.target.value;
-                updateVolcengineSTSettings({ sourceLanguage: newSourceLang });
-
-                trackEvent('language_changed', {
-                  from_language: oldSourceLang,
-                  to_language: newSourceLang,
-                  language_type: 'source'
-                });
-              }}
-              disabled={isSessionActive}
-            >
-              {sourceLanguages.map((lang: any) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.targetLanguage')}</span>
-            </div>
-            <select
-              className="select-dropdown"
-              value={volcengineSTSettings.targetLanguage}
-              onChange={(e) => {
-                const oldTargetLang = volcengineSTSettings.targetLanguage;
-                const newTargetLang = e.target.value;
-                updateVolcengineSTSettings({ targetLanguage: newTargetLang });
-
-                trackEvent('language_changed', {
-                  from_language: oldTargetLang,
-                  to_language: newTargetLang,
-                  language_type: 'target'
-                });
-              }}
-              disabled={isSessionActive}
-            >
-              {targetLanguages.map((lang: any) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <h2>{t('settings.volcengineSTInfo', 'Volcengine Speech Translate Info')}</h2>
-          <div className="setting-item">
-            <div className="volcengine-st-info-notice" style={{
-              padding: '12px',
-              backgroundColor: 'rgba(16, 163, 127, 0.1)',
-              border: '1px solid rgba(16, 163, 127, 0.3)',
-              borderRadius: '8px',
-              fontSize: '13px',
-              color: '#aaa'
-            }}>
-              <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
-              {t('settings.volcengineSTInfoText', 'Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.')}
             </div>
           </div>
         </div>
@@ -2373,7 +2281,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderReasoningEffortSettings()}
       {renderGeminiVadSettings()}
       {renderPalabraAISettings()}
-      {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
       {renderSonioxSettings()}
       {renderLocalInferenceSettings()}

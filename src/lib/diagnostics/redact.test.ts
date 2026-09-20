@@ -36,11 +36,13 @@ describe('redact', () => {
     expect(redact('wss://r/?access_token=zzzzzzzzzzzz')).toBe('wss://r/?access_token=[REDACTED]');
   });
 
-  // VolcengineSTClient.ts:79-86 signs the WebSocket URL SigV4-style, and
-  // `X-Credential` carries the account's access key id verbatim. The rule is
-  // anchored on `[?&]`, so a bare `signature` alternative does not reach
-  // `?X-Signature=` — the `X-` prefix sits between the delimiter and the name.
-  // The original fixtures used invented URLs and missed this entirely.
+  // A SigV4-style signed WebSocket URL puts the account's access key id in
+  // `X-Credential` verbatim. No client signs one today (VolcengineSTClient,
+  // which did, was removed on 2026-09-20) — the rule is kept as a net for a
+  // URL a user pastes into a bug report, and this case is what keeps it
+  // honest. It is anchored on `[?&]`, so a bare `signature` alternative does
+  // not reach `?X-Signature=` — the `X-` prefix sits between the delimiter and
+  // the name. The original fixtures used invented URLs and missed this entirely.
   it('redacts Volcengine signed-URL credentials', () => {
     const url =
       'wss://openspeech.bytedance.com/api/v3/sauc?Action=Sauc&X-Algorithm=HMAC-SHA256' +

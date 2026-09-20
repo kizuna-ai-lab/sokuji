@@ -9,7 +9,6 @@ import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIOpenAITranslateProviderConfig } from './KizunaAIOpenAITranslateProviderConfig';
 import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2ProviderConfig';
 import { KizunaAISonioxProviderConfig } from './KizunaAISonioxProviderConfig';
-import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
@@ -88,8 +87,6 @@ export class ProviderConfigFactory {
     if (isElectron() && isLocalNativeEnabled()) {
       ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
     }
-    // Volcengine Speech Translate — always available (stable).
-    ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
   }
 
   /**

@@ -51,7 +51,12 @@ export type ProviderFit =
   | { ok: false; reason: 'cannot-speak' | 'cannot-be-text-only' };
 
 /** Whether a provider can serve a scenario, judged on its
- *  ProviderCapabilities.textOnlyCapability alone (spec §1.2, step 2). */
+ *  ProviderCapabilities.textOnlyCapability alone (spec §1.2, step 2).
+ *  No registered provider is currently 'always' — the last two that were
+ *  (Zoom AI, Volcengine ST) were removed on 2026-09-20 — so the 'cannot-speak'
+ *  branch is unexercised today. It stays because textOnlyCapability is a
+ *  three-valued descriptor contract: a future text-only provider registers,
+ *  it does not re-derive this. */
 export function providerFitForScenario(
   textOnlyCapability: 'always' | 'optional' | 'never',
   scenario: ScenarioPreset,

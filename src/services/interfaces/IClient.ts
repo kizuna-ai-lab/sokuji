@@ -197,16 +197,6 @@ export interface PalabraAISessionConfig extends BaseSessionConfig {
 }
 
 /**
- * Volcengine Speech Translate session configuration
- */
-export interface VolcengineSTSessionConfig extends BaseSessionConfig {
-  provider: 'volcengine_st';
-  sourceLanguage: string;
-  targetLanguages: string[];
-  hotWordList?: Array<{ Word: string; Scale: number }>;
-}
-
-/**
  * Volcengine AST 2.0 session configuration (s2s mode)
  */
 export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
@@ -315,7 +305,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | OpenAILiveSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | OpenAILiveSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -341,10 +331,6 @@ export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSe
 
 export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
   return config.provider === 'palabraai';
-}
-
-export function isVolcengineSTSessionConfig(config: SessionConfig): config is VolcengineSTSessionConfig {
-  return config.provider === 'volcengine_st';
 }
 
 export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {

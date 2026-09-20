@@ -88,8 +88,6 @@
     "loadingModels": "Loading available models...",
     "modelsFound": "{{count}} models available",
     "invalidApiKeyFormat": "Invalid API key format",
-    "volcengineSTInfo": "Volcengine Info",
-    "volcengineSTInfoText": "Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.",
     "volcengineAST2Info": "Doubao AST 2.0 Info",
     "volcengineAST2InfoText": "Doubao AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker's voice characteristics.",
     "volcengineAST2TurnDetectionTooltip": "Auto: server-side voice activity detection. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API Key",
       "authModePlatform": "Platform API Key",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Speech Translate",
-      "description": "ByteDance speech translation",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

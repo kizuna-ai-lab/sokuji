@@ -21,7 +21,6 @@ import {
   useUpdateKizunaSoniox,
   useUpdateLocalInference,
   useUpdateLocalNative,
-  useUpdateVolcengineST,
   useUpdateVolcengineAST2,
   useUpdateSoniox,
   useNavigateToSettings,
@@ -102,7 +101,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateKizunaSonioxSettings = useUpdateKizunaSoniox();
-  const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const updateLocalNativeSettings = useUpdateLocalNative();
@@ -164,9 +162,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.OPENAI_LIVE:
         // Renders the interpreter template only; Live auto-detects the input.
         updateOpenAILiveSettings({ sourceLanguage: value });
-        break;
-      case Provider.VOLCENGINE_ST:
-        updateVolcengineSTSettings({ sourceLanguage: value });
         break;
       case Provider.VOLCENGINE_AST2:
       case Provider.KIZUNA_AI_VOLCENGINE_AST2: {
@@ -260,9 +255,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         break;
       case Provider.OPENAI_LIVE:
         updateOpenAILiveSettings({ targetLanguage: value });
-        break;
-      case Provider.VOLCENGINE_ST:
-        updateVolcengineSTSettings({ targetLanguage: value });
         break;
       case Provider.VOLCENGINE_AST2:
       case Provider.KIZUNA_AI_VOLCENGINE_AST2: {
@@ -718,9 +710,13 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             />
           )}
 
-          {/* Inherently text-only providers (e.g. Volcengine ST) show a
-              permanently-on, non-interactive switch so users can see at a glance
-              that the provider produces text only and never synthesizes audio. */}
+          {/* Inherently text-only providers show a permanently-on,
+              non-interactive switch so users can see at a glance that the
+              provider produces text only and never synthesizes audio. No
+              registered provider is currently 'always' — the last two that were
+              (Zoom AI, Volcengine ST) were removed on 2026-09-20 — but
+              textOnlyCapability is a three-valued descriptor contract, so this
+              branch stays as the handling for the value. */}
           {providerConfig.capabilities.textOnlyCapability === 'always' && (
             <ToggleSwitch
               checked={true}

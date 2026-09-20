@@ -88,8 +88,6 @@
     "loadingModels": "Laddar tillgängliga modeller...",
     "modelsFound": "{{count}} modeller tillgängliga",
     "invalidApiKeyFormat": "Ogiltigt API-nyckelformat",
-    "volcengineSTInfo": "Volcengine-information",
-    "volcengineSTInfoText": "Volcengine realtidsröstöversättning ger enbart textöversättning som utdata. Ljudsyntes stöds inte i detta läge.",
     "volcengineAST2Info": "Doubao AST 2.0-information",
     "volcengineAST2InfoText": "Doubao AST 2.0 erbjuder röst-till-röst-översättning med automatisk röstkloning. Det översatta ljudet bevarar den ursprungliga talarens röstegenskaper.",
     "volcengineAST2TurnDetectionTooltip": "Auto: röstaktivitetsdetektering på serversidan. \nPush-to-Talk: håll ned mellanslag eller mikrofonknappen för att skicka ljud manuellt. \nPush-to-Translate: som Push-to-Talk, men dirigerar din råa mikrofon till den virtuella mikrofonen när inaktiv så att du kan tala direkt utan översättning.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API-nyckel",
       "authModePlatform": "Platform API-nyckel",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Röstöversättning",
-      "description": "ByteDance röstöversättning",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

@@ -88,8 +88,6 @@
     "loadingModels": "Ladataan saatavilla olevia malleja...",
     "modelsFound": "{{count}} mallia saatavilla",
     "invalidApiKeyFormat": "Virheellinen API-avaimen muoto",
-    "volcengineSTInfo": "Volcengine-tiedot",
-    "volcengineSTInfoText": "Volcengine reaaliaikainen puheenkääntäminen tarjoaa vain tekstimuotoisen käännöstuloksen. Äänisynteesiä ei tueta tässä tilassa.",
     "volcengineAST2Info": "Doubao AST 2.0 -tiedot",
     "volcengineAST2InfoText": "Doubao AST 2.0 tarjoaa puheesta puheeseen -kääntämisen automaattisella äänikloonauksella. Käännetty ääni säilyttää alkuperäisen puhujan ääniominaisuudet.",
     "volcengineAST2TurnDetectionTooltip": "Auto: palvelinpuolen ääniaktiivisuuden tunnistus. \nPaina ja puhu: pidä välilyöntiä tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "API-avain",
       "authModePlatform": "Platform-API-avain",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine Puheenkääntäjä",
-      "description": "ByteDance puheenkääntäminen",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

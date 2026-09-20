@@ -88,8 +88,6 @@
     "loadingModels": "بارگذاری مدل‌های موجود...",
     "modelsFound": "{{count}} مدل موجود",
     "invalidApiKeyFormat": "فرمت کلید API نامعتبر",
-    "volcengineSTInfo": "اطلاعات Volcengine",
-    "volcengineSTInfoText": "ترجمه گفتار بلادرنگ Volcengine فقط خروجی ترجمه متنی ارائه می‌دهد. سنتز صوتی در این حالت پشتیبانی نمی‌شود.",
     "volcengineAST2Info": "اطلاعات Doubao AST 2.0",
     "volcengineAST2InfoText": "Doubao AST 2.0 ترجمه گفتار به گفتار با شبیه‌سازی خودکار صدا ارائه می‌دهد. صدای ترجمه شده ویژگی‌های صوتی گوینده اصلی را حفظ می‌کند.",
     "volcengineAST2TurnDetectionTooltip": "خودکار: تشخیص فعالیت صوتی سمت سرور. \nفشار و صحبت: کلید فاصله یا دکمه میکروفون را نگه دارید تا صدا را به‌صورت دستی ارسال کنید. \nفشار و ترجمه: مشابه فشار و صحبت، اما در حالت بیکار میکروفون خام شما را به میکروفون مجازی هدایت می‌کند تا بتوانید مستقیماً بدون ترجمه صحبت کنید.",
@@ -499,12 +497,6 @@
       "apiKeyPlaceholder": "کلید API",
       "authModePlatform": "کلید Platform API",
       "authModeApp": "App Client ID/Secret"
-    },
-    "volcengine_st": {
-      "name": "Volcengine ترجمه گفتار",
-      "description": "ترجمه گفتار ByteDance",
-      "accessKeyIdPlaceholder": "Access Key ID",
-      "secretAccessKeyPlaceholder": "Secret Access Key"
     },
     "soniox": {
       "name": "Soniox",

@@ -87,7 +87,7 @@ export class LocalInferenceClient implements IClient {
   // start at 0 and mint identical IDs (e.g. local_asst_2 on both), which
   // collides downstream — notably the karaoke highlight, which keys on
   // item.id alone and would light two conversation items at once. Mirrors
-  // the instanceId pattern already used by GeminiClient/VolcengineSTClient.
+  // the instanceId pattern already used by GeminiClient.
   private readonly instanceId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   // Streaming ASR: in-progress partial result item

@@ -201,7 +201,6 @@ jobs:
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
           VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -255,7 +254,6 @@ jobs:
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
           VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -295,7 +293,6 @@ jobs:
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
           VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -397,7 +394,6 @@ jobs:
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           VITE_ENVIRONMENT: production
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
           VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
@@ -499,7 +495,6 @@ jobs:
           # Production environment variables for extension
           VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL || 'https://sokuji-api.kizuna.ai' }}
           POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
-          VITE_ENABLE_VOLCENGINE_ST: ${{ vars.VITE_ENABLE_VOLCENGINE_ST }}
           VITE_ENABLE_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_VOLCENGINE_AST2 }}
           VITE_ENABLE_PALABRA_AI: ${{ vars.VITE_ENABLE_PALABRA_AI }}
           VITE_ENABLE_KIZUNA_AI: ${{ vars.VITE_ENABLE_KIZUNA_AI }}
