@@ -2,7 +2,7 @@
 
 **Date**: 2026-09-16
 **Status**: Approved section by section in brainstorming (2026-09-14 → 2026-09-16); written spec pending review.
-Amendment A1 approved in chat 2026-09-20.
+Amendments A1 and A2 approved in chat 2026-09-20.
 **Evidence**:
 - `docs/superpowers/notes/2026-09-14-asr-punctuation-restoration-survey.md` (primary-source survey)
 - `docs/superpowers/notes/2026-09-14-asr-punctuation-benchmark.md` (measured quality, renderer cost, production language mix)
@@ -15,6 +15,31 @@ per bubble control, works only once all three are on disk. Gone: the background 
 first need, the per-model rows in the section, and the one-time notice. Sections changed:
 Summary, Decisions, Components, Injection, Lifecycle, Settings UI, Diagnostics and analytics,
 Failure handling, Testing and the phasing list.
+
+**Amendment A2 (2026-09-20): segmentation is a mode, not a switch.** A1's single on/off
+control becomes a three-way choice per provider — **Off**, **By pause**, **By sentences** — because
+the pause timers two client families already use are a second way of cutting a bubble, and the two
+ways are mutually exclusive. By sentences carries the size: **Auto**, or 1-5.
+
+- **Off** — the stage does nothing; boundaries and text are whatever the provider already produces.
+- **By pause** — offered only where a client cuts on its own silence timers (GPT-Live, OpenAI
+  Translate, Gemini). Those timers decide the boundary and the user tunes them. No model is
+  downloaded. It is the default for those three, because it is what they do today.
+- **By sentences** — the models are downloaded and used. **Auto** keeps the boundaries their owner
+  already decided (a server's segment, a VAD utterance) and only fills in missing punctuation;
+  **1-5** seals a bubble every N sentences.
+
+**Everything the mode needs is one global value.** The mode itself, the size, and the two pause
+durations are stored once, not per provider, and each is clamped on read to what the current
+provider offers. The mode's default is `pause`, which resolves to By pause on the three clients
+that have timers and to Off everywhere else — one default, both behaviours.
+
+**Auto exists only where something else already decides the boundary.** The three pause clients
+have no Auto: for them By sentences always means sentence counting, which is what makes the two
+modes exclusive. OpenAI Realtime GA is the reverse case — it attaches audio to its items, so
+splitting one would strand its karaoke timing, and it offers Auto alone.
+
+The first move to By sentences shows A1's download confirmation.
 
 ## Summary
 
@@ -98,12 +123,13 @@ minutes.
 | D2 | When a model runs | Runtime check only: the model is called only for a long unsealed tail with no sentence-terminal punctuation. No per-model "punctuates" flags. |
 | D3 | Granularity | Seal a bubble every N sentences (see D15); shorter utterances are unchanged |
 | D4 | Local translation | Each sealed chunk is enqueued for translation immediately, as text with the inserted punctuation; the utterance tail is the last job |
-| D5 | Timer/regex online providers | All existing cut rules stay. Added: the N-sentence seal, and the hard span caps prefer a confirmed boundary. The translation side uses the same rules. |
-| D6 | Server-definite providers | Boundaries kept, never split; missing punctuation filled in on the definite text |
+| D5 | Timer/regex online providers | Two modes, exclusive: By pause (their own silence timers, tunable, no model) or By sentences 1-5 (the seal decides; no timer competes). No Auto. (A2) |
+| D6 | Server-definite providers | Auto (default): boundaries kept, punctuation filled in. 1-5: the definite text is split every N sentences — except OpenAI Realtime GA, which attaches audio to its items and offers Auto alone. (A2 revises "never split") |
+| D6b | Local Inference and Local Native | The VAD's utterance counts as a boundary someone else decided, so they behave as D6: Auto keeps one bubble per utterance, 1-5 splits inside it. (A2) |
 | D7 | Sentence counting | When the model ran, count from its output. Otherwise use a shared sentence-end rule on existing marks. `Intl.Segmenter` is not used. |
 | D8 | Chinese fallback | Tail ≥ N × 33 characters (~100 at N = 3) with < N sentence ends → seal at the latest confirmed breakpoint (sentence end or comma) |
 | D9 | Architecture | Shared stage: `SentenceStream` + `PunctuationRuntime` + one worker, injected through `ClientOptions` |
-| D10 | UI | Independent "Sentence segmentation" section, visible for every provider |
+| D10 | UI | Independent "Sentence segmentation" section in General settings, visible for every provider: the mode, the size, the pause sliders when the mode is By pause, and the models' state. Provider settings carry none of it. (A2) |
 | D11 | Download | All three models as one download (402 MB), started when the user turns the feature on, after a confirmation that names each model and the total. Nothing downloads in the background. (A1) |
 | D12 | Default | Off. The feature, including Sentences per bubble, works only once all three models are downloaded. (A1) |
 | D13 | Hosting | Own Hugging Face repos (`jiangzhuo9357`), pinned `hfRevision` |
@@ -208,8 +234,18 @@ interface PunctuationResult {
 - The runtime's per-model status goes to diagnostics only. The UI does not show it.
 
 **Settings (`CommonSettings`)**
-- `sentenceSegmentation: boolean`, default `false` (A1).
-- `sentenceSegmentationChunkSentences: number`, default `3`, clamped to 1–5 on read.
+- `segmentationMode: 'off' | 'pause' | 'sentences'`, per provider — default `'pause'` for the
+  three pause clients and `'off'` everywhere else, and clamped on read to a mode that provider
+  offers (A2, replacing A1's `sentenceSegmentation: boolean`).
+- `sentenceSegmentationChunkSentences: number`, one shared value, default `3`. `0` means Auto;
+  clamped on read to 1–5 where the provider has no Auto (A2).
+- `segmentationSourcePause` and `segmentationTranslationPause`, one global pair, **1.5 s each**,
+  replacing the per-provider values GPT-Live (1.0/1.5), OpenAI Translate (1.0/0.5) and Gemini's
+  hard-coded 2.0/2.0. One pair means one default, and these are the three it changes: Translate's
+  translation side goes 0.5 -> 1.5, which is the fragmenting one and the change most worth having;
+  GPT-Live's source goes 1.0 -> 1.5; Gemini goes 2.0 -> 1.5, narrowing the margin its 2 s was
+  measured for — its transcript fragments arrive a median 1 s apart, so 1.5 s still clears them,
+  with 1.5x of room instead of 2x, and it is now a setting the user can raise (A2).
 
 **UI**
 - `SentenceSegmentationSection.tsx` and its download confirmation.
@@ -420,8 +456,8 @@ set. Candidates to try: releasing the model bytes after session creation, and OR
 **Description.** One sentence: long unsegmented transcripts get punctuation and a new bubble every
 N sentences.
 
-**Turning it on** (A1). When the three models are not all on disk, turning the toggle on opens a
-confirmation instead: the shared `Modal`, as `LicenseConsentModal` does before a native model
+**Turning it on** (A1, A2). When the three models are not all on disk, choosing **By sentences**
+opens a confirmation instead: the shared `Modal`, as `LicenseConsentModal` does before a native model
 download. It lists each model with its size, then the total, with Cancel and Download. Download
 turns the toggle on and starts the download; Cancel leaves the toggle off. When all three are
 already on disk, the toggle turns on without asking.
