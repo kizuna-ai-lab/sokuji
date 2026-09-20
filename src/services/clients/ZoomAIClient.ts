@@ -7,6 +7,8 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { ZoomJwtSigner } from './zoom/ZoomJwtSigner';
 import { encodeWavDataUri, transcribe, translate, ZoomApiError } from './zoom/zoomApi';
 import { createVadWorker } from './zoom/createVadWorker';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateDefinite } from './punctuateDefinite';
 
 const VAD_INPUT_SAMPLE_RATE = 24000; // Sokuji recorder output
 
@@ -21,8 +23,31 @@ export class ZoomAIClient implements IClient {
   private itemCounter = 0;
   private utteranceChain: Promise<void> = Promise.resolve();
 
-  constructor(apiKey: string, apiSecret: string) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store. One REST
+  // utterance is one segment and the VAD decided where it ended, so the stage
+  // only fills in punctuation Zoom never sent — see punctuateDefinite.
+  // No lane is needed here: `utteranceChain` already runs one utterance at a
+  // time, so these awaits are ordered by construction.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session, and a session that started without the models must not begin
+   * punctuating halfway through.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+
+  constructor(
+    apiKey: string,
+    apiSecret: string,
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.signer = new ZoomJwtSigner(apiKey, apiSecret);
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
     this.instanceId = `zoom_ai_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
 
@@ -36,6 +61,12 @@ export class ZoomAIClient implements IClient {
     }
     this.currentConfig = config;
     this.conversationItems = [];
+    // R2: the one read of `enabled` this session gets. See the
+    // `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+      : null;
 
     await new Promise<void>((resolve, reject) => {
       const worker = createVadWorker();
@@ -84,8 +115,17 @@ export class ZoomAIClient implements IClient {
       const token = await this.signer.getToken();
       if (!this.connected) return;
       const wav = encodeWavDataUri(audio, 16000);
-      const transcriptText = await transcribe(token, wav, cfg.sourceLanguage);
-      if (!transcriptText || !this.connected) return;
+      const rawTranscript = await transcribe(token, wav, cfg.sourceLanguage);
+      if (!rawTranscript || !this.connected) return;
+      // Fill in punctuation Zoom's transcription did not send. Awaited inline:
+      // this whole method already runs one utterance at a time on
+      // `utteranceChain`, so there is no way for a later utterance's item to
+      // overtake this one. `this.connected` below is the teardown guard the
+      // rest of the method already uses.
+      const transcriptText = await punctuateDefinite(
+        this.segmentationFor(), cfg.sourceLanguage, rawTranscript, this.sentencesPerChunk,
+      );
+      if (!this.connected) return;
 
       const userItem: ConversationItem = {
         id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
@@ -97,8 +137,14 @@ export class ZoomAIClient implements IClient {
       this.eventHandlers.onConversationUpdated?.({ item: userItem });
 
       if (!this.connected) return;
-      const translated = await translate(token, transcriptText, cfg.sourceLanguage, target);
-      if (!translated || !this.connected) return;
+      // The RAW transcript, not the punctuated one: the stage changes what the
+      // user reads, never what a provider is asked to translate.
+      const rawTranslation = await translate(token, rawTranscript, cfg.sourceLanguage, target);
+      if (!rawTranslation || !this.connected) return;
+      const translated = await punctuateDefinite(
+        this.segmentationFor(), target, rawTranslation, this.sentencesPerChunk,
+      );
+      if (!this.connected) return;
 
       const asstItem: ConversationItem = {
         id: this.nextId('asst'), role: 'assistant', type: 'message', status: 'completed',
@@ -111,6 +157,11 @@ export class ZoomAIClient implements IClient {
     } catch (err) {
       if (this.connected) this.emitError(err);
     }
+  }
+
+  /** The session's frozen runtime, or null once the session is over. */
+  private segmentationFor(): SegmentationRuntime | null {
+    return this.connected ? this.sessionSegmentation : null;
   }
 
   private emitError(err: unknown): void {
@@ -153,6 +204,9 @@ export class ZoomAIClient implements IClient {
       this.worker = null;
     }
     this.connected = false;
+    // `segmentationFor()` already reads `connected`; dropping the frozen view
+    // too means a reconnect cannot be served the old session's answer.
+    this.sessionSegmentation = null;
     this.eventHandlers.onClose?.({});
   }
 

@@ -34,10 +34,13 @@ export class KizunaAIVolcengineAST2ProviderConfig extends VolcengineAST2Provider
   }
 
   // Override — routes through the relay using the backend-managed session token.
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
     return new VolcengineAST2Client('', '', undefined, {
       wsUrl: `${getRelayWsUrl()}/ast/translate`,
       sessionToken: creds.primary,
+    }, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
     });
   }
 

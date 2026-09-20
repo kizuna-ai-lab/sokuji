@@ -40,9 +40,12 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
     return { ok: true, primary: s.apiKey, secret: s.apiSecret };
   }
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
     if (!creds.secret) throw new Error('API Secret is required for zoom_ai provider');
-    return new ZoomAIClient(creds.primary, creds.secret);
+    return new ZoomAIClient(creds.primary, creds.secret, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{

@@ -234,11 +234,14 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     return settings?.[sonioxKeyField(asSonioxRegion(settings?.region))] ?? '';
   }
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
     // A NEW construction shape for BYOK too, not a shape managed was moved
     // onto: one user key in both slots, and no client_reference_id — BYOK
     // traffic is not ours to bill.
-    return new SonioxClient(byokCredentials(creds.primary, asSonioxRegion(creds.endpoint)));
+    return new SonioxClient(byokCredentials(creds.primary, asSonioxRegion(creds.endpoint)), {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{

@@ -39,9 +39,12 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
     return (slice as VolcengineSTSettings)?.accessKeyId ?? '';
   }
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
     if (!creds.secret) throw new Error('Secret Access Key is required for volcengine_st provider');
-    return new VolcengineSTClient(creds.primary, creds.secret);
+    return new VolcengineSTClient(creds.primary, creds.secret, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{

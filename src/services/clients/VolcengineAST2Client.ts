@@ -41,6 +41,8 @@ import { isElectron, isExtension } from '../../utils/environment';
 import { data } from './volcengine-ast2/ast2-proto.js';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
 
 const TranslateRequest = data.speech.ast.TranslateRequest;
 const TranslateResponse = data.speech.ast.TranslateResponse;
@@ -160,11 +162,38 @@ export class VolcengineAST2Client implements IClient {
    */
   private relay?: { wsUrl: string; sessionToken: string };
 
-  constructor(appId: string, accessToken: string, resourceId: string = 'volc.service_type.10053', relay?: { wsUrl: string; sessionToken: string }) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store. Doubao
+  // decides its own boundaries (the Definite/`end` phase), so the stage only
+  // fills in punctuation the server never sent — see punctuateDefinite.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session, and a session that started without the models must not begin
+   * punctuating halfway through. Its identity doubles as the session token
+   * every deferred write checks before it lands.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** Definite-segment writes run one at a time, in the order the segments
+   *  became definite. See createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+
+  constructor(
+    appId: string,
+    accessToken: string,
+    resourceId: string = 'volc.service_type.10053',
+    relay?: { wsUrl: string; sessionToken: string },
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.appId = appId;
     this.accessToken = accessToken;
     this.resourceId = resourceId;
     this.relay = relay;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
   }
 
   private generateItemId(prefix: string): string {
@@ -193,6 +222,12 @@ export class VolcengineAST2Client implements IClient {
     this.lastCompletedTranslationItemId = null;
     this.lastResponseSequence = -1;
     this.ttsSentenceTargetItemId = null;
+    // R2: the one read of `enabled` this session gets. See the
+    // `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+      : null;
 
     if (this.relay) {
       return this.connectViaRelay();
@@ -694,31 +729,50 @@ export class VolcengineAST2Client implements IClient {
     }
 
     const itemId = this.currentSourceItemId || this.generateItemId('source');
+    const createdAt = Date.now();
+    // Cleared here rather than after the write: the write may be deferred by a
+    // punctuation call, and by then a new segment's `start` phase may already
+    // own this field.
+    if (isDefinite) this.currentSourceItemId = null;
 
-    const item: ConversationItem = {
-      id: itemId,
-      role: 'user',
-      type: 'message',
-      status: isDefinite ? 'completed' : 'in_progress',
-      createdAt: Date.now(),
-      formatted: { text, transcript: text },
-      content: [{ type: 'text', text }]
+    const write = (finalText: string) => {
+      const item: ConversationItem = {
+        id: itemId,
+        role: 'user',
+        type: 'message',
+        status: isDefinite ? 'completed' : 'in_progress',
+        createdAt,
+        formatted: { text: finalText, transcript: finalText },
+        content: [{ type: 'text', text: finalText }]
+      };
+
+      if (isDefinite) {
+        this.conversationItems.push(item);
+      }
+
+      this.eventHandlers.onConversationUpdated?.({
+        item,
+        delta: {
+          text: finalText,
+          definite: isDefinite,
+          language: this.currentConfig?.sourceLanguage,
+          startTime: response.startTime,
+          endTime: response.endTime,
+        }
+      });
     };
 
-    if (isDefinite) {
-      this.conversationItems.push(item);
-      this.currentSourceItemId = null;
-    }
-
-    this.eventHandlers.onConversationUpdated?.({
-      item,
-      delta: {
-        text,
-        definite: isDefinite,
-        language: this.currentConfig?.sourceLanguage,
-        startTime: response.startTime,
-        endTime: response.endTime,
-      }
+    const runtime = isDefinite ? this.sessionSegmentation : null;
+    if (!runtime) { write(text); return; }
+    // The model call starts NOW so two segments punctuate concurrently; the
+    // write waits its turn in the lane so the answers cannot list the later
+    // segment first.
+    const pending = punctuateDefinite(runtime, this.currentConfig?.sourceLanguage ?? '', text, this.sentencesPerChunk);
+    this.punctuationLane(async () => {
+      const finalText = await pending;
+      // disconnect() drops the frozen view and a reconnect replaces it.
+      if (this.sessionSegmentation !== runtime) return;
+      write(finalText);
     });
   }
 
@@ -739,32 +793,49 @@ export class VolcengineAST2Client implements IClient {
     }
 
     const itemId = this.currentTranslationItemId || this.generateItemId('translation');
-
-    const item: ConversationItem = {
-      id: itemId,
-      role: 'assistant',
-      type: 'message',
-      status: isDefinite ? 'completed' : 'in_progress',
-      createdAt: Date.now(),
-      formatted: { text, transcript: text },
-      content: [{ type: 'text', text }]
-    };
-
+    const createdAt = Date.now();
+    // Both cleared here rather than after the write, for the same reason the
+    // source side clears early: the write may be deferred by a punctuation
+    // call, and a new segment's `start` phase may already own the field.
     if (isDefinite) {
-      this.conversationItems.push(item);
       this.lastCompletedTranslationItemId = this.currentTranslationItemId;
       this.currentTranslationItemId = null;
     }
 
-    this.eventHandlers.onConversationUpdated?.({
-      item,
-      delta: {
-        text,
-        definite: isDefinite,
-        language: this.currentConfig?.targetLanguage,
-        startTime: response.startTime,
-        endTime: response.endTime,
+    const write = (finalText: string) => {
+      const item: ConversationItem = {
+        id: itemId,
+        role: 'assistant',
+        type: 'message',
+        status: isDefinite ? 'completed' : 'in_progress',
+        createdAt,
+        formatted: { text: finalText, transcript: finalText },
+        content: [{ type: 'text', text: finalText }]
+      };
+
+      if (isDefinite) {
+        this.conversationItems.push(item);
       }
+
+      this.eventHandlers.onConversationUpdated?.({
+        item,
+        delta: {
+          text: finalText,
+          definite: isDefinite,
+          language: this.currentConfig?.targetLanguage,
+          startTime: response.startTime,
+          endTime: response.endTime,
+        }
+      });
+    };
+
+    const runtime = isDefinite ? this.sessionSegmentation : null;
+    if (!runtime) { write(text); return; }
+    const pending = punctuateDefinite(runtime, this.currentConfig?.targetLanguage ?? '', text, this.sentencesPerChunk);
+    this.punctuationLane(async () => {
+      const finalText = await pending;
+      if (this.sessionSegmentation !== runtime) return;
+      write(finalText);
     });
   }
 
@@ -902,6 +973,10 @@ export class VolcengineAST2Client implements IClient {
 
     this.isConnectedState = false;
     this.ttsChunks = [];
+    // A punctuation answer still in flight checks this identity before it
+    // writes, so clearing it here keeps a dead session's items out of a list
+    // nobody renders any more.
+    this.sessionSegmentation = null;
 
     // Close the decode AudioContext
     if (this.decodeContext) {

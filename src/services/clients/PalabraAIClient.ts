@@ -5,6 +5,8 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import i18n from '../../locales';
 import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack, setLogLevel } from 'livekit-client';
 import { isExtension, hasChromeRuntime } from '../../utils/environment';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
 
 // Suppress verbose logs from LiveKit client, including silence detection.
 setLogLevel('error');
@@ -166,8 +168,32 @@ export class PalabraAIClient implements IClient {
   private remoteAudioBufferLength: number = 0;
   private remoteAudioFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(credentials: PalabraCredentials) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store. Palabra
+  // decides its own boundaries (`validated_transcription`), so the stage only
+  // fills in punctuation it never sent — see punctuateDefinite.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session, and a session that started without the models must not begin
+   * punctuating halfway through. Its identity doubles as the session token
+   * every deferred write checks before it lands.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** Definite-segment writes run one at a time, in the order the segments
+   *  became definite. See createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+
+  constructor(
+    credentials: PalabraCredentials,
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.credentials = credentials;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
     // Generate a unique instance ID that remains constant for this client instance
     this.instanceId = `palabra_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -255,6 +281,12 @@ export class PalabraAIClient implements IClient {
     
     try {
       this.currentSessionConfig = config;
+      // R2: the one read of `enabled` this session gets. See the
+      // `sessionSegmentation` field doc.
+      const runtime = this.segmentation;
+      this.sessionSegmentation = runtime?.enabled === true
+        ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+        : null;
       
       // Clean up existing sessions before creating new one
       await this.cleanupExistingSessions();
@@ -328,6 +360,10 @@ export class PalabraAIClient implements IClient {
       this.isConnectedState = false;
       this.sessionConfig = null;
       this.conversationItems = [];
+      // A punctuation answer still in flight checks this identity before it
+      // writes, so clearing it here keeps a dead session's items out of a list
+      // nobody renders any more.
+      this.sessionSegmentation = null;
       
       console.info("[Sokuji] [PalabraAIClient] Disconnected successfully");
       
@@ -844,10 +880,29 @@ export class PalabraAIClient implements IClient {
           }
         };
         
+        // Listed before the text is settled, which is also what claims the id:
+        // a duplicate arriving while the punctuation model runs still finds it
+        // and is still ignored.
         this.conversationItems.push(item);
-        
-        // Notify event handlers
-        this.eventHandlers.onConversationUpdated?.({ item });
+
+        const write = (finalText: string) => {
+          item.formatted = { transcript: finalText };
+          // Notify event handlers
+          this.eventHandlers.onConversationUpdated?.({ item });
+        };
+
+        const runtime = this.sessionSegmentation;
+        if (!runtime) { write(text); return; }
+        // The model call starts NOW so two segments punctuate concurrently;
+        // the write waits its turn in the lane so the answers cannot emit the
+        // later segment first.
+        const pending = punctuateDefinite(runtime, this.currentSessionConfig?.targetLanguage ?? '', text, this.sentencesPerChunk);
+        this.punctuationLane(async () => {
+          const finalText = await pending;
+          // disconnect() drops the frozen view and a reconnect replaces it.
+          if (this.sessionSegmentation !== runtime) return;
+          write(finalText);
+        });
       }
       // If item already exists, it's a duplicate - ignore it
     }
@@ -993,32 +1048,35 @@ export class PalabraAIClient implements IClient {
           item.id === partialItemId && item.status === 'in_progress'
         );
         
-        if (partialItem) {
-          // Complete the partial transcription
-          partialItem.status = 'completed';
-          partialItem.id = validatedItemId;
-          partialItem.formatted = {
-            transcript: text
-          };
-          
+        // Either the partial promoted in place, or a fresh validated item.
+        // Its identity is settled here, synchronously — that is what claims
+        // `validatedItemId`, so a duplicate arriving while the punctuation
+        // model runs still finds it and is still ignored.
+        const item: ConversationItem = partialItem ?? {
+          id: validatedItemId,
+          role: 'user',
+          type: 'message',
+          status: 'completed',
+          formatted: { transcript: text }
+        };
+        item.id = validatedItemId;
+        item.status = 'completed';
+        if (!partialItem) this.conversationItems.push(item);
+
+        const write = (finalText: string) => {
+          item.formatted = { transcript: finalText };
           // Notify event handlers with updated item
-          this.eventHandlers.onConversationUpdated?.({ item: partialItem });
-        } else {
-          // Create new validated item if no partial item found
-          const item: ConversationItem = {
-            id: validatedItemId,
-            role: 'user',
-            type: 'message',
-            status: 'completed',
-            formatted: {
-              transcript: text
-            }
-          };
-          this.conversationItems.push(item);
-          
-          // Notify event handlers
           this.eventHandlers.onConversationUpdated?.({ item });
-        }
+        };
+
+        const runtime = this.sessionSegmentation;
+        if (!runtime) { write(text); return; }
+        const pending = punctuateDefinite(runtime, this.currentSessionConfig?.sourceLanguage ?? '', text, this.sentencesPerChunk);
+        this.punctuationLane(async () => {
+          const finalText = await pending;
+          if (this.sessionSegmentation !== runtime) return;
+          write(finalText);
+        });
       }
       // If validated item already exists, it's a duplicate - ignore it
     }

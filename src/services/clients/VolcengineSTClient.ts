@@ -12,6 +12,8 @@ import { Provider, ProviderType } from '../../types/Provider';
 import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
 
 /**
  * Volcengine ST Real-time Speech Translation response subtitle
@@ -336,9 +338,34 @@ export class VolcengineSTClient implements IClient {
   private currentSourceItemId: string | null = null;
   private currentTranslationItemId: string | null = null;
 
-  constructor(accessKeyId: string, secretAccessKey: string) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store. The
+  // server decides its own boundaries (`Definite`), so the stage only fills in
+  // punctuation it never sent — see punctuateDefinite.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session, and a session that started without the models must not begin
+   * punctuating halfway through. Its identity doubles as the session token
+   * every deferred write checks before it lands.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** Definite-segment writes run one at a time, in the order the segments
+   *  became definite. See createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+
+  constructor(
+    accessKeyId: string,
+    secretAccessKey: string,
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.accessKeyId = accessKeyId;
     this.secretAccessKey = secretAccessKey;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
     this.signer = new VolcengineV4Signer(
       accessKeyId,
       secretAccessKey,
@@ -523,6 +550,12 @@ export class VolcengineSTClient implements IClient {
     this.pendingSubtitles.clear();
     this.currentSourceItemId = null;
     this.currentTranslationItemId = null;
+    // R2: the one read of `enabled` this session gets. See the
+    // `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+      : null;
 
     return new Promise((resolve, reject) => {
       const doConnect = async () => {
@@ -721,25 +754,10 @@ export class VolcengineSTClient implements IClient {
       ? this.currentSourceItemId!
       : this.currentTranslationItemId!;
 
-    const conversationItem: ConversationItem = {
-      id: itemId,
-      role,
-      type: 'message',
-      status: subtitle.Definite ? 'completed' : 'in_progress',
-      createdAt: Date.now(),
-      formatted: {
-        text: subtitle.Text,
-        transcript: subtitle.Text,
-      },
-      content: [{
-        type: 'text',
-        text: subtitle.Text
-      }]
-    };
-
-    // Finalized — push to history and clear tracked ID
+    const createdAt = Date.now();
+    // Cleared here rather than after the write: the write may be deferred by a
+    // punctuation call, and by then the next segment may already own the field.
     if (subtitle.Definite) {
-      this.conversationItems.push(conversationItem);
       if (isSourceLanguage) {
         this.currentSourceItemId = null;
       } else {
@@ -747,15 +765,56 @@ export class VolcengineSTClient implements IClient {
       }
     }
 
-    this.eventHandlers.onConversationUpdated?.({
-      item: conversationItem,
-      delta: {
-        text: subtitle.Text,
-        definite: subtitle.Definite,
-        language: subtitle.Language,
-        beginTime: subtitle.BeginTime,
-        endTime: subtitle.EndTime,
+    const write = (finalText: string) => {
+      const conversationItem: ConversationItem = {
+        id: itemId,
+        role,
+        type: 'message',
+        status: subtitle.Definite ? 'completed' : 'in_progress',
+        createdAt,
+        formatted: {
+          text: finalText,
+          transcript: finalText,
+        },
+        content: [{
+          type: 'text',
+          text: finalText
+        }]
+      };
+
+      // Finalized — push to history
+      if (subtitle.Definite) {
+        this.conversationItems.push(conversationItem);
       }
+
+      this.eventHandlers.onConversationUpdated?.({
+        item: conversationItem,
+        delta: {
+          text: finalText,
+          definite: subtitle.Definite,
+          language: subtitle.Language,
+          beginTime: subtitle.BeginTime,
+          endTime: subtitle.EndTime,
+        }
+      });
+    };
+
+    const runtime = subtitle.Definite ? this.sessionSegmentation : null;
+    if (!runtime) { write(subtitle.Text); return; }
+    // `subtitle.Language` is the wire's own per-subtitle language — the only
+    // one this provider reports — so it, not the configured pair, routes the
+    // punctuation model. The call starts NOW so two segments punctuate
+    // concurrently; the write waits its turn in the lane so the answers cannot
+    // list the later segment first.
+    const lang = subtitle.Language
+      || (isSourceLanguage ? this.currentConfig?.sourceLanguage : this.currentConfig?.targetLanguages?.[0])
+      || '';
+    const pending = punctuateDefinite(runtime, lang, subtitle.Text, this.sentencesPerChunk);
+    this.punctuationLane(async () => {
+      const finalText = await pending;
+      // disconnect() drops the frozen view and a reconnect replaces it.
+      if (this.sessionSegmentation !== runtime) return;
+      write(finalText);
     });
   }
 
@@ -774,6 +833,10 @@ export class VolcengineSTClient implements IClient {
     }
 
     this.isConnectedState = false;
+    // A punctuation answer still in flight checks this identity before it
+    // writes, so clearing it here keeps a dead session's items out of a list
+    // nobody renders any more.
+    this.sessionSegmentation = null;
 
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',

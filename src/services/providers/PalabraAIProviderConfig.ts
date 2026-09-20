@@ -88,8 +88,11 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     return s?.authMode === 'platform' ? (s?.apiKey ?? '') : (s?.clientId ?? '');
   }
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new PalabraAIClient(PalabraAIProviderConfig.toPalabraCredentials(creds));
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new PalabraAIClient(PalabraAIProviderConfig.toPalabraCredentials(creds), {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{

@@ -21,6 +21,8 @@ import { SonioxSideTracker } from './SonioxSideTracker';
 import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
 
 /**
  * Soniox speech-to-speech translation client.
@@ -84,6 +86,11 @@ export interface SonioxClientOptions {
    *  which is the right answer for every single-leg session and for the speaker
    *  leg of a split one. */
   announcesSessionOutcome?: boolean;
+  /** The sentence segmentation stage. Soniox decides its own boundaries, so
+   *  the stage only fills in punctuation the server never sent — see
+   *  punctuateDefinite. Null or disabled is today's behaviour, byte for byte. */
+  segmentation?: SegmentationRuntime | null;
+  sentencesPerChunk?: number;
 }
 
 export class SonioxClient implements IClient, SonioxSessionLeg {
@@ -239,11 +246,32 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   private sttResumeCycles = 0;
   private static readonly MAX_STT_RESUME_CYCLES = 5;
 
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store, so a
+  // running session cannot react to either setting changing.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session — the punctuation pack finishing its download turns it true,
+   * deleting it turns it false — and a session that started without the models
+   * must not begin punctuating halfway through. Its identity doubles as the
+   * session token every deferred write checks before it lands.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** Definite-segment writes run one at a time, in the order the segments
+   *  became definite. See createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+
   constructor(credentials: SonioxCredentialBundle, options?: SonioxClientOptions) {
     this.credentials = credentials;
     this.session = options?.session ?? null;
     this.sttRole = options?.sttRole ?? null;
     this.announcesSessionOutcomeFlag = options?.announcesSessionOutcome ?? true;
+    this.segmentation = options?.segmentation ?? null;
+    this.sentencesPerChunk = options?.sentencesPerChunk ?? 3;
     this.instanceId = `soniox_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
@@ -323,6 +351,12 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     this.currentConfig = config as SonioxSessionConfig;
     this.reset();
     const gen = ++this.generation;
+    // R2: the one read of `enabled` this session gets. See the
+    // `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+      : null;
 
     const cfg = this.currentConfig;
     // two_way needs a concrete source; degrade to one_way on 'auto'
@@ -650,19 +684,49 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
    */
   private completeItem(role: 'user' | 'assistant', existingId: string | null, text: string): void {
     if (!text) return;
+    const detected = role === 'user' ? this.userLanguage : this.assistantLanguage;
+    const side = this.bidirectional ? this.utteranceSide : null;
+    const runtime = this.sessionSegmentation;
+    if (!runtime) { this.writeCompletedItem(role, existingId, text, detected, side); return; }
+    // The stage fills in punctuation the server never sent. The model call
+    // starts NOW so two segments punctuate concurrently; the write waits its
+    // turn in the lane so the answers cannot list the later segment first.
+    // Every field the write needs is captured here, because finishUtterance
+    // clears the per-utterance state the moment this returns.
+    const lang = detected ?? this.currentConfig?.sourceLanguage ?? '';
+    const pending = punctuateDefinite(runtime, lang, text, this.sentencesPerChunk);
+    this.punctuationLane(async () => {
+      const finalText = await pending;
+      // disconnect() drops the frozen view and a reconnect replaces it: an
+      // answer that lands after either belongs to a session nobody renders.
+      if (this.sessionSegmentation !== runtime) return;
+      this.writeCompletedItem(role, existingId, finalText, detected, side);
+    });
+  }
+
+  /** completeItem's write, with the per-utterance state it needs passed in so
+   *  the punctuated path can run it after an await. */
+  private writeCompletedItem(
+    role: 'user' | 'assistant',
+    existingId: string | null,
+    text: string,
+    detected: string | null,
+    side: 'speaker' | 'participant' | null,
+  ): void {
     // Preserve any replay audio already accumulated on this item: this
     // rebuild would otherwise drop TTS audio that arrived before the
     // completion trigger (keepReplayAudio only — undefined otherwise, a no-op).
+    // Re-read rather than captured, so audio that arrived while the
+    // punctuation model ran is kept too.
     const prev = existingId ? this.conversationItems.find((i) => i.id === existingId) : undefined;
     const audio = prev?.formatted?.audio as Int16Array | undefined;
-    const detected = role === 'user' ? this.userLanguage : this.assistantLanguage;
     const item = this.upsertItem(role, existingId, {
       status: 'completed',
       formatted: audio ? { text, transcript: text, audio } : { text, transcript: text },
       content: [{ type: 'text', text }],
       ...(detected ? { detectedLanguage: detected } : {}),
     });
-    if (this.bidirectional && this.utteranceSide) item.source = this.utteranceSide;
+    if (side) item.source = side;
     this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
   }
 
@@ -711,10 +775,17 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
    * bleed).
    */
   private abandonUtteranceState(): void {
-    this.completeItem('user', this.currentUserItemId, this.userFinal);
-    this.completeItem('assistant', this.currentAssistantItemId, this.assistantFinal);
-    this.forceCompleteStuckItem(this.currentUserItemId);
-    this.forceCompleteStuckItem(this.currentAssistantItemId);
+    const userText = this.userFinal;
+    const assistantText = this.assistantFinal;
+    this.completeItem('user', this.currentUserItemId, userText);
+    this.completeItem('assistant', this.currentAssistantItemId, assistantText);
+    // Only where completeItem no-opped, i.e. a PARTIAL-only item. It used to be
+    // safe to call unconditionally because completeItem had already flipped the
+    // item to 'completed' and this returns early on one; with the segmentation
+    // stage on that write is deferred, so the item's status no longer answers
+    // "did completeItem handle this?" — the text does.
+    if (!userText) this.forceCompleteStuckItem(this.currentUserItemId);
+    if (!assistantText) this.forceCompleteStuckItem(this.currentAssistantItemId);
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
     this.userFinal = '';
@@ -1444,6 +1515,10 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       this.tts = null;
     }
     this.isConnectedState = false;
+    // Dropped LAST: a punctuation answer still in flight checks this identity
+    // before it writes, so clearing it here is what keeps a dead session's
+    // items out of a list nobody renders any more.
+    this.sessionSegmentation = null;
     this.emitRealtime('client', 'session.closed', { provider: 'soniox', reason: 'client_disconnect' });
     this.eventHandlers.onClose?.({});
   }

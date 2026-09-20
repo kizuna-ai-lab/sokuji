@@ -1579,3 +1579,114 @@ describe("the client dials its bundle's region", () => {
     expect((tts?.options as { region?: string })?.region).toBe('eu');
   });
 });
+
+describe('SonioxClient with the segmentation stage', () => {
+  /** A runtime that marks a sentence end every `every` characters. Terminals
+   *  only, so the skeleton invariant holds. */
+  function markingRuntime(every = 20) {
+    return {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += every) {
+          out += text.slice(i, i + every);
+          if (i + every <= text.length) { out += '。'; ends.push(out.length); }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  async function stagedClient(options: { segmentation?: any; sentencesPerChunk?: number }) {
+    const client = new SonioxClient(byokCredentials('key', 'us'), options);
+    const updates: Array<{ item: ConversationItem; delta?: any }> = [];
+    client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
+    await client.connect({ ...BASE_CONFIG, textOnly: true });
+    return { client, updates, stt: sttInstances[sttInstances.length - 1] };
+  }
+
+  /** 60 Chinese characters — past gateChars('zh', 3) = 60 — with nothing to
+   *  split on, which is exactly the segment the stage exists for. */
+  const LONG_ZH = '你'.repeat(60);
+
+  it('punctuates a long unpunctuated definite segment', async () => {
+    const runtime = markingRuntime(20);
+    const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    stt.emit({ tokens: [
+      tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const user = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(user).toHaveLength(1);
+    expect(user[0].status).toBe('completed');
+    expect(user[0].formatted?.text).toBe(`${'你'.repeat(20)}。${'你'.repeat(20)}。${'你'.repeat(20)}。`);
+    expect(user[0].content?.[0]?.text).toBe(user[0].formatted?.text);
+  });
+
+  it('passes the per-role DETECTED language, not the configured one', async () => {
+    const runtime = markingRuntime(20);
+    const { stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    stt.emit({ tokens: [
+      // Source language is 'zh' in BASE_CONFIG; Soniox detected Japanese.
+      tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'ja' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(runtime.punctuate.mock.calls[0].slice(0, 2)).toEqual(['ja', LONG_ZH]);
+  });
+
+  it('leaves the item boundaries exactly where they are, runtime or not', async () => {
+    const shape = async (options: { segmentation?: any; sentencesPerChunk?: number }) => {
+      const { client, stt } = await stagedClient(options);
+      stt.emit({ tokens: [
+        tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+        tok('Hello there everyone', { is_final: true, translation_status: 'translation', language: 'en' }),
+        tok('<end>'),
+      ] });
+      await new Promise((r) => setTimeout(r, 0));
+      return client.getConversationItems().map((i) => `${i.role}:${i.status}`);
+    };
+    expect(await shape({ segmentation: markingRuntime(20), sentencesPerChunk: 3 }))
+      .toEqual(await shape({}));
+  });
+
+  it('never calls the model when the runtime was disabled at connect', async () => {
+    const late = { enabled: false, punctuate: vi.fn(async () => null) };
+    const { stt } = await stagedClient({ segmentation: late, sentencesPerChunk: 3 });
+    (late as { enabled: boolean }).enabled = true; // flips mid-session: R2 ignores it
+    stt.emit({ tokens: [
+      tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(late.punctuate).not.toHaveBeenCalled();
+  });
+
+  it('drops an answer that lands after the session was torn down', async () => {
+    let release: (() => void) | null = null;
+    const gate = new Promise<void>((r) => { release = r; });
+    const runtime = {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        await gate;
+        return { text: `${text}。`, sentenceEnds: [text.length + 1], breakpoints: [text.length + 1], model: 'fireredpunc' as const };
+      }),
+    };
+    const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    // Two messages, so the in-progress item exists before <end> defers its
+    // completion — that item is what a dropped write leaves behind.
+    stt.emit({ tokens: [tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' })] });
+    stt.emit({ tokens: [tok('<end>')] });
+    await client.disconnect();
+    release!();
+    await new Promise((r) => setTimeout(r, 0));
+
+    const user = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(user).toHaveLength(1);
+    expect(user[0].formatted?.text).toBe(LONG_ZH); // the in-progress text, untouched
+    expect(user[0].status).toBe('in_progress');
+  });
+});

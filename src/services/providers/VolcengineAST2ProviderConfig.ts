@@ -52,9 +52,12 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
     return String((slice as VolcengineAST2Settings)?.appId ?? '');
   }
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
     if (!creds.secret) throw new Error('Access Token is required for volcengine_ast2 provider');
-    return new VolcengineAST2Client(creds.primary, creds.secret);
+    return new VolcengineAST2Client(creds.primary, creds.secret, undefined, undefined, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
