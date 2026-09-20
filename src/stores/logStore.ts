@@ -98,6 +98,13 @@ export interface EventData {
     | 'translated_transcription'
     | 'output_audio_data'
     | 'current_task'
+    // Sentence segmentation stage — diagnostics only, counts and durations,
+    // never transcript text. They ride the events stream (which LogsPanel shows
+    // and 'copy logs' exports) rather than the plain error/warning entries
+    // report.ts owns, because none of the three is a failure.
+    | 'segmentation.pack.downloaded'
+    | 'segmentation.model.loaded'
+    | 'segmentation.seal'
     // LocalInference pipeline event types
     | 'local.engine.ready'
     | 'local.session.opened'

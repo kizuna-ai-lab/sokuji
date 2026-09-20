@@ -355,14 +355,23 @@ export class SentenceStream {
   }
 
   /** Counts only, and only when the runtime collects them. `raw` never leaves
-   *  this method: what crosses is two integers about it. */
+   *  this method: what crosses is two integers about it.
+   *
+   *  Behind a barrier because the observer is MainPanel's tally, not part of
+   *  the seal: an exception out of it would unwind through `seal()` into
+   *  whichever client's delta handler is on the stack and lose that item — a
+   *  chunk of the user's conversation, for a counter nobody renders. */
   private observe(raw: string, reason: SealReason): void {
-    this.opts.runtime?.observe?.({
-      kind: 'seal',
-      reason,
-      lang: this.lang,
-      chars: raw.length,
-      terminals: ruleSentenceEnds(raw).length,
-    });
+    try {
+      this.opts.runtime?.observe?.({
+        kind: 'seal',
+        reason,
+        lang: this.lang,
+        chars: raw.length,
+        terminals: ruleSentenceEnds(raw).length,
+      });
+    } catch {
+      // Counting is best-effort; sealing is not.
+    }
   }
 }

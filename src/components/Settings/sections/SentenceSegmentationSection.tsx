@@ -16,6 +16,7 @@ import {
   useSegmentationProgress,
   PACK_TOTAL_BYTES,
 } from '../../../stores/segmentationStore';
+import useLogStore from '../../../stores/logStore';
 import { isLowMemoryDevice } from '../../../lib/segmentation/PunctuationRuntime';
 import { formatBytes } from '../../../lib/local-inference/formatBytes';
 import { describeCause, reportWarning } from '../../../lib/diagnostics/report';
@@ -100,11 +101,22 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         result,
         duration_ms: durationMs,
       });
-      // Console only. A finished download is not a failure, so it does not
-      // belong in the panel's plain-entry stream; the one outcome that IS a
-      // failure already reaches it, from the store's own `reportWarning`.
       console.info(
         `[Segmentation] punctuation pack download ${result} after ${Math.round(durationMs / 1000)}s`,
+      );
+      // And the same fact on the exportable panel, which is where the spec asks
+      // for download durations. `addRealtimeEvent`, not a plain entry: a
+      // finished download is not a failure, and only report.ts writes plain
+      // entries (the one outcome that IS a failure already reaches the panel
+      // from the store's own `reportWarning`). It self-gates on the
+      // diagnostic-logs switch, so nothing is recorded by default.
+      useLogStore.getState().addRealtimeEvent(
+        {
+          type: 'segmentation.pack.downloaded',
+          data: { result, duration_ms: durationMs, size_mb: Math.round(PACK_TOTAL_BYTES / (1024 * 1024)) },
+        },
+        'client',
+        'segmentation.pack.downloaded',
       );
     });
   };

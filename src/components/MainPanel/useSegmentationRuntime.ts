@@ -3,6 +3,7 @@ import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
 import type { PunctuationModelId, SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { useSentenceSegmentation } from '../../stores/settingsStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
+import useLogStore from '../../stores/logStore';
 import type { AnalyticsEvents } from '../../lib/analytics';
 import { reportWarning } from '../../lib/diagnostics/report';
 
@@ -84,11 +85,18 @@ export function useSegmentationRuntime(trackEvent?: TrackSegmentationEvent): Seg
       isEnabled: () => enabledRef.current && useSegmentationStore.getState().phase === 'ready',
       onLoaded: (model, backend, loadMs) => {
         // The console line stays, and stays unconditional: it is the one window
-        // onto which backend a model actually loaded on. It does NOT also
-        // become a LogsPanel entry — a load is not a failure, and the panel's
-        // plain-entry stream is "Problems" only (diagnostics design §4, and the
-        // consoleLedger invariant that only report.ts writes plain entries).
+        // onto which backend a model actually loaded on.
         console.info(`[Segmentation] ${model} loaded on ${backend} in ${Math.round(loadMs)}ms`);
+        // And the same fact on the exportable panel, which is where the spec
+        // asks for load durations. `addRealtimeEvent`, not a plain entry: a
+        // load is not a failure, and only report.ts writes plain entries
+        // (diagnostics design §4). It self-gates on the diagnostic-logs switch,
+        // so nothing is recorded in the default configuration.
+        useLogStore.getState().addRealtimeEvent(
+          { type: 'segmentation.model.loaded', data: { model, backend, load_ms: Math.round(loadMs) } },
+          'client',
+          'segmentation.model.loaded',
+        );
         trackEventRef.current?.('segmentation_model_load', {
           model,
           backend,

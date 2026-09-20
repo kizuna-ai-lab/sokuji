@@ -933,13 +933,19 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       // still receives a plain SegmentationRuntime and cannot tell.
       segmentation: instrumentSegmentation(segmentationRuntime, leg, (eventLeg, event) => {
         segmentationCountersRef.current.record(eventLeg, event);
-        // One line per seal, with its reason and nothing else — no transcript
-        // text ever. Console only: a seal is not a failure, so it is neither a
-        // report() call nor a plain LogsPanel entry (diagnostics design §4).
-        // Gated on the diagnostic-logs switch all the same, because a seal
-        // lands every few seconds and the console is not a firehose by default.
+        // One line per seal, with its leg and reason and nothing else — no
+        // transcript text ever. Gated on the diagnostic-logs switch, because a
+        // seal lands every few seconds and the console is not a firehose by
+        // default. It reaches the exportable panel through `addRealtimeEvent`,
+        // where the spec asks for seal reasons, and not through report() or a
+        // plain entry: a seal is not a failure (diagnostics design §4).
         if (event.kind === 'seal' && useLogStore.getState().enabled) {
           console.info(`[Segmentation] ${eventLeg} sealed a segment (${event.reason})`);
+          useLogStore.getState().addRealtimeEvent(
+            { type: 'segmentation.seal', data: { leg: eventLeg, reason: event.reason } },
+            'client',
+            'segmentation.seal',
+          );
         }
       }),
       sentencesPerChunk,

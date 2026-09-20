@@ -1638,6 +1638,57 @@ describe('SonioxClient with the segmentation stage', () => {
     expect(runtime.punctuate.mock.calls[0].slice(0, 2)).toEqual(['ja', LONG_ZH]);
   });
 
+  it('routes an untagged translation to the TARGET language, not the source', async () => {
+    // Soniox tags most translation tokens, but not all of them: with no
+    // `language` on the batch there is nothing detected to fall back from, and
+    // the configured pair's SOURCE language is the one language the
+    // translation is certainly not in — it would pick the wrong punctuation
+    // model for every sentence in that batch.
+    const runtime = markingRuntime(20);
+    const { stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    // 160 characters clears gateChars for both 'en' (150) and 'zh' (60), so
+    // the model runs whichever language is passed and the call itself is the
+    // assertion.
+    const longEn = 'a'.repeat(160);
+    stt.emit({ tokens: [
+      tok(longEn, { is_final: true, translation_status: 'translation' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(runtime.punctuate.mock.calls[0][0]).toBe('en');
+  });
+
+  it('dates a lazily minted completed item from the segment, not from the write', async () => {
+    // <end> can arrive before any item id has been assigned, so completeItem's
+    // upsert mints one. Taking `createdAt` after the model call would stamp it
+    // later than the next utterance's item and sort it below in the panel.
+    const MODEL_MS = 200;
+    const runtime = {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        await new Promise((r) => setTimeout(r, MODEL_MS));
+        return { text, sentenceEnds: [], breakpoints: [], model: 'fireredpunc' as const };
+      }),
+    };
+    const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    // One message: the final and the <end> together, so <end> reaches
+    // finishUtterance before the post-loop emitTextUpdate has minted anything.
+    const atSegment = Date.now();
+    stt.emit({ tokens: [
+      tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, MODEL_MS + 50));
+
+    const [item] = client.getConversationItems();
+    expect(item.status).toBe('completed');
+    expect(item.createdAt).toBeGreaterThanOrEqual(atSegment);
+    // Well inside the model's 200 ms: the stamp is the segment's, not the
+    // write's.
+    expect(item.createdAt! - atSegment).toBeLessThan(MODEL_MS / 2);
+  });
+
   it('leaves the item boundaries exactly where they are, runtime or not', async () => {
     const shape = async (options: { segmentation?: any; sentencesPerChunk?: number }) => {
       const { client, stt } = await stagedClient(options);

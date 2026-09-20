@@ -97,7 +97,7 @@ This document provides a comprehensive overview of all analytics events tracked 
 - `session_id` (string): Session identifier
 - `source_language` (string): Source language code
 - `target_language` (string): Target language code
-- `latency_ms` (number): Translation latency in milliseconds
+- `latency_ms` (number): Translation latency in milliseconds. Measured from the item's `createdAt` to the first update that shows it `completed`, so on a session whose `translation_session_start` carries `sentence_segmentation_active: true` it also contains the stage's punctuation fill-in wait (up to 1 s, `FILL_IN_BUDGET_MS`): the seven server-definite clients flip the item to `completed` only after that call returns. Compare stage-on against stage-off sessions with that in mind.
 - `provider` (string): AI provider used
 
 ## Audio Device Management Events
@@ -210,7 +210,7 @@ This document provides a comprehensive overview of all analytics events tracked 
 **Description**: Specific latency measurements  
 **Properties**:
 - `operation` ('api_call' | 'audio_processing' | 'translation' | 'websocket'): Operation type
-- `latency_ms` (number): Latency in milliseconds
+- `latency_ms` (number): Latency in milliseconds. For `operation: 'translation'` this is the same figure as `translation_completed.latency_ms` and carries the same caveat: on a session with `sentence_segmentation_active: true` it includes the stage's punctuation fill-in wait, up to 1 s.
 - `provider` (string, optional): Provider if applicable
 
 ### `connection_status`

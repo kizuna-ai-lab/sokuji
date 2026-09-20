@@ -257,6 +257,30 @@ describe('useSegmentationRuntime', () => {
     });
   });
 
+  // The spec asks for load durations in LogsPanel, not only in a console the
+  // user cannot copy out of a packaged build.
+  it('puts each model load on the exportable diagnostic log', () => {
+    useLogStore.getState().clearLogs();
+    const { result } = renderHook(() => useSegmentationRuntime());
+
+    act(() => { asFake(result.current!).opts.onLoaded?.('sat-3l-sm', 'wasm', 1234.6); });
+
+    const events = useLogStore.getState().allLogs
+      .flatMap((l) => l.events ?? [])
+      .filter((e) => e.type === 'segmentation.model.loaded');
+    expect(events).toHaveLength(1);
+    expect(events[0].data).toMatchObject({ model: 'sat-3l-sm', backend: 'wasm', load_ms: 1235 });
+  });
+
+  it('writes nothing to the log when diagnostic logs are off', () => {
+    useLogStore.getState().setEnabled(false);
+    const { result } = renderHook(() => useSegmentationRuntime());
+
+    act(() => { asFake(result.current!).opts.onLoaded?.('sat-3l-sm', 'wasm', 12); });
+
+    expect(useLogStore.getState().allLogs).toEqual([]);
+  });
+
   it('loads a model perfectly well with nobody tracking', () => {
     const { result } = renderHook(() => useSegmentationRuntime());
     expect(() => {

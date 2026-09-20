@@ -699,8 +699,17 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     // starts NOW so two segments punctuate concurrently; the write waits its
     // turn in the lane so the answers cannot list the later segment first.
     // Every field the write needs is captured here, because finishUtterance
-    // clears the per-utterance state the moment this returns.
-    const lang = detected ?? this.currentConfig?.sourceLanguage ?? '';
+    // clears the per-utterance state the moment this returns. `createdAt`
+    // included: an item this write mints lazily would otherwise be stamped
+    // after the model call and sort below the next utterance's.
+    const createdAt = Date.now();
+    // Soniox tags most translation tokens, but not all of them. With nothing
+    // detected, the leg's own configured language is the fallback — the source
+    // language is the one language a translation is certainly not in.
+    const configured = role === 'assistant'
+      ? this.currentConfig?.targetLanguage
+      : this.currentConfig?.sourceLanguage;
+    const lang = detected ?? configured ?? '';
     const pending = punctuateDefinite(runtime, lang, text, this.sentencesPerChunk);
     this.punctuationLane.queue(async (cancelled) => {
       const finalText = await pending;
@@ -708,8 +717,8 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       // text. The identity check is the reconnect case — an answer that lands
       // after one belongs to a session nobody renders.
       if (cancelled() || this.sessionSegmentation !== runtime) return;
-      this.writeCompletedItem(role, existingId, finalText, detected, side);
-    }, () => this.writeCompletedItem(role, existingId, text, detected, side));
+      this.writeCompletedItem(role, existingId, finalText, detected, side, createdAt);
+    }, () => this.writeCompletedItem(role, existingId, text, detected, side, createdAt));
   }
 
   /** completeItem's write, with the per-utterance state it needs passed in so
@@ -720,6 +729,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     text: string,
     detected: string | null,
     side: 'speaker' | 'participant' | null,
+    createdAt?: number,
   ): void {
     // Preserve any replay audio already accumulated on this item: this
     // rebuild would otherwise drop TTS audio that arrived before the
@@ -733,7 +743,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       formatted: audio ? { text, transcript: text, audio } : { text, transcript: text },
       content: [{ type: 'text', text }],
       ...(detected ? { detectedLanguage: detected } : {}),
-    });
+    }, createdAt);
     if (side) item.source = side;
     this.eventHandlers.onConversationUpdated?.({ item, delta: {} });
   }
@@ -1125,7 +1135,11 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
   private upsertItem(
     role: 'user' | 'assistant',
     currentId: string | null,
-    patch: Pick<ConversationItem, 'status' | 'formatted' | 'content' | 'detectedLanguage'>
+    patch: Pick<ConversationItem, 'status' | 'formatted' | 'content' | 'detectedLanguage'>,
+    /** When this write may run long after the segment it describes: the moment
+     *  the segment closed, so a lazily minted item does not sort after the next
+     *  utterance's. Ignored for an item that already exists — it keeps its own. */
+    mintedAt?: number,
   ): ConversationItem {
     const idx = currentId ? this.conversationItems.findIndex((i) => i.id === currentId) : -1;
     const previous = idx !== -1 ? this.conversationItems[idx] : undefined;
@@ -1133,7 +1147,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
       id: previous?.id ?? currentId ?? this.generateItemId(role),
       role,
       type: 'message',
-      createdAt: previous?.createdAt ?? Date.now(),
+      createdAt: previous?.createdAt ?? mintedAt ?? Date.now(),
       ...patch,
     };
     if (idx !== -1) this.conversationItems[idx] = item; else this.conversationItems.push(item);

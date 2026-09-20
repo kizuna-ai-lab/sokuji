@@ -58,6 +58,7 @@ vi.mock('../../../lib/diagnostics/report', async (importOriginal) => {
 });
 
 const { default: SentenceSegmentationSection } = await import('./SentenceSegmentationSection');
+const { default: useLogStore } = await import('../../../stores/logStore');
 const { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } =
   await import('../../../stores/segmentationStore');
 const { formatBytes } = await import('../../../lib/local-inference/formatBytes');
@@ -193,6 +194,30 @@ describe('SentenceSegmentationSection', () => {
       startFromConfirmation();
       await settleDownloadInto('missing');
       expect(trackEvent.mock.calls[0][1].result).toBe('cancelled');
+    });
+
+    // The spec asks for download durations in LogsPanel, not only in a console
+    // the user cannot copy out of a packaged build.
+    it('puts the finished download on the exportable diagnostic log', async () => {
+      useLogStore.getState().setEnabled(true);
+      useLogStore.getState().clearLogs();
+      startFromConfirmation();
+      await settleDownloadInto('ready');
+
+      const events = useLogStore.getState().allLogs
+        .flatMap((l) => l.events ?? [])
+        .filter((e) => e.type === 'segmentation.pack.downloaded');
+      expect(events).toHaveLength(1);
+      expect(events[0].data).toMatchObject({ result: 'ok' });
+      expect(typeof events[0].data.duration_ms).toBe('number');
+    });
+
+    it('writes nothing to the log when diagnostic logs are off', async () => {
+      useLogStore.getState().setEnabled(false);
+      startFromConfirmation();
+      await settleDownloadInto('ready');
+
+      expect(useLogStore.getState().allLogs).toEqual([]);
     });
 
     it('reports the status line Retry the same way as the confirmation', async () => {

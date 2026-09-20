@@ -587,6 +587,23 @@ describe('SentenceStream observations', () => {
     ]);
   });
 
+  it('still seals through an observer that throws', async () => {
+    // The observer is a counter MainPanel owns, not part of the seal. Letting
+    // it throw out of seal() would unwind into the client's delta handler and
+    // lose the item — a chunk of the conversation, for a tally nobody renders.
+    const { runtime } = fakeRuntime({});
+    const seals: SealedChunk[] = [];
+    const stream = new SentenceStream({
+      lang: 'zh',
+      runtime: { ...runtime, observe: () => { throw new Error('counter blew up'); } },
+      sentencesPerChunk: 3,
+      onSeal: (c) => seals.push(c),
+      onPending: () => {},
+    });
+    expect(() => stream.update('第一句话。第二句话。第三句话。后面还有很多很多很多字')).not.toThrow();
+    await vi.waitFor(() => expect(seals.length).toBe(1));
+  });
+
   it('still seals through a runtime that collects nothing', async () => {
     const { runtime } = fakeRuntime({});
     const seals: SealedChunk[] = [];

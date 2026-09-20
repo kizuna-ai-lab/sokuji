@@ -689,6 +689,13 @@ export class OpenAIGAClient implements IClient {
         const spoken = item.formatted?.transcript ?? '';
         const runtime = spoken ? this.sessionSegmentation : null;
         if (!runtime) { complete(null); continue; }
+        // Deferring `status = 'completed'` behind the model call also defers
+        // the moment MainPanel measures: `translation_completed.latency_ms` and
+        // `latency_measurement` run from `createdAt` to the first update that
+        // shows the item completed, so with the stage on they carry up to
+        // FILL_IN_BUDGET_MS of fill-in wait. MainPanel fires on every completed
+        // update with no dedupe, so assign-then-patch would double-count
+        // instead. Documented under both events in docs/ANALYTICS_EVENTS.md.
         const pending = punctuateDefinite(runtime, this.targetLanguage, spoken, this.sentencesPerChunk);
         this.punctuationLane.queue(async (cancelled) => {
           const finalText = await pending;
