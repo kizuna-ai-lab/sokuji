@@ -1153,7 +1153,15 @@ export class OpenAILiveClient implements IClient {
         // arrives long after the delta that provoked it, and anchoring the new
         // item to that stale start would trip its span caps early. The next
         // delta anchors it.
-        if (!this.currentUserItemId && text.length > 0) this.appendUserText(text, null);
+        if (!this.currentUserItemId && text.length > 0) {
+          this.appendUserText(text, null);
+          // completeUserItem cleared the timer on its way out, and the delta
+          // that armed it has already been handled — a model answer arrives
+          // after it, which at the end of an utterance is the last delta there
+          // will be. Without this the remainder's item never closes on its own
+          // and the next utterance appends to it.
+          this.resetUserSilenceTimer();
+        }
       },
     });
     return this.userStream;

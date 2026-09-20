@@ -1475,4 +1475,40 @@ describe('OpenAILiveClient with the segmentation stage', () => {
     expect(only.status).toBe('completed');
     expect(only.formatted?.text).toBe(text);
   });
+  it('arms the silence timer for the item a model seal opens after the last delta', async () => {
+    // The model answers asynchronously, so at the end of an utterance the seal
+    // lands AFTER the delta that armed the timer — and completeUserItem clears
+    // that timer on its way out. Without a re-arm, the remainder's item stays
+    // open forever and the next utterance appends to it.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).userSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50), start_ms: 0, end_ms: 3000 });
+    await flush();
+    expect(usersOf(client)).toHaveLength(2);
+    expect(usersOf(client)[1].status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[1].status).toBe('completed');
+  });
+
+  it('leaves the assistant silence timer running across a seal', async () => {
+    // A guard, not a driver: closeAssistantText does not clear the timer the
+    // delta armed, so the item a seal opens is already covered. The source
+    // side differs because completeUserItem clears its timer.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '아'.repeat(50), start_ms: 0, end_ms: 3000 });
+    await flush();
+    expect(assistantsOf(client)).toHaveLength(2);
+    expect(assistantsOf(client)[1].status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[1].status).toBe('completed');
+  });
 });
