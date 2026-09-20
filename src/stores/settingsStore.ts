@@ -14,6 +14,12 @@ import type { Stage } from '../lib/local-inference/selection/types';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
 import type { SegmentationMode } from '../lib/segmentation/segmentationMode';
+import {
+  DEFAULT_CHUNK_SENTENCES,
+  DEFAULT_SEGMENT_PAUSE_SECONDS,
+  MIN_SEGMENT_PAUSE_SECONDS,
+  MAX_SEGMENT_PAUSE_SECONDS,
+} from '../lib/segmentation/segmentationMode';
 import { useNativeModelStore } from './nativeModelStore';
 import useSessionStore from './sessionStore';
 import useAudioStore, { speakerChannelInScope } from './audioStore';
@@ -168,24 +174,27 @@ export function clampChunkSentences(value: unknown): number {
   // `undefined` does. Without this line it would fall through to
   // `Number(null) === 0`, which is now a value in its own right: a missing
   // setting would silently read as Auto.
-  if (value === null || value === undefined) return 3;
+  if (value === null || value === undefined) return DEFAULT_CHUNK_SENTENCES;
   const n = Math.round(Number(value));
-  if (!Number.isFinite(n)) return 3;
+  if (!Number.isFinite(n)) return DEFAULT_CHUNK_SENTENCES;
   return Math.min(5, Math.max(0, n));
 }
 
 /**
- * Seconds of silence that end an utterance, 0.1-3, defaulting to 1.5.
+ * Seconds of silence that end an utterance, in the range and at the default
+ * `segmentationMode.ts` owns — the same three numbers the clients clamp their
+ * milliseconds to, so the store and a client built without a pause can never
+ * disagree about them.
  *
  * Clamped on read and on write for the same reason as the sentence count: the
  * two values leave here for a client's timers, and a stored 0 would arm a
  * timer that fires on every gap between words.
  */
 function clampSegmentationPause(value: unknown): number {
-  if (value === null || value === undefined) return 1.5;
+  if (value === null || value === undefined) return DEFAULT_SEGMENT_PAUSE_SECONDS;
   const n = Number(value);
-  if (!Number.isFinite(n)) return 1.5;
-  return Math.min(3, Math.max(0.1, n));
+  if (!Number.isFinite(n)) return DEFAULT_SEGMENT_PAUSE_SECONDS;
+  return Math.min(MAX_SEGMENT_PAUSE_SECONDS, Math.max(MIN_SEGMENT_PAUSE_SECONDS, n));
 }
 
 /**
@@ -206,9 +215,9 @@ const defaultCommonSettings: CommonSettings = {
   autoSaveOnStop: false,
   diagnosticLogs: false,
   segmentationMode: 'pause',
-  sentenceSegmentationChunkSentences: 3,
-  segmentationSourcePause: 1.5,
-  segmentationTranslationPause: 1.5,
+  sentenceSegmentationChunkSentences: DEFAULT_CHUNK_SENTENCES,
+  segmentationSourcePause: DEFAULT_SEGMENT_PAUSE_SECONDS,
+  segmentationTranslationPause: DEFAULT_SEGMENT_PAUSE_SECONDS,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +

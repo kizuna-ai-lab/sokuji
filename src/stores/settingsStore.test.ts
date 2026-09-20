@@ -472,6 +472,31 @@ describe('settingsStore', () => {
       await useSettingsStore.getState().setSegmentationTranslationPause(2);
       expect(useSettingsStore.getState().segmentationTranslationPause).toBe(1.5);
     });
+
+    // The seconds above and the milliseconds a client's timer takes are the
+    // same three facts. Each used to be written out twice — a store that
+    // defaulted to 1.5 and a client that fell back to 1500 could have drifted
+    // apart with both their own tests still green.
+    it('is the same default and the same range the clients clamp to', async () => {
+      const {
+        DEFAULT_SEGMENT_PAUSE_MS, MIN_SEGMENT_PAUSE_MS, MAX_SEGMENT_PAUSE_MS,
+        DEFAULT_SEGMENT_PAUSE_SECONDS, MIN_SEGMENT_PAUSE_SECONDS, MAX_SEGMENT_PAUSE_SECONDS,
+      } = await import('../lib/segmentation/segmentationMode');
+      expect(DEFAULT_SEGMENT_PAUSE_SECONDS * 1000).toBe(DEFAULT_SEGMENT_PAUSE_MS);
+      expect(MIN_SEGMENT_PAUSE_SECONDS * 1000).toBe(MIN_SEGMENT_PAUSE_MS);
+      expect(MAX_SEGMENT_PAUSE_SECONDS * 1000).toBe(MAX_SEGMENT_PAUSE_MS);
+
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(DEFAULT_SEGMENT_PAUSE_SECONDS);
+      expect(useSettingsStore.getState().segmentationTranslationPause).toBe(DEFAULT_SEGMENT_PAUSE_SECONDS);
+
+      mockSetSetting.mockResolvedValue(undefined);
+      await useSettingsStore.getState().setSegmentationSourcePause(99);
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(MAX_SEGMENT_PAUSE_SECONDS);
+      await useSettingsStore.getState().setSegmentationSourcePause(0);
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(MIN_SEGMENT_PAUSE_SECONDS);
+    });
   });
 
   describe('sentenceSegmentationChunkSentences', () => {
@@ -480,6 +505,16 @@ describe('settingsStore', () => {
       mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
       await useSettingsStore.getState().loadSettings();
       expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(3);
+    });
+
+    // ...and it is the same 3 every client falls back to; see
+    // descriptorRegistry.test.ts for the other end of that tie.
+    it('defaults to the one chunk constant, not a second copy of it', async () => {
+      const { DEFAULT_CHUNK_SENTENCES } = await import('../lib/segmentation/segmentationMode');
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(DEFAULT_CHUNK_SENTENCES);
+      expect(clampChunkSentences(null)).toBe(DEFAULT_CHUNK_SENTENCES);
     });
 
     it('keeps a stored 0, which is Auto', async () => {

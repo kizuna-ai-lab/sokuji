@@ -96,18 +96,26 @@ export interface ProviderCapabilities {
   forcedTransport?: TransportType;
 
   /** Which segmentation choices this provider offers; the three fields are
-   *  documented on `SegmentationOffer`, the type this is a partial of, so the
-   *  capability cannot drift from what the mode resolvers take. Absent means
-   *  the default `{ pause: false, auto: true, sizes: false }`: a provider
-   *  whose boundaries a server decides. Read it through
-   *  `resolveSegmentationOffer` below, never field by field, so that default
-   *  is applied in exactly one place. */
-  segmentation?: Partial<SegmentationOffer>;
+   *  documented on `SegmentationOffer`, the type this IS, so the capability
+   *  cannot drift from what the mode resolvers take. Absent means the default
+   *  `{ pause: false, auto: true, sizes: false }`: a provider whose
+   *  boundaries a server decides. Read it through `resolveSegmentationOffer`
+   *  below, never field by field, so that default is applied in exactly one
+   *  place.
+   *
+   *  All three or none, deliberately — not a `Partial`. A half-declared
+   *  `{ sizes: true }` would take `auto: true` from the default and describe
+   *  `{ pause: false, auto: true, sizes: true }`, the one combination
+   *  `segmentationForProvider` throws on, inside a `useMemo` during
+   *  MainPanel's render. A white screen is not how a descriptor should learn
+   *  it forgot a field. */
+  segmentation?: SegmentationOffer;
 }
 
 /**
  * The segmentation choices a provider actually offers: what its descriptor
- * declared, with the default filled in for whatever it left out.
+ * declared, or the default when it declared nothing. A descriptor declares
+ * all three fields or none, so there is nothing to fill in field by field.
  *
  * The default describes a provider whose boundaries a server decides — no
  * silence timer of ours cuts its bubbles, and phase 1 cannot split a segment

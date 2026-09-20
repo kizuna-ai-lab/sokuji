@@ -15,7 +15,7 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import { lastSentenceEnd } from '../../lib/segmentation/sentenceEnd';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { clampSegmentPauseMs, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
+import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 /**
  * Gemini Live API client adapter
@@ -177,7 +177,7 @@ export class GeminiClient implements IClient {
   ) {
     this.apiKey = apiKey;
     this.segmentation = options.segmentation ?? null;
-    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? DEFAULT_CHUNK_SENTENCES;
     // Clamped to what a timer can usefully take, as the two OpenAI clients do:
     // the store clamps the same range, so this only catches a direct build.
     this.inputSegmentSilenceMs = clampSegmentPauseMs(options.sourcePauseMs);

@@ -40,7 +40,7 @@ import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnosti
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { clampSegmentPauseMs, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
+import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 const TRANSLATE_CALLS_ENDPOINT_PATH = '/v1/realtime/translations/calls';
 const DEFAULT_API_HOST = 'https://api.openai.com';
@@ -186,7 +186,7 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.inputDeviceId = options.inputDeviceId;
     this.outputDeviceId = options.outputDeviceId;
     this.segmentation = options.segmentation ?? null;
-    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? DEFAULT_CHUNK_SENTENCES;
     this.pairSilenceMs = clampSegmentPauseMs(options.translationPauseMs);
 
     // Match OpenAIWebRTCClient: 24 kHz PCM with 200 ms buffer for smooth

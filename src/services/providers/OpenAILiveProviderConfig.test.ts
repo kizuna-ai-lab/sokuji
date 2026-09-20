@@ -30,7 +30,10 @@ describe('OpenAILiveProviderConfig.getConfig', () => {
       hasModelConfiguration: false,
       hasReasoningEffort: false,
       textOnlyCapability: 'never',
-      turnDetection: { modes: [], hasThreshold: false, hasPrefixPadding: false, hasSilenceDuration: true, hasSemanticEagerness: false },
+      // Every field false: with hasTurnDetection off, nothing in this block
+      // renders — the silence slider it used to claim is the segmentation
+      // section's global pause pair since A2.
+      turnDetection: { modes: [], hasThreshold: false, hasPrefixPadding: false, hasSilenceDuration: false, hasSemanticEagerness: false },
     });
     expect(cfg.transcriptModels).toEqual([]);
     expect(cfg.noiseReductionModes).toEqual([]);

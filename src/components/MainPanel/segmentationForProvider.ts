@@ -16,19 +16,13 @@ import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFa
 import { resolveSegmentationOffer, type ProviderCapabilities } from '../../services/providers/ProviderConfig';
 import type { ProviderType } from '../../types/Provider';
 import {
+  DEFAULT_CHUNK_SENTENCES,
   resolveSegmentationMode,
   resolveSegmentationSize,
   type SegmentationMode,
   type SegmentationOffer,
   type SegmentationSize,
 } from '../../lib/segmentation/segmentationMode';
-
-/**
- * The default `ClientOptions.sentencesPerChunk`, which every client repeats as
- * its own `options.sentencesPerChunk ?? 3`. Named here because Auto has to
- * land on exactly it — see `segmentationForProvider`.
- */
-const DEFAULT_CHUNK_SENTENCES = 3;
 
 /**
  * What this provider offers, or the documented default when the id is not one

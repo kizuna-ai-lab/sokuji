@@ -38,7 +38,7 @@ import {
 } from '../../lib/segmentation/sentenceEnd';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { clampSegmentPauseMs, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
+import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 export const LIVE_WS_URL = 'wss://api.openai.com/v1/live/sessions';
 export const LIVE_HOST = 'api.openai.com';
@@ -221,7 +221,7 @@ export class OpenAILiveClient implements IClient {
   ) {
     this.apiKey = apiKey;
     this.segmentation = options.segmentation ?? null;
-    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? DEFAULT_CHUNK_SENTENCES;
     this.userSilenceTimeoutMs = clampSegmentPauseMs(options.sourcePauseMs);
     this.assistantSilenceTimeoutMs = clampSegmentPauseMs(options.translationPauseMs);
   }

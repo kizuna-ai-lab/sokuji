@@ -5,6 +5,7 @@ import Tooltip from '../../Tooltip/Tooltip';
 import SegmentationDownloadModal from './SegmentationDownloadModal';
 import {
   useProvider,
+  useOpenAITranslateSettings,
   useSegmentationMode,
   useSetSegmentationMode,
   useSentenceSegmentationChunkSentences,
@@ -17,10 +18,13 @@ import {
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { resolveSegmentationOffer, type ProviderCapabilities } from '../../../services/providers/ProviderConfig';
 import {
+  MAX_SEGMENT_PAUSE_SECONDS,
+  MIN_SEGMENT_PAUSE_SECONDS,
   resolveSegmentationMode,
   resolveSegmentationSize,
   type SegmentationMode,
 } from '../../../lib/segmentation/segmentationMode';
+import { Provider } from '../../../types/Provider';
 import {
   useSegmentationStore,
   useSegmentationPhase,
@@ -72,6 +76,13 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   const setSourcePause = useSetSegmentationSourcePause();
   const translationPause = useSegmentationTranslationPause();
   const setTranslationPause = useSetSegmentationTranslationPause();
+  // OpenAI Translate over WebRTC runs ONE timer for the pair and gives it the
+  // translation pause (the last delta of a pair is the translation's — see
+  // OpenAITranslateWebRTCClient), so a Source slider there would move
+  // nothing. One provider's transport, read off its own slice: it is not a
+  // capability, because no other descriptor behaves this way and inventing a
+  // field would put the exception in fifteen rows to describe one.
+  const translateTransport = useOpenAITranslateSettings().transportType;
 
   const phase = useSegmentationPhase();
   const { downloadedBytes } = useSegmentationProgress();
@@ -206,7 +217,12 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   };
 
   const chooseMode = (next: SegmentationMode) => {
-    if (next === mode) return;
+    // The STORED mode, not the resolved one. On a provider without By pause
+    // the stored default already reads as Off, and comparing against that
+    // would make clicking Off a no-op — the user could never make `off` the
+    // stored value from here, and switching to Gemini would bring By pause
+    // back. What is rendered as selected stays the resolved mode.
+    if (next === storedMode) return;
     if (next === 'sentences') {
       if (lowMemory) return;
       // The pack is the price of this mode, so the mode does not change until
@@ -230,6 +246,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
     });
   };
 
+  const hasSourcePause = !(provider === Provider.OPENAI_TRANSLATE && translateTransport === 'webrtc');
   const packReady = phase === 'ready';
   // The three modes in the order A2 names them, minus the one this provider
   // cannot run. Off and By sentences survive everywhere — By sentences is
@@ -339,23 +356,27 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
           only by the mode that uses them. */}
       {mode === 'pause' && (
         <div className="sentence-segmentation__pause">
-          <div className="sentence-segmentation__row-header">
-            <span className="sentence-segmentation__row-label">
-              {t('settings.userSilenceDuration', 'Source pause')}
-            </span>
-            <span className="sentence-segmentation__pause-value">{sourcePause.toFixed(2)}s</span>
-          </div>
-          <input
-            type="range"
-            min="0.1"
-            max="3"
-            step="0.1"
-            className="sentence-segmentation__pause-slider"
-            data-testid="segmentation-source-pause"
-            value={sourcePause}
-            onChange={(e) => void setSourcePause(parseFloat(e.target.value))}
-            disabled={isSessionActive}
-          />
+          {hasSourcePause && (
+            <>
+              <div className="sentence-segmentation__row-header">
+                <span className="sentence-segmentation__row-label">
+                  {t('settings.userSilenceDuration', 'Source pause')}
+                </span>
+                <span className="sentence-segmentation__pause-value">{sourcePause.toFixed(2)}s</span>
+              </div>
+              <input
+                type="range"
+                min={MIN_SEGMENT_PAUSE_SECONDS}
+                max={MAX_SEGMENT_PAUSE_SECONDS}
+                step="0.1"
+                className="sentence-segmentation__pause-slider"
+                data-testid="segmentation-source-pause"
+                value={sourcePause}
+                onChange={(e) => void setSourcePause(parseFloat(e.target.value))}
+                disabled={isSessionActive}
+              />
+            </>
+          )}
           <div className="sentence-segmentation__row-header">
             <span className="sentence-segmentation__row-label">
               {t('settings.assistantSilenceDuration', 'Translation pause')}
@@ -364,8 +385,8 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
           </div>
           <input
             type="range"
-            min="0.1"
-            max="3"
+            min={MIN_SEGMENT_PAUSE_SECONDS}
+            max={MAX_SEGMENT_PAUSE_SECONDS}
             step="0.1"
             className="sentence-segmentation__pause-slider"
             data-testid="segmentation-translation-pause"

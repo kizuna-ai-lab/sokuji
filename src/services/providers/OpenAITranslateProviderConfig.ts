@@ -292,15 +292,17 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
         hasReasoningEffort: false,
         textOnlyCapability: 'never',
 
-        // Translate has no server-side turn detection; we expose only the
-        // client-side silence-duration knob, which controls UI segmentation.
-        // hasTurnDetection stays false to keep mode/threshold/prefix/eagerness
-        // hidden — only hasSilenceDuration drives the slider rendering.
+        // Translate has no server-side turn detection, and with
+        // hasTurnDetection false nothing in this block reaches the screen:
+        // the only reader of hasSilenceDuration is a slider inside
+        // `renderTurnDetectionSettings`, which returns before it. The
+        // client-side silence knob it once described moved to the
+        // segmentation section with A2, where it is the global pause pair.
         turnDetection: {
           modes: [],
           hasThreshold: false,
           hasPrefixPadding: false,
-          hasSilenceDuration: true,
+          hasSilenceDuration: false,
           hasSemanticEagerness: false,
         },
 

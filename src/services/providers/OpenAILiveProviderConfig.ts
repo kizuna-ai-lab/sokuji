@@ -124,13 +124,17 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
         hasReasoningEffort: false,
         textOnlyCapability: 'never',
 
-        // No server-side turn detection; only the client-side segmentation
-        // sliders render (hasSilenceDuration), as for OpenAI Translate.
+        // No server-side turn detection, and nothing in this block renders:
+        // its one reader sits inside `renderTurnDetectionSettings`, which
+        // `hasTurnDetection: false` above returns before reaching. The
+        // client-side silence sliders this used to claim are the segmentation
+        // section's now (A2), on the global pause pair — as for OpenAI
+        // Translate.
         turnDetection: {
           modes: [],
           hasThreshold: false,
           hasPrefixPadding: false,
-          hasSilenceDuration: true,
+          hasSilenceDuration: false,
           hasSemanticEagerness: false,
         },
 

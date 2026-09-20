@@ -17,7 +17,7 @@ import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnosti
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
-import { clampSegmentPauseMs, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
+import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
 /** 200 ms @ 24 kHz = 4800 samples — the API's heartbeat frame size. Kept for
@@ -178,7 +178,7 @@ export class OpenAITranslateGAClient implements IClient {
     this.apiKey = apiKey;
     this.relay = relay;
     this.segmentation = options.segmentation ?? null;
-    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? DEFAULT_CHUNK_SENTENCES;
     this.userSilenceTimeoutMs = clampSegmentPauseMs(options.sourcePauseMs);
     this.assistantSilenceTimeoutMs = clampSegmentPauseMs(options.translationPauseMs);
   }

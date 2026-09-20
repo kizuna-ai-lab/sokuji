@@ -48,9 +48,14 @@ let mockSourcePause = 1.5;
 const setSourcePause = vi.fn();
 let mockTranslationPause = 1.5;
 const setTranslationPause = vi.fn();
+/** OpenAI Translate's own transport, the one provider setting this section
+ *  reads: over WebRTC that client has a single pair timer, so there is no
+ *  source pause to tune. */
+let mockTranslateTransport: 'websocket' | 'webrtc' = 'websocket';
 
 vi.mock('../../../stores/settingsStore', () => ({
   useProvider: () => mockProvider,
+  useOpenAITranslateSettings: () => ({ transportType: mockTranslateTransport }),
   useSegmentationMode: () => mockMode,
   useSetSegmentationMode: () => setSegmentationMode,
   useSentenceSegmentationChunkSentences: () => mockChunkSentences,
@@ -83,6 +88,8 @@ const { default: useLogStore } = await import('../../../stores/logStore');
 const { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } =
   await import('../../../stores/segmentationStore');
 const { formatBytes } = await import('../../../lib/local-inference/formatBytes');
+const { MIN_SEGMENT_PAUSE_SECONDS, MAX_SEGMENT_PAUSE_SECONDS } =
+  await import('../../../lib/segmentation/segmentationMode');
 const { ProviderConfigFactory } = await import('../../../services/providers/ProviderConfigFactory');
 
 const refresh = vi.fn();
@@ -124,6 +131,7 @@ beforeEach(() => {
   mockChunkSentences = 3;
   mockSourcePause = 1.5;
   mockTranslationPause = 1.5;
+  mockTranslateTransport = 'websocket';
   setSegmentationMode.mockClear();
   setChunkSentences.mockClear();
   setSourcePause.mockClear();
@@ -209,6 +217,29 @@ describe('SentenceSegmentationSection', () => {
 
       fireEvent.click(modeButton('By pause'));
       expect(setSegmentationMode).toHaveBeenCalledWith('pause');
+    });
+
+    it('lets Off be stored where the stored mode only reads as Off', () => {
+      // `pause` is the stored default and resolves to Off on a provider with
+      // no timers, so Off already looks selected. Clicking it has to write
+      // `off` all the same: otherwise the user cannot make Off the stored
+      // value from here, and switching to Gemini brings By pause back.
+      mockProvider = Provider.OPENAI;
+      mockMode = 'pause';
+      renderSection();
+
+      expect(modeButton('Off').className).toContain('active');
+      fireEvent.click(modeButton('Off'));
+      expect(setSegmentationMode).toHaveBeenCalledWith('off');
+    });
+
+    it('still does nothing when the clicked mode is the stored one', () => {
+      mockProvider = Provider.GEMINI;
+      mockMode = 'pause';
+      renderSection();
+
+      fireEvent.click(modeButton('By pause'));
+      expect(setSegmentationMode).not.toHaveBeenCalled();
     });
 
     it('turning the mode off cancels a download in flight', () => {
@@ -366,7 +397,9 @@ describe('SentenceSegmentationSection', () => {
       const real = ProviderConfigFactory.getConfig(Provider.SONIOX);
       vi.spyOn(ProviderConfigFactory, 'getConfig').mockReturnValue({
         ...real,
-        capabilities: { ...real.capabilities, segmentation: { auto: true, sizes: true } },
+        // All three fields: the capability is a whole `SegmentationOffer`, so
+        // a descriptor cannot half-declare one into the shape that throws.
+        capabilities: { ...real.capabilities, segmentation: { pause: false, auto: true, sizes: true } },
       });
       mockProvider = Provider.SONIOX;
       mockMode = 'sentences';
@@ -447,6 +480,51 @@ describe('SentenceSegmentationSection', () => {
       mockMode = 'pause';
       renderSection();
       expect(screen.queryByTestId('segmentation-source-pause')).toBeNull();
+    });
+
+    it('carry the shared range, not a second copy of it', () => {
+      mockProvider = Provider.GEMINI;
+      mockMode = 'pause';
+      renderSection();
+
+      for (const id of ['segmentation-source-pause', 'segmentation-translation-pause']) {
+        const slider = screen.getByTestId(id) as HTMLInputElement;
+        expect(slider.min, `${id} min`).toBe(String(MIN_SEGMENT_PAUSE_SECONDS));
+        expect(slider.max, `${id} max`).toBe(String(MAX_SEGMENT_PAUSE_SECONDS));
+      }
+    });
+
+    // OpenAI Translate over WebRTC runs ONE timer for the pair and gives it
+    // the translation pause, so a Source slider there would move nothing.
+    it('drop the Source pause on OpenAI Translate over WebRTC, which has one timer', () => {
+      mockProvider = Provider.OPENAI_TRANSLATE;
+      mockMode = 'pause';
+      mockTranslateTransport = 'webrtc';
+      renderSection();
+
+      expect(screen.queryByTestId('segmentation-source-pause')).toBeNull();
+      expect(screen.queryByText('Source pause')).toBeNull();
+      expect(screen.getByTestId('segmentation-translation-pause')).toBeTruthy();
+    });
+
+    it('keep both on the same provider over WebSocket, which has two', () => {
+      mockProvider = Provider.OPENAI_TRANSLATE;
+      mockMode = 'pause';
+      mockTranslateTransport = 'websocket';
+      renderSection();
+
+      expect(screen.getByTestId('segmentation-source-pause')).toBeTruthy();
+      expect(screen.getByTestId('segmentation-translation-pause')).toBeTruthy();
+    });
+
+    it('keep both on another provider, whatever OpenAI Translate is set to', () => {
+      mockProvider = Provider.GEMINI;
+      mockMode = 'pause';
+      mockTranslateTransport = 'webrtc';
+      renderSection();
+
+      expect(screen.getByTestId('segmentation-source-pause')).toBeTruthy();
+      expect(screen.getByTestId('segmentation-translation-pause')).toBeTruthy();
     });
 
     it('are frozen during a session', () => {

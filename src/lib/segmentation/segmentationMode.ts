@@ -20,11 +20,41 @@ export type SegmentationMode = 'off' | 'pause' | 'sentences';
 export type SegmentationSize = 0 | 1 | 2 | 3 | 4 | 5;
 
 /**
- * Both pauses, in milliseconds, when nothing supplied one — the same 1.5 s the
- * store defaults to and clamps around (0.1-3 s). A client reached by a path
- * that carries no pause, and a client built in a test, run on this.
+ * The pause pair's three facts, and the chunk size's one, each written once.
+ *
+ * They are needed in two units — seconds in the settings store and in the
+ * sliders, milliseconds in the timers a client arms — and that is exactly how
+ * they used to drift: a store defaulting to 1.5 and a client falling back to
+ * 1500 are two numbers, each pinned by its own test, and a change to one
+ * passes both. So the seconds are DERIVED from the milliseconds here, and
+ * everything else imports rather than restates.
  */
+
+/** Both pauses, in milliseconds, when nothing supplied one. A client reached
+ *  by a path that carries no pause, and a client built in a test, run on
+ *  this. */
 export const DEFAULT_SEGMENT_PAUSE_MS = 1500;
+/** The shortest pause a silence timer usefully takes: below this it fires
+ *  between two words. */
+export const MIN_SEGMENT_PAUSE_MS = 100;
+/** The longest. Past this the bubble stops feeling live. */
+export const MAX_SEGMENT_PAUSE_MS = 3000;
+
+/** The same three in seconds, which is the unit the store keeps and the
+ *  sliders show. Derived, never written out again. */
+export const DEFAULT_SEGMENT_PAUSE_SECONDS = DEFAULT_SEGMENT_PAUSE_MS / 1000;
+export const MIN_SEGMENT_PAUSE_SECONDS = MIN_SEGMENT_PAUSE_MS / 1000;
+export const MAX_SEGMENT_PAUSE_SECONDS = MAX_SEGMENT_PAUSE_MS / 1000;
+
+/**
+ * Sentences per bubble when nothing chose one.
+ *
+ * The store's clamp, the fallback a provider that cannot offer Auto lands on,
+ * `segmentationForProvider`'s answer for Auto, and the `?? 3` every client
+ * writes are all this number — see `descriptorRegistry.test.ts` for the test
+ * that ties the clients to it.
+ */
+export const DEFAULT_CHUNK_SENTENCES = 3;
 
 /**
  * Seconds in settings, milliseconds in clients.
@@ -41,14 +71,14 @@ export function segmentPauseMs(seconds: number | undefined): number {
 }
 
 /**
- * The range a silence timer usefully takes, the store's 0.1-3 s in
+ * The range a silence timer usefully takes, which is the store's own range in
  * milliseconds. The guard belongs to the client that arms the timer, because
  * the store is not the only way in: a client can be built directly, and a
  * pause of a few milliseconds would fire between two words.
  */
 export function clampSegmentPauseMs(ms: number | undefined): number {
   if (typeof ms !== 'number' || !Number.isFinite(ms)) return DEFAULT_SEGMENT_PAUSE_MS;
-  return Math.max(100, Math.min(3000, ms));
+  return Math.max(MIN_SEGMENT_PAUSE_MS, Math.min(MAX_SEGMENT_PAUSE_MS, ms));
 }
 
 /** Which of the three choices a provider offers. Built by the descriptor. */
@@ -65,7 +95,7 @@ export interface SegmentationOffer {
 /** The size a provider falls back to. Every provider offers at least one of
  *  Auto and sizes, so exactly one of these two is always reachable. */
 function defaultSize(offer: SegmentationOffer): SegmentationSize {
-  return offer.sizes ? 3 : 0;
+  return offer.sizes ? DEFAULT_CHUNK_SENTENCES : 0;
 }
 
 /**
@@ -111,7 +141,7 @@ export function resolveSegmentationSize(
   const size: SegmentationSize = Number.isFinite(n) && n >= 0 && n <= 5
     ? (n as SegmentationSize)
     : defaultSize(offer);
-  if (size === 0 && !offer.auto) return 3;
+  if (size === 0 && !offer.auto) return DEFAULT_CHUNK_SENTENCES;
   if (size !== 0 && !offer.sizes) return 0;
   return size;
 }

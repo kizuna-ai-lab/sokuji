@@ -19,6 +19,7 @@ vi.mock('../../utils/environment', async (orig) => ({
 import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { resolveSegmentationOffer } from './ProviderConfig';
 import type { SegmentationOffer } from '../../lib/segmentation/segmentationMode';
+import { DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 import { Provider } from '../../types/Provider';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
@@ -461,6 +462,47 @@ describe('S1 capability flags', () => {
 
   const DEFAULT_OFFER: SegmentationOffer = { pause: false, auto: true, sizes: false };
 
+  // `turnDetection.hasSilenceDuration` per provider. It has exactly one
+  // reader — the slider inside `renderTurnDetectionSettings`, which
+  // `hasTurnDetection: false` returns before ever reaching — so on a provider
+  // without turn detection it renders nothing and must not claim to. A2 moved
+  // the two pause clients' sliders into the segmentation section, which is
+  // what emptied it on OpenAI Live and OpenAI Translate.
+  const SILENCE_DURATION: Record<Provider, boolean> = {
+    [Provider.OPENAI]: true,
+    [Provider.OPENAI_COMPATIBLE]: true, // inherited via ...base
+    [Provider.VOLCENGINE_AST2]: false,
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: false, // twin spread
+    [Provider.OPENAI_TRANSLATE]: false,
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: false, // twin spread
+    [Provider.OPENAI_LIVE]: false,
+    [Provider.GEMINI]: false,
+    [Provider.PALABRA_AI]: false,
+    [Provider.SONIOX]: false,
+    [Provider.KIZUNA_AI_SONIOX]: false,
+    [Provider.VOLCENGINE_ST]: false,
+    [Provider.ZOOM_AI]: false,
+    [Provider.LOCAL_INFERENCE]: false,
+    [Provider.LOCAL_NATIVE]: false,
+  };
+
+  it('declares hasSilenceDuration exactly where the table says', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(caps.turnDetection.hasSilenceDuration, `hasSilenceDuration for ${id}`)
+        .toBe(SILENCE_DURATION[id]);
+    }
+  });
+
+  it('never declares hasSilenceDuration where nothing can render it', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      if (!caps.turnDetection.hasSilenceDuration) continue;
+      expect(caps.hasTurnDetection, `hasTurnDetection for ${id}, which claims a silence slider`)
+        .toBe(true);
+    }
+  });
+
   it('declares pushGatedModes exactly where the settings vocabulary has push-gated modes', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
@@ -564,7 +606,32 @@ describe('S1 capability flags', () => {
     }
   });
 
-  it('a client built with no pause runs on the 1.5 s the store defaults to', () => {
+  // Thirteen clients each write `options.sentencesPerChunk ?? 3`, and the
+  // number also lives in the store's clamp, in `defaultSize()` and in
+  // `segmentationForProvider`. This is what ties every one of those copies to
+  // the single exported constant: change it, and any client still on a
+  // literal 3 fails here.
+  it('a client built with no size runs on the one chunk default', () => {
+    // The managed Soniox twin is the one descriptor that cannot be built from
+    // credentials alone; same fixture as `descriptor.createClient` above.
+    const sonioxManaged: ClientOptions['sonioxManaged'] = {
+      credentials: { stt: 'stt-k', tts: 'tts-k', clientReferenceId: 'sokuji1:acct:lease:mix_stt', region: 'us' },
+      session: new ManagedSonioxSession({ sessionToken: 'sess_TOKEN' }),
+      role: 'mix_stt',
+    };
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const client = ProviderConfigFactory.getDescriptor(id).createClient(
+        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
+        id === Provider.KIZUNA_AI_SONIOX
+          ? { transport: 'websocket', sonioxManaged }
+          : { transport: 'websocket' },
+      );
+      expect((client as any).sentencesPerChunk, `chunk default for ${id}`)
+        .toBe(DEFAULT_CHUNK_SENTENCES);
+    }
+  });
+
+  it('a client built with no pause runs on the default the store shares with it', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
       if (!resolveSegmentationOffer(caps).pause) continue;
@@ -573,8 +640,8 @@ describe('S1 capability flags', () => {
         { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
         { transport: 'websocket' },
       );
-      expect((client as any)[source], `source fallback for ${id}`).toBe(1500);
-      expect((client as any)[translation], `translation fallback for ${id}`).toBe(1500);
+      expect((client as any)[source], `source fallback for ${id}`).toBe(DEFAULT_SEGMENT_PAUSE_MS);
+      expect((client as any)[translation], `translation fallback for ${id}`).toBe(DEFAULT_SEGMENT_PAUSE_MS);
     }
   });
 
