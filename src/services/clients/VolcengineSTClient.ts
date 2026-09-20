@@ -783,10 +783,13 @@ export class VolcengineSTClient implements IClient {
         role,
         type: 'message',
         status: subtitle.Definite ? 'completed' : 'in_progress',
-        // MainPanel sorts by createdAt, and the base stamp is the segment's own
-        // — captured before the model call — so the pieces stay in order and
-        // together even when a later segment's item is already listed.
-        createdAt: createdAt + index,
+        // ONE stamp for every piece — the segment's own, captured before the
+        // model call. MainPanel's sort is stable and these writes are
+        // contiguous, so a shared key keeps the pieces together and the next
+        // segment after them; a per-piece `+ index` would instead collide with
+        // the other side's pieces, whose Definite frame lands in the same
+        // millisecond, and the sort would interleave the two segments.
+        createdAt,
         formatted: {
           text: finalText,
           transcript: finalText,

@@ -71,8 +71,9 @@ than N, returns exactly one piece, byte-identical to what `punctuateDefinite`
 returns. `splitDefinite` is the synchronous half, used by `SegmentLane.flush()`
 so a Stop inside the fill-in wait still honours the size where the text allows.
 
-The pieces rejoin to the segment in order: no merge, no reorder, and the outer
-edges stay exactly where the server put them. A2's rule holds.
+The pieces rejoin to the segment in order, up to the whitespace trimmed at each
+cut: no merge, no reorder, and the outer edges stay exactly where the server put
+them. A2's rule holds.
 
 All of a segment's pieces are written inside ONE queued lane work item, so the
 lane still orders segments against each other and the next segment cannot land
@@ -88,13 +89,33 @@ exactly as the stage-off path always was.
 
 ### Ordering
 
-`createdAt + i` off a base stamp captured before the await. MainPanel sorts by
-`createdAt`; equal keys keep insertion order only while nothing else lands
-between them, and the next utterance's item may already be listed by the time a
-deferred write runs. **Palabra has no `createdAt` at all** and lists items
-synchronously, so its later pieces are spliced in behind the first rather than
-pushed. This is a convention, not a guarantee — worth knowing before a sixth
-client joins the splittable set.
+**One shared `createdAt` for every piece of a segment** — the base stamp
+captured before the await. MainPanel's `orderConversationItems` sorts by
+`createdAt` with `Array.prototype.sort`, which has been stable since ES2019, and
+every client writes a segment's pieces contiguously into its own array; a shared
+key therefore keeps the pieces together AND keeps the next segment after them.
+
+The slice first shipped `createdAt + i`, on the reasoning that equal keys are
+unsafe. That was backwards. `+ i` is what *breaks* the grouping: piece *i* of one
+segment collides with piece *i* of another whenever their base stamps are within
+`max(pieces) - 1` ms — which on Soniox is not a race but a certainty, because
+`finishUtterance` completes the source and the translation in the same
+synchronous tick off the same stamp. The sort then renders
+`u₀ a₀ u₁ a₁ u₂ a₂` instead of `u₀ a₀ u₁ u₂ a₁ a₂`. Volcengine ST and AST2 hit
+the same thing when their two Definite frames land in one millisecond, and Zoom
+when its transcript and translation writes do. Fixed on 2026-09-20 by dropping
+the `+ i` at all five sites; `SonioxClient.test.ts`'s "keeps each segment's
+pieces together once MainPanel has sorted the items" is the regression test, and
+it runs the panel's real comparator rather than a copy.
+
+If a strictly increasing key is ever genuinely wanted, it has to be globally
+monotonic per client — a counter that cannot collide with another segment's —
+not a per-segment offset off a wall clock.
+
+**Palabra has no `createdAt` at all** and lists items synchronously, so its later
+pieces are spliced in behind the first rather than pushed. That exception is
+unchanged and remains correct — worth knowing before a sixth client joins the
+splittable set.
 
 ## Decisions taken inside the slice
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import type { SegmentationRuntime, PunctuationResult } from '../../lib/segmentation/SegmentationRuntime';
 import { countSkeleton } from '../../lib/segmentation/sealCursor';
 
 vi.mock('../../locales', () => ({ default: { t: (key: string) => key } }));
@@ -992,5 +992,56 @@ describe('LocalInferenceClient Auto', () => {
     await settle();
 
     expect(order).toEqual([first, second]);
+  });
+
+  describe('a conversation cleared while a fill-in is pending', () => {
+    /** A runtime whose answer is held until the test releases it. */
+    function gatedRuntime() {
+      let release: ((r: PunctuationResult | null) => void) | null = null;
+      const runtime: SegmentationRuntime = {
+        enabled: true,
+        punctuate: vi.fn((): Promise<PunctuationResult | null> => new Promise((resolve) => { release = resolve; })),
+      };
+      return { runtime, answer: (text: string) => release!({ text, sentenceEnds: [], breakpoints: [], model: 'fireredpunc' }) };
+    }
+
+    it.each(['reset', 'clearConversationItems'] as const)(
+      'drops the punctuated answer that lands after %s()',
+      async (clear) => {
+        setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+        const { runtime, answer } = gatedRuntime();
+        const client = makeClient({ segmentation: runtime, sentencesPerChunk: 0 });
+        client.setEventHandlers({});
+        await client.connect(JA_OFFLINE);
+
+        (client as any).handleAsrResult(LONG_JA);
+        await settle();
+        client[clear]();
+
+        answer(MARKED_JA);
+        await settle();
+
+        // The conversation the user emptied must not fill itself back in.
+        expect(client.getConversationItems()).toEqual([]);
+      },
+    );
+
+    it('writes nothing raw either when Stop follows the clear', async () => {
+      // disconnect() flushes the lane so a pending utterance is not lost — but
+      // a cleared conversation does not want it back, punctuated or raw.
+      setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+      const runtime: SegmentationRuntime = { enabled: true, punctuate: vi.fn(() => new Promise<never>(() => {})) };
+      const client = makeClient({ segmentation: runtime, sentencesPerChunk: 0 });
+      client.setEventHandlers({});
+      await client.connect(JA_OFFLINE);
+
+      (client as any).handleAsrResult(LONG_JA);
+      await settle();
+      client.clearConversationItems();
+
+      await client.disconnect();
+
+      expect(client.getConversationItems()).toEqual([]);
+    });
   });
 });

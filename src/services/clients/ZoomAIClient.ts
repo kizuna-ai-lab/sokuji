@@ -130,9 +130,16 @@ export class ZoomAIClient implements IClient {
       // `utteranceChain`, so there is no way for a later utterance's item to
       // overtake this one. `this.connected` below is the teardown guard the
       // rest of the method already uses.
-      const transcriptPieces = await punctuateAndSplitDefinite(
-        this.segmentationFor(), cfg.sourceLanguage, rawTranscript, this.sentencesPerChunk,
-      );
+      //
+      // The `!runtime` branch is the same guard the other four split-capable
+      // clients carry, and it is load-bearing: `sentencesPerChunk` is the
+      // resolved size and arrives whatever the mode is, so without it a
+      // session with the stage OFF would still be cut into one bubble per N
+      // sentences by `splitDefinite`, which does not consult the runtime.
+      const runtime = this.segmentationFor();
+      const transcriptPieces = runtime
+        ? await punctuateAndSplitDefinite(runtime, cfg.sourceLanguage, rawTranscript, this.sentencesPerChunk)
+        : [rawTranscript];
       if (!this.connected) return;
 
       this.writePieces('user', transcriptPieces);
@@ -142,9 +149,12 @@ export class ZoomAIClient implements IClient {
       // user reads, never what a provider is asked to translate.
       const rawTranslation = await translate(token, rawTranscript, cfg.sourceLanguage, target);
       if (!rawTranslation || !this.connected) return;
-      const translatedPieces = await punctuateAndSplitDefinite(
-        this.segmentationFor(), target, rawTranslation, this.sentencesPerChunk,
-      );
+      // Re-read rather than reusing `runtime`: disconnect() may have landed
+      // during the translate call, and the same off-means-off guard applies.
+      const stillOn = this.segmentationFor();
+      const translatedPieces = stillOn
+        ? await punctuateAndSplitDefinite(stillOn, target, rawTranslation, this.sentencesPerChunk)
+        : [rawTranslation];
       if (!this.connected) return;
 
       this.writePieces('assistant', translatedPieces);
@@ -162,19 +172,23 @@ export class ZoomAIClient implements IClient {
    * audio — the WAV goes to the REST call and is never attached to an item —
    * so a cut strands no timing.
    *
-   * `createdAt + i`: MainPanel sorts by `createdAt`, and two pieces written in
-   * the same millisecond would otherwise rely on insertion order surviving
-   * that sort.
+   * ONE stamp for every piece. MainPanel sorts by `createdAt` with
+   * `Array.prototype.sort`, which is stable, and these writes are contiguous
+   * in `conversationItems`, so a shared key keeps the pieces together and the
+   * next segment after them. A per-piece `createdAt + i` would instead give
+   * piece *i* of the transcript and piece *i* of the translation the same key
+   * whenever the two land within a millisecond of each other, and the sort
+   * would interleave them.
    */
   private writePieces(role: 'user' | 'assistant', pieces: string[]): void {
     const createdAt = Date.now();
-    pieces.forEach((text, i) => {
+    pieces.forEach((text) => {
       const item: ConversationItem = {
         id: this.nextId(role === 'user' ? 'user' : 'asst'),
         role,
         type: 'message',
         status: 'completed',
-        createdAt: createdAt + i,
+        createdAt,
         formatted: { transcript: text, text },
         content: [{ type: 'text', text }],
       };

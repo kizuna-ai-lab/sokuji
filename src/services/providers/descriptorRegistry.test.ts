@@ -443,9 +443,13 @@ describe('S1 capability flags', () => {
     [Provider.LOCAL_INFERENCE]: { pause: false, auto: true, sizes: true },
     [Provider.LOCAL_NATIVE]: { pause: false, auto: true, sizes: true },
 
-    // A server decides the outer boundary, and phase 2 can cut inside it:
-    // none of these five attaches audio to an item, so a split strands
-    // nothing. Auto stays what it always was — keep the server's segment.
+    // A server decides the outer boundary, and phase 2 can cut inside it.
+    // Two of them DO attach audio to an item — Soniox's `formatted.audio` and
+    // AST2's `decodeTTSAndPlay` target — and the ruling is that it stays on
+    // the FIRST piece: it is the whole segment's audio, there is no
+    // per-sentence timing to cut it on, and the first bubble is where a user
+    // reaches for the replay button. Volcengine ST, Palabra and Zoom write
+    // text only. Auto stays what it always was — keep the server's segment.
     [Provider.SONIOX]: { pause: false, auto: true, sizes: true },
     [Provider.KIZUNA_AI_SONIOX]: { pause: false, auto: true, sizes: true }, // twin spread
     [Provider.VOLCENGINE_ST]: { pause: false, auto: true, sizes: true },

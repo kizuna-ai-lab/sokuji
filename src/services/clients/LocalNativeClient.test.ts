@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LocalNativeClient } from './LocalNativeClient';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
-import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import type { SegmentationRuntime, PunctuationResult } from '../../lib/segmentation/SegmentationRuntime';
 import { countSkeleton } from '../../lib/segmentation/sealCursor';
 
 // Worker is not available in jsdom — stub the module that creates it. Tests
@@ -2014,5 +2014,91 @@ describe('LocalNativeClient Auto', () => {
     // never gets back.
     const completed = c.getConversationItems().filter((i) => i.status === 'completed');
     expect(completed.map((i) => i.formatted?.transcript)).toEqual([LONG_JA]);
+  });
+
+  it('keeps two utterances in order when the first one waits longer for its marks', async () => {
+    // The lane is the only thing ordering these writes: both utterances call
+    // the model concurrently, and the second one's answer is ready first.
+    let releaseFirst: (() => void) | null = null;
+    const runtime: SegmentationRuntime = {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        if (!releaseFirst) {
+          await new Promise<void>((resolve) => { releaseFirst = resolve; });
+        }
+        return { text, sentenceEnds: [], breakpoints: [], model: 'fireredpunc' as const };
+      }),
+    };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    const order: string[] = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => {
+        if (item.role === 'user' && item.status === 'completed') order.push(item.formatted.transcript);
+      },
+    });
+    await c.connect(JA_CONFIG);
+
+    const first = 'あ'.repeat(60);
+    const second = 'い'.repeat(60);
+    (c as any).onAsrResult({ text: first });
+    await settle();
+    (c as any).onAsrResult({ text: second });
+    await settle();
+    expect(order).toEqual([]);
+
+    releaseFirst!();
+    await settle();
+
+    expect(order).toEqual([first, second]);
+  });
+
+  describe('a conversation cleared while a fill-in is pending', () => {
+    /** A runtime whose answer is held until the test releases it. */
+    function gatedRuntime() {
+      let release: ((r: PunctuationResult | null) => void) | null = null;
+      const runtime: SegmentationRuntime = {
+        enabled: true,
+        punctuate: vi.fn((): Promise<PunctuationResult | null> => new Promise((resolve) => { release = resolve; })),
+      };
+      return { runtime, answer: (text: string) => release!({ text, sentenceEnds: [], breakpoints: [], model: 'fireredpunc' }) };
+    }
+
+    it.each(['reset', 'clearConversationItems'] as const)(
+      'drops the punctuated answer that lands after %s()',
+      async (clear) => {
+        const { runtime, answer } = gatedRuntime();
+        const c = new LocalNativeClient({ ...segDeps(), segmentation: runtime, sentencesPerChunk: 0 });
+        c.setEventHandlers({});
+        await c.connect(JA_CONFIG);
+
+        (c as any).onAsrResult({ text: LONG_JA });
+        await settle();
+        (c as any)[clear]();
+
+        answer(MARKED_JA);
+        await settle();
+
+        // The conversation the user emptied must not fill itself back in.
+        expect(c.getConversationItems()).toEqual([]);
+      },
+    );
+
+    it('writes nothing raw either when Stop follows the clear', async () => {
+      // disconnect() flushes the lane so a pending utterance is not lost — but
+      // a cleared conversation does not want it back, punctuated or raw.
+      const runtime: SegmentationRuntime = { enabled: true, punctuate: vi.fn(() => new Promise<never>(() => {})) };
+      const c = new LocalNativeClient({ ...segDeps(), segmentation: runtime, sentencesPerChunk: 0 });
+      c.setEventHandlers({});
+      await c.connect(JA_CONFIG);
+
+      (c as any).onAsrResult({ text: LONG_JA });
+      await settle();
+      c.clearConversationItems();
+
+      await c.disconnect();
+
+      expect(c.getConversationItems()).toEqual([]);
+    });
   });
 });

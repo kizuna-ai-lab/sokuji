@@ -738,11 +738,14 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
    * per-sentence timing to cut it on — and the first bubble is where a user
    * reaches for it, so it stays there and the later pieces have none.
    *
-   * `createdAt + i` rather than one stamp for all: MainPanel sorts by
-   * `createdAt`, equal keys keep insertion order only as long as nothing else
-   * lands between them, and the next utterance's item may already be listed by
-   * the time a deferred write runs. The base stamp is the segment's own,
-   * captured before the model call.
+   * ONE stamp for every piece — the segment's own, captured before the model
+   * call. MainPanel sorts by `createdAt` with `Array.prototype.sort`, which is
+   * stable, and these writes are contiguous in `conversationItems`, so a
+   * shared key keeps the pieces together AND keeps the next segment after
+   * them. A per-piece `createdAt + i` does the opposite: piece *i* of this
+   * segment collides with piece *i* of the other side's, and the sort
+   * interleaves the two — deterministically, since both sides of one
+   * utterance complete in the same tick off the same base stamp.
    */
   private writeCompletedPieces(
     role: 'user' | 'assistant',
@@ -753,7 +756,7 @@ export class SonioxClient implements IClient, SonioxSessionLeg {
     createdAt: number,
   ): void {
     pieces.forEach((piece, i) => {
-      this.writeCompletedItem(role, i === 0 ? existingId : null, piece, detected, side, createdAt + i);
+      this.writeCompletedItem(role, i === 0 ? existingId : null, piece, detected, side, createdAt);
     });
   }
 

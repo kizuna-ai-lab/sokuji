@@ -72,3 +72,66 @@ describe('ZoomAIClient cascade', () => {
     expect(errorItems[0].formatted.text).toContain('boom');
   });
 });
+
+describe('ZoomAIClient sentence segmentation', () => {
+  /** Four sentences on each side, so a size of 3 or 1 would visibly cut. */
+  const FOUR_JA = 'これは一つ。これは二つ。これは三つ。これは四つ。';
+  const FOUR_EN = 'One here. Two here. Three here. Four here.';
+  const CONFIG: any = { provider: 'zoom_ai', sourceLanguage: 'ja-JP', targetLanguages: ['en-US'] };
+
+  /** A runtime that would mark a sentence end every 10 characters — never
+   *  reached by these texts, which already carry their own terminals. */
+  function markingRuntime() {
+    return { enabled: true, punctuate: vi.fn(async () => null) };
+  }
+
+  async function staged(options: { segmentation?: any; sentencesPerChunk?: number }) {
+    const client = new ZoomAIClient('KEY', 'SECRET', options);
+    const items: any[] = [];
+    client.setEventHandlers({ onConversationUpdated: (d) => items.push(d.item) });
+    await client.connect(CONFIG);
+    return { client, items };
+  }
+
+  beforeEach(() => {
+    vi.mocked(transcribe).mockReset().mockResolvedValue(FOUR_JA);
+    vi.mocked(translate).mockReset().mockResolvedValue(FOUR_EN);
+  });
+
+  // The stored size is global and resolved without consulting the mode, so a
+  // session with the stage OFF still receives one. Off must behave exactly as
+  // it does on main: one bubble per side, whatever the size says.
+  it.each([3, 1])('splits nothing with the stage off, at a stored size of %i', async (size) => {
+    const { client, items } = await staged({ sentencesPerChunk: size });
+    await (client as any).handleUtterance(new Float32Array(1600));
+
+    expect(items.map((i) => i.role)).toEqual(['user', 'assistant']);
+    expect(items[0].formatted.transcript).toBe(FOUR_JA);
+    expect(items[1].formatted.transcript).toBe(FOUR_EN);
+  });
+
+  it('never calls the model with the stage off', async () => {
+    const runtime = markingRuntime();
+    // Disabled at connect: R2 freezes that answer for the session.
+    (runtime as { enabled: boolean }).enabled = false;
+    const { client } = await staged({ segmentation: runtime, sentencesPerChunk: 1 });
+    await (client as any).handleUtterance(new Float32Array(1600));
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+  });
+
+  it('still cuts inside the utterance when the stage is on', async () => {
+    const { client, items } = await staged({ segmentation: markingRuntime(), sentencesPerChunk: 3 });
+    await (client as any).handleUtterance(new Float32Array(1600));
+
+    // Four sentences at N = 3: three then the remainder, on both sides.
+    expect(items.map((i) => i.role)).toEqual(['user', 'user', 'assistant', 'assistant']);
+    expect(items.map((i) => i.formatted.transcript)).toEqual([
+      'これは一つ。これは二つ。これは三つ。', 'これは四つ。',
+      'One here. Two here. Three here.', 'Four here.',
+    ]);
+    // One stamp per segment, so the panel's stable sort keeps the transcript's
+    // two pieces ahead of the translation's rather than interleaving them.
+    expect(items[1].createdAt).toBe(items[0].createdAt);
+    expect(items[3].createdAt).toBe(items[2].createdAt);
+  });
+});

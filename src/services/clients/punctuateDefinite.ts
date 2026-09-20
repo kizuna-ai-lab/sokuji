@@ -79,10 +79,13 @@ export async function punctuateDefinite(
  * end, with whatever is left over as a last piece.
  *
  * What it will not do is move the server's own boundary. Every cut is *inside*
- * the segment it was handed: the pieces rejoin to it in order, two segments are
- * never merged, and the outer edges are exactly where the server put them. A
- * segment with fewer than N sentence ends — including one the model declined to
- * punctuate — comes back whole, because there is nothing to count into.
+ * the segment it was handed: the pieces rejoin to it in order up to the
+ * whitespace trimmed at each cut (each piece is its own bubble, so the space
+ * that separated two sentences is not carried into the second one), two
+ * segments are never merged, and the outer edges are exactly where the server
+ * put them. A segment with fewer than N sentence ends — including one the
+ * model declined to punctuate — comes back whole, because there is nothing to
+ * count into.
  *
  * The cut positions come from `sentenceEnds`, the one rule the whole stage
  * counts with, so "Dr. Smith went home." is one sentence here exactly as it is

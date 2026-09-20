@@ -753,10 +753,13 @@ export class VolcengineAST2Client implements IClient {
         role: 'user',
         type: 'message',
         status: isDefinite ? 'completed' : 'in_progress',
-        // MainPanel sorts by createdAt, and the base stamp is the segment's own
-        // — captured before the model call — so the pieces stay in order and
-        // together even when a later segment's item is already listed.
-        createdAt: createdAt + index,
+        // ONE stamp for every piece — the segment's own, captured before the
+        // model call. MainPanel's sort is stable and these writes are
+        // contiguous, so a shared key keeps the pieces together and the next
+        // segment after them; a per-piece `+ index` would instead collide with
+        // the translation segment's pieces, whose `end` phase lands in the
+        // same millisecond, and the sort would interleave the two.
+        createdAt,
         formatted: { text: finalText, transcript: finalText },
         content: [{ type: 'text', text: finalText }]
       };
@@ -832,8 +835,8 @@ export class VolcengineAST2Client implements IClient {
         role: 'assistant',
         type: 'message',
         status: isDefinite ? 'completed' : 'in_progress',
-        // MainPanel sorts by createdAt; see the source side's note.
-        createdAt: createdAt + index,
+        // ONE stamp for every piece; see the source side's note.
+        createdAt,
         formatted: { text: finalText, transcript: finalText },
         content: [{ type: 'text', text: finalText }]
       };

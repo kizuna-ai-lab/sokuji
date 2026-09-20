@@ -5,6 +5,9 @@ import { SonioxSessionConfig, ConversationItem } from '../interfaces/IClient';
 import { Provider } from '../../types/Provider';
 import type { SonioxSttMessage, SonioxSttStreamHandlers, SonioxSttConfig } from './SonioxSttStream';
 import { SonioxSideTracker } from './SonioxSideTracker';
+// The panel's own ordering, not a copy of it: a hand-rolled comparator here
+// would keep passing after MainPanel's changed.
+import { orderConversationItems } from '../../components/MainPanel/conversationOrder';
 
 // --- Mock both wire components; capture instances for driving the client ---
 const sttInstances: MockStt[] = [];
@@ -1726,10 +1729,43 @@ describe('SonioxClient with the segmentation stage', () => {
       // Every piece keeps the segment's detected language — it is the language
       // the whole segment was spoken in, not a property of the first bubble.
       expect(user.map((i) => i.detectedLanguage)).toEqual(['zh', 'zh']);
-      // MainPanel sorts by createdAt, so the pieces have to be strictly
-      // increasing or a later utterance could land between them.
-      expect(user[1].createdAt!).toBeGreaterThan(user[0].createdAt!);
+      // MainPanel sorts by createdAt with a stable sort, so the pieces of one
+      // segment share ONE stamp — the segment's own. A per-piece offset would
+      // collide with the other side's pieces; see the ordering test below.
+      expect(user[1].createdAt).toBe(user[0].createdAt);
       expect(user[0].id).not.toBe(user[1].id);
+    });
+
+    it('keeps each segment\'s pieces together once MainPanel has sorted the items', async () => {
+      // Two utterances, source and translation each split into three. Every
+      // piece of a segment carries the segment's own stamp, so the panel's
+      // stable sort leaves the four segments in the order they were written
+      // and each one's pieces adjacent. A per-piece `createdAt + i` instead
+      // gives piece 1 of every segment the same key, and the sort interleaves
+      // all four.
+      const { client, stt } = await stagedClient({ segmentation: markingRuntime(20), sentencesPerChunk: 1 });
+      const say = (zh: string, en: string) => {
+        stt.emit({ tokens: [
+          tok(zh, { is_final: true, translation_status: 'original', language: 'zh' }),
+          tok(en, { is_final: true, translation_status: 'translation', language: 'en' }),
+          tok('<end>'),
+        ] });
+      };
+      // 60 characters each: three 20-character sentences after markingRuntime,
+      // and past gateChars('zh', 1) = 20 / gateChars('en', 1) = 50.
+      say('你'.repeat(60), 'a'.repeat(60));
+      await new Promise((r) => setTimeout(r, 0));
+      say('好'.repeat(60), 'b'.repeat(60));
+      await new Promise((r) => setTimeout(r, 0));
+
+      // The panel's own merge-and-sort, imported rather than re-implemented.
+      const rendered = orderConversationItems(client.getConversationItems(), []);
+      const segment = (role: string, ch: string) =>
+        [0, 1, 2].map(() => `${role}:${ch.repeat(20)}。`);
+      expect(rendered.map((i) => `${i.role}:${i.formatted?.text}`)).toEqual([
+        ...segment('user', '你'), ...segment('assistant', 'a'),
+        ...segment('user', '好'), ...segment('assistant', 'b'),
+      ]);
     });
 
     it('keeps the same segment as one item under Auto', async () => {

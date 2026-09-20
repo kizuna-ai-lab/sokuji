@@ -1041,7 +1041,6 @@ export class LocalInferenceClient implements IClient {
    */
   private fillInUtterance(text: string, timing?: AsrTiming): void {
     const runtime = this.sessionSegmentation;
-    if (!runtime) return;
     // Emitted here rather than beside the write below: this reports when the
     // ASR finished, not when the bubble was painted, and the fill-in budget
     // sits between the two.
@@ -1059,6 +1058,16 @@ export class LocalInferenceClient implements IClient {
     this.partialUserItem = null;
     const createdAt = Date.now();
     const epoch = this.punctuationEpoch;
+    if (!runtime) {
+      // Not reachable today: `sessionShape` and `sessionSegmentation` are
+      // assigned together in connect() and cleared together in disconnect(),
+      // and only the 'fill-in' shape calls this. Written through the stage-off
+      // write anyway rather than returning — if the pair ever came apart, an
+      // utterance the user spoke would otherwise vanish with no bubble, no job
+      // and no diagnostic.
+      this.writeFilledUtterance(existing, text, createdAt, timing);
+      return;
+    }
     const lang = this.config?.sourceLanguage ?? 'auto';
     // 0, not the default: this is Auto, and the helper's own doc says so.
     const pending = punctuateDefinite(runtime, lang, text, 0);
@@ -1070,7 +1079,13 @@ export class LocalInferenceClient implements IClient {
       // nobody renders.
       if (cancelled() || epoch !== this.punctuationEpoch || this.sessionSegmentation !== runtime) return;
       this.writeFilledUtterance(existing, filled, createdAt, timing);
-    }, () => this.writeFilledUtterance(existing, text, createdAt, timing));
+    }, () => {
+      // The raw fallback needs the epoch check too: a clear means the text is
+      // not wanted, whether the model answered or not, and this path runs from
+      // disconnect() — which a user may well press right after clearing.
+      if (epoch !== this.punctuationEpoch) return;
+      this.writeFilledUtterance(existing, text, createdAt, timing);
+    });
   }
 
   /**

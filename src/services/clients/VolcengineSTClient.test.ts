@@ -166,9 +166,10 @@ describe('VolcengineSTClient with the segmentation stage', () => {
       expect(items.map((i) => i.status)).toEqual(['completed', 'completed']);
       expect(items.map((i) => i.role)).toEqual(['user', 'user']);
       expect(items[0].id).not.toBe(items[1].id);
-      // MainPanel sorts by createdAt, so the pieces must be strictly
-      // increasing rather than sharing the segment's one stamp.
-      expect(items[1].createdAt!).toBeGreaterThan(items[0].createdAt!);
+      // MainPanel's sort is stable, so the pieces share the segment's ONE
+      // stamp: that is what keeps them adjacent. A per-piece offset would
+      // collide with the translation segment's pieces instead.
+      expect(items[1].createdAt).toBe(items[0].createdAt);
       // Both pieces reach the listener, not just the first.
       expect(updates.filter((i) => i.status === 'completed')).toHaveLength(2);
     });

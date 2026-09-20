@@ -95,6 +95,22 @@ describe('punctuateDefinite', () => {
     expect(await punctuateDefinite(runtime, 'ja', text, 1)).toBe(`${'あ'.repeat(20)}。${'あ'.repeat(20)}。`);
   });
 
+  it('keeps the length gate under Auto, which is a size of 0', async () => {
+    // Auto means "punctuate, do not split", not "punctuate anything at all":
+    // gateChars(lang, 0) is zero, so without this a three-word segment would
+    // call the model and wait out the fill-in budget for marks it does not
+    // need.
+    const called = vi.fn(async () => null);
+    const rt: SegmentationRuntime = { enabled: true, punctuate: called };
+    expect(await punctuateDefinite(rt, 'en', 'too short to bother', 0)).toBe('too short to bother');
+    expect(called).not.toHaveBeenCalled();
+
+    // Long enough for three sentences of English: Auto still asks.
+    const long = 'a'.repeat(160);
+    expect(await punctuateDefinite(rt, 'en', long, 0)).toBe(long);
+    expect(called).toHaveBeenCalledTimes(1);
+  });
+
   describe('observations', () => {
     function observing(runtime: SegmentationRuntime) {
       const events: SegmentationObservation[] = [];
@@ -158,10 +174,23 @@ describe('punctuateAndSplitDefinite', () => {
     expect(pieces).toEqual([two, two, `${'あ'.repeat(20)}。`]);
   });
 
-  it('keeps the server\'s outer boundary: the pieces rejoin to the whole segment', async () => {
+  it('keeps the server\'s outer boundary: the pieces rejoin to the whole segment, up to the whitespace at each cut', async () => {
     const text = 'あ'.repeat(100);
     const pieces = await punctuateAndSplitDefinite(marking(20), 'ja', text, 2);
     expect(pieces.join('')).toBe(await punctuateDefinite(marking(20), 'ja', text, 2));
+
+    // English, where a cut lands on the space between two sentences. The CJK
+    // case above has no whitespace anywhere, so it can never show the
+    // trimming — and the claim has to be "up to the whitespace at each cut",
+    // not "byte-identical". Each piece is its own bubble, so the separator is
+    // dropped rather than carried into the second one.
+    const en = 'One sentence. Another one. A third one.';
+    const enPieces = await punctuateAndSplitDefinite(null, 'en', en, 1);
+    expect(enPieces).toEqual(['One sentence.', 'Another one.', 'A third one.']);
+    expect(enPieces.join('')).not.toBe(en);
+    expect(enPieces.join(' ')).toBe(en);
+    // Whitespace is the ONLY thing a cut may drop.
+    expect(enPieces.join('').replace(/\s+/g, '')).toBe(en.replace(/\s+/g, ''));
   });
 
   it('never returns an empty piece when the text ends exactly on a cut', async () => {
@@ -303,22 +332,6 @@ describe('createSegmentLane', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
       expect(written).toEqual(['punctuated']);
     });
-  });
-
-  it('keeps the length gate under Auto, which is a size of 0', async () => {
-    // Auto means "punctuate, do not split", not "punctuate anything at all":
-    // gateChars(lang, 0) is zero, so without this a three-word segment would
-    // call the model and wait out the fill-in budget for marks it does not
-    // need.
-    const called = vi.fn(async () => null);
-    const rt: SegmentationRuntime = { enabled: true, punctuate: called };
-    expect(await punctuateDefinite(rt, 'en', 'too short to bother', 0)).toBe('too short to bother');
-    expect(called).not.toHaveBeenCalled();
-
-    // Long enough for three sentences of English: Auto still asks.
-    const long = 'a'.repeat(160);
-    expect(await punctuateDefinite(rt, 'en', long, 0)).toBe(long);
-    expect(called).toHaveBeenCalledTimes(1);
   });
 
   it('gives up on a slow model and shows the segment raw', async () => {

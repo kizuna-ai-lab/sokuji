@@ -825,7 +825,6 @@ export class LocalNativeClient implements IClient {
    */
   private fillInUtterance(text: string): void {
     const runtime = this.sessionSegmentation;
-    if (!runtime) return;
     // Captured before the await, because the next utterance's first partial
     // may arrive while the model runs: the bubble THIS utterance opened, and
     // the stamp MainPanel sorts by (an item minted after the model call would
@@ -835,6 +834,16 @@ export class LocalNativeClient implements IClient {
     this.partialUserItem = null;
     const createdAt = Date.now();
     const epoch = this.punctuationEpoch;
+    if (!runtime) {
+      // Not reachable today: `sessionShape` and `sessionSegmentation` are
+      // assigned together in connect() and cleared together in disconnect(),
+      // and only the 'fill-in' shape calls this. Written through the stage-off
+      // write anyway rather than returning — if the pair ever came apart, an
+      // utterance the user spoke would otherwise vanish with no bubble, no job
+      // and no diagnostic.
+      this.writeWholeUtterance(existing, text, createdAt);
+      return;
+    }
     const lang = this.cfg?.sourceLanguage ?? 'auto';
     // 0, not the default: this is Auto, and the helper's own doc says so.
     const pending = punctuateDefinite(runtime, lang, text, 0);
@@ -847,6 +856,10 @@ export class LocalNativeClient implements IClient {
       if (cancelled() || epoch !== this.punctuationEpoch || this.sessionSegmentation !== runtime) return;
       this.writeWholeUtterance(existing, filled, createdAt);
     }, () => {
+      // The epoch check belongs here too: a clear means the text is not
+      // wanted, whether the model answered or not, and this path runs from
+      // disconnect() — which a user may well press right after clearing.
+      if (epoch !== this.punctuationEpoch) return;
       // The raw fallback runs from `flush()`, i.e. from disconnect() only: the
       // transcript is kept, but no translation starts against engines the
       // teardown is already dismantling.
