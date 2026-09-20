@@ -49,6 +49,27 @@ describe('buildClientOptions', () => {
     expect(fallback.translationPause).toBe(2.5);
   });
 
+  /**
+   * A2, recorded as the accepted behaviour rather than an aspiration: the
+   * mode resolving to Off does not take the pause pair away.
+   *
+   * Off switches the punctuation STAGE off — a null runtime is exactly what
+   * MainPanel hands a client then — and nothing here is gated on the mode.
+   * The client's own silence timers keep running, because they are the only
+   * thing that closes an item when speech stops; slice 4 removed the caps
+   * that actually competed with By sentences (the clause and span caps). So
+   * on the three providers that offer both, Off and By pause are the same
+   * behaviour and differ only in whether the sliders are reachable.
+   */
+  it('carries the pause pair with no segmentation runtime — the shape Off produces', () => {
+    const opts = buildClientOptions({
+      transport: 'websocket', segmentation: null, sourcePause: 0.8, translationPause: 2.5,
+    });
+    expect(opts.segmentation).toBeNull();
+    expect(opts.sourcePause).toBe(0.8);
+    expect(opts.translationPause).toBe(2.5);
+  });
+
   it('lets a legOptions field that collides with a builder-set field win — the managed Soniox bundle depends on this', () => {
     const opts = buildClientOptions({
       transport: 'websocket',

@@ -574,6 +574,32 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect((bare as any).assistantSilenceTimeoutMs).toBe(1500);
   });
 
+  // A2's accepted behaviour, written down rather than left to be inferred
+  // from the tests above happening to build clients without a runtime: Off
+  // means no punctuation stage, and the silence timers keep running under it.
+  // They have to — they are the only thing that closes an item when speech
+  // stops, and slice 4 removed the caps that competed with By sentences. So
+  // Off and By pause cut identically here; the difference is only whether the
+  // sliders can be reached.
+  it('still closes items on silence with the segmentation stage off', () => {
+    const off = new OpenAITranslateGAClient('test-key', undefined, {
+      segmentation: null, sourcePauseMs: 700, translationPauseMs: 2500,
+    });
+    off.setEventHandlers({ onConversationUpdated: () => {} } as ClientEventHandlers);
+
+    (off as any).handleServerEvent({ type: 'session.input_transcript.delta', delta: 'Hi' });
+    (off as any).handleServerEvent({ type: 'session.output_transcript.delta', delta: 'Bonjour' });
+
+    vi.advanceTimersByTime(800);
+    let items = off.getConversationItems();
+    expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1800);
+    items = off.getConversationItems();
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
+  });
+
   it('honours configured per-side silence thresholds', () => {
     (client as any).userSilenceTimeoutMs = 600;
     (client as any).assistantSilenceTimeoutMs = 1500;

@@ -645,6 +645,26 @@ describe('S1 capability flags', () => {
     }
   });
 
+  // A2's accepted behaviour, stated rather than implied: Off is the absence
+  // of the punctuation stage, not the absence of the pause timers. The pair
+  // still reaches the client — `MainPanel` reads it unconditionally — and the
+  // timers still arm, because they are the only thing that closes an item when
+  // speech stops. Off and By pause therefore run identically on these three
+  // providers; what differs is whether the sliders are reachable.
+  it('hands the pair to a client built in Off, with no segmentation runtime', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      if (!resolveSegmentationOffer(caps).pause) continue;
+      const [source, translation] = PAUSE_FIELDS[id]!;
+      const client = ProviderConfigFactory.getDescriptor(id).createClient(
+        { ok: true, primary: 'k', secret: 's', endpoint: 'https://e.example' },
+        { transport: 'websocket', segmentation: null, sourcePause: 0.8, translationPause: 2.5 },
+      );
+      expect((client as any)[source], `source pause in Off for ${id}`).toBe(800);
+      expect((client as any)[translation], `translation pause in Off for ${id}`).toBe(2500);
+    }
+  });
+
   // Translate over WebRTC has ONE timer for the pair, not two: it closes the
   // source and the translation item together. It takes the translation pause,
   // because the last delta of a pair is the translation's — see the client.

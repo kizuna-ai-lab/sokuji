@@ -283,7 +283,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         <Tooltip
           content={t(
             'settings.sentenceSegmentationTitleDesc',
-            'Groups spoken text into full sentences and starts a new bubble every few sentences, even when the source provides no punctuation.',
+            'Chooses where one bubble ends: leave it to the provider, cut on a pause you tune, or start a new one every few sentences with the missing punctuation added.',
           )}
           position="top"
           icon="help"
@@ -479,7 +479,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
           <span>
             {t(
               'settings.sentenceSegmentationLowMemoryOn',
-              'This device does not report enough memory to run these models, so this cannot be turned on.',
+              'This device does not report enough memory to run these models, so By sentences is not available.',
             )}
           </span>
         </div>
