@@ -212,11 +212,17 @@
 
   &__actions {
     display: flex;
+    // Wraps rather than clips: at the 300px panel minimum the two labels do
+    // not fit side by side in every language — measured at 244px of content
+    // in a 230px row in de, 242 in uk — and a clipped "Download 402.2 MB" is
+    // the one button in this dialog that must stay readable.
+    flex-wrap: wrap;
     gap: 10px;
     margin-top: 15px;
 
     button {
-      flex: 1;
+      flex: 1 1 140px;
+      min-width: 0;
       padding: 10px 20px;
       border: none;
       border-radius: vars.$radius-sm;
