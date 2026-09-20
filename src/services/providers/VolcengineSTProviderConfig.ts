@@ -88,7 +88,7 @@ export class VolcengineSTProviderConfig extends BaseProviderDescriptor {
     // The new target (= old source) is always in the 28-entry TARGET_LANGUAGES
     // list, so only newSource can actually fail — written as a pair check
     // against both lists anyway to keep the same shape as the other
-    // rotate-pattern guard (ZoomAI) and stay correct if either list narrows.
+    // rotate-pattern guard and stay correct if either list narrows.
     const sourceValid = VolcengineSTProviderConfig.SOURCE_LANGUAGES.some(l => l.value === newSource);
     const targetValid = VolcengineSTProviderConfig.TARGET_LANGUAGES.some(l => l.value === newTarget);
     if (!sourceValid || !targetValid) {

@@ -19,7 +19,6 @@ import {
   useOpenAILiveSettings,
   useVolcengineSTSettings,
   useVolcengineAST2Settings,
-  useZoomAISettings,
   useSonioxSettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
@@ -41,7 +40,6 @@ import {
   useUpdateOpenAILive,
   useUpdateVolcengineST,
   useUpdateVolcengineAST2,
-  useUpdateZoomAI,
   useUpdateSoniox,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
@@ -134,7 +132,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const openAILiveSettings = useOpenAILiveSettings();
   const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
-  const zoomAISettings = useZoomAISettings();
   const sonioxSettings = useSonioxSettings();
   const mode = useMode();
   const lockedMode = useLockedMode();
@@ -160,7 +157,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updateOpenAILiveSettings = useUpdateOpenAILive();
   const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
-  const updateZoomAISettings = useUpdateZoomAI();
   const updateSonioxSettings = useUpdateSoniox();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
@@ -402,8 +398,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateVolcengineSTSettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
-    } else if (provider === Provider.ZOOM_AI) {
-      updateZoomAISettings({ [key]: value });
     } else if (provider === Provider.SONIOX) {
       updateSonioxSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE) {
@@ -2190,64 +2184,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
-  const renderZoomAISettings = () => {
-    if (provider !== Provider.ZOOM_AI) return null;
-
-    const zoomDescriptor = ProviderConfigFactory.getDescriptor(provider);
-    const sourceLanguages = zoomDescriptor.resolveSourceLanguages();
-    const targetLanguages = zoomDescriptor.resolveTargetLanguages(zoomAISettings.sourceLanguage);
-
-    return (
-      <>
-        <div className="settings-section">
-          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
-          <div className="setting-item">
-            <div className="setting-label"><span>{t('settings.sourceLanguage')}</span></div>
-            <select
-              className="select-dropdown"
-              value={zoomAISettings.sourceLanguage}
-              onChange={(e) => {
-                const newSource = e.target.value;
-                updateZoomAISettings({
-                  sourceLanguage: newSource,
-                  targetLanguage: zoomDescriptor.reconcileTarget(newSource, zoomAISettings.targetLanguage),
-                });
-              }}
-              disabled={isSessionActive}
-            >
-              {sourceLanguages.map((lang) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="setting-item">
-            <div className="setting-label"><span>{t('settings.targetLanguage')}</span></div>
-            <select
-              className="select-dropdown"
-              value={zoomAISettings.targetLanguage}
-              onChange={(e) => updateZoomAISettings({ targetLanguage: e.target.value })}
-              disabled={isSessionActive}
-            >
-              {targetLanguages.map((lang) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <h2>{t('settings.zoomAIInfo', 'Zoom AI Services Info')}</h2>
-          <div className="setting-item">
-            <div className="volcengine-st-info-notice" style={{ padding: '12px', backgroundColor: 'rgba(16, 163, 127, 0.1)', border: '1px solid rgba(16, 163, 127, 0.3)', borderRadius: '8px', fontSize: '13px', color: '#aaa' }}>
-              <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
-              {t('settings.zoomAIInfoText', 'Zoom Scribe transcribes each utterance and Zoom Translator translates it to text. Translation pairs must include English on one side.')}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  };
-
   const renderLocalInferenceSettings = () => {
     if (provider !== Provider.LOCAL_INFERENCE) {
       return null;
@@ -2439,7 +2375,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderPalabraAISettings()}
       {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
-      {renderZoomAISettings()}
       {renderSonioxSettings()}
       {renderLocalInferenceSettings()}
       {renderLocalNativeSettings()}

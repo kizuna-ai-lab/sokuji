@@ -25,14 +25,13 @@ describe('providerPaths', () => {
     const ids = ownKeyOptions('understand-others').map((o) => o.id);
     expect(ids).toEqual([
       Provider.GEMINI, Provider.VOLCENGINE_AST2, Provider.OPENAI, Provider.OPENAI_TRANSLATE, Provider.OPENAI_LIVE,
-      Provider.SONIOX, Provider.OPENAI_COMPATIBLE, Provider.PALABRA_AI, Provider.VOLCENGINE_ST, Provider.ZOOM_AI,
+      Provider.SONIOX, Provider.OPENAI_COMPATIBLE, Provider.PALABRA_AI, Provider.VOLCENGINE_ST,
     ]);
   });
 
   it('marks providers that cannot serve the scenario instead of hiding them', () => {
     const speak = Object.fromEntries(ownKeyOptions('be-heard').map((o) => [o.id, o.fit]));
     expect(speak[Provider.VOLCENGINE_ST]).toEqual({ ok: false, reason: 'cannot-speak' });
-    expect(speak[Provider.ZOOM_AI]).toEqual({ ok: false, reason: 'cannot-speak' });
     expect(speak[Provider.OPENAI]).toEqual({ ok: true });
 
     const text = Object.fromEntries(ownKeyOptions('subtitle-myself').map((o) => [o.id, o.fit]));

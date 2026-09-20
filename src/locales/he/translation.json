@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "זוגות מונחים דו-לשוניים מקור→יעד.",
     "volcengineAST2GlossaryManage": "ניהול מילון מונחים",
     "volcengineAST2CustomVocabularyFooter": "מזהי ספרייה לא תקינים או ריקים מתעלמים בשקט — הסשן פועל כאילו השדה לא הוגדר. שינויים במסוף Volcengine עשויים להימשך מספר דקות עד שייכנסו לתוקף.",
-    "zoomAIInfo": "מידע על Zoom AI Services",
-    "zoomAIInfoText": "Zoom Scribe מתמלל כל אמירה ו-Zoom Translator מתרגם אותה לטקסט. צמדי התרגום חייבים לכלול אנגלית בצד אחד.",
     "geminiParticipantTokenWarning": "Gemini מייצר עבור שמע הצד השני תגובות שמע שנזרקות, מה שגורם לשימוש נוסף בטוקנים.",
     "help": "עזרה",
     "helpEmailTooltip": "דווח על באגים או קבל עזרה",
@@ -518,12 +516,6 @@
       "description": "תרגום סימולטני Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "תמלול Zoom Scribe + Translator (טקסט בלבד)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "חינמי",

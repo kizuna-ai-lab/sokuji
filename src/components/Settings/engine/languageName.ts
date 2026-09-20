@@ -20,7 +20,7 @@ import { getLanguageOption } from '../../../utils/languages';
  * through this same getLanguageOption lookup — confirmed no code resolves
  * differently — so the result is identical either way. Going through
  * ProviderConfigFactory would statically import EVERY provider descriptor
- * (OpenAI, Gemini, Palabra, Zoom, ...) into the two model-management
+ * (OpenAI, Gemini, Palabra, ...) into the two model-management
  * sections just to read one field — pulling in `src/locales`'s real i18n
  * singleton along the way, which broke ModelManagementSection.test.tsx's /
  * NativeModelManagementSection.test.tsx's fully-replaced

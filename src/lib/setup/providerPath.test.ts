@@ -31,7 +31,6 @@ const EXPECTED: Record<Provider, ProviderPath> = {
   [Provider.OPENAI_LIVE]: 'own-key',
   [Provider.VOLCENGINE_ST]: 'own-key',
   [Provider.VOLCENGINE_AST2]: 'own-key',
-  [Provider.ZOOM_AI]: 'own-key',
   [Provider.SONIOX]: 'own-key',
 };
 

@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "Tvåspråkiga termpar källa→mål.",
     "volcengineAST2GlossaryManage": "Hantera ordlista",
     "volcengineAST2CustomVocabularyFooter": "Ogiltiga eller tomma bibliotek-ID:n ignoreras tyst — sessionen körs som om fältet inte vore inställt. Ändringar i Volcengine-konsolen kan ta några minuter innan de träder i kraft.",
-    "zoomAIInfo": "Zoom AI Services-information",
-    "zoomAIInfoText": "Zoom Scribe transkriberar varje yttrande och Zoom Translator översätter det till text. Språkparen måste innehålla engelska på ena sidan.",
     "geminiParticipantTokenWarning": "Gemini genererar ljudsvar för den andras ljud som kastas bort, vilket ger extra tokenanvändning.",
     "help": "Hjälp",
     "helpEmailTooltip": "Rapportera fel eller få hjälp",
@@ -518,12 +516,6 @@
       "description": "Doubao simultanöversättning",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Zoom Scribe-transkription + Translator (endast text)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "Gratis",

@@ -26,7 +26,6 @@ import { defaultSonioxSettings } from './SonioxProviderConfig';
 import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
-import { defaultZoomAISettings } from './ZoomAIProviderConfig';
 import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
@@ -117,10 +116,9 @@ describe('participant config: direction lives in config fields', () => {
     expect(c.targetLanguage).toBe(base.sourceLanguage);
   });
 
-  it('volcengine_st and zoom_ai rotate sourceLanguage through targetLanguages[0]', () => {
+  it('volcengine_st rotates sourceLanguage through targetLanguages[0]', () => {
     for (const [id, defaults] of [
       [Provider.VOLCENGINE_ST, defaultVolcengineSTSettings],
-      [Provider.ZOOM_AI, defaultZoomAISettings],
     ] as const) {
       const d = ProviderConfigFactory.getDescriptor(id);
       const slice = { ...defaults };
@@ -133,17 +131,6 @@ describe('participant config: direction lives in config fields', () => {
 });
 
 describe('participant config: reversed pairs the provider catalog cannot run', () => {
-  it('zoom_ai rejects a reversed pair outside its asymmetric matrix (en-US -> ko-KR reverses to ko-KR, not a source)', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI);
-    const slice = { ...defaultZoomAISettings, sourceLanguage: 'en-US', targetLanguage: 'ko-KR' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).toBeNull();
-    expect(notices).toHaveLength(1);
-    expect(notices[0].channel).toBe('error');
-    expect(notices[0].message).toContain('ko-KR');
-    expect(notices[0].message).toContain('en-US');
-  });
-
   it('volcengine_st rejects a reversed pair whose new source is outside SOURCE_LANGUAGES (zh -> ko reverses to ko as source)', () => {
     const d = ProviderConfigFactory.getDescriptor(Provider.VOLCENGINE_ST);
     const slice = { ...defaultVolcengineSTSettings, sourceLanguage: 'zh', targetLanguage: 'ko' };
@@ -175,14 +162,6 @@ describe('participant config: reversed pairs the provider catalog cannot run', (
     expect(notices[0].channel).toBe('error');
     expect(notices[0].message).toContain('th');
     expect(notices[0].message).toContain('en');
-  });
-
-  it('zoom_ai accepts a reversed pair the catalog can run (en-US -> ja-JP reverses to ja-JP -> [en-US])', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI);
-    const slice = { ...defaultZoomAISettings, sourceLanguage: 'en-US', targetLanguage: 'ja-JP' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).not.toBeNull();
-    expect(notices).toEqual([]);
   });
 
   it('palabraai accepts a reversed target that exactly matches a TARGET_LANGUAGES entry (es)', () => {

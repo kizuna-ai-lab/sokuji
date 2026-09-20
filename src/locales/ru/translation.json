@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "Двуязычные пары терминов исходный→целевой.",
     "volcengineAST2GlossaryManage": "Управление глоссарием",
     "volcengineAST2CustomVocabularyFooter": "Недействительные или пустые ID библиотек молча игнорируются — сессия запускается так, как если бы поле не было задано. Изменения в консоли Volcengine могут вступать в силу через несколько минут.",
-    "zoomAIInfo": "Информация о Zoom AI Services",
-    "zoomAIInfoText": "Zoom Scribe расшифровывает каждую реплику, а Zoom Translator переводит её в текст. Одним из языков пары перевода должен быть английский.",
     "geminiParticipantTokenWarning": "Gemini генерирует для аудио собеседника аудиоответы, которые отбрасываются, что приводит к дополнительному расходу токенов.",
     "help": "Помощь",
     "helpEmailTooltip": "Сообщить об ошибке или получить помощь",
@@ -518,12 +516,6 @@
       "description": "Синхронный перевод Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Транскрипция Zoom Scribe + Translator (только текст)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "Бесплатный",

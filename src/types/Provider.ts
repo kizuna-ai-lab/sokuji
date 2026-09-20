@@ -19,14 +19,13 @@ export enum Provider {
   VOLCENGINE_AST2 = 'volcengine_ast2',
   LOCAL_INFERENCE = 'local_inference',
   LOCAL_NATIVE = 'local_native',
-  ZOOM_AI = 'zoom_ai',
   SONIOX = 'soniox'
 }
 
 /**
  * Provider type definition
  */
-export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.KIZUNA_AI_SONIOX | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.OPENAI_LIVE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE | Provider.LOCAL_NATIVE | Provider.ZOOM_AI | Provider.SONIOX;
+export type ProviderType = Provider.OPENAI | Provider.GEMINI | Provider.PALABRA_AI | Provider.KIZUNA_AI_OPENAI_TRANSLATE | Provider.KIZUNA_AI_VOLCENGINE_AST2 | Provider.KIZUNA_AI_SONIOX | Provider.OPENAI_COMPATIBLE | Provider.OPENAI_TRANSLATE | Provider.OPENAI_LIVE | Provider.VOLCENGINE_ST | Provider.VOLCENGINE_AST2 | Provider.LOCAL_INFERENCE | Provider.LOCAL_NATIVE | Provider.SONIOX;
 
 /**
  * OpenAI-compatible providers (providers that use OpenAI-compatible APIs)

@@ -22,7 +22,7 @@ because phase 1's note was written before them.
 | provider | offers |
 |---|---|
 | OpenAI Live, OpenAI Translate (+ Kizuna twin), Gemini | pause, 1-5 |
-| Soniox (+ twin), Volcengine ST, Volcengine AST2 (+ twin), Palabra, Zoom | **Auto, 1-5** |
+| Soniox (+ twin), Volcengine ST, Volcengine AST2 (+ twin), Palabra | **Auto, 1-5** |
 | OpenAI Realtime GA, OpenAI-Compatible | Auto only |
 | Local Inference, Local Native | **Auto**, 1-5 |
 
@@ -102,11 +102,10 @@ segment collides with piece *i* of another whenever their base stamps are within
 `finishUtterance` completes the source and the translation in the same
 synchronous tick off the same stamp. The sort then renders
 `u₀ a₀ u₁ a₁ u₂ a₂` instead of `u₀ a₀ u₁ u₂ a₁ a₂`. Volcengine ST and AST2 hit
-the same thing when their two Definite frames land in one millisecond, and Zoom
-when its transcript and translation writes do. Fixed on 2026-09-20 by dropping
-the `+ i` at all five sites; `SonioxClient.test.ts`'s "keeps each segment's
-pieces together once MainPanel has sorted the items" is the regression test, and
-it runs the panel's real comparator rather than a copy.
+the same thing when their two Definite frames land in one millisecond. Fixed on
+2026-09-20 by dropping the `+ i` at all five sites; `SonioxClient.test.ts`'s
+"keeps each segment's pieces together once MainPanel has sorted the items" is
+the regression test, and it runs the panel's real comparator rather than a copy.
 
 If a strictly increasing key is ever genuinely wanted, it has to be globally
 monotonic per client — a counter that cannot collide with another segment's —
@@ -119,12 +118,12 @@ splittable set.
 
 ## Decisions taken inside the slice
 
-- **Replay audio stays on the FIRST piece.** Three of the five splittable
+- **Replay audio stays on the FIRST piece.** Three of the four splittable
   clients attach it — Soniox's `formatted.audio`, AST2's `decodeTTSAndPlay`
   target, and *not* Palabra, whose PCM rides a synthetic envelope keyed to the
-  client instance and never touches an item. Volcengine ST and Zoom write text
-  only. Where there is audio it is the whole segment's, with no per-sentence
-  timing to cut it on, so it stays on the piece a user reaches for and the later
+  client instance and never touches an item. Volcengine ST writes text only.
+  Where there is audio it is the whole segment's, with no per-sentence timing
+  to cut it on, so it stays on the piece a user reaches for and the later
   pieces have none. `keepReplayAudio` is off by default, so in the default
   configuration this is unobservable. **Ruled by the owner on 2026-09-20: leave
   it.** Replay audio is already partly unusable and gets its own refactor later.

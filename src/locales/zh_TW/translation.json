@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "原文到譯文的雙語術語對照。",
     "volcengineAST2GlossaryManage": "管理術語詞",
     "volcengineAST2CustomVocabularyFooter": "填入無效或留空的詞表 ID 會被靜默忽略——工作階段將視為該欄位未設定。在火山引擎主控台中更新詞表後，可能需要幾分鐘才能生效。",
-    "zoomAIInfo": "Zoom AI Services 資訊",
-    "zoomAIInfoText": "Zoom Scribe 會轉錄每一句話，再由 Zoom Translator 將其翻譯為文字。翻譯語言對的其中一方必須是英文。",
     "geminiParticipantTokenWarning": "Gemini 會為對方音訊產生並捨棄音訊回應，因此會增加權杖用量。",
     "help": "說明",
     "helpEmailTooltip": "回報問題或取得協助",
@@ -518,12 +516,6 @@
       "description": "豆包語音同聲傳譯",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Zoom Scribe 轉錄 + Translator（僅文字）",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "免費",

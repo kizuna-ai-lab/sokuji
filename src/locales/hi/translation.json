@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "स्रोत→लक्ष्य द्विभाषी शब्द जोड़े।",
     "volcengineAST2GlossaryManage": "शब्दकोश प्रबंधित करें",
     "volcengineAST2CustomVocabularyFooter": "अमान्य या खाली लाइब्रेरी ID को चुपचाप अनदेखा कर दिया जाता है — सत्र ऐसे चलता है जैसे फ़ील्ड सेट नहीं किया गया हो। Volcengine कंसोल में किए गए परिवर्तनों को प्रभावी होने में कुछ मिनट लग सकते हैं।",
-    "zoomAIInfo": "Zoom AI Services जानकारी",
-    "zoomAIInfoText": "Zoom Scribe प्रत्येक कथन का प्रतिलेखन करता है और Zoom Translator उसे टेक्स्ट में अनुवाद करता है। अनुवाद जोड़ी में एक तरफ अंग्रेज़ी होनी चाहिए।",
     "geminiParticipantTokenWarning": "Gemini दूसरे के ऑडियो के लिए ऑडियो प्रतिक्रियाएँ बनाता है जो हटा दी जाती हैं, जिससे अतिरिक्त टोकन खर्च होता है।",
     "help": "सहायता",
     "helpEmailTooltip": "बग रिपोर्ट करें या सहायता लें",
@@ -518,12 +516,6 @@
       "description": "Doubao सिमल्टेनियस ट्रांसलेशन",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Zoom Scribe प्रतिलेखन + Translator (केवल टेक्स्ट)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "मुफ़्त",

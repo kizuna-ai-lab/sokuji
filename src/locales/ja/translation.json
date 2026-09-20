@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "原文→訳文の対訳用語ペア。",
     "volcengineAST2GlossaryManage": "用語集を管理",
     "volcengineAST2CustomVocabularyFooter": "無効または空のライブラリ ID は静かに無視され、該当フィールドが設定されていないかのようにセッションが実行されます。Volcengine コンソールでライブラリを更新してから有効になるまで、数分かかることがあります。",
-    "zoomAIInfo": "Zoom AI Services について",
-    "zoomAIInfoText": "Zoom Scribe が各発話を文字起こしし、Zoom Translator がそれをテキストに翻訳します。翻訳の言語ペアは、いずれか一方が英語である必要があります。",
     "geminiParticipantTokenWarning": "Gemini は相手の音声に対して音声応答を生成しますが破棄されるため、追加のトークン消費が発生します。",
     "help": "ヘルプ",
     "helpEmailTooltip": "バグの報告やヘルプの取得",
@@ -518,12 +516,6 @@
       "description": "Doubao 同時通訳",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Zoom Scribe の文字起こし + Translator（テキストのみ）",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "無料",

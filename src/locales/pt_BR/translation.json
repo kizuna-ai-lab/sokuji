@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "Pares bilíngues de termos origem→destino.",
     "volcengineAST2GlossaryManage": "Gerenciar glossário",
     "volcengineAST2CustomVocabularyFooter": "IDs de biblioteca inválidos ou vazios são silenciosamente ignorados — a sessão é executada como se o campo não tivesse sido definido. Alterações feitas no console da Volcengine podem levar alguns minutos para entrar em vigor.",
-    "zoomAIInfo": "Informações do Zoom AI Services",
-    "zoomAIInfoText": "O Zoom Scribe transcreve cada fala e o Zoom Translator a traduz para texto. Os pares de tradução devem incluir inglês em um dos lados.",
     "geminiParticipantTokenWarning": "O Gemini gera para o áudio do outro respostas de áudio que são descartadas, resultando em uso adicional de tokens.",
     "help": "Ajuda",
     "helpEmailTooltip": "Relatar erros ou obter ajuda",
@@ -518,12 +516,6 @@
       "description": "Tradução simultânea Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Transcrição Zoom Scribe + Translator (somente texto)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "Gratuito",

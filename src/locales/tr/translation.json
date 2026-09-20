@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "Kaynak→hedef iki dilli terim çiftleri.",
     "volcengineAST2GlossaryManage": "Sözlüğü yönet",
     "volcengineAST2CustomVocabularyFooter": "Geçersiz veya boş kütüphane kimlikleri sessizce yok sayılır — oturum, alan ayarlanmamış gibi çalışır. Volcengine konsolunda yapılan değişikliklerin yürürlüğe girmesi birkaç dakika sürebilir.",
-    "zoomAIInfo": "Zoom AI Services Bilgileri",
-    "zoomAIInfoText": "Zoom Scribe her konuşmayı yazıya döker ve Zoom Translator bunu metne çevirir. Çeviri çiftlerinin bir tarafı İngilizce olmalıdır.",
     "geminiParticipantTokenWarning": "Gemini, karşı tarafın sesi için atılan ses yanıtları üretir ve bu da ek token kullanımına yol açar.",
     "help": "Yardım",
     "helpEmailTooltip": "Hataları bildirin veya yardım alın",
@@ -518,12 +516,6 @@
       "description": "Doubao eşzamanlı çeviri",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Zoom Scribe transkripsiyonu + Translator (yalnızca metin)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "Ücretsiz",

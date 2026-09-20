@@ -4,7 +4,8 @@
  * EVENTS ONLY back to the main thread — speech_start / speech_end /
  * speech_cancel. No utterance audio leaves this worker: the sidecar receives
  * the continuous PCM directly and segments on the client's vad_mark events
- * (spec Amendment A1). Mirrors zoom-vad.worker.ts's ORT + FrameProcessor loop.
+ * (spec Amendment A1). Built on the same ORT + FrameProcessor loop the
+ * client-side VAD has always used.
  */
 import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';

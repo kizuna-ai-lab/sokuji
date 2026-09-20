@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "Tweetalige termparen bron→doel.",
     "volcengineAST2GlossaryManage": "Woordenlijst beheren",
     "volcengineAST2CustomVocabularyFooter": "Ongeldige of lege bibliotheek-ID's worden stilzwijgend genegeerd — de sessie wordt uitgevoerd alsof het veld niet is ingesteld. Wijzigingen in de Volcengine-console kunnen enkele minuten duren voordat ze van kracht worden.",
-    "zoomAIInfo": "Zoom AI Services-informatie",
-    "zoomAIInfoText": "Zoom Scribe transcribeert elke uiting en Zoom Translator vertaalt deze naar tekst. Vertaalparen moeten aan één kant Engels bevatten.",
     "geminiParticipantTokenWarning": "Gemini genereert voor de audio van de ander audioantwoorden die worden weggegooid, wat extra tokenverbruik veroorzaakt.",
     "help": "Help",
     "helpEmailTooltip": "Bugs melden of hulp krijgen",
@@ -518,12 +516,6 @@
       "description": "Doubao simultaanvertaling",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Zoom Scribe-transcriptie + Translator (alleen tekst)",
-      "apiKeyPlaceholder": "Zoom Build Platform API-sleutel",
-      "apiSecretPlaceholder": "Zoom Build Platform API-secret"
     },
     "local_inference": {
       "name": "Gratis",

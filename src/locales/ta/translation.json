@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "மூல→இலக்கு இருமொழி சொல் ஜோடிகள்.",
     "volcengineAST2GlossaryManage": "சொற்கலைக்களஞ்சியத்தை நிர்வகி",
     "volcengineAST2CustomVocabularyFooter": "செல்லுபடியாகாத அல்லது காலியான நூலக ID-கள் அமைதியாக புறக்கணிக்கப்படுகின்றன — புலம் அமைக்கப்படாதது போல அமர்வு இயங்கும். Volcengine கன்சோலில் செய்த மாற்றங்கள் நடைமுறைக்கு வர சில நிமிடங்கள் ஆகலாம்.",
-    "zoomAIInfo": "Zoom AI Services தகவல்",
-    "zoomAIInfoText": "Zoom Scribe ஒவ்வொரு பேச்சையும் படியெடுக்கிறது, Zoom Translator அதை உரையாக மொழிபெயர்க்கிறது. மொழிபெயர்ப்பு ஜோடிகளில் ஒரு பக்கம் ஆங்கிலம் இருக்க வேண்டும்.",
     "geminiParticipantTokenWarning": "Gemini மற்றவரின் ஆடியோவுக்காக ஆடியோ பதில்களை உருவாக்குகிறது, ஆனால் அவை நிராகரிக்கப்படுவதால் கூடுதல் டோக்கன் பயன்பாடு ஏற்படுகிறது.",
     "help": "உதவி",
     "helpEmailTooltip": "பிழைகளைப் புகாரளிக்கவும் அல்லது உதவி பெறவும்",
@@ -518,12 +516,6 @@
       "description": "Doubao ஒரே நேர மொழிபெயர்ப்பு",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Zoom Scribe படியெடுத்தல் + Translator (உரை மட்டும்)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "இலவசம்",

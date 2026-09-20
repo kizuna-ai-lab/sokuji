@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "Pasangan istilah bilingual sumber→target.",
     "volcengineAST2GlossaryManage": "Kelola glosarium",
     "volcengineAST2CustomVocabularyFooter": "ID pustaka yang tidak valid atau kosong diabaikan secara diam-diam — sesi berjalan seolah-olah bidang tidak diatur. Perubahan di konsol Volcengine dapat memerlukan beberapa menit untuk berlaku.",
-    "zoomAIInfo": "Informasi Zoom AI Services",
-    "zoomAIInfoText": "Zoom Scribe mentranskripsikan setiap ucapan dan Zoom Translator menerjemahkannya menjadi teks. Pasangan terjemahan harus menyertakan bahasa Inggris di salah satu sisi.",
     "geminiParticipantTokenWarning": "Gemini menghasilkan respons audio untuk audio lawan bicara yang dibuang, sehingga menimbulkan penggunaan token tambahan.",
     "help": "Bantuan",
     "helpEmailTooltip": "Laporkan bug atau dapatkan bantuan",
@@ -518,12 +516,6 @@
       "description": "Terjemahan simultan Doubao",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Transkripsi Zoom Scribe + Translator (hanya teks)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "Gratis",

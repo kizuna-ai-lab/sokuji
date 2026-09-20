@@ -30,7 +30,7 @@
 
 Built by [Kizuna AI Lab](https://github.com/kizuna-ai-lab) — we use AI to break language and accessibility barriers, creating genuine human connections. "Kizuna" (絆) means "bond" in Japanese, and Sokuji (即時) is our flagship tool to make real-time communication possible across any language.
 
-Sokuji is a cross-platform live speech translation app for desktop and browser. It supports **Local Inference** — on-device ASR, translation, and TTS powered by WASM and WebGPU, with no API key required, no expensive GPU needed, fully offline, and completely private. It also integrates with cloud providers including OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, Soniox, Zoom AI, and OpenAI-compatible APIs.
+Sokuji is a cross-platform live speech translation app for desktop and browser. It supports **Local Inference** — on-device ASR, translation, and TTS powered by WASM and WebGPU, with no API key required, no expensive GPU needed, fully offline, and completely private. It also integrates with cloud providers including OpenAI, Google Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, Soniox, and OpenAI-compatible APIs.
 
 ---
 
@@ -57,7 +57,7 @@ graph LR
 
 | | |
 |---|---|
-| **Providers** | 9 — OpenAI, Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, Soniox, Zoom AI, OpenAI Compatible, Local Inference |
+| **Providers** | 8 — OpenAI, Gemini, Palabra.ai, Kizuna AI, Doubao AST 2.0, Soniox, OpenAI Compatible, Local Inference |
 | **Local Models** | 44 ASR models, 75 translation models, 137 TTS models |
 | **Languages** | 99+ (speech recognition) · 55+ (translation) · 53 (text-to-speech) |
 | **Platforms** | Linux · Windows · macOS · Chrome · Edge |
@@ -164,7 +164,6 @@ Run everything on your device — no API keys, no internet, no expensive GPU, co
 | **Kizuna AI** | Sign in and go — API key managed by backend · same OpenAI models with optimized defaults |
 | **Doubao AST 2.0** | Speech-to-speech with speaker voice cloning · bidirectional Chinese↔English · Ogg Opus audio output |
 | **Soniox** | Real-time speech-to-speech · **one-way & two-way translation (auto-detects speaker language)** · 60+ languages / 3,600+ pairs · 200 voices (filter by gender, age, accent, use case, style) · voice cloning · bring-your-own-key |
-| **Zoom AI Services** | Text-only live captions · bring your own Zoom Build Platform key · works on any site, not just Zoom · Zoom's native language pairs |
 | **OpenAI Compatible** | Bring your own endpoint — any OpenAI Realtime API-compatible service (Electron only) |
 | **Local Inference** | Fully offline · ASR → Translation → TTS on-device · no API key · no GPU required |
 

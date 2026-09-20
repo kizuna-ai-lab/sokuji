@@ -127,12 +127,15 @@ describe('SetupWizard', () => {
   it('greys out a provider that cannot serve the scenario and says why', () => {
     render(<SetupWizard variant="first-run" />);
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));
+    // A subtitles-only scenario plus a provider that always speaks: the other
+    // half of providerFitForScenario, and the one with a subject that is not
+    // itself a candidate for removal.
+    fireEvent.click(screen.getByRole('radio', { name: /Subtitle my own speech/ }));
     next();
     fireEvent.click(screen.getByRole('radio', { name: /I have my own API key/ }));
-    const zoom = screen.getByRole('radio', { name: /Zoom AI Services/ });
-    expect(zoom).toBeDisabled();
-    expect(zoom.closest('label')?.textContent).toMatch(/cannot produce spoken translation/);
+    const palabra = screen.getByRole('radio', { name: /PalabraAI/ });
+    expect(palabra).toBeDisabled();
+    expect(palabra.closest('label')?.textContent).toMatch(/always speaks; it cannot run subtitles-only/);
   });
 
   it('keeps showing a saved key after Skip and Back, and does not call it missing', async () => {

@@ -54,9 +54,6 @@ import {
   VolcengineSTSettings, defaultVolcengineSTSettings,
 } from '../services/providers/VolcengineSTProviderConfig';
 import {
-  ZoomAISettings, defaultZoomAISettings,
-} from '../services/providers/ZoomAIProviderConfig';
-import {
   VolcengineAST2Settings, defaultVolcengineAST2Settings,
 } from '../services/providers/VolcengineAST2ProviderConfig';
 import {
@@ -92,7 +89,7 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
   OpenAITranslateSettings, OpenAILiveSettings, GeminiSettings, PalabraAISettings,
-  VolcengineSTSettings, ZoomAISettings, VolcengineAST2Settings, LocalInferenceSettings,
+  VolcengineSTSettings, VolcengineAST2Settings, LocalInferenceSettings,
   LocalNativeSettings, SonioxSettings,
 };
 
@@ -100,7 +97,7 @@ export type {
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
-  | OpenAITranslateSettings | OpenAILiveSettings | VolcengineSTSettings | ZoomAISettings
+  | OpenAITranslateSettings | OpenAILiveSettings | VolcengineSTSettings
   | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
 // ==================== Type Definitions ====================
@@ -295,7 +292,6 @@ export interface SettingsStore {
   openaiTranslate: OpenAITranslateSettings;
   openaiLive: OpenAILiveSettings;
   volcengineST: VolcengineSTSettings;
-  zoomAI: ZoomAISettings;
   volcengineAST2: VolcengineAST2Settings;
   soniox: SonioxSettings;
   kizunaOpenaiTranslate: OpenAITranslateSettings;
@@ -427,7 +423,6 @@ export interface SettingsStore {
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateOpenAILive: (settings: Partial<OpenAILiveSettings>) => Promise<void>;
   updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
-  updateZoomAI: (settings: Partial<ZoomAISettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateSoniox: (settings: Partial<SonioxSettings>) => void;
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
@@ -665,7 +660,6 @@ const PROVIDER_SLICE_REGISTRY = {
   openaiTranslate: { defaults: defaultOpenAITranslateSettings },
   openaiLive: { defaults: defaultOpenAILiveSettings },
   volcengineST: { defaults: defaultVolcengineSTSettings },
-  zoomAI: { defaults: defaultZoomAISettings },
   volcengineAST2: { defaults: defaultVolcengineAST2Settings },
   soniox: { defaults: defaultSonioxSettings },
   // Relay twins authenticate through the relay with a short-lived Better Auth
@@ -716,7 +710,6 @@ const useSettingsStore = create<SettingsStore>()(
     openaiTranslate: defaultOpenAITranslateSettings,
     openaiLive: defaultOpenAILiveSettings,
     volcengineST: defaultVolcengineSTSettings,
-    zoomAI: defaultZoomAISettings,
     volcengineAST2: defaultVolcengineAST2Settings,
     soniox: defaultSonioxSettings,
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
@@ -983,7 +976,6 @@ const useSettingsStore = create<SettingsStore>()(
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
     updateOpenAILive: (settings) => updateProviderSlice(set, 'openaiLive', settings),
     updateVolcengineST: (settings) => updateProviderSlice(set, 'volcengineST', settings),
-    updateZoomAI: (settings) => updateProviderSlice(set, 'zoomAI', settings),
     updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
     updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
     updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
@@ -1128,7 +1120,7 @@ const useSettingsStore = create<SettingsStore>()(
       const creds = await descriptor.extractCredentials(currentSettings, { getAuthToken });
 
       // Empty/incomplete credentials: silent reset, same as before (no error
-      // banner while typing). Two-field providers (Palabra, Volcengine, Zoom)
+      // banner while typing). Two-field providers (Palabra, Volcengine)
       // already reject incomplete pairs inside their extractCredentials override.
       if (!creds.ok) {
         set({
@@ -1553,7 +1545,6 @@ export const usePalabraAISettings = () => useSettingsStore((state) => state.pala
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
 export const useOpenAILiveSettings = () => useSettingsStore((state) => state.openaiLive);
 export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
-export const useZoomAISettings = () => useSettingsStore((state) => state.zoomAI);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
 export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
@@ -1639,7 +1630,6 @@ export const useUpdatePalabraAI = () => useSettingsStore((state) => state.update
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
 export const useUpdateOpenAILive = () => useSettingsStore((state) => state.updateOpenAILive);
 export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
-export const useUpdateZoomAI = () => useSettingsStore((state) => state.updateZoomAI);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
 export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
@@ -1677,7 +1667,7 @@ export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.l
 
 // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers
 // whose settings slice has no turnDetectionMode field (e.g. OpenAI Translate,
-// Palabra, Volcengine ST, Zoom). Resolved via the active descriptor's slice key.
+// Palabra, Volcengine ST). Resolved via the active descriptor's slice key.
 export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state) => {
   const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
   const slice = state[descriptor.settingsSliceKey as keyof SettingsStore] as { turnDetectionMode?: string };

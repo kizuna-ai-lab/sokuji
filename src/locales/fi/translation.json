@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "Lähde→kohde kaksikieliset termiparit.",
     "volcengineAST2GlossaryManage": "Hallitse sanastoa",
     "volcengineAST2CustomVocabularyFooter": "Virheelliset tai tyhjät kirjaston tunnukset ohitetaan hiljaisesti — istunto suoritetaan kuin kenttää ei olisi asetettu. Volcengine-konsolissa tehdyt muutokset voivat tulla voimaan muutamassa minuutissa.",
-    "zoomAIInfo": "Zoom AI Services -tiedot",
-    "zoomAIInfoText": "Zoom Scribe litteroi jokaisen puheenvuoron ja Zoom Translator kääntää sen tekstiksi. Käännösparin toisen kielen on oltava englanti.",
     "geminiParticipantTokenWarning": "Gemini tuottaa toisen äänelle äänivastauksia, jotka hylätään, mikä lisää token-kulutusta.",
     "help": "Ohje",
     "helpEmailTooltip": "Ilmoita virheistä tai pyydä apua",
@@ -518,12 +516,6 @@
       "description": "Doubao simultaanitulkkaus",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Zoom Scribe -litterointi + Translator (vain teksti)",
-      "apiKeyPlaceholder": "Zoom Build Platform API -avain",
-      "apiSecretPlaceholder": "Zoom Build Platform API -salainen avain"
     },
     "local_inference": {
       "name": "Ilmainen",

@@ -117,7 +117,6 @@ export interface EventData {
     | 'local.translation.end'
     | 'local.tts.start'
     | 'local.tts.end'
-    | 'zoom.speech_start'
     | 'local.native.speech_start'
     | 'local.tts.sentence.start'
     | 'local.tts.sentence.end'

@@ -207,15 +207,6 @@ export interface VolcengineSTSessionConfig extends BaseSessionConfig {
 }
 
 /**
- * Zoom AI Services session configuration
- */
-export interface ZoomAISessionConfig extends BaseSessionConfig {
-  provider: 'zoom_ai';
-  sourceLanguage: string;
-  targetLanguages: string[];
-}
-
-/**
  * Volcengine AST 2.0 session configuration (s2s mode)
  */
 export interface VolcengineAST2SessionConfig extends BaseSessionConfig {
@@ -324,7 +315,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | OpenAILiveSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | ZoomAISessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | OpenAILiveSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -354,10 +345,6 @@ export function isPalabraAISessionConfig(config: SessionConfig): config is Palab
 
 export function isVolcengineSTSessionConfig(config: SessionConfig): config is VolcengineSTSessionConfig {
   return config.provider === 'volcengine_st';
-}
-
-export function isZoomAISessionConfig(config: SessionConfig): config is ZoomAISessionConfig {
-  return config.provider === 'zoom_ai';
 }
 
 export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {

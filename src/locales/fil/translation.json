@@ -104,8 +104,6 @@
     "volcengineAST2GlossaryLibraryTooltip": "Mga dalawang-wikang pares ng termino mula→sa pinagmumulan hanggang pinagpapatunguhan.",
     "volcengineAST2GlossaryManage": "Pamahalaan ang glossary",
     "volcengineAST2CustomVocabularyFooter": "Ang mga di-wastong o walang lamang library ID ay tahimik na pinapalampas — tumatakbo ang session na parang hindi naitakda ang field. Ang mga pagbabago sa Volcengine console ay maaaring tumagal ng ilang minuto bago magkaroon ng bisa.",
-    "zoomAIInfo": "Impormasyon ng Zoom AI Services",
-    "zoomAIInfoText": "Tina-transcribe ng Zoom Scribe ang bawat pagbigkas at isinasalin ito ng Zoom Translator sa teksto. Ang mga pares ng pagsasalin ay dapat may Ingles sa isang panig.",
     "geminiParticipantTokenWarning": "Gumagawa ang Gemini ng mga audio response para sa audio ng kausap na itinatapon, kaya may karagdagang paggamit ng token.",
     "help": "Tulong",
     "helpEmailTooltip": "Mag-report ng bug o humingi ng tulong",
@@ -518,12 +516,6 @@
       "description": "Doubao sabay-sabay na pagsasalin",
       "appIdPlaceholder": "APP ID",
       "accessTokenPlaceholder": "Access Token"
-    },
-    "zoom_ai": {
-      "name": "Zoom AI Services",
-      "description": "Transkripsyon ng Zoom Scribe + Translator (teksto lamang)",
-      "apiKeyPlaceholder": "Zoom Build Platform API Key",
-      "apiSecretPlaceholder": "Zoom Build Platform API Secret"
     },
     "local_inference": {
       "name": "Libre",

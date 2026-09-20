@@ -12,7 +12,7 @@ const FILL_IN_BUDGET_MS = 1_000;
  *
  * Boundaries are the server's and are never touched: these providers close a
  * segment on their own signal (Soniox's <end>, Volcengine's Definite,
- * Palabra's validated_transcription, a server turn, one Zoom REST utterance).
+ * Palabra's validated_transcription, a server turn).
  * The only change is the text.
  *
  * This is the whole of Auto, and the whole of what OpenAI Realtime GA and the
