@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
-import type { PunctuationResult, SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import type {
+  PunctuationResult,
+  SegmentationObservation,
+  SegmentationRuntime,
+} from '../../lib/segmentation/SegmentationRuntime';
 
 /** 60 Japanese characters: three sentences' worth at gateChars('ja', 3) = 60. */
 const LONG_JA = 'あ'.repeat(60);
@@ -89,6 +93,47 @@ describe('punctuateDefinite', () => {
     // gateChars('ja', 1) is 20, so 40 characters clear a one-sentence chunk.
     const text = 'あ'.repeat(40);
     expect(await punctuateDefinite(runtime, 'ja', text, 1)).toBe(`${'あ'.repeat(20)}。${'あ'.repeat(20)}。`);
+  });
+
+  describe('observations', () => {
+    function observing(runtime: SegmentationRuntime) {
+      const events: SegmentationObservation[] = [];
+      return { runtime: { ...runtime, observe: (e: SegmentationObservation) => { events.push(e); } }, events };
+    }
+
+    it('measures every definite segment it sees, whether or not the model runs', async () => {
+      // The one already carrying a terminal never reaches the model, and it is
+      // the more interesting of the two: it is the evidence that this provider
+      // punctuates on its own.
+      const { runtime, events } = observing(marking(20));
+      const punctuated = `${'あ'.repeat(30)}。${'あ'.repeat(30)}`;
+      await punctuateDefinite(runtime, 'ja', punctuated);
+      await punctuateDefinite(runtime, 'ja', LONG_JA);
+      expect(events).toEqual([
+        { kind: 'definite', lang: 'ja', chars: 61, terminals: 1 },
+        { kind: 'definite', lang: 'ja', chars: 60, terminals: 0 },
+      ]);
+    });
+
+    it('measures the raw segment, not the one the model handed back', async () => {
+      const { runtime, events } = observing(marking(20));
+      const filled = await punctuateDefinite(runtime, 'ja', LONG_JA);
+      expect(filled).not.toBe(LONG_JA);
+      expect(events).toEqual([{ kind: 'definite', lang: 'ja', chars: 60, terminals: 0 }]);
+    });
+
+    it('measures a segment too short for the gate, which is where absence shows up most', async () => {
+      const { runtime, events } = observing(marking(20));
+      await punctuateDefinite(runtime, 'ja', 'あ'.repeat(10));
+      expect(events).toEqual([{ kind: 'definite', lang: 'ja', chars: 10, terminals: 0 }]);
+    });
+
+    it('reports nothing when the stage is off for this session', async () => {
+      const { runtime, events } = observing(marking(20));
+      (runtime as { enabled: boolean }).enabled = false;
+      await punctuateDefinite(runtime, 'ja', LONG_JA);
+      expect(events).toEqual([]);
+    });
   });
 });
 

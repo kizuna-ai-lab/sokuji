@@ -285,7 +285,14 @@ export class PalabraAIClient implements IClient {
       // `sessionSegmentation` field doc.
       const runtime = this.segmentation;
       this.sessionSegmentation = runtime?.enabled === true
-        ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+        ? {
+            enabled: true,
+            punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+            // Forwarded so the stage's own counters survive the freeze: this view
+            // is what SentenceStream and punctuateDefinite report through, and
+            // dropping it here would make every seal invisible. Counts, never text.
+            observe: (event) => runtime.observe?.(event),
+          }
         : null;
       
       // Clean up existing sessions before creating new one

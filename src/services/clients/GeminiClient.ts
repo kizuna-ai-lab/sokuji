@@ -439,7 +439,14 @@ export class GeminiClient implements IClient {
       this.segmentationFrozen = true;
       const runtime = this.segmentation;
       this.sessionSegmentation = runtime?.enabled === true
-        ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+        ? {
+            enabled: true,
+            punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+            // Forwarded so the stage's own counters survive the freeze: this view
+            // is what SentenceStream and punctuateDefinite report through, and
+            // dropping it here would make every seal invisible. Counts, never text.
+            observe: (event) => runtime.observe?.(event),
+          }
         : null;
     }
     // Both Push-to-Talk and Push-to-Translate use manual turn control on the client side

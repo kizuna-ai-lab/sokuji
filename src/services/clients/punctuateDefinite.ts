@@ -34,8 +34,14 @@ export async function punctuateDefinite(
   sentencesPerChunk = 3,
 ): Promise<string> {
   if (!runtime || !runtime.enabled) return text;
+  const ends = sentenceEnds(text);
+  // Counts only, and before either gate: a segment the server already
+  // punctuated, and a segment too short to bother with, are exactly the two
+  // cases "how often is punctuation missing" is asking about. `text` itself
+  // never crosses — two integers about it do.
+  runtime.observe?.({ kind: 'definite', lang, chars: text.length, terminals: ends.length });
   if (text.length < gateChars(lang, sentencesPerChunk)) return text;
-  if (sentenceEnds(text).length > 0) return text;
+  if (ends.length > 0) return text;
   // A runtime is contracted never to reject, but a caller that assigns this
   // unconditionally must not be able to lose a segment if one ever does.
   const answer = runtime.punctuate(lang, text).catch(() => null);

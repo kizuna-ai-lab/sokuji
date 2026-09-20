@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SentenceStream, type SealedChunk } from './SentenceStream';
-import type { PunctuationResult, SegmentationRuntime } from './SegmentationRuntime';
+import type {
+  PunctuationResult,
+  SegmentationObservation,
+  SegmentationRuntime,
+} from './SegmentationRuntime';
 
 /** A runtime whose every answer the test writes by hand. */
 function fakeRuntime(answers: Record<string, PunctuationResult | null>) {
@@ -520,5 +524,76 @@ describe('SentenceStream end and disposal', () => {
     stream.end();
     await flush();
     expect(seals).toEqual([]);
+  });
+});
+
+describe('SentenceStream observations', () => {
+  /** A runtime that also collects. */
+  function observing(answers: Record<string, PunctuationResult | null> = {}) {
+    const { runtime, calls } = fakeRuntime(answers);
+    const events: SegmentationObservation[] = [];
+    return {
+      runtime: { ...runtime, observe: (e: SegmentationObservation) => { events.push(e); } },
+      events,
+      calls,
+    };
+  }
+
+  it('reports each seal with its reason and the raw text it consumed', async () => {
+    const { runtime, events } = observing();
+    const stream = new SentenceStream({
+      lang: 'zh', runtime, sentencesPerChunk: 3, onSeal: () => {}, onPending: () => {},
+    });
+    stream.update('第一句话。第二句话。第三句话。后面还有很多很多很多字');
+    await vi.waitFor(() => expect(events.length).toBe(1));
+    expect(events[0]).toEqual({
+      kind: 'seal',
+      reason: 'sentences',
+      lang: 'zh',
+      chars: '第一句话。第二句话。第三句话。'.length,
+      terminals: 3,
+    });
+  });
+
+  it('measures the RAW characters a model-marked seal consumed, not the marked-up ones', async () => {
+    // The tail carries no marks at all, which is the only reason the model ran:
+    // a measurement taken on the answer would report the model's own periods as
+    // the ASR's, and "how often is punctuation missing" would answer itself.
+    const tail = 'a'.repeat(60);
+    const marked = `${'a'.repeat(20)}. ${'a'.repeat(20)}. ${'a'.repeat(20)}`;
+    const { runtime, events } = observing({ [tail]: resultOf(marked, [21, 44]) });
+    const stream = new SentenceStream({
+      lang: 'en', runtime, sentencesPerChunk: 1, onSeal: () => {}, onPending: () => {},
+    });
+    stream.update(tail);
+    await vi.waitFor(() => expect(events.length).toBeGreaterThan(0));
+    const seal = events.find((e) => e.kind === 'seal') as
+      | { kind: 'seal'; reason: string; lang: string; chars: number; terminals: number }
+      | undefined;
+    expect(seal).toMatchObject({ kind: 'seal', reason: 'sentences', lang: 'en', terminals: 0 });
+    expect(seal?.chars).toBe(20);
+  });
+
+  it('reports the final flush too, so the tail an utterance ends on is measured', async () => {
+    const { runtime, events } = observing();
+    const stream = new SentenceStream({
+      lang: 'en', runtime, sentencesPerChunk: 3, onSeal: () => {}, onPending: () => {},
+    });
+    stream.update('Short one. Done');
+    stream.end();
+    await flush();
+    expect(events).toEqual([
+      { kind: 'seal', reason: 'end', lang: 'en', chars: 15, terminals: 1 },
+    ]);
+  });
+
+  it('still seals through a runtime that collects nothing', async () => {
+    const { runtime } = fakeRuntime({});
+    const seals: SealedChunk[] = [];
+    const stream = new SentenceStream({
+      lang: 'zh', runtime, sentencesPerChunk: 3, onSeal: (c) => seals.push(c), onPending: () => {},
+    });
+    stream.update('第一句话。第二句话。第三句话。后面还有很多很多很多字');
+    await vi.waitFor(() => expect(seals.length).toBe(1));
   });
 });

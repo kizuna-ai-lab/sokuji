@@ -46,6 +46,11 @@ vi.mock('../../../lib/local-inference/ModelManager', () => ({
   ModelManager: { getInstance: vi.fn() },
 }));
 
+// House pattern (HelpSection.test.tsx): the real module re-exports through
+// shared/index.tsx, whose module body mounts a React root.
+const trackEvent = vi.fn();
+vi.mock('../../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
+
 const reportWarningMock = vi.fn();
 vi.mock('../../../lib/diagnostics/report', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../lib/diagnostics/report')>();
@@ -100,6 +105,7 @@ beforeEach(() => {
   cancel.mockReset();
   deleteModels.mockReset().mockResolvedValue(undefined);
   reportWarningMock.mockClear();
+  trackEvent.mockClear();
   useSegmentationStore.setState({
     phase: 'unknown',
     downloadedBytes: 0,
@@ -146,6 +152,59 @@ describe('SentenceSegmentationSection', () => {
     expect(setSentenceSegmentation).toHaveBeenCalledWith(true);
     expect(download).toHaveBeenCalledTimes(1);
     expect(confirmation()).toBeNull();
+  });
+
+  describe('download telemetry', () => {
+    /** The store's `download()` never rejects: it writes the phase and
+     *  resolves, which is why the outcome is read off the phase. */
+    const settleDownloadInto = async (phase: 'ready' | 'error' | 'missing') => {
+      download.mockImplementation(async () => { useSegmentationStore.setState({ phase }); });
+      fireEvent.click(screen.getByText(`Download ${formatBytes(PACK_TOTAL_BYTES)}`));
+      await vi.waitFor(() => expect(trackEvent).toHaveBeenCalled());
+    };
+
+    const startFromConfirmation = () => {
+      useSegmentationStore.setState({ phase: 'missing' });
+      renderSection();
+      fireEvent.click(segmentationToggle());
+    };
+
+    it('reports the confirmed download, its size and how long it took', async () => {
+      startFromConfirmation();
+      await settleDownloadInto('ready');
+
+      expect(trackEvent).toHaveBeenCalledWith('segmentation_models_download', expect.objectContaining({
+        // The same 1024 base as the size the confirmation dialog showed.
+        size_mb: Math.round(PACK_TOTAL_BYTES / (1024 * 1024)),
+        result: 'ok',
+      }));
+      expect(typeof trackEvent.mock.calls[0][1].duration_ms).toBe('number');
+    });
+
+    it('reports a failed download as error', async () => {
+      startFromConfirmation();
+      await settleDownloadInto('error');
+      expect(trackEvent.mock.calls[0][1].result).toBe('error');
+    });
+
+    it('reports a download the user cancelled as cancelled, not as a failure', async () => {
+      // Cancel leaves 'missing' behind — the one outcome that is neither the
+      // pack being there nor anything having gone wrong.
+      startFromConfirmation();
+      await settleDownloadInto('missing');
+      expect(trackEvent.mock.calls[0][1].result).toBe('cancelled');
+    });
+
+    it('reports the status line Retry the same way as the confirmation', async () => {
+      mockSentenceSegmentation = true;
+      useSegmentationStore.setState({ phase: 'error', error: 'network down' });
+      renderSection();
+
+      download.mockImplementation(async () => { useSegmentationStore.setState({ phase: 'ready' }); });
+      fireEvent.click(screen.getByText('Retry'));
+      await vi.waitFor(() => expect(trackEvent).toHaveBeenCalled());
+      expect(trackEvent.mock.calls[0][1].result).toBe('ok');
+    });
   });
 
   it('cancelling the confirmation leaves the setting off', () => {

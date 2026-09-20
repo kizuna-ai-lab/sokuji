@@ -19,6 +19,7 @@ import {
 import { isLowMemoryDevice } from '../../../lib/segmentation/PunctuationRuntime';
 import { formatBytes } from '../../../lib/local-inference/formatBytes';
 import { describeCause, reportWarning } from '../../../lib/diagnostics/report';
+import { useAnalytics } from '../../../lib/analytics';
 import './SentenceSegmentationSection.scss';
 
 interface SentenceSegmentationSectionProps {
@@ -53,6 +54,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   const { downloadedBytes } = useSegmentationProgress();
   const error = useSegmentationStore((state) => state.error);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { trackEvent } = useAnalytics();
 
   // Settings can be opened long after a Clear all on the Storage page, or on a
   // launch where nothing else has asked the disk yet: `phase` starts 'unknown'
@@ -75,10 +77,42 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
     void useSegmentationStore.getState().refresh();
   };
 
+  /**
+   * The 402 MB, timed and reported. Here and not in the store: no store in this
+   * repo imports analytics, and slice 3b's store deliberately reaches only for
+   * diagnostics.
+   *
+   * The outcome is read off the store's phase rather than from `download()`,
+   * which resolves the same way however it ended — it writes 'error' itself and
+   * never rejects, and a cancel leaves 'missing' behind. That is also why
+   * `cancelled` is a phase and not a caught exception.
+   */
+  const runDownload = () => {
+    const startedAt = Date.now();
+    void useSegmentationStore.getState().download().then(() => {
+      const durationMs = Date.now() - startedAt;
+      const phase = useSegmentationStore.getState().phase;
+      const result = phase === 'ready' ? 'ok' : phase === 'error' ? 'error' : 'cancelled';
+      trackEvent('segmentation_models_download', {
+        // The same 1024 base `formatBytes` uses, so this number is the one the
+        // confirmation dialog put in front of the user.
+        size_mb: Math.round(PACK_TOTAL_BYTES / (1024 * 1024)),
+        result,
+        duration_ms: durationMs,
+      });
+      // Console only. A finished download is not a failure, so it does not
+      // belong in the panel's plain-entry stream; the one outcome that IS a
+      // failure already reaches it, from the store's own `reportWarning`.
+      console.info(
+        `[Segmentation] punctuation pack download ${result} after ${Math.round(durationMs / 1000)}s`,
+      );
+    });
+  };
+
   const confirmDownload = () => {
     setConfirmOpen(false);
     void setSentenceSegmentation(true);
-    void useSegmentationStore.getState().download();
+    runDownload();
   };
 
   // Every route to the 402 MB, in one place. `lowMemory` is not only the
@@ -190,7 +224,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
               <button
                 type="button"
                 className="sentence-segmentation__pack-btn"
-                onClick={() => { void useSegmentationStore.getState().download(); }}
+                onClick={runDownload}
                 disabled={downloadDisabled}
               >
                 <RotateCw size={12} />

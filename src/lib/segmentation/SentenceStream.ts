@@ -4,7 +4,7 @@ import {
   skeleton,
   baseLang,
 } from './sentenceEnd';
-import type { PunctuationResult, SegmentationRuntime } from './SegmentationRuntime';
+import type { PunctuationResult, SealReason, SegmentationRuntime } from './SegmentationRuntime';
 
 /**
  * Skeleton characters that must follow a sentence end before it is counted.
@@ -54,7 +54,7 @@ export function zhFallbackChars(n: number): number {
 
 export interface SealedChunk {
   text: string;
-  reason: 'sentences' | 'length' | 'end';
+  reason: SealReason;
 }
 
 export interface SentenceStreamOptions {
@@ -129,7 +129,10 @@ export class SentenceStream {
     // it checks whether the stage is on, so a null or disabled runtime would
     // otherwise still emit a final chunk — and "no runtime" must mean no
     // sealing at all, including this one.
-    if (this.active() && tail.length > 0) this.opts.onSeal({ text: tail, reason: 'end' });
+    if (this.active() && tail.length > 0) {
+      this.observe(tail, 'end');
+      this.opts.onSeal({ text: tail, reason: 'end' });
+    }
   }
 
   dispose(): void {
@@ -339,10 +342,27 @@ export class SentenceStream {
     return raw.length;
   }
 
-  private seal(sealed: string, remainder: string, reason: SealedChunk['reason']): void {
+  private seal(sealed: string, remainder: string, reason: SealReason): void {
     if (this.disposed || sealed.length === 0) return;
+    // The raw characters this seal consumed, taken BEFORE the pending tail is
+    // replaced. `sealed` is not the same thing on the model path: there it
+    // carries the marks the model inserted, and measuring those would make the
+    // stage's own punctuation look like the ASR's.
+    this.observe(this.pending.slice(0, this.pending.length - remainder.length), reason);
     this.pending = remainder;
     this.opts.onSeal({ text: sealed, reason });
     this.opts.onPending(remainder);
+  }
+
+  /** Counts only, and only when the runtime collects them. `raw` never leaves
+   *  this method: what crosses is two integers about it. */
+  private observe(raw: string, reason: SealReason): void {
+    this.opts.runtime?.observe?.({
+      kind: 'seal',
+      reason,
+      lang: this.lang,
+      chars: raw.length,
+      terminals: ruleSentenceEnds(raw).length,
+    });
   }
 }

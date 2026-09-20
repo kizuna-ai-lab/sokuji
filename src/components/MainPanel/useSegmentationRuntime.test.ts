@@ -239,4 +239,28 @@ describe('useSegmentationRuntime', () => {
     expect(result.current).toBe(second);
     expect(second.dispose).not.toHaveBeenCalled();
   });
+
+  // The backend is the fact worth having: a WASM fallback is several times
+  // slower than WebGPU, and nothing else in the app reports which one a launch
+  // ended up on.
+  it('reports each model load, with its backend and how long it took', () => {
+    const trackEvent = vi.fn();
+    const { result } = renderHook(() => useSegmentationRuntime(trackEvent));
+
+    act(() => { asFake(result.current!).opts.onLoaded?.('sat-3l-sm', 'wasm', 1234.6); });
+
+    expect(trackEvent).toHaveBeenCalledWith('segmentation_model_load', {
+      model: 'sat-3l-sm',
+      backend: 'wasm',
+      load_ms: 1235,
+      result: 'ok',
+    });
+  });
+
+  it('loads a model perfectly well with nobody tracking', () => {
+    const { result } = renderHook(() => useSegmentationRuntime());
+    expect(() => {
+      act(() => { asFake(result.current!).opts.onLoaded?.('fireredpunc', 'webgpu', 10); });
+    }).not.toThrow();
+  });
 });

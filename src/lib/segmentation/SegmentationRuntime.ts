@@ -21,10 +21,49 @@ export interface PunctuationResult {
   model: PunctuationModelId;
 }
 
+/** Why a chunk was sealed. Shared with `SealedChunk` so an observation and the
+ *  chunk that produced it can never drift apart. */
+export type SealReason = 'sentences' | 'length' | 'end';
+
+/**
+ * One thing the stage did, reported as counts.
+ *
+ * Never carries text, and never carries anything a transcript could be
+ * reconstructed from: `chars` and `terminals` are two integers about a piece of
+ * text the observer never sees. That is the whole point — the session-end
+ * analytics payload is built from these, and no transcript may reach it.
+ *
+ * `chars`/`terminals` describe the RAW text, as the ASR produced it, before any
+ * mark the stage inserted. Measuring the marked-up text instead would make
+ * "how often is punctuation missing" answer itself.
+ */
+export type SegmentationObservation =
+  /** A stream closed one bubble. */
+  | { kind: 'seal'; reason: SealReason; lang: string; chars: number; terminals: number }
+  /** One server-decided segment went through the fill-in helper. */
+  | { kind: 'definite'; lang: string; chars: number; terminals: number }
+  /** One `punctuate()` call. Synthesised by the instrumenting wrapper in
+   *  segmentationTelemetry.ts, never emitted from here. */
+  | { kind: 'model_call' };
+
 export interface SegmentationRuntime {
   /** False when the user switched the feature off. A disabled runtime never
    *  seals and never downloads. */
   readonly enabled: boolean;
+  /**
+   * Counters, for the session-end analytics event and the diagnostic log.
+   *
+   * The second method on an interface whose doc says "deliberately one method
+   * and one flag", and the exception proves the rule: a client still never
+   * calls it. `SentenceStream` and `punctuateDefinite` do, because they are the
+   * only code that knows a seal's reason and sees the raw text before the stage
+   * touches it, and because routing it through the runtime is what keeps the
+   * leg attribution — which only MainPanel knows — out of every client.
+   *
+   * Optional: a plain `PunctuationRuntime` collects nothing, and a runtime that
+   * omits this is observed by nobody.
+   */
+  observe?(event: SegmentationObservation): void;
   /**
    * Punctuate one tail. Resolves to null — never rejects — whenever the stage
    * cannot help: model not downloaded, still loading, disabled for the

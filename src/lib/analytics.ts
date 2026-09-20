@@ -49,6 +49,13 @@ export interface AnalyticsEvents {
     /** Symmetric channel composition — which clients actually started.
      *  ['speaker'] = scenario 1, ['participant'] = scenario 2, both = scenario 3. */
     channels?: string[];
+    /** The sentence segmentation toggle. On its own it says only what the user
+     *  asked for. */
+    sentence_segmentation_enabled?: boolean;
+    /** A1: the toggle is on AND all three models are on disk. The only one of
+     *  the two that says whether this session could seal anything. */
+    sentence_segmentation_active?: boolean;
+    sentence_segmentation_chunk_sentences?: number;
   };
   'translation_session_end': {
     session_id: string;
@@ -56,6 +63,12 @@ export interface AnalyticsEvents {
     translation_count: number;
     provider: string;
     error_count?: number;
+    /** Seals by reason, per leg, e.g. { speaker_sentences: 12, speaker_length: 3 }. */
+    segmentation_seals?: Record<string, number>;
+    segmentation_model_calls?: Record<string, number>;
+    /** Sentence terminals per 100 characters, per leg / ASR model / language.
+     *  The measure of where punctuation is actually absent. Counts only. */
+    segmentation_terminals_per_100?: Record<string, number>;
   };
   'translation_completed': {
     session_id: string;
@@ -256,6 +269,12 @@ export interface AnalyticsEvents {
     feature_name: string;
     time_since_install_hours?: number;
   };
+  /** The sentence segmentation pack: three punctuation models, one opt-in
+   *  download. 'cancelled' is the user turning the toggle back off mid-fetch. */
+  'segmentation_models_download': { size_mb: number; result: 'ok' | 'error' | 'cancelled'; duration_ms: number };
+  /** One punctuation model reaching memory. The backend is the fact worth
+   *  having: a WASM fallback is several times slower than WebGPU. */
+  'segmentation_model_load': { model: string; backend: 'webgpu' | 'wasm'; load_ms: number; result: 'ok' | 'error' };
 
   // Authentication events
   'sign_in_attempted': { method: 'email' };

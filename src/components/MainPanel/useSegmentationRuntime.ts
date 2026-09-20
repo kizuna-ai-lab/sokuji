@@ -3,7 +3,21 @@ import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
 import type { PunctuationModelId, SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { useSentenceSegmentation } from '../../stores/settingsStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
+import type { AnalyticsEvents } from '../../lib/analytics';
 import { reportWarning } from '../../lib/diagnostics/report';
+
+/**
+ * MainPanel's `trackEvent`, narrowed to the one event this hook emits.
+ *
+ * Injected rather than imported: `src/lib/analytics.ts` re-exports through
+ * `shared/index.tsx`, whose module body mounts a React root, so a value import
+ * of it here would break this hook's own test on load. The type import above is
+ * erased and costs nothing.
+ */
+export type TrackSegmentationEvent = (
+  event: 'segmentation_model_load',
+  properties: AnalyticsEvents['segmentation_model_load'],
+) => void;
 
 /**
  * Builds the app's single PunctuationRuntime and attaches the two wires the
@@ -34,10 +48,17 @@ import { reportWarning } from '../../lib/diagnostics/report';
  * the switch -- or the pack's download finishing -- takes effect on the next
  * call without tearing down a loaded model.
  */
-export function useSegmentationRuntime(): SegmentationRuntime | null {
+export function useSegmentationRuntime(trackEvent?: TrackSegmentationEvent): SegmentationRuntime | null {
   const enabled = useSentenceSegmentation();
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
+
+  // Through a ref, because the runtime is built once in a mount-only effect
+  // and `trackEvent` is a fresh closure on every render. Adding it to the
+  // effect's dependencies would tear the runtime — and every resident model —
+  // down and up again on each render instead.
+  const trackEventRef = useRef(trackEvent);
+  trackEventRef.current = trackEvent;
 
   const [runtime, setRuntime] = useState<PunctuationRuntime | null>(null);
 
@@ -62,7 +83,18 @@ export function useSegmentationRuntime(): SegmentationRuntime | null {
       // actually on disk.
       isEnabled: () => enabledRef.current && useSegmentationStore.getState().phase === 'ready',
       onLoaded: (model, backend, loadMs) => {
+        // The console line stays, and stays unconditional: it is the one window
+        // onto which backend a model actually loaded on. It does NOT also
+        // become a LogsPanel entry — a load is not a failure, and the panel's
+        // plain-entry stream is "Problems" only (diagnostics design §4, and the
+        // consoleLedger invariant that only report.ts writes plain entries).
         console.info(`[Segmentation] ${model} loaded on ${backend} in ${Math.round(loadMs)}ms`);
+        trackEventRef.current?.('segmentation_model_load', {
+          model,
+          backend,
+          load_ms: Math.round(loadMs),
+          result: 'ok',
+        });
       },
       onInference: (model, info) => {
         if (!seen.has(model)) {

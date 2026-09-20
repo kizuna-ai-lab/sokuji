@@ -61,6 +61,23 @@ This document provides a comprehensive overview of all analytics events tracked 
 - `provider` (string): AI provider (openai, gemini, comet_api, palabra_ai)
 - `model` (string, optional): Model name
 - `vad_mode` (string, optional): Voice activity detection mode
+- `asr_model` (string, optional): Speaker leg's ASR model — local providers only
+- `translation_model` (string, optional): Speaker leg's translation model, or `'unknown'`
+- `tts_model` (string, optional): Speaker leg's TTS model, or `'none'`
+- `participant_asr_model` (string, optional): Participant leg's own ASR model; absent unless that leg started
+- `participant_translation_model` (string, optional): Participant leg's own translation model, or `'none'`
+- `noise_suppression_enabled` (boolean, optional): Whether noise suppression is on
+- `noise_suppression_mode` (string, optional): Noise suppression mode
+- `echo_cancellation_enabled` (boolean, optional): Whether echo cancellation is on
+- `real_voice_passthrough_enabled` (boolean, optional): Whether the speaker hears their own voice
+- `transport` (string, optional): `'websocket'` or `'webrtc'`
+- `platform` (string, optional): `'app'`, `'extension'` or `'web'`
+- `input_device_on` (boolean, optional): Whether the microphone is unmuted
+- `monitor_device_on` (boolean, optional): Whether the monitor output is unmuted
+- `channels` (string[], optional): Which legs started — `['speaker']`, `['participant']` or both
+- `sentence_segmentation_enabled` (boolean, optional): The sentence segmentation toggle
+- `sentence_segmentation_active` (boolean, optional): Toggle on AND all three punctuation models on disk — the only one of the two that says whether this session could seal anything
+- `sentence_segmentation_chunk_sentences` (number, optional): Sentences per bubble, 1-5
 
 ### `translation_session_end`
 **Description**: Translation session ends  
@@ -70,6 +87,9 @@ This document provides a comprehensive overview of all analytics events tracked 
 - `translation_count` (number): Number of translations performed
 - `provider` (string): AI provider used
 - `error_count` (number, optional): Number of errors during session
+- `segmentation_seals` (object, optional): Seals by reason, per leg — keys are `<leg>_<reason>` with reason one of `sentences`, `length`, `end`, e.g. `{ speaker_sentences: 12, speaker_length: 3 }`; values are counts
+- `segmentation_model_calls` (object, optional): Punctuation model calls, keyed by leg, e.g. `{ speaker: 40 }`
+- `segmentation_terminals_per_100` (object, optional): Sentence terminals per 100 raw characters, keyed `<leg>_<asr model>_<language>` — the measure of where punctuation is actually absent. Measured on the ASR's own text, before the stage inserts anything. The ASR model is `unknown` for a provider that names no model of its own; `provider` above is what tells those apart. Only sessions where the stage was active report this at all, so read it against `sentence_segmentation_active` on the matching `translation_session_start`.
 
 ### `translation_completed`
 **Description**: Individual translation completed  
@@ -303,6 +323,21 @@ This document provides a comprehensive overview of all analytics events tracked 
 **Properties**:
 - `feature_name` (string): Name of feature
 - `time_since_install_hours` (number, optional): Hours since installation
+
+### `segmentation_models_download`
+**Description**: The sentence segmentation pack — three punctuation models, one opt-in download — finished, from either the confirmation dialog or the settings status line's Retry  
+**Properties**:
+- `size_mb` (number): Size of the whole pack in MB (1024 base, the same number the confirmation dialog showed)
+- `result` ('ok' | 'error' | 'cancelled'): `cancelled` is the user turning the toggle back off mid-fetch
+- `duration_ms` (number): How long the download ran before it settled
+
+### `segmentation_model_load`
+**Description**: One punctuation model reached memory  
+**Properties**:
+- `model` (string): `fireredpunc`, `edge-punct-en` or `sat-3l-sm`
+- `backend` ('webgpu' | 'wasm'): Which backend it loaded on — a WASM fallback is several times slower
+- `load_ms` (number): Load time in milliseconds
+- `result` ('ok' | 'error'): Only `ok` is emitted today; a failed load reaches the diagnostic log instead
 
 ## Super Properties
 
