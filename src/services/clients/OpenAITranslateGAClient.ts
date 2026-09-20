@@ -15,6 +15,7 @@ import { OpenAIClient } from './OpenAIClient';
 import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { SilenceDeferral } from '../../lib/segmentation/silenceDeferral';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
@@ -161,6 +162,11 @@ export class OpenAITranslateGAClient implements IClient {
    *  turn around and end() the stream that produced it: the remainder that
    *  stream still holds is what opens the next item. */
   private sealingUser = false;
+  /** While the stage runs, a silence timer that would cut a sentence in half
+   *  defers instead. Source side only — there is no translation-side stream
+   *  here to consult, so that timer keeps today's behaviour. See
+   *  silenceDeferral.ts. */
+  private userDeferral = new SilenceDeferral();
   /** The language the stream punctuates in. Read once at connect() — the API
    *  reports no per-item detected language, so nothing ever changes it. */
   private sourceLanguage = 'auto';
@@ -259,6 +265,18 @@ export class OpenAITranslateGAClient implements IClient {
   private resetUserSilenceTimer(): void {
     if (this.userSilenceTimer) clearTimeout(this.userSilenceTimer);
     this.userSilenceTimer = setTimeout(() => {
+      this.userSilenceTimer = null;
+      // While the stage runs, a pause in the middle of a sentence is the
+      // speaker resting at a comma, not the end of a bubble: a live session cut
+      // "…成为商人或者是商队的向导，" from "以及保镖。" ten seconds later, which
+      // is a pause cut in the mode that promised sentence cuts. Deferred only
+      // while the tail keeps growing, so an abandoned sentence still closes one
+      // window after the last word. With no stream there is nothing to consult
+      // and the old behaviour stands.
+      if (this.userStream && this.userDeferral.deferAtExpiry(this.userPending)) {
+        this.resetUserSilenceTimer();
+        return;
+      }
       this.completeUserItem();
     }, this.userSilenceTimeoutMs);
   }
@@ -405,6 +423,9 @@ export class OpenAITranslateGAClient implements IClient {
     // place the stage's stream has to be wound up; the seal it emits closes
     // the item on its own, and the code below then finds nothing left to do.
     this.endUserStream();
+    // Ahead of the early return: the timer may have fired with no item open,
+    // and the tail it remembered must not be held against the next one.
+    this.userDeferral.reset();
     if (!this.currentUserItemId) return;
     const item = this.itemLookup.get(this.currentUserItemId);
     if (item) {

@@ -38,6 +38,7 @@ import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio
 import { OpenAITranslateGAClient, computeRms } from './OpenAITranslateGAClient';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { SilenceDeferral } from '../../lib/segmentation/silenceDeferral';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
@@ -177,6 +178,11 @@ export class OpenAITranslateWebRTCClient implements IClient {
   /** Set while a seal from the stream is closing an item, so the close does not
    *  turn around and end() the stream that produced it. */
   private sealingUser = false;
+  /** While the stage runs, the pair timer defers rather than cut a sentence in
+   *  half. It reads the SOURCE stream's tail, which is the only one it can:
+   *  this transport has no translation-side stream (see `userStream` above),
+   *  and one timer closes both sides at once. See silenceDeferral.ts. */
+  private pairDeferral = new SilenceDeferral();
   /** The language the stream punctuates in, read once at connect(). */
   private sourceLanguage = 'auto';
 
@@ -212,6 +218,18 @@ export class OpenAITranslateWebRTCClient implements IClient {
   private resetDeltaTimer(): void {
     if (this.deltaTimer) clearTimeout(this.deltaTimer);
     this.deltaTimer = setTimeout(() => {
+      this.deltaTimer = null;
+      // While the stage runs, a pause in the middle of a sentence is the
+      // speaker resting at a comma, not the end of a bubble: a live session cut
+      // "…成为商人或者是商队的向导，" from "以及保镖。" ten seconds later, which
+      // is a pause cut in the mode that promised sentence cuts. Deferred only
+      // while the tail keeps growing, so an abandoned sentence still closes one
+      // window after the last word. With no stream there is nothing to consult
+      // and the old behaviour stands.
+      if (this.userStream && this.pairDeferral.deferAtExpiry(this.userPending)) {
+        this.resetDeltaTimer();
+        return;
+      }
       this.completeCurrentPair();
     }, this.pairSilenceMs);
   }
@@ -266,6 +284,10 @@ export class OpenAITranslateWebRTCClient implements IClient {
     // the stage's stream is wound up; the seal it emits closes the item on its
     // own and the code below then finds nothing left to do.
     this.endUserStream();
+    // The next item gets its own window, whether a seal or the timer ended
+    // this one — and ahead of the early return, since the timer may have fired
+    // with no item open at all.
+    this.pairDeferral.reset();
     const pair = this.currentPair;
     if (!pair?.userItemId) return;
     const userItem = this.itemLookup.get(pair.userItemId);

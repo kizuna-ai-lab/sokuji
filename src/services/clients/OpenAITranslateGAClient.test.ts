@@ -984,6 +984,9 @@ describe('OpenAITranslateGAClient with the segmentation stage', () => {
     expect(stream).not.toBeNull();
     const endSpy = vi.spyOn(stream, 'end');
 
+    // Two windows: the tail is mid-sentence, so the first expiry defers and
+    // the second — with nothing new arrived — closes.
+    vi.advanceTimersByTime(1001);
     vi.advanceTimersByTime(1001);
 
     expect(endSpy).toHaveBeenCalledTimes(1);
@@ -1005,8 +1008,77 @@ describe('OpenAITranslateGAClient with the segmentation stage', () => {
     await flush();
     expect(usersOf(client)).toHaveLength(2);
 
+    // Two windows: the remainder is mid-sentence, so the first expiry defers.
+    vi.advanceTimersByTime(1001);
     vi.advanceTimersByTime(1001);
     expect(usersOf(client)[1].status).toBe('completed');
+  });
+
+  it('a source tail mid-sentence defers the pause for as long as the speaker keeps talking', async () => {
+    // The bug this exists for: a live session cut "…成为商人或者是商队的向导，"
+    // from "以及保镖。" ten seconds later, because the speaker rested at the
+    // comma for longer than the pause setting.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2, sourcePauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // The speaker carried on: the tail grew, so the next expiry defers again.
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(10) });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // Nothing more arrived. The speaker has stopped, so the bubble closes.
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+    expect(usersOf(client)[0].formatted?.transcript).toBe('あ'.repeat(30));
+  });
+
+  it('a source tail that finished its sentence closes on the first pause', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5, sourcePauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'これはテストです。' });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+  });
+
+  it('closes a mid-sentence source item on the first pause with the stage off, exactly as before', async () => {
+    const client = makeClient({ sourcePauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+  });
+
+  it('the translation timer keeps closing on the first pause: there is no stream on that side to consult', async () => {
+    // Slice 4 removed this client's translation-side stream deliberately (see
+    // the `userStream` field doc), so the assistant timer has no tail to read
+    // and keeps today's behaviour, mid-sentence or not.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2, translationPauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: 'い'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('completed');
   });
 
   it('a runtime that is disabled at connect leaves the client exactly as it is today', async () => {

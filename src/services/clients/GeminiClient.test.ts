@@ -1120,6 +1120,9 @@ describe('GeminiClient with the segmentation stage', () => {
     const stream = (client as any).userStream;
     expect(stream).not.toBeNull();
 
+    // Two windows: the tail is mid-sentence, so the first expiry defers and
+    // the second — with nothing new arrived — closes.
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
     await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
 
     expect((client as any).userStream).toBeNull();
@@ -1129,7 +1132,54 @@ describe('GeminiClient with the segmentation stage', () => {
     expect(item.formatted.transcript).toBe('あ'.repeat(30));
   });
 
-  it('forgives one pause inside an unfinished translated sentence, not two', async () => {
+  it('a source tail mid-sentence defers the pause for as long as the speaker keeps talking', async () => {
+    // The bug this exists for: a live session cut "…成为商人或者是商队的向导，"
+    // from "以及保镖。" ten seconds later, because the speaker rested at the
+    // comma for longer than the pause setting.
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(20));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+
+    // The speaker carried on: the tail grew, so the next expiry defers again.
+    sendInput('あ'.repeat(10));
+    await flush();
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+
+    // Nothing more arrived. The speaker has stopped, so the bubble closes.
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+    expect(itemsOf('user')[0].formatted.transcript).toBe('あ'.repeat(30));
+  });
+
+  it('closes a source segment on the first pause when its sentence finished', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    await client.connect(translateConfig as any);
+
+    sendInput('これはテストです。');
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+  });
+
+  it('closes a mid-sentence source segment on the first pause with the stage off, exactly as before', async () => {
+    client = makeClient({});
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(30));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+  });
+
+  it('waits out a pause inside an unfinished translated sentence until the model stops', async () => {
     // The model translates in bursts, and closing at the first gap cut a live
     // session's translation into half-sentences while resetting the sentence
     // count that decides the bubble.
@@ -1148,6 +1198,25 @@ describe('GeminiClient with the segmentation stage', () => {
     const [item] = itemsOf('assistant');
     expect(item.status).toBe('completed');
     expect(item.formatted.transcript).toBe('い'.repeat(30));
+  });
+
+  it('keeps deferring the translation segment while the model is still emitting text', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    await client.connect(translateConfig as any);
+
+    sendOutput('い'.repeat(20));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('in_progress');
+
+    sendOutput('い'.repeat(10));
+    await flush();
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('in_progress');
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('completed');
   });
 
   it('closes on the first pause when the translated sentence finished', async () => {

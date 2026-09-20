@@ -36,6 +36,7 @@ import {
   lastSentenceEnd,
   lastClauseEnd,
 } from '../../lib/segmentation/sentenceEnd';
+import { SilenceDeferral } from '../../lib/segmentation/silenceDeferral';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
@@ -201,12 +202,14 @@ export class OpenAILiveClient implements IClient {
    *  next delta can be handed the whole unsealed tail. */
   private userPending = '';
   private assistantPending = '';
+  /** While the stage runs, a silence timer that would cut a sentence in half
+   *  defers instead — one per side, because "has the tail grown" is a question
+   *  about that side's own stream. See silenceDeferral.ts. */
+  private userDeferral = new SilenceDeferral();
+  private assistantDeferral = new SilenceDeferral();
   /** Set while a seal from the stream is closing an item, so the close does not
    *  turn around and end() the stream that produced it: the remainder that
    *  stream still holds is what opens the next item. */
-  /** One pause inside an unfinished translated sentence is forgiven; see
-   *  armAssistantSilenceTimer. Mirrors userTimerFiredOnce on the other side. */
-  private assistantTimerFiredOnce = false;
   private sealingUser = false;
   private sealingAssistant = false;
 
@@ -382,6 +385,8 @@ export class OpenAILiveClient implements IClient {
     this.userItemStartMs = null;
     this.userLastEndMs = null;
     this.userTimerFiredOnce = false;
+    this.userDeferral.reset();
+    this.assistantDeferral.reset();
     this.currentAssistantStartMs = null;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
@@ -867,7 +872,7 @@ export class OpenAILiveClient implements IClient {
             }
           }
         }
-        this.resetAssistantSilenceTimer();
+        this.armAssistantSilenceTimer();
         break;
       }
 
@@ -919,7 +924,7 @@ export class OpenAILiveClient implements IClient {
         });
         // Voiced audio is real assistant activity — keep the item open until
         // playback-side rendering also winds down.
-        this.resetAssistantSilenceTimer();
+        this.armAssistantSilenceTimer();
         break;
       }
 
@@ -998,6 +1003,17 @@ export class OpenAILiveClient implements IClient {
     if (this.userSilenceTimer) clearTimeout(this.userSilenceTimer);
     this.userSilenceTimer = setTimeout(() => {
       this.userSilenceTimer = null;
+      // While the stage runs, a pause in the middle of a sentence is the
+      // speaker resting at a comma, not the end of a bubble: a live session cut
+      // "…成为商人或者是商队的向导，" from "以及保镖。" ten seconds later, which
+      // is a pause cut in the mode that promised sentence cuts. Deferred only
+      // while the tail keeps growing, so an abandoned sentence still closes one
+      // window after the last word. With no stream there is nothing to consult
+      // and the old behaviour stands.
+      if (this.userStream && this.userDeferral.deferAtExpiry(this.userPending)) {
+        this.armUserSilenceTimer();
+        return;
+      }
       const span = this.userItemStartMs !== null && this.userLastEndMs !== null
         ? this.userLastEndMs - this.userItemStartMs : null;
       // A short item survives one ordinary pause; twice the setting ends anything.
@@ -1030,11 +1046,6 @@ export class OpenAILiveClient implements IClient {
       ? this.itemLookup.get(this.currentAssistantItemId)?.formatted?.transcript ?? '' : '';
   }
 
-  private resetAssistantSilenceTimer(): void {
-    this.assistantTimerFiredOnce = false;
-    this.armAssistantSilenceTimer();
-  }
-
   private armAssistantSilenceTimer(): void {
     if (this.assistantSilenceTimer) clearTimeout(this.assistantSilenceTimer);
     this.assistantSilenceTimer = setTimeout(() => {
@@ -1044,23 +1055,15 @@ export class OpenAILiveClient implements IClient {
       // half-sentences, one of them nothing but a comma, and every cut also
       // reset the stage's sentence count, so N never decided anything on this
       // side. A pause with an unfinished sentence still open is the model
-      // drawing breath; one pause is forgiven, and a second one closes the
-      // item the way it always did. Only while the stage is running — with no
-      // stream there is nothing to wait for and the old behaviour stands.
-      if (this.assistantStream && !this.assistantTailIsClean() && !this.assistantTimerFiredOnce) {
-        this.assistantTimerFiredOnce = true;
+      // drawing breath, and the wait lasts as long as the tail keeps growing.
+      // Only while the stage is running — with no stream there is nothing to
+      // wait for and the old behaviour stands.
+      if (this.assistantStream && this.assistantDeferral.deferAtExpiry(this.assistantPending)) {
         this.armAssistantSilenceTimer();
         return;
       }
       this.completeAssistantItem();
     }, this.assistantSilenceTimeoutMs);
-  }
-
-  /** The unsealed translation tail is a place a bubble may end: nothing left
-   *  to seal, or a sentence that finished. */
-  private assistantTailIsClean(): boolean {
-    const tail = this.assistantPending.trimEnd();
-    return tail.length === 0 || lastSentenceEnd(tail) === tail.length;
   }
 
   private ensureUserItem(): string {
@@ -1239,6 +1242,9 @@ export class OpenAILiveClient implements IClient {
     // the item on its own, and the code below then finds nothing left to do.
     this.endUserStream();
     this.userItemStartMs = null;
+    // Ahead of the early return: the timer may have fired with no item open,
+    // and the tail it remembered must not be held against the next one.
+    this.userDeferral.reset();
     if (!this.currentUserItemId) return;
     const item = this.itemLookup.get(this.currentUserItemId);
     if (item) {
@@ -1327,6 +1333,9 @@ export class OpenAILiveClient implements IClient {
     // item through sealAssistantItem. Queueing it twice would hand its audio
     // over twice.
     if (this.currentAssistantItemId !== itemId) return;
+    // The next item gets its own window, whether a seal or the timer ended
+    // this one's text.
+    this.assistantDeferral.reset();
     this.pendingAudioItems.push({ id: itemId, endMs: this.assistantTextEndMs.get(itemId) ?? null });
     this.currentAssistantItemId = null;
     this.currentAssistantStartMs = null;
@@ -1386,6 +1395,7 @@ export class OpenAILiveClient implements IClient {
       this.finalizeAssistantItem(itemId);
     }
     this.currentAssistantStartMs = null;
+    this.assistantDeferral.reset();
     if (this.assistantSilenceTimer) {
       clearTimeout(this.assistantSilenceTimer);
       this.assistantSilenceTimer = null;

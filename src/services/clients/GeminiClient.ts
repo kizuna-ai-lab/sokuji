@@ -13,7 +13,7 @@ import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyVa
 import i18n from '../../locales';
 import { Provider, ProviderType } from '../../types/Provider';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
-import { lastSentenceEnd } from '../../lib/segmentation/sentenceEnd';
+import { SilenceDeferral } from '../../lib/segmentation/silenceDeferral';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
@@ -153,9 +153,11 @@ export class GeminiClient implements IClient {
    *  equal to the matching `currentTurn` accumulator. */
   private userPending = '';
   private assistantPending = '';
-  /** One pause inside an unfinished translated sentence is forgiven; see
-   *  armAssistantSegmentTimer. */
-  private assistantTimerFiredOnce = false;
+  /** While the stage runs, a segment timer that would cut a sentence in half
+   *  defers instead — one per side, because "has the tail grown" is a question
+   *  about that side's own stream. See silenceDeferral.ts. */
+  private inputDeferral = new SilenceDeferral();
+  private assistantDeferral = new SilenceDeferral();
   /** Set while a seal from the stream is closing a segment, so the close does
    *  not turn around and end() the stream that produced it: the remainder that
    *  stream still holds is what opens the next segment. */
@@ -778,7 +780,21 @@ export class GeminiClient implements IClient {
     if (!this.continuousSegmentation) return;
     if (this.inputSegmentTimer) clearTimeout(this.inputSegmentTimer);
     this.inputSegmentTimer = setTimeout(
-      () => { this.inputSegmentTimer = null; this.closeInputSegment(); },
+      () => {
+        this.inputSegmentTimer = null;
+        // While the stage runs, a pause in the middle of a sentence is the
+        // speaker resting at a comma, not the end of a bubble: a live session
+        // cut "…成为商人或者是商队的向导，" from "以及保镖。" ten seconds later,
+        // which is a pause cut in the mode that promised sentence cuts.
+        // Deferred only while the tail keeps growing, so an abandoned sentence
+        // still closes one window after the last word. With no stream there is
+        // nothing to consult and the old behaviour stands.
+        if (this.userStream && this.inputDeferral.deferAtExpiry(this.userPending)) {
+          this.armInputSegmentTimer();
+          return;
+        }
+        this.closeInputSegment();
+      },
       this.inputSegmentSilenceMs,
     );
   }
@@ -793,26 +809,18 @@ export class GeminiClient implements IClient {
         // The model translates in bursts with gaps longer than this timeout,
         // and closing at the first one cuts a sentence in half — and resets
         // the stage's sentence count, so N never decides anything on this
-        // side. One pause inside an unfinished sentence is forgiven; a second
-        // closes the segment as it always did. Only while the stage is
-        // running: with no stream there is nothing to wait for.
-        if (this.assistantStream && !this.assistantTailIsClean() && !this.assistantTimerFiredOnce) {
-          this.assistantTimerFiredOnce = true;
+        // side. A pause with an unfinished sentence still open is the model
+        // drawing breath, and the wait lasts as long as the tail keeps
+        // growing. Only while the stage is running: with no stream there is
+        // nothing to wait for.
+        if (this.assistantStream && this.assistantDeferral.deferAtExpiry(this.assistantPending)) {
           this.armAssistantSegmentTimer();
           return;
         }
-        this.assistantTimerFiredOnce = false;
         this.closeAssistantSegment();
       },
       this.assistantSegmentSilenceMs,
     );
-  }
-
-  /** The unsealed translation tail is a place a segment may end: nothing left
-   *  to seal, or a sentence that finished. */
-  private assistantTailIsClean(): boolean {
-    const tail = this.assistantPending.trimEnd();
-    return tail.length === 0 || lastSentenceEnd(tail) === tail.length;
   }
 
   /**
@@ -836,6 +844,7 @@ export class GeminiClient implements IClient {
     }
     this.currentTurn.inputTranscription = '';
     this.currentTurn.inputTranscriptionItem = undefined;
+    this.inputDeferral.reset();
   }
 
   /**
@@ -863,6 +872,7 @@ export class GeminiClient implements IClient {
     this.currentTurn.textParts = [];
     this.currentTurn.audioData = [];
     this.currentTurn.modelTurnParts = [];
+    this.assistantDeferral.reset();
   }
 
   // ----- Segmentation stage -----

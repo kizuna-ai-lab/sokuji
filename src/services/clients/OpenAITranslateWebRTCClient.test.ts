@@ -195,6 +195,9 @@ describe('OpenAITranslateWebRTCClient with the segmentation stage', () => {
     feed({ type: 'session.output_transcript.delta', delta: 'い'.repeat(30) });
     await flush();
 
+    // Two windows: the source tail is mid-sentence, so the first expiry defers
+    // and the second — with nothing new arrived — closes.
+    vi.advanceTimersByTime(PAIR_SILENCE_MS + 1);
     vi.advanceTimersByTime(PAIR_SILENCE_MS + 1);
 
     expect((client as any).userStream).toBeNull();
@@ -223,6 +226,61 @@ describe('OpenAITranslateWebRTCClient with the segmentation stage', () => {
     vi.advanceTimersByTime(501);
     expect(usersOf(client)[0].status).toBe('completed');
     expect(assistantsOf(client)[0].status).toBe('completed');
+  });
+
+  it('a source tail mid-sentence defers the pair timer for as long as the speaker keeps talking', async () => {
+    // The bug this exists for: a live session cut "…成为商人或者是商队的向导，"
+    // from "以及保镖。" ten seconds later, because the speaker rested at the
+    // comma for longer than the pause setting. One timer closes both sides
+    // here, and the source stream's tail is the only one it can consult.
+    const client = await connectStage({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    const feed = feedTo(client);
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(PAIR_SILENCE_MS + 1);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // The speaker carried on: the tail grew, so the next expiry defers again.
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(10) });
+    await flush();
+    vi.advanceTimersByTime(PAIR_SILENCE_MS + 1);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // Nothing more arrived. The speaker has stopped, so the pair closes.
+    vi.advanceTimersByTime(PAIR_SILENCE_MS + 1);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+    expect(usersOf(client)[0].formatted?.transcript).toBe('あ'.repeat(30));
+  });
+
+  it('a source tail that finished its sentence closes the pair on the first pause', async () => {
+    // Both sides go at once, and only the source tail is consulted: a
+    // mid-sentence translation closes with a clean source. That is the
+    // transport's shape, not a choice — slice 4 removed this client's
+    // translation-side stream, so there is no second tail to read.
+    const client = await connectStage({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    const feed = feedTo(client);
+    feed({ type: 'session.input_transcript.delta', delta: 'これはテストです。' });
+    feed({ type: 'session.output_transcript.delta', delta: 'い'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(PAIR_SILENCE_MS + 1);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+    expect(assistantsOf(client)[0].status).toBe('completed');
+  });
+
+  it('closes a mid-sentence pair on the first pause with the stage off, exactly as before', async () => {
+    const client = await connectStage({});
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(PAIR_SILENCE_MS + 1);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
   });
 
   it('a runtime that is disabled at connect leaves the client exactly as it is today', async () => {
