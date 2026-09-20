@@ -13,6 +13,7 @@ import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyVa
 import i18n from '../../locales';
 import { Provider, ProviderType } from '../../types/Provider';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import { lastSentenceEnd } from '../../lib/segmentation/sentenceEnd';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /**
@@ -147,6 +148,9 @@ export class GeminiClient implements IClient {
    *  equal to the matching `currentTurn` accumulator. */
   private userPending = '';
   private assistantPending = '';
+  /** One pause inside an unfinished translated sentence is forgiven; see
+   *  armAssistantSegmentTimer. */
+  private assistantTimerFiredOnce = false;
   /** Set while a seal from the stream is closing a segment, so the close does
    *  not turn around and end() the stream that produced it: the remainder that
    *  stream still holds is what opens the next segment. */
@@ -770,9 +774,31 @@ export class GeminiClient implements IClient {
     if (!this.continuousSegmentation) return;
     if (this.assistantSegmentTimer) clearTimeout(this.assistantSegmentTimer);
     this.assistantSegmentTimer = setTimeout(
-      () => { this.assistantSegmentTimer = null; this.closeAssistantSegment(); },
+      () => {
+        this.assistantSegmentTimer = null;
+        // The model translates in bursts with gaps longer than this timeout,
+        // and closing at the first one cuts a sentence in half — and resets
+        // the stage's sentence count, so N never decides anything on this
+        // side. One pause inside an unfinished sentence is forgiven; a second
+        // closes the segment as it always did. Only while the stage is
+        // running: with no stream there is nothing to wait for.
+        if (this.assistantStream && !this.assistantTailIsClean() && !this.assistantTimerFiredOnce) {
+          this.assistantTimerFiredOnce = true;
+          this.armAssistantSegmentTimer();
+          return;
+        }
+        this.assistantTimerFiredOnce = false;
+        this.closeAssistantSegment();
+      },
       GeminiClient.ASSISTANT_SEGMENT_SILENCE_MS,
     );
+  }
+
+  /** The unsealed translation tail is a place a segment may end: nothing left
+   *  to seal, or a sentence that finished. */
+  private assistantTailIsClean(): boolean {
+    const tail = this.assistantPending.trimEnd();
+    return tail.length === 0 || lastSentenceEnd(tail) === tail.length;
   }
 
   /**

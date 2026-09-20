@@ -1105,7 +1105,10 @@ describe('GeminiClient with the segmentation stage', () => {
     expect(item.formatted.transcript).toBe('あ'.repeat(30));
   });
 
-  it('the assistant silence timer still closes the open segment, with the stream tail inside it', async () => {
+  it('forgives one pause inside an unfinished translated sentence, not two', async () => {
+    // The model translates in bursts, and closing at the first gap cut a live
+    // session's translation into half-sentences while resetting the sentence
+    // count that decides the bubble.
     client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
     await client.connect(translateConfig as any);
 
@@ -1113,12 +1116,36 @@ describe('GeminiClient with the segmentation stage', () => {
     await flush();
 
     await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('in_progress');
 
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
     expect((client as any).assistantStream).toBeNull();
     expect((client as any).assistantPending).toBe('');
     const [item] = itemsOf('assistant');
     expect(item.status).toBe('completed');
     expect(item.formatted.transcript).toBe('い'.repeat(30));
+  });
+
+  it('closes on the first pause when the translated sentence finished', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    await client.connect(translateConfig as any);
+
+    sendOutput('これは完成した文です。');
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('completed');
+  });
+
+  it('closes on the first pause with the stage off, exactly as before', async () => {
+    client = makeClient({});
+    await client.connect(translateConfig as any);
+
+    sendOutput('い'.repeat(30));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('completed');
   });
 
   it("turnComplete still finalizes the turn, and the stream's tail lands in the open item", async () => {

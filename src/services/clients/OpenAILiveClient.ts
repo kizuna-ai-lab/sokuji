@@ -209,6 +209,9 @@ export class OpenAILiveClient implements IClient {
   /** Set while a seal from the stream is closing an item, so the close does not
    *  turn around and end() the stream that produced it: the remainder that
    *  stream still holds is what opens the next item. */
+  /** One pause inside an unfinished translated sentence is forgiven; see
+   *  armAssistantSilenceTimer. Mirrors userTimerFiredOnce on the other side. */
+  private assistantTimerFiredOnce = false;
   private sealingUser = false;
   private sealingAssistant = false;
 
@@ -1026,10 +1029,36 @@ export class OpenAILiveClient implements IClient {
   }
 
   private resetAssistantSilenceTimer(): void {
+    this.assistantTimerFiredOnce = false;
+    this.armAssistantSilenceTimer();
+  }
+
+  private armAssistantSilenceTimer(): void {
     if (this.assistantSilenceTimer) clearTimeout(this.assistantSilenceTimer);
     this.assistantSilenceTimer = setTimeout(() => {
+      this.assistantSilenceTimer = null;
+      // The model translates in bursts, and the gaps between them are longer
+      // than this timeout: at 1.5 s a live session cut the translation into
+      // half-sentences, one of them nothing but a comma, and every cut also
+      // reset the stage's sentence count, so N never decided anything on this
+      // side. A pause with an unfinished sentence still open is the model
+      // drawing breath; one pause is forgiven, and a second one closes the
+      // item the way it always did. Only while the stage is running — with no
+      // stream there is nothing to wait for and the old behaviour stands.
+      if (this.assistantStream && !this.assistantTailIsClean() && !this.assistantTimerFiredOnce) {
+        this.assistantTimerFiredOnce = true;
+        this.armAssistantSilenceTimer();
+        return;
+      }
       this.completeAssistantItem();
     }, this.assistantSilenceTimeoutMs);
+  }
+
+  /** The unsealed translation tail is a place a bubble may end: nothing left
+   *  to seal, or a sentence that finished. */
+  private assistantTailIsClean(): boolean {
+    const tail = this.assistantPending.trimEnd();
+    return tail.length === 0 || lastSentenceEnd(tail) === tail.length;
   }
 
   private ensureUserItem(): string {

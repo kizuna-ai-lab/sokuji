@@ -1505,10 +1505,11 @@ describe('OpenAILiveClient with the segmentation stage', () => {
     expect(usersOf(client)[1].status).toBe('completed');
   });
 
-  it('leaves the assistant silence timer running across a seal', async () => {
-    // A guard, not a driver: closeAssistantText does not clear the timer the
-    // delta armed, so the item a seal opens is already covered. The source
-    // side differs because completeUserItem clears its timer.
+  it('forgives one pause inside an unfinished translated sentence, not two', async () => {
+    // The model translates in bursts with gaps longer than this timeout, and
+    // cutting at the first gap chopped a live session's translation into
+    // half-sentences — one of them a lone comma — while resetting the sentence
+    // count that was supposed to decide the bubble.
     const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
     client.setEventHandlers({} as ClientEventHandlers);
     await connectStage(client);
@@ -1516,11 +1517,40 @@ describe('OpenAILiveClient with the segmentation stage', () => {
     feedTo(client)({ type: 'session.output_transcript.delta', delta: '아'.repeat(50), start_ms: 0, end_ms: 3000 });
     await flush();
     expect(assistantsOf(client)).toHaveLength(2);
+    // The remainder is 30 raw characters with no mark: mid-sentence.
+    expect(assistantsOf(client)[1].status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1001);
+    await flush();
     expect(assistantsOf(client)[1].status).toBe('in_progress');
 
     vi.advanceTimersByTime(1001);
     await flush();
     expect(assistantsOf(client)[1].status).toBe('completed');
+  });
+
+  it('closes on the first pause when the translated sentence finished', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '번역된 문장입니다.', start_ms: 0, end_ms: 3000 });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('completed');
+  });
+
+  it('closes on the first pause with the stage off, exactly as before', async () => {
+    const client = makeClient({});
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '아'.repeat(30), start_ms: 0, end_ms: 3000 });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('completed');
   });
   it('does not let the 8 s soft cap pre-empt the stage, and lands the 12 s cap on a comma', async () => {
     // A live Chinese session produced five bubbles in a row that all ended at
