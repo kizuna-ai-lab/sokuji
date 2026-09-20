@@ -255,10 +255,11 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
         pttFinalization: { silenceTailFrames: 7, response: 'always' },
 
         // 1-5 sentences is what the local engines already ship: they build a
-        // stream and seal it every N. Auto — punctuate the utterance without
-        // ever sealing — is phase 2, and By pause is not theirs to offer: the
-        // client-side VAD, not a silence timer over the text, ends the turn.
-        segmentation: { pause: false, auto: false, sizes: true },
+        // stream and seal it every N. Auto is the VAD utterance kept whole —
+        // a boundary something else already decided, punctuated and not cut.
+        // By pause is not theirs to offer: the client-side VAD, not a silence
+        // timer over the text, ends the turn.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

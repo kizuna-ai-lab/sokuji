@@ -369,6 +369,12 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
         // transport preference. (Capture is still appendInputAudio — see
         // supportsWebRTC, which stays false.)
         forcedTransport: 'webrtc',
+
+        // A validated_transcription is the boundary, and Auto keeps it. 1-5
+        // cuts INSIDE one: the outer edges stay the server's, nothing is
+        // merged and nothing is reordered. No silence timer of ours decides
+        // anything here, so By pause is not on offer.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

@@ -431,6 +431,12 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        // The server closes the segment, and Auto keeps that boundary. 1-5
+        // cuts INSIDE one: the outer edges stay the server's, nothing is
+        // merged and nothing is reordered. No silence timer of ours decides
+        // anything here, so By pause is not on offer.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

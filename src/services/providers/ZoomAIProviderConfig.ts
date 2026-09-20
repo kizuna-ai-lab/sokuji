@@ -194,6 +194,12 @@ export class ZoomAIProviderConfig extends BaseProviderDescriptor {
         },
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        // One REST utterance is the boundary, and Auto keeps it. 1-5 cuts
+        // INSIDE one: the outer edges stay the server's, nothing is merged
+        // and nothing is reordered. No silence timer of ours decides
+        // anything here, so By pause is not on offer.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

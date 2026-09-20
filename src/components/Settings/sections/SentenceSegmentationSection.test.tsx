@@ -388,6 +388,14 @@ describe('SentenceSegmentationSection', () => {
 
   describe('the size control', () => {
     it('shows 1-5 and no Auto where only sizes are offered', () => {
+      // No descriptor declares this shape any more — the local engines held
+      // it until phase 2 gave them Auto — but the resolvers still have a rule
+      // for it, so the rendering rule is kept under test with a stub.
+      const real = ProviderConfigFactory.getConfig(Provider.LOCAL_INFERENCE);
+      vi.spyOn(ProviderConfigFactory, 'getConfig').mockReturnValue({
+        ...real,
+        capabilities: { ...real.capabilities, segmentation: { pause: false, auto: false, sizes: true } },
+      });
       mockProvider = Provider.LOCAL_INFERENCE;
       mockMode = 'sentences';
       useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
@@ -411,16 +419,8 @@ describe('SentenceSegmentationSection', () => {
     });
 
     it('shows Auto alongside 1-5 where both are offered', () => {
-      // No phase-1 provider offers both; phase 2 gives the server-definite
-      // providers `sizes: true` on top of their Auto. Stubbed rather than
-      // waited for, because the rendering rule ships now.
-      const real = ProviderConfigFactory.getConfig(Provider.SONIOX);
-      vi.spyOn(ProviderConfigFactory, 'getConfig').mockReturnValue({
-        ...real,
-        // All three fields: the capability is a whole `SegmentationOffer`, so
-        // a descriptor cannot half-declare one into the shape that throws.
-        capabilities: { ...real.capabilities, segmentation: { pause: false, auto: true, sizes: true } },
-      });
+      // Soniox's real offer since phase 2: the server's segment is kept whole
+      // by Auto, or cut inside every N sentences. No stub.
       mockProvider = Provider.SONIOX;
       mockMode = 'sentences';
       mockChunkSentences = 0;

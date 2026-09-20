@@ -50,9 +50,10 @@ export const MAX_SEGMENT_PAUSE_SECONDS = MAX_SEGMENT_PAUSE_MS / 1000;
  * Sentences per bubble when nothing chose one.
  *
  * The store's clamp, the fallback a provider that cannot offer Auto lands on,
- * `segmentationForProvider`'s answer for Auto, and the `?? 3` every client
- * writes are all this number — see `descriptorRegistry.test.ts` for the test
- * that ties the clients to it.
+ * and the `?? 3` every client writes for a session that supplied no size at
+ * all are this number — see `descriptorRegistry.test.ts` for the test that
+ * ties the clients to it. Auto is NOT one of its users: it travels as the 0
+ * it is, and each client decides what keeping a boundary means for it.
  */
 export const DEFAULT_CHUNK_SENTENCES = 3;
 

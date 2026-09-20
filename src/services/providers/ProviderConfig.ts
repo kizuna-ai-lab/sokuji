@@ -104,11 +104,11 @@ export interface ProviderCapabilities {
    *  place.
    *
    *  All three or none, deliberately — not a `Partial`. A half-declared
-   *  `{ sizes: true }` would take `auto: true` from the default and describe
-   *  `{ pause: false, auto: true, sizes: true }`, the one combination
-   *  `segmentationForProvider` throws on, inside a `useMemo` during
-   *  MainPanel's render. A white screen is not how a descriptor should learn
-   *  it forgot a field. */
+   *  `{ sizes: true }` would take `auto: true` from the default and quietly
+   *  describe `{ pause: false, auto: true, sizes: true }` — a provider
+   *  offering a whole extra choice nobody meant to give it. Nothing downstream
+   *  can tell that apart from a deliberate declaration, so the type refuses
+   *  the half. */
   segmentation?: SegmentationOffer;
 }
 
@@ -117,11 +117,13 @@ export interface ProviderCapabilities {
  * declared, or the default when it declared nothing. A descriptor declares
  * all three fields or none, so there is nothing to fill in field by field.
  *
- * The default describes a provider whose boundaries a server decides — no
- * silence timer of ours cuts its bubbles, and phase 1 cannot split a segment
- * the server already called final, so Auto is the only thing left. That is
- * the common case, which is why only the descriptors that deviate declare
- * anything; the resolved answer for every one of them is tabulated in
+ * The default describes a provider whose boundaries a server decides and
+ * whose segments nobody has shown can be cut into: no silence timer of ours
+ * touches its bubbles, so By pause is out, and with no split, Auto is the
+ * only thing left. It is the conservative answer rather than the common one —
+ * most such providers CAN be split and declare `sizes: true` — which is why
+ * only the descriptors that deviate declare anything; the resolved answer for
+ * every one of them is tabulated in
  * `descriptorRegistry.test.ts`, where a provider added later has to write its
  * row rather than inherit a default nobody thought about.
  */

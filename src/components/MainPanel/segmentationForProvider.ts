@@ -16,7 +16,6 @@ import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFa
 import { resolveSegmentationOffer, type ProviderCapabilities } from '../../services/providers/ProviderConfig';
 import type { ProviderType } from '../../types/Provider';
 import {
-  DEFAULT_CHUNK_SENTENCES,
   resolveSegmentationMode,
   resolveSegmentationSize,
   type SegmentationMode,
@@ -48,35 +47,35 @@ export interface ProviderSegmentation {
    *  rule cutting the same bubble. */
   mode: SegmentationMode;
   /** The size this provider runs: 0 is Auto, 1-5 seal every N sentences. What
-   *  the user effectively chose here, which is what telemetry should report —
-   *  not necessarily what the clients are given below. */
+   *  the user effectively chose here, which is what telemetry reports. */
   size: SegmentationSize;
-  /** What rides in `ClientOptions.sentencesPerChunk`, contracted 1-5. */
+  /** The same number, under the name it travels to a client by
+   *  (`ClientOptions.sentencesPerChunk`). Two names for one value, because
+   *  they answer different questions — what the user chose, and what the
+   *  session was told — and only one of them is a wire field. */
   sentencesPerChunk: number;
 }
 
 /**
  * Resolve the stored mode and size against one provider's offer.
  *
- * The two numbers differ in exactly one case, and the case is worth stating:
- * on a provider that offers Auto and nothing else, the resolved size is 0, but
- * `sentencesPerChunk` cannot be — it is contracted 1-5, and on such a provider
- * it is not a bubble size at all. Those providers reach the stage through
- * `punctuateDefinite`, which never splits and uses the number only as its "too
- * short to bother" length gate (`gateChars`). A 0 there would zero that gate:
- * every two-word segment would be sent to a model and the caller would wait
- * out the fill-in budget before showing it. Auto therefore lands on the same
- * DEFAULT_CHUNK_SENTENCES every client already defaults to, so switching to
- * Auto moves the boundary rule and nothing else.
+ * The resolved size IS what the clients are told: 0 for Auto, 1-5 for a
+ * bubble every N sentences. Phase 1 could not do that. Back then the only
+ * provider that could resolve to 0 was one offering Auto alone, whose client
+ * reaches the stage through `punctuateDefinite` — which never split anything
+ * and used the number only as its "too short to bother" length gate
+ * (`gateChars`) — so 0 had no meaning there and Auto was translated into
+ * DEFAULT_CHUNK_SENTENCES on the way out. A provider offering Auto *and*
+ * sizes had no answer at all, and this function threw rather than guess one:
+ * every number in 1-5 says "seal every N sentences", which is the opposite of
+ * Auto, and a `SentenceStream` handed a 0 clamps it to 1 and seals every
+ * single sentence — the loudest possible wrong answer, arrived at silently.
  *
- * The other direction is a hard stop rather than a default. Phase 2 is where
- * a provider first offers Auto AND sizes: the local engines gain Auto, and the
- * five splittable server-definite providers gain sizes. On such a provider a
- * resolved 0 is a real user choice, and there is no number that expresses it —
- * `SentenceStream` clamps whatever it is given into 1-5 and would seal every
- * single sentence, which is the loudest possible wrong answer and a silent
- * one. So this throws instead of picking a number, and phase 2 has to come
- * back here and decide how Auto crosses to a client that can count.
+ * Phase 2 gives 0 a meaning instead of a translation: to a client that counts
+ * it means build no stream and punctuate the utterance whole, and to a client
+ * whose segments a server already closed it means keep the segment as one
+ * piece. So the number crosses untouched, and every reader of it decides what
+ * Auto is in its own terms.
  */
 export function segmentationForProvider(input: {
   storedMode: SegmentationMode;
@@ -86,12 +85,5 @@ export function segmentationForProvider(input: {
   const { storedMode, storedSize, offer } = input;
   const mode = resolveSegmentationMode(storedMode, offer);
   const size = resolveSegmentationSize(storedSize, offer);
-  if (size === 0 && offer.sizes) {
-    throw new Error(
-      'Segmentation: Auto resolved on a provider that also offers sizes, which phase 1 has no '
-      + 'ClientOptions.sentencesPerChunk for. Decide what Auto means to a client that counts '
-      + 'sentences before declaring both capabilities on a descriptor.',
-    );
-  }
-  return { mode, size, sentencesPerChunk: size === 0 ? DEFAULT_CHUNK_SENTENCES : size };
+  return { mode, size, sentencesPerChunk: size };
 }

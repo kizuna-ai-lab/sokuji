@@ -80,7 +80,9 @@ export type ClientOptions = {
    */
   segmentation?: SegmentationRuntime | null;
   /**
-   * How many sentences fill one bubble (1-5, already clamped by the store).
+   * How many sentences fill one bubble: 1-5, already clamped by the store, or
+   * 0 for Auto — keep the boundary whoever already decided it chose (a
+   * server's segment, a VAD utterance) and only fill in the punctuation.
    *
    * It rides here rather than being read from the store by each client for
    * the same reason `segmentation` does: a client that imports a store cannot

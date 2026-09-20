@@ -298,8 +298,9 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // A2: one stored mode and one stored size, both clamped on read to what this
   // provider offers. `mode` is what the session ran in — the stage itself is
   // gated inside useSegmentationRuntime above, from the same two values — and
-  // `sentencesPerChunk` is the 1-5 the clients are contracted to receive,
-  // which is not always `size` (see segmentationForProvider).
+  // `sentencesPerChunk` is that same clamped size under the name it reaches a
+  // client by: 0 means Auto, 1-5 seal every N sentences (see
+  // segmentationForProvider).
   const storedSegmentationMode = useSegmentationMode();
   const storedChunkSentences = useSentenceSegmentationChunkSentences();
   const { mode: segmentationMode, size: segmentationSize, sentencesPerChunk } = useMemo(
