@@ -273,9 +273,11 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   // rolls the mode back when its persist fails, and the download it started
   // is still running. Dropping the line then would take Cancel with it.
   const showPack = mode === 'sentences' || phase === 'downloading';
-  // ...and the delete link is the same fact from the other side: offering it
-  // mid-download would delete files out from under the live fetch.
-  const showDelete = mode !== 'sentences' && phase !== 'downloading' && downloadedBytes > 0;
+  // By sentences only. The pack belongs to that mode, so that is where its 402
+  // MB is accounted for and where a user goes to give it back; Off and By pause
+  // have nothing to do with the models and stay uncluttered. Not mid-download,
+  // which would delete files out from under the live fetch.
+  const showDelete = mode === 'sentences' && phase !== 'downloading' && downloadedBytes > 0;
 
   return (
     <div className={`config-section ${className}`} id="sentence-segmentation-section">
@@ -319,7 +321,11 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         </div>
       </div>
 
-      {mode === 'sentences' && sizeOptions.length > 1 && (
+      {/* Shown even when the provider has only one size to offer. A By
+          sentences mode with nothing under it reads as broken, and on the
+          providers whose only size is Auto the single button is the one place
+          the word appears at all. */}
+      {mode === 'sentences' && sizeOptions.length > 0 && (
         <div className="sentence-segmentation__chunk">
           <div className="sentence-segmentation__row-header">
             <span className="sentence-segmentation__row-label">
@@ -487,9 +493,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
         </div>
       )}
 
-      {/* Only outside By sentences: the pack is 402 MB the user may want back,
-          and deleting it out from under a session — or under an enabled
-          runtime — is not a thing this offers. */}
+      {/* Wherever the bytes are: see showDelete. */}
       {showDelete && (
         <button
           type="button"

@@ -397,14 +397,16 @@ describe('SentenceSegmentationSection', () => {
       expect(screen.queryByText('Auto')).toBeNull();
     });
 
-    it('is absent where Auto is the only thing offered — one option is no choice', () => {
+    it('shows Auto on its own where it is the only thing offered', () => {
+      // A By sentences mode with nothing under it reads as broken, and on this
+      // provider the single button is the only place the word Auto appears.
       mockProvider = Provider.OPENAI;
       mockMode = 'sentences';
       useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
       renderSection();
 
-      expect(screen.queryByText('Sentences per bubble')).toBeNull();
-      expect(screen.queryByText('Auto')).toBeNull();
+      expect(screen.getByText('Sentences per bubble')).toBeTruthy();
+      expect(screen.getByText('Auto')).toBeTruthy();
       expect(screen.queryByText('1')).toBeNull();
     });
 
@@ -726,7 +728,10 @@ describe('SentenceSegmentationSection', () => {
     });
   });
 
-  it('offers a delete link, with the size, only outside By sentences and when files exist', () => {
+  it('offers a delete link, with the size, in By sentences and nowhere else', () => {
+    // The pack belongs to that mode, so that is where its 402 MB is accounted
+    // for; Off and By pause have nothing to do with the models.
+    mockMode = 'sentences';
     const partial = PACK_MODELS[1].sizeBytes;
     useSegmentationStore.setState({ phase: 'missing', downloadedBytes: partial });
     renderSection();
@@ -740,15 +745,29 @@ describe('SentenceSegmentationSection', () => {
     renderSection();
     expect(screen.queryByText(/Delete models/)).toBeNull();
 
-    // By sentences, with files: the pack is in use, so it is not offered either.
+    // Off, with the pack on disk: not offered.
+    cleanup();
+    mockMode = 'off';
+    useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+    renderSection();
+    expect(screen.queryByText(/Delete models/)).toBeNull();
+
+    // By pause likewise.
+    cleanup();
+    mockMode = 'pause';
+    renderSection();
+    expect(screen.queryByText(/Delete models/)).toBeNull();
+
+    // Never mid-download, which would delete files out from under the fetch.
     cleanup();
     mockMode = 'sentences';
-    useSegmentationStore.setState({ phase: 'ready', downloadedBytes: PACK_TOTAL_BYTES });
+    useSegmentationStore.setState({ phase: 'downloading', downloadedBytes: PACK_TOTAL_BYTES });
     renderSection();
     expect(screen.queryByText(/Delete models/)).toBeNull();
   });
 
   it('a failed delete reports a warning instead of dropping the rejection', async () => {
+    mockMode = 'sentences';
     deleteModels.mockRejectedValueOnce(new Error('disk full'));
     useSegmentationStore.setState({ phase: 'missing', downloadedBytes: PACK_MODELS[1].sizeBytes });
     renderSection();
@@ -839,8 +858,9 @@ describe('SentenceSegmentationSection', () => {
     renderSection(true);
     expect(screen.getByText('Download').closest('button')!.disabled).toBe(true);
 
+    // The delete link lives in By sentences, which is where the session must
+    // also keep it from being pressed.
     cleanup();
-    mockMode = 'off';
     useSegmentationStore.setState({ phase: 'missing', downloadedBytes: 1024 });
     renderSection(true);
     expect(screen.getByText(/Delete models/).closest('button')!.disabled).toBe(true);
