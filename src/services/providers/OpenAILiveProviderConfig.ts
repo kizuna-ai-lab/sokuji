@@ -13,11 +13,6 @@ export interface OpenAILiveSettings {
   sourceLanguage: string;
   targetLanguage: string;
   voice: string;
-  // Client-side utterance segmentation in seconds (0.1–3.0). Live has no
-  // per-response done events; transcript deltas inside one sentence can be
-  // 1.5 s apart, hence the higher assistant default than translate's 0.5 s.
-  userSilenceDuration: number;
-  assistantSilenceDuration: number;
 }
 
 export const defaultOpenAILiveSettings: OpenAILiveSettings = {
@@ -25,8 +20,6 @@ export const defaultOpenAILiveSettings: OpenAILiveSettings = {
   sourceLanguage: 'en',
   targetLanguage: 'zh_CN',
   voice: 'marin',
-  userSilenceDuration: 1.0,
-  assistantSilenceDuration: 1.5,
 };
 
 /** The 10 Realtime voices plus the 12 Live added (English / Brazilian Portuguese). */

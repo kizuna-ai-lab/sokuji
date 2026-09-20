@@ -13,6 +13,7 @@ import { getManifestEntry } from '../lib/local-inference/modelManifest';
 import type { Stage } from '../lib/local-inference/selection/types';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
+import type { SegmentationMode } from '../lib/segmentation/segmentationMode';
 import { useNativeModelStore } from './nativeModelStore';
 import useSessionStore from './sessionStore';
 import useAudioStore, { speakerChannelInScope } from './audioStore';
@@ -117,12 +118,21 @@ export interface CommonSettings {
   autoSaveOnStop: boolean;
   diagnosticLogs: boolean;
   /**
-   * The sentence segmentation stage. Off by default; the feature is inert
-   * until the three punctuation models are downloaded (Amendment A1).
+   * How bubbles are cut: Off, By pause, or By sentences (Amendment A2).
+   * Stored once for every provider and clamped on read to what the current
+   * one offers — `pause`, the default, means By pause on the three clients
+   * that cut on their own timers and Off on every other provider. By
+   * sentences stays inert until the three punctuation models are downloaded
+   * (Amendment A1).
    */
-  sentenceSegmentation: boolean;
-  /** How many sentences fill one bubble. 1-5, clamped on read. */
+  segmentationMode: SegmentationMode;
+  /** How many sentences fill one bubble. 0 (Auto) to 5, clamped on read. */
   sentenceSegmentationChunkSentences: number;
+  /** Seconds of silence that end a source utterance, for the clients that cut
+   *  on their own timers. 0.1-3, clamped on read. */
+  segmentationSourcePause: number;
+  /** The same, for the translation side. */
+  segmentationTranslationPause: number;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 }
@@ -143,22 +153,48 @@ interface CacheEntry {
 // ==================== Default Values ====================
 
 /**
- * The only place 1-5 is enforced.
+ * The only place 0-5 is enforced.
  *
  * This is CommonSettings' first numeric field, and it reaches a SentenceStream
  * that multiplies it into three thresholds. A value from an older build, a
  * corrupted store or a hand-edited settings file must never get that far, so
  * the clamp sits on the read and on the write rather than in the picker.
+ *
+ * 0 is Auto since Amendment A2 — punctuate, never seal — so the range starts
+ * one lower than the 1-5 A1 shipped.
  */
 export function clampChunkSentences(value: unknown): number {
   // `null` means the setting is absent, so it takes the default like
   // `undefined` does. Without this line it would fall through to
-  // `Number(null) === 0` and clamp up to 1, silently halving the smallest
-  // bubble for anyone whose stored value went missing.
+  // `Number(null) === 0`, which is now a value in its own right: a missing
+  // setting would silently read as Auto.
   if (value === null || value === undefined) return 3;
   const n = Math.round(Number(value));
   if (!Number.isFinite(n)) return 3;
-  return Math.min(5, Math.max(1, n));
+  return Math.min(5, Math.max(0, n));
+}
+
+/**
+ * Seconds of silence that end an utterance, 0.1-3, defaulting to 1.5.
+ *
+ * Clamped on read and on write for the same reason as the sentence count: the
+ * two values leave here for a client's timers, and a stored 0 would arm a
+ * timer that fires on every gap between words.
+ */
+function clampSegmentationPause(value: unknown): number {
+  if (value === null || value === undefined) return 1.5;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1.5;
+  return Math.min(3, Math.max(0.1, n));
+}
+
+/**
+ * A stored mode this build does not know takes the default, which is what
+ * `resolveSegmentationMode` does with it too — the store and the resolver
+ * must not disagree about an unrecognised value.
+ */
+function clampSegmentationMode(value: unknown): SegmentationMode {
+  return value === 'off' || value === 'sentences' || value === 'pause' ? value : 'pause';
 }
 
 const defaultCommonSettings: CommonSettings = {
@@ -169,8 +205,10 @@ const defaultCommonSettings: CommonSettings = {
   keepReplayAudio: false,
   autoSaveOnStop: false,
   diagnosticLogs: false,
-  sentenceSegmentation: false,
+  segmentationMode: 'pause',
   sentenceSegmentationChunkSentences: 3,
+  segmentationSourcePause: 1.5,
+  segmentationTranslationPause: 1.5,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -310,12 +348,17 @@ export interface SettingsStore {
   diagnosticLogs: boolean;
 
   /**
-   * The sentence segmentation stage. Off by default; the feature is inert
-   * until the three punctuation models are downloaded (Amendment A1).
+   * How bubbles are cut: Off, By pause, or By sentences (Amendment A2).
+   * Stored once for every provider and clamped on read to what the current
+   * one offers.
    */
-  sentenceSegmentation: boolean;
-  /** How many sentences fill one bubble. 1-5, clamped on read. */
+  segmentationMode: SegmentationMode;
+  /** How many sentences fill one bubble. 0 (Auto) to 5, clamped on read. */
   sentenceSegmentationChunkSentences: number;
+  /** Seconds of silence that end a source utterance. 0.1-3, clamped on read. */
+  segmentationSourcePause: number;
+  /** The same, for the translation side. */
+  segmentationTranslationPause: number;
 
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
@@ -339,8 +382,10 @@ export interface SettingsStore {
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
   setAutoSaveOnStop: (autoSaveOnStop: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
-  setSentenceSegmentation: (enabled: boolean) => Promise<void>;
+  setSegmentationMode: (mode: SegmentationMode) => Promise<void>;
   setSentenceSegmentationChunkSentences: (n: number) => Promise<void>;
+  setSegmentationSourcePause: (seconds: number) => Promise<void>;
+  setSegmentationTranslationPause: (seconds: number) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   enterSubtitleMode: () => Promise<void>;
@@ -805,11 +850,12 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
-    setSentenceSegmentation: async (sentenceSegmentation) => {
-      const previous = get().sentenceSegmentation;
-      set({sentenceSegmentation});
-      if (!await persistSetting('settings.common.sentenceSegmentation', sentenceSegmentation)) {
-        set({sentenceSegmentation: previous});
+    setSegmentationMode: async (mode) => {
+      const previous = get().segmentationMode;
+      const clamped = clampSegmentationMode(mode);
+      set({segmentationMode: clamped});
+      if (!await persistSetting('settings.common.segmentationMode', clamped)) {
+        set({segmentationMode: previous});
       }
     },
 
@@ -819,6 +865,24 @@ const useSettingsStore = create<SettingsStore>()(
       set({sentenceSegmentationChunkSentences: clamped});
       if (!await persistSetting('settings.common.sentenceSegmentationChunkSentences', clamped)) {
         set({sentenceSegmentationChunkSentences: previous});
+      }
+    },
+
+    setSegmentationSourcePause: async (seconds) => {
+      const previous = get().segmentationSourcePause;
+      const clamped = clampSegmentationPause(seconds);
+      set({segmentationSourcePause: clamped});
+      if (!await persistSetting('settings.common.segmentationSourcePause', clamped)) {
+        set({segmentationSourcePause: previous});
+      }
+    },
+
+    setSegmentationTranslationPause: async (seconds) => {
+      const previous = get().segmentationTranslationPause;
+      const clamped = clampSegmentationPause(seconds);
+      set({segmentationTranslationPause: clamped});
+      if (!await persistSetting('settings.common.segmentationTranslationPause', clamped)) {
+        set({segmentationTranslationPause: previous});
       }
     },
 
@@ -1241,9 +1305,17 @@ const useSettingsStore = create<SettingsStore>()(
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
         const autoSaveOnStop = await service.getSetting('settings.common.autoSaveOnStop', defaultCommonSettings.autoSaveOnStop);
-        const sentenceSegmentation = await service.getSetting('settings.common.sentenceSegmentation', defaultCommonSettings.sentenceSegmentation);
+        const segmentationMode = clampSegmentationMode(
+          await service.getSetting('settings.common.segmentationMode', defaultCommonSettings.segmentationMode),
+        );
         const sentenceSegmentationChunkSentences = clampChunkSentences(
           await service.getSetting('settings.common.sentenceSegmentationChunkSentences', defaultCommonSettings.sentenceSegmentationChunkSentences),
+        );
+        const segmentationSourcePause = clampSegmentationPause(
+          await service.getSetting('settings.common.segmentationSourcePause', defaultCommonSettings.segmentationSourcePause),
+        );
+        const segmentationTranslationPause = clampSegmentationPause(
+          await service.getSetting('settings.common.segmentationTranslationPause', defaultCommonSettings.segmentationTranslationPause),
         );
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
@@ -1307,8 +1379,10 @@ const useSettingsStore = create<SettingsStore>()(
           keepReplayAudio,
           autoSaveOnStop,
           diagnosticLogs,
-          sentenceSegmentation,
+          segmentationMode,
           sentenceSegmentationChunkSentences,
+          segmentationSourcePause,
+          segmentationTranslationPause,
           speakerDisplayMode,
           participantDisplayMode,
           ...loadedSlices,
@@ -1527,10 +1601,14 @@ export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepRe
 export const useAutoSaveOnStop = () => useSettingsStore((state) => state.autoSaveOnStop);
 export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
 export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
-export const useSentenceSegmentation = () => useSettingsStore((state) => state.sentenceSegmentation);
-export const useSetSentenceSegmentation = () => useSettingsStore((state) => state.setSentenceSegmentation);
+export const useSegmentationMode = () => useSettingsStore((state) => state.segmentationMode);
+export const useSetSegmentationMode = () => useSettingsStore((state) => state.setSegmentationMode);
 export const useSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.sentenceSegmentationChunkSentences);
 export const useSetSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.setSentenceSegmentationChunkSentences);
+export const useSegmentationSourcePause = () => useSettingsStore((state) => state.segmentationSourcePause);
+export const useSetSegmentationSourcePause = () => useSettingsStore((state) => state.setSegmentationSourcePause);
+export const useSegmentationTranslationPause = () => useSettingsStore((state) => state.segmentationTranslationPause);
+export const useSetSegmentationTranslationPause = () => useSettingsStore((state) => state.setSegmentationTranslationPause);
 
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);
