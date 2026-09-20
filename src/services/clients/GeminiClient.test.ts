@@ -965,3 +965,237 @@ describe('GeminiClient — model filtering', () => {
     expect(validation.valid).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────
+describe('GeminiClient with the segmentation stage', () => {
+  let client: InstanceType<typeof GeminiClient>;
+
+  const INPUT_SILENCE_MS = 2000;
+  const ASSISTANT_SILENCE_MS = 2000;
+
+  /** Both sides CJK, so `gateChars` is 20 characters per sentence and the
+   *  unpunctuated fixtures below stay short enough to read. Neither is
+   *  zh/yue, so SentenceStream's Chinese length fallback never fires. */
+  const translateConfig = {
+    ...baseConfig,
+    model: 'gemini-3.5-live-translate-preview',
+    sourceLanguageCode: 'ja',
+    translationConfig: { targetLanguageCode: 'ja', echoTargetLanguage: false },
+  };
+  const dialogueConfig = { ...baseConfig, model: 'gemini-3.1-flash-live-preview' };
+
+  /** A runtime that marks a sentence end every `every` characters. It inserts
+   *  nothing but terminals, so SentenceStream's skeleton invariant holds. */
+  function markingRuntime(every = 10, enabled = true) {
+    return {
+      enabled,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += every) {
+          out += text.slice(i, i + every);
+          if (i + every <= text.length) {
+            out += '。';
+            ends.push(out.length);
+          }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  async function flush(turns = 10) {
+    for (let i = 0; i < turns; i++) await Promise.resolve();
+  }
+
+  const sendInput = (text: string) =>
+    capturedCallbacks.onmessage?.({ serverContent: { inputTranscription: { text } } });
+  const sendOutput = (text: string) =>
+    capturedCallbacks.onmessage?.({ serverContent: { outputTranscription: { text } } });
+
+  // `any[]`: these assertions reach into optional `formatted` fields, and the
+  // narrowing ceremony would bury what each test is actually checking.
+  const itemsOf = (role: 'user' | 'assistant'): any[] =>
+    client.getConversationItems().filter((i: any) => i.role === role);
+
+  function makeClient(options: { segmentation?: any; sentencesPerChunk?: number }) {
+    const made = new GeminiClient('test-api-key', options);
+    made.setEventHandlers({} as any);
+    return made;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+    capturedCallbacks = {};
+    mockSessionClose.mockReset();
+    mockLiveConnect.mockReset();
+    setupSuccessfulConnect();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('seals an unpunctuated source item every N sentences, mid-fragment', async () => {
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    // 50 unpunctuated characters: past the 40-character gate for N = 2 in a
+    // CJK language, and well inside MAX_MODEL_CHARS.
+    sendInput('あ'.repeat(50));
+    await flush();
+
+    expect(runtime.punctuate).toHaveBeenCalledTimes(1);
+    const items = itemsOf('user');
+    expect(items.map((i) => i.formatted.transcript)).toEqual([
+      `${'あ'.repeat(10)}。${'あ'.repeat(10)}。`,
+      'あ'.repeat(30),
+    ]);
+    expect(items[0].status).toBe('completed');
+    expect(items[1].status).toBe('in_progress');
+  });
+
+  it('shows the inserted punctuation in the sealed item and leaves the pending one raw', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(50));
+    await flush();
+
+    const [sealed, pending] = itemsOf('user');
+    expect((sealed.formatted.transcript as string).split('。').length - 1).toBe(2);
+    expect(pending.formatted.transcript).not.toContain('。');
+  });
+
+  it('the translation side seals on its own schedule, independently of the source side', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    // One sentence end and a tail short of the 40-character gate: the source
+    // item stays open and whole.
+    sendInput('これはテストです。つづきの文章');
+    sendOutput('こんにちは。げんきですか。あいたかったです。またあいましょう');
+    await flush();
+
+    expect(itemsOf('user').map((i) => i.formatted.transcript)).toEqual(['これはテストです。つづきの文章']);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+    expect(itemsOf('assistant').map((i) => i.formatted.transcript)).toEqual([
+      'こんにちは。げんきですか。',
+      'あいたかったです。またあいましょう',
+    ]);
+  });
+
+  it('the input silence timer still closes the open segment, with the stream tail inside it', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(30));
+    await flush();
+    const stream = (client as any).userStream;
+    expect(stream).not.toBeNull();
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+
+    expect((client as any).userStream).toBeNull();
+    expect((client as any).userPending).toBe('');
+    const [item] = itemsOf('user');
+    expect(item.status).toBe('completed');
+    expect(item.formatted.transcript).toBe('あ'.repeat(30));
+  });
+
+  it('the assistant silence timer still closes the open segment, with the stream tail inside it', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendOutput('い'.repeat(30));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+
+    expect((client as any).assistantStream).toBeNull();
+    expect((client as any).assistantPending).toBe('');
+    const [item] = itemsOf('assistant');
+    expect(item.status).toBe('completed');
+    expect(item.formatted.transcript).toBe('い'.repeat(30));
+  });
+
+  it("turnComplete still finalizes the turn, and the stream's tail lands in the open item", async () => {
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    // A dialogue session carries no language pair, so its streams run at
+    // 'auto'. Marks the ASR already emitted are authoritative at any language
+    // — the model is never asked — which is what this fixture leans on.
+    await client.connect(dialogueConfig as any);
+
+    sendInput('これはテストです。にばんめのぶんです。さんばんめのながいぶんしょうです');
+    await flush();
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+    expect(itemsOf('user')).toHaveLength(2);
+
+    capturedCallbacks.onmessage?.({ serverContent: { turnComplete: true } });
+    await flush();
+
+    const items = itemsOf('user');
+    expect(items.map((i) => i.status)).toEqual(['completed', 'completed']);
+    expect(items.map((i) => i.formatted.transcript)).toEqual([
+      'これはテストです。にばんめのぶんです。',
+      'さんばんめのながいぶんしょうです',
+    ]);
+    expect((client as any).userStream).toBeNull();
+  });
+
+  it('a runtime that is disabled at connect leaves the client exactly as it is today', async () => {
+    const runtime = markingRuntime(10, false);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(50));
+    await flush();
+
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+    expect((client as any).userStream).toBeNull();
+    expect(itemsOf('user').map((i) => i.formatted.transcript)).toEqual(['あ'.repeat(50)]);
+  });
+
+  it('freezes the runtime at connect, and keeps that one answer across a reconnect', async () => {
+    // A reconnect re-enters connect() with the turn — and the open stream —
+    // intact. Re-reading `enabled` there would be the second read R2 forbids:
+    // a stage that woke up mid-item would rewrite that item to the short tail
+    // its fresh stream holds.
+    const late = { enabled: false, punctuate: vi.fn(async () => null) };
+    client = makeClient({ segmentation: late, sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+    capturedCallbacks.onmessage?.({ sessionResumptionUpdate: { resumable: true, newHandle: 'handle-1' } });
+    sendInput('あ'.repeat(30));
+    late.enabled = true;
+
+    setupSuccessfulConnect();
+    capturedCallbacks.onmessage?.({ goAway: {} });
+    await vi.advanceTimersByTimeAsync(100);
+    sendInput('あ'.repeat(20));
+    await flush();
+
+    expect((client as any).sessionSegmentation).toBeNull();
+    expect(late.punctuate).not.toHaveBeenCalled();
+    expect(itemsOf('user').map((i) => i.formatted.transcript)).toEqual(['あ'.repeat(50)]);
+  });
+
+  it('keeps the open stream across a reconnect so the item is never cut back to a fresh tail', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+    capturedCallbacks.onmessage?.({ sessionResumptionUpdate: { resumable: true, newHandle: 'handle-1' } });
+    sendInput('あ'.repeat(30));
+    await flush();
+    const stream = (client as any).userStream;
+
+    setupSuccessfulConnect();
+    capturedCallbacks.onmessage?.({ goAway: {} });
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect((client as any).userStream).toBe(stream);
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].formatted.transcript).toBe('あ'.repeat(30));
+  });
+});

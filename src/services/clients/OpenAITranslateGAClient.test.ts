@@ -761,3 +761,195 @@ describe("OpenAITranslateGAClient relay mode", () => {
     } finally { (globalThis as any).WebSocket = orig; }
   });
 });
+
+describe('OpenAITranslateGAClient with the segmentation stage', () => {
+  let mockWs: any;
+  let originalWebSocket: any;
+
+  /** Both sides CJK, so `gateChars` is 20 characters per sentence and the
+   *  unpunctuated fixtures below stay short enough to read. Neither side is
+   *  zh/yue, so SentenceStream's Chinese length fallback — which has nothing
+   *  to do with what is under test — never fires. */
+  const STAGE_CONFIG: OpenAITranslateSessionConfig = {
+    provider: 'openai_translate',
+    model: 'gpt-realtime-translate',
+    sourceLanguage: 'ja',
+    targetLanguage: 'ja',
+  };
+
+  /** A runtime that marks a sentence end every `every` characters. It inserts
+   *  nothing but terminals, so SentenceStream's skeleton invariant holds. */
+  function markingRuntime(every = 10, enabled = true) {
+    return {
+      enabled,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += every) {
+          out += text.slice(i, i + every);
+          if (i + every <= text.length) {
+            out += '。';
+            ends.push(out.length);
+          }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  /** Let the runtime's promise and SentenceStream's continuation settle. */
+  async function flush(turns = 10) {
+    for (let i = 0; i < turns; i++) await Promise.resolve();
+  }
+
+  /** A real connect, because that is where the session's one answer is frozen. */
+  async function connectStage(client: OpenAITranslateGAClient, config = STAGE_CONFIG) {
+    const p = client.connect(config);
+    mockWs.readyState = 1;
+    mockWs.onopen?.({});
+    mockWs.onmessage?.({ data: JSON.stringify({ type: 'session.created' }) });
+    await p;
+  }
+
+  function makeClient(options: { segmentation?: any; sentencesPerChunk?: number }) {
+    return new OpenAITranslateGAClient('test-key', undefined, options);
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    originalWebSocket = (globalThis as any).WebSocket;
+    mockWs = {
+      readyState: 0,
+      send: vi.fn(),
+      close: vi.fn(),
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+    };
+    (globalThis as any).WebSocket = vi.fn(function () { return mockWs; });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    (globalThis as any).WebSocket = originalWebSocket;
+  });
+
+  const feedTo = (client: OpenAITranslateGAClient) => (event: unknown) => (client as any).handleServerEvent(event);
+  const usersOf = (client: OpenAITranslateGAClient) => client.getConversationItems().filter((i) => i.role === 'user');
+  const assistantsOf = (client: OpenAITranslateGAClient) => client.getConversationItems().filter((i) => i.role === 'assistant');
+
+  it('seals an unpunctuated source item every N sentences, mid-delta', async () => {
+    const runtime = markingRuntime(10);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    // 50 unpunctuated characters: past the 40-character gate for N = 2 in a
+    // CJK language, and well inside MAX_MODEL_CHARS.
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+
+    expect(runtime.punctuate).toHaveBeenCalledTimes(1);
+    const items = usersOf(client);
+    expect(items.map((i) => i.formatted?.transcript)).toEqual([
+      `${'あ'.repeat(10)}。${'あ'.repeat(10)}。`,
+      'あ'.repeat(30),
+    ]);
+    expect(items[0].status).toBe('completed');
+    expect(items[1].status).toBe('in_progress');
+  });
+
+  it('shows the inserted punctuation in the sealed item and leaves the pending one raw', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+
+    const [sealed, pending] = usersOf(client);
+    expect((sealed.formatted?.transcript ?? '').split('。').length - 1).toBe(2);
+    expect(pending.formatted?.transcript).not.toContain('。');
+  });
+
+  it('the translation side seals on its own schedule, independently of the source side', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+    // One sentence end and a tail short of the 40-character gate: the source
+    // item stays open and whole.
+    feed({ type: 'session.input_transcript.delta', delta: 'これはテストです。つづきの文章' });
+    // Three sentence ends on the translation side: the stream seals after the
+    // second.
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。あいたかったです。またあいましょう' });
+    await flush();
+
+    expect(usersOf(client).map((i) => i.formatted?.transcript)).toEqual(['これはテストです。つづきの文章']);
+    expect(assistantsOf(client).map((i) => i.formatted?.transcript)).toEqual([
+      'こんにちは。げんきですか。',
+      'あいたかったです。またあいましょう',
+    ]);
+  });
+
+  it("a silence timer closing a source item ends its stream, and the tail is that item's last text", async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(30) });
+    await flush();
+    const stream = (client as any).userStream;
+    expect(stream).not.toBeNull();
+    const endSpy = vi.spyOn(stream, 'end');
+
+    vi.advanceTimersByTime(1001);
+
+    expect(endSpy).toHaveBeenCalledTimes(1);
+    expect((client as any).userStream).toBeNull();
+    expect((client as any).userPending).toBe('');
+    const [item] = usersOf(client);
+    expect(item.status).toBe('completed');
+    expect(item.formatted?.text).toBe('あ'.repeat(30));
+  });
+
+  it('a seal re-arms the silence timer for the item it opened', async () => {
+    // The seal closes the item through completeUserItem, which clears the
+    // timer the delta armed. Without a re-arm the remainder's item would
+    // never close on its own.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+    expect(usersOf(client)).toHaveLength(2);
+
+    vi.advanceTimersByTime(1001);
+    expect(usersOf(client)[1].status).toBe('completed');
+  });
+
+  it('a runtime that is disabled at connect leaves the client exactly as it is today', async () => {
+    const runtime = markingRuntime(10, false);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+    expect((client as any).userStream).toBeNull();
+    expect(usersOf(client).map((i) => i.formatted?.transcript)).toEqual(['あ'.repeat(50)]);
+  });
+
+  it('freezes the runtime at connect: a later enable changes nothing', async () => {
+    const late = { enabled: false, punctuate: vi.fn(async () => null) };
+    const client = makeClient({ segmentation: late, sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    late.enabled = true;
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+
+    expect((client as any).sessionSegmentation).toBeNull();
+    expect(late.punctuate).not.toHaveBeenCalled();
+    expect(usersOf(client).map((i) => i.formatted?.transcript)).toEqual(['あ'.repeat(50)]);
+  });
+});

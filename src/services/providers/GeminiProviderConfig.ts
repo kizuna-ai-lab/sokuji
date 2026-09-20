@@ -45,8 +45,11 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'gemini';
   readonly supportsWebRTC = false;
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new GeminiClient(creds.primary);
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new GeminiClient(creds.primary, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{

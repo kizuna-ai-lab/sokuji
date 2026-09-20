@@ -12,6 +12,8 @@ import {
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ApiKeyValidationResult, FilteredModel, IClientStatic, ResponseConfig, isGeminiSessionConfig } from '../interfaces/IClient';
 import i18n from '../../locales';
 import { Provider, ProviderType } from '../../types/Provider';
+import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /**
  * Gemini Live API client adapter
@@ -111,8 +113,57 @@ export class GeminiClient implements IClient {
   private static readonly INPUT_SEGMENT_SILENCE_MS = 2000;
   private static readonly ASSISTANT_SEGMENT_SILENCE_MS = 2000;
 
-  constructor(apiKey: string) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both fields come from ClientOptions and are never re-read from a store, so
+  // a running session cannot react to either setting changing. A null or
+  // disabled runtime means today's behaviour, byte for byte.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, taken in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session (the punctuation pack finishing its download turns it true,
+   * deleting it turns it false) and `SentenceStream` reads `enabled` once at
+   * its own construction. A stream built from a flipped value goes inert while
+   * this client still routes text into it, which loses the item outright.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /**
+   * Whether that answer has already been taken for this session.
+   *
+   * A reconnect re-enters connect() without going through disconnect(), with
+   * the turn and both streams still open. Reading `enabled` again there would
+   * be the second read R2 forbids: a stage waking up mid-item builds a fresh
+   * stream whose tail is empty, and its first seal would rewrite the item down
+   * to that tail.
+   */
+  private segmentationFrozen = false;
+  /** One stream per side: the speaker's transcript and the translation seal
+   *  independently, because each has its own item and its own timer. */
+  private userStream: SentenceStream | null = null;
+  private assistantStream: SentenceStream | null = null;
+  /** The raw text each stream still holds, mirrored from its onPending. Kept
+   *  equal to the matching `currentTurn` accumulator. */
+  private userPending = '';
+  private assistantPending = '';
+  /** Set while a seal from the stream is closing a segment, so the close does
+   *  not turn around and end() the stream that produced it: the remainder that
+   *  stream still holds is what opens the next segment. */
+  private sealingUser = false;
+  private sealingAssistant = false;
+  /** The pair the streams punctuate in. A dialogue session carries neither, so
+   *  both fall back to 'auto'. */
+  private sourceLanguage = 'auto';
+  private targetLanguage = 'auto';
+
+  constructor(
+    apiKey: string,
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.apiKey = apiKey;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
     this.client = new GoogleGenAI({ apiKey });
     // Generate a unique instance ID that remains constant for this client instance
     this.instanceId = `gemini_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -378,6 +429,19 @@ export class GeminiClient implements IClient {
     this.currentModel = config.model;
     this.textOnlyMode = config.textOnly || false;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
+    if (isGeminiSessionConfig(config)) {
+      this.sourceLanguage = config.sourceLanguageCode ?? 'auto';
+      this.targetLanguage = config.translationConfig?.targetLanguageCode ?? 'auto';
+    }
+    // R2: the one read of `enabled` this session gets, kept across a reconnect
+    // by the frozen flag. See the `segmentationFrozen` field doc.
+    if (!this.segmentationFrozen) {
+      this.segmentationFrozen = true;
+      const runtime = this.segmentation;
+      this.sessionSegmentation = runtime?.enabled === true
+        ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+        : null;
+    }
     // Both Push-to-Talk and Push-to-Translate use manual turn control on the client side
     // (activityStart/activityEnd plumbing). Without this, automaticActivityDetection stays
     // enabled and the server auto-detects turns regardless of the user's hold state.
@@ -660,6 +724,10 @@ export class GeminiClient implements IClient {
 
   private resetCurrentTurn(): void {
     this.clearSegmentTimers();
+    // Dropped rather than ended: the items these streams were feeding are
+    // being forgotten too, so a final seal would have nowhere to land.
+    this.discardUserStream();
+    this.discardAssistantStream();
     this.currentTurn = {
       inputTranscription: '',
       modelTurnParts: [],
@@ -707,6 +775,11 @@ export class GeminiClient implements IClient {
    * at different moments.
    */
   private closeInputSegment(): void {
+    // Every path that ends a source segment goes through here, so this is the
+    // one place the stage's stream has to be wound up; the seal it emits
+    // closes the segment on its own and the code below then finds the item
+    // already gone.
+    this.endUserStream();
     const item = this.currentTurn.inputTranscriptionItem;
     const text = this.currentTurn.inputTranscription.trim();
     if (item && text) {
@@ -725,6 +798,8 @@ export class GeminiClient implements IClient {
    * previous segment's audio inside the next one's bubble.
    */
   private closeAssistantSegment(): void {
+    // As in closeInputSegment: the one place the translation stream is wound up.
+    this.endAssistantStream();
     const item = this.currentTurn.assistantItem;
     if (item) {
       if (item.formatted) {
@@ -743,9 +818,171 @@ export class GeminiClient implements IClient {
     this.currentTurn.modelTurnParts = [];
   }
 
+  // ----- Segmentation stage -----
+  //
+  // The shape is Task 1's, minus the timeline caps this client has no
+  // equivalent of: one stream per side, built lazily and wound up wherever its
+  // segment closes; the fragment appends to `currentTurn` first and hands the
+  // stream the whole unsealed tail second; a seal rewrites the item it closed
+  // and lets the remainder open the next one.
+  //
+  // The streams are fed the RAW accumulation, not the normalized text the item
+  // displays, so `userPending` and `currentTurn.inputTranscription` stay the
+  // same string; closeInputSegment normalizes the sealed text on its way out.
+
+  /** The stream feeding the open source segment, or null when the stage is off
+   *  for this session. */
+  private ensureUserStream(): SentenceStream | null {
+    if (this.userStream) return this.userStream;
+    if (!this.sessionSegmentation) return null;
+    this.userStream = new SentenceStream({
+      lang: this.sourceLanguage,
+      // The frozen view, never `this.segmentation`: SentenceStream reads
+      // `enabled` once at construction, and that read must give the session's
+      // one answer (R2).
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealUserSegment(chunk.text),
+      onPending: (text) => this.onUserPending(text),
+    });
+    return this.userStream;
+  }
+
+  /** The unsealed tail. After a seal this is the remainder and the item it
+   *  belongs to has just closed, so it opens the next one; after an ordinary
+   *  fragment the open item already holds exactly this text. */
+  private onUserPending(text: string): void {
+    this.userPending = text;
+    if (text.length === 0 || this.currentTurn.inputTranscriptionItem) return;
+    this.currentTurn.inputTranscription = text;
+    const item: ConversationItem = {
+      id: this.generateItemId('user'),
+      role: 'user',
+      type: 'message',
+      status: 'in_progress',
+      createdAt: Date.now(),
+      formatted: { transcript: this.normalizeCJKSpaces(text) },
+    };
+    this.currentTurn.inputTranscriptionItem = item;
+    this.conversationItems.push(item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+    // closeInputSegment left no deadline behind. A seal that arrives with a
+    // model's answer, long after the fragment that provoked it, would
+    // otherwise leave the remainder's segment with nothing left to close it.
+    this.armInputSegmentTimer();
+  }
+
+  /** The stage decided this segment ends here. The sealed text carries the
+   *  marks the model inserted, and closeInputSegment rebuilds the item's
+   *  transcript from the accumulator, so that is where it goes. */
+  private sealUserSegment(sealed: string): void {
+    if (!this.currentTurn.inputTranscriptionItem) return;
+    this.currentTurn.inputTranscription = sealed;
+    this.sealingUser = true;
+    try {
+      this.closeInputSegment();
+    } finally {
+      this.sealingUser = false;
+    }
+  }
+
+  /** Seal whatever the stream still holds into the segment it was feeding,
+   *  then drop it. Re-entrant by design: the seal closes that segment through
+   *  closeInputSegment, which lands back here with the stream already gone. */
+  private endUserStream(): void {
+    // A seal is mid-flight and owns the remainder; it is opening the next
+    // segment with it as this returns.
+    if (this.sealingUser) return;
+    const stream = this.userStream;
+    if (stream) {
+      this.userStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    this.userPending = '';
+  }
+
+  /** Drop the stream without its final seal. */
+  private discardUserStream(): void {
+    this.userStream?.dispose();
+    this.userStream = null;
+    this.userPending = '';
+  }
+
+  /** The translation twin of ensureUserStream. */
+  private ensureAssistantStream(): SentenceStream | null {
+    if (this.assistantStream) return this.assistantStream;
+    if (!this.sessionSegmentation) return null;
+    this.assistantStream = new SentenceStream({
+      lang: this.targetLanguage,
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealAssistantSegment(chunk.text),
+      onPending: (text) => this.onAssistantPending(text),
+    });
+    return this.assistantStream;
+  }
+
+  private onAssistantPending(text: string): void {
+    this.assistantPending = text;
+    if (text.length === 0 || this.currentTurn.assistantItem) return;
+    this.currentTurn.outputTranscription = text;
+    const item: ConversationItem = {
+      id: this.generateItemId('assistant'),
+      role: 'assistant',
+      type: 'message',
+      status: 'in_progress',
+      createdAt: Date.now(),
+      formatted: { transcript: text },
+    };
+    this.currentTurn.assistantItem = item;
+    this.conversationItems.push(item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+    this.armAssistantSegmentTimer();
+  }
+
+  private sealAssistantSegment(sealed: string): void {
+    const item = this.currentTurn.assistantItem;
+    if (!item) return;
+    // closeAssistantSegment only fills the transcript when it is still empty,
+    // and the streaming path has already set it, so the sealed text is written
+    // here; the accumulator moves with it so the close path agrees.
+    this.currentTurn.outputTranscription = sealed;
+    if (item.formatted) item.formatted.transcript = sealed.trim();
+    this.sealingAssistant = true;
+    try {
+      this.closeAssistantSegment();
+    } finally {
+      this.sealingAssistant = false;
+    }
+  }
+
+  private endAssistantStream(): void {
+    if (this.sealingAssistant) return;
+    const stream = this.assistantStream;
+    if (stream) {
+      this.assistantStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    this.assistantPending = '';
+  }
+
+  private discardAssistantStream(): void {
+    this.assistantStream?.dispose();
+    this.assistantStream = null;
+    this.assistantPending = '';
+  }
+
   private async finalizeTurn(): Promise<void> {
     // Finalize conversation items - mark them as completed without resending audio
-    
+
+    // First, so each stream's tail lands in the item it belongs to: the seal
+    // routes through the close path, which completes that item, and the code
+    // below then finds nothing left to finalize.
+    this.endUserStream();
+    this.endAssistantStream();
+
     // Finalize input transcription if we have accumulated text
     if (this.currentTurn.inputTranscription.trim()) {
       const finalTranscript = this.normalizeCJKSpaces(this.currentTurn.inputTranscription.trim());
@@ -909,6 +1146,11 @@ export class GeminiClient implements IClient {
           this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.assistantItem });
         }
 
+        // The stage sees the whole unsealed tail, which is what the
+        // accumulator now holds. A seal inside this call closes the segment
+        // and opens the next.
+        this.ensureAssistantStream()?.update(this.assistantPending + serverContent.outputTranscription.text);
+
         this.armAssistantSegmentTimer();
       }
     }
@@ -945,6 +1187,8 @@ export class GeminiClient implements IClient {
           this.currentTurn.inputTranscriptionItem.formatted.transcript = normalizedTranscript;
           this.eventHandlers.onConversationUpdated?.({ item: this.currentTurn.inputTranscriptionItem });
         }
+
+        this.ensureUserStream()?.update(this.userPending + serverContent.inputTranscription.text);
 
         this.armInputSegmentTimer();
       }
@@ -1104,6 +1348,9 @@ export class GeminiClient implements IClient {
       this.closeInputSegment();
       this.closeAssistantSegment();
     }
+    // After the closes above, which seal each stream's tail into its item.
+    this.sessionSegmentation = null;
+    this.segmentationFrozen = false;
     this.clearSegmentTimers();
     if (this.session) {
       this.session.close();
@@ -1279,6 +1526,11 @@ export class GeminiClient implements IClient {
 
   reset(): void {
     this.conversationItems = [];
+    // Belt and braces with disconnect(): a permanent disconnect reaches
+    // MainPanel's teardown, and the next session on this instance must take
+    // its own reading of `enabled` rather than inherit this one.
+    this.sessionSegmentation = null;
+    this.segmentationFrozen = false;
     this.resetCurrentTurn();
     if (this.session) {
       // Reset conversation state

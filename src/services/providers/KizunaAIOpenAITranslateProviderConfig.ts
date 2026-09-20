@@ -44,10 +44,12 @@ export class KizunaAIOpenAITranslateProviderConfig extends OpenAITranslateProvid
   }
 
   // Override — routes through the relay using the backend-managed session token.
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new OpenAITranslateGAClient(creds.primary, {
-      wsUrl: `${getRelayWsUrl()}/realtime/translations`,
-    });
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new OpenAITranslateGAClient(
+      creds.primary,
+      { wsUrl: `${getRelayWsUrl()}/realtime/translations` },
+      { segmentation: options.segmentation, sentencesPerChunk: options.sentencesPerChunk },
+    );
   }
 
   // Backend-managed (relay) twins: the "apiKey" is a Better Auth session token,

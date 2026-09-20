@@ -15,6 +15,8 @@ import { OpenAIClient } from './OpenAIClient';
 import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
 /** Default silence threshold for both user (input) and assistant (output) timers. */
@@ -126,9 +128,50 @@ export class OpenAITranslateGAClient implements IClient {
 
   private relay?: { wsUrl: string };
 
-  constructor(apiKey: string, relay?: { wsUrl: string }) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both fields come from ClientOptions and are never re-read from a store, so
+  // a running session cannot react to either setting changing. A null or
+  // disabled runtime means today's behaviour, byte for byte.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session (the punctuation pack finishing its download turns it true,
+   * deleting it turns it false) and `SentenceStream` reads `enabled` once at
+   * its own construction. A stream built from a flipped value goes inert while
+   * this client still routes text into it, which loses the item outright. One
+   * frozen view handed to every stream is what makes those reads one answer.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** One stream per side: the speaker's transcript and the translation seal
+   *  independently, because each has its own item and its own timer. */
+  private userStream: SentenceStream | null = null;
+  private assistantStream: SentenceStream | null = null;
+  /** The raw text each stream still holds, mirrored from its onPending so the
+   *  next delta can be handed the whole unsealed tail. */
+  private userPending = '';
+  private assistantPending = '';
+  /** Set while a seal from the stream is closing an item, so the close does not
+   *  turn around and end() the stream that produced it: the remainder that
+   *  stream still holds is what opens the next item. */
+  private sealingUser = false;
+  private sealingAssistant = false;
+  /** The pair the streams punctuate in. Read once at connect() — the API
+   *  reports no per-item detected language, so nothing ever changes them. */
+  private sourceLanguage = 'auto';
+  private targetLanguage = 'auto';
+
+  constructor(
+    apiKey: string,
+    relay?: { wsUrl: string },
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.apiKey = apiKey;
     this.relay = relay;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
   }
 
   /**
@@ -258,7 +301,161 @@ export class OpenAITranslateGAClient implements IClient {
     return id;
   }
 
+  // ----- Segmentation stage -----
+  //
+  // The shape is Task 1's, minus the timeline caps this client has no
+  // equivalent of: one stream per side, built lazily and wound up wherever its
+  // item closes; the delta appends to the item first and hands the stream the
+  // whole unsealed tail second; a seal rewrites the item it closed and lets
+  // the remainder open the next one.
+
+  /** The stream feeding the open source item, or null when the stage is off
+   *  for this session. Rebuilt after the item it fed closes. */
+  private ensureUserStream(): SentenceStream | null {
+    if (this.userStream) return this.userStream;
+    if (!this.sessionSegmentation) return null;
+    this.userStream = new SentenceStream({
+      lang: this.sourceLanguage,
+      // The frozen view, never `this.segmentation`: SentenceStream reads
+      // `enabled` once at construction, and that read must give the session's
+      // one answer (R2).
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealUserItem(chunk.text),
+      onPending: (text) => this.onUserPending(text),
+    });
+    return this.userStream;
+  }
+
+  /** The unsealed tail. After a seal this is the remainder and the item it
+   *  belongs to has just closed, so it opens the next one; after an ordinary
+   *  update the open item already holds exactly this text. */
+  private onUserPending(text: string): void {
+    this.userPending = text;
+    if (text.length === 0) return;
+    const opened = this.currentUserItemId === null;
+    const item = this.itemLookup.get(this.ensureUserItem());
+    // A cut lands just past a sentence end, so a remainder can start with the
+    // space that followed it.
+    const shown = text.replace(/^\s+/, '');
+    if (item?.formatted && item.formatted.transcript !== shown) {
+      item.formatted.transcript = shown;
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    // completeUserItem cleared the timer the delta armed. A seal that arrives
+    // with a model's answer, long after that delta returned, would otherwise
+    // leave the remainder's item with nothing left to close it.
+    if (opened) this.resetUserSilenceTimer();
+  }
+
+  /** The stage decided this item ends here. The sealed text carries the marks
+   *  the model inserted, so the item is rewritten rather than merely closed. */
+  private sealUserItem(sealed: string): void {
+    const id = this.currentUserItemId;
+    if (!id) return;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = sealed.replace(/^\s+/, '');
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.sealingUser = true;
+    try {
+      this.completeUserItem();
+    } finally {
+      this.sealingUser = false;
+    }
+  }
+
+  /** Seal whatever the stream still holds into the item it was feeding, then
+   *  drop it. Re-entrant by design: the seal closes that item through
+   *  completeUserItem, which lands back here with the stream already gone. */
+  private endUserStream(): void {
+    // A seal is mid-flight and owns the remainder; it is opening the next item
+    // with it as this returns.
+    if (this.sealingUser) return;
+    const stream = this.userStream;
+    if (stream) {
+      this.userStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    this.userPending = '';
+  }
+
+  /** Drop the stream without its final seal — the item it was feeding is being
+   *  forgotten too, so a final seal would have nowhere to land. */
+  private discardUserStream(): void {
+    this.userStream?.dispose();
+    this.userStream = null;
+    this.userPending = '';
+  }
+
+  /** The translation twin of ensureUserStream. Separate because the two sides
+   *  have their own items, their own timers and their own language. */
+  private ensureAssistantStream(): SentenceStream | null {
+    if (this.assistantStream) return this.assistantStream;
+    if (!this.sessionSegmentation) return null;
+    this.assistantStream = new SentenceStream({
+      lang: this.targetLanguage,
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealAssistantItem(chunk.text),
+      onPending: (text) => this.onAssistantPending(text),
+    });
+    return this.assistantStream;
+  }
+
+  private onAssistantPending(text: string): void {
+    this.assistantPending = text;
+    if (text.length === 0) return;
+    const opened = this.currentAssistantItemId === null;
+    const item = this.itemLookup.get(this.ensureAssistantItem());
+    const shown = text.replace(/^\s+/, '');
+    if (item?.formatted && item.formatted.transcript !== shown) {
+      item.formatted.transcript = shown;
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    if (opened) this.resetAssistantSilenceTimer();
+  }
+
+  private sealAssistantItem(sealed: string): void {
+    const id = this.currentAssistantItemId;
+    if (!id) return;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = sealed.replace(/^\s+/, '');
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.sealingAssistant = true;
+    try {
+      this.completeAssistantItem();
+    } finally {
+      this.sealingAssistant = false;
+    }
+  }
+
+  private endAssistantStream(): void {
+    if (this.sealingAssistant) return;
+    const stream = this.assistantStream;
+    if (stream) {
+      this.assistantStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    this.assistantPending = '';
+  }
+
+  private discardAssistantStream(): void {
+    this.assistantStream?.dispose();
+    this.assistantStream = null;
+    this.assistantPending = '';
+  }
+
   private completeUserItem(): void {
+    // Every path that ends a source item goes through here, so this is the one
+    // place the stage's stream has to be wound up; the seal it emits closes
+    // the item on its own, and the code below then finds nothing left to do.
+    this.endUserStream();
     if (!this.currentUserItemId) return;
     const item = this.itemLookup.get(this.currentUserItemId);
     if (item) {
@@ -274,6 +471,8 @@ export class OpenAITranslateGAClient implements IClient {
   }
 
   private completeAssistantItem(): void {
+    // As in completeUserItem: the one place the translation stream is wound up.
+    this.endAssistantStream();
     if (!this.currentAssistantItemId) return;
     const itemId = this.currentAssistantItemId;
     const item = this.itemLookup.get(itemId);
@@ -348,6 +547,9 @@ export class OpenAITranslateGAClient implements IClient {
           item: userItem!,
           delta: { transcript: event.delta },
         });
+        // The stage sees the whole unsealed tail, which is what the item now
+        // holds. A seal inside this call closes the item and opens the next.
+        if (event.delta) this.ensureUserStream()?.update(this.userPending + event.delta);
         this.resetUserSilenceTimer();
         break;
       }
@@ -362,6 +564,7 @@ export class OpenAITranslateGAClient implements IClient {
           item: assistantItem!,
           delta: { transcript: event.delta },
         });
+        if (event.delta) this.ensureAssistantStream()?.update(this.assistantPending + event.delta);
         this.resetAssistantSilenceTimer();
         break;
       }
@@ -505,6 +708,17 @@ export class OpenAITranslateGAClient implements IClient {
     this.currentAssistantItemId = null;
     this.userSilenceTimeoutMs = clampSilenceTimeout(config.userSilenceDurationMs);
     this.assistantSilenceTimeoutMs = clampSilenceTimeout(config.assistantSilenceDurationMs);
+    this.discardUserStream();
+    this.discardAssistantStream();
+    this.sourceLanguage = config.sourceLanguage ?? 'auto';
+    this.targetLanguage = config.targetLanguage;
+    // R2: the one read of `enabled` this session gets. Everything downstream —
+    // both streams, every rebuild of them — sees this frozen view, never the
+    // live runtime. See the `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? { enabled: true, punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts) }
+      : null;
 
     const baseUrl = this.relay?.wsUrl ?? TRANSLATE_WS_URL;
     const url = `${baseUrl}?model=${encodeURIComponent(config.model)}`;
@@ -648,9 +862,12 @@ export class OpenAITranslateGAClient implements IClient {
     }
     this.connected = false;
     // Finalise any in-flight items so partial transcripts/audio aren't lost
-    // when the user ends the session mid-utterance.
+    // when the user ends the session mid-utterance. Both seal their stream's
+    // tail into the item on the way out, so this has to run before the
+    // session's frozen answer is dropped.
     this.completeUserItem();
     this.completeAssistantItem();
+    this.sessionSegmentation = null;
   }
 
   isConnected(): boolean {
@@ -692,6 +909,10 @@ export class OpenAITranslateGAClient implements IClient {
     this.audioChunks.clear();
     this.audioCumSamples.clear();
     this.deltaSequenceNumber = 0;
+    // Dropped rather than ended: the items these streams were feeding are
+    // being forgotten too.
+    this.discardUserStream();
+    this.discardAssistantStream();
   }
 
   appendInputAudio(audioData: Int16Array): void {

@@ -76,9 +76,14 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
         apiKey: creds.primary,
         inputDeviceId: options.webrtcOptions?.inputDeviceId,
         outputDeviceId: options.webrtcOptions?.outputDeviceId,
+        segmentation: options.segmentation,
+        sentencesPerChunk: options.sentencesPerChunk,
       });
     }
-    return new OpenAITranslateGAClient(creds.primary);
+    return new OpenAITranslateGAClient(creds.primary, undefined, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
