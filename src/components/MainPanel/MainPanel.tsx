@@ -940,11 +940,29 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // where the spec asks for seal reasons, and not through report() or a
         // plain entry: a seal is not a failure (diagnostics design §4).
         if (event.kind === 'seal' && useLogStore.getState().enabled) {
-          console.info(`[Segmentation] ${eventLeg} sealed a segment (${event.reason})`);
+          // Size and sentence count, not just the reason: "why did that bubble
+          // hold five sentences" and "why is this one a fragment" are the two
+          // questions a live session actually raises, and counting the marks
+          // in a pasted transcript by hand is how they were answered until now.
+          // Counts only — the text itself never reaches either surface.
+          console.info(
+            `[Segmentation] ${eventLeg} sealed ${event.chars} chars, `
+            + `${event.terminals} sentence marks (${event.reason})`,
+          );
           useLogStore.getState().addRealtimeEvent(
-            { type: 'segmentation.seal', data: { leg: eventLeg, reason: event.reason } },
+            {
+              type: 'segmentation.seal',
+              data: {
+                leg: eventLeg, reason: event.reason, lang: event.lang,
+                chars: event.chars, terminals: event.terminals,
+              },
+            },
             'client',
             'segmentation.seal',
+            // The leg, so the entry lands under Me or Other rather than under
+            // both: SegmentationLeg and ClientId are the same two strings, and
+            // a seal always belongs to exactly one side.
+            eventLeg,
           );
         }
       }),
