@@ -1870,3 +1870,149 @@ describe('LocalNativeClient sentence segmentation', () => {
     expect((c as any).sessionSegmentation).toBeNull();
   });
 });
+
+/**
+ * Auto (`sentencesPerChunk: 0`) — slice 5b, task 3.
+ *
+ * A VAD utterance is a boundary somebody else already decided (Amendment A2),
+ * so Auto keeps it and fills in the punctuation only: one bubble per
+ * utterance, exactly as with the stage off, carrying the marks the model
+ * supplied. No `SentenceStream` is built at all — the stream shape and the
+ * fill-in shape are exclusive, and the session picks one at connect.
+ */
+describe('LocalNativeClient Auto', () => {
+  /** 60 Japanese characters: gateChars('ja', 3) is 60, so this clears the
+   *  fill-in helper's gate with nothing to spare. */
+  const LONG_JA = 'あ'.repeat(60);
+  const MARKED_JA = `${'あ'.repeat(20)}。${'あ'.repeat(20)}。${'あ'.repeat(20)}。`;
+
+  /** A runtime that marks a sentence end every 20 characters — terminals
+   *  only, so the helper's skeleton check passes. */
+  function markingRuntime(): SegmentationRuntime & { punctuate: ReturnType<typeof vi.fn> } {
+    return {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += 20) {
+          out += text.slice(i, i + 20);
+          if (i + 20 <= text.length) { out += '。'; ends.push(out.length); }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  const JA_CONFIG: any = { ...SEG_CONFIG, sourceLanguage: 'ja' };
+
+  it('builds no stream and gives one item per utterance, with the punctuation filled in', async () => {
+    const runtime = markingRuntime();
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(JA_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    (c as any).onAsrResult({ text: LONG_JA });
+    await settle();
+
+    expect((c as any).stream).toBeNull();
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([MARKED_JA]);
+    expect(jobSpy.mock.calls.length).toBe(1);
+    expect(jobSpy.mock.calls[0][0]).toBe(MARKED_JA);
+  });
+
+  it('never constructs a SentenceStream at 0, and still does at 1-5', async () => {
+    const auto = new LocalNativeClient({ ...segDeps(), segmentation: markingRuntime(), sentencesPerChunk: 0 });
+    auto.setEventHandlers({});
+    await auto.connect(JA_CONFIG);
+    expect((auto as any).ensureStream()).toBeNull();
+
+    const sized = new LocalNativeClient({ ...segDeps(), segmentation: markingRuntime(), sentencesPerChunk: 3 });
+    sized.setEventHandlers({});
+    await sized.connect(JA_CONFIG);
+    expect((sized as any).ensureStream()).not.toBeNull();
+  });
+
+  it('leaves the streaming partials raw', async () => {
+    const runtime = markingRuntime();
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(JA_CONFIG);
+
+    deps.asr.onPartialResult(LONG_JA);
+    await settle();
+
+    expect(items.map((i) => i.text)).toEqual([LONG_JA]);
+    expect(items[0].status).toBe('in_progress');
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+  });
+
+  it('without a runtime, Auto is simply the stage off', async () => {
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(JA_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    (c as any).onAsrResult({ text: LONG_JA });
+    await settle();
+
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([LONG_JA]);
+    expect(jobSpy.mock.calls.length).toBe(1);
+  });
+
+  it('a session that started in Auto keeps that shape when the size changes under it', async () => {
+    const runtime = markingRuntime();
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(JA_CONFIG);
+
+    // The setting moves to 1 mid-session. At 1 the stream shape would seal
+    // three times over this text; the session's shape was decided at connect,
+    // so it stays one bubble.
+    (c as any).sentencesPerChunk = 1;
+    (c as any).onAsrResult({ text: LONG_JA });
+    await settle();
+
+    expect((c as any).stream).toBeNull();
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([MARKED_JA]);
+  });
+
+  it('writes the utterance raw rather than losing it when Stop lands mid-fill-in', async () => {
+    const runtime: SegmentationRuntime = { enabled: true, punctuate: vi.fn(() => new Promise<never>(() => {})) };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    c.setEventHandlers({});
+    await c.connect(JA_CONFIG);
+
+    (c as any).onAsrResult({ text: LONG_JA });
+    await settle();
+    expect(c.getConversationItems().filter((i) => i.status === 'completed')).toHaveLength(0);
+
+    await c.disconnect();
+
+    // MainPanel reads getConversationItems() on the turn after disconnect()
+    // resolves — anything still queued here is a sentence the user said and
+    // never gets back.
+    const completed = c.getConversationItems().filter((i) => i.status === 'completed');
+    expect(completed.map((i) => i.formatted?.transcript)).toEqual([LONG_JA]);
+  });
+});

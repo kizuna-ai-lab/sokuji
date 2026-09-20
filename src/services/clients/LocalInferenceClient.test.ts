@@ -797,3 +797,200 @@ describe('LocalInferenceClient worker punctuation endpoint', () => {
     expect(initOptions().punctuationEndpoint).toBe(true);
   });
 });
+
+/**
+ * Auto (`sentencesPerChunk: 0`) — slice 5b, task 3.
+ *
+ * A VAD utterance is a boundary somebody else already decided (Amendment A2),
+ * so Auto keeps it and fills in the punctuation only: one bubble per
+ * utterance, exactly as with the stage off, carrying the marks the model
+ * supplied. No `SentenceStream` is built at all — the stream shape and the
+ * fill-in shape are exclusive, and the session picks one at connect.
+ */
+describe('LocalInferenceClient Auto', () => {
+  beforeEach(() => {
+    hoisted.manifestEntries.clear();
+    hoisted.streamingInstances.length = 0;
+    hoisted.offlineInstances.length = 0;
+  });
+
+  /** 60 Japanese characters: gateChars('ja', 3) is 60, so this clears the
+   *  fill-in helper's gate with nothing to spare. */
+  const LONG_JA = 'あ'.repeat(60);
+  const MARKED_JA = `${'あ'.repeat(20)}。${'あ'.repeat(20)}。${'あ'.repeat(20)}。`;
+
+  /** A runtime that marks a sentence end every 20 characters — terminals
+   *  only, so the helper's skeleton check passes. */
+  function markingRuntime(): SegmentationRuntime & { punctuate: ReturnType<typeof vi.fn> } {
+    return {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += 20) {
+          out += text.slice(i, i + 20);
+          if (i + 20 <= text.length) { out += '。'; ends.push(out.length); }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  const JA_OFFLINE: any = { ...OFFLINE_CONFIG, sourceLanguage: 'ja' };
+  const JA_STREAM: any = { ...STREAM_CONFIG, sourceLanguage: 'ja' };
+
+  it('builds no stream and gives one item per utterance, with the punctuation filled in', async () => {
+    setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+    const runtime = markingRuntime();
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await client.connect(JA_OFFLINE);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+
+    (client as any).handleAsrResult(LONG_JA);
+    await settle();
+
+    expect((client as any).stream).toBeNull();
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([MARKED_JA]);
+    expect(jobSpy.mock.calls.length).toBe(1);
+    expect((jobSpy.mock.calls[0][0] as any).text).toBe(MARKED_JA);
+  });
+
+  it('never constructs a SentenceStream at 0, and still does at 1-5', async () => {
+    setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+    const auto = makeClient({ segmentation: markingRuntime(), sentencesPerChunk: 0 });
+    await auto.connect(JA_OFFLINE);
+    expect((auto as any).ensureStream()).toBeNull();
+
+    const sized = makeClient({ segmentation: markingRuntime(), sentencesPerChunk: 3 });
+    await sized.connect(JA_OFFLINE);
+    expect((sized as any).ensureStream()).not.toBeNull();
+  });
+
+  it('leaves the streaming partials raw', async () => {
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'sensevoice' } });
+    const runtime = markingRuntime();
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ status: string; text?: string }> = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ status: item.status, text: item.formatted?.transcript }),
+    });
+    await client.connect(JA_STREAM);
+
+    hoisted.streamingInstances[0].onPartialResult(LONG_JA);
+    await settle();
+
+    expect(items.map((i) => i.text)).toEqual([LONG_JA]);
+    expect(items[0].status).toBe('in_progress');
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+  });
+
+  it("keeps the worker's own punctuation endpoint on, because nothing else seals", async () => {
+    setManifest({ 'stream-model': { type: 'asr-stream', asrEngine: 'voxtral' } });
+    const client = makeClient({ segmentation: markingRuntime(), sentencesPerChunk: 0 });
+    await client.connect(JA_STREAM);
+
+    expect(hoisted.streamingInstances[0].init.mock.calls[0][1].punctuationEndpoint).toBe(true);
+  });
+
+  it('without a runtime, Auto is simply the stage off', async () => {
+    setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+    const client = makeClient({ sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await client.connect(JA_OFFLINE);
+    const jobSpy = vi.spyOn(client as any, 'processPipelineJob');
+
+    (client as any).handleAsrResult(LONG_JA);
+    await settle();
+
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([LONG_JA]);
+    expect(jobSpy.mock.calls.length).toBe(1);
+  });
+
+  it('a session that started in Auto keeps that shape when the size changes under it', async () => {
+    setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+    const runtime = markingRuntime();
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await client.connect(JA_OFFLINE);
+
+    // The setting moves to 1 mid-session. At 1 the stream shape would seal
+    // three times over this text; the session's shape was decided at connect,
+    // so it stays one bubble.
+    (client as any).sentencesPerChunk = 1;
+    (client as any).handleAsrResult(LONG_JA);
+    await settle();
+
+    expect((client as any).stream).toBeNull();
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([MARKED_JA]);
+  });
+
+  it('writes the utterance raw rather than losing it when Stop lands mid-fill-in', async () => {
+    setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+    const runtime: SegmentationRuntime = { enabled: true, punctuate: vi.fn(() => new Promise<never>(() => {})) };
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 0 });
+    client.setEventHandlers({});
+    await client.connect(JA_OFFLINE);
+
+    (client as any).handleAsrResult(LONG_JA);
+    await settle();
+    // Nothing written yet: the model has not answered and the fill-in budget
+    // has not run out either.
+    expect(client.getConversationItems().filter((i) => i.status === 'completed')).toHaveLength(0);
+
+    await client.disconnect();
+
+    // MainPanel reads getConversationItems() on the turn after disconnect()
+    // resolves — anything still queued here is a sentence the user said and
+    // never gets back.
+    const completed = client.getConversationItems().filter((i) => i.status === 'completed');
+    expect(completed.map((i) => i.formatted?.transcript)).toEqual([LONG_JA]);
+  });
+
+  it('keeps two utterances in order when the first one waits longer for its marks', async () => {
+    setManifest({ 'offline-model': { type: 'asr', asrEngine: 'whisper' } });
+    let releaseFirst: (() => void) | null = null;
+    const runtime: SegmentationRuntime = {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        if (!releaseFirst) {
+          await new Promise<void>((resolve) => { releaseFirst = resolve; });
+        }
+        return { text, sentenceEnds: [], breakpoints: [], model: 'fireredpunc' as const };
+      }),
+    };
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 0 });
+    const order: string[] = [];
+    client.setEventHandlers({
+      onConversationUpdated: ({ item }) => {
+        if (item.role === 'user' && item.status === 'completed') order.push(item.formatted!.transcript!);
+      },
+    });
+    await client.connect(JA_OFFLINE);
+
+    const first = 'あ'.repeat(60);
+    const second = 'い'.repeat(60);
+    (client as any).handleAsrResult(first);
+    await settle();
+    (client as any).handleAsrResult(second);
+    await settle();
+    expect(order).toEqual([]);
+
+    releaseFirst!();
+    await settle();
+
+    expect(order).toEqual([first, second]);
+  });
+});

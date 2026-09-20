@@ -18,6 +18,7 @@ import { createNativeVadWorker } from './createNativeVadWorker';
 import { SentenceStream } from '../../lib/segmentation/SentenceStream';
 import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 import { countSkeleton, offsetAfterSkeleton } from '../../lib/segmentation/sealCursor';
+import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
 
 interface Deps {
   asr?: NativeAsrClient | any;
@@ -94,8 +95,43 @@ export class LocalNativeClient implements IClient {
    * from the same one answer.)
    */
   private sessionSegmentation: SegmentationRuntime | null = null;
+  /**
+   * Which of the stage's two shapes THIS session is in, decided once in
+   * `connect()` beside `sessionSegmentation`. The two are EXCLUSIVE: exactly
+   * one of them runs for the whole session, and never both.
+   *
+   * - `'stream'` — a size of 1-5. One `SentenceStream` per utterance seals a
+   *   bubble every N sentences; `ensureStream()` builds it.
+   * - `'fill-in'` — a size of 0, Auto. The VAD utterance is a boundary
+   *   somebody else already decided (Amendment A2), so the client keeps it and
+   *   only fills in the punctuation, through the same `punctuateDefinite` the
+   *   server-definite clients use. No stream is ever constructed — a stream
+   *   built but inert costs the whole utterance (slice 4 paid for that).
+   * - `'off'` — no runtime, or one disabled at connect: today's behaviour
+   *   exactly.
+   *
+   * Decided once for the same reason `sessionSegmentation` is frozen: the size
+   * is a session value, and a size that moved mid-session would switch shapes
+   * under an open utterance. Reset in `disconnect()`.
+   * (LocalInferenceClient carries the same field for the same reason, plus the
+   * ASR worker's own punctuation endpoint, which it derives from it.)
+   */
+  private sessionShape: 'off' | 'stream' | 'fill-in' = 'off';
   /** One stream per utterance, source side. Null between utterances. */
   private stream: SentenceStream | null = null;
+  /** Orders the fill-in shape's writes, which land after an await. Two
+   *  utterances punctuate concurrently, but the later one must not be listed
+   *  first — see createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+  /**
+   * Bumped whenever the conversation this client is writing into is thrown
+   * away (`reset()`, `clearConversationItems()`). A fill-in write captured an
+   * earlier epoch and does nothing — the same guarantee those two already give
+   * by disposing the open stream: a cleared conversation must not still
+   * receive a bubble (and its job) from the utterance in progress before the
+   * clear.
+   */
+  private punctuationEpoch = 0;
   /**
    * How much of the current utterance's raw ASR text is already folded into
    * a seal, counted in LETTERS AND DIGITS (see sealCursor.ts).
@@ -190,6 +226,12 @@ export class LocalNativeClient implements IClient {
           observe: (event) => runtime.observe?.(event),
         }
       : null;
+    // The session's shape, read from the size once and never again — see the
+    // `sessionShape` field doc. 0 is Auto: keep the VAD's boundary and fill in
+    // the marks. 1-5 is the stream.
+    this.sessionShape = !this.sessionSegmentation
+      ? 'off'
+      : this.sentencesPerChunk > 0 ? 'stream' : 'fill-in';
     // A reconnect without an intervening disconnect() must not inherit a
     // stream opened under the PREVIOUS config.
     this.stream?.dispose();
@@ -505,9 +547,13 @@ export class LocalNativeClient implements IClient {
   /**
    * The stream for the utterance in progress, created on first text.
    *
-   * Returns null — meaning "no segmentation, behave exactly as today" —
-   * whenever `sessionSegmentation` is null: no runtime, or one that was
-   * disabled at connect. That check matters here and not just inside
+   * Returns null whenever this session is not in the stream shape — see the
+   * `sessionShape` field doc. That is "no segmentation, behave exactly as
+   * today" (no runtime, or one disabled at connect) and it is also Auto, where
+   * the utterance keeps the boundary the VAD gave it and only its text changes
+   * — see `fillInUtterance`.
+   *
+   * That check matters here and not just inside
    * SentenceStream: SentenceStream's own contract for "no runtime or
    * disabled" is "no sealing at all" (see its `active()`), so if this method
    * still built a live-but-inert stream, the whole utterance would be
@@ -528,7 +574,7 @@ export class LocalNativeClient implements IClient {
     // would be lost with the stranded user bubble overwritten by the next
     // utterance.
     if (this.stream) return this.stream;
-    if (!this.sessionSegmentation) return null;
+    if (this.sessionShape !== 'stream' || !this.sessionSegmentation) return null;
     this.sealedSkeleton = 0;
     this.stream = new SentenceStream({
       lang: this.cfg?.sourceLanguage ?? 'auto',
@@ -753,27 +799,97 @@ export class LocalNativeClient implements IClient {
       return;
     }
 
-    let userItem = this.partialUserItem;
+    if (this.sessionShape === 'fill-in') {
+      this.fillInUtterance(r.text);
+      return;
+    }
+
+    this.writeWholeUtterance(this.partialUserItem, r.text, Date.now());
+    this.partialUserItem = null;
+  }
+
+  /**
+   * Auto's finalization: one bubble per utterance, with the punctuation the
+   * model filled in.
+   *
+   * The boundary is the VAD's and is never touched — that is what Auto means
+   * (Amendment A2), and it is why this reaches for `punctuateDefinite`, the
+   * same helper the server-definite clients use, rather than a
+   * `SentenceStream`. The streaming partials stay raw: `ensureStream()`
+   * returns null in this shape, so `onAsrPartial` shows them untouched, and
+   * only this final text is punctuated.
+   *
+   * The model call starts NOW so two utterances punctuate concurrently; the
+   * write waits its turn in `punctuationLane`, or the answers could list the
+   * later utterance first.
+   */
+  private fillInUtterance(text: string): void {
+    const runtime = this.sessionSegmentation;
+    if (!runtime) return;
+    // Captured before the await, because the next utterance's first partial
+    // may arrive while the model runs: the bubble THIS utterance opened, and
+    // the stamp MainPanel sorts by (an item minted after the model call would
+    // be stamped later than the utterance that follows it). Detaching
+    // `partialUserItem` now is what makes the next partial mint its own.
+    const existing = this.partialUserItem;
+    this.partialUserItem = null;
+    const createdAt = Date.now();
+    const epoch = this.punctuationEpoch;
+    const lang = this.cfg?.sourceLanguage ?? 'auto';
+    // 0, not the default: this is Auto, and the helper's own doc says so.
+    const pending = punctuateDefinite(runtime, lang, text, 0);
+    this.punctuationLane.queue(async (cancelled) => {
+      const filled = await pending;
+      // `cancelled()`: disconnect() already wrote this utterance raw. The
+      // epoch and identity checks are the cleared-conversation and reconnect
+      // cases — an answer that lands after either belongs to a conversation
+      // nobody renders.
+      if (cancelled() || epoch !== this.punctuationEpoch || this.sessionSegmentation !== runtime) return;
+      this.writeWholeUtterance(existing, filled, createdAt);
+    }, () => {
+      // The raw fallback runs from `flush()`, i.e. from disconnect() only: the
+      // transcript is kept, but no translation starts against engines the
+      // teardown is already dismantling.
+      this.writeWholeUtterance(existing, text, createdAt, false);
+    });
+  }
+
+  /**
+   * One completed bubble for a whole utterance, and its one job. Shared by
+   * the stage-off path and by `fillInUtterance`, which passes the punctuated
+   * text and the per-utterance state it captured, because its call lands
+   * after an await.
+   *
+   * Deliberately no asrTiming: `local.native.asr.end` already reports
+   * durationMs/recognitionTimeMs/rtf once for this (sole) job, and passing the
+   * timing through as well would duplicate it on translation.start for no
+   * reason — asrTiming only earns its place on the stream shape
+   * (`sealUserChunk`), where it marks which of several chunks is the final
+   * one.
+   *
+   * `queueJob` is false for one caller only: the fill-in shape's Stop flush.
+   */
+  private writeWholeUtterance(
+    existing: ConversationItem | null,
+    text: string,
+    createdAt: number,
+    queueJob = true,
+  ): void {
+    let userItem = existing;
     if (userItem) {
       userItem.status = 'completed';
-      userItem.formatted!.transcript = r.text;
-      this.partialUserItem = null;
+      userItem.formatted!.transcript = text;
     } else {
       userItem = {
         id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
-        createdAt: Date.now(), formatted: { transcript: r.text },
+        createdAt, formatted: { transcript: text },
       };
       this.items.push(userItem);
     }
     this.emit(userItem);
-    // serialize pipeline jobs so text/audio stay ordered. Deliberately no
-    // asrTiming here: this is the legacy (no-stream) path, where
-    // local.native.asr.end above already reports durationMs/recognitionTimeMs
-    // /rtf once for this (sole) job. Passing timing through as well would
-    // duplicate it on translation.start for no reason — asrTiming only earns
-    // its place on the segmented path (sealUserChunk), where it marks which
-    // of several chunks is the final one.
-    this.queue = this.queue.then(() => this.runJob(r.text)).catch((e) => {
+    if (!queueJob) return;
+    // serialize pipeline jobs so text/audio stay ordered.
+    this.queue = this.queue.then(() => this.runJob(text)).catch((e) => {
       this.emitEvent('local.native.error', 'client', { error: String(e) });
       this.handlers.onError?.(String(e));
     });
@@ -946,9 +1062,14 @@ export class LocalNativeClient implements IClient {
   cancelResponse(): void { try { this.tts?.cancel?.(); } catch (_) {} }
   async disconnect(): Promise<void> {
     this.connected = false;
+    // Before the teardown, and synchronously: an utterance still waiting for
+    // its punctuation is text the user said, and MainPanel reads
+    // getConversationItems() on the turn after this resolves.
+    this.punctuationLane.flush();
     this.partialUserItem = null;
     this.currentTranslateItem = null;
     this.sessionSegmentation = null;
+    this.sessionShape = 'off';
     this.stream?.dispose();
     this.stream = null;
     this.sealedSkeleton = 0;
@@ -973,6 +1094,8 @@ export class LocalNativeClient implements IClient {
     // just cleared out from under it.
     this.stream?.dispose();
     this.stream = null;
+    // The fill-in shape's half of that same guarantee — see the field doc.
+    this.punctuationEpoch++;
     this.sealedSkeleton = 0;
     this.lastRawPartialText = '';
   }
@@ -987,6 +1110,7 @@ export class LocalNativeClient implements IClient {
     // before the clear.
     this.stream?.dispose();
     this.stream = null;
+    this.punctuationEpoch++;
     this.sealedSkeleton = 0;
     this.lastRawPartialText = '';
   }
