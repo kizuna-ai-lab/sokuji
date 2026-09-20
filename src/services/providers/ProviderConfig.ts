@@ -1,4 +1,5 @@
 import type { TransportType } from './ProviderDescriptor';
+import type { SegmentationOffer } from '../../lib/segmentation/segmentationMode';
 
 export interface LanguageOption {
   name: string;
@@ -93,6 +94,36 @@ export interface ProviderCapabilities {
 
   /** Transport this provider must run on, overriding the user preference. */
   forcedTransport?: TransportType;
+
+  /** Which segmentation choices this provider offers; the three fields are
+   *  documented on `SegmentationOffer`, the type this is a partial of, so the
+   *  capability cannot drift from what the mode resolvers take. Absent means
+   *  the default `{ pause: false, auto: true, sizes: false }`: a provider
+   *  whose boundaries a server decides. Read it through
+   *  `resolveSegmentationOffer` below, never field by field, so that default
+   *  is applied in exactly one place. */
+  segmentation?: Partial<SegmentationOffer>;
+}
+
+/**
+ * The segmentation choices a provider actually offers: what its descriptor
+ * declared, with the default filled in for whatever it left out.
+ *
+ * The default describes a provider whose boundaries a server decides — no
+ * silence timer of ours cuts its bubbles, and phase 1 cannot split a segment
+ * the server already called final, so Auto is the only thing left. That is
+ * the common case, which is why only the descriptors that deviate declare
+ * anything; the resolved answer for every one of them is tabulated in
+ * `descriptorRegistry.test.ts`, where a provider added later has to write its
+ * row rather than inherit a default nobody thought about.
+ */
+export function resolveSegmentationOffer(caps: ProviderCapabilities): SegmentationOffer {
+  const declared = caps.segmentation;
+  return {
+    pause: declared?.pause ?? false,
+    auto: declared?.auto ?? true,
+    sizes: declared?.sizes ?? false,
+  };
 }
 
 export interface ProviderConfig {

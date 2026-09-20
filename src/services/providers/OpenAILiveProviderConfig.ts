@@ -133,6 +133,11 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
         // Unused — the flags above hide the sections; required by the type.
         temperatureRange: { min: 0, max: 0, step: 0 },
         maxTokensRange: { min: 0, max: 0, step: 0 },
+
+        // This client cuts on its own silence timers, so By pause is a real
+        // choice here and Auto is not: it would be the pause mode by another
+        // name, since nothing but those timers decides a boundary.
+        segmentation: { pause: true, auto: false, sizes: true },
       },
     };
   }

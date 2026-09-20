@@ -17,6 +17,8 @@ vi.mock('../../utils/environment', async (orig) => ({
   getRelayWsUrl: () => 'wss://r.example/v1',
 }));
 import { ProviderConfigFactory } from './ProviderConfigFactory';
+import { resolveSegmentationOffer } from './ProviderConfig';
+import type { SegmentationOffer } from '../../lib/segmentation/segmentationMode';
 import { Provider } from '../../types/Provider';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
@@ -421,6 +423,44 @@ describe('S1 capability flags', () => {
     [Provider.ZOOM_AI]: undefined,
   };
 
+  // The phase-1 segmentation offer of every provider, resolved — the default
+  // already filled in — because that is the answer the mode resolvers act on.
+  // This table IS the specification (segmentation design, Amendment A2, phase
+  // 1): a provider added later inherits the default, and the only place that
+  // shows up is the row this Record forces whoever adds it to write.
+  const SEGMENTATION: Record<Provider, SegmentationOffer> = {
+    // Their own silence timers cut the bubble, and the user tunes them, so
+    // Auto here would be the pause mode wearing another name.
+    [Provider.OPENAI_LIVE]: { pause: true, auto: false, sizes: true },
+    [Provider.OPENAI_TRANSLATE]: { pause: true, auto: false, sizes: true },
+    [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: { pause: true, auto: false, sizes: true }, // twin spread
+    [Provider.GEMINI]: { pause: true, auto: false, sizes: true },
+
+    // 1-5 is what slice 3 shipped on the local engines. Auto needs them to
+    // punctuate an utterance without building a stream, which is phase 2.
+    [Provider.LOCAL_INFERENCE]: { pause: false, auto: false, sizes: true },
+    [Provider.LOCAL_NATIVE]: { pause: false, auto: false, sizes: true },
+
+    // The default: a server decides the boundary. Splitting one of those
+    // segments every N sentences is implementable, but it is phase 2, so
+    // these five carry `sizes: false` for now.
+    [Provider.SONIOX]: { pause: false, auto: true, sizes: false },
+    [Provider.KIZUNA_AI_SONIOX]: { pause: false, auto: true, sizes: false }, // twin spread
+    [Provider.VOLCENGINE_ST]: { pause: false, auto: true, sizes: false },
+    [Provider.VOLCENGINE_AST2]: { pause: false, auto: true, sizes: false },
+    [Provider.KIZUNA_AI_VOLCENGINE_AST2]: { pause: false, auto: true, sizes: false }, // twin spread
+    [Provider.PALABRA_AI]: { pause: false, auto: true, sizes: false },
+    [Provider.ZOOM_AI]: { pause: false, auto: true, sizes: false },
+
+    // Also the default, and it stays there: the GA client attaches audio to
+    // conversation items, so splitting one would strand the karaoke timing.
+    // The beta client shares the descriptor.
+    [Provider.OPENAI]: { pause: false, auto: true, sizes: false },
+    [Provider.OPENAI_COMPATIBLE]: { pause: false, auto: true, sizes: false }, // inherited via ...base
+  };
+
+  const DEFAULT_OFFER: SegmentationOffer = { pause: false, auto: true, sizes: false };
+
   it('declares pushGatedModes exactly where the settings vocabulary has push-gated modes', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
@@ -470,6 +510,28 @@ describe('S1 capability flags', () => {
       if (frames !== undefined) {
         expect(Number.isInteger(frames) && frames > 0, `positive integer frames for ${id}`).toBe(true);
       }
+    }
+  });
+
+  it('offers the phase-1 segmentation choices the table names, for every provider', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      expect(resolveSegmentationOffer(caps), `segmentation offer for ${id}`).toEqual(SEGMENTATION[id]);
+    }
+  });
+
+  it('declares segmentation only on the descriptors that deviate from the default', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
+      const deviates = JSON.stringify(SEGMENTATION[id]) !== JSON.stringify(DEFAULT_OFFER);
+      expect(caps.segmentation !== undefined, `segmentation declared for ${id}`).toBe(deviates);
+    }
+  });
+
+  it('every provider offers at least one of Auto and sizes, which By sentences needs', () => {
+    for (const id of ProviderConfigFactory.getAvailableProviders()) {
+      const offer = resolveSegmentationOffer(ProviderConfigFactory.getDescriptor(id).getConfig().capabilities);
+      expect(offer.auto || offer.sizes, `By sentences is runnable on ${id}`).toBe(true);
     }
   });
 

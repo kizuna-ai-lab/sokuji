@@ -231,6 +231,11 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
         // Too little speech actively cancels the turn so Gemini doesn't
         // generate a response for silence.
         pttFinalization: { response: 'voice-gated-cancel' },
+
+        // This client cuts on its own silence timers, so By pause is a real
+        // choice here and Auto is not: it would be the pause mode by another
+        // name, since nothing but those timers decides a boundary.
+        segmentation: { pause: true, auto: false, sizes: true },
       },
     };
   }
