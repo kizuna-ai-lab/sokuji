@@ -17,6 +17,7 @@ mel.astype(np.float32).tofile(os.path.join(HERE, "www", "jfk_mel_ref.bin"))
 tok = AutoTokenizer.from_pretrained(os.path.join(HERE, "qwen3-asr-onnx", "output", "qwen3-asr-0.6b"))
 samples = ["こんにちは、世界。Hello world! 1234", "这并不是告别，这是一个篇章的结束。", "language Japanese", "🙂 émigré naïve"]
 ids = [tok.encode(s, add_special_tokens=False) for s in samples]
-json.dump({"melShape": list(mel.shape), "samples": samples, "ids": ids, "decoded": [tok.decode(i) for i in ids]},
-          open(os.path.join(HERE, "www", "jfk_ref.json"), "w"), ensure_ascii=False)
+with open(os.path.join(HERE, "www", "jfk_ref.json"), "w") as fh:
+    json.dump({"melShape": list(mel.shape), "samples": samples, "ids": ids, "decoded": [tok.decode(i) for i in ids]},
+              fh, ensure_ascii=False)
 print("mel", mel.shape, "min/max", float(mel.min()), float(mel.max()), "ids", [len(i) for i in ids])

@@ -98,6 +98,21 @@ export interface EventData {
     | 'translated_transcription'
     | 'output_audio_data'
     | 'current_task'
+    // Volcengine AST2. One client event, then whatever the server sent: the
+    // name is read out of the proto's `EventType` enum, so the exact set lives
+    // in the generated code rather than here, and an event the enum does not
+    // name arrives as `message.<number>`. The twelve the grouping switch below
+    // treats specially (SourceSubtitle*, TranslationSubtitle*, TTS*,
+    // UsageResponse, Audio{Muted,Unmuted}) are among them.
+    | 'start_session.sent'
+    | `message.${number}`
+    // Sentence segmentation stage — diagnostics only, counts and durations,
+    // never transcript text. They ride the events stream (which LogsPanel shows
+    // and 'copy logs' exports) rather than the plain error/warning entries
+    // report.ts owns, because none of the three is a failure.
+    | 'segmentation.pack.downloaded'
+    | 'segmentation.model.loaded'
+    | 'segmentation.seal'
     // LocalInference pipeline event types
     | 'local.engine.ready'
     | 'local.session.opened'
@@ -110,7 +125,6 @@ export interface EventData {
     | 'local.translation.end'
     | 'local.tts.start'
     | 'local.tts.end'
-    | 'zoom.speech_start'
     | 'local.native.speech_start'
     | 'local.tts.sentence.start'
     | 'local.tts.sentence.end'

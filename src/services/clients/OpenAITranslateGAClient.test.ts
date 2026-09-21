@@ -150,7 +150,11 @@ describe('OpenAITranslateGAClient state machine', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    client = new OpenAITranslateGAClient('test-key');
+    // 1 s a side, which is what these scenarios were written against — the
+    // pause pair's own default (1.5 s) is exercised by its own test below.
+    client = new OpenAITranslateGAClient('test-key', undefined, {
+      sourcePauseMs: 1000, translationPauseMs: 1000,
+    });
     updates = [];
     realtimeEvents = [];
     const handlers: ClientEventHandlers = {
@@ -555,6 +559,47 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
+  // A2: the pair is a global setting handed over at construction, not a field
+  // of the session config. connect() must not reset it, and a client built
+  // without one runs on the 1.5 s the store defaults to.
+  it('keeps the pause pair it was built with, and defaults both sides to 1.5 s', () => {
+    const built = new OpenAITranslateGAClient('test-key', undefined, {
+      sourcePauseMs: 700, translationPauseMs: 2500,
+    });
+    expect((built as any).userSilenceTimeoutMs).toBe(700);
+    expect((built as any).assistantSilenceTimeoutMs).toBe(2500);
+
+    const bare = new OpenAITranslateGAClient('test-key');
+    expect((bare as any).userSilenceTimeoutMs).toBe(1500);
+    expect((bare as any).assistantSilenceTimeoutMs).toBe(1500);
+  });
+
+  // A2's accepted behaviour, written down rather than left to be inferred
+  // from the tests above happening to build clients without a runtime: Off
+  // means no punctuation stage, and the silence timers keep running under it.
+  // They have to — they are the only thing that closes an item when speech
+  // stops, and slice 4 removed the caps that competed with By sentences. So
+  // Off and By pause cut identically here; the difference is only whether the
+  // sliders can be reached.
+  it('still closes items on silence with the segmentation stage off', () => {
+    const off = new OpenAITranslateGAClient('test-key', undefined, {
+      segmentation: null, sourcePauseMs: 700, translationPauseMs: 2500,
+    });
+    off.setEventHandlers({ onConversationUpdated: () => {} } as ClientEventHandlers);
+
+    (off as any).handleServerEvent({ type: 'session.input_transcript.delta', delta: 'Hi' });
+    (off as any).handleServerEvent({ type: 'session.output_transcript.delta', delta: 'Bonjour' });
+
+    vi.advanceTimersByTime(800);
+    let items = off.getConversationItems();
+    expect(items.find((i) => i.role === 'user')?.status).toBe('completed');
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1800);
+    items = off.getConversationItems();
+    expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
+  });
+
   it('honours configured per-side silence thresholds', () => {
     (client as any).userSilenceTimeoutMs = 600;
     (client as any).assistantSilenceTimeoutMs = 1500;
@@ -580,12 +625,15 @@ describe('OpenAITranslateGAClient state machine', () => {
     expect(items.find((i) => i.role === 'assistant')?.status).toBe('completed');
   });
 
-  it('exports the correct silence-timeout constants', async () => {
-    const { SILENCE_TIMEOUT_MS, SILENCE_TIMEOUT_MIN_MS, SILENCE_TIMEOUT_MAX_MS } =
-      await import('./OpenAITranslateGAClient');
-    expect(SILENCE_TIMEOUT_MS).toBe(1000);
-    expect(SILENCE_TIMEOUT_MIN_MS).toBe(100);
-    expect(SILENCE_TIMEOUT_MAX_MS).toBe(3000);
+  // The three silence-timeout constants this client used to own are now the
+  // pause pair's, shared by all four pause clients; what is left to pin here
+  // is that this client honours the range.
+  it('clamps a pause outside the 100-3000 ms a timer accepts', () => {
+    const client = new OpenAITranslateGAClient('test-key', undefined, {
+      sourcePauseMs: 5, translationPauseMs: 99_000,
+    });
+    expect((client as any).userSilenceTimeoutMs).toBe(100);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(3000);
   });
 });
 
@@ -759,5 +807,304 @@ describe("OpenAITranslateGAClient relay mode", () => {
       expect(captured.protocols).toContain("sokuji-auth.sess_TOKEN");
       expect(captured.protocols?.some((p) => p.startsWith("openai-insecure-api-key."))).toBe(false);
     } finally { (globalThis as any).WebSocket = orig; }
+  });
+});
+
+describe('OpenAITranslateGAClient with the segmentation stage', () => {
+  let mockWs: any;
+  let originalWebSocket: any;
+
+  /** Both sides CJK, so `gateChars` is 20 characters per sentence and the
+   *  unpunctuated fixtures below stay short enough to read. Neither side is
+   *  zh/yue, so SentenceStream's Chinese length fallback — which has nothing
+   *  to do with what is under test — never fires. */
+  const STAGE_CONFIG: OpenAITranslateSessionConfig = {
+    provider: 'openai_translate',
+    model: 'gpt-realtime-translate',
+    sourceLanguage: 'ja',
+    targetLanguage: 'ja',
+  };
+
+  /** A runtime that marks a sentence end every `every` characters. It inserts
+   *  nothing but terminals, so SentenceStream's skeleton invariant holds. */
+  function markingRuntime(every = 10, enabled = true) {
+    return {
+      enabled,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += every) {
+          out += text.slice(i, i + every);
+          if (i + every <= text.length) {
+            out += '。';
+            ends.push(out.length);
+          }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  /** Let the runtime's promise and SentenceStream's continuation settle. */
+  async function flush(turns = 10) {
+    for (let i = 0; i < turns; i++) await Promise.resolve();
+  }
+
+  /** A real connect, because that is where the session's one answer is frozen. */
+  async function connectStage(client: OpenAITranslateGAClient, config = STAGE_CONFIG) {
+    const p = client.connect(config);
+    mockWs.readyState = 1;
+    mockWs.onopen?.({});
+    mockWs.onmessage?.({ data: JSON.stringify({ type: 'session.created' }) });
+    await p;
+  }
+
+  function makeClient(options: {
+    segmentation?: any; sentencesPerChunk?: number;
+    sourcePauseMs?: number; translationPauseMs?: number;
+  }) {
+    return new OpenAITranslateGAClient('test-key', undefined, options);
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    originalWebSocket = (globalThis as any).WebSocket;
+    mockWs = {
+      readyState: 0,
+      send: vi.fn(),
+      close: vi.fn(),
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+    };
+    (globalThis as any).WebSocket = vi.fn(function () { return mockWs; });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    (globalThis as any).WebSocket = originalWebSocket;
+  });
+
+  const feedTo = (client: OpenAITranslateGAClient) => (event: unknown) => (client as any).handleServerEvent(event);
+  const usersOf = (client: OpenAITranslateGAClient) => client.getConversationItems().filter((i) => i.role === 'user');
+  const assistantsOf = (client: OpenAITranslateGAClient) => client.getConversationItems().filter((i) => i.role === 'assistant');
+
+  // The pair arrives beside the runtime and the size, and survives connect —
+  // it is no longer a field of the session config for connect() to re-read.
+  it('keeps the pause pair across a real connect', async () => {
+    const client = makeClient({ sourcePauseMs: 700, translationPauseMs: 2500 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    expect((client as any).userSilenceTimeoutMs).toBe(700);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(2500);
+  });
+
+  it('seals an unpunctuated source item every N sentences, mid-delta', async () => {
+    const runtime = markingRuntime(10);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    // 50 unpunctuated characters: past the 40-character gate for N = 2 in a
+    // CJK language, and well inside MAX_MODEL_CHARS.
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+
+    expect(runtime.punctuate).toHaveBeenCalledTimes(1);
+    const items = usersOf(client);
+    expect(items.map((i) => i.formatted?.transcript)).toEqual([
+      `${'あ'.repeat(10)}。${'あ'.repeat(10)}。`,
+      'あ'.repeat(30),
+    ]);
+    expect(items[0].status).toBe('completed');
+    expect(items[1].status).toBe('in_progress');
+  });
+
+  it('shows the inserted punctuation in the sealed item and leaves the pending one raw', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+
+    const [sealed, pending] = usersOf(client);
+    expect((sealed.formatted?.transcript ?? '').split('。').length - 1).toBe(2);
+    expect(pending.formatted?.transcript).not.toContain('。');
+  });
+
+  it('leaves the translation side unsegmented, so its audio keeps its bubble', async () => {
+    // The stage is source-side only here: this client reports no per-item
+    // timeline, so a split translation item cannot be told where its audio
+    // ends, and the frames that belong to the sealed sentence would attach to
+    // the next bubble — putting every later karaoke highlight one bubble out.
+    const runtime = markingRuntime(10);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    const updates: Array<{ item: { id: string }; delta?: { audio?: Int16Array } }> = [];
+    client.setEventHandlers({ onConversationUpdated: (u) => updates.push(u as never) } as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+    // Three sentence ends: enough for the stage to have sealed twice, had it
+    // been running on this side.
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。あいたかったです。またあいましょう' });
+    await flush();
+    feed({ type: 'session.output_audio.delta', delta: CONTENT_DELTA });
+    await flush();
+
+    const assistants = assistantsOf(client);
+    expect(assistants.map((i) => i.formatted?.transcript)).toEqual([
+      'こんにちは。げんきですか。あいたかったです。またあいましょう',
+    ]);
+    expect((client as any).assistantStream).toBeUndefined();
+    const audioUpdate = updates.find((u) => u.delta?.audio instanceof Int16Array);
+    expect(audioUpdate?.item.id).toBe(assistants[0].id);
+  });
+
+  it('still segments the source side while the translation side stays whole', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。あいたかったです。またあいましょう' });
+    await flush();
+
+    expect(usersOf(client)).toHaveLength(2);
+    expect(assistantsOf(client)).toHaveLength(1);
+  });
+
+  it("a silence timer closing a source item ends its stream, and the tail is that item's last text", async () => {
+    // 1 s so the advance below is unambiguous; the threshold is not what this
+    // test is about.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2, sourcePauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(30) });
+    await flush();
+    const stream = (client as any).userStream;
+    expect(stream).not.toBeNull();
+    const endSpy = vi.spyOn(stream, 'end');
+
+    // Two windows: the tail is mid-sentence, so the first expiry defers and
+    // the second — with nothing new arrived — closes.
+    vi.advanceTimersByTime(1001);
+    vi.advanceTimersByTime(1001);
+
+    expect(endSpy).toHaveBeenCalledTimes(1);
+    expect((client as any).userStream).toBeNull();
+    expect((client as any).userPending).toBe('');
+    const [item] = usersOf(client);
+    expect(item.status).toBe('completed');
+    expect(item.formatted?.text).toBe('あ'.repeat(30));
+  });
+
+  it('a seal re-arms the silence timer for the item it opened', async () => {
+    // The seal closes the item through completeUserItem, which clears the
+    // timer the delta armed. Without a re-arm the remainder's item would
+    // never close on its own.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2, sourcePauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+    expect(usersOf(client)).toHaveLength(2);
+
+    // Two windows: the remainder is mid-sentence, so the first expiry defers.
+    vi.advanceTimersByTime(1001);
+    vi.advanceTimersByTime(1001);
+    expect(usersOf(client)[1].status).toBe('completed');
+  });
+
+  it('a source tail mid-sentence defers the pause for as long as the speaker keeps talking', async () => {
+    // The bug this exists for: a live session cut "…成为商人或者是商队的向导，"
+    // from "以及保镖。" ten seconds later, because the speaker rested at the
+    // comma for longer than the pause setting.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2, sourcePauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // The speaker carried on: the tail grew, so the next expiry defers again.
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(10) });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // Nothing more arrived. The speaker has stopped, so the bubble closes.
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+    expect(usersOf(client)[0].formatted?.transcript).toBe('あ'.repeat(30));
+  });
+
+  it('a source tail that finished its sentence closes on the first pause', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5, sourcePauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'これはテストです。' });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+  });
+
+  it('closes a mid-sentence source item on the first pause with the stage off, exactly as before', async () => {
+    const client = makeClient({ sourcePauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+  });
+
+  it('the translation timer keeps closing on the first pause: there is no stream on that side to consult', async () => {
+    // Slice 4 removed this client's translation-side stream deliberately (see
+    // the `userStream` field doc), so the assistant timer has no tail to read
+    // and keeps today's behaviour, mid-sentence or not.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2, translationPauseMs: 1000 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: 'い'.repeat(20) });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('completed');
+  });
+
+  it('a runtime that is disabled at connect leaves the client exactly as it is today', async () => {
+    const runtime = markingRuntime(10, false);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+    expect((client as any).userStream).toBeNull();
+    expect(usersOf(client).map((i) => i.formatted?.transcript)).toEqual(['あ'.repeat(50)]);
+  });
+
+  it('freezes the runtime at connect: a later enable changes nothing', async () => {
+    const late = { enabled: false, punctuate: vi.fn(async () => null) };
+    const client = makeClient({ segmentation: late, sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    late.enabled = true;
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50) });
+    await flush();
+
+    expect((client as any).sessionSegmentation).toBeNull();
+    expect(late.punctuate).not.toHaveBeenCalled();
+    expect(usersOf(client).map((i) => i.formatted?.transcript)).toEqual(['あ'.repeat(50)]);
   });
 });

@@ -88,8 +88,11 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
     return s?.authMode === 'platform' ? (s?.apiKey ?? '') : (s?.clientId ?? '');
   }
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new PalabraAIClient(PalabraAIProviderConfig.toPalabraCredentials(creds));
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new PalabraAIClient(PalabraAIProviderConfig.toPalabraCredentials(creds), {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -366,6 +369,12 @@ export class PalabraAIProviderConfig extends BaseProviderDescriptor {
         // transport preference. (Capture is still appendInputAudio — see
         // supportsWebRTC, which stays false.)
         forcedTransport: 'webrtc',
+
+        // A validated_transcription is the boundary, and Auto keeps it. 1-5
+        // cuts INSIDE one: the outer edges stay the server's, nothing is
+        // merged and nothing is reordered. No silence timer of ours decides
+        // anything here, so By pause is not on offer.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

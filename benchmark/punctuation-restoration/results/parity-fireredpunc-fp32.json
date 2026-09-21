@@ -1,0 +1,660 @@
+{
+ "model": "fireredpunc-fp32",
+ "summary": {
+  "rows": 153,
+  "loadMs": 1155,
+  "rawTokensMatchUpstream": 1,
+  "idsMatchUpstream": 1,
+  "tokenClassAgree_vsPythonOrtInt8": 0.9686292339167992,
+  "tokenClassAgree_vsTorchFp32": 1,
+  "rowPredsExact_vsPythonOrtInt8": 0.28104575163398693,
+  "rowPredsExact_vsTorchFp32": 1,
+  "upstreamTextExact_jsIntermediate_vsPythonOrtInt8": 0.28104575163398693,
+  "textExact_vsPythonOrtInt8": 0.28104575163398693,
+  "textExact_vsTorchFp32": 1,
+  "textExactAccentCaseFolded_vsTorchFp32": 1,
+  "skeletonKept": 1,
+  "python": {
+   "rows": 153,
+   "load_s": 2.213958501815796,
+   "cls_id": 101,
+   "torch_vs_ort_int8_text_exact": 0.28104575163398693,
+   "torch_vs_ort_int8_token_class_agree": 0.9686292339167992,
+   "tokens": 8798,
+   "versions": {
+    "torch": "2.14.0+cu130",
+    "onnxruntime": "1.30.0",
+    "transformers": "4.51.3",
+    "numpy": "2.5.3"
+   }
+  }
+ },
+ "layoutProbe": [
+  {
+   "id": "gl-en1-ja-openai-alloy",
+   "variant": "stripped",
+   "n_tokens": 48,
+   "onnx_out_len_cls": 48,
+   "maxabs_cls": 7.727639675140381,
+   "maxabs_cls_sep": 7.692759990692139,
+   "argmax_agree_cls_sep": 0.9166666666666666,
+   "onnx_out_len_no_cls": 47,
+   "maxabs_no_cls_shifted": 7.841974258422852
+  },
+  {
+   "id": "gl-en1-ja-openai-alloy",
+   "variant": "commas",
+   "n_tokens": 48,
+   "onnx_out_len_cls": 48,
+   "maxabs_cls": 7.727639675140381,
+   "maxabs_cls_sep": 7.692759990692139,
+   "argmax_agree_cls_sep": 0.9166666666666666,
+   "onnx_out_len_no_cls": 47,
+   "maxabs_no_cls_shifted": 7.841974258422852
+  },
+  {
+   "id": "gl-en1-ja-openai-alloy",
+   "variant": "lower",
+   "n_tokens": 48,
+   "onnx_out_len_cls": 48,
+   "maxabs_cls": 7.727639675140381,
+   "maxabs_cls_sep": 7.692759990692139,
+   "argmax_agree_cls_sep": 0.9166666666666666,
+   "onnx_out_len_no_cls": 47,
+   "maxabs_no_cls_shifted": 7.841974258422852
+  },
+  {
+   "id": "gl-en1-ja-openai-alloy",
+   "variant": "raw",
+   "n_tokens": 48,
+   "onnx_out_len_cls": 48,
+   "maxabs_cls": 7.727639675140381,
+   "maxabs_cls_sep": 7.692759990692139,
+   "argmax_agree_cls_sep": 0.9166666666666666,
+   "onnx_out_len_no_cls": 47,
+   "maxabs_no_cls_shifted": 7.841974258422852
+  },
+  {
+   "id": "gl-enlong-ja-openai",
+   "variant": "stripped",
+   "n_tokens": 125,
+   "onnx_out_len_cls": 125,
+   "maxabs_cls": 10.181050300598145,
+   "maxabs_cls_sep": 10.123490333557129,
+   "argmax_agree_cls_sep": 0.944,
+   "onnx_out_len_no_cls": 124,
+   "maxabs_no_cls_shifted": 9.94169807434082
+  },
+  {
+   "id": "gl-enlong-ja-openai",
+   "variant": "commas",
+   "n_tokens": 125,
+   "onnx_out_len_cls": 125,
+   "maxabs_cls": 10.181050300598145,
+   "maxabs_cls_sep": 10.123490333557129,
+   "argmax_agree_cls_sep": 0.944,
+   "onnx_out_len_no_cls": 124,
+   "maxabs_no_cls_shifted": 9.94169807434082
+  }
+ ],
+ "commasLeftIn": {
+  "rows": 57,
+  "unstrippedEqualsStripped": 23,
+  "unstrippedDoubleMark": 18,
+  "examples": [
+   {
+    "input": "Hi everyone, let's go over the plan for next quarter First, the mobile subtitle feature, which we expect to ship in October Then the pricing page redesign",
+    "unstripped": "Hi everyone,let's go over the plan for next quarter! First,the mobile subtitle feature,which we expect to ship in october. Then the pricing page redesign.",
+    "stripped": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign."
+   },
+   {
+    "input": "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning",
+    "unstripped": "Good afternoon,everyone! Let me start with last week's progress, the mobile subtitle feature has finished internal testing. Feedback was generally positive,but we saw delays on weak network connections,and we plan to fix that next week. Also,the new pricing page design has gone to the design team for review,and we expect to finalize it by the end of the month. Finally,a reminder that the quarterly review meeting has moved to friday at 10 in the morning.",
+    "stripped": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+   },
+   {
+    "input": "Good afternoon, everyone Let me start with last week's progress The mobile subtitle feature has finished internal testing Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning",
+    "unstripped": "Good afternoon,everyone! Let me start with last week's progress, the mobile subtitle feature has finished internal testing. Feedback was generally positive,but we saw delays on weak network connections,and we plan to fix that next week. Also,the new pricing page design has gone to the design team for review,and we expect to finalize it by the end of the month. Finally,a reminder that the quarterly review meeting has moved to friday at ten in the morning.",
+    "stripped": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at ten in the morning."
+   },
+   {
+    "input": "請你回答我，現在幾點了另外，把剛才的內容再翻譯一遍",
+    "unstripped": "請你回答我，現在幾點了？另外，把剛才的內容再翻譯一遍。",
+    "stripped": "請你回答我現在幾點了？另外把剛才的內容再翻譯一遍。"
+   },
+   {
+    "input": "各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟我们计划在下周修复这个问题另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿最后提醒大家，季度总结会议改到周五上午十点",
+    "unstripped": "各位下午好！先说一下上周的进展，移动端字幕功能已经完成了内部测试，反馈总体不错，，但在弱网环境下会出现延迟，我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+    "stripped": "各位下午好！先说一下上周的进展，移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟，我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。"
+   }
+  ]
+ },
+ "diffs": {
+  "textVsTorch": [],
+  "textVsOrtPy": [
+   {
+    "id": "gl-en1-ja-openai-alloy",
+    "variant": "stripped",
+    "ortPy": "Hi everyone, let's go over the plan for next quarter, first, the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign.",
+    "js": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign."
+   },
+   {
+    "id": "gl-en1-ja-openai-alloy",
+    "variant": "commas",
+    "ortPy": "Hi everyone, let's go over the plan for next quarter, first, the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign.",
+    "js": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign."
+   },
+   {
+    "id": "gl-en1-ja-openai-alloy",
+    "variant": "lower",
+    "ortPy": "Hi everyone, let's go over the plan for next quarter, first, the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign.",
+    "js": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign."
+   },
+   {
+    "id": "gl-en1-ja-openai-alloy",
+    "variant": "raw",
+    "ortPy": "Hi everyone, let's go over the plan for next quarter, first, the mobile subtitle feature, which we expect to ship in october, then the pricing page redesign.",
+    "js": "Hi everyone! Let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in october. Then the pricing page redesign."
+   },
+   {
+    "id": "gl-enlong-ja-openai",
+    "variant": "stripped",
+    "ortPy": "Good afternoon everyone, let me start with last week's progress, the mobile subtitle feature has finished internal testing feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week also the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning.",
+    "js": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+   },
+   {
+    "id": "gl-enlong-ja-openai",
+    "variant": "commas",
+    "ortPy": "Good afternoon everyone, let me start with last week's progress, the mobile subtitle feature has finished internal testing feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week also the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning.",
+    "js": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+   },
+   {
+    "id": "gl-enlong-ja-openai",
+    "variant": "lower",
+    "ortPy": "Good afternoon everyone, let me start with last week's progress, the mobile subtitle feature has finished internal testing feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week also the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning.",
+    "js": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+   },
+   {
+    "id": "gl-enlong-ja-openai",
+    "variant": "raw",
+    "ortPy": "Good afternoon everyone, let me start with last week's progress, the mobile subtitle feature has finished internal testing feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week also the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning.",
+    "js": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at 10 in the morning."
+   },
+   {
+    "id": "gl-enlong-zh-openai-2",
+    "variant": "stripped",
+    "ortPy": "Good afternoon everyone, let me start with last week's progress, the mobile subtitle feature has finished internal testing feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at ten in the morning.",
+    "js": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at ten in the morning."
+   },
+   {
+    "id": "gl-enlong-zh-openai-2",
+    "variant": "commas",
+    "ortPy": "Good afternoon everyone, let me start with last week's progress, the mobile subtitle feature has finished internal testing feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at ten in the morning.",
+    "js": "Good afternoon everyone! Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to friday at ten in the morning."
+   }
+  ],
+  "tokenization": [],
+  "predsVsOrtPy": [
+   {
+    "id": "gl-en1-ja-openai-alloy",
+    "variant": "stripped",
+    "at": [
+     [
+      3,
+      "##one",
+      4,
+      1
+     ],
+     [
+      16,
+      "##er",
+      2,
+      1
+     ],
+     [
+      37,
+      "october",
+      2,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-en1-ja-openai-alloy",
+    "variant": "commas",
+    "at": [
+     [
+      3,
+      "##one",
+      4,
+      1
+     ],
+     [
+      16,
+      "##er",
+      2,
+      1
+     ],
+     [
+      37,
+      "october",
+      2,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-en1-ja-openai-alloy",
+    "variant": "lower",
+    "at": [
+     [
+      3,
+      "##one",
+      4,
+      1
+     ],
+     [
+      16,
+      "##er",
+      2,
+      1
+     ],
+     [
+      37,
+      "october",
+      2,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-en1-ja-openai-alloy",
+    "variant": "raw",
+    "at": [
+     [
+      3,
+      "##one",
+      4,
+      1
+     ],
+     [
+      16,
+      "##er",
+      2,
+      1
+     ],
+     [
+      37,
+      "october",
+      2,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-enlong-ja-openai",
+    "variant": "stripped",
+    "at": [
+     [
+      6,
+      "##one",
+      4,
+      1
+     ],
+     [
+      17,
+      "##ress",
+      2,
+      1
+     ],
+     [
+      35,
+      "##ing",
+      2,
+      0
+     ],
+     [
+      56,
+      "##ions",
+      0,
+      1
+     ],
+     [
+      65,
+      "week",
+      2,
+      0
+     ],
+     [
+      66,
+      "also",
+      1,
+      0
+     ],
+     [
+      82,
+      "review",
+      0,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-enlong-ja-openai",
+    "variant": "commas",
+    "at": [
+     [
+      6,
+      "##one",
+      4,
+      1
+     ],
+     [
+      17,
+      "##ress",
+      2,
+      1
+     ],
+     [
+      35,
+      "##ing",
+      2,
+      0
+     ],
+     [
+      56,
+      "##ions",
+      0,
+      1
+     ],
+     [
+      65,
+      "week",
+      2,
+      0
+     ],
+     [
+      66,
+      "also",
+      1,
+      0
+     ],
+     [
+      82,
+      "review",
+      0,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-enlong-ja-openai",
+    "variant": "lower",
+    "at": [
+     [
+      6,
+      "##one",
+      4,
+      1
+     ],
+     [
+      17,
+      "##ress",
+      2,
+      1
+     ],
+     [
+      35,
+      "##ing",
+      2,
+      0
+     ],
+     [
+      56,
+      "##ions",
+      0,
+      1
+     ],
+     [
+      65,
+      "week",
+      2,
+      0
+     ],
+     [
+      66,
+      "also",
+      1,
+      0
+     ],
+     [
+      82,
+      "review",
+      0,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-enlong-ja-openai",
+    "variant": "raw",
+    "at": [
+     [
+      6,
+      "##one",
+      4,
+      1
+     ],
+     [
+      17,
+      "##ress",
+      2,
+      1
+     ],
+     [
+      35,
+      "##ing",
+      2,
+      0
+     ],
+     [
+      56,
+      "##ions",
+      0,
+      1
+     ],
+     [
+      65,
+      "week",
+      2,
+      0
+     ],
+     [
+      66,
+      "also",
+      1,
+      0
+     ],
+     [
+      82,
+      "review",
+      0,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-enlong-zh-openai-2",
+    "variant": "stripped",
+    "at": [
+     [
+      6,
+      "##one",
+      4,
+      1
+     ],
+     [
+      17,
+      "##ress",
+      2,
+      1
+     ],
+     [
+      35,
+      "##ing",
+      2,
+      0
+     ],
+     [
+      56,
+      "##ions",
+      0,
+      1
+     ],
+     [
+      65,
+      "week",
+      2,
+      0
+     ],
+     [
+      82,
+      "review",
+      0,
+      1
+     ]
+    ]
+   },
+   {
+    "id": "gl-enlong-zh-openai-2",
+    "variant": "commas",
+    "at": [
+     [
+      6,
+      "##one",
+      4,
+      1
+     ],
+     [
+      17,
+      "##ress",
+      2,
+      1
+     ],
+     [
+      35,
+      "##ing",
+      2,
+      0
+     ],
+     [
+      56,
+      "##ions",
+      0,
+      1
+     ],
+     [
+      65,
+      "week",
+      2,
+      0
+     ],
+     [
+      82,
+      "review",
+      0,
+      1
+     ]
+    ]
+   }
+  ]
+ },
+ "edgeCases": [
+  {
+   "text": "café résumé naïve déjà vu",
+   "out": "Café résumé naïve déjà vu.",
+   "skeletonKept": true
+  },
+  {
+   "text": "école été",
+   "out": "École été.",
+   "skeletonKept": true
+  },
+  {
+   "text": "我用iPhone拍照然后发给你",
+   "out": "我用iphone拍照然后发给你。",
+   "skeletonKept": true
+  },
+  {
+   "text": "hello😀world how are you",
+   "out": "Hello😀world, how are you?",
+   "skeletonKept": true
+  },
+  {
+   "text": "第①步操作价格≤1000元",
+   "out": "第①步，操作价格≤1000元。",
+   "skeletonKept": true
+  },
+  {
+   "text": "ＡＢＣ公司的Ｘｙｚ产品",
+   "out": "ａｂｃ公司的ｘｙｚ产品。",
+   "skeletonKept": true
+  },
+  {
+   "text": "it costs 3.5 dollars or 1,000 yen",
+   "out": "It costs 3.5 dollars or 1,000 yen.",
+   "skeletonKept": true
+  },
+  {
+   "text": "the u.s. army and dr. smith arrived",
+   "out": "The u. S。army and dr. Smith arrived.",
+   "skeletonKept": true
+  },
+  {
+   "text": "寄蜉蝣于天地渺沧海之一粟魑魅魍魉",
+   "out": "寄蜉蝣于天地，渺沧海之一粟，魑魅魍魉。",
+   "skeletonKept": true
+  },
+  {
+   "text": "안녕하세요 반갑습니다",
+   "out": "안녕하세요，반갑습니다。",
+   "skeletonKept": true
+  },
+  {
+   "text": "こんにちは世界",
+   "out": "こんにちは世界。",
+   "skeletonKept": true
+  },
+  {
+   "text": "",
+   "out": "",
+   "skeletonKept": true
+  },
+  {
+   "text": "   ",
+   "out": "",
+   "skeletonKept": true
+  },
+  {
+   "text": "，。？！",
+   "out": "",
+   "skeletonKept": true
+  },
+  {
+   "text": "i",
+   "out": "I.",
+   "skeletonKept": true
+  },
+  {
+   "text": "i'm here i'll go i've been i'd say",
+   "out": "I'm here I'll go, I've been I'd say.",
+   "skeletonKept": true
+  }
+ ],
+ "windowing": {
+  "tokens": 2136,
+  "skeletonKept": true,
+  "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了，另外把剛才的內容再翻譯一遍。各位下午好，先说一下上周的进展，移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟，我们计划在下周修复这个问题。另外定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家季度总结会议改到周五上午十点。各位下午好，先说一下上周的进展:移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟，我们计划在下周修复这个问题。另外定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家季度总",
+  "firstWindowAgree": 0.9354207436399217
+ }
+}

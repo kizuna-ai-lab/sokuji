@@ -52,9 +52,12 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
     return String((slice as VolcengineAST2Settings)?.appId ?? '');
   }
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
     if (!creds.secret) throw new Error('Access Token is required for volcengine_ast2 provider');
-    return new VolcengineAST2Client(creds.primary, creds.secret);
+    return new VolcengineAST2Client(creds.primary, creds.secret, undefined, undefined, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -171,6 +174,12 @@ export class VolcengineAST2ProviderConfig extends BaseProviderDescriptor {
         // 500 ms silence tail for the server VAD; AST2 creates the response
         // server-side, so the client never calls createResponse on release.
         pttFinalization: { silenceTailFrames: 5, response: 'server-decides' },
+
+        // The server closes the segment, and Auto keeps that boundary. 1-5
+        // cuts INSIDE one: the outer edges stay the server's, nothing is
+        // merged and nothing is reordered. No silence timer of ours decides
+        // anything here, so By pause is not on offer.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

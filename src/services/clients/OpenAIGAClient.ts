@@ -29,6 +29,8 @@ import {
   buildOpenAIRealtimeSession,
   buildOpenAIRealtimeSessionUpdate
 } from './openAIRealtimeSession';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
 
 /**
  * OpenAI Realtime API client using the official SDK (GA protocol)
@@ -58,8 +60,37 @@ export class OpenAIGAClient implements IClient {
    */
   private keepReplayAudio: boolean = false;
 
-  constructor(apiKey: string) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store. The
+  // server decides its own boundaries (a completed transcription, a finished
+  // response), so the stage only fills in punctuation it never sent — see
+  // punctuateDefinite.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session, and a session that started without the models must not begin
+   * punctuating halfway through. Its identity doubles as the session token
+   * every deferred write checks before it lands.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** Definite-segment writes run one at a time, in the order the segments
+   *  became definite. See createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+  /** The session's configured direction, the only language this provider has:
+   *  it reports none per item. */
+  private sourceLanguage = '';
+  private targetLanguage = '';
+
+  constructor(
+    apiKey: string,
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.apiKey = apiKey;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
   }
 
   /**
@@ -93,6 +124,21 @@ export class OpenAIGAClient implements IClient {
     this.outOfBandResponseIds.clear();
     this.audioChunks.clear();
     this.keepReplayAudio = config.keepReplayAudio ?? false;
+    this.sourceLanguage = config.sourceLanguage ?? '';
+    this.targetLanguage = config.targetLanguage ?? '';
+    // R2: the one read of `enabled` this session gets. See the
+    // `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? {
+          enabled: true,
+          punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+          // Forwarded so the stage's own counters survive the freeze: this view
+          // is what SentenceStream and punctuateDefinite report through, and
+          // dropping it here would make every seal invisible. Counts, never text.
+          observe: (event) => runtime.observe?.(event),
+        }
+      : null;
 
     // Create the official SDK WebSocket client
     this.rt = new OpenAIRealtimeWebSocket({
@@ -581,9 +627,26 @@ export class OpenAIGAClient implements IClient {
 
     const item = this.itemLookup.get(itemId);
     if (item && item.formatted) {
-      item.formatted.transcript = transcript;
-      item.formatted.text = transcript;
-      this.eventHandlers.onConversationUpdated?.({ item });
+      const write = (finalText: string) => {
+        item.formatted!.transcript = finalText;
+        item.formatted!.text = finalText;
+        this.eventHandlers.onConversationUpdated?.({ item });
+      };
+      // `event.transcript` is whatever the wire sent; only a real string can
+      // be measured against the gate.
+      const runtime = typeof transcript === 'string' && transcript ? this.sessionSegmentation : null;
+      if (!runtime) { write(transcript); return; }
+      // The model call starts NOW so two segments punctuate concurrently; the
+      // write waits its turn in the lane so the answers cannot emit the later
+      // segment first.
+      const pending = punctuateDefinite(runtime, this.sourceLanguage, transcript, this.sentencesPerChunk);
+      this.punctuationLane.queue(async (cancelled) => {
+        const finalText = await pending;
+        // `cancelled()`: disconnect() already wrote this segment raw. The
+        // identity check is the reconnect case — a genuinely stale answer.
+        if (cancelled() || this.sessionSegmentation !== runtime) return;
+        write(finalText);
+      }, () => write(transcript));
     }
   }
 
@@ -613,8 +676,32 @@ export class OpenAIGAClient implements IClient {
           }
         }
 
-        item.status = 'completed';
-        this.eventHandlers.onConversationUpdated?.({ item });
+        // null leaves the text exactly as the transcript deltas left it,
+        // which is what the stage-off path has always done here.
+        const complete = (finalText: string | null) => {
+          if (finalText !== null && item.formatted) {
+            item.formatted.transcript = finalText;
+            if (item.formatted.text) item.formatted.text = finalText;
+          }
+          item.status = 'completed';
+          this.eventHandlers.onConversationUpdated?.({ item });
+        };
+        const spoken = item.formatted?.transcript ?? '';
+        const runtime = spoken ? this.sessionSegmentation : null;
+        if (!runtime) { complete(null); continue; }
+        // Deferring `status = 'completed'` behind the model call also defers
+        // the moment MainPanel measures: `translation_completed.latency_ms` and
+        // `latency_measurement` run from `createdAt` to the first update that
+        // shows the item completed, so with the stage on they carry up to
+        // FILL_IN_BUDGET_MS of fill-in wait. MainPanel fires on every completed
+        // update with no dedupe, so assign-then-patch would double-count
+        // instead. Documented under both events in docs/ANALYTICS_EVENTS.md.
+        const pending = punctuateDefinite(runtime, this.targetLanguage, spoken, this.sentencesPerChunk);
+        this.punctuationLane.queue(async (cancelled) => {
+          const finalText = await pending;
+          if (cancelled() || this.sessionSegmentation !== runtime) return;
+          complete(finalText);
+        }, () => complete(null));
       }
     }
   }
@@ -671,10 +758,18 @@ export class OpenAIGAClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a definite segment still
+    // waiting for its punctuation is text the user said, and MainPanel reads
+    // `getConversationItems()` on the turn after this resolves.
+    this.punctuationLane.flush();
     if (this.rt) {
       this.rt.close();
       this.rt = null;
     }
+    // Dropped after the flush above, so the next session cannot be served this
+    // one's answer. It is not what protects the items — the flush is; this
+    // identity is the reconnect guard.
+    this.sessionSegmentation = null;
 
     if (this.connected) {
       this.connected = false;

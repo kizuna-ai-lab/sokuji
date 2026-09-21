@@ -3,6 +3,7 @@ import { BaseProviderDescriptor, Credentials, ClientOptions, ParticipantSessionR
 import { IClient, FilteredModel, SessionConfig, GeminiSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { GeminiClient } from '../clients/GeminiClient';
+import { segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import {
   buildGeminiTranslationConfig,
   isGeminiTranslateModel,
@@ -45,8 +46,13 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'gemini';
   readonly supportsWebRTC = false;
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new GeminiClient(creds.primary);
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new GeminiClient(creds.primary, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+      sourcePauseMs: segmentPauseMs(options.sourcePause),
+      translationPauseMs: segmentPauseMs(options.translationPause),
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -83,6 +89,12 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
       sourceLanguageCode: isGeminiTranslateModel(settings.model)
         ? toTranslationLanguageCode(settings.sourceLanguage)
         : undefined,
+      // Unconditional, unlike the two above: the segmentation stage needs a
+      // language for each of its streams whatever the model is, and a dialogue
+      // session exposes none. Gemini offers no 'auto' source, so this is
+      // always two concrete codes.
+      segmentationSourceLanguage: toTranslationLanguageCode(settings.sourceLanguage),
+      segmentationTargetLanguage: toTranslationLanguageCode(settings.targetLanguage),
     } as GeminiSessionConfig;
   }
 
@@ -92,10 +104,18 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
     shell: { keepReplayAudio: boolean },
   ): ParticipantSessionResult {
     const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    const base = result.config as GeminiSessionConfig;
     const config = {
-      ...result.config,
+      ...base,
       // Force Auto mode for Gemini participant (no PTT for participant)
       turnDetectionMode: 'Auto' as const,
+      // The participant hears the other party speaking the target language and
+      // answers in the source, so the segmentation stage's pair reverses with
+      // the session. Nothing below does it for us: the base builder swaps only
+      // the instructions, and reverseGeminiTranslationDirection no-ops on a
+      // dialogue session — the very session that has nothing but this pair.
+      segmentationSourceLanguage: base.segmentationTargetLanguage,
+      segmentationTargetLanguage: base.segmentationSourceLanguage,
     } as GeminiSessionConfig;
 
     // Gemini's dialogue models need nothing here: their direction rides in the
@@ -228,6 +248,11 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
         // Too little speech actively cancels the turn so Gemini doesn't
         // generate a response for silence.
         pttFinalization: { response: 'voice-gated-cancel' },
+
+        // This client cuts on its own silence timers, so By pause is a real
+        // choice here and Auto is not: it would be the pause mode by another
+        // name, since nothing but those timers decides a boundary.
+        segmentation: { pause: true, auto: false, sizes: true },
       },
     };
   }

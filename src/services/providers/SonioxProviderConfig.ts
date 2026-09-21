@@ -234,11 +234,14 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
     return settings?.[sonioxKeyField(asSonioxRegion(settings?.region))] ?? '';
   }
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
     // A NEW construction shape for BYOK too, not a shape managed was moved
     // onto: one user key in both slots, and no client_reference_id — BYOK
     // traffic is not ours to bill.
-    return new SonioxClient(byokCredentials(creds.primary, asSonioxRegion(creds.endpoint)));
+    return new SonioxClient(byokCredentials(creds.primary, asSonioxRegion(creds.endpoint)), {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -428,6 +431,12 @@ export class SonioxProviderConfig extends BaseProviderDescriptor {
 
         temperatureRange: { min: 0.0, max: 1.0, step: 0.1 },
         maxTokensRange: { min: 1, max: 4096, step: 1 },
+
+        // The server closes the segment, and Auto keeps that boundary. 1-5
+        // cuts INSIDE one: the outer edges stay the server's, nothing is
+        // merged and nothing is reordered. No silence timer of ours decides
+        // anything here, so By pause is not on offer.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

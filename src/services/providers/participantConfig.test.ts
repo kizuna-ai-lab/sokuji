@@ -25,8 +25,6 @@ import { Provider } from '../../types/Provider';
 import { defaultSonioxSettings } from './SonioxProviderConfig';
 import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
-import { defaultVolcengineSTSettings } from './VolcengineSTProviderConfig';
-import { defaultZoomAISettings } from './ZoomAIProviderConfig';
 import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
@@ -116,45 +114,9 @@ describe('participant config: direction lives in config fields', () => {
     expect(c.sourceLanguage).toBe(base.targetLanguage);
     expect(c.targetLanguage).toBe(base.sourceLanguage);
   });
-
-  it('volcengine_st and zoom_ai rotate sourceLanguage through targetLanguages[0]', () => {
-    for (const [id, defaults] of [
-      [Provider.VOLCENGINE_ST, defaultVolcengineSTSettings],
-      [Provider.ZOOM_AI, defaultZoomAISettings],
-    ] as const) {
-      const d = ProviderConfigFactory.getDescriptor(id);
-      const slice = { ...defaults };
-      const base = d.buildSessionConfig(slice, 'i') as { sourceLanguage: string; targetLanguages: string[] };
-      const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as { sourceLanguage: string; targetLanguages: string[] };
-      expect(c.sourceLanguage, `rotate for ${id}`).toBe(base.targetLanguages[0] || base.sourceLanguage);
-      expect(c.targetLanguages, `rotate for ${id}`).toEqual([base.sourceLanguage]);
-    }
-  });
 });
 
 describe('participant config: reversed pairs the provider catalog cannot run', () => {
-  it('zoom_ai rejects a reversed pair outside its asymmetric matrix (en-US -> ko-KR reverses to ko-KR, not a source)', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI);
-    const slice = { ...defaultZoomAISettings, sourceLanguage: 'en-US', targetLanguage: 'ko-KR' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).toBeNull();
-    expect(notices).toHaveLength(1);
-    expect(notices[0].channel).toBe('error');
-    expect(notices[0].message).toContain('ko-KR');
-    expect(notices[0].message).toContain('en-US');
-  });
-
-  it('volcengine_st rejects a reversed pair whose new source is outside SOURCE_LANGUAGES (zh -> ko reverses to ko as source)', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.VOLCENGINE_ST);
-    const slice = { ...defaultVolcengineSTSettings, sourceLanguage: 'zh', targetLanguage: 'ko' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).toBeNull();
-    expect(notices).toHaveLength(1);
-    expect(notices[0].channel).toBe('error');
-    expect(notices[0].message).toContain('ko');
-    expect(notices[0].message).toContain('zh');
-  });
-
   it('palabraai rejects a reversed target from the five source-only codes (eu is not a valid target)', () => {
     const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
     const slice = { ...defaultPalabraAISettings, sourceLanguage: 'eu', targetLanguage: 'ja' };
@@ -175,14 +137,6 @@ describe('participant config: reversed pairs the provider catalog cannot run', (
     expect(notices[0].channel).toBe('error');
     expect(notices[0].message).toContain('th');
     expect(notices[0].message).toContain('en');
-  });
-
-  it('zoom_ai accepts a reversed pair the catalog can run (en-US -> ja-JP reverses to ja-JP -> [en-US])', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.ZOOM_AI);
-    const slice = { ...defaultZoomAISettings, sourceLanguage: 'en-US', targetLanguage: 'ja-JP' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).not.toBeNull();
-    expect(notices).toEqual([]);
   });
 
   it('palabraai accepts a reversed target that exactly matches a TARGET_LANGUAGES entry (es)', () => {
@@ -211,13 +165,20 @@ describe('participant config: helper-based reversals', () => {
     expect(c.turnDetectionMode).toBe('Auto');
     // Behavioural equality with the helper is asserted exactly: applying
     // reverseGeminiTranslationDirection to a fresh base+overrides copy must
-    // yield the same object.
+    // yield the same object — plus the segmentation pair, which this model has
+    // no translationConfig to carry and which the override therefore swaps
+    // itself. defaultGeminiSettings is en-US -> ja-JP.
+    const base = d.buildSessionConfig(slice, 'i') as GeminiSessionConfig;
+    expect(base.segmentationSourceLanguage).toBe('en');
+    expect(base.segmentationTargetLanguage).toBe('ja');
     const expected = {
-      ...d.buildSessionConfig(slice, 'i'),
+      ...base,
       keepReplayAudio: false,
       textOnly: true,
       turnDetection: { type: 'semantic_vad', createResponse: true, interruptResponse: false, eagerness: 'high' },
       turnDetectionMode: 'Auto',
+      segmentationSourceLanguage: 'ja',
+      segmentationTargetLanguage: 'en',
     } as unknown as GeminiSessionConfig;
     reverseGeminiTranslationDirection(expected);
     expect(c).toEqual(expected);
@@ -246,6 +207,11 @@ describe('participant config: helper-based reversals', () => {
     // sourceLanguageCode becomes the original target.
     expect(c.translationConfig).toEqual({ targetLanguageCode: 'en', echoTargetLanguage: false });
     expect(c.sourceLanguageCode).toBe('ja');
+    // The segmentation pair reverses with them, and agrees with them: a
+    // translate session is the one case where the two are checkable against
+    // each other.
+    expect(c.segmentationSourceLanguage).toBe('ja');
+    expect(c.segmentationTargetLanguage).toBe('en');
   });
 
   it('openai and openai_compatible rebuild the transcription hint for the reversed direction', () => {

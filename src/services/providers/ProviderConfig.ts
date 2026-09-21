@@ -1,4 +1,5 @@
 import type { TransportType } from './ProviderDescriptor';
+import type { SegmentationOffer } from '../../lib/segmentation/segmentationMode';
 
 export interface LanguageOption {
   name: string;
@@ -93,6 +94,46 @@ export interface ProviderCapabilities {
 
   /** Transport this provider must run on, overriding the user preference. */
   forcedTransport?: TransportType;
+
+  /** Which segmentation choices this provider offers; the three fields are
+   *  documented on `SegmentationOffer`, the type this IS, so the capability
+   *  cannot drift from what the mode resolvers take. Absent means the default
+   *  `{ pause: false, auto: true, sizes: false }`: a provider whose
+   *  boundaries a server decides. Read it through `resolveSegmentationOffer`
+   *  below, never field by field, so that default is applied in exactly one
+   *  place.
+   *
+   *  All three or none, deliberately — not a `Partial`. A half-declared
+   *  `{ sizes: true }` would take `auto: true` from the default and quietly
+   *  describe `{ pause: false, auto: true, sizes: true }` — a provider
+   *  offering a whole extra choice nobody meant to give it. Nothing downstream
+   *  can tell that apart from a deliberate declaration, so the type refuses
+   *  the half. */
+  segmentation?: SegmentationOffer;
+}
+
+/**
+ * The segmentation choices a provider actually offers: what its descriptor
+ * declared, or the default when it declared nothing. A descriptor declares
+ * all three fields or none, so there is nothing to fill in field by field.
+ *
+ * The default describes a provider whose boundaries a server decides and
+ * whose segments nobody has shown can be cut into: no silence timer of ours
+ * touches its bubbles, so By pause is out, and with no split, Auto is the
+ * only thing left. It is the conservative answer rather than the common one —
+ * most such providers CAN be split and declare `sizes: true` — which is why
+ * only the descriptors that deviate declare anything; the resolved answer for
+ * every one of them is tabulated in
+ * `descriptorRegistry.test.ts`, where a provider added later has to write its
+ * row rather than inherit a default nobody thought about.
+ */
+export function resolveSegmentationOffer(caps: ProviderCapabilities): SegmentationOffer {
+  const declared = caps.segmentation;
+  return {
+    pause: declared?.pause ?? false,
+    auto: declared?.auto ?? true,
+    sizes: declared?.sizes ?? false,
+  };
 }
 
 export interface ProviderConfig {

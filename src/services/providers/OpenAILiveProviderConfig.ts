@@ -3,6 +3,7 @@ import { BaseProviderDescriptor, Credentials, ClientOptions } from './ProviderDe
 import { IClient, FilteredModel, SessionConfig, OpenAILiveSessionConfig } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAILiveClient, LIVE_MODEL } from '../clients/OpenAILiveClient';
+import { segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import { OpenAIProviderConfig } from './OpenAIProviderConfig';
 
 // OpenAI Live settings (gpt-live-1 on the Live API, WebSocket only).
@@ -13,11 +14,6 @@ export interface OpenAILiveSettings {
   sourceLanguage: string;
   targetLanguage: string;
   voice: string;
-  // Client-side utterance segmentation in seconds (0.1–3.0). Live has no
-  // per-response done events; transcript deltas inside one sentence can be
-  // 1.5 s apart, hence the higher assistant default than translate's 0.5 s.
-  userSilenceDuration: number;
-  assistantSilenceDuration: number;
 }
 
 export const defaultOpenAILiveSettings: OpenAILiveSettings = {
@@ -25,8 +21,6 @@ export const defaultOpenAILiveSettings: OpenAILiveSettings = {
   sourceLanguage: 'en',
   targetLanguage: 'zh_CN',
   voice: 'marin',
-  userSilenceDuration: 1.0,
-  assistantSilenceDuration: 1.5,
 };
 
 /** The 10 Realtime voices plus the 12 Live added (English / Brazilian Portuguese). */
@@ -56,8 +50,13 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
   readonly settingsSliceKey: string = 'openaiLive';
   readonly supportsWebRTC: boolean = false;
 
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new OpenAILiveClient(creds.primary);
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new OpenAILiveClient(creds.primary, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+      sourcePauseMs: segmentPauseMs(options.sourcePause),
+      translationPauseMs: segmentPauseMs(options.translationPause),
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -82,8 +81,9 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
       instructions: systemInstructions,
       sourceLanguage: settings.sourceLanguage,
       targetLanguage: settings.targetLanguage,
-      userSilenceDurationMs: Math.round(settings.userSilenceDuration * 1000),
-      assistantSilenceDurationMs: Math.round(settings.assistantSilenceDuration * 1000),
+      // The two silence thresholds used to be built here from this slice. They
+      // are the global pause pair now (A2) and reach the client through
+      // ClientOptions, beside the rest of the segmentation settings.
     } as OpenAILiveSessionConfig;
   }
 
@@ -124,19 +124,28 @@ export class OpenAILiveProviderConfig extends BaseProviderDescriptor {
         hasReasoningEffort: false,
         textOnlyCapability: 'never',
 
-        // No server-side turn detection; only the client-side segmentation
-        // sliders render (hasSilenceDuration), as for OpenAI Translate.
+        // No server-side turn detection, and nothing in this block renders:
+        // its one reader sits inside `renderTurnDetectionSettings`, which
+        // `hasTurnDetection: false` above returns before reaching. The
+        // client-side silence sliders this used to claim are the segmentation
+        // section's now (A2), on the global pause pair — as for OpenAI
+        // Translate.
         turnDetection: {
           modes: [],
           hasThreshold: false,
           hasPrefixPadding: false,
-          hasSilenceDuration: true,
+          hasSilenceDuration: false,
           hasSemanticEagerness: false,
         },
 
         // Unused — the flags above hide the sections; required by the type.
         temperatureRange: { min: 0, max: 0, step: 0 },
         maxTokensRange: { min: 0, max: 0, step: 0 },
+
+        // This client cuts on its own silence timers, so By pause is a real
+        // choice here and Auto is not: it would be the pause mode by another
+        // name, since nothing but those timers decides a boundary.
+        segmentation: { pause: true, auto: false, sizes: true },
       },
     };
   }

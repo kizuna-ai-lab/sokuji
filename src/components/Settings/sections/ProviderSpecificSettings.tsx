@@ -17,9 +17,7 @@ import {
   usePalabraAISettings,
   useOpenAITranslateSettings,
   useOpenAILiveSettings,
-  useVolcengineSTSettings,
   useVolcengineAST2Settings,
-  useZoomAISettings,
   useSonioxSettings,
   useKizunaOpenaiTranslateSettings,
   useKizunaVolcengineAst2Settings,
@@ -39,9 +37,7 @@ import {
   useUpdatePalabraAI,
   useUpdateOpenAITranslate,
   useUpdateOpenAILive,
-  useUpdateVolcengineST,
   useUpdateVolcengineAST2,
-  useUpdateZoomAI,
   useUpdateSoniox,
   useUpdateKizunaOpenaiTranslate,
   useUpdateKizunaVolcengineAst2,
@@ -132,9 +128,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const palabraAISettings = usePalabraAISettings();
   const openAITranslateSettings = useOpenAITranslateSettings();
   const openAILiveSettings = useOpenAILiveSettings();
-  const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
-  const zoomAISettings = useZoomAISettings();
   const sonioxSettings = useSonioxSettings();
   const mode = useMode();
   const lockedMode = useLockedMode();
@@ -158,9 +152,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
   const updatePalabraAISettings = useUpdatePalabraAI();
   const updateOpenAITranslateSettings = useUpdateOpenAITranslate();
   const updateOpenAILiveSettings = useUpdateOpenAILive();
-  const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
-  const updateZoomAISettings = useUpdateZoomAI();
   const updateSonioxSettings = useUpdateSoniox();
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
@@ -398,12 +390,8 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       updateGeminiSettings({ [key]: value });
     } else if (provider === Provider.PALABRA_AI) {
       updatePalabraAISettings({ [key]: value });
-    } else if (provider === Provider.VOLCENGINE_ST) {
-      updateVolcengineSTSettings({ [key]: value });
     } else if (provider === Provider.VOLCENGINE_AST2) {
       updateVolcengineAST2Settings({ [key]: value });
-    } else if (provider === Provider.ZOOM_AI) {
-      updateZoomAISettings({ [key]: value });
     } else if (provider === Provider.SONIOX) {
       updateSonioxSettings({ [key]: value });
     } else if (provider === Provider.KIZUNA_AI_OPENAI_TRANSLATE) {
@@ -442,9 +430,10 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       // resolves to the kizuna slice when managed.
       return activeOpenAITranslateSettings;
     } else if (provider === Provider.OPENAI_LIVE) {
-      // Carries userSilenceDuration / assistantSilenceDuration for the
-      // segmentation sliders; every other shared field is absent and the
-      // capability flags keep those sections hidden.
+      // The two segmentation sliders used to read this slice; they are the
+      // global pause pair now (A2) and live in the segmentation section. Every
+      // shared field here is absent and the capability flags keep those
+      // sections hidden.
       return openAILiveSettings;
     }
     return null;
@@ -810,72 +799,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               {t('settings.modelsFound', 'Found {{count}} available models', { count: modelsToUse.length })}
             </div>
           )}
-        </div>
-      </div>
-    );
-  };
-
-  // Standalone silence-duration sliders for providers (currently only
-  // OPENAI_TRANSLATE) that segment user (input) and assistant (output)
-  // independently. Translate's API has no server-side turn detection, so
-  // these only control UI message splitting. Range 0.1–3.0s.
-  const renderSilenceDurationOnlySetting = () => {
-    if (!config.capabilities.turnDetection.hasSilenceDuration) return null;
-    if (config.capabilities.hasTurnDetection) return null;
-
-    const compatibleSettings = getOpenAICompatibleSettings();
-    if (
-      !compatibleSettings ||
-      !('userSilenceDuration' in compatibleSettings) ||
-      !('assistantSilenceDuration' in compatibleSettings)
-    ) {
-      return null;
-    }
-    const userValue = (compatibleSettings as { userSilenceDuration: number }).userSilenceDuration;
-    const assistantValue = (compatibleSettings as { assistantSilenceDuration: number }).assistantSilenceDuration;
-
-    return (
-      <div className="settings-section">
-        <h2>
-          {t('settings.silenceDuration')}
-          <Tooltip
-            content={t('settings.silenceDurationTranslateTooltip', t('settings.silenceDurationTooltip'))}
-            position="top"
-          >
-            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-          </Tooltip>
-        </h2>
-        <div className="setting-item">
-          <div className="setting-label">
-            <span>{t('settings.userSilenceDuration', 'Source pause')}</span>
-            <span className="setting-value">{userValue.toFixed(2)}s</span>
-          </div>
-          <input
-            type="range"
-            min="0.1"
-            max="3"
-            step="0.1"
-            value={userValue}
-            onChange={(e) => updateOpenAICompatibleSettingsHelper({ userSilenceDuration: parseFloat(e.target.value) })}
-            className="slider"
-            disabled={isSessionActive}
-          />
-        </div>
-        <div className="setting-item">
-          <div className="setting-label">
-            <span>{t('settings.assistantSilenceDuration', 'Translation pause')}</span>
-            <span className="setting-value">{assistantValue.toFixed(2)}s</span>
-          </div>
-          <input
-            type="range"
-            min="0.1"
-            max="3"
-            step="0.1"
-            value={assistantValue}
-            onChange={(e) => updateOpenAICompatibleSettingsHelper({ assistantSilenceDuration: parseFloat(e.target.value) })}
-            className="slider"
-            disabled={isSessionActive}
-          />
         </div>
       </div>
     );
@@ -1778,7 +1701,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
         <div className="settings-section">
           <h2>{t('settings.volcengineAST2Info', 'Doubao AST 2.0 Info')}</h2>
           <div className="setting-item">
-            <div className="volcengine-st-info-notice" style={{
+            <div className="volcengine-info-notice" style={{
               padding: '12px',
               backgroundColor: 'rgba(16, 163, 127, 0.1)',
               border: '1px solid rgba(16, 163, 127, 0.3)',
@@ -1788,92 +1711,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
             }}>
               <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
               {t('settings.volcengineAST2InfoText', 'Doubao AST 2.0 provides speech-to-speech translation with automatic voice cloning. The translated audio preserves the original speaker\'s voice characteristics.')}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  };
-
-  const renderVolcengineSTSettings = () => {
-    if (provider !== Provider.VOLCENGINE_ST) {
-      return null;
-    }
-
-    // Get target and source languages from the provider config
-    const stDescriptor = ProviderConfigFactory.getDescriptor(provider);
-    const targetLanguages = stDescriptor.resolveTargetLanguages(volcengineSTSettings.sourceLanguage);
-    const sourceLanguages = stDescriptor.resolveSourceLanguages();
-
-    return (
-      <>
-        <div className="settings-section">
-          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.sourceLanguage')}</span>
-            </div>
-            <select
-              className="select-dropdown"
-              value={volcengineSTSettings.sourceLanguage}
-              onChange={(e) => {
-                const oldSourceLang = volcengineSTSettings.sourceLanguage;
-                const newSourceLang = e.target.value;
-                updateVolcengineSTSettings({ sourceLanguage: newSourceLang });
-
-                trackEvent('language_changed', {
-                  from_language: oldSourceLang,
-                  to_language: newSourceLang,
-                  language_type: 'source'
-                });
-              }}
-              disabled={isSessionActive}
-            >
-              {sourceLanguages.map((lang: any) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="setting-item">
-            <div className="setting-label">
-              <span>{t('settings.targetLanguage')}</span>
-            </div>
-            <select
-              className="select-dropdown"
-              value={volcengineSTSettings.targetLanguage}
-              onChange={(e) => {
-                const oldTargetLang = volcengineSTSettings.targetLanguage;
-                const newTargetLang = e.target.value;
-                updateVolcengineSTSettings({ targetLanguage: newTargetLang });
-
-                trackEvent('language_changed', {
-                  from_language: oldTargetLang,
-                  to_language: newTargetLang,
-                  language_type: 'target'
-                });
-              }}
-              disabled={isSessionActive}
-            >
-              {targetLanguages.map((lang: any) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <h2>{t('settings.volcengineSTInfo', 'Volcengine Speech Translate Info')}</h2>
-          <div className="setting-item">
-            <div className="volcengine-st-info-notice" style={{
-              padding: '12px',
-              backgroundColor: 'rgba(16, 163, 127, 0.1)',
-              border: '1px solid rgba(16, 163, 127, 0.3)',
-              borderRadius: '8px',
-              fontSize: '13px',
-              color: '#aaa'
-            }}>
-              <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
-              {t('settings.volcengineSTInfoText', 'Volcengine Real-time Speech Translation provides text-only translation output. Audio synthesis is not supported in this mode.')}
             </div>
           </div>
         </div>
@@ -2255,64 +2092,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
     );
   };
 
-  const renderZoomAISettings = () => {
-    if (provider !== Provider.ZOOM_AI) return null;
-
-    const zoomDescriptor = ProviderConfigFactory.getDescriptor(provider);
-    const sourceLanguages = zoomDescriptor.resolveSourceLanguages();
-    const targetLanguages = zoomDescriptor.resolveTargetLanguages(zoomAISettings.sourceLanguage);
-
-    return (
-      <>
-        <div className="settings-section">
-          <h2>{t('settings.languageSettings', 'Language Settings')}</h2>
-          <div className="setting-item">
-            <div className="setting-label"><span>{t('settings.sourceLanguage')}</span></div>
-            <select
-              className="select-dropdown"
-              value={zoomAISettings.sourceLanguage}
-              onChange={(e) => {
-                const newSource = e.target.value;
-                updateZoomAISettings({
-                  sourceLanguage: newSource,
-                  targetLanguage: zoomDescriptor.reconcileTarget(newSource, zoomAISettings.targetLanguage),
-                });
-              }}
-              disabled={isSessionActive}
-            >
-              {sourceLanguages.map((lang) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="setting-item">
-            <div className="setting-label"><span>{t('settings.targetLanguage')}</span></div>
-            <select
-              className="select-dropdown"
-              value={zoomAISettings.targetLanguage}
-              onChange={(e) => updateZoomAISettings({ targetLanguage: e.target.value })}
-              disabled={isSessionActive}
-            >
-              {targetLanguages.map((lang) => (
-                <option key={lang.value} value={lang.value}>{lang.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <h2>{t('settings.zoomAIInfo', 'Zoom AI Services Info')}</h2>
-          <div className="setting-item">
-            <div className="volcengine-st-info-notice" style={{ padding: '12px', backgroundColor: 'rgba(16, 163, 127, 0.1)', border: '1px solid rgba(16, 163, 127, 0.3)', borderRadius: '8px', fontSize: '13px', color: '#aaa' }}>
-              <Info size={14} style={{ marginRight: '8px', verticalAlign: 'middle', color: '#10a37f' }} />
-              {t('settings.zoomAIInfoText', 'Zoom Scribe transcribes each utterance and Zoom Translator translates it to text. Translation pairs must include English on one side.')}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  };
-
   const renderLocalInferenceSettings = () => {
     if (provider !== Provider.LOCAL_INFERENCE) {
       return null;
@@ -2370,11 +2149,15 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
               vadThreshold: localInferenceSettings.vadThreshold,
               vadMinSilenceDuration: localInferenceSettings.vadMinSilenceDuration,
               vadMinSpeechDuration: localInferenceSettings.vadMinSpeechDuration,
-              // vad-web workers only — the sherpa-onnx engine has its own hysteresis.
+              // vad-web workers only — the sherpa-onnx engine has its own
+              // hysteresis and cuts at a fixed 20 s.
               ...(() => {
                 const workerType = getManifestEntry(selectedAsr)?.asrWorkerType;
                 return workerType && workerType !== 'sherpa-onnx'
-                  ? { vadNegativeThreshold: localInferenceSettings.vadNegativeThreshold ?? 0 }
+                  ? {
+                      vadMaxSpeechDuration: localInferenceSettings.vadMaxSpeechDuration,
+                      vadNegativeThreshold: localInferenceSettings.vadNegativeThreshold ?? 0,
+                    }
                   : {};
               })(),
             }}
@@ -2490,7 +2273,6 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {/* Provider-specific settings */}
       {renderVoiceSettings()}
       {renderTurnDetectionSettings()}
-      {renderSilenceDurationOnlySetting()}
       {renderModelSettings()}
       {renderTranscriptSettings()}
       {renderNoiseReductionSettings()}
@@ -2499,9 +2281,7 @@ const ProviderSpecificSettings: React.FC<ProviderSpecificSettingsProps> = ({
       {renderReasoningEffortSettings()}
       {renderGeminiVadSettings()}
       {renderPalabraAISettings()}
-      {renderVolcengineSTSettings()}
       {renderVolcengineAST2Settings()}
-      {renderZoomAISettings()}
       {renderSonioxSettings()}
       {renderLocalInferenceSettings()}
       {renderLocalNativeSettings()}

@@ -132,14 +132,10 @@ export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
   sourceLanguage?: string;
   inputAudioTranscription?: { model: string };
   inputAudioNoiseReduction?: { type: 'near_field' | 'far_field' };
-  // Client-side utterance segmentation. The user (input) and assistant
-  // (output) sides run independent state machines because translation
-  // often crosses input sentence boundaries — coupling them caused
-  // assistant items to be cut mid-clause when input paused. Both range
-  // 100–3000ms. The translate API has no server-side turn detection, so
-  // these only control UI message splitting.
-  userSilenceDurationMs?: number;
-  assistantSilenceDurationMs?: number;
+  // Client-side utterance segmentation used to ride here as two per-provider
+  // silence thresholds. A2 made them one global pause pair, so the client
+  // takes them through ClientOptions instead and nothing about them belongs
+  // in a session config.
 }
 
 /**
@@ -152,9 +148,8 @@ export interface OpenAILiveSessionConfig extends BaseSessionConfig {
   provider: 'openai_live';
   sourceLanguage?: string;
   targetLanguage: string;
-  /** Client-side utterance segmentation, ms. Clamped to 100–3000 by the client. */
-  userSilenceDurationMs?: number;
-  assistantSilenceDurationMs?: number;
+  // Client-side utterance segmentation is the global pause pair now (A2); it
+  // reaches the client through ClientOptions, not through here.
 }
 
 /**
@@ -183,6 +178,19 @@ export interface GeminiSessionConfig extends BaseSessionConfig {
    * OpenAITranslateSessionConfig carries `sourceLanguage`.
    */
   sourceLanguageCode?: string;
+  /**
+   * The configured language pair, short codes, for the sentence-segmentation
+   * stage alone — never sent to the API. Set unconditionally, including for
+   * the dialogue models, which carry their direction in the instruction and so
+   * expose no language field the stage could read: without this the two
+   * streams both run at `auto`, which routes English and Chinese to SaT
+   * instead of Edge-Punct-Casing and FireRedPunc.
+   *
+   * Reversed for the participant leg, like every other direction-bearing
+   * field here.
+   */
+  segmentationSourceLanguage?: string;
+  segmentationTargetLanguage?: string;
 }
 
 /**
@@ -199,25 +207,6 @@ export interface PalabraAISessionConfig extends BaseSessionConfig {
   desiredQueueLevelMs: number;
   maxQueueLevelMs: number;
   autoTempo: boolean;
-}
-
-/**
- * Volcengine Speech Translate session configuration
- */
-export interface VolcengineSTSessionConfig extends BaseSessionConfig {
-  provider: 'volcengine_st';
-  sourceLanguage: string;
-  targetLanguages: string[];
-  hotWordList?: Array<{ Word: string; Scale: number }>;
-}
-
-/**
- * Zoom AI Services session configuration
- */
-export interface ZoomAISessionConfig extends BaseSessionConfig {
-  provider: 'zoom_ai';
-  sourceLanguage: string;
-  targetLanguages: string[];
 }
 
 /**
@@ -284,6 +273,7 @@ export interface LocalInferenceSessionConfig extends BaseSessionConfig {
   vadNegativeThreshold?: number;
   vadMinSilenceDuration?: number;
   vadMinSpeechDuration?: number;
+  vadMaxSpeechDuration?: number;
   turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
   /**
    * Whether the active system prompt expects `<transcript>` wrapping around
@@ -328,7 +318,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | OpenAILiveSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineSTSessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | ZoomAISessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | OpenAILiveSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -354,14 +344,6 @@ export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSe
 
 export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
   return config.provider === 'palabraai';
-}
-
-export function isVolcengineSTSessionConfig(config: SessionConfig): config is VolcengineSTSessionConfig {
-  return config.provider === 'volcengine_st';
-}
-
-export function isZoomAISessionConfig(config: SessionConfig): config is ZoomAISessionConfig {
-  return config.provider === 'zoom_ai';
 }
 
 export function isVolcengineAST2SessionConfig(config: SessionConfig): config is VolcengineAST2SessionConfig {

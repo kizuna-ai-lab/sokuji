@@ -4,6 +4,7 @@ import { IClient, FilteredModel, SessionConfig, OpenAITranslateSessionConfig, Tr
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { OpenAITranslateWebRTCClient } from '../clients/OpenAITranslateWebRTCClient';
+import { segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 
 /** The transcript model this provider sends. Kept a single value rather than a
  *  choice: with one option there is no user preference for the load-time
@@ -37,13 +38,6 @@ export interface OpenAITranslateSettings {
   transcriptModel: OpenAITranslateTranscriptModel;
   noiseReduction: 'None' | 'Near field' | 'Far field';
   transportType: TransportType;
-  // Client-side utterance segmentation thresholds in seconds. User (input)
-  // and assistant (output) run independent state machines, so each has its
-  // own threshold. Range 0.1–3.0s. Translate API has no server-side turn
-  // detection, so these only control UI message splitting. Stored as
-  // seconds; converted to ms when building the session config.
-  userSilenceDuration: number;
-  assistantSilenceDuration: number;
 }
 
 export const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
@@ -53,8 +47,6 @@ export const defaultOpenAITranslateSettings: OpenAITranslateSettings = {
   transcriptModel: 'gpt-live-transcribe',
   noiseReduction: 'None',
   transportType: 'websocket',
-  userSilenceDuration: 1.0,
-  assistantSilenceDuration: 0.5,
 };
 
 /**
@@ -76,9 +68,19 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
         apiKey: creds.primary,
         inputDeviceId: options.webrtcOptions?.inputDeviceId,
         outputDeviceId: options.webrtcOptions?.outputDeviceId,
+        segmentation: options.segmentation,
+        sentencesPerChunk: options.sentencesPerChunk,
+        // The source pause has nowhere to go on this transport: one timer
+        // closes the pair, and it is the translation side that keeps it alive.
+        translationPauseMs: segmentPauseMs(options.translationPause),
       });
     }
-    return new OpenAITranslateGAClient(creds.primary);
+    return new OpenAITranslateGAClient(creds.primary, undefined, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+      sourcePauseMs: segmentPauseMs(options.sourcePause),
+      translationPauseMs: segmentPauseMs(options.translationPause),
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{
@@ -110,8 +112,9 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
       inputAudioNoiseReduction: settings.noiseReduction !== 'None' ? {
         type: settings.noiseReduction === 'Near field' ? 'near_field' : 'far_field'
       } : undefined,
-      userSilenceDurationMs: Math.round(settings.userSilenceDuration * 1000),
-      assistantSilenceDurationMs: Math.round(settings.assistantSilenceDuration * 1000),
+      // The two silence thresholds used to be built here from this slice. They
+      // are the global pause pair now (A2) and reach the client through
+      // ClientOptions, beside the rest of the segmentation settings.
     } as OpenAITranslateSessionConfig;
   }
 
@@ -289,15 +292,17 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
         hasReasoningEffort: false,
         textOnlyCapability: 'never',
 
-        // Translate has no server-side turn detection; we expose only the
-        // client-side silence-duration knob, which controls UI segmentation.
-        // hasTurnDetection stays false to keep mode/threshold/prefix/eagerness
-        // hidden — only hasSilenceDuration drives the slider rendering.
+        // Translate has no server-side turn detection, and with
+        // hasTurnDetection false nothing in this block reaches the screen:
+        // the only reader of hasSilenceDuration is a slider inside
+        // `renderTurnDetectionSettings`, which returns before it. The
+        // client-side silence knob it once described moved to the
+        // segmentation section with A2, where it is the global pause pair.
         turnDetection: {
           modes: [],
           hasThreshold: false,
           hasPrefixPadding: false,
-          hasSilenceDuration: true,
+          hasSilenceDuration: false,
           hasSemanticEagerness: false,
         },
 
@@ -305,6 +310,12 @@ export class OpenAITranslateProviderConfig extends BaseProviderDescriptor {
         // but the fields are required by the type.
         temperatureRange: { min: 0, max: 0, step: 0 },
         maxTokensRange: { min: 0, max: 0, step: 0 },
+
+        // This client cuts on its own silence timers, so By pause is a real
+        // choice here and Auto is not: it would be the pause mode by another
+        // name, since nothing but those timers decides a boundary. The Kizuna
+        // twin inherits this through its `...base` spread, as it should.
+        segmentation: { pause: true, auto: false, sizes: true },
       },
     };
   }

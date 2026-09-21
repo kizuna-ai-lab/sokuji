@@ -15,12 +15,12 @@ import { OpenAIClient } from './OpenAIClient';
 import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { SilenceDeferral } from '../../lib/segmentation/silenceDeferral';
+import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
-/** Default silence threshold for both user (input) and assistant (output) timers. */
-const SILENCE_TIMEOUT_MS = 1000;
-const SILENCE_TIMEOUT_MIN_MS = 100;
-const SILENCE_TIMEOUT_MAX_MS = 3000;
 /** 200 ms @ 24 kHz = 4800 samples — the API's heartbeat frame size. Kept for
  *  reference / tests; runtime detection now uses {@link isSilenceFrame} so we
  *  don't break if the API ever changes the heartbeat duration. */
@@ -54,11 +54,6 @@ export function isSilenceFrame(audio: Int16Array): boolean {
     if (sumSq !== 0) return false;
   }
   return true;
-}
-
-function clampSilenceTimeout(value: number | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return SILENCE_TIMEOUT_MS;
-  return Math.max(SILENCE_TIMEOUT_MIN_MS, Math.min(SILENCE_TIMEOUT_MAX_MS, value));
 }
 
 /** Shape of the `session` field inside `session.update` for translate.
@@ -106,8 +101,10 @@ export class OpenAITranslateGAClient implements IClient {
   private currentAssistantItemId: string | null = null;
   private userSilenceTimer: ReturnType<typeof setTimeout> | null = null;
   private assistantSilenceTimer: ReturnType<typeof setTimeout> | null = null;
-  private userSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
-  private assistantSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
+  /** The By pause mode's two timers, set once at construction from the global
+   *  pause pair. Never re-read: a running session does not follow the slider. */
+  private userSilenceTimeoutMs: number = DEFAULT_SEGMENT_PAUSE_MS;
+  private assistantSilenceTimeoutMs: number = DEFAULT_SEGMENT_PAUSE_MS;
   private audioChunks: Map<string, Int16Array[]> = new Map();
   /**
    * Cached from `config.keepReplayAudio` at connect(). See OpenAIGAClient
@@ -126,9 +123,70 @@ export class OpenAITranslateGAClient implements IClient {
 
   private relay?: { wsUrl: string };
 
-  constructor(apiKey: string, relay?: { wsUrl: string }) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both fields come from ClientOptions and are never re-read from a store, so
+  // a running session cannot react to either setting changing. A null or
+  // disabled runtime means today's behaviour, byte for byte.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session (the punctuation pack finishing its download turns it true,
+   * deleting it turns it false) and `SentenceStream` reads `enabled` once at
+   * its own construction. A stream built from a flipped value goes inert while
+   * this client still routes text into it, which loses the item outright. One
+   * frozen view handed to every stream is what makes those reads one answer.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /**
+   * The source side only.
+   *
+   * There is deliberately no translation-side stream. Audio here attaches to
+   * whichever assistant item is open when the frame arrives, and this API
+   * reports no per-item timeline — the deltas carry no timing at all — so a
+   * split translation item cannot be told where its own audio ends. The frames
+   * belonging to a sealed sentence would land on the next bubble and put every
+   * later karaoke highlight one bubble out. GPT-Live segments both sides
+   * because it has that timeline: `OpenAILiveClient.closeAssistantText` queues
+   * the closed item on `pendingAudioItems` with its `end_ms` and keeps feeding
+   * it frames until the session clock passes it. Nothing here can be rebuilt
+   * from without guessing.
+   */
+  private userStream: SentenceStream | null = null;
+  /** The raw text the stream still holds, mirrored from its onPending so the
+   *  next delta can be handed the whole unsealed tail. */
+  private userPending = '';
+  /** Set while a seal from the stream is closing an item, so the close does not
+   *  turn around and end() the stream that produced it: the remainder that
+   *  stream still holds is what opens the next item. */
+  private sealingUser = false;
+  /** While the stage runs, a silence timer that would cut a sentence in half
+   *  defers instead. Source side only — there is no translation-side stream
+   *  here to consult, so that timer keeps today's behaviour. See
+   *  silenceDeferral.ts. */
+  private userDeferral = new SilenceDeferral();
+  /** The language the stream punctuates in. Read once at connect() — the API
+   *  reports no per-item detected language, so nothing ever changes it. */
+  private sourceLanguage = 'auto';
+
+  constructor(
+    apiKey: string,
+    relay?: { wsUrl: string },
+    options: {
+      segmentation?: SegmentationRuntime | null;
+      sentencesPerChunk?: number;
+      sourcePauseMs?: number;
+      translationPauseMs?: number;
+    } = {},
+  ) {
     this.apiKey = apiKey;
     this.relay = relay;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? DEFAULT_CHUNK_SENTENCES;
+    this.userSilenceTimeoutMs = clampSegmentPauseMs(options.sourcePauseMs);
+    this.assistantSilenceTimeoutMs = clampSegmentPauseMs(options.translationPauseMs);
   }
 
   /**
@@ -207,6 +265,18 @@ export class OpenAITranslateGAClient implements IClient {
   private resetUserSilenceTimer(): void {
     if (this.userSilenceTimer) clearTimeout(this.userSilenceTimer);
     this.userSilenceTimer = setTimeout(() => {
+      this.userSilenceTimer = null;
+      // While the stage runs, a pause in the middle of a sentence is the
+      // speaker resting at a comma, not the end of a bubble: a live session cut
+      // "…成为商人或者是商队的向导，" from "以及保镖。" ten seconds later, which
+      // is a pause cut in the mode that promised sentence cuts. Deferred only
+      // while the tail keeps growing, so an abandoned sentence still closes one
+      // window after the last word. With no stream there is nothing to consult
+      // and the old behaviour stands.
+      if (this.userStream && this.userDeferral.deferAtExpiry(this.userPending)) {
+        this.resetUserSilenceTimer();
+        return;
+      }
       this.completeUserItem();
     }, this.userSilenceTimeoutMs);
   }
@@ -258,7 +328,104 @@ export class OpenAITranslateGAClient implements IClient {
     return id;
   }
 
+  // ----- Segmentation stage -----
+  //
+  // The shape is Task 1's, minus the timeline caps this client has no
+  // equivalent of: one stream on the source side, built lazily and wound up
+  // wherever its item closes; the delta appends to the item first and hands the
+  // stream the whole unsealed tail second; a seal rewrites the item it closed
+  // and lets the remainder open the next one. The translation side is not
+  // segmented — see the `userStream` field doc.
+
+  /** The stream feeding the open source item, or null when the stage is off
+   *  for this session. Rebuilt after the item it fed closes. */
+  private ensureUserStream(): SentenceStream | null {
+    if (this.userStream) return this.userStream;
+    if (!this.sessionSegmentation) return null;
+    this.userStream = new SentenceStream({
+      lang: this.sourceLanguage,
+      // The frozen view, never `this.segmentation`: SentenceStream reads
+      // `enabled` once at construction, and that read must give the session's
+      // one answer (R2).
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealUserItem(chunk.text),
+      onPending: (text) => this.onUserPending(text),
+    });
+    return this.userStream;
+  }
+
+  /** The unsealed tail. After a seal this is the remainder and the item it
+   *  belongs to has just closed, so it opens the next one; after an ordinary
+   *  update the open item already holds exactly this text. */
+  private onUserPending(text: string): void {
+    this.userPending = text;
+    if (text.length === 0) return;
+    const opened = this.currentUserItemId === null;
+    const item = this.itemLookup.get(this.ensureUserItem());
+    // A cut lands just past a sentence end, so a remainder can start with the
+    // space that followed it.
+    const shown = text.replace(/^\s+/, '');
+    if (item?.formatted && item.formatted.transcript !== shown) {
+      item.formatted.transcript = shown;
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    // completeUserItem cleared the timer the delta armed. A seal that arrives
+    // with a model's answer, long after that delta returned, would otherwise
+    // leave the remainder's item with nothing left to close it.
+    if (opened) this.resetUserSilenceTimer();
+  }
+
+  /** The stage decided this item ends here. The sealed text carries the marks
+   *  the model inserted, so the item is rewritten rather than merely closed. */
+  private sealUserItem(sealed: string): void {
+    const id = this.currentUserItemId;
+    if (!id) return;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = sealed.replace(/^\s+/, '');
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.sealingUser = true;
+    try {
+      this.completeUserItem();
+    } finally {
+      this.sealingUser = false;
+    }
+  }
+
+  /** Seal whatever the stream still holds into the item it was feeding, then
+   *  drop it. Re-entrant by design: the seal closes that item through
+   *  completeUserItem, which lands back here with the stream already gone. */
+  private endUserStream(): void {
+    // A seal is mid-flight and owns the remainder; it is opening the next item
+    // with it as this returns.
+    if (this.sealingUser) return;
+    const stream = this.userStream;
+    if (stream) {
+      this.userStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    this.userPending = '';
+  }
+
+  /** Drop the stream without its final seal — the item it was feeding is being
+   *  forgotten too, so a final seal would have nowhere to land. */
+  private discardUserStream(): void {
+    this.userStream?.dispose();
+    this.userStream = null;
+    this.userPending = '';
+  }
+
   private completeUserItem(): void {
+    // Every path that ends a source item goes through here, so this is the one
+    // place the stage's stream has to be wound up; the seal it emits closes
+    // the item on its own, and the code below then finds nothing left to do.
+    this.endUserStream();
+    // Ahead of the early return: the timer may have fired with no item open,
+    // and the tail it remembered must not be held against the next one.
+    this.userDeferral.reset();
     if (!this.currentUserItemId) return;
     const item = this.itemLookup.get(this.currentUserItemId);
     if (item) {
@@ -274,6 +441,8 @@ export class OpenAITranslateGAClient implements IClient {
   }
 
   private completeAssistantItem(): void {
+    // No stream to wind up: the stage does not run on this side. See the
+    // `userStream` field doc for why.
     if (!this.currentAssistantItemId) return;
     const itemId = this.currentAssistantItemId;
     const item = this.itemLookup.get(itemId);
@@ -348,6 +517,9 @@ export class OpenAITranslateGAClient implements IClient {
           item: userItem!,
           delta: { transcript: event.delta },
         });
+        // The stage sees the whole unsealed tail, which is what the item now
+        // holds. A seal inside this call closes the item and opens the next.
+        if (event.delta) this.ensureUserStream()?.update(this.userPending + event.delta);
         this.resetUserSilenceTimer();
         break;
       }
@@ -362,6 +534,7 @@ export class OpenAITranslateGAClient implements IClient {
           item: assistantItem!,
           delta: { transcript: event.delta },
         });
+        // No stage on this side: see the `userStream` field doc.
         this.resetAssistantSilenceTimer();
         break;
       }
@@ -503,8 +676,22 @@ export class OpenAITranslateGAClient implements IClient {
     this.keepReplayAudio = config.keepReplayAudio ?? false;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
-    this.userSilenceTimeoutMs = clampSilenceTimeout(config.userSilenceDurationMs);
-    this.assistantSilenceTimeoutMs = clampSilenceTimeout(config.assistantSilenceDurationMs);
+    this.discardUserStream();
+    this.sourceLanguage = config.sourceLanguage ?? 'auto';
+    // R2: the one read of `enabled` this session gets. Everything downstream —
+    // the stream and every rebuild of it — sees this frozen view, never the
+    // live runtime. See the `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? {
+          enabled: true,
+          punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+          // Forwarded so the stage's own counters survive the freeze: this view
+          // is what SentenceStream and punctuateDefinite report through, and
+          // dropping it here would make every seal invisible. Counts, never text.
+          observe: (event) => runtime.observe?.(event),
+        }
+      : null;
 
     const baseUrl = this.relay?.wsUrl ?? TRANSLATE_WS_URL;
     const url = `${baseUrl}?model=${encodeURIComponent(config.model)}`;
@@ -648,24 +835,24 @@ export class OpenAITranslateGAClient implements IClient {
     }
     this.connected = false;
     // Finalise any in-flight items so partial transcripts/audio aren't lost
-    // when the user ends the session mid-utterance.
+    // when the user ends the session mid-utterance. completeUserItem seals the
+    // stream's tail into the item on the way out, so this has to run before the
+    // session's frozen answer is dropped.
     this.completeUserItem();
     this.completeAssistantItem();
+    this.sessionSegmentation = null;
   }
 
   isConnected(): boolean {
     return this.connected && this.ws?.readyState === 1;
   }
 
+  /** The two silence thresholds are deliberately not here: they are the global
+   *  pause pair now, read once at construction, so a session keeps the pauses
+   *  it started with (A2). */
   updateSession(config: Partial<SessionConfig>): void {
     if (!this.ws || !isOpenAITranslateSessionConfig(config as SessionConfig)) return;
     const tConfig = config as OpenAITranslateSessionConfig;
-    if (tConfig.userSilenceDurationMs !== undefined) {
-      this.userSilenceTimeoutMs = clampSilenceTimeout(tConfig.userSilenceDurationMs);
-    }
-    if (tConfig.assistantSilenceDurationMs !== undefined) {
-      this.assistantSilenceTimeoutMs = clampSilenceTimeout(tConfig.assistantSilenceDurationMs);
-    }
     const updatePayload = OpenAITranslateGAClient.buildSessionUpdate(tConfig);
     this.ws.send(JSON.stringify(updatePayload));
     this.eventHandlers.onRealtimeEvent?.({
@@ -692,6 +879,9 @@ export class OpenAITranslateGAClient implements IClient {
     this.audioChunks.clear();
     this.audioCumSamples.clear();
     this.deltaSequenceNumber = 0;
+    // Dropped rather than ended: the items this stream was feeding are being
+    // forgotten too.
+    this.discardUserStream();
   }
 
   appendInputAudio(audioData: Int16Array): void {
@@ -760,8 +950,5 @@ export type { ApiKeyValidationResult, FilteredModel };
 // Internal constants exported for use by later-task helpers / WebRTC client.
 export {
   TRANSLATE_WS_URL,
-  SILENCE_TIMEOUT_MS,
-  SILENCE_TIMEOUT_MIN_MS,
-  SILENCE_TIMEOUT_MAX_MS,
   HEARTBEAT_SAMPLES,
 };

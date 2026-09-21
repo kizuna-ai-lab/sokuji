@@ -38,9 +38,12 @@ import { WebRTCAudioBridge, BufferedAudioMetadata } from '../../lib/modern-audio
 import { OpenAITranslateGAClient, computeRms } from './OpenAITranslateGAClient';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { SilenceDeferral } from '../../lib/segmentation/silenceDeferral';
+import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 const TRANSLATE_CALLS_ENDPOINT_PATH = '/v1/realtime/translations/calls';
-const SILENCE_TIMEOUT_MS = 1500;
 const DEFAULT_API_HOST = 'https://api.openai.com';
 const ICE_GATHERING_TIMEOUT_MS = 5000;
 const DATA_CHANNEL_OPEN_TIMEOUT_MS = 10000;
@@ -54,6 +57,17 @@ interface WebRTCClientOptions {
   inputDeviceId?: string;
   /** Optional output device ID (speaker / sinkId) */
   outputDeviceId?: string;
+  /** The sentence segmentation stage, or null/absent for today's behaviour. */
+  segmentation?: SegmentationRuntime | null;
+  /** How many sentences fill a bubble once the stage is on. */
+  sentencesPerChunk?: number;
+  /**
+   * The translation half of the global pause pair, in milliseconds. This
+   * client takes only that half — see `pairSilenceMs` — and deliberately does
+   * not accept the source one: there is no timer here for it to drive, and an
+   * option that is quietly ignored is worse than one that is absent.
+   */
+  translationPauseMs?: number;
 }
 
 interface ServerEvent {
@@ -95,7 +109,12 @@ export class OpenAITranslateWebRTCClient implements IClient {
   private connected: boolean = false;
 
   // Pairing state machine — mirrors OpenAITranslateGAClient verbatim.
-  private currentPair: { userItemId: string; assistantItemId: string } | null = null;
+  //
+  // A side's id is null only while the stage's seal has closed that item and
+  // the pair is waiting for the remainder — or the next delta — to open its
+  // replacement. Without the stage, both ids stay set for the pair's whole
+  // life, exactly as before.
+  private currentPair: { userItemId: string | null; assistantItemId: string | null } | null = null;
   private deltaTimer: ReturnType<typeof setTimeout> | null = null;
   private audioChunks: Map<string, Int16Array[]> = new Map();
   private itemLookup: Map<string, ConversationItem> = new Map();
@@ -111,11 +130,70 @@ export class OpenAITranslateWebRTCClient implements IClient {
    */
   private keepReplayAudio: boolean = false;
 
+  // ----- Sentence segmentation stage -----
+  //
+  // Both fields come from ClientOptions and are never re-read from a store, so
+  // a running session cannot react to either setting changing. A null or
+  // disabled runtime means today's behaviour, byte for byte.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session and `SentenceStream` reads it once at its own construction, so a
+   * stream built from a flipped value goes inert while this client still
+   * routes text into it. See OpenAITranslateGAClient's field doc.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /**
+   * The source side of the pair only.
+   *
+   * There is deliberately no translation-side stream. `handleBufferedAudio`
+   * attaches every remote frame to whichever assistant item is open when it
+   * arrives, and this API reports no per-item timeline — the deltas carry no
+   * timing at all — so a split translation item cannot be told where its own
+   * audio ends. The frames belonging to a sealed sentence would land on the
+   * next bubble and put every later karaoke highlight one bubble out. GPT-Live
+   * segments both sides because it has that timeline:
+   * `OpenAILiveClient.closeAssistantText` queues the closed item on
+   * `pendingAudioItems` with its `end_ms` and keeps feeding it frames until the
+   * session clock passes it. Nothing here can be rebuilt from without guessing.
+   */
+  private userStream: SentenceStream | null = null;
+  /**
+   * The one timer this transport has: it closes the source item and the
+   * translation item together, and both sides re-arm it.
+   *
+   * It takes the TRANSLATION pause of the global pair, not the source one. The
+   * last delta of a pair is the translation's — the speaker stopped before the
+   * translation caught up — so the gap this timer ends up measuring is
+   * translation-side silence. There is no second timer to give the source
+   * pause to: unlike the WebSocket client, this one has no translation-side
+   * stream and cannot close the two sides at different moments (see
+   * `userStream` above for why).
+   */
+  private pairSilenceMs = DEFAULT_SEGMENT_PAUSE_MS;
+  /** The raw text the stream still holds, mirrored from its onPending. */
+  private userPending = '';
+  /** Set while a seal from the stream is closing an item, so the close does not
+   *  turn around and end() the stream that produced it. */
+  private sealingUser = false;
+  /** While the stage runs, the pair timer defers rather than cut a sentence in
+   *  half. It reads the SOURCE stream's tail, which is the only one it can:
+   *  this transport has no translation-side stream (see `userStream` above),
+   *  and one timer closes both sides at once. See silenceDeferral.ts. */
+  private pairDeferral = new SilenceDeferral();
+  /** The language the stream punctuates in, read once at connect(). */
+  private sourceLanguage = 'auto';
+
   constructor(options: WebRTCClientOptions) {
     this.apiKey = options.apiKey;
     this.apiHost = (options.apiHost || DEFAULT_API_HOST).replace(/\/$/, '');
     this.inputDeviceId = options.inputDeviceId;
     this.outputDeviceId = options.outputDeviceId;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? DEFAULT_CHUNK_SENTENCES;
+    this.pairSilenceMs = clampSegmentPauseMs(options.translationPauseMs);
 
     // Match OpenAIWebRTCClient: 24 kHz PCM with 200 ms buffer for smooth
     // playback through ModernAudioPlayer's queue-based pipeline.
@@ -140,61 +218,95 @@ export class OpenAITranslateWebRTCClient implements IClient {
   private resetDeltaTimer(): void {
     if (this.deltaTimer) clearTimeout(this.deltaTimer);
     this.deltaTimer = setTimeout(() => {
+      this.deltaTimer = null;
+      // While the stage runs, a pause in the middle of a sentence is the
+      // speaker resting at a comma, not the end of a bubble: a live session cut
+      // "…成为商人或者是商队的向导，" from "以及保镖。" ten seconds later, which
+      // is a pause cut in the mode that promised sentence cuts. Deferred only
+      // while the tail keeps growing, so an abandoned sentence still closes one
+      // window after the last word. With no stream there is nothing to consult
+      // and the old behaviour stands.
+      if (this.userStream && this.pairDeferral.deferAtExpiry(this.userPending)) {
+        this.resetDeltaTimer();
+        return;
+      }
       this.completeCurrentPair();
-    }, SILENCE_TIMEOUT_MS);
+    }, this.pairSilenceMs);
   }
 
-  private ensurePair(): { userItemId: string; assistantItemId: string } {
+  /** Create, register and announce one side's item, and return its id. */
+  private openItem(role: 'user' | 'assistant'): string {
+    const id = this.genItemId();
+    const item: ConversationItem = {
+      id,
+      role,
+      type: 'message',
+      status: 'in_progress',
+      createdAt: Date.now(),
+      formatted: { text: '', transcript: '' },
+      content: [],
+    };
+    this.conversationItems.push(item);
+    this.itemLookup.set(id, item);
+    this.eventHandlers.onConversationUpdated?.({ item });
+    return id;
+  }
+
+  private ensurePair(): { userItemId: string | null; assistantItemId: string | null } {
     if (this.currentPair) return this.currentPair;
-
-    const userItemId = this.genItemId();
-    const assistantItemId = this.genItemId();
-    this.currentPair = { userItemId, assistantItemId };
-
-    const createdAt = Date.now();
-
-    const userItem: ConversationItem = {
-      id: userItemId,
-      role: 'user',
-      type: 'message',
-      status: 'in_progress',
-      createdAt,
-      formatted: { text: '', transcript: '' },
-      content: [],
-    };
-    const assistantItem: ConversationItem = {
-      id: assistantItemId,
-      role: 'assistant',
-      type: 'message',
-      status: 'in_progress',
-      createdAt,
-      formatted: { text: '', transcript: '' },
-      content: [],
-    };
-
-    this.conversationItems.push(userItem, assistantItem);
-    this.itemLookup.set(userItemId, userItem);
-    this.itemLookup.set(assistantItemId, assistantItem);
-
-    this.eventHandlers.onConversationUpdated?.({ item: userItem });
-    this.eventHandlers.onConversationUpdated?.({ item: assistantItem });
-
+    // Both sides are opened together so the UI gets the pair, even when only
+    // one of them will carry text.
+    this.currentPair = { userItemId: this.openItem('user'), assistantItemId: this.openItem('assistant') };
     return this.currentPair;
   }
 
-  private completeCurrentPair(): void {
-    if (!this.currentPair) return;
+  /** The open pair's source item, opening a replacement inside the same pair
+   *  when the stage's seal closed the previous one. */
+  private ensureUserItemId(): string {
+    const pair = this.ensurePair();
+    if (!pair.userItemId) pair.userItemId = this.openItem('user');
+    return pair.userItemId;
+  }
 
-    const { userItemId, assistantItemId } = this.currentPair;
-    const userItem = this.itemLookup.get(userItemId);
-    const assistantItem = this.itemLookup.get(assistantItemId);
+  /** The translation twin of ensureUserItemId. Nothing but the pair timer ever
+   *  closes this item mid-stream, which is what keeps its audio attached to it
+   *  — see the `userStream` field doc. */
+  private ensureAssistantItemId(): string {
+    const pair = this.ensurePair();
+    if (!pair.assistantItemId) pair.assistantItemId = this.openItem('assistant');
+    return pair.assistantItemId;
+  }
 
+  /** Close just the source item; the pair stays open so the translation keeps
+   *  streaming into the item it already has. */
+  private closeUserItem(): void {
+    // Every path that ends a source item comes through here, so this is where
+    // the stage's stream is wound up; the seal it emits closes the item on its
+    // own and the code below then finds nothing left to do.
+    this.endUserStream();
+    // The next item gets its own window, whether a seal or the timer ended
+    // this one — and ahead of the early return, since the timer may have fired
+    // with no item open at all.
+    this.pairDeferral.reset();
+    const pair = this.currentPair;
+    if (!pair?.userItemId) return;
+    const userItem = this.itemLookup.get(pair.userItemId);
     if (userItem) {
       userItem.status = 'completed';
       if (userItem.formatted) userItem.formatted.text = userItem.formatted.transcript || '';
       this.eventHandlers.onConversationUpdated?.({ item: userItem });
     }
+    pair.userItemId = null;
+  }
 
+  /** Close just the translation item, handing over its buffered audio. */
+  private closeAssistantItem(): void {
+    // No stream to wind up: the stage does not run on this side. See the
+    // `userStream` field doc for why.
+    const pair = this.currentPair;
+    if (!pair?.assistantItemId) return;
+    const assistantItemId = pair.assistantItemId;
+    const assistantItem = this.itemLookup.get(assistantItemId);
     if (assistantItem) {
       assistantItem.status = 'completed';
       const chunks = this.audioChunks.get(assistantItemId);
@@ -214,12 +326,99 @@ export class OpenAITranslateWebRTCClient implements IClient {
       if (assistantItem.formatted) assistantItem.formatted.text = assistantItem.formatted.transcript || '';
       this.eventHandlers.onConversationUpdated?.({ item: assistantItem });
     }
+    pair.assistantItemId = null;
+  }
+
+  private completeCurrentPair(): void {
+    // Both sides, then the pair itself. Each half ends its stage stream first,
+    // so a tail still held there lands in the item it belongs to.
+    this.closeUserItem();
+    this.closeAssistantItem();
+    if (!this.currentPair) return;
 
     this.currentPair = null;
     if (this.deltaTimer) {
       clearTimeout(this.deltaTimer);
       this.deltaTimer = null;
     }
+  }
+
+  // ----- Segmentation stage -----
+
+  /** The stream feeding the open source item, or null when the stage is off
+   *  for this session. */
+  private ensureUserStream(): SentenceStream | null {
+    if (this.userStream) return this.userStream;
+    if (!this.sessionSegmentation) return null;
+    this.userStream = new SentenceStream({
+      lang: this.sourceLanguage,
+      // The frozen view, never `this.segmentation` (R2).
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealUserItem(chunk.text),
+      onPending: (text) => this.onUserPending(text),
+    });
+    return this.userStream;
+  }
+
+  /** The unsealed tail. After a seal this is the remainder and the item it
+   *  belongs to has just closed, so it opens the next one; after an ordinary
+   *  update the open item already holds exactly this text. */
+  private onUserPending(text: string): void {
+    this.userPending = text;
+    if (text.length === 0) return;
+    const item = this.itemLookup.get(this.ensureUserItemId());
+    // A cut lands just past a sentence end, so a remainder can start with the
+    // space that followed it.
+    const shown = text.replace(/^\s+/, '');
+    if (item?.formatted && item.formatted.transcript !== shown) {
+      item.formatted.transcript = shown;
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    // No timer to re-arm: the pair's single deltaTimer outlives a one-sided
+    // close, and only completeCurrentPair clears it.
+  }
+
+  /** The stage decided this item ends here. The sealed text carries the marks
+   *  the model inserted, so the item is rewritten rather than merely closed. */
+  private sealUserItem(sealed: string): void {
+    const id = this.currentPair?.userItemId;
+    if (!id) return;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = sealed.replace(/^\s+/, '');
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.sealingUser = true;
+    try {
+      this.closeUserItem();
+    } finally {
+      this.sealingUser = false;
+    }
+  }
+
+  /** Seal whatever the stream still holds into the item it was feeding, then
+   *  drop it. Re-entrant by design: the seal closes that item through
+   *  closeUserItem, which lands back here with the stream already gone. */
+  private endUserStream(): void {
+    // A seal is mid-flight and owns the remainder; it is opening the next item
+    // with it as this returns.
+    if (this.sealingUser) return;
+    const stream = this.userStream;
+    if (stream) {
+      this.userStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    this.userPending = '';
+  }
+
+  /** Drop the stream without its final seal — the items it was feeding are
+   *  being forgotten too. */
+  private discardUserStream(): void {
+    this.userStream?.dispose();
+    this.userStream = null;
+    this.userPending = '';
   }
 
   /**
@@ -233,22 +432,22 @@ export class OpenAITranslateWebRTCClient implements IClient {
    * transport produces.
    */
   private handleBufferedAudio(pcmData: Int16Array, metadata: BufferedAudioMetadata): void {
-    const pair = this.currentPair;
-    if (!pair) {
+    if (!this.currentPair) {
       // Audio without preceding transcript is rare/unexpected for translate;
       // log and drop rather than synthesize a phantom pair.
       console.debug('[OpenAITranslateWebRTCClient] Received audio with no active pair; ignoring');
       return;
     }
+    const assistantItemId = this.ensureAssistantItemId();
 
-    const assistantItem = this.itemLookup.get(pair.assistantItemId);
+    const assistantItem = this.itemLookup.get(assistantItemId);
     if (!assistantItem) return;
 
     if (this.keepReplayAudio) {
-      if (!this.audioChunks.has(pair.assistantItemId)) {
-        this.audioChunks.set(pair.assistantItemId, []);
+      if (!this.audioChunks.has(assistantItemId)) {
+        this.audioChunks.set(assistantItemId, []);
       }
-      this.audioChunks.get(pair.assistantItemId)!.push(pcmData);
+      this.audioChunks.get(assistantItemId)!.push(pcmData);
     }
 
     this.eventHandlers.onConversationUpdated?.({
@@ -295,8 +494,7 @@ export class OpenAITranslateWebRTCClient implements IClient {
 
     switch (event.type) {
       case 'session.input_transcript.delta': {
-        const pair = this.ensurePair();
-        const userItem = this.itemLookup.get(pair.userItemId);
+        const userItem = this.itemLookup.get(this.ensureUserItemId());
         if (userItem?.formatted) {
           userItem.formatted.transcript = (userItem.formatted.transcript || '') + (event.delta || '');
         }
@@ -304,13 +502,15 @@ export class OpenAITranslateWebRTCClient implements IClient {
           item: userItem!,
           delta: { transcript: event.delta },
         });
+        // The stage sees the whole unsealed tail, which is what the item now
+        // holds. A seal inside this call closes the item and opens the next.
+        if (event.delta) this.ensureUserStream()?.update(this.userPending + event.delta);
         this.resetDeltaTimer();
         break;
       }
 
       case 'session.output_transcript.delta': {
-        const pair = this.ensurePair();
-        const assistantItem = this.itemLookup.get(pair.assistantItemId);
+        const assistantItem = this.itemLookup.get(this.ensureAssistantItemId());
         if (assistantItem?.formatted) {
           assistantItem.formatted.transcript = (assistantItem.formatted.transcript || '') + (event.delta || '');
         }
@@ -318,6 +518,7 @@ export class OpenAITranslateWebRTCClient implements IClient {
           item: assistantItem!,
           delta: { transcript: event.delta },
         });
+        // No stage on this side: see the `userStream` field doc.
         this.resetDeltaTimer();
         break;
       }
@@ -332,17 +533,17 @@ export class OpenAITranslateWebRTCClient implements IClient {
         // playback or open phantom pairs. See GA client for rationale.
         if (audioRms === 0) break;
 
-        const pair = this.ensurePair();
-        const assistantItem = this.itemLookup.get(pair.assistantItemId);
+        const assistantItemId = this.ensureAssistantItemId();
+        const assistantItem = this.itemLookup.get(assistantItemId);
         if (!assistantItem) break;
 
         const sequenceNumber = ++this.deltaSequenceNumber;
 
         if (this.keepReplayAudio) {
-          if (!this.audioChunks.has(pair.assistantItemId)) {
-            this.audioChunks.set(pair.assistantItemId, []);
+          if (!this.audioChunks.has(assistantItemId)) {
+            this.audioChunks.set(assistantItemId, []);
           }
-          this.audioChunks.get(pair.assistantItemId)!.push(audioData);
+          this.audioChunks.get(assistantItemId)!.push(audioData);
         }
 
         this.eventHandlers.onConversationUpdated?.({
@@ -403,6 +604,22 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.audioChunks.clear();
     this.currentPair = null;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
+    this.discardUserStream();
+    this.sourceLanguage = config.sourceLanguage ?? 'auto';
+    // R2: the one read of `enabled` this session gets. Everything downstream —
+    // the stream and every rebuild of it — sees this frozen view, never the
+    // live runtime. See the `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? {
+          enabled: true,
+          punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+          // Forwarded so the stage's own counters survive the freeze: this view
+          // is what SentenceStream and punctuateDefinite report through, and
+          // dropping it here would make every seal invisible. Counts, never text.
+          observe: (event) => runtime.observe?.(event),
+        }
+      : null;
 
     try {
       // 1. Mint ephemeral client secret for the SDP exchange.
@@ -665,7 +882,10 @@ export class OpenAITranslateWebRTCClient implements IClient {
   async disconnect(): Promise<void> {
     console.info('[OpenAITranslateWebRTCClient] Disconnecting...');
     // Finalize any in-flight pair so partial transcripts surface as completed.
+    // Both halves seal their stream's tail into their item on the way out, so
+    // this has to run before the session's frozen answer is dropped.
     this.completeCurrentPair();
+    this.sessionSegmentation = null;
     this.cleanup();
   }
 
@@ -694,6 +914,9 @@ export class OpenAITranslateWebRTCClient implements IClient {
     this.itemLookup.clear();
     this.audioChunks.clear();
     this.deltaSequenceNumber = 0;
+    // Dropped rather than ended: the items this stream was feeding are being
+    // forgotten too.
+    this.discardUserStream();
   }
 
   /**

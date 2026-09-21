@@ -34,6 +34,10 @@ vi.mock('@google/genai', () => {
 
 // Dynamic import after mocks are set up
 const { GeminiClient } = await import('./GeminiClient');
+// The descriptor builds the configs the client actually receives in the app.
+// The language-per-stream cases below go through it rather than hand-writing a
+// config, because the bug they pin lives in the seam between the two.
+const { GeminiProviderConfig, defaultGeminiSettings } = await import('../providers/GeminiProviderConfig');
 
 /** Helper: make live.connect resolve and fire onopen */
 function setupSuccessfulConnect() {
@@ -749,8 +753,9 @@ describe('GeminiClient — Live Translate wire config', () => {
 describe('GeminiClient — Live Translate silence segmentation', () => {
   let client: InstanceType<typeof GeminiClient>;
 
-  const INPUT_SILENCE_MS = 2000;
-  const ASSISTANT_SILENCE_MS = 2000;
+  // The client's fallback, which is also the pause pair's stored default.
+  const INPUT_SILENCE_MS = 1500;
+  const ASSISTANT_SILENCE_MS = 1500;
 
   const translateConfig = {
     ...baseConfig,
@@ -795,6 +800,28 @@ describe('GeminiClient — Live Translate silence segmentation', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  // A2: what used to be two hard-coded 2 s constants is now the global pause
+  // pair, handed over at construction. The constants stayed as the fallback,
+  // at the pair's own default.
+  it('runs each side on the pause it was built with', async () => {
+    client = new GeminiClient('test-api-key', { sourcePauseMs: 700, translationPauseMs: 2500 });
+    client.setEventHandlers({} as any);
+    setupSuccessfulConnect();
+    await client.connect(translateConfig as any);
+
+    sendInput('first utterance');
+    await vi.advanceTimersByTimeAsync(699);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+    await vi.advanceTimersByTimeAsync(2);
+    expect(itemsOf('user')[0].status).toBe('completed');
+
+    sendOutput('最初の翻訳。');
+    await vi.advanceTimersByTimeAsync(2499);
+    expect(itemsOf('assistant')[0].status).toBe('in_progress');
+    await vi.advanceTimersByTimeAsync(2);
+    expect(itemsOf('assistant')[0].status).toBe('completed');
   });
 
   it('starts a new user item once the speaker has been quiet', async () => {
@@ -963,5 +990,415 @@ describe('GeminiClient — model filtering', () => {
 
     expect(models).toEqual([]);
     expect(validation.valid).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────
+describe('GeminiClient with the segmentation stage', () => {
+  let client: InstanceType<typeof GeminiClient>;
+
+  // The client's fallback, which is also the pause pair's stored default.
+  const INPUT_SILENCE_MS = 1500;
+  const ASSISTANT_SILENCE_MS = 1500;
+
+  /** Both sides CJK, so `gateChars` is 20 characters per sentence and the
+   *  unpunctuated fixtures below stay short enough to read. Neither is
+   *  zh/yue, so SentenceStream's Chinese length fallback never fires. */
+  const translateConfig = {
+    ...baseConfig,
+    model: 'gemini-3.5-live-translate-preview',
+    sourceLanguageCode: 'ja',
+    translationConfig: { targetLanguageCode: 'ja', echoTargetLanguage: false },
+  };
+  const dialogueConfig = { ...baseConfig, model: 'gemini-3.1-flash-live-preview' };
+
+  /** A runtime that marks a sentence end every `every` characters. It inserts
+   *  nothing but terminals, so SentenceStream's skeleton invariant holds. */
+  function markingRuntime(every = 10, enabled = true) {
+    return {
+      enabled,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += every) {
+          out += text.slice(i, i + every);
+          if (i + every <= text.length) {
+            out += '。';
+            ends.push(out.length);
+          }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  async function flush(turns = 10) {
+    for (let i = 0; i < turns; i++) await Promise.resolve();
+  }
+
+  const sendInput = (text: string) =>
+    capturedCallbacks.onmessage?.({ serverContent: { inputTranscription: { text } } });
+  const sendOutput = (text: string) =>
+    capturedCallbacks.onmessage?.({ serverContent: { outputTranscription: { text } } });
+
+  // `any[]`: these assertions reach into optional `formatted` fields, and the
+  // narrowing ceremony would bury what each test is actually checking.
+  const itemsOf = (role: 'user' | 'assistant'): any[] =>
+    client.getConversationItems().filter((i: any) => i.role === role);
+
+  function makeClient(options: { segmentation?: any; sentencesPerChunk?: number }) {
+    const made = new GeminiClient('test-api-key', options);
+    made.setEventHandlers({} as any);
+    return made;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+    capturedCallbacks = {};
+    mockSessionClose.mockReset();
+    mockLiveConnect.mockReset();
+    setupSuccessfulConnect();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('seals an unpunctuated source item every N sentences, mid-fragment', async () => {
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    // 50 unpunctuated characters: past the 40-character gate for N = 2 in a
+    // CJK language, and well inside MAX_MODEL_CHARS.
+    sendInput('あ'.repeat(50));
+    await flush();
+
+    expect(runtime.punctuate).toHaveBeenCalledTimes(1);
+    const items = itemsOf('user');
+    expect(items.map((i) => i.formatted.transcript)).toEqual([
+      `${'あ'.repeat(10)}。${'あ'.repeat(10)}。`,
+      'あ'.repeat(30),
+    ]);
+    expect(items[0].status).toBe('completed');
+    expect(items[1].status).toBe('in_progress');
+  });
+
+  it('shows the inserted punctuation in the sealed item and leaves the pending one raw', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(50));
+    await flush();
+
+    const [sealed, pending] = itemsOf('user');
+    expect((sealed.formatted.transcript as string).split('。').length - 1).toBe(2);
+    expect(pending.formatted.transcript).not.toContain('。');
+  });
+
+  it('the translation side seals on its own schedule, independently of the source side', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    // One sentence end and a tail short of the 40-character gate: the source
+    // item stays open and whole.
+    sendInput('これはテストです。つづきの文章');
+    sendOutput('こんにちは。げんきですか。あいたかったです。またあいましょう');
+    await flush();
+
+    expect(itemsOf('user').map((i) => i.formatted.transcript)).toEqual(['これはテストです。つづきの文章']);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+    expect(itemsOf('assistant').map((i) => i.formatted.transcript)).toEqual([
+      'こんにちは。げんきですか。',
+      'あいたかったです。またあいましょう',
+    ]);
+  });
+
+  it('the input silence timer still closes the open segment, with the stream tail inside it', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(30));
+    await flush();
+    const stream = (client as any).userStream;
+    expect(stream).not.toBeNull();
+
+    // Two windows: the tail is mid-sentence, so the first expiry defers and
+    // the second — with nothing new arrived — closes.
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+
+    expect((client as any).userStream).toBeNull();
+    expect((client as any).userPending).toBe('');
+    const [item] = itemsOf('user');
+    expect(item.status).toBe('completed');
+    expect(item.formatted.transcript).toBe('あ'.repeat(30));
+  });
+
+  it('a source tail mid-sentence defers the pause for as long as the speaker keeps talking', async () => {
+    // The bug this exists for: a live session cut "…成为商人或者是商队的向导，"
+    // from "以及保镖。" ten seconds later, because the speaker rested at the
+    // comma for longer than the pause setting.
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(20));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+
+    // The speaker carried on: the tail grew, so the next expiry defers again.
+    sendInput('あ'.repeat(10));
+    await flush();
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('in_progress');
+
+    // Nothing more arrived. The speaker has stopped, so the bubble closes.
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+    expect(itemsOf('user')[0].formatted.transcript).toBe('あ'.repeat(30));
+  });
+
+  it('closes a source segment on the first pause when its sentence finished', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    await client.connect(translateConfig as any);
+
+    sendInput('これはテストです。');
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+  });
+
+  it('closes a mid-sentence source segment on the first pause with the stage off, exactly as before', async () => {
+    client = makeClient({});
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(30));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].status).toBe('completed');
+  });
+
+  it('waits out a pause inside an unfinished translated sentence until the model stops', async () => {
+    // The model translates in bursts, and closing at the first gap cut a live
+    // session's translation into half-sentences while resetting the sentence
+    // count that decides the bubble.
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendOutput('い'.repeat(30));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('in_progress');
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect((client as any).assistantStream).toBeNull();
+    expect((client as any).assistantPending).toBe('');
+    const [item] = itemsOf('assistant');
+    expect(item.status).toBe('completed');
+    expect(item.formatted.transcript).toBe('い'.repeat(30));
+  });
+
+  it('keeps deferring the translation segment while the model is still emitting text', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    await client.connect(translateConfig as any);
+
+    sendOutput('い'.repeat(20));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('in_progress');
+
+    sendOutput('い'.repeat(10));
+    await flush();
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('in_progress');
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('completed');
+  });
+
+  it('closes on the first pause when the translated sentence finished', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    await client.connect(translateConfig as any);
+
+    sendOutput('これは完成した文です。');
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('completed');
+  });
+
+  it('closes on the first pause with the stage off, exactly as before', async () => {
+    client = makeClient({});
+    await client.connect(translateConfig as any);
+
+    sendOutput('い'.repeat(30));
+    await flush();
+
+    await vi.advanceTimersByTimeAsync(ASSISTANT_SILENCE_MS);
+    expect(itemsOf('assistant')[0].status).toBe('completed');
+  });
+
+  it("turnComplete still finalizes the turn, and the stream's tail lands in the open item", async () => {
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    // This hand-written fixture carries no language pair — unlike anything the
+    // descriptor builds — so its streams run at 'auto'. Marks the ASR already
+    // emitted are authoritative at any language — the model is never asked —
+    // which is what this fixture leans on.
+    await client.connect(dialogueConfig as any);
+
+    sendInput('これはテストです。にばんめのぶんです。さんばんめのながいぶんしょうです');
+    await flush();
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+    expect(itemsOf('user')).toHaveLength(2);
+
+    capturedCallbacks.onmessage?.({ serverContent: { turnComplete: true } });
+    await flush();
+
+    const items = itemsOf('user');
+    expect(items.map((i) => i.status)).toEqual(['completed', 'completed']);
+    expect(items.map((i) => i.formatted.transcript)).toEqual([
+      'これはテストです。にばんめのぶんです。',
+      'さんばんめのながいぶんしょうです',
+    ]);
+    expect((client as any).userStream).toBeNull();
+  });
+
+  it('a runtime that is disabled at connect leaves the client exactly as it is today', async () => {
+    const runtime = markingRuntime(10, false);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(50));
+    await flush();
+
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+    expect((client as any).userStream).toBeNull();
+    expect(itemsOf('user').map((i) => i.formatted.transcript)).toEqual(['あ'.repeat(50)]);
+  });
+
+  it('freezes the runtime at connect, and keeps that one answer across a reconnect', async () => {
+    // A reconnect re-enters connect() with the turn — and the open stream —
+    // intact. Re-reading `enabled` there would be the second read R2 forbids:
+    // a stage that woke up mid-item would rewrite that item to the short tail
+    // its fresh stream holds.
+    const late = { enabled: false, punctuate: vi.fn(async () => null) };
+    client = makeClient({ segmentation: late, sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+    capturedCallbacks.onmessage?.({ sessionResumptionUpdate: { resumable: true, newHandle: 'handle-1' } });
+    sendInput('あ'.repeat(30));
+    late.enabled = true;
+
+    setupSuccessfulConnect();
+    capturedCallbacks.onmessage?.({ goAway: {} });
+    await vi.advanceTimersByTimeAsync(100);
+    sendInput('あ'.repeat(20));
+    await flush();
+
+    expect((client as any).sessionSegmentation).toBeNull();
+    expect(late.punctuate).not.toHaveBeenCalled();
+    expect(itemsOf('user').map((i) => i.formatted.transcript)).toEqual(['あ'.repeat(50)]);
+  });
+
+  it('keeps the open stream across a reconnect so the item is never cut back to a fresh tail', async () => {
+    client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+    capturedCallbacks.onmessage?.({ sessionResumptionUpdate: { resumable: true, newHandle: 'handle-1' } });
+    sendInput('あ'.repeat(30));
+    await flush();
+    const stream = (client as any).userStream;
+
+    setupSuccessfulConnect();
+    capturedCallbacks.onmessage?.({ goAway: {} });
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect((client as any).userStream).toBe(stream);
+    await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
+    expect(itemsOf('user')[0].formatted.transcript).toBe('あ'.repeat(30));
+  });
+
+  // ── Language per stream ──────────────────────────────────────────────
+  // The spec fixes this as the *configured* pair — "the source stream uses
+  // sourceLanguage, the translation stream targetLanguage" — not whichever API
+  // field happens to carry it. A dialogue model carries neither
+  // sourceLanguageCode nor translationConfig, and falling back to 'auto' sends
+  // English to SaT (92.3 -> 67.3 on the benchmark) and Chinese away from
+  // FireRedPunc (91.5). `punctuate`'s first argument is the whole assertion.
+  const descriptor = new GeminiProviderConfig();
+  /** en-US -> ja-JP is the default pair; cmn-CN is used as the *other* end so
+   *  the two streams can never be confused for each other: 'en' gates at 100
+   *  characters and 'zh' at 40, and only one of them routes to FireRedPunc. */
+  const dialogueSlice = {
+    ...defaultGeminiSettings,
+    model: 'gemini-3.1-flash-live-preview',
+    sourceLanguage: 'en-US',
+    targetLanguage: 'cmn-CN',
+  };
+
+  it('punctuates a dialogue session in the configured pair, not at auto', async () => {
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(descriptor.buildSessionConfig(dialogueSlice, 'instructions') as any);
+
+    // 120 characters clears gateChars('en', 2) = 100.
+    sendInput('a'.repeat(120));
+    await flush();
+    expect(runtime.punctuate.mock.calls[0][0]).toBe('en');
+
+    // 50 clears gateChars('zh', 2) = 40 but not the 100 an 'auto' stream asks
+    // for, so a regressed target language shows up as no call at all.
+    const before = runtime.punctuate.mock.calls.length;
+    sendOutput('あ'.repeat(50));
+    await flush();
+    expect(runtime.punctuate.mock.calls[before]?.[0]).toBe('zh');
+  });
+
+  it('punctuates the participant leg of that session with the pair reversed', async () => {
+    // The participant hears the other party speak the target language and
+    // answers in the source. Nothing reverses this for free: the base builder
+    // swaps only the instructions, and reverseGeminiTranslationDirection
+    // no-ops without a translationConfig.
+    const { config } = descriptor.buildParticipantSessionConfig(
+      dialogueSlice,
+      'swapped instructions',
+      { keepReplayAudio: false },
+    );
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(config as any);
+
+    sendInput('あ'.repeat(50));
+    await flush();
+    expect(runtime.punctuate.mock.calls[0]?.[0]).toBe('zh');
+
+    const before = runtime.punctuate.mock.calls.length;
+    sendOutput('a'.repeat(120));
+    await flush();
+    expect(runtime.punctuate.mock.calls[before]?.[0]).toBe('en');
+  });
+
+  it('still punctuates a Live Translate session in the pair its API fields carry', async () => {
+    // The fallback path, unchanged: a config built anywhere but the descriptor
+    // — every fixture in this file, and any session predating the pair — still
+    // reads sourceLanguageCode and translationConfig.targetLanguageCode.
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(50));
+    await flush();
+    expect(runtime.punctuate.mock.calls[0]?.[0]).toBe('ja');
+
+    const before = runtime.punctuate.mock.calls.length;
+    sendOutput('い'.repeat(50));
+    await flush();
+    expect(runtime.punctuate.mock.calls[before]?.[0]).toBe('ja');
   });
 });

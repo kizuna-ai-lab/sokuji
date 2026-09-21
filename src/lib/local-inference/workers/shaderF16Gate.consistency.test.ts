@@ -46,12 +46,6 @@ const EXEMPT: Record<string, { reason: string; stillHolds: (source: string) => b
     reason: 'selects no dtype, and supertonic-3 declares no f16 variant',
     stillHolds: source => !source.includes('dtype') && !cardSource('supertonic-3').includes('shader-f16'),
   },
-  'zoom-vad.worker.ts': {
-    // wasm only — the single "webgpu" in the file is a comment pointing at the
-    // worker its VAD scaffolding was copied from.
-    reason: 'VAD runs on wasm and selects no dtype',
-    stillHolds: source => source.includes("executionProviders: ['wasm']") && !source.includes('dtype'),
-  },
   'translation.worker.ts': {
     // Hardcodes q8 and never asks for the GPU. Reads every dtype in the file
     // rather than asserting the absence of a non-q8 one: a negative lookahead
@@ -86,7 +80,7 @@ describe('the shader-f16 gate covers every WebGPU worker', () => {
   it('finds the workers to check', () => {
     // Guards the guard: a predicate that matched nothing would pass every
     // assertion below without checking anything.
-    expect(candidates().length).toBeGreaterThanOrEqual(13);
+    expect(candidates().length).toBeGreaterThanOrEqual(12);
   });
 
   it('every WebGPU worker calls assertShaderF16Supported', () => {

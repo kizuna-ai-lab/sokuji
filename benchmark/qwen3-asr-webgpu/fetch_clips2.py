@@ -19,7 +19,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "clips")
 os.makedirs(OUT, exist_ok=True)
 manifest_path = os.path.join(OUT, "manifest.json")
-manifest = json.load(open(manifest_path)) if os.path.exists(manifest_path) else {}
+manifest = {}
+if os.path.exists(manifest_path):
+    with open(manifest_path) as fh:
+        manifest = json.load(fh)
 N = 4
 
 

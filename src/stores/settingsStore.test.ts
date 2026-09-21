@@ -49,6 +49,7 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 const {
   default: useSettingsStore,
   useTransportType,
+  clampChunkSentences,
 } = await import('./settingsStore');
 
 describe('settingsStore', () => {
@@ -365,6 +366,190 @@ describe('settingsStore', () => {
       await useSettingsStore.getState().setKeepReplayAudio(true);
       // State must roll back to the previous value.
       expect(useSettingsStore.getState().keepReplayAudio).toBe(false);
+    });
+  });
+
+  describe('clampChunkSentences', () => {
+    it.each([
+      // 0 is Auto, and is now a value in its own right (Amendment A2).
+      [0, 0], [1, 1], [3, 3], [5, 5],
+      [-4, 0], [6, 5], [99, 5],
+      [2.4, 2], [2.6, 3],
+      ['3', 3], [null, 3], [undefined, 3], [NaN, 3], ['abc', 3],
+    ])('clamps %s to %i', (input, expected) => {
+      expect(clampChunkSentences(input)).toBe(expected);
+    });
+
+    // `null` means the setting is absent, so it must take the default 3 and
+    // not fall through to `Number(null) === 0`, which since A2 is a valid
+    // value — Auto — and would silently switch the feature's shape.
+    it('does not read a missing value as Auto', () => {
+      expect(clampChunkSentences(null)).not.toBe(0);
+    });
+  });
+
+  describe('segmentationMode', () => {
+    // One stored value for every provider: `pause` resolves to By pause on
+    // the three clients with timers of their own and to Off everywhere else,
+    // so the default is what every provider does today.
+    it('defaults to pause', async () => {
+      useSettingsStore.setState({ segmentationMode: 'sentences' });
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().segmentationMode).toBe('pause');
+    });
+
+    it('takes the default for a stored mode this build does not know', async () => {
+      mockGetSetting.mockImplementation(async (key: string, fallback: unknown) =>
+        key === 'settings.common.segmentationMode' ? 'enabled' : fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().segmentationMode).toBe('pause');
+    });
+
+    it('persists a change', async () => {
+      mockSetSetting.mockResolvedValueOnce(undefined);
+      await useSettingsStore.getState().setSegmentationMode('sentences');
+      expect(useSettingsStore.getState().segmentationMode).toBe('sentences');
+      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.segmentationMode', 'sentences');
+    });
+
+    it('rolls back when persistence fails', async () => {
+      useSettingsStore.setState({ segmentationMode: 'pause' });
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setSegmentationMode('off');
+      expect(useSettingsStore.getState().segmentationMode).toBe('pause');
+    });
+  });
+
+  // Seconds, one pair for every provider that cuts on its own timers. The
+  // per-provider copies in the OpenAI Live and OpenAI Translate slices are
+  // gone; these replace them.
+  describe('segmentation pause durations', () => {
+    it('both default to 1.5s', async () => {
+      useSettingsStore.setState({ segmentationSourcePause: 0.4, segmentationTranslationPause: 0.4 });
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(1.5);
+      expect(useSettingsStore.getState().segmentationTranslationPause).toBe(1.5);
+    });
+
+    it('clamps a stored value to 0.1-3', async () => {
+      mockGetSetting.mockImplementation(async (key: string, fallback: unknown) => {
+        if (key === 'settings.common.segmentationSourcePause') return 0;
+        if (key === 'settings.common.segmentationTranslationPause') return 42;
+        return fallback;
+      });
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(0.1);
+      expect(useSettingsStore.getState().segmentationTranslationPause).toBe(3);
+    });
+
+    it('takes the default for a stored value that is not a number', async () => {
+      mockGetSetting.mockImplementation(async (key: string, fallback: unknown) =>
+        key === 'settings.common.segmentationSourcePause' ? 'quick' : fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(1.5);
+    });
+
+    it('persists a change and clamps before writing', async () => {
+      mockSetSetting.mockResolvedValue(undefined);
+      await useSettingsStore.getState().setSegmentationSourcePause(9);
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(3);
+      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.segmentationSourcePause', 3);
+
+      await useSettingsStore.getState().setSegmentationTranslationPause(0.05);
+      expect(useSettingsStore.getState().segmentationTranslationPause).toBe(0.1);
+      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.segmentationTranslationPause', 0.1);
+    });
+
+    it('rolls back when persistence fails', async () => {
+      useSettingsStore.setState({ segmentationSourcePause: 1.5, segmentationTranslationPause: 1.5 });
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setSegmentationSourcePause(2);
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(1.5);
+
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setSegmentationTranslationPause(2);
+      expect(useSettingsStore.getState().segmentationTranslationPause).toBe(1.5);
+    });
+
+    // The seconds above and the milliseconds a client's timer takes are the
+    // same three facts. Each used to be written out twice — a store that
+    // defaulted to 1.5 and a client that fell back to 1500 could have drifted
+    // apart with both their own tests still green.
+    it('is the same default and the same range the clients clamp to', async () => {
+      const {
+        DEFAULT_SEGMENT_PAUSE_MS, MIN_SEGMENT_PAUSE_MS, MAX_SEGMENT_PAUSE_MS,
+        DEFAULT_SEGMENT_PAUSE_SECONDS, MIN_SEGMENT_PAUSE_SECONDS, MAX_SEGMENT_PAUSE_SECONDS,
+      } = await import('../lib/segmentation/segmentationMode');
+      expect(DEFAULT_SEGMENT_PAUSE_SECONDS * 1000).toBe(DEFAULT_SEGMENT_PAUSE_MS);
+      expect(MIN_SEGMENT_PAUSE_SECONDS * 1000).toBe(MIN_SEGMENT_PAUSE_MS);
+      expect(MAX_SEGMENT_PAUSE_SECONDS * 1000).toBe(MAX_SEGMENT_PAUSE_MS);
+
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(DEFAULT_SEGMENT_PAUSE_SECONDS);
+      expect(useSettingsStore.getState().segmentationTranslationPause).toBe(DEFAULT_SEGMENT_PAUSE_SECONDS);
+
+      mockSetSetting.mockResolvedValue(undefined);
+      await useSettingsStore.getState().setSegmentationSourcePause(99);
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(MAX_SEGMENT_PAUSE_SECONDS);
+      await useSettingsStore.getState().setSegmentationSourcePause(0);
+      expect(useSettingsStore.getState().segmentationSourcePause).toBe(MIN_SEGMENT_PAUSE_SECONDS);
+    });
+  });
+
+  describe('sentenceSegmentationChunkSentences', () => {
+    it('defaults to 3', async () => {
+      useSettingsStore.setState({ sentenceSegmentationChunkSentences: 5 });
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(3);
+    });
+
+    // ...and it is the same 3 every client falls back to; see
+    // descriptorRegistry.test.ts for the other end of that tie.
+    it('defaults to the one chunk constant, not a second copy of it', async () => {
+      const { DEFAULT_CHUNK_SENTENCES } = await import('../lib/segmentation/segmentationMode');
+      mockGetSetting.mockImplementation(async (_key: string, fallback: unknown) => fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(DEFAULT_CHUNK_SENTENCES);
+      expect(clampChunkSentences(null)).toBe(DEFAULT_CHUNK_SENTENCES);
+    });
+
+    it('keeps a stored 0, which is Auto', async () => {
+      mockGetSetting.mockImplementation(async (key: string, fallback: unknown) =>
+        key === 'settings.common.sentenceSegmentationChunkSentences' ? 0 : fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(0);
+    });
+
+    it('persists Auto', async () => {
+      mockSetSetting.mockResolvedValueOnce(undefined);
+      await useSettingsStore.getState().setSentenceSegmentationChunkSentences(0);
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(0);
+      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.sentenceSegmentationChunkSentences', 0);
+    });
+
+    it('clamps a stored value that is out of range', async () => {
+      mockGetSetting.mockImplementation(async (key: string, fallback: unknown) =>
+        key === 'settings.common.sentenceSegmentationChunkSentences' ? 42 : fallback);
+      await useSettingsStore.getState().loadSettings();
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(5);
+    });
+
+    it('persists a change and clamps before writing', async () => {
+      mockSetSetting.mockResolvedValueOnce(undefined);
+      await useSettingsStore.getState().setSentenceSegmentationChunkSentences(9);
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(5);
+      expect(mockSetSetting).toHaveBeenCalledWith('settings.common.sentenceSegmentationChunkSentences', 5);
+    });
+
+    it('rolls back when persistence fails', async () => {
+      useSettingsStore.setState({ sentenceSegmentationChunkSentences: 3 });
+      mockSetSetting.mockRejectedValueOnce(new Error('disk full'));
+      await useSettingsStore.getState().setSentenceSegmentationChunkSentences(1);
+      expect(useSettingsStore.getState().sentenceSegmentationChunkSentences).toBe(3);
     });
   });
 

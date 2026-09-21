@@ -28,6 +28,7 @@ export interface LocalInferenceSettings {
   vadNegativeThreshold: number; // 0.0-1.0, 0 = derive from vadThreshold (vad-web workers only)
   vadMinSilenceDuration: number; // seconds, default 1.4 (redemptionMs in vad-web)
   vadMinSpeechDuration: number;  // seconds, default 0.4 (matching vad-web)
+  vadMaxSpeechDuration: number;  // seconds, default 30 — hard cap on one segment
   useTemplateMode: boolean;            // true = Simple (default), false = Advanced
   systemPrompt: string;                // Advanced-mode speaker prompt (default '')
   participantSystemPrompt: string;     // Advanced-mode participant prompt (default '', empty = fall back to speaker)
@@ -45,6 +46,7 @@ export const defaultLocalInferenceSettings: LocalInferenceSettings = {
   vadNegativeThreshold: 0,   // auto: vadThreshold - 0.15
   vadMinSilenceDuration: 1.4,
   vadMinSpeechDuration: 0.4,
+  vadMaxSpeechDuration: 30,
   useTemplateMode: true,
   systemPrompt: '',
   participantSystemPrompt: '',
@@ -72,8 +74,8 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
     return '';
   }
 
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new LocalInferenceClient();
+  createClient(_creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new LocalInferenceClient({ segmentation: options.segmentation, sentencesPerChunk: options.sentencesPerChunk });
   }
 
   // Readiness for LOCAL_INFERENCE is model-based, not credential-based: settingsStore's
@@ -150,6 +152,7 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
       vadNegativeThreshold: settings.vadNegativeThreshold,
       vadMinSilenceDuration: settings.vadMinSilenceDuration,
       vadMinSpeechDuration: settings.vadMinSpeechDuration,
+      vadMaxSpeechDuration: settings.vadMaxSpeechDuration,
       turnDetectionMode: settings.turnDetectionMode,
       wrapTranscript,
     } as LocalInferenceSessionConfig;
@@ -222,6 +225,13 @@ export class LocalInferenceProviderConfig extends BaseProviderDescriptor {
         // createResponse always follows — for streaming ASR it flushes the
         // pending utterance, for offline ASR it is harmless.
         pttFinalization: { silenceTailFrames: 7, response: 'always' },
+
+        // 1-5 sentences is what the local engines already ship: they build a
+        // stream and seal it every N. Auto is the VAD utterance kept whole —
+        // a boundary something else already decided, punctuated and not cut.
+        // By pause is not theirs to offer: the client-side VAD, not a silence
+        // timer over the text, ends the turn.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

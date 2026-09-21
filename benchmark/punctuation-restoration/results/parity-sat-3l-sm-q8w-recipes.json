@@ -1,0 +1,157 @@
+{
+ "onnxruntime": "1.30.0",
+ "windows": 268,
+ "tokens": 14745,
+ "threshold": 0.25,
+ "fp32_margin_quantiles": {
+  "0.001": 0.01434788852930069,
+  "0.01": 0.09309849143028259,
+  "0.05": 0.23166541755199432,
+  "0.5": 0.2499895542860031
+ },
+ "wasm_sym32_split_diff_rows": [
+  "gl-gui-L3383-p2|raw",
+  "gl-gui-L3383-p2|stripped",
+  "long1-en|long",
+  "long1-zh|long",
+  "long2-en|long",
+  "long2-zh|long",
+  "long3-en|long",
+  "long3-ko|long",
+  "long3-zh|long"
+ ],
+ "recipes": {
+  "sym32": {
+   "symmetric": true,
+   "block_size": 32,
+   "classifier_fp32": false,
+   "file": "/home/jiangzhuo/.cache/sokuji-punct-bench/sat/sat-3l-sm-q8w/model.onnx",
+   "bytes": 793953242,
+   "token_flips": 5,
+   "rows_with_flip": 5,
+   "max_abs_dp": 0.049276381731033325,
+   "max_fp32_margin_at_flip": 0.006897047162055969,
+   "fp32_tokens_at_or_below_that_margin": 11,
+   "flip_margins": [
+    0.00329,
+    0.00329,
+    0.00329,
+    0.0069,
+    0.0069
+   ],
+   "rows": [
+    "gl-gui-L3383-p2|stripped",
+    "gl-gui-L3383-p2|raw",
+    "long1-ja|long",
+    "long2-ja|long",
+    "long3-ja|long"
+   ]
+  },
+  "sym32-nocls": {
+   "symmetric": true,
+   "block_size": 32,
+   "classifier_fp32": true,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/sat-recipes/model.sym32-nocls.onnx",
+   "bytes": 793957460,
+   "token_flips": 5,
+   "rows_with_flip": 5,
+   "max_abs_dp": 0.049891769886016846,
+   "max_fp32_margin_at_flip": 0.006897047162055969,
+   "fp32_tokens_at_or_below_that_margin": 11,
+   "flip_margins": [
+    0.00329,
+    0.00329,
+    0.00329,
+    0.0069,
+    0.0069
+   ],
+   "rows": [
+    "gl-gui-L3383-p2|stripped",
+    "gl-gui-L3383-p2|raw",
+    "long1-ja|long",
+    "long2-ja|long",
+    "long3-ja|long"
+   ]
+  },
+  "asym32": {
+   "symmetric": false,
+   "block_size": 32,
+   "classifier_fp32": false,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/sat-recipes/model.asym32.onnx",
+   "bytes": 794618238,
+   "token_flips": 7,
+   "rows_with_flip": 4,
+   "max_abs_dp": 0.028114140033721924,
+   "max_fp32_margin_at_flip": 0.0032852143049240112,
+   "fp32_tokens_at_or_below_that_margin": 7,
+   "flip_margins": [
+    0.00055,
+    0.00055,
+    0.00055,
+    0.00055,
+    0.00329,
+    0.00329,
+    0.00329
+   ],
+   "rows": [
+    "gl-gui-L3400-p2|raw",
+    "long1-ja|long",
+    "long2-ja|long",
+    "long3-ja|long"
+   ]
+  },
+  "asym32-nocls": {
+   "symmetric": false,
+   "block_size": 32,
+   "classifier_fp32": true,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/sat-recipes/model.asym32-nocls.onnx",
+   "bytes": 794622362,
+   "token_flips": 7,
+   "rows_with_flip": 4,
+   "max_abs_dp": 0.02832508087158203,
+   "max_fp32_margin_at_flip": 0.0032852143049240112,
+   "fp32_tokens_at_or_below_that_margin": 7,
+   "flip_margins": [
+    0.00055,
+    0.00055,
+    0.00055,
+    0.00055,
+    0.00329,
+    0.00329,
+    0.00329
+   ],
+   "rows": [
+    "gl-gui-L3400-p2|raw",
+    "long1-ja|long",
+    "long2-ja|long",
+    "long3-ja|long"
+   ]
+  },
+  "sym16-nocls": {
+   "symmetric": true,
+   "block_size": 16,
+   "classifier_fp32": true,
+   "file": "/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/webgpu-builds/sat-recipes/model.sym16-nocls.onnx",
+   "bytes": 796611674,
+   "token_flips": 5,
+   "rows_with_flip": 5,
+   "max_abs_dp": 0.029019713401794434,
+   "max_fp32_margin_at_flip": 0.0054566264152526855,
+   "fp32_tokens_at_or_below_that_margin": 9,
+   "flip_margins": [
+    0.00329,
+    0.00329,
+    0.00329,
+    0.00546,
+    0.00546
+   ],
+   "rows": [
+    "zh-questions-02|stripped",
+    "zh-questions-02|commas",
+    "long1-ja|long",
+    "long2-ja|long",
+    "long3-ja|long"
+   ]
+  }
+ }
+}

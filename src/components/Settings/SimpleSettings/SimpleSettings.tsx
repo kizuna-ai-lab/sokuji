@@ -14,6 +14,7 @@ import { Provider } from '../../../types/Provider';
 import {
   ProviderSection,
   LanguageSection,
+  SentenceSegmentationSection,
   AudioDeviceSection,
   SystemAudioSection,
   HelpSection
@@ -212,6 +213,9 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           isSessionActive={isSessionActive}
           showTranslationLanguages={true}
         />
+
+        {/* Subtitle segmentation */}
+        <SentenceSegmentationSection isSessionActive={isSessionActive} />
 
         {/* Provider and API Key */}
         <ProviderSection

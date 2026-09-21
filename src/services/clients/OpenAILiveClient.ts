@@ -31,6 +31,15 @@ import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { EventData } from '../../stores/logStore';
+import {
+  LEADING_PUNCT_RE,
+  lastSentenceEnd,
+  lastClauseEnd,
+} from '../../lib/segmentation/sentenceEnd';
+import { SilenceDeferral } from '../../lib/segmentation/silenceDeferral';
+import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { clampSegmentPauseMs, DEFAULT_CHUNK_SENTENCES, DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 
 export const LIVE_WS_URL = 'wss://api.openai.com/v1/live/sessions';
 export const LIVE_HOST = 'api.openai.com';
@@ -38,27 +47,6 @@ export const LIVE_MODEL = 'gpt-live-1';
 const DEFAULT_VOICE = 'marin';
 /** PCM16 sample rate on both directions of the socket. */
 const SAMPLE_RATE = 24000;
-const SILENCE_TIMEOUT_MS = 1000;
-/**
- * A translation is cut into items at sentence ends: Live has no per-response
- * "done" event and a continuous speaker gives the silence timer no gap, so a
- * two-minute monologue would otherwise become one assistant item. The text
- * side closes on a sentence-final mark (optionally followed by closing quotes
- * or brackets); the audio side follows once the session timeline passes the
- * sentence's `end_ms`, so the karaoke anchors and replay audio stay with the
- * sentence they belong to.
- */
-const SENTENCE_TERMINALS = '。．！？!?.';
-const SENTENCE_CLOSERS = '"\'”’」』）)]';
-/** Words whose trailing period is not a sentence end (lower-case, inner dots kept). */
-const ABBREVIATIONS = new Set([
-  'mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr', 'st', 'mt', 'vs', 'etc', 'inc', 'ltd', 'co', 'corp', 'bros',
-  'fig', 'vol', 'al', 'e.g', 'i.e', 'a.m', 'p.m', 'u.s', 'u.k',
-]);
-/** Marks a long item may be cut at when no sentence end comes. */
-const CLAUSE_MARKS = ',，、;；:：—–';
-/** Punctuation and whitespace at the head of a delta belong to the text before it. */
-const LEADING_PUNCT_RE = /^[\s。．！？!?.,，、;；:：—–"'”’」』）)\]]+/;
 /**
  * Output frames at or below this RMS are the stream's noise floor, not speech.
  *
@@ -85,53 +73,6 @@ const USER_SPAN_CAP_MS = 12_000;
 const ASSISTANT_SOFT_CAP_MS = 20_000;
 const ASSISTANT_SPAN_CAP_MS = 30_000;
 
-/** True when the period at `dot` is part of an abbreviation, an initial, a
- *  decimal or a dotted token (e.g., U.S., example.com) rather than a sentence end. */
-function periodIsNotSentenceEnd(text: string, dot: number): boolean {
-  const next = text[dot + 1];
-  if (next !== undefined && /[A-Za-z0-9]/.test(next)) return true; // 3.5, e.g, U.S, a.b
-  if (next === '.' || text[dot - 1] === '.') return true; // an ellipsis is a pause, not an end
-  if (next === ',' || next === ';' || next === ':') return true; // "Co., Ltd": the clause goes on
-  if (next !== undefined && /\s/.test(next) && /^\s+[a-z]/.test(text.slice(dot + 1))) return true; // "no. then"
-  let start = dot;
-  while (start > 0 && /[A-Za-z.]/.test(text[start - 1])) start--;
-  const word = text.slice(start, dot).replace(/^\.+/, '');
-  if (word.length === 0) return false;
-  if (word.length === 1 && /[A-Z]/.test(word)) return true; // an initial: "J. Smith"
-  return ABBREVIATIONS.has(word.toLowerCase());
-}
-
-/**
- * Index just past the last sentence end inside `text` (closing quotes and
- * brackets included), or -1 when the text has none. Live places the terminal
- * of one sentence at the end of a delta or at the start of the next one, so
- * callers split the delta itself: `[0, idx)` finishes the current item, the
- * rest opens a new one. `prefix` is the item's transcript so far: a period
- * whose word began in an earlier delta ("Dr" + ". Andrew") is judged on the
- * whole word.
- */
-function lastSentenceEnd(text: string, prefix = ''): number {
-  const full = prefix + text;
-  for (let i = full.length - 1; i >= prefix.length; i--) {
-    const ch = full[i];
-    if (!SENTENCE_TERMINALS.includes(ch)) continue;
-    if (ch === '.' && periodIsNotSentenceEnd(full, i)) continue;
-    let end = i + 1;
-    while (end < full.length && SENTENCE_CLOSERS.includes(full[end])) end++;
-    return end - prefix.length;
-  }
-  return -1;
-}
-
-/** Index just past the last clause mark in `text`, or -1. */
-function lastClauseEnd(text: string): number {
-  for (let i = text.length - 1; i >= 0; i--) {
-    if (CLAUSE_MARKS.includes(text[i])) return i + 1;
-  }
-  return -1;
-}
-const SILENCE_TIMEOUT_MIN_MS = 100;
-const SILENCE_TIMEOUT_MAX_MS = 3000;
 const SESSION_START_TIMEOUT_MS = 30000;
 /** How long disconnect() waits for session.closed before closing the socket anyway. */
 const CLOSE_TIMEOUT_MS = 5000;
@@ -165,11 +106,6 @@ export interface LiveSessionStart {
     audio: { format: { type: 'audio/pcm'; rate: 24000 }; output: { voice: string } };
     delegation: { type: 'client' };
   };
-}
-
-function clampSilenceTimeout(value: number | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return SILENCE_TIMEOUT_MS;
-  return Math.max(SILENCE_TIMEOUT_MIN_MS, Math.min(SILENCE_TIMEOUT_MAX_MS, value));
 }
 
 export class OpenAILiveClient implements IClient {
@@ -223,8 +159,10 @@ export class OpenAILiveClient implements IClient {
   /** The user silence timer already fired once for the current (short) item. */
   private userTimerFiredOnce = false;
   private assistantSilenceTimer: ReturnType<typeof setTimeout> | null = null;
-  private userSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
-  private assistantSilenceTimeoutMs: number = SILENCE_TIMEOUT_MS;
+  /** The By pause mode's two timers, set once at construction from the global
+   *  pause pair. Never re-read: a running session does not follow the slider. */
+  private userSilenceTimeoutMs: number = DEFAULT_SEGMENT_PAUSE_MS;
+  private assistantSilenceTimeoutMs: number = DEFAULT_SEGMENT_PAUSE_MS;
   private audioChunks: Map<string, Int16Array[]> = new Map();
   private keepReplayAudio: boolean = false;
   private audioCumSamples: Map<string, number> = new Map();
@@ -238,8 +176,57 @@ export class OpenAILiveClient implements IClient {
   private conversationItems: ConversationItem[] = [];
   private deltaSequenceNumber: number = 0;
 
-  constructor(apiKey: string) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both fields come from ClientOptions and are never re-read from a store, so
+  // a running session cannot react to either setting changing. A null or
+  // disabled runtime means today's behaviour, byte for byte.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). See LocalInferenceClient.ts:119 for the full reasoning —
+   * briefly, `runtime.enabled` moves in BOTH directions under an open session
+   * (the punctuation pack finishing its download turns it true, deleting it
+   * turns it false) and `SentenceStream` reads `enabled` once at its own
+   * construction. A stream built from a flipped value goes inert while this
+   * client still routes text into it, which loses the item outright. One
+   * frozen view handed to every stream is what makes those reads one answer.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** One stream per side: the speaker's transcript and the model's output seal
+   *  independently, because each has its own items and its own caps. */
+  private userStream: SentenceStream | null = null;
+  private assistantStream: SentenceStream | null = null;
+  /** The raw text each stream still holds, mirrored from its onPending so the
+   *  next delta can be handed the whole unsealed tail. */
+  private userPending = '';
+  private assistantPending = '';
+  /** While the stage runs, a silence timer that would cut a sentence in half
+   *  defers instead — one per side, because "has the tail grown" is a question
+   *  about that side's own stream. See silenceDeferral.ts. */
+  private userDeferral = new SilenceDeferral();
+  private assistantDeferral = new SilenceDeferral();
+  /** Set while a seal from the stream is closing an item, so the close does not
+   *  turn around and end() the stream that produced it: the remainder that
+   *  stream still holds is what opens the next item. */
+  private sealingUser = false;
+  private sealingAssistant = false;
+
+  constructor(
+    apiKey: string,
+    options: {
+      segmentation?: SegmentationRuntime | null;
+      sentencesPerChunk?: number;
+      sourcePauseMs?: number;
+      translationPauseMs?: number;
+    } = {},
+  ) {
     this.apiKey = apiKey;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? DEFAULT_CHUNK_SENTENCES;
+    this.userSilenceTimeoutMs = clampSegmentPauseMs(options.sourcePauseMs);
+    this.assistantSilenceTimeoutMs = clampSegmentPauseMs(options.translationPauseMs);
   }
 
   // ----- Static helpers -----
@@ -398,9 +385,15 @@ export class OpenAILiveClient implements IClient {
     this.userItemStartMs = null;
     this.userLastEndMs = null;
     this.userTimerFiredOnce = false;
+    this.userDeferral.reset();
+    this.assistantDeferral.reset();
     this.currentAssistantStartMs = null;
     this.currentUserItemId = null;
     this.currentAssistantItemId = null;
+    // Discarded, not ended: the items these streams were feeding are being
+    // forgotten too, so a final seal would have nowhere to land.
+    this.discardUserStream();
+    this.discardAssistantStream();
   }
 
   private resetSessionState(): void {
@@ -786,25 +779,59 @@ export class OpenAILiveClient implements IClient {
           // The speaker paused: the mark Live put at the head of this delta
           // still belongs to the clause before the pause.
           const mark = lead.trimEnd();
-          if (mark.length > 0) this.appendUserText(mark, startMs);
+          if (mark.length > 0) {
+            this.appendUserText(mark, startMs);
+            // The stage's stream has to see the mark too. completeUserItem
+            // below ends the stream, and that final seal rewrites the item
+            // with the tail the stream holds — without this, the mark that
+            // was just appended would be rewritten away again.
+            this.userStream?.update(this.userPending + mark);
+          }
           this.completeUserItem();
           text = delta.slice(lead.length);
           prefix = '';
         }
         if (text.length > 0) {
-          let split = lastSentenceEnd(text, prefix);
           const itemStart = this.userItemStartMs ?? startMs;
           const span = itemStart !== null && endMs !== null ? endMs - itemStart : null;
-          // A long item is cut at the next clause mark; a very long one anywhere.
-          if (split <= 0 && span !== null && span >= USER_SOFT_CAP_MS) split = lastClauseEnd(text);
-          if (split > 0) {
-            this.appendUserText(text.slice(0, split), startMs);
-            this.completeUserItem();
-            const tail = text.slice(split);
-            if (tail.length > 0) this.appendUserText(tail, startMs);
-          } else {
+          const stream = this.ensureUserStream();
+          if (stream) {
+            // R1: with the stage active the stream's N-sentence seal is what
+            // ends an item, so the per-delta lastSentenceEnd split is skipped —
+            // it is N = 1 by another name, and leaving it in would make the
+            // setting inert for the one provider the feature was designed on.
+            // The two timeline caps stay: they are the safety net for speech
+            // the stage never finds a boundary in.
             this.appendUserText(text, startMs);
-            if (span !== null && span >= USER_SPAN_CAP_MS) this.completeUserItem();
+            // Neither timer runs while the stage does, and `span` is no
+            // longer read on this path at all.
+            //
+            // The 8 s soft cap cut at the nearest comma before three sentences
+            // could accumulate, so N never acted: a live Chinese session gave
+            // five bubbles in a row ending at a comma, 9-11 s apart, with a
+            // full stop in the middle of one. The 12 s hard cap was worse on
+            // the input this feature exists for — 60 unpunctuated characters
+            // is about 12 s of Chinese, the same point the model is first
+            // asked, so every bubble was cut raw in the instant the answer was
+            // being computed and no punctuation ever reached the screen.
+            //
+            // A bubble is bounded by its text instead, inside SentenceStream:
+            // seconds mean different amounts of speech at different speaking
+            // rates, and characters do not.
+            stream.update(this.userPending + text);
+          } else {
+            let split = lastSentenceEnd(text, prefix);
+            // A long item is cut at the next clause mark; a very long one anywhere.
+            if (split <= 0 && span !== null && span >= USER_SOFT_CAP_MS) split = lastClauseEnd(text);
+            if (split > 0) {
+              this.appendUserText(text.slice(0, split), startMs);
+              this.completeUserItem();
+              const tail = text.slice(split);
+              if (tail.length > 0) this.appendUserText(tail, startMs);
+            } else {
+              this.appendUserText(text, startMs);
+              if (span !== null && span >= USER_SPAN_CAP_MS) this.completeUserItem();
+            }
           }
         }
         if (endMs !== null) this.userLastEndMs = endMs;
@@ -821,21 +848,31 @@ export class OpenAILiveClient implements IClient {
           ? delta
           : delta.slice((LEADING_PUNCT_RE.exec(delta)?.[0] ?? '').length);
         if (text.length > 0) {
-          let split = lastSentenceEnd(text, this.assistantTranscript());
           const itemStart = this.currentAssistantStartMs ?? startMs;
           const span = itemStart !== null && endMs !== null ? endMs - itemStart : null;
-          // A long item is cut at the next clause mark; a very long one anywhere.
-          if (split <= 0 && span !== null && span >= ASSISTANT_SOFT_CAP_MS) split = lastClauseEnd(text);
-          if (split > 0) {
-            this.closeAssistantText(this.appendAssistantText(text.slice(0, split), startMs, endMs));
-            const tail = text.slice(split);
-            if (tail.length > 0) this.appendAssistantText(tail, startMs, endMs);
+          const stream = this.ensureAssistantStream();
+          if (stream) {
+            // R1, translation side. Structurally identical to the source side
+            // above, down to the two caps; only the close path differs.
+            // Same as the source side: no timer competes with the stage, which
+            // bounds the bubble by text inside SentenceStream.
+            this.appendAssistantText(text, startMs, endMs);
+            stream.update(this.assistantPending + text);
           } else {
-            const itemId = this.appendAssistantText(text, startMs, endMs);
-            if (span !== null && span >= ASSISTANT_SPAN_CAP_MS) this.closeAssistantText(itemId);
+            let split = lastSentenceEnd(text, this.assistantTranscript());
+            // A long item is cut at the next clause mark; a very long one anywhere.
+            if (split <= 0 && span !== null && span >= ASSISTANT_SOFT_CAP_MS) split = lastClauseEnd(text);
+            if (split > 0) {
+              this.closeAssistantText(this.appendAssistantText(text.slice(0, split), startMs, endMs));
+              const tail = text.slice(split);
+              if (tail.length > 0) this.appendAssistantText(tail, startMs, endMs);
+            } else {
+              const itemId = this.appendAssistantText(text, startMs, endMs);
+              if (span !== null && span >= ASSISTANT_SPAN_CAP_MS) this.closeAssistantText(itemId);
+            }
           }
         }
-        this.resetAssistantSilenceTimer();
+        this.armAssistantSilenceTimer();
         break;
       }
 
@@ -887,7 +924,7 @@ export class OpenAILiveClient implements IClient {
         });
         // Voiced audio is real assistant activity — keep the item open until
         // playback-side rendering also winds down.
-        this.resetAssistantSilenceTimer();
+        this.armAssistantSilenceTimer();
         break;
       }
 
@@ -966,6 +1003,17 @@ export class OpenAILiveClient implements IClient {
     if (this.userSilenceTimer) clearTimeout(this.userSilenceTimer);
     this.userSilenceTimer = setTimeout(() => {
       this.userSilenceTimer = null;
+      // While the stage runs, a pause in the middle of a sentence is the
+      // speaker resting at a comma, not the end of a bubble: a live session cut
+      // "…成为商人或者是商队的向导，" from "以及保镖。" ten seconds later, which
+      // is a pause cut in the mode that promised sentence cuts. Deferred only
+      // while the tail keeps growing, so an abandoned sentence still closes one
+      // window after the last word. With no stream there is nothing to consult
+      // and the old behaviour stands.
+      if (this.userStream && this.userDeferral.deferAtExpiry(this.userPending)) {
+        this.armUserSilenceTimer();
+        return;
+      }
       const span = this.userItemStartMs !== null && this.userLastEndMs !== null
         ? this.userLastEndMs - this.userItemStartMs : null;
       // A short item survives one ordinary pause; twice the setting ends anything.
@@ -998,9 +1046,22 @@ export class OpenAILiveClient implements IClient {
       ? this.itemLookup.get(this.currentAssistantItemId)?.formatted?.transcript ?? '' : '';
   }
 
-  private resetAssistantSilenceTimer(): void {
+  private armAssistantSilenceTimer(): void {
     if (this.assistantSilenceTimer) clearTimeout(this.assistantSilenceTimer);
     this.assistantSilenceTimer = setTimeout(() => {
+      this.assistantSilenceTimer = null;
+      // The model translates in bursts, and the gaps between them are longer
+      // than this timeout: at 1.5 s a live session cut the translation into
+      // half-sentences, one of them nothing but a comma, and every cut also
+      // reset the stage's sentence count, so N never decided anything on this
+      // side. A pause with an unfinished sentence still open is the model
+      // drawing breath, and the wait lasts as long as the tail keeps growing.
+      // Only while the stage is running — with no stream there is nothing to
+      // wait for and the old behaviour stands.
+      if (this.assistantStream && this.assistantDeferral.deferAtExpiry(this.assistantPending)) {
+        this.armAssistantSilenceTimer();
+        return;
+      }
       this.completeAssistantItem();
     }, this.assistantSilenceTimeoutMs);
   }
@@ -1080,8 +1141,110 @@ export class OpenAILiveClient implements IClient {
     return id;
   }
 
+  // ----- Segmentation stage, source side -----
+  //
+  // The reference integration for the timer/regex providers. The shape is:
+  // one stream per side, built lazily and wound up wherever its item closes;
+  // the delta appends to the item first and hands the stream the whole
+  // unsealed tail second; a seal rewrites the item it closed and lets the
+  // remainder open the next one.
+
+  /** The stream feeding the open source item, or null when the stage is off
+   *  for this session. Mirrors ensureUserItem: lazy, and rebuilt after the
+   *  item it fed closes. */
+  private ensureUserStream(): SentenceStream | null {
+    if (this.userStream) return this.userStream;
+    if (!this.sessionSegmentation) return null;
+    this.userStream = new SentenceStream({
+      // The speaker's own language, straight off the session config. Live
+      // reports no detected language per item, so setLanguage() is never called.
+      lang: this.config?.sourceLanguage ?? 'auto',
+      // The frozen view, never `this.segmentation`: SentenceStream reads
+      // `enabled` once at construction, and that read must give the session's
+      // one answer (R2).
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealUserItem(chunk.text),
+      onPending: (text) => {
+        this.userPending = text;
+        // seal() fires onSeal — which closed the item — and then this, with
+        // the remainder. Nothing else holds that text any more, so it opens
+        // the next item here. After an ordinary update the item is already
+        // open and already holds it (appendUserText ran first), so this is a
+        // no-op. No timeline stamp: a seal can land on a model answer that
+        // arrives long after the delta that provoked it, and anchoring the new
+        // item to that stale start would trip its span caps early. The next
+        // delta anchors it.
+        if (!this.currentUserItemId && text.length > 0) {
+          this.appendUserText(text, null);
+          // completeUserItem cleared the timer on its way out, and the delta
+          // that armed it has already been handled — a model answer arrives
+          // after it, which at the end of an utterance is the last delta there
+          // will be. Without this the remainder's item never closes on its own
+          // and the next utterance appends to it.
+          this.resetUserSilenceTimer();
+        }
+      },
+    });
+    return this.userStream;
+  }
+
+  /** The stage decided this item ends here. The sealed text carries the marks
+   *  the model inserted, so the item is rewritten rather than merely closed. */
+  private sealUserItem(sealed: string): void {
+    const id = this.currentUserItemId;
+    if (!id) return;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      // A cut lands just past a sentence end, so a later chunk can start with
+      // the space that followed it — the same trim appendUserText applies.
+      item.formatted.transcript = sealed.replace(/^\s+/, '');
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    this.sealingUser = true;
+    try {
+      this.completeUserItem();
+    } finally {
+      this.sealingUser = false;
+    }
+  }
+
+  /** Seal whatever the stream still holds into the item it was feeding, then
+   *  drop it. Re-entrant by design: the seal closes that item through
+   *  completeUserItem, which lands back here with the stream already gone. */
+  private endUserStream(): void {
+    // A seal is mid-flight and owns the remainder; it is opening the next item
+    // with it as this returns.
+    if (this.sealingUser) return;
+    const stream = this.userStream;
+    if (stream) {
+      this.userStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    // Cleared even with no stream to end: a cut leaves the next item's text in
+    // `userPending` ahead of the stream that will be built for it, and closing
+    // that item before any further delta arrives would otherwise strand the
+    // text there, to be prepended to whatever item comes next.
+    this.userPending = '';
+  }
+
+  /** Drop the stream without its final seal. */
+  private discardUserStream(): void {
+    this.userStream?.dispose();
+    this.userStream = null;
+    this.userPending = '';
+  }
+
   private completeUserItem(): void {
+    // Every path that ends a source item goes through here, so this is the one
+    // place the stage's stream has to be wound up; the seal it emits closes
+    // the item on its own, and the code below then finds nothing left to do.
+    this.endUserStream();
     this.userItemStartMs = null;
+    // Ahead of the early return: the timer may have fired with no item open,
+    // and the tail it remembered must not be held against the next one.
+    this.userDeferral.reset();
     if (!this.currentUserItemId) return;
     const item = this.itemLookup.get(this.currentUserItemId);
     if (item) {
@@ -1099,9 +1262,80 @@ export class OpenAILiveClient implements IClient {
 
   // ----- Sentence segmentation (assistant side) -----
 
+  /** The translation twin of ensureUserStream. Separate because the two sides
+   *  have their own items, their own caps and their own language. */
+  private ensureAssistantStream(): SentenceStream | null {
+    if (this.assistantStream) return this.assistantStream;
+    if (!this.sessionSegmentation) return null;
+    this.assistantStream = new SentenceStream({
+      // What the model speaks, which is this leg's target language.
+      lang: this.config?.targetLanguage ?? 'auto',
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealAssistantItem(chunk.text),
+      onPending: (text) => {
+        this.assistantPending = text;
+        // See the source side's onPending: after a seal this is what opens the
+        // remainder's item, and after an ordinary update it is a no-op.
+        if (!this.currentAssistantItemId && text.length > 0) this.appendAssistantText(text, null, null);
+      },
+    });
+    return this.assistantStream;
+  }
+
+  /** The stage decided this translation item ends here. */
+  private sealAssistantItem(sealed: string): void {
+    const id = this.currentAssistantItemId;
+    if (!id) return;
+    const item = this.itemLookup.get(id);
+    if (item?.formatted) {
+      item.formatted.transcript = sealed.replace(/^\s+/, '');
+      this.eventHandlers.onConversationUpdated?.({ item });
+    }
+    // closeAssistantText, not completeAssistantItem: the audio hand-off
+    // (pendingAudioItems) is what keeps this item receiving frames until its
+    // timeline end passes, and completing it outright would cut that short.
+    this.sealingAssistant = true;
+    try {
+      this.closeAssistantText(id);
+    } finally {
+      this.sealingAssistant = false;
+    }
+  }
+
+  /** The translation twin of endUserStream, down to why the tail is cleared
+   *  even when there is no stream to end. */
+  private endAssistantStream(): void {
+    if (this.sealingAssistant) return;
+    const stream = this.assistantStream;
+    if (stream) {
+      this.assistantStream = null;
+      stream.end();
+      stream.dispose();
+    }
+    this.assistantPending = '';
+  }
+
+  /** Drop the stream without its final seal. */
+  private discardAssistantStream(): void {
+    this.assistantStream?.dispose();
+    this.assistantStream = null;
+    this.assistantPending = '';
+  }
+
   /** The text of `itemId` is complete; later transcript deltas open a new item
    *  while audio keeps attaching to this one until its timeline end passes. */
   private closeAssistantText(itemId: string): void {
+    // As in completeUserItem: every path that ends a translation item's text
+    // comes through here, so this is where the stage's stream is wound up.
+    this.endAssistantStream();
+    // That end() may have sealed the tail, and the seal already closed this
+    // item through sealAssistantItem. Queueing it twice would hand its audio
+    // over twice.
+    if (this.currentAssistantItemId !== itemId) return;
+    // The next item gets its own window, whether a seal or the timer ended
+    // this one's text.
+    this.assistantDeferral.reset();
     this.pendingAudioItems.push({ id: itemId, endMs: this.assistantTextEndMs.get(itemId) ?? null });
     this.currentAssistantItemId = null;
     this.currentAssistantStartMs = null;
@@ -1144,6 +1378,10 @@ export class OpenAILiveClient implements IClient {
 
   /** Every assistant item is done: the model stopped, or the session ended. */
   private completeAssistantItem(): void {
+    // First, so the stream's tail lands in the item it belongs to: the seal
+    // routes through closeAssistantText, which queues that item for the audio
+    // hand-off the loop below then flushes.
+    this.endAssistantStream();
     if (this.audioHandoffTimer) {
       clearTimeout(this.audioHandoffTimer);
       this.audioHandoffTimer = null;
@@ -1157,6 +1395,7 @@ export class OpenAILiveClient implements IClient {
       this.finalizeAssistantItem(itemId);
     }
     this.currentAssistantStartMs = null;
+    this.assistantDeferral.reset();
     if (this.assistantSilenceTimer) {
       clearTimeout(this.assistantSilenceTimer);
       this.assistantSilenceTimer = null;
@@ -1197,9 +1436,21 @@ export class OpenAILiveClient implements IClient {
     }
     this.config = config;
     this.resetSessionState();
+    // R2: the one read of `enabled` this session gets. Everything downstream —
+    // both streams, every rebuild of them — sees this frozen view, never the
+    // live runtime. See the `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? {
+          enabled: true,
+          punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+          // Forwarded so the stage's own counters survive the freeze: this view
+          // is what SentenceStream and punctuateDefinite report through, and
+          // dropping it here would make every seal invisible. Counts, never text.
+          observe: (event) => runtime.observe?.(event),
+        }
+      : null;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
-    this.userSilenceTimeoutMs = clampSilenceTimeout(config.userSilenceDurationMs);
-    this.assistantSilenceTimeoutMs = clampSilenceTimeout(config.assistantSilenceDurationMs);
 
     await this.openSession(config);
 
@@ -1240,24 +1491,26 @@ export class OpenAILiveClient implements IClient {
     this.connected = false;
     this.closing = false;
     this.clearUpgradeHeader();
-    // Finalise in-flight items so partial transcripts/audio aren't lost.
+    // Finalise in-flight items so partial transcripts/audio aren't lost. Both
+    // seal their stream's tail into the item on the way out, so this has to
+    // run before the session's frozen answer is dropped.
     this.completeUserItem();
     this.completeAssistantItem();
+    this.sessionSegmentation = null;
   }
 
   isConnected(): boolean {
     return this.connected && this.ws?.readyState === 1;
   }
 
-  /** Every startup field is immutable on the wire; only the local thresholds move. */
-  updateSession(config: Partial<SessionConfig>): void {
-    const live = config as Partial<OpenAILiveSessionConfig>;
-    if (live.userSilenceDurationMs !== undefined) {
-      this.userSilenceTimeoutMs = clampSilenceTimeout(live.userSilenceDurationMs);
-    }
-    if (live.assistantSilenceDurationMs !== undefined) {
-      this.assistantSilenceTimeoutMs = clampSilenceTimeout(live.assistantSilenceDurationMs);
-    }
+  /**
+   * Nothing here moves under an open session. Every startup field is immutable
+   * on the wire, and the two local silence thresholds — the only fields that
+   * used to move — are now the global pause pair, read once at construction
+   * (A2): a session keeps the pauses it started with.
+   */
+  updateSession(_config: Partial<SessionConfig>): void {
+    /* no session field is mutable */
   }
 
   reset(): void {
@@ -1314,4 +1567,4 @@ export function int16ArrayToBase64(data: Int16Array): string {
   return btoa(binary);
 }
 
-export { SAMPLE_RATE as LIVE_SAMPLE_RATE, SILENCE_TIMEOUT_MS, SILENCE_TIMEOUT_MIN_MS, SILENCE_TIMEOUT_MAX_MS };
+export { SAMPLE_RATE as LIVE_SAMPLE_RATE };

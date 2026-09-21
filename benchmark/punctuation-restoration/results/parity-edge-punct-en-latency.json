@@ -1,0 +1,31 @@
+{
+ "threads": 1,
+ "loadMs": 232.101513,
+ "runs": 15,
+ "cases": [
+  {
+   "words": 49,
+   "pieces": 64,
+   "batchRows": 1,
+   "punctuateMedianMs": 34.670128999999974
+  },
+  {
+   "words": 104,
+   "pieces": 128,
+   "batchRows": 1,
+   "punctuateMedianMs": 49.951515999999856
+  },
+  {
+   "words": 162,
+   "pieces": 198,
+   "batchRows": 1,
+   "punctuateMedianMs": 66.42593000000033
+  },
+  {
+   "words": 319,
+   "pieces": 400,
+   "batchRows": 3,
+   "punctuateMedianMs": 145.073942
+  }
+ ]
+}

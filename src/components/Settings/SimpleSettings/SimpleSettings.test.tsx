@@ -69,6 +69,7 @@ vi.mock('../../../stores/settingsStore', () => ({
 vi.mock('../sections', () => ({
   ProviderSection: () => null,
   LanguageSection: () => null,
+  SentenceSegmentationSection: () => null,
   AudioDeviceSection: ({ showMicrophone }: { showMicrophone?: boolean }) =>
     showMicrophone ? <div id="microphone-section" /> : <div id="speaker-section" />,
   SystemAudioSection: () => <div id="participant-section" />,

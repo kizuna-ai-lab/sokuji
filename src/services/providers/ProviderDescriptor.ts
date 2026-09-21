@@ -4,6 +4,7 @@ import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 // Type-only, so this adds no runtime edge from the shared descriptor module to
 // SonioxClient's dependency graph (i18n, the wire components).
 import type { ManagedSonioxSession, SonioxCredentialBundle, SonioxSttRole } from '../clients/ManagedSonioxSession';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
 
 /** Transport for realtime providers. Moved here from settingsStore so the
  *  services layer no longer imports from stores. settingsStore re-exports it. */
@@ -69,6 +70,38 @@ export type ClientOptions = {
      */
     announcesSessionOutcome?: boolean;
   };
+  /**
+   * The sentence segmentation stage, shared by both legs and every provider.
+   *
+   * Absent or disabled means today's behaviour exactly: a client that receives
+   * no runtime never seals and never calls a model. Clients never construct
+   * one — MainPanel owns the single instance (useSegmentationRuntime) so no
+   * client has to import a store.
+   */
+  segmentation?: SegmentationRuntime | null;
+  /**
+   * How many sentences fill one bubble: 1-5, already clamped by the store, or
+   * 0 for Auto — keep the boundary whoever already decided it chose (a
+   * server's segment, a VAD utterance) and only fill in the punctuation.
+   *
+   * It rides here rather than being read from the store by each client for
+   * the same reason `segmentation` does: a client that imports a store cannot
+   * be unit-tested with a fake, and would also start re-rendering on a
+   * setting the running session must not react to.
+   */
+  sentencesPerChunk?: number;
+  /**
+   * The By pause mode's two silence timers, **in seconds** as stored — the
+   * source side and the translation side. One global pair (A2), not a field
+   * of any provider slice, so it reaches a client the same way the rest of
+   * the segmentation settings do rather than through `buildSessionConfig`.
+   *
+   * Only the four providers whose clients cut on their own timers read them;
+   * every other descriptor ignores them. Each converts to milliseconds with
+   * `segmentPauseMs`, and absent means that function's 1.5 s default.
+   */
+  sourcePause?: number;
+  translationPause?: number;
 };
 
 export interface BothModePlan {
@@ -274,7 +307,6 @@ export interface ProviderDescriptor {
 
   resolveSourceLanguages(): LanguageOption[];
   resolveTargetLanguages(source: string): LanguageOption[];
-  reconcileTarget(source: string, currentTarget: string): string;
 
   /** Session shape for Both mode. Base: neither — one client per channel,
    *  the historical fall-through every non-Soniox provider runs today.
@@ -395,11 +427,6 @@ export abstract class BaseProviderDescriptor implements ProviderDescriptor {
   resolveTargetLanguages(_source: string): LanguageOption[] {
     const cfg = this.getConfig();
     return cfg.targetLanguages ?? cfg.languages;
-  }
-
-  reconcileTarget(source: string, currentTarget: string): string {
-    const allowed = this.resolveTargetLanguages(source).map(l => l.value);
-    return allowed.includes(currentTarget) ? currentTarget : (allowed[0] ?? currentTarget);
   }
 
   planBothMode(_slice: unknown, _mode: string): BothModePlan {

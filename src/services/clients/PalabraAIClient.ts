@@ -5,6 +5,8 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import i18n from '../../locales';
 import { Room, RoomEvent, TrackPublication, RemoteParticipant, RemoteTrack, RemoteAudioTrack, LocalAudioTrack, setLogLevel } from 'livekit-client';
 import { isExtension, hasChromeRuntime } from '../../utils/environment';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateAndSplitDefinite, splitDefinite, createSegmentLane } from './punctuateDefinite';
 
 // Suppress verbose logs from LiveKit client, including silence detection.
 setLogLevel('error');
@@ -166,8 +168,33 @@ export class PalabraAIClient implements IClient {
   private remoteAudioBufferLength: number = 0;
   private remoteAudioFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(credentials: PalabraCredentials) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store. Palabra
+  // decides its own boundaries (`validated_transcription`), so the stage only
+  // fills in punctuation it never sent and, at a size of 1-5, cuts inside
+  // that boundary — see punctuateAndSplitDefinite.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session, and a session that started without the models must not begin
+   * punctuating halfway through. Its identity doubles as the session token
+   * every deferred write checks before it lands.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** Definite-segment writes run one at a time, in the order the segments
+   *  became definite. See createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+
+  constructor(
+    credentials: PalabraCredentials,
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.credentials = credentials;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
     // Generate a unique instance ID that remains constant for this client instance
     this.instanceId = `palabra_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
@@ -255,6 +282,19 @@ export class PalabraAIClient implements IClient {
     
     try {
       this.currentSessionConfig = config;
+      // R2: the one read of `enabled` this session gets. See the
+      // `sessionSegmentation` field doc.
+      const runtime = this.segmentation;
+      this.sessionSegmentation = runtime?.enabled === true
+        ? {
+            enabled: true,
+            punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+            // Forwarded so the stage's own counters survive the freeze: this view
+            // is what SentenceStream and punctuateDefinite report through, and
+            // dropping it here would make every seal invisible. Counts, never text.
+            observe: (event) => runtime.observe?.(event),
+          }
+        : null;
       
       // Clean up existing sessions before creating new one
       await this.cleanupExistingSessions();
@@ -282,6 +322,10 @@ export class PalabraAIClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a validated transcription still
+    // waiting for its punctuation would otherwise leave its item carrying the
+    // partial text the seal was meant to replace.
+    this.punctuationLane.flush();
     try {
       // Send end_task before disconnecting
       if (this.room && this.isConnectedState) {
@@ -328,6 +372,10 @@ export class PalabraAIClient implements IClient {
       this.isConnectedState = false;
       this.sessionConfig = null;
       this.conversationItems = [];
+      // Dropped after the flush above, so the next session cannot be served
+      // this one's answer. It is not what protects the items — the flush is;
+      // this identity is the reconnect guard.
+      this.sessionSegmentation = null;
       
       console.info("[Sokuji] [PalabraAIClient] Disconnected successfully");
       
@@ -844,10 +892,26 @@ export class PalabraAIClient implements IClient {
           }
         };
         
+        // Listed before the text is settled, which is also what claims the id:
+        // a duplicate arriving while the punctuation model runs still finds it
+        // and is still ignored.
         this.conversationItems.push(item);
-        
-        // Notify event handlers
-        this.eventHandlers.onConversationUpdated?.({ item });
+
+        const write = (pieces: string[]) => this.writePieces(item, pieces);
+
+        const runtime = this.sessionSegmentation;
+        if (!runtime) { write([text]); return; }
+        // The model call starts NOW so two segments punctuate concurrently;
+        // the write waits its turn in the lane so the answers cannot emit the
+        // later segment first.
+        const pending = punctuateAndSplitDefinite(runtime, this.currentSessionConfig?.targetLanguage ?? '', text, this.sentencesPerChunk);
+        this.punctuationLane.queue(async (cancelled) => {
+          const pieces = await pending;
+          // `cancelled()`: disconnect() already wrote this segment raw. The
+          // identity check is the reconnect case — a genuinely stale answer.
+          if (cancelled() || this.sessionSegmentation !== runtime) return;
+          write(pieces);
+        }, () => write(splitDefinite(text, this.sentencesPerChunk)));
       }
       // If item already exists, it's a duplicate - ignore it
     }
@@ -993,35 +1057,73 @@ export class PalabraAIClient implements IClient {
           item.id === partialItemId && item.status === 'in_progress'
         );
         
-        if (partialItem) {
-          // Complete the partial transcription
-          partialItem.status = 'completed';
-          partialItem.id = validatedItemId;
-          partialItem.formatted = {
-            transcript: text
-          };
-          
-          // Notify event handlers with updated item
-          this.eventHandlers.onConversationUpdated?.({ item: partialItem });
-        } else {
-          // Create new validated item if no partial item found
-          const item: ConversationItem = {
-            id: validatedItemId,
-            role: 'user',
-            type: 'message',
-            status: 'completed',
-            formatted: {
-              transcript: text
-            }
-          };
-          this.conversationItems.push(item);
-          
-          // Notify event handlers
-          this.eventHandlers.onConversationUpdated?.({ item });
-        }
+        // Either the partial promoted in place, or a fresh validated item.
+        // Its identity is settled here, synchronously — that is what claims
+        // `validatedItemId`, so a duplicate arriving while the punctuation
+        // model runs still finds it and is still ignored.
+        const item: ConversationItem = partialItem ?? {
+          id: validatedItemId,
+          role: 'user',
+          type: 'message',
+          status: 'completed',
+          formatted: { transcript: text }
+        };
+        item.id = validatedItemId;
+        item.status = 'completed';
+        if (!partialItem) this.conversationItems.push(item);
+
+        const write = (pieces: string[]) => this.writePieces(item, pieces);
+
+        const runtime = this.sessionSegmentation;
+        if (!runtime) { write([text]); return; }
+        const pending = punctuateAndSplitDefinite(runtime, this.currentSessionConfig?.sourceLanguage ?? '', text, this.sentencesPerChunk);
+        this.punctuationLane.queue(async (cancelled) => {
+          const pieces = await pending;
+          if (cancelled() || this.sessionSegmentation !== runtime) return;
+          write(pieces);
+        }, () => write(splitDefinite(text, this.sentencesPerChunk)));
       }
       // If validated item already exists, it's a duplicate - ignore it
     }
+  }
+
+  /**
+   * Write one definite transcription as one item per piece.
+   *
+   * A2's revision of D6 lets a size of 1-5 cut inside the boundary Palabra
+   * chose. Auto, and a segment with too few sentences, hand this one piece and
+   * it is exactly the write this client has always done.
+   *
+   * The first piece keeps `item`, the entry already listed under the
+   * transcription's own id — which is what makes a repeated frame a duplicate.
+   * The later pieces are spliced in directly BEHIND it rather than pushed:
+   * this client's items carry no `createdAt` at all, so MainPanel's
+   * `createdAt || 0` sort leaves them in array order, and a push would land a
+   * piece after whatever arrived while the model ran. Splicing keeps the
+   * segment's pieces contiguous, in the server's own place in the list.
+   *
+   * No Palabra conversation item carries audio — `flushRemoteAudioBuffer`
+   * emits its PCM on a synthetic envelope keyed to the client instance, never
+   * on an item — so a cut strands no timing and no replay buffer.
+   */
+  private writePieces(item: ConversationItem, pieces: string[]): void {
+    item.formatted = { transcript: pieces[0] };
+    this.eventHandlers.onConversationUpdated?.({ item });
+    let at = this.conversationItems.indexOf(item);
+    pieces.slice(1).forEach((piece, i) => {
+      const extra: ConversationItem = {
+        id: `${item.id}_p${i + 2}`,
+        role: item.role,
+        type: 'message',
+        status: 'completed',
+        formatted: { transcript: piece },
+      };
+      // -1 only if the list was cleared under us; appending is then the only
+      // place left to put it.
+      if (at === -1) this.conversationItems.push(extra);
+      else this.conversationItems.splice(++at, 0, extra);
+      this.eventHandlers.onConversationUpdated?.({ item: extra });
+    });
   }
 
   private handleError(data: any): void {

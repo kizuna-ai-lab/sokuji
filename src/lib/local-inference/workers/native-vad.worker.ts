@@ -4,13 +4,15 @@
  * EVENTS ONLY back to the main thread — speech_start / speech_end /
  * speech_cancel. No utterance audio leaves this worker: the sidecar receives
  * the continuous PCM directly and segments on the client's vad_mark events
- * (spec Amendment A1). Mirrors zoom-vad.worker.ts's ORT + FrameProcessor loop.
+ * (spec Amendment A1). Built on the same ORT + FrameProcessor loop the
+ * client-side VAD has always used.
  */
 import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import type { VadWebConfig } from '../types';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 
 const VAD_SAMPLE_RATE = 16000;
 const VAD_FRAME_SAMPLES = 512; // 32ms @ 16kHz
@@ -22,6 +24,24 @@ let frameProcessor: FrameProcessor | null = null;
 let audioBuffer = new Float32Array(0);
 let maxSpeechFrames = Math.ceil(20000 / VAD_FRAME_MS);
 let speechFramesSinceStart = 0;
+
+// The longest speech one segment runs. Not the client's to raise on this
+// path: the sidecar never receives the cap and keeps backstops of its own —
+// 30 s of ring + segment on offline cards, 20 s of in-speech audio on
+// streaming ones (asr_engine.py). Whichever fires first owns the cut, and
+// when the sidecar wins, whatever arrives before the client's own mark is
+// transcribed as a segment of its own: whisper-tiny turned a 0.7 s remainder
+// into a 300-450 character invented paragraph, and moonshine answered a
+// 0.17 s one with "Here's the".
+//
+// So this has to sit strictly BELOW both backstops, not level with them. At
+// 20 the client and the streaming backstop both cut at 320000 in-speech
+// samples, and their sample counters differ by a rounding step per
+// 4096-sample chunk (this worker resamples 24 kHz to 2730 samples, the
+// sidecar to 2731): the sidecar won 3 of 21 simulated forced cuts. 19 puts
+// the client about a second ahead, which covered an end mark up to 6 chunks
+// late in replay.
+const NATIVE_MAX_SPEECH_SECONDS = 19;
 
 type WorkerInbound =
   | { type: 'init'; ortWasmBaseUrl?: string; vadModelUrl?: string; vadConfig?: VadWebConfig }
@@ -84,7 +104,9 @@ async function initVad(vadConfig?: VadWebConfig, vadModelUrl?: string): Promise<
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  maxSpeechFrames = Math.ceil(((vadConfig?.maxSpeechDuration ?? 20) * 1000) / VAD_FRAME_MS);
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, {
+    maxSpeechSeconds: NATIVE_MAX_SPEECH_SECONDS,
+  });
 
   frameProcessor = new FrameProcessor(
     vadInfer,

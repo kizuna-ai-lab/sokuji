@@ -23,6 +23,7 @@ import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 
 import type {
   GraniteSpeechInitMessage,
@@ -81,6 +82,26 @@ let frameProcessor: FrameProcessor | null = null;
 
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
+
+// The longest speech this engine is handed. There is no audio-side limit, and
+// the decode budget below removes the other one, so what is left is the model
+// itself: it ends the transcript early at a sentence or speaker boundary,
+// and what it drops grows with the segment: up to 6.7 s of a 20.8 s segment,
+// 8.7 s of 30.8 s, 11.7 s of 35.8 s, and 41.6 s of a 60.8 s one with two
+// speaker changes. No length above 30 s was reliably complete. Translate mode
+// stays at the old 20 s: at 30.8 s it returned untranslated English as the
+// translation in one window of three and dropped the last third of another.
+const GRANITE_MAX_SPEECH_SECONDS = 30;
+const GRANITE_TRANSLATE_MAX_SPEECH_SECONDS = 20;
+
+// Output tokens budgeted per second of audio. The budget used to be a fixed
+// 256, which real Japanese speakers (8.0-10.2 tokens/s) exhaust at about
+// 29.5 s: the transcript stopped mid-sentence, sometimes mid-character, and
+// was posted as an ordinary result. Decoding ends at EOS, so a larger budget
+// costs nothing on a normal segment — token counts were identical at 256 and
+// 1024 in every paired run.
+const GRANITE_TOKENS_PER_SECOND = 14;
+const GRANITE_MIN_NEW_TOKENS = 256;
 let totalSamplesFed = 0;
 let speechStartSample = 0;
 
@@ -106,7 +127,11 @@ function vadResetStates() {
   vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
 }
 
-async function initVad(vadConfig?: GraniteSpeechInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
+async function initVad(
+  vadConfig: GraniteSpeechInitMessage['vadConfig'] | undefined,
+  vadModelUrl: string | undefined,
+  maxSpeechSeconds: number,
+): Promise<void> {
   const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
     executionProviders: ['wasm'],
   });
@@ -120,9 +145,8 @@ async function initVad(vadConfig?: GraniteSpeechInitMessage['vadConfig'], vadMod
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
 
-  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, { maxSpeechSeconds });
 
   frameProcessor = new FrameProcessor(
     vadInfer,
@@ -282,7 +306,10 @@ async function runGraniteInferenceSegment(audio: Float32Array, startSample: numb
 
     await m.generate({
       ...inputs,
-      max_new_tokens: 256,
+      max_new_tokens: Math.max(
+        GRANITE_MIN_NEW_TOKENS,
+        Math.ceil((paddedAudio.length / VAD_SAMPLE_RATE) * GRANITE_TOKENS_PER_SECOND),
+      ),
       streamer,
     });
 
@@ -388,7 +415,11 @@ async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
     }
 
     post({ type: 'status', message: 'Loading VAD model...' });
-    await initVad(msg.vadConfig, msg.vadModelUrl);
+    await initVad(
+      msg.vadConfig,
+      msg.vadModelUrl,
+      msg.task === 'translate' ? GRANITE_TRANSLATE_MAX_SPEECH_SECONDS : GRANITE_MAX_SPEECH_SECONDS,
+    );
 
     // Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);

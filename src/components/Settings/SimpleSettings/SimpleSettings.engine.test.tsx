@@ -41,6 +41,7 @@ vi.mock('../../../services/ServiceFactory', () => ({
 vi.mock('../sections', () => ({
   ProviderSection: () => <div data-testid="provider-section" />,
   LanguageSection: () => <div data-testid="language-section" />,
+  SentenceSegmentationSection: () => <div data-testid="sentence-segmentation-section" />,
   AudioDeviceSection: () => <div data-testid="audio-device-section" />,
   SystemAudioSection: () => <div data-testid="system-audio-section" />,
   HelpSection: () => <div data-testid="help-section" />,

@@ -5,6 +5,7 @@ import { IClient, FilteredModel } from '../interfaces/IClient';
 import { ApiKeyValidationResult } from '../interfaces/ISettingsService';
 import { OpenAITranslateGAClient } from '../clients/OpenAITranslateGAClient';
 import { getRelayWsUrl } from '../../utils/environment';
+import { segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 
 // Relay-managed KizunaAI twin reuses the existing OpenAI-translate slice.
 export const defaultKizunaOpenaiTranslateSettings: OpenAITranslateSettings = { ...defaultOpenAITranslateSettings };
@@ -44,10 +45,17 @@ export class KizunaAIOpenAITranslateProviderConfig extends OpenAITranslateProvid
   }
 
   // Override — routes through the relay using the backend-managed session token.
-  createClient(creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new OpenAITranslateGAClient(creds.primary, {
-      wsUrl: `${getRelayWsUrl()}/realtime/translations`,
-    });
+  createClient(creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new OpenAITranslateGAClient(
+      creds.primary,
+      { wsUrl: `${getRelayWsUrl()}/realtime/translations` },
+      {
+        segmentation: options.segmentation,
+        sentencesPerChunk: options.sentencesPerChunk,
+        sourcePauseMs: segmentPauseMs(options.sourcePause),
+        translationPauseMs: segmentPauseMs(options.translationPause),
+      },
+    );
   }
 
   // Backend-managed (relay) twins: the "apiKey" is a Better Auth session token,

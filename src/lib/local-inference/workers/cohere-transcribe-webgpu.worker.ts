@@ -24,6 +24,7 @@ import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 
 import type {
   CohereTranscribeAsrInitMessage,
@@ -103,9 +104,14 @@ async function initVad(vadConfig?: CohereTranscribeAsrInitMessage['vadConfig'], 
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
 
-  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  // No engine limit: transformers.js splits a segment longer than 35 s at its
+  // quietest point and loses nothing — 30.8 s and 60.8 s segments transcribed
+  // completely in English and Chinese. The one rough edge is a cap of exactly
+  // 35 s, where the split leaves a stub as short as 0.1 s that is decoded
+  // without context and appended to the final; a stub that short produced one
+  // wrong word. Not worth a limit, since capping lower would cut more often.
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs);
 
   frameProcessor = new FrameProcessor(
     vadInfer,
@@ -191,7 +197,14 @@ function scheduleTranscription(audio: Float32Array): Promise<void> {
       });
 
       const options: Record<string, any> = {
-        max_new_tokens: 1024,
+        // 1024 plus the 10-token prompt overruns the decoder's 1024
+        // positions: a decode that never emits EOS throws in
+        // GatherBlockQuantized at sequence length 1025, and this worker's
+        // catch posts only `error`, so the text of every chunk in the
+        // segment is lost. Real speech needs at most ~280 per 35 s chunk
+        // (4.5-6.2 tokens/s measured), and a lower cap also bounds the queue
+        // stall a runaway costs.
+        max_new_tokens: 448,
         streamer,
       };
       if (currentLanguage) {

@@ -8,7 +8,10 @@
  * app was never going to produce.
  *
  * The fix follows the shape the panel already uses for inherently text-only
- * providers (Zoom AI, Volcengine ST): a permanently-on, non-interactive switch.
+ * providers — those whose descriptor declares `textOnlyCapability: 'always'`:
+ * a permanently-on, non-interactive switch. No provider is registered with
+ * that value today (Zoom AI and Volcengine ST, the last two, were removed on
+ * 2026-09-20), but the branch stays as the handling for the value.
  * The persisted setting is deliberately NOT rewritten — `settings.common.textOnly`
  * is one global preference, and stamping it true on entering "Others" would
  * silently discard the user's choice for "You"/"Both".

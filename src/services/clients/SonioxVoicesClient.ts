@@ -173,8 +173,8 @@ export class SonioxVoicesClient {
 }
 
 /** Mono 16-bit PCM WAV from a Float32Array capture (VoiceLibrarySection's
- *  recorder output). Small and local on purpose — zoomApi's encoder emits a
- *  16 kHz data URI for a different wire; sharing would couple the two. */
+ *  recorder output). Small and local on purpose — it encodes a Blob at the
+ *  recorder's own sample rate, which no other wire in the app wants. */
 export function encodeWavPcm16(samples: Float32Array, sampleRate: number): Blob {
   const n = samples.length;
   const buf = new ArrayBuffer(44 + n * 2);

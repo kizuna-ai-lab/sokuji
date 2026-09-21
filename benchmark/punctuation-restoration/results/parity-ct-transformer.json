@@ -1,0 +1,668 @@
+{
+ "reference": {
+  "sherpaOnnx": "1.13.8"
+ },
+ "upstream": {
+  "n": 317,
+  "match": 311,
+  "bothThrow": 1,
+  "explained": {
+   "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it": 6
+  },
+  "unexplained": 0,
+  "diffs": [
+   {
+    "key": "gl-zh1-en-openai/commas",
+    "input": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+    "ref": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能。，预计十月上线，然后是定价页面的改版。",
+    "js": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能。，预计十月上线，然后是定价页面的改版。",
+    "explanation": "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it",
+    "firstFlip": {
+     "key": "gl-zh1-en-openai/commas",
+     "token": "划",
+     "tokenIndex": 21,
+     "lastToken": false,
+     "window": 1,
+     "windowStart": 0,
+     "windowLen": 40,
+     "pos": 21,
+     "refClass": "，",
+     "jsClassInOutput": "。",
+     "webClass": "。",
+     "webLogits": [
+      -36.0464,
+      2.061,
+      4.6115,
+      4.6568,
+      -4.4022,
+      -4.8413
+     ],
+     "webMarginOverRefClass": 0.0453,
+     "native": {
+      "key": "gl-zh1-en-openai/commas",
+      "onnxruntime": "1.30.0",
+      "nativeClass": "，",
+      "nativeLogits": [
+       -36.1186,
+       2.0582,
+       4.6378,
+       4.6287,
+       -4.3863,
+       -4.8499
+      ]
+     }
+    }
+   },
+   {
+    "key": "gl-zh1-ja-openai/commas",
+    "input": "大家好，今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能，预计十月上线然后是定价页面的改版",
+    "ref": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能。，预计十月上线，然后是定价页面的改版。",
+    "js": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能。，预计十月上线，然后是定价页面的改版。",
+    "explanation": "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it",
+    "firstFlip": {
+     "key": "gl-zh1-ja-openai/commas",
+     "token": "划",
+     "tokenIndex": 21,
+     "lastToken": false,
+     "window": 1,
+     "windowStart": 0,
+     "windowLen": 40,
+     "pos": 21,
+     "refClass": "，",
+     "jsClassInOutput": "。",
+     "webClass": "。",
+     "webLogits": [
+      -36.0464,
+      2.061,
+      4.6115,
+      4.6568,
+      -4.4022,
+      -4.8413
+     ],
+     "webMarginOverRefClass": 0.0453,
+     "native": {
+      "key": "gl-zh1-ja-openai/commas",
+      "onnxruntime": "1.30.0",
+      "nativeClass": "，",
+      "nativeLogits": [
+       -36.1186,
+       2.0582,
+       4.6378,
+       4.6287,
+       -4.3863,
+       -4.8499
+      ]
+     }
+    }
+   },
+   {
+    "key": "gl-gui-L3383-p4/commas",
+    "input": "连续治疗几个月后，科学家把这些老鼠丢进水迷宫游泳、放在滚轮上跑步，结果所有人都惊呆了这些原本已经失智、路都走不好得老鼠，记忆力跟运动能力竟然完全恢复，不输健康的年轻老鼠高尚One more time, I wanna get lost in the night, night, night 切开大脑一看更不得了，原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了",
+    "ref": "连续治疗几个月后，，科学家把这些老鼠丢进水迷宫游泳、放在滚轮上跑步。，结果所有人都惊呆了，这些原本已经失智，、路都走不好得。老鼠，记忆力跟运动能力竟然完全恢复。，不输健康的年轻老鼠高尚One more time , I wanna get lost in the night , night , night，切开大脑一看更不得了。，原本破烂的血脑屏障修好了。，发炎反应消失了。，甚至连断裂的DNA都自己接回去了。",
+    "js": "连续治疗几个月后，，科学家把这些老鼠丢进水迷宫游泳、放在滚轮上跑步，结果所有人都惊呆了。这些原本已经失智、路都走不好得。老鼠，记忆力跟运动能力竟然完全恢复。，不输健康的年轻老鼠高尚One more time , I wanna get lost in the night , night , night，切开大脑一看更不得了。，原本破烂的血脑屏障修好了。，发炎反应消失了。，甚至连断裂的DNA都自己接回去了。",
+    "explanation": "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it",
+    "firstFlip": {
+     "key": "gl-gui-L3383-p4/commas",
+     "token": "步",
+     "tokenIndex": 31,
+     "lastToken": false,
+     "window": 4,
+     "windowStart": 0,
+     "windowLen": 100,
+     "pos": 31,
+     "refClass": "。",
+     "jsClassInOutput": "_",
+     "webClass": "_",
+     "webLogits": [
+      -32.9203,
+      2.8811,
+      1.4075,
+      2.6272,
+      -3.2995,
+      -3.4442
+     ],
+     "webMarginOverRefClass": 0.2539,
+     "native": {
+      "key": "gl-gui-L3383-p4/commas",
+      "onnxruntime": "1.30.0",
+      "nativeClass": "_",
+      "nativeLogits": [
+       -33.1025,
+       2.8825,
+       1.3759,
+       2.6896,
+       -3.2794,
+       -3.4787
+      ]
+     }
+    }
+   },
+   {
+    "key": "zh-lecture-01/commas",
+    "input": "今天我们讲的是深度学习的基本概念深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征比如说，图像识别就是一个典型的应用只要有足够多的数据，模型就能学会识别猫和狗那么接下来我们看一下具体的网络结构",
+    "ref": "今天我们讲的是深度学习的基本概念。深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征。比如说，图像识别就是一个典型的应用，只要有足够多的数据，模型就能学会识别猫和狗。那么接下来我们看一下具体的网络结构。",
+    "js": "今天我们讲的是深度学习的基本概念。深度学习是机器学习的一个分支，它通过多层神经网络来学习数据的特征。比如说，图像识别，就是一个典型的应用，只要有足够多的数据，模型就能学会识别猫和狗。那么接下来我们看一下具体的网络结构。",
+    "explanation": "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it",
+    "firstFlip": {
+     "key": "zh-lecture-01/commas",
+     "token": "别",
+     "tokenIndex": 55,
+     "lastToken": false,
+     "window": 4,
+     "windowStart": 48,
+     "windowLen": 52,
+     "pos": 7,
+     "refClass": "_",
+     "jsClassInOutput": "，",
+     "webClass": "，",
+     "webLogits": [
+      -33.694,
+      4.3149,
+      4.3223,
+      -0.2109,
+      -3.9944,
+      -2.9553
+     ],
+     "webMarginOverRefClass": 0.0074,
+     "native": {
+      "key": "zh-lecture-01/commas",
+      "onnxruntime": "1.30.0",
+      "nativeClass": "_",
+      "nativeLogits": [
+       -33.668,
+       4.3101,
+       4.3002,
+       -0.2062,
+       -4.024,
+       -2.9315
+      ]
+     }
+    }
+   },
+   {
+    "key": "en-fillers-01/commas",
+    "input": "Um, so, I think the main issue is, uh, the latency It takes like two seconds before the translation shows up",
+    "ref": "Um , so , I think the main issue is , uh , the latency。It takes like two seconds before the translation shows up。",
+    "js": "Um , so ,，I think the main issue is , uh ,。the latency。It takes like two seconds before the translation shows up。",
+    "explanation": "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it",
+    "firstFlip": {
+     "key": "en-fillers-01/commas",
+     "token": ",",
+     "tokenIndex": 3,
+     "lastToken": false,
+     "window": 1,
+     "windowStart": 0,
+     "windowLen": 25,
+     "pos": 3,
+     "refClass": "_",
+     "jsClassInOutput": "，",
+     "webClass": "，",
+     "webLogits": [
+      -35.9708,
+      3.0175,
+      3.1259,
+      1.8249,
+      -1.5533,
+      -7.8458
+     ],
+     "webMarginOverRefClass": 0.1084,
+     "native": {
+      "key": "en-fillers-01/commas",
+      "onnxruntime": "1.30.0",
+      "nativeClass": "，",
+      "nativeLogits": [
+       -35.9708,
+       3.0175,
+       3.1259,
+       1.8249,
+       -1.5533,
+       -7.8458
+      ]
+     }
+    }
+   },
+   {
+    "key": "concat/zh/stripped/6+6",
+    "input": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night night night 切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦我说中国呀不怕金融危机中国怕财政危机为什么呢因为在中国呀众多的运转都依赖于财政而不是依赖于纯粹的金融这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看为什么我说中国最怕财政危机而不是怕金融危机",
+    "ref": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身。而在为身为受的弹和没电了，他们找来两种已经壁炉高旷的小鼠。第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块。第二种是PS19小鼠脑袋里塞满了涛蛋白纠结，这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物。这药物不直接去清垃圾，而是做了一件更基础的事。修复大脑的NAD plus系统，这个NAD plus是所有活细胞都需要的关键。辅酶既是细胞产生能量的必需品，又是修复受损DNA的关键原料非常重要。而阿尔茨海默症患者的大脑就像是停工又缺料的工厂。因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而PTC3 A20的作用就是重新启动供应链，让大脑恢复制造NAD plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除，跟维修连续治疗。几个月后，科学家把这些老鼠丢进水迷宫游泳，放在滚轮上跑步。结果所有人都惊呆了，这些原本已经失智路都走不好得。老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time。I wanna get lost in the night night night，切开大脑一看更不得了。原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了。更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象。这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症，就不再是通往虚无的单程票，而是可逆向的旅程。当然我不是老鼠，你也不是应该不是。但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉，多运动保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈。寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器。科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦。我说中国呀，不怕金融危机，中国怕财政危机为什么呢？因为在中国呀众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹，没有完全脱进。那时候的一种表现。你看为什么？我说，中国最怕财政危机，而不是怕金融危机。",
+    "js": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身。而在为身为受的弹和没电了，他们找来两种已经壁炉高旷的小鼠。第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块。第二种是PS19小鼠脑袋里塞满了涛蛋白纠结，这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物。这药物不直接去清垃圾，而是做了一件更基础的事。修复大脑的NAD plus系统，这个NAD plus是所有活细胞都需要的关键。辅酶既是细胞产生能量的必需品，又是修复受损DNA的关键原料非常重要。而阿尔茨海默症患者的大脑就像是停工又缺料的工厂。因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而PTC3 A20的作用就是重新启动供应链，让大脑恢复制造NAD plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除，跟维修连续治疗。几个月后，科学家把这些老鼠丢进水迷宫游泳，放在滚轮上跑步。结果所有人都惊呆了，这些原本已经失智路都走不好得。老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time。I wanna get lost in the night night night，切开大脑一看更不得了。原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了。更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象。这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症，就不再是通往虚无的单程票，而是可逆向的旅程。当然我不是老鼠，你也不是应该不是。但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉，多运动保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈。寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器。科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦。我说中国呀，不怕金融危机，中国怕财政危机为什么呢？因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹，没有完全脱进。那时候的一种表现。你看为什么？我说，中国最怕财政危机，而不是怕金融危机。",
+    "explanation": "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it",
+    "firstFlip": {
+     "key": "concat/zh/stripped/6+6",
+     "token": "呀",
+     "tokenIndex": 782,
+     "lastToken": false,
+     "window": 41,
+     "windowStart": 777,
+     "windowLen": 63,
+     "pos": 5,
+     "refClass": "_",
+     "jsClassInOutput": "，",
+     "webClass": "，",
+     "webLogits": [
+      -21.953,
+      4.162,
+      4.2198,
+      -3.8588,
+      -5.116,
+      1.0728
+     ],
+     "webMarginOverRefClass": 0.0578,
+     "native": {
+      "key": "concat/zh/stripped/6+6",
+      "onnxruntime": "1.30.0",
+      "nativeClass": "_",
+      "nativeLogits": [
+       -21.9162,
+       4.1804,
+       4.145,
+       -3.8793,
+       -5.1451,
+       1.1285
+      ]
+     }
+    }
+   }
+  ],
+  "rate": 0.9810725552050473,
+  "note": "models/ct-transformer.mjs punctuateUpstream(input) vs sherpa OfflinePunctuation.add_punctuation(input)"
+ },
+ "module": {
+  "n": 224,
+  "match": 217,
+  "explained": {
+   "no tokens: upstream throws (T=0 ConvInteger), module returns the input": 2,
+   "upstream drops the tokens after a sentence end found in its last window; module keeps them": 4,
+   "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it": 1
+  },
+  "unexplained": 0,
+  "diffs": [
+   {
+    "key": "edge/whitespace-only",
+    "pre": " ",
+    "refOnPre": "EXC: Non-zero status code returned while running ConvInteger node. Name:'/encoder/encoders0/encoders0.0/self_attn/fsmn_block/Conv_quant' Status Message: Invalid input shape: {10}",
+    "module": " ",
+    "explanation": "no tokens: upstream throws (T=0 ConvInteger), module returns the input",
+    "firstFlip": null
+   },
+   {
+    "key": "edge/marks-only",
+    "pre": "  ",
+    "refOnPre": "EXC: Non-zero status code returned while running ConvInteger node. Name:'/encoder/encoders0/encoders0.0/self_attn/fsmn_block/Conv_quant' Status Message: Invalid input shape: {10}",
+    "module": "  ",
+    "explanation": "no tokens: upstream throws (T=0 ConvInteger), module returns the input",
+    "firstFlip": null
+   },
+   {
+    "key": "edge/truncation-0+241",
+    "pre": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版請你回答我現在幾點了另外把剛才的內容再翻譯一遍各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点各位下午好先说一下上周的进展",
+    "refOnPre": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了。另外把剛才的內容再翻譯一遍。各位下午好，先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。",
+    "module": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了。另外把剛才的內容再翻譯一遍。各位下午好，先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。各位下午好，先说一下上周的进展。",
+    "explanation": "upstream drops the tokens after a sentence end found in its last window; module keeps them",
+    "firstFlip": null
+   },
+   {
+    "key": "edge/truncation-0+381",
+    "pre": "大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版請你回答我現在幾點了另外把剛才的內容再翻譯一遍各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在上的重磅研究彻底扭转我们这年来",
+    "refOnPre": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了。另外把剛才的內容再翻譯一遍。各位下午好，先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。各位下午好。先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在上的重磅研究，彻底扭转。",
+    "module": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了。另外把剛才的內容再翻譯一遍。各位下午好，先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。各位下午好。先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在上的重磅研究，彻底扭转。我们这年来。",
+    "explanation": "upstream drops the tokens after a sentence end found in its last window; module keeps them",
+    "firstFlip": null
+   },
+   {
+    "key": "edge/truncation-7+161",
+    "pre": "来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版請你回答我現在幾點了另外把剛才的內容再翻譯一遍各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我",
+    "refOnPre": "来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了。另外把剛才的內容再翻譯一遍。各位下午好。先说一下上周的进展，移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。",
+    "module": "来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了。另外把剛才的內容再翻譯一遍。各位下午好。先说一下上周的进展，移动端字幕功能已经完成了内部测试，反馈总体不错，但在弱网环境下会出现延迟。我。",
+    "explanation": "upstream drops the tokens after a sentence end found in its last window; module keeps them",
+    "firstFlip": null
+   },
+   {
+    "key": "edge/truncation-7+541",
+    "pre": "来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版大家好今天我们来讨论一下下个季度的产品计划首先是移动端的字幕功能预计十月上线然后是定价页面的改版請你回答我現在幾點了另外把剛才的內容再翻譯一遍各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点各位下午好先说一下上周的进展移动端字幕功能已经完成了内部测试反馈总体不错但在弱网环境下会出现延迟我们计划在下周修复这个问题另外定价页面的新设计已经交给设计团队评审预计月底前定稿最后提醒大家季度总结会议改到周五上午十点虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在上的重磅研究彻底扭转我们这年来对失智症的绝望感刊登刊年头号好消息这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现研究所所组成的神经科学特种部队领头的博士正是这款神秘药物的发明者过去几十年对抗阿尔茨海默症的思路主要都是清垃圾也就是想办法清除脑袋里的类淀粉蛋白斑块或是涛蛋白纠结但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而",
+    "refOnPre": "来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了。另外把剛才的內容再翻譯一遍。各位下午好。先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。各位下午好。先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点，虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在上的重磅研究，彻底扭转我们这年来对失智症的绝望感刊登刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现，研究所所组成的神经科学特种部队领头的博士，正是这款神秘药物的发明者。过去几十年，对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉、蛋白斑块或是涛蛋白纠结，但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。",
+    "module": "来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。請你回答我現在幾點了。另外把剛才的內容再翻譯一遍。各位下午好。先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点。各位下午好。先说一下上周的进展，移动端字幕功能已经完成了内部测试反馈总体不错，但在弱网环境下会出现延迟。我们计划在下周修复这个问题。另外，定价页面的新设计已经交给设计团队评审，预计月底前定稿。最后提醒大家，季度总结会议改到周五上午十点，虽说功受不可逆史上第一次科学逆转了阿尔茨海默晚期重症这项发表在上的重磅研究，彻底扭转我们这年来对失智症的绝望感刊登刊年头号好消息。这研究由美国凯斯西储大学结合了智利将诺贝尔奖级研究转化为药物的哈林顿发现，研究所所组成的神经科学特种部队领头的博士，正是这款神秘药物的发明者。过去几十年，对抗阿尔茨海默症的思路主要都是清垃圾，也就是想办法清除脑袋里的类淀粉、蛋白斑块或是涛蛋白纠结，但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而。",
+    "explanation": "upstream drops the tokens after a sentence end found in its last window; module keeps them",
+    "firstFlip": null
+   },
+   {
+    "key": "concat/zh/stripped/6+6",
+    "pre": "但现实很残酷这些药物往往只能稍微延缓恶化很难真正救回濒死的脑细胞而这次的研究团队非常叛逆他们认为问题核心不在身为功的垃圾本身而在为身为受的弹和没电了他们找来两种已经壁炉高旷的小鼠第一种是5X FAD小鼠满脑子都是类淀粉蛋白斑块第二种是PS19小鼠脑袋里塞满了涛蛋白纠结这时年纪都很大了记忆力崩坏只能等死团队给他们打了一种代号PTC3 A20的药物这药物不直接去清垃圾而是做了一件更基础的事修复大脑的NAD plus系统这个NAD plus是所有活细胞都需要的关键辅酶既是细胞产生能量的必需品又是修复受损DNA的关键原料非常重要而阿尔茨海默症患者的大脑就像是停工又缺料的工厂因为NAD plus耗尽神经细胞不仅没有电力运转更没有零件去修复毒性蛋白造成的破坏最终只能报废而PTC3 A20的作用就是重新启动供应链让大脑恢复制造NAD plus的能力一旦电力跟零件都补足了细胞就能重新开工开始自助大扫除跟维修连续治疗几个月后科学家把这些老鼠丢进水迷宫游泳放在滚轮上跑步结果所有人都惊呆了这些原本已经失智路都走不好得老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time I wanna get lost in the night night night 切开大脑一看更不得了原本破烂的血脑屏障修好了发炎反应消失了甚至连断裂的DNA都自己接回去了更重要的是团队分析了人类患者的脑组织发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象这强力暗示如果我们能修复人类大脑的NAD plus系统或许失智症就不再是通往虚无的单程票而是可逆向的旅程当然我不是老鼠你也不是应该不是但这研究告诉我们大脑的韧性比我们想象的还要强多睡觉多运动保护好大脑代谢功能之外是要给他足够的修复原料或许真的能自己的大脑自己救哈这是脑细胞算不算挑衅类淀粉蛋白哈寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器科学生由范科学和教育出版权威南一书局联手推出让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦我说中国呀不怕金融危机中国怕财政危机为什么呢因为在中国呀众多的运转都依赖于财政而不是依赖于纯粹的金融这是当时计划经济的痕迹没有完全脱进那时候的一种表现你看为什么我说中国最怕财政危机而不是怕金融危机",
+    "refOnPre": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身。而在为身为受的弹和没电了，他们找来两种已经壁炉高旷的小鼠。第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块。第二种是PS19小鼠脑袋里塞满了涛蛋白纠结，这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物。这药物不直接去清垃圾，而是做了一件更基础的事。修复大脑的NAD plus系统，这个NAD plus是所有活细胞都需要的关键。辅酶既是细胞产生能量的必需品，又是修复受损DNA的关键原料非常重要。而阿尔茨海默症患者的大脑就像是停工又缺料的工厂。因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而PTC3 A20的作用就是重新启动供应链，让大脑恢复制造NAD plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除，跟维修连续治疗。几个月后，科学家把这些老鼠丢进水迷宫游泳，放在滚轮上跑步。结果所有人都惊呆了，这些原本已经失智路都走不好得。老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time。I wanna get lost in the night night night，切开大脑一看更不得了。原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了。更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象。这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症，就不再是通往虚无的单程票，而是可逆向的旅程。当然我不是老鼠，你也不是应该不是。但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉，多运动保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈。寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器。科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦。我说中国呀，不怕金融危机，中国怕财政危机为什么呢？因为在中国呀众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹，没有完全脱进。那时候的一种表现。你看为什么？我说，中国最怕财政危机，而不是怕金融危机。",
+    "module": "但现实很残酷，这些药物往往只能稍微延缓恶化，很难真正救回濒死的脑细胞。而这次的研究团队非常叛逆，他们认为问题核心不在身为功的垃圾本身。而在为身为受的弹和没电了，他们找来两种已经壁炉高旷的小鼠。第一种是5X FAD小鼠，满脑子都是类淀粉蛋白斑块。第二种是PS19小鼠脑袋里塞满了涛蛋白纠结，这时年纪都很大了，记忆力崩坏，只能等死团队给他们打了一种代号PTC3 A20的药物。这药物不直接去清垃圾，而是做了一件更基础的事。修复大脑的NAD plus系统，这个NAD plus是所有活细胞都需要的关键。辅酶既是细胞产生能量的必需品，又是修复受损DNA的关键原料非常重要。而阿尔茨海默症患者的大脑就像是停工又缺料的工厂。因为NAD plus耗尽，神经细胞不仅没有电力运转，更没有零件去修复毒性蛋白造成的破坏，最终只能报废。而PTC3 A20的作用就是重新启动供应链，让大脑恢复制造NAD plus的能力。一旦电力跟零件都补足了，细胞就能重新开工，开始自助大扫除，跟维修连续治疗。几个月后，科学家把这些老鼠丢进水迷宫游泳，放在滚轮上跑步。结果所有人都惊呆了，这些原本已经失智路都走不好得。老鼠记忆力跟运动能力竟然完全恢复不输健康的年轻老鼠高尚One more time。I wanna get lost in the night night night，切开大脑一看更不得了。原本破烂的血脑屏障修好了，发炎反应消失了，甚至连断裂的DNA都自己接回去了。更重要的是，团队分析了人类患者的脑组织，发现人类阿尔茨海默症大脑里NAD plus的合成酵素也有一样的崩坏现象。这强力暗示，如果我们能修复人类大脑的NAD plus系统，或许失智症，就不再是通往虚无的单程票，而是可逆向的旅程。当然我不是老鼠，你也不是应该不是。但这研究告诉我们，大脑的韧性比我们想象的还要强多睡觉，多运动保护好大脑代谢功能之外，是要给他足够的修复原料，或许真的能自己的大脑自己救哈，这是脑细胞算不算挑衅类淀粉蛋白哈。寒假别只让孩子滑手机给他一本比手游还好玩的秘密武器。科学生由范科学和教育出版权威南一书局联手推出，让孩子读科学像在看动漫受训范世级科学生现在预购有79折优惠哦。我说中国呀，不怕金融危机，中国怕财政危机为什么呢？因为在中国呀，众多的运转都依赖于财政，而不是依赖于纯粹的金融，这是当时计划经济的痕迹，没有完全脱进。那时候的一种表现。你看为什么？我说，中国最怕财政危机，而不是怕金融危机。",
+    "explanation": "ORT-web vs sherpa-onnx near-tie at one token (margin < 1 logit), same window ids; later windows follow from it",
+    "firstFlip": {
+     "key": "module:concat/zh/stripped/6+6",
+     "token": "呀",
+     "tokenIndex": 782,
+     "lastToken": false,
+     "window": 41,
+     "windowStart": 777,
+     "windowLen": 63,
+     "pos": 5,
+     "refClass": "_",
+     "jsClassInOutput": "，",
+     "webClass": "，",
+     "webLogits": [
+      -21.953,
+      4.162,
+      4.2198,
+      -3.8588,
+      -5.116,
+      1.0728
+     ],
+     "webMarginOverRefClass": 0.0578,
+     "native": {
+      "key": "module:concat/zh/stripped/6+6",
+      "onnxruntime": "1.30.0",
+      "nativeClass": "_",
+      "nativeLogits": [
+       -21.9162,
+       4.1804,
+       4.145,
+       -3.8793,
+       -5.1451,
+       1.1285
+      ]
+     }
+    }
+   }
+  ],
+  "skeletonLost": 0,
+  "rate": 0.96875,
+  "note": "punctuate(input, lang) vs add_punctuation(stripPredictedMarks(input)), langs zh,en"
+ },
+ "referenceTruncatedRows": [
+  {
+   "key": "edge/truncation-0+241",
+   "inputChars": 241,
+   "refChars": 227
+  },
+  {
+   "key": "edge/truncation-0+381",
+   "inputChars": 381,
+   "refChars": 376
+  },
+  {
+   "key": "edge/truncation-7+161",
+   "inputChars": 161,
+   "refChars": 160
+  },
+  {
+   "key": "edge/truncation-7+541",
+   "inputChars": 541,
+   "refChars": 540
+  }
+ ],
+ "logits": {
+  "rows": 57,
+  "nativeOrt": "1.30.0",
+  "maxAbsDiff": {
+   "native-all~web-default": 0.4039592742919922,
+   "native-none~web-disabled": 0.3397026062011719,
+   "native-all~native-none": 0.4039592742919922,
+   "web-default~web-disabled": 0.4302387237548828,
+   "native-none~web-default": 0.6126937866210938
+  },
+  "minArgmaxAgree": {
+   "native-all~web-default": 0.9897959183673469,
+   "native-none~web-disabled": 0.9897959183673469,
+   "native-all~native-none": 1,
+   "web-default~web-disabled": 1,
+   "native-none~web-default": 0.9897959183673469
+  },
+  "worst": [
+   {
+    "key": "gl-gui-L3383-p1/stripped",
+    "T": 188,
+    "maxAbsDiff": {
+     "native-all~web-default": 0.4039592742919922,
+     "native-none~web-disabled": 0.03775787353515625,
+     "native-all~native-none": 0.4039592742919922,
+     "web-default~web-disabled": 0.09511184692382812,
+     "native-none~web-default": 0.09511184692382812
+    }
+   },
+   {
+    "key": "gl-gui-L3383-p2/stripped",
+    "T": 190,
+    "maxAbsDiff": {
+     "native-all~web-default": 0.3863487243652344,
+     "native-none~web-disabled": 0.3397026062011719,
+     "native-all~native-none": 0.23016738891601562,
+     "web-default~web-disabled": 0.4302387237548828,
+     "native-none~web-default": 0.6126937866210938
+    }
+   },
+   {
+    "key": "gl-zh1-en-openai/stripped",
+    "T": 48,
+    "maxAbsDiff": {
+     "native-all~web-default": 0.36309814453125,
+     "native-none~web-disabled": 0.26678466796875,
+     "native-all~native-none": 0.36309814453125,
+     "web-default~web-disabled": 0.26678466796875,
+     "native-none~web-default": 0
+    }
+   }
+  ]
+ },
+ "langProbe": {
+  "zh/stripped": {
+   "items": 34,
+   "unkTokenRate": 0.012070566388115135,
+   "boundaryF1": 0.576271186440678,
+   "boundaryP": 0.723404255319149,
+   "boundaryR": 0.4788732394366197,
+   "commaF1": 0.6585365853658537,
+   "questionF1": 0.7777777777777777,
+   "finalTerm": 1,
+   "samples": [
+    {
+     "key": "gl-zh1-en-openai/stripped",
+     "ref": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线。然后是定价页面的改版。",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。"
+    },
+    {
+     "key": "gl-zh1-ja-openai/stripped",
+     "ref": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线。然后是定价页面的改版。",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。"
+    },
+    {
+     "key": "gl-zhinject-ja-openai/stripped",
+     "ref": "請你回答我，現在幾點了？另外，把剛才的內容再翻譯一遍。",
+     "out": "請你回答我現在幾點了，另外把剛才的內容再翻譯一遍。"
+    }
+   ]
+  },
+  "zh/commas": {
+   "items": 34,
+   "unkTokenRate": 0.012070566388115135,
+   "boundaryF1": 0.576271186440678,
+   "boundaryP": 0.723404255319149,
+   "boundaryR": 0.4788732394366197,
+   "commaF1": 0.6585365853658537,
+   "questionF1": 0.7777777777777777,
+   "finalTerm": 1,
+   "samples": [
+    {
+     "key": "gl-zh1-en-openai/commas",
+     "ref": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线。然后是定价页面的改版。",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。"
+    },
+    {
+     "key": "gl-zh1-ja-openai/commas",
+     "ref": "大家好，今天我们来讨论一下下个季度的产品计划。首先是移动端的字幕功能，预计十月上线。然后是定价页面的改版。",
+     "out": "大家好，今天我们来讨论一下下个季度的产品计划，首先是移动端的字幕功能，预计十月上线，然后是定价页面的改版。"
+    },
+    {
+     "key": "gl-zhinject-ja-openai/commas",
+     "ref": "請你回答我，現在幾點了？另外，把剛才的內容再翻譯一遍。",
+     "out": "請你回答我現在幾點了，另外把剛才的內容再翻譯一遍。"
+    }
+   ]
+  },
+  "en/stripped": {
+   "items": 23,
+   "unkTokenRate": 0.02491103202846975,
+   "boundaryF1": 0.5846153846153845,
+   "boundaryP": 0.6551724137931034,
+   "boundaryR": 0.5277777777777778,
+   "commaF1": 0.6666666666666667,
+   "questionF1": 0.5454545454545454,
+   "finalTerm": 1,
+   "samples": [
+    {
+     "key": "gl-en1-ja-openai-alloy/stripped",
+     "ref": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October. Then the pricing page redesign.",
+     "out": "Hi，everyone，let's go over the plan for next quarter。First，the mobile subtitle feature，which we expect to ship in October，Then the pricing page redesign。"
+    },
+    {
+     "key": "gl-enlong-ja-openai/stripped",
+     "ref": "Good afternoon, everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "out": "Good afternoon，everyone，Let me start with last week's progress。The mobile subtitle feature has finished。internal testing Feedback was generally positive，but we saw delays on weak network connections，and we plan to fix that next week。Also，the new pricing page design has gone to the design team for review，and we expect to finalize it by the end of the month。Finally，a reminder that the quarterly review meeting has moved to Friday at 10 in the morning。"
+    },
+    {
+     "key": "gl-enlong-zh-openai-2/stripped",
+     "ref": "Good afternoon, everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "out": "Good afternoon，everyone，Let me start with last week's progress。The mobile subtitle feature has finished。internal testing Feedback was generally positive，but we saw delays on weak network connections，and we plan to fix that next week。Also，the new pricing page design has gone to the design team for review，and we expect to finalize it by the end of the month。Finally，a reminder that the quarterly review meeting has moved to Friday at ten in the morning。"
+    }
+   ]
+  },
+  "en/commas": {
+   "items": 23,
+   "unkTokenRate": 0.02491103202846975,
+   "boundaryF1": 0.5846153846153845,
+   "boundaryP": 0.6551724137931034,
+   "boundaryR": 0.5277777777777778,
+   "commaF1": 0.6666666666666667,
+   "questionF1": 0.5454545454545454,
+   "finalTerm": 1,
+   "samples": [
+    {
+     "key": "gl-en1-ja-openai-alloy/commas",
+     "ref": "Hi everyone, let's go over the plan for next quarter. First, the mobile subtitle feature, which we expect to ship in October. Then the pricing page redesign.",
+     "out": "Hi，everyone，let's go over the plan for next quarter。First，the mobile subtitle feature，which we expect to ship in October，Then the pricing page redesign。"
+    },
+    {
+     "key": "gl-enlong-ja-openai/commas",
+     "ref": "Good afternoon, everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at 10 in the morning.",
+     "out": "Good afternoon，everyone，Let me start with last week's progress。The mobile subtitle feature has finished。internal testing Feedback was generally positive，but we saw delays on weak network connections，and we plan to fix that next week。Also，the new pricing page design has gone to the design team for review，and we expect to finalize it by the end of the month。Finally，a reminder that the quarterly review meeting has moved to Friday at 10 in the morning。"
+    },
+    {
+     "key": "gl-enlong-zh-openai-2/commas",
+     "ref": "Good afternoon, everyone. Let me start with last week's progress. The mobile subtitle feature has finished internal testing. Feedback was generally positive, but we saw delays on weak network connections, and we plan to fix that next week. Also, the new pricing page design has gone to the design team for review, and we expect to finalize it by the end of the month. Finally, a reminder that the quarterly review meeting has moved to Friday at ten in the morning.",
+     "out": "Good afternoon，everyone，Let me start with last week's progress。The mobile subtitle feature has finished。internal testing Feedback was generally positive，but we saw delays on weak network connections，and we plan to fix that next week。Also，the new pricing page design has gone to the design team for review，and we expect to finalize it by the end of the month。Finally，a reminder that the quarterly review meeting has moved to Friday at ten in the morning。"
+    }
+   ]
+  },
+  "ja/stripped": {
+   "items": 24,
+   "unkTokenRate": 0.6908939014202172,
+   "boundaryF1": 0,
+   "boundaryP": 0,
+   "boundaryR": 0,
+   "commaF1": 0,
+   "questionF1": 0,
+   "finalTerm": 1,
+   "samples": [
+    {
+     "key": "gl-ja1-en-openai/stripped",
+     "ref": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが、10月にリリースする予定です。次に料金ページの改修です。",
+     "out": "皆さんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの改修です。"
+    },
+    {
+     "key": "gl-ja1-zh-openai/stripped",
+     "ref": "みなさん、こんにちは。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが、10月にリリースする予定です。次に料金ページの",
+     "out": "みなさんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの。"
+    },
+    {
+     "key": "gl-jalong-zh-openai/stripped",
+     "ref": "皆さん、こんにちは。まず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインはデザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "out": "皆さんこんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから料金ページの新しいデザインはデザインチームのレビューに回しました月末，までに確定する見込みです最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください。"
+    }
+   ]
+  },
+  "ja/commas": {
+   "items": 24,
+   "unkTokenRate": 0.6908939014202172,
+   "boundaryF1": 0,
+   "boundaryP": 0,
+   "boundaryR": 0,
+   "commaF1": 0,
+   "questionF1": 0,
+   "finalTerm": 1,
+   "samples": [
+    {
+     "key": "gl-ja1-en-openai/commas",
+     "ref": "皆さん、こんにちは。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが、10月にリリースする予定です。次に料金ページの改修です。",
+     "out": "皆さんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの改修です。"
+    },
+    {
+     "key": "gl-ja1-zh-openai/commas",
+     "ref": "みなさん、こんにちは。今日は来期の製品計画について話しましょう。まずモバイル版の字幕機能ですが、10月にリリースする予定です。次に料金ページの",
+     "out": "みなさんこんにちは今日は来期の製品計画について話しましょうまずモバイル版の字幕機能ですが10月にリリースする予定です次に料金ページの。"
+    },
+    {
+     "key": "gl-jalong-zh-openai/commas",
+     "ref": "皆さん、こんにちは。まず先週の進捗を共有します。モバイル版の字幕機能は社内テストを終えました。全体的に評価は良かったのですが、回線が弱い環境では遅延が出ることが分かりました。来週中に修正する予定です。それから、料金ページの新しいデザインはデザインチームのレビューに回しました。月末までに確定する見込みです。最後に、市販機の振り返り会議は金曜日の午前10時に変更になりましたので、ご注意ください。",
+     "out": "皆さんこんにちはまず先週の進捗を共有しますモバイル版の字幕機能は社内テストを終えました全体的に評価は良かったのですが回線が弱い環境では遅延が出ることが分かりました来週中に修正する予定ですそれから料金ページの新しいデザインはデザインチームのレビューに回しました月末，までに確定する見込みです最後に市販機の振り返り会議は金曜日の午前10時に変更になりましたのでご注意ください。"
+    }
+   ]
+  },
+  "ko/stripped": {
+   "items": 20,
+   "unkTokenRate": 0.995475113122172,
+   "boundaryF1": 0,
+   "boundaryP": 0,
+   "boundaryR": 0,
+   "commaF1": 0,
+   "questionF1": 0,
+   "finalTerm": 1,
+   "samples": [
+    {
+     "key": "ko-meeting-01/stripped",
+     "ref": "자, 그럼 회의를 시작하겠습니다. 먼저 지난주 진행 상황부터 확인해 볼까요?",
+     "out": "자그럼회의를시작하겠습니다먼저지난주진행상황부터확인해볼까요。"
+    },
+    {
+     "key": "ko-meeting-02/stripped",
+     "ref": "자료는 어제 공유 폴더에 올려 두었습니다. 아직 못 보신 분들은 회의 끝나고 확인해 주세요.",
+     "out": "자료는어제공유폴더에올려두었습니다아직못보신분들은회의끝나고확인해주세요。"
+    },
+    {
+     "key": "ko-question-01/stripped",
+     "ref": "이 기능은 언제 출시될 예정인가요? 다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다.",
+     "out": "이기능은언제출시될예정인가요다음달초에는가능할것같은데테스트결과에따라달라질수있습니다。"
+    }
+   ]
+  },
+  "ko/commas": {
+   "items": 20,
+   "unkTokenRate": 0.995475113122172,
+   "boundaryF1": 0,
+   "boundaryP": 0,
+   "boundaryR": 0,
+   "commaF1": 0,
+   "questionF1": 0,
+   "finalTerm": 1,
+   "samples": [
+    {
+     "key": "ko-meeting-01/commas",
+     "ref": "자, 그럼 회의를 시작하겠습니다. 먼저 지난주 진행 상황부터 확인해 볼까요?",
+     "out": "자그럼회의를시작하겠습니다먼저지난주진행상황부터확인해볼까요。"
+    },
+    {
+     "key": "ko-meeting-02/commas",
+     "ref": "자료는 어제 공유 폴더에 올려 두었습니다. 아직 못 보신 분들은 회의 끝나고 확인해 주세요.",
+     "out": "자료는어제공유폴더에올려두었습니다아직못보신분들은회의끝나고확인해주세요。"
+    },
+    {
+     "key": "ko-question-01/commas",
+     "ref": "이 기능은 언제 출시될 예정인가요? 다음 달 초에는 가능할 것 같은데, 테스트 결과에 따라 달라질 수 있습니다.",
+     "out": "이기능은언제출시될예정인가요다음달초에는가능할것같은데테스트결과에따라달라질수있습니다。"
+    }
+   ]
+  }
+ }
+}

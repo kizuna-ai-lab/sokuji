@@ -41,6 +41,9 @@ import { isElectron, isExtension } from '../../utils/environment';
 import { data } from './volcengine-ast2/ast2-proto.js';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateAndSplitDefinite, splitDefinite, createSegmentLane } from './punctuateDefinite';
+import type { EventData } from '../../stores/logStore';
 
 const TranslateRequest = data.speech.ast.TranslateRequest;
 const TranslateResponse = data.speech.ast.TranslateResponse;
@@ -160,11 +163,39 @@ export class VolcengineAST2Client implements IClient {
    */
   private relay?: { wsUrl: string; sessionToken: string };
 
-  constructor(appId: string, accessToken: string, resourceId: string = 'volc.service_type.10053', relay?: { wsUrl: string; sessionToken: string }) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store. Doubao
+  // decides its own boundaries (the Definite/`end` phase), so the stage only
+  // fills in punctuation the server never sent and, at a size of 1-5, cuts
+  // inside that boundary — see punctuateAndSplitDefinite.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session, and a session that started without the models must not begin
+   * punctuating halfway through. Its identity doubles as the session token
+   * every deferred write checks before it lands.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** Definite-segment writes run one at a time, in the order the segments
+   *  became definite. See createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+
+  constructor(
+    appId: string,
+    accessToken: string,
+    resourceId: string = 'volc.service_type.10053',
+    relay?: { wsUrl: string; sessionToken: string },
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.appId = appId;
     this.accessToken = accessToken;
     this.resourceId = resourceId;
     this.relay = relay;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
   }
 
   private generateItemId(prefix: string): string {
@@ -193,12 +224,25 @@ export class VolcengineAST2Client implements IClient {
     this.lastCompletedTranslationItemId = null;
     this.lastResponseSequence = -1;
     this.ttsSentenceTargetItemId = null;
+    // R2: the one read of `enabled` this session gets. See the
+    // `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? {
+          enabled: true,
+          punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+          // Forwarded so the stage's own counters survive the freeze: this view
+          // is what SentenceStream and punctuateDefinite report through, and
+          // dropping it here would make every seal invisible. Counts, never text.
+          observe: (event) => runtime.observe?.(event),
+        }
+      : null;
 
     if (this.relay) {
       return this.connectViaRelay();
     }
 
-    if (isElectron() && window.electron?.invoke) {
+    if (isElectron() && window.electron) {
       return this.connectViaElectronHeaderInjection();
     }
     if (isExtension()) {
@@ -486,11 +530,16 @@ export class VolcengineAST2Client implements IClient {
       const response = TranslateResponse.decode(new Uint8Array(data));
       this.parseFailed = false;
       const eventType: number = response.event;
+      // The name is the proto enum's reverse mapping, so TypeScript sees a
+      // plain string and the union in logStore cannot enumerate the generated
+      // names — see its Volcengine AST2 note. The cast covers exactly that
+      // lookup; the `message.<number>` fallback below is type-checked.
+      const eventName = EventType[eventType] as EventData['type'] | undefined;
 
       this.eventHandlers.onRealtimeEvent?.({
         source: 'server',
         event: {
-          type: EventType[eventType] || `message.${eventType}`,
+          type: eventName ?? `message.${eventType}`,
           data: {
             event: eventType,
             eventName: EventType[eventType] || `unknown(${eventType})`,
@@ -694,32 +743,63 @@ export class VolcengineAST2Client implements IClient {
     }
 
     const itemId = this.currentSourceItemId || this.generateItemId('source');
+    const createdAt = Date.now();
+    // Cleared here rather than after the write: the write may be deferred by a
+    // punctuation call, and by then a new segment's `start` phase may already
+    // own this field.
+    if (isDefinite) this.currentSourceItemId = null;
 
-    const item: ConversationItem = {
-      id: itemId,
-      role: 'user',
-      type: 'message',
-      status: isDefinite ? 'completed' : 'in_progress',
-      createdAt: Date.now(),
-      formatted: { text, transcript: text },
-      content: [{ type: 'text', text }]
-    };
+    const writePiece = (finalText: string, index: number) => {
+      const item: ConversationItem = {
+        // The first piece IS the segment's item; a later one is a fresh item,
+        // because a size of 1-5 cuts inside the boundary the server chose (A2's
+        // revision of D6). The source side carries no audio, so a cut here
+        // strands nothing.
+        id: index === 0 ? itemId : this.generateItemId('source'),
+        role: 'user',
+        type: 'message',
+        status: isDefinite ? 'completed' : 'in_progress',
+        // ONE stamp for every piece — the segment's own, captured before the
+        // model call. MainPanel's sort is stable and these writes are
+        // contiguous, so a shared key keeps the pieces together and the next
+        // segment after them; a per-piece `+ index` would instead collide with
+        // the translation segment's pieces, whose `end` phase lands in the
+        // same millisecond, and the sort would interleave the two.
+        createdAt,
+        formatted: { text: finalText, transcript: finalText },
+        content: [{ type: 'text', text: finalText }]
+      };
 
-    if (isDefinite) {
-      this.conversationItems.push(item);
-      this.currentSourceItemId = null;
-    }
-
-    this.eventHandlers.onConversationUpdated?.({
-      item,
-      delta: {
-        text,
-        definite: isDefinite,
-        language: this.currentConfig?.sourceLanguage,
-        startTime: response.startTime,
-        endTime: response.endTime,
+      if (isDefinite) {
+        this.conversationItems.push(item);
       }
-    });
+
+      this.eventHandlers.onConversationUpdated?.({
+        item,
+        delta: {
+          text: finalText,
+          definite: isDefinite,
+          language: this.currentConfig?.sourceLanguage,
+          startTime: response.startTime,
+          endTime: response.endTime,
+        }
+      });
+    };
+    const write = (pieces: string[]) => pieces.forEach(writePiece);
+
+    const runtime = isDefinite ? this.sessionSegmentation : null;
+    if (!runtime) { write([text]); return; }
+    // The model call starts NOW so two segments punctuate concurrently; the
+    // write waits its turn in the lane so the answers cannot list the later
+    // segment first.
+    const pending = punctuateAndSplitDefinite(runtime, this.currentConfig?.sourceLanguage ?? '', text, this.sentencesPerChunk);
+    this.punctuationLane.queue(async (cancelled) => {
+      const pieces = await pending;
+      // `cancelled()`: disconnect() already wrote this segment raw. The
+      // identity check is the reconnect case — a genuinely stale answer.
+      if (cancelled() || this.sessionSegmentation !== runtime) return;
+      write(pieces);
+    }, () => write(splitDefinite(text, this.sentencesPerChunk)));
   }
 
   private handleTranslationSubtitle(response: any, phase: 'start' | 'response' | 'end'): void {
@@ -739,33 +819,59 @@ export class VolcengineAST2Client implements IClient {
     }
 
     const itemId = this.currentTranslationItemId || this.generateItemId('translation');
-
-    const item: ConversationItem = {
-      id: itemId,
-      role: 'assistant',
-      type: 'message',
-      status: isDefinite ? 'completed' : 'in_progress',
-      createdAt: Date.now(),
-      formatted: { text, transcript: text },
-      content: [{ type: 'text', text }]
-    };
-
+    const createdAt = Date.now();
+    // Both cleared here rather than after the write, for the same reason the
+    // source side clears early: the write may be deferred by a punctuation
+    // call, and a new segment's `start` phase may already own the field.
     if (isDefinite) {
-      this.conversationItems.push(item);
       this.lastCompletedTranslationItemId = this.currentTranslationItemId;
       this.currentTranslationItemId = null;
     }
 
-    this.eventHandlers.onConversationUpdated?.({
-      item,
-      delta: {
-        text,
-        definite: isDefinite,
-        language: this.currentConfig?.targetLanguage,
-        startTime: response.startTime,
-        endTime: response.endTime,
+    const writePiece = (finalText: string, index: number) => {
+      const item: ConversationItem = {
+        // The first piece IS the segment's item, and it is also where the
+        // segment's TTS audio lands: `decodeTTSAndPlay` resolves its target
+        // through `ttsSentenceTargetItemId`/`currentTranslationItemId`/
+        // `lastCompletedTranslationItemId`, all of which are `itemId`. The
+        // audio is the whole segment's, there is no per-sentence timing to cut
+        // it on, and the first bubble is where a user reaches for the replay
+        // button — so it stays there and the later pieces have none.
+        id: index === 0 ? itemId : this.generateItemId('translation'),
+        role: 'assistant',
+        type: 'message',
+        status: isDefinite ? 'completed' : 'in_progress',
+        // ONE stamp for every piece; see the source side's note.
+        createdAt,
+        formatted: { text: finalText, transcript: finalText },
+        content: [{ type: 'text', text: finalText }]
+      };
+
+      if (isDefinite) {
+        this.conversationItems.push(item);
       }
-    });
+
+      this.eventHandlers.onConversationUpdated?.({
+        item,
+        delta: {
+          text: finalText,
+          definite: isDefinite,
+          language: this.currentConfig?.targetLanguage,
+          startTime: response.startTime,
+          endTime: response.endTime,
+        }
+      });
+    };
+    const write = (pieces: string[]) => pieces.forEach(writePiece);
+
+    const runtime = isDefinite ? this.sessionSegmentation : null;
+    if (!runtime) { write([text]); return; }
+    const pending = punctuateAndSplitDefinite(runtime, this.currentConfig?.targetLanguage ?? '', text, this.sentencesPerChunk);
+    this.punctuationLane.queue(async (cancelled) => {
+      const pieces = await pending;
+      if (cancelled() || this.sessionSegmentation !== runtime) return;
+      write(pieces);
+    }, () => write(splitDefinite(text, this.sentencesPerChunk)));
   }
 
   private handleTTSResponse(response: any): void {
@@ -870,6 +976,10 @@ export class VolcengineAST2Client implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a definite segment still
+    // waiting for its punctuation is text the user said, and MainPanel reads
+    // `getConversationItems()` on the turn after this resolves.
+    this.punctuationLane.flush();
     this.stopKeepalive();
     // Send FinishSession before closing
     try {
@@ -894,7 +1004,7 @@ export class VolcengineAST2Client implements IClient {
 
     // Clean up any remaining header injection rules (normally already
     // consumed one-shot by the handler, but clear as a safety net)
-    if (isElectron() && window.electron?.invoke) {
+    if (isElectron() && window.electron) {
       this.clearElectronHeaders();
     } else if (isExtension()) {
       this.clearExtensionDNR();
@@ -902,6 +1012,10 @@ export class VolcengineAST2Client implements IClient {
 
     this.isConnectedState = false;
     this.ttsChunks = [];
+    // Dropped after the flush above, so the next session cannot be served this
+    // one's answer. It is not what protects the items — the flush is; this
+    // identity is the reconnect guard.
+    this.sessionSegmentation = null;
 
     // Close the decode AudioContext
     if (this.decodeContext) {
@@ -929,7 +1043,7 @@ export class VolcengineAST2Client implements IClient {
     return this.isConnectedState && this.websocket?.readyState === WebSocket.OPEN;
   }
 
-  updateSession(config: Partial<SessionConfig>): void {
+  updateSession(_config: Partial<SessionConfig>): void {
     // Unreachable: no capability advertises runtime session updates.
   }
 
@@ -988,15 +1102,15 @@ export class VolcengineAST2Client implements IClient {
     return output;
   }
 
-  appendInputText(text: string): void {
+  appendInputText(_text: string): void {
     // Unreachable: MainPanel gates text input on capabilities.supportsTextInput.
   }
 
-  createResponse(config?: ResponseConfig): void {
+  createResponse(_config?: ResponseConfig): void {
     // Volcengine automatically generates responses when audio is received
   }
 
-  cancelResponse(trackId?: string, offset?: number): void {
+  cancelResponse(_trackId?: string, _offset?: number): void {
     // Unreachable: no capability advertises response cancellation.
   }
 

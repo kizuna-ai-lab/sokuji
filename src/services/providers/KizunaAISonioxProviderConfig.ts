@@ -75,6 +75,8 @@ export class KizunaAISonioxProviderConfig extends SonioxProviderConfig {
       // own leg when it reports that Soniox accepted the stream.
       sttRole: managed.role,
       announcesSessionOutcome: managed.announcesSessionOutcome,
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
     });
   }
 

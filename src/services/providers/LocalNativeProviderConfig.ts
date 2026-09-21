@@ -144,8 +144,8 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
     return '';
   }
 
-  createClient(_creds: Credentials & { ok: true }, _options: ClientOptions): IClient {
-    return new LocalNativeClient();
+  createClient(_creds: Credentials & { ok: true }, options: ClientOptions): IClient {
+    return new LocalNativeClient({ segmentation: options.segmentation, sentencesPerChunk: options.sentencesPerChunk });
   }
 
   // Readiness for LOCAL_NATIVE is model-based, not credential-based: settingsStore's
@@ -253,6 +253,13 @@ export class LocalNativeProviderConfig extends BaseProviderDescriptor {
         // createResponse always follows — for streaming ASR it flushes the
         // pending utterance, for offline ASR it is harmless.
         pttFinalization: { silenceTailFrames: 7, response: 'always' },
+
+        // 1-5 sentences is what the local engines already ship: they build a
+        // stream and seal it every N. Auto is the VAD utterance kept whole —
+        // a boundary something else already decided, punctuated and not cut.
+        // By pause is not theirs to offer: the client-side VAD, not a silence
+        // timer over the text, ends the turn.
+        segmentation: { pause: false, auto: true, sizes: true },
       },
     };
   }

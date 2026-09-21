@@ -10,7 +10,6 @@ import {
   useLocalInferenceSettings,
   useLocalNativeSettings,
   useVolcengineAST2Settings,
-  useZoomAISettings,
   useUpdateOpenAI,
   useUpdateGemini,
   useUpdateOpenAICompatible,
@@ -22,9 +21,7 @@ import {
   useUpdateKizunaSoniox,
   useUpdateLocalInference,
   useUpdateLocalNative,
-  useUpdateVolcengineST,
   useUpdateVolcengineAST2,
-  useUpdateZoomAI,
   useUpdateSoniox,
   useNavigateToSettings,
   useUIMode,
@@ -73,7 +70,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const localInferenceSettings = useLocalInferenceSettings();
   const localNativeSettings = useLocalNativeSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
-  const zoomAISettings = useZoomAISettings();
 
   const isParticipantChannelInScope = useIsParticipantChannelInScope();
   // Mode scope for the Text Only lock below. `lockedMode ?? mode` — the same
@@ -105,11 +101,9 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const updateKizunaOpenaiTranslateSettings = useUpdateKizunaOpenaiTranslate();
   const updateKizunaVolcengineAst2Settings = useUpdateKizunaVolcengineAst2();
   const updateKizunaSonioxSettings = useUpdateKizunaSoniox();
-  const updateVolcengineSTSettings = useUpdateVolcengineST();
   const updateVolcengineAST2Settings = useUpdateVolcengineAST2();
   const updateLocalInferenceSettings = useUpdateLocalInference();
   const updateLocalNativeSettings = useUpdateLocalNative();
-  const updateZoomAISettings = useUpdateZoomAI();
   const updateSonioxSettings = useUpdateSoniox();
 
   // Kizuna-managed relay twins reuse their base provider's language controls but
@@ -169,9 +163,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         // Renders the interpreter template only; Live auto-detects the input.
         updateOpenAILiveSettings({ sourceLanguage: value });
         break;
-      case Provider.VOLCENGINE_ST:
-        updateVolcengineSTSettings({ sourceLanguage: value });
-        break;
       case Provider.VOLCENGINE_AST2:
       case Provider.KIZUNA_AI_VOLCENGINE_AST2: {
         // Both the user-managed AST2 provider and its kizuna twin use the same
@@ -226,13 +217,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         updateLocalNativeSettings(updates);
         break;
       }
-      case Provider.ZOOM_AI: {
-        updateZoomAISettings({
-          sourceLanguage: value,
-          targetLanguage: ProviderConfigFactory.getDescriptor(provider).reconcileTarget(value, zoomAISettings.targetLanguage),
-        });
-        break;
-      }
       case Provider.SONIOX:
         updateSonioxSettings({ sourceLanguage: value });
         break;
@@ -272,9 +256,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       case Provider.OPENAI_LIVE:
         updateOpenAILiveSettings({ targetLanguage: value });
         break;
-      case Provider.VOLCENGINE_ST:
-        updateVolcengineSTSettings({ targetLanguage: value });
-        break;
       case Provider.VOLCENGINE_AST2:
       case Provider.KIZUNA_AI_VOLCENGINE_AST2: {
         const prev = activeVolcengineAST2Settings;
@@ -309,9 +290,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         // Stale-TTS reset + directional translation reconciliation is handled by
         // NativeModelManagementSection's auto-select effect (parity with LOCAL_INFERENCE).
         updateLocalNativeSettings({ targetLanguage: value });
-        break;
-      case Provider.ZOOM_AI:
-        updateZoomAISettings({ targetLanguage: value });
         break;
       case Provider.SONIOX:
         updateSonioxSettings({ targetLanguage: value });
@@ -348,15 +326,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
       updateActiveVolcengineAST2Settings({ sourceLanguage: tgt, targetLanguage: src });
       trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
       trackEvent('language_changed', { to_language: src, language_type: 'target' });
-    } else if (provider === Provider.ZOOM_AI) {
-      const descriptor = ProviderConfigFactory.getDescriptor(provider);
-      const sources = descriptor.resolveSourceLanguages().map(l => l.value);
-      if (!sources.includes(tgt)) return; // target isn't a Scribe source; cannot become the new source
-      const allowed = descriptor.resolveTargetLanguages(tgt).map(l => l.value);
-      const newTarget = allowed.includes(src) ? src : (allowed[0] || 'en-US');
-      updateZoomAISettings({ sourceLanguage: tgt, targetLanguage: newTarget });
-      trackEvent('language_changed', { to_language: tgt, language_type: 'source' });
-      trackEvent('language_changed', { to_language: newTarget, language_type: 'target' });
     } else {
       updateSourceLanguage(tgt);
       // For providers with a restricted target list (currently only OPENAI_TRANSLATE),
@@ -370,7 +339,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
         : (targetList[0]?.value ?? src);
       updateTargetLanguage(newTarget);
     }
-  }, [provider, effectiveProvider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateActiveVolcengineAST2Settings, updateZoomAISettings, trackEvent]);
+  }, [provider, effectiveProvider, currentProviderSettings, providerConfig, updateLocalInferenceSettings, updateSourceLanguage, updateTargetLanguage, updateActiveVolcengineAST2Settings, trackEvent]);
 
   // Dynamic target languages for LOCAL_INFERENCE; restricted list for providers
   // that explicitly declare `targetLanguages` (e.g. OpenAI Translate has 13);
@@ -378,9 +347,6 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
   const targetLanguages = useMemo(() => {
     if (provider === Provider.LOCAL_INFERENCE || provider === Provider.LOCAL_NATIVE) {
       return getTranslationTargetLanguages(currentProviderSettings.sourceLanguage || 'ja');
-    }
-    if (provider === Provider.ZOOM_AI) {
-      return ProviderConfigFactory.getDescriptor(provider).resolveTargetLanguages(currentProviderSettings.sourceLanguage || 'ja-JP');
     }
     return providerConfig.targetLanguages ?? providerConfig.languages;
   }, [provider, providerConfig.languages, providerConfig.targetLanguages, currentProviderSettings.sourceLanguage]);
@@ -618,7 +584,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={isSessionActive}
                 className="language-select"
               >
-                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.LOCAL_NATIVE && provider !== Provider.ZOOM_AI && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
+                {provider !== Provider.LOCAL_INFERENCE && provider !== Provider.LOCAL_NATIVE && effectiveProvider !== Provider.OPENAI_TRANSLATE && (
                   <option value="auto">{t('common.autoDetect')}</option>
                 )}
                 {providerConfig.languages.map((lang) => (
@@ -636,9 +602,7 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
                 disabled={
                   isSessionActive ||
                   currentProviderSettings.sourceLanguage === 'auto' ||
-                  currentProviderSettings.sourceLanguage === 'zhen' ||
-                  (provider === Provider.ZOOM_AI &&
-                    !ProviderConfigFactory.getDescriptor(provider).resolveSourceLanguages().some(l => l.value === currentProviderSettings.targetLanguage))
+                  currentProviderSettings.sourceLanguage === 'zhen'
                 }
                 title={t('simpleConfig.swapLanguages', 'Swap languages')}
                 type="button"
@@ -746,9 +710,15 @@ const LanguageSection: React.FC<LanguageSectionProps> = ({
             />
           )}
 
-          {/* Inherently text-only providers (e.g. Zoom AI, Volcengine ST) show a
-              permanently-on, non-interactive switch so users can see at a glance
-              that the provider produces text only and never synthesizes audio. */}
+          {/* Inherently text-only providers show a permanently-on,
+              non-interactive switch so users can see at a glance that the
+              provider produces text only and never synthesizes audio. No
+              registered provider is currently 'always' — the last two that were
+              (Zoom AI, Volcengine ST) were removed on 2026-09-20 — but
+              textOnlyCapability is a three-valued descriptor contract, so this
+              branch stays as the handling for the value. It is executed by
+              LanguageSection.sentence.test.tsx's stubbed-capability case, which
+              is the only thing reaching it while no provider declares it. */}
           {providerConfig.capabilities.textOnlyCapability === 'always' && (
             <ToggleSwitch
               checked={true}

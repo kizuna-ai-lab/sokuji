@@ -246,7 +246,6 @@ export function getActiveModelInfo(
       put('translation', currentSettings?.model);
       break;
     case Provider.PALABRA_AI:
-    case Provider.VOLCENGINE_ST:
     case Provider.VOLCENGINE_AST2:
       // These providers don't expose a user-selectable model on settings;
       // their model name is fixed inside the client code. Leave models empty.

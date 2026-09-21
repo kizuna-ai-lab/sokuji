@@ -7,7 +7,6 @@ import {
   useGeminiSettings,
   useOpenAICompatibleSettings,
   usePalabraAISettings,
-  useVolcengineSTSettings,
   useVolcengineAST2Settings,
   useSettingsLoaded,
   useLocalInferenceSettings,
@@ -46,7 +45,6 @@ export function SettingsInitializer() {
   const geminiSettings = useGeminiSettings();
   const openAICompatibleSettings = useOpenAICompatibleSettings();
   const palabraAISettings = usePalabraAISettings();
-  const volcengineSTSettings = useVolcengineSTSettings();
   const volcengineAST2Settings = useVolcengineAST2Settings();
   // Only the REGION, not the keys. Soniox's keys are deliberately absent from
   // the validation effect below (they always were — the explicit Validate
@@ -156,7 +154,6 @@ export function SettingsInitializer() {
       openAICompatibleSettings.apiKey,
       palabraAISettings.authMode, palabraAISettings.apiKey,
       palabraAISettings.clientId, palabraAISettings.clientSecret,
-      volcengineSTSettings.accessKeyId, volcengineSTSettings.secretAccessKey,
       volcengineAST2Settings.appId, volcengineAST2Settings.accessToken,
       // Switching region swaps WHICH key is active, so the standing verdict is
       // about a different credential and must be re-derived. Without this,

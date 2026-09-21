@@ -13,9 +13,7 @@ vi.mock('../../utils/environment', async (orig) => ({
   isKizunaOpenAITranslateEnabled: () => true,
   isKizunaVolcengineAST2Enabled: () => true,
   isPalabraAIEnabled: () => true,
-  isVolcengineSTEnabled: () => true,
   isVolcengineAST2Enabled: () => true,
-  isZoomAIEnabled: () => true,
   isLocalNativeEnabled: () => false,
   isElectron: () => true,
   isExtension: () => false,
@@ -32,7 +30,7 @@ describe('LOCAL_NATIVE feature-flag gating (disabled path)', () => {
     // Local Native flag, so they must remain registered.
     expect(ids).toContain(Provider.OPENAI_COMPATIBLE);
     expect(ids).toContain(Provider.VOLCENGINE_AST2);
-    // One fewer than the 15 in descriptorRegistry.test.ts (which forces the flag on).
-    expect(ids.length).toBe(14);
+    // One fewer than the 13 in descriptorRegistry.test.ts (which forces the flag on).
+    expect(ids.length).toBe(12);
   });
 });

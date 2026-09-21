@@ -96,7 +96,7 @@ function serveOrtWasm(): Plugin {
  * workers even with SharedArrayBuffer from --enable-features. Vite's
  * `server.headers` does not reach all worker-script responses (notably `public/`
  * static workers via sirv, e.g. edge-tts.worker.js, and the `?worker_file`
- * handler for module workers like zoom-vad.worker.ts), so those load with
+ * handler for module workers like native-vad.worker.ts), so those load with
  * "COEP-framed resource needs COEP header". A top-of-stack middleware that
  * stamps the headers on every response covers them all. `serve` (dev) only;
  * the packaged app (file://) and the extension build are untouched.

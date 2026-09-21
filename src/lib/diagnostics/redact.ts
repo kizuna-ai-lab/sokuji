@@ -25,9 +25,12 @@ const REDACTED = '[REDACTED]';
 const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   // `${MODELS_ENDPOINT}?key=${apiKey}` — GeminiClient.ts:138-139.
   //
-  // `X-Credential` and `X-Signature` are the Volcengine SigV4-style query
-  // parameters (VolcengineSTClient.ts:84), and `X-Credential` carries the
-  // account's access key id verbatim. They need naming explicitly: the rule is
+  // `X-Credential` and `X-Signature` are the SigV4-style query parameters a
+  // Volcengine-shaped signed URL carries, and `X-Credential` carries the
+  // account's access key id verbatim. No client in the tree signs a URL this
+  // way any more (VolcengineSTClient, which did, was removed on 2026-09-20),
+  // but panel text is clipboard-exportable, so the rule stays as a net for a
+  // URL a user pastes into a bug report. They need naming explicitly: the rule is
   // anchored on `[?&]`, so a bare `signature` alternative does NOT match
   // `?X-Signature=` — the `X-` prefix sits between the delimiter and the name.
   [

@@ -104,8 +104,8 @@ describe('sessionPortMirror', () => {
 
   it('on config message, writes to the camelCase store key for providers whose enum value is snake_case', () => {
     // Regression: Provider enum values like 'local_inference' /
-    // 'openai_translate' / 'volcengine_st' don't match their camelCase
-    // store keys (localInference / openaiTranslate / volcengineST). The
+    // 'openai_translate' / 'volcengine_ast2' don't match their camelCase
+    // store keys (localInference / openaiTranslate / volcengineAST2). The
     // earlier message handler used `s[provider]` directly, writing to a
     // garbage key while the real key kept its hardcoded defaults — so
     // SubtitleApp's `getCurrentProviderSettings()` returned the unchanged

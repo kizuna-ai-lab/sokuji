@@ -46,7 +46,10 @@ export class OpenAICompatibleProviderConfig extends OpenAIProviderConfig {
         outputDeviceId: options.webrtcOptions?.outputDeviceId,
       });
     }
-    return new OpenAIClient(creds.primary, creds.endpoint);
+    return new OpenAIClient(creds.primary, creds.endpoint, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{

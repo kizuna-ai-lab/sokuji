@@ -5,6 +5,9 @@ import { SonioxSessionConfig, ConversationItem } from '../interfaces/IClient';
 import { Provider } from '../../types/Provider';
 import type { SonioxSttMessage, SonioxSttStreamHandlers, SonioxSttConfig } from './SonioxSttStream';
 import { SonioxSideTracker } from './SonioxSideTracker';
+// The panel's own ordering, not a copy of it: a hand-rolled comparator here
+// would keep passing after MainPanel's changed.
+import { mergeConversationItems } from '../../components/MainPanel/conversationMerge';
 
 // --- Mock both wire components; capture instances for driving the client ---
 const sttInstances: MockStt[] = [];
@@ -1577,5 +1580,290 @@ describe("the client dials its bundle's region", () => {
     const { stt, tts } = await connectedClient({ textOnly: false }, 'eu');
     expect(stt.config?.region).toBe('eu');
     expect((tts?.options as { region?: string })?.region).toBe('eu');
+  });
+});
+
+describe('SonioxClient with the segmentation stage', () => {
+  /** A runtime that marks a sentence end every `every` characters. Terminals
+   *  only, so the skeleton invariant holds. */
+  function markingRuntime(every = 20) {
+    return {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += every) {
+          out += text.slice(i, i + every);
+          if (i + every <= text.length) { out += '。'; ends.push(out.length); }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  async function stagedClient(options: { segmentation?: any; sentencesPerChunk?: number }) {
+    const client = new SonioxClient(byokCredentials('key', 'us'), options);
+    const updates: Array<{ item: ConversationItem; delta?: any }> = [];
+    client.setEventHandlers({ onConversationUpdated: (d) => updates.push(d) });
+    await client.connect({ ...BASE_CONFIG, textOnly: true });
+    return { client, updates, stt: sttInstances[sttInstances.length - 1] };
+  }
+
+  /** 60 Chinese characters — past gateChars('zh', 3) = 60 — with nothing to
+   *  split on, which is exactly the segment the stage exists for. */
+  const LONG_ZH = '你'.repeat(60);
+
+  it('punctuates a long unpunctuated definite segment', async () => {
+    const runtime = markingRuntime(20);
+    const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    stt.emit({ tokens: [
+      tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const user = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(user).toHaveLength(1);
+    expect(user[0].status).toBe('completed');
+    expect(user[0].formatted?.text).toBe(`${'你'.repeat(20)}。${'你'.repeat(20)}。${'你'.repeat(20)}。`);
+    expect(user[0].content?.[0]?.text).toBe(user[0].formatted?.text);
+  });
+
+  it('passes the per-role DETECTED language, not the configured one', async () => {
+    const runtime = markingRuntime(20);
+    const { stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    stt.emit({ tokens: [
+      // Source language is 'zh' in BASE_CONFIG; Soniox detected Japanese.
+      tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'ja' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(runtime.punctuate.mock.calls[0].slice(0, 2)).toEqual(['ja', LONG_ZH]);
+  });
+
+  it('routes an untagged translation to the TARGET language, not the source', async () => {
+    // Soniox tags most translation tokens, but not all of them: with no
+    // `language` on the batch there is nothing detected to fall back from, and
+    // the configured pair's SOURCE language is the one language the
+    // translation is certainly not in — it would pick the wrong punctuation
+    // model for every sentence in that batch.
+    const runtime = markingRuntime(20);
+    const { stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    // 160 characters clears gateChars for both 'en' (150) and 'zh' (60), so
+    // the model runs whichever language is passed and the call itself is the
+    // assertion.
+    const longEn = 'a'.repeat(160);
+    stt.emit({ tokens: [
+      tok(longEn, { is_final: true, translation_status: 'translation' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(runtime.punctuate.mock.calls[0][0]).toBe('en');
+  });
+
+  it('dates a lazily minted completed item from the segment, not from the write', async () => {
+    // <end> can arrive before any item id has been assigned, so completeItem's
+    // upsert mints one. Taking `createdAt` after the model call would stamp it
+    // later than the next utterance's item and sort it below in the panel.
+    const MODEL_MS = 200;
+    const runtime = {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        await new Promise((r) => setTimeout(r, MODEL_MS));
+        return { text, sentenceEnds: [], breakpoints: [], model: 'fireredpunc' as const };
+      }),
+    };
+    const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    // One message: the final and the <end> together, so <end> reaches
+    // finishUtterance before the post-loop emitTextUpdate has minted anything.
+    const atSegment = Date.now();
+    stt.emit({ tokens: [
+      tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, MODEL_MS + 50));
+
+    const [item] = client.getConversationItems();
+    expect(item.status).toBe('completed');
+    expect(item.createdAt).toBeGreaterThanOrEqual(atSegment);
+    // Well inside the model's 200 ms: the stamp is the segment's, not the
+    // write's.
+    expect(item.createdAt! - atSegment).toBeLessThan(MODEL_MS / 2);
+  });
+
+  it('leaves the item boundaries exactly where they are, runtime or not', async () => {
+    const shape = async (options: { segmentation?: any; sentencesPerChunk?: number }) => {
+      const { client, stt } = await stagedClient(options);
+      stt.emit({ tokens: [
+        tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+        tok('Hello there everyone', { is_final: true, translation_status: 'translation', language: 'en' }),
+        tok('<end>'),
+      ] });
+      await new Promise((r) => setTimeout(r, 0));
+      return client.getConversationItems().map((i) => `${i.role}:${i.status}`);
+    };
+    expect(await shape({ segmentation: markingRuntime(20), sentencesPerChunk: 3 }))
+      .toEqual(await shape({}));
+  });
+
+  describe('splitting a definite segment', () => {
+    /** One 20-character sentence, the unit markingRuntime(20) produces. */
+    const ONE = `${'你'.repeat(20)}。`;
+
+    it('cuts the segment into one item per N sentences, inside the server\'s own boundary', async () => {
+      const { client, stt } = await stagedClient({ segmentation: markingRuntime(20), sentencesPerChunk: 2 });
+      stt.emit({ tokens: [
+        tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+        tok('<end>'),
+      ] });
+      await new Promise((r) => setTimeout(r, 0));
+
+      const user = client.getConversationItems().filter((i) => i.role === 'user');
+      expect(user.map((i) => i.formatted?.text)).toEqual([`${ONE}${ONE}`, ONE]);
+      // The outer edge is untouched: the pieces rejoin to exactly the segment
+      // Soniox closed with <end>.
+      expect(user.map((i) => i.formatted?.text).join('')).toBe(ONE.repeat(3));
+      expect(user.map((i) => i.status)).toEqual(['completed', 'completed']);
+      expect(user.map((i) => i.content?.[0]?.text)).toEqual([`${ONE}${ONE}`, ONE]);
+      // Every piece keeps the segment's detected language — it is the language
+      // the whole segment was spoken in, not a property of the first bubble.
+      expect(user.map((i) => i.detectedLanguage)).toEqual(['zh', 'zh']);
+      // MainPanel sorts by createdAt with a stable sort, so the pieces of one
+      // segment share ONE stamp — the segment's own. A per-piece offset would
+      // collide with the other side's pieces; see the ordering test below.
+      expect(user[1].createdAt).toBe(user[0].createdAt);
+      expect(user[0].id).not.toBe(user[1].id);
+    });
+
+    it('keeps each segment\'s pieces together once MainPanel has sorted the items', async () => {
+      // Two utterances, source and translation each split into three. Every
+      // piece of a segment carries the segment's own stamp, so the panel's
+      // stable sort leaves the four segments in the order they were written
+      // and each one's pieces adjacent. A per-piece `createdAt + i` instead
+      // gives piece 1 of every segment the same key, and the sort interleaves
+      // all four.
+      const { client, stt } = await stagedClient({ segmentation: markingRuntime(20), sentencesPerChunk: 1 });
+      const say = (zh: string, en: string) => {
+        stt.emit({ tokens: [
+          tok(zh, { is_final: true, translation_status: 'original', language: 'zh' }),
+          tok(en, { is_final: true, translation_status: 'translation', language: 'en' }),
+          tok('<end>'),
+        ] });
+      };
+      // 60 characters each: three 20-character sentences after markingRuntime,
+      // and past gateChars('zh', 1) = 20 / gateChars('en', 1) = 50.
+      say('你'.repeat(60), 'a'.repeat(60));
+      await new Promise((r) => setTimeout(r, 0));
+      say('好'.repeat(60), 'b'.repeat(60));
+      await new Promise((r) => setTimeout(r, 0));
+
+      // The panel's own merge-and-sort, imported rather than re-implemented.
+      // `languageOf` only tags rows; it cannot affect their order.
+      const rendered = mergeConversationItems(client.getConversationItems(), [], () => ({
+        sourceLanguage: 'zh',
+        targetLanguage: 'en',
+      }));
+      const segment = (role: string, ch: string) =>
+        [0, 1, 2].map(() => `${role}:${ch.repeat(20)}。`);
+      expect(rendered.map((i) => `${i.role}:${i.formatted?.text}`)).toEqual([
+        ...segment('user', '你'), ...segment('assistant', 'a'),
+        ...segment('user', '好'), ...segment('assistant', 'b'),
+      ]);
+    });
+
+    it('keeps the same segment as one item under Auto', async () => {
+      const { client, stt } = await stagedClient({ segmentation: markingRuntime(20), sentencesPerChunk: 0 });
+      stt.emit({ tokens: [
+        tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+        tok('<end>'),
+      ] });
+      await new Promise((r) => setTimeout(r, 0));
+
+      const user = client.getConversationItems().filter((i) => i.role === 'user');
+      expect(user).toHaveLength(1);
+      expect(user[0].formatted?.text).toBe(ONE.repeat(3));
+    });
+
+    it('writes EVERY piece raw when Stop lands inside the punctuation wait', async () => {
+      // The second segment already carries its own marks, so its answer is
+      // ready at once — but the lane is still behind the first segment, whose
+      // model never replies. disconnect() must write both raw, and the second
+      // one is four sentences at N = 2: two bubbles, not one.
+      const runtime = { enabled: true, punctuate: vi.fn(() => new Promise<never>(() => {})) };
+      const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 2 });
+      const marked = `${'好'.repeat(10)}。`.repeat(4);
+      stt.emit({ tokens: [tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' })] });
+      stt.emit({ tokens: [tok('<end>')] });
+      stt.emit({ tokens: [tok(marked, { is_final: true, translation_status: 'original', language: 'zh' })] });
+      stt.emit({ tokens: [tok('<end>')] });
+      await client.disconnect();
+
+      const user = client.getConversationItems().filter((i) => i.role === 'user');
+      expect(user.map((i) => i.formatted?.text)).toEqual([
+        LONG_ZH,
+        `${'好'.repeat(10)}。${'好'.repeat(10)}。`,
+        `${'好'.repeat(10)}。${'好'.repeat(10)}。`,
+      ]);
+      expect(user.every((i) => i.status === 'completed')).toBe(true);
+    });
+  });
+
+  it('never calls the model when the runtime was disabled at connect', async () => {
+    const late = { enabled: false, punctuate: vi.fn(async () => null) };
+    const { stt } = await stagedClient({ segmentation: late, sentencesPerChunk: 3 });
+    (late as { enabled: boolean }).enabled = true; // flips mid-session: R2 ignores it
+    stt.emit({ tokens: [
+      tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' }),
+      tok('<end>'),
+    ] });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(late.punctuate).not.toHaveBeenCalled();
+  });
+
+  it('writes the segment raw when Stop lands inside the punctuation wait', async () => {
+    // MainPanel's teardown is `await client.disconnect()` then
+    // `setItems(client.getConversationItems())`, so whatever the lane has not
+    // written by the time disconnect() returns is text the user never gets
+    // back. The lane writes it raw rather than waiting for the model.
+    // Never released: the model's answer must not be what the item ends up
+    // carrying, and Stop must not wait for it either.
+    const runtime = {
+      enabled: true,
+      punctuate: vi.fn(() => new Promise<never>(() => {})),
+    };
+    const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    // Two messages, so the in-progress item exists before <end> defers its
+    // completion — that item is the one the raw write has to finish.
+    stt.emit({ tokens: [tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' })] });
+    stt.emit({ tokens: [tok('<end>')] });
+    await client.disconnect();
+
+    const user = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(user).toHaveLength(1);
+    expect(user[0].status).toBe('completed');
+    expect(user[0].formatted?.text).toBe(LONG_ZH);
+  });
+
+  it('drops the punctuated answer that lands after that raw write', async () => {
+    let release: (() => void) | null = null;
+    const gate = new Promise<void>((r) => { release = r; });
+    const runtime = {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        await gate;
+        return { text: `${text}。`, sentenceEnds: [text.length + 1], breakpoints: [text.length + 1], model: 'fireredpunc' as const };
+      }),
+    };
+    const { client, stt } = await stagedClient({ segmentation: runtime, sentencesPerChunk: 3 });
+    stt.emit({ tokens: [tok(LONG_ZH, { is_final: true, translation_status: 'original', language: 'zh' })] });
+    stt.emit({ tokens: [tok('<end>')] });
+    await client.disconnect();
+    release!();
+    await new Promise((r) => setTimeout(r, 0));
+
+    const user = client.getConversationItems().filter((i) => i.role === 'user');
+    expect(user).toHaveLength(1);
+    expect(user[0].formatted?.text).toBe(LONG_ZH); // still the raw write's text
   });
 });

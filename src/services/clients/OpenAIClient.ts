@@ -10,6 +10,8 @@ import { Provider, ProviderType } from '../../types/Provider';
 import { unwrapTranslationText } from '../../utils/textUtils';
 import i18n from '../../locales';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
 
 /**
  * OpenAI model information interface
@@ -70,8 +72,47 @@ export class OpenAIClient implements IClient {
    */
   private inputAudioSendFailed: boolean = false;
 
-  constructor(apiKey: string, apiHost?: string) {
+  // ----- Sentence segmentation stage -----
+  //
+  // Both come from ClientOptions and are never re-read from a store. The
+  // server decides its own boundaries, so the stage only fills in punctuation
+  // it never sent — see punctuateDefinite.
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * R2: the session's one answer, frozen in connect() and cleared in
+   * disconnect(). `runtime.enabled` moves in BOTH directions under an open
+   * session, and a session that started without the models must not begin
+   * punctuating halfway through. Its identity doubles as the session token
+   * every deferred write checks before it lands.
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /** Definite-segment writes run one at a time, in the order the segments
+   *  became definite. See createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+  /**
+   * Punctuated replacements, keyed by item id. The SDK owns the conversation
+   * here, so convertToConversationItem rebuilds every item from it on every
+   * update AND on every getConversationItems() — without this the fill-in
+   * would be discarded the next time MainPanel refreshed its list. `source` is
+   * the exact text that was punctuated: an entry is applied only while the
+   * SDK's own text still matches, and its presence is also what stops the same
+   * item being punctuated again on a later update.
+   */
+  private punctuatedText: Map<string, { source: string; text: string }> = new Map();
+  /** The session's configured direction, the only language this provider has:
+   *  it reports none per item. */
+  private sourceLanguage = '';
+  private targetLanguage = '';
+
+  constructor(
+    apiKey: string,
+    apiHost?: string,
+    options: { segmentation?: SegmentationRuntime | null; sentencesPerChunk?: number } = {},
+  ) {
     this.apiKey = apiKey;
+    this.segmentation = options.segmentation ?? null;
+    this.sentencesPerChunk = options.sentencesPerChunk ?? 3;
     this.apiHost = apiHost || OpenAIClient.DEFAULT_API_HOST;
     
     // Remove trailing slash from API host if present
@@ -395,7 +436,40 @@ export class OpenAIClient implements IClient {
       
       const conversationItem = this.convertToConversationItem(item);
       this.releaseRetainedItemAudio(item);
-      this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
+
+      // This client has no completed-transcription event of its own: every
+      // item, in progress or finished, reaches the UI through the conversion
+      // above. So the stage fills in punctuation on exactly one update per
+      // item — the one that carries it as COMPLETED — and never on a partial.
+      // An audio delta is never deferred: MainPanel feeds it straight to the
+      // player, and holding it for a text model would stutter playback.
+      const source = delta?.audio ? '' : OpenAIClient.displayTextOf(conversationItem);
+      const done = conversationItem.status === 'completed' && !!source
+        && this.punctuatedText.get(conversationItem.id)?.source !== source;
+      const runtime = done ? this.sessionSegmentation : null;
+      if (!runtime) {
+        this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
+        return;
+      }
+      // The model call starts NOW so two segments punctuate concurrently; the
+      // emit waits its turn in the lane so the answers cannot emit the later
+      // segment first.
+      const lang = conversationItem.role === 'assistant' ? this.targetLanguage : this.sourceLanguage;
+      const pending = punctuateDefinite(runtime, lang, source, this.sentencesPerChunk);
+      this.punctuationLane.queue(async (cancelled) => {
+        const finalText = await pending;
+        // `cancelled()`: disconnect() already emitted this item unpunctuated.
+        // The identity check is the reconnect case — a genuinely stale answer.
+        if (cancelled() || this.sessionSegmentation !== runtime) return;
+        // Recorded even when nothing changed, so a later update of the same
+        // completed item does not ask the model the same question again.
+        this.punctuatedText.set(conversationItem.id, { source, text: finalText });
+        this.applyPunctuation(conversationItem);
+        this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
+      }, () => {
+        // Exactly the stage-off emit above: the item as the SDK built it.
+        this.eventHandlers.onConversationUpdated?.({ item: conversationItem, delta });
+      });
     });
   }
 
@@ -440,7 +514,7 @@ export class OpenAIClient implements IClient {
       this.itemCreatedAtMap.set(item.id, Date.now());
     }
 
-    return {
+    const converted: ConversationItem = {
       id: item.id,
       role: item.role as 'user' | 'assistant' | 'system',
       type: item.type as 'message' | 'function_call' | 'function_call_output',
@@ -462,6 +536,22 @@ export class OpenAIClient implements IClient {
       } : undefined,
       content: itemAny.content || []
     };
+    this.applyPunctuation(converted);
+    return converted;
+  }
+
+  /** Substitute the punctuated text recorded for this item, while the SDK's own
+   *  text still matches what was punctuated. */
+  private applyPunctuation(converted: ConversationItem): void {
+    const fill = this.punctuatedText.get(converted.id);
+    if (!fill || !converted.formatted) return;
+    if (converted.formatted.text === fill.source) converted.formatted.text = fill.text;
+    if (converted.formatted.transcript === fill.source) converted.formatted.transcript = fill.text;
+  }
+
+  /** The text an item shows, which is what the stage punctuates. */
+  private static displayTextOf(converted: ConversationItem): string {
+    return converted.formatted?.text || converted.formatted?.transcript || '';
   }
 
   /**
@@ -527,6 +617,22 @@ export class OpenAIClient implements IClient {
     this.pendingInputAudioBytes = 0;
     this.inputAudioSendFailed = false;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
+    this.punctuatedText.clear();
+    this.sourceLanguage = (config as { sourceLanguage?: string }).sourceLanguage ?? '';
+    this.targetLanguage = (config as { targetLanguage?: string }).targetLanguage ?? '';
+    // R2: the one read of `enabled` this session gets. See the
+    // `sessionSegmentation` field doc.
+    const runtime = this.segmentation;
+    this.sessionSegmentation = runtime?.enabled === true
+      ? {
+          enabled: true,
+          punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+          // Forwarded so the stage's own counters survive the freeze: this view
+          // is what SentenceStream and punctuateDefinite report through, and
+          // dropping it here would make every seal invisible. Counts, never text.
+          observe: (event) => runtime.observe?.(event),
+        }
+      : null;
 
     // Create new client instance with fresh API key, API host and model
     this.client = new RealtimeClient({
@@ -574,7 +680,15 @@ export class OpenAIClient implements IClient {
   }
 
   async disconnect(): Promise<void> {
+    // Before anything else, and synchronously: a definite segment still
+    // waiting for its punctuation is text the user said, and MainPanel reads
+    // `getConversationItems()` on the turn after this resolves.
+    this.punctuationLane.flush();
     this.client.disconnect();
+    // Dropped after the flush above, so the next session cannot be served this
+    // one's answer. It is not what protects the items — the flush is; this
+    // identity is the reconnect guard.
+    this.sessionSegmentation = null;
     this.eventHandlers.onRealtimeEvent?.({
       source: 'client',
       event: { 

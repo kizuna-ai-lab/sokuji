@@ -15,12 +15,29 @@ import { useNativeModelStore, nativeListTtsVoices, nativeHardwareInfo } from '..
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { createNativeVadWorker } from './createNativeVadWorker';
+import { SentenceStream } from '../../lib/segmentation/SentenceStream';
+import type { SegmentationRuntime } from '../../lib/segmentation/SegmentationRuntime';
+import { countSkeleton, offsetAfterSkeleton } from '../../lib/segmentation/sealCursor';
+import { punctuateDefinite, createSegmentLane } from './punctuateDefinite';
 
 interface Deps {
   asr?: NativeAsrClient | any;
   translate?: NativeTranslateClient | any;
   tts?: NativeTtsClient | any;
   vadWorker?: () => Worker | null;
+  /** The sentence segmentation stage. Absent, or disabled at connect, means
+   *  today's behaviour exactly — see ensureStream(). The object is live: its
+   *  `enabled` can turn true when the punctuation pack finishes downloading,
+   *  which is why connect() freezes that answer for the session. */
+  segmentation?: SegmentationRuntime | null;
+  /** How many sentences fill one bubble. Configuration, not a collaborator —
+   *  there is no sensible default to fall back to besides "absent". */
+  sentencesPerChunk?: number;
+}
+
+interface AsrTiming {
+  durationMs?: number;
+  recognitionTimeMs?: number;
 }
 
 /**
@@ -53,11 +70,128 @@ export class LocalNativeClient implements IClient {
   private vadWorker: Worker | null = null;
   private vadReady = false;
 
+  // Sentence segmentation: the runtime and per-bubble sentence count, read
+  // once from Deps in the constructor — the client never touches a store.
+  // Absent, or disabled at connect, means today's behaviour exactly; see
+  // `sessionSegmentation` and ensureStream().
+  private segmentation: SegmentationRuntime | null = null;
+  private sentencesPerChunk = 3;
+  /**
+   * The runtime THIS session seals with, or null when it does not seal at
+   * all. Built once, in `connect()`, as a frozen view over the live runtime:
+   * `enabled: true` fixed, `punctuate` delegated.
+   *
+   * Frozen because the live `enabled` moves in both directions under an open
+   * session — the pack finishing its download turns it true, a delete or the
+   * memory-debug override turns it false. True-again would wake this stage up
+   * halfway through an utterance that started without it. False-again is
+   * worse: every `SentenceStream` also reads `enabled` once, at its own
+   * construction, so a stream built after the flip is inert while the client
+   * still routes the utterance into it — no bubble, no translation, for that
+   * utterance and every later one in the session. One frozen view handed to
+   * every stream is what makes those two reads one answer. Reset in
+   * `disconnect()`. (LocalInferenceClient carries the same field for the same
+   * reason, plus the ASR worker's own punctuation endpoint, which it derives
+   * from the same one answer.)
+   */
+  private sessionSegmentation: SegmentationRuntime | null = null;
+  /**
+   * Which of the stage's two shapes THIS session is in, decided once in
+   * `connect()` beside `sessionSegmentation`. The two are EXCLUSIVE: exactly
+   * one of them runs for the whole session, and never both.
+   *
+   * - `'stream'` — a size of 1-5. One `SentenceStream` per utterance seals a
+   *   bubble every N sentences; `ensureStream()` builds it.
+   * - `'fill-in'` — a size of 0, Auto. The VAD utterance is a boundary
+   *   somebody else already decided (Amendment A2), so the client keeps it and
+   *   only fills in the punctuation, through the same `punctuateDefinite` the
+   *   server-definite clients use. No stream is ever constructed — a stream
+   *   built but inert costs the whole utterance (slice 4 paid for that).
+   * - `'off'` — no runtime, or one disabled at connect: today's behaviour
+   *   exactly.
+   *
+   * Decided once for the same reason `sessionSegmentation` is frozen: the size
+   * is a session value, and a size that moved mid-session would switch shapes
+   * under an open utterance. Reset in `disconnect()`.
+   * (LocalInferenceClient carries the same field for the same reason, plus the
+   * ASR worker's own punctuation endpoint, which it derives from it.)
+   */
+  private sessionShape: 'off' | 'stream' | 'fill-in' = 'off';
+  /** One stream per utterance, source side. Null between utterances. */
+  private stream: SentenceStream | null = null;
+  /** Orders the fill-in shape's writes, which land after an await. Two
+   *  utterances punctuate concurrently, but the later one must not be listed
+   *  first — see createSegmentLane. */
+  private readonly punctuationLane = createSegmentLane();
+  /**
+   * Bumped whenever the conversation this client is writing into is thrown
+   * away (`reset()`, `clearConversationItems()`). A fill-in write captured an
+   * earlier epoch and does nothing — the same guarantee those two already give
+   * by disposing the open stream: a cleared conversation must not still
+   * receive a bubble (and its job) from the utterance in progress before the
+   * clear.
+   */
+  private punctuationEpoch = 0;
+  /**
+   * How much of the current utterance's raw ASR text is already folded into
+   * a seal, counted in LETTERS AND DIGITS (see sealCursor.ts).
+   * `SentenceStream.update()` expects the text since the last seal, not the
+   * cumulative hypothesis the sidecar actually sends: `asr_engine.py` appends
+   * every partial onto its buffer and posts the whole of it, resetting only
+   * at a cut (which is what becomes `onAsrResult`). Re-slicing the raw text
+   * at this cursor on every call turns that cumulative growth into the delta
+   * the stream expects.
+   *
+   * Not a character offset, and not a count of non-whitespace characters
+   * either, because a final is not the last partial with more text on the
+   * end. The sidecar's gated streaming branch posts the partial unstripped
+   * (`_drive_utterance`) and the final stripped (`_finalize`), so a
+   * character offset lands one too far — a real character in Chinese or
+   * Japanese, where no space separates two sentences. A streaming final is
+   * also a fresh decode (`full_text`, `asr_backend.py`), which revises
+   * punctuation: moonshine dropped a full stop its partial had, and a
+   * non-whitespace count then ate the next sentence's first letter. Letters
+   * and digits are what every spelling of the same words agrees on, and they
+   * are the unit the segmentation stage compares by (`skeleton()` in
+   * sentenceEnd.ts). A final that revises WORDS before the seal point is
+   * beyond any count — see `isTruncationOfSameUtterance`.
+   *
+   * Advanced from `onPending`, NOT by the sealed text's own length: on the
+   * model path the sealed text carries inserted punctuation the raw input did
+   * not, so advancing by it would over-consume the raw text and silently
+   * delete real speech from the next chunk — see the `onPending` wiring in
+   * `ensureStream()`.
+   */
+  private sealedSkeleton = 0;
+  /** `sealedSkeleton` at the moment `lastPassedToStream` was handed to
+   *  `stream.update()` — the base the `onPending` recompute in
+   *  `ensureStream()` adds to. Set by `feedStream()`. */
+  private sealedSkeletonBase = 0;
+  /** The exact string most recently passed to `stream.update()` (already
+   *  sliced at `sealedSkeletonBase`). Set by `feedStream()`. */
+  private lastPassedToStream = '';
+  /**
+   * The full raw text most recently handed to `onAsrPartial`, before slicing
+   * at `sealedSkeleton`. Used to tell a genuinely different ASR result apart
+   * from one that merely re-decoded (and truncated) the SAME utterance —
+   * see `isTruncationOfSameUtterance()`.
+   */
+  private lastRawPartialText = '';
+  /** Set by `onAsrResult` AFTER it feeds the final text to the stream but
+   *  BEFORE calling `end()` — not before `feedStream()`, because `update()`
+   *  alone can seal more than one chunk synchronously. Read by
+   *  `sealUserChunk` (captured into a local before the job is queued) when it
+   *  pushes the job. Undefined at every other moment, which is what keeps the
+   *  timing off the mid-utterance chunks. */
+  private pendingAsrTiming: AsrTiming | undefined;
+
   constructor(deps: Deps = {}) {
     this.asr = deps.asr ?? new NativeAsrClient();
     this.translate = deps.translate ?? new NativeTranslateClient();
     this.tts = deps.tts ?? new NativeTtsClient();
     this.vadWorkerFactory = deps.vadWorker ?? createNativeVadWorker;
+    this.segmentation = deps.segmentation ?? null;
+    this.sentencesPerChunk = deps.sentencesPerChunk ?? 3;
   }
 
 
@@ -72,6 +206,39 @@ export class LocalNativeClient implements IClient {
   async connect(config: SessionConfig): Promise<void> {
     if (!isLocalNativeSessionConfig(config)) throw new Error('LocalNativeClient requires a local_native config');
     this.cfg = config;
+    // The one read of the runtime's `enabled` this session gets — see the
+    // `sessionSegmentation` field doc.
+    //
+    // `enabled` is the session's answer, not the runtime's current one: both
+    // the pack finishing its download and the memory-debug override can flip
+    // the real getter mid-session, and a stream built from a flipped value is
+    // inert while the client still routes the utterance into it — no bubble,
+    // no translation.
+    const active = this.segmentation?.enabled === true;
+    const runtime = this.segmentation;
+    this.sessionSegmentation = active && runtime
+      ? {
+          enabled: true,
+          punctuate: (lang, text, opts) => runtime.punctuate(lang, text, opts),
+          // Forwarded so the stage's own counters survive the freeze: this view
+          // is what SentenceStream and punctuateDefinite report through, and
+          // dropping it here would make every seal invisible. Counts, never text.
+          observe: (event) => runtime.observe?.(event),
+        }
+      : null;
+    // The session's shape, read from the size once and never again — see the
+    // `sessionShape` field doc. 0 is Auto: keep the VAD's boundary and fill in
+    // the marks. 1-5 is the stream.
+    this.sessionShape = !this.sessionSegmentation
+      ? 'off'
+      : this.sentencesPerChunk > 0 ? 'stream' : 'fill-in';
+    // A reconnect without an intervening disconnect() must not inherit a
+    // stream opened under the PREVIOUS config.
+    this.stream?.dispose();
+    this.stream = null;
+    this.sealedSkeleton = 0;
+    this.pendingAsrTiming = undefined;
+    this.lastRawPartialText = '';
     this.asr.onResult = (r: any) => this.onAsrResult(r);
     this.asr.onPartialResult = (text: string) => this.onAsrPartial(text);
     this.asr.onError = (e: string) => this.handlers.onError?.(e);
@@ -377,9 +544,100 @@ export class LocalNativeClient implements IClient {
     }
   }
 
-  private onAsrPartial(text: string): void {
-    if (!text) return;
-    this.emitEvent('local.native.asr.partial', 'server', { text });
+  /**
+   * The stream for the utterance in progress, created on first text.
+   *
+   * Returns null whenever this session is not in the stream shape — see the
+   * `sessionShape` field doc. That is "no segmentation, behave exactly as
+   * today" (no runtime, or one disabled at connect) and it is also Auto, where
+   * the utterance keeps the boundary the VAD gave it and only its text changes
+   * — see `fillInUtterance`.
+   *
+   * That check matters here and not just inside
+   * SentenceStream: SentenceStream's own contract for "no runtime or
+   * disabled" is "no sealing at all" (see its `active()`), so if this method
+   * still built a live-but-inert stream, the whole utterance would be
+   * silently dropped (no item, no job) instead of completing as one item and
+   * one job the way it does today.
+   *
+   * An already-open stream is always reused (checked first, before the
+   * guard) — "N is read once per stream".
+   */
+  private ensureStream(): SentenceStream | null {
+    // Reuse the existing stream if already constructed. Safe because
+    // `sessionSegmentation` is built once per session (see its field doc), so
+    // the answer cannot change under an open stream: neither the pack
+    // finishing its download nor the toggle moving reaches this decision
+    // until the next connect(). Reading `this.segmentation.enabled` here
+    // instead would reintroduce exactly that: a mid-utterance flip to false
+    // would reuse this stream while SentenceStream went inert, and the tail
+    // would be lost with the stranded user bubble overwritten by the next
+    // utterance.
+    if (this.stream) return this.stream;
+    if (this.sessionShape !== 'stream' || !this.sessionSegmentation) return null;
+    this.sealedSkeleton = 0;
+    this.stream = new SentenceStream({
+      lang: this.cfg?.sourceLanguage ?? 'auto',
+      // The session's frozen view, never `this.segmentation`: the stream reads
+      // `enabled` once at construction, and that read must give the same
+      // answer connect() gave.
+      runtime: this.sessionSegmentation,
+      sentencesPerChunk: this.sentencesPerChunk,
+      onSeal: (chunk) => this.sealUserChunk(chunk.text),
+      onPending: (text) => {
+        // Recompute the cursor from how much of what feedStream() last
+        // handed the stream remains unconsumed — see the sealedSkeleton
+        // field doc. Cannot advance by the sealed text in sealUserChunk
+        // instead: the model path's seal can differ from the raw input it
+        // consumed (SentenceStream.applyResult inserts punctuation), so that
+        // would drift the cursor and silently delete raw characters from the
+        // next chunk.
+        this.sealedSkeleton = this.sealedSkeletonBase
+          + countSkeleton(this.lastPassedToStream) - countSkeleton(text);
+        this.showPartialUserText(text);
+      },
+    });
+    return this.stream;
+  }
+
+  /**
+   * Slice the raw ASR text at `sealedSkeleton` and feed the relative
+   * tail to the stream, recording what was passed so the `onPending` callback
+   * (wired in ensureStream()) can recompute the cursor from the remainder it
+   * reports afterward.
+   */
+  private feedStream(stream: SentenceStream, text: string): void {
+    const relative = text.slice(offsetAfterSkeleton(text, this.sealedSkeleton));
+    this.sealedSkeletonBase = this.sealedSkeleton;
+    this.lastPassedToStream = relative;
+    stream.update(relative);
+  }
+
+  /**
+   * True when `text` looks like a truncated re-decode of the SAME utterance
+   * that `previousRaw` already captured more of, rather than genuinely
+   * different content. Used wherever a new ASR result would otherwise slice
+   * to an empty relative tail — see onAsrPartial/onAsrResult.
+   *
+   * Compares TRIMMED forms, not raw ones: on the gated branch the sidecar
+   * posts the partial unstripped (`_drive_utterance`, asr_engine.py:382) and
+   * strips the final (`_finalize`, :403), so an untrimmed prefix test would
+   * read a genuine truncation as divergence and produce a duplicate bubble
+   * and a duplicate spoken translation. (The always-on branch strips both,
+   * :455 and `_result_event` :419.) The cursor ignores spacing and marks for
+   * the same reason — see the `sealedSkeleton` field doc.
+   */
+  private isTruncationOfSameUtterance(text: string, previousRaw: string): boolean {
+    const trimmedText = text.trim();
+    return trimmedText.length > 0 && previousRaw.trim().startsWith(trimmedText);
+  }
+
+  /**
+   * Create or update the in-progress user bubble with interim text. Shared by
+   * onAsrPartial's direct (no-segmentation) path and the stream's onPending
+   * callback (wired in ensureStream()).
+   */
+  private showPartialUserText(text: string): void {
     if (!this.partialUserItem) {
       this.partialUserItem = {
         id: this.nextId('user'), role: 'user', type: 'message', status: 'in_progress',
@@ -391,6 +649,68 @@ export class LocalNativeClient implements IClient {
       this.partialUserItem.formatted!.transcript = text;
       this.emit(this.partialUserItem, { transcript: text });
     }
+  }
+
+  /** Finish the in-progress user bubble at the seal and queue its translation. */
+  private sealUserChunk(text: string): void {
+    let userItem = this.partialUserItem;
+    if (userItem) {
+      userItem.status = 'completed';
+      userItem.formatted!.transcript = text;
+      this.partialUserItem = null;
+    } else {
+      userItem = {
+        id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
+        createdAt: Date.now(), formatted: { transcript: text },
+      };
+      this.items.push(userItem);
+    }
+    this.emit(userItem);
+    // Captured synchronously, not read lazily inside the .then() below:
+    // onAsrResult clears pendingAsrTiming right after stream.end() returns,
+    // before this queued continuation ever runs — see the field's doc.
+    const asrTiming = this.pendingAsrTiming;
+    // Same chain as onAsrResult: serialized so text and audio stay ordered.
+    this.queue = this.queue.then(() => this.runJob(text, asrTiming)).catch((e) => {
+      this.emitEvent('local.native.error', 'client', { error: String(e) });
+      this.handlers.onError?.(String(e));
+    });
+  }
+
+  /**
+   * Route a partial ASR result: through the sentence stream when
+   * segmentation is active, or straight to the bubble when it is not (no
+   * runtime or disabled — see ensureStream()).
+   *
+   * `text` is the sidecar's cumulative buffer for the whole utterance so far,
+   * not a delta (asr_engine.py:454-455 appends to `_pending` and posts the
+   * whole buffer, resetting only at a cut). feedStream() slices off
+   * what is sealed before handing it to the stream.
+   */
+  private onAsrPartial(text: string): void {
+    if (!text) return;
+    this.emitEvent('local.native.asr.partial', 'server', { text });
+    const previousRaw = this.lastRawPartialText;
+    this.lastRawPartialText = text;
+    const stream = this.ensureStream();
+    if (!stream) {
+      this.showPartialUserText(text);
+      return;
+    }
+    // Everything this text holds is already sealed: slicing it at the cursor
+    // would hand the stream an empty string.
+    if (text.length > 0 && offsetAfterSkeleton(text, this.sealedSkeleton) >= text.length) {
+      if (this.isTruncationOfSameUtterance(text, previousRaw)) {
+        // The engine retracted its hypothesis back to (or below) what's
+        // already sealed. Nothing new to show yet: leave the bubble and the
+        // cursor alone — self-healing, since partials keep growing.
+        return;
+      }
+      // Genuinely different text: start segmentation over rather than feed a
+      // cursor that no longer describes anything this text contains.
+      this.sealedSkeleton = 0;
+    }
+    this.feedStream(stream, text);
   }
 
   /**
@@ -432,27 +752,168 @@ export class LocalNativeClient implements IClient {
       ...(r.recognitionTimeMs !== undefined && { recognitionTimeMs: r.recognitionTimeMs }),
       ...(rtf !== undefined && { rtf }),
     });
-    let userItem = this.partialUserItem;
+    const timing: AsrTiming | undefined = (r.durationMs !== undefined || r.recognitionTimeMs !== undefined)
+      ? { durationMs: r.durationMs, recognitionTimeMs: r.recognitionTimeMs }
+      : undefined;
+
+    // ensureStream() — not a bare read of this.stream — is what lets a final
+    // that arrives with no preceding partial (e.g. appendInputText's direct
+    // call) still segment: it creates the stream fresh here, the cursor at
+    // 0, so update() sees the whole final text.
+    const previousRaw = this.lastRawPartialText;
+    const stream = this.ensureStream();
+    if (stream) {
+      let skipJob = false;
+      if (r.text.length > 0 && offsetAfterSkeleton(r.text, this.sealedSkeleton) >= r.text.length) {
+        if (this.isTruncationOfSameUtterance(r.text, previousRaw)) {
+          // A truncated re-decode of the SAME utterance: the confirmed text
+          // is already fully captured by the earlier seal(s). Close the open
+          // bubble without a job instead of sealing (and translating, and
+          // with TTS on, speaking) it a second time.
+          skipJob = true;
+        } else {
+          // Genuinely different text: restart the cursor so the whole final
+          // still seals as (at least) one chunk instead of feeding ''.
+          this.sealedSkeleton = 0;
+        }
+      }
+      if (skipJob) {
+        if (this.partialUserItem) {
+          this.partialUserItem.status = 'completed';
+          this.emit(this.partialUserItem);
+          this.partialUserItem = null;
+        }
+      } else {
+        // update() first, WITHOUT the timing attached yet: it can seal more
+        // than one chunk synchronously on its own, and those chunks must not
+        // carry it. pendingAsrTiming is set only after feedStream() returns,
+        // so only the chunk end() emits for the true tail sees it.
+        this.feedStream(stream, r.text);
+        this.pendingAsrTiming = timing;
+        stream.end();
+      }
+      stream.dispose();
+      this.stream = null;
+      this.sealedSkeleton = 0;
+      this.pendingAsrTiming = undefined;
+      return;
+    }
+
+    if (this.sessionShape === 'fill-in') {
+      this.fillInUtterance(r.text);
+      return;
+    }
+
+    this.writeWholeUtterance(this.partialUserItem, r.text, Date.now());
+    this.partialUserItem = null;
+  }
+
+  /**
+   * Auto's finalization: one bubble per utterance, with the punctuation the
+   * model filled in.
+   *
+   * The boundary is the VAD's and is never touched — that is what Auto means
+   * (Amendment A2), and it is why this reaches for `punctuateDefinite`, the
+   * same helper the server-definite clients use, rather than a
+   * `SentenceStream`. The streaming partials stay raw: `ensureStream()`
+   * returns null in this shape, so `onAsrPartial` shows them untouched, and
+   * only this final text is punctuated.
+   *
+   * The model call starts NOW so two utterances punctuate concurrently; the
+   * write waits its turn in `punctuationLane`, or the answers could list the
+   * later utterance first.
+   */
+  private fillInUtterance(text: string): void {
+    const runtime = this.sessionSegmentation;
+    // Captured before the await, because the next utterance's first partial
+    // may arrive while the model runs: the bubble THIS utterance opened, and
+    // the stamp MainPanel sorts by (an item minted after the model call would
+    // be stamped later than the utterance that follows it). Detaching
+    // `partialUserItem` now is what makes the next partial mint its own.
+    const existing = this.partialUserItem;
+    this.partialUserItem = null;
+    const createdAt = Date.now();
+    const epoch = this.punctuationEpoch;
+    if (!runtime) {
+      // Not reachable today: `sessionShape` and `sessionSegmentation` are
+      // assigned together in connect() and cleared together in disconnect(),
+      // and only the 'fill-in' shape calls this. Written through the stage-off
+      // write anyway rather than returning — if the pair ever came apart, an
+      // utterance the user spoke would otherwise vanish with no bubble, no job
+      // and no diagnostic.
+      this.writeWholeUtterance(existing, text, createdAt);
+      return;
+    }
+    const lang = this.cfg?.sourceLanguage ?? 'auto';
+    // 0, not the default: this is Auto, and the helper's own doc says so.
+    const pending = punctuateDefinite(runtime, lang, text, 0);
+    this.punctuationLane.queue(async (cancelled) => {
+      const filled = await pending;
+      // `cancelled()`: disconnect() already wrote this utterance raw. The
+      // epoch and identity checks are the cleared-conversation and reconnect
+      // cases — an answer that lands after either belongs to a conversation
+      // nobody renders.
+      if (cancelled() || epoch !== this.punctuationEpoch || this.sessionSegmentation !== runtime) return;
+      this.writeWholeUtterance(existing, filled, createdAt);
+    }, () => {
+      // The epoch check belongs here too: a clear means the text is not
+      // wanted, whether the model answered or not, and this path runs from
+      // disconnect() — which a user may well press right after clearing.
+      if (epoch !== this.punctuationEpoch) return;
+      // The raw fallback runs from `flush()`, i.e. from disconnect() only: the
+      // transcript is kept, but no translation starts against engines the
+      // teardown is already dismantling.
+      this.writeWholeUtterance(existing, text, createdAt, false);
+    });
+  }
+
+  /**
+   * One completed bubble for a whole utterance, and its one job. Shared by
+   * the stage-off path and by `fillInUtterance`, which passes the punctuated
+   * text and the per-utterance state it captured, because its call lands
+   * after an await.
+   *
+   * Deliberately no asrTiming: `local.native.asr.end` already reports
+   * durationMs/recognitionTimeMs/rtf once for this (sole) job, and passing the
+   * timing through as well would duplicate it on translation.start for no
+   * reason — asrTiming only earns its place on the stream shape
+   * (`sealUserChunk`), where it marks which of several chunks is the final
+   * one.
+   *
+   * `queueJob` is false for one caller only: the fill-in shape's Stop flush.
+   */
+  private writeWholeUtterance(
+    existing: ConversationItem | null,
+    text: string,
+    createdAt: number,
+    queueJob = true,
+  ): void {
+    let userItem = existing;
     if (userItem) {
       userItem.status = 'completed';
-      userItem.formatted!.transcript = r.text;
-      this.partialUserItem = null;
+      userItem.formatted!.transcript = text;
     } else {
       userItem = {
         id: this.nextId('user'), role: 'user', type: 'message', status: 'completed',
-        createdAt: Date.now(), formatted: { transcript: r.text },
+        createdAt, formatted: { transcript: text },
       };
       this.items.push(userItem);
     }
     this.emit(userItem);
-    // serialize pipeline jobs so text/audio stay ordered
-    this.queue = this.queue.then(() => this.runJob(r.text)).catch((e) => {
+    if (!queueJob) return;
+    // serialize pipeline jobs so text/audio stay ordered.
+    this.queue = this.queue.then(() => this.runJob(text)).catch((e) => {
       this.emitEvent('local.native.error', 'client', { error: String(e) });
       this.handlers.onError?.(String(e));
     });
   }
 
-  private async runJob(text: string): Promise<void> {
+  /**
+   * `asrTiming` describes the whole utterance, so it rides the final chunk's
+   * job only (see `pendingAsrTiming`'s field doc) — attached here purely for
+   * Logs panel visibility, not consumed by the pipeline itself.
+   */
+  private async runJob(text: string, asrTiming?: AsrTiming): Promise<void> {
     if (!this.cfg?.translationModelId) {
       // Transcription-only: the user item already carries the transcript;
       // there is no assistant stage to run.
@@ -461,6 +922,7 @@ export class LocalNativeClient implements IClient {
     this.emitEvent('local.native.translation.start', 'client', {
       sourceText: text, modelId: this.cfg?.translationModelId,
       systemPrompt: this.cfg?.instructions ?? '', wrapTranscript: !!this.cfg?.wrapTranscript,
+      ...(asrTiming && { asrTiming }),
     });
     // Stage-local catch so a translation failure surfaces in the Logs panel with
     // translation-stage context (which model/text), rather than only through the
@@ -600,6 +1062,11 @@ export class LocalNativeClient implements IClient {
     this.asr.feedAudio(audioData, 24000);
     this.vadWorker?.postMessage({ type: 'audio', pcm: audioData, sampleRate: 24000 });
   }
+  // Re-enters onAsrResult, so when segmentation is active a long typed
+  // message is chunked into several bubbles and several jobs, exactly like a
+  // long spoken utterance would be — an accepted consequence of routing text
+  // input through the same finalization path as ASR, not a special case this
+  // method avoids (mirrors LocalInferenceClient.appendInputText).
   appendInputText(text: string): void { this.onAsrResult({ text }); }
   createResponse(_config?: ResponseConfig): void {
     this.vadWorker?.postMessage({ type: 'flush' });
@@ -608,8 +1075,19 @@ export class LocalNativeClient implements IClient {
   cancelResponse(): void { try { this.tts?.cancel?.(); } catch (_) {} }
   async disconnect(): Promise<void> {
     this.connected = false;
+    // Before the teardown, and synchronously: an utterance still waiting for
+    // its punctuation is text the user said, and MainPanel reads
+    // getConversationItems() on the turn after this resolves.
+    this.punctuationLane.flush();
     this.partialUserItem = null;
     this.currentTranslateItem = null;
+    this.sessionSegmentation = null;
+    this.sessionShape = 'off';
+    this.stream?.dispose();
+    this.stream = null;
+    this.sealedSkeleton = 0;
+    this.pendingAsrTiming = undefined;
+    this.lastRawPartialText = '';
     this.emitEvent('local.native.session.closed', 'client', { reason: 'user_disconnect' });
     this.vadWorker?.postMessage({ type: 'dispose' });
     this.vadWorker?.terminate();
@@ -620,9 +1098,35 @@ export class LocalNativeClient implements IClient {
   }
   isConnected(): boolean { return this.connected; }
   updateSession(_config: Partial<SessionConfig>): void {}
-  reset(): void { this.items = []; this.partialUserItem = null; this.currentTranslateItem = null; }
+  reset(): void {
+    this.items = [];
+    this.partialUserItem = null;
+    this.currentTranslateItem = null;
+    // Without this, a stream left open from the utterance in progress could
+    // still deliver a seal (and its job) against a conversation that was
+    // just cleared out from under it.
+    this.stream?.dispose();
+    this.stream = null;
+    // The fill-in shape's half of that same guarantee — see the field doc.
+    this.punctuationEpoch++;
+    this.sealedSkeleton = 0;
+    this.lastRawPartialText = '';
+  }
   getConversationItems(): ConversationItem[] { return [...this.items]; }  // fresh ref so setItems() re-renders
-  clearConversationItems(): void { this.items = []; this.partialUserItem = null; this.currentTranslateItem = null; }  // drop in-progress partials too, else the next final mutates a detached item
+  clearConversationItems(): void {
+    // drop in-progress partials too, else the next final mutates a detached item
+    this.items = [];
+    this.partialUserItem = null;
+    this.currentTranslateItem = null;
+    // Same reasoning as reset(): a cleared conversation must not still
+    // receive a seal (and its job) from the utterance that was in progress
+    // before the clear.
+    this.stream?.dispose();
+    this.stream = null;
+    this.punctuationEpoch++;
+    this.sealedSkeleton = 0;
+    this.lastRawPartialText = '';
+  }
   setEventHandlers(handlers: ClientEventHandlers): void { this.handlers = handlers; }
   getProvider(): ProviderType { return Provider.LOCAL_NATIVE; }
 }

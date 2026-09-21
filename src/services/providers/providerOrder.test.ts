@@ -48,8 +48,6 @@ describe('provider list order', () => {
       Provider.OPENAI_COMPATIBLE,
       Provider.PALABRA_AI,
       Provider.LOCAL_NATIVE,
-      Provider.VOLCENGINE_ST,
-      Provider.ZOOM_AI,
     ]);
   });
 
@@ -79,8 +77,6 @@ describe('provider list order', () => {
       Provider.OPENAI,
       Provider.OPENAI_TRANSLATE,
       Provider.SONIOX,
-      Provider.VOLCENGINE_ST,
-      Provider.ZOOM_AI,
     ]);
   });
 });

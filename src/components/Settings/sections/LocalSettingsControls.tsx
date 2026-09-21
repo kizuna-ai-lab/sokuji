@@ -104,6 +104,14 @@ export interface VadValues {
   vadMinSilenceDuration: number;
   vadMinSpeechDuration: number;
   /**
+   * Hard cap on one segment, vad-web workers only — omit it and the slider is
+   * hidden. The sherpa-onnx engine and the Local Native sidecar cut at fixed
+   * lengths of their own and never read it. A worker may still cut sooner
+   * than the value shown: each one holds its engine to the longest segment it
+   * transcribes correctly (see workers/_shared/max-speech-frames.ts).
+   */
+  vadMaxSpeechDuration?: number;
+  /**
    * Silence-confirmation threshold, vad-web workers only — omit it and the
    * slider is hidden (the sherpa-onnx engine derives its own hysteresis).
    * 0 means "auto": the worker derives it from vadThreshold.
@@ -187,6 +195,28 @@ export const VadControl: React.FC<{
           className="slider" disabled={disabled}
         />
       </div>
+      {values.vadMaxSpeechDuration !== undefined && (
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>
+              {t('settings.vadMaxSpeechDuration', 'Max Speech Duration')}
+              <Tooltip content={t('settings.vadMaxSpeechDurationTooltip', 'Longest a single speech segment can run before it is split. Some models split sooner, at the longest segment they transcribe correctly.')} position="top">{inlineHelpIcon}</Tooltip>
+            </span>
+            {/* Whole seconds: this dial is tens of seconds wide, and "30.00s"
+                reads as false precision next to a 0.05 s silence threshold. */}
+            <span className="setting-value">{values.vadMaxSpeechDuration}s</span>
+          </div>
+          {/* 40, not 60: past it the slider would only promise what no engine
+              delivers. cohere is the one that transcribes a 60 s segment
+              correctly; every other worker holds itself to 29-40 s
+              (workers/_shared/max-speech-frames.ts). */}
+          <input
+            type="range" min="10" max="40" step="5" value={values.vadMaxSpeechDuration}
+            onChange={(e) => onChange({ vadMaxSpeechDuration: parseFloat(e.target.value) })}
+            className="slider" disabled={disabled}
+          />
+        </div>
+      )}
     </div>
   );
 };

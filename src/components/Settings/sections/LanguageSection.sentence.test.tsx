@@ -56,6 +56,7 @@ const { default: useSettingsStore } = await import('../../../stores/settingsStor
 const { default: useAudioStore } = await import('../../../stores/audioStore');
 const { useModelStore } = await import('../../../stores/modelStore');
 const { Provider } = await import('../../../types/Provider');
+const { ProviderConfigFactory } = await import('../../../services/providers/ProviderConfigFactory');
 const { default: LanguageSection } = await import('./LanguageSection');
 
 const renderSection = () =>
@@ -173,13 +174,35 @@ describe('LanguageSection — the sentence labels apply to EVERY provider', () =
   });
 
   it("an 'always' text-only provider reads, with the toggle off", () => {
-    // Zoom AI never synthesizes audio; the toggle is irrelevant to it.
-    useSettingsStore.setState({ provider: Provider.ZOOM_AI, textOnly: false } as any);
-    useAudioStore.setState({ mode: 'speaker' } as any);
-    renderSection();
-    expect(screen.getByText('I speak')).toBeInTheDocument();
-    expect(screen.getByText('they read')).toBeInTheDocument();
-    expect(screen.queryByText('they hear')).not.toBeInTheDocument();
+    // The subject is a provider that never synthesizes audio, so the toggle is
+    // irrelevant to it. Both providers that declared textOnlyCapability
+    // 'always' have now been removed (Zoom AI, then Volcengine ST, on
+    // 2026-09-20), so the capability is stubbed onto Gemini's own config
+    // rather than the case being dropped: the 'always' arm of `pairSentence`
+    // and the permanently-on Text Only switch are both still the handling for
+    // a three-valued descriptor contract, and nothing else executes them.
+    const gemini = ProviderConfigFactory.getConfig(Provider.GEMINI);
+    const spy = vi.spyOn(ProviderConfigFactory, 'getConfig').mockReturnValue({
+      ...gemini,
+      capabilities: { ...gemini.capabilities, textOnlyCapability: 'always' },
+    });
+    try {
+      useSettingsStore.setState({ provider: Provider.GEMINI, textOnly: false } as any);
+      useAudioStore.setState({ mode: 'speaker' } as any);
+      renderSection();
+      // The sentence ignores the global toggle: the provider cannot speak.
+      expect(screen.getByText('I speak')).toBeInTheDocument();
+      expect(screen.getByText('they read')).toBeInTheDocument();
+      expect(screen.queryByText('they hear')).not.toBeInTheDocument();
+      // ...and the switch says so: permanently on, non-interactive, and it is
+      // the ONLY Text Only switch rendered — the 'optional' arm is not taken.
+      const switches = screen.getAllByRole('switch').filter((el) => el.textContent?.includes('Text Only'));
+      expect(switches).toHaveLength(1);
+      expect(switches[0].getAttribute('aria-checked')).toBe('true');
+      expect(switches[0].getAttribute('aria-disabled')).toBe('true');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("a 'never' text-only provider hears, even with the toggle left on", () => {

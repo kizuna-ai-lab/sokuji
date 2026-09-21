@@ -1,0 +1,322 @@
+@use '../shared/variables' as vars;
+
+// Every row in this section is the same shape: a label (with its tooltip) over
+// a control. One header block serves the mode, the size and both pause
+// sliders, so they line up whichever of them is on screen.
+.sentence-segmentation__row-header {
+  display: flex;
+  align-items: center;
+  gap: vars.$space-1;
+  margin-bottom: vars.$space-1;
+}
+
+.sentence-segmentation__row-label {
+  font-size: vars.$font-body;
+  color: vars.$text-secondary;
+}
+
+.sentence-segmentation__mode,
+.sentence-segmentation__chunk,
+.sentence-segmentation__pause {
+  margin-top: vars.$space-3;
+}
+
+// The mode row and the 1-5 "sentences per bubble" row. Based on Settings.scss's
+// noise-suppression-control block: `flex: 1` per option so all the options
+// share the row evenly, rather than NativeDeviceControl's inline-flex, which
+// sizes each button to its own label (fine for "Auto"/"CPU"/"GPU", uneven for
+// a five-way row of single digits).
+.sentence-segmentation__mode-options,
+.sentence-segmentation__chunk-options {
+  display: flex;
+  border-radius: vars.$radius-md;
+  overflow: hidden;
+  border: 1px solid vars.$border-default;
+
+  .segmented-option {
+    flex: 1;
+    padding: 6px 12px;
+    font-size: vars.$font-caption;
+    text-align: center;
+    border: none;
+    background: vars.$bg-control;
+    color: vars.$text-secondary;
+    cursor: pointer;
+    transition: background vars.$transition-fast, color vars.$transition-fast;
+
+    &:not(:last-child) {
+      border-right: 1px solid vars.$border-default;
+    }
+
+    &:hover:not(.active):not(:disabled) {
+      background: vars.$bg-hover;
+    }
+
+    &.active {
+      background: vars.$color-primary-fill;
+      color: vars.$color-on-primary;
+      font-weight: vars.$weight-medium;
+    }
+
+    &:disabled {
+      opacity: vars.$disabled-opacity;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// The three mode labels are words, not digits, and the longest of them runs
+// past the 300px panel minimum in several languages. Wrapping inside a button
+// is preferable to clipping the one control the section is about.
+.sentence-segmentation__mode-options .segmented-option {
+  padding: 6px 8px;
+  word-break: break-word;
+}
+
+// The two pause sliders. The seconds sit at the right end of the label row,
+// the way every other value in Settings.scss's `.setting-label` does.
+//
+// The track and thumb are spelled out here rather than reusing Settings.scss's
+// `.slider`: that rule is nested under `.settings-section .setting-item`, which
+// this section is not inside — it is a `.config-section`, so an `input.slider`
+// here would render as the unstyled browser default. `.volume-control
+// .volume-slider` in Settings.scss is the same control in the same position,
+// inside a `.config-section`, and this is its geometry and colour.
+.sentence-segmentation__pause {
+  .sentence-segmentation__row-header {
+    justify-content: space-between;
+  }
+}
+
+.sentence-segmentation__pause-value {
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+
+.sentence-segmentation__pause-slider {
+  width: 100%;
+  height: 4px;
+  background: vars.$bg-elevated;
+  border-radius: 2px;
+  appearance: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: vars.$color-primary;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: vars.$color-primary;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+
+  &:disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+  }
+
+  + .sentence-segmentation__row-header {
+    margin-top: vars.$space-2;
+  }
+}
+
+.sentence-segmentation__chunk-effect {
+  margin: vars.$space-1 0 0;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+
+.sentence-segmentation__low-memory {
+  display: flex;
+  align-items: flex-start;
+  gap: vars.$space-2;
+  margin-top: vars.$space-3;
+  padding: vars.$space-2 10px;
+  border: 1px solid vars.$color-warning-border;
+  border-radius: vars.$radius-md;
+  background: vars.$color-warning-bg;
+  color: vars.$color-warning;
+  font-size: vars.$font-caption;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+// The pack's one status line, under the toggle. The bar itself is
+// ModelManagementSection's `.model-card__progress` block, kept to the same
+// 4px track, 2px radius and primary fill so a download here reads as the same
+// kind of thing as a download there.
+.sentence-segmentation__pack {
+  margin-top: vars.$space-2;
+}
+
+.sentence-segmentation__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sentence-segmentation__progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sentence-segmentation__progress-fill {
+  height: 100%;
+  background: vars.$color-primary;
+  border-radius: 2px;
+  transition: width vars.$transition-normal;
+}
+
+.sentence-segmentation__progress-info,
+.sentence-segmentation__pack-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: vars.$space-2;
+}
+
+.sentence-segmentation__pack-status {
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}
+
+.sentence-segmentation__pack-error {
+  font-size: vars.$font-caption;
+  color: vars.$color-error;
+  word-break: break-word;
+}
+
+.sentence-segmentation__pack-btn,
+.sentence-segmentation__delete {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  font-size: vars.$font-caption;
+  border: 1px solid vars.$border-default;
+  border-radius: vars.$radius-sm;
+  background: vars.$bg-control;
+  color: vars.$text-secondary;
+  cursor: pointer;
+  transition: background vars.$transition-fast, color vars.$transition-fast;
+
+  &:hover:not(:disabled) {
+    background: vars.$bg-hover;
+    color: vars.$text-primary;
+  }
+
+  &:disabled {
+    opacity: vars.$disabled-opacity;
+    cursor: not-allowed;
+  }
+}
+
+.sentence-segmentation__delete {
+  margin-top: vars.$space-3;
+}
+
+// The confirmation (SegmentationDownloadModal). It renders inside Modal's
+// .modal-content, outside .config-section, so this block is self-contained —
+// laid out like .license-consent-modal in Settings.scss, the other gate that
+// stands between a user and a download, down to the full-width action pair.
+// It lives in this file rather than Settings.scss because the section is its
+// only mount point and this stylesheet is what loads with it.
+.segmentation-download-modal {
+  text-align: left;
+  font-size: vars.$font-body;
+
+  p {
+    margin-bottom: 10px;
+    color: vars.$text-secondary;
+    line-height: 1.5;
+  }
+
+  &__models {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: vars.$space-3;
+    padding: 6px 0;
+    border-bottom: 1px solid vars.$border-subtle;
+
+    &--total {
+      border-bottom: none;
+      font-weight: vars.$weight-semibold;
+    }
+  }
+
+  &__name {
+    color: vars.$text-primary;
+  }
+
+  &__size {
+    flex-shrink: 0;
+    font-size: vars.$font-caption;
+    color: vars.$text-muted;
+  }
+
+  &__row--total &__size {
+    color: vars.$text-primary;
+  }
+
+  &__actions {
+    display: flex;
+    // Wraps rather than clips: at the 300px panel minimum the two labels do
+    // not fit side by side in every language — measured at 244px of content
+    // in a 230px row in de, 242 in uk — and a clipped "Download 402.2 MB" is
+    // the one button in this dialog that must stay readable.
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+
+    button {
+      flex: 1 1 140px;
+      min-width: 0;
+      padding: 10px 20px;
+      border: none;
+      border-radius: vars.$radius-sm;
+      cursor: pointer;
+      font-size: vars.$font-title;
+      transition: background-color vars.$transition-fast;
+    }
+  }
+
+  &__cancel {
+    background-color: vars.$bg-surface;
+    color: vars.$text-primary;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__accept {
+    background-color: vars.$color-primary-fill;
+    color: vars.$color-on-primary;
+
+    &:hover {
+      background-color: vars.$color-primary-fill-hover;
+    }
+  }
+}

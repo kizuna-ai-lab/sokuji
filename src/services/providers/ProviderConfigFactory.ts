@@ -9,11 +9,9 @@ import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { KizunaAIOpenAITranslateProviderConfig } from './KizunaAIOpenAITranslateProviderConfig';
 import { KizunaAIVolcengineAST2ProviderConfig } from './KizunaAIVolcengineAST2ProviderConfig';
 import { KizunaAISonioxProviderConfig } from './KizunaAISonioxProviderConfig';
-import { VolcengineSTProviderConfig } from './VolcengineSTProviderConfig';
 import { VolcengineAST2ProviderConfig } from './VolcengineAST2ProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
-import { ZoomAIProviderConfig } from './ZoomAIProviderConfig';
 import { SonioxProviderConfig } from './SonioxProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
 import { isKizunaAIEnabled, isKizunaSonioxEnabled, isKizunaOpenAITranslateEnabled, isKizunaVolcengineAST2Enabled, isPalabraAIEnabled, isLocalNativeEnabled, isElectron, isExtension } from '../../utils/environment';
@@ -89,10 +87,6 @@ export class ProviderConfigFactory {
     if (isElectron() && isLocalNativeEnabled()) {
       ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
     }
-    // Volcengine Speech Translate — always available (stable).
-    ProviderConfigFactory.configs.set(Provider.VOLCENGINE_ST, new VolcengineSTProviderConfig());
-    // Zoom AI Services — always available (stable).
-    ProviderConfigFactory.configs.set(Provider.ZOOM_AI, new ZoomAIProviderConfig());
   }
 
   /**

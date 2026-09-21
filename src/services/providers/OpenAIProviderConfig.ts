@@ -143,7 +143,10 @@ export class OpenAIProviderConfig extends BaseProviderDescriptor {
         outputDeviceId: options.webrtcOptions?.outputDeviceId,
       });
     }
-    return new OpenAIGAClient(creds.primary);
+    return new OpenAIGAClient(creds.primary, {
+      segmentation: options.segmentation,
+      sentencesPerChunk: options.sentencesPerChunk,
+    });
   }
 
   async validateAndFetchModels(creds: Credentials): Promise<{

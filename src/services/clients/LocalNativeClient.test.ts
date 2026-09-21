@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LocalNativeClient } from './LocalNativeClient';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
+import type { SegmentationRuntime, PunctuationResult } from '../../lib/segmentation/SegmentationRuntime';
+import { countSkeleton } from '../../lib/segmentation/sealCursor';
 
 // Worker is not available in jsdom — stub the module that creates it. Tests
 // that need a real (fake) worker instance inject one via deps.vadWorker instead.
@@ -939,6 +941,19 @@ describe('LocalNativeClient native-vad worker wiring', () => {
     });
   });
 
+  // The sidecar never receives the cap and re-cuts at lengths of its own
+  // (30 s offline, 20 s streaming), so a longer client cut only adds a second
+  // cut and a sub-second orphan segment the engines hallucinate text for.
+  it('never forwards a max speech duration, even when the session config carries one', async () => {
+    const m = mocks();
+    const w = new FakeVadWorker();
+    const c = new LocalNativeClient({ ...m, vadWorker: () => w as unknown as Worker });
+    c.setEventHandlers({});
+    await c.connect({ ...VAD_LOCAL_NATIVE_CONFIG, vadMaxSpeechDuration: 45 } as any);
+    const init = w.posted.find((p) => p.type === 'init');
+    expect(init.vadConfig).not.toHaveProperty('maxSpeechDuration');
+  });
+
   it('worker edges become vad_mark sends (start/end/cancel)', () => {
     worker.emit({ type: 'speech_start' });
     worker.emit({ type: 'speech_end' });
@@ -1229,5 +1244,861 @@ describe('LocalNativeClient reconcileTtsVoice — stale custom selection (transc
     expect(notices[0].formatted?.text).toMatch(/needs a voice clip/i);
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].code).toBe('tts_degraded');
+  });
+});
+
+// ── Sentence segmentation (slice 3, task 3) ──────────────────────────────────
+
+function fakeRuntime(enabled = true): SegmentationRuntime {
+  return { enabled, punctuate: vi.fn(async () => null) };
+}
+
+/** Let any already-scheduled async pipeline work (the job queue's deferred
+ *  continuation past its `await`) settle before asserting on it. */
+async function settle() {
+  await new Promise((r) => setTimeout(r, 0));
+}
+
+function segDeps(over: { translate?: any } = {}) {
+  return {
+    asr: {
+      onResult: null as any, onPartialResult: null as any, onError: null as any,
+      init: vi.fn().mockResolvedValue({ loadTimeMs: 1, device: 'cpu' }),
+      feedAudio: vi.fn(), flush: vi.fn(), dispose: vi.fn(),
+    },
+    translate: over.translate ?? {
+      onError: null as any, onPartial: null as any,
+      init: vi.fn().mockResolvedValue({ device: 'cpu' }),
+      translate: vi.fn().mockResolvedValue({ translatedText: 'T', inferenceTimeMs: 1 }),
+      dispose: vi.fn(),
+    },
+    tts: { onError: null as any, init: vi.fn(), generate: vi.fn(), dispose: vi.fn() },
+  };
+}
+
+const SEG_CONFIG: any = {
+  provider: 'local_native', model: 'native', sourceLanguage: 'en', targetLanguage: 'ja',
+  asrModelId: 'sense-voice', translationModelId: 'qwen2.5-0.5b',
+};
+
+describe('LocalNativeClient sentence segmentation', () => {
+  it('a long streaming utterance seals every N sentences and chains runJob on this.queue in order', async () => {
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    // The sidecar's ASR partials are cumulative for the whole utterance so
+    // far (asr_engine.py:454-455), not a delta. Each step below reveals one
+    // more sentence's worth of right-context for the previous sentence end.
+    const raw1 = 'Sentence one is done. Sentence two begins';
+    deps.asr.onPartialResult(raw1);
+    await settle();
+    // Job 1 has already been dispatched (recorded) before partial 2 is even
+    // fed below — the queue is drained per-seal, not batched at the end.
+    expect(jobSpy.mock.calls.length).toBe(1);
+
+    const raw2 = 'Sentence one is done. Sentence two begins now yes. Sentence three starts';
+    deps.asr.onPartialResult(raw2);
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(2);
+
+    const raw3 = 'Sentence one is done. Sentence two begins now yes. Sentence three starts and ends well. Tail padding here';
+    deps.asr.onPartialResult(raw3);
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(3);
+
+    const jobTexts = jobSpy.mock.calls.map((call) => (call[0] as string).trim());
+    expect(jobTexts).toEqual([
+      'Sentence one is done.',
+      'Sentence two begins now yes.',
+      'Sentence three starts and ends well.',
+    ]);
+
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text!.trim())).toEqual([
+      'Sentence one is done.',
+      'Sentence two begins now yes.',
+      'Sentence three starts and ends well.',
+    ]);
+  });
+
+  it('an offline final of six sentences at N = 3 gives two user items and two runJob calls, the second carrying the remainder', async () => {
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 3 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    const sixSentences = 'One is done. Two is done. Three is done. Four is done. Five is done. Six is done and finished well.';
+    (c as any).onAsrResult({ text: sixSentences });
+    await settle();
+
+    expect(jobSpy.mock.calls.length).toBe(2);
+    const jobTexts = jobSpy.mock.calls.map((call) => (call[0] as string).trim());
+    expect(jobTexts[0]).toBe('One is done. Two is done. Three is done.');
+    expect(jobTexts[1]).toBe('Four is done. Five is done. Six is done and finished well.');
+
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.length).toBe(2);
+  });
+
+  it('a short utterance still gives exactly one item and one job', async () => {
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 3 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    (c as any).onAsrResult({ text: 'Just one short sentence.' });
+    await settle();
+
+    expect(jobSpy.mock.calls.length).toBe(1);
+    expect((jobSpy.mock.calls[0][0] as string).trim()).toBe('Just one short sentence.');
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.length).toBe(1);
+  });
+
+  it('with no runtime the client behaves exactly as today', async () => {
+    const deps = segDeps(); // options.segmentation left undefined
+    const c = new LocalNativeClient(deps);
+    const items: Array<{ role: string; status: string; id: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, id: item.id }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    const fullText = 'One is done. Two is done. Three is done and finished well.';
+    deps.asr.onPartialResult(fullText);
+    deps.asr.onResult({ text: fullText, durationMs: 10, recognitionTimeMs: 5 });
+    await settle();
+
+    // No runtime at all: exactly one user item (the growing partial
+    // finalized by the result) and one job — today's behaviour, regardless
+    // of how many sentences the text actually contains.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(new Set(userItems.map((i) => i.id)).size).toBe(1); // same item reused throughout
+    expect(userItems.filter((i) => i.status === 'completed').length).toBe(1);
+  });
+
+  it('with a disabled runtime the client behaves exactly as today', async () => {
+    const runtime = fakeRuntime(false);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; id: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, id: item.id }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    const fullText = 'One is done. Two is done. Three is done and finished well.';
+    deps.asr.onPartialResult(fullText);
+    deps.asr.onResult({ text: fullText, durationMs: 10, recognitionTimeMs: 5 });
+    await settle();
+
+    expect(jobSpy.mock.calls.length).toBe(1); // disabled: no mid-utterance seals
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(new Set(userItems.map((i) => i.id)).size).toBe(1);
+    expect(userItems.filter((i) => i.status === 'completed').length).toBe(1);
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+  });
+
+  // NOTE ON THE BRIEF: the brief's case 6, "AST mode never creates a stream",
+  // has no equivalent here. LocalNativeClient has no AST/Granite-Speech mode
+  // at all — every session either has a translationModelId (full ASR ->
+  // translation pipeline) or doesn't (transcription-only, handled by runJob's
+  // own early return, unrelated to segmentation). There is no "ASR output is
+  // already the translation" path to guard against, so this case is omitted
+  // rather than faked.
+
+  it('the ASR timing rides only the final job', async () => {
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    // One mid-utterance seal from a partial (no timing yet)...
+    deps.asr.onPartialResult('First sentence done. Second begins');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+
+    // ...then the final closes the utterance, carrying timing.
+    deps.asr.onResult({ text: 'First sentence done. Second begins and ends well.', durationMs: 42, recognitionTimeMs: 7 });
+    await settle();
+
+    expect(jobSpy.mock.calls.length).toBe(2);
+    expect(jobSpy.mock.calls[0][1]).toBeUndefined();
+    expect(jobSpy.mock.calls[1][1]).toEqual({ durationMs: 42, recognitionTimeMs: 7 });
+  });
+
+  it('advances the raw cursor by what the stream actually consumed, not by the sealed (punctuated) text length', async () => {
+    // On the model path, SentenceStream.applyResult() seals the PUNCTUATED
+    // output while only advancing the raw tail to where that output's
+    // skeleton maps back onto the raw input (SentenceStream.ts). Those two
+    // lengths differ by exactly the marks the model inserted. Advancing the
+    // client's own cursor by the sealed text's length (rather than by what
+    // was actually consumed) drifts it forward by one character per inserted
+    // mark, silently deleting that many real characters from the next chunk
+    // every time. Only a runtime that actually inserts a mark can catch
+    // this — every other case in this file uses a no-op punctuate, so the
+    // rule path (which seals exact raw prefixes) never exposes the drift.
+    const digits = '0123456789'.repeat(5); // 50 chars — clears gateChars('en',1)===50
+    expect(digits.length).toBe(50);
+    // Model inserts one period 10 characters before the end — leaving
+    // exactly 10 (>=8) skeleton characters of right context.
+    const cut = digits.length - 10; // 40
+    const runtime: SegmentationRuntime = {
+      enabled: true,
+      async punctuate(_lang: string, text: string) {
+        const out = `${text.slice(0, cut)}.${text.slice(cut)}`;
+        return { text: out, sentenceEnds: [cut + 1], breakpoints: [cut + 1], model: 'edge-punct-en' as const };
+      },
+    };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    deps.asr.onPartialResult(digits);
+    await settle(); // the model call is async — let it resolve and seal
+
+    expect(jobSpy.mock.calls.length).toBe(1);
+    // The bug: sealUserChunk used to advance by the SEALED text's length
+    // (cut + 1, counting the inserted period) instead of the raw consumed
+    // length (cut). Assert the corrected cursor directly.
+    expect((c as any).sealedSkeleton).toBe(cut);
+
+    // A short, still-unpunctuated tail — kept under the 50-char gate so no
+    // second model round is needed — becomes the final chunk.
+    const tail = 'ZremainderNoPeriodHere';
+    deps.asr.onResult({ text: digits + tail, durationMs: 5, recognitionTimeMs: 1 });
+    await settle();
+
+    expect(jobSpy.mock.calls.length).toBe(2);
+    const firstSealed = jobSpy.mock.calls[0][0] as string;
+    const secondSealed = jobSpy.mock.calls[1][0] as string;
+    // With the bug, one raw character (digits[cut]) is silently dropped at
+    // the seam between the two chunks. Stripping the model's own inserted
+    // mark from the first chunk and concatenating must reconstruct the
+    // original raw text exactly, character for character.
+    expect(firstSealed.replace(/\.$/, '') + secondSealed).toBe(digits + tail);
+  });
+
+  it('a final that holds less than is already sealed restarts the cursor instead of blanking the open bubble', async () => {
+    // Some engines produce the final as a canonical re-decode rather than
+    // reusing the accumulated partial, so it can come back shorter than what
+    // partials already sealed. Slicing by a cursor that no longer applies
+    // must not feed the stream an empty string — that would blank the open
+    // bubble via onPending('') and then end() would never seal an empty
+    // tail, stranding it in_progress with nothing translated.
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    // Seals "First sentence done." — 18 non-whitespace characters.
+    deps.asr.onPartialResult('First sentence done. Second begins');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    expect((c as any).sealedSkeleton).toBe(countSkeleton('First sentence done.'));
+
+    // A short final that holds less than the cursor — slicing it there would give ''.
+    const shortFinal = 'Hi.';
+    expect(countSkeleton(shortFinal)).toBeLessThan((c as any).sealedSkeleton);
+    deps.asr.onResult({ text: shortFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // The short final still becomes its own completed item and job — not a
+    // blanked, permanently in_progress bubble.
+    expect(jobSpy.mock.calls.length).toBe(2);
+    expect(jobSpy.mock.calls[1][0]).toBe(shortFinal);
+    const finalUserItems = c.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.some((i) => i.status === 'in_progress')).toBe(false);
+    expect(finalUserItems.map((i) => i.formatted?.transcript)).toEqual([
+      'First sentence done.',
+      shortFinal,
+    ]);
+  });
+
+  it('a final that overlaps (is a raw prefix of) the already-sealed text closes the bubble without a second job', async () => {
+    // A seal requires >=8 skeleton characters of right context, so the
+    // partial that triggered it always extended well past the cursor. A
+    // canonical re-decode that drops that retracted tail can land at or
+    // below the cursor while still being an exact prefix of the SAME
+    // utterance — unlike the unrelated 'Hi.' case above, this must NOT be
+    // treated as a fresh, different utterance: doing so would seal and
+    // translate (and, with TTS on, speak) "First sentence done." a second
+    // time.
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    // Seals "First sentence done." — 18 non-whitespace characters; the open bubble
+    // holds the unconfirmed remainder " Second begins".
+    deps.asr.onPartialResult('First sentence done. Second begins');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const sealed = (c as any).sealedSkeleton as number;
+    expect(sealed).toBe(countSkeleton('First sentence done.'));
+
+    // The final is an exact prefix of the raw text already seen — a
+    // truncated re-decode of the SAME utterance, not new content.
+    const overlappingFinal = 'First sentence done.';
+    expect(countSkeleton(overlappingFinal)).toBe(sealed); // nothing past the cursor, so the slice would be ''
+    deps.asr.onResult({ text: overlappingFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // No second job: the confirmed content was already fully captured by the
+    // first seal.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    // The dangling bubble is closed out (not left in_progress forever), but
+    // without ever being translated a second time.
+    const finalUserItems = c.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.length).toBe(2);
+    expect(finalUserItems.every((i) => i.status === 'completed')).toBe(true);
+  });
+
+  it('an overlapping final survives a leading-space asymmetry between the accumulated partial and the trimmed final', async () => {
+    // voxtral-3b-webgpu.worker.ts and cohere-transcribe-webgpu.worker.ts both
+    // build the accumulated partial from TextStreamer's untrimmed token
+    // deltas (accumulatedText += token) but .trim() only the final — so the
+    // shape a real canonical re-decode produces is an UNTRIMMED partial
+    // compared against a TRIMMED final. A raw (untrimmed) prefix check is
+    // anchored at exactly the edge where they differ: if the first decoded
+    // piece carries a leading space (a common SentencePiece/BPE quirk), an
+    // untrimmed startsWith reads a genuine truncation as divergence and
+    // reseals text that was already sealed. This case pins the trimmed
+    // comparison that avoids that.
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    // Leading space on the accumulated partial, as an untrimmed TextStreamer
+    // accumulation would produce.
+    const leadingSpacePartial = ' First sentence done. Second begins';
+    deps.asr.onPartialResult(leadingSpacePartial);
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const sealed = (c as any).sealedSkeleton as number;
+    expect(sealed).toBe(countSkeleton('First sentence done.'));
+
+    // The final is trimmed — no leading space — but is still a truncation of
+    // the SAME utterance the partial already established.
+    const trimmedFinal = 'First sentence done.';
+    expect(countSkeleton(trimmedFinal)).toBe(sealed); // nothing past the cursor, so the slice would be ''
+    deps.asr.onResult({ text: trimmedFinal, durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    // No second job: this must still be recognised as the SAME utterance,
+    // not a fresh, different one.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const finalUserItems = c.getConversationItems().filter((i) => i.role === 'user');
+    expect(finalUserItems.length).toBe(2);
+    expect(finalUserItems.every((i) => i.status === 'completed')).toBe(true);
+  });
+
+  it('a final that drops a mark its partial carried loses no letter', async () => {
+
+  // Captured from the real sidecar with moonshine-streaming-tiny: a streaming
+  // final is a fresh decode, not the last partial with more text on the end,
+  // so it revises punctuation. A cursor that counted non-whitespace
+  // characters walked one letter too far into a final that had dropped a
+  // mark, and queued "'m pretty sure ..." for "I'm pretty sure ...".
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    deps.asr.onPartialResult(' Lorena and I have a wonderful family together. I\'m pretty sure');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+
+    deps.asr.onResult({
+      text: 'Lorena and I have a wonderful family together I\'m pretty sure none of this would have happened.',
+      durationMs: 1, recognitionTimeMs: 1,
+    });
+    await settle();
+
+    expect(jobSpy.mock.calls.map((call) => (call[0] as string).trim())).toEqual([
+      'Lorena and I have a wonderful family together.',
+      'I\'m pretty sure none of this would have happened.',
+    ]);
+  });
+
+  it('a final that adds a mark before the seal point queues no bubble of bare punctuation', async () => {
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    deps.asr.onPartialResult('And so my fellow Americans, ask not what your country can do for you. When I was young');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+
+    deps.asr.onResult({
+      text: 'And so, my fellow Americans, ask not what your country can do for you. When I was young there was an amazing publication.',
+      durationMs: 1, recognitionTimeMs: 1,
+    });
+    await settle();
+
+    expect(jobSpy.mock.calls.map((call) => (call[0] as string).trim())).toEqual([
+      'And so my fellow Americans, ask not what your country can do for you.',
+      'When I was young there was an amazing publication.',
+    ]);
+  });
+
+  it('a stripped final loses no character to the leading space its partials carried', async () => {
+    // The sidecar's gated streaming branch sends the partial unstripped
+    // (asr_engine.py _drive_utterance: "".join(self._partial_acc)) and the
+    // final stripped (_finalize), so a model whose first piece opens with a
+    // space produces ' 今天…' then '今天…'. A cursor counted in the partial's
+    // characters lands one
+    // character too far in the final. English hides it — the character
+    // dropped there is the space between two sentences.
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect({ ...SEG_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en' });
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    deps.asr.onPartialResult(' 今天天气很好。我们出去走走吧然后去吃饭');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(1);
+
+    deps.asr.onResult({ text: '今天天气很好。我们出去走走吧然后去吃饭。', durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    expect(jobSpy.mock.calls.map((call) => (call[0] as string).trim())).toEqual([
+      '今天天气很好。',
+      '我们出去走走吧然后去吃饭。',
+    ]);
+  });
+
+  it('a final with less whitespace in the middle than its partials loses no character either', async () => {
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect({ ...SEG_CONFIG, sourceLanguage: 'zh', targetLanguage: 'en' });
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    deps.asr.onPartialResult(' 第一段话说完了。 第二段话也说完了。第三段话正在说而且还没有完');
+    await settle();
+    expect(jobSpy.mock.calls.length).toBe(2);
+
+    deps.asr.onResult({ text: '第一段话说完了。第二段话也说完了。第三段话正在说而且还没有完全结束。', durationMs: 1, recognitionTimeMs: 1 });
+    await settle();
+
+    expect(jobSpy.mock.calls.map((call) => (call[0] as string).trim())).toEqual([
+      '第一段话说完了。',
+      '第二段话也说完了。',
+      '第三段话正在说而且还没有完全结束。',
+    ]);
+  });
+
+  it('a seal completes the in-progress item rather than creating a second in-progress one', async () => {
+    const runtime = fakeRuntime(true);
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    const inProgressCounts: number[] = [];
+    c.setEventHandlers({
+      onConversationUpdated: () => {
+        const inProgress = c.getConversationItems().filter((i) => i.role === 'user' && i.status === 'in_progress');
+        inProgressCounts.push(inProgress.length);
+      },
+    });
+    await c.connect(SEG_CONFIG);
+
+    deps.asr.onPartialResult('Grow');
+    deps.asr.onPartialResult('Growing more');
+    deps.asr.onPartialResult('First sentence done. Second begins'); // triggers a seal mid-partial
+    deps.asr.onPartialResult('First sentence done. Second begins and grows');
+    await settle();
+
+    expect(inProgressCounts.length).toBeGreaterThan(0);
+    expect(inProgressCounts.every((n) => n <= 1)).toBe(true);
+  });
+
+  it('currentTranslateItem never serves two jobs at once: the second job\'s partials never land in the first job\'s bubble', async () => {
+    // The job queue serializes runJob calls ("one in-flight translate per
+    // connection is the job queue's guarantee" — currentTranslateItem's own
+    // field doc). Chunking multiplies the jobs, but they still serialize
+    // through this.queue, so the invariant holds — pin it directly.
+    const runtime = fakeRuntime(true);
+    let call = 0;
+    const translate: any = {
+      onError: null as any, onPartial: null as any,
+      init: vi.fn().mockResolvedValue({ device: 'cpu' }),
+      translate: vi.fn().mockImplementation(async () => {
+        call += 1;
+        const n = call;
+        translate.onPartial?.(`partial-${n}`);
+        return { translatedText: `final-${n}`, inferenceTimeMs: 1 };
+      }),
+      dispose: vi.fn(),
+    };
+    const deps = segDeps({ translate });
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    const asstItems: Array<{ id: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => {
+        if (item.role === 'assistant') asstItems.push({ id: item.id, text: item.formatted?.transcript });
+      },
+    });
+    await c.connect(SEG_CONFIG);
+
+    // At N=1, this single partial seals TWO chunks synchronously via the
+    // rule path (each already-punctuated sentence has enough right context
+    // except the trailing one) — dispatching two jobs back-to-back onto the
+    // same promise queue.
+    deps.asr.onPartialResult('First sentence done. Second sentence done. Third tail sentence here.');
+    await settle();
+
+    expect(call).toBe(2); // both jobs actually ran translate()
+    const forFirst = asstItems.filter((i) => i.text === 'partial-1' || i.text === 'final-1');
+    const forSecond = asstItems.filter((i) => i.text === 'partial-2' || i.text === 'final-2');
+    expect(forFirst.length).toBeGreaterThan(0);
+    expect(forSecond.length).toBeGreaterThan(0);
+    // Each job's partials and final all land on ONE item id...
+    expect(new Set(forFirst.map((i) => i.id)).size).toBe(1);
+    expect(new Set(forSecond.map((i) => i.id)).size).toBe(1);
+    // ...and the two jobs never share that item id.
+    expect(forFirst[0].id).not.toBe(forSecond[0].id);
+  });
+
+  it('ignores a runtime that becomes enabled mid-session', async () => {
+    // The punctuation pack downloads on demand, so `runtime.enabled` can go
+    // from false to true while a session is open. A session keeps the answer
+    // it got at connect rather than waking this stage up under an utterance
+    // already in flight.
+    // Not fakeRuntime(): SegmentationRuntime declares `enabled` readonly, and
+    // this test is precisely about the value changing underneath the client.
+    const runtime = { enabled: false, punctuate: vi.fn(async () => null) };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; id: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, id: item.id }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    runtime.enabled = true; // the download finished
+
+    const fullText = 'One is done. Two is done. Three is done and finished well.';
+    deps.asr.onPartialResult(fullText);
+    deps.asr.onResult({ text: fullText, durationMs: 10, recognitionTimeMs: 5 });
+    await settle();
+
+    // One item, one job: the stage stayed off for this session.
+    expect(jobSpy.mock.calls.length).toBe(1);
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(new Set(userItems.map((i) => i.id)).size).toBe(1);
+    expect(userItems.filter((i) => i.status === 'completed').length).toBe(1);
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+  });
+
+  it('keeps sealing when the runtime turns disabled mid-session', async () => {
+    // The other direction of the same flip, and the one that loses data: the
+    // pack can be deleted — or the memory-debug override moved — under an open
+    // session. The session's answer was frozen at connect, so this stage must
+    // keep sealing whatever the runtime says now. Reading `enabled` again at
+    // stream construction instead builds an inert stream the client still
+    // routes into: no bubble, no translation, for this utterance and every
+    // later one.
+    const runtime = { enabled: true, punctuate: vi.fn(async () => null) };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 1 });
+    const items: Array<{ role: string; status: string; id: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, id: item.id }),
+    });
+    await c.connect(SEG_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    runtime.enabled = false; // the pack was deleted from under the session
+
+    const fullText = 'One is done. Two is done. Three is done and finished well.';
+    deps.asr.onPartialResult(fullText);
+    deps.asr.onResult({ text: fullText, durationMs: 10, recognitionTimeMs: 5 });
+    await settle();
+
+    // N = 1, so three sentences are three bubbles and three jobs — and, above
+    // all, not zero of either.
+    expect(jobSpy.mock.calls.length).toBe(3);
+    const userItems = items.filter((i) => i.role === 'user');
+    expect(userItems.filter((i) => i.status === 'completed').length).toBe(3);
+  });
+
+  it('forgets the session answer on disconnect', async () => {
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: fakeRuntime(true), sentencesPerChunk: 1 });
+    c.setEventHandlers({});
+    await c.connect(SEG_CONFIG);
+    expect((c as any).sessionSegmentation).not.toBeNull();
+
+    await c.disconnect();
+
+    expect((c as any).sessionSegmentation).toBeNull();
+  });
+});
+
+/**
+ * Auto (`sentencesPerChunk: 0`) — slice 5b, task 3.
+ *
+ * A VAD utterance is a boundary somebody else already decided (Amendment A2),
+ * so Auto keeps it and fills in the punctuation only: one bubble per
+ * utterance, exactly as with the stage off, carrying the marks the model
+ * supplied. No `SentenceStream` is built at all — the stream shape and the
+ * fill-in shape are exclusive, and the session picks one at connect.
+ */
+describe('LocalNativeClient Auto', () => {
+  /** 60 Japanese characters: gateChars('ja', 3) is 60, so this clears the
+   *  fill-in helper's gate with nothing to spare. */
+  const LONG_JA = 'あ'.repeat(60);
+  const MARKED_JA = `${'あ'.repeat(20)}。${'あ'.repeat(20)}。${'あ'.repeat(20)}。`;
+
+  /** A runtime that marks a sentence end every 20 characters — terminals
+   *  only, so the helper's skeleton check passes. */
+  function markingRuntime(): SegmentationRuntime & { punctuate: ReturnType<typeof vi.fn> } {
+    return {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += 20) {
+          out += text.slice(i, i + 20);
+          if (i + 20 <= text.length) { out += '。'; ends.push(out.length); }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  const JA_CONFIG: any = { ...SEG_CONFIG, sourceLanguage: 'ja' };
+
+  it('builds no stream and gives one item per utterance, with the punctuation filled in', async () => {
+    const runtime = markingRuntime();
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(JA_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    (c as any).onAsrResult({ text: LONG_JA });
+    await settle();
+
+    expect((c as any).stream).toBeNull();
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([MARKED_JA]);
+    expect(jobSpy.mock.calls.length).toBe(1);
+    expect(jobSpy.mock.calls[0][0]).toBe(MARKED_JA);
+  });
+
+  it('never constructs a SentenceStream at 0, and still does at 1-5', async () => {
+    const auto = new LocalNativeClient({ ...segDeps(), segmentation: markingRuntime(), sentencesPerChunk: 0 });
+    auto.setEventHandlers({});
+    await auto.connect(JA_CONFIG);
+    expect((auto as any).ensureStream()).toBeNull();
+
+    const sized = new LocalNativeClient({ ...segDeps(), segmentation: markingRuntime(), sentencesPerChunk: 3 });
+    sized.setEventHandlers({});
+    await sized.connect(JA_CONFIG);
+    expect((sized as any).ensureStream()).not.toBeNull();
+  });
+
+  it('leaves the streaming partials raw', async () => {
+    const runtime = markingRuntime();
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(JA_CONFIG);
+
+    deps.asr.onPartialResult(LONG_JA);
+    await settle();
+
+    expect(items.map((i) => i.text)).toEqual([LONG_JA]);
+    expect(items[0].status).toBe('in_progress');
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+  });
+
+  it('without a runtime, Auto is simply the stage off', async () => {
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(JA_CONFIG);
+    const jobSpy = vi.spyOn(c as any, 'runJob');
+
+    (c as any).onAsrResult({ text: LONG_JA });
+    await settle();
+
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([LONG_JA]);
+    expect(jobSpy.mock.calls.length).toBe(1);
+  });
+
+  it('a session that started in Auto keeps that shape when the size changes under it', async () => {
+    const runtime = markingRuntime();
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    const items: Array<{ role: string; status: string; text?: string }> = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => items.push({ role: item.role, status: item.status, text: item.formatted?.transcript }),
+    });
+    await c.connect(JA_CONFIG);
+
+    // The setting moves to 1 mid-session. At 1 the stream shape would seal
+    // three times over this text; the session's shape was decided at connect,
+    // so it stays one bubble.
+    (c as any).sentencesPerChunk = 1;
+    (c as any).onAsrResult({ text: LONG_JA });
+    await settle();
+
+    expect((c as any).stream).toBeNull();
+    const completedUser = items.filter((i) => i.role === 'user' && i.status === 'completed');
+    expect(completedUser.map((i) => i.text)).toEqual([MARKED_JA]);
+  });
+
+  it('writes the utterance raw rather than losing it when Stop lands mid-fill-in', async () => {
+    const runtime: SegmentationRuntime = { enabled: true, punctuate: vi.fn(() => new Promise<never>(() => {})) };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    c.setEventHandlers({});
+    await c.connect(JA_CONFIG);
+
+    (c as any).onAsrResult({ text: LONG_JA });
+    await settle();
+    expect(c.getConversationItems().filter((i) => i.status === 'completed')).toHaveLength(0);
+
+    await c.disconnect();
+
+    // MainPanel reads getConversationItems() on the turn after disconnect()
+    // resolves — anything still queued here is a sentence the user said and
+    // never gets back.
+    const completed = c.getConversationItems().filter((i) => i.status === 'completed');
+    expect(completed.map((i) => i.formatted?.transcript)).toEqual([LONG_JA]);
+  });
+
+  it('keeps two utterances in order when the first one waits longer for its marks', async () => {
+    // The lane is the only thing ordering these writes: both utterances call
+    // the model concurrently, and the second one's answer is ready first.
+    let releaseFirst: (() => void) | null = null;
+    const runtime: SegmentationRuntime = {
+      enabled: true,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        if (!releaseFirst) {
+          await new Promise<void>((resolve) => { releaseFirst = resolve; });
+        }
+        return { text, sentenceEnds: [], breakpoints: [], model: 'fireredpunc' as const };
+      }),
+    };
+    const deps = segDeps();
+    const c = new LocalNativeClient({ ...deps, segmentation: runtime, sentencesPerChunk: 0 });
+    const order: string[] = [];
+    c.setEventHandlers({
+      onConversationUpdated: ({ item }: any) => {
+        if (item.role === 'user' && item.status === 'completed') order.push(item.formatted.transcript);
+      },
+    });
+    await c.connect(JA_CONFIG);
+
+    const first = 'あ'.repeat(60);
+    const second = 'い'.repeat(60);
+    (c as any).onAsrResult({ text: first });
+    await settle();
+    (c as any).onAsrResult({ text: second });
+    await settle();
+    expect(order).toEqual([]);
+
+    releaseFirst!();
+    await settle();
+
+    expect(order).toEqual([first, second]);
+  });
+
+  describe('a conversation cleared while a fill-in is pending', () => {
+    /** A runtime whose answer is held until the test releases it. */
+    function gatedRuntime() {
+      let release: ((r: PunctuationResult | null) => void) | null = null;
+      const runtime: SegmentationRuntime = {
+        enabled: true,
+        punctuate: vi.fn((): Promise<PunctuationResult | null> => new Promise((resolve) => { release = resolve; })),
+      };
+      return { runtime, answer: (text: string) => release!({ text, sentenceEnds: [], breakpoints: [], model: 'fireredpunc' }) };
+    }
+
+    it.each(['reset', 'clearConversationItems'] as const)(
+      'drops the punctuated answer that lands after %s()',
+      async (clear) => {
+        const { runtime, answer } = gatedRuntime();
+        const c = new LocalNativeClient({ ...segDeps(), segmentation: runtime, sentencesPerChunk: 0 });
+        c.setEventHandlers({});
+        await c.connect(JA_CONFIG);
+
+        (c as any).onAsrResult({ text: LONG_JA });
+        await settle();
+        (c as any)[clear]();
+
+        answer(MARKED_JA);
+        await settle();
+
+        // The conversation the user emptied must not fill itself back in.
+        expect(c.getConversationItems()).toEqual([]);
+      },
+    );
+
+    it('writes nothing raw either when Stop follows the clear', async () => {
+      // disconnect() flushes the lane so a pending utterance is not lost — but
+      // a cleared conversation does not want it back, punctuated or raw.
+      const runtime: SegmentationRuntime = { enabled: true, punctuate: vi.fn(() => new Promise<never>(() => {})) };
+      const c = new LocalNativeClient({ ...segDeps(), segmentation: runtime, sentencesPerChunk: 0 });
+      c.setEventHandlers({});
+      await c.connect(JA_CONFIG);
+
+      (c as any).onAsrResult({ text: LONG_JA });
+      await settle();
+      c.clearConversationItems();
+
+      await c.disconnect();
+
+      expect(c.getConversationItems()).toEqual([]);
+    });
   });
 });

@@ -117,6 +117,34 @@ describe('OpenAILiveClient connect (Electron header injection)', () => {
     expect(client.isConnected()).toBe(true);
   });
 
+  // A2: the pause pair is a global setting handed over at construction, not a
+  // field of the session config. connect() must leave it alone — it used to
+  // read the pair off the config and would now reset both timers to the
+  // fallback on every session.
+  it('keeps the pause pair it was built with across connect', async () => {
+    const client = new OpenAILiveClient('sk-test', { sourcePauseMs: 700, translationPauseMs: 2500 });
+    expect((client as any).userSilenceTimeoutMs).toBe(700);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(2500);
+    const p = client.connect(baseConfig);
+    await flush();
+    completeHandshake(ws);
+    await p;
+    expect((client as any).userSilenceTimeoutMs).toBe(700);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(2500);
+  });
+
+  it('runs on 1.5 s a side when it is built without a pause', () => {
+    const client = new OpenAILiveClient('sk-test');
+    expect((client as any).userSilenceTimeoutMs).toBe(1500);
+    expect((client as any).assistantSilenceTimeoutMs).toBe(1500);
+  });
+
+  it('clamps a pause outside the 100-3000 ms a timer accepts', () => {
+    const tooShort = new OpenAILiveClient('sk-test', { sourcePauseMs: 5, translationPauseMs: 99_000 });
+    expect((tooShort as any).userSilenceTimeoutMs).toBe(100);
+    expect((tooShort as any).assistantSilenceTimeoutMs).toBe(3000);
+  });
+
   it('a Stop during the header registration ends the attempt before any socket is opened', async () => {
     let releaseRegistration!: () => void;
     const registration = new Promise<{ success: boolean }>((resolve) => {
@@ -363,7 +391,9 @@ describe('OpenAILiveClient state machine', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    client = new OpenAILiveClient('sk-test');
+    // 1 s a side, which is what the scenarios below were written against; the
+    // pause pair's own 1.5 s default has its own test above.
+    client = new OpenAILiveClient('sk-test', { sourcePauseMs: 1000, translationPauseMs: 1000 });
     updates = [];
     realtimeEvents = [];
     client.setEventHandlers({
@@ -1175,5 +1205,537 @@ describe('OpenAILiveClient.clearConversationItems', () => {
     vi.advanceTimersByTime(5000);
     expect(client.getConversationItems().map(i => i.status)).toEqual(['completed', 'completed']);
     vi.useRealTimers();
+  });
+});
+
+describe('OpenAILiveClient with the segmentation stage', () => {
+  let sockets: ReturnType<typeof makeMockWs>[];
+  let originalWebSocket: unknown;
+
+  /** Source and target are both CJK, so `gateChars` is 20 characters per
+   *  sentence and the unpunctuated fixtures below stay short enough to read.
+   *  Neither is zh/yue, so SentenceStream's Chinese length fallback — which
+   *  has nothing to do with what is under test — never fires. */
+  const STAGE_CONFIG: OpenAILiveSessionConfig = { ...baseConfig, sourceLanguage: 'ja', targetLanguage: 'ko' };
+
+  /** A runtime that marks a sentence end every `every` characters. It inserts
+   *  nothing but terminals, so SentenceStream's skeleton invariant holds. */
+  function markingRuntime(every = 10, enabled = true) {
+    return {
+      enabled,
+      punctuate: vi.fn(async (_lang: string, text: string) => {
+        let out = '';
+        const ends: number[] = [];
+        for (let i = 0; i < text.length; i += every) {
+          out += text.slice(i, i + every);
+          if (i + every <= text.length) {
+            out += '。';
+            ends.push(out.length);
+          }
+        }
+        return { text: out, sentenceEnds: ends, breakpoints: [...ends], model: 'fireredpunc' as const };
+      }),
+    };
+  }
+
+  function makeClient(options: { segmentation?: any; sentencesPerChunk?: number }) {
+    return new OpenAILiveClient('sk-test', options);
+  }
+
+  /** A real connect, because that is where the session's one answer is frozen. */
+  async function connectStage(client: OpenAILiveClient, config: OpenAILiveSessionConfig = STAGE_CONFIG) {
+    const p = client.connect(config);
+    await flush();
+    completeHandshake(sockets[sockets.length - 1]);
+    await p;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    env.electron = true; env.extension = false;
+    originalWebSocket = (globalThis as any).WebSocket;
+    sockets = [];
+    (globalThis as any).WebSocket = vi.fn(function () {
+      const ws = makeMockWs();
+      sockets.push(ws);
+      return ws;
+    });
+    (window as any).electron = { invoke: vi.fn(async () => ({ success: true })) };
+  });
+  afterEach(async () => {
+    // A socket left mid-upgrade holds the module-level upgrade gate; settle it.
+    for (const ws of sockets) if (ws.readyState === 0) ws.onclose?.({ code: 1006, reason: 'test teardown' });
+    await flush();
+    vi.useRealTimers();
+    (globalThis as any).WebSocket = originalWebSocket;
+    delete (window as any).electron;
+  });
+
+  const feedTo = (client: OpenAILiveClient) => (event: unknown) => (client as any).handleServerEvent(event);
+  const usersOf = (client: OpenAILiveClient) => client.getConversationItems().filter(i => i.role === 'user');
+  const assistantsOf = (client: OpenAILiveClient) => client.getConversationItems().filter(i => i.role === 'assistant');
+
+  it('seals an unpunctuated source item every N sentences, mid-delta', async () => {
+    const runtime = markingRuntime(10);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    // 50 unpunctuated characters: past the 40-character gate for N = 2 in a
+    // CJK language, and well inside MAX_MODEL_CHARS.
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50), start_ms: 0, end_ms: 3000 });
+    await flush();
+
+    expect(runtime.punctuate).toHaveBeenCalledTimes(1);
+    const items = usersOf(client);
+    expect(items.map(i => i.formatted?.transcript)).toEqual([
+      `${'あ'.repeat(10)}。${'あ'.repeat(10)}。`,
+      'あ'.repeat(30),
+    ]);
+    expect(items[0].status).toBe('completed');
+    expect(items[1].status).toBe('in_progress');
+  });
+
+  it('shows the inserted punctuation in the sealed item and leaves the pending one raw', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50), start_ms: 0, end_ms: 3000 });
+    await flush();
+
+    const [sealed, pending] = usersOf(client);
+    expect((sealed.formatted?.transcript ?? '').split('。').length - 1).toBe(2);
+    expect(pending.formatted?.transcript).not.toContain('。');
+  });
+
+  it('with the stage active a delta carrying one sentence end no longer closes the item, unless N is 1', async () => {
+    const text = 'これはテストです。つづきの文章があります';
+
+    // R1: the stream's seal decides where an item ends, so the per-delta
+    // lastSentenceEnd split is gone. One sentence is not two.
+    const many = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    many.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(many);
+    feedTo(many)({ type: 'session.input_transcript.delta', delta: text, start_ms: 0, end_ms: 2000 });
+    await flush();
+    expect(usersOf(many).map(i => i.formatted?.transcript)).toEqual([text]);
+
+    // N = 1 is the setting that reproduces today's every-sentence cut.
+    const one = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 1 });
+    one.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(one);
+    feedTo(one)({ type: 'session.input_transcript.delta', delta: text, start_ms: 0, end_ms: 2000 });
+    await flush();
+    expect(usersOf(one).map(i => i.formatted?.transcript)).toEqual(['これはテストです。', 'つづきの文章があります']);
+  });
+
+  it('the 12 s source cap stands down while the tail still holds a mark', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 3 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+    // One sentence end, two short of N, so nothing seals on its own.
+    feed({ type: 'session.input_transcript.delta', delta: 'あああああ。いいいいいいいい', start_ms: 0, end_ms: 4000 });
+    await flush();
+    expect(usersOf(client)).toHaveLength(1);
+
+    // Past 12 s. The cap used to cut here; now it defers to the stage, which
+    // has a full stop in the tail and its own length fallback to fall back on.
+    // Cutting on a timer is what made every bubble of a live Chinese session
+    // end at a comma 9-11 s apart.
+    feed({ type: 'session.input_transcript.delta', delta: 'ううう', start_ms: 4000, end_ms: 12500 });
+    await flush();
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['あああああ。いいいいいいいいううう']);
+  });
+
+  it('bounds an unpunctuated bubble by characters, not by seconds', async () => {
+    // Nothing the model can mark and nothing the ASR marked: the bubble is
+    // still bounded, at twice the 60-character gate for N = 3 in a CJK
+    // language, and by text rather than by a timer — 12 s of speech is a
+    // different amount of text for every speaker, and the 12 s cap used to cut
+    // at exactly the point the model was first being asked, so no punctuation
+    // ever reached the screen.
+    const silent = { enabled: true, punctuate: vi.fn(async () => null) };
+    const client = makeClient({ segmentation: silent, sentencesPerChunk: 3 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+
+    // 90 characters over 30 s: well past the old 12 s cap, under 120. The
+    // bubble is still open.
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(90), start_ms: 0, end_ms: 30000 });
+    await flush();
+    expect(usersOf(client)).toHaveLength(1);
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // Past 120 characters, in a delta that ends barely any later: the length
+    // fallback closes it. There is no remainder, so the next delta is what
+    // opens the next bubble.
+    feed({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(40), start_ms: 30000, end_ms: 30500 });
+    await flush();
+    const [only] = usersOf(client);
+    expect(only.status).toBe('completed');
+    expect(only.formatted?.transcript).toBe('あ'.repeat(130));
+  });
+
+  it('the translation side seals on its own schedule, independently of the source side', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+    // One sentence end and a tail short of the 40-character gate: the source
+    // item stays open (today's per-delta split would have closed it).
+    feed({ type: 'session.input_transcript.delta', delta: 'これはテストです。つづきの文章', start_ms: 0, end_ms: 1000 });
+    // Three sentence ends on the translation side: the stream seals after the
+    // second, where today's split would have cut after the third.
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。あいたかったです。またあいましょう', start_ms: 0, end_ms: 1500 });
+    await flush();
+
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['これはテストです。つづきの文章']);
+    expect(assistantsOf(client).map(i => i.formatted?.transcript)).toEqual([
+      'こんにちは。げんきですか。',
+      'あいたかったです。またあいましょう',
+    ]);
+  });
+
+  it("a silence timer closing a source item ends its stream, and the tail is that item's last text", async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).userSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(30), start_ms: 0, end_ms: 4500 });
+    await flush();
+    const stream = (client as any).userStream;
+    expect(stream).not.toBeNull();
+    const endSpy = vi.spyOn(stream, 'end');
+
+    // Two windows, not one: the tail is mid-sentence, so the first expiry
+    // defers and the second — with nothing new arrived — closes.
+    vi.advanceTimersByTime(1001);
+    vi.advanceTimersByTime(1001);
+
+    expect(endSpy).toHaveBeenCalledTimes(1);
+    expect((client as any).userStream).toBeNull();
+    expect((client as any).userPending).toBe('');
+    const [item] = usersOf(client);
+    expect(item.status).toBe('completed');
+    expect(item.formatted?.text).toBe('あ'.repeat(30));
+  });
+
+  it('a source tail mid-sentence defers the pause for as long as the speaker keeps talking', async () => {
+    // A live Gemini session cut "…成为商人或者是商队的向导，" from "以及保镖。"
+    // because the speaker rested at the comma for longer than the setting. In
+    // By sentences that contradicts the mode: the cut belongs to a sentence
+    // end, not to a pause.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).userSilenceTimeoutMs = 1000;
+    // 5 s of timeline, so the short-item rule (USER_MIN_SPAN_MS) never has a
+    // say here; the tail is 20 raw characters, short of the 40-character gate.
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(20), start_ms: 0, end_ms: 5000 });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // The speaker carried on: the tail grew, so the next expiry defers again.
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(10), start_ms: 5000, end_ms: 7000 });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('in_progress');
+
+    // Nothing more arrived. The speaker has stopped, so the bubble closes.
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+    expect(usersOf(client)[0].formatted?.transcript).toBe('あ'.repeat(30));
+  });
+
+  it('a source tail that finished its sentence closes on the first pause', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).userSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'これはテストです。', start_ms: 0, end_ms: 5000 });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+  });
+
+  it('closes a mid-sentence source item on the first pause with the stage off, exactly as before', async () => {
+    const client = makeClient({});
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).userSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(20), start_ms: 0, end_ms: 5000 });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[0].status).toBe('completed');
+  });
+
+  it('a runtime that is disabled at connect leaves the turn and pause rules exactly as they are', async () => {
+    const runtime = markingRuntime(10, false);
+    const client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+    feed({ type: 'session.input_transcript.delta', delta: '大家', start_ms: 0, end_ms: 2000 });
+    feed({ type: 'session.input_transcript.delta', delta: '好', start_ms: 2000, end_ms: 4100 });
+    feed({ type: 'session.input_transcript.delta', delta: ',先', start_ms: 4700, end_ms: 5100 });
+    feed({ type: 'session.input_transcript.delta', delta: '说', start_ms: 5200, end_ms: 5400 });
+    await flush();
+
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['大家好,', '先说']);
+    expect((client as any).userStream).toBeNull();
+    expect(runtime.punctuate).not.toHaveBeenCalled();
+  });
+
+  it('the mark a pause hands back to the previous item survives that item\'s final seal', async () => {
+    // Not in the plan's list: found while wiring step 7. The pause branch
+    // appends the mark straight to the item, and the seal that ends the
+    // stream rewrites the item with the tail the stream holds — so the stream
+    // has to be shown the mark as well, or every paused clause loses it.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+    feed({ type: 'session.input_transcript.delta', delta: 'これはながいはなしです', start_ms: 0, end_ms: 4100 });
+    feed({ type: 'session.input_transcript.delta', delta: '。そして', start_ms: 4800, end_ms: 5200 });
+    await flush();
+
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['これはながいはなしです。', 'そして']);
+  });
+
+  it('a seal does not disturb the audio hand-off: frames keep reaching the sealed item until its timeline end passes', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 1 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 10_000;
+    const feed = feedTo(client);
+    // N = 1 over a delta carrying two sentence ends: the stream seals twice,
+    // where today's split cuts once, at the last one. Three items either way
+    // is not the same three items.
+    feed({ type: 'session.output_transcript.delta', delta: 'こんにちは。げんきですか。またあいましょう', start_ms: 0, end_ms: 2000 });
+    await flush();
+    expect(assistantsOf(client).map(i => i.formatted?.transcript)).toEqual([
+      'こんにちは。', 'げんきですか。', 'またあいましょう',
+    ]);
+
+    // Session time is still 0: the first sentence's audio is still arriving.
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    let items = assistantsOf(client);
+    expect(items[0].status).toBe('in_progress');
+    expect(items[0].formatted?.audioSegments).toHaveLength(1);
+    expect(items[1].formatted?.audioSegments).toBeUndefined();
+
+    // 2000 ms + the 300 ms margin: the queue hands over in order. The second
+    // sealed item follows immediately — it was cut out of the same delta, so
+    // its own timeline end is the one that has just passed.
+    vi.advanceTimersByTime(2301);
+    items = assistantsOf(client);
+    expect(items.map(i => i.status)).toEqual(['completed', 'completed', 'in_progress']);
+    expect(items[0].formatted?.text).toBe('こんにちは。');
+    feed({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    expect(assistantsOf(client)[2].formatted?.audioSegments).toHaveLength(1);
+  });
+
+  it('freezes the runtime at connect: a later enable changes nothing, a later disable strands nothing', async () => {
+    const text = 'これはテストです。つづきの文章があります';
+
+    // Off at connect: the pack finishing its download mid-session must not
+    // wake the stage up, or today's per-delta cut and the stage would both run.
+    const late = { enabled: false, punctuate: vi.fn(async () => null) };
+    const offClient = makeClient({ segmentation: late, sentencesPerChunk: 2 });
+    offClient.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(offClient);
+    late.enabled = true;
+    feedTo(offClient)({ type: 'session.input_transcript.delta', delta: text, start_ms: 0, end_ms: 2000 });
+    await flush();
+    expect((offClient as any).sessionSegmentation).toBeNull();
+    expect(late.punctuate).not.toHaveBeenCalled();
+    expect(usersOf(offClient).map(i => i.formatted?.transcript)).toEqual(['これはテストです。', 'つづきの文章があります']);
+
+    // On at connect: the pack being deleted mid-session must not leave the
+    // open item stranded behind a stream that has gone inert.
+    const early = { enabled: true, punctuate: vi.fn(async () => null) };
+    const onClient = makeClient({ segmentation: early, sentencesPerChunk: 2 });
+    onClient.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(onClient);
+    (onClient as any).userSilenceTimeoutMs = 1000;
+    early.enabled = false;
+    feedTo(onClient)({ type: 'session.input_transcript.delta', delta: text, start_ms: 0, end_ms: 4500 });
+    await flush();
+    expect(usersOf(onClient).map(i => i.formatted?.transcript)).toEqual([text]);
+    // Two windows: the tail ends mid-sentence, so the first expiry defers.
+    vi.advanceTimersByTime(1001);
+    vi.advanceTimersByTime(1001);
+    const [only] = usersOf(onClient);
+    expect(only.status).toBe('completed');
+    expect(only.formatted?.text).toBe(text);
+  });
+  it('arms the silence timer for the item a model seal opens after the last delta', async () => {
+    // The model answers asynchronously, so at the end of an utterance the seal
+    // lands AFTER the delta that armed the timer — and completeUserItem clears
+    // that timer on its way out. Without a re-arm, the remainder's item stays
+    // open forever and the next utterance appends to it.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).userSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'あ'.repeat(50), start_ms: 0, end_ms: 3000 });
+    await flush();
+    expect(usersOf(client)).toHaveLength(2);
+    expect(usersOf(client)[1].status).toBe('in_progress');
+
+    // Two windows: the remainder is mid-sentence, so the first expiry defers.
+    vi.advanceTimersByTime(1001);
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(usersOf(client)[1].status).toBe('completed');
+  });
+
+  it('waits out a pause inside an unfinished translated sentence until the model stops', async () => {
+    // The model translates in bursts with gaps longer than this timeout, and
+    // cutting at the first gap chopped a live session's translation into
+    // half-sentences — one of them a lone comma — while resetting the sentence
+    // count that was supposed to decide the bubble.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 2 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '아'.repeat(50), start_ms: 0, end_ms: 3000 });
+    await flush();
+    expect(assistantsOf(client)).toHaveLength(2);
+    // The remainder is 30 raw characters with no mark: mid-sentence.
+    expect(assistantsOf(client)[1].status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[1].status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[1].status).toBe('completed');
+  });
+
+  it('keeps deferring the translation bubble while the model is still emitting text', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '아'.repeat(20), start_ms: 0, end_ms: 3000 });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('in_progress');
+
+    // The next burst of the same sentence: the tail grew, so another window.
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '아'.repeat(10), start_ms: 3000, end_ms: 5000 });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('in_progress');
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('completed');
+  });
+
+  it('audio frames re-arm the timer but do not buy the bubble another deferral', async () => {
+    // Audio re-arms the assistant timer, and the deferral used to be a
+    // once-per-arm forgiveness — so a trickle of frames after the last word
+    // could hold a mid-sentence bubble open indefinitely. The wait is bounded
+    // by text: no new text, no second deferral.
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '아'.repeat(20), start_ms: 0, end_ms: 3000 });
+    await flush();
+
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('in_progress');
+
+    feedTo(client)({ type: 'session.output_audio.delta', delta: VOICED_DELTA });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('completed');
+  });
+
+  it('closes on the first pause when the translated sentence finished', async () => {
+    const client = makeClient({ segmentation: markingRuntime(10), sentencesPerChunk: 5 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '번역된 문장입니다.', start_ms: 0, end_ms: 3000 });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('completed');
+  });
+
+  it('closes on the first pause with the stage off, exactly as before', async () => {
+    const client = makeClient({});
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    (client as any).assistantSilenceTimeoutMs = 1000;
+    feedTo(client)({ type: 'session.output_transcript.delta', delta: '아'.repeat(30), start_ms: 0, end_ms: 3000 });
+    await flush();
+    vi.advanceTimersByTime(1001);
+    await flush();
+    expect(assistantsOf(client)[0].status).toBe('completed');
+  });
+  it('does not let the 8 s soft cap pre-empt the stage, and lands the 12 s cap on a comma', async () => {
+    // A live Chinese session produced five bubbles in a row that all ended at
+    // a comma, 9-11 s apart, with a full stop sitting in the middle of one:
+    // the soft cap was cutting at the nearest clause mark before three
+    // sentences could accumulate, so N never acted. With the stage on the soft
+    // cap is gone and the 12 s cap is the net.
+    const silent = { enabled: true, punctuate: vi.fn(async () => null) };
+    const client = makeClient({ segmentation: silent, sentencesPerChunk: 3 });
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    const feed = feedTo(client);
+
+    // Past the 8 s soft cap with a comma mid-delta. The old rule cut here.
+    feed({ type: 'session.input_transcript.delta', delta: 'まず最初の話があって、そのあと', start_ms: 0, end_ms: 9000 });
+    await flush();
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['まず最初の話があって、そのあと']);
+
+    // Past the 12 s cap too. It stands down: the tail holds a comma, so the
+    // stage owns the cut and its length fallback is what bounds the bubble.
+    feed({ type: 'session.input_transcript.delta', delta: 'の話が続きます', start_ms: 9000, end_ms: 12500 });
+    await flush();
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual(['まず最初の話があって、そのあとの話が続きます']);
+
+    // What does end the bubble: 120 characters, twice the gate for N = 3 in a
+    // CJK language, sealed at the last comma it can confirm.
+    feed({ type: 'session.input_transcript.delta', delta: 'さらに話は続いて、'.repeat(12), start_ms: 12500, end_ms: 20000 });
+    await flush();
+    const texts = usersOf(client).map(i => i.formatted?.transcript ?? '');
+    expect(texts.length).toBe(2);
+    expect(texts[0].endsWith('、')).toBe(true);
+    expect(texts[0].length).toBeGreaterThan(60);
+  });
+
+  it('still cuts at the soft cap when the stage is off', async () => {
+    const client = makeClient({});
+    client.setEventHandlers({} as ClientEventHandlers);
+    await connectStage(client);
+    feedTo(client)({ type: 'session.input_transcript.delta', delta: 'まず最初の話があって、そのあと', start_ms: 0, end_ms: 9000 });
+    await flush();
+    expect(usersOf(client).map(i => i.formatted?.transcript)).toEqual([
+      'まず最初の話があって、',
+      'そのあと',
+    ]);
   });
 });

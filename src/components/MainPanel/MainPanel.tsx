@@ -23,6 +23,10 @@ import {
   useSubtitleModeActive,
   useKeepReplayAudio,
   useTextOnly,
+  useSegmentationMode,
+  useSentenceSegmentationChunkSentences,
+  useSegmentationSourcePause,
+  useSegmentationTranslationPause,
 } from '../../stores/settingsStore';
 import useSettingsStore from '../../stores/settingsStore';
 import type { SettingsStore } from '../../stores/settingsStore';
@@ -44,7 +48,7 @@ import useSessionStore, { useSession, useIsReconnecting, useSetIsReconnecting, u
 import useAudioStore, { useAudioContext, useNoiseSuppressionMode, useMode, useSetMode, useIsMicMuted, useIsMonitorMuted, useIsParticipantMuted, useSelectedParticipantSource, useParticipantSources } from '../../stores/audioStore';
 import { resolveParticipantSourceId, needsLoopbackStream } from '../../lib/modern-audio/participantSource';
 import { silentNoPermissionPresentation } from './participantWarnings';
-import { useLogActions } from '../../stores/logStore';
+import useLogStore, { useLogActions } from '../../stores/logStore';
 import { useNativeAsrLoading } from '../../stores/nativeModelStore';
 import type { RealtimeEvent, EventData } from '../../stores/logStore';
 import { IClient, ConversationItem, SessionConfig, ClientEventHandlers, ClientFactory, ResponseConfig } from '../../services/clients';
@@ -72,6 +76,15 @@ import {
   resolveParticipantSlot,
   teardownSessionLegs,
 } from '../../services/providers/managedSonioxSplit';
+import { buildClientOptions } from './clientOptions';
+import { segmentationForProvider, segmentationOfferFor } from './segmentationForProvider';
+import { useSegmentationRuntime } from './useSegmentationRuntime';
+import {
+  SegmentationCounters,
+  instrumentSegmentation,
+  segmentationTelemetry,
+  type SegmentationLeg,
+} from './segmentationTelemetry';
 import UpdateBanner from '../UpdateBanner/UpdateBanner';
 import UpdateDialog from '../UpdateDialog/UpdateDialog';
 import { useInitUpdateListeners, useCleanupUpdateListeners } from '../../stores/updateStore';
@@ -281,6 +294,40 @@ const MainPanel: React.FC<MainPanelProps> = () => {
   // Get settings from store
   const provider = useProvider();
   const uiMode = useUIMode();
+  const segmentationRuntime = useSegmentationRuntime(trackEvent);
+  // A2: one stored mode and one stored size, both clamped on read to what this
+  // provider offers. `mode` is what the session ran in — the stage itself is
+  // gated inside useSegmentationRuntime above, from the same two values — and
+  // `sentencesPerChunk` is that same clamped size under the name it reaches a
+  // client by: 0 means Auto, 1-5 seal every N sentences (see
+  // segmentationForProvider).
+  const storedSegmentationMode = useSegmentationMode();
+  const storedChunkSentences = useSentenceSegmentationChunkSentences();
+  const { mode: segmentationMode, size: segmentationSize, sentencesPerChunk } = useMemo(
+    () => segmentationForProvider({
+      storedMode: storedSegmentationMode,
+      storedSize: storedChunkSentences,
+      offer: segmentationOfferFor(provider),
+    }),
+    [storedSegmentationMode, storedChunkSentences, provider],
+  );
+  // The By pause mode's two timers, in seconds as stored. They ride to the
+  // client beside the runtime and the size; each descriptor converts.
+  const sourcePause = useSegmentationSourcePause();
+  const translationPause = useSegmentationTranslationPause();
+  /**
+   * One session's segmentation counts, filled by the per-leg wrappers
+   * `createAIClient` builds and drained by `translation_session_end`.
+   *
+   * A ref, not state: nothing renders from it, and a re-render per seal would
+   * cost the conversation panel a frame for a number nobody is looking at.
+   * Reset only after it has been read, so a session's counts survive from the
+   * moment its clients were created — which is before `isSessionActive` flips.
+   */
+  const segmentationCountersRef = useRef(new SegmentationCounters());
+  /** The ASR model each leg reported at session start, so the end event names
+   *  the same models the start event did. */
+  const sessionAsrModelsRef = useRef<Partial<Record<SegmentationLeg, string>>>({});
   const subtitleModeActive = useSubtitleModeActive();
   const replayEnabled = useKeepReplayAudio();
   const subtitleTakeover = subtitleModeActive && isExtension();
@@ -859,6 +906,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
     // sonioxManaged bundle; undefined/empty for BYOK and for every provider
     // whose descriptor acquires nothing. Stated BY REFERENCE, never restated.
     legOptions?: Partial<ClientOptions>,
+    // Which leg this client is. Only MainPanel knows, which is why the
+    // segmentation counters are attributed here and not inside the client:
+    // a client is not allowed to reach a store, and every leg shares one
+    // runtime. Defaults to 'speaker' because that is what both speaker call
+    // sites want, including the WebRTC-to-WebSocket fallback.
+    leg: SegmentationLeg = 'speaker',
   ): Promise<IClient> => {
     const descriptor = ProviderConfigFactory.getDescriptor(provider);
     const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore];
@@ -894,8 +947,52 @@ const MainPanel: React.FC<MainPanelProps> = () => {
       outputDeviceId: selectedMonitorDevice?.deviceId
     } : undefined;
 
-    return descriptor.createClient(creds, { transport: effectiveTransportType, webrtcOptions, ...legOptions });
-  }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted]);
+    return descriptor.createClient(creds, buildClientOptions({
+      transport: effectiveTransportType,
+      webrtcOptions,
+      // The one runtime, seen through this leg's counting wrapper. The client
+      // still receives a plain SegmentationRuntime and cannot tell.
+      segmentation: instrumentSegmentation(segmentationRuntime, leg, (eventLeg, event) => {
+        segmentationCountersRef.current.record(eventLeg, event);
+        // One line per seal, with its leg and reason and nothing else — no
+        // transcript text ever. Gated on the diagnostic-logs switch, because a
+        // seal lands every few seconds and the console is not a firehose by
+        // default. It reaches the exportable panel through `addRealtimeEvent`,
+        // where the spec asks for seal reasons, and not through report() or a
+        // plain entry: a seal is not a failure (diagnostics design §4).
+        if (event.kind === 'seal' && useLogStore.getState().enabled) {
+          // Size and sentence count, not just the reason: "why did that bubble
+          // hold five sentences" and "why is this one a fragment" are the two
+          // questions a live session actually raises, and counting the marks
+          // in a pasted transcript by hand is how they were answered until now.
+          // Counts only — the text itself never reaches either surface.
+          console.info(
+            `[Segmentation] ${eventLeg} sealed ${event.chars} chars, `
+            + `${event.terminals} sentence marks (${event.reason})`,
+          );
+          useLogStore.getState().addRealtimeEvent(
+            {
+              type: 'segmentation.seal',
+              data: {
+                leg: eventLeg, reason: event.reason, lang: event.lang,
+                chars: event.chars, terminals: event.terminals,
+              },
+            },
+            'client',
+            'segmentation.seal',
+            // The leg, so the entry lands under Me or Other rather than under
+            // both: SegmentationLeg and ClientId are the same two strings, and
+            // a seal always belongs to exactly one side.
+            eventLeg,
+          );
+        }
+      }),
+      sentencesPerChunk,
+      sourcePause,
+      translationPause,
+      legOptions,
+    }));
+  }, [provider, getAuthToken, selectedInputDevice?.deviceId, selectedMonitorDevice?.deviceId, isMicMuted, segmentationRuntime, sentencesPerChunk, sourcePause, translationPause]);
 
   // Which legs are reconnecting right now. A ref rather than state: these
   // transitions arrive from socket callbacks that can land several times in one
@@ -2610,6 +2707,10 @@ const MainPanel: React.FC<MainPanelProps> = () => {
                 !!speakerCore && typeof speakerCore.createSecondaryPort === 'function',
             });
             if (participantSlot === 'secondary-port') {
+              // No segmentation runtime here: this participant shares the
+              // speaker's transport and never goes through createAIClient.
+              // Its bubbles keep today's boundaries, which is the same
+              // fallback every provider gets when the stage is unavailable.
               participantClientRef.current = speakerCore!.createSecondaryPort!();
             } else {
               // Only ever `par_stt`: createParticipantSessionConfig forces
@@ -2622,6 +2723,7 @@ const MainPanel: React.FC<MainPanelProps> = () => {
               participantClientRef.current = await createAIClient(
                 false,
                 sessionResources?.legClientOptions('participant'),
+                'participant',
               );
             }
 
@@ -4066,6 +4168,12 @@ const MainPanel: React.FC<MainPanelProps> = () => {
         // Only for a leg that actually came up — a stale capture can never be
         // reported, because this is false whenever the leg did not start.
         const participantModels = participantChannelActive ? participantModelsRef.current : null;
+        const modelProps = sessionModelTelemetry(sessionConfig, participantModels);
+        // Kept for the end event, so both events name the same ASR models.
+        sessionAsrModelsRef.current = {
+          speaker: modelProps.asr_model,
+          participant: modelProps.participant_asr_model,
+        };
         // Symmetric channel composition — which clients actually started.
         // ['speaker'] = scenario 1, ['participant'] = scenario 2, both = scenario 3.
         const channels: string[] = [];
@@ -4077,7 +4185,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           session_id: newSessionId,
           provider: provider,
           model: sessionConfig.model,
-          ...sessionModelTelemetry(sessionConfig, participantModels),
+          ...modelProps,
+          // A2: the resolved mode, not the stored one — By pause on a provider
+          // without timers is Off, and the stage did not run there either.
+          sentence_segmentation_enabled: segmentationMode === 'sentences',
+          // A1: the mode alone is not the feature. `runtime.enabled` is the
+          // mode AND all three models on disk AND the memory guard, which is
+          // the only thing that says whether this session could seal at all.
+          sentence_segmentation_active: segmentationRuntime?.enabled === true,
+          // The resolved size, so 0 reads as Auto rather than as the 1-5 the
+          // clients were handed in its place.
+          sentence_segmentation_chunk_sentences: segmentationSize,
           noise_suppression_enabled: noiseSuppressionMode !== 'off',
           noise_suppression_mode: noiseSuppressionMode,
           real_voice_passthrough_enabled: isRealVoicePassthroughEnabled,
@@ -4096,8 +4214,17 @@ const MainPanel: React.FC<MainPanelProps> = () => {
           session_id: sessionId,
           duration,
           translation_count: translationCount,
-          provider: provider
+          provider: provider,
+          ...segmentationTelemetry(
+            segmentationCountersRef.current.snapshot(),
+            sessionAsrModelsRef.current,
+          ),
         });
+        // Only now: the counters start filling when the clients are created,
+        // which is before `isSessionActive` flips, so resetting at start would
+        // throw away the beginning of every session.
+        segmentationCountersRef.current.reset();
+        sessionAsrModelsRef.current = {};
         participantModelsRef.current = null;
         // Reset session state
         setSessionId(null);

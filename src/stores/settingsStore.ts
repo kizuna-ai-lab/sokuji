@@ -13,6 +13,13 @@ import { getManifestEntry } from '../lib/local-inference/modelManifest';
 import type { Stage } from '../lib/local-inference/selection/types';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
+import type { SegmentationMode } from '../lib/segmentation/segmentationMode';
+import {
+  DEFAULT_CHUNK_SENTENCES,
+  DEFAULT_SEGMENT_PAUSE_SECONDS,
+  MIN_SEGMENT_PAUSE_SECONDS,
+  MAX_SEGMENT_PAUSE_SECONDS,
+} from '../lib/segmentation/segmentationMode';
 import { useNativeModelStore } from './nativeModelStore';
 import useSessionStore from './sessionStore';
 import useAudioStore, { speakerChannelInScope } from './audioStore';
@@ -43,12 +50,6 @@ import {
 import {
   PalabraAISettings, defaultPalabraAISettings,
 } from '../services/providers/PalabraAIProviderConfig';
-import {
-  VolcengineSTSettings, defaultVolcengineSTSettings,
-} from '../services/providers/VolcengineSTProviderConfig';
-import {
-  ZoomAISettings, defaultZoomAISettings,
-} from '../services/providers/ZoomAIProviderConfig';
 import {
   VolcengineAST2Settings, defaultVolcengineAST2Settings,
 } from '../services/providers/VolcengineAST2ProviderConfig';
@@ -85,7 +86,7 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
   OpenAITranslateSettings, OpenAILiveSettings, GeminiSettings, PalabraAISettings,
-  VolcengineSTSettings, ZoomAISettings, VolcengineAST2Settings, LocalInferenceSettings,
+  VolcengineAST2Settings, LocalInferenceSettings,
   LocalNativeSettings, SonioxSettings,
 };
 
@@ -93,7 +94,7 @@ export type {
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
-  | OpenAITranslateSettings | OpenAILiveSettings | VolcengineSTSettings | ZoomAISettings
+  | OpenAITranslateSettings | OpenAILiveSettings
   | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
 // ==================== Type Definitions ====================
@@ -116,6 +117,22 @@ export interface CommonSettings {
   keepReplayAudio: boolean;
   autoSaveOnStop: boolean;
   diagnosticLogs: boolean;
+  /**
+   * How bubbles are cut: Off, By pause, or By sentences (Amendment A2).
+   * Stored once for every provider and clamped on read to what the current
+   * one offers — `pause`, the default, means By pause on the three clients
+   * that cut on their own timers and Off on every other provider. By
+   * sentences stays inert until the three punctuation models are downloaded
+   * (Amendment A1).
+   */
+  segmentationMode: SegmentationMode;
+  /** How many sentences fill one bubble. 0 (Auto) to 5, clamped on read. */
+  sentenceSegmentationChunkSentences: number;
+  /** Seconds of silence that end a source utterance, for the clients that cut
+   *  on their own timers. 0.1-3, clamped on read. */
+  segmentationSourcePause: number;
+  /** The same, for the translation side. */
+  segmentationTranslationPause: number;
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
 }
@@ -135,6 +152,54 @@ interface CacheEntry {
 
 // ==================== Default Values ====================
 
+/**
+ * The only place 0-5 is enforced.
+ *
+ * This is CommonSettings' first numeric field, and it reaches a SentenceStream
+ * that multiplies it into three thresholds. A value from an older build, a
+ * corrupted store or a hand-edited settings file must never get that far, so
+ * the clamp sits on the read and on the write rather than in the picker.
+ *
+ * 0 is Auto since Amendment A2 — punctuate, never seal — so the range starts
+ * one lower than the 1-5 A1 shipped.
+ */
+export function clampChunkSentences(value: unknown): number {
+  // `null` means the setting is absent, so it takes the default like
+  // `undefined` does. Without this line it would fall through to
+  // `Number(null) === 0`, which is now a value in its own right: a missing
+  // setting would silently read as Auto.
+  if (value === null || value === undefined) return DEFAULT_CHUNK_SENTENCES;
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return DEFAULT_CHUNK_SENTENCES;
+  return Math.min(5, Math.max(0, n));
+}
+
+/**
+ * Seconds of silence that end an utterance, in the range and at the default
+ * `segmentationMode.ts` owns — the same three numbers the clients clamp their
+ * milliseconds to, so the store and a client built without a pause can never
+ * disagree about them.
+ *
+ * Clamped on read and on write for the same reason as the sentence count: the
+ * two values leave here for a client's timers, and a stored 0 would arm a
+ * timer that fires on every gap between words.
+ */
+function clampSegmentationPause(value: unknown): number {
+  if (value === null || value === undefined) return DEFAULT_SEGMENT_PAUSE_SECONDS;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return DEFAULT_SEGMENT_PAUSE_SECONDS;
+  return Math.min(MAX_SEGMENT_PAUSE_SECONDS, Math.max(MIN_SEGMENT_PAUSE_SECONDS, n));
+}
+
+/**
+ * A stored mode this build does not know takes the default, which is what
+ * `resolveSegmentationMode` does with it too — the store and the resolver
+ * must not disagree about an unrecognised value.
+ */
+function clampSegmentationMode(value: unknown): SegmentationMode {
+  return value === 'off' || value === 'sentences' || value === 'pause' ? value : 'pause';
+}
+
 const defaultCommonSettings: CommonSettings = {
   provider: Provider.OPENAI,
   uiLanguage: 'en',
@@ -143,6 +208,10 @@ const defaultCommonSettings: CommonSettings = {
   keepReplayAudio: false,
   autoSaveOnStop: false,
   diagnosticLogs: false,
+  segmentationMode: 'pause',
+  sentenceSegmentationChunkSentences: DEFAULT_CHUNK_SENTENCES,
+  segmentationSourcePause: DEFAULT_SEGMENT_PAUSE_SECONDS,
+  segmentationTranslationPause: DEFAULT_SEGMENT_PAUSE_SECONDS,
   systemInstructions:
     "# ROLE & OBJECTIVE\n" +
     "You are a simultaneous interpreter.\n" +
@@ -219,8 +288,6 @@ export interface SettingsStore {
   palabraai: PalabraAISettings;
   openaiTranslate: OpenAITranslateSettings;
   openaiLive: OpenAILiveSettings;
-  volcengineST: VolcengineSTSettings;
-  zoomAI: ZoomAISettings;
   volcengineAST2: VolcengineAST2Settings;
   soniox: SonioxSettings;
   kizunaOpenaiTranslate: OpenAITranslateSettings;
@@ -281,6 +348,19 @@ export interface SettingsStore {
   // the title bar offers no logs button.
   diagnosticLogs: boolean;
 
+  /**
+   * How bubbles are cut: Off, By pause, or By sentences (Amendment A2).
+   * Stored once for every provider and clamped on read to what the current
+   * one offers.
+   */
+  segmentationMode: SegmentationMode;
+  /** How many sentences fill one bubble. 0 (Auto) to 5, clamped on read. */
+  sentenceSegmentationChunkSentences: number;
+  /** Seconds of silence that end a source utterance. 0.1-3, clamped on read. */
+  segmentationSourcePause: number;
+  /** The same, for the translation side. */
+  segmentationTranslationPause: number;
+
   // Conversation display mode filters
   speakerDisplayMode: DisplayMode;
   participantDisplayMode: DisplayMode;
@@ -303,6 +383,10 @@ export interface SettingsStore {
   setKeepReplayAudio: (keepReplayAudio: boolean) => Promise<void>;
   setAutoSaveOnStop: (autoSaveOnStop: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
+  setSegmentationMode: (mode: SegmentationMode) => Promise<void>;
+  setSentenceSegmentationChunkSentences: (n: number) => Promise<void>;
+  setSegmentationSourcePause: (seconds: number) => Promise<void>;
+  setSegmentationTranslationPause: (seconds: number) => Promise<void>;
   setSpeakerDisplayMode: (mode: DisplayMode) => Promise<void>;
   setParticipantDisplayMode: (mode: DisplayMode) => Promise<void>;
   enterSubtitleMode: () => Promise<void>;
@@ -334,8 +418,6 @@ export interface SettingsStore {
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
   updateOpenAILive: (settings: Partial<OpenAILiveSettings>) => Promise<void>;
-  updateVolcengineST: (settings: Partial<VolcengineSTSettings>) => void;
-  updateZoomAI: (settings: Partial<ZoomAISettings>) => void;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateSoniox: (settings: Partial<SonioxSettings>) => void;
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
@@ -572,8 +654,6 @@ const PROVIDER_SLICE_REGISTRY = {
   palabraai: { defaults: defaultPalabraAISettings },
   openaiTranslate: { defaults: defaultOpenAITranslateSettings },
   openaiLive: { defaults: defaultOpenAILiveSettings },
-  volcengineST: { defaults: defaultVolcengineSTSettings },
-  zoomAI: { defaults: defaultZoomAISettings },
   volcengineAST2: { defaults: defaultVolcengineAST2Settings },
   soniox: { defaults: defaultSonioxSettings },
   // Relay twins authenticate through the relay with a short-lived Better Auth
@@ -623,8 +703,6 @@ const useSettingsStore = create<SettingsStore>()(
     palabraai: defaultPalabraAISettings,
     openaiTranslate: defaultOpenAITranslateSettings,
     openaiLive: defaultOpenAILiveSettings,
-    volcengineST: defaultVolcengineSTSettings,
-    zoomAI: defaultZoomAISettings,
     volcengineAST2: defaultVolcengineAST2Settings,
     soniox: defaultSonioxSettings,
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
@@ -767,6 +845,42 @@ const useSettingsStore = create<SettingsStore>()(
       }
     },
 
+    setSegmentationMode: async (mode) => {
+      const previous = get().segmentationMode;
+      const clamped = clampSegmentationMode(mode);
+      set({segmentationMode: clamped});
+      if (!await persistSetting('settings.common.segmentationMode', clamped)) {
+        set({segmentationMode: previous});
+      }
+    },
+
+    setSentenceSegmentationChunkSentences: async (n) => {
+      const previous = get().sentenceSegmentationChunkSentences;
+      const clamped = clampChunkSentences(n);
+      set({sentenceSegmentationChunkSentences: clamped});
+      if (!await persistSetting('settings.common.sentenceSegmentationChunkSentences', clamped)) {
+        set({sentenceSegmentationChunkSentences: previous});
+      }
+    },
+
+    setSegmentationSourcePause: async (seconds) => {
+      const previous = get().segmentationSourcePause;
+      const clamped = clampSegmentationPause(seconds);
+      set({segmentationSourcePause: clamped});
+      if (!await persistSetting('settings.common.segmentationSourcePause', clamped)) {
+        set({segmentationSourcePause: previous});
+      }
+    },
+
+    setSegmentationTranslationPause: async (seconds) => {
+      const previous = get().segmentationTranslationPause;
+      const clamped = clampSegmentationPause(seconds);
+      set({segmentationTranslationPause: clamped});
+      if (!await persistSetting('settings.common.segmentationTranslationPause', clamped)) {
+        set({segmentationTranslationPause: previous});
+      }
+    },
+
     setSpeakerDisplayMode: async (speakerDisplayMode) => {
       const previous = get().speakerDisplayMode;
       set({speakerDisplayMode});
@@ -854,8 +968,6 @@ const useSettingsStore = create<SettingsStore>()(
     updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
     updateOpenAILive: (settings) => updateProviderSlice(set, 'openaiLive', settings),
-    updateVolcengineST: (settings) => updateProviderSlice(set, 'volcengineST', settings),
-    updateZoomAI: (settings) => updateProviderSlice(set, 'zoomAI', settings),
     updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
     updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
     updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
@@ -1000,7 +1112,7 @@ const useSettingsStore = create<SettingsStore>()(
       const creds = await descriptor.extractCredentials(currentSettings, { getAuthToken });
 
       // Empty/incomplete credentials: silent reset, same as before (no error
-      // banner while typing). Two-field providers (Palabra, Volcengine, Zoom)
+      // banner while typing). Two-field providers (Palabra, Volcengine)
       // already reject incomplete pairs inside their extractCredentials override.
       if (!creds.ok) {
         set({
@@ -1186,6 +1298,18 @@ const useSettingsStore = create<SettingsStore>()(
         const textOnly = await service.getSetting('settings.common.textOnly', defaultCommonSettings.textOnly);
         const keepReplayAudio = await service.getSetting('settings.common.keepReplayAudio', defaultCommonSettings.keepReplayAudio);
         const autoSaveOnStop = await service.getSetting('settings.common.autoSaveOnStop', defaultCommonSettings.autoSaveOnStop);
+        const segmentationMode = clampSegmentationMode(
+          await service.getSetting('settings.common.segmentationMode', defaultCommonSettings.segmentationMode),
+        );
+        const sentenceSegmentationChunkSentences = clampChunkSentences(
+          await service.getSetting('settings.common.sentenceSegmentationChunkSentences', defaultCommonSettings.sentenceSegmentationChunkSentences),
+        );
+        const segmentationSourcePause = clampSegmentationPause(
+          await service.getSetting('settings.common.segmentationSourcePause', defaultCommonSettings.segmentationSourcePause),
+        );
+        const segmentationTranslationPause = clampSegmentationPause(
+          await service.getSetting('settings.common.segmentationTranslationPause', defaultCommonSettings.segmentationTranslationPause),
+        );
         const speakerDisplayMode = await service.getSetting<DisplayMode>('settings.common.speakerDisplayMode', defaultCommonSettings.speakerDisplayMode);
         const participantDisplayMode = await service.getSetting<DisplayMode>('settings.common.participantDisplayMode', defaultCommonSettings.participantDisplayMode);
         // Subtitle settings now hydrated by subtitleStore.hydrate(); see stores/subtitleStore.ts.
@@ -1248,6 +1372,10 @@ const useSettingsStore = create<SettingsStore>()(
           keepReplayAudio,
           autoSaveOnStop,
           diagnosticLogs,
+          segmentationMode,
+          sentenceSegmentationChunkSentences,
+          segmentationSourcePause,
+          segmentationTranslationPause,
           speakerDisplayMode,
           participantDisplayMode,
           ...loadedSlices,
@@ -1408,8 +1536,6 @@ export const useOpenAICompatibleSettings = () => useSettingsStore((state) => sta
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
 export const useOpenAILiveSettings = () => useSettingsStore((state) => state.openaiLive);
-export const useVolcengineSTSettings = () => useSettingsStore((state) => state.volcengineST);
-export const useZoomAISettings = () => useSettingsStore((state) => state.zoomAI);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
 export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
@@ -1466,6 +1592,14 @@ export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepRe
 export const useAutoSaveOnStop = () => useSettingsStore((state) => state.autoSaveOnStop);
 export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
 export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
+export const useSegmentationMode = () => useSettingsStore((state) => state.segmentationMode);
+export const useSetSegmentationMode = () => useSettingsStore((state) => state.setSegmentationMode);
+export const useSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.sentenceSegmentationChunkSentences);
+export const useSetSentenceSegmentationChunkSentences = () => useSettingsStore((state) => state.setSentenceSegmentationChunkSentences);
+export const useSegmentationSourcePause = () => useSettingsStore((state) => state.segmentationSourcePause);
+export const useSetSegmentationSourcePause = () => useSettingsStore((state) => state.setSegmentationSourcePause);
+export const useSegmentationTranslationPause = () => useSettingsStore((state) => state.segmentationTranslationPause);
+export const useSetSegmentationTranslationPause = () => useSettingsStore((state) => state.setSegmentationTranslationPause);
 
 export const useSetProvider = () => useSettingsStore((state) => state.setProvider);
 export const useSetUILanguage = () => useSettingsStore((state) => state.setUILanguage);
@@ -1486,8 +1620,6 @@ export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
 export const useUpdateOpenAILive = () => useSettingsStore((state) => state.updateOpenAILive);
-export const useUpdateVolcengineST = () => useSettingsStore((state) => state.updateVolcengineST);
-export const useUpdateZoomAI = () => useSettingsStore((state) => state.updateZoomAI);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
 export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
@@ -1525,7 +1657,7 @@ export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.l
 
 // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers
 // whose settings slice has no turnDetectionMode field (e.g. OpenAI Translate,
-// Palabra, Volcengine ST, Zoom). Resolved via the active descriptor's slice key.
+// Palabra). Resolved via the active descriptor's slice key.
 export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state) => {
   const descriptor = ProviderConfigFactory.getDescriptor(state.provider);
   const slice = state[descriptor.settingsSliceKey as keyof SettingsStore] as { turnDetectionMode?: string };

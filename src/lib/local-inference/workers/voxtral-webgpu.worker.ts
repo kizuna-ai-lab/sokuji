@@ -25,6 +25,7 @@ import { initTransformersEnv } from './_shared/transformers-env';
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
 import { resolveVadThresholds } from './_shared/vad-thresholds';
+import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import {
   boundedBatchEndSample,
   promoteQueued,
@@ -83,6 +84,27 @@ let vadSession: VadSession | null = null;
 let frameProcessor: FrameProcessor | null = null;
 let maxSpeechFrames = 625; // ~20s at 32ms/frame
 let speechFramesSinceStart = 0;
+
+// The longest speech one generate() run is fed. No text is lost past it — a
+// 60 s run transcribes completely — but the run has to stay under 512 audio
+// tokens (80 ms each: 2.56 s left pad + 0.8 s pre-roll + speech + 0.56 s tail
+// pad) to keep up with real time. Past that the float32 decoder KV tensors
+// leave the 2 MiB allocation class and every token costs ~130 ms more: on a
+// GB10 a 40 s run finished 10 s late and a 60 s one 38-59 s late, and Stop
+// pressed while it lags discards the backlog. 35 s is 488-489 tokens. Not
+// lower — each forced cut damages about one word. Measured on q4 only;
+// q4f16's float16 KV is predicted to reach the step at ~78 s, which nobody
+// has run.
+//
+// The 24 tokens of headroom are not all slack: an utterance that starts while
+// the previous run is still draining is staged untrimmed, so it carries every
+// sample since the last endpoint instead of the 0.8 s pre-roll (the idle trim
+// at feedAudio is gated on `!isGenerating`). A drain longer than ~2.8 s then
+// pushes the carrying run past 512 — 513 to 527 tokens in simulation at a
+// drain of 4.6 s, against the 1.2-2.65 s measured on the GB10. Latency only,
+// no text lost, and the same at any cap; trimming the staged buffer is a
+// separate change.
+const VOXTRAL_REALTIME_MAX_SPEECH_SECONDS = 35;
 let preSpeechPadSamples = Math.ceil(0.8 * VAD_SAMPLE_RATE);
 
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
@@ -113,9 +135,10 @@ async function initVad(vadConfig?: VoxtralAsrInitMessage['vadConfig'], vadModelU
   const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
   const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
   const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-  const maxSpeechDurationMs = (vadConfig?.maxSpeechDuration ?? 20) * 1000;
 
-  maxSpeechFrames = Math.ceil(maxSpeechDurationMs / VAD_FRAME_MS);
+  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, {
+    maxSpeechSeconds: VOXTRAL_REALTIME_MAX_SPEECH_SECONDS,
+  });
   preSpeechPadSamples = Math.ceil((preSpeechPadMs / 1000) * VAD_SAMPLE_RATE);
   // NaN would survive the idle trim's Math.max() and discard the first chunk too.
   if (!Number.isFinite(preSpeechPadSamples) || preSpeechPadSamples < 0) preSpeechPadSamples = 0;
@@ -164,8 +187,16 @@ let voxtralProcessor: any = null;
  * When enabled, sentences ending with . 。 ! ? ！ ？ trigger immediate
  * result finalization (and translation) without waiting for VAD silence.
  * Set to false to use VAD-only endpoint detection.
+ *
+ * The renderer turns this off while the sentence-segmentation stage is active.
+ * That stage does the same job against the growing partial and does it better:
+ * it counts a mark only once RIGHT_CONTEXT_CHARS of text follow it, so it never
+ * cuts inside a word the way this does when the decoder emits a period
+ * mid-word, and it honours the user's sentences-per-bubble setting instead of
+ * forcing one. Absent from the init message means true — the historical
+ * default, and what every caller but Local Inference sends.
  */
-const PUNCTUATION_ENDPOINT_ENABLED = true;
+let punctuationEndpointEnabled = true;
 
 let isGenerating = false;
 /** An utterance that arrived while the previous run was still draining its tail. */
@@ -277,7 +308,12 @@ async function runVoxtralGenerate(): Promise<void> {
           });
           segmentStartTime = now;
         },
-        punctuationEndpoint: PUNCTUATION_ENDPOINT_ENABLED,
+        punctuationEndpoint: punctuationEndpointEnabled,
+        // Tekken's decoder is pure ByteLevel with clean_up_tokenization_spaces
+        // false (tokenizer.json / tokenizer_config.json), so a window that
+        // starts at a character boundary decodes to exactly the text the
+        // whole utterance would have there.
+        positionIndependentDecode: true,
       },
     );
 
@@ -443,6 +479,8 @@ async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void>
 async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
+
+    punctuationEndpointEnabled = msg.punctuationEndpoint ?? true;
 
     // ortEnv wasmPaths must be set before initVad's InferenceSession; the
     // transformers env is configured later via initTransformersEnv.
