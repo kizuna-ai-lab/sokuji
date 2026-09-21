@@ -51,8 +51,8 @@ def strip_marks(text):
 
 def main():
     torch.set_num_threads(4)
-    rows = [r for r in json.load(open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8"))
-            if r["lang"] in ("zh", "en")]
+    with open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8") as fh:
+        rows = [r for r in json.load(fh) if r["lang"] in ("zh", "en")]
 
     t0 = time.time()
     model = FireRedPunc.from_pretrained(MODEL_DIR, FireRedPuncConfig(use_gpu=False))

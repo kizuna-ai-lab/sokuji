@@ -61,7 +61,8 @@ def build():
 def main():
     variants = build()
     io = ModelIO(MODEL_DIR)
-    rows = json.load(open(os.path.join(ROOT, "results", "parity-fireredpunc-upstream.json"), encoding="utf-8"))["rows"]
+    with open(os.path.join(ROOT, "results", "parity-fireredpunc-upstream.json"), encoding="utf-8") as fh:
+        rows = json.load(fh)["rows"]
     so = ort.SessionOptions()
     so.intra_op_num_threads = 4
     report = {}

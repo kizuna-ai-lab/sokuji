@@ -36,8 +36,8 @@ def probs_for(text):
 
 
 def main():
-    rows = [r for r in json.load(open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8"))
-            if r["lang"] == "ja"]
+    with open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8") as fh:
+        rows = [r for r in json.load(fh) if r["lang"] == "ja"]
     out = {"versions": {"onnxruntime": ort.__version__, "numpy": np.__version__}, "precisions": {}}
     for prec in ("int8", "fp32"):
         punct.unload()

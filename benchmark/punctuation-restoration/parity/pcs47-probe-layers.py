@@ -17,7 +17,8 @@ OUT = "/home/jiangzhuo/.cache/sokuji-punct-bench/pcs47-probe"
 REF = "/home/jiangzhuo/Desktop/kizunaai/sokuji/.claude/worktrees/research-asr-punctuation/benchmark/punctuation-restoration/results/parity-pcs47-ref-fp32.json"
 os.makedirs(OUT, exist_ok=True)
 
-rows = {r["id"]: r for r in json.load(open(REF, encoding="utf-8"))["rows"]}
+with open(REF, encoding="utf-8") as fh:
+    rows = {r["id"]: r for r in json.load(fh)["rows"]}
 inputs = {k: np.array([[0] + rows[f"{k}-long"]["sp_ids_pre"][:128] + [2]], dtype=np.int64) for k in ["en", "zh"]}
 
 
@@ -56,8 +57,9 @@ for tag, src in [("int8", f"{D}/model.int8.onnx"), ("fp32", f"{D}/model.onnx")]:
     models[tag] = {"model": os.path.basename(path), "entries": entries}
     print(tag, "exposed", len(extra), "tensors ->", path, os.path.getsize(path), "bytes", flush=True)
 
-json.dump(
-    {"inputs": {k: x.tolist() for k, x in inputs.items()}, "models": models, "ort": ort.__version__},
-    open(f"{OUT}/manifest.json", "w"),
-)
+with open(f"{OUT}/manifest.json", "w") as fh:
+    json.dump(
+        {"inputs": {k: x.tolist() for k, x in inputs.items()}, "models": models, "ort": ort.__version__},
+        fh,
+    )
 print("wrote", f"{OUT}/manifest.json")

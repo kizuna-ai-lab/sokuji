@@ -66,7 +66,9 @@ def main():
     tok = AutoTokenizer.from_pretrained(SRC)
     torch_model = AutoModelForTokenClassification.from_pretrained(SRC, trust_remote_code=True, code_revision=CODE_REV).eval()
     path = sys.modules[type(torch_model).__module__].__file__
-    if hashlib.sha256(open(path, "rb").read()).hexdigest() != MODELING_SHA256:
+    with open(path, "rb") as fh:
+        digest = hashlib.sha256(fh.read()).hexdigest()
+    if digest != MODELING_SHA256:
         raise SystemExit(f"{path} is not the pinned modeling.py")
     if args.backend == "torch":
         model, stem = torch_model, "torch"
@@ -78,7 +80,8 @@ def main():
     pm.tokenizer, pm.model, pm.device = tok, model, "cpu"
     normalizer = tok.backend_tokenizer.normalizer
 
-    rows = json.load(open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8"))
+    with open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8") as fh:
+        rows = json.load(fh)
     rows = [r for r in rows if r["lang"] in LANGS]
     for lang in LANGS:
         parts = [r["input"] for r in rows if r["lang"] == lang and r["variant"] == "stripped"]
@@ -101,7 +104,8 @@ def main():
             "punct": punct,
         })
     dst = os.path.join(ROOT, "results", f"parity-koen-punct-ref-{stem}.json")
-    json.dump({"backend": args.backend, "rows": out}, open(dst, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    with open(dst, "w", encoding="utf-8") as fh:
+        json.dump({"backend": args.backend, "rows": out}, fh, ensure_ascii=False, indent=1)
     print(f"wrote {dst}: {len(out)} rows in {time.time() - t0:.1f}s; max tokens {max(r['n_tokens'] for r in out)}; "
           f"rows not normalization-invariant {sum(not r['normalizes_to_itself'] for r in out)}; rows with <unk> {sum(r['has_unk'] for r in out)}")
 

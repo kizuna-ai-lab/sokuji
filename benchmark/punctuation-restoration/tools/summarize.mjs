@@ -2,7 +2,7 @@
 // results/segmenter-node.json. usage: node tools/summarize.mjs > results/summary.md
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const res = join(root, 'results');

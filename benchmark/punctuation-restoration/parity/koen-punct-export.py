@@ -47,7 +47,8 @@ def load(attn):
         SRC, trust_remote_code=True, code_revision=CODE_REV, attn_implementation=attn
     ).eval()
     path = sys.modules[type(model).__module__].__file__
-    digest = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    with open(path, "rb") as fh:
+        digest = hashlib.sha256(fh.read()).hexdigest()
     if digest != MODELING_SHA256:
         raise SystemExit(f"modeling.py at {path} is {digest}, expected the pinned {MODELING_SHA256}")
     return tok, model
