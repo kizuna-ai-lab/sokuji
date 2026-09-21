@@ -121,7 +121,8 @@ def compare_initializers(a_path, b_path):
 
 
 def sanity(paths):
-    ref = json.load(open(os.path.join(ROOT, "results", "parity-pcs47-ref-fp32.json"), encoding="utf-8"))["rows"]
+    with open(os.path.join(ROOT, "results", "parity-pcs47-ref-fp32.json"), encoding="utf-8") as fh:
+        ref = json.load(fh)["rows"]
     longs = {r["id"][:-5]: r for r in ref if r["id"].endswith("-long")}
     feeds = {k: np.array([[0] + longs[k]["sp_ids_pre"][:254] + [2]], dtype=np.int64) for k in ["en", "ja", "zh", "ko"]}
     so = ort.SessionOptions()

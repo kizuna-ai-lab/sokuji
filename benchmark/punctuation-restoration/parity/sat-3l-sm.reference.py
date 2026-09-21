@@ -53,7 +53,8 @@ def f32_list(arr):
 
 def main():
     variants = sys.argv[1:] or ["fp16", "fp32", "int8", "mc-int8"]
-    rows = json.load(open(os.path.join(ROOT, "results", "parity-sat-3l-sm.rows.json")))
+    with open(os.path.join(ROOT, "results", "parity-sat-3l-sm.rows.json")) as fh:
+        rows = json.load(fh)
     so = ort.SessionOptions()
     so.intra_op_num_threads = 4
     sat = SaT("sat-3l-sm", tokenizer_name_or_path=TOK, ort_providers=["CPUExecutionProvider"], ort_kwargs={"sess_options": so})

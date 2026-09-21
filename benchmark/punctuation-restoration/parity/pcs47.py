@@ -57,7 +57,8 @@ def main():
     )
     args = ap.parse_args()
 
-    rows = json.load(open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8"))
+    with open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8") as fh:
+        rows = json.load(fh)
     rows = [r for r in rows if r["lang"] in LANGS]
     for lang in LANGS:
         parts = [r["input"] for r in rows if r["lang"] == lang and r["variant"] == "stripped"]
@@ -92,7 +93,8 @@ def main():
         })
     stem = (os.path.splitext(args.model)[0].replace("model", "", 1).lstrip(".-") or "fp32") + ("-noopt" if args.no_opt else "")
     dst = os.path.join(ROOT, "results", f"parity-pcs47-ref-{stem}.json")
-    json.dump({"model": args.model, "rows": out}, open(dst, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    with open(dst, "w", encoding="utf-8") as fh:
+        json.dump({"model": args.model, "rows": out}, fh, ensure_ascii=False, indent=1)
     print(f"wrote {dst}: {len(out)} rows in {time.time() - t0:.1f}s; max tokens {max(r['n_tokens'] for r in out)}")
 
 

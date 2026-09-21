@@ -44,7 +44,8 @@ a = ap.parse_args()
 from transformers import AutoTokenizer  # noqa: E402
 
 tok = AutoTokenizer.from_pretrained(a.dir)
-cfg = json.load(open(os.path.join(a.dir, "config.json")))
+with open(os.path.join(a.dir, "config.json")) as fh:
+    cfg = json.load(fh)
 hidden = cfg["decoder"]["hidden_size"]
 emb_path = os.path.join(a.dir, a.embed)
 if a.layout == "v2":
@@ -69,7 +70,8 @@ enc_in = enc.get_inputs()[0]
 enc_dtype = np.float16 if "16" in enc_in.type else np.float32
 print(f"loaded in {load_s:.1f}s  encoder={a.encoder} ({enc_in.type})  decoders=*{a.suffix}.onnx  embed={a.embed} threads={a.threads}")
 
-manifest = json.load(open(os.path.join(HERE, "clips", "manifest.json")))
+with open(os.path.join(HERE, "clips", "manifest.json")) as fh:
+    manifest = json.load(fh)
 
 
 def norm(s):
@@ -133,7 +135,8 @@ for k, path in enumerate(files):
         print(f"{r['clip']:26s} {r['audioSec']:5.1f}s rtf={r['rtf']:.3f} enc={r['encoderMs']}ms dec={r['decodeMs']}ms tok={r['genTokens']} cer={r['cer']} | {prefix} | {text[:70]}")
 
 if a.out:
-    json.dump({"dir": a.dir, "suffix": a.suffix, "encoder": a.encoder, "embed": a.embed, "threads": a.threads, "loadSec": round(load_s, 1), "ort": ort.__version__, "results": results},
-              open(a.out, "w"), ensure_ascii=False, indent=1)
+    with open(a.out, "w") as fh:
+        json.dump({"dir": a.dir, "suffix": a.suffix, "encoder": a.encoder, "embed": a.embed, "threads": a.threads, "loadSec": round(load_s, 1), "ort": ort.__version__, "results": results},
+                  fh, ensure_ascii=False, indent=1)
 warm = [r for r in results if "[cold]" not in r["clip"]]
 print(f"median rtf (warm) = {np.median([r['rtf'] for r in warm]):.3f}   mean cer = {np.mean([r['cer'] for r in warm if r['cer'] is not None]):.3f}")

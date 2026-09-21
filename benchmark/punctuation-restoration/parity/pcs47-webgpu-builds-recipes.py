@@ -139,7 +139,8 @@ def margins(f, thr):
 
 def main():
     os.makedirs(SCRATCH, exist_ok=True)
-    ref = json.load(open(os.path.join(ROOT, "results", "parity-pcs47-ref-fp32.json"), encoding="utf-8"))["rows"]
+    with open(os.path.join(ROOT, "results", "parity-pcs47-ref-fp32.json"), encoding="utf-8") as fh:
+        ref = json.load(fh)["rows"]
     tok = Tokenizer.from_file(os.path.join(D, "tokenizer.json"))
 
     def cased_slots(ids):
@@ -179,7 +180,8 @@ def main():
 
     js_rows = {}
     for name in ("parity-pcs47-q8w.json", "parity-pcs47-js-fp32.json"):
-        js_rows[name] = {f"{r['id']}/{r['variant']}": r for r in json.load(open(os.path.join(ROOT, "results", name), encoding="utf-8"))["rows"]}
+        with open(os.path.join(ROOT, "results", name), encoding="utf-8") as fh:
+            js_rows[name] = {f"{r['id']}/{r['variant']}": r for r in json.load(fh)["rows"]}
     js_punct = sorted(k for k, r in js_rows["parity-pcs47-q8w.json"].items() if r["punct"] != js_rows["parity-pcs47-js-fp32.json"][k]["punct"])
     js_sbd = sorted(k for k, r in js_rows["parity-pcs47-q8w.json"].items() if r["sbd"] != js_rows["parity-pcs47-js-fp32.json"][k]["sbd"])
 

@@ -8,7 +8,11 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 _candidates = [os.path.join(HERE, "clips", "manifest.json"), os.path.join(HERE, "results", "manifest.json"), "manifest.json"]
-manifest = next((json.load(open(p)) for p in _candidates if os.path.exists(p)), {})
+_manifest_path = next((p for p in _candidates if os.path.exists(p)), None)
+manifest = {}
+if _manifest_path is not None:
+    with open(_manifest_path) as fh:
+        manifest = json.load(fh)
 
 
 def norm(s):
@@ -30,7 +34,9 @@ def cer(hyp, ref):
 
 def browser_rows(path):
     rows, env, load = [], None, None
-    for line in open(path, encoding="utf-8", errors="replace"):
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        lines = fh.readlines()
+    for line in lines:
         if not line.startswith("RESULT "):
             continue
         obj = json.loads(line[7:])
@@ -75,6 +81,7 @@ for p in targets:
         if rows:
             table(rows, ["clip", "audioSec", "melMs", "encoderMs", "prefillMs", "decodeMs", "genTokens", "msPerToken", "rtf", "cer"])
     else:
-        j = json.load(open(p))
+        with open(p) as fh:
+            j = json.load(fh)
         print(f"  {j['dir'].split('/')[-1]} suffix={j['suffix']!r} enc={j['encoder']} threads={j['threads']} ort={j['ort']} load={j['loadSec']}s")
         table(j["results"], ["clip", "audioSec", "melMs", "encoderMs", "decodeMs", "genTokens", "rtf", "cer"])

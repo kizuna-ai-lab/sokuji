@@ -101,7 +101,8 @@ def build_gather8(src, dst, emb):
 
 def sanity():
     tok = Tokenizer.from_file(TOKENIZER)
-    inputs = json.load(open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8"))
+    with open(os.path.join(ROOT, "results", "inputs.json"), encoding="utf-8") as fh:
+        inputs = json.load(fh)
     sep = {"ja": "", "zh": "", "en": " ", "ko": " "}
     feeds = {}
     for lang in ["ja", "zh", "en", "ko"]:

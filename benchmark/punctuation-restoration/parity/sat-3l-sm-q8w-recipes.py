@@ -70,7 +70,8 @@ def probs(path, feeds):
 def main():
     os.makedirs(SCRATCH, exist_ok=True)
     tok = Tokenizer.from_file(TOKENIZER)
-    rows = json.load(open(os.path.join(ROOT, "results", "parity-sat-3l-sm.rows.json"), encoding="utf-8"))
+    with open(os.path.join(ROOT, "results", "parity-sat-3l-sm.rows.json"), encoding="utf-8") as fh:
+        rows = json.load(fh)
     keys, feeds = [], []
     for r in rows:
         ids = tok.encode(r["input"], add_special_tokens=False).ids[:510]
@@ -83,7 +84,8 @@ def main():
     base = probs(FP32, feeds)
     print(f"fp32: {len(feeds)} windows, {sum(p.size for p in base)} tokens, {time.time() - t:.0f} s", flush=True)
     all_margin = np.concatenate([np.abs(p - THRESHOLD) for p in base])
-    wasm = json.load(open(os.path.join(ROOT, "results", "parity-sat-3l-sm-q8w.json"), encoding="utf-8"))
+    with open(os.path.join(ROOT, "results", "parity-sat-3l-sm-q8w.json"), encoding="utf-8") as fh:
+        wasm = json.load(fh)
     wasm_rows = sorted({f"{d['id']}|{d['variant']}" for d in wasm["comparisons"]["q8w vs fp16"]["diffs"]})
     report = {"onnxruntime": ort.__version__, "windows": len(feeds), "tokens": int(all_margin.size), "threshold": THRESHOLD,
               "fp32_margin_quantiles": {q: float(np.quantile(all_margin, q)) for q in (0.001, 0.01, 0.05, 0.5)},

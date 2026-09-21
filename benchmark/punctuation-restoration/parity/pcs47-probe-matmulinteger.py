@@ -79,8 +79,11 @@ xq.tofile(f"{OUT}/xq-native.bin")
 for label, (_, _, _, Y) in res.items():
     d = Y.astype(np.int64) - exact
     print(f"native {label}: Y != exact in {int((d != 0).sum())} of {d.size}, max |diff| {int(np.abs(d).max())}")
-json.dump(
-    {"T": T, "D": D, "C": int(W.shape[1]), "xs": float(xs), "xz": int(xz), "machine": platform.machine(), "ort": ort.__version__},
-    open(f"{OUT}/meta.json", "w"),
-)
-print("meta", json.load(open(f"{OUT}/meta.json")))
+with open(f"{OUT}/meta.json", "w") as fh:
+    json.dump(
+        {"T": T, "D": D, "C": int(W.shape[1]), "xs": float(xs), "xz": int(xz), "machine": platform.machine(), "ort": ort.__version__},
+        fh,
+    )
+with open(f"{OUT}/meta.json") as fh:
+    meta = json.load(fh)
+print("meta", meta)

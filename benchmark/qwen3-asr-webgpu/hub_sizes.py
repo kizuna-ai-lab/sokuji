@@ -7,7 +7,8 @@ from huggingface_hub import HfApi
 repo, out = sys.argv[1], sys.argv[2]
 info = HfApi().model_info(repo, files_metadata=True)
 sizes = {s.rfilename: s.size for s in sorted(info.siblings, key=lambda s: s.rfilename)}
-json.dump({"repo": repo, "sha": info.sha, "private": info.private, "files": sizes}, open(out, "w"), indent=1)
+with open(out, "w") as fh:
+    json.dump({"repo": repo, "sha": info.sha, "private": info.private, "files": sizes}, fh, indent=1)
 total = sum(v or 0 for v in sizes.values())
 for k, v in sizes.items():
     print(f"{(v or 0) / 1e6:9.1f} MB  {k}")
