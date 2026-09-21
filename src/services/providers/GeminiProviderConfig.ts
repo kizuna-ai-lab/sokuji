@@ -89,6 +89,12 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
       sourceLanguageCode: isGeminiTranslateModel(settings.model)
         ? toTranslationLanguageCode(settings.sourceLanguage)
         : undefined,
+      // Unconditional, unlike the two above: the segmentation stage needs a
+      // language for each of its streams whatever the model is, and a dialogue
+      // session exposes none. Gemini offers no 'auto' source, so this is
+      // always two concrete codes.
+      segmentationSourceLanguage: toTranslationLanguageCode(settings.sourceLanguage),
+      segmentationTargetLanguage: toTranslationLanguageCode(settings.targetLanguage),
     } as GeminiSessionConfig;
   }
 
@@ -98,10 +104,18 @@ export class GeminiProviderConfig extends BaseProviderDescriptor {
     shell: { keepReplayAudio: boolean },
   ): ParticipantSessionResult {
     const result = super.buildParticipantSessionConfig(slice, swappedInstructions, shell);
+    const base = result.config as GeminiSessionConfig;
     const config = {
-      ...result.config,
+      ...base,
       // Force Auto mode for Gemini participant (no PTT for participant)
       turnDetectionMode: 'Auto' as const,
+      // The participant hears the other party speaking the target language and
+      // answers in the source, so the segmentation stage's pair reverses with
+      // the session. Nothing below does it for us: the base builder swaps only
+      // the instructions, and reverseGeminiTranslationDirection no-ops on a
+      // dialogue session — the very session that has nothing but this pair.
+      segmentationSourceLanguage: base.segmentationTargetLanguage,
+      segmentationTargetLanguage: base.segmentationSourceLanguage,
     } as GeminiSessionConfig;
 
     // Gemini's dialogue models need nothing here: their direction rides in the

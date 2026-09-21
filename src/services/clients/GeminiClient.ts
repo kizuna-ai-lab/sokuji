@@ -163,8 +163,9 @@ export class GeminiClient implements IClient {
    *  stream still holds is what opens the next segment. */
   private sealingUser = false;
   private sealingAssistant = false;
-  /** The pair the streams punctuate in. A dialogue session carries neither, so
-   *  both fall back to 'auto'. */
+  /** The pair the streams punctuate in — the configured one, which every
+   *  session carries. 'auto' only for a config built outside the descriptor
+   *  that also has no API language field to fall back on. */
   private sourceLanguage = 'auto';
   private targetLanguage = 'auto';
 
@@ -450,8 +451,18 @@ export class GeminiClient implements IClient {
     this.textOnlyMode = config.textOnly || false;
     this.keepReplayAudio = config.keepReplayAudio ?? false;
     if (isGeminiSessionConfig(config)) {
-      this.sourceLanguage = config.sourceLanguageCode ?? 'auto';
-      this.targetLanguage = config.translationConfig?.targetLanguageCode ?? 'auto';
+      // The configured pair first: it is the one field that is present on every
+      // session, dialogue included, and the spec fixes the stage's languages as
+      // the configured pair rather than whichever API field carries direction.
+      // The API fields stay as the fallback for a config built outside the
+      // descriptor. `||`, not `??`: an unset language reduces to '', not
+      // undefined.
+      this.sourceLanguage = config.segmentationSourceLanguage
+        || config.sourceLanguageCode
+        || 'auto';
+      this.targetLanguage = config.segmentationTargetLanguage
+        || config.translationConfig?.targetLanguageCode
+        || 'auto';
     }
     // R2: the one read of `enabled` this session gets, kept across a reconnect
     // by the frozen flag. See the `segmentationFrozen` field doc.

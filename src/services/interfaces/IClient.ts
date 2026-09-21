@@ -178,6 +178,19 @@ export interface GeminiSessionConfig extends BaseSessionConfig {
    * OpenAITranslateSessionConfig carries `sourceLanguage`.
    */
   sourceLanguageCode?: string;
+  /**
+   * The configured language pair, short codes, for the sentence-segmentation
+   * stage alone — never sent to the API. Set unconditionally, including for
+   * the dialogue models, which carry their direction in the instruction and so
+   * expose no language field the stage could read: without this the two
+   * streams both run at `auto`, which routes English and Chinese to SaT
+   * instead of Edge-Punct-Casing and FireRedPunc.
+   *
+   * Reversed for the participant leg, like every other direction-bearing
+   * field here.
+   */
+  segmentationSourceLanguage?: string;
+  segmentationTargetLanguage?: string;
 }
 
 /**

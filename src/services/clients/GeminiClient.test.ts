@@ -34,6 +34,10 @@ vi.mock('@google/genai', () => {
 
 // Dynamic import after mocks are set up
 const { GeminiClient } = await import('./GeminiClient');
+// The descriptor builds the configs the client actually receives in the app.
+// The language-per-stream cases below go through it rather than hand-writing a
+// config, because the bug they pin lives in the seam between the two.
+const { GeminiProviderConfig, defaultGeminiSettings } = await import('../providers/GeminiProviderConfig');
 
 /** Helper: make live.connect resolve and fire onopen */
 function setupSuccessfulConnect() {
@@ -1244,9 +1248,10 @@ describe('GeminiClient with the segmentation stage', () => {
   it("turnComplete still finalizes the turn, and the stream's tail lands in the open item", async () => {
     const runtime = markingRuntime(10);
     client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
-    // A dialogue session carries no language pair, so its streams run at
-    // 'auto'. Marks the ASR already emitted are authoritative at any language
-    // — the model is never asked — which is what this fixture leans on.
+    // This hand-written fixture carries no language pair — unlike anything the
+    // descriptor builds — so its streams run at 'auto'. Marks the ASR already
+    // emitted are authoritative at any language — the model is never asked —
+    // which is what this fixture leans on.
     await client.connect(dialogueConfig as any);
 
     sendInput('これはテストです。にばんめのぶんです。さんばんめのながいぶんしょうです');
@@ -1317,5 +1322,83 @@ describe('GeminiClient with the segmentation stage', () => {
     expect((client as any).userStream).toBe(stream);
     await vi.advanceTimersByTimeAsync(INPUT_SILENCE_MS);
     expect(itemsOf('user')[0].formatted.transcript).toBe('あ'.repeat(30));
+  });
+
+  // ── Language per stream ──────────────────────────────────────────────
+  // The spec fixes this as the *configured* pair — "the source stream uses
+  // sourceLanguage, the translation stream targetLanguage" — not whichever API
+  // field happens to carry it. A dialogue model carries neither
+  // sourceLanguageCode nor translationConfig, and falling back to 'auto' sends
+  // English to SaT (92.3 -> 67.3 on the benchmark) and Chinese away from
+  // FireRedPunc (91.5). `punctuate`'s first argument is the whole assertion.
+  const descriptor = new GeminiProviderConfig();
+  /** en-US -> ja-JP is the default pair; cmn-CN is used as the *other* end so
+   *  the two streams can never be confused for each other: 'en' gates at 100
+   *  characters and 'zh' at 40, and only one of them routes to FireRedPunc. */
+  const dialogueSlice = {
+    ...defaultGeminiSettings,
+    model: 'gemini-3.1-flash-live-preview',
+    sourceLanguage: 'en-US',
+    targetLanguage: 'cmn-CN',
+  };
+
+  it('punctuates a dialogue session in the configured pair, not at auto', async () => {
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(descriptor.buildSessionConfig(dialogueSlice, 'instructions') as any);
+
+    // 120 characters clears gateChars('en', 2) = 100.
+    sendInput('a'.repeat(120));
+    await flush();
+    expect(runtime.punctuate.mock.calls[0][0]).toBe('en');
+
+    // 50 clears gateChars('zh', 2) = 40 but not the 100 an 'auto' stream asks
+    // for, so a regressed target language shows up as no call at all.
+    const before = runtime.punctuate.mock.calls.length;
+    sendOutput('あ'.repeat(50));
+    await flush();
+    expect(runtime.punctuate.mock.calls[before]?.[0]).toBe('zh');
+  });
+
+  it('punctuates the participant leg of that session with the pair reversed', async () => {
+    // The participant hears the other party speak the target language and
+    // answers in the source. Nothing reverses this for free: the base builder
+    // swaps only the instructions, and reverseGeminiTranslationDirection
+    // no-ops without a translationConfig.
+    const { config } = descriptor.buildParticipantSessionConfig(
+      dialogueSlice,
+      'swapped instructions',
+      { keepReplayAudio: false },
+    );
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(config as any);
+
+    sendInput('あ'.repeat(50));
+    await flush();
+    expect(runtime.punctuate.mock.calls[0]?.[0]).toBe('zh');
+
+    const before = runtime.punctuate.mock.calls.length;
+    sendOutput('a'.repeat(120));
+    await flush();
+    expect(runtime.punctuate.mock.calls[before]?.[0]).toBe('en');
+  });
+
+  it('still punctuates a Live Translate session in the pair its API fields carry', async () => {
+    // The fallback path, unchanged: a config built anywhere but the descriptor
+    // — every fixture in this file, and any session predating the pair — still
+    // reads sourceLanguageCode and translationConfig.targetLanguageCode.
+    const runtime = markingRuntime(10);
+    client = makeClient({ segmentation: runtime, sentencesPerChunk: 2 });
+    await client.connect(translateConfig as any);
+
+    sendInput('あ'.repeat(50));
+    await flush();
+    expect(runtime.punctuate.mock.calls[0]?.[0]).toBe('ja');
+
+    const before = runtime.punctuate.mock.calls.length;
+    sendOutput('い'.repeat(50));
+    await flush();
+    expect(runtime.punctuate.mock.calls[before]?.[0]).toBe('ja');
   });
 });
