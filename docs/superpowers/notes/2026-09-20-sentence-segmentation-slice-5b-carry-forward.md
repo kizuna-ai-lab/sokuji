@@ -193,9 +193,25 @@ from the compiled stylesheet, with the probe in
   is on screen until the utterance completes — and then the bubble can appear up
   to the 1 s fill-in budget later. The same trade the three server-definite
   clients already make, but more visible there because nothing preceded it.
-- **A fourth splittable client** would inherit the `createdAt + i` convention and
-  Palabra's splice exception. Read the Ordering section above first.
+- **A fourth splittable client** would inherit the one-shared-stamp convention
+  and Palabra's splice exception. Read the Ordering section above first.
 - **The audio/bubble refactor** above, whenever it is scheduled.
+- **Nothing orders the installed-pack check against a session start.** The store
+  begins at `phase: 'unknown'`, `useSegmentationRuntime` fires `refresh()` from a
+  mount-only effect, and `runtime.enabled` is false until the phase reaches
+  `ready`. A client freezes that answer at `connect()` (R2) and keeps it for the
+  session, so a Start taken inside that window gives a session with By sentences
+  silently off, and only the *next* session recovers. Reviewed on 2026-09-21 and
+  judged unreachable, not fixed: Start is disabled until settings load and the
+  API key validates, a chain that cannot begin before `refresh()` does and that
+  adds a network round trip on every cloud provider, against roughly ten
+  serialized IndexedDB gets. **But that is a timing margin, not an interlock** —
+  there is no hard ordering anywhere, and on a pathologically slow or contended
+  IndexedDB the failure is exactly as described and completely silent. If a user
+  ever reports "By sentences did nothing for my first session after launch, and
+  worked on the second", this is the first thing to check. Fixing it means
+  giving the start gate a readiness input, which is why it was not done in
+  passing.
 
 ## Providers removed after this slice landed (2026-09-20)
 
