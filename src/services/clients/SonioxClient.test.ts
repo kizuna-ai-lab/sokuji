@@ -7,7 +7,7 @@ import type { SonioxSttMessage, SonioxSttStreamHandlers, SonioxSttConfig } from 
 import { SonioxSideTracker } from './SonioxSideTracker';
 // The panel's own ordering, not a copy of it: a hand-rolled comparator here
 // would keep passing after MainPanel's changed.
-import { orderConversationItems } from '../../components/MainPanel/conversationOrder';
+import { mergeConversationItems } from '../../components/MainPanel/conversationMerge';
 
 // --- Mock both wire components; capture instances for driving the client ---
 const sttInstances: MockStt[] = [];
@@ -1759,7 +1759,11 @@ describe('SonioxClient with the segmentation stage', () => {
       await new Promise((r) => setTimeout(r, 0));
 
       // The panel's own merge-and-sort, imported rather than re-implemented.
-      const rendered = orderConversationItems(client.getConversationItems(), []);
+      // `languageOf` only tags rows; it cannot affect their order.
+      const rendered = mergeConversationItems(client.getConversationItems(), [], () => ({
+        sourceLanguage: 'zh',
+        targetLanguage: 'en',
+      }));
       const segment = (role: string, ch: string) =>
         [0, 1, 2].map(() => `${role}:${ch.repeat(20)}。`);
       expect(rendered.map((i) => `${i.role}:${i.formatted?.text}`)).toEqual([
