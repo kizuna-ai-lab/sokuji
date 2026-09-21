@@ -41,6 +41,14 @@ describe('periodIsNotSentenceEnd', () => {
     expect(text[dot]).toBe('.');
     expect(periodIsNotSentenceEnd(text, dot)).toBe(false);
   });
+
+  it('derives the casing signal from the text when the caller omits it', () => {
+    // Same sentence twice; only the capitals differ. Cased: the lowercase
+    // continuation is GPT-Live's mid-sentence period, not an end. Uncased:
+    // casing says nothing, so the period is taken at face value.
+    expect(periodIsNotSentenceEnd('I said no. then we left.', 9)).toBe(true);
+    expect(periodIsNotSentenceEnd('i said no. then we left.', 9)).toBe(false);
+  });
 });
 
 describe('lastSentenceEnd', () => {
@@ -55,6 +63,16 @@ describe('lastSentenceEnd', () => {
   });
   it('returns -1 with no terminal', () => {
     expect(lastSentenceEnd('no terminal here')).toBe(-1);
+  });
+
+  // The flip-flop hazard: the delta is the same six characters both times.
+  // Only the item it lands in differs, and the casing signal has to come from
+  // the item, or a cased utterance loses the guard mid-flight.
+  it('reads casing from the whole item, so a lowercase delta inside a cased item does not cut', () => {
+    expect(lastSentenceEnd('. then', 'Hello there, I said no')).toBe(-1);
+  });
+  it('cuts the same delta when the item it lands in is all lowercase', () => {
+    expect(lastSentenceEnd('. then', 'hello there, i said no')).toBe(1);
   });
 });
 
@@ -79,6 +97,22 @@ describe('sentenceEnds', () => {
   });
   it('is empty for unpunctuated text', () => {
     expect(sentenceEnds('这是一段没有标点的文字')).toEqual([]);
+  });
+
+  // A CTC-style model writes punctuation but no capitals. Every sentence then
+  // starts lowercase, so the lowercase-continuation guard has to stand down or
+  // "By sentences" finds no boundary at all and falls back to length.
+  it('finds every boundary in an uncased transcript', () => {
+    expect(sentenceEnds('one. two. three. four.')).toEqual([4, 9, 16, 22]);
+  });
+  it('finds the boundary after a lowercase sentence', () => {
+    expect(sentenceEnds('hello. this is next')).toEqual([6]);
+  });
+  it('still suppresses a lowercase continuation where the transcript does capitalise', () => {
+    expect(sentenceEnds('I said no. then we left.')).toEqual([24]);
+  });
+  it('leaves a cased transcript alone', () => {
+    expect(sentenceEnds('One. Two. Three. Four.')).toEqual([4, 9, 16, 22]);
   });
 });
 

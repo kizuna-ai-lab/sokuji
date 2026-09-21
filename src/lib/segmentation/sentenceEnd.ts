@@ -44,14 +44,42 @@ export const ABBREVIATIONS = new Set([
   'sig', 'dott', 'ing', 'avv',
 ]);
 
+/**
+ * Whether letter case carries information in this transcript.
+ *
+ * The lowercase-continuation rule in `periodIsNotSentenceEnd` reads a
+ * lowercase word after a period as proof the sentence goes on. That only
+ * holds where the writer capitalises sentences at all. A CTC-style ASR model
+ * emits punctuation but no capitals ("one. two. three."), and there every
+ * sentence starts lowercase, so the rule would swallow every boundary and
+ * leave "By sentences" with nothing to cut on. One uppercase letter anywhere
+ * is taken as proof the transcript cases.
+ *
+ * Accepted failure mode: a proper noun inside an otherwise-lowercase
+ * transcript ("i met john. then we left") turns the guard back on, and that
+ * transcript loses its interior boundaries again. The precise alternative —
+ * how often a sentence start is capitalised — needs the sentence starts we
+ * are trying to find.
+ */
+function showsCasing(text: string): boolean {
+  return /\p{Lu}/u.test(text);
+}
+
 /** True when the period at `dot` is part of an abbreviation, an initial, a
- *  decimal or a dotted token (e.g., U.S., example.com) rather than a sentence end. */
-export function periodIsNotSentenceEnd(text: string, dot: number): boolean {
+ *  decimal or a dotted token (e.g., U.S., example.com) rather than a sentence end.
+ *
+ *  `cased` is the casing signal of the widest text the caller has — the whole
+ *  item, not one delta. Omitting it derives the signal from `text` itself,
+ *  which is right for a caller holding the whole text and never worse than
+ *  the narrower window; nothing hard-codes the guard on. */
+export function periodIsNotSentenceEnd(text: string, dot: number, cased = showsCasing(text)): boolean {
   const next = text[dot + 1];
   if (next !== undefined && /[A-Za-z0-9]/.test(next)) return true; // 3.5, e.g, U.S, a.b
   if (next === '.' || text[dot - 1] === '.') return true; // an ellipsis is a pause, not an end
   if (next === ',' || next === ';' || next === ':') return true; // "Co., Ltd": the clause goes on
-  if (next !== undefined && /\s/.test(next) && /^\s+[a-z]/.test(text.slice(dot + 1))) return true; // "no. then"
+  // "no. then": GPT-Live really emits a period mid-sentence, and a lowercase
+  // word after it is the giveaway. Only where casing means something.
+  if (cased && next !== undefined && /\s/.test(next) && /^\s+[a-z]/.test(text.slice(dot + 1))) return true;
   let start = dot;
   // \p{L} rather than [A-Za-z] so a Cyrillic or accented abbreviation is read
   // as one word. The forward check above stays ASCII on purpose: widening it
@@ -75,10 +103,13 @@ export function periodIsNotSentenceEnd(text: string, dot: number): boolean {
  */
 export function lastSentenceEnd(text: string, prefix = ''): number {
   const full = prefix + text;
+  // Read casing from the item, not the delta: a short all-lowercase delta
+  // arriving inside a cased utterance must not flip the guard off mid-item.
+  const cased = showsCasing(full);
   for (let i = full.length - 1; i >= prefix.length; i--) {
     const ch = full[i];
     if (!SENTENCE_TERMINALS.includes(ch)) continue;
-    if (ch === '.' && periodIsNotSentenceEnd(full, i)) continue;
+    if (ch === '.' && periodIsNotSentenceEnd(full, i, cased)) continue;
     let end = i + 1;
     while (end < full.length && SENTENCE_CLOSERS.includes(full[end])) end++;
     return end - prefix.length;
@@ -100,10 +131,12 @@ export function lastClauseEnd(text: string): number {
  */
 export function sentenceEnds(text: string): number[] {
   const out: number[] = [];
+  // One reading of the casing signal for the whole text, not one per period.
+  const cased = showsCasing(text);
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (!SENTENCE_TERMINALS.includes(ch)) continue;
-    if (ch === '.' && periodIsNotSentenceEnd(text, i)) continue;
+    if (ch === '.' && periodIsNotSentenceEnd(text, i, cased)) continue;
     let end = i + 1;
     while (end < text.length && SENTENCE_CLOSERS.includes(text[end])) end++;
     out.push(end);
