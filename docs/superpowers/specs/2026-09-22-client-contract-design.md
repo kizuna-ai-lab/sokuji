@@ -107,20 +107,27 @@ copy) · `status: 'incomplete' | 'cancelled'` (**never set anywhere**, yet
                 identity · time · punctuation fill-in · growth trace
                      │ Segment[]              │ clip(key, pcm) + routing
                      ▼                        ▼
-            L2  Projection           Playback
-                session-wide, pure       ClipQueue + routing table + AudioOut
+            L2  Projection           ClipQueue / AudioOut
+                cut · group · order      a sink: devices, queue, routing
+                session-wide, once       knows clips and keys, not text
                      │ Entry[]                │ position {key, t}
                      └──────────┬─────────────┘
                                 ▼
-                        Surfaces: panel · subtitle overlay · export
+                      Playback queries   a module, not a layer
+                      highlightFor(row) · audioFor(row)
+                                │
+                                ▼
+            L3  Surfaces   filter · arrange · render, per surface
+                panel · Electron subtitle takeover · extension overlay · export
 ```
 
 Three properties hold this together:
 
 - **L1 is per leg and knows nothing about the other leg.** A leg's `origin`
   pairing is internal to it; identity is qualified by the leg name.
-- **L2 is session-wide and pure.** It receives both legs' segments and is the
-  only place the two interleave.
+- **L2 is session-wide and runs once.** It receives both legs' segments and is
+  the only place the two interleave. Every surface consumes the same cut; what
+  differs per surface is filtering and arrangement, which are L3's.
 - **Playback's position comes from the queue, not from a sink.** The speaker
   leg's translation normally goes only to the virtual device and is not
   monitored; a position taken from the real output would leave that leg with no
@@ -244,6 +251,17 @@ With `marks`, L2 finds `marks[k+1].at - marks[k].at > threshold` and cuts at
 marks that bound no pause are dropped, so a segment keeps single digits of them
 even where the client rebuilds the whole text twenty times a second.
 
+**This is an L2 implementation choice, not an architectural one.** The cut runs
+once, in the panel process, so a stateful cut holding a timer would not drift
+either — no other layer can tell the difference. The reason to prefer `marks` is
+narrow: it keeps every timer in L0, where six sets of silence timers disappear
+rather than being relocated into one. If the trace proves tiresome to maintain,
+swapping it for a timer inside the cut changes nothing outside L2.
+
+An earlier draft justified `marks` by cross-process consistency — the overlay
+deriving its own cuts and drifting from the panel's. That argument is void:
+the cut is computed once and shipped, so no surface derives it.
+
 ### Re-anchoring on every text replacement
 
 A speech `range` is measured against the text as it was at production time, and
@@ -320,9 +338,41 @@ type Entry =
   | { kind: 'notice'; id; severity; message; at: number }
 ```
 
-Four jobs: cut final segments into rows, group rows by `origin`, filter by each
-leg's display mode and the UI mode, and order groups by the earliest `openedAt`
-they contain.
+Three jobs, and only three: **cut** final segments into rows, **group** rows by
+`origin`, **order** groups by the earliest `openedAt` they contain. It runs
+**once per session**, not once per surface.
+
+Filtering, band packing and styling are **not** L2's. They depend on each
+surface's own settings — the extension overlay carries display modes, a font
+size and colours independent of the panel's — and applying them is rendering,
+not derivation. They live in L3, over one shared filter function called with
+different settings.
+
+That line matters because it is what stops the work being done twice. What must
+be identical across surfaces is the cut and the grouping: the same utterance
+must not show as three bubbles in the panel and two in the overlay. That is
+computed once. What legitimately differs per surface is which of those rows it
+shows and how it arranges them.
+
+### The two subtitle surfaces are not the same thing
+
+| | Electron subtitle mode | Extension in-page overlay |
+|---|---|---|
+| What it is | the **same window reshaped** into a floating bar; same renderer, same store | an iframe **injected into the meeting page**, a separate document |
+| How data arrives | read from the store directly, no serialisation | over a `chrome.runtime` port |
+| What its surface class does | IPC for bounds, always-on-top, fullscreen — **it carries no data** (`ElectronSubtitleSurface.ts` in full) | subscribe, slice, strip, throttle, post |
+| Drift risk | **none** — one copy of the state | real, and the only place it exists |
+
+`SubtitleApp` and `SubtitleStream` are shared by both, so the rewrite lands on
+shared components; only the data path differs. The overlay receives `Entry[]`
+and renders; it stops re-deriving.
+
+**The wire stops carrying audio by construction.** `Entry[]` holds rows —
+`segmentId` and character ranges — while `speech[].pcm` stays on L1 in the panel
+process, and the overlay never plays audio. So
+`ExtensionContentScriptSubtitleSurface`'s `stripHeavyItemFields`, a denylist of
+three field names that a fourth heavy field would silently slip past, has
+nothing left to strip.
 
 **`splitDefinite` must change to return ranges.** It returns `string[]` today,
 `.trim()`ed — the offsets are lost at that step, which is the root of
@@ -459,9 +509,17 @@ Rewrite, not migrate. Neither adapter direction is built.
 
 **Stage 1 — the new spine and one provider, end to end.** Contract types, L1,
 L2, playback, **and the new display layer**. Then one client. The acceptance
-test is that all three surfaces are correct — panel, subtitle overlay, export —
-because a data-layer-only check would let a wrong display model survive until
-the fifth provider.
+test is that all four surfaces are correct — panel, Electron subtitle takeover,
+extension in-page overlay, export — because a data-layer-only check would let a
+wrong display model survive until the fifth provider.
+
+**The subtitle surfaces are rewritten in this stage, not after it.** `SubtitleApp`
+loses its private copy of the merge and sort (`SubtitleApp.tsx:183-201`, with
+different defaulting rules and no language snapshot); `SubtitleStream` loses its
+second karaoke renderer (`:255-274`, a duplicate of `ConversationRow`'s);
+`sessionPortMirror` stops writing raw item arrays into a mirrored store; and the
+wire's `items?: any[]` becomes a typed `Entry[]`. Both subtitle surfaces share
+these components, so this is one rewrite, not two.
 
 The other clients are **deleted**. Each is recovered from git history when its
 turn comes, and read to learn the protocol rather than ported.
