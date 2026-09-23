@@ -4,7 +4,9 @@
 
 Stage 1 of the spec ("the new spine and one provider, end to end") spans five
 subsystems that can each be built and tested on their own. It is therefore
-five plans, executed in this order. Each plan leaves the tree green and its
+five plans — six, since the runner splits from capture and playback (the
+runner tests with a fake source and a recording sink; the audio side needs a
+live device) — executed in this order. Each plan leaves the tree green and its
 own layer usable; none of them touches the old clients, which keep working
 until plan 1e replaces MainPanel's session path.
 
@@ -12,7 +14,8 @@ until plan 1e replaces MainPanel's session path.
 |---|---|---|
 | **1a — the spine** (`2026-09-23-client-contract-stage1a-spine.md`) | L0 contract types, the fake adapter and its script format, the conformance checker, L1 (`Conversation`), L2 (`project`), the export writer | vitest only: the fake's scripts are the fixtures |
 | **1b — the provider definition** | `Provider<S, K, C>`, the registry, generic settings and credential storage, the credential form, the language section, readiness (`check`), `VITE_ENABLED_PROVIDERS`, the fake as the first registered provider | vitest, plus the settings panel rendered against the fake |
-| **1c — the runner** | `sessions.*`, the run and its resource stack, sources (mic, system, tab, fake), the turn object, ClipQueue / AudioOut / routing, the echo taps, analytics | vitest with fake sources and the fake adapter; a live fake session in the app |
+| **1c-1 — the runner** (`2026-09-24-client-contract-stage1c1-runner.md`) | `sessions.*`, the run and its resource stack, the source and playback ports, the fake source, the turn object, the session hooks, analytics, the global turn mode | vitest with fake sources and the fake adapter; a live fake session in the preview, read but not heard |
+| **1c-2 — capture and playback** | real sources (mic, system, tab) behind the source port; ClipQueue / AudioOut / routing behind the playback port; passthrough, the participant-TTS switch, replay, voice preview; the echo taps | vitest; the preview's fake session heard on a real device |
 | **1d — the surfaces** | the panel's conversation list, the Electron subtitle takeover, the extension overlay, export, the idle surfaces, notices | headless Chromium against the fake provider |
 | **1e — LocalInference** | the first real adapter and definition; MainPanel's old session path deleted | a live local session on Electron and the extension |
 
