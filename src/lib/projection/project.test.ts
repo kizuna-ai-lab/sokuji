@@ -61,6 +61,15 @@ describe('createProjector', () => {
     expect(second[1]).not.toBe(first[1]);
   });
 
+  it('keeps an entry when only its segment\'s audio changed', () => {
+    const projector = createProjector();
+    const a = seg('speaker', { openedAt: 0 });
+    const first = projector.project([legOf('speaker', [a])], DEFAULT_PROJECTION);
+    const withAudio = { ...a, speech: [{ pcm: new Int16Array(10) }] };
+    const second = projector.project([legOf('speaker', [withAudio])], DEFAULT_PROJECTION);
+    expect(second[0]).toBe(first[0]);
+  });
+
   it('moves a translation into its source\'s group once they pair, leaving no standalone entry', () => {
     const projector = createProjector();
     const tr = seg('speaker', { side: 'translation', openedAt: 500 });

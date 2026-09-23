@@ -66,4 +66,21 @@ describe('the spine on the fake', () => {
     expect(changed).toBe(0);
     expect(after[1999]).not.toBe(before[1999]);
   });
+
+  it('keeps earlier entries while retention trims their audio', async () => {
+    const clock = createVirtualClock();
+    const conv = new Conversation({ leg: 'speaker', session: 'trim', languages: context.direction, clock, retention: { keepPcm: true, maxPcmBytes: 300_000 } });
+    const events = eventsFrom((e) => conv.apply(e));
+    const session = await createFakeAdapter().start({ context, config: { script: longScript(100, 3000) }, credentials: {}, clock, signal: new AbortController().signal }, events);
+    const projector = createProjector();
+    const settings = { ...DEFAULT_PROJECTION, mode: 'sentences' as const, sentencesPerRow: 1 };
+    clock.advance(99 * 3000 + 500);
+    const before = projector.project([conv.snapshot()], settings);
+    clock.advance(10_000);
+    await session.stop();
+    const after = projector.project([conv.snapshot()], settings);
+    expect(after.length).toBe(100);
+    for (let i = 0; i < 99; i++) expect(after[i]).toBe(before[i]);
+    expect(after[99]).not.toBe(before[99]);
+  });
 });

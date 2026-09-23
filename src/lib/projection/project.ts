@@ -123,8 +123,13 @@ function sameEntry(a: Entry, b: Entry): boolean {
   return false;
 }
 
-function sameRows(a: Row[], b: Row[]): boolean {
+function sameRows(a: readonly Row[], b: readonly Row[]): boolean {
+  if (a === b) return true;
   if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x !== y && (x.key !== y.key || x.segmentId !== y.segmentId || x.side !== y.side || x.start !== y.start || x.end !== y.end)) return false;
+  }
   return true;
 }
