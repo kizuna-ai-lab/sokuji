@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import './App.scss';
 import './locales'; // Initialize i18n
 import { NativeTtsProto } from './components/dev/NativeTtsProto';
+import { SpinePreview } from './components/dev/SpinePreview';
 import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
 
@@ -35,6 +36,15 @@ function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // Dev-only: `?preview=spine` shows the new provider layer alone (plans 1b–1d).
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'spine') {
+    return (
+      <div className="App">
+        <SpinePreview />
+      </div>
+    );
+  }
 
   return (
     <div className="App">
