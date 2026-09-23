@@ -178,9 +178,9 @@ export function createRunner(deps: RunnerDeps): Runner {
     conversation,
     start,
     stop,
-    press: () => {},
-    release: () => {},
-    sendText: () => {},
+    press: () => current?.press(),
+    release: () => current?.release(),
+    sendText: (text) => current?.sendText(text),
     clear: () => {
       conversation.clear();
       deps.playback.clear();

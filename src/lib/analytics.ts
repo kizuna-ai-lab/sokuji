@@ -158,6 +158,11 @@ export interface AnalyticsEvents {
     hold_duration_ms: number;
     mode: 'push-to-talk' | 'push-to-translate';
   };
+  'text_input_sent': {
+    session_id: string;
+    provider: string;
+    text_length: number;
+  };
   'speech_mode_changed': {
     provider: string;
     from_mode: string;

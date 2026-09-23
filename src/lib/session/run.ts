@@ -15,6 +15,7 @@ import type { RunnerDeps } from './ports';
 import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
 import { ResourceStack } from './stack';
+import { Turn } from './turn';
 import type { LegState, Prepared, RunEnd, RunNotice, RunShape } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -61,6 +62,7 @@ export class Run {
   private ending = false;
   /** Ended: events are discarded. */
   private finished = false;
+  private turn: Turn | null = null;
 
   /** `host` is a factory because the runner's host closes over the run it serves. */
   constructor(private readonly deps: RunnerDeps, host: (run: Run) => RunHost, readonly shape: RunShape) {
@@ -177,9 +179,10 @@ export class Run {
     this.liveSince = deps.clock.now();
   }
 
-  /** Ends the run: decide nothing more, abort, unwind, finalize the legs, wait (bounded) for fill-in. */
+  /** Ends the run: decide nothing more, close an open turn, abort, unwind, finalize the legs, wait (bounded) for fill-in. */
   async close(): Promise<void> {
     this.ending = true;
+    if (this.turn?.close()) this.deps.playback.held(false);
     this.controller.abort(new Error('the run ended'));
     await this.stack.unwind();
     for (const conversation of this.conversations.values()) conversation.finalizeAll();
@@ -187,6 +190,40 @@ export class Run {
     // legitimate depends on the run still accepting events past this point.
     this.finished = true;
     await this.settled();
+  }
+
+  /** A press (D14): opens a turn under manual turns once the run is live. */
+  press(): void {
+    const session = this.sessions.get('speaker');
+    if (this.ending || this.liveSince === null || this.shape.turnMode === 'auto' || !session || this.turn?.isOpen) return;
+    this.turn = new Turn(this.deps.clock.now());
+    session.beginTurn();
+    this.deps.playback.held(true);
+  }
+
+  /** A release: the turn's voice decides between ending and cancelling it. */
+  release(): void {
+    const turn = this.turn;
+    const session = this.sessions.get('speaker');
+    if (!turn || !session) return;
+    const outcome = turn.close();
+    if (!outcome) return;
+    this.deps.playback.held(false);
+    if (outcome === 'end') session.endTurn();
+    else session.cancelTurn();
+    this.deps.analytics.track('push_to_talk_used', {
+      session_id: this.id,
+      hold_duration_ms: this.deps.clock.now() - turn.startedAt,
+      mode: this.shape.turnMode === 'push-to-translate' ? 'push-to-translate' : 'push-to-talk',
+    });
+  }
+
+  /** Typed text for the speaker leg, when the provider takes text. */
+  sendText(text: string): void {
+    const session = this.sessions.get('speaker');
+    if (this.ending || this.liveSince === null || !this.shape.provider.textInput || !session) return;
+    session.appendText(text);
+    this.deps.analytics.track('text_input_sent', { session_id: this.id, provider: this.shape.provider.id, text_length: text.length });
   }
 
   private async openLeg(leg: LegName, request: StartRequest<unknown, unknown>): Promise<void> {
@@ -227,10 +264,16 @@ export class Run {
     this.deps.analytics.track('connection_status', { status: 'connected', provider: this.shape.provider.id });
   }
 
-  /** The participant leg and automatic turns stream everything; manual turns arrive in the next task. */
+  /** The participant leg and automatic turns stream everything; manual turns send only while the key is held. */
   private send(leg: LegName, session: AdapterSession, pcm: Int16Array): void {
     if (this.ending) return;
-    if (leg === 'participant' || this.shape.turnMode === 'auto') session.appendAudio(pcm);
+    if (leg === 'participant' || this.shape.turnMode === 'auto') {
+      session.appendAudio(pcm);
+      return;
+    }
+    if (!this.turn?.isOpen) return;
+    this.turn.add(pcm);
+    session.appendAudio(pcm);
   }
 
   private eventsFor(leg: LegName): AdapterEvents {
