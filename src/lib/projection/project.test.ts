@@ -10,7 +10,7 @@ const seg = (leg: 'speaker' | 'participant', over: Partial<Segment>): Segment =>
 const legOf = (leg: 'speaker' | 'participant', segments: Segment[], notices: Notice[] = []): Leg => ({
   leg, session: 's', languages: { source: 'ja', target: 'en' }, segments, notices,
 });
-const exchanges = (entries: Entry[]) => entries.filter((e): e is Extract<Entry, { kind: 'exchange' }> => e.kind === 'exchange');
+const exchanges = (entries: readonly Entry[]) => entries.filter((e): e is Extract<Entry, { kind: 'exchange' }> => e.kind === 'exchange');
 
 describe('createProjector', () => {
   it('groups by stated origin, keys the entry by it, and marks the pairing stated', () => {

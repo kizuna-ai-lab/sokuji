@@ -12,7 +12,7 @@ import type { CutSettings, Entry, PairingThresholds, ProjectionSettings, Row } f
 export const DEFAULT_PROJECTION: ProjectionSettings = { mode: 'off', sentencesPerRow: 0, pauseMs: 0, pairing: DEFAULT_PAIRING };
 
 export interface Projector {
-  project(legs: readonly Leg[], settings: ProjectionSettings): Entry[];
+  project(legs: readonly Leg[], settings: ProjectionSettings): readonly Entry[];
 }
 
 type Exchange = Extract<Entry, { kind: 'exchange' }>;
@@ -23,7 +23,7 @@ export function createProjector(): Projector {
   const rows = new WeakMap<Segment, { cut: CutSettings; rows: Row[] }>();
   const pairs = new WeakMap<readonly Segment[], { thresholds: PairingThresholds; map: Map<SegmentId, SegmentId> }>();
   let entries = new Map<string, Entry>();
-  let last: Entry[] = [];
+  let last: readonly Entry[] = [];
 
   const rowsOf = (seg: Segment, cut: CutSettings): Row[] => {
     const hit = rows.get(seg);
