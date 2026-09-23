@@ -202,6 +202,16 @@ describe('Conversation — re-anchoring and fill-in', () => {
     await conv.settled();
     expect(conv.snapshot().segments[0].text).toBe('a b.');
   });
+
+  it('moves the growth trace with the text when fill-in rewrites it', async () => {
+    const { conv, clock, apply } = make({ punctuate: async () => 'Hello, world how are you.' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    clock.advance(2000);
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'hello world how are you' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    expect(conv.snapshot().segments[0].marks.map((m) => m.len)).toEqual([13, 25]);
+  });
 });
 
 describe('Conversation — retention and clear', () => {

@@ -7,6 +7,7 @@ import type { SegmentTiming, TextRange } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
+import { countSkeleton, offsetAfterSkeleton } from '../segmentation/sealCursor';
 import { baseLang } from '../segmentation/sentenceEnd';
 import { fillIn, type Punctuator } from './fillIn';
 import { reanchorRanges } from './reanchor';
@@ -192,7 +193,11 @@ export class Conversation {
     const seg = this.segments[i];
     const ranges = reanchorRanges(seg.text, text, seg.speech.map((s) => s.range));
     const speech = seg.speech.map((s, k) => (ranges[k] === s.range ? s : { ...s, range: ranges[k] }));
-    const marks = o.mark ? pushMark(seg.marks, this.opts.clock.now(), text.length) : seg.marks;
+    const grew = text.startsWith(seg.text);
+    const remapped = grew
+      ? seg.marks
+      : seg.marks.map((m) => ({ at: m.at, len: Math.min(text.length, offsetAfterSkeleton(text, countSkeleton(seg.text.slice(0, m.len)))) }));
+    const marks = o.mark ? pushMark(remapped, this.opts.clock.now(), text.length) : remapped;
     this.replace(i, { ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, marks, speech });
   }
 
