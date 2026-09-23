@@ -1,0 +1,150 @@
+import { describe, it, expect } from 'vitest';
+import { createVirtualClock } from '../contract/clock';
+import type { AdapterEvent } from '../contract/events';
+import { Conversation, MARK_COMPACT_MS, type ConversationDiagnostic } from './Conversation';
+
+const pcm = (n: number) => new Int16Array(n);
+
+function make(extra: Partial<ConstructorParameters<typeof Conversation>[0]> = {}) {
+  const clock = createVirtualClock(10_000);
+  const diagnostics: ConversationDiagnostic[] = [];
+  const conv = new Conversation({
+    leg: 'speaker', session: 's1', languages: { source: 'ja', target: 'en' }, clock,
+    onDiagnostic: (d) => diagnostics.push(d),
+    ...extra,
+  });
+  const apply = (...events: AdapterEvent[]) => events.forEach((e) => conv.apply(e));
+  return { clock, conv, diagnostics, apply };
+}
+
+describe('Conversation — identity and text', () => {
+  it('names segments by session, leg and a counter, in order of opening', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 5, side: 'source' } }, { kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } });
+    expect(conv.snapshot().segments.map((s) => s.id)).toEqual(['s1:speaker:1', 's1:speaker:2']);
+    expect(conv.snapshot().segments[0].openedAt).toBe(10_000);
+  });
+
+  it('replaces text wholesale, records timing and language, and keeps a compacted growth trace', () => {
+    const { conv, clock, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } });
+    apply({ kind: 'segmentText', payload: { ref: 1, text: '今日' } });
+    clock.advance(MARK_COMPACT_MS - 1);
+    apply({ kind: 'segmentText', payload: { ref: 1, text: '今日は' } });
+    clock.advance(2000);
+    apply({ kind: 'segmentText', payload: { ref: 1, text: '今日は晴れ', timing: { startMs: 0, endMs: 900 }, language: 'ja' } });
+    const seg = conv.snapshot().segments[0];
+    expect(seg.text).toBe('今日は晴れ');
+    expect(seg.timing).toEqual({ startMs: 0, endMs: 900 });
+    expect(seg.language).toBe('ja');
+    expect(seg.marks).toEqual([{ at: 10_000 + MARK_COMPACT_MS - 1, len: 3 }, { at: 12_099, len: 5 }]);
+  });
+
+  it('closes a segment as final and records a stated origin', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } });
+    expect(conv.snapshot().segments[0]).toMatchObject({ final: true, origin: 'u1' });
+  });
+
+  it('treats text after close as a revision without reopening', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'a' } }, { kind: 'segmentClosed', payload: { ref: 1 } });
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'ab' } });
+    expect(conv.snapshot().segments[0]).toMatchObject({ text: 'ab', final: true });
+  });
+
+  it('reports a contract violation for text on an unknown ref and for a ref opened twice, and ignores them', () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentText', payload: { ref: 3, text: 'x' } });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentOpened', payload: { ref: 1, side: 'source' } });
+    expect(diagnostics.map((d) => d.code)).toEqual(['contract_violation', 'contract_violation']);
+    expect(conv.snapshot().segments).toHaveLength(1);
+  });
+});
+
+describe('Conversation — audio', () => {
+  it('attaches audio to its segment with its range', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 2, text: 'Hello there.' } });
+    apply({ kind: 'audio', payload: { ref: 2, range: [0, 6], pcm: pcm(240) } });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 6], pcm: pcm(240) }]);
+  });
+
+  it('holds audio that arrives before its segment opens, and attaches it on open', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'audio', payload: { ref: 2, pcm: pcm(240) } });
+    expect(conv.snapshot().segments).toHaveLength(0);
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } });
+    expect(conv.snapshot().segments[0].speech).toHaveLength(1);
+  });
+
+  it('ignores audio without a ref', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'audio', payload: { pcm: pcm(240) } });
+    expect(conv.snapshot().segments[0].speech).toEqual([]);
+  });
+
+  it('drops a range outside the text, keeps the pcm, and reports it once', () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'abc' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 9], pcm: pcm(240) } });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: undefined, pcm: pcm(240) }]);
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
+});
+
+describe('Conversation — notices and closing', () => {
+  it('turns failed into an error notice and degraded into a notice with the table\'s severity', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'failed', payload: { message: 'socket died', code: 'E1' } });
+    apply({ kind: 'degraded', payload: { code: 'input_pipeline_failed', message: 'mic gone' } });
+    apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'no voice' } });
+    expect(conv.snapshot().notices.map((n) => [n.severity, n.message, n.code])).toEqual([
+      ['error', 'socket died', 'E1'],
+      ['error', 'mic gone', 'input_pipeline_failed'],
+      ['warning', 'no voice', 'tts_degraded'],
+    ]);
+    expect(conv.snapshot().notices[0].id).toBe('s1:speaker:n1');
+  });
+
+  it('finalizes every open segment on closed and on finalizeAll', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } });
+    apply({ kind: 'closed', payload: { reason: 'server' } });
+    expect(conv.snapshot().segments.every((s) => s.final)).toBe(true);
+    apply({ kind: 'segmentOpened', payload: { ref: 3, side: 'source' } });
+    conv.finalizeAll();
+    expect(conv.snapshot().segments[2].final).toBe(true);
+  });
+
+  it('ignores loading, busy, frame, reconnecting and reconnected', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'loading', payload: { stage: 'asr', done: 1, total: 2 } }, { kind: 'busy', payload: true }, { kind: 'frame', payload: { direction: 'in', type: 't' } }, { kind: 'reconnecting', payload: undefined }, { kind: 'reconnected', payload: undefined });
+    expect(conv.snapshot()).toMatchObject({ segments: [], notices: [] });
+  });
+});
+
+describe('Conversation — snapshot sharing', () => {
+  it('returns the same Leg until something changes, and keeps untouched segment objects', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentOpened', payload: { ref: 2, side: 'source' } });
+    const a = conv.snapshot();
+    expect(conv.snapshot()).toBe(a);
+    apply({ kind: 'segmentText', payload: { ref: 2, text: 'x' } });
+    const b = conv.snapshot();
+    expect(b).not.toBe(a);
+    expect(b.segments[0]).toBe(a.segments[0]);
+    expect(b.segments[1]).not.toBe(a.segments[1]);
+  });
+
+  it('notifies subscribers on every change', () => {
+    const { conv, apply } = make();
+    let n = 0;
+    const off = conv.subscribe(() => n++);
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'a' } });
+    expect(n).toBe(2);
+    off();
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'ab' } });
+    expect(n).toBe(2);
+  });
+});
