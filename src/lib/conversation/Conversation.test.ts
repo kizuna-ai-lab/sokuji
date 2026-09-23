@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
-import { Conversation, MARK_COMPACT_MS, type ConversationDiagnostic } from './Conversation';
+import { Conversation, DEGRADED_DEDUPE_MS, MARK_COMPACT_MS, type ConversationDiagnostic } from './Conversation';
 
 const pcm = (n: number) => new Int16Array(n);
 
@@ -287,5 +287,61 @@ describe('Conversation — retention and clear', () => {
     apply({ kind: 'audio', payload: { ref: 2, pcm: pcm(300) } }); // pending, 1200 total: the oldest (segment 1) is trimmed
     apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } });
     expect(conv.snapshot().segments.map((s) => s.speech[0].pcm.length)).toEqual([0, 300]);
+  });
+});
+
+describe('Conversation — what the runner adds', () => {
+  it('records a notice raised outside the adapter, with its code and params', () => {
+    const { conv, clock } = make();
+    clock.advance(250);
+    conv.notice({ severity: 'error', message: 'microphone unplugged', code: 'source_ended', params: { leg: 'speaker' } });
+    expect(conv.snapshot().notices).toEqual([
+      { id: 's1:speaker:n1', at: 10_250, severity: 'error', message: 'microphone unplugged', code: 'source_ended', params: { leg: 'speaker' } },
+    ]);
+  });
+
+  it('drops a degraded notice that repeats its code within the dedupe window, and keeps other codes', () => {
+    const { conv, clock, apply } = make();
+    apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
+    clock.advance(DEGRADED_DEDUPE_MS - 1);
+    apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
+    apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'no voice' } });
+    clock.advance(1);
+    apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
+    expect(conv.snapshot().notices.map((n) => n.code)).toEqual(['parse_error', 'tts_degraded', 'parse_error']);
+  });
+
+  it('turning pcm retention off drops the pcm already held and keeps the ranges', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'abc' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 3], pcm: pcm(240) } });
+    apply({ kind: 'audio', payload: { ref: 2, range: [0, 1], pcm: pcm(10) } });
+    conv.setRetention({ keepPcm: false, maxPcmBytes: 0 });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 3], pcm: new Int16Array(0) }]);
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 1], pcm: pcm(10) } });
+    expect(conv.snapshot().segments[0].speech[1].pcm.length).toBe(0);
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } });
+    expect(conv.snapshot().segments[1].speech).toEqual([{ range: [0, 1], pcm: new Int16Array(0) }]);
+  });
+
+  it('lowering the ceiling trims the oldest pcm at once', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'a' } });
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 2, text: 'b' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(100) } }, { kind: 'audio', payload: { ref: 2, pcm: pcm(100) } });
+    conv.setRetention({ keepPcm: true, maxPcmBytes: 200 });
+    const [a, b] = conv.snapshot().segments;
+    expect(a.speech[0].pcm.length).toBe(0);
+    expect(b.speech[0].pcm.length).toBe(100);
+  });
+
+  it('a subscriber that throws is reported and does not stop the next one hearing', () => {
+    const { conv, apply, diagnostics } = make();
+    let heard = 0;
+    conv.subscribe(() => { throw new Error('boom'); });
+    conv.subscribe(() => { heard++; });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } });
+    expect(heard).toBe(1);
+    expect(diagnostics).toEqual([{ code: 'listener_threw', message: 'A conversation subscriber threw: boom' }]);
   });
 });

@@ -79,3 +79,10 @@ describe('renderTranscriptJson', () => {
     expect(g.source?.segmentIds).toEqual([zh1.id, zh2.id]);
   });
 });
+
+describe('renderTranscriptJson — notice params', () => {
+  it('writes a notice with its code and params', () => {
+    const json = renderTranscriptJson([{ kind: 'notice', id: 'n2', leg: 'participant', severity: 'error', message: 'ended', code: 'source_ended', params: { leg: 'participant' }, at: 9 }], []);
+    expect(json.notices).toEqual([{ id: 'n2', leg: 'participant', at: 9, severity: 'error', message: 'ended', code: 'source_ended', params: { leg: 'participant' } }]);
+  });
+});

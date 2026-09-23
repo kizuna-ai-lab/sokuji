@@ -42,6 +42,12 @@ describe('createProjector', () => {
     expect(entries[1]).toMatchObject({ kind: 'notice', id: 'speaker:n:s:speaker:n1', severity: 'warning' });
   });
 
+  it("carries a notice's params onto its entry", () => {
+    const notice: Notice = { id: 's:speaker:n1', at: 5, severity: 'error', message: 'lease ended', code: 'lease_ended', params: { minutes: 3 } };
+    const [entry] = createProjector().project([legOf('speaker', [], [notice])], DEFAULT_PROJECTION);
+    expect(entry).toMatchObject({ kind: 'notice', code: 'lease_ended', params: { minutes: 3 } });
+  });
+
   it('cuts rows with the settings', () => {
     const src = seg('speaker', { text: 'One. Two.' });
     const [e] = exchanges(createProjector().project([legOf('speaker', [src])], { ...DEFAULT_PROJECTION, mode: 'sentences', sentencesPerRow: 1 }));

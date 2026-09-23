@@ -7,20 +7,24 @@ import type { SegmentTiming, TextRange } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
+import { describeCause } from '../diagnostics/describeCause';
 import { countSkeleton, offsetAfterSkeleton } from '../segmentation/sealCursor';
 import { baseLang } from '../segmentation/sentenceEnd';
 import { fillIn, type Punctuator } from './fillIn';
 import { reanchorRanges } from './reanchor';
 import { EMPTY_PCM } from './types';
-import type { Languages, Leg, LegName, Mark, Notice, Segment, Speech } from './types';
+import type { Languages, Leg, LegName, Mark, Notice, NoticeInput, Segment, Speech } from './types';
 
 /** Writes closer together than this collapse into one mark. It is the
  *  smallest pause a user can configure (`MIN_SEGMENT_PAUSE_MS`), so no cut
  *  a setting could ask for is lost to compaction. */
 export const MARK_COMPACT_MS = 100;
 
+/** A `degraded` notice repeating its code within this window is dropped, as the Logs panel throttles per key. */
+export const DEGRADED_DEDUPE_MS = 5_000;
+
 export interface ConversationDiagnostic {
-  code: 'contract_violation' | 'range_out_of_text';
+  code: 'contract_violation' | 'range_out_of_text' | 'listener_threw';
   message: string;
 }
 
@@ -60,8 +64,10 @@ export class Conversation {
   private dirty = false;
   private pcmBytes = 0;
   private readonly inflight = new Set<Promise<void>>();
+  private retention: Retention;
+  private readonly lastDegradedAt = new Map<string, number>();
 
-  constructor(private readonly opts: ConversationOptions) {}
+  constructor(private readonly opts: ConversationOptions) { this.retention = opts.retention ?? DEFAULT_RETENTION; }
 
   apply(event: AdapterEvent): void {
     this.batch(() => this.dispatch(event));
@@ -74,13 +80,17 @@ export class Conversation {
       case 'segmentClosed': return this.close(event.payload.ref, event.payload.origin);
       case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm);
       case 'failed': {
-        this.notice('error', event.payload.message, event.payload.code);
+        this.addNotice({ severity: 'error', message: event.payload.message, code: event.payload.code });
         this.finalizeAll();
         return;
       }
       case 'degraded': {
-        const severity = CLIENT_DIAGNOSTICS[event.payload.code]?.severity ?? 'warning';
-        return this.notice(severity, event.payload.message, event.payload.code);
+        const { code, message } = event.payload;
+        const now = this.opts.clock.now();
+        const last = this.lastDegradedAt.get(code);
+        if (last !== undefined && now - last < DEGRADED_DEDUPE_MS) return;
+        this.lastDegradedAt.set(code, now);
+        return this.addNotice({ severity: CLIENT_DIAGNOSTICS[code]?.severity ?? 'warning', message, code });
       }
       case 'closed': return this.finalizeAll();
       default: return;
@@ -96,6 +106,32 @@ export class Conversation {
     });
   }
 
+  /** Records a notice from outside the adapter's stream: the runner's (a source ended, a lease ended). */
+  notice(input: NoticeInput): void {
+    this.batch(() => this.addNotice(input));
+  }
+
+  /**
+   * Applies a retention policy now (`keepReplayAudio` takes effect
+   * immediately): off drops every pcm held, ranges kept; a lower ceiling trims
+   * the oldest.
+   */
+  setRetention(retention: Retention): void {
+    this.batch(() => {
+      this.retention = retention;
+      if (retention.keepPcm) {
+        this.afterAudio();
+        return;
+      }
+      this.segments.forEach((seg, i) => {
+        if (!seg.speech.some((s) => s.pcm.length > 0)) return;
+        this.replace(i, { ...seg, speech: seg.speech.map((s) => (s.pcm.length > 0 ? { ...s, pcm: EMPTY_PCM } : s)) });
+      });
+      for (const [ref, list] of this.pending) this.pending.set(ref, list.map((s) => ({ ...s, pcm: EMPTY_PCM })));
+      this.pcmBytes = 0;
+    });
+  }
+
   /** Drops every closed segment, every notice and all pcm; segments still open stay open with empty text. */
   clear(): void {
     this.batch(() => {
@@ -106,6 +142,7 @@ export class Conversation {
       kept.forEach((s, i) => this.indexByRef.set(s.ref, i));
       this.pending.clear();
       this.pcmBytes = 0;
+      this.lastDegradedAt.clear();
       this.touch();
     });
   }
@@ -187,8 +224,8 @@ export class Conversation {
     this.afterAudio();
   }
 
-  private notice(severity: Notice['severity'], message: string, code?: string): void {
-    this.notices.push({ id: `${this.opts.session}:${this.opts.leg}:n${++this.noticeCounter}`, at: this.opts.clock.now(), severity, message, code });
+  private addNotice(input: NoticeInput): void {
+    this.notices.push({ id: `${this.opts.session}:${this.opts.leg}:n${++this.noticeCounter}`, at: this.opts.clock.now(), ...input });
     this.touch();
   }
 
@@ -236,15 +273,14 @@ export class Conversation {
 
   /** Counts or drops arriving pcm per the retention policy. */
   private retain(pcm: Int16Array): Int16Array {
-    const retention = this.opts.retention ?? DEFAULT_RETENTION;
-    if (!retention.keepPcm) return EMPTY_PCM;
+    if (!this.retention.keepPcm) return EMPTY_PCM;
     this.pcmBytes += pcm.byteLength;
     return pcm;
   }
 
   /** Drops the oldest pcm until the leg is under its ceiling. */
   private afterAudio(): void {
-    const max = (this.opts.retention ?? DEFAULT_RETENTION).maxPcmBytes;
+    const max = this.retention.maxPcmBytes;
     for (let i = 0; i < this.segments.length && this.pcmBytes > max; i++) {
       const seg = this.segments[i];
       const k = seg.speech.findIndex((s) => s.pcm.length > 0);
@@ -276,7 +312,14 @@ export class Conversation {
   }
 
   private notify(): void {
-    for (const listener of this.listeners) listener();
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (error) {
+        // One subscriber's bug must not reach the adapter's event callback, or the next subscriber.
+        this.opts.onDiagnostic?.({ code: 'listener_threw', message: `A conversation subscriber threw: ${describeCause(error)}` });
+      }
+    }
   }
 
   /** Runs `fn` and notifies subscribers once at the end, however many changes it made. */

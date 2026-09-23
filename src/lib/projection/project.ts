@@ -57,7 +57,7 @@ export function createProjector(): Projector {
           next.push(reuse(entries, kept, candidate));
         }
         for (const notice of leg.notices) {
-          next.push(reuse(entries, kept, { kind: 'notice', id: `${leg.leg}:n:${notice.id}`, leg: leg.leg, severity: notice.severity, message: notice.message, code: notice.code, at: notice.at }));
+          next.push(reuse(entries, kept, { kind: 'notice', id: `${leg.leg}:n:${notice.id}`, leg: leg.leg, severity: notice.severity, message: notice.message, code: notice.code, params: notice.params, at: notice.at }));
         }
       }
       entries = kept;
@@ -112,7 +112,7 @@ function reuse(prev: Map<string, Entry>, kept: Map<string, Entry>, candidate: En
 function sameEntry(a: Entry, b: Entry): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'notice' && b.kind === 'notice') {
-    return a.at === b.at && a.severity === b.severity && a.message === b.message && a.code === b.code && a.leg === b.leg;
+    return a.at === b.at && a.severity === b.severity && a.message === b.message && a.code === b.code && a.leg === b.leg && a.params === b.params;
   }
   if (a.kind === 'exchange' && b.kind === 'exchange') {
     // Languages by value: a Leg snapshot may be rebuilt around the same segments.

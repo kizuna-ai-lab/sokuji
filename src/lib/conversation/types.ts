@@ -42,6 +42,9 @@ export interface Notice {
   params?: Record<string, string | number>;
 }
 
+/** What a caller supplies to record a notice; the leg adds its id and time. */
+export type NoticeInput = Pick<Notice, 'severity' | 'message' | 'code' | 'params'>;
+
 export interface Languages { source: string; target: string }
 
 export interface Leg {

@@ -32,9 +32,12 @@ export interface TranscriptGroup {
   translation: TranscriptSide | null;
 }
 
+/** A notice as the export writes it: the entry without its `kind`. */
+export type TranscriptNotice = Omit<Extract<Entry, { kind: 'notice' }>, 'kind'>;
+
 export interface TranscriptJson {
   groups: TranscriptGroup[];
-  notices: Array<{ id: string; leg: LegName; at: number; severity: 'error' | 'warning'; message: string; code?: string }>;
+  notices: TranscriptNotice[];
 }
 
 function segmentIndex(legs: readonly Leg[]): Map<SegmentId, Segment> {
@@ -73,7 +76,7 @@ export function renderTranscriptJson(entries: readonly Entry[], legs: readonly L
   const notices: TranscriptJson['notices'] = [];
   for (const e of entries) {
     if (e.kind === 'notice') {
-      notices.push({ id: e.id, leg: e.leg, at: e.at, severity: e.severity, message: e.message, code: e.code });
+      notices.push({ id: e.id, leg: e.leg, at: e.at, severity: e.severity, message: e.message, code: e.code, params: e.params });
       continue;
     }
     groups.push({ id: e.id, leg: e.leg, t: e.t, pairing: e.pairing, source: sideOf(e.source, index), translation: sideOf(e.translation, index) });

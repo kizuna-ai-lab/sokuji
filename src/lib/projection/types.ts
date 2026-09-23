@@ -32,6 +32,7 @@ export type Entry =
       severity: 'error' | 'warning';
       message: string;
       code?: string;
+      params?: Record<string, string | number>;
       at: number;
     };
 
