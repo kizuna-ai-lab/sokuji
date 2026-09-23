@@ -17,7 +17,7 @@ describe('createProjector', () => {
     const src = seg('speaker', { side: 'source', origin: 'u1', openedAt: 10 });
     const tr = seg('speaker', { side: 'translation', origin: 'u1', openedAt: 40 });
     const [e] = exchanges(createProjector().project([legOf('speaker', [src, tr])], DEFAULT_PROJECTION));
-    expect(e).toMatchObject({ id: 'speaker:o:u1', pairing: 'stated', t: 10, leg: 'speaker', languages: { source: 'ja', target: 'en' } });
+    expect(e).toMatchObject({ id: 's:speaker:o:u1', pairing: 'stated', t: 10, leg: 'speaker', languages: { source: 'ja', target: 'en' } });
     expect(e.source.map((r) => r.segmentId)).toEqual([src.id]);
     expect(e.translation.map((r) => r.segmentId)).toEqual([tr.id]);
   });

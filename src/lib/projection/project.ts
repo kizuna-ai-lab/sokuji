@@ -84,7 +84,7 @@ function groupsOf(leg: Leg, inferred: Map<SegmentId, SegmentId>): Group[] {
   const pairedSources = new Set(inferred.values());
   for (const seg of leg.segments) {
     let g: Group;
-    if (seg.origin !== undefined) g = get(`${leg.leg}:o:${seg.origin}`, 'stated');
+    if (seg.origin !== undefined) g = get(`${leg.session}:${leg.leg}:o:${seg.origin}`, 'stated');
     else if (seg.side === 'translation' && inferred.has(seg.id)) g = get(`${leg.leg}:s:${inferred.get(seg.id)}`, 'inferred');
     else if (seg.side === 'source' && pairedSources.has(seg.id)) g = get(`${leg.leg}:s:${seg.id}`, 'inferred');
     else g = get(`${leg.leg}:s:${seg.id}`, 'none');
