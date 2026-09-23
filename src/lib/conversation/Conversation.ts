@@ -85,9 +85,12 @@ export class Conversation {
   finalizeAll(): void {
     this.batch(() => {
       this.segments.forEach((seg, i) => { if (!seg.final) this.markFinal(i); });
+      for (const list of this.pending.values()) for (const s of list) this.pcmBytes -= s.pcm.byteLength;
+      this.pending.clear();
     });
   }
 
+  /** Drops every closed segment, every notice and all pcm; segments still open stay open with empty text. */
   clear(): void {
     this.batch(() => {
       const kept = this.segments.filter((s) => !s.final).map((s) => ({ ...s, text: '', marks: [], speech: [], timing: undefined }));
@@ -133,6 +136,7 @@ export class Conversation {
     };
     this.indexByRef.set(ref, this.segments.length);
     this.segments.push(seg);
+    if (speech.length > 0) this.afterAudio();
     this.touch();
   }
 
@@ -157,6 +161,7 @@ export class Conversation {
       const list = this.pending.get(ref) ?? [];
       list.push({ range, pcm: this.retain(pcm) });
       this.pending.set(ref, list);
+      this.afterAudio();
       return;
     }
     const seg = this.segments[i];
@@ -228,6 +233,12 @@ export class Conversation {
       this.pcmBytes -= seg.speech[k].pcm.byteLength;
       this.replace(i, { ...seg, speech });
       i--; // the same segment may hold more pcm
+    }
+    // Still over: audio held for refs that have not opened yet, oldest first.
+    for (const [ref, list] of this.pending) {
+      if (this.pcmBytes <= max) break;
+      for (const s of list) this.pcmBytes -= s.pcm.byteLength;
+      this.pending.delete(ref);
     }
   }
 

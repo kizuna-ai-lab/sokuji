@@ -228,4 +228,28 @@ describe('Conversation — retention and clear', () => {
     apply({ kind: 'segmentText', payload: { ref: 2, text: 'still live' } });
     expect(conv.snapshot().segments[0].text).toBe('still live');
   });
+
+  it('trims pcm held for refs that have not opened when it pushes the leg over the ceiling', () => {
+    const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 1000 } });
+    apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(300) } });   // 600 bytes, pending
+    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(300) } });  // 1200 total: ref 9 is dropped
+    apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } }, { kind: 'segmentOpened', payload: { ref: 10, side: 'translation' } });
+    expect(conv.snapshot().segments.map((s) => s.speech.length)).toEqual([0, 1]);
+  });
+
+  it('drops pcm held for a ref that never opened when the leg closes', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(10) } });
+    apply({ kind: 'closed', payload: { reason: 'server' } });
+    apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } });
+    expect(conv.snapshot().segments[0].speech).toEqual([]);
+  });
+
+  it('enforces the ceiling when a segment opens with held pcm', () => {
+    const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 1000 } });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(300) } }); // 600
+    apply({ kind: 'audio', payload: { ref: 2, pcm: pcm(300) } }); // pending, 1200 total: the oldest (segment 1) is trimmed
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } });
+    expect(conv.snapshot().segments.map((s) => s.speech[0].pcm.length)).toEqual([0, 300]);
+  });
 });
