@@ -147,4 +147,17 @@ describe('Conversation — snapshot sharing', () => {
     apply({ kind: 'segmentText', payload: { ref: 1, text: 'ab' } });
     expect(n).toBe(2);
   });
+
+  it('notifies once per event, after the whole event', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentOpened', payload: { ref: 2, side: 'source' } });
+    const seen: Array<[string | undefined, boolean]> = [];
+    conv.subscribe(() => { const s = conv.snapshot().segments[0]; seen.push([s.origin, s.final]); });
+    apply({ kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } });
+    expect(seen).toEqual([['u1', true]]);
+    let n = 0;
+    conv.subscribe(() => n++);
+    conv.finalizeAll();
+    expect(n).toBe(1);
+  });
 });

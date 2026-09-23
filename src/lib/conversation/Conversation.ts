@@ -39,10 +39,16 @@ export class Conversation {
   private snapshotVersion = -1;
   private cached: Leg | null = null;
   private readonly listeners = new Set<() => void>();
+  private depth = 0;
+  private dirty = false;
 
   constructor(protected readonly opts: ConversationOptions) {}
 
   apply(event: AdapterEvent): void {
+    this.batch(() => this.dispatch(event));
+  }
+
+  private dispatch(event: AdapterEvent): void {
     switch (event.kind) {
       case 'segmentOpened': return this.open(event.payload.ref, event.payload.side, event.payload.origin);
       case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language);
@@ -60,16 +66,20 @@ export class Conversation {
 
   /** Every open segment becomes final. Idempotent. */
   finalizeAll(): void {
-    this.segments.forEach((seg, i) => { if (!seg.final) this.markFinal(i); });
+    this.batch(() => {
+      this.segments.forEach((seg, i) => { if (!seg.final) this.markFinal(i); });
+    });
   }
 
   /** Extended in Task 7. */
   clear(): void {
-    this.segments = [];
-    this.notices = [];
-    this.indexByRef.clear();
-    this.pending.clear();
-    this.touch();
+    this.batch(() => {
+      this.segments = [];
+      this.notices = [];
+      this.indexByRef.clear();
+      this.pending.clear();
+      this.touch();
+    });
   }
 
   snapshot(): Leg {
@@ -172,7 +182,26 @@ export class Conversation {
 
   protected touch(): void {
     this.version++;
+    if (this.depth > 0) { this.dirty = true; return; }
+    this.notify();
+  }
+
+  private notify(): void {
     for (const listener of this.listeners) listener();
+  }
+
+  /** Runs `fn` and notifies subscribers once at the end, however many changes it made. */
+  private batch(fn: () => void): void {
+    this.depth++;
+    try {
+      fn();
+    } finally {
+      this.depth--;
+      if (this.depth === 0 && this.dirty) {
+        this.dirty = false;
+        this.notify();
+      }
+    }
   }
 
   private violation(message: string): void {
