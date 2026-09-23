@@ -3,6 +3,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import type { SessionContext } from '../../lib/contract/adapter';
 import { createFakeAdapter, type FakeConfig } from './adapter';
+import { longScript } from './generate';
 import { exchange, type FakeScript } from './script';
 import { synthPcm, msForText } from './synth';
 
@@ -82,6 +83,12 @@ describe('createFakeAdapter', () => {
     expect(kinds(log)).toEqual(['segmentOpened', 'segmentText', 'segmentClosed', 'segmentOpened', 'segmentText', 'audio', 'segmentClosed']);
     expect(log[0]).toEqual({ kind: 'segmentOpened', payload: { ref: 1000, side: 'source', origin: 'text-1000' } });
     expect(log[4]).toEqual({ kind: 'segmentText', payload: { ref: 1001, text: '«hello»' } });
+  });
+
+  it('starts typed-text refs past every ref the script names', async () => {
+    const { log, session } = await start(longScript(600));
+    session.appendText('x');
+    expect(log[0]).toEqual({ kind: 'segmentOpened', payload: { ref: 1201, side: 'source', origin: 'text-1201' } });
   });
 
   it('emits nothing after stop()', async () => {

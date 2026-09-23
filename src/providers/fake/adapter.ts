@@ -23,6 +23,20 @@ export type FakeCredentials = Record<string, never>;
 /** Refs minted for `appendText` start here, above any script ref. */
 const TEXT_REF_BASE = 1000;
 
+/** The largest ref any step in the script names, or -Infinity if none does. */
+function maxRef(script: FakeScript): number {
+  let max = -Infinity;
+  for (const block of script.blocks) {
+    for (const step of block.steps) {
+      if ('open' in step) max = Math.max(max, step.open.ref);
+      else if ('text' in step) max = Math.max(max, step.text.ref);
+      else if ('close' in step) max = Math.max(max, step.close.ref);
+      else if ('audio' in step && step.audio.ref !== undefined) max = Math.max(max, step.audio.ref);
+    }
+  }
+  return max;
+}
+
 export function createFakeAdapter(): Adapter<FakeConfig, FakeCredentials> {
   return {
     async start(request, events): Promise<AdapterSession> {
@@ -55,7 +69,7 @@ class FakeSession implements AdapterSession {
   private ended = false;
   private cancels: Array<() => void> = [];
   private pendingBlocks: ScriptBlock[];
-  private nextTextRef = TEXT_REF_BASE;
+  private nextTextRef: number;
 
   constructor(
     private readonly clock: Clock,
@@ -64,6 +78,7 @@ class FakeSession implements AdapterSession {
     private readonly context: SessionContext,
     private readonly events: AdapterEvents,
   ) {
+    this.nextTextRef = Math.max(TEXT_REF_BASE, maxRef(script) + 1);
     this.pendingBlocks = [...script.blocks];
     if (context.turns === 'auto') {
       for (const block of this.pendingBlocks) this.schedule(block, block.startAt);
