@@ -104,4 +104,16 @@ describe('checkConformance rules', () => {
     ];
     expect(rules(log)).toEqual([]);
   });
+
+  it('flags the second of two typed texts when only the first is translated', () => {
+    const log: ConformanceLog = [
+      { kind: 'marker', payload: 'appendText', text: 'A' },
+      opened(1), text(1, 'A'),
+      { kind: 'marker', payload: 'appendText', text: 'B' },
+      opened(2), text(2, 'B'),
+      opened(3, 'translation'), text(3, 'a'),
+    ];
+    const v = checkConformance(log, auto).filter((x) => x.rule === 'text-input-answered');
+    expect(v.map((x) => x.index)).toEqual([3]);
+  });
 });

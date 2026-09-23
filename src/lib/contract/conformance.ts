@@ -63,7 +63,8 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         sideOf.set(ref, side);
         if (!textOf.has(ref)) textOf.set(ref, '');
         if (side === 'translation') {
-          for (const p of pending) if (p.sourceRef !== undefined) p.answered = true;
+          const p = pending.find((q) => q.sourceRef !== undefined && !q.answered);
+          if (p) p.answered = true;
         }
         break;
       }
