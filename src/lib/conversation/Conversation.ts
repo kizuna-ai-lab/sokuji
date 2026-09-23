@@ -61,7 +61,7 @@ export class Conversation {
   private pcmBytes = 0;
   private readonly inflight = new Set<Promise<void>>();
 
-  constructor(protected readonly opts: ConversationOptions) {}
+  constructor(private readonly opts: ConversationOptions) {}
 
   apply(event: AdapterEvent): void {
     this.batch(() => this.dispatch(event));
@@ -195,7 +195,7 @@ export class Conversation {
   // ---- hooks ----
 
   /** Replaces a segment's text, re-anchoring its speech ranges and extending the growth trace. */
-  protected replaceText(i: number, text: string, o: { timing?: SegmentTiming; language?: string; mark: boolean }): void {
+  private replaceText(i: number, text: string, o: { timing?: SegmentTiming; language?: string; mark: boolean }): void {
     const seg = this.segments[i];
     const ranges = reanchorRanges(seg.text, text, seg.speech.map((s) => s.range));
     const speech = seg.speech.map((s, k) => (ranges[k] === s.range ? s : { ...s, range: ranges[k] }));
@@ -208,7 +208,7 @@ export class Conversation {
   }
 
   /** Marks a segment final and starts punctuation fill-in for it. */
-  protected markFinal(i: number): void {
+  private markFinal(i: number): void {
     const seg = { ...this.segments[i], final: true };
     this.replace(i, seg);
     const punctuate = this.opts.punctuate;
@@ -235,7 +235,7 @@ export class Conversation {
   }
 
   /** Counts or drops arriving pcm per the retention policy. */
-  protected retain(pcm: Int16Array): Int16Array {
+  private retain(pcm: Int16Array): Int16Array {
     const retention = this.opts.retention ?? DEFAULT_RETENTION;
     if (!retention.keepPcm) return EMPTY_PCM;
     this.pcmBytes += pcm.byteLength;
@@ -243,7 +243,7 @@ export class Conversation {
   }
 
   /** Drops the oldest pcm until the leg is under its ceiling. */
-  protected afterAudio(): void {
+  private afterAudio(): void {
     const max = (this.opts.retention ?? DEFAULT_RETENTION).maxPcmBytes;
     for (let i = 0; i < this.segments.length && this.pcmBytes > max; i++) {
       const seg = this.segments[i];
@@ -264,12 +264,12 @@ export class Conversation {
 
   // ---- internals ----
 
-  protected replace(i: number, next: Segment): void {
+  private replace(i: number, next: Segment): void {
     this.segments[i] = next;
     this.touch();
   }
 
-  protected touch(): void {
+  private touch(): void {
     this.version++;
     if (this.depth > 0) { this.dirty = true; return; }
     this.notify();
