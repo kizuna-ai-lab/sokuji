@@ -99,6 +99,9 @@ workload untouched does not count.
 | D21 | A leg ends | Any leg ending ends the session. There is no one-way running state. The legs stay technically independent (D2); this is a lifecycle rule, not a data one. |
 | D22 | A leg fails to start | Every requested leg must come up, or the start fails with the reason. A session never starts on a subset of the legs it was asked for. |
 | D23 | Soniox shared Both | Kept, as an optional `startBoth` on the provider definition that only Soniox implements. In the 90 days to 2026-09-23, 193 of 387 managed Soniox users and 44 of 70 BYOK Soniox users ran a two-leg session (PostHog `translation_session_start.channels`; shared and split are not told apart there, and shared is the default). One shared stream halves the transcription cost. |
+| D24 | Stage 1's first provider | A **fake provider** — a real registry entry, dev builds only — carries the spine first. It plays scripted L0 events with synthetic audio and injected faults, and is also the contract conformance suite every adapter passes and the demo provider for rendering work. LocalInference follows it. |
+| D25 | Turns over WebRTC | OpenAI Realtime over WebRTC offers manual turns only, as today (`forceWebrtcTurnDetectionOff`: server VAD would cut the translation being played). Turn capability may depend on settings — `turns(s)` — and this is its only use. |
+| D26 | `keepReplayAudio` | Stays as a user switch. On, L1 keeps pcm up to the retention ceiling; off, pcm is dropped on arrival and the row has no replay control. |
 
 ### Deleted with no behaviour change
 
@@ -238,6 +241,39 @@ nothing, and today's contract has no way to say so.
 from the previous chunk. Clients also stop maintaining cumulative audio duration
 — `audioCumSamples` / `cumulativeAudioDuration` is computed in four clients
 today, and each pcm block's duration follows from its own length.
+
+### What every adapter must honour
+
+The conformance suite (D24) checks each rule below against every adapter.
+
+- **Audio is 24 kHz mono `Int16` in both directions.** That is the system rate
+  today — `ModernAudioPlayer` opens its context at 24000 and the microphone
+  pipeline runs at it — and an adapter resamples on both sides, as the clients
+  already do.
+- **`range` is in UTF-16 code units** of the text as it was when the audio was
+  produced. A range that falls outside the text is dropped by L1 (the audio
+  stays, replay-only) and reported once as a diagnostic.
+- **`audio` may precede any text for its `ref`.** L1 holds pcm against the ref
+  until the segment opens; pcm for a ref that never opens is dropped when the
+  session closes.
+- **`segmentText` after `segmentClosed` is a revision** of that ref's text and
+  does not reopen it — Palabra's `partial` → `validated` promotion. Opening the
+  same ref twice is a contract violation.
+- **`ref`s are never reused within one `Session`**, across an internal reconnect
+  included.
+- **`appendText` is answered by the adapter**, which emits the typed text as a
+  source segment (opened, text, closed) and then its translation. L1 fabricates
+  no segment for it.
+- **An adapter that can no longer work says so**, with `failed` or an unexpected
+  `closed`, and emits nothing after either. `closed` need not be preceded by
+  closing every segment; L1 finalizes what is open.
+- **`frame` carries no audio and no credential.** Its `type` is the adapter's own
+  vocabulary, `domain.event`, and its payload is what the Logs panel shows; the
+  adapter strips audio and base64 before emitting, and `logStore` still
+  sanitizes. The panel groups by `type` plus the item id it finds in the
+  payload, marks severity by the `error` / `failed` / `warning` suffix, and draws
+  its "session ended" separator from `closed` — three conventions the generic
+  event must keep.
 
 ### The session request
 
@@ -455,7 +491,12 @@ takeover keeps its hint, where it is true.
 
 **Coverage.** Soniox, OpenAI Translate (with its Kizuna twin), OpenAI Live and
 Palabra offer only automatic turns today. All of them gain push-to-talk and
-push-to-translate.
+push-to-translate. The one exception runs the other way: OpenAI Realtime over
+WebRTC keeps manual turns only (D25), as today — with the native track live,
+the server's VAD would cut the translation being played whenever the user
+speaks, which is why `forceWebrtcTurnDetectionOff` exists. The definition
+states it through `turns(s)`, and the settings UI hides the automatic mode
+there.
 
 ---
 
@@ -630,9 +671,19 @@ every entry must say which one it came from, and reading it out of the string
 `${id}_p2` suffixes today. `languages` rides along on the exchange so a surface
 can draw the badge without reaching back to the leg.
 
-Three jobs, and only three: **cut** final segments into rows, **group** rows by
+Three jobs, and only three: **cut** segments into rows, **group** rows by
 `origin`, **order** groups by the earliest `openedAt` they contain. It runs
-**once per session**, not once per surface.
+**once per session**, not once per surface. An open segment ends in one live
+row, and a pause cut applies to it as much as to a closed one — that is what
+"by pause" means while someone is still speaking.
+
+**The projection is incremental.** Only a leg whose segments changed is re-cut,
+pairing is re-evaluated only for the segments that changed, and entries that
+did not change keep their identity. A session runs for hours and a partial
+arrives twenty times a second; re-pairing thousands of segments on every one
+would put the cost where today's full `mergeConversationItems` already puts
+it, and the point of running once is to run less, not the same amount in one
+place.
 
 Filtering, band packing and styling are **not** L2's. They depend on each
 surface's own settings — the extension overlay carries display modes, a font
@@ -756,6 +807,15 @@ disappears with `status` itself.
 Passthrough's second destination — the real output, delayed 150 ms — is
 deleted; passthrough now has one purpose and one destination.
 
+**Level** — the real device's monitoring gain — stays where it is, a device
+setting in `audioStore` (`setMonitorVolume`, `isMonitorMuted`); it is not a
+route and not a mix.
+
+**Voice preview bypasses the sink at four sites today** — `VoiceLibrarySection`,
+`SonioxCloneReviewStep`, `VoiceCreateModal` and `nativeVoiceStores`, each with
+its own `AudioContext` or `<audio>` element that ignores the selected device.
+All four fold into the preview route.
+
 **The system has exactly one genuine volume: the passthrough percentage.**
 Only the virtual device carries a deliberate mix (translation with the original
 voice underneath, where the ratio is part of the product). Sources meeting on
@@ -812,6 +872,17 @@ One scheduler per queue, fan-out after the mix — not today's two independent
 `ModernAudioPlayer` instances fed the same PCM and kept in step by hand at five
 call sites (`interrupt` 664, `clearStreamingTrack` 691, `clearInterruptedTracks`
 706, `setGlobalVolume` 496, `setSinkId` 388).
+
+### The echo monitor keeps its three probes
+
+`EchoMonitor` (`ModernBrowserAudioService.ts:70-74`) correlates three signals:
+the microphone against the TTS output and the participant capture
+(`tts-echo`, `meeting-echo`), the participant capture against the TTS output
+(`self-capture`, `far-end-echo`), and the microphone against the TTS output at
+near-zero lag (`routing-loop`). Capture moves into the runner's sources and
+playback into the sink, so each side exposes a **pcm tap** — every source and
+the sink's mixed output — and the monitor subscribes to the taps it needs. Its
+detectors and its notice UI (`EchoNotice`, outside L1) are unchanged.
 
 ---
 
@@ -903,6 +974,7 @@ interface Provider<S, K, C> {
   // settings — never secrets
   settings: { key: string; defaults: S; migrate?(stored: unknown): S }
   Settings: ComponentType<{ settings: S; update(patch: Partial<S>): void }>
+  Engine?: ComponentType<{ settings: S }>   // model management, shown in Simple mode too; the local engines only
 
   // credentials — stored apart from settings
   credentials: {
@@ -921,6 +993,7 @@ interface Provider<S, K, C> {
   speech: 'always' | 'optional' | 'never'
   textInput: boolean
   boundaries(s: S): 'provider' | 'silence'
+  turns(s: S): Array<'auto' | 'manual'>    // both for everyone; OpenAI over WebRTC: manual only (D25)
 
   // one leg's session
   build(context: SessionContext, s: S, shared: SharedSettings): C | { refused: string }
@@ -946,6 +1019,18 @@ fallback from one to the other, become its business, so `supportsWebRTC` and
 `forcedTransport` leave the contract. Palabra's `forcedTransport: 'webrtc'`
 exists only to steer MainPanel's transport switch; its adapter always uses
 LiveKit.
+
+**What else is provider-specific and sits in MainPanel today** goes into the
+adapter: OpenAI's drift anchor — an out-of-band, text-only `createResponse`
+re-sending the instructions at session start and every five completed
+responses (`MainPanel.tsx:4245-4325`), which only the adapter can count — and
+the `response.created` / `response.done` bookkeeping behind `isAIResponding`,
+which is what `busy` reports.
+
+**A hybrid pipeline is a provider, not a new layer.** The note that Local Native
+grows into an orchestrator mixing local and cloud stages describes a definition
+whose adapter composes stage clients internally; `describe()` already names the
+three stages. L0 never learns what a stage is.
 
 ### Where each member goes
 
@@ -985,6 +1070,12 @@ rejected. The Soniox voice library (906 lines) and the two local model managers
 (843 and 1,036) need escape hatches, and today's flags are that design in
 embryo, already carrying 1,092 lines of them. Consistency between providers
 comes from the shared field components.
+
+Simple mode needs none of this. `SimpleSettings` renders the generic sections —
+languages, segmentation, the provider row with its credentials, the two device
+sections, system audio, help — and the one provider-specific thing it shows is
+the local engines' model management, opened from the provider row. That is the
+`Engine` slot, which only the two local providers fill.
 
 ### Credentials are not settings
 
@@ -1130,6 +1221,21 @@ serialized in one place. Today the legs connect one after the other
 (`MainPanel.tsx:2463`, then `:2753`), so nothing collides yet; a per-host
 register/clear pair would, the moment the legs come up together.
 
+### Persisted settings that move
+
+Storage keys stay, but four things change meaning, and each needs a one-time
+migration on load:
+
+| Setting | Today | Becomes |
+|---|---|---|
+| turn mode | `turnDetectionMode` in six slices, with the values `Normal`, `Semantic`, `Disabled`, `Push-to-Talk`, `Push-to-Translate`, `Auto` (D15) | one global mode — `Push-to-Talk` / `Push-to-Translate` map to themselves, everything else to auto — and OpenAI's `Normal` / `Semantic` become its `autoDetection` |
+| credentials | fields inside each slice (`apiKey`, `appId`, `accessToken`, `clientId`, `clientSecret`, region keys) | the same keys, read into the credential record instead of `S` |
+| `keepReplayAudio` | a client option every client is handed | L1's retention switch (D26) |
+| transport | `transportType` in the OpenAI slices, with `forceWebrtcTurnDetectionOff` rewriting the turn mode | stays in `S`; the rewrite becomes `turns(s)` (D25) |
+
+`bothModeSharedSession`, the segmentation settings and the display settings do
+not move.
+
 ### What adding a provider then touches
 
 1. One folder, `src/providers/<id>/`: the definition, the adapter, the `Settings`
@@ -1193,7 +1299,7 @@ sessions.press() / release()             // what every surface emits (D14)
 sessions.state                           // one store; the UI reads only this
 
 type RunState =
-  | { phase: 'idle' }
+  | { phase: 'idle'; lastEnd?: { reason: EndReason; notice?: Notice } }   // what the idle surfaces show
   | { phase: 'starting'; step: 'checking' | 'preparing-voice' | 'loading' | … }
   | { phase: 'running'; since: number; legs: Record<Leg, LegState>; budget? }
   | { phase: 'stopping' }
@@ -1375,6 +1481,70 @@ The runner's store replaces MainPanel's lifecycle hooks and most of
 `isSessionActive` (a phase), and the refs that coordinated start and stop.
 Settings sections that lock during a session read the phase.
 
+### The conversation outlives the run
+
+After Stop the conversation stays on screen, can be exported, replayed and
+auto-saved, and is cleared only by the next Start or by the user. So the two L1
+legs are not the run's: the runner holds **the conversation** — the legs of the
+last run — until the next `start()` replaces it or `clear()` empties it. Export,
+replay, auto-save and the subtitle surfaces read the conversation, never a run.
+`clear()` during a run drops every segment and its pcm, seals the clip queues,
+and leaves open segments open with empty text; today's
+`clearConversationVersion` watcher becomes a call to it.
+
+### What may change during a run
+
+The shape is frozen, but a run is not a freeze of the whole app. These change
+while running and take effect immediately: microphone and monitor device,
+participant source, the three mute switches, noise suppression, passthrough
+and its ratio, every display setting (modes, font size, compact, colours, the
+subtitle window's own), and `keepReplayAudio`. Everything else — provider,
+languages, mode, turn mode, text-only, transport, the provider's own settings
+and credentials — is locked while the phase is not `idle`; the settings
+sections read the phase for it, and so does `setProvider`, which the sign-in
+auto-switch (`MainLayout.tsx:175-199`) calls with no session guard today.
+
+### Sources, in full
+
+A source has three signals: `pcm` (its tap), `ended` (the device unplugged, the
+tab closed, the app-capture helper gone) and **`degraded`** — the app-capture
+helper dying and the source falling back to whole-system capture is a warning
+the user must see, and today it reaches only the Logs panel
+(`ModernBrowserAudioService.ts:1196-1205`). A `degraded` source records a
+Notice on its leg. The gate asks the platform for a participant source before
+start: today only the microphone is checked, so the web build, which has no
+participant source at all, learns it inside `openSource`.
+
+### Notices reach the user localized
+
+`Notice.message` is diagnostic English. What a user sees is localized, so a
+Notice that is meant for the screen carries `code` and `params` and the
+surface looks the text up — as `reasonToI18n`, `voicePrepNotice` and
+`mainPanel.openaiLiveConnectionLost` do today, each its own way. The same
+holds for `lastEnd.reason`: a typed code, so the idle surface can offer the
+settings deep link (`reasonToSettingsTarget`) or the privacy-settings prompt
+(`WarningModal` → `open-privacy-settings`) that the reason calls for.
+
+### Analytics
+
+The runner owns the session events; adapters emit none. Kept, with their
+source:
+
+| Event | Emitted by |
+|---|---|
+| `translation_session_start` / `_end` | the runner, from the run's actual configs (`describe()`), the transport the started session reports, `channels`, and the segmentation tallies L1 keeps for fill-in and the cut |
+| `session_control_clicked` | the runner, for every surface's start / stop / cancel — today the basic footer sends none |
+| `push_to_talk_used` | the turn object |
+| `text_input_sent` | the runner (today it is not even declared in `AnalyticsEvents`) |
+| `connection_status` | the runner, per leg, on connect and close — today only the speaker's connect is reported |
+| `api_error`, `error_occurred` | the runner, from `failed` / `degraded` and from a start that fails |
+| `audio_error`, `audio_device_changed` | the sources |
+| `echo_detected` | the echo monitor |
+| `segmentation_model_load` | the punctuation runtime |
+
+Gone, per D9: `translation_completed`, `latency_measurement` (whose
+`websocket_fallback` variant becomes the reported transport).
+
 ### What the surveys' defects become
 
 | Cause | Examples | Becomes |
@@ -1396,15 +1566,63 @@ which the Stage 2 rewrites own. The release timeout bounds the last.
 
 ---
 
+## Testing
+
+There is no React rendering harness in this repository, and a provider client
+cannot be validated by unit tests alone. Four kinds of test cover the new
+structure, and the first two exist because of one artefact.
+
+**The fake provider (D24).** A real definition in the registry, present in dev
+builds only, whose adapter plays a timed script of L0 events. Three layers:
+
+- **Script playback.** `segmentOpened` / `segmentText` / `segmentClosed` with
+  origins; `audio` with `range` and synthetic pcm — tone bursts sized to the
+  text, so clip positions and karaoke can be checked against known sample
+  counts; `timing`, `language`, `degraded`, `reconnecting`, `failed`, `closed`
+  at scripted moments. It honours `context`: under manual turns it emits a
+  segment only after `endTurn` and nothing after `cancelTurn`; `appendText`
+  yields a source segment and a translation; `speech: false` yields no audio.
+  Tests drive it on a virtual clock, the app on real time.
+- **Fault and shape knobs.** `check` not ready, `build` refused, `start`
+  throwing, failing after N seconds, one reconnect cycle, audio without
+  `range`, audio without `ref`, a rewrite that changes letters (ranges must
+  drop), text without terminal punctuation (fill-in must run), CJK text (rows
+  must tile), a different script per leg, a `startBoth` variant, and a
+  generator for thousands of segments to load L2.
+- **Fake sources.** A pcm generator in place of the microphone and the system
+  audio, with `ended` injectable, so the runner's stack is tested without a
+  device.
+
+**Contract conformance.** The rules under "What every adapter must honour" are
+one suite, run against the fake provider first and every real adapter after it.
+
+**Pure layers.** L1 and L2 are tested as the pure functions they are, with the
+fake's scripts as fixtures.
+
+**The runner.** With fake sources and the fake adapter: every unwind path
+(stop, cancel at each step, failure at each step), the lease order, the turn
+object, and the close paths.
+
+**Rendering.** The four surfaces are judged by rendering, with headless
+Chromium against the fake provider: the panel, the Electron subtitle takeover,
+the extension overlay in a meeting page, and the exported file. The fake is
+also what a screenshot or a layout decision is made against.
+
+---
+
 ## Migration
 
 Rewrite, not migrate. Neither adapter direction is built.
 
 **Stage 1 — the new spine and one provider, end to end.** Contract types, L1,
-L2, playback, **and the new display layer**. Then one client. The acceptance
-test is that all four surfaces are correct — panel, Electron subtitle takeover,
-extension in-page overlay, export — because a data-layer-only check would let a
-wrong display model survive until the fifth provider.
+L2, playback, **and the new display layer**, brought up on the **fake provider
+first** (D24) — it is free, deterministic and exercises every fault path — and
+then LocalInference as the first real one. The acceptance test is that all
+four surfaces are correct — panel, Electron subtitle takeover, extension
+in-page overlay, export — because a data-layer-only check would let a wrong
+display model survive until the fifth provider. LocalInference is the adapter
+that keeps the most inside L0 (VAD, the translation-job cut, TTS, model
+loading, `admit`); bringing the spine up on it would debug both at once.
 
 **The subtitle surfaces are rewritten in this stage, not after it.** `SubtitleApp`
 loses its private copy of the merge and sort (`SubtitleApp.tsx:183-201`, with
@@ -1422,7 +1640,11 @@ first to be composed from the shared fields.
 
 **So is the session runner**, with its sources, the turn object and the store
 the surfaces read; `connectConversation`, `disconnectConversation` and the
-lifecycle hooks leave MainPanel in this stage.
+lifecycle hooks leave MainPanel in this stage. Three tests read MainPanel's
+source text rather than its behaviour — `sessionIdLifecycle.consistency`,
+`sessionEndAutoSave.wiring`, and `consoleLedger.consistency`'s row that expects
+exactly 43 `console.*` calls in it — and are replaced with behavioural tests
+against the runner in the same change.
 
 The other clients are **deleted**, and their descriptors with them. Each is
 recovered from git history when its turn comes, and read to learn the protocol
@@ -1447,7 +1669,9 @@ coverage, not by difficulty:
 5. **OpenAILive** — span caps, the `end_ms` timeline.
 6. **Gemini** — turn-level origin, no ranges.
 7. **LocalNative** — LocalInference's sibling, nearly free after it.
-8. **OpenAI GA / legacy / WebRTC** — server-given boundaries, native capture.
+8. **OpenAI GA / legacy / WebRTC** — server-given boundaries, native capture,
+   the drift anchor moving into the adapter, manual-only turns over WebRTC
+   (D25).
 9. **OpenAITranslateWebRTC** — the same shape as its GA twin over native capture.
 10. **VolcengineAST2** — adds nothing new to the model.
 
@@ -1542,12 +1766,6 @@ compatibility burden.
 - **`origin` inference thresholds** — the overlap fraction that counts as a
   pair, the time window for proximity, and what breaks a tie between two
   candidates.
-- **Testing strategy** — how L1 and L2 are tested as the pure parts they are,
-  how the display is tested without a live provider, and what a fake client
-  looks like.
-- **What analytics remain.** `translation_count` and latency are gone;
-  `translation_session_start` / `_end` and the `sentence_segmentation_*` fields
-  still need a source in the new structure.
 
 ## Risks
 
