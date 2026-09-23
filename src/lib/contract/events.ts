@@ -7,11 +7,13 @@ export type AdapterEvent = {
   [K in keyof AdapterEvents]: { kind: K; payload: PayloadOf<K> };
 }[keyof AdapterEvents];
 
-export const EVENT_KINDS: ReadonlyArray<keyof AdapterEvents> = [
-  'segmentOpened', 'segmentText', 'segmentClosed', 'audio',
-  'closed', 'reconnecting', 'reconnected', 'failed', 'degraded',
-  'loading', 'busy', 'frame',
-];
+const KINDS = {
+  segmentOpened: true, segmentText: true, segmentClosed: true, audio: true,
+  closed: true, reconnecting: true, reconnected: true, failed: true, degraded: true,
+  loading: true, busy: true, frame: true,
+} satisfies Record<keyof AdapterEvents, true>;
+
+export const EVENT_KINDS = Object.keys(KINDS) as ReadonlyArray<keyof AdapterEvents>;
 
 /** An `AdapterEvents` object whose every method forwards one tagged event. */
 export function eventsFrom(listener: (event: AdapterEvent) => void): AdapterEvents {

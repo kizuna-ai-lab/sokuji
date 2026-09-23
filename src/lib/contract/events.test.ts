@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { eventsFrom, recordEvents, type AdapterEvent } from './events';
+import { EVENT_KINDS, eventsFrom, recordEvents, type AdapterEvent } from './events';
 
 describe('eventsFrom', () => {
   it('forwards every method as a tagged event, in call order', () => {
@@ -15,6 +15,16 @@ describe('eventsFrom', () => {
       { kind: 'reconnecting', payload: undefined },
       { kind: 'busy', payload: true },
     ]);
+  });
+
+  it('forwards every kind in EVENT_KINDS as its own tagged event', () => {
+    for (const kind of EVENT_KINDS) {
+      const log: AdapterEvent[] = [];
+      const events = eventsFrom((e) => log.push(e));
+      const payload = { marker: kind };
+      (events[kind] as (p: unknown) => void)(payload);
+      expect(log).toEqual([{ kind, payload }]);
+    }
   });
 });
 
