@@ -60,6 +60,17 @@ describe('Conversation — identity and text', () => {
     expect(diagnostics.map((d) => d.code)).toEqual(['contract_violation', 'contract_violation']);
     expect(conv.snapshot().segments).toHaveLength(1);
   });
+
+  it('ignores a re-sent identical text, so a pause survives and the segment keeps its identity', () => {
+    const { conv, clock, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'abc' } });
+    const before = conv.snapshot();
+    for (let k = 0; k < 6; k++) { clock.advance(300); apply({ kind: 'segmentText', payload: { ref: 1, text: 'abc' } }); }
+    expect(conv.snapshot()).toBe(before);
+    clock.advance(300);
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'abcdef' } });
+    expect(conv.snapshot().segments[0].marks.map((m) => [m.at - 10_000, m.len])).toEqual([[0, 3], [2100, 6]]);
+  });
 });
 
 describe('Conversation — audio', () => {

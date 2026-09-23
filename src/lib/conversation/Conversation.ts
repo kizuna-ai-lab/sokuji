@@ -150,6 +150,8 @@ export class Conversation {
   private text(ref: number, text: string, timing?: SegmentTiming, language?: string): void {
     const i = this.indexByRef.get(ref);
     if (i === undefined) return this.violation(`text for ref ${ref} before it opened`);
+    const seg = this.segments[i];
+    if (seg.text === text && sameTiming(seg.timing, timing ?? seg.timing) && (language ?? seg.language) === seg.language) return;
     this.replaceText(i, text, { timing, language, mark: true });
   }
 
@@ -296,4 +298,8 @@ function pushMark(marks: readonly Mark[], at: number, len: number): Mark[] {
   const last = marks[marks.length - 1];
   if (last && at - last.at < MARK_COMPACT_MS) return [...marks.slice(0, -1), { at, len }];
   return [...marks, { at, len }];
+}
+
+function sameTiming(a?: SegmentTiming, b?: SegmentTiming): boolean {
+  return a === b || (!!a && !!b && a.startMs === b.startMs && a.endMs === b.endMs);
 }
