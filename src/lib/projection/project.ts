@@ -17,12 +17,12 @@ export interface Projector {
 
 type Exchange = Extract<Entry, { kind: 'exchange' }>;
 
-interface Group { id: string; leg: Leg; pairing: Exchange['pairing']; source: Segment[]; translation: Segment[]; t: number }
+interface Group { id: string; pairing: Exchange['pairing']; source: Segment[]; translation: Segment[]; t: number }
 
 export function createProjector(): Projector {
   const rows = new WeakMap<Segment, { cut: CutSettings; rows: Row[] }>();
   const pairs = new WeakMap<readonly Segment[], { thresholds: PairingThresholds; map: Map<SegmentId, SegmentId> }>();
-  const entries = new Map<string, Entry>();
+  let entries = new Map<string, Entry>();
   let last: Entry[] = [];
 
   const rowsOf = (seg: Segment, cut: CutSettings): Row[] => {
@@ -44,6 +44,7 @@ export function createProjector(): Projector {
   return {
     project(legs, settings) {
       const cut: CutSettings = { mode: settings.mode, sentencesPerRow: settings.sentencesPerRow, pauseMs: settings.pauseMs };
+      const kept = new Map<string, Entry>();
       const next: Entry[] = [];
       for (const leg of legs) {
         for (const group of groupsOf(leg, pairsOf(leg, settings.pairing))) {
@@ -53,12 +54,13 @@ export function createProjector(): Projector {
             translation: group.translation.flatMap((s) => rowsOf(s, cut)),
             t: group.t,
           };
-          next.push(reuse(entries, candidate));
+          next.push(reuse(entries, kept, candidate));
         }
         for (const notice of leg.notices) {
-          next.push(reuse(entries, { kind: 'notice', id: `${leg.leg}:n:${notice.id}`, leg: leg.leg, severity: notice.severity, message: notice.message, code: notice.code, at: notice.at }));
+          next.push(reuse(entries, kept, { kind: 'notice', id: `${leg.leg}:n:${notice.id}`, leg: leg.leg, severity: notice.severity, message: notice.message, code: notice.code, at: notice.at }));
         }
       }
+      entries = kept;
       next.sort((a, b) => timeOf(a) - timeOf(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
       if (next.length === last.length && next.every((e, i) => e === last[i])) return last;
       last = next;
@@ -73,7 +75,7 @@ function groupsOf(leg: Leg, inferred: Map<SegmentId, SegmentId>): Group[] {
   const get = (id: string, pairing: Exchange['pairing']): Group => {
     let g = byId.get(id);
     if (!g) {
-      g = { id, leg, pairing, source: [], translation: [], t: Infinity };
+      g = { id, pairing, source: [], translation: [], t: Infinity };
       byId.set(id, g);
       order.push(g);
     }
@@ -98,12 +100,13 @@ function sameCut(a: CutSettings, b: CutSettings): boolean {
   return a.mode === b.mode && a.sentencesPerRow === b.sentencesPerRow && a.pauseMs === b.pauseMs;
 }
 
-/** The cached entry when nothing about it changed, else the candidate. */
-function reuse(cache: Map<string, Entry>, candidate: Entry): Entry {
-  const prev = cache.get(candidate.id);
-  if (prev && sameEntry(prev, candidate)) return prev;
-  cache.set(candidate.id, candidate);
-  return candidate;
+/** The previous call's entry when nothing about it changed, else the candidate. Either way
+ *  it is recorded in `kept`, so the cache holds exactly the last output — no orphans. */
+function reuse(prev: Map<string, Entry>, kept: Map<string, Entry>, candidate: Entry): Entry {
+  const old = prev.get(candidate.id);
+  const entry = old && sameEntry(old, candidate) ? old : candidate;
+  kept.set(candidate.id, entry);
+  return entry;
 }
 
 function sameEntry(a: Entry, b: Entry): boolean {

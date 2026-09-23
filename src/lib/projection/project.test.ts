@@ -60,4 +60,15 @@ describe('createProjector', () => {
     expect(second[0]).toBe(first[0]);
     expect(second[1]).not.toBe(first[1]);
   });
+
+  it('moves a translation into its source\'s group once they pair, leaving no standalone entry', () => {
+    const projector = createProjector();
+    const tr = seg('speaker', { side: 'translation', openedAt: 500 });
+    const first = projector.project([legOf('speaker', [tr])], DEFAULT_PROJECTION);
+    expect(first.map((e) => e.id)).toEqual([`speaker:s:${tr.id}`]);
+    const src = seg('speaker', { side: 'source', openedAt: 0 });
+    const second = projector.project([legOf('speaker', [src, tr])], DEFAULT_PROJECTION);
+    expect(second.map((e) => e.id)).toEqual([`speaker:s:${src.id}`]);
+    expect(exchanges(second)[0]).toMatchObject({ pairing: 'inferred' });
+  });
 });
