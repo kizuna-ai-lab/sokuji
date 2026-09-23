@@ -35,6 +35,9 @@ https://claude.ai/artifact/1PbYxsxRG6z4pkJ9JEPmfx
   component, credentials, a readiness check, two language functions, the three
   capabilities generic code reads, and the per-leg builder and adapter. Adding a
   provider edits no shared code file except the registry list.
+- **A session is an object, not a function.** Each start is a run that pushes
+  every resource it acquires onto a stack and unwinds it in reverse on stop,
+  failure or cancel alike. The legs rise and fall together.
 - `ConversationItem` is deleted.
 
 ## The measure
@@ -93,6 +96,9 @@ workload untouched does not count.
 | D18 | Provider settings UI | Each provider owns its settings component, composed from shared field components. The capability flags that drive today's generic panel leave the contract. |
 | D19 | Feature flags | One `VITE_ENABLED_PROVIDERS` list of provider ids replaces the per-provider `VITE_ENABLE_*` flags. The Kizuna umbrella flag stays. |
 | D20 | `auto` source and the participant leg | The participant leg opens only when the reversed direction is supported. `auto` is never a target, so an `auto` source refuses the participant leg for every provider. |
+| D21 | A leg ends | Any leg ending ends the session. There is no one-way running state. The legs stay technically independent (D2); this is a lifecycle rule, not a data one. |
+| D22 | A leg fails to start | Every requested leg must come up, or the start fails with the reason. A session never starts on a subset of the legs it was asked for. |
+| D23 | Soniox shared Both | Kept, as an optional `startBoth` on the provider definition that only Soniox implements. In the 90 days to 2026-09-23, 193 of 387 managed Soniox users and 44 of 70 BYOK Soniox users ran a two-leg session (PostHog `translation_session_start.channels`; shared and split are not told apart there, and shared is the default). One shared stream halves the transcription cost. |
 
 ### Deleted with no behaviour change
 
@@ -172,7 +178,9 @@ the audio stored elsewhere) splits one fact across two places.
 
 ```ts
 // how a session starts — one call, no construct-then-connect
-adapter.start({ context, config, credentials }, events): Promise<Session>
+adapter.start({ context, config, credentials, input }, events): Promise<Session>
+//   input: a MediaStreamTrack from the runner's capture graph, for adapters
+//   that send a native track (WebRTC); every other adapter uses appendAudio
 
 interface SessionContext {           // the same for every provider
   direction: { source: Lang; target: Lang }
@@ -917,7 +925,10 @@ interface Provider<S, K, C> {
   // one leg's session
   build(context: SessionContext, s: S, shared: SharedSettings): C | { refused: string }
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string }
-  start(request: { context: SessionContext; config: C; credentials: K }, events): Promise<Session>
+  start(request: { context: SessionContext; config: C; credentials: K; input: MediaStreamTrack }, events): Promise<Session>
+
+  // across legs and time — optional; see Session lifecycle
+  session?: SessionHooks<S, K, C>
 }
 ```
 
@@ -951,7 +962,7 @@ LiveKit.
 | `textOnlyCapability`, `supportsTextInput` | `speech`, `textInput` |
 | `settingsSliceKey`, `i18nKey` | `settings.key`; locale keys use the id |
 | `createClient`, `buildSessionConfig` | `build` + `start` |
-| `prepareToStart`, `acquireSessionResources`, `planBothMode` | session lifecycle |
+| `prepareToStart`, `acquireSessionResources`, `planBothMode` | `session.prepare` / `acquire`; `planBothMode` folds into `startBoth` (see Session lifecycle) |
 | the six unread fields, `registerProvider`, the `ClientFactory` and `ClientOperations` façades | deleted |
 
 ### Settings belong to the provider (D18)
@@ -1134,6 +1145,257 @@ against 21 today.
 
 ---
 
+## Session lifecycle
+
+### A function, not an object
+
+A session today is the execution of `connectConversation` (`MainPanel.tsx`,
+1,181 lines, 22 steps, legs connected strictly one after the other) and of
+`disconnectConversation` (16 steps). Its state is spread over **40 hooks** in
+MainPanel — 13 `useState`, 27 `useRef` — plus 10 fields of `sessionStore`, and
+start and stop coordinate through four refs (`connectInProgressRef`,
+`disconnectInProgressRef`, `disconnectDoneRef`, `startAbortRef`).
+
+Rollback exists as **five hand-written lists** — Stop, the outer `catch`, the
+no-channel guard, the pre-activation bail, the participant `catch` — and each
+forgets something different: the no-channel guard leaves the system-audio
+source connected, the pre-activation bail leaves the channel flags set for the
+next session, the participant `catch` leaves a connected client in its ref.
+
+Three surveys of start, runtime and teardown, and of the managed lease, list
+about 45 defects. They share four causes:
+
+1. **Nothing represents "this session".** A cancel pressed while Start waits for
+   the previous Stop is dropped and the session starts anyway; a second Stop
+   returns without waiting for the first; a double tap on Stop starts a new
+   session; Start never re-checks the gate; an Electron close during startup
+   neither waits for it nor aborts it.
+2. **Rollback is a list,** and every failure path guesses which earlier steps
+   ran.
+3. **Cancel reaches few steps.** The abort signal is checked at five points. The
+   lease acquire cannot be interrupted, and after a cancel the whole participant
+   leg still runs, OS permission prompt included. Stop can post the lease's
+   `session-end` while a leg is still opening, and that leg can post
+   `session-started` afterwards.
+4. **Ending has no contract.** OpenAI Compatible over WebSocket never reports a
+   dropped socket (`OpenAIClient.ts` never subscribes to the library's `close`),
+   the local engines never end a session on a worker or sidecar failure, an
+   unplugged microphone is not noticed at all, and closing the extension side
+   panel skips the whole teardown — no auto-save, no managed `session-end`.
+
+### The runner
+
+```ts
+// a plain module, outside React
+sessions.start(): Promise<void>
+sessions.stop(reason): Promise<void>     // idempotent: every call returns the same promise
+sessions.press() / release()             // what every surface emits (D14)
+sessions.state                           // one store; the UI reads only this
+
+type RunState =
+  | { phase: 'idle' }
+  | { phase: 'starting'; step: 'checking' | 'preparing-voice' | 'loading' | … }
+  | { phase: 'running'; since: number; legs: Record<Leg, LegState>; budget? }
+  | { phase: 'stopping' }
+
+type LegState = 'opening' | 'live' | 'reconnecting'
+```
+
+Every surface — the panel, the Electron subtitle takeover, the extension overlay
+over its port — calls the same four methods. `sessionStore`'s
+`startSessionVersion` / `stopSessionVersion` counters and the subtitle session
+bridge that turns them into calls disappear, and so do `sessionStore`'s
+`startSession`, `endSession`, `resetSession` and `incrementTranslationCount`,
+which have no caller today.
+
+### A run
+
+Each start creates a run. It freezes a **shape** once — mode, languages,
+`speech`, `turns`, and a snapshot of the provider's settings — and every later
+step reads the shape, never the live stores. Today the mode alone is read from
+three different snapshots during one start.
+
+```
+1. gate(shape)                        the same computeStartGate, re-checked here
+2. provider.check                     readiness; the local engines' re-validation
+3. session.prepare?(shape)            managed voice claim → a run-only override
+4. provider.build(context, S) per leg a refused leg fails the start (D22)
+5. session.admit?(configs)            cross-leg: local memory, Local Native's single leg
+6. session.acquire?(shape)            managed lease → one K per leg        defer(release)
+7. every leg, in parallel:
+     openSource(leg)                  mic / system audio / tab             defer(stop)
+     provider.start(request)          (or session.startBoth, below)        defer(session.stop)
+     wire: source → turn gate → appendAudio; events → L1; audio → ClipQueue
+8. every leg live → running. Any leg failing → unwind, the start fails (D22)
+```
+
+**Each resource is pushed with its release the moment it is acquired.** Stop,
+failure and cancel are one path: abort the run's signal, then unwind the stack
+in reverse, once, with a timeout on every release. The five lists become this
+one.
+
+**The signal reaches every step**, `acquire` and the local engines' check
+included, so nothing opens after a cancel.
+
+**Order removes the lease race.** The lease is pushed before the legs, so it is
+released after they have closed; with the signal reaching every step, no leg
+opens after `session-end`.
+
+**Legs start in parallel**, roughly halving startup time. Two legs dialling the
+same host are serialized by the socket seam in the provider definition.
+
+**Settings are read once per run.** The snapshot removes the two expectation
+guards (`expect`, `expectAtApply`) that exist today because settings could
+change between `prepareToStart` and the connect. A patch that must persist —
+managed voice prep's new voice id — is written only if the stored value still
+equals the snapshot's.
+
+### Legs rise and fall together (D21, D22)
+
+**A session starts only with every leg it was asked for.** If any requested leg
+fails to come up — a refused build, a denied loopback permission, a connect
+that throws, a capture that will not open — the stack unwinds and the start
+fails with one message naming the leg and the reason. Today a denied loopback
+permission starts the session on the speaker leg alone with a warning; that
+start now fails.
+
+**A running session ends when any leg ends.** A leg ends when its adapter emits
+`failed` or an unexpected `closed`, when its source ends (a microphone unplugged,
+a tab closed, the app-capture helper died), or when a managed lease ends it
+(budget exhausted, duration cutoff). The leg records why as a Notice on its L1.
+
+There is therefore no one-way state. `noChannelCameUp`, the pre-activation bail,
+`splitDegraded` and its "One-way only" chip, and `speakerStreamEndedRef` /
+`participantStreamEndedRef` all disappear. So does a live gap: in shared Both
+today a failed far-end capture silently feeds zeros into the mix and shows
+nothing.
+
+**The contract rule this needs:** an adapter that can no longer work must say so,
+with `failed` or `closed`. OpenAI Compatible over WebSocket and both local
+engines break it today.
+
+### Session hooks on the provider definition
+
+```ts
+interface SessionHooks<S, K, C> {
+  prepare?(shape, s: S, ctx): Promise<{ override?: Partial<S>; persist?: Partial<S>; notice? }>
+  admit?(configs: { speaker?: C; participant?: C }): true | { refused: string }
+  acquire?(shape, s: S, ctx: { signal; end(reason, message) }): Promise<Resources<K>>
+  startBoth?(requests: { speaker; participant }, events: { speaker; participant })
+    : Promise<{ speaker: Session; participant: Session }>
+  minimumBalance?(shape, s: S): number
+}
+
+interface Resources<K> {
+  credentials(leg): K                   // per leg: minted key, role, billing reporter
+  budget?(): { remainingMs: number; totalMs: number }
+  release(): Promise<void>
+}
+```
+
+- **`prepare`** — the managed voice claim. `override` applies to this run only
+  (the built-in voice when the clone is unavailable); `persist` is written back
+  under the compare-and-set above.
+- **`admit`** — cross-leg checks over the configs actually built.
+  LocalInference sums the models of the legs that will run, TTS only when
+  speaking; today it also counts the speaker leg's models in a participant-only
+  session, and a TTS model the session will never load. **Local Native refuses
+  two legs** until its sidecar keeps one engine per connection. Today the
+  sidecar holds one process-wide engine per stage: the participant's
+  `asr_init` evicts the speaker's model, both connections feed one ASR
+  segmentation state, translation runs with whichever direction initialised
+  last, and the first leg to close unloads the shared ASR. Two legs never
+  worked; refusing them is honest.
+- **`acquire`** — the managed lease. It returns **one `K` per leg**, carrying the
+  minted key, the role and the collaborator the adapter reports billing events
+  to, so `legClientOptions` and the Soniox-named `sonioxManaged` key leave
+  generic code. It takes the run's signal. `release` retries with `keepalive`;
+  today a failed `session-end` is never retried. `end(reason, message)` is how
+  budget exhaustion and the duration cutoff stop the run with a notice.
+- **`startBoth`** (D23) — Soniox only. When both legs are requested and the
+  provider defines it, the runner hands it both requests, and the provider
+  decides between one mixed socket and two, from its own settings. Its second
+  returned `Session` replaces `createSecondaryPort()`, the inert port whose
+  `getConversationItems()` returns `[]`. Each leg still has its own source; the
+  mixing is the provider's business.
+- **`minimumBalance`** — managed providers' start floor, replacing the
+  `KIZUNA_AI_SONIOX` special case in the start gate.
+
+### Capture belongs to the runner
+
+Sources are the runner's, one per leg: the microphone, system audio (Electron:
+app, device or loopback capture), or the tab (extension). Each has an `ended`
+signal, and switching device or participant source happens inside it.
+
+**The speaker's capture runs from the leg's start in every turn mode.** Today,
+pure push-to-talk opens the microphone on the first press and keeps it open
+after — the only difference is before that first press, and it removes a race:
+releasing before the first press has finished opening the recorder skips the
+turn's ending and leaves the recorder streaming.
+
+**A WebRTC adapter receives a `MediaStreamTrack` from the runner's own graph**,
+not a device id. Device switching and mute happen upstream of the track, so
+`webrtcOptions` disappears, and two live defects go with it: a microphone muted
+at start still captures the default device over WebRTC, and a mute during the
+session never reaches the track. The output device passed today is applied to
+an audio element that is itself muted; the Stage 2 rewrite of the WebRTC
+adapters confirms whether it does anything.
+
+**Passthrough is a route** tapping the microphone source (Playback), not a
+property of the recorder.
+
+### Turns belong to the run
+
+The run owns the turn (D14). Each press creates a turn object with its own
+voiced-chunk count, so a press landing while the previous release is still
+ending can no longer reset the previous turn's count. Stop ends an open turn,
+so a Stop during a hold can no longer leave `isRecording` true into the next
+session.
+
+### Stopping, and closing the window
+
+- **One path.** `stop()` aborts, unwinds and resolves one promise; the button in
+  `stopping` does nothing, so a double tap no longer starts a new session.
+- **Auto-save runs after the legs have closed, from L1** — both legs. Today the
+  participant leg's final rows are never written to React state and reach only
+  the saved file.
+- **Electron close and update install** treat any phase but `idle` as busy and
+  await `stop()`. Today a close during startup is not waited for.
+- **`pagehide`** — the extension side panel closing, a reload, the web build —
+  closes sockets and captures synchronously and releases a managed lease with a
+  `keepalive` request. Auto-save cannot run there, as today; the lease no longer
+  leaks until expiry.
+
+### State
+
+The runner's store replaces MainPanel's lifecycle hooks and most of
+`sessionStore`: `isInitializing`, `initPhase`, `isUsingWebRTC`, both
+`*ChannelActive` flags, `splitDegraded`, `sessionDuration` (derived from
+`since`), `isReconnecting` (now per leg), `lockedMode` (the shape's mode),
+`isSessionActive` (a phase), and the refs that coordinated start and stop.
+Settings sections that lock during a session read the phase.
+
+### What the surveys' defects become
+
+| Cause | Examples | Becomes |
+|---|---|---|
+| no session object | lost cancel, second Stop not waiting, double tap starting a session, gate not re-checked, close during startup | the runner's phases and one stop promise |
+| rollback as a list | system-audio source left connected, flags left set, participant client left connected | the resource stack |
+| cancel reaching few steps | acquire not abortable, participant leg running after cancel, `session-started` after `session-end` | the run's signal in every step, and stack order |
+| no ending contract | Compatible WS, local engines, unplugged microphone, side panel close | the adapter rule, source `ended`, `pagehide` |
+| leg bookkeeping | participant `onClose` not checking which client closed, error rows wiped by `setItems`, participant rows never written | L1 per leg; runs discard events from a finished run |
+| turns | stuck `isRecording`, release before the recorder opened, press during the previous release | the turn object and continuous capture |
+| WebRTC capture | mute ignored, push-to-talk not gating | the runner's track; the adapter gates its sender (D14) |
+| telemetry | start event rebuilt from settings, preferred transport reported instead of the one used | reported from the run's actual configs and sessions |
+| cross-leg engines | Local Native's shared sidecar engine, LocalInference's over-count | `admit` |
+
+Not removed by construction: auto-save on an abrupt close (not possible from
+`pagehide`), and adapter-internal issues — ICE `disconnected` treated as fatal,
+LiveKit reconnects not surfaced, Palabra's `deleteSession` having no timeout —
+which the Stage 2 rewrites own. The release timeout bounds the last.
+
+---
+
 ## Migration
 
 Rewrite, not migrate. Neither adapter direction is built.
@@ -1157,6 +1419,10 @@ generic settings and credential storage, the credential form, the language
 section, the readiness state, the shared field components and the socket seam —
 with LocalInference's definition as the first user. Its settings component is the
 first to be composed from the shared fields.
+
+**So is the session runner**, with its sources, the turn object and the store
+the surfaces read; `connectConversation`, `disconnectConversation` and the
+lifecycle hooks leave MainPanel in this stage.
 
 The other clients are **deleted**, and their descriptors with them. Each is
 recovered from git history when its turn comes, and read to learn the protocol
@@ -1253,32 +1519,20 @@ into an explicit choice in L3; they are settled against rendered pages, not here
 
 ### Structural gaps
 
-The design above now says what a client emits, what it receives, and who builds
-that request. It does not yet say in what order a session starts.
-
-- **Session lifecycle.** `connectConversation` is one 1,181-line function. Who
-  starts a session, in what order, how the two legs come up together, how a
-  failure unwinds, and where the managed Soniox lease lives — its
-  `session` / `sttRole` / `announcesSessionOutcome` are a collaborator the
-  adapter reports billing events to, not configuration. The turn (gating, voice
-  count, begin / end / cancel) also lives here, and so does everything the
-  provider definition hands over because it spans both legs or outlives one
-  call: the local engines' memory budget across legs, Soniox's shared Both, the
-  managed voice claim, and the devices a WebRTC adapter captures from and plays
-  to. `LocalNativeClient` reading and writing `useNativeModelStore` inside
-  `connect()` moves out of the adapter into its builder, per the definition's
-  rule that model resolution never happens in an adapter; Local Native is not
-  yet open to general users, so it carries no compatibility burden.
+None remain. The design now says what a client emits, what it receives, who
+builds that request, and in what order a session starts and ends.
+`LocalNativeClient` reading and writing `useNativeModelStore` inside `connect()`
+moves into its builder, per the rule that model resolution never happens in an
+adapter; Local Native is not yet open to general users, so it carries no
+compatibility burden.
 
 ### Parameters and deferred decisions
 
-- **Soniox's shared Both.** One client serving both legs, with energy-based side
-  attribution. It exists for cost — `SonioxCostMeter.ts` records that a split
-  Both session is budgeted at roughly twice a single-stream one — and it is a
-  user-visible setting. It does **not** force a `leg` field into the contract:
-  the client can expose two event sources over one socket, which is cleaner than
-  today's `createSecondaryPort()` shell whose `getConversationItems()` returns
-  `[]`. Keeping or dropping it is a cost decision, not an architectural one.
+- **Release timeouts and the lease's retry policy** — how long the stack waits on
+  each release before moving on, and how many times `session-end` is retried.
+- **Local Native with two legs** — refused by `admit` until the sidecar keeps one
+  engine per connection. That is a native and sidecar change with its own
+  release, outside this design.
 - **The pcm retention ceiling.** A duration, a byte budget, or both; and what the
   default is.
 - **Whether `marks`' compaction threshold is a constant or follows the
