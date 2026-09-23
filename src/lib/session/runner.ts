@@ -35,7 +35,7 @@ export function createRunner(deps: RunnerDeps): Runner {
   const set = (next: RunState) => state.setState(next, true);
   const legs = (run: Run) => Object.fromEntries(run.legStates) as Partial<Record<LegName, LegState>>;
 
-  /** Races `task` against `timeoutMs`; a timeout is reported and treated as done, so a hung port or a hung `onRunEnded` cannot strand the runner. */
+  /** Races `task` against `timeoutMs`; a timeout is reported and treated as done, so a hung `onRunEnded` cannot strand the runner. */
   const bounded = (task: Promise<void>): Promise<void> => new Promise<void>((resolve) => {
     let settled = false;
     const finish = () => {
@@ -71,8 +71,12 @@ export function createRunner(deps: RunnerDeps): Runner {
     void (async () => {
       try {
         set({ phase: 'stopping' });
-        // Stop speaking now; `Run`'s ending flag already keeps new audio out.
-        deps.playback.clear();
+        // Stop speaking now; a throwing port must not keep the run open.
+        try {
+          deps.playback.clear();
+        } catch (error) {
+          reportError('SessionRunner', `Silencing playback failed: ${describeCause(error)}`, { cause: error });
+        }
         await run.close();
         if (liveSince !== null) {
           const duration = deps.clock.now() - liveSince;
@@ -87,8 +91,15 @@ export function createRunner(deps: RunnerDeps): Runner {
       } finally {
         current = null;
         ending = null;
-        set({ phase: 'idle', lastEnd: result });
-        finished();
+        // `finished()` must run even if notifying subscribers throws, or a
+        // subscriber's bug leaves `stop()` pending forever.
+        try {
+          set({ phase: 'idle', lastEnd: result });
+        } catch (error) {
+          reportError('SessionRunner', `Notifying the idle state failed: ${describeCause(error)}`, { cause: error });
+        } finally {
+          finished();
+        }
       }
     })();
     return done;

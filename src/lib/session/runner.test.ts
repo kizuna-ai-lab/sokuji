@@ -27,7 +27,11 @@ interface Options {
 function setup(o: Options = {}) {
   const clock = createVirtualClock(0);
   const sources: FakeSource[] = [];
-  const playback = { audio: vi.fn(), closed: vi.fn(), held: vi.fn(), clear: vi.fn(), ...o.playback };
+  // `Object.assign`, not a spread, so `playback`'s declared type stays the
+  // plain mock shape below (with `.mockClear()` etc.) instead of widening to
+  // a union with `Partial<PlaybackPort>`'s plain function types.
+  const playback = { audio: vi.fn(), closed: vi.fn(), held: vi.fn(), clear: vi.fn() };
+  Object.assign(playback, o.playback);
   const tracked: Array<[string, unknown]> = [];
   const shape: RunShape = {
     provider: fakeProvider as AnyProvider,
@@ -287,7 +291,18 @@ describe('runner — stopping', () => {
       ...fakeProvider,
       start: async (request: any, events: any) => {
         const session = await fakeProvider.start(request, events);
-        return { ...session, stop: () => new Promise<void>(() => {}) };
+        // Spreading a `FakeSession` instance would drop its prototype
+        // methods (only `info` is an own property); delegate explicitly so
+        // every call still reaches the real session, only `stop` hangs.
+        return {
+          info: session.info,
+          appendAudio: (pcm: Int16Array) => session.appendAudio(pcm),
+          appendText: (text: string) => session.appendText(text),
+          beginTurn: () => session.beginTurn(),
+          endTurn: () => session.endTurn(),
+          cancelTurn: () => session.cancelTurn(),
+          stop: () => new Promise<void>(() => {}),
+        };
       },
     } as unknown as AnyProvider;
     const { runner, clock, playback } = setup({ shape: { provider } });
@@ -302,12 +317,29 @@ describe('runner — stopping', () => {
   });
 
   it('a playback port that throws still returns the runner to idle, and it starts again', async () => {
-    const { runner } = setup({ playback: { clear: vi.fn(() => { throw new Error('playback clear failed'); }) } });
+    const { runner, clock, sources, playback } = setup({ playback: { clear: vi.fn(() => { throw new Error('playback clear failed'); }) } });
     await runner.start();
     await runner.stop();
     expect(runner.state.getState().phase).toBe('idle');
+    // A throwing port must not skip `run.close()`: the first run's source
+    // and adapter session must still be stopped, or the run keeps streaming
+    // and playing behind the runner's back.
+    expect(sources.every((s) => s.stopped)).toBe(true);
+    playback.audio.mockClear();
+    clock.advance(20_000);
+    expect(playback.audio).not.toHaveBeenCalled();
     await runner.start();
     expect(runner.state.getState().phase).toBe('running');
+  });
+
+  it('a subscriber that throws when the phase becomes idle still resolves stop()', async () => {
+    const { runner } = setup();
+    runner.state.subscribe((s) => {
+      if (s.phase === 'idle') throw new Error('subscriber boom');
+    });
+    await runner.start();
+    await runner.stop();
+    expect(runner.state.getState().phase).toBe('idle');
   });
 
   it('an onRunEnded that hangs does not keep the runner stopping', async () => {
