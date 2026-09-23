@@ -85,6 +85,7 @@ workload untouched does not count.
 | D14 | Turns | Every provider offers auto, push-to-talk and push-to-translate. Adapters see only `turns: 'auto' \| 'manual'` and implement `beginTurn` / `endTurn` / `cancelTurn`; the voice gate is generic; push-to-translate is a routing rule; `pttFinalization` is deleted. |
 | D15 | Turn mode storage | One global setting, not per provider. |
 | D16 | Extension overlay | Gets a hold button (pointer down / up / leave / cancel) forwarded over the port; its "Press Space to speak" hint is removed, since Space belongs to the meeting page. |
+| D17 | Participant leg | Nothing beyond the reversed direction and automatic turns. It is the same configuration builder called with the direction reversed; the concept of a participant configuration disappears. |
 
 ### Deleted with no behaviour change
 
@@ -935,15 +936,6 @@ into an explicit choice in L3; they are settled against rendered pages, not here
 ---
 
 ## Open questions
-
-### Awaiting confirmation
-
-- **The session request (§L0 "The session request") rests on one claim: the
-  participant leg needs nothing beyond a reversed direction and
-  `turns: 'auto'`.** If some provider's participant leg needs more, that is a
-  counter-example to the shape and the participant builder comes back. The
-  shape was proposed and the turns design was built on it, but the claim itself
-  has not been explicitly confirmed.
 
 ### Structural gaps
 
