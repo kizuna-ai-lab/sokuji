@@ -980,8 +980,9 @@ interface Provider<S, K, C> {
 
   // credentials — stored apart from settings
   credentials: {
+    keys: string[]                            // every key fields() can return; all load at startup
     fields(s: S): CredentialField[]
-    read(values: CredentialValues, ctx: AuthContext): K | { missing: string }
+    read(values: CredentialValues, ctx: AuthContext): K | { missing: string }   // values: exactly fields(s)
   }
   check(k: K, s: S): Promise<{ ok: true; models?: ModelOption[] } | { ok: false; reason: string }>
 
@@ -1086,6 +1087,10 @@ keys as today. One credential form, driven by `credentials.fields(s)`, serves th
 setup wizard (already generic) and the settings panel (hand-written today: the
 `updateApiKey` switch with eight cases, about 120 lines of AST2 and Palabra
 credential markup, the compatible provider's endpoint input).
+`keys` names every field `fields` can ever return, so all of them load at
+startup: Soniox shows one of three region keys, and a region switch must not
+wait on storage. `read` sees the values of exactly the fields `fields(s)`
+returns, which is how it knows the region's key without reading `S`.
 `peekPrimaryCredential` becomes "does `read` succeed", and `neverPersist`
 disappears — a managed twin has no credential fields to persist. With no secrets
 in `S`, settings can be mirrored and logged without redaction; `K` is the one
