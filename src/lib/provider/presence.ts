@@ -13,7 +13,7 @@ export interface PresenceEnv {
  * flagged only in a development build or when the release lists its id.
  */
 export function isPresent(
-  p: Pick<Provider<unknown, unknown, unknown>, 'id' | 'platforms' | 'flagged'>,
+  p: Pick<Provider<unknown, never, never>, 'id' | 'platforms' | 'flagged'>,
   env: PresenceEnv,
 ): boolean {
   if (!p.platforms.includes(env.platform)) return false;

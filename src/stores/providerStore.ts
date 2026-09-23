@@ -7,8 +7,9 @@
  */
 import { create } from 'zustand';
 import { describeCause, reportError } from '../lib/diagnostics/report';
+import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
-import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption } from '../lib/provider/types';
+import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, Readiness } from '../lib/provider/types';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 
@@ -21,12 +22,7 @@ export interface ProviderEntry {
   pair: LanguagePair;
 }
 
-/** Whether a provider can start now (spec: "Readiness is one check"). */
-export type Readiness =
-  | { state: 'unknown' }
-  | { state: 'checking' }
-  | { state: 'ready'; models: readonly ModelOption[] }
-  | { state: 'not-ready'; reason: string };
+export type { Readiness } from '../lib/provider/types';
 
 export const UNKNOWN: Readiness = { state: 'unknown' };
 
@@ -41,6 +37,9 @@ export interface ProviderStore {
   setPair(p: AnyProvider, pair: LanguagePair): void;
   /** Runs the provider's `check` on its saved settings and credentials, and records the answer. */
   refreshReadiness(p: AnyProvider, auth: AuthContext): Promise<Readiness>;
+  /** The provider the panel shows and a run starts; in memory until plan 1e persists it under `settings.common.provider`. */
+  selected: string | null;
+  select(id: string): void;
 }
 
 /** The pair persists beside the settings, under the field names every slice uses today. */
@@ -87,6 +86,8 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
   return {
     entries: {},
     readiness: {},
+    selected: null,
+    select(id) { set({ selected: id }); },
 
     async load(p) {
       const service = ServiceFactory.getSettingsService();
@@ -143,15 +144,10 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     async refreshReadiness(p, auth) {
       const entry = loaded(p);
       const seq = supersede(p);
-      // `read` receives exactly the fields these settings show.
-      const values: CredentialValues = Object.fromEntries(
-        p.credentials.fields(entry.settings).map((f) => [f.key, entry.credentials[f.key] ?? '']),
-      );
-      const credentials: unknown = p.credentials.read(values, auth);
-      // `K` has no `missing` member (see Provider.credentials.read), so this tells the two apart.
-      if (typeof credentials === 'object' && credentials !== null && 'missing' in credentials) {
-        return setReadiness(p, { state: 'not-ready', reason: String((credentials as { missing: unknown }).missing) });
-      }
+      const credentials = readCredentials(p, entry.settings, entry.credentials, auth);
+      if (isMissing(credentials)) return setReadiness(p, { state: 'not-ready', reason: credentials.missing });
+      // The fields these settings show, for the cache key below.
+      const values = Object.fromEntries(p.credentials.fields(entry.settings).map((f) => [f.key, entry.credentials[f.key] ?? '']));
       // A network check gives the same ready answer to the same inputs, so a
       // ready answer is kept; a refusal is asked again, and a local engine's
       // readiness changes as models download.

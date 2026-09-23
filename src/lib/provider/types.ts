@@ -4,6 +4,7 @@
  */
 import type { ComponentType } from 'react';
 import type { Adapter, SessionContext } from '../contract/adapter';
+import type { SessionHooks } from '../session/types';
 
 export type Platform = 'electron' | 'extension' | 'web';
 export type ProviderKind = 'own-key' | 'managed' | 'local';
@@ -29,6 +30,13 @@ export interface ModelOption { id: string }
 /** `models`, when present, is newest first. */
 export type CheckResult = { ok: true; models?: readonly ModelOption[] } | { ok: false; reason: string };
 
+/** Whether a provider can start now (spec: "Readiness is one check"). */
+export type Readiness =
+  | { state: 'unknown' }
+  | { state: 'checking' }
+  | { state: 'ready'; models: readonly ModelOption[] }
+  | { state: 'not-ready'; reason: string };
+
 /** What a builder may read beyond its own settings; a builder never reaches into a store. */
 export interface SharedSettings {
   /** The system instructions for a direction: the user's for the speaker's direction, the participant prompt for the reverse. */
@@ -39,7 +47,7 @@ export interface SharedSettings {
 
 export interface SettingsProps<S> { settings: S; update(patch: Partial<S>): void }
 
-export interface Provider<S, K, C> {
+export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object> {
   // identity and presence
   /** Persisted as the selected provider; never renamed. */
   id: string;
@@ -68,7 +76,7 @@ export interface Provider<S, K, C> {
     /** Every key `fields` can ever return, so all of them load at startup. */
     keys: readonly string[];
     fields(s: S): readonly CredentialField[];
-    /** Receives the values of exactly the fields `fields(s)` returns. `K` must have no `missing` member. */
+    /** Receives the values of exactly the fields `fields(s)` returns. `K` has no `missing` member — the type parameter's constraint enforces it. */
     read(values: CredentialValues, auth: AuthContext): K | { missing: string };
   };
   /**
@@ -93,10 +101,13 @@ export interface Provider<S, K, C> {
   boundaries(s: S): 'provider' | 'silence';
   turns(s: S): ReadonlyArray<'auto' | 'manual'>;
 
-  // one leg's session; `C` must have no `refused` member
+  // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
   build(context: SessionContext, s: S, shared: SharedSettings): C | { refused: string };
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
   start: Adapter<C, K>['start'];
+
+  // across legs and time — optional
+  session?: SessionHooks<S, K, C>;
 }
 
 /**

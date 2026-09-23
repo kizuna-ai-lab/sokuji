@@ -45,7 +45,7 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {} });
+  useProviderStore.setState({ entries: {}, selected: null });
 });
 
 describe('load', () => {
@@ -180,5 +180,11 @@ describe('writes', () => {
     expect(() => useProviderStore.getState().updateSettings(probe, { count: 2 })).toThrow('Provider "probe" is not loaded');
     expect(() => useProviderStore.getState().setCredential(probe, 'apiKey', 'x')).toThrow('Provider "probe" is not loaded');
     expect(() => useProviderStore.getState().setPair(probe, { source: 'en', target: 'ja' })).toThrow('Provider "probe" is not loaded');
+  });
+
+  it('remembers the chosen provider', () => {
+    expect(useProviderStore.getState().selected).toBeNull();
+    useProviderStore.getState().select('probe');
+    expect(useProviderStore.getState().selected).toBe('probe');
   });
 });

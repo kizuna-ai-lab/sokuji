@@ -1,5 +1,5 @@
 import { Cpu } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import { UNKNOWN, useProviderStore } from '../../stores/providerStore';
@@ -18,15 +18,20 @@ interface ProviderPanelProps {
  */
 export function ProviderPanel({ providers, auth }: ProviderPanelProps) {
   const { t } = useTranslation();
-  const [chosenId, setChosenId] = useState(providers[0]?.id);
-  const provider = providers.find((p) => p.id === chosenId) ?? providers[0];
+  const selected = useProviderStore((st) => st.selected);
+  const provider = providers.find((p) => p.id === selected) ?? providers[0];
   const entry = useProviderStore((st) => (provider ? st.entries[provider.id] : undefined));
   const readiness = useProviderStore((st) => (provider ? st.readiness[provider.id] : undefined)) ?? UNKNOWN;
-  const { load, updateSettings, setCredential, setPair, refreshReadiness } = useProviderStore.getState();
+  const { load, updateSettings, setCredential, setPair, refreshReadiness, select } = useProviderStore.getState();
 
   useEffect(() => {
     if (provider && !entry) void load(provider);
   }, [provider, entry, load]);
+
+  // The store holds what the panel shows, so a run starts the provider on screen.
+  useEffect(() => {
+    if (provider && selected !== provider.id) select(provider.id);
+  }, [provider, selected, select]);
 
   if (!provider) return null;
   const Settings = provider.Settings;
@@ -42,7 +47,7 @@ export function ProviderPanel({ providers, auth }: ProviderPanelProps) {
           <select
             className="select-dropdown provider-select"
             value={provider.id}
-            onChange={(e) => setChosenId(e.target.value)}
+            onChange={(e) => select(e.target.value)}
             aria-label={t('simpleSettings.provider')}
           >
             {providers.map((p) => <option key={p.id} value={p.id}>{t(`providers.${p.id}.name`, p.id)}</option>)}

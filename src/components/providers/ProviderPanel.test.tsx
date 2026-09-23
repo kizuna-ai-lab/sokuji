@@ -33,7 +33,7 @@ const noAuth = { signedIn: false, getToken: async () => null };
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {} });
+  useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
 });
 
 describe('ProviderPanel', () => {
@@ -83,5 +83,20 @@ describe('ProviderPanel', () => {
   it('draws nothing when no provider is offered', () => {
     const { container } = render(<ProviderPanel providers={[]} auth={noAuth} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows the provider the store has chosen, and records a new choice there', async () => {
+    const other = { ...fakeProvider, id: 'fake2', settings: { ...fakeProvider.settings, key: 'fake2' } };
+    useProviderStore.setState({ selected: 'fake2' });
+    render(<ProviderPanel providers={[fakeProvider, other]} auth={noAuth} />);
+    expect(await screen.findByLabelText('simpleSettings.provider')).toHaveValue('fake2');
+    fireEvent.change(screen.getByLabelText('simpleSettings.provider'), { target: { value: 'fake' } });
+    expect(useProviderStore.getState().selected).toBe('fake');
+  });
+
+  it('records the provider it shows when the store has none', async () => {
+    render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
+    await screen.findByLabelText('Script');
+    expect(useProviderStore.getState().selected).toBe('fake');
   });
 });

@@ -9,7 +9,7 @@ import type { LanguageOption, LanguagePair, Provider } from './types';
 export const AUTO = 'auto';
 
 /** Only the two language functions are read, so a provider of any `K` and `C` fits. */
-type Languages<S> = Pick<Provider<S, unknown, unknown>, 'languages'>;
+type Languages<S> = Pick<Provider<S, never, never>, 'languages'>;
 
 function offers(options: readonly LanguageOption[], value: string): boolean {
   return options.some((o) => o.value === value);
