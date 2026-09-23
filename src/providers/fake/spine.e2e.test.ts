@@ -28,7 +28,7 @@ describe('the spine on the fake', () => {
     const session = await createFakeAdapter().start({ context, config: { script }, credentials: {}, clock, signal: new AbortController().signal }, events);
     clock.advance(10_000);
     await session.stop();
-    await new Promise((r) => setTimeout(r, 0));
+    await conv.settled();
     expect(checkConformance(log, context)).toEqual([]);
 
     const leg = conv.snapshot();

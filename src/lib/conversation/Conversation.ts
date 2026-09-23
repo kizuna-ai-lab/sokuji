@@ -58,6 +58,7 @@ export class Conversation {
   private depth = 0;
   private dirty = false;
   private pcmBytes = 0;
+  private readonly inflight = new Set<Promise<void>>();
 
   constructor(protected readonly opts: ConversationOptions) {}
 
@@ -120,6 +121,11 @@ export class Conversation {
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
+  }
+
+  /** Resolves once every punctuation fill-in started so far has landed. */
+  async settled(): Promise<void> {
+    while (this.inflight.size > 0) await Promise.allSettled([...this.inflight]);
   }
 
   // ---- events ----
@@ -199,11 +205,14 @@ export class Conversation {
     const lang = this.fillInLanguage(seg);
     if (!lang) return;
     const before = seg.text;
-    void fillIn(lang, before, punctuate).then((filled) => {
+    const job: Promise<void> = fillIn(lang, before, punctuate).then((filled) => {
       const j = this.indexByRef.get(seg.ref);
       if (j === undefined || filled === before || this.segments[j].text !== before) return;
       this.replaceText(j, filled, { mark: false });
     });
+    this.inflight.add(job);
+    const done = () => { this.inflight.delete(job); };
+    job.then(done, done);
   }
 
   /** The detected language wins; otherwise the leg's configured one; `auto` means no fill-in. */

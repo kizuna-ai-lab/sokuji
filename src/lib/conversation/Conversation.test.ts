@@ -180,7 +180,7 @@ describe('Conversation — re-anchoring and fill-in', () => {
     apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
     apply({ kind: 'audio', payload: { ref: 1, range: [0, 11], pcm: pcm(10) } });
     apply({ kind: 'segmentClosed', payload: { ref: 1 } });
-    await new Promise((r) => setTimeout(r, 0));
+    await conv.settled();
     expect(seen).toEqual(['en:hello world']);
     expect(conv.snapshot().segments[0]).toMatchObject({ text: 'hello world.', final: true });
     expect(conv.snapshot().segments[0].speech[0].range).toEqual([0, 11]);
@@ -191,9 +191,16 @@ describe('Conversation — re-anchoring and fill-in', () => {
     const { conv, apply } = make({ languages: { source: 'auto', target: 'en' }, punctuate: async (lang, text) => { seen.push(lang); return `${text}.`; } });
     apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'a b' } }, { kind: 'segmentClosed', payload: { ref: 1 } });
     apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'source' } }, { kind: 'segmentText', payload: { ref: 2, text: 'c d', language: 'ja-JP' } }, { kind: 'segmentClosed', payload: { ref: 2 } });
-    await new Promise((r) => setTimeout(r, 0));
+    await conv.settled();
     expect(seen).toEqual(['ja']);
     expect(conv.snapshot().segments[0].text).toBe('a b');
+  });
+
+  it('settled() waits for a slow fill-in', async () => {
+    const { conv, apply } = make({ punctuate: (_l, t) => new Promise((r) => setTimeout(() => r(`${t}.`), 20)) });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'a b' } }, { kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    expect(conv.snapshot().segments[0].text).toBe('a b.');
   });
 });
 
