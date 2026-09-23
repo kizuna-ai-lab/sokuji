@@ -73,7 +73,11 @@ export class Conversation {
       case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language);
       case 'segmentClosed': return this.close(event.payload.ref, event.payload.origin);
       case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm);
-      case 'failed': return this.notice('error', event.payload.message, event.payload.code);
+      case 'failed': {
+        this.notice('error', event.payload.message, event.payload.code);
+        this.finalizeAll();
+        return;
+      }
       case 'degraded': {
         const severity = CLIENT_DIAGNOSTICS[event.payload.code]?.severity ?? 'warning';
         return this.notice(severity, event.payload.message, event.payload.code);

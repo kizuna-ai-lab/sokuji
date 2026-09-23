@@ -118,6 +118,13 @@ describe('Conversation — notices and closing', () => {
     expect(conv.snapshot().notices[0].id).toBe('s1:speaker:n1');
   });
 
+  it('finalizes every open segment on failed, since nothing follows it', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } });
+    apply({ kind: 'failed', payload: { message: 'socket died' } });
+    expect(conv.snapshot().segments[0].final).toBe(true);
+  });
+
   it('finalizes every open segment on closed and on finalizeAll', () => {
     const { conv, apply } = make();
     apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } });
@@ -248,7 +255,8 @@ describe('Conversation — retention and clear', () => {
     const { conv, apply } = make();
     apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'done' } }, { kind: 'segmentClosed', payload: { ref: 1 } });
     apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 2, text: 'live' } }, { kind: 'audio', payload: { ref: 2, pcm: pcm(10) } });
-    apply({ kind: 'failed', payload: { message: 'x' } });
+    // degraded, not failed: failed finalizes every open segment, and this test wants segment 2 to stay open.
+    apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'x' } });
     conv.clear();
     const leg = conv.snapshot();
     expect(leg.notices).toEqual([]);
