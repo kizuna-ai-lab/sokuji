@@ -161,3 +161,38 @@ describe('Conversation — snapshot sharing', () => {
     expect(n).toBe(1);
   });
 });
+
+describe('Conversation — re-anchoring and fill-in', () => {
+  it('re-anchors speech ranges when punctuation is inserted, and drops them when letters change', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 5], pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, range: [6, 11], pcm: pcm(10) } });
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello, world.' } });
+    expect(conv.snapshot().segments[0].speech.map((s) => s.range)).toEqual([[0, 7], [7, 13]]);
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hallo, world.' } });
+    expect(conv.snapshot().segments[0].speech.map((s) => s.range)).toEqual([undefined, undefined]);
+    expect(conv.snapshot().segments[0].speech.every((s) => s.pcm.length === 10)).toBe(true);
+  });
+
+  it('runs fill-in when a segment closes, in the segment\'s language, and re-anchors through it', async () => {
+    const seen: string[] = [];
+    const { conv, apply } = make({ punctuate: async (lang, text) => { seen.push(`${lang}:${text}`); return `${text}.`; } });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 11], pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(seen).toEqual(['en:hello world']);
+    expect(conv.snapshot().segments[0]).toMatchObject({ text: 'hello world.', final: true });
+    expect(conv.snapshot().segments[0].speech[0].range).toEqual([0, 11]);
+  });
+
+  it('prefers the segment\'s detected language and skips fill-in for an auto source', async () => {
+    const seen: string[] = [];
+    const { conv, apply } = make({ languages: { source: 'auto', target: 'en' }, punctuate: async (lang, text) => { seen.push(lang); return `${text}.`; } });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'a b' } }, { kind: 'segmentClosed', payload: { ref: 1 } });
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'source' } }, { kind: 'segmentText', payload: { ref: 2, text: 'c d', language: 'ja-JP' } }, { kind: 'segmentClosed', payload: { ref: 2 } });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(seen).toEqual(['ja']);
+    expect(conv.snapshot().segments[0].text).toBe('a b');
+  });
+});

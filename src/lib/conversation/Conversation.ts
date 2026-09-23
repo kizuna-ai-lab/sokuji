@@ -7,6 +7,9 @@ import type { SegmentTiming, TextRange } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
+import { baseLang } from '../segmentation/sentenceEnd';
+import { fillIn, type Punctuator } from './fillIn';
+import { reanchorRanges } from './reanchor';
 import type { Languages, Leg, LegName, Mark, Notice, Segment, Speech } from './types';
 
 /** Writes closer together than this collapse into one mark. It is the
@@ -25,6 +28,8 @@ export interface ConversationOptions {
   languages: Languages;
   clock: Clock;
   onDiagnostic?: (d: ConversationDiagnostic) => void;
+  /** Punctuation fill-in for segments that close without a sentence end. */
+  punctuate?: Punctuator;
 }
 
 export class Conversation {
@@ -160,13 +165,34 @@ export class Conversation {
   /** Task 6 re-anchors speech ranges and runs punctuation fill-in here. */
   protected replaceText(i: number, text: string, o: { timing?: SegmentTiming; language?: string; mark: boolean }): void {
     const seg = this.segments[i];
+    const ranges = reanchorRanges(seg.text, text, seg.speech.map((s) => s.range));
+    const speech = seg.speech.map((s, k) => (ranges[k] === s.range ? s : { ...s, range: ranges[k] }));
     const marks = o.mark ? pushMark(seg.marks, this.opts.clock.now(), text.length) : seg.marks;
-    this.replace(i, { ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, marks });
+    this.replace(i, { ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, marks, speech });
   }
 
   /** Task 6 triggers fill-in from here. */
   protected markFinal(i: number): void {
-    this.replace(i, { ...this.segments[i], final: true });
+    const seg = { ...this.segments[i], final: true };
+    this.replace(i, seg);
+    const punctuate = this.opts.punctuate;
+    if (!punctuate) return;
+    const lang = this.fillInLanguage(seg);
+    if (!lang) return;
+    const before = seg.text;
+    void fillIn(lang, before, punctuate).then((filled) => {
+      const j = this.indexByRef.get(seg.ref);
+      if (j === undefined || filled === before || this.segments[j].text !== before) return;
+      this.replaceText(j, filled, { mark: false });
+    });
+  }
+
+  /** The detected language wins; otherwise the leg's configured one; `auto` means no fill-in. */
+  private fillInLanguage(seg: Segment): string | null {
+    const configured = seg.side === 'source' ? this.opts.languages.source : this.opts.languages.target;
+    const lang = seg.language ?? configured;
+    if (!lang || lang === 'auto') return null;
+    return baseLang(lang);
   }
 
   /** Task 7 applies the retention policy here. */
