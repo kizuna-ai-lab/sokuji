@@ -96,9 +96,38 @@ describe('load', () => {
 
   it('does not overwrite a provider that is already loaded', async () => {
     await useProviderStore.getState().load(probe);
+    setSetting.mockImplementationOnce(async () => ({ success: true }));
     useProviderStore.getState().updateSettings(probe, { count: 5 });
     await useProviderStore.getState().load(probe);
     expect(entry().settings).toMatchObject({ count: 5 });
+  });
+
+  describe('initial', () => {
+    const withInitial = {
+      ...probe,
+      languages: { ...probe.languages, initial: () => ({ source: 'ja', target: 'en' }) },
+    } as unknown as AnyProvider;
+
+    it("starts from the provider's initial pair when nothing is stored", async () => {
+      await useProviderStore.getState().load(withInitial);
+      expect(entry().pair).toEqual({ source: 'ja', target: 'en' });
+    });
+
+    it('prefers a stored pair to the initial one', async () => {
+      stored.set('settings.probe.sourceLanguage', 'en');
+      stored.set('settings.probe.targetLanguage', 'fr');
+      await useProviderStore.getState().load(withInitial);
+      expect(entry().pair).toEqual({ source: 'en', target: 'fr' });
+    });
+
+    it('repairs an initial pair the provider does not offer', async () => {
+      const withBadInitial = {
+        ...probe,
+        languages: { ...probe.languages, initial: () => ({ source: 'xx', target: 'en' }) },
+      } as unknown as AnyProvider;
+      await useProviderStore.getState().load(withBadInitial);
+      expect(entry().pair).toEqual({ source: 'en', target: 'ja' });
+    });
   });
 });
 
@@ -136,6 +165,15 @@ describe('writes', () => {
       expect(setSetting).toHaveBeenCalledWith('settings.probe.sourceLanguage', 'ja');
       expect(setSetting).toHaveBeenCalledWith('settings.probe.targetLanguage', 'en');
     });
+  });
+
+  it('refuses a credential key the provider does not declare', async () => {
+    await useProviderStore.getState().load(probe);
+    expect(() => useProviderStore.getState().setCredential(probe, 'count', 'x')).toThrow(
+      'Provider "probe" has no credential "count"',
+    );
+    expect(entry().credentials).toEqual({ apiKey: '', apiKeyEu: '' });
+    expect(setSetting).not.toHaveBeenCalledWith('settings.probe.count', 'x');
   });
 
   it('refuses writes to a provider that is not loaded', () => {

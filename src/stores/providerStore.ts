@@ -106,10 +106,11 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       if (get().entries[p.id]) return;
       const stored = Object.fromEntries(fields.map((f, i) => [f, values[i]]));
       const settings = p.settings.migrate ? p.settings.migrate(stored) : stored;
+      const initial = p.languages.initial?.(settings) ?? {};
       put(p, {
         settings,
         credentials: Object.fromEntries(p.credentials.keys.map((k, i) => [k, secrets[i]])),
-        pair: normalizePair(p, settings, { source: source || undefined, target: target || undefined }),
+        pair: normalizePair(p, settings, { source: source || initial.source, target: target || initial.target }),
       });
     },
 
@@ -126,6 +127,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
 
     setCredential(p, key, value) {
       const entry = loaded(p);
+      if (!p.credentials.keys.includes(key)) throw new Error(`Provider "${p.id}" has no credential "${key}"`);
       put(p, { ...entry, credentials: { ...entry.credentials, [key]: value } });
       void persistSetting(storageKey(p, key), value);
       forgetReadiness(p);
@@ -150,8 +152,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       if (typeof credentials === 'object' && credentials !== null && 'missing' in credentials) {
         return setReadiness(p, { state: 'not-ready', reason: String((credentials as { missing: unknown }).missing) });
       }
-      // A network check gives the same answer to the same inputs, so its answer
-      // is kept; a local engine's readiness changes as models download.
+      // A network check gives the same ready answer to the same inputs, so a
+      // ready answer is kept; a refusal is asked again, and a local engine's
+      // readiness changes as models download.
       const inputs = JSON.stringify([entry.settings, values, auth.signedIn]);
       const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
       if (kept && kept.inputs === inputs) return setReadiness(p, kept.readiness);
@@ -161,10 +164,13 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       try {
         const result = await p.check(credentials, entry.settings);
         answer = result.ok ? { state: 'ready', models: result.models ?? [] } : { state: 'not-ready', reason: result.reason };
-        if (p.kind !== 'local') lastAnswer.set(p.id, { inputs, readiness: answer });
+        if (p.kind !== 'local' && result.ok) lastAnswer.set(p.id, { inputs, readiness: answer });
       } catch (error) {
         // A check that threw did not find out; show it, never keep it.
-        reportError('ProviderStore', `The readiness check for ${p.id} failed: ${describeCause(error)}`, { cause: error });
+        reportError('ProviderStore', `The readiness check for ${p.id} failed: ${describeCause(error)}`, {
+          cause: error,
+          dedupeKey: `readiness:${p.id}`,
+        });
         answer = { state: 'not-ready', reason: describeCause(error) };
       }
       if (checkSeq.get(p.id) !== seq) return get().readiness[p.id] ?? UNKNOWN;

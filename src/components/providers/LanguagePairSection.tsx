@@ -1,4 +1,5 @@
 import { ArrowLeftRight, Languages } from 'lucide-react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AUTO, normalizePair, swapped } from '../../lib/provider/languages';
 import type { AnyProvider, LanguageOption, LanguagePair } from '../../lib/provider/types';
@@ -18,6 +19,7 @@ interface LanguagePairSectionProps {
  */
 export function LanguagePairSection({ provider, settings, pair, onChange }: LanguagePairSectionProps) {
   const { t } = useTranslation();
+  const id = useId();
   const sources = provider.languages.sources(settings);
   const targets = provider.languages.targets(pair.source, settings);
   const reversed = swapped(provider, settings, pair);
@@ -33,9 +35,9 @@ export function LanguagePairSection({ provider, settings, pair, onChange }: Lang
       </h3>
       <div className="language-pair-row">
         <div className="language-select-group">
-          <label htmlFor="language-pair-source">{t('settings.sourceLanguage')}</label>
+          <label htmlFor={`${id}-source`}>{t('settings.sourceLanguage')}</label>
           <select
-            id="language-pair-source"
+            id={`${id}-source`}
             className="language-select"
             value={pair.source}
             onChange={(e) => onChange(normalizePair(provider, settings, { source: e.target.value, target: pair.target }))}
@@ -55,9 +57,9 @@ export function LanguagePairSection({ provider, settings, pair, onChange }: Lang
           </button>
         </div>
         <div className="language-select-group">
-          <label htmlFor="language-pair-target">{t('settings.targetLanguage')}</label>
+          <label htmlFor={`${id}-target`}>{t('settings.targetLanguage')}</label>
           <select
-            id="language-pair-target"
+            id={`${id}-target`}
             className="language-select"
             value={pair.target}
             onChange={(e) => onChange({ source: pair.source, target: e.target.value })}

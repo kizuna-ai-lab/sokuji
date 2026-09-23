@@ -93,6 +93,15 @@ describe('refreshReadiness', () => {
     expect(check).toHaveBeenCalledTimes(2);
   });
 
+  it('asks again after a refusal', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: false, reason: 'rate limited' }));
+    const p = probe('own-key', check);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(check).toHaveBeenCalledTimes(2);
+  });
+
   it('keeps a network answer for the same inputs, and asks again when they change', async () => {
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('own-key', check);
@@ -129,7 +138,7 @@ describe('refreshReadiness', () => {
     expect(readiness()).toEqual({ state: 'ready', models: [] });
   });
 
-  it('forgets readiness when a credential or setting changes, and drops the check that change outdated', async () => {
+  it('forgets readiness when a credential changes, and drops the check that change outdated', async () => {
     const answer = deferred<CheckResult>();
     const p = probe('own-key', () => answer.promise);
     await loadedWithKey(p);
@@ -139,6 +148,13 @@ describe('refreshReadiness', () => {
     answer.resolve({ ok: true });
     await done;
     expect(readiness()).toEqual({ state: 'unknown' });
+  });
+
+  it('forgets a ready answer when a setting changes', async () => {
+    const p = probe('own-key', async () => ({ ok: true }));
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
     store.useProviderStore.getState().updateSettings(p, { mode: 'b' });
     expect(readiness()).toEqual({ state: 'unknown' });
   });

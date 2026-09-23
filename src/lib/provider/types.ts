@@ -61,7 +61,7 @@ export interface Provider<S, K, C> {
   };
   Settings: ComponentType<SettingsProps<S>>;
   /** Model management, shown in Simple mode too; the local engines only. */
-  Engine?: ComponentType<{ settings: S }>;
+  Engine?: ComponentType<SettingsProps<S>>;
 
   // credentials — stored apart from settings
   credentials: {
@@ -71,7 +71,11 @@ export interface Provider<S, K, C> {
     /** Receives the values of exactly the fields `fields(s)` returns. `K` must have no `missing` member. */
     read(values: CredentialValues, auth: AuthContext): K | { missing: string };
   };
-  /** Can this provider start now: a network validation, model readiness, or a signed-in session. */
+  /**
+   * Can this provider start now: a network validation, model readiness, or a
+   * signed-in session. Throw when the check could not find out (offline);
+   * answer `ok: false` only when the provider said no.
+   */
   check(k: K, s: S): Promise<CheckResult>;
 
   languages: {
@@ -79,6 +83,8 @@ export interface Provider<S, K, C> {
     sources(s: S): readonly LanguageOption[];
     /** Never includes `AUTO`. */
     targets(source: string, s: S): readonly LanguageOption[];
+    /** The pair to start from when nothing is stored; normalized like any stored pair. Absent: the first source and its first target. */
+    initial?(s: S): Partial<LanguagePair>;
   };
 
   // the only capabilities generic code reads

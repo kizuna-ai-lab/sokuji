@@ -48,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run diagnostics, log-surface and local-inference tests
+      - name: Run diagnostics, log-surface, local-inference and client-contract tests
         run: >-
           npx vitest run
           src/lib/diagnostics
@@ -57,6 +57,17 @@ jobs:
           src/stores/sanitizeEvent.test.ts
           src/components/LogsPanel
           src/lib/local-inference
+          src/lib/contract
+          src/lib/conversation
+          src/lib/projection
+          src/lib/export
+          src/lib/provider
+          src/providers
+          src/stores/providerStore.test.ts
+          src/stores/providerStore.readiness.test.ts
+          src/components/providers
+          src/components/dev/SpinePreview.test.tsx
+          src/utils/featureGateForwarding.consistency.test.ts
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return

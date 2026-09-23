@@ -976,7 +976,7 @@ interface Provider<S, K, C> {
   // settings — never secrets
   settings: { key: string; defaults: S; migrate?(stored: unknown): S }
   Settings: ComponentType<{ settings: S; update(patch: Partial<S>): void }>
-  Engine?: ComponentType<{ settings: S }>   // model management, shown in Simple mode too; the local engines only
+  Engine?: ComponentType<{ settings: S; update(patch: Partial<S>): void }>   // model management, shown in Simple mode too; the local engines only
 
   // credentials — stored apart from settings
   credentials: {
@@ -990,6 +990,7 @@ interface Provider<S, K, C> {
   languages: {
     sources(s: S): LanguageOption[]          // includes 'auto' when the provider detects
     targets(source: string, s: S): LanguageOption[]
+    initial?(s: S): Partial<LanguagePair>   // when nothing is stored; today's per-slice defaults
   }
 
   // the only capabilities generic code reads
@@ -1110,7 +1111,7 @@ saved model if the check found it, otherwise the newest. The provider's settings
 component and its builder call the same function, so nothing writes back.
 
 The local engines' `prepareToStart`, which only re-validates, disappears: the
-lifecycle runs `check` at start for every provider, cached for the network ones.
+lifecycle runs `check` at start for every provider, a ready answer cached for the network ones.
 
 ### Languages are two functions
 
@@ -1127,10 +1128,12 @@ This fixes a live inconsistency. The wizard asks the local descriptors for
 targets, which return the source list; the settings panel asks the translation
 catalogue. The two show different target lists for the same provider.
 
-The pair stays stored per provider. Codes differ between providers — Gemini's
-`en-US` and `cmn-CN`, Palabra's `en-us` and `zh-hant`, AST2's `zhen` — so one
-global pair would need a canonical code and a mapping per provider: a product
-change this design does not need.
+The pair stays stored per provider. Its default moves with it: `languages.initial`
+gives the pair a provider starts from when nothing is stored, which is how
+today's per-slice defaults (LocalInference ja→en, AST2 zh→en, …) survive the
+move. Codes differ between providers — Gemini's `en-US` and `cmn-CN`, Palabra's
+`en-us` and `zh-hant`, AST2's `zhen` — so one global pair would need a canonical
+code and a mapping per provider: a product change this design does not need.
 
 **The participant rule (D20).** The participant leg opens when the reversed
 direction is supported: the speaker's target is among `sources`, and the
