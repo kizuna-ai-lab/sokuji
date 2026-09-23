@@ -22,7 +22,7 @@ function toMs(text: string): number {
  * The fake's own settings: which script plays, and its fault knobs (D24). The
  * fake exists in development builds only, so this copy is not localized.
  */
-export function FakeSettingsView({ settings, update }: SettingsProps<FakeSettings>) {
+export function FakeSettingsView({ settings, update, disabled }: SettingsProps<FakeSettings>) {
   return (
     <div className="settings-section">
       <h2>Fake provider</h2>
@@ -33,6 +33,7 @@ export function FakeSettingsView({ settings, update }: SettingsProps<FakeSetting
           className="select-dropdown"
           value={settings.script}
           onChange={(e) => update({ script: e.target.value as FakeScriptName })}
+          disabled={disabled}
         >
           {FAKE_SCRIPT_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
@@ -43,6 +44,7 @@ export function FakeSettingsView({ settings, update }: SettingsProps<FakeSetting
             checked={settings[key]}
             onChange={() => update({ [key]: !settings[key] } as Partial<FakeSettings>)}
             label={label}
+            disabled={disabled}
           />
         </div>
       ))}
@@ -56,6 +58,7 @@ export function FakeSettingsView({ settings, update }: SettingsProps<FakeSetting
           step={100}
           value={settings.startDelayMs}
           onChange={(e) => update({ startDelayMs: toMs(e.target.value) })}
+          disabled={disabled}
         />
       </div>
       <div className="setting-item">
@@ -68,6 +71,7 @@ export function FakeSettingsView({ settings, update }: SettingsProps<FakeSetting
           step={1000}
           value={settings.failAfterMs}
           onChange={(e) => update({ failAfterMs: toMs(e.target.value) })}
+          disabled={disabled}
         />
       </div>
     </div>

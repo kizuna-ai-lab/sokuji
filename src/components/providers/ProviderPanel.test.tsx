@@ -99,4 +99,12 @@ describe('ProviderPanel', () => {
     await screen.findByLabelText('Script');
     expect(useProviderStore.getState().selected).toBe('fake');
   });
+
+  it('locks every control while disabled', async () => {
+    render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} disabled />);
+    expect(await screen.findByLabelText('Script')).toBeDisabled();
+    expect(screen.getByLabelText('simpleSettings.provider')).toBeDisabled();
+    expect(screen.getByLabelText('settings.sourceLanguage')).toBeDisabled();
+    expect(screen.getByTitle('simpleSettings.validate')).toBeDisabled();
+  });
 });

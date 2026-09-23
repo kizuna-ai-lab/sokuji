@@ -45,7 +45,12 @@ export interface SharedSettings {
   pauses: { sourceSeconds: number; translationSeconds: number };
 }
 
-export interface SettingsProps<S> { settings: S; update(patch: Partial<S>): void }
+export interface SettingsProps<S> {
+  settings: S;
+  update(patch: Partial<S>): void;
+  /** A run is not idle: the provider's settings are locked. */
+  disabled?: boolean;
+}
 
 export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object> {
   // identity and presence

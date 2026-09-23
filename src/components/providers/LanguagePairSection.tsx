@@ -9,6 +9,7 @@ interface LanguagePairSectionProps {
   settings: unknown;
   pair: LanguagePair;
   onChange(pair: LanguagePair): void;
+  disabled?: boolean;
 }
 
 /**
@@ -17,7 +18,7 @@ interface LanguagePairSectionProps {
  * allowed whenever the provider supports the reversed pair. Markup is
  * LanguageSection's translation-languages block.
  */
-export function LanguagePairSection({ provider, settings, pair, onChange }: LanguagePairSectionProps) {
+export function LanguagePairSection({ provider, settings, pair, onChange, disabled }: LanguagePairSectionProps) {
   const { t } = useTranslation();
   const id = useId();
   const sources = provider.languages.sources(settings);
@@ -41,6 +42,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange }: Lang
             className="language-select"
             value={pair.source}
             onChange={(e) => onChange(normalizePair(provider, settings, { source: e.target.value, target: pair.target }))}
+            disabled={disabled}
           >
             {sources.map(option)}
           </select>
@@ -50,7 +52,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange }: Lang
             type="button"
             className="language-swap-btn"
             onClick={() => reversed && onChange(reversed)}
-            disabled={!reversed}
+            disabled={disabled || !reversed}
             title={t('simpleConfig.swapLanguages')}
           >
             <ArrowLeftRight size={18} />
@@ -63,6 +65,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange }: Lang
             className="language-select"
             value={pair.target}
             onChange={(e) => onChange({ source: pair.source, target: e.target.value })}
+            disabled={disabled}
           >
             {targets.map(option)}
           </select>

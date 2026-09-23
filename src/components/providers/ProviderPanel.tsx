@@ -9,6 +9,8 @@ import { LanguagePairSection } from './LanguagePairSection';
 interface ProviderPanelProps {
   providers: readonly AnyProvider[];
   auth: AuthContext;
+  /** A run is not idle: provider, languages, mode and the provider's own settings are locked. */
+  disabled?: boolean;
 }
 
 /**
@@ -16,7 +18,7 @@ interface ProviderPanelProps {
  * credentials and readiness, its language pair, then its own `Settings`
  * component (D18). Nothing here names a provider.
  */
-export function ProviderPanel({ providers, auth }: ProviderPanelProps) {
+export function ProviderPanel({ providers, auth, disabled }: ProviderPanelProps) {
   const { t } = useTranslation();
   const selected = useProviderStore((st) => st.selected);
   const provider = providers.find((p) => p.id === selected) ?? providers[0];
@@ -49,6 +51,7 @@ export function ProviderPanel({ providers, auth }: ProviderPanelProps) {
             value={provider.id}
             onChange={(e) => select(e.target.value)}
             aria-label={t('simpleSettings.provider')}
+            disabled={disabled}
           >
             {providers.map((p) => <option key={p.id} value={p.id}>{t(`providers.${p.id}.name`, p.id)}</option>)}
           </select>
@@ -60,13 +63,14 @@ export function ProviderPanel({ providers, auth }: ProviderPanelProps) {
             readiness={readiness}
             onChange={(key, value) => setCredential(provider, key, value)}
             onCheck={() => void refreshReadiness(provider, auth)}
+            disabled={disabled}
           />
         )}
       </div>
       {entry && (
         <>
-          <LanguagePairSection provider={provider} settings={entry.settings} pair={entry.pair} onChange={(pair) => setPair(provider, pair)} />
-          <Settings settings={entry.settings} update={(patch) => updateSettings(provider, patch)} />
+          <LanguagePairSection provider={provider} settings={entry.settings} pair={entry.pair} onChange={(pair) => setPair(provider, pair)} disabled={disabled} />
+          <Settings settings={entry.settings} update={(patch) => updateSettings(provider, patch)} disabled={disabled} />
         </>
       )}
     </>

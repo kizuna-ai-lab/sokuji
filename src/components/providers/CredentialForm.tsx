@@ -9,6 +9,7 @@ interface CredentialFormProps {
   readiness: Readiness;
   onChange(key: string, value: string): void;
   onCheck(): void;
+  disabled?: boolean;
 }
 
 /**
@@ -16,7 +17,7 @@ interface CredentialFormProps {
  * the readiness check beside the last one. The markup is ProviderSection's
  * multi-field credential groups.
  */
-export function CredentialForm({ fields, values, readiness, onChange, onCheck }: CredentialFormProps) {
+export function CredentialForm({ fields, values, readiness, onChange, onCheck, disabled }: CredentialFormProps) {
   const { t } = useTranslation();
   const checking = readiness.state === 'checking';
   const status = readiness.state === 'ready' ? 'valid' : readiness.state === 'not-ready' ? 'invalid' : '';
@@ -25,7 +26,7 @@ export function CredentialForm({ fields, values, readiness, onChange, onCheck }:
       type="button"
       className="validate-button"
       onClick={onCheck}
-      disabled={checking || fields.some((f) => !values[f.key])}
+      disabled={disabled || checking || fields.some((f) => !values[f.key])}
       title={t('simpleSettings.validate')}
     >
       {checking ? <span className="spinner" /> : readiness.state === 'ready' ? <CheckCircle size={16} /> : t('simpleSettings.validate')}
@@ -46,6 +47,7 @@ export function CredentialForm({ fields, values, readiness, onChange, onCheck }:
               placeholder={t(f.placeholderKey ?? f.labelKey, f.key)}
               aria-label={t(f.labelKey, f.key)}
               className={`api-key-input ${status}`.trim()}
+              disabled={disabled}
             />
             {i === fields.length - 1 && check}
           </div>

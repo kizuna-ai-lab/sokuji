@@ -4,6 +4,9 @@ import { render, screen } from '@testing-library/react';
 vi.mock('../../lib/auth/hooks', () => ({
   useAuth: () => ({ isSignedIn: false, getToken: async () => null }),
 }));
+vi.mock('../../lib/analytics', () => ({
+  useAnalytics: () => ({ trackEvent: vi.fn() }),
+}));
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
