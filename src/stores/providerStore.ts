@@ -6,8 +6,9 @@
  * `settings.<key>.<field>` keys, so no saved value moves.
  */
 import { create } from 'zustand';
+import { describeCause, reportError } from '../lib/diagnostics/report';
 import { normalizePair } from '../lib/provider/languages';
-import type { AnyProvider, CredentialValues, LanguagePair } from '../lib/provider/types';
+import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption } from '../lib/provider/types';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 
@@ -20,13 +21,26 @@ export interface ProviderEntry {
   pair: LanguagePair;
 }
 
+/** Whether a provider can start now (spec: "Readiness is one check"). */
+export type Readiness =
+  | { state: 'unknown' }
+  | { state: 'checking' }
+  | { state: 'ready'; models: readonly ModelOption[] }
+  | { state: 'not-ready'; reason: string };
+
+export const UNKNOWN: Readiness = { state: 'unknown' };
+
 export interface ProviderStore {
   /** Loaded providers, by id; a provider is absent until `load` resolves. */
   entries: Readonly<Record<string, ProviderEntry>>;
+  /** One readiness per provider, by id; absent means unknown. */
+  readiness: Readonly<Record<string, Readiness>>;
   load(p: AnyProvider): Promise<void>;
   updateSettings(p: AnyProvider, patch: Readonly<Record<string, unknown>>): void;
   setCredential(p: AnyProvider, key: string, value: string): void;
   setPair(p: AnyProvider, pair: LanguagePair): void;
+  /** Runs the provider's `check` on its saved settings and credentials, and records the answer. */
+  refreshReadiness(p: AnyProvider, auth: AuthContext): Promise<Readiness>;
 }
 
 /** The pair persists beside the settings, under the field names every slice uses today. */
@@ -36,6 +50,11 @@ const TARGET = 'targetLanguage';
 function storageKey(p: AnyProvider, field: string): string {
   return `settings.${p.settings.key}.${field}`;
 }
+
+/** The latest check per provider: a check that finishes after a newer one began, or after its inputs changed, is dropped. */
+const checkSeq = new Map<string, number>();
+/** The last answer per network provider, with the inputs it answered. */
+const lastAnswer = new Map<string, { inputs: string; readiness: Readiness }>();
 
 export const useProviderStore = create<ProviderStore>()((set, get) => {
   /** Writing to a provider before `load` resolves is a bug in the caller. */
@@ -49,9 +68,25 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     if (after.source !== before.source) void persistSetting(storageKey(p, SOURCE), after.source);
     if (after.target !== before.target) void persistSetting(storageKey(p, TARGET), after.target);
   };
+  const setReadiness = (p: AnyProvider, readiness: Readiness): Readiness => {
+    set((st) => ({ readiness: { ...st.readiness, [p.id]: readiness } }));
+    return readiness;
+  };
+  /** Starts a new check generation for `p`; whatever check is still running no longer counts. */
+  const supersede = (p: AnyProvider): number => {
+    const seq = (checkSeq.get(p.id) ?? 0) + 1;
+    checkSeq.set(p.id, seq);
+    return seq;
+  };
+  /** What `check` answered no longer describes these settings or credentials. */
+  const forgetReadiness = (p: AnyProvider) => {
+    supersede(p);
+    setReadiness(p, UNKNOWN);
+  };
 
   return {
     entries: {},
+    readiness: {},
 
     async load(p) {
       const service = ServiceFactory.getSettingsService();
@@ -86,12 +121,14 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       put(p, { ...entry, settings, pair });
       for (const [field, value] of Object.entries(patch)) void persistSetting(storageKey(p, field), value);
       persistPair(p, entry.pair, pair);
+      forgetReadiness(p);
     },
 
     setCredential(p, key, value) {
       const entry = loaded(p);
       put(p, { ...entry, credentials: { ...entry.credentials, [key]: value } });
       void persistSetting(storageKey(p, key), value);
+      forgetReadiness(p);
     },
 
     setPair(p, pair) {
@@ -99,6 +136,39 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const next = normalizePair(p, entry.settings, pair);
       put(p, { ...entry, pair: next });
       persistPair(p, entry.pair, next);
+    },
+
+    async refreshReadiness(p, auth) {
+      const entry = loaded(p);
+      const seq = supersede(p);
+      // `read` receives exactly the fields these settings show.
+      const values: CredentialValues = Object.fromEntries(
+        p.credentials.fields(entry.settings).map((f) => [f.key, entry.credentials[f.key] ?? '']),
+      );
+      const credentials: unknown = p.credentials.read(values, auth);
+      // `K` has no `missing` member (see Provider.credentials.read), so this tells the two apart.
+      if (typeof credentials === 'object' && credentials !== null && 'missing' in credentials) {
+        return setReadiness(p, { state: 'not-ready', reason: String((credentials as { missing: unknown }).missing) });
+      }
+      // A network check gives the same answer to the same inputs, so its answer
+      // is kept; a local engine's readiness changes as models download.
+      const inputs = JSON.stringify([entry.settings, values, auth.signedIn]);
+      const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
+      if (kept && kept.inputs === inputs) return setReadiness(p, kept.readiness);
+
+      setReadiness(p, { state: 'checking' });
+      let answer: Readiness;
+      try {
+        const result = await p.check(credentials, entry.settings);
+        answer = result.ok ? { state: 'ready', models: result.models ?? [] } : { state: 'not-ready', reason: result.reason };
+        if (p.kind !== 'local') lastAnswer.set(p.id, { inputs, readiness: answer });
+      } catch (error) {
+        // A check that threw did not find out; show it, never keep it.
+        reportError('ProviderStore', `The readiness check for ${p.id} failed: ${describeCause(error)}`, { cause: error });
+        answer = { state: 'not-ready', reason: describeCause(error) };
+      }
+      if (checkSeq.get(p.id) !== seq) return get().readiness[p.id] ?? UNKNOWN;
+      return setReadiness(p, answer);
     },
   };
 });
