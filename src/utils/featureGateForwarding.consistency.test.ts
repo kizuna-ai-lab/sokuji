@@ -25,7 +25,9 @@ const repoFile = (rel: string) => readFileSync(resolve(__dirname, '../..', rel),
 /** The gates that exist, taken from the only file that reads them. */
 const GATES: string[] = (() => {
   const source = repoFile('src/utils/environment.ts');
-  const found = source.match(/import\.meta\.env\.(VITE_ENABLE_[A-Z0-9_]+)/g) ?? [];
+  // `VITE_ENABLED_PROVIDERS` is a list, not a boolean, but it has to reach the
+  // same builds; spelled `ENABLED_`, it needs its own alternative here.
+  const found = source.match(/import\.meta\.env\.(VITE_ENABLE(?:_[A-Z0-9_]+|D_PROVIDERS))/g) ?? [];
   return [...new Set(found.map((m) => m.replace('import.meta.env.', '')))].sort();
 })();
 
@@ -42,6 +44,7 @@ describe('feature gates reach the builds that need them', () => {
   it('finds the gates environment.ts reads', () => {
     expect(GATES.length).toBeGreaterThanOrEqual(4);
     expect(GATES).toContain('VITE_ENABLE_KIZUNA_AI');
+    expect(GATES).toContain('VITE_ENABLED_PROVIDERS');
   });
 
   it('forwards every non-Electron-only gate through the extension define list', () => {

@@ -182,6 +182,12 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.VITE_ENABLE_VOLCENGINE_AST2': JSON.stringify(
         envVal('VITE_ENABLE_VOLCENGINE_AST2', 'false', 'true')
       ),
+      // The flagged providers a release offers (D19), one comma-separated
+      // list. Dev builds offer every flagged provider in code, so there is no
+      // dev override here.
+      'import.meta.env.VITE_ENABLED_PROVIDERS': JSON.stringify(
+        envVal('VITE_ENABLED_PROVIDERS', '')
+      ),
       'import.meta.env.VITE_POSTHOG_KEY': JSON.stringify(
         envVal('POSTHOG_KEY', '')
       ),

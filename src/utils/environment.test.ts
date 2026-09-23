@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { getRelayWsUrl, isLocalNativeEnabled, LOCAL_NATIVE_DEBUG_KEY } from "./environment";
+import { enabledProviderIds, getRelayWsUrl, isLocalNativeEnabled, LOCAL_NATIVE_DEBUG_KEY } from "./environment";
 
 afterEach(() => { vi.unstubAllEnvs(); });
 
@@ -57,5 +57,19 @@ describe("getRelayWsUrl", () => {
   it("converts https to wss", () => {
     vi.stubEnv("VITE_BACKEND_URL", "https://example.com");
     expect(getRelayWsUrl()).toBe("wss://example.com/v1");
+  });
+});
+
+describe("enabledProviderIds", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("reads a comma-separated list, ignoring spaces and empty items", () => {
+    vi.stubEnv('VITE_ENABLED_PROVIDERS', ' palabra_ai, local_native ,,');
+    expect([...enabledProviderIds()]).toEqual(['palabra_ai', 'local_native']);
+  });
+
+  it("is empty when nothing is listed", () => {
+    vi.stubEnv('VITE_ENABLED_PROVIDERS', '');
+    expect(enabledProviderIds().size).toBe(0);
   });
 });

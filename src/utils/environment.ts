@@ -288,6 +288,19 @@ export function isLocalNativeEnabled(): boolean {
   return isElectron() && hasLocalNativeDebugSwitch();
 }
 
+/**
+ * The flagged providers a release offers (D19): `VITE_ENABLED_PROVIDERS`, a
+ * comma-separated list of provider ids. It gates providers in the new
+ * registry (`src/providers/registry.ts`) only; the per-provider gates above
+ * keep gating `ProviderConfigFactory` until those providers move over.
+ * Development builds offer every flagged provider regardless (see
+ * `isPresent`).
+ */
+export function enabledProviderIds(): ReadonlySet<string> {
+  const raw = import.meta.env.VITE_ENABLED_PROVIDERS ?? '';
+  return new Set(raw.split(',').map((id) => id.trim()).filter((id) => id !== ''));
+}
+
 // ============================================================================
 // Operating System Detection
 // ============================================================================
