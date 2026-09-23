@@ -3,12 +3,14 @@
  * Every surface calls the same methods; the UI reads only `state`.
  */
 import { createStore, type StoreApi } from 'zustand/vanilla';
-import { describeCause, reportError } from '../diagnostics/report';
+import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import type { LegName } from '../conversation/types';
 import { ConversationSet } from './conversationSet';
 import type { ControlMethod, RunnerDeps } from './ports';
 import { LegOpenError, RefusedError, Run, type RunHost } from './run';
 import type { LegState, RunEnd, RunState } from './types';
+
+const DEFAULT_TIMEOUT_MS = 5_000;
 
 export interface Runner {
   readonly state: StoreApi<RunState>;
@@ -33,32 +35,63 @@ export function createRunner(deps: RunnerDeps): Runner {
   const set = (next: RunState) => state.setState(next, true);
   const legs = (run: Run) => Object.fromEntries(run.legStates) as Partial<Record<LegName, LegState>>;
 
+  /** Races `task` against `timeoutMs`; a timeout is reported and treated as done, so a hung port or a hung `onRunEnded` cannot strand the runner. */
+  const bounded = (task: Promise<void>): Promise<void> => new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    const cancel = deps.clock.setTimeout(() => {
+      reportWarning('SessionRunner', 'Saving after the session timed out', { dedupeKey: 'onRunEnded:timeout' });
+      finish();
+    }, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    task.then(
+      () => { cancel(); finish(); },
+      (error) => {
+        cancel();
+        reportError('SessionRunner', `After the session ended: ${describeCause(error)}`, { cause: error });
+        finish();
+      },
+    );
+  });
+
   /** The one way a run ends — stop, a leg ending, a failed start — once per run. */
   const end = (run: Run, result: RunEnd): Promise<void> => {
     if (run !== current) return Promise.resolve();
     if (ending) return ending;
     const liveSince = run.liveSince;
-    set({ phase: 'stopping' });
-    ending = (async () => {
-      await run.close();
-      deps.playback.clear();
-      if (liveSince !== null) {
-        const duration = deps.clock.now() - liveSince;
-        const provider = run.shape.provider.id;
-        // One per leg, as `connected` was.
-        run.shape.legs.forEach(() => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration }));
-        deps.analytics.track('translation_session_end', { session_id: run.id, duration, provider });
-        try {
-          await deps.onRunEnded?.(conversation.snapshot());
-        } catch (error) {
-          reportError('SessionRunner', `After the session ended: ${describeCause(error)}`, { cause: error });
+    // Claim the run before any side effect: `set` notifies subscribers and
+    // `run.close()` runs abort listeners synchronously, and either may call
+    // `stop()` — or a lease's `end` — again while this is still in flight.
+    let finished!: () => void;
+    const done = new Promise<void>((resolve) => { finished = resolve; });
+    ending = done;
+    void (async () => {
+      try {
+        set({ phase: 'stopping' });
+        // Stop speaking now; `Run`'s ending flag already keeps new audio out.
+        deps.playback.clear();
+        await run.close();
+        if (liveSince !== null) {
+          const duration = deps.clock.now() - liveSince;
+          const provider = run.shape.provider.id;
+          // One per leg, as `connected` was.
+          run.shape.legs.forEach(() => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration }));
+          deps.analytics.track('translation_session_end', { session_id: run.id, duration, provider });
+          if (deps.onRunEnded) await bounded(Promise.resolve(deps.onRunEnded(conversation.snapshot())));
         }
+      } catch (error) {
+        reportError('SessionRunner', `Ending the session failed: ${describeCause(error)}`, { cause: error });
+      } finally {
+        current = null;
+        ending = null;
+        set({ phase: 'idle', lastEnd: result });
+        finished();
       }
-      current = null;
-      ending = null;
-      set({ phase: 'idle', lastEnd: result });
     })();
-    return ending;
+    return done;
   };
 
   const hostFor = (run: Run): RunHost => ({

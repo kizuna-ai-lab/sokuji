@@ -119,7 +119,9 @@ export class Run {
     if (p.session?.acquire) {
       const resources = await p.session.acquire(shape, settings, {
         signal: this.signal,
-        end: (message) => host.end({ reason: 'lease-ended', notice: { code: 'lease_ended', message } }),
+        // `close()` sets `ending` before it aborts; an abort listener that
+        // reacts by calling this must not re-end a run already ending.
+        end: (message) => { if (!this.ending) host.end({ reason: 'lease-ended', notice: { code: 'lease_ended', message } }); },
       });
       this.stack.defer('lease', () => resources.release());
       this.throwIfAborted();
@@ -150,7 +152,14 @@ export class Run {
     }])) as Record<LegName, StartRequest<unknown, unknown>>;
 
     if (shape.legs.length === 2 && p.session?.startBoth) {
-      const sources = await Promise.all(shape.legs.map((leg) => this.openSource(leg)));
+      const sources = await Promise.all(shape.legs.map(async (leg) => {
+        try {
+          return await this.openSource(leg);
+        } catch (error) {
+          if (this.signal.aborted) throw error;
+          throw new LegOpenError(leg, error);
+        }
+      }));
       const events = { speaker: this.eventsFor('speaker'), participant: this.eventsFor('participant') };
       let sessions: Record<LegName, AdapterSession>;
       try {
@@ -174,8 +183,10 @@ export class Run {
     this.controller.abort(new Error('the run ended'));
     await this.stack.unwind();
     for (const conversation of this.conversations.values()) conversation.finalizeAll();
-    await this.settled();
+    // Fill-in lands through `Conversation`'s own jobs, not `onEvent`; nothing
+    // legitimate depends on the run still accepting events past this point.
     this.finished = true;
+    await this.settled();
   }
 
   private async openLeg(leg: LegName, request: StartRequest<unknown, unknown>): Promise<void> {
@@ -196,18 +207,22 @@ export class Run {
     const source = await this.deps.openSource(leg, this.signal);
     this.stack.defer(`${leg} source`, () => source.stop());
     this.throwIfAborted();
+    // Subscribed as soon as the source resolves (D22): a capture that ends or
+    // degrades while its leg is still opening must still be heard, not lost
+    // waiting for `connect()`. The conversations already exist — `openSource`
+    // runs after `host.step('opening')`.
+    const conversation = this.conversations.get(leg)!;
+    this.stack.defer(`${leg} end watch`, source.onEnded((reason) =>
+      this.legEnded(leg, 'source-ended', { code: 'source_ended', message: `The ${leg} capture ended: ${reason}` })));
+    this.stack.defer(`${leg} degradation watch`, source.onDegraded((message) =>
+      conversation.notice({ severity: 'warning', message, code: 'source_degraded' })));
     return source;
   }
 
   private connect(leg: LegName, source: Source, session: AdapterSession): void {
     this.sessions.set(leg, session);
     if (leg === 'speaker' || this.transport === undefined) this.transport = session.info.transport;
-    const conversation = this.conversations.get(leg)!;
     this.stack.defer(`${leg} capture`, source.onPcm((pcm) => this.send(leg, session, pcm)));
-    this.stack.defer(`${leg} end watch`, source.onEnded((reason) =>
-      this.legEnded(leg, 'source-ended', { code: 'source_ended', message: `The ${leg} capture ended: ${reason}` })));
-    this.stack.defer(`${leg} degradation watch`, source.onDegraded((message) =>
-      conversation.notice({ severity: 'warning', message, code: 'source_degraded' })));
     this.setLegState(leg, 'live');
     this.deps.analytics.track('connection_status', { status: 'connected', provider: this.shape.provider.id });
   }
