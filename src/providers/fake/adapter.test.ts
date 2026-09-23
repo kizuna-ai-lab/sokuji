@@ -154,6 +154,21 @@ describe('fake adapter — cancel and every step kind', () => {
     expect(log).toEqual([]);
   });
 
+  it('rejects a start whose cancel lands as the delay ends, before the session opens', async () => {
+    const clock = createVirtualClock();
+    const { events } = recordEvents();
+    const controller = new AbortController();
+    const script = { blocks: [exchange({ startAt: 0, ref: 1, source: ['a'], translation: 'b' })] };
+    const starting = createFakeAdapter().start(
+      { context: auto, config: { script, faults: { startDelayMs: 1000 } }, credentials: {}, clock, signal: controller.signal },
+      events,
+    );
+    // The delay's timer fires and removes its abort listener; start()'s continuation has not run yet.
+    clock.advance(1000);
+    controller.abort(new Error('cancelled late'));
+    await expect(starting).rejects.toThrow('cancelled late');
+  });
+
   it('plays every kind of scripted step', async () => {
     const steps = [
       { at: 0, degraded: { code: 'parse_error' as const, message: 'bad' } },
