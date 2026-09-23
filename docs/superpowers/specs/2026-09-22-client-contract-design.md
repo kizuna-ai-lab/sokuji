@@ -31,6 +31,10 @@ https://claude.ai/artifact/1PbYxsxRG6z4pkJ9JEPmfx
   routing rule.
 - Audio output gets an explicit **routing table**. Volume stops being used as a
   control; the only real volume left in the system is the passthrough ratio.
+- **A provider is one definition in one folder**: identity, its own settings
+  component, credentials, a readiness check, two language functions, the three
+  capabilities generic code reads, and the per-leg builder and adapter. Adding a
+  provider edits no shared code file except the registry list.
 - `ConversationItem` is deleted.
 
 ## The measure
@@ -86,6 +90,9 @@ workload untouched does not count.
 | D15 | Turn mode storage | One global setting, not per provider. |
 | D16 | Extension overlay | Gets a hold button (pointer down / up / leave / cancel) forwarded over the port; its "Press Space to speak" hint is removed, since Space belongs to the meeting page. |
 | D17 | Participant leg | Nothing beyond the reversed direction and automatic turns. It is the same configuration builder called with the direction reversed; the concept of a participant configuration disappears. |
+| D18 | Provider settings UI | Each provider owns its settings component, composed from shared field components. The capability flags that drive today's generic panel leave the contract. |
+| D19 | Feature flags | One `VITE_ENABLED_PROVIDERS` list of provider ids replaces the per-provider `VITE_ENABLE_*` flags. The Kizuna umbrella flag stays. |
+| D20 | `auto` source and the participant leg | The participant leg opens only when the reversed direction is supported. `auto` is never a target, so an `auto` source refuses the participant leg for every provider. |
 
 ### Deleted with no behaviour change
 
@@ -283,8 +290,8 @@ internally. The consequence:
 The seven `buildParticipantSessionConfig` overrides disappear. Most of them swap
 source and target and re-derive; the two remaining special cases become generic:
 whether a direction is supported (OpenAI Translate's thirteen targets, Palabra's
-check) is a `supports(direction)` query the adapter answers, and the participant
-leg's server-side turn detection follows from `turns: 'auto'`.
+check) is answered by the provider definition's two language functions, and the
+participant leg's server-side turn detection follows from `turns: 'auto'`.
 
 **One call replaces construct-then-connect.** A client is created, connected
 immediately and used for exactly one session, so the two are one moment. The
@@ -298,8 +305,10 @@ reconnect (Gemini, OpenAI Live, Soniox's 503 resume) reuse the original request
 internally.
 
 **What opacity costs.** Telemetry reads model names straight out of the config
-today (`sessionModelTelemetry(sessionConfig, …)`). With `C` opaque, an adapter
-offers a small `describe()` returning `{ asrModel?, translationModel?, ttsModel? }`.
+today (`sessionModelTelemetry(sessionConfig, …)`), and the export switches on the
+provider to pick model fields (`conversationExport.ts:239-259`, with no case for
+four providers). With `C` opaque, the provider definition offers a small
+`describe(config)` returning `{ asrModel?, translationModel?, ttsModel? }`.
 
 The conservative alternative — keep the union, strip the cross-cutting and dead
 fields, lift direction out — removes the participant overrides too, but fails
@@ -828,6 +837,303 @@ limitation of its data.
 
 ---
 
+## The provider definition
+
+The session request says what an adapter receives. This section says who builds
+it. Today that is `ProviderDescriptor` with its `ProviderConfig`: 18 members,
+17 config fields and some twenty capability flags, thirteen times over.
+
+### What adding a provider costs today
+
+OpenAI Live (PR #552) is the most recent provider. Outside its client it touched
+21 code and test files and all 30 locale catalogs, about +681 lines:
+
+| | Lines | What |
+|---|---|---|
+| registration | ~54 | the enum and its separate `ProviderType` union, the factory, ten settings-store touchpoints, the `IClient` union and guard, edits to five test files |
+| settings | ~164 | the store's key prefill and auto-select case, three hand-written UI write paths, locale name and description |
+| session building | ~269 | a session-config type in `IClient.ts`, the descriptor, its test |
+| behaviour outside the client | ~194 | an extension DNR rule and manifest host, Electron header removal, logStore event names, a MainPanel lifecycle edit, a connection-lost locale key |
+
+The five-step checklist in `CLAUDE.md` misses about ten kinds of required edit:
+the `IClient` union and guard, the separate `ProviderType` union, eight of the
+ten settings-store touchpoints, the three UI write paths (the `updateApiKey`
+switch, LanguageSection's two switches, ProviderSpecificSettings' if-chain —
+Soniox needed a follow-up commit for exactly these, `79edd01c`), four more tests
+that pin the provider list, and the extension's per-provider DNR block. Its claim
+that the registry test "fails loudly on anything missed" does not hold in CI:
+`build.yml` runs vitest on four paths, none of them provider code, and the build
+has no `tsc`, so the `Record<Provider, …>` tables fail only under a local
+typecheck.
+
+### Six concerns in one object
+
+| Concern | Members today | Read by |
+|---|---|---|
+| identity and presence | `id`, `i18nKey`, registration order and flags | provider lists |
+| settings UI | 19 capability fields, `voices`, `models`, ranges | ProviderSpecificSettings, only |
+| credentials and validation | `credentialFieldsFor`, `extractCredentials`, `peekPrimaryCredential`, `validateAndFetchModels`, `latestRealtimeModel` | wizard, settings, start gate |
+| languages | `languages`, `targetLanguages`, `resolveSourceLanguages`, `resolveTargetLanguages`, `reversesDirectionViaSourceLanguage` | settings, wizard, start gate |
+| one leg's session | `buildSessionConfig`, `createClient`, `supportsWebRTC`, `forcedTransport`, … | MainPanel |
+| across legs and time | `prepareToStart`, `acquireSessionResources`, `planBothMode` | MainPanel |
+
+Six `ProviderConfig` fields have no reader anywhere: `apiKeyLabel`,
+`apiKeyPlaceholder`, `requiresAuth`, and `supportsCustomEndpoint` with its label
+and placeholder.
+
+### The shape
+
+```ts
+interface Provider<S, K, C> {
+  // identity and presence
+  id: string                                // persisted; ProviderId is derived from the registry
+  kind: 'own-key' | 'managed' | 'local'
+  platforms: Platform[]                     // 'electron' | 'extension' | 'web'
+  flagged?: true                            // hidden in production unless listed (D19)
+  icon: Icon; docs?: string; vendor?: string
+
+  // settings — never secrets
+  settings: { key: string; defaults: S; migrate?(stored: unknown): S }
+  Settings: ComponentType<{ settings: S; update(patch: Partial<S>): void }>
+
+  // credentials — stored apart from settings
+  credentials: {
+    fields(s: S): CredentialField[]
+    read(values: CredentialValues, ctx: AuthContext): K | { missing: string }
+  }
+  check(k: K, s: S): Promise<{ ok: true; models?: ModelOption[] } | { ok: false; reason: string }>
+
+  // languages
+  languages: {
+    sources(s: S): LanguageOption[]          // includes 'auto' when the provider detects
+    targets(source: string, s: S): LanguageOption[]
+  }
+
+  // the only capabilities generic code reads
+  speech: 'always' | 'optional' | 'never'
+  textInput: boolean
+  boundaries(s: S): 'provider' | 'silence'
+
+  // one leg's session
+  build(context: SessionContext, s: S, shared: SharedSettings): C | { refused: string }
+  describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string }
+  start(request: { context: SessionContext; config: C; credentials: K }, events): Promise<Session>
+}
+```
+
+`settings.key` is today's slice key, and values persist under
+`settings.<key>.<field>` exactly as now: no user's saved settings move.
+
+`shared` is what a builder may read beyond its own settings — the system
+instructions resolved for a direction, and the segmentation pauses — so a builder
+never reaches into the settings store. A provider's own stores are its own
+business: the local builders read their model stores, which is where model
+resolution belongs (never in the adapter).
+
+`start` owns the transport. OpenAI's choice between WebRTC and WebSocket, and the
+fallback from one to the other, become its business, so `supportsWebRTC` and
+`forcedTransport` leave the contract. Palabra's `forcedTransport: 'webrtc'`
+exists only to steer MainPanel's transport switch; its adapter always uses
+LiveKit.
+
+### Where each member goes
+
+| Today | Becomes |
+|---|---|
+| 19 settings-UI capability fields, `voices`, `models`, `noiseReductionModes`, `transcriptModels`, `reasoningEfforts` | the provider's own `Settings` component |
+| `pushGatedModes`, `pttFinalization`, `turnDetection.modes` | deleted (D14) |
+| `buildParticipantSessionConfig` | deleted (D17) |
+| `supportsWebRTC`, `forcedTransport`, `usesLocalPromptTemplate`, `queuesTextWhileResponding` | internal — `S` → `C`, or the adapter |
+| `languages`, `targetLanguages`, `resolveSourceLanguages`, `resolveTargetLanguages`, `reversesDirectionViaSourceLanguage` | `languages.sources` / `targets` |
+| `credentialFields`, `credentialFieldsFor`, `extractCredentials`, `peekPrimaryCredential` | `credentials.fields` / `read` |
+| `validateAndFetchModels`, `latestRealtimeModel`, the store's model auto-select switch, its readiness short-circuits for the local engines | `check`, plus an internal effective-model function |
+| `capabilities.segmentation` `{ pause, auto, sizes }` | `boundaries(s)` |
+| `textOnlyCapability`, `supportsTextInput` | `speech`, `textInput` |
+| `settingsSliceKey`, `i18nKey` | `settings.key`; locale keys use the id |
+| `createClient`, `buildSessionConfig` | `build` + `start` |
+| `prepareToStart`, `acquireSessionResources`, `planBothMode` | session lifecycle |
+| the six unread fields, `registerProvider`, the `ClientFactory` and `ClientOperations` façades | deleted |
+
+### Settings belong to the provider (D18)
+
+`ProviderSpecificSettings.tsx` is one 2,291-line component. About 692 lines are
+sections gated on capability flags. About 1,092 are per-provider render
+functions — Gemini, Palabra, the AST2 family, the Soniox family, both local
+engines — for what the flags could not express. The rest routes writes back to
+the right slice through an eleven-branch if-chain, a "compatible settings"
+accessor and exclusion lists (`provider === PALABRA_AI`, Gemini's translate
+model, the local engines, the Soniox family).
+
+Each provider now owns a `Settings` component, composed from shared field
+components (`VoiceField`, `ModelField`, `InstructionsField`, …) and handed its
+own typed `S`. The flags, the routing and the exclusion lists disappear; OpenAI
+Live's component is about 25 lines.
+
+The alternative — a declarative field description drawn by one renderer — was
+rejected. The Soniox voice library (906 lines) and the two local model managers
+(843 and 1,036) need escape hatches, and today's flags are that design in
+embryo, already carrying 1,092 lines of them. Consistency between providers
+comes from the shared field components.
+
+### Credentials are not settings
+
+Credential fields move out of `S` into their own record, persisted under the same
+keys as today. One credential form, driven by `credentials.fields(s)`, serves the
+setup wizard (already generic) and the settings panel (hand-written today: the
+`updateApiKey` switch with eight cases, about 120 lines of AST2 and Palabra
+credential markup, the compatible provider's endpoint input).
+`peekPrimaryCredential` becomes "does `read` succeed", and `neverPersist`
+disappears — a managed twin has no credential fields to persist. With no secrets
+in `S`, settings can be mirrored and logged without redaction; `K` is the one
+thing to redact.
+
+### Readiness is one check
+
+`check(k, s)` answers "can this provider start now" for every kind: a network
+validation for own-key providers, model readiness for local ones (folding in the
+store's two short-circuits to `modelStore` and `nativeModelStore`), a signed-in
+session for managed ones. Its result goes to one generic per-provider readiness
+state.
+
+The store's model auto-select, a switch covering three providers, becomes a pure
+effective-model function inside each provider that offers a model choice: the
+saved model if the check found it, otherwise the newest. The provider's settings
+component and its builder call the same function, so nothing writes back.
+
+The local engines' `prepareToStart`, which only re-validates, disappears: the
+lifecycle runs `check` at start for every provider, cached for the network ones.
+
+### Languages are two functions
+
+`sources(s)` and `targets(source, s)` replace five members, LanguageSection's two
+per-provider switches (about 150 lines), its swap special cases and its
+hard-coded `auto` option. What is provider-specific moves inside the two
+functions. AST2's `zhen`, both-or-neither, is `targets('zhen')` returning only
+`zhen` and every other source's targets omitting it. The local engines'
+catalogue-driven lists are simply their implementation. `auto` is in `sources`
+for providers that detect. A swap is generic: allowed when the reversed pair is
+supported.
+
+This fixes a live inconsistency. The wizard asks the local descriptors for
+targets, which return the source list; the settings panel asks the translation
+catalogue. The two show different target lists for the same provider.
+
+The pair stays stored per provider. Codes differ between providers — Gemini's
+`en-US` and `cmn-CN`, Palabra's `en-us` and `zh-hant`, AST2's `zhen` — so one
+global pair would need a canonical code and a mapping per provider: a product
+change this design does not need.
+
+**The participant rule (D20).** The participant leg opens when the reversed
+direction is supported: the speaker's target is among `sources`, and the
+speaker's source is among its `targets`. `auto` is never a target, so an `auto`
+source refuses the participant leg for every provider. Today OpenAI Live,
+Gemini's translate model and Soniox refuse it at the start gate through
+`reversesDirectionViaSourceLanguage`. Every other provider starts the leg, and in
+template mode its prompt asks for a translation into the raw string `auto`,
+because `auto` is in no language list (`settingsStore.ts:1437-1446`). Only an
+advanced-mode participant prompt that names its own language made the
+combination work; that use goes. The advanced-mode participant prompt itself
+stays, as the prompt for the reversed direction: `shared.instructions(direction)`
+returns it, and the builder still sees only a direction.
+
+### Segmentation is one fact
+
+The offer's three booleans become `boundaries(s)`: who ends a segment. Where the
+provider does (`'provider'`), the user may keep its boundary — Auto. Where our
+own silence timers do (`'silence'`: OpenAI Translate, OpenAI Live, Gemini), the
+user tunes the pauses. Cutting into a number of sentences is available
+everywhere: rows tile the segment's text and a `range` survives a cut, so the
+reason OpenAI's descriptor withheld it — splitting an item would strand its
+karaoke timing — no longer holds. It takes `S` because the answer can depend on
+transport: OpenAI Translate over WebRTC has no source pause today
+(`SentenceSegmentationSection.tsx:251`).
+
+### Managed twins are composition
+
+A Kizuna twin is `managed(base, overrides)`: its own `id`, `kind: 'managed'`,
+`vendor`, credentials read from the sign-in session with no fields, a static
+`check`, and the relay endpoint in `K`. Its settings component, languages,
+builder and adapter are the base's. The `KizunaManagedProvider` union,
+`isKizunaManagedProvider`, `kizunaBaseProvider`, `KIZUNA_HOSTED_ICONS`,
+`getDefaultManagedProvider`'s preference list and the settings UI's active-slice
+ternaries reduce to `kind` and registry order. Removing the relay later touches
+the three twins and nothing else.
+
+### The registry is a list (D19)
+
+One ordered array is the registry. Its order is the UI order, and `ProviderId` is
+derived from it; `platforms` and `flagged` decide presence. The five
+per-provider flags — Kizuna Soniox, Kizuna OpenAI Translate, Kizuna AST2,
+Palabra, Local Native — each need `environment.ts`, `extension/vite.config.ts`,
+five env blocks in `.github/workflows/build.yml` and the forwarding consistency
+test; they become one `VITE_ENABLED_PROVIDERS` list of flagged provider ids. The
+Kizuna umbrella flag stays, since six other sites read it, and a managed provider
+needs it as well. The `debug:local-native` switch stays until Local Native ships.
+
+The registry test's seven `Record<Provider, …>` tables go with the capabilities
+they pin. What remains are invariants checked over every registered provider.
+
+### One leg only
+
+`build` is called once per leg (D17), so whatever spans both legs or outlives one
+call is not the definition's. These go to session lifecycle:
+
+- the local engines' memory budget, which counts the speaker leg's models with
+  the participant's (`localParticipantConfig.ts:96`);
+- Soniox's shared Both;
+- the managed Soniox lease and voice claim (`acquireSessionResources`,
+  `prepareToStart`);
+- the devices a WebRTC adapter captures from and plays to (`webrtcOptions`
+  carries the input device and, for echo cancellation, the output device).
+
+### Sockets that need upgrade headers
+
+Browsers cannot set WebSocket upgrade headers, so each platform injects them, by
+different mechanisms:
+
+| | Electron | Extension |
+|---|---|---|
+| mechanism | main-process `onBeforeSendHeaders` | `declarativeNetRequest` dynamic rules, in the background worker |
+| life | per host, **one-shot** — the next upgrade consumes it | **persistent** until cleared |
+| who can hit it | the app's own renderer | any page in the browser, unless the rule sets `initiatorDomains` |
+| constraint | one listener per session, shared with Better Auth's cookie injection | `host_permissions` must list `wss://` explicitly, or Chrome ignores the rule silently |
+
+Every extension rule rewrites request headers; none touches response headers.
+
+**The AST2 rules expose the user's keys.** They (`background.js`, ids
+2000–2009) set no `initiatorDomains` and stay installed for the whole session,
+cleared on disconnect (`VolcengineAST2Client.ts:1008-1010`). While an AST2
+session runs, any page that opens a socket to `openspeech.bytedance.com` has the
+user's App Key and Access Key injected: the page cannot read them, but its
+connection is authenticated, and billed, as the user. OpenAI Live's and Bing's
+rules set `initiatorDomains`, and Live's is removed once the session has started.
+
+What unifies is the interface a client sees, not the mechanism:
+`openSocket(url, { set, remove }) → WebSocket`, one implementation per platform.
+Electron keeps its one-shot rule; the extension implementation always scopes by
+`initiatorDomains` and path, and clears as soon as the upgrade completes. Clients
+stop pairing register and clear calls around a `headersRegistered` flag, the AST2
+exposure closes by construction, the background worker's per-provider blocks and
+message pairs collapse to one, and two legs opening the same host are
+serialized in one place. Today the legs connect one after the other
+(`MainPanel.tsx:2463`, then `:2753`), so nothing collides yet; a per-host
+register/clear pair would, the moment the legs come up together.
+
+### What adding a provider then touches
+
+1. One folder, `src/providers/<id>/`: the definition, the adapter, the `Settings`
+   component, tests.
+2. One line in the registry, one in the order test.
+3. `providers.<id>.name` and `.description` in the 30 locale catalogs — unchanged.
+4. The extension manifest, when the provider uses a new host — MV3 declares hosts
+   statically.
+5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
+
+For OpenAI Live that is two code files outside its folder, plus the manifest,
+against 21 today.
+
+---
+
 ## Migration
 
 Rewrite, not migrate. Neither adapter direction is built.
@@ -846,8 +1152,16 @@ second karaoke renderer (`:255-274`, a duplicate of `ConversationRow`'s);
 wire's `items?: any[]` becomes a typed `Entry[]`. Both subtitle surfaces share
 these components, so this is one rewrite, not two.
 
-The other clients are **deleted**. Each is recovered from git history when its
-turn comes, and read to learn the protocol rather than ported.
+**The provider-definition layer is built in this stage too**: the registry,
+generic settings and credential storage, the credential form, the language
+section, the readiness state, the shared field components and the socket seam —
+with LocalInference's definition as the first user. Its settings component is the
+first to be composed from the shared fields.
+
+The other clients are **deleted**, and their descriptors with them. Each is
+recovered from git history when its turn comes, and read to learn the protocol
+rather than ported; a Stage 2 step writes the provider's definition, adapter and
+settings component together.
 
 **Stage 2 — one provider per change.** Ordered by what each adds to the model's
 coverage, not by difficulty:
@@ -939,26 +1253,22 @@ into an explicit choice in L3; they are settled against rendered pages, not here
 
 ### Structural gaps
 
-The design above now says what a client emits and what it receives. It does not
-yet say who builds that request, or in what order a session starts. These two
-are larger than the twelve client rewrites together.
+The design above now says what a client emits, what it receives, and who builds
+that request. It does not yet say in what order a session starts.
 
-- **The `ProviderDescriptor` layer** — `src/services/providers/`, 10,763 lines:
-  `buildSessionConfig`, `extractCredentials`, `validateAndFetchModels`,
-  `prepareToStart`, `acquireSessionResources`, `planBothMode`, and the
-  capabilities. `buildParticipantSessionConfig` is already gone under the session
-  request. What remains is who builds `C` and `K` — model resolution reads a
-  store, so it must happen in the builder, never in an adapter; `LocalNativeClient`
-  reading and writing `useNativeModelStore` inside `connect()` is the one client
-  that breaks this today.
 - **Session lifecycle.** `connectConversation` is one 1,181-line function. Who
   starts a session, in what order, how the two legs come up together, how a
   failure unwinds, and where the managed Soniox lease lives — its
   `session` / `sttRole` / `announcesSessionOutcome` are a collaborator the
   adapter reports billing events to, not configuration. The turn (gating, voice
-  count, begin / end / cancel) also lives here.
-
-The descriptor layer comes first: session lifecycle depends on it.
+  count, begin / end / cancel) also lives here, and so does everything the
+  provider definition hands over because it spans both legs or outlives one
+  call: the local engines' memory budget across legs, Soniox's shared Both, the
+  managed voice claim, and the devices a WebRTC adapter captures from and plays
+  to. `LocalNativeClient` reading and writing `useNativeModelStore` inside
+  `connect()` moves out of the adapter into its builder, per the definition's
+  rule that model resolution never happens in an adapter; Local Native is not
+  yet open to general users, so it carries no compatibility burden.
 
 ### Parameters and deferred decisions
 
@@ -989,7 +1299,10 @@ The descriptor layer comes first: session lifecycle depends on it.
 
 - **The display model is only validated by Stage 1.** If it is wrong, it is wrong
   before any provider but the first. This is why Stage 1's acceptance covers all
-  three surfaces rather than the data layer alone.
+  four surfaces rather than the data layer alone.
+- **Provider-owned settings components can drift apart visually.** Nothing
+  type-checks a class name. The shared field components are the defence, and a
+  provider's component composes them rather than copying their markup.
 - **`origin` inference has no ground truth to test against** for the three
   providers that need it. Its failure mode is a wrong pairing, which is worse
   than no pairing — so `pairing: 'none'` must stay reachable and the display must
