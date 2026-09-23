@@ -196,3 +196,36 @@ describe('Conversation — re-anchoring and fill-in', () => {
     expect(conv.snapshot().segments[0].text).toBe('a b');
   });
 });
+
+describe('Conversation — retention and clear', () => {
+  it('keeps the range but no pcm when keepPcm is off', () => {
+    const { conv, apply } = make({ retention: { keepPcm: false, maxPcmBytes: 1 << 20 } });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'abc' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 3], pcm: pcm(240) } });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 3], pcm: new Int16Array(0) }]);
+  });
+
+  it('drops the oldest pcm past the byte ceiling, text and ranges intact', () => {
+    const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 1000 } });
+    for (const ref of [1, 2, 3]) {
+      apply({ kind: 'segmentOpened', payload: { ref, side: 'translation' } }, { kind: 'segmentText', payload: { ref, text: 'abc' } });
+      apply({ kind: 'audio', payload: { ref, range: [0, 3], pcm: pcm(200) } }); // 400 bytes each
+    }
+    const speech = conv.snapshot().segments.map((s) => s.speech[0]);
+    expect(speech.map((s) => s.pcm.length)).toEqual([0, 200, 200]);
+    expect(speech.map((s) => s.range)).toEqual([[0, 3], [0, 3], [0, 3]]);
+  });
+
+  it('clear() drops closed segments, notices and audio, and keeps open segments open with empty text', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentText', payload: { ref: 1, text: 'done' } }, { kind: 'segmentClosed', payload: { ref: 1 } });
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 2, text: 'live' } }, { kind: 'audio', payload: { ref: 2, pcm: pcm(10) } });
+    apply({ kind: 'failed', payload: { message: 'x' } });
+    conv.clear();
+    const leg = conv.snapshot();
+    expect(leg.notices).toEqual([]);
+    expect(leg.segments.map((s) => [s.ref, s.text, s.final, s.speech.length])).toEqual([[2, '', false, 0]]);
+    apply({ kind: 'segmentText', payload: { ref: 2, text: 'still live' } });
+    expect(conv.snapshot().segments[0].text).toBe('still live');
+  });
+});

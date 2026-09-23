@@ -10,6 +10,7 @@ import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
 import { baseLang } from '../segmentation/sentenceEnd';
 import { fillIn, type Punctuator } from './fillIn';
 import { reanchorRanges } from './reanchor';
+import { EMPTY_PCM } from './types';
 import type { Languages, Leg, LegName, Mark, Notice, Segment, Speech } from './types';
 
 /** Writes closer together than this collapse into one mark. It is the
@@ -22,6 +23,15 @@ export interface ConversationDiagnostic {
   message: string;
 }
 
+export interface Retention {
+  /** Off: pcm is dropped on arrival; the row keeps its range and loses replay. */
+  keepPcm: boolean;
+  /** Above this many bytes of pcm across the leg, the oldest pcm is dropped. */
+  maxPcmBytes: number;
+}
+
+export const DEFAULT_RETENTION: Retention = { keepPcm: true, maxPcmBytes: 64 * 1024 * 1024 };
+
 export interface ConversationOptions {
   leg: LegName;
   session: string;
@@ -30,6 +40,7 @@ export interface ConversationOptions {
   onDiagnostic?: (d: ConversationDiagnostic) => void;
   /** Punctuation fill-in for segments that close without a sentence end. */
   punctuate?: Punctuator;
+  retention?: Retention;
 }
 
 export class Conversation {
@@ -46,6 +57,7 @@ export class Conversation {
   private readonly listeners = new Set<() => void>();
   private depth = 0;
   private dirty = false;
+  private pcmBytes = 0;
 
   constructor(protected readonly opts: ConversationOptions) {}
 
@@ -76,13 +88,15 @@ export class Conversation {
     });
   }
 
-  /** Extended in Task 7. */
   clear(): void {
     this.batch(() => {
-      this.segments = [];
+      const kept = this.segments.filter((s) => !s.final).map((s) => ({ ...s, text: '', marks: [], speech: [], timing: undefined }));
+      this.segments = kept;
       this.notices = [];
       this.indexByRef.clear();
+      kept.forEach((s, i) => this.indexByRef.set(s.ref, i));
       this.pending.clear();
+      this.pcmBytes = 0;
       this.touch();
     });
   }
@@ -160,9 +174,9 @@ export class Conversation {
     this.touch();
   }
 
-  // ---- hooks the later tasks fill in ----
+  // ---- hooks ----
 
-  /** Task 6 re-anchors speech ranges and runs punctuation fill-in here. */
+  /** Replaces a segment's text, re-anchoring its speech ranges and extending the growth trace. */
   protected replaceText(i: number, text: string, o: { timing?: SegmentTiming; language?: string; mark: boolean }): void {
     const seg = this.segments[i];
     const ranges = reanchorRanges(seg.text, text, seg.speech.map((s) => s.range));
@@ -171,7 +185,7 @@ export class Conversation {
     this.replace(i, { ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, marks, speech });
   }
 
-  /** Task 6 triggers fill-in from here. */
+  /** Marks a segment final and starts punctuation fill-in for it. */
   protected markFinal(i: number): void {
     const seg = { ...this.segments[i], final: true };
     this.replace(i, seg);
@@ -195,9 +209,27 @@ export class Conversation {
     return baseLang(lang);
   }
 
-  /** Task 7 applies the retention policy here. */
-  protected retain(pcm: Int16Array): Int16Array { return pcm; }
-  protected afterAudio(): void {}
+  /** Counts or drops arriving pcm per the retention policy. */
+  protected retain(pcm: Int16Array): Int16Array {
+    const retention = this.opts.retention ?? DEFAULT_RETENTION;
+    if (!retention.keepPcm) return EMPTY_PCM;
+    this.pcmBytes += pcm.byteLength;
+    return pcm;
+  }
+
+  /** Drops the oldest pcm until the leg is under its ceiling. */
+  protected afterAudio(): void {
+    const max = (this.opts.retention ?? DEFAULT_RETENTION).maxPcmBytes;
+    for (let i = 0; i < this.segments.length && this.pcmBytes > max; i++) {
+      const seg = this.segments[i];
+      const k = seg.speech.findIndex((s) => s.pcm.length > 0);
+      if (k < 0) continue;
+      const speech = seg.speech.map((s, j) => (j === k ? { ...s, pcm: EMPTY_PCM } : s));
+      this.pcmBytes -= seg.speech[k].pcm.byteLength;
+      this.replace(i, { ...seg, speech });
+      i--; // the same segment may hold more pcm
+    }
+  }
 
   // ---- internals ----
 
