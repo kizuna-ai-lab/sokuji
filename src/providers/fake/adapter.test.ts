@@ -137,3 +137,41 @@ describe('createFakeAdapter', () => {
     await expect(createFakeAdapter().start({ context: auto, config: { script: { blocks: [] } }, credentials: {}, clock, signal: ac.signal }, events)).rejects.toThrow('cancelled');
   });
 });
+
+describe('fake adapter — cancel and every step kind', () => {
+  it('rejects a start cancelled during its delay, and its timer stays silent', async () => {
+    const clock = createVirtualClock();
+    const { events, log } = recordEvents();
+    const controller = new AbortController();
+    const script = { blocks: [exchange({ startAt: 0, ref: 1, source: ['a'], translation: 'b' })] };
+    const starting = createFakeAdapter().start(
+      { context: auto, config: { script, faults: { startDelayMs: 1000 } }, credentials: {}, clock, signal: controller.signal },
+      events,
+    );
+    controller.abort(new Error('cancelled'));
+    await expect(starting).rejects.toThrow('cancelled');
+    clock.advance(10_000);
+    expect(log).toEqual([]);
+  });
+
+  it('plays every kind of scripted step', async () => {
+    const steps = [
+      { at: 0, degraded: { code: 'parse_error' as const, message: 'bad' } },
+      { at: 1, reconnecting: true as const },
+      { at: 2, reconnected: true as const },
+      { at: 3, loading: { stage: 'asr', done: 1, total: 2 } },
+      { at: 4, busy: true },
+      { at: 5, frame: { direction: 'in' as const, type: 'test.frame' } },
+      { at: 6, closed: { reason: 'done' } },
+    ];
+    const { clock, log } = await start({ blocks: [{ startAt: 0, steps }] });
+    clock.advance(10);
+    expect(kinds(log)).toEqual(['degraded', 'reconnecting', 'reconnected', 'loading', 'busy', 'frame', 'closed']);
+  });
+
+  it('plays a scripted failure and then nothing', async () => {
+    const { clock, log } = await start({ blocks: [{ startAt: 0, steps: [{ at: 0, failed: { message: 'x' } }, { at: 5, busy: true }] }] });
+    clock.advance(10);
+    expect(kinds(log)).toEqual(['failed']);
+  });
+});

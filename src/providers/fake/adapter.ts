@@ -44,6 +44,8 @@ export function createFakeAdapter(): Adapter<FakeConfig, FakeCredentials> {
       const { script, faults } = request.config;
       if (faults?.startThrows) throw new Error(faults.startThrows);
       if (faults?.startDelayMs) await waitOnClock(request.clock, faults.startDelayMs, request.signal);
+      // A cancel landing as the delay ends still wins: nothing opens after it.
+      if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
       return new FakeSession(request.clock, script, faults ?? {}, request.context, events);
     },
   };
