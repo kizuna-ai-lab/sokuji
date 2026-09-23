@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createVirtualClock } from './clock';
 import { SAMPLE_RATE, type Adapter, type AdapterEvents, type AdapterSession } from './adapter';
 
 /** A no-op adapter: proves the interface can be implemented as written. */
@@ -41,7 +42,7 @@ describe('contract', () => {
       frame: () => {},
     };
     const session = await nullAdapter.start(
-      { context: { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' }, config: { name: 'hi' }, credentials: { key: '' } },
+      { context: { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' }, config: { name: 'hi' }, credentials: { key: '' }, clock: createVirtualClock(), signal: new AbortController().signal },
       events,
     );
     expect(seen).toEqual(['opened', 'text:hi', 'closed']);

@@ -6,6 +6,8 @@ import { msForText, synthPcm } from './synth';
 export interface FakeFaults {
   /** `start()` rejects with this message. */
   startThrows?: string;
+  /** `start()` waits this long, on the request's clock, before the session opens. */
+  startDelayMs?: number;
   /** Emit `failed` this long after start, then stay silent. */
   failAfterMs?: number;
   failMessage?: string;
@@ -21,14 +23,31 @@ export type FakeCredentials = Record<string, never>;
 /** Refs minted for `appendText` start here, above any script ref. */
 const TEXT_REF_BASE = 1000;
 
-export function createFakeAdapter(clock: Clock): Adapter<FakeConfig, FakeCredentials> {
+export function createFakeAdapter(): Adapter<FakeConfig, FakeCredentials> {
   return {
     async start(request, events): Promise<AdapterSession> {
+      if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
       const { script, faults } = request.config;
       if (faults?.startThrows) throw new Error(faults.startThrows);
-      return new FakeSession(clock, script, faults ?? {}, request.context, events);
+      if (faults?.startDelayMs) await waitOnClock(request.clock, faults.startDelayMs, request.signal);
+      return new FakeSession(request.clock, script, faults ?? {}, request.context, events);
     },
   };
+}
+
+/** Resolves after `ms` on `clock`, or rejects (and cancels the timer) if `signal` aborts first. */
+function waitOnClock(clock: Clock, ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const cancel = clock.setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      cancel();
+      reject(signal.reason ?? new Error('aborted'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 class FakeSession implements AdapterSession {

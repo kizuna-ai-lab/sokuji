@@ -25,7 +25,7 @@ describe('the spine on the fake', () => {
       exchange({ startAt: 0, ref: 1, source: ['今日は', '今日は天気がいい'], translation: 'The weather is nice.', origin: 'u1', audioChunks: 2 }),
       exchange({ startAt: 3000, ref: 3, source: ['公園に'], translation: 'To the park.', origin: 'u2' }),
     ] };
-    const session = await createFakeAdapter(clock).start({ context, config: { script }, credentials: {} }, events);
+    const session = await createFakeAdapter().start({ context, config: { script }, credentials: {}, clock, signal: new AbortController().signal }, events);
     clock.advance(10_000);
     await session.stop();
     await new Promise((r) => setTimeout(r, 0));
@@ -52,7 +52,7 @@ describe('the spine on the fake', () => {
     const clock = createVirtualClock();
     const conv = new Conversation({ leg: 'speaker', session: 'long', languages: context.direction, clock, retention: { keepPcm: false, maxPcmBytes: 0 } });
     const events = eventsFrom((e) => conv.apply(e));
-    const session = await createFakeAdapter(clock).start({ context, config: { script: longScript(2000, 3000) }, credentials: {} }, events);
+    const session = await createFakeAdapter().start({ context, config: { script: longScript(2000, 3000) }, credentials: {}, clock, signal: new AbortController().signal }, events);
     const projector = createProjector();
     clock.advance(1999 * 3000 + 500);
     const before = projector.project([conv.snapshot()], { ...DEFAULT_PROJECTION, mode: 'sentences', sentencesPerRow: 1 });

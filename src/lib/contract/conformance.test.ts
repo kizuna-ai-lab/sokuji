@@ -13,7 +13,7 @@ describe('checkConformance on the fake', () => {
     const clock = createVirtualClock();
     const { events, log, mark } = recordConformance();
     const script: FakeScript = { blocks: [exchange({ startAt: 0, ref: 1, source: ['a', 'ab'], translation: 'Ab.', audioChunks: 2 })] };
-    const session = await createFakeAdapter(clock).start({ context: auto, config: { script }, credentials: {} }, events);
+    const session = await createFakeAdapter().start({ context: auto, config: { script }, credentials: {}, clock, signal: new AbortController().signal }, events);
     clock.advance(5000);
     await session.stop();
     mark('stop');
@@ -26,7 +26,7 @@ describe('checkConformance on the fake', () => {
     const { events, log, mark } = recordConformance();
     const ctx: SessionContext = { ...auto, turns: 'manual' };
     const script: FakeScript = { blocks: [exchange({ startAt: 0, ref: 1, source: ['a'], translation: 'A.' })] };
-    const session = await createFakeAdapter(clock).start({ context: ctx, config: { script }, credentials: {} }, events);
+    const session = await createFakeAdapter().start({ context: ctx, config: { script }, credentials: {}, clock, signal: new AbortController().signal }, events);
     session.beginTurn(); session.cancelTurn(); mark('cancelTurn');
     clock.advance(1000);
     session.beginTurn(); session.endTurn(); mark('endTurn');

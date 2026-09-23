@@ -181,9 +181,11 @@ the audio stored elsewhere) splits one fact across two places.
 
 ```ts
 // how a session starts — one call, no construct-then-connect
-adapter.start({ context, config, credentials, input }, events): Promise<Session>
+adapter.start({ context, config, credentials, input, clock, signal }, events): Promise<Session>
 //   input: a MediaStreamTrack from the runner's capture graph, for adapters
 //   that send a native track (WebRTC); every other adapter uses appendAudio
+//   clock: every timer the adapter runs; the runner's, a virtual one in tests
+//   signal: the run's; an adapter still opening rejects when it aborts
 
 interface SessionContext {           // the same for every provider
   direction: { source: Lang; target: Lang }
@@ -998,7 +1000,7 @@ interface Provider<S, K, C> {
   // one leg's session
   build(context: SessionContext, s: S, shared: SharedSettings): C | { refused: string }
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string }
-  start(request: { context: SessionContext; config: C; credentials: K; input: MediaStreamTrack }, events): Promise<Session>
+  start(request: { context: SessionContext; config: C; credentials: K; input: MediaStreamTrack; clock: Clock; signal: AbortSignal }, events): Promise<Session>
 
   // across legs and time — optional; see Session lifecycle
   session?: SessionHooks<S, K, C>

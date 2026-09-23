@@ -7,6 +7,7 @@
  * vocabulary are not its business (spec: "L0 — the client contract").
  */
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
+import type { Clock } from './clock';
 
 /** Audio crosses the contract at this rate, mono, Int16, in both directions. */
 export const SAMPLE_RATE = 24000;
@@ -34,6 +35,10 @@ export interface StartRequest<C, K> {
   /** A track from the runner's capture graph, for adapters that send a native
    *  track (WebRTC). Absent in tests and ignored by adapters that take pcm. */
   input?: MediaStreamTrack;
+  /** Every timer the adapter runs reads this clock; tests pass a virtual one. */
+  clock: Clock;
+  /** Aborted when the run is cancelled; an adapter still opening rejects and opens nothing. */
+  signal: AbortSignal;
 }
 
 export interface AdapterSession {

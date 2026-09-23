@@ -12,8 +12,8 @@ const kinds = (log: AdapterEvent[]) => log.map((e) => e.kind);
 async function start(script: FakeScript, context = auto, faults?: FakeConfig['faults']) {
   const clock = createVirtualClock();
   const { events, log } = recordEvents();
-  const session = await createFakeAdapter(clock).start(
-    { context, config: { script, faults }, credentials: {} },
+  const session = await createFakeAdapter().start(
+    { context, config: { script, faults }, credentials: {}, clock, signal: new AbortController().signal },
     events,
   );
   return { clock, log, session };
@@ -102,9 +102,31 @@ describe('createFakeAdapter', () => {
   it('throws from start() when told to', async () => {
     const clock = createVirtualClock();
     const { events } = recordEvents();
-    await expect(createFakeAdapter(clock).start(
-      { context: auto, config: { script: { blocks: [] }, faults: { startThrows: 'no network' } }, credentials: {} },
+    await expect(createFakeAdapter().start(
+      { context: auto, config: { script: { blocks: [] }, faults: { startThrows: 'no network' } }, credentials: {}, clock, signal: new AbortController().signal },
       events,
     )).rejects.toThrow('no network');
+  });
+
+  it('waits the configured start delay on the request clock', async () => {
+    const clock = createVirtualClock();
+    const { events } = recordEvents();
+    let done = false;
+    const started = createFakeAdapter().start({ context: auto, config: { script: { blocks: [] }, faults: { startDelayMs: 500 } }, credentials: {}, clock, signal: new AbortController().signal }, events).then(() => { done = true; });
+    await Promise.resolve();
+    expect(done).toBe(false);
+    clock.advance(500);
+    await started;
+    expect(done).toBe(true);
+  });
+
+  it('rejects a start aborted during its delay, and one aborted before it began', async () => {
+    const clock = createVirtualClock();
+    const { events } = recordEvents();
+    const ac = new AbortController();
+    const started = createFakeAdapter().start({ context: auto, config: { script: { blocks: [] }, faults: { startDelayMs: 500 } }, credentials: {}, clock, signal: ac.signal }, events);
+    ac.abort(new Error('cancelled'));
+    await expect(started).rejects.toThrow('cancelled');
+    await expect(createFakeAdapter().start({ context: auto, config: { script: { blocks: [] } }, credentials: {}, clock, signal: ac.signal }, events)).rejects.toThrow('cancelled');
   });
 });
