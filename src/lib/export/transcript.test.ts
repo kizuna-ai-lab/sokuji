@@ -65,4 +65,17 @@ describe('renderTranscriptJson', () => {
     expect(json.groups[0].source?.segmentIds).toEqual([src.id]);
     expect(json.notices).toEqual([{ id: 'n', leg: 'speaker', at: 2_000, severity: 'warning', message: 'hiccup', code: undefined }]);
   });
+
+  it('joins several segments of one side with a space only between space-delimited text', () => {
+    const zh1 = seg('speaker', { text: '今天天气很好。', openedAt: 0 });
+    const zh2 = seg('speaker', { text: '我们去公园吧。', openedAt: 100 });
+    const en1 = seg('speaker', { side: 'translation', text: 'The weather is nice.', openedAt: 200 });
+    const en2 = seg('speaker', { side: 'translation', text: 'Let us go to the park.', openedAt: 300 });
+    const leg: Leg = { leg: 'speaker', session: 's', languages: { source: 'zh', target: 'en' }, segments: [zh1, zh2, en1, en2], notices: [] };
+    const e: Entry = { kind: 'exchange', id: 'm', leg: 'speaker', languages: leg.languages, pairing: 'stated', source: [...rows(zh1), ...rows(zh2)], translation: [...rows(en1), ...rows(en2)], t: 0 };
+    const [g] = renderTranscriptJson([e], [leg]).groups;
+    expect(g.source?.text).toBe('今天天气很好。我们去公园吧。');
+    expect(g.translation?.text).toBe('The weather is nice. Let us go to the park.');
+    expect(g.source?.segmentIds).toEqual([zh1.id, zh2.id]);
+  });
 });

@@ -43,12 +43,27 @@ function segmentIndex(legs: readonly Leg[]): Map<SegmentId, Segment> {
   return index;
 }
 
+/** A boundary character that takes no space next to it: Han, kana, CJK and fullwidth punctuation. */
+const UNSPACED = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}　-〿＀-￯]/u;
+
+/** Several segments' text as one: a space between two pieces only where both sides of the
+ *  boundary are space-delimited script, so Chinese and Japanese stay unspaced. */
+function joinTexts(texts: string[]): string {
+  let out = '';
+  for (const text of texts) {
+    const piece = text.trim();
+    if (piece.length === 0) continue;
+    if (out.length > 0 && !UNSPACED.test(out[out.length - 1]) && !UNSPACED.test(piece[0])) out += ' ';
+    out += piece;
+  }
+  return out;
+}
+
 /** The distinct segments behind a group's rows, in row order, text whole. */
 function sideOf(rows: Row[], index: Map<SegmentId, Segment>): TranscriptSide | null {
-  const ids: SegmentId[] = [];
-  for (const row of rows) if (!ids.includes(row.segmentId)) ids.push(row.segmentId);
+  const ids = [...new Set(rows.map((row) => row.segmentId))];
   if (ids.length === 0) return null;
-  const text = ids.map((id) => index.get(id)?.text ?? '').join(' ').trim();
+  const text = joinTexts(ids.map((id) => index.get(id)?.text ?? ''));
   return { segmentIds: ids, text };
 }
 
