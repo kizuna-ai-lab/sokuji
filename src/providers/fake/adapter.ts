@@ -20,7 +20,7 @@ export interface FakeConfig {
 
 export type FakeCredentials = Record<string, never>;
 
-/** Refs minted for `appendText` start here, above any script ref. */
+/** The lowest ref minted for `appendText`; a script whose refs reach it moves the first one past its largest ref. */
 const TEXT_REF_BASE = 1000;
 
 /** The largest ref any step in the script names, or -Infinity if none does. */
