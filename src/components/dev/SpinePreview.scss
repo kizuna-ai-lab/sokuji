@@ -1,0 +1,8 @@
+// The preview has no MainLayout around it, so it takes MainLayout's two
+// colours itself (MainLayout.scss: `.main-layout`) — not the class, whose
+// height/overflow/flex rules would clip a page taller than the window.
+.spine-preview {
+  min-height: 100vh;
+  background-color: #1e1e1e;
+  color: white;
+}

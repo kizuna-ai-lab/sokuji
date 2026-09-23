@@ -3,6 +3,7 @@ import { useAuth } from '../../lib/auth/hooks';
 import { presentProviders } from '../../providers/registry';
 import { ProviderPanel } from '../providers/ProviderPanel';
 import '../Settings/Settings.scss';
+import './SpinePreview.scss';
 
 /**
  * Development builds only: the new provider layer on a page of its own, so it
@@ -14,7 +15,7 @@ export function SpinePreview() {
   const auth = useMemo(() => ({ signedIn: isSignedIn, getToken }), [isSignedIn, getToken]);
   const providers = useMemo(() => presentProviders(), []);
   return (
-    <div className="settings-container">
+    <div className="settings-container spine-preview">
       <div className="settings-body">
         <ProviderPanel providers={providers} auth={auth} />
       </div>
