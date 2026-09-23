@@ -324,6 +324,7 @@ describe('runner — stopping', () => {
     // A throwing port must not skip `run.close()`: the first run's source
     // and adapter session must still be stopped, or the run keeps streaming
     // and playing behind the runner's back.
+    expect(sources).toHaveLength(1);
     expect(sources.every((s) => s.stopped)).toBe(true);
     playback.audio.mockClear();
     clock.advance(20_000);
@@ -340,6 +341,21 @@ describe('runner — stopping', () => {
     await runner.start();
     await runner.stop();
     expect(runner.state.getState().phase).toBe('idle');
+  });
+
+  it('a subscriber that throws when the phase becomes stopping cannot keep the run open', async () => {
+    const { runner, clock, sources, playback } = setup();
+    runner.state.subscribe((s) => {
+      if (s.phase === 'stopping') throw new Error('subscriber boom');
+    });
+    await runner.start();
+    await runner.stop();
+    expect(runner.state.getState().phase).toBe('idle');
+    expect(sources).toHaveLength(1);
+    expect(sources.every((s) => s.stopped)).toBe(true);
+    playback.audio.mockClear();
+    clock.advance(20_000);
+    expect(playback.audio).not.toHaveBeenCalled();
   });
 
   it('an onRunEnded that hangs does not keep the runner stopping', async () => {

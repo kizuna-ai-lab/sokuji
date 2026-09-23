@@ -32,7 +32,14 @@ export function createRunner(deps: RunnerDeps): Runner {
   let current: Run | null = null;
   let ending: Promise<void> | null = null;
 
-  const set = (next: RunState) => state.setState(next, true);
+  /** A subscriber's bug is reported, never thrown into the runner: zustand stores the state before notifying, so the phase stays right. */
+  const set = (next: RunState) => {
+    try {
+      state.setState(next, true);
+    } catch (error) {
+      reportError('SessionRunner', `A session-state subscriber threw: ${describeCause(error)}`, { cause: error });
+    }
+  };
   const legs = (run: Run) => Object.fromEntries(run.legStates) as Partial<Record<LegName, LegState>>;
 
   /** Races `task` against `timeoutMs`; a timeout is reported and treated as done, so a hung `onRunEnded` cannot strand the runner. */
@@ -91,15 +98,10 @@ export function createRunner(deps: RunnerDeps): Runner {
       } finally {
         current = null;
         ending = null;
-        // `finished()` must run even if notifying subscribers throws, or a
-        // subscriber's bug leaves `stop()` pending forever.
-        try {
-          set({ phase: 'idle', lastEnd: result });
-        } catch (error) {
-          reportError('SessionRunner', `Notifying the idle state failed: ${describeCause(error)}`, { cause: error });
-        } finally {
-          finished();
-        }
+        // `set` now absorbs a subscriber's throw; `finished()` still runs
+        // last so `done` always resolves.
+        set({ phase: 'idle', lastEnd: result });
+        finished();
       }
     })();
     return done;
