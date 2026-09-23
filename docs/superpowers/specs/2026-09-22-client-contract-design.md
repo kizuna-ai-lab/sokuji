@@ -22,6 +22,13 @@ https://claude.ai/artifact/1PbYxsxRG6z4pkJ9JEPmfx
 - **L1** (one per leg) owns identity, timestamps, punctuation fill-in and the
   segment list. **L2** (session-wide) projects segments into display rows and
   groups. Interleaving the two legs happens in L2, never in L1.
+- A session starts with one call carrying a small shared **context** (direction,
+  whether to speak, auto or manual turns) and the provider's own configuration,
+  declared next to its adapter. There is no central config union, and the
+  participant leg is the same configuration with the direction reversed.
+- **Every provider offers auto, push-to-talk and push-to-translate.** Adapters see
+  only auto or manual and end a turn their own best way; push-to-translate is a
+  routing rule.
 - Audio output gets an explicit **routing table**. Volume stops being used as a
   control; the only real volume left in the system is the passthrough ratio.
 - `ConversationItem` is deleted.
@@ -75,6 +82,9 @@ workload untouched does not count.
 | D11 | Migration | Rewrite, not migrate. New display layer plus one provider end to end, then one provider at a time. Old clients are deleted and read from git history as protocol documentation. |
 | D12 | Branch | A long-lived branch. `main` stays releasable but is not expected to move. |
 | D13 | Export | One block per group, each segment's text whole, one timestamp per group. Inferred pairings are written paired like stated ones; the JSON form keeps `pairing`. |
+| D14 | Turns | Every provider offers auto, push-to-talk and push-to-translate. Adapters see only `turns: 'auto' \| 'manual'` and implement `beginTurn` / `endTurn` / `cancelTurn`; the voice gate is generic; push-to-translate is a routing rule; `pttFinalization` is deleted. |
+| D15 | Turn mode storage | One global setting, not per provider. |
+| D16 | Extension overlay | Gets a hold button (pointer down / up / leave / cancel) forwarded over the port; its "Press Space to speak" hint is removed, since Space belongs to the meeting page. |
 
 ### Deleted with no behaviour change
 
@@ -153,13 +163,23 @@ the audio stored elsewhere) splits one fact across two places.
 ## L0 — the client contract
 
 ```ts
-// received by the client
-connect(config): Promise<void>
-disconnect(): Promise<void>
-appendAudio(pcm: Int16Array): void        // 24 kHz mono
-appendText(text: string): void
-finalizeTurn(): void                      // PTT release
-cancelTurn(): void
+// how a session starts — one call, no construct-then-connect
+adapter.start({ context, config, credentials }, events): Promise<Session>
+
+interface SessionContext {           // the same for every provider
+  direction: { source: Lang; target: Lang }
+  speech:    boolean                 // produce translated audio? derived from routing
+  turns:     'auto' | 'manual'       // always 'auto' on the participant leg
+}
+
+interface Session {                  // what a running session accepts
+  appendAudio(pcm: Int16Array): void       // 24 kHz mono
+  appendText(text: string): void
+  beginTurn(): void                        // manual turns: key pressed
+  endTurn(): void                          //   released, speech was heard
+  cancelTurn(): void                       //   released, no speech
+  stop(): Promise<void>
+}
 
 // emitted by the client
 segmentOpened({ ref, side: 'source' | 'translation', origin? })
@@ -202,6 +222,222 @@ nothing, and today's contract has no way to say so.
 from the previous chunk. Clients also stop maintaining cumulative audio duration
 — `audioCumSamples` / `cumulativeAudioDuration` is computed in four clients
 today, and each pcm block's duration follows from its own length.
+
+### The session request
+
+Configuration reaches a client today through three channels — credentials and
+`ClientOptions` into the constructor, a `SessionConfig` into `connect()` — in
+**seven different constructor shapes**: the credential is a first positional
+string, two positional strings, a tagged union, a bundle, a field inside an
+options object, or absent; the options object sits in position 1, 2, 3 or 5.
+Nothing declares which fields a provider must fill.
+
+Counted as one row per field per client that receives it, there are 232 rows:
+
+| Class | Rows | Share | What |
+|---|---|---|---|
+| protocol | 95 | 41% | sent to the server, or shapes the transport |
+| local pipeline | 39 | 17% | the local engines' models, VAD, TTS |
+| cross-cutting | 53 | 23% | 29 segmentation options, **11 language fields that exist only to pick a punctuation model**, 10 × `keepReplayAudio`, 3 managed-lease options |
+| dead | 45 | 19% | 24 filled but never read, 21 inherited but never filled |
+
+The cross-cutting rows leave the client under the layers above: segmentation to
+L2 (bar the local engines' translation-job cut), the punctuation language to L1,
+which knows the direction, replay retention to L1, the lease to session
+lifecycle.
+
+The dead rows have one source: `BaseSessionConfig`, which imposes `model`,
+`voice`, `instructions`, `temperature`, `maxTokens` and `textOnly` on every
+provider although they share no meaning. `voice` is an OpenAI voice id, a Gemini
+prebuilt name, a region-specific Soniox voice, an unread copy of Palabra's
+`voiceId`, or unread by the local engines. `model` is a server model id or a
+constant label nothing reads in five clients. Palabra ignores 7 of its 19 fields.
+The doc comments have drifted with it: `keepReplayAudio` claims every client
+caches it (two never read it), the settings store claims every provider honours
+`textOnly` (four do not), OpenAI Translate's `sourceLanguage` claims to be a UI
+hint (it is the segmentation language), and Soniox's `clientReferenceId` claims
+to be inert on the wire (it is sent, and billing depends on it).
+
+So the request has three parts:
+
+- **`context`** — the only thing every provider receives the same way. Small on
+  purpose.
+- **`config: C`** — the provider's own configuration, **declared next to its
+  adapter**. There is no central union: adding a provider edits no shared file,
+  and the 15 `is*SessionConfig` call sites, three hand-written provider checks
+  and MainPanel's `as SonioxSessionConfig` cast all disappear, because the
+  builder and the adapter share `C` statically.
+- **`credentials: K`** — likewise the provider's own, kept separate so it can be
+  redacted.
+
+**Direction is lifted out of the provider fields.** Every provider carries a
+source and a target, but today each encodes it its own way — OpenAI folds it into
+`inputAudioTranscription`, Gemini into `translationConfig`, and both keep a copy
+that is never sent to the API purely so the participant leg can reverse it. With
+direction in `context`, each adapter derives its protocol fields from it
+internally. The consequence:
+
+> **The participant leg is the same builder called with the reversed direction.**
+
+The seven `buildParticipantSessionConfig` overrides disappear. Most of them swap
+source and target and re-derive; the two remaining special cases become generic:
+whether a direction is supported (OpenAI Translate's thirteen targets, Palabra's
+check) is a `supports(direction)` query the adapter answers, and the participant
+leg's server-side turn detection follows from `turns: 'auto'`.
+
+**One call replaces construct-then-connect.** A client is created, connected
+immediately and used for exactly one session, so the two are one moment. The
+WebRTC-to-WebSocket fallback, which today builds its client without the leg's
+options (`MainPanel.tsx:2486`), becomes the same request handed to another
+adapter.
+
+**`updateSession` is deleted.** It has no external caller, and "a running session
+does not react to a setting changing" is already the rule. Adapters that
+reconnect (Gemini, OpenAI Live, Soniox's 503 resume) reuse the original request
+internally.
+
+**What opacity costs.** Telemetry reads model names straight out of the config
+today (`sessionModelTelemetry(sessionConfig, …)`). With `C` opaque, an adapter
+offers a small `describe()` returning `{ asrModel?, translationModel?, ttsModel? }`.
+
+The conservative alternative — keep the union, strip the cross-cutting and dead
+fields, lift direction out — removes the participant overrides too, but fails
+the measure: adding a provider would still mean adding a type to `IClient.ts`,
+adding it to the union and writing a guard.
+
+---
+
+## Turns
+
+"Turn detection" names three different things today:
+
+| | What it is | Where it belongs |
+|---|---|---|
+| **Mode** | auto, push-to-talk, push-to-translate | a user setting |
+| **Gating** | send audio only while the key is held | above the adapter, generic |
+| **Ending** | on release, make the provider end this utterance now | **inside each adapter** |
+
+Today the third sits in MainPanel. `capabilities.pttFinalization` has MainPanel
+carry out each provider's ending strategy — append seven silent frames and flush
+for the local engines, five and do nothing for AST2, branch on a voice count for
+Gemini and OpenAI. It is the one detail that most belongs inside the adapter, and
+it has leaked out of it.
+
+### What each provider can do
+
+| Provider | Automatic turns | Ending on release | Precision |
+|---|---|---|---|
+| OpenAI ×3 | server VAD or semantic VAD, configurable | commit + `response.create` | immediate |
+| Gemini | server activity detection, configurable | `activityEnd` | immediate |
+| Soniox | server endpoint model (`<end>`), configurable | **`finalize` — exists, never called** | immediate |
+| Local ×2 | client VAD, configurable | flush | immediate |
+| Volcengine AST2 | server VAD, no knobs | none on the wire; its keepalive already streams silence and the server closes the segment | after silence |
+| Palabra | server segmentation, silence threshold configurable | none on the wire; the track (`dtx:false`) carries silence and the server segments after its threshold | after silence |
+| OpenAI Translate ×2, OpenAI Live | **a continuous stream; there are no turns on the wire** | not needed — release stops the microphone and what was said finishes translating | n/a |
+
+**Every one of the twelve can support manual turns correctly.** None is
+incapable; they differ only between immediate and after-silence.
+
+`SonioxSttStream.finalize()` (`:198`) — "Finalize pending tokens without ending the
+session" — has no caller anywhere. Soniox has no push-to-talk today not because
+its protocol lacks it but because it was never wired.
+
+### The design
+
+**`context.turns` is `'auto' | 'manual'`.** Push-to-talk and push-to-translate
+are the same thing to an adapter.
+
+**A manual turn is three methods**, each implemented with the adapter's best
+mechanism:
+
+| | `beginTurn` | `endTurn` | `cancelTurn` |
+|---|---|---|---|
+| OpenAI | — (WebRTC: enable its own track) | commit + response | **`input_audio_buffer.clear`** |
+| Gemini | `activityStart` | `activityEnd` | end without generating |
+| Soniox | — | **`finalize`** | — |
+| Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
+| AST2, Palabra | — | — (the server closes on silence) | — |
+| OpenAI Translate, OpenAI Live | — | — | — |
+
+`beginTurn` exists for two reasons: Gemini sends `activityStart` today on a
+heuristic ("before the first audio chunk"), and the two WebRTC adapters own their
+microphone as a native track that only they can gate.
+
+`input_audio_buffer.clear` is never sent anywhere today. When the voice gate
+decides a press held no speech, OpenAI's clients neither commit nor clear, so
+that audio stays in the server's buffer and rides along with the next commit.
+
+**The voice gate is generic, and `pttFinalization` is deleted.** Above the
+adapter, the session counts voiced chunks for the turn: enough, `endTurn()`;
+not enough, `cancelTurn()`. Today's four strategies (`always`, `server-decides`,
+`voice-gated`, `voice-gated-cancel`) patched the holes left by ending-knowledge
+leaking out of the adapters; with the leak closed, the capability has no reason
+to exist. The count belongs to the turn itself, so a press that begins while the
+previous turn is still ending can no longer reset the previous turn's count.
+
+**Push-to-translate is a routing rule.** The key toggles the "original voice →
+virtual device" route inversely: open while idle, closed while held. The adapter
+never learns it exists. It stops depending on the recorder, which today leaves
+passthrough silent during push-to-talk idle even with the passthrough toggle on.
+
+**The automatic mechanism and its knobs are the provider's configuration**, in
+`C`. OpenAI's stored `'Normal'` and `'Semantic'` are not turn modes but its two
+automatic mechanisms; they become OpenAI's `autoDetection: 'server' | 'semantic'`,
+and OpenAI stops storing push-to-talk as `'Disabled'`.
+
+**The participant leg is always `turns: 'auto'`**, never gated, with no
+passthrough — a generic rule rather than Gemini's override. The settings copy
+"Other's audio always uses semantic VAD", false today for every provider but
+Gemini, becomes "always uses the provider's automatic detection", and true.
+
+**The mode is one global setting.** Every provider supports all three, so whether
+to hold a key is the user's habit, not a property of a provider, and switching
+providers should not lose it. Today it is stored in six provider slices and
+absent from six.
+
+### Surfaces emit press and release
+
+The session owns the turn — gating, the voice count, begin, end, cancel. Each
+input surface only emits **press** and **release**:
+
+- **the panel's hold button**, with pointer down, up, **leave and cancel**. Today's
+  buttons handle down and up only, so pressing and dragging off the button
+  never releases.
+- **the Space key**, in the panel and in the Electron subtitle takeover. The
+  takeover is the same window reshaped, MainPanel's key listeners stay attached,
+  and no other application competes for the key.
+- **a hold button on the extension overlay**, new. The overlay has no
+  push-to-talk today: `SubtitleApp.tsx:380-382` shows "Press Space to speak"
+  before the first bubble, but its only key listener handles Escape, the injected
+  content script listens only for Escape, and the overlay-to-panel wire carries
+  only `request-clear` and `user-exit`. Two messages join them,
+  `subtitle:turn-press` and `subtitle:turn-release`, following the existing
+  control-message path.
+
+**The "Press Space to speak" hint is removed from the extension overlay.** The
+overlay sits inside a meeting page, and Google Meet uses Space itself for
+press-to-unmute: Space there is not Sokuji's key. The Electron subtitle
+takeover keeps its hint, where it is true.
+
+### Defects removed by construction
+
+- An empty OpenAI press leaves its audio in the server buffer to join the next
+  turn — `cancelTurn` clears it.
+- On OpenAI over WebRTC the key does not gate audio at all: the native track is
+  always live and the key only counts voiced chunks — the adapter now gates its
+  own track.
+- Push-to-talk idle suppresses passthrough even with the toggle on —
+  passthrough is a route, independent of the recorder.
+- A passthrough volume of 0 plays at 30% (`passthroughVolume || 0.3`) — it is a
+  gain on a route, and 0 means 0.
+- The declared modes disagree with the offered ones — AST2 declares two and
+  offers three, Gemini and the local engines declare none and offer three,
+  OpenAI's push-to-translate is outside its own declaration. The declarations
+  disappear; every provider offers all three.
+
+**Coverage.** Soniox, OpenAI Translate (with its Kizuna twin), OpenAI Live and
+Palabra offer only automatic turns today. All of them gain push-to-talk and
+push-to-translate.
 
 ---
 
@@ -700,27 +936,37 @@ into an explicit choice in L3; they are settled against rendered pages, not here
 
 ## Open questions
 
+### Awaiting confirmation
+
+- **The session request (§L0 "The session request") rests on one claim: the
+  participant leg needs nothing beyond a reversed direction and
+  `turns: 'auto'`.** If some provider's participant leg needs more, that is a
+  counter-example to the shape and the participant builder comes back. The
+  shape was proposed and the turns design was built on it, but the claim itself
+  has not been explicitly confirmed.
+
 ### Structural gaps
 
-These three are larger than the twelve client rewrites together, and none of
-them is designed yet. The design above says what a client emits; it does not
-say who builds the client, with what configuration, or in what order a session
-starts.
+The design above now says what a client emits and what it receives. It does not
+yet say who builds that request, or in what order a session starts. These two
+are larger than the twelve client rewrites together.
 
-- **The shape of `connect(config)`.** Today there are nine provider-specific
-  session config types and nine type guards. This is a large part of what
-  adding a provider costs, which is the measure this design is judged by.
 - **The `ProviderDescriptor` layer** — `src/services/providers/`, 10,763 lines:
-  `buildSessionConfig`, `buildParticipantSessionConfig`, `extractCredentials`,
-  `validateAndFetchModels`, `prepareToStart`, `acquireSessionResources`,
-  `planBothMode`, and the capabilities. Its place in the new structure has not
-  been discussed.
+  `buildSessionConfig`, `extractCredentials`, `validateAndFetchModels`,
+  `prepareToStart`, `acquireSessionResources`, `planBothMode`, and the
+  capabilities. `buildParticipantSessionConfig` is already gone under the session
+  request. What remains is who builds `C` and `K` — model resolution reads a
+  store, so it must happen in the builder, never in an adapter; `LocalNativeClient`
+  reading and writing `useNativeModelStore` inside `connect()` is the one client
+  that breaks this today.
 - **Session lifecycle.** `connectConversation` is one 1,181-line function. Who
-  starts a session, in what order, how the two legs come up together, and how a
-  failure unwinds.
+  starts a session, in what order, how the two legs come up together, how a
+  failure unwinds, and where the managed Soniox lease lives — its
+  `session` / `sttRole` / `announcesSessionOutcome` are a collaborator the
+  adapter reports billing events to, not configuration. The turn (gating, voice
+  count, begin / end / cancel) also lives here.
 
-The order to take them in is the order above: the other two depend on the
-first.
+The descriptor layer comes first: session lifecycle depends on it.
 
 ### Parameters and deferred decisions
 
