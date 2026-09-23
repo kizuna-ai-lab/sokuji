@@ -116,3 +116,51 @@ its list below before its own tasks are written.
   changed; the spec requires re-evaluating only the segments that changed.
   Window it, state the opening-order assumption it shares with `inferPairs`,
   and add boundary tests at `minOverlap` and `proximityMs`.
+
+## Carried out of plan 1b
+
+Plan 1b landed as commits `9f57de76..2673e818` (nine tasks, one fix round,
+and the final-review fix wave). Its final review raised these for later plans.
+
+**1c — the runner**
+- Extract `readCredentials(p, auth): K | { missing }` from
+  `refreshReadiness`, which holds the rule that `read` sees exactly the fields
+  `fields(s)` shows; the runner needs `K` at start and must not re-implement
+  it. A `credentials.read` that throws should become a not-ready answer
+  there, not a rejected promise.
+- Constrain `K extends { missing?: never }` and `C extends { refused?: never }`
+  at the type level, so the `'missing' in` / `'refused' in` checks rest on the
+  compiler instead of a documented convention.
+- A `disabled` prop for `CredentialForm`, `LanguagePairSection` and the
+  provider select, driven by the run's state.
+
+**1e — LocalInference and the switch-over**
+- Readiness per direction: today's local readiness asks whether the models
+  for the speaker's (and participant's) direction, and TTS, are ready, but
+  `check(k, s)` cannot see the pair, and `setPair` does not reset readiness.
+  Decide between passing the pair to `check` (and resetting on `setPair`) and
+  letting per-direction model gaps surface as a `build` refusal while `check`
+  covers engine readiness only.
+- The import rule's scope: "`src/providers/**` imports nothing from
+  `src/stores/**`" is meant as "never `settingsStore` or `providerStore`"; a
+  provider's own stores (`modelStore`, `nativeModelStore`) are its own
+  business (spec: "A provider's own stores are its own business").
+- `normalizePair` throws on an empty `sources` or `targets` list, and the
+  registry invariant is checked on `defaults` only; catalogue-driven lists can
+  be empty.
+- Lazy-load `SpinePreview` inside its DEV branch, so a release bundle carries
+  neither it nor its stylesheet.
+- A provider-switching test for `ProviderPanel` (two providers; the second
+  loads and its own `Settings` mounts), once the choice persists under
+  `settings.common.provider`.
+
+**Stage 2**
+- Before the first provider with a model choice (OpenAI, Gemini, the
+  compatible provider): pass the models `check` found into `SettingsProps` and
+  into `build` (through `SharedSettings` or the run's shape), so the settings
+  component and the builder can call the same effective-model function.
+- With the first managed twin: reset readiness when sign-in changes, and test
+  readiness caching for `kind: 'managed'`, including the `auth.signedIn` part
+  of the cache key.
+- With Palabra: `migrate(stored)` cannot tell "absent" from "default" and
+  cannot see credentials, both of which Palabra's `authMode` migration needs.
