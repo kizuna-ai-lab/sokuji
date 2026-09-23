@@ -327,8 +327,12 @@ derivations, hardware probes.
 
 ## 7. What downstream assumes about how clients produce items
 
-Forty-four assumptions in twelve groups. None is expressed in a type; none is
+Forty-six assumptions in twelve groups. None is expressed in a type; none is
 checked.
+
+*(An earlier revision of this note said forty-four. The survey numbered its list
+1-44 and left one assumption unnumbered in each of groups E and J; the group
+counts below were always right and sum to forty-six.)*
 
 **A. One bubble = one audio unit, keyed by `item.id`** (4)
 `playbackStore.ts:188` — `s.playingItemId !== item.id` is the *only* link
@@ -423,8 +427,8 @@ error rows travel outside the array; and `getConversationItems()` means three
 different things.
 
 **Two — display requirements reach the clients as unwritten assumptions.**
-Forty-four of them, in twelve groups, none typed and none checked. Writing a new
-client means guessing all forty-four. `VolcengineAST2Client:119-124` is the
+Forty-six of them, in twelve groups, none typed and none checked. Writing a new
+client means guessing all forty-six. `VolcengineAST2Client:119-124` is the
 clearest proof: a client's id scheme exists because of how the karaoke highlight
 matches rows.
 

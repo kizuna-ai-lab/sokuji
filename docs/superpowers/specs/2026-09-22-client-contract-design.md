@@ -74,6 +74,7 @@ workload untouched does not count.
 | D10 | Audio routing | An explicit routing table replaces volume-as-control. The only genuine volume left is the passthrough ratio. |
 | D11 | Migration | Rewrite, not migrate. New display layer plus one provider end to end, then one provider at a time. Old clients are deleted and read from git history as protocol documentation. |
 | D12 | Branch | A long-lived branch. `main` stays releasable but is not expected to move. |
+| D13 | Export | One block per group, each segment's text whole, one timestamp per group. Inferred pairings are written paired like stated ones; the JSON form keeps `pairing`. |
 
 ### Deleted with no behaviour change
 
@@ -207,8 +208,16 @@ today, and each pcm block's duration follows from its own length.
 ## L1 — the data model
 
 ```ts
+interface Leg {                     // what one L1 instance exposes
+  leg:       'speaker' | 'participant'
+  session:   SessionId
+  languages: { source: string; target: string }   // frozen at connect
+  segments:  Segment[]
+  notices:   Notice[]
+}
+
 interface Segment {
-  id:        SegmentId              // `${leg}:${n}`, a counter
+  id:        SegmentId              // `${session}:${leg}:${n}`, a counter
   side:      'source' | 'translation'
 
   text:      string                 // display text, replaced wholesale
@@ -237,7 +246,20 @@ interface Notice {
 
 `status`'s four states collapse to `final` because `'incomplete'` and
 `'cancelled'` are never set anywhere. `source` disappears — L1 is per leg, so
-the leg is ambient.
+the leg is ambient within it, and stated on the `Leg` it exposes.
+
+### The language pair belongs to the leg, frozen at connect
+
+A row's language badge needs the configured pair, not only a detected
+language — `detectedLanguage` exists on one provider alone. Today the pair lives
+in `MainPanel`'s `itemLanguagesRef`, which records a pair the first time it sees
+each row so that changing the language setting after a session stops cannot
+relabel the rows still on screen.
+
+The pair does not vary within a leg's session, so it is recorded once, on the
+`Leg`, at connect. For the participant leg it is already the reversed pair. A
+row's badge is `segment.language ?? (side === 'source' ? languages.source :
+languages.target)`. `itemLanguagesRef` and its pruning pass disappear.
 
 ### The growth trace
 
@@ -297,10 +319,17 @@ flight**. The lane is not moved to L2; it ceases to exist, and so does the
 
 ### Identity
 
-`` `${leg}:${n}` ``. The leg qualifies the counter, so cross-leg collision is
-impossible and `instanceId` prefixes, uuids, `Date.now()` minting and the
-shared-timestamp convention all lose their reason to exist. Player clip keys are
-`` `${leg}:${segId}:${speechIdx}` ``.
+`` `${session}:${leg}:${n}` ``. The leg qualifies the counter, so cross-leg
+collision is impossible and `instanceId` prefixes, uuids, `Date.now()` minting
+and the shared-timestamp convention all lose their reason to exist. Player clip
+keys are `` `${segId}:${speechIdx}` ``.
+
+**The session qualifier is not optional.** `SubtitleStream`'s `itemStatesRef`
+locks each id as "new" or "existing" permanently and is never pruned, and the
+overlay component outlives a session. A counter that restarts per session would
+make the next session's `speaker:1` collide with the last one's and never
+animate in. Today's ids avoid this only because they carry `Date.now()` or a
+uuid.
 
 `VolcengineAST2Client.ts:119-124` states today's reason outright: without the
 prefix, both legs' clients mint identical ids and the karaoke highlight, which
@@ -330,13 +359,22 @@ today's `keepReplayAudio` setting.
 ## L2 — the projection
 
 ```ts
-(legA.segments, legB.segments, notices, settings) → Entry[]
+(legs: Leg[], settings) → Entry[]
 
 type Entry =
-  | { kind: 'exchange'; id; pairing: 'stated' | 'inferred' | 'none';
+  | { kind: 'exchange'; id; leg; languages;
+      pairing: 'stated' | 'inferred' | 'none';
       source: Row[]; translation: Row[]; t: number }
-  | { kind: 'notice'; id; severity; message; at: number }
+  | { kind: 'notice'; id; leg; severity; message; at: number }
+
+type Row = { segmentId; side: 'source' | 'translation'; start: number; end: number }
 ```
+
+**`leg` is a field, never parsed out of an id.** Once L2 has merged the legs,
+every entry must say which one it came from, and reading it out of the string
+`"…:speaker:3"` would encode data in an identifier — the same move as Palabra's
+`${id}_p2` suffixes today. `languages` rides along on the exchange so a surface
+can draw the badge without reaching back to the leg.
 
 Three jobs, and only three: **cut** final segments into rows, **group** rows by
 `origin`, **order** groups by the earliest `openedAt` they contain. It runs
@@ -380,6 +418,18 @@ nothing left to strip.
 repeated substring, silently zero when the text was rewritten). Returning
 `Array<[start, end]>` removes the guess from the system.
 
+**The ranges tile the segment's text with no gaps and no trimming.** Adjacent
+rows of one segment, concatenated, reproduce the text exactly — with a space
+between them where the original had one, and without where it did not. A bubble
+surface trims for display; a band surface joins with no separator.
+
+This fixes a defect that exists today and that splitting would otherwise make
+worse. The compact band joins items with a single space
+(`SubtitleStream.tsx:253`), which is wrong for Chinese and Japanese. Today that
+error falls only *between* utterances; once one utterance becomes several rows,
+it would fall *inside* sentences. A separator is needed only between segments,
+and there it follows the language.
+
 **`origin` inference lives here**, because it is a pure function of the segment
 lists: pair by maximum overlap when both sides carry `timing`, otherwise by
 temporal proximity, otherwise leave the group unpaired. `pairing` is a property
@@ -390,9 +440,47 @@ source, so "source rows, no translation yet" occurs every few seconds. A source
 cut into three rows beside a translation cut into two is likewise ordinary — the
 two sides are separate arrays and need not be the same length.
 
-**The export consumes this projection.** The saved file and the screen therefore
-agree by construction rather than by two implementations kept in step by hand,
-and `conversationExport.ts:152`'s silent dropping of every non-`completed` row
+### Export: one block per group
+
+The export is an L3 surface. It consumes L2's groups but writes each group's
+**segment text whole**, not its rows:
+
+```
+[14:03:12] Me
+  今天天气很好。我们去公园吧。顺便买点东西。
+  → The weather is nice today. Let's go to the park, and pick up a few things on the way.
+
+[14:03:20] Other
+  Sounds good. What time?
+  → 听起来不错。几点？
+
+[14:03:25] Me
+  下午三点吧。
+  (no translation)
+```
+
+- **Not per row.** Rows are cut by the sentences-per-bubble setting, which exists
+  for the readability of live bubbles. Exporting rows would make the same
+  conversation produce different files depending on a display setting.
+- **Not per segment.** That keeps the provider's units but loses the pairing,
+  which is exactly today's file: source and translation interleaved by time,
+  their correspondence left to the reader.
+- **One timestamp per group**, the source segment's `openedAt`.
+- **A missing side is stated, not omitted** — the reader must be able to tell
+  "not translated" from "lost".
+- **Inferred pairings are written paired, like stated ones.** Both are the best
+  judgement available, and today's file carries no correspondence at all. The
+  JSON form keeps `pairing` on every group so a consumer that cares can tell them
+  apart.
+- The export scope checkboxes still apply; they are L3 filtering, selecting
+  which side of each group is written.
+- Notices stay out of the text form, as today; the JSON form may carry them as
+  metadata.
+
+This refines what "the saved file holds what the screen shows" guarantees: the
+same content, in the same order, with nothing dropped — **not** the same line
+breaks. Line breaks follow a display setting; the file should not.
+`conversationExport.ts:152`'s silent dropping of every non-`completed` row
 disappears with `status` itself.
 
 ---
@@ -560,7 +648,81 @@ branch effectively becomes the new main.
 
 ---
 
+## What the forty-six assumptions became
+
+The current-state analysis lists forty-six assumptions the display side makes
+about how clients produce items. Walked one by one against this design:
+
+| Outcome | Count |
+|---|---|
+| dissolved by construction | 33 |
+| still true — stated below as an explicit invariant | 4 |
+| exposed a hole in the design — fixed above | 4 |
+| a UI rule — deferred to the UI work | 4 |
+| a decision — export granularity, settled above | 1 |
+
+The four holes were: the configured language pair had nowhere to live; ids
+needed a session qualifier; `splitDefinite`'s ranges must tile the text rather
+than trim it; and entries must carry `leg` as a field.
+
+### Invariants the new structure must state
+
+- **A clip's playback position is monotonic within the clip.** Today
+  `playbackStore`'s `_cumOffset` compensates for a passthrough gap splitting one
+  key into two player entries. The new player is written from scratch and must
+  never split a clip.
+- **The overlay's tail is sliced from the merged `Entry[]`**, never per leg.
+  Today each leg is cut to its last fifteen items independently and then
+  re-merged, which can drop one side's older history when the legs run at
+  different rates.
+- **L2's output is structurally shared.** Entries that did not change keep their
+  identity, so the wire does not re-send the whole conversation on every
+  keystroke of a partial.
+- **Disconnect finalizes every open segment**, once, in L1. Today each client
+  does its own version of this (Soniox's `forceCompleteStuckItem`, the completes
+  inside each `disconnect()`); without it, a sentence cut off by Stop stays
+  provisional forever.
+
+### UI rules deferred to the UI work
+
+These are implicit behaviours hard-coded today. The new structure turns each
+into an explicit choice in L3; they are settled against rendered pages, not here.
+
+- What header grouping keys on — today only `source` equality; with groups it
+  may be the group or the leg.
+- Whether a notice breaks header grouping.
+- Whether a notice is shown on a side whose display mode is `none` — today it
+  always is.
+- Which band a notice goes into in compact mode — today, forcibly, the
+  translation band.
+
+---
+
 ## Open questions
+
+### Structural gaps
+
+These three are larger than the twelve client rewrites together, and none of
+them is designed yet. The design above says what a client emits; it does not
+say who builds the client, with what configuration, or in what order a session
+starts.
+
+- **The shape of `connect(config)`.** Today there are nine provider-specific
+  session config types and nine type guards. This is a large part of what
+  adding a provider costs, which is the measure this design is judged by.
+- **The `ProviderDescriptor` layer** — `src/services/providers/`, 10,763 lines:
+  `buildSessionConfig`, `buildParticipantSessionConfig`, `extractCredentials`,
+  `validateAndFetchModels`, `prepareToStart`, `acquireSessionResources`,
+  `planBothMode`, and the capabilities. Its place in the new structure has not
+  been discussed.
+- **Session lifecycle.** `connectConversation` is one 1,181-line function. Who
+  starts a session, in what order, how the two legs come up together, and how a
+  failure unwinds.
+
+The order to take them in is the order above: the other two depend on the
+first.
+
+### Parameters and deferred decisions
 
 - **Soniox's shared Both.** One client serving both legs, with energy-based side
   attribution. It exists for cost — `SonioxCostMeter.ts` records that a split
@@ -575,6 +737,15 @@ branch effectively becomes the new main.
   configured pause.**
 - **Whether the raw pre-punctuation text is worth keeping** for diagnostics. No
   runtime consumer needs it once ranges are re-anchored.
+- **`origin` inference thresholds** — the overlap fraction that counts as a
+  pair, the time window for proximity, and what breaks a tie between two
+  candidates.
+- **Testing strategy** — how L1 and L2 are tested as the pure parts they are,
+  how the display is tested without a live provider, and what a fake client
+  looks like.
+- **What analytics remain.** `translation_count` and latency are gone;
+  `translation_session_start` / `_end` and the `sentence_segmentation_*` fields
+  still need a source in the new structure.
 
 ## Risks
 
