@@ -18,6 +18,12 @@ export function clipKey(leg: LegName, ref: number | undefined, index: number): C
   return `${leg}:${ref ?? 'none'}:${index}`;
 }
 
+/** A clip key's parts; `ref` is undefined for audio that names no segment. Surfaces read keys through this, never by splitting them. */
+export function parseClipKey(key: ClipKey): { leg: LegName; ref: number | undefined; index: number } {
+  const [leg, ref, index] = key.split(':') as [LegName, string, string];
+  return { leg, ref: ref === 'none' ? undefined : Number(ref), index: Number(index) };
+}
+
 /** The routing settings, live: the app reads its stores, the preview its toggles, a test a fixture. */
 export interface RoutingSource {
   get(): RoutingSettings;

@@ -4,7 +4,7 @@ import { EMPTY_PCM, type Segment } from '../conversation/types';
 import { LEAD_S } from './clipQueue';
 import type { AudioGraph } from './graph';
 import { createPcmTap } from './pcmTap';
-import { createPlayback, type RoutingSource } from './playback';
+import { clipKey, createPlayback, parseClipKey, type RoutingSource } from './playback';
 import { routesFor, type Edge, type RoutingSettings } from './routes';
 
 /** A graph whose timelines the test moves by hand, and which records routes, sinks and one-shots. */
@@ -211,6 +211,13 @@ describe('createPlayback — preview', () => {
     graph.playOnce = () => { throw new Error('sample rate out of range'); };
     const playback = createPlayback(graph, routing().source);
     await expect(playback.preview({ audio: new Float32Array(10), sampleRate: 1 })).rejects.toThrow();
+  });
+});
+
+describe('parseClipKey', () => {
+  it('reads back what clipKey wrote', () => {
+    expect(parseClipKey(clipKey('participant', 7, 2))).toEqual({ leg: 'participant', ref: 7, index: 2 });
+    expect(parseClipKey(clipKey('speaker', undefined, 0))).toEqual({ leg: 'speaker', ref: undefined, index: 0 });
   });
 });
 

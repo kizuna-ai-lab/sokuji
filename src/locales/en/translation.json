@@ -564,6 +564,7 @@
     "typeMessage": "Text to translate...",
     "send": "Send",
     "error": "Error",
+    "warning": "Warning",
     "unknownError": "Unknown error",
     "insufficientBalance": "Insufficient balance: {{balance}}",
     "walletFrozen": "Wallet is frozen. Please contact support.",
@@ -1272,5 +1273,30 @@
     "deleteNoModel": "Deleting {{name}}: no {{stage}} model remains — sessions cannot start.",
     "clearAllKeepsPicks": "Your selections are remembered and return when models are downloaded again.",
     "importChooseModel": "Choose a model to import"
+  },
+  "notices": {
+    "no_provider": "Choose a provider in Settings before starting.",
+    "no_legs": "Choose what to translate before starting.",
+    "turn_mode_unsupported": "This provider doesn't offer the chosen talk mode.",
+    "participant_source_unavailable": "Translating other participants isn't available here.",
+    "participant_unsupported": "This provider can't translate the other participants for this language pair.",
+    "credentials_missing": "Enter your API key in Settings before starting.",
+    "not_ready": "The provider is not ready: {{detail}}",
+    "build_refused": "The provider can't start with these settings: {{detail}}",
+    "admit_refused": "The provider can't run this combination: {{detail}}",
+    "start_failed": "The session didn't start: {{detail}}",
+    "leg_failed": "The session stopped: {{detail}}",
+    "leg_closed": "The provider ended the session.",
+    "source_ended": "The audio source went away (unplugged, closed or stopped).",
+    "app_capture_lost_using_system_audio": "The app capture stopped, so all system audio is being translated instead.",
+    "app_capture_monitor_missing": "The app capture didn't start, so all system audio is being translated instead.",
+    "parse_error": "A message from the provider couldn't be read; the session continues.",
+    "cleanup_failed": "A step while closing the session failed.",
+    "input_pipeline_failed": "Audio capture stopped working; nothing further will be translated.",
+    "tts_degraded": "Speech playback is degraded; the translated text still arrives.",
+    "resume_attempt_failed": "Reconnecting failed; trying again.",
+    "send_dropped": "Some audio or text couldn't be sent and was dropped.",
+    "voice_fallback": "The chosen voice was unavailable, so another voice is used.",
+    "lease_notify_failed": "The service couldn't be told about the session's state."
   }
 }
