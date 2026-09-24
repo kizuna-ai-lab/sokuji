@@ -67,6 +67,42 @@ describe('SubtitleBody — compact', () => {
     rerender(<SubtitleBody {...props({ newItemHighlightEnabled: false, entries: [...first.entries, exchange('b', [row('s2', 0, 0, 'Again.')])] })} />);
     expect(container.querySelector('.subtitle-stream__item--new')).toBeNull();
   });
+
+  it('draws one item per segment run when a segment is cut into two rows', () => {
+    const entries = [exchange('a', [
+      row('s1', 0, 0, '今日は天気がいいですね。'),
+      row('s1', 1, 12, '公園に行きましょう。'),
+    ])];
+    const { container } = render(<SubtitleBody {...props({ entries })} />);
+    const items = [...container.querySelectorAll('.subtitle-stream__line--source .subtitle-stream__item')];
+    expect(items).toHaveLength(1);
+    expect(items[0].getAttribute('data-segment')).toBe('s1');
+    expect(items[0].textContent).toBe('今日は天気がいいですね。公園に行きましょう。');
+  });
+
+  it('does not re-mark an already-drawn segment as new when it is re-cut into more rows', () => {
+    const first = props({ entries: [exchange('a', [row('s1', 0, 0, '今日は天気がいいですね。公園に行きましょう。')])] });
+    const { container, rerender } = render(<SubtitleBody {...first} />);
+    expect(container.querySelector('.subtitle-stream__item--new')).toBeNull();
+    const recut = [exchange('a', [
+      row('s1', 0, 0, '今日は天気がいいですね。'),
+      row('s1', 1, 12, '公園に行きましょう。'),
+    ])];
+    rerender(<SubtitleBody {...props({ entries: recut })} />);
+    expect(container.querySelector('.subtitle-stream__item--new')).toBeNull();
+    const items = [...container.querySelectorAll('.subtitle-stream__line--source .subtitle-stream__item')];
+    expect(items).toHaveLength(1);
+  });
+
+  it('lights karaoke across a run of two rows', () => {
+    const entries = [exchange('a', [
+      row('s1', 0, 0, '今日は天気がいいですね。'),
+      row('s1', 1, 12, '公園に行きましょう。'),
+    ])];
+    const { container } = render(<SubtitleBody {...props({ entries, lit: new Map([['s1', 14]]) })} />);
+    const litSpans = [...container.querySelectorAll('.subtitle-stream__line--source .karaoke-played')].map((span) => span.textContent);
+    expect(litSpans).toEqual(['今日は天気がいいですね。', '公園']);
+  });
 });
 
 describe('SubtitleBody — expanded', () => {

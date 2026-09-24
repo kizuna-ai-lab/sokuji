@@ -93,12 +93,12 @@ function SubtitleBands({ entries, lit, filters, newItemHighlightEnabled }: Pick<
       {bands.map((band) => (
         <div key={band.id} className={`subtitle-stream__line subtitle-stream__line--${band.side} subtitle-stream__line--${band.leg}`}>
           <p>
-            {band.pieces.map((piece) => (
-              <Stretch
-                key={piece.key}
-                piece={piece}
-                upTo={piece.segmentId === undefined ? undefined : lit.get(piece.segmentId)}
-                isNew={newItemHighlightEnabled && stateOf(piece.segmentId ?? piece.key) === 'new'}
+            {runsOf(band.pieces).map((run) => (
+              <Run
+                key={run.key}
+                run={run}
+                lit={lit}
+                isNew={newItemHighlightEnabled && stateOf(run.key) === 'new'}
               />
             ))}
           </p>
@@ -108,23 +108,52 @@ function SubtitleBands({ entries, lit, filters, newItemHighlightEnabled }: Pick<
   );
 }
 
-function Stretch({ piece, upTo, isNew }: { piece: BandPiece; upTo: number | undefined; isNew: boolean }) {
-  const className = isNew ? 'subtitle-stream__item subtitle-stream__item--new' : 'subtitle-stream__item';
-  const played = upTo === undefined || piece.start === undefined ? 0 : Math.min(piece.text.length, Math.max(0, upTo - piece.start));
-  if (played <= 0) return <span className={className}>{piece.before}{piece.text}</span>;
-  if (played >= piece.text.length) {
-    return (
-      <span className={className}>
-        {piece.before}
-        <span className="karaoke-played">{piece.text}</span>
-      </span>
-    );
+/** One segment's consecutive pieces (a notice is a run of its own). */
+interface RunOf {
+  /** The segment id, or the (single) piece's key for a notice. */
+  key: string;
+  segmentId?: SegmentId;
+  before: string;
+  pieces: BandPiece[];
+}
+
+/**
+ * Groups a band's flat pieces into runs: consecutive pieces of one segment
+ * join into a single run (so a re-cut segment draws one item, not one per
+ * row); a notice, which carries no segment id, is always its own run.
+ */
+function runsOf(pieces: readonly BandPiece[]): RunOf[] {
+  const runs: RunOf[] = [];
+  for (const piece of pieces) {
+    const last = runs[runs.length - 1];
+    if (last && piece.segmentId !== undefined && last.segmentId === piece.segmentId) {
+      last.pieces.push(piece);
+    } else {
+      runs.push({ key: piece.segmentId ?? piece.key, segmentId: piece.segmentId, before: piece.before, pieces: [piece] });
+    }
   }
+  return runs;
+}
+
+function Run({ run, lit, isNew }: { run: RunOf; lit: ReadonlyMap<SegmentId, number>; isNew: boolean }) {
+  const className = isNew ? 'subtitle-stream__item subtitle-stream__item--new' : 'subtitle-stream__item';
+  const upTo = run.segmentId === undefined ? undefined : lit.get(run.segmentId);
   return (
-    <span className={className}>
-      {piece.before}
+    <span className={className} data-segment={run.segmentId}>
+      {run.before}
+      {run.pieces.map((piece) => <Stretch key={piece.key} piece={piece} upTo={upTo} />)}
+    </span>
+  );
+}
+
+function Stretch({ piece, upTo }: { piece: BandPiece; upTo: number | undefined }) {
+  const played = upTo === undefined || piece.start === undefined ? 0 : Math.min(piece.text.length, Math.max(0, upTo - piece.start));
+  if (played <= 0) return <span>{piece.text}</span>;
+  if (played >= piece.text.length) return <span className="karaoke-played">{piece.text}</span>;
+  return (
+    <>
       <span className="karaoke-played">{piece.text.slice(0, played)}</span>
       <span>{piece.text.slice(played)}</span>
-    </span>
+    </>
   );
 }
