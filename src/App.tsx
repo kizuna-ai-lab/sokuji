@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import './App.scss';
 import './locales'; // Initialize i18n
 import { NativeTtsProto } from './components/dev/NativeTtsProto';
-import { OverlayPreview } from './components/dev/OverlayPreview';
-import { SpinePreview } from './components/dev/SpinePreview';
 import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
+
+// Development builds only: in a release build the condition is false at build time and both imports go.
+const SpinePreview = import.meta.env.DEV ? lazy(() => import('./components/dev/SpinePreview').then((m) => ({ default: m.SpinePreview }))) : null;
+const OverlayPreview = import.meta.env.DEV ? lazy(() => import('./components/dev/OverlayPreview').then((m) => ({ default: m.OverlayPreview }))) : null;
 
 // Create the memory router for Chrome extension
 // Memory router is recommended for Chrome extensions as they don't have a URL bar
@@ -39,20 +41,24 @@ function App() {
   }, []);
 
   // Dev-only: `?preview=spine` shows the new provider layer alone (plans 1b–1d).
-  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'spine') {
+  if (SpinePreview && new URLSearchParams(window.location.search).get('preview') === 'spine') {
     return (
       <div className="App">
-        <SpinePreview />
+        <Suspense fallback={null}>
+          <SpinePreview />
+        </Suspense>
       </div>
     );
   }
 
   // Dev-only: `?preview=overlay` is the extension overlay's stand-in, drawn
   // inside the spine preview's iframe (plan 1d-2).
-  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'overlay') {
+  if (OverlayPreview && new URLSearchParams(window.location.search).get('preview') === 'overlay') {
     return (
       <div className="App">
-        <OverlayPreview />
+        <Suspense fallback={null}>
+          <OverlayPreview />
+        </Suspense>
       </div>
     );
   }

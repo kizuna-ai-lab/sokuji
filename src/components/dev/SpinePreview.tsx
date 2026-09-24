@@ -10,7 +10,7 @@ import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { autoSaveConversation } from '../../lib/export/appAutoSave';
 import type { AuthContext } from '../../lib/provider/types';
-import { ensureReadyFromStores, persistIfUnchanged, readShapeFromStores } from '../../lib/session/appShape';
+import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores } from '../../lib/session/appShape';
 import type { AnalyticsPort, PlaybackPort } from '../../lib/session/ports';
 import { createRunner, type Runner } from '../../lib/session/runner';
 import type { OpenSource } from '../../lib/session/source';
@@ -97,6 +97,7 @@ function getPreviewRunner(): Runner {
     readShape: () => (new URLSearchParams(window.location.search).get('refuse') === '1' ? null : readShapeFromStores(bridge.auth)),
     ensureReady: ensureReadyFromStores,
     persistIfUnchanged,
+    replayAudio: appReplayAudio,
     openSource: (leg, signal) => bridge.openSource(leg, signal),
     playback: playbackBridge,
     analytics: { track: (event, properties) => bridge.track(event, properties) },
@@ -363,6 +364,13 @@ export function SpinePreview() {
     if (params.get('autosave') === '1') void useSettingsStore.getState().setAutoSaveOnStop(true);
     void runner.start();
   }, [entry, audio, runner, providers]);
+
+  // `pagehide` (a reload, the tab closing): close every leg and capture now; nothing is saved, as in the app.
+  useEffect(() => {
+    const onPageHide = () => runner.abandon();
+    window.addEventListener('pagehide', onPageHide);
+    return () => window.removeEventListener('pagehide', onPageHide);
+  }, [runner]);
 
   return (
     <div className="settings-container spine-preview">

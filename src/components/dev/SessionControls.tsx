@@ -76,7 +76,7 @@ export function SessionControls({ runner, turnMode, audio, capture }: SessionCon
   const meeting = useRoutingStore((s) => s.meeting);
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const monitorMuted = useAudioStore((s) => s.isMonitorMuted);
-  // Read when a run starts (its shape), so it applies from the next Start.
+  // Applies at once — the kept conversation and a live run alike — not from the next Start.
   const keepReplayAudio = useSettingsStore((s) => s.keepReplayAudio);
   const probe = usePlaybackProbe(audio?.playback, capture);
 
@@ -89,7 +89,7 @@ export function SessionControls({ runner, turnMode, audio, capture }: SessionCon
         ) : (
           <button type="button" className="validate-button" disabled={state.phase === 'stopping'} onClick={() => void runner.stop()}>Stop</button>
         )}
-        <span> {state.phase}{state.phase === 'starting' ? ` (${state.step})` : ''}</span>
+        <span> {state.phase}{state.phase === 'starting' ? ` (${state.step}${state.loading ? `: ${state.loading.leg} ${state.loading.stage} ${state.loading.done}/${state.loading.total}` : ''})` : ''}</span>
         {state.phase === 'idle' && state.lastEnd && (
           <div className="validation-message error">
             {state.lastEnd.reason}{state.lastEnd.notice ? `: ${state.lastEnd.notice.message}` : ''}
