@@ -132,6 +132,22 @@ describe('buildLocalInference', () => {
     expect(buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared())).toMatchObject({ code: 'no_asr', params: { source: 'ja' } });
     expect(buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared({ reversed: true }))).toMatchObject({ translation: { kind: 'none' } });
   });
+
+  it("trims the speaker prompt before falling back to the default, matching today's cascade", () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    const c = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ useTemplateMode: false, systemPrompt: '  MINE  ' }), shared());
+    expect((c as LocalInferenceConfig).translation).toMatchObject({ instructions: 'MINE' });
+  });
+
+  it('falls back to the trimmed-and-defaulted speaker prompt when the participant prompt is blank', () => {
+    resolved({ 'en>ja': { asr: 'a', translation: 't' } });
+    const c = buildLocalInference(
+      ctx({ source: 'en', target: 'ja' }),
+      settings({ useTemplateMode: false, systemPrompt: '  MINE  ', participantSystemPrompt: '   ' }),
+      shared({ reversed: true }),
+    );
+    expect((c as LocalInferenceConfig).translation).toMatchObject({ instructions: 'MINE' });
+  });
 });
 
 describe('describeLocalInference / admitLocalInference', () => {

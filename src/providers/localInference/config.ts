@@ -27,21 +27,25 @@ export interface LocalInferenceConfig {
 }
 
 /**
- * The local prompt (today's `getProcessedLocalPrompt`, `src/stores/settingsStore.ts`
- * ~1461-1479): template mode always uses the built-in default for this
- * direction; otherwise the reversed (participant) direction prefers its own
- * prompt, falling back to the speaker's, and either way a blank result falls
- * back to the default. This is LocalInference's own prompt mechanism — it
- * never calls `shared.instructions()` (ruling 3).
+ * The local prompt — mirrors today's `getProcessedLocalPrompt`
+ * (`src/stores/settingsStore.ts` ~1461-1479) exactly, trimming before each
+ * blank check and falling back in the same order: template mode always uses
+ * the built-in default for this direction; otherwise the speaker prompt is
+ * trimmed and, if blank, replaced by the default — the reversed
+ * (participant) direction then prefers its own prompt (trimmed), falling
+ * back to that already-resolved speaker value when it too is blank. This is
+ * LocalInference's own prompt mechanism — it never calls
+ * `shared.instructions()` (ruling 3).
  */
 function localInstructions(context: SessionContext, s: LocalInferenceSettings, shared: SharedSettings): string {
   const { source, target } = context.direction;
   if (s.useTemplateMode) return buildDefaultLocalPrompt(source, target);
 
-  const raw = shared.reversed(context.direction)
-    ? (s.participantSystemPrompt.trim() || s.systemPrompt)
-    : s.systemPrompt;
-  return raw.trim() ? raw : buildDefaultLocalPrompt(source, target);
+  const speakerResolved = s.systemPrompt.trim() || buildDefaultLocalPrompt(source, target);
+  if (!shared.reversed(context.direction)) return speakerResolved;
+
+  const participant = s.participantSystemPrompt.trim();
+  return participant || speakerResolved;
 }
 
 /**
@@ -162,6 +166,7 @@ export function admitLocalInference(configs: Partial<Record<LegName, LocalInfere
   for (const config of Object.values(configs)) {
     if (!config) continue;
     allModelIds.push(config.asr.modelId);
+    // AST: the ASR engine runs task:'translate' itself, one engine total — not counted again here.
     if (config.translation.kind === 'engine') allModelIds.push(config.translation.modelId);
     if (config.tts) allModelIds.push(config.tts.modelId);
   }
