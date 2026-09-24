@@ -47,22 +47,22 @@ describe('gate', () => {
   });
 
   it('refuses a shape with no legs', () => {
-    expect(gate(shape({ legs: [] }), 'electron')).toMatchObject({ code: 'no-legs' });
+    expect(gate(shape({ legs: [] }), 'electron')).toMatchObject({ code: 'no_legs' });
   });
 
   it('refuses the participant leg where the provider cannot run the reversed pair (D20)', () => {
     expect(gate(shape({ legs: ['participant'], pair: { source: AUTO, target: 'en' } }), 'electron'))
-      .toMatchObject({ code: 'participant-unsupported', leg: 'participant' });
+      .toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
   });
 
   it('refuses the participant leg where the platform has no participant source', () => {
-    expect(gate(shape({ legs: ['speaker', 'participant'] }), 'web')).toMatchObject({ code: 'participant-source-unavailable', leg: 'participant' });
+    expect(gate(shape({ legs: ['speaker', 'participant'] }), 'web')).toMatchObject({ code: 'participant_source_unavailable', leg: 'participant' });
   });
 
   it('refuses a turn mode the provider does not offer', () => {
     const manualOnly = { ...fakeProvider, turns: () => ['manual' as const] };
-    expect(gate(shape({ provider: manualOnly }), 'electron')).toMatchObject({ code: 'turn-mode-unsupported', leg: 'speaker' });
+    expect(gate(shape({ provider: manualOnly }), 'electron')).toMatchObject({ code: 'turn_mode_unsupported', leg: 'speaker' });
     expect(gate(shape({ provider: manualOnly, turnMode: 'push-to-talk', legs: ['speaker', 'participant'] }), 'electron'))
-      .toMatchObject({ code: 'turn-mode-unsupported', leg: 'participant' });
+      .toMatchObject({ code: 'turn_mode_unsupported', leg: 'participant' });
   });
 });

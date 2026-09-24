@@ -3,7 +3,7 @@
  */
 import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
-import type { AnyProvider, AuthContext, LanguagePair, SharedSettings } from '../provider/types';
+import type { AnyProvider, AuthContext, LanguagePair, ProviderRefusal, SharedSettings } from '../provider/types';
 
 /** One global setting (D15). Push-to-talk and push-to-translate are the same to an adapter: manual turns. */
 export type TurnMode = 'auto' | 'push-to-talk' | 'push-to-translate';
@@ -55,7 +55,7 @@ export interface Resources<K> {
 export interface SessionHooks<S, K, C> {
   prepare?(shape: RunShape, s: S, signal: AbortSignal): Promise<Prepared<S>>;
   /** Cross-leg checks over the configs actually built. */
-  admit?(configs: Partial<Record<LegName, C>>): true | { refused: string };
+  admit?(configs: Partial<Record<LegName, C>>): true | ProviderRefusal;
   /** `end` stops the run with a notice: budget exhausted, duration cutoff — the code says which. */
   acquire?(shape: RunShape, s: S, ctx: { signal: AbortSignal; end(notice: RunNotice): void }): Promise<Resources<K>>;
   /** Both legs at once (D23): the provider decides between one mixed socket and two. */

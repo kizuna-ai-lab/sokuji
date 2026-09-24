@@ -7,10 +7,11 @@ import { createVirtualClock } from '../contract/clock';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
+import { RUN_NOTICE_CODES } from './codes';
 import type { OpenSource } from './source';
-import type { PlaybackPort } from './ports';
+import type { FramePort, PlaybackPort } from './ports';
 import { createRunner } from './runner';
-import type { RunNotice, RunShape } from './types';
+import type { RunEnd, RunNotice, RunShape } from './types';
 
 // A bare spy: `describeCause`/`reportWarning` stay real (many assertions below
 // read a message `describeCause` built), only `reportError` is observable —
@@ -34,6 +35,7 @@ interface Options {
   playback?: Partial<PlaybackPort>;
   /** Runs alongside the normal tracking; throwing here exercises a throwing analytics port. */
   track?: (event: string, properties: unknown) => void;
+  frames?: FramePort;
 }
 
 function setup(o: Options = {}) {
@@ -74,6 +76,7 @@ function setup(o: Options = {}) {
     }),
     playback,
     analytics: { track: (event, properties) => { o.track?.(event, properties); tracked.push([event, properties]); } },
+    frames: o.frames,
     punctuate: o.punctuate,
     newSessionId: () => `run${++runs}`,
     onRunEnded: o.onRunEnded,
@@ -113,7 +116,7 @@ describe('runner — starting', () => {
     await runner.start();
     expect(runner.state.getState()).toEqual({
       phase: 'idle',
-      lastEnd: { reason: 'refused', notice: { code: 'build-refused', message: 'The fake refuses to build (fault knob).', leg: 'speaker' } },
+      lastEnd: { reason: 'refused', notice: { code: 'fake_build_refused', message: 'The fake refuses to build (fault knob).', params: { knob: 'buildRefused' }, leg: 'speaker' } },
     });
     expect(sources).toHaveLength(0);
     expect(events('translation_session_start')).toEqual([]);
@@ -123,19 +126,58 @@ describe('runner — starting', () => {
   it('refuses the participant leg of an auto source before checking anything (D20)', async () => {
     const { runner } = setup({ shape: { legs: ['speaker', 'participant'], pair: { source: 'auto', target: 'en' } } });
     await runner.start();
-    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'participant-unsupported' } } });
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'participant_unsupported' } } });
   });
 
   it('refuses a provider that is not ready, with its reason', async () => {
     const { runner } = setup({ ready: { state: 'not-ready', reason: 'model not downloaded' } });
     await runner.start();
-    expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'not-ready', message: 'model not downloaded' } } });
+    expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'not_ready', message: 'model not downloaded' } } });
   });
 
   it('refuses when the credentials the settings ask for are missing', async () => {
     const { runner } = setup({ settings: { requireKey: true } });
     await runner.start();
-    expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'credentials-missing' } } });
+    expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'credentials_missing' } } });
+  });
+
+  it("names the runner's own refusals in snake_case", async () => {
+    const { runner } = setup({ ready: { state: 'not-ready', reason: 'model not downloaded' } });
+    await runner.start();
+    expect(RUN_NOTICE_CODES).toContain((runner.state.getState() as { lastEnd?: RunEnd }).lastEnd?.notice?.code);
+  });
+
+  it("hands every frame an adapter reports to the frames port, with its leg", async () => {
+    const frames: Array<[string, unknown]> = [];
+    const provider = {
+      ...fakeProvider,
+      async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
+        const session = await fakeProvider.start(request as never, events);
+        events.frame({ direction: 'in', type: 'fake.hello', payload: { n: 1 } });
+        return session;
+      },
+    } as unknown as AnyProvider;
+    const { runner } = setup({ shape: { provider }, frames: { frame: (leg, frame) => frames.push([leg, frame]) } });
+    await runner.start();
+    expect(frames).toEqual([['speaker', { direction: 'in', type: 'fake.hello', payload: { n: 1 } }]]);
+  });
+
+  it('keeps a throwing frames port away from the adapter', async () => {
+    reportErrorSpy.mockClear();
+    const provider = {
+      ...fakeProvider,
+      async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
+        const session = await fakeProvider.start(request as never, events);
+        events.frame({ direction: 'out', type: 'fake.one' });
+        events.frame({ direction: 'out', type: 'fake.two' });
+        return session;
+      },
+    } as unknown as AnyProvider;
+    const { runner } = setup({ shape: { provider }, frames: { frame: () => { throw new Error('sink gone'); } } });
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('running');
+    // One report per failing streak, not one per frame.
+    expect(reportErrorSpy.mock.calls.filter(([, message]) => String(message).includes('frames.frame'))).toHaveLength(1);
   });
 
   it("fails the start when one leg's source will not open, and closes the leg that did (D22)", async () => {
@@ -154,7 +196,7 @@ describe('runner — starting', () => {
     await flush();
     expect(runner.state.getState()).toEqual({
       phase: 'idle',
-      lastEnd: { reason: 'start-failed', notice: { code: 'start-failed', message: 'permission denied', leg: 'participant' } },
+      lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'permission denied', leg: 'participant' } },
     });
     expect(opened).toHaveLength(1);
     expect(opened.every((s) => s.stopped)).toBe(true);
@@ -200,7 +242,7 @@ describe('runner — starting', () => {
     await runner.start();
     expect(runner.state.getState()).toEqual({
       phase: 'idle',
-      lastEnd: { reason: 'start-failed', notice: { code: 'start-failed', message: 'permission denied', leg: 'participant' } },
+      lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'permission denied', leg: 'participant' } },
     });
     expect(startBoth).not.toHaveBeenCalled();
   });

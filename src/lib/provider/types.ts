@@ -52,6 +52,14 @@ export interface SettingsProps<S> {
   disabled?: boolean;
 }
 
+/** A refusal to build or admit: diagnostic English, and a code a surface can put into words. */
+export interface ProviderRefusal {
+  refused: string;
+  /** Default: the runner's `build_refused` / `admit_refused`. */
+  code?: string;
+  params?: Record<string, string | number>;
+}
+
 export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object> {
   // identity and presence
   /** Persisted as the selected provider; never renamed. */
@@ -107,7 +115,7 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   turns(s: S): ReadonlyArray<'auto' | 'manual'>;
 
   // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
-  build(context: SessionContext, s: S, shared: SharedSettings): C | { refused: string };
+  build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
   start: Adapter<C, K>['start'];
 

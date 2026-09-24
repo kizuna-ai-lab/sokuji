@@ -2,6 +2,7 @@ import type { SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import { reverseSupported } from '../provider/languages';
 import type { Platform } from '../provider/types';
+import type { RunNoticeCode } from './codes';
 import type { RunNotice, RunShape } from './types';
 
 /** Why a start was refused before anything opened. */
@@ -38,22 +39,22 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
  */
 export function gate(shape: RunShape, platform: Platform): Refusal | null {
   const { provider: p, settings: s, legs } = shape;
-  if (legs.length === 0) return { code: 'no-legs', message: 'The audio mode asks for no leg.' };
+  if (legs.length === 0) return { code: 'no_legs' satisfies RunNoticeCode, message: 'The audio mode asks for no leg.' };
   const offered = p.turns(s);
   const speakerTurns = shape.turnMode === 'auto' ? 'auto' : 'manual';
   if (legs.includes('speaker') && !offered.includes(speakerTurns)) {
-    return { code: 'turn-mode-unsupported', message: `${p.id} does not offer ${speakerTurns} turns with these settings.`, leg: 'speaker' };
+    return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${p.id} does not offer ${speakerTurns} turns with these settings.`, leg: 'speaker' };
   }
   if (legs.includes('participant')) {
     if (!offered.includes('auto')) {
-      return { code: 'turn-mode-unsupported', message: `${p.id} does not offer automatic turns, which the participant leg needs.`, leg: 'participant' };
+      return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${p.id} does not offer automatic turns, which the participant leg needs.`, leg: 'participant' };
     }
     if (platform === 'web') {
-      return { code: 'participant-source-unavailable', message: 'This build has no participant source.', leg: 'participant' };
+      return { code: 'participant_source_unavailable' satisfies RunNoticeCode, message: 'This build has no participant source.', leg: 'participant' };
     }
     // D20: the participant leg runs the reversed pair; an auto source never reverses.
     if (!reverseSupported(p, s, shape.pair)) {
-      return { code: 'participant-unsupported', message: `${p.id} does not translate ${shape.pair.target} into ${shape.pair.source}.`, leg: 'participant' };
+      return { code: 'participant_unsupported' satisfies RunNoticeCode, message: `${p.id} does not translate ${shape.pair.target} into ${shape.pair.source}.`, leg: 'participant' };
     }
   }
   return null;

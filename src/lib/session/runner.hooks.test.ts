@@ -95,7 +95,7 @@ describe('runner — admit', () => {
   it('refuses a start admit refuses, opening nothing', async () => {
     const { runner, sources } = setup(withHooks({ admit: () => ({ refused: 'one leg only' }) }), ['speaker', 'participant']);
     await runner.start();
-    expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'admit-refused', message: 'one leg only' } } });
+    expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'admit_refused', message: 'one leg only' } } });
     expect(sources).toHaveLength(0);
   });
 });

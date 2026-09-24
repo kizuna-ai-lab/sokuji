@@ -12,6 +12,7 @@ import type { LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import { isMissing, readCredentials } from '../provider/credentials';
+import type { RunNoticeCode } from './codes';
 import type { RunnerDeps } from './ports';
 import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
@@ -101,11 +102,11 @@ export class Run {
 
     host.step('checking');
     const credentials = readCredentials(p, shape.settings, shape.credentials, shape.auth);
-    if (isMissing(credentials)) throw new RefusedError({ code: 'credentials-missing', message: credentials.missing });
+    if (isMissing(credentials)) throw new RefusedError({ code: 'credentials_missing' satisfies RunNoticeCode, message: credentials.missing });
     const readiness = await deps.ensureReady(p, shape.auth);
     this.throwIfAborted();
     if (readiness.state !== 'ready') {
-      throw new RefusedError({ code: 'not-ready', message: readiness.state === 'not-ready' ? readiness.reason : `readiness is ${readiness.state}` });
+      throw new RefusedError({ code: 'not_ready' satisfies RunNoticeCode, message: readiness.state === 'not-ready' ? readiness.reason : `readiness is ${readiness.state}` });
     }
 
     let settings = shape.settings;
@@ -123,12 +124,25 @@ export class Run {
     for (const leg of shape.legs) {
       const built = p.build(contexts[leg]!, settings, shape.shared);
       // `C` has no `refused` member (the provider type's constraint), so this tells a refusal from a config.
-      if (typeof built?.refused === 'string') throw new RefusedError({ code: 'build-refused', message: built.refused, leg });
+      if (typeof built?.refused === 'string') {
+        throw new RefusedError({
+          code: built.code ?? ('build_refused' satisfies RunNoticeCode),
+          message: built.refused,
+          ...(built.params ? { params: built.params } : {}),
+          leg,
+        });
+      }
       configs[leg] = built;
     }
     if (p.session?.admit) {
       const admitted = p.session.admit(configs);
-      if (admitted !== true) throw new RefusedError({ code: 'admit-refused', message: admitted.refused });
+      if (admitted !== true) {
+        throw new RefusedError({
+          code: admitted.code ?? ('admit_refused' satisfies RunNoticeCode),
+          message: admitted.refused,
+          ...(admitted.params ? { params: admitted.params } : {}),
+        });
+      }
     }
     this.models = p.describe(configs.speaker ?? configs.participant);
 
@@ -287,7 +301,7 @@ export class Run {
     // runs after `host.step('opening')`.
     const conversation = this.conversations.get(leg)!;
     this.stack.defer(`${leg} end watch`, source.onEnded((reason) =>
-      this.legEnded(leg, 'source-ended', { code: 'source_ended', message: `The ${leg} capture ended: ${reason}` })));
+      this.legEnded(leg, 'source-ended', { code: 'source_ended' satisfies RunNoticeCode, message: `The ${leg} capture ended: ${reason}` })));
     this.stack.defer(`${leg} degradation watch`, source.onDegraded(({ code, message }) =>
       conversation.degraded(code, message)));
     return source;
@@ -327,6 +341,10 @@ export class Run {
 
   private onEvent(leg: LegName, event: AdapterEvent): void {
     if (this.finished) return;
+    if (event.kind === 'frame') {
+      this.deps.frames?.frame(leg, event.payload);
+      return;
+    }
     this.conversations.get(leg)?.apply(event);
     if (this.ending) return;
     const { playback, analytics } = this.deps;
@@ -347,11 +365,11 @@ export class Run {
         const errorType: ApiErrorType = API_ERROR_TYPES.find((t) => t === code) ?? 'server';
         analytics.track('api_error', { provider, error_message: redact(message), error_code: code, error_type: errorType, channel: leg });
         // L1 already recorded the failure as an error notice on this leg.
-        this.host.end({ reason: 'leg-failed', notice: { code: code ?? 'leg_failed', message, leg } });
+        this.host.end({ reason: 'leg-failed', notice: { code: code ?? ('leg_failed' satisfies RunNoticeCode), message, leg } });
         return;
       }
       case 'closed':
-        this.legEnded(leg, 'leg-closed', { code: 'leg_closed', message: `The ${leg} leg closed: ${event.payload.reason}` });
+        this.legEnded(leg, 'leg-closed', { code: 'leg_closed' satisfies RunNoticeCode, message: `The ${leg} leg closed: ${event.payload.reason}` });
         return;
       default:
         return;

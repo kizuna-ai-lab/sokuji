@@ -84,7 +84,7 @@ describe('SessionControls', () => {
   });
 
   it('shows why the last run ended', () => {
-    const { runner } = fakeRunner({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'not-ready', message: 'model not downloaded' } } });
+    const { runner } = fakeRunner({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'not_ready', message: 'model not downloaded' } } });
     render(<SessionControls runner={runner} turnMode="auto" />);
     expect(screen.getByText(/model not downloaded/)).toBeInTheDocument();
   });

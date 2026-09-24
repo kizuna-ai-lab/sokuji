@@ -25,6 +25,18 @@ export interface AnalyticsPort {
   track<E extends keyof AnalyticsEvents>(event: E, properties: AnalyticsEvents[E]): void;
 }
 
+/** One protocol frame an adapter reported (spec D8): what the Logs panel lists. */
+export interface AdapterFrame {
+  direction: 'in' | 'out';
+  type: string;
+  payload?: unknown;
+}
+
+/** Where a run's frames go: the app's log store (plan 1e). */
+export interface FramePort {
+  frame(leg: LegName, frame: AdapterFrame): void;
+}
+
 export type ControlMethod = AnalyticsEvents['session_control_clicked']['method'];
 
 export interface RunnerDeps {
@@ -39,6 +51,8 @@ export interface RunnerDeps {
   openSource: OpenSource;
   playback: PlaybackPort;
   analytics: AnalyticsPort;
+  /** The Logs panel's feed; absent, frames are dropped. */
+  frames?: FramePort;
   punctuate?: Punctuator;
   newSessionId(): string;
   /** After a run that went live has ended and its legs are final: where auto-save plugs in. */
@@ -51,7 +65,7 @@ export interface RunnerDeps {
  * The caller's ports, each method guarded: a port that throws is reported
  * once per method (a dedupe key) and never reaches the run or an adapter.
  */
-export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'analytics'> {
+export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'analytics' | 'frames'> {
   const report = (name: string, error: unknown) =>
     reportError('SessionRunner', `The ${name} port threw: ${describeCause(error)}`, { cause: error, dedupeKey: `port:${name}` });
   const guard = <A extends unknown[]>(name: string, fn: (...args: A) => void) => (...args: A): void => {
@@ -61,10 +75,11 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
       report(name, error);
     }
   };
-  const { playback, analytics } = deps;
+  const { playback, analytics, frames } = deps;
   // Audio arrives per chunk: report when the port starts failing, not on every
   // chunk after, so a dead sink costs one console line per failing streak.
   let audioFailing = false;
+  let framesFailing = false;
   return {
     playback: {
       audio: (leg: LegName, ref: number | undefined, pcm: Int16Array) => {
@@ -80,5 +95,20 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
       clear: guard('playback.clear', () => playback.clear()),
     },
     analytics: { track: guard('analytics.track', (event, properties) => analytics.track(event, properties)) as AnalyticsPort['track'] },
+    // Frames arrive per message: report when the port starts failing, not on
+    // every frame after, so a dead sink costs one console line per failing streak.
+    ...(frames ? {
+      frames: {
+        frame: (leg: LegName, frame: AdapterFrame) => {
+          try {
+            frames.frame(leg, frame);
+            framesFailing = false;
+          } catch (error) {
+            if (!framesFailing) report('frames.frame', error);
+            framesFailing = true;
+          }
+        },
+      },
+    } : {}),
   };
 }

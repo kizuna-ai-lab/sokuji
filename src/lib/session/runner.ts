@@ -5,6 +5,7 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import type { LegName } from '../conversation/types';
+import type { RunNoticeCode } from './codes';
 import { ConversationSet } from './conversationSet';
 import { guardPorts, type ControlMethod, type RunnerDeps } from './ports';
 import { LegOpenError, RefusedError, Run, type RunHost } from './run';
@@ -138,7 +139,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     deps.analytics.track('session_control_clicked', { action: 'start', method });
     const shape = deps.readShape();
     if (!shape) {
-      set({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no-provider', message: 'No provider is chosen, or it has not loaded.' } } });
+      set({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_provider' satisfies RunNoticeCode, message: 'No provider is chosen, or it has not loaded.' } } });
       return;
     }
     const run = new Run(deps, hostFor, shape);
@@ -159,7 +160,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
         error_type: 'session_start', error_message: message, component: 'session-runner',
         severity: 'high', provider: shape.provider.id, recoverable: true,
       });
-      await end(run, { reason: 'start-failed', notice: { code: 'start-failed', message, ...(leg ? { leg } : {}) } });
+      await end(run, { reason: 'start-failed', notice: { code: 'start_failed' satisfies RunNoticeCode, message, ...(leg ? { leg } : {}) } });
       return;
     }
     if (run !== current || run.signal.aborted) return;

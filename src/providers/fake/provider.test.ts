@@ -37,8 +37,12 @@ describe('the fake provider', () => {
     await expect(fakeProvider.check({}, settings({ checkFails: true }))).resolves.toMatchObject({ ok: false });
   });
 
-  it('refuses to build when buildRefused is on', () => {
-    expect(fakeProvider.build(context, settings({ buildRefused: true }), shared)).toHaveProperty('refused');
+  it('refuses to build when buildRefused is on, with a code of its own', () => {
+    expect(fakeProvider.build(context, settings({ buildRefused: true }), shared)).toEqual({
+      refused: 'The fake refuses to build (fault knob).',
+      code: 'fake_build_refused',
+      params: { knob: 'buildRefused' },
+    });
   });
 
   it('builds the chosen script and passes the fault knobs, leaving zero-valued ones unset', () => {

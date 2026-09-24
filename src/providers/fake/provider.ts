@@ -49,7 +49,7 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
   turns: () => ['auto', 'manual'],
 
   build: (_context, s) => (s.buildRefused
-    ? { refused: 'The fake refuses to build (fault knob).' }
+    ? { refused: 'The fake refuses to build (fault knob).', code: 'fake_build_refused', params: { knob: 'buildRefused' } }
     : {
         script: fakeScript(s.script),
         faults: {
