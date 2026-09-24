@@ -20,6 +20,8 @@ export interface Runner {
   start(method?: ControlMethod): Promise<void>;
   /** Idempotent: every call while a run ends returns the same promise. */
   stop(method?: ControlMethod): Promise<void>;
+  /** `pagehide`: closes every leg and source synchronously; no auto-save, no end analytics. Idle: does nothing. */
+  abandon(): void;
   press(): void;
   release(): void;
   sendText(text: string): void;
@@ -194,6 +196,14 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     conversation,
     start,
     stop,
+    abandon: () => {
+      const run = current;
+      if (!run) return;
+      current = null;
+      ending = null;
+      run.abandon();
+      set({ phase: 'idle', lastEnd: { reason: 'user' } });
+    },
     press: () => current?.press(),
     release: () => current?.release(),
     sendText: (text) => current?.sendText(text),

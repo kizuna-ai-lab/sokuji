@@ -51,6 +51,16 @@ export class ResourceStack {
     return this.unwinding;
   }
 
+  /**
+   * `pagehide`: fires every remaining release now, last pushed first, without
+   * awaiting any — a release that awaits the network must not hold back the
+   * ones below it. The stack counts as unwound: a later `defer` runs at once.
+   */
+  abandon(): void {
+    this.unwinding ??= Promise.resolve();
+    for (let entry = this.entries.pop(); entry; entry = this.entries.pop()) void this.release(entry);
+  }
+
   private async run(): Promise<void> {
     for (let entry = this.entries.pop(); entry; entry = this.entries.pop()) {
       await this.release(entry);

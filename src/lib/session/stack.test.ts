@@ -71,4 +71,23 @@ describe('ResourceStack', () => {
     await flush();
     expect(released).toBe(true);
   });
+
+  it('abandon fires every release now, last first, without waiting for any', async () => {
+    const stack = new ResourceStack(createVirtualClock(0), 1000, () => {});
+    const calls: string[] = [];
+    stack.defer('a', () => { calls.push('a'); });
+    stack.defer('b', () => new Promise<void>(() => { calls.push('b'); }));
+    stack.defer('c', () => { calls.push('c'); });
+    stack.abandon();
+    // `release()` (reused by `abandon()`) starts every call through its own
+    // `Promise.resolve().then(...)`, one microtask beyond the synchronous
+    // call to `abandon()` itself — a flush observes it. The property under
+    // test survives: nothing here waits for 'b' (which never resolves)
+    // before 'a' runs, unlike `unwind()`'s serial await loop.
+    await flush();
+    expect(calls).toEqual(['c', 'b', 'a']);
+    stack.defer('late', () => { calls.push('late'); });
+    await flush();
+    expect(calls).toEqual(['c', 'b', 'a', 'late']);
+  });
 });

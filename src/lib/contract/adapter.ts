@@ -48,6 +48,11 @@ export interface AdapterSession {
   beginTurn(): void;
   endTurn(): void;
   cancelTurn(): void;
+  /**
+   * Closes its socket (or ends its pipeline) before its first `await`: on
+   * `pagehide` the runner calls `stop()` without awaiting it, and only what
+   * ran synchronously is sure to happen.
+   */
   stop(): Promise<void>;
   /** What the started session actually used, for telemetry. */
   readonly info: { transport?: string };

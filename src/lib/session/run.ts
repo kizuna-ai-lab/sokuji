@@ -245,6 +245,14 @@ export class Run {
     await this.settled();
   }
 
+  /** `pagehide`: decide nothing more, abort, fire every release now (spec: "Stopping, and closing the window"). */
+  abandon(): void {
+    this.ending = true;
+    this.finished = true;
+    this.controller.abort(new Error('the page went away'));
+    this.stack.abandon();
+  }
+
   /** A press (D14): opens a turn under manual turns once the run is live. */
   press(): void {
     const session = this.sessions.get('speaker');
