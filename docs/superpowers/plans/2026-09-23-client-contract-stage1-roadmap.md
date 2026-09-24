@@ -464,3 +464,41 @@ requires it). What it leaves, by the plan that first needs it:
 **Stage 2**
 - `busy` has no reader: add one with the first provider that queues typed
   text while it responds (OpenAI).
+
+## Scheduled by plan 1d-2
+
+Plan 1d-2 (the subtitle surfaces) landed as commits `9074bd8b..38d5b884`: seven
+tasks, five task fix rounds and a final-review fix wave. It built the compact
+bands, the subtitle session, the overlay's wire (`src/lib/subtitle`), the
+shared window handling (`useSubtitleChrome`), `SubtitleView` with the overlay's
+hold-to-talk button, and both surfaces in the preview (the overlay in an iframe
+over a real `MessageChannel`; `scripts/dev/spine-subtitle-probe.mjs`). The
+two roadmap items it took up are done: bands join with `needsSpace` only
+between segments, and the overlay's tail is sliced after the merge (keeping a
+quiet leg's newest entries so no band empties). What it leaves:
+
+**1e — the switch-over**
+- Mount `SubtitleView` in `MainLayout`'s Electron takeover (from the app's view,
+  karaoke and `appSubtitleSession`, with the runner's controls); the Space key
+  stays the panel's.
+- The extension: the side panel's surface class publishes with
+  `publishSubtitles(chromePortWire(port), …)` on `chrome.runtime.onConnect`; the
+  overlay entry renders `SubtitleView` over `receiveSubtitles(chromePortWire(…))`.
+  The entry must also subscribe the wire's disconnect itself and keep today's
+  `sokuji-subtitle:sidepanel-gone` post to the content script
+  (`sessionPortMirror.ts:27-38`) — the receiver keeps its last model forever and
+  would otherwise show a frozen running bar. Then `stripHeavyItemFields`,
+  `recentItems`, `sessionPortMirror` and `src/types/subtitleWire.ts` go.
+- Measure the wire with the fake's `long` script before it goes live in a
+  meeting tab (entries coalesce at 100 ms; add an entries delta if a message
+  still costs too much).
+- Lock the turn-mode selector while a run is on: `appSubtitleSession` reads the
+  live turn-mode store for `holdToTalk`, correct only while the mode cannot
+  change mid-run (spec: "What may change during a run").
+- The display-mode buttons before the first run: feed the audio mode's intent
+  into the subtitle session's legs while idle, as today's `SubtitleApp` does.
+- Keyboard hold on the overlay's button (Space / Enter key down and up while it
+  has focus): today's panel button is pointer-only too; the overlay sits in a
+  meeting page's iframe, so its focus behaviour needs its own look.
+- Add `OverlayPreview` to the "lazy-load the preview's modules" item: `App.tsx`
+  imports it statically too.
