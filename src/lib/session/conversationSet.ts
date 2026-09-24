@@ -35,7 +35,7 @@ export class ConversationSet {
   replace(next: ReadonlyMap<LegName, Conversation>, info: ConversationInfo | null = null): void {
     for (const unsubscribe of this.unsubscribes) unsubscribe();
     this.legs = new Map(next);
-    if (info !== null) this.current = info;
+    this.current = info;
     this.unsubscribes = [...this.legs.values()].map((c) => c.subscribe(() => this.changed()));
     this.changed();
   }

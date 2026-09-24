@@ -13,6 +13,7 @@ import { describeCause, reportError, reportWarning } from '../diagnostics/report
 import { redact } from '../diagnostics/redact';
 import { isMissing, readCredentials } from '../provider/credentials';
 import type { RunNoticeCode } from './codes';
+import type { ConversationInfo } from './conversationSet';
 import type { RunnerDeps } from './ports';
 import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
@@ -43,7 +44,7 @@ export interface RunHost {
   step(step: 'checking' | 'preparing' | 'opening'): void;
   legState(leg: LegName, state: LegState): void;
   /** The run's legs exist: they become the conversation now, so text shows as it arrives. */
-  conversations(legs: ReadonlyMap<LegName, Conversation>, info: { provider: string; models: { asrModel?: string; translationModel?: string; ttsModel?: string } }): void;
+  conversations(legs: ReadonlyMap<LegName, Conversation>, info: ConversationInfo): void;
   /** A leg ended on its own, or a lease did: end the run. */
   end(result: RunEnd): void;
 }
