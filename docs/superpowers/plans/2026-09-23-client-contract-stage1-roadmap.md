@@ -4,14 +4,14 @@
 
 Stage 1 of the spec ("the new spine and one provider, end to end") spans five
 subsystems that can each be built and tested on their own. It is therefore
-five plans — twelve, since the runner splits from capture and playback (the
+five plans — thirteen, since the runner splits from capture and playback (the
 runner tests with a fake source and a recording sink; the audio side needs a
 live device), playback splits from capture (the passthrough route and the
 echo monitor's reference live in playback's graph, so it comes first), the
 surfaces split three ways (the view every surface shares with the panel's
 list; the two subtitle surfaces and their wire; export and auto-save), and 1e
-splits four ways (the runner's and the audio's loose ends; LocalInference in
-the preview; the switch-over; the extension) — executed in this order. Each
+splits five ways (the runner's and the audio's loose ends; LocalInference in
+the preview; its sentence-cut jobs; the switch-over; the extension) — executed in this order. Each
 plan leaves the tree green and its own layer usable; none of them touches the
 old clients, which keep working until plan 1e-3 replaces MainPanel's session
 path.
@@ -27,7 +27,8 @@ path.
 | **1d-2 — the subtitle surfaces** (`2026-09-24-client-contract-stage1d2-subtitle-surfaces.md`) | the shared subtitle view over `Entry[]` (bands joined by script, karaoke), the Electron takeover and the extension overlay on one typed wire (`Entry[]`, the run's state, karaoke), the overlay's hold-to-talk button, the subtitle idle states from the run's state | vitest; headless Chromium: the overlay in a page, fed over a `MessageChannel` wire |
 | **1d-3 — export and auto-save** (`2026-09-24-client-contract-stage1d3-export.md`) | the export menu over the new writer (per-leg scope, header and metadata, clipboard, download), auto-save from `onRunEnded`, the panel's idle line (why the last run ended, in words) | vitest; the files a fake session exports |
 | **1e-1 — runner and audio hardening** (`2026-09-24-client-contract-stage1e1-hardening.md`) | the run's loose ends before a real provider (the "1e" items in the sections below that need no provider): every leg's open awaited before unwinding, `abandon()` on `pagehide`, one overall close bound, `ensureReady` from the shape with a signal, `check` with the pair, model-load progress in `RunState`, per-leg `connection_status`, redacted analytics, failed notices in words, replay cleared where the conversation is replaced, live `keepReplayAudio`, passthrough from the leg going live, an idempotent graph close, the context suspended while idle | vitest; the preview |
-| **1e-2 — LocalInference** | its definition and adapter over today's pipeline (engines and workers unchanged): settings composed from the shared fields, `check` with the pair, `build` / `describe`, turns with its own silence tail, the translation-job cut, TTS and model loading; plan 1a's conformance items | vitest; a live local session in the preview |
+| **1e-2 — LocalInference** (`2026-09-25-client-contract-stage1e2-local-inference.md`) | its definition and adapter over today's pipeline (engines and workers unchanged): settings composed from the shared fields, `check` with the pair, `build` / `describe`, turns with its own silence tail, the translation-job cut, TTS and model loading; plan 1a's conformance items | vitest; a live local session in the preview |
+| **1e-2b — LocalInference's sentence-cut jobs** | today's stream shape: a translation job every N sentences inside an utterance (the seal cursor, the truncated re-decode guard, the voxtral endpoint coupling), over the runner's punctuator; until it lands a size of 1–5 behaves as Auto | vitest over scripted partials; a live long utterance in the preview |
 | **1e-3 — the switch-over** | MainPanel, the Electron takeover and export on the runner; the other clients and their descriptors deleted (spec: "Migration"); stored settings mapped; the three tests that read MainPanel's source replaced | a live local session on Electron |
 | **1e-4 — the extension** | the side panel publishes the wire and the overlay renders `SubtitleView`; the virtual microphone checked in a real Meet tab | a live local session in the extension |
 
