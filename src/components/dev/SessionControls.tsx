@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useStore } from 'zustand';
 import type { AppAudio } from '../../lib/audio/appAudio';
 import type { Playback } from '../../lib/audio/playback';
@@ -35,6 +35,10 @@ function usePlaybackProbe(
     peak: 0,
     captured: capture ? { chunks: 0, peak: 0 } : null,
   });
+  // A new arrow function on every render must not tear down the interval below
+  // (that would reset the heard keys and peaks); keep the latest reader in a ref.
+  const captureRef = useRef(capture);
+  captureRef.current = capture;
   useEffect(() => {
     if (!playback) return;
     const heard = new Set<string>();
@@ -48,7 +52,7 @@ function usePlaybackProbe(
         if (playing) heard.add(playing.key);
       }
       for (const sample of playback.ttsTap.read()) peak = Math.max(peak, Math.abs(sample));
-      const seen = capture?.();
+      const seen = captureRef.current?.();
       const captureChanged = seen && (seen.chunks !== last.chunks || seen.peak !== last.peak);
       if (heard.size !== before || peak !== beforePeak || captureChanged) {
         if (seen) last = seen;
@@ -56,7 +60,7 @@ function usePlaybackProbe(
       }
     }, 100);
     return () => clearInterval(id);
-  }, [playback, capture]);
+  }, [playback]);
   return probe;
 }
 

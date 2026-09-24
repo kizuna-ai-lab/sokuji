@@ -56,7 +56,7 @@ const playbackBridge: PlaybackPort = {
   clear: () => bridge.playback?.clear(),
 };
 
-/** One runner per page: the preview's stand-in for the app's, on the fake source until plan 1c-3 supplies real capture. */
+/** One runner per page: the preview's stand-in for the app's, on the fake source unless the page asks for `&capture=device`. */
 function getPreviewRunner(): Runner {
   previewRunner ??= createRunner({
     clock: realClock,

@@ -187,4 +187,22 @@ describe('SessionControls — playback', () => {
       vi.useRealTimers();
     }
   });
+
+  it('keeps what it heard when the capture reader is a new function on the next render', () => {
+    vi.useFakeTimers();
+    try {
+      const { runner } = fakeRunner();
+      const audio = fakeAudio();
+      const playing = { position: () => ({ key: 'speaker:2:0', t: 10 }), pending: 1, subscribe: () => () => {} };
+      Object.assign(audio.playback.queues, { speaker: playing });
+      const { rerender } = render(<SessionControls runner={runner} turnMode="auto" audio={audio} capture={() => ({ chunks: 1, peak: 0.1 })} />);
+      act(() => { vi.advanceTimersByTime(100); });
+      Object.assign(audio.playback.queues, { speaker: { position: () => null, pending: 0, subscribe: () => () => {} } });
+      rerender(<SessionControls runner={runner} turnMode="auto" audio={audio} capture={() => ({ chunks: 2, peak: 0.1 })} />);
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.000 · captured: 2 · mic peak: 0.100');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
