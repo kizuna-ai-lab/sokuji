@@ -7,6 +7,7 @@
  * "Invariants"). The transport is a `WirePort`: a `chrome.runtime` port in the
  * extension, a `MessagePort` in the development preview.
  */
+import { realClock, type Clock } from '../contract/clock';
 import type { SegmentId } from '../conversation/types';
 import { describeCause, reportError } from '../diagnostics/report';
 import type { Entry } from '../projection/types';
@@ -37,6 +38,21 @@ export type ToPanel =
 /** How many entries the overlay gets: the tail of the merged conversation. */
 export const OVERLAY_ENTRIES = 30;
 
+/**
+ * When the merged tail (`OVERLAY_ENTRIES`) drops a leg entirely — one side
+ * goes quiet while the other keeps talking — this many of that leg's newest
+ * entries are kept alongside it, so its bands never empty on the overlay.
+ */
+export const OVERLAY_QUIET_LEG_ENTRIES = 5;
+
+/**
+ * How long entries changes coalesce (trailing): the first change after a
+ * send posts immediately; a burst of changes inside this window collapses to
+ * one post, carrying the entries as they are when it fires. Session and
+ * karaoke stay immediate — they are small, unlike a 30-entry tail.
+ */
+export const ENTRIES_INTERVAL_MS = 100;
+
 const TO_PANEL = new Set<string>(['subtitle:request-clear', 'subtitle:user-exit', 'subtitle:turn-press', 'subtitle:turn-release']);
 
 function typeOf(message: unknown): string | undefined {
@@ -59,16 +75,58 @@ export interface PanelControls {
 }
 
 /**
- * The side panel's end: sends everything once when the overlay connects, then
- * each change, and acts on the overlay's controls. Stops when the overlay
- * disconnects, or — reporting it once — when posting throws. Returns the stop.
+ * What the overlay gets for one send: the newest `OVERLAY_ENTRIES` of the
+ * merged conversation, sliced after the legs are merged (never per leg —
+ * spec: "Invariants"), plus — for any leg the merged tail drops entirely —
+ * that leg's newest `OVERLAY_QUIET_LEG_ENTRIES`, so a quiet leg's bands never
+ * empty on the overlay just because the other leg has been busy. Sent in the
+ * conversation's own order.
  */
-export function publishSubtitles(port: WirePort, sources: PanelSources, controls: PanelControls): () => void {
+function overlayTail(entries: readonly Entry[]): readonly Entry[] {
+  const tail = entries.slice(-OVERLAY_ENTRIES);
+  const legs = new Set(entries.map((entry) => entry.leg));
+  const included = new Set<Entry>(tail);
+  for (const leg of legs) {
+    if (tail.some((entry) => entry.leg === leg)) continue;
+    for (const entry of entries.filter((e) => e.leg === leg).slice(-OVERLAY_QUIET_LEG_ENTRIES)) included.add(entry);
+  }
+  return included.size === tail.length ? tail : entries.filter((entry) => included.has(entry));
+}
+
+/**
+ * The side panel's end: sends everything once when the overlay connects —
+ * session, then entries, then karaoke — then each further change. Entries
+ * changes after the first coalesce trailing (`entriesIntervalMs`): the first
+ * schedules one post after the interval, carrying the entries as they are
+ * then; changes inside that window add nothing further. Session and karaoke
+ * stay immediate. Acts on the overlay's controls, and — since a press left
+ * outstanding when the overlay goes away would strand the turn (a lost
+ * iframe never unmounts `HoldToTalk`) — releases one on its way down if a
+ * press has not been released. Stops when the overlay disconnects, or —
+ * reporting it once — when posting throws. Returns the stop.
+ */
+export function publishSubtitles(
+  port: WirePort,
+  sources: PanelSources,
+  controls: PanelControls,
+  clock: Clock = realClock,
+  entriesIntervalMs: number = ENTRIES_INTERVAL_MS,
+): () => void {
   let stopped = false;
+  let pressed = false;
+  let cancelPendingEntries: (() => void) | null = null;
   const offs: Array<() => void> = [];
   const stop = () => {
     if (stopped) return;
     stopped = true;
+    if (cancelPendingEntries) {
+      cancelPendingEntries();
+      cancelPendingEntries = null;
+    }
+    if (pressed) {
+      pressed = false;
+      controls.release();
+    }
     offs.forEach((off) => off());
   };
   const post = (message: ToOverlay) => {
@@ -83,11 +141,23 @@ export function publishSubtitles(port: WirePort, sources: PanelSources, controls
   let entries: readonly Entry[] | null = null;
   let session: SubtitleSession | null = null;
   let karaoke: KaraokeState | null = null;
+  const flushEntries = () => {
+    cancelPendingEntries = null;
+    const latest = sources.entries.get();
+    entries = latest;
+    post({ type: 'subtitle:entries', entries: overlayTail(latest) });
+  };
   const sendEntries = () => {
     const next = sources.entries.get();
     if (next === entries) return;
-    entries = next;
-    post({ type: 'subtitle:entries', entries: next.slice(-OVERLAY_ENTRIES) });
+    if (entries === null) {
+      entries = next;
+      post({ type: 'subtitle:entries', entries: overlayTail(next) });
+      return;
+    }
+    // A post is already scheduled: it reads `sources.entries.get()` fresh
+    // when it fires, so this change needs nothing further.
+    if (!cancelPendingEntries) cancelPendingEntries = clock.setTimeout(flushEntries, entriesIntervalMs);
   };
   const sendSession = () => {
     const next = sources.session.get();
@@ -104,22 +174,24 @@ export function publishSubtitles(port: WirePort, sources: PanelSources, controls
   // Subscribed before the first sends, so a port that throws on the first
   // message leaves nothing subscribed behind it.
   offs.push(
-    sources.entries.subscribe(sendEntries),
     sources.session.subscribe(sendSession),
+    sources.entries.subscribe(sendEntries),
     sources.karaoke.subscribe(sendKaraoke),
     port.onMessage((message) => {
       switch (typeOf(message)) {
         case 'subtitle:request-clear': return controls.clear();
         case 'subtitle:user-exit': return controls.exit();
-        case 'subtitle:turn-press': return controls.press();
-        case 'subtitle:turn-release': return controls.release();
+        case 'subtitle:turn-press': pressed = true; return controls.press();
+        case 'subtitle:turn-release': pressed = false; return controls.release();
         default: return undefined;
       }
     }),
     port.onDisconnect(stop),
   );
-  sendEntries();
+  // First sends go session → entries → karaoke, so a connect mid-run never
+  // draws one frame of "Session ended" before the session lands.
   sendSession();
+  sendEntries();
   sendKaraoke();
   return stop;
 }

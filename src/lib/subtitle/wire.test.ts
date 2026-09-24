@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
+import { createVirtualClock, type VirtualClock } from '../contract/clock';
 import type { Entry } from '../projection/types';
 import type { Readable } from '../view/conversationView';
 import type { KaraokeState } from '../view/karaoke';
 import type { SubtitleSession } from './session';
-import { chromePortWire, messagePortWire, OVERLAY_ENTRIES, publishSubtitles, receiveSubtitles, type WirePort } from './wire';
+import { chromePortWire, ENTRIES_INTERVAL_MS, messagePortWire, OVERLAY_ENTRIES, publishSubtitles, receiveSubtitles, type WirePort } from './wire';
 
 const reportErrorSpy = vi.hoisted(() => vi.fn());
 vi.mock('../diagnostics/report', async (importOriginal) => ({
@@ -11,13 +12,19 @@ vi.mock('../diagnostics/report', async (importOriginal) => ({
   reportError: reportErrorSpy,
 }));
 
-/** Two connected ends that deliver synchronously; `disconnect` tells the other end. */
+/**
+ * Two connected ends that deliver synchronously; `disconnect` tells the other
+ * end. Clones with `JSON.parse(JSON.stringify(...))`, as `chrome.runtime`
+ * does (a `Map` becomes `{}`, an `undefined`-valued key drops) — not
+ * `structuredClone`, which is more permissive than the real transport and
+ * would let a non-JSON-safe protocol pass here unnoticed.
+ */
 function portPair(): [WirePort & { disconnect(): void }, WirePort & { disconnect(): void }] {
   const make = () => ({ messages: new Set<(m: unknown) => void>(), gone: new Set<() => void>() });
   const a = make();
   const b = make();
   const end = (self: typeof a, other: typeof a) => ({
-    post: (message: unknown) => other.messages.forEach((listener) => listener(structuredClone(message))),
+    post: (message: unknown) => other.messages.forEach((listener) => listener(JSON.parse(JSON.stringify(message)))),
     onMessage: (listener: (m: unknown) => void) => { self.messages.add(listener); return () => { self.messages.delete(listener); }; },
     onDisconnect: (listener: () => void) => { self.gone.add(listener); return () => { self.gone.delete(listener); }; },
     close: () => {},
@@ -36,11 +43,11 @@ function box<T>(initial: T): Readable<T> & { set(next: T): void } {
   };
 }
 
-const notice = (n: number): Entry => ({ kind: 'notice', id: `n${n}`, leg: 'speaker', severity: 'warning', message: `m${n}`, at: n });
+const notice = (n: number, leg: 'speaker' | 'participant' = 'speaker'): Entry => ({ kind: 'notice', id: `n${n}`, leg, severity: 'warning', message: `m${n}`, at: n });
 const session: SubtitleSession = { phase: 'running', since: 5, legs: ['speaker'], pair: { source: 'en', target: 'ja' }, holdToTalk: true, canStart: false, idle: { kind: 'ended' } };
 const controls = () => ({ clear: vi.fn(), exit: vi.fn(), press: vi.fn(), release: vi.fn() });
 
-function setup(entries: Entry[] = [notice(1)]) {
+function setup(entries: Entry[] = [notice(1)], clock: VirtualClock = createVirtualClock()) {
   const [panel, overlay] = portPair();
   const sources = {
     entries: box<readonly Entry[]>(entries),
@@ -49,8 +56,8 @@ function setup(entries: Entry[] = [notice(1)]) {
   };
   const received = receiveSubtitles(overlay);
   const acts = controls();
-  const stop = publishSubtitles(panel, sources, acts);
-  return { panel, overlay, sources, received, acts, stop };
+  const stop = publishSubtitles(panel, sources, acts, clock);
+  return { panel, overlay, sources, received, acts, stop, clock };
 }
 
 describe('the subtitle wire', () => {
@@ -64,14 +71,49 @@ describe('the subtitle wire', () => {
   });
 
   it('sends each change, and tells the overlay view', () => {
-    const { sources, received } = setup();
+    const { sources, received, clock } = setup();
     const listener = vi.fn();
     received.subscribe(listener);
     sources.entries.set([notice(1), notice(2)]);
+    clock.advance(ENTRIES_INTERVAL_MS);
     sources.karaoke.set({ lit: new Map([['s:speaker:2', 9]]), replaying: null });
     expect(received.get().entries).toHaveLength(2);
     expect(received.get().lit.get('s:speaker:2')).toBe(9);
     expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('coalesces entries changes within the interval, posting once with the latest entries', () => {
+    const { sources, received, clock } = setup();
+    const listener = vi.fn();
+    received.subscribe(listener);
+    sources.entries.set([notice(1), notice(2)]);
+    sources.entries.set([notice(1), notice(2), notice(3)]);
+    expect(listener).not.toHaveBeenCalled();
+    clock.advance(ENTRIES_INTERVAL_MS);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(received.get().entries.map((e) => e.id)).toEqual(['n1', 'n2', 'n3']);
+  });
+
+  it('sends session before entries before karaoke on connect', () => {
+    const [panel] = portPair();
+    const order: string[] = [];
+    const tracking: WirePort = { ...panel, post: (message: unknown) => { order.push((message as { type: string }).type); panel.post(message); } };
+    const sources = {
+      entries: box<readonly Entry[]>([notice(1)]),
+      session: box(session),
+      karaoke: box<KaraokeState>({ lit: new Map(), replaying: null }),
+    };
+    publishSubtitles(tracking, sources, controls());
+    expect(order).toEqual(['subtitle:session', 'subtitle:entries', 'subtitle:karaoke']);
+  });
+
+  it("keeps a quiet leg's newest entries alongside the merged tail, in merged order", () => {
+    const participantEntries = [0, 1, 2].map((i) => notice(1000 + i, 'participant'));
+    const speakerEntries = Array.from({ length: 40 }, (_, i) => notice(i, 'speaker'));
+    const { received } = setup([...participantEntries, ...speakerEntries]);
+    const ids = received.get().entries.map((e) => e.id);
+    expect(ids.slice(0, 3)).toEqual(['n1000', 'n1001', 'n1002']);
+    expect(ids.slice(3)).toEqual(speakerEntries.slice(-OVERLAY_ENTRIES).map((e) => e.id));
   });
 
   it("acts on the overlay's controls", () => {
@@ -84,6 +126,27 @@ describe('the subtitle wire', () => {
     expect(acts.release).toHaveBeenCalledTimes(1);
     expect(acts.clear).toHaveBeenCalledTimes(1);
     expect(acts.exit).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases an outstanding press when the overlay disconnects', () => {
+    const { overlay, received, acts } = setup();
+    received.send({ type: 'subtitle:turn-press' });
+    overlay.disconnect();
+    expect(acts.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases only once in total when the overlay releases before disconnecting', () => {
+    const { overlay, received, acts } = setup();
+    received.send({ type: 'subtitle:turn-press' });
+    received.send({ type: 'subtitle:turn-release' });
+    overlay.disconnect();
+    expect(acts.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards a turn-release though nothing is outstanding (the runner ignores it)', () => {
+    const { received, acts } = setup();
+    received.send({ type: 'subtitle:turn-release' });
+    expect(acts.release).toHaveBeenCalledTimes(1);
   });
 
   it('ignores a message it does not know, on either end', () => {
