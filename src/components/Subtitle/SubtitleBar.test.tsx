@@ -46,6 +46,8 @@ vi.mock('./useOverlayDragResize', () => ({
 vi.mock('../MainPanel/DisplayModeButton', () => ({ default: () => null }));
 vi.mock('../MainPanel/ExportButton', () => ({
   default: () => require('react').createElement('div', { 'data-testid': 'export-button' }),
+  ExportMenuButton: (p: { popoverHost?: string }) =>
+    require('react').createElement('div', { 'data-testid': 'export-menu-button', 'data-host': p.popoverHost }),
 }));
 vi.mock('../Display/DisplaySettingsPopover', () => ({ default: () => null }));
 
@@ -118,6 +120,16 @@ describe('SubtitleBar export button', () => {
     const { exportProps: _unused, ...withoutExport } = baseProps;
     render(<SubtitleBar {...withoutExport} surface="electron" />);
     expect(screen.queryByTestId('export-button')).not.toBeInTheDocument();
+  });
+
+  it("renders the new view's export menu in its own window, on the electron surface only", () => {
+    const { exportProps: _unused, ...withoutExport } = baseProps;
+    const exportMenu = { exporter: {} as any, speakerMode: 'both' as const, participantMode: 'both' as const };
+    render(<SubtitleBar {...withoutExport} exportMenu={exportMenu} surface="electron" />);
+    expect(screen.getByTestId('export-menu-button').dataset.host).toBe('child-window');
+    cleanup();
+    render(<SubtitleBar {...withoutExport} exportMenu={exportMenu} surface="extension-overlay" />);
+    expect(screen.queryByTestId('export-menu-button')).not.toBeInTheDocument();
   });
 });
 

@@ -17,13 +17,14 @@ vi.mock('./useSubtitleChrome', () => ({
   useSubtitleChrome: () => ({ rootRef: { current: null }, rootProps: { className: 'subtitle-app', style: {}, onMouseEnter() {}, onMouseMove() {}, onMouseLeave() {} }, resizeHandles: null }),
 }));
 vi.mock('./SubtitleBar', () => ({
-  default: (p: { sessionControl?: unknown; speakerActive: boolean; participantActive: boolean; sourceLanguageCode: string; onExit?: () => void; sessionElapsedMs: number }) =>
+  default: (p: { sessionControl?: unknown; speakerActive: boolean; participantActive: boolean; sourceLanguageCode: string; onExit?: () => void; sessionElapsedMs: number; exportMenu?: unknown }) =>
     require('react').createElement('div', {
       'data-testid': 'bar',
       'data-control': p.sessionControl ? 'yes' : 'no',
       'data-legs': `${p.speakerActive}/${p.participantActive}`,
       'data-pair': p.sourceLanguageCode,
       'data-elapsed': String(p.sessionElapsedMs),
+      'data-export': p.exportMenu ? 'yes' : 'no',
       // Records what SubtitleView hands the bar for exit (I3): clicking the
       // stub calls whatever it was given.
       onClick: p.onExit,
@@ -120,5 +121,14 @@ describe('SubtitleView', () => {
     render(<SubtitleView surface="extension-overlay" model={{ entries: [], lit: new Map(), session: session() }} controls={overlayActs} />);
     fireEvent.click(screen.getByTestId('bar'));
     expect(overlayActs.exit).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands the bar an export menu over the exporter it was given, and none without one', () => {
+    const exporter = { hasContent: true, hasScopedContent: () => true, text: () => '', json: () => '' };
+    render(<SubtitleView surface="electron" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} exporter={exporter} />);
+    expect(screen.getByTestId('bar').dataset.export).toBe('yes');
+    cleanup();
+    render(<SubtitleView surface="electron" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} />);
+    expect(screen.getByTestId('bar').dataset.export).toBe('no');
   });
 });

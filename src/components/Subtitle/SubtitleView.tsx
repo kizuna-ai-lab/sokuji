@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { SegmentId } from '../../lib/conversation/types';
+import type { Exporter } from '../../lib/export/exporter';
 import type { Entry } from '../../lib/projection/types';
 import type { SubtitleIdleModel, SubtitleSession } from '../../lib/subtitle/session';
 import { noticeText } from '../../lib/view/noticeText';
@@ -62,7 +63,13 @@ const noop = () => {};
  * its own window, the extension overlay from its wire. Today's `SubtitleApp`
  * layout, class for class.
  */
-export function SubtitleView({ surface, model, controls }: { surface: SubtitleSurfaceKind; model: SubtitleModel; controls: SubtitleControls }) {
+export function SubtitleView({ surface, model, controls, exporter }: {
+  surface: SubtitleSurfaceKind;
+  model: SubtitleModel;
+  controls: SubtitleControls;
+  /** The conversation's export, Electron only: the overlay's tail is not the whole conversation. */
+  exporter?: Exporter;
+}) {
   const { t } = useTranslation();
   const chrome = useSubtitleChrome({ surface, onExit: controls.exit });
   const subtitle = useSubtitleSettings();
@@ -100,6 +107,7 @@ export function SubtitleView({ surface, model, controls }: { surface: SubtitleSu
         onClearConversation={controls.clear}
         speakerActive={speakerActive}
         participantActive={participantActive}
+        exportMenu={exporter ? { exporter, speakerMode: speaker, participantMode: participant } : undefined}
         surface={surface}
         onExit={controls.exit}
         sessionControl={surface === 'electron' && start && stop ? {

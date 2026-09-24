@@ -11,7 +11,7 @@ import {
   autoUpdate, FloatingPortal,
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
-import ExportButton from '../MainPanel/ExportButton';
+import ExportButton, { ExportMenuButton, type ExportMenuButtonProps } from '../MainPanel/ExportButton';
 import {
   useExitSubtitleMode,
   useSubtitleFullscreen,
@@ -43,8 +43,10 @@ interface Props {
   onClearConversation: () => void;
   speakerActive: boolean;
   participantActive: boolean;
-  // absent: no export button — the new subtitle view gets its own in plan 1d-3
+  // today's SubtitleApp: the export over its items
   exportProps?: React.ComponentProps<typeof ExportButton>;
+  /** The new subtitle view's export (plan 1d-3): the menu over its conversation's exporter. */
+  exportMenu?: Omit<ExportMenuButtonProps, 'popoverHost'>;
   surface?: SubtitleSurfaceKind;
   /**
    * Routes the ✕ button through `SubtitleControls.exit` instead of the bar's
@@ -81,6 +83,7 @@ const SubtitleBar: React.FC<Props> = ({
   speakerActive,
   participantActive,
   exportProps,
+  exportMenu,
   surface = 'electron',
   sessionControl,
   onExit,
@@ -243,6 +246,7 @@ const SubtitleBar: React.FC<Props> = ({
             export source of truth — only offer export on the Electron surface,
             where the overlay shares the full session store. */}
         {surface === 'electron' && exportProps && <ExportButton {...exportProps} popoverHost="child-window" />}
+        {surface === 'electron' && exportMenu && <ExportMenuButton {...exportMenu} popoverHost="child-window" />}
         <button
           type="button"
           className="subtitle-bar__btn"
