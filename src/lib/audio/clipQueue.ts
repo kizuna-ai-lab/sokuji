@@ -25,6 +25,8 @@ export interface Playing<K extends string = string> {
   key: K;
   /** Milliseconds into the clip, on the audio clock. */
   t: number;
+  /** The clip's whole duration in milliseconds, on the audio clock — `(end - at) * 1000` of the scheduled clip, never the pcm's length (retention may have dropped it). */
+  ms: number;
 }
 
 /** A read-only view of a queue, for karaoke and the playing indicator. */
@@ -33,6 +35,8 @@ export interface QueueView<K extends string = string> {
   position(): Playing<K> | null;
   /** How many clips are scheduled or playing. */
   readonly pending: number;
+  /** How many times `clear()` has run: a live queue's held karaoke ends when this moves — `clear()` is the explicit "stop speaking". */
+  readonly clears: number;
   /** Called when a clip is enqueued, a clip ends, or the queue is cleared: time to read `position()` again. */
   subscribe(listener: () => void): () => void;
 }
@@ -55,6 +59,8 @@ export class ClipQueue<K extends string = string> implements QueueView<K> {
   private clips: Scheduled<K>[] = [];
   /** When the last scheduled clip ends: the next one starts there, or one lead ahead of the clock if that has passed. */
   private tail = 0;
+  /** How many times `clear()` has run. */
+  private clearCount = 0;
   private readonly listeners = new Set<() => void>();
 
   constructor(private readonly timeline: AudioTimeline, private readonly leadS = LEAD_S) {}
@@ -79,26 +85,31 @@ export class ClipQueue<K extends string = string> implements QueueView<K> {
     this.notify();
   }
 
-  /** Stops what plays and drops what is queued. */
+  /** Stops what plays and drops what is queued. Counted every time, whether or not it held clips: a live queue's held karaoke ends here. */
   clear(): void {
     const clips = this.clips;
     this.clips = [];
     this.tail = 0;
+    this.clearCount += 1;
     for (const clip of clips) {
       clip.done = true;
       clip.stop();
     }
-    if (clips.length > 0) this.notify();
+    this.notify();
   }
 
   position(): Playing<K> | null {
     const now = this.timeline.now();
     const clip = this.clips.find((c) => c.at <= now && now < c.end);
-    return clip ? { key: clip.key, t: (now - clip.at) * 1000 } : null;
+    return clip ? { key: clip.key, t: (now - clip.at) * 1000, ms: (clip.end - clip.at) * 1000 } : null;
   }
 
   get pending(): number {
     return this.clips.length;
+  }
+
+  get clears(): number {
+    return this.clearCount;
   }
 
   subscribe(listener: () => void): () => void {

@@ -10,7 +10,6 @@
  */
 import type { Playing, QueueView } from '../audio/clipQueue';
 import { parseClipKey, type ClipKey } from '../audio/playback';
-import { SAMPLE_RATE } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { Leg, LegName, Segment, SegmentId } from '../conversation/types';
 import { describeCause, reportError } from '../diagnostics/report';
@@ -47,14 +46,20 @@ function clipOf(key: ClipKey, legs: readonly Leg[]): { leg: LegName; segment: Se
   return segment ? { leg, segment, index } : null;
 }
 
-/** The characters a playing clip has spoken: its range, reached in proportion to how far into the clip playback is. No range, nothing lit. */
+/**
+ * The characters a playing clip has spoken: its range, reached in proportion
+ * to how far into the clip playback is. The clock is the clip queues': the
+ * clip's duration comes from `playing.ms`, never the speech entry's
+ * `pcm.length` — retention drops pcm by default ("Keep audio for replay" is
+ * off), so a live clip's pcm is usually empty and would say nothing about
+ * how long the clip actually is. No range, nothing lit.
+ */
 export function litFor(playing: Playing<ClipKey>, legs: readonly Leg[]): Lit | null {
   const clip = clipOf(playing.key, legs);
   const speech = clip?.segment.speech[clip.index];
   if (!clip || !speech?.range) return null;
   const [a, b] = speech.range;
-  const ms = (speech.pcm.length / SAMPLE_RATE) * 1000;
-  const f = ms > 0 ? Math.min(1, Math.max(0, playing.t / ms)) : 1;
+  const f = playing.ms > 0 ? Math.min(1, Math.max(0, playing.t / playing.ms)) : 1;
   return { segmentId: clip.segment.id, leg: clip.leg, upTo: a + Math.round((b - a) * f) };
 }
 
@@ -64,17 +69,25 @@ export function litFor(playing: Playing<ClipKey>, legs: readonly Leg[]): Lit | n
  * null between a segment's clips, and a local engine's speech can arrive
  * after its segment closed — the last state holds while the segment's speech
  * may still continue: it is open, or its speech ranges have not reached its
- * last letter or digit. Otherwise the gap ends it. Decided from L1's data,
- * never a timer.
+ * last letter or digit. The hold also ends the moment every one of the
+ * segment's speech entries has lost its range (a letters-changed rewrite:
+ * "drop the ranges, keep the pcm") — the held offset would otherwise name the
+ * old text. A held offset is always clamped to the segment's current text
+ * length, however it got here. The queue-cleared terminating signal (Stop)
+ * lives in `createKaraoke`, which is where the queue is reachable. Otherwise
+ * the gap ends it. Decided from L1's data, never a timer.
  */
 export function nextLit(prev: Lit | null, playing: Playing<ClipKey> | null, legs: readonly Leg[]): Lit | null {
   if (playing) return litFor(playing, legs);
   if (!prev) return null;
   const segment = legs.find((l) => l.leg === prev.leg)?.segments.find((s) => s.id === prev.segmentId);
   if (!segment) return null;
+  if (segment.speech.length > 0 && segment.speech.every((s) => s.range === undefined)) return null;
   const reached = segment.speech.reduce((end, s) => Math.max(end, s.range?.[1] ?? 0), 0);
   const mayContinue = !segment.final || countSkeleton(segment.text.slice(reached)) > 0;
-  return mayContinue ? prev : null;
+  if (!mayContinue) return null;
+  const upTo = Math.min(prev.upTo, segment.text.length);
+  return upTo === prev.upTo ? prev : { ...prev, upTo };
 }
 
 function sameLit(a: ReadonlyMap<SegmentId, number>, b: ReadonlyMap<SegmentId, number>): boolean {
@@ -90,6 +103,14 @@ export function createKaraoke(
   intervalMs = KARAOKE_INTERVAL_MS,
 ): Readable<KaraokeState> & { dispose(): void } {
   const held: Record<QueueName, Lit | null> = { speaker: null, participant: null, replay: null };
+  // Each queue's `clears` as of the last sample: a live queue's hold ends the
+  // moment this moves — the queue was cleared (Stop), the explicit "stop
+  // speaking" a gap alone cannot tell apart from a mid-segment pause.
+  const lastClears: Record<QueueName, number> = {
+    speaker: queues.speaker.clears,
+    participant: queues.participant.clears,
+    replay: queues.replay.clears,
+  };
   const listeners = new Set<() => void>();
   let state = NOTHING;
   let cancel: (() => void) | null = null;
@@ -98,6 +119,11 @@ export function createKaraoke(
     const legs = view.get().legs;
     const lit = new Map<SegmentId, number>();
     for (const name of QUEUES) {
+      const clears = queues[name].clears;
+      if (clears !== lastClears[name]) {
+        held[name] = null;
+        lastClears[name] = clears;
+      }
       const playing = queues[name].position();
       // A replay's clips are enqueued at once, back to back: no position means it has not begun or has ended.
       held[name] = name === 'replay' ? (playing ? litFor(playing, legs) : null) : nextLit(held[name], playing, legs);

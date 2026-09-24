@@ -64,6 +64,14 @@ describe('ClipQueue', () => {
     expect(queue.pending).toBe(0);
   });
 
+  it("reports the clip's whole duration, on the audio clock, independent of pcm length", () => {
+    const { timeline, advance } = fakeTimeline();
+    const queue = new ClipQueue(timeline);
+    queue.enqueue('a', pcm(200));
+    advance(LEAD_S + 0.05);
+    expect(queue.position()?.ms).toBeCloseTo(200, 6);
+  });
+
   it('moves to the next clip at the boundary', () => {
     const { timeline, advance } = fakeTimeline();
     const queue = new ClipQueue(timeline);
@@ -179,5 +187,20 @@ describe('ClipQueue', () => {
     queue.enqueue('a', pcm(100));
     expect(heard).toHaveBeenCalledTimes(1);
     expect(reportErrorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts every clear(), even one on an idle queue, and tells subscribers each time', () => {
+    const { timeline } = fakeTimeline();
+    const queue = new ClipQueue(timeline);
+    expect(queue.clears).toBe(0);
+    const heard = vi.fn();
+    queue.subscribe(heard);
+    queue.clear();
+    expect(queue.clears).toBe(1);
+    expect(heard).toHaveBeenCalledTimes(1);
+    queue.enqueue('a', pcm(100));
+    queue.clear();
+    expect(queue.clears).toBe(2);
+    expect(heard).toHaveBeenCalledTimes(3);
   });
 });
