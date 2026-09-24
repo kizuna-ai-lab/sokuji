@@ -45,6 +45,8 @@ export class StreamingAsrEngine {
   onSpeechStart: (() => void) | null = null;
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
+  /** The worker died (its `onerror`, or a pre-ready `error`); unset, that goes to `onError` as well. */
+  onFatal: ErrorCallback | null = null;
 
   async init(modelId: string, options?: { language?: string; vadConfig?: VadWebConfig; punctuationEndpoint?: boolean }): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
@@ -143,7 +145,7 @@ export class StreamingAsrEngine {
     const session = new WorkerSession({
       makeWorker,
       revokeBlobs: () => manager.revokeBlobUrls(fileUrls),
-      onFatalError: (message) => this.onError?.(message),
+      onFatalError: (message) => (this.onFatal ?? this.onError)?.(message),
       onMessage: (msg: StreamingAsrWorkerOutMessage) => {
         switch (msg.type) {
           case 'status':

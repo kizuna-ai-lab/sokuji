@@ -53,6 +53,8 @@ export class TtsEngine {
 
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
+  /** The worker died (its `onerror`, or a pre-ready `error`); unset, that goes to `onError` as well. */
+  onFatal: ErrorCallback | null = null;
 
   /**
    * Initialize the TTS engine with a specific model.
@@ -180,7 +182,7 @@ export class TtsEngine {
       // Edge TTS has nothing to revoke — it uses the network directly, not IndexedDB blobs.
       revokeBlobs: isEdgeTts ? undefined : () => ModelManager.getInstance().revokeBlobUrls(fileUrls),
       onFatalError: (message) => {
-        this.onError?.(message);
+        (this.onFatal ?? this.onError)?.(message);
         if (this.pendingGenerate) {
           this.pendingGenerate.reject(new Error(message));
           this.pendingGenerate = null;

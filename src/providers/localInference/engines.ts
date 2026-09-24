@@ -7,9 +7,9 @@ import type { LocalInferenceConfig } from './config';
 
 /**
  * The narrow shapes the LocalInference adapter drives, declared from today's
- * engine classes (`src/lib/local-inference/engine/`), which stay as they are
- * (ruling 6). `defaultEngines` puts the real classes behind them; tests pass
- * fakes.
+ * engine classes (`src/lib/local-inference/engine/`), whose only changes are
+ * ruling 6's: a `disposed` check in `init()` and a public `onFatal` hook.
+ * `defaultEngines` puts the real classes behind them; tests pass fakes.
  */
 
 export interface AsrInit {
@@ -36,7 +36,7 @@ export interface AsrLike {
   onFatal: ((error: string) => void) | null;
 }
 
-/** `TranslationEngine`, as it is. */
+/** `TranslationEngine`, as it is: its `onError` carries only fatal failures. */
 export interface TranslationLike {
   init(sourceLang: string, targetLang: string, modelId?: string): Promise<unknown>;
   translate(text: string, systemPrompt: string, wrapTranscript: boolean): Promise<TranslationResult>;
@@ -51,6 +51,7 @@ export interface TtsReady {
   voices?: Array<{ sid: number }>;
 }
 
+/** `TtsEngine`, as it is. */
 export interface TtsLike {
   init(modelId: string): Promise<TtsReady>;
   generate(text: string, sid?: number, speed?: number, lang?: string): Promise<TtsResult>;
@@ -67,39 +68,7 @@ export interface LocalEngines {
   tts(): TtsLike;
 }
 
-/**
- * Each engine hands two different failures to one `onError`: its worker
- * dying (`WorkerSession`'s `onerror` → `onFatalError`) and an `error` message
- * from the ready worker, which is per chunk and recoverable (the streaming
- * worker resets and goes on). Only the first ends the session. The engine
- * keeps its worker private and must not change for this, so the one place a
- * death shows is the worker's own `onerror`: wrapped here, once the engine is
- * ready, to call `onDeath` and to say — while the engine's own handler runs
- * inside it — that the `onError` under way is the death.
- *
- * Reaches through two private fields (`engine.session.worker`), pinned by
- * `engines.test.ts` against the real classes; if the shape ever moves, no
- * death is seen and every error stays recoverable.
- */
-function watchWorkerDeath(engine: object, onDeath: (message: string) => void): () => boolean {
-  let dying = false;
-  const worker = (engine as { session?: { worker?: Worker } | null }).session?.worker;
-  if (!worker) return () => false;
-  const original = worker.onerror;
-  worker.onerror = (event: ErrorEvent) => {
-    dying = true;
-    try {
-      original?.call(worker, event);
-    } finally {
-      dying = false;
-    }
-    onDeath(event.message || 'Worker error');
-  };
-  return () => dying;
-}
-
 function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
-  let dying = () => false;
   const asr: AsrLike = {
     onPartialResult: null,
     onResult: null,
@@ -114,7 +83,6 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
       } else {
         await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined);
       }
-      dying = watchWorkerDeath(engine, (message) => asr.onFatal?.(message));
     },
     feedAudio: (samples, sampleRate) => engine.feedAudio(samples, sampleRate),
     flush: () => engine.flush(),
@@ -123,29 +91,16 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
   engine.onPartialResult = (text) => asr.onPartialResult?.(text);
   engine.onResult = (result: { text: string; durationMs: number; recognitionTimeMs: number }) => asr.onResult?.(result);
   engine.onSpeechStart = () => asr.onSpeechStart?.();
-  engine.onError = (error) => {
-    if (!dying()) asr.onError?.(error);
-  };
+  // Two failures, kept apart by the engine's own hook: a ready worker's
+  // `error` message is one chunk (the streaming worker resets and goes on);
+  // the worker dying is the end of it.
+  engine.onError = (error) => asr.onError?.(error);
+  engine.onFatal = (error) => asr.onFatal?.(error);
   return asr;
-}
-
-function ttsOver(engine: TtsEngine): TtsLike {
-  const tts: TtsLike = {
-    onFatal: null,
-    async init(modelId) {
-      const ready = await engine.init(modelId);
-      watchWorkerDeath(engine, (message) => tts.onFatal?.(message));
-      return ready;
-    },
-    generate: (text, sid, speed, lang) => engine.generate(text, sid, speed, lang),
-    generateStream: (text, sid, speed, lang, onChunk, voice) => engine.generateStream(text, sid, speed, lang, onChunk, voice),
-    dispose: () => engine.dispose(),
-  };
-  return tts;
 }
 
 export const defaultEngines: LocalEngines = {
   asr: (config) => asrOver(config.streaming ? new StreamingAsrEngine() : new AsrEngine()),
   translation: () => new TranslationEngine(),
-  tts: () => ttsOver(new TtsEngine()),
+  tts: () => new TtsEngine(),
 };

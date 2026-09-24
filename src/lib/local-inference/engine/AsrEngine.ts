@@ -44,6 +44,8 @@ export class AsrEngine {
   onSpeechStart: (() => void) | null = null;
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
+  /** The worker died (its `onerror`, or a pre-ready `error`); unset, that goes to `onError` as well. */
+  onFatal: ErrorCallback | null = null;
 
   /**
    * Initialize the ASR engine with a specific model.
@@ -161,7 +163,7 @@ export class AsrEngine {
     const session = new WorkerSession({
       makeWorker,
       revokeBlobs: () => manager.revokeBlobUrls(fileUrls),
-      onFatalError: (message) => this.onError?.(message),
+      onFatalError: (message) => (this.onFatal ?? this.onError)?.(message),
       onMessage: (msg: AsrWorkerOutMessage | StreamingAsrWorkerOutMessage) => {
         switch (msg.type) {
           case 'status':
