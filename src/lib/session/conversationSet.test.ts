@@ -31,6 +31,18 @@ describe('ConversationSet', () => {
     expect(set.snapshot()[0].session).toBe('r2');
   });
 
+  it('a subscriber that throws does not keep a later subscriber from hearing a change (F2)', () => {
+    const set = new ConversationSet();
+    set.subscribe(() => { throw new Error('buggy surface'); });
+    let heard = 0;
+    set.subscribe(() => { heard++; });
+    const speaker = make('speaker', 'r1');
+    set.replace(new Map([['speaker', speaker]]));
+    speaker.apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } });
+    set.replace(new Map([['speaker', make('speaker', 'r2')]]));
+    expect(heard).toBe(3);
+  });
+
   it('clears every leg', () => {
     const set = new ConversationSet();
     const speaker = make('speaker', 'r1');

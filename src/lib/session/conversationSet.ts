@@ -1,5 +1,6 @@
 import type { Conversation } from '../conversation/Conversation';
 import type { Leg, LegName } from '../conversation/types';
+import { describeCause, reportError } from '../diagnostics/report';
 
 const ORDER: readonly LegName[] = ['speaker', 'participant'];
 
@@ -50,6 +51,14 @@ export class ConversationSet {
 
   private changed(): void {
     this.stale = true;
-    for (const listener of this.listeners) listener();
+    // Each listener is isolated: a throw is reported, never allowed to skip
+    // notifying a later listener (F2).
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (error) {
+        reportError('SessionRunner', `A conversation subscriber threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'subscriber' });
+      }
+    }
   }
 }

@@ -6,7 +6,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { createRunner } from './runner';
-import type { RunShape, SessionHooks } from './types';
+import type { RunNotice, RunShape, SessionHooks } from './types';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -66,6 +66,22 @@ describe('runner — prepare', () => {
     await runner.start();
     expect(runner.conversation.snapshot()[0].notices).toEqual([expect.objectContaining({ severity: 'warning', code: 'voice_fallback', message: 'built-in voice' })]);
   });
+
+  it("records prepare's notice on the speaker leg only, when both legs run (F5)", async () => {
+    const { runner } = setup(withHooks({ prepare: async () => ({ notice: { code: 'voice_fallback', message: 'built-in voice' } }) }), ['speaker', 'participant']);
+    await runner.start();
+    expect(runner.conversation.snapshot()[0].notices).toEqual([expect.objectContaining({ code: 'voice_fallback' })]);
+    expect(runner.conversation.snapshot()[1].notices).toEqual([]);
+  });
+
+  it("applies prepare's override to the build while persisting the run's own snapshot, when both are returned together (F5)", async () => {
+    const provider = withHooks({ prepare: async () => ({ override: { script: 'cjk' }, persist: { script: 'long' } }) });
+    const { runner, clock, persistIfUnchanged, shape } = setup(provider);
+    await runner.start();
+    clock.advance(600);
+    expect(runner.conversation.snapshot()[0].segments[0].text).toBe('今日は');
+    expect(persistIfUnchanged).toHaveBeenCalledWith(provider, shape.settings, { script: 'long' });
+  });
 });
 
 describe('runner — admit', () => {
@@ -113,8 +129,8 @@ describe('runner — acquire', () => {
     expect(order.slice(0, 2).sort()).toEqual(['participant closed', 'speaker closed']);
   });
 
-  it("ends the run when the lease ends it, with the lease's message", async () => {
-    let endLease!: (message: string) => void;
+  it("ends the run when the lease ends it, and records the notice on the leg (F4)", async () => {
+    let endLease!: (notice: RunNotice) => void;
     const provider = withHooks({
       acquire: async (_shape, _s, ctx) => {
         endLease = ctx.end;
@@ -123,9 +139,12 @@ describe('runner — acquire', () => {
     });
     const { runner } = setup(provider);
     await runner.start();
-    endLease('balance exhausted');
+    endLease({ code: 'balance_exhausted', message: 'balance exhausted' });
     await flush();
-    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'lease_ended', message: 'balance exhausted' } } });
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'balance_exhausted', message: 'balance exhausted' } } });
+    expect(runner.conversation.snapshot()[0].notices).toEqual([
+      expect.objectContaining({ severity: 'error', code: 'balance_exhausted', message: 'balance exhausted' }),
+    ]);
   });
 
   it('releases a lease that arrives after the start was cancelled', async () => {
@@ -137,8 +156,12 @@ describe('runner — acquire', () => {
     const { runner } = setup(provider);
     const starting = runner.start();
     await flush();
-    await runner.stop();
+    // `close()` now waits (bounded) for the still-pending `acquire()` before it
+    // unwinds (F3), so `grant()` must run before `stop()` is awaited, or the
+    // wait would need the timeout instead of settling on its own.
+    const stopping = runner.stop();
     grant();
+    await stopping;
     await starting;
     await flush();
     expect(release).toHaveBeenCalledTimes(1);

@@ -56,8 +56,8 @@ export interface SessionHooks<S, K, C> {
   prepare?(shape: RunShape, s: S, signal: AbortSignal): Promise<Prepared<S>>;
   /** Cross-leg checks over the configs actually built. */
   admit?(configs: Partial<Record<LegName, C>>): true | { refused: string };
-  /** `end` stops the run with a notice: budget exhausted, duration cutoff. */
-  acquire?(shape: RunShape, s: S, ctx: { signal: AbortSignal; end(message: string): void }): Promise<Resources<K>>;
+  /** `end` stops the run with a notice: budget exhausted, duration cutoff — the code says which. */
+  acquire?(shape: RunShape, s: S, ctx: { signal: AbortSignal; end(notice: RunNotice): void }): Promise<Resources<K>>;
   /** Both legs at once (D23): the provider decides between one mixed socket and two. */
   startBoth?(
     requests: Record<LegName, StartRequest<C, K>>,

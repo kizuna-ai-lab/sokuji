@@ -10,6 +10,7 @@ import { eventsFrom, type AdapterEvent } from '../contract/events';
 import { Conversation, DEFAULT_RETENTION } from '../conversation/Conversation';
 import type { LegName } from '../conversation/types';
 import { describeCause, reportWarning } from '../diagnostics/report';
+import { redact } from '../diagnostics/redact';
 import { isMissing, readCredentials } from '../provider/credentials';
 import type { RunnerDeps } from './ports';
 import { contextsFor, gate, type Refusal } from './shape';
@@ -63,6 +64,8 @@ export class Run {
   /** Ended: events are discarded. */
   private finished = false;
   private turn: Turn | null = null;
+  /** The promise of `open()`'s own body; `close()` waits for it (bounded) before it unwinds (F3). */
+  private opening: Promise<void> | null = null;
 
   /** `host` is a factory because the runner's host closes over the run it serves. */
   constructor(private readonly deps: RunnerDeps, host: (run: Run) => RunHost, readonly shape: RunShape) {
@@ -76,8 +79,19 @@ export class Run {
     return this.controller.signal;
   }
 
-  /** Steps 1–8 of "A run". Throws a `RefusedError`, a `LegOpenError`, or the abort; the caller ends the run. */
-  async open(): Promise<void> {
+  /**
+   * Steps 1–8 of "A run". Throws a `RefusedError`, a `LegOpenError`, or the
+   * abort; the caller ends the run. The promise is kept on `this.opening` so
+   * `close()` can wait for it (F3) — `open()` itself stays sync so the field
+   * is set before anything else can observe this run as started.
+   */
+  open(): Promise<void> {
+    const opening = this.runOpen();
+    this.opening = opening;
+    return opening;
+  }
+
+  private async runOpen(): Promise<void> {
     const { shape, deps, host } = this;
     const p = shape.provider;
 
@@ -123,7 +137,12 @@ export class Run {
         signal: this.signal,
         // `close()` sets `ending` before it aborts; an abort listener that
         // reacts by calling this must not re-end a run already ending.
-        end: (message) => { if (!this.ending) host.end({ reason: 'lease-ended', notice: { code: 'lease_ended', message } }); },
+        end: (notice) => {
+          if (this.ending) return;
+          // The lease covers every leg; each one records why it ended (spec: notices on L1).
+          for (const conversation of this.conversations.values()) conversation.notice({ severity: 'error', ...notice });
+          host.end({ reason: 'lease-ended', notice });
+        },
       });
       this.stack.defer('lease', () => resources.release());
       this.throwIfAborted();
@@ -179,11 +198,16 @@ export class Run {
     this.liveSince = deps.clock.now();
   }
 
-  /** Ends the run: decide nothing more, close an open turn, abort, unwind, finalize the legs, wait (bounded) for fill-in. */
+  /** Ends the run: decide nothing more, close an open turn, abort, wait for a leg still opening, unwind, finalize the legs, wait (bounded) for fill-in. */
   async close(): Promise<void> {
     this.ending = true;
     if (this.turn?.close()) this.deps.playback.held(false);
     this.controller.abort(new Error('the run ended'));
+    // A `start()` / `startBoth` / `openSource` / `acquire` still in flight
+    // finishes (and defers its release) before we unwind, so every resource
+    // lands on the stack in the right order and is released in the right
+    // order — including relative to `stop()` resolving (F3, D22).
+    await this.awaitOpening();
     await this.stack.unwind();
     for (const conversation of this.conversations.values()) conversation.finalizeAll();
     // Fill-in lands through `Conversation`'s own jobs, not `onEvent`; nothing
@@ -303,7 +327,7 @@ export class Run {
       case 'failed': {
         const { message, code } = event.payload;
         const errorType: ApiErrorType = API_ERROR_TYPES.find((t) => t === code) ?? 'server';
-        analytics.track('api_error', { provider, error_message: message, error_code: code, error_type: errorType, channel: leg });
+        analytics.track('api_error', { provider, error_message: redact(message), error_code: code, error_type: errorType, channel: leg });
         // L1 already recorded the failure as an error notice on this leg.
         this.host.end({ reason: 'leg-failed', notice: { code: code ?? 'leg_failed', message, leg } });
         return;
@@ -338,5 +362,29 @@ export class Run {
 
   private throwIfAborted(): void {
     if (this.signal.aborted) throw this.signal.reason ?? new Error('aborted');
+  }
+
+  /**
+   * Waits for `open()`'s own promise to settle, bounded by the run's timeout
+   * so a hung adapter that ignores the signal cannot hold the stop forever.
+   * What it resolves or rejects to does not matter here — only that whatever
+   * it was going to defer has had the chance to.
+   */
+  private awaitOpening(): Promise<void> {
+    const opening = this.opening;
+    if (!opening) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      const cancel = this.deps.clock.setTimeout(finish, this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+      opening.then(
+        () => { cancel(); finish(); },
+        () => { cancel(); finish(); },
+      );
+    });
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { AdapterEvents } from '../contract/adapter';
+import type { AdapterEvents, StartRequest } from '../contract/adapter';
 import type { Leg } from '../conversation/types';
 import type { Punctuator } from '../conversation/fillIn';
 import type { AnyProvider, Readiness } from '../provider/types';
@@ -10,7 +10,16 @@ import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings'
 import type { OpenSource } from './source';
 import type { PlaybackPort } from './ports';
 import { createRunner } from './runner';
-import type { RunShape } from './types';
+import type { RunNotice, RunShape } from './types';
+
+// A bare spy: `describeCause`/`reportWarning` stay real (many assertions below
+// read a message `describeCause` built), only `reportError` is observable —
+// F6's "a start that fails is recorded with its cause" test needs to see it.
+const reportErrorSpy = vi.hoisted(() => vi.fn());
+vi.mock('../diagnostics/report', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../diagnostics/report')>();
+  return { ...actual, reportError: reportErrorSpy };
+});
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -19,9 +28,12 @@ interface Options {
   settings?: Partial<FakeSettings>;
   openSource?: OpenSource;
   ready?: Readiness;
+  ensureReady?: () => Promise<Readiness>;
   onRunEnded?: (legs: readonly Leg[]) => void;
   punctuate?: Punctuator;
   playback?: Partial<PlaybackPort>;
+  /** Runs alongside the normal tracking; throwing here exercises a throwing analytics port. */
+  track?: (event: string, properties: unknown) => void;
 }
 
 function setup(o: Options = {}) {
@@ -53,7 +65,7 @@ function setup(o: Options = {}) {
     clock,
     platform: 'electron',
     readShape: () => shape,
-    ensureReady: async () => o.ready ?? { state: 'ready', models: [] },
+    ensureReady: o.ensureReady ?? (async () => o.ready ?? { state: 'ready', models: [] }),
     persistIfUnchanged,
     openSource: o.openSource ?? (async () => {
       const source = createFakeSource(clock);
@@ -61,7 +73,7 @@ function setup(o: Options = {}) {
       return source;
     }),
     playback,
-    analytics: { track: (event, properties) => { tracked.push([event, properties]); } },
+    analytics: { track: (event, properties) => { o.track?.(event, properties); tracked.push([event, properties]); } },
     punctuate: o.punctuate,
     newSessionId: () => `run${++runs}`,
     onRunEnded: o.onRunEnded,
@@ -273,8 +285,8 @@ describe('runner — stopping', () => {
     const provider = {
       ...fakeProvider,
       session: {
-        acquire: async (_shape: RunShape, _s: unknown, ctx: { signal: AbortSignal; end(message: string): void }) => {
-          ctx.signal.addEventListener('abort', () => ctx.end('lease cut'));
+        acquire: async (_shape: RunShape, _s: unknown, ctx: { signal: AbortSignal; end(notice: RunNotice): void }) => {
+          ctx.signal.addEventListener('abort', () => ctx.end({ code: 'lease_cut', message: 'lease cut' }));
           return { credentials: () => ({}), release: async () => {} };
         },
       },
@@ -458,5 +470,231 @@ describe('runner — the conversation', () => {
     clock.advance(1000);
     await stopping;
     expect(runner.conversation.snapshot()[0].segments.some((s) => s.ref === 7)).toBe(false);
+  });
+});
+
+describe('runner — guarded ports (F1)', () => {
+  it('a playback port that throws on audio does not reach the adapter', async () => {
+    const { runner, clock } = setup({ playback: { audio: vi.fn(() => { throw new Error('sink gone'); }) } });
+    await runner.start();
+    // Before the fix this throw propagates synchronously out of `clock.advance`.
+    clock.advance(600);
+    expect(runner.state.getState().phase).toBe('running');
+    expect(runner.conversation.snapshot()[0].segments.length).toBeGreaterThan(0);
+  });
+
+  it('an analytics port that throws neither fails a start nor skips onRunEnded', async () => {
+    const onRunEnded = vi.fn();
+    const { runner } = setup({
+      onRunEnded,
+      track: (event) => { if (event === 'translation_session_end') throw new Error('posthog'); },
+    });
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('running');
+    await runner.stop();
+    expect(runner.state.getState().phase).toBe('idle');
+    expect(onRunEnded).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('runner — subscriber isolation (F2)', () => {
+  it('a subscriber that throws does not keep a later subscriber from hearing each phase', async () => {
+    const { runner } = setup();
+    runner.state.subscribe(() => { throw new Error('buggy surface'); });
+    const seen: string[] = [];
+    runner.state.subscribe((s) => { seen.push(s.phase); });
+    await runner.start();
+    await runner.stop();
+    expect(runner.state.getState().phase).toBe('idle');
+    // Distinct phases in order; 'starting' is announced once per step (only
+    // 'checking' and 'opening' for the default fake, with no `prepare` hook).
+    const distinct = seen.filter((phase, i) => phase !== seen[i - 1]);
+    expect(distinct).toEqual(['starting', 'running', 'stopping', 'idle']);
+  });
+});
+
+describe('runner — a leg still opening waits for the lease (F3)', () => {
+  it('a leg still opening when Stop lands is closed before the lease is released, and before stop() resolves', async () => {
+    const order: string[] = [];
+    const provider = {
+      ...fakeProvider,
+      session: {
+        acquire: async () => ({ credentials: () => ({}), release: async () => { order.push('lease released'); } }),
+      },
+      // Ignores the signal: the delay is on the run's clock, unrelated to the abort.
+      async start(request: StartRequest<never, never>, events: AdapterEvents) {
+        await new Promise<void>((resolve) => { request.clock.setTimeout(resolve, 500); });
+        const inner = await fakeProvider.start({ ...request, signal: new AbortController().signal }, events);
+        return {
+          ...inner, info: inner.info, appendAudio: () => {}, appendText: () => {}, beginTurn: () => {}, endTurn: () => {}, cancelTurn: () => {},
+          stop: async () => { order.push('leg closed'); },
+        };
+      },
+    } as unknown as AnyProvider;
+    const { runner, clock } = setup({ shape: { provider } });
+    const starting = runner.start();
+    await flush();
+    const stopping = runner.stop();
+    // Nothing left to release is clock-gated yet: let it run to completion
+    // (real microtasks only). Before the fix, `close()` unwinds right away —
+    // with only the lease and the source's own entries on the stack, since the
+    // leg's own session hasn't been deferred yet — so the lease is *already*
+    // released here, before the leg has even finished opening.
+    await flush();
+    clock.advance(500);
+    await flush();
+    await stopping;
+    expect(order).toEqual(['leg closed', 'lease released']);
+    await starting;
+  });
+});
+
+describe('runner — cancel at each starting step (F5)', () => {
+  it('a stop during checking (a slow readiness check) cancels the start', async () => {
+    let land!: () => void;
+    const gate = new Promise<void>((resolve) => { land = resolve; });
+    const { runner, sources, events } = setup({ ensureReady: () => gate.then((): Readiness => ({ state: 'ready', models: [] })) });
+    const starting = runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'checking' });
+    const stopping = runner.stop();
+    land();
+    await stopping;
+    await starting;
+    await flush();
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(sources).toHaveLength(0);
+    expect(events('translation_session_start')).toEqual([]);
+  });
+
+  it('a stop during preparing (a slow prepare hook) cancels the start', async () => {
+    let land!: () => void;
+    const gate = new Promise<void>((resolve) => { land = resolve; });
+    const provider = { ...fakeProvider, session: { prepare: () => gate.then(() => ({})) } } as unknown as AnyProvider;
+    const { runner, sources, events } = setup({ shape: { provider } });
+    const starting = runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'preparing' });
+    const stopping = runner.stop();
+    land();
+    await stopping;
+    await starting;
+    await flush();
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(sources).toHaveLength(0);
+    expect(events('translation_session_start')).toEqual([]);
+  });
+
+  it('a stop during acquire (a slow lease) cancels the start and still releases the lease', async () => {
+    let land!: () => void;
+    const gate = new Promise<void>((resolve) => { land = resolve; });
+    let released = false;
+    const provider = {
+      ...fakeProvider,
+      session: { acquire: () => gate.then(() => ({ credentials: () => ({}), release: async () => { released = true; } })) },
+    } as unknown as AnyProvider;
+    const { runner, sources, events } = setup({ shape: { provider } });
+    const starting = runner.start();
+    await flush();
+    // No distinct 'acquire' step exists on `RunState`; the visible step is
+    // still whatever ran last ('checking', since this provider has no `prepare`).
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'checking' });
+    const stopping = runner.stop();
+    land();
+    await stopping;
+    await starting;
+    await flush();
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(sources).toHaveLength(0);
+    expect(events('translation_session_start')).toEqual([]);
+    expect(released).toBe(true);
+  });
+
+  // The 'opening' step is already covered by "a stop during a slow start
+  // cancels it" above (runner — stopping); not duplicated here.
+
+  it('a leg failing while the other leg is still opening ends the start and closes both (D22)', async () => {
+    let failSpeaker!: () => void;
+    const provider = {
+      ...fakeProvider,
+      async start(request: StartRequest<never, never>, ev: AdapterEvents) {
+        if (request.context.direction.source === 'en') {
+          const inner = await fakeProvider.start(request, ev);
+          failSpeaker = () => ev.failed({ message: 'boom', code: 'network' });
+          return inner;
+        }
+        return new Promise<never>((_resolve, reject) => {
+          request.signal.addEventListener('abort', () => reject(request.signal.reason));
+        });
+      },
+    } as unknown as AnyProvider;
+    const { runner, sources, events } = setup({ shape: { legs: ['speaker', 'participant'], provider } });
+    const starting = runner.start();
+    await flush();
+    failSpeaker();
+    await starting;
+    await flush();
+    expect(runner.state.getState()).toMatchObject({
+      phase: 'idle',
+      lastEnd: { reason: 'leg-failed', notice: { code: 'network', message: 'boom', leg: 'speaker' } },
+    });
+    expect(sources.every((s) => s.stopped)).toBe(true);
+    expect(events('translation_session_start')).toEqual([]);
+  });
+});
+
+describe('runner — small corrections (F6)', () => {
+  it('captures the session duration when the stop lands, not after teardown finishes', async () => {
+    const provider = {
+      ...fakeProvider,
+      start: async (request: any, events: any) => {
+        const session = await fakeProvider.start(request, events);
+        return {
+          info: session.info,
+          appendAudio: (pcm: Int16Array) => session.appendAudio(pcm),
+          appendText: (text: string) => session.appendText(text),
+          beginTurn: () => session.beginTurn(),
+          endTurn: () => session.endTurn(),
+          cancelTurn: () => session.cancelTurn(),
+          // Hangs; the stack's own release timeout is what ends it, consuming clock time.
+          stop: () => new Promise<void>(() => {}),
+        };
+      },
+    } as unknown as AnyProvider;
+    const { runner, clock, events } = setup({ shape: { provider } });
+    await runner.start();
+    clock.advance(600);
+    const stopping = runner.stop();
+    await flush();
+    clock.advance(1000); // fires the stack's release timeout — teardown time that must not count
+    await stopping;
+    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake' }]);
+  });
+
+  it('redacts the adapter failure message before tracking api_error', async () => {
+    let ev!: AdapterEvents;
+    const provider = {
+      ...fakeProvider,
+      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return fakeProvider.start(request, events); },
+    } as unknown as AnyProvider;
+    const { runner, events: tracked } = setup({ shape: { provider } });
+    await runner.start();
+    ev.failed({ message: 'rejected: sk-1234567890abcdef', code: 'auth' });
+    await flush();
+    const apiError = tracked('api_error')[0] as { error_message: string };
+    expect(apiError.error_message).not.toContain('sk-1234567890abcdef');
+    expect(apiError.error_message).toContain('[REDACTED]');
+  });
+
+  it('records a start failure with its cause, next to error_occurred', async () => {
+    reportErrorSpy.mockClear();
+    const { runner } = setup({ settings: { startThrows: true } });
+    await runner.start();
+    await flush();
+    expect(reportErrorSpy).toHaveBeenCalledWith(
+      'SessionRunner',
+      'The session did not start: The fake failed to start (fault knob).',
+      expect.objectContaining({ cause: expect.any(Error) }),
+    );
   });
 });

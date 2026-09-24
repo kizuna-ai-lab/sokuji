@@ -6,7 +6,7 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import type { LegName } from '../conversation/types';
 import { ConversationSet } from './conversationSet';
-import type { ControlMethod, RunnerDeps } from './ports';
+import { guardPorts, type ControlMethod, type RunnerDeps } from './ports';
 import { LegOpenError, RefusedError, Run, type RunHost } from './run';
 import type { LegState, RunEnd, RunState } from './types';
 
@@ -26,20 +26,32 @@ export interface Runner {
   clear(): void;
 }
 
-export function createRunner(deps: RunnerDeps): Runner {
-  const state = createStore<RunState>(() => ({ phase: 'idle' }));
+export function createRunner(rawDeps: RunnerDeps): Runner {
+  // Every port a `Run` (and this runner) touches is guarded once, here: a
+  // throwing port is reported and never reaches the run or an adapter (F1).
+  const deps: RunnerDeps = { ...rawDeps, ...guardPorts(rawDeps) };
+  const rawState = createStore<RunState>(() => ({ phase: 'idle' }));
+  // zustand's own `listeners.forEach` stops at the first listener that
+  // throws, hiding every phase from every subscriber registered after it
+  // (F2). Wrapping `subscribe` — not `setState` — means every listener,
+  // including React's own via `useStore`, is isolated from the others.
+  const state: StoreApi<RunState> = {
+    setState: rawState.setState,
+    getState: rawState.getState,
+    getInitialState: rawState.getInitialState,
+    subscribe: (listener) => rawState.subscribe((next, prev) => {
+      try {
+        listener(next, prev);
+      } catch (error) {
+        reportError('SessionRunner', `A session-state subscriber threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'subscriber' });
+      }
+    }),
+  };
   const conversation = new ConversationSet();
   let current: Run | null = null;
   let ending: Promise<void> | null = null;
 
-  /** A subscriber's bug is reported, never thrown into the runner: zustand stores the state before notifying, so the phase stays right. */
-  const set = (next: RunState) => {
-    try {
-      state.setState(next, true);
-    } catch (error) {
-      reportError('SessionRunner', `A session-state subscriber threw: ${describeCause(error)}`, { cause: error });
-    }
-  };
+  const set = (next: RunState) => { state.setState(next, true); };
   const legs = (run: Run) => Object.fromEntries(run.legStates) as Partial<Record<LegName, LegState>>;
 
   /** Races `task` against `timeoutMs`; a timeout is reported and treated as done, so a hung `onRunEnded` cannot strand the runner. */
@@ -78,15 +90,14 @@ export function createRunner(deps: RunnerDeps): Runner {
     void (async () => {
       try {
         set({ phase: 'stopping' });
-        // Stop speaking now; a throwing port must not keep the run open.
-        try {
-          deps.playback.clear();
-        } catch (error) {
-          reportError('SessionRunner', `Silencing playback failed: ${describeCause(error)}`, { cause: error });
-        }
+        // Captured before `run.close()`, so teardown time (a hung release,
+        // the bounded wait for fill-in) is never counted as session duration.
+        const endedAt = deps.clock.now();
+        // Stop speaking now; the port is guarded, so a throw here cannot keep the run open.
+        deps.playback.clear();
         await run.close();
         if (liveSince !== null) {
-          const duration = deps.clock.now() - liveSince;
+          const duration = endedAt - liveSince;
           const provider = run.shape.provider.id;
           // One per leg, as `connected` was.
           run.shape.legs.forEach(() => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration }));
@@ -140,6 +151,7 @@ export function createRunner(deps: RunnerDeps): Runner {
       }
       const leg = error instanceof LegOpenError ? error.leg : undefined;
       const message = describeCause(error);
+      reportError('SessionRunner', `The session did not start: ${message}`, { cause: error });
       deps.analytics.track('error_occurred', {
         error_type: 'session_start', error_message: message, component: 'session-runner',
         severity: 'high', provider: shape.provider.id, recoverable: true,

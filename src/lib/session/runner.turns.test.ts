@@ -8,6 +8,7 @@ import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { FakeConfig, FakeCredentials } from '../../providers/fake/adapter';
 import { createRunner } from './runner';
 import type { RunShape, TurnMode } from './types';
+import type { PlaybackPort } from './ports';
 
 /** The fake, with every call its sessions receive written to `log` as `<leg>:<call>`. */
 function spyingProvider(log: string[], patch: Partial<AnyProvider> = {}): AnyProvider {
@@ -30,11 +31,12 @@ function spyingProvider(log: string[], patch: Partial<AnyProvider> = {}): AnyPro
   } as AnyProvider;
 }
 
-function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: AnyProvider; log?: string[] } = {}) {
+function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: AnyProvider; log?: string[]; playback?: Partial<PlaybackPort> } = {}) {
   const clock = createVirtualClock(0);
   const log = o.log ?? [];
   const sources: FakeSource[] = [];
   const playback = { audio: vi.fn(), closed: vi.fn(), held: vi.fn(), clear: vi.fn() };
+  Object.assign(playback, o.playback);
   const tracked: Array<[string, unknown]> = [];
   const shape: RunShape = {
     provider: o.provider ?? spyingProvider(log),
@@ -139,6 +141,18 @@ describe('runner — manual turns', () => {
     await runner.stop();
     expect(log.filter((e) => !e.endsWith(':audio'))).toEqual(['speaker:begin']);
     expect(playback.held.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('a playback port that throws on held still stops every source when Stop lands during a hold (F1)', async () => {
+    const { runner, clock, sources } = setup({
+      playback: { held: vi.fn((held: boolean) => { if (!held) throw new Error('route toggle failed'); }) },
+    });
+    await runner.start();
+    runner.press();
+    clock.advance(100);
+    await runner.stop();
+    expect(runner.state.getState().phase).toBe('idle');
+    expect(sources.every((s) => s.stopped)).toBe(true);
   });
 });
 

@@ -2,6 +2,7 @@ import type { AnalyticsEvents } from '../analytics';
 import type { Clock } from '../contract/clock';
 import type { Punctuator } from '../conversation/fillIn';
 import type { Leg, LegName } from '../conversation/types';
+import { describeCause, reportError } from '../diagnostics/report';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import type { OpenSource } from './source';
 import type { RunShape } from './types';
@@ -43,4 +44,28 @@ export interface RunnerDeps {
   onRunEnded?(legs: readonly Leg[]): Promise<void> | void;
   /** Bounds each release and the wait for punctuation fill-in; default 5000. */
   timeoutMs?: number;
+}
+
+/**
+ * The caller's ports, each method guarded: a port that throws is reported
+ * once per method (a dedupe key) and never reaches the run or an adapter.
+ */
+export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'analytics'> {
+  const guard = <A extends unknown[]>(name: string, fn: (...args: A) => void) => (...args: A): void => {
+    try {
+      fn(...args);
+    } catch (error) {
+      reportError('SessionRunner', `The ${name} port threw: ${describeCause(error)}`, { cause: error, dedupeKey: `port:${name}` });
+    }
+  };
+  const { playback, analytics } = deps;
+  return {
+    playback: {
+      audio: guard('playback.audio', (leg: LegName, ref: number | undefined, pcm: Int16Array) => playback.audio(leg, ref, pcm)),
+      closed: guard('playback.closed', (leg: LegName, ref: number) => playback.closed(leg, ref)),
+      held: guard('playback.held', (held: boolean) => playback.held(held)),
+      clear: guard('playback.clear', () => playback.clear()),
+    },
+    analytics: { track: guard('analytics.track', (event, properties) => analytics.track(event, properties)) as AnalyticsPort['track'] },
+  };
 }
