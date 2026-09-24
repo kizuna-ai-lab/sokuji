@@ -35,7 +35,7 @@ function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: Any
   const clock = createVirtualClock(0);
   const log = o.log ?? [];
   const sources: FakeSource[] = [];
-  const playback = { audio: vi.fn(), closed: vi.fn(), held: vi.fn(), clear: vi.fn() };
+  const playback = { audio: vi.fn(), held: vi.fn(), clear: vi.fn() };
   Object.assign(playback, o.playback);
   const tracked: Array<[string, unknown]> = [];
   const shape: RunShape = {
@@ -80,7 +80,8 @@ describe('runner — manual turns', () => {
     runner.release();
     expect(count('speaker:audio')).toBe(6);
     expect(log.filter((e) => !e.endsWith(':audio'))).toEqual(['speaker:begin', 'speaker:end']);
-    expect(playback.held.mock.calls).toEqual([[true], [false]]);
+    // Push-to-talk leaves the original-voice route alone.
+    expect(playback.held).not.toHaveBeenCalled();
     expect(events('push_to_talk_used')).toEqual([{ session_id: 'run1', hold_duration_ms: 600, mode: 'push-to-talk' }]);
     clock.advance(300);
     expect(count('speaker:audio')).toBe(6);
@@ -134,7 +135,7 @@ describe('runner — manual turns', () => {
   });
 
   it('a stop during a hold closes the turn without ending it', async () => {
-    const { runner, clock, log, playback } = setup();
+    const { runner, clock, log, playback } = setup({ turnMode: 'push-to-translate' });
     await runner.start();
     runner.press();
     clock.advance(200);
@@ -145,6 +146,7 @@ describe('runner — manual turns', () => {
 
   it('a playback port that throws on held still stops every source when Stop lands during a hold (F1)', async () => {
     const { runner, clock, sources } = setup({
+      turnMode: 'push-to-translate',
       playback: { held: vi.fn((held: boolean) => { if (!held) throw new Error('route toggle failed'); }) },
     });
     await runner.start();
@@ -153,6 +155,18 @@ describe('runner — manual turns', () => {
     await runner.stop();
     expect(runner.state.getState().phase).toBe('idle');
     expect(sources.every((s) => s.stopped)).toBe(true);
+  });
+
+  it('push-to-translate closes the original-voice route while the key is held', async () => {
+    const { runner, clock, sources, playback, events } = setup({ turnMode: 'push-to-translate' });
+    await runner.start();
+    sources[0].setVoiced(true);
+    runner.press();
+    expect(playback.held.mock.calls).toEqual([[true]]);
+    clock.advance(600);
+    runner.release();
+    expect(playback.held.mock.calls).toEqual([[true], [false]]);
+    expect(events('push_to_talk_used')).toEqual([{ session_id: 'run1', hold_duration_ms: 600, mode: 'push-to-translate' }]);
   });
 });
 

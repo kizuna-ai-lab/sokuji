@@ -38,7 +38,7 @@ function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker']) {
     ensureReady: async () => ({ state: 'ready', models: [] }),
     persistIfUnchanged,
     openSource: async () => { const s = createFakeSource(clock); sources.push(s); return s; },
-    playback: { audio: () => {}, closed: () => {}, held: () => {}, clear: () => {} },
+    playback: { audio: () => {}, held: () => {}, clear: () => {} },
     analytics: { track: () => {} },
     newSessionId: () => 'run1',
     timeoutMs: 1000,

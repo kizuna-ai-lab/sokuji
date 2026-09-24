@@ -201,7 +201,7 @@ export class Run {
   /** Ends the run: decide nothing more, close an open turn, abort, wait for a leg still opening, unwind, finalize the legs, wait (bounded) for fill-in. */
   async close(): Promise<void> {
     this.ending = true;
-    if (this.turn?.close()) this.deps.playback.held(false);
+    if (this.turn?.close()) this.hold(false);
     this.controller.abort(new Error('the run ended'));
     // A `start()` / `startBoth` / `openSource` / `acquire` still in flight
     // finishes (and defers its release) before we unwind, so every resource
@@ -222,7 +222,7 @@ export class Run {
     if (this.ending || this.liveSince === null || this.shape.turnMode === 'auto' || !session || this.turn?.isOpen) return;
     this.turn = new Turn(this.deps.clock.now());
     session.beginTurn();
-    this.deps.playback.held(true);
+    this.hold(true);
   }
 
   /** A release: the turn's voice decides between ending and cancelling it. */
@@ -232,7 +232,7 @@ export class Run {
     if (!turn || !session) return;
     const outcome = turn.close();
     if (!outcome) return;
-    this.deps.playback.held(false);
+    this.hold(false);
     if (outcome === 'end') session.endTurn();
     else session.cancelTurn();
     this.deps.analytics.track('push_to_talk_used', {
@@ -248,6 +248,11 @@ export class Run {
     if (this.ending || this.liveSince === null || !this.shape.provider.textInput || !session) return;
     session.appendText(text);
     this.deps.analytics.track('text_input_sent', { session_id: this.id, provider: this.shape.provider.id, text_length: text.length });
+  }
+
+  /** Push-to-translate closes the original-voice route while the key is held; push-to-talk leaves it alone. */
+  private hold(held: boolean): void {
+    if (this.shape.turnMode === 'push-to-translate') this.deps.playback.held(held);
   }
 
   private async openLeg(leg: LegName, request: StartRequest<unknown, unknown>): Promise<void> {
@@ -313,9 +318,6 @@ export class Run {
     switch (event.kind) {
       case 'audio':
         playback.audio(leg, event.payload.ref, event.payload.pcm);
-        return;
-      case 'segmentClosed':
-        playback.closed(leg, event.payload.ref);
         return;
       case 'reconnecting':
         this.setLegState(leg, 'reconnecting');

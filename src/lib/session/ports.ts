@@ -7,13 +7,14 @@ import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/
 import type { OpenSource } from './source';
 import type { RunShape } from './types';
 
-/** Where a run's audio goes; plan 1c-2 builds the clip queues and routes behind it. */
+/** Where a run's audio goes; plan 1c-2's `Playback` (src/lib/audio/playback.ts) implements it. */
 export interface PlaybackPort {
-  /** A leg's translated audio; `ref` names the segment it speaks, absent when it names none. */
+  /**
+   * One piece of a leg's translated audio: one clip, which is one speech entry
+   * of the segment `ref` names (absent: it names none).
+   */
   audio(leg: LegName, ref: number | undefined, pcm: Int16Array): void;
-  /** A segment closed: no more audio will come for it. */
-  closed(leg: LegName, ref: number): void;
-  /** A manual turn is held (push-to-translate closes the original-voice route while held). */
+  /** Push-to-translate only: the original-voice route is closed while the key is held. */
   held(held: boolean): void;
   /** The run ended or the conversation was cleared: stop, and drop what is queued. */
   clear(): void;
@@ -51,18 +52,30 @@ export interface RunnerDeps {
  * once per method (a dedupe key) and never reaches the run or an adapter.
  */
 export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'analytics'> {
+  const report = (name: string, error: unknown) =>
+    reportError('SessionRunner', `The ${name} port threw: ${describeCause(error)}`, { cause: error, dedupeKey: `port:${name}` });
   const guard = <A extends unknown[]>(name: string, fn: (...args: A) => void) => (...args: A): void => {
     try {
       fn(...args);
     } catch (error) {
-      reportError('SessionRunner', `The ${name} port threw: ${describeCause(error)}`, { cause: error, dedupeKey: `port:${name}` });
+      report(name, error);
     }
   };
   const { playback, analytics } = deps;
+  // Audio arrives per chunk: report when the port starts failing, not on every
+  // chunk after, so a dead sink costs one console line per failing streak.
+  let audioFailing = false;
   return {
     playback: {
-      audio: guard('playback.audio', (leg: LegName, ref: number | undefined, pcm: Int16Array) => playback.audio(leg, ref, pcm)),
-      closed: guard('playback.closed', (leg: LegName, ref: number) => playback.closed(leg, ref)),
+      audio: (leg: LegName, ref: number | undefined, pcm: Int16Array) => {
+        try {
+          playback.audio(leg, ref, pcm);
+          audioFailing = false;
+        } catch (error) {
+          if (!audioFailing) report('playback.audio', error);
+          audioFailing = true;
+        }
+      },
       held: guard('playback.held', (held: boolean) => playback.held(held)),
       clear: guard('playback.clear', () => playback.clear()),
     },

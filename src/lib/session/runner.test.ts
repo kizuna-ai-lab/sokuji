@@ -42,7 +42,7 @@ function setup(o: Options = {}) {
   // `Object.assign`, not a spread, so `playback`'s declared type stays the
   // plain mock shape below (with `.mockClear()` etc.) instead of widening to
   // a union with `Partial<PlaybackPort>`'s plain function types.
-  const playback = { audio: vi.fn(), closed: vi.fn(), held: vi.fn(), clear: vi.fn() };
+  const playback = { audio: vi.fn(), held: vi.fn(), clear: vi.fn() };
   Object.assign(playback, o.playback);
   const tracked: Array<[string, unknown]> = [];
   const shape: RunShape = {
@@ -100,12 +100,12 @@ describe('runner — starting', () => {
     expect(events('session_control_clicked')).toEqual([{ action: 'start', method: 'button' }]);
   });
 
-  it('hands playback the translated audio and every closed segment', async () => {
+  it('hands playback every piece of translated audio, attributed to its segment', async () => {
     const { runner, clock, playback } = setup();
     await runner.start();
     clock.advance(5000);
-    expect(playback.audio).toHaveBeenCalledWith('speaker', 2, expect.any(Int16Array));
-    expect(playback.closed).toHaveBeenCalledWith('speaker', 1);
+    // The first exchange's translation (ref 2) speaks in three chunks.
+    expect(playback.audio.mock.calls.filter(([leg, ref]) => leg === 'speaker' && ref === 2)).toHaveLength(3);
   });
 
   it('refuses a start the build refuses, opening nothing', async () => {
@@ -475,25 +475,60 @@ describe('runner — the conversation', () => {
 
 describe('runner — guarded ports (F1)', () => {
   it('a playback port that throws on audio does not reach the adapter', async () => {
-    const { runner, clock } = setup({ playback: { audio: vi.fn(() => { throw new Error('sink gone'); }) } });
+    const audio = vi.fn(() => { throw new Error('sink gone'); });
+    const { runner, clock } = setup({ playback: { audio } });
     await runner.start();
-    // Before the fix this throw propagates synchronously out of `clock.advance`.
-    clock.advance(600);
+    // The exchange's first translated audio lands at 1300 ms: its block starts
+    // at 500, and the translation's audio 800 ms into the block.
+    clock.advance(1500);
+    expect(audio).toHaveBeenCalled();
     expect(runner.state.getState().phase).toBe('running');
-    expect(runner.conversation.snapshot()[0].segments.length).toBeGreaterThan(0);
+    expect(runner.conversation.snapshot()[0].segments.map((s) => s.side)).toEqual(['source', 'translation']);
   });
 
   it('an analytics port that throws neither fails a start nor skips onRunEnded', async () => {
     const onRunEnded = vi.fn();
-    const { runner } = setup({
-      onRunEnded,
-      track: (event) => { if (event === 'translation_session_end') throw new Error('posthog'); },
-    });
+    const { runner } = setup({ onRunEnded, track: () => { throw new Error('posthog'); } });
     await runner.start();
     expect(runner.state.getState().phase).toBe('running');
     await runner.stop();
     expect(runner.state.getState().phase).toBe('idle');
     expect(onRunEnded).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a playback port that keeps throwing on audio once, not once per chunk', async () => {
+    const audio = vi.fn(() => { throw new Error('sink gone'); });
+    const { runner, clock } = setup({ playback: { audio } });
+    reportErrorSpy.mockClear();
+    await runner.start();
+    clock.advance(10_000);
+    expect(audio.mock.calls.length).toBeGreaterThanOrEqual(5);
+    expect(reportErrorSpy.mock.calls.filter(([, message]) => String(message).includes('playback.audio'))).toHaveLength(1);
+  });
+
+  it('reports it again once it has recovered and fails anew', async () => {
+    let calls = 0;
+    const audio = vi.fn(() => {
+      calls += 1;
+      if (calls === 1 || calls === 3) throw new Error('sink gone');
+    });
+    const { runner, clock } = setup({ playback: { audio } });
+    reportErrorSpy.mockClear();
+    await runner.start();
+    clock.advance(10_000);
+    expect(reportErrorSpy.mock.calls.filter(([, message]) => String(message).includes('playback.audio'))).toHaveLength(2);
+  });
+});
+
+describe('runner — a refused start', () => {
+  it('goes straight back to idle: no stopping phase, and playback is left alone', async () => {
+    const { runner, playback } = setup({ settings: { buildRefused: true } });
+    const phases: string[] = [];
+    runner.state.subscribe((s) => { phases.push(s.phase); });
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } });
+    expect(phases).not.toContain('stopping');
+    expect(playback.clear).not.toHaveBeenCalled();
   });
 });
 

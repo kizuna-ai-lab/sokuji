@@ -89,12 +89,15 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     ending = done;
     void (async () => {
       try {
-        set({ phase: 'stopping' });
+        // A refused start opened nothing and played nothing: straight back to
+        // idle, leaving a replay of the kept conversation playing.
+        const refused = result.reason === 'refused';
+        if (!refused) set({ phase: 'stopping' });
         // Captured before `run.close()`, so teardown time (a hung release,
         // the bounded wait for fill-in) is never counted as session duration.
         const endedAt = deps.clock.now();
         // Stop speaking now; the port is guarded, so a throw here cannot keep the run open.
-        deps.playback.clear();
+        if (!refused) deps.playback.clear();
         await run.close();
         if (liveSince !== null) {
           const duration = endedAt - liveSince;

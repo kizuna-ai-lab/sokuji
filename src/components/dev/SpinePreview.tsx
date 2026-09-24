@@ -32,7 +32,7 @@ function getPreviewRunner(): Runner {
     ensureReady: (p, auth) => useProviderStore.getState().refreshReadiness(p, auth),
     persistIfUnchanged,
     openSource: async () => createFakeSource(realClock),
-    playback: { audio: () => {}, closed: () => {}, held: () => {}, clear: () => {} },
+    playback: { audio: () => {}, held: () => {}, clear: () => {} },
     analytics: { track: (event, properties) => bridge.track(event, properties) },
     newSessionId: () => crypto.randomUUID(),
   });

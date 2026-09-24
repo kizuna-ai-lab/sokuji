@@ -61,12 +61,14 @@ jobs:
           src/lib/conversation
           src/lib/projection
           src/lib/export
+          src/lib/session
           src/lib/provider
           src/providers
           src/stores/providerStore.test.ts
           src/stores/providerStore.readiness.test.ts
+          src/stores/turnModeStore.test.ts
           src/components/providers
-          src/components/dev/SpinePreview.test.tsx
+          src/components/dev
           src/utils/featureGateForwarding.consistency.test.ts
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
