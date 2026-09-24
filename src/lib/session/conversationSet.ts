@@ -4,6 +4,12 @@ import { describeCause, reportError } from '../diagnostics/report';
 
 const ORDER: readonly LegName[] = ['speaker', 'participant'];
 
+/** Which provider and models a conversation's run used: what its export says about itself (plan 1d-3). */
+export interface ConversationInfo {
+  provider: string;
+  models: { asrModel?: string; translationModel?: string; ttsModel?: string };
+}
+
 /**
  * The conversation: the legs of the last run, held until the next start
  * replaces them or `clear()` empties them (spec: "The conversation outlives
@@ -15,15 +21,21 @@ export class ConversationSet {
   private readonly listeners = new Set<() => void>();
   private cached: readonly Leg[] = [];
   private stale = true;
+  private current: ConversationInfo | null = null;
 
   get(leg: LegName): Conversation | undefined {
     return this.legs.get(leg);
   }
 
+  get info(): ConversationInfo | null {
+    return this.current;
+  }
+
   /** A new run's legs take the place of the last run's. */
-  replace(next: ReadonlyMap<LegName, Conversation>): void {
+  replace(next: ReadonlyMap<LegName, Conversation>, info: ConversationInfo | null = null): void {
     for (const unsubscribe of this.unsubscribes) unsubscribe();
     this.legs = new Map(next);
+    if (info !== null) this.current = info;
     this.unsubscribes = [...this.legs.values()].map((c) => c.subscribe(() => this.changed()));
     this.changed();
   }

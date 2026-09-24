@@ -530,6 +530,14 @@ describe('runner — the conversation', () => {
     expect(runner.conversation.snapshot()[0].segments).toEqual([]);
   });
 
+  it('records the provider and the models its run described on the conversation', async () => {
+    const { runner } = setup();
+    expect(runner.conversation.info).toBeNull();
+    await runner.start();
+    // The fake describes every stage as 'fake' (`src/providers/fake/provider.ts`).
+    expect(runner.conversation.info).toEqual({ provider: 'fake', models: { asrModel: 'fake', translationModel: 'fake', ttsModel: 'fake' } });
+  });
+
   it('keeps no replay audio when keepReplayAudio is off', async () => {
     const { runner, clock } = setup({ shape: { keepReplayAudio: false } });
     await runner.start();

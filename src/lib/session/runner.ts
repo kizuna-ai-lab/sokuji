@@ -6,7 +6,7 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import type { LegName } from '../conversation/types';
 import type { RunNoticeCode } from './codes';
-import { ConversationSet } from './conversationSet';
+import { ConversationSet, type ConversationInfo } from './conversationSet';
 import { guardPorts, type ControlMethod, type RunnerDeps } from './ports';
 import { LegOpenError, RefusedError, Run, type RunHost } from './run';
 import type { LegState, RunEnd, RunState } from './types';
@@ -130,7 +130,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       const now = state.getState();
       if (run === current && now.phase === 'running') set({ ...now, legs: legs(run) });
     },
-    conversations: (map) => conversation.replace(map),
+    conversations: (map, info: ConversationInfo) => conversation.replace(map, info),
     end: (result) => { void end(run, result); },
   });
 

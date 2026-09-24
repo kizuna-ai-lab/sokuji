@@ -43,7 +43,7 @@ export interface RunHost {
   step(step: 'checking' | 'preparing' | 'opening'): void;
   legState(leg: LegName, state: LegState): void;
   /** The run's legs exist: they become the conversation now, so text shows as it arrives. */
-  conversations(legs: ReadonlyMap<LegName, Conversation>): void;
+  conversations(legs: ReadonlyMap<LegName, Conversation>, info: { provider: string; models: { asrModel?: string; translationModel?: string; ttsModel?: string } }): void;
   /** A leg ended on its own, or a lease did: end the run. */
   end(result: RunEnd): void;
 }
@@ -176,7 +176,7 @@ export class Run {
         onDiagnostic: (d) => reportWarning('SessionRunner', `${leg}: ${d.message}`, { dedupeKey: `conversation:${d.code}` }),
       }));
     }
-    host.conversations(this.conversations);
+    host.conversations(this.conversations, { provider: this.shape.provider.id, models: this.models });
     if (prepared.notice) this.conversations.get(shape.legs[0])!.notice({ severity: 'warning', ...prepared.notice });
 
     const requests = Object.fromEntries(shape.legs.map((leg) => [leg, {

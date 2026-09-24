@@ -52,4 +52,14 @@ describe('ConversationSet', () => {
     set.clear();
     expect(set.snapshot()[0].segments).toEqual([]);
   });
+
+  it("keeps the run's provider and models with the conversation, through a clear, until the next replace", () => {
+    const set = new ConversationSet();
+    expect(set.info).toBeNull();
+    set.replace(new Map(), { provider: 'fake', models: { asrModel: 'a' } });
+    set.clear();
+    expect(set.info).toEqual({ provider: 'fake', models: { asrModel: 'a' } });
+    set.replace(new Map(), { provider: 'other', models: {} });
+    expect(set.info?.provider).toBe('other');
+  });
 });
