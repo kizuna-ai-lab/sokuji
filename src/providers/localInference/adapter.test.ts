@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { AdapterStartError, type AdapterSession, type SessionContext } from '../../lib/contract/adapter';
 import { checkConformance, recordConformance, type ConformanceLog } from '../../lib/contract/conformance';
-import type { AdapterEvent } from '../../lib/contract/events';
+import { eventsFrom, type AdapterEvent } from '../../lib/contract/events';
 import { createLocalInferenceAdapter } from './adapter';
 import { createFakeEngines } from './fakeEngines';
 import type { LocalInferenceConfig } from './config';
@@ -177,17 +177,33 @@ describe('the LocalInference adapter — segments and jobs', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('hands the engine a copy of the audio: the array passed in is still readable', async () => {
+  it('hands the engine a copy of the audio at 24 kHz: the array passed in is still readable', async () => {
     const t = await open();
     const pcm = new Int16Array([1, 2, 3]);
     t.session.appendAudio(pcm);
     expect(Array.from(pcm)).toEqual([1, 2, 3]);
     expect(t.asr.fed.map((a) => Array.from(a))).toEqual([[1, 2, 3]]);
+    expect(t.asr.rates).toEqual([24000]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('sends no second segmentText when the final equals the last partial', async () => {
+    const t = await open();
+    t.asr.partial('はい');
+    t.asr.final(' はい ');
+    expect(content(t.log)).toEqual([
+      { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 1, text: 'はい' } },
+      { kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } },
+    ]);
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['はい']);
+    expectConformant(t.log, t.context);
   });
 
   it('reports itself as local', async () => {
     const t = await open();
     expect(t.session.info).toEqual({ transport: 'local' });
+    expectConformant(t.log, t.context);
   });
 });
 
@@ -213,6 +229,7 @@ describe('the LocalInference adapter — loading', () => {
     const t = await open();
     expect(t.created).toEqual(['asr', 'translation']);
     expect(ofKind(t.log, 'loading').map((l) => [l.done, l.total])).toEqual([[1, 2], [2, 2]]);
+    expectConformant(t.log, t.context);
   });
 
   it('inits ASR with its VAD config and the source language, and translation with the pair and model', async () => {
@@ -221,6 +238,7 @@ describe('the LocalInference adapter — loading', () => {
     expect(t.asr.config).toEqual(config.asr);
     expect(t.asr.inits).toEqual([{ modelId: 'asr-model', options: { vadConfig: config.vad, language: 'ja' } }]);
     expect(t.translation.inits).toEqual([{ sourceLang: 'ja', targetLang: 'en', modelId: 'mt-model' }]);
+    expectConformant(t.log, t.context);
   });
 
   it('aborted while inits are pending: rejects at once, disposes every engine, and disposes one whose init resolves later', async () => {
@@ -246,6 +264,8 @@ describe('the LocalInference adapter — loading', () => {
     const t = begin(makeConfig(), auto, controller.signal);
     await expect(t.starting).rejects.toThrow('cancelled');
     expect(t.created).toEqual([]);
+    expect(t.log).toEqual([]);
+    expectConformant(t.log, t.context);
   });
 
   it('an ASR init that runs out of GPU memory rejects with gpu_out_of_memory, after disposing everything', async () => {
@@ -268,6 +288,7 @@ describe('the LocalInference adapter — loading', () => {
     expect((failure as Error).message).toContain('is not downloaded');
     expect([t.asr.disposes, t.translation.disposes]).toEqual([1, 1]);
     expect(ofKind(t.log, 'loading').map((l) => l.stage)).toEqual(['asr']);
+    expectConformant(t.log, t.context);
   });
 
   it('a TTS init failing degrades to no speech: the start resolves and says tts_degraded', async () => {
@@ -290,6 +311,7 @@ describe('the LocalInference adapter — loading', () => {
     await expect(t.starting).rejects.toThrow('asr load failed');
     await settle();
     expect(ofKind(t.log, 'degraded')).toEqual([]);
+    expectConformant(t.log, t.context);
   });
 
   it('a speaker id the TTS model did not load says voice_fallback', async () => {
@@ -299,6 +321,7 @@ describe('the LocalInference adapter — loading', () => {
     t.tts.ready({ sampleRate: 44100, voices: [{ sid: 0 }, { sid: 1 }] });
     await t.starting;
     expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['voice_fallback']);
+    expectConformant(t.log, t.context);
   });
 });
 
@@ -328,6 +351,32 @@ describe('the LocalInference adapter — errors', () => {
     await settle();
     expect(last(ofKind(t.log, 'segmentText'))).toEqual({ ref: 2, text: 'Still.' });
     expect(ofKind(t.log, 'failed')).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it("an ordinary ASR error first closes the utterance's open segment with its last text, so the next utterance opens its own", async () => {
+    const t = await open();
+    t.asr.partial('途中');
+    t.asr.fail('decode failed');
+    t.asr.partial('次');
+    t.asr.final('次の話');
+    t.translation.answer('Next.');
+    await settle();
+    expect(content(t.log)).toEqual([
+      { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 1, text: '途中' } },
+      { kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } },
+      { kind: 'segmentOpened', payload: { ref: 2, side: 'source', origin: 'u2' } },
+      { kind: 'segmentText', payload: { ref: 2, text: '次' } },
+      { kind: 'segmentText', payload: { ref: 2, text: '次の話' } },
+      { kind: 'segmentClosed', payload: { ref: 2, origin: 'u2' } },
+      { kind: 'segmentOpened', payload: { ref: 3, side: 'translation', origin: 'u2' } },
+      { kind: 'segmentText', payload: { ref: 3, text: 'Next.' } },
+      { kind: 'segmentClosed', payload: { ref: 3, origin: 'u2' } },
+    ]);
+    const kinds = events(t.log).map((e) => e.kind);
+    expect(kinds.indexOf('degraded')).toBeGreaterThan(kinds.indexOf('segmentClosed'));
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['次の話']); // the abandoned utterance is not translated
     expectConformant(t.log, t.context);
   });
 
@@ -369,6 +418,41 @@ describe('the LocalInference adapter — errors', () => {
     t.tts.die('tts worker crashed');
     expect(ofKind(t.log, 'failed')).toEqual([expect.objectContaining({ message: expect.stringContaining('tts worker crashed') })]);
     expectConformant(t.log, t.context);
+  });
+});
+
+describe('the LocalInference adapter — the queue never wedges', () => {
+  it('an event handler that throws costs its job only: its segment closes, a frame says why, and the next job runs', async () => {
+    const fakes = createFakeEngines();
+    const log: ConformanceLog = [];
+    let thrown = false;
+    const events = eventsFrom((e) => {
+      log.push(e);
+      if (!thrown && e.kind === 'segmentText' && e.payload.ref === 2) {
+        thrown = true;
+        throw new Error('a consumer threw');
+      }
+    });
+    const starting = createLocalInferenceAdapter(fakes.engines).start(
+      { context: auto, config: makeConfig(), credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal },
+      events,
+    );
+    fakes.asr.ready();
+    fakes.translation.ready();
+    await starting;
+    fakes.asr.final('一');
+    fakes.translation.answer('One.');
+    await settle();
+    fakes.asr.final('二');
+    expect(fakes.translation.calls.map((c) => c.text)).toEqual(['一', '二']);
+    fakes.translation.answer('Two.');
+    await settle();
+    expect(ofKind(log, 'segmentClosed').map((p) => p.ref)).toEqual([1, 2, 3, 4]);
+    expect(ofKind(log, 'frame').filter((f) => f.type === 'local.pipeline.error')).toEqual([
+      expect.objectContaining({ direction: 'in', payload: { error: 'a consumer threw' } }),
+    ]);
+    expect(last(ofKind(log, 'segmentText'))).toEqual({ ref: 4, text: 'Two.' });
+    expectConformant(log, auto);
   });
 });
 

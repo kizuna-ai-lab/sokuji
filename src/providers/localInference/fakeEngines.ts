@@ -30,6 +30,8 @@ export class FakeAsr implements AsrLike {
   config: LocalInferenceConfig['asr'] | null = null;
   inits: Array<{ modelId: string; options: AsrInit }> = [];
   fed: Int16Array[] = [];
+  /** The sample rate each `feedAudio` was told. */
+  rates: number[] = [];
   flushes = 0;
   disposes = 0;
   private loading = deferred<void>();
@@ -43,10 +45,11 @@ export class FakeAsr implements AsrLike {
   failInit(message: string): void { this.loading.reject(new Error(message)); }
 
   /** Like the real engines, the buffer is transferred to the worker: the array handed in is detached. */
-  feedAudio(samples: Int16Array): void {
+  feedAudio(samples: Int16Array, sampleRate: number): void {
     const copy = new Int16Array(samples);
     structuredClone(samples.buffer, { transfer: [samples.buffer] });
     this.fed.push(copy);
+    this.rates.push(sampleRate);
   }
   flush(): void { this.flushes++; }
   dispose(): void { this.disposes++; }

@@ -58,4 +58,56 @@ describe('engine init aborted by dispose()', () => {
       expect(revokeSpy).toHaveBeenCalledWith(expect.objectContaining({ 'model.onnx': 'blob:m' }));
     });
   }
+
+  // The later checks: a dispose landing while the sherpa package metadata is
+  // still being read, after the model files were already handed out.
+  const metadataCases: Array<[string, () => { dispose(): void; init: () => Promise<unknown> }]> = [
+    ['AsrEngine', () => { const e = new AsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('sensevoice-int8', undefined, 'ja') }; }],
+    ['StreamingAsrEngine', () => { const e = new StreamingAsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('stream-en-kroko') }; }],
+  ];
+
+  for (const [name, make] of metadataCases) {
+    it(`${name}: a dispose during the metadata fetch rejects the init, creates no worker and frees the files`, async () => {
+      vi.spyOn(ModelManager.prototype, 'getModelBlobUrls').mockResolvedValue({ ...files });
+      let releaseFetch: ((response: unknown) => void) | undefined;
+      vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => { releaseFetch = resolve; })));
+      const engine = make();
+      const initP = engine.init();
+      initP.catch(() => {});
+      await vi.waitFor(() => expect(releaseFetch).toBeTypeOf('function'));
+      engine.dispose();
+      releaseFetch!({ json: async () => ({}) });
+      await flush();
+      expect(MockWorker.instances).toHaveLength(0);
+      await expect(initP).rejects.toThrow('disposed');
+      expect(revokeSpy).toHaveBeenCalledWith(expect.objectContaining({ 'package-metadata.json': 'blob:meta', 'model.onnx': 'blob:m' }));
+    });
+  }
+
+  it('TranslationEngine (Bing): a dispose while the header rule installs rejects the init, creates no worker and clears the rule', async () => {
+    const sent: string[] = [];
+    let releaseRule: (() => void) | undefined;
+    const sendMessage = vi.fn((message: { type: string }, done: () => void) => {
+      sent.push(message.type);
+      if (message.type === 'BING_TRANSLATOR_SET_HEADERS') releaseRule = done;
+      else done();
+    });
+    const withChrome = window as unknown as { chrome?: unknown };
+    const chrome = withChrome.chrome;
+    withChrome.chrome = { runtime: { id: 'extension-id', sendMessage } };
+    try {
+      const engine = new TranslationEngine();
+      const initP = engine.init('ja', 'en', 'bing-translator');
+      initP.catch(() => {});
+      await vi.waitFor(() => expect(releaseRule).toBeTypeOf('function'));
+      engine.dispose();
+      releaseRule!();
+      await flush();
+      expect(MockWorker.instances).toHaveLength(0);
+      await expect(initP).rejects.toThrow('disposed');
+      expect(sent).toEqual(['BING_TRANSLATOR_SET_HEADERS', 'BING_TRANSLATOR_CLEAR_HEADERS']);
+    } finally {
+      withChrome.chrome = chrome;
+    }
+  });
 });

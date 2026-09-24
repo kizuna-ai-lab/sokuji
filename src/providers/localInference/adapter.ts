@@ -36,25 +36,21 @@ interface Job {
 /** Worded as today's `errors.gpuOutOfMemory`; surfaces put `gpu_out_of_memory` into words by code. */
 const GPU_OUT_OF_MEMORY = 'GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model.';
 
-/**
- * A GPU out-of-memory failure from ONNX Runtime's WebGPU / Vulkan backend
- * (today's detection, `LocalInferenceClient.ts` ~52-61). Error messages
- * cascade through several stages; these are the most distinctive patterns.
- */
-function isGpuOutOfMemory(message: string): boolean {
-  const lower = message.toLowerCase();
-  return (
-    lower.includes('out_of_device_memory') ||
-    lower.includes('out of memory') ||
-    lower.includes('a valid external instance reference no longer exists') ||
-    (lower.includes('webgpu') && lower.includes('device lost'))
-  );
-}
-
-/** The device-lost half of that detection: nothing on this GPU will run again. */
+/** A lost WebGPU device: nothing on this GPU will run again. */
 function isDeviceLost(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes('a valid external instance reference no longer exists') || (lower.includes('webgpu') && lower.includes('device lost'));
+}
+
+/**
+ * A GPU out-of-memory failure from ONNX Runtime's WebGPU / Vulkan backend
+ * (today's detection, `LocalInferenceClient.ts` ~52-61), which counts a lost
+ * device too: error messages cascade through several stages, and these are
+ * the most distinctive patterns.
+ */
+function isGpuOutOfMemory(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('out_of_device_memory') || lower.includes('out of memory') || isDeviceLost(message);
 }
 
 /**
@@ -318,6 +314,10 @@ class LocalSession implements AdapterSession {
     asr.onError = (error) => {
       this.frame('in', 'local.asr.error', { error });
       if (isDeviceLost(error)) { this.fatal(`The GPU device was lost: ${error}`); return; }
+      // The worker gave up on this utterance (the streaming one resets and
+      // starts over): close its segment with the text it has, or the next
+      // utterance's partials would take over its ref.
+      this.abandonUtterance();
       this.emit('degraded', { code: 'transcription_failed', message: error });
     };
     asr.onFatal = (error) => {
@@ -356,12 +356,12 @@ class LocalSession implements AdapterSession {
   private final(result: { text: string; durationMs: number; recognitionTimeMs: number }): void {
     if (this.ended) return;
     const text = result.text.trim();
-    const current = this.utterance;
-    this.utterance = null;
     if (!text) {
-      if (current) this.emit('segmentClosed', { ref: current.ref, origin: current.origin });
+      this.abandonUtterance();
       return;
     }
+    const current = this.utterance;
+    this.utterance = null;
     this.frame('in', 'local.asr.end', {
       text,
       modelId: this.config.asr.modelId,
@@ -380,6 +380,13 @@ class LocalSession implements AdapterSession {
     if (kind === 'engine') this.enqueue({ text, origin: segment.origin });
   }
 
+  /** Closes the open source segment with the text it has, and queues nothing for it. */
+  private abandonUtterance(): void {
+    const current = this.utterance;
+    this.utterance = null;
+    if (current) this.emit('segmentClosed', { ref: current.ref, origin: current.origin });
+  }
+
   private nextOrigin(): string {
     return `u${++this.utterances}`;
   }
@@ -389,55 +396,80 @@ class LocalSession implements AdapterSession {
     if (!this.processing) void this.drain();
   }
 
-  /** Serial: a job translates and speaks before the next one translates (today's queue). */
+  /**
+   * Serial: a job translates and speaks before the next one translates
+   * (today's queue). `run` never rejects, and `processing` resets whatever
+   * happens, so nothing wedges the queue.
+   */
   private async drain(): Promise<void> {
     this.processing = true;
-    while (this.jobs.length > 0 && !this.ended) {
-      await this.run(this.jobs.shift()!);
+    try {
+      while (this.jobs.length > 0 && !this.ended) {
+        await this.run(this.jobs.shift()!);
+      }
+    } finally {
+      this.processing = false;
     }
-    this.processing = false;
   }
 
+  /** One job: its translation segment opens, carries the text, is spoken, and closes. A failure costs this job only. */
   private async run(job: Job): Promise<void> {
-    let text = job.text; // AST: already the translation
+    try {
+      const text = await this.translated(job);
+      if (text === undefined || this.ended) return;
+      const ref = this.nextRef++;
+      this.emit('segmentOpened', { ref, side: 'translation', origin: job.origin });
+      try {
+        this.emit('segmentText', { ref, text });
+        await this.speak(job, ref, text);
+      } finally {
+        this.emit('segmentClosed', { ref, origin: job.origin });
+      }
+    } catch (error) {
+      // Not the translation (that one is translation_failed): speech, or an
+      // event handler that threw. Said in the Logs, and the queue moves on.
+      this.frame('in', 'local.pipeline.error', { error: describeCause(error) });
+    }
+  }
+
+  /**
+   * The job's translation — the engine's answer, or the AST final as it is —
+   * or undefined when there is nothing to show: an empty answer (the source
+   * stays unpaired), a failed one (`translation_failed`), or a session that
+   * ended meanwhile.
+   */
+  private async translated(job: Job): Promise<string | undefined> {
     const { translation } = this;
     const tr = this.config.translation;
-    if (translation && tr.kind === 'engine') {
-      this.frame('out', 'local.translation.start', {
-        sourceText: job.text,
-        modelId: tr.modelId,
-        systemPrompt: tr.instructions,
-        wrapTranscript: tr.wrapTranscript,
-      });
-      let result: TranslationResult;
-      try {
-        result = await translation.translate(job.text, tr.instructions, tr.wrapTranscript);
-      } catch (error) {
-        if (this.ended) return; // disposed by stop(): expected, not a failure
-        const message = error instanceof Error ? error.message : String(error);
-        const userMessage = humanizeTranslationError(error);
-        this.frame('in', 'local.pipeline.error', { error: message, userMessage });
-        if (isDeviceLost(message)) { this.fatal(`The GPU device was lost: ${message}`); return; }
-        this.emit('degraded', { code: 'translation_failed', message: userMessage, cause: error });
-        return;
-      }
-      if (this.ended) return;
-      text = result.translatedText;
-      if (!text) return; // an empty translation opens nothing; the source stays unpaired
-      this.frame('in', 'local.translation.end', {
-        sourceText: job.text,
-        translatedText: text,
-        inferenceTimeMs: result.inferenceTimeMs,
-        systemPrompt: result.systemPrompt,
-        wrapTranscript: tr.wrapTranscript,
-        modelId: tr.modelId,
-      });
+    if (!translation || tr.kind !== 'engine') return job.text;
+    this.frame('out', 'local.translation.start', {
+      sourceText: job.text,
+      modelId: tr.modelId,
+      systemPrompt: tr.instructions,
+      wrapTranscript: tr.wrapTranscript,
+    });
+    let result: TranslationResult;
+    try {
+      result = await translation.translate(job.text, tr.instructions, tr.wrapTranscript);
+    } catch (error) {
+      if (this.ended) return undefined; // disposed by stop(): expected, not a failure
+      const message = error instanceof Error ? error.message : String(error);
+      const userMessage = humanizeTranslationError(error);
+      this.frame('in', 'local.pipeline.error', { error: message, userMessage });
+      if (isDeviceLost(message)) { this.fatal(`The GPU device was lost: ${message}`); return undefined; }
+      this.emit('degraded', { code: 'translation_failed', message: userMessage, cause: error });
+      return undefined;
     }
-    const ref = this.nextRef++;
-    this.emit('segmentOpened', { ref, side: 'translation', origin: job.origin });
-    this.emit('segmentText', { ref, text });
-    await this.speak(job, ref, text);
-    this.emit('segmentClosed', { ref, origin: job.origin });
+    if (this.ended || !result.translatedText) return undefined;
+    this.frame('in', 'local.translation.end', {
+      sourceText: job.text,
+      translatedText: result.translatedText,
+      inferenceTimeMs: result.inferenceTimeMs,
+      systemPrompt: result.systemPrompt,
+      wrapTranscript: tr.wrapTranscript,
+      modelId: tr.modelId,
+    });
+    return result.translatedText;
   }
 
   /** Speaks a job's translation into its segment; the segment closes after it resolves. Nothing to say yet. */
