@@ -5,9 +5,10 @@
  * sample the tts tap heard (the page's `[data-probe=playback]` line).
  *
  *   SOKUJI_DEV_NO_ELECTRON=1 npx vite --port 5199 --strictPort    # another shell
- *   node scripts/dev/spine-audio-probe.mjs [url] [seconds]
+ *   node scripts/dev/spine-audio-probe.mjs ['http://localhost:5199/?preview=spine&autostart=1&capture=device'] [seconds]
  *
- * Exits 1 when no clip played or the tap heard nothing.
+ * Exits 1 when no clip played or the tap heard nothing; with `capture=device`,
+ * the fake microphone is captured too, and it must deliver.
  */
 import { spawn } from 'node:child_process';
 import { mkdtempSync, readdirSync } from 'node:fs';
@@ -22,6 +23,7 @@ if (!build) throw new Error(`no Playwright chromium under ${cache}`);
 const port = 9333;
 const browser = spawn(join(cache, build, 'chrome-linux', 'chrome'), [
   '--headless', '--no-sandbox', '--disable-gpu', '--autoplay-policy=no-user-gesture-required',
+  '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream',
   `--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'spine-probe-'))}`, 'about:blank',
 ], { stdio: 'ignore' });
 
@@ -68,7 +70,11 @@ try {
   console.log(text || 'no playback probe on the page');
   const heard = /heard: (\S+)/.exec(text)?.[1] ?? '-';
   const peak = Number(/tap peak: ([\d.]+)/.exec(text)?.[1] ?? 0);
-  process.exitCode = heard !== '-' && peak > 0 ? 0 : 1;
+  const deviceCapture = url.includes('capture=device');
+  const chunks = Number(/captured: (\d+)/.exec(text)?.[1] ?? 0);
+  const micPeak = Number(/mic peak: ([\d.]+)/.exec(text)?.[1] ?? 0);
+  const captureOk = !deviceCapture || (chunks > 0 && micPeak > 0);
+  process.exitCode = heard !== '-' && peak > 0 && captureOk ? 0 : 1;
   ws.close();
 } finally {
   browser.kill();

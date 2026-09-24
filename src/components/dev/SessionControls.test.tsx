@@ -175,4 +175,16 @@ describe('SessionControls — playback', () => {
       vi.useRealTimers();
     }
   });
+
+  it('shows what the capture delivered, when it is watched', () => {
+    vi.useFakeTimers();
+    try {
+      const { runner } = fakeRunner();
+      render(<SessionControls runner={runner} turnMode="auto" audio={fakeAudio()} capture={() => ({ chunks: 3, peak: 0.25 })} />);
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · captured: 3 · mic peak: 0.250');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

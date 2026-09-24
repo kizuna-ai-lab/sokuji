@@ -19,6 +19,12 @@ vi.mock('../../services/ServiceFactory', () => ({
     }),
   },
 }));
+vi.mock('../../lib/audio/appCapture', () => ({
+  createAppCapture: () => ({
+    openSource: async () => { throw new Error('no capture in tests'); },
+    echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
+  }),
+}));
 vi.mock('../../lib/audio/appAudio', () => ({
   getAppAudio: async () => {
     const queue = { position: () => null, pending: 0, subscribe: () => () => {} };

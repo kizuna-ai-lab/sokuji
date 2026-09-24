@@ -16,20 +16,30 @@ interface SessionControlsProps {
   turnMode: TurnMode;
   /** The page's playback, once it has loaded. */
   audio?: AppAudio | null;
+  /** What the page's capture delivered (the preview's `&capture=device`), for the probe line. */
+  capture?: () => { chunks: number; peak: number };
 }
 
 /**
  * What the playback played, for a listener and for a headless check (which
  * cannot use requestAnimationFrame): every clip key heard, and the loudest
  * sample the tts tap heard. Reading the tap drains it — this page runs no
- * echo monitor.
+ * echo monitor. When `capture` is given, also reports what it delivered.
  */
-function usePlaybackProbe(playback: Playback | undefined): { heard: string[]; peak: number } {
-  const [probe, setProbe] = useState<{ heard: string[]; peak: number }>({ heard: [], peak: 0 });
+function usePlaybackProbe(
+  playback: Playback | undefined,
+  capture?: () => { chunks: number; peak: number },
+): { heard: string[]; peak: number; captured: { chunks: number; peak: number } | null } {
+  const [probe, setProbe] = useState<{ heard: string[]; peak: number; captured: { chunks: number; peak: number } | null }>({
+    heard: [],
+    peak: 0,
+    captured: capture ? { chunks: 0, peak: 0 } : null,
+  });
   useEffect(() => {
     if (!playback) return;
     const heard = new Set<string>();
     let peak = 0;
+    let last = { chunks: 0, peak: 0 };
     const id = setInterval(() => {
       const before = heard.size;
       const beforePeak = peak;
@@ -38,10 +48,15 @@ function usePlaybackProbe(playback: Playback | undefined): { heard: string[]; pe
         if (playing) heard.add(playing.key);
       }
       for (const sample of playback.ttsTap.read()) peak = Math.max(peak, Math.abs(sample));
-      if (heard.size !== before || peak !== beforePeak) setProbe({ heard: [...heard], peak });
+      const seen = capture?.();
+      const captureChanged = seen && (seen.chunks !== last.chunks || seen.peak !== last.peak);
+      if (heard.size !== before || peak !== beforePeak || captureChanged) {
+        if (seen) last = seen;
+        setProbe({ heard: [...heard], peak, captured: seen ?? null });
+      }
     }, 100);
     return () => clearInterval(id);
-  }, [playback]);
+  }, [playback, capture]);
   return probe;
 }
 
@@ -50,7 +65,7 @@ function usePlaybackProbe(playback: Playback | undefined): { heard: string[]; pe
  * raw, and check the playback by ear. The real surfaces (plan 1d) replace
  * this; its copy is not localized.
  */
-export function SessionControls({ runner, turnMode, audio }: SessionControlsProps) {
+export function SessionControls({ runner, turnMode, audio, capture }: SessionControlsProps) {
   const state = useStore(runner.state);
   const legs = useSyncExternalStore((l) => runner.conversation.subscribe(l), () => runner.conversation.snapshot());
   const projector = useMemo(() => createProjector(), []);
@@ -63,7 +78,7 @@ export function SessionControls({ runner, turnMode, audio }: SessionControlsProp
   const monitorMuted = useAudioStore((s) => s.isMonitorMuted);
   // Read when a run starts (its shape), so it applies from the next Start.
   const keepReplayAudio = useSettingsStore((s) => s.keepReplayAudio);
-  const probe = usePlaybackProbe(audio?.playback);
+  const probe = usePlaybackProbe(audio?.playback, capture);
 
   return (
     <div className="settings-section">
@@ -130,7 +145,10 @@ export function SessionControls({ runner, turnMode, audio }: SessionControlsProp
           >
             Test tone
           </button>
-          <p data-probe="playback">{`heard: ${probe.heard.join(',') || '-'} · tap peak: ${probe.peak.toFixed(3)}`}</p>
+          <p data-probe="playback">
+            {`heard: ${probe.heard.join(',') || '-'} · tap peak: ${probe.peak.toFixed(3)}`
+              + (probe.captured ? ` · captured: ${probe.captured.chunks} · mic peak: ${probe.captured.peak.toFixed(3)}` : '')}
+          </p>
         </div>
       )}
       <ol className="setting-item">
