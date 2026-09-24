@@ -4,6 +4,7 @@
  * the rules that depend on it can be checked from the log alone.
  */
 import type { SessionContext } from './adapter';
+import { redact } from '../diagnostics/redact';
 import { eventsFrom, type AdapterEvent } from './events';
 
 export type MarkerName = 'stop' | 'endTurn' | 'cancelTurn' | 'appendText';
@@ -17,6 +18,8 @@ export interface Violation { rule: string; detail: string; index: number }
  *  would flag `input_tokens`, which every OpenAI usage frame carries. */
 const CREDENTIAL_KEY = /^(api[_-]?key|app[_-]?key|access[_-]?key|access[_-]?token|client[_-]?secret|secret|token|password|authorization|bearer|x[_-]api[_-](app|access)[_-]key)$/i;
 const MAX_FRAME_STRING = 2048;
+/** A frame `type` shaped `domain.event` (spec D8). */
+const FRAME_TYPE = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/;
 
 export function recordConformance(): {
   events: ReturnType<typeof eventsFrom>;
@@ -45,6 +48,26 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   let stopped = false;
 
   const flag = (rule: string, detail: string, index: number) => out.push({ rule, detail, index });
+
+  // A range beyond the text that has arrived so far is not flagged at
+  // arrival — the text may still be a snapshot — but checked against the
+  // text when its segment closes, and on every later revision (a
+  // `segmentText` for an already-closed ref), mirroring L1's `clampRanges`.
+  const rangesByRef = new Map<number, Array<{ index: number; range: [number, number] }>>();
+  const closedRefs = new Set<number>();
+  const flaggedRange = new Set<number>();
+  const checkRangesForRef = (ref: number) => {
+    const entries = rangesByRef.get(ref);
+    if (!entries) return;
+    const len = (textOf.get(ref) ?? '').length;
+    for (const e of entries) {
+      if (flaggedRange.has(e.index)) continue;
+      if (e.range[1] > len) {
+        flag('range-in-text', `range [${e.range[0]}, ${e.range[1]}] outside text of length ${len}`, e.index);
+        flaggedRange.add(e.index);
+      }
+    }
+  };
 
   log.forEach((entry, index) => {
     if (entry.kind === 'marker') {
@@ -76,16 +99,31 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
           const p = pending.find((q) => q.sourceRef === undefined && q.text === text);
           if (p) p.sourceRef = ref;
         }
+        if (closedRefs.has(ref)) checkRangesForRef(ref); // a revision: re-check its ranges against the new text
+        break;
+      }
+      case 'segmentClosed': {
+        const { ref } = entry.payload;
+        if (!opened.has(ref)) flag('close-unopened', `close for ref ${ref} that never opened`, index);
+        closedRefs.add(ref);
+        checkRangesForRef(ref);
         break;
       }
       case 'audio': {
         const { ref, range, pcm } = entry.payload;
         if (!context.speech) flag('no-audio-when-silent', 'audio with speech: false', index);
         if (!(pcm instanceof Int16Array)) flag('audio-int16', 'pcm is not an Int16Array', index);
+        if (ref !== undefined && sideOf.get(ref) === 'source') flag('audio-on-source', `audio on source-side ref ${ref}`, index);
         if (range) {
           const [start, end] = range;
-          const len = opened.has(ref ?? -1) ? (textOf.get(ref ?? -1) ?? '').length : Infinity;
-          if (start < 0 || start > end || end > len) flag('range-in-text', `range [${start}, ${end}] outside text of length ${len}`, index);
+          if (start < 0 || start > end) {
+            flag('range-in-text', `range [${start}, ${end}] is not a valid range`, index);
+          } else if (ref !== undefined) {
+            const list = rangesByRef.get(ref) ?? [];
+            list.push({ index, range: [start, end] });
+            rangesByRef.set(ref, list);
+            if (closedRefs.has(ref)) checkRangesForRef(ref);
+          }
         }
         break;
       }
@@ -94,8 +132,12 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         ended = true;
         break;
       case 'frame': {
-        const problem = dirtyFrame(entry.payload.payload);
+        const { type, payload } = entry.payload;
+        if (!FRAME_TYPE.test(type)) flag('frame-type', `frame type "${type}" is not shaped like domain.event`, index);
+        const problem = dirtyFrame(payload);
         if (problem) flag('frame-clean', problem, index);
+        const secret = frameSecret(payload);
+        if (secret) flag('frame-secret', secret, index);
         break;
       }
       default:
@@ -124,6 +166,26 @@ function dirtyFrame(value: unknown, path = 'payload'): string | null {
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       if (CREDENTIAL_KEY.test(k)) return `${path}.${k} looks like a credential`;
       const p = dirtyFrame(v, `${path}.${k}`);
+      if (p) return p;
+    }
+  }
+  return null;
+}
+
+/** Where a frame payload holds a string value `redact()` would change, or null: a credential by shape, not by key name. */
+function frameSecret(value: unknown, path = 'payload'): string | null {
+  if (value instanceof Int16Array || value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return null;
+  if (typeof value === 'string') return redact(value) !== value ? `${path} carries a credential-shaped value` : null;
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const p = frameSecret(value[i], `${path}[${i}]`);
+      if (p) return p;
+    }
+    return null;
+  }
+  if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const p = frameSecret(v, `${path}.${k}`);
       if (p) return p;
     }
   }

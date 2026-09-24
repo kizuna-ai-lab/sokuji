@@ -66,6 +66,8 @@ export class Conversation {
   private readonly inflight = new Set<Promise<void>>();
   private retention: Retention;
   private readonly lastDegradedAt = new Map<string, number>();
+  /** Index of the oldest segment that may still hold pcm; `afterAudio` scans from here, not 0. */
+  private trimCursor = 0;
 
   constructor(private readonly opts: ConversationOptions) { this.retention = opts.retention ?? DEFAULT_RETENTION; }
 
@@ -154,6 +156,7 @@ export class Conversation {
       kept.forEach((s, i) => this.indexByRef.set(s.ref, i));
       this.pending.clear();
       this.pcmBytes = 0;
+      this.trimCursor = 0;
       this.lastDegradedAt.clear();
       this.touch();
     });
@@ -207,7 +210,9 @@ export class Conversation {
     if (seg.text === text && sameTiming(seg.timing, timing ?? seg.timing) && (language ?? seg.language) === seg.language) return;
     // A timing- or language-only snapshot is not growth: a mark there would
     // read as the end of a pause to L2's cut.
+    const revision = seg.final;
     this.replaceText(i, text, { timing, language, mark: seg.text !== text });
+    if (revision) this.clampRanges(i);
   }
 
   private close(ref: number, origin?: string): void {
@@ -230,8 +235,12 @@ export class Conversation {
     }
     const seg = this.segments[i];
     let kept = range;
-    if (range && (range[0] < 0 || range[0] > range[1] || range[1] > seg.text.length)) {
-      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] outside ${seg.id}'s text of length ${seg.text.length}` });
+    // A range beyond the text that has arrived so far is kept as given —
+    // the text may still be a snapshot (spec: LocalInference's audio can
+    // arrive before its text). It is checked against the text at close and
+    // on every later revision, in `clampRanges`.
+    if (range && (range[0] < 0 || range[0] > range[1])) {
+      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] is not a valid range` });
       kept = undefined;
     }
     this.replace(i, { ...seg, speech: [...seg.speech, { range: kept, pcm: this.retain(pcm) }] });
@@ -258,10 +267,11 @@ export class Conversation {
     this.replace(i, { ...seg, text, timing: o.timing ?? seg.timing, language: o.language ?? seg.language, marks, speech });
   }
 
-  /** Marks a segment final and starts punctuation fill-in for it. */
+  /** Marks a segment final, checks its ranges against the now-settled text, and starts punctuation fill-in for it. */
   private markFinal(i: number): void {
     const seg = { ...this.segments[i], final: true };
     this.replace(i, seg);
+    this.clampRanges(i);
     const punctuate = this.opts.punctuate;
     if (!punctuate) return;
     const lang = this.fillInLanguage(seg);
@@ -271,10 +281,24 @@ export class Conversation {
       const j = this.indexByRef.get(seg.ref);
       if (j === undefined || filled === before || this.segments[j].text !== before) return;
       this.replaceText(j, filled, { mark: false });
+      this.clampRanges(j);
     });
     this.inflight.add(job);
     const done = () => { this.inflight.delete(job); };
     job.then(done, done);
+  }
+
+  /** Drops a kept range that no longer fits the text, leaving its pcm. Runs at close and on every later revision. */
+  private clampRanges(i: number): void {
+    const seg = this.segments[i];
+    let changed = false;
+    const speech = seg.speech.map((s) => {
+      if (!s.range || s.range[1] <= seg.text.length) return s;
+      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${s.range[0]}, ${s.range[1]}] outside ${seg.id}'s text of length ${seg.text.length}` });
+      changed = true;
+      return { ...s, range: undefined };
+    });
+    if (changed) this.replace(i, { ...seg, speech });
   }
 
   /** The detected language wins; otherwise the leg's configured one; `auto` means no fill-in. */
@@ -292,17 +316,17 @@ export class Conversation {
     return pcm;
   }
 
-  /** Drops the oldest pcm until the leg is under its ceiling. */
+  /** Drops the oldest pcm until the leg is under its ceiling, scanning from `trimCursor` — the oldest segment that may still hold pcm — not from segment 0. */
   private afterAudio(): void {
     const max = this.retention.maxPcmBytes;
-    for (let i = 0; i < this.segments.length && this.pcmBytes > max; i++) {
-      const seg = this.segments[i];
+    while (this.trimCursor < this.segments.length && this.pcmBytes > max) {
+      const seg = this.segments[this.trimCursor];
       const k = seg.speech.findIndex((s) => s.pcm.length > 0);
-      if (k < 0) continue;
+      if (k < 0) { this.trimCursor++; continue; }
       const speech = seg.speech.map((s, j) => (j === k ? { ...s, pcm: EMPTY_PCM } : s));
       this.pcmBytes -= seg.speech[k].pcm.byteLength;
-      this.replace(i, { ...seg, speech });
-      i--; // the same segment may hold more pcm
+      this.replace(this.trimCursor, { ...seg, speech });
+      if (!speech.some((s) => s.pcm.length > 0)) this.trimCursor++; // fully drained: move on
     }
     // Still over: audio held for refs that have not opened yet, oldest first.
     for (const [ref, list] of this.pending) {

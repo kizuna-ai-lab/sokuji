@@ -39,7 +39,10 @@ describe('checkConformance on the fake', () => {
 describe('checkConformance rules', () => {
   const opened = (ref: number, side: 'source' | 'translation' = 'source') => ({ kind: 'segmentOpened' as const, payload: { ref, side } });
   const text = (ref: number, t: string) => ({ kind: 'segmentText' as const, payload: { ref, text: t } });
+  const closed = (ref: number) => ({ kind: 'segmentClosed' as const, payload: { ref } });
   const pcm = new Int16Array(240);
+  const audio = (ref: number, range: [number, number] | undefined, p: Int16Array = pcm) => ({ kind: 'audio' as const, payload: { ref, range, pcm: p } });
+  const frame = (direction: 'in' | 'out', type: string, payload?: unknown) => ({ kind: 'frame' as const, payload: { direction, type, payload } });
 
   it('flags an event after failed', () => {
     const log: ConformanceLog = [{ kind: 'failed', payload: { message: 'x' } }, opened(1)];
@@ -63,9 +66,26 @@ describe('checkConformance rules', () => {
     expect(rules([{ kind: 'audio', payload: { ref: 1, pcm } }, opened(1, 'translation'), text(1, 'hi')])).toEqual([]);
   });
 
-  it('flags a range past the text', () => {
-    const log: ConformanceLog = [opened(1, 'translation'), text(1, 'hi'), { kind: 'audio', payload: { ref: 1, pcm, range: [0, 5] } }];
+  it('flags a range past the text once the segment closes', () => {
+    const log: ConformanceLog = [opened(1, 'translation'), text(1, 'hi'), { kind: 'audio', payload: { ref: 1, pcm, range: [0, 5] } }, closed(1)];
     expect(rules(log)).toContain('range-in-text');
+  });
+
+  it('flags a close for a ref that never opened', () => {
+    expect(rules([closed(9)])).toContain('close-unopened');
+  });
+
+  it('flags audio on a source-side ref', () => {
+    expect(rules([opened(1, 'source'), audio(1, undefined)])).toContain('audio-on-source');
+  });
+
+  it('flags a frame type not shaped domain.event', () => {
+    expect(rules([frame('in', 'message')])).toContain('frame-type');
+  });
+
+  it('flags a credential-shaped value in a frame payload', () => {
+    const log: ConformanceLog = [frame('out', 'local.init', { url: 'https://x/?key=AIzaSyA-FAKE-KEY-0123456789abcdefghij' })];
+    expect(rules(log)).toContain('frame-secret');
   });
 
   it('flags audio when speech is off', () => {

@@ -108,11 +108,24 @@ describe('Conversation — audio', () => {
     expect(conv.snapshot().segments[0].speech).toEqual([]);
   });
 
-  it('drops a range outside the text, keeps the pcm, and reports it once', () => {
+  it('keeps a range that overtakes its text, and checks it when the segment closes', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } });
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 12], pcm: pcm(2400) } }); // "Hello there." has not arrived yet
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello there.' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    expect(conv.snapshot().segments[0].speech[0].range).toEqual([0, 12]);
+  });
+
+  it('drops a range still outside the text once the segment closes, and reports it once', () => {
     const { conv, diagnostics, apply } = make();
-    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'abc' } });
-    apply({ kind: 'audio', payload: { ref: 1, range: [0, 9], pcm: pcm(240) } });
-    expect(conv.snapshot().segments[0].speech).toEqual([{ range: undefined, pcm: pcm(240) }]);
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } });
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hi.' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 40], pcm: pcm(2400) } });
+    expect(conv.snapshot().segments[0].speech[0].range).toEqual([0, 40]);
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    expect(conv.snapshot().segments[0].speech[0].range).toBeUndefined();
     expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
   });
 });
@@ -299,6 +312,17 @@ describe('Conversation — retention and clear', () => {
     apply({ kind: 'closed', payload: { reason: 'server' } });
     apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } });
     expect(conv.snapshot().segments[0].speech).toEqual([]);
+  });
+
+  it('trims retained pcm from where it last stopped, not from the first segment', () => {
+    // A conversation over its pcm ceiling: many segments, each chunk trims the oldest pcm once.
+    const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 4_800 * 2 } });
+    for (let i = 1; i <= 50; i++) {
+      apply({ kind: 'segmentOpened', payload: { ref: i, side: 'translation' } }, { kind: 'segmentText', payload: { ref: i, text: 'x' } });
+      apply({ kind: 'audio', payload: { ref: i, pcm: pcm(2_400) } });
+    }
+    const kept = conv.snapshot().segments.flatMap((s) => s.speech).filter((s) => s.pcm.length > 0);
+    expect(kept).toHaveLength(2);
   });
 
   it('enforces the ceiling when a segment opens with held pcm', () => {
