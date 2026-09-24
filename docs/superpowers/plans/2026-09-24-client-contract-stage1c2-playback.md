@@ -2866,7 +2866,7 @@ function oneExchange(): Conversation {
 describe('SessionControls — playback', () => {
   it("replays an exchange's translation", () => {
     const { runner } = fakeRunner();
-    runner.conversation.replace(new Map([['speaker', oneExchange()]]));
+    runner.conversation.replace(new Map([['speaker' as const, oneExchange()]]));
     const audio = fakeAudio();
     render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
     fireEvent.click(screen.getByRole('button', { name: 'Replay' }));
