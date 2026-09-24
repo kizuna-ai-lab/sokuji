@@ -57,21 +57,25 @@
  * directory (below) finds both models already downloaded and is much
  * faster.
  *
- * Unlike headless.mjs's `withPage`, the browser profile here is a FIXED
- * directory under this job's own temp dir, not a fresh `mkdtempSync` one per
- * run — so a downloaded model's IndexedDB entry survives a re-run: an
- * interrupted or failed probe does not pay the download again.
+ * The browser profile is `$CLAUDE_JOB_DIR/tmp/spine-local-probe-profile`
+ * when `CLAUDE_JOB_DIR` is set (the running job's own temp dir), else
+ * `os.tmpdir()/spine-local-probe-profile` — resolved at run time, never a
+ * literal path, so a downloaded model's IndexedDB entry survives a re-run of
+ * THIS run's job (an interrupted or failed probe does not pay the download
+ * again), and a different job or machine gets its own, unrelated profile
+ * instead of silently reusing (or missing) someone else's. Passed to
+ * headless.mjs's `withPage` as `userDataDir`, which neither creates nor
+ * deletes it — this script creates it once, up front.
  *
  * Exits 1 when the wait times out before both a non-empty source row and a
  * non-empty translation row are drawn, printing the preview's own
  * start-failure line (`SessionControls`' `state.lastEnd`) when one is
  * showing, and whatever rows did get drawn either way.
  */
-import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { existsSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { evaluate, sleep } from './headless.mjs';
+import { evaluate, sleep, withPage } from './headless.mjs';
 
 const REPO_ROOT = join(import.meta.dirname, '..', '..');
 const WAV = join(REPO_ROOT, 'benchmark', 'test-speech-silence-speech.wav');
@@ -80,64 +84,9 @@ const url = process.argv[2]
   ?? `http://localhost:5199/?preview=spine&provider=localInference&capture=device&autostart=1&models=${DEFAULT_MODELS}&pair=en:ja`;
 const seconds = Number(process.argv[3] ?? 600);
 
-// A fixed path under the job's own temp dir (not node:os#tmpdir, and not
-// mkdtempSync'd fresh) so IndexedDB — and with it every model this probe has
-// already downloaded — survives a re-run.
-const PROFILE_DIR = join('/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp', 'spine-local-probe-profile');
+const jobTmpDir = process.env.CLAUDE_JOB_DIR ? join(process.env.CLAUDE_JOB_DIR, 'tmp') : tmpdir();
+const PROFILE_DIR = join(jobTmpDir, 'spine-local-probe-profile');
 mkdirSync(PROFILE_DIR, { recursive: true });
-
-async function pageSocketUrl(port) {
-  for (let i = 0; i < 50; i++) {
-    try {
-      const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
-      const page = targets.find((t) => t.type === 'page');
-      if (page) return page.webSocketDebuggerUrl;
-    } catch {
-      // Not listening yet.
-    }
-    await sleep(200);
-  }
-  throw new Error('chromium did not come up');
-}
-
-/**
- * Like headless.mjs's `withPage`, but on `PROFILE_DIR` instead of a fresh
- * profile per call (see the header comment) — everything else matches it.
- */
-async function withPersistentPage(pageUrl, fn, { port = 9334, flags = [] } = {}) {
-  const cache = join(homedir(), '.cache', 'ms-playwright');
-  const build = readdirSync(cache).filter((d) => d.startsWith('chromium-')).sort().pop();
-  if (!build) throw new Error(`no Playwright chromium under ${cache}`);
-  const browser = spawn(join(cache, build, 'chrome-linux', 'chrome'), [
-    '--headless', '--no-sandbox', '--disable-gpu', '--autoplay-policy=no-user-gesture-required', ...flags,
-    `--remote-debugging-port=${port}`, `--user-data-dir=${PROFILE_DIR}`, 'about:blank',
-  ], { stdio: 'ignore' });
-  try {
-    const ws = new WebSocket(await pageSocketUrl(port));
-    await new Promise((resolve) => ws.addEventListener('open', resolve, { once: true }));
-    let nextId = 0;
-    const waiting = new Map();
-    ws.addEventListener('message', (event) => {
-      const message = JSON.parse(event.data);
-      waiting.get(message.id)?.(message);
-      waiting.delete(message.id);
-    });
-    const send = (method, params = {}) => new Promise((resolve) => {
-      const id = ++nextId;
-      waiting.set(id, resolve);
-      ws.send(JSON.stringify({ id, method, params }));
-    });
-    try {
-      await send('Page.enable');
-      await send('Page.navigate', { url: pageUrl });
-      return await fn(send);
-    } finally {
-      ws.close();
-    }
-  } finally {
-    browser.kill();
-  }
-}
 
 // `.lang-badge`'s `src`/`tr` class and `.row-text` mirror spine-surface-probe.mjs's
 // own reading of the same conversation list. The phase line is SessionControls'
@@ -164,7 +113,7 @@ if (!existsSync(WAV)) {
   process.exit(1);
 }
 
-process.exitCode = await withPersistentPage(url, async (send) => {
+process.exitCode = await withPage(url, async (send) => {
   let last = { rows: [], phase: '', lastEnd: null };
   let sourceSeen = false;
   let translationSeen = false;
@@ -192,6 +141,8 @@ process.exitCode = await withPersistentPage(url, async (send) => {
   if (last.lastEnd) console.log(`FAIL: the preview's lastEnd: ${last.lastEnd}`);
   return 1;
 }, {
+  port: 9334,
+  userDataDir: PROFILE_DIR,
   flags: [
     '--use-fake-ui-for-media-stream',
     '--use-fake-device-for-media-stream',

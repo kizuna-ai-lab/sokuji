@@ -25,17 +25,22 @@ async function pageSocketUrl(port) {
 }
 
 /**
- * Opens `url` in a fresh headless Chromium (its own profile, so nothing
- * persists between runs) and hands `fn` a `send(method, params)`; returns what
- * `fn` returns, and always closes the browser.
+ * Opens `url` in a headless Chromium and hands `fn` a `send(method, params)`;
+ * returns what `fn` returns, and always closes the browser. By default each
+ * call gets a fresh, throwaway profile (a new `mkdtempSync` directory, never
+ * cleaned up but never reused either) so nothing persists between runs. Pass
+ * `userDataDir` to use that directory instead — `withPage` neither creates
+ * nor deletes it, so a caller that wants a persistent profile (e.g. to keep
+ * downloaded models cached across runs) creates the directory itself and
+ * reuses the same path on every call.
  */
-export async function withPage(url, fn, { port = 9333, flags = [], viewport = null } = {}) {
+export async function withPage(url, fn, { port = 9333, flags = [], viewport = null, userDataDir = null } = {}) {
   const cache = join(homedir(), '.cache', 'ms-playwright');
   const build = readdirSync(cache).filter((d) => d.startsWith('chromium-')).sort().pop();
   if (!build) throw new Error(`no Playwright chromium under ${cache}`);
   const browser = spawn(join(cache, build, 'chrome-linux', 'chrome'), [
     '--headless', '--no-sandbox', '--disable-gpu', '--autoplay-policy=no-user-gesture-required', ...flags,
-    `--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'spine-probe-'))}`, 'about:blank',
+    `--remote-debugging-port=${port}`, `--user-data-dir=${userDataDir ?? mkdtempSync(join(tmpdir(), 'spine-probe-'))}`, 'about:blank',
   ], { stdio: 'ignore' });
   try {
     const ws = new WebSocket(await pageSocketUrl(port));
