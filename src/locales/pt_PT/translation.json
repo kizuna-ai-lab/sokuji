@@ -602,6 +602,8 @@
       "speakerYou": "Eu",
       "speakerOther": "Outro",
       "translationSuffix": "(trad.)",
+      "noTranslation": "(sem tradução)",
+      "noSource": "(sem original)",
       "scopeLabel": "Incluir",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Nada selecionado",

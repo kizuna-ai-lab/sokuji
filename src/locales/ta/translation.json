@@ -602,6 +602,8 @@
       "speakerYou": "நான்",
       "speakerOther": "மற்றவர்",
       "translationSuffix": "(மொ.)",
+      "noTranslation": "(மொழிபெயர்ப்பு இல்லை)",
+      "noSource": "(மூலம் இல்லை)",
       "scopeLabel": "சேர்க்க",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "எதுவும் தேர்ந்தெடுக்கப்படவில்லை",

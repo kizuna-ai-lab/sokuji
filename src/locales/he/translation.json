@@ -602,6 +602,8 @@
       "speakerYou": "אני",
       "speakerOther": "הצד השני",
       "translationSuffix": "(תרג.)",
+      "noTranslation": "(אין תרגום)",
+      "noSource": "(אין מקור)",
       "scopeLabel": "לכלול",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "לא נבחר דבר",

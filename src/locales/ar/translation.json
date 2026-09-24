@@ -602,6 +602,8 @@
       "speakerYou": "أنا",
       "speakerOther": "الآخر",
       "translationSuffix": "(ترجمة)",
+      "noTranslation": "(لا توجد ترجمة)",
+      "noSource": "(لا يوجد نص أصلي)",
       "scopeLabel": "تضمين",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "لم يتم تحديد أي شيء",

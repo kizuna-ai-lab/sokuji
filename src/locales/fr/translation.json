@@ -602,6 +602,8 @@
       "speakerYou": "Moi",
       "speakerOther": "Autre",
       "translationSuffix": "(trad.)",
+      "noTranslation": "(pas de traduction)",
+      "noSource": "(pas de source)",
       "scopeLabel": "Inclure",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Rien de sélectionné",

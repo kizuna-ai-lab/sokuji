@@ -602,6 +602,8 @@
       "speakerYou": "自分",
       "speakerOther": "相手",
       "translationSuffix": "(訳)",
+      "noTranslation": "(訳文なし)",
+      "noSource": "(原文なし)",
       "scopeLabel": "含める",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "何も選択されていません",

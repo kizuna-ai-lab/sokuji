@@ -602,6 +602,8 @@
       "speakerYou": "Ako",
       "speakerOther": "Kausap",
       "translationSuffix": "(salin)",
+      "noTranslation": "(walang salin)",
+      "noSource": "(walang orihinal)",
       "scopeLabel": "Isama",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Walang napili",

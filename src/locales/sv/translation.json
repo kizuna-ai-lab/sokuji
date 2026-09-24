@@ -602,6 +602,8 @@
       "speakerYou": "Jag",
       "speakerOther": "Den andra",
       "translationSuffix": "(övers.)",
+      "noTranslation": "(ingen översättning)",
+      "noSource": "(ingen källa)",
       "scopeLabel": "Inkludera",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Inget valt",

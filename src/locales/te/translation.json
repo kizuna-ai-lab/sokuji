@@ -602,6 +602,8 @@
       "speakerYou": "నేను",
       "speakerOther": "ఇతరులు",
       "translationSuffix": "(అను.)",
+      "noTranslation": "(అనువాదం లేదు)",
+      "noSource": "(మూలం లేదు)",
       "scopeLabel": "చేర్చు",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "ఏదీ ఎంపిక చేయలేదు",

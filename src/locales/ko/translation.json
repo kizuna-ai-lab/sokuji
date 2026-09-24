@@ -602,6 +602,8 @@
       "speakerYou": "나",
       "speakerOther": "상대방",
       "translationSuffix": "(번역)",
+      "noTranslation": "(번역 없음)",
+      "noSource": "(원문 없음)",
       "scopeLabel": "포함",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "선택된 항목 없음",

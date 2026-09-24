@@ -602,6 +602,8 @@
       "speakerYou": "আমি",
       "speakerOther": "অন্য",
       "translationSuffix": "(অনু.)",
+      "noTranslation": "(অনুবাদ নেই)",
+      "noSource": "(মূল নেই)",
       "scopeLabel": "অন্তর্ভুক্ত করুন",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "কিছুই নির্বাচিত হয়নি",

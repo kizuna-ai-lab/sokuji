@@ -602,6 +602,8 @@
       "speakerYou": "Tôi",
       "speakerOther": "Đối phương",
       "translationSuffix": "(dịch)",
+      "noTranslation": "(không có bản dịch)",
+      "noSource": "(không có bản gốc)",
       "scopeLabel": "Bao gồm",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Chưa chọn gì",

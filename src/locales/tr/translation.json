@@ -602,6 +602,8 @@
       "speakerYou": "Ben",
       "speakerOther": "Karşı taraf",
       "translationSuffix": "(çev.)",
+      "noTranslation": "(çeviri yok)",
+      "noSource": "(orijinal yok)",
       "scopeLabel": "Dahil et",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Hiçbir şey seçilmedi",

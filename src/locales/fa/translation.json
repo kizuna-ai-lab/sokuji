@@ -602,6 +602,8 @@
       "speakerYou": "من",
       "speakerOther": "طرف مقابل",
       "translationSuffix": "(ترج.)",
+      "noTranslation": "(بدون ترجمه)",
+      "noSource": "(بدون متن اصلی)",
       "scopeLabel": "شامل کردن",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "چیزی انتخاب نشده است",

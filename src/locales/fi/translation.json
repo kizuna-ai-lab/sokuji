@@ -602,6 +602,8 @@
       "speakerYou": "Minä",
       "speakerOther": "Toinen",
       "translationSuffix": "(kään.)",
+      "noTranslation": "(ei käännöstä)",
+      "noSource": "(ei lähdettä)",
       "scopeLabel": "Sisällytä",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Ei valintoja",

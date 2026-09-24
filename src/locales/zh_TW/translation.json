@@ -602,6 +602,8 @@
       "speakerYou": "我",
       "speakerOther": "對方",
       "translationSuffix": "(譯)",
+      "noTranslation": "(無譯文)",
+      "noSource": "(無原文)",
       "scopeLabel": "包含",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "未選擇任何內容",

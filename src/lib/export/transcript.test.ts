@@ -47,10 +47,56 @@ describe('renderTranscriptTxt', () => {
     ].join('\n'));
   });
 
-  it('honours the scope: translation only', () => {
-    const txt = renderTranscriptTxt(entries, legs, { ...options, scope: { source: false, translation: true } });
+  it('honours the scope: translation only, leaving out a group with no translation', () => {
+    const txt = renderTranscriptTxt(entries, legs, { ...options, scope: { speaker: 'translation', participant: 'translation' } });
     expect(txt).toContain('  → The weather is nice.');
     expect(txt).not.toContain('今天天气很好');
+    // The lone source group has nothing in scope: no block, no "(no translation)".
+    expect(txt).not.toContain('[t13000]');
+    expect(txt).not.toContain('(no translation)');
+  });
+});
+
+describe('scope, header and metadata', () => {
+  const header = {
+    labels: { title: 'Sokuji conversation export', generated: 'Generated', provider: 'Provider', models: 'Models', source: 'My Language', target: "Other's Language", narrowed: 'Note: narrowed.' },
+    meta: { exportedAt: 0, appVersion: '1.2.3', provider: 'fake', models: { asr: 'a1', translation: '', tts: 't1' } },
+    formatDateTime: (ms: number) => `<${ms}>`,
+  };
+
+  it("writes each leg's sides as its scope says, and none of a leg scoped out", () => {
+    const text = renderTranscriptTxt(entries, legs, { ...options, scope: { speaker: 'translation', participant: 'none' } });
+    expect(text).toContain('  → The weather is nice. Let us go to the park.');
+    expect(text).not.toContain('今天天气很好。');
+    expect(text).not.toContain('Other');
+  });
+
+  it('starts a file with the header: provider, models, the speaker pair, and the narrowed note only when narrowed', () => {
+    const full = renderTranscriptTxt(entries, legs, { ...options, header });
+    expect(full.split('\n').slice(0, 6)).toEqual([
+      'Sokuji conversation export',
+      'Generated: <0>',
+      'Provider: fake',
+      'Models: asr=a1, tts=t1',
+      "My Language: zh → Other's Language: en",
+      '',
+    ]);
+    const narrowed = renderTranscriptTxt(entries, legs, { ...options, header, scope: { speaker: 'both', participant: 'source' } });
+    expect(narrowed).toContain('Note: narrowed.');
+  });
+
+  it("gives the JSON the run's metadata, leaves out hidden sides, and records a narrowed scope", () => {
+    const json = renderTranscriptJson(entries, legs, { scope: { speaker: 'source', participant: 'none' }, meta: header.meta });
+    expect(json).toMatchObject({ exportedAt: new Date(0).toISOString(), appVersion: '1.2.3', provider: 'fake', languages: { source: 'zh', target: 'en' }, scope: { speaker: 'source', participant: 'none' } });
+    expect(json.groups.every((g) => g.leg === 'speaker')).toBe(true);
+    expect(json.groups[0]).not.toHaveProperty('translation');
+    expect(renderTranscriptJson(entries, legs, { meta: header.meta })).not.toHaveProperty('scope');
+  });
+
+  it('keeps a group with one side missing under a scope showing both, and writes no metadata without meta', () => {
+    const json = renderTranscriptJson(entries, legs);
+    expect(json.groups.find((g) => g.id === 'c')).toMatchObject({ source: { text: '下午三点吧。' }, translation: null });
+    expect(Object.keys(json)).toEqual(['groups', 'notices']);
   });
 });
 

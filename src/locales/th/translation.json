@@ -602,6 +602,8 @@
       "speakerYou": "ฉัน",
       "speakerOther": "อีกฝ่าย",
       "translationSuffix": "(แปล)",
+      "noTranslation": "(ไม่มีคำแปล)",
+      "noSource": "(ไม่มีต้นฉบับ)",
       "scopeLabel": "รวม",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "ไม่ได้เลือกอะไรเลย",

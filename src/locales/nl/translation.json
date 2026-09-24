@@ -602,6 +602,8 @@
       "speakerYou": "Ik",
       "speakerOther": "Ander",
       "translationSuffix": "(vert.)",
+      "noTranslation": "(geen vertaling)",
+      "noSource": "(geen origineel)",
       "scopeLabel": "Opnemen",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Niets geselecteerd",

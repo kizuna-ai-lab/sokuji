@@ -602,6 +602,8 @@
       "speakerYou": "मैं",
       "speakerOther": "दूसरा",
       "translationSuffix": "(अनु.)",
+      "noTranslation": "(कोई अनुवाद नहीं)",
+      "noSource": "(कोई मूल नहीं)",
       "scopeLabel": "शामिल करें",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "कुछ भी चयनित नहीं",

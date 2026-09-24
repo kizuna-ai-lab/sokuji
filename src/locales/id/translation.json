@@ -602,6 +602,8 @@
       "speakerYou": "Saya",
       "speakerOther": "Lawan bicara",
       "translationSuffix": "(terj.)",
+      "noTranslation": "(tidak ada terjemahan)",
+      "noSource": "(tidak ada teks asli)",
       "scopeLabel": "Sertakan",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Tidak ada yang dipilih",

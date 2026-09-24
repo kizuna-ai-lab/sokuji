@@ -602,6 +602,8 @@
       "speakerYou": "Я",
       "speakerOther": "Собеседник",
       "translationSuffix": "(пер.)",
+      "noTranslation": "(нет перевода)",
+      "noSource": "(нет оригинала)",
       "scopeLabel": "Включить",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Ничего не выбрано",

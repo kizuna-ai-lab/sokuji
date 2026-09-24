@@ -602,6 +602,8 @@
       "speakerYou": "Ich",
       "speakerOther": "Gegenüber",
       "translationSuffix": "(Übers.)",
+      "noTranslation": "(keine Übersetzung)",
+      "noSource": "(kein Original)",
       "scopeLabel": "Einschließen",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Nichts ausgewählt",

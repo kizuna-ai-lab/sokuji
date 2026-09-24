@@ -602,6 +602,8 @@
       "speakerYou": "Ja",
       "speakerOther": "Rozmówca",
       "translationSuffix": "(tłum.)",
+      "noTranslation": "(brak tłumaczenia)",
+      "noSource": "(brak oryginału)",
       "scopeLabel": "Uwzględnij",
       "scopeItemAria": "{{scope}} — {{line}}",
       "scopeEmpty": "Nic nie wybrano",
