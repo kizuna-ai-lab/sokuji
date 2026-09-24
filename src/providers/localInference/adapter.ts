@@ -492,8 +492,10 @@ class LocalSession implements AdapterSession {
       {
         audio: (pcm, range) => this.emit('audio', { ref, pcm, range }),
         degraded: (message, cause) => this.emit('degraded', { code: 'tts_degraded', message, cause }),
+        frame: (direction, type, payload) => this.frame(direction, type, payload),
       },
       () => this.ended,
+      this.request.clock,
     );
   }
 

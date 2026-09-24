@@ -442,6 +442,18 @@ describe('the LocalInference adapter — speech', () => {
     expectConformant(t.log, t.context);
   });
 
+  it("reports today's local.tts.* frames for the spoken translation, wired through to the adapter's own frame()", async () => {
+    const t = await open(makeConfig({ tts: TTS }), { ...auto, speech: true });
+    t.tts.samplesPerSentence = 480;
+    t.asr.final('一');
+    t.translation.answer('One.');
+    await settle();
+    const ttsFrames = ofKind(t.log, 'frame').filter((f) => f.type.startsWith('local.tts.'));
+    expect(ttsFrames.map((f) => f.type)).toEqual(['local.tts.start', 'local.tts.sentence.start', 'local.tts.sentence.end', 'local.tts.end']);
+    expect(ttsFrames.map((f) => f.direction)).toEqual(['out', 'out', 'in', 'in']);
+    expectConformant(t.log, t.context);
+  });
+
   it('emits no audio when the leg does not speak, even with TTS configured (the conformance rule)', async () => {
     const t = await open(makeConfig({ tts: TTS }), { ...auto, speech: false });
     t.tts.samplesPerSentence = 480;
