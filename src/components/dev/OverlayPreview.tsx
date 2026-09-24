@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { messagePortWire, receiveSubtitles, type OverlayModel } from '../../lib/subtitle/wire';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import { useReadable } from '../Conversation/useReadable';
@@ -14,16 +14,20 @@ type Receiver = ReturnType<typeof receiveSubtitles>;
  */
 export function OverlayPreview() {
   const [receiver, setReceiver] = useState<Receiver | null>(null);
+  // The current receiver, alongside the state: disposing the old one and
+  // building the new one happens here, in the message handler — not inside
+  // the `setReceiver` updater, which StrictMode may invoke twice.
+  const receiverRef = useRef<Receiver | null>(null);
   useEffect(() => {
     // `&compact=1`: this page has its own subtitle store, like the real overlay's iframe.
     if (new URLSearchParams(window.location.search).get('compact') === '1') void useSubtitleStore.getState().setCompactMode(true);
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if ((event.data as { type?: unknown } | null)?.type !== 'sokuji-subtitle:connect' || !event.ports[0]) return;
-      setReceiver((previous) => {
-        previous?.dispose();
-        return receiveSubtitles(messagePortWire(event.ports[0]));
-      });
+      receiverRef.current?.dispose();
+      const next = receiveSubtitles(messagePortWire(event.ports[0]));
+      receiverRef.current = next;
+      setReceiver(next);
     };
     window.addEventListener('message', onMessage);
     // Announces readiness once the listener above is actually live, rather
