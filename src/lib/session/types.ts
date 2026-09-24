@@ -78,8 +78,16 @@ export interface RunEnd {
 
 export type LegState = 'opening' | 'live' | 'reconnecting';
 
+/** A leg loading its models while it opens: the `loading` event, as the starting surfaces show it. */
+export interface LoadingProgress {
+  leg: LegName;
+  stage: string;
+  done: number;
+  total: number;
+}
+
 export type RunState =
   | { phase: 'idle'; lastEnd?: RunEnd }
-  | { phase: 'starting'; step: 'checking' | 'preparing' | 'opening' }
+  | { phase: 'starting'; step: 'checking' | 'preparing' | 'opening'; loading?: LoadingProgress }
   | { phase: 'running'; since: number; legs: Partial<Record<LegName, LegState>> }
   | { phase: 'stopping' };

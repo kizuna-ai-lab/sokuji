@@ -43,6 +43,7 @@ export class LegOpenError extends Error {
 export interface RunHost {
   step(step: 'checking' | 'preparing' | 'opening'): void;
   legState(leg: LegName, state: LegState): void;
+  loading(leg: LegName, progress: Omit<import('./types').LoadingProgress, 'leg'>): void;
   /** The run's legs exist: they become the conversation now, so text shows as it arrives. */
   conversations(legs: ReadonlyMap<LegName, Conversation>, info: ConversationInfo): void;
   /** A leg ended on its own, or a lease did: end the run. */
@@ -370,6 +371,9 @@ export class Run {
     const { playback, analytics } = this.deps;
     const provider = this.shape.provider.id;
     switch (event.kind) {
+      case 'loading':
+        this.host.loading(leg, event.payload);
+        return;
       case 'audio':
         playback.audio(leg, event.payload.ref, event.payload.pcm);
         return;

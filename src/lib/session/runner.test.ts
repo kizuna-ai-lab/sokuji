@@ -249,6 +249,25 @@ describe('runner — starting', () => {
     });
     expect(startBoth).not.toHaveBeenCalled();
   });
+
+  it('shows a leg loading its models while it opens', async () => {
+    let open!: () => void;
+    const provider = {
+      ...fakeProvider,
+      start: async (request: unknown, events: AdapterEvents) => {
+        events.loading({ stage: 'asr', done: 1, total: 3 });
+        await new Promise<void>((resolve) => { open = resolve; });
+        return fakeProvider.start(request as never, events);
+      },
+    } as unknown as AnyProvider;
+    const { runner } = setup({ shape: { provider } });
+    const started = runner.start();
+    await flush();
+    expect(runner.state.getState()).toEqual({ phase: 'starting', step: 'opening', loading: { leg: 'speaker', stage: 'asr', done: 1, total: 3 } });
+    open();
+    await started;
+    expect(runner.state.getState().phase).toBe('running');
+  });
 });
 
 describe('runner — stopping', () => {

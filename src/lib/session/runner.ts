@@ -164,6 +164,10 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       const now = state.getState();
       if (run === current && now.phase === 'running') set({ ...now, legs: legs(run) });
     },
+    loading: (leg, progress) => {
+      const now = state.getState();
+      if (run === current && now.phase === 'starting') set({ ...now, loading: { leg, ...progress } });
+    },
     conversations: (map, info: ConversationInfo) => conversation.replace(map, info),
     end: (result) => { void end(run, result); },
   });
