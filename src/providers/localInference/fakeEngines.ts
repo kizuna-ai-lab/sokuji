@@ -103,6 +103,23 @@ export class FakeTts implements TtsLike {
   disposes = 0;
   private loading = deferred<TtsReady>();
 
+  /**
+   * Synthesis behaviour for `speech.ts` tests; the defaults reproduce the
+   * class's old fixed answers (empty samples, no stream chunks) so the
+   * adapter tests that never inspect synthesized audio are unaffected.
+   */
+  rate = 24000;
+  samplesPerSentence = 0;
+  chunksPerSentence = 0;
+  samplesPerChunk = 0;
+  /** Zero-based call indices, counted across `generate` and `generateStream`
+   *  together, that reject instead of synthesizing. */
+  failOn = new Set<number>();
+
+  generateCalls: Array<{ text: string; sid?: number; speed?: number; lang?: string }> = [];
+  streamCalls: Array<{ text: string; sid: number; speed: number; lang?: string; voice?: string }> = [];
+  private callIndex = 0;
+
   init(modelId: string): Promise<TtsReady> {
     this.inits.push(modelId);
     return this.loading.promise;
@@ -110,11 +127,28 @@ export class FakeTts implements TtsLike {
   ready(ready: TtsReady = { sampleRate: 24000 }): void { this.loading.resolve(ready); }
   failInit(message: string): void { this.loading.reject(new Error(message)); }
 
-  generate(): Promise<TtsResult> {
-    return Promise.resolve({ samples: new Float32Array(0), sampleRate: 24000, generationTimeMs: 0 });
+  async generate(text: string, sid?: number, speed?: number, lang?: string): Promise<TtsResult> {
+    const index = this.callIndex++;
+    this.generateCalls.push({ text, sid, speed, lang });
+    if (this.failOn.has(index)) throw new Error(`fake synthesis failed for "${text}"`);
+    return { samples: new Float32Array(this.samplesPerSentence), sampleRate: this.rate, generationTimeMs: 0 };
   }
-  generateStream(): Promise<{ generationTimeMs: number }> {
-    return Promise.resolve({ generationTimeMs: 0 });
+
+  async generateStream(
+    text: string,
+    sid: number,
+    speed: number,
+    lang?: string,
+    onChunk?: (samples: Float32Array, sampleRate: number) => void,
+    voice?: string,
+  ): Promise<{ generationTimeMs: number }> {
+    const index = this.callIndex++;
+    this.streamCalls.push({ text, sid, speed, lang, voice });
+    if (this.failOn.has(index)) throw new Error(`fake synthesis failed for "${text}"`);
+    for (let i = 0; i < this.chunksPerSentence; i++) {
+      onChunk?.(new Float32Array(this.samplesPerChunk), this.rate);
+    }
+    return { generationTimeMs: 0 };
   }
   dispose(): void { this.disposes++; }
   die(message = 'RuntimeError: unreachable'): void { this.onFatal?.(message); }

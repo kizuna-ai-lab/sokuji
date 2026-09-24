@@ -12,6 +12,7 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import { redact } from '../../lib/diagnostics/redact';
 import type { TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
 import { defaultEngines, type AsrLike, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
+import { speakTranslation } from './speech';
 import type { LocalInferenceConfig } from './config';
 
 /**
@@ -421,7 +422,7 @@ class LocalSession implements AdapterSession {
       this.emit('segmentOpened', { ref, side: 'translation', origin: job.origin });
       try {
         this.emit('segmentText', { ref, text });
-        await this.speak(job, ref, text);
+        await this.speak(ref, text);
       } finally {
         this.emit('segmentClosed', { ref, origin: job.origin });
       }
@@ -472,8 +473,29 @@ class LocalSession implements AdapterSession {
     return result.translatedText;
   }
 
-  /** Speaks a job's translation into its segment; the segment closes after it resolves. Nothing to say yet. */
-  private async speak(_job: Job, _ref: Ref, _text: string): Promise<void> {}
+  /**
+   * Speaks a job's translation into its segment; the segment closes after it
+   * resolves (ruling 8), so a range computed on the pre-fill-in text still
+   * lands once L1's re-anchor runs. Nothing to say without TTS, or when this
+   * leg does not speak — the conformance rule forbids audio then regardless
+   * of what `config.tts` carries.
+   */
+  private async speak(ref: Ref, text: string): Promise<void> {
+    const { tts } = this;
+    const ttsConfig = this.config.tts;
+    if (!tts || !ttsConfig || !this.request.context.speech) return;
+    await speakTranslation(
+      tts,
+      text,
+      this.request.context.direction.target,
+      ttsConfig,
+      {
+        audio: (pcm, range) => this.emit('audio', { ref, pcm, range }),
+        degraded: (message, cause) => this.emit('degraded', { code: 'tts_degraded', message, cause }),
+      },
+      () => this.ended,
+    );
+  }
 
   /** The session can no longer work: while opening, the start rejects; after, `failed`, and nothing more. */
   private fatal(message: string): void {

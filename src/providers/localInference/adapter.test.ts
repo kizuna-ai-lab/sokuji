@@ -421,6 +421,48 @@ describe('the LocalInference adapter — errors', () => {
   });
 });
 
+describe('the LocalInference adapter — speech', () => {
+  it("speaks the translation's sentences before closing its segment, each with its exact range", async () => {
+    const t = await open(makeConfig({ tts: TTS }), { ...auto, speech: true });
+    t.tts.samplesPerSentence = 480;
+    t.asr.final('一');
+    t.translation.answer('One. Two.');
+    await settle();
+
+    const kinds = events(t.log).map((e) => e.kind);
+    const translationClosed = kinds.lastIndexOf('segmentClosed');
+    const audioIndices = kinds.reduce<number[]>((acc, k, i) => (k === 'audio' ? [...acc, i] : acc), []);
+    expect(audioIndices).toHaveLength(2);
+    expect(audioIndices.every((i) => i < translationClosed)).toBe(true);
+
+    const clips = ofKind(t.log, 'audio');
+    expect(clips.map((c) => c.range)).toEqual([[0, 4], [5, 9]]);
+    expect(clips.every((c) => c.ref === 2)).toBe(true);
+    expect(clips.every((c) => c.pcm instanceof Int16Array)).toBe(true);
+    expectConformant(t.log, t.context);
+  });
+
+  it('emits no audio when the leg does not speak, even with TTS configured (the conformance rule)', async () => {
+    const t = await open(makeConfig({ tts: TTS }), { ...auto, speech: false });
+    t.tts.samplesPerSentence = 480;
+    t.asr.final('一');
+    t.translation.answer('One.');
+    await settle();
+    expect(ofKind(t.log, 'audio')).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('without TTS, the translation segment closes at once', async () => {
+    const t = await open();
+    t.asr.final('一');
+    t.translation.answer('One.');
+    await settle();
+    expect(ofKind(t.log, 'audio')).toEqual([]);
+    expect(ofKind(t.log, 'segmentClosed')).toHaveLength(2);
+    expectConformant(t.log, t.context);
+  });
+});
+
 describe('the LocalInference adapter — the queue never wedges', () => {
   it('an event handler that throws costs its job only: its segment closes, a frame says why, and the next job runs', async () => {
     const fakes = createFakeEngines();
