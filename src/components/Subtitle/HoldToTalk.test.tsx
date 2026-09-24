@@ -1,8 +1,21 @@
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { HoldToTalk } from './HoldToTalk';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }) }));
+
+/**
+ * jsdom has no native `PointerEvent` constructor, so `fireEvent.pointerDown`
+ * cannot carry `button`/`pointerType` through its init dict (they are simply
+ * dropped by the `Event` fallback). Build the event by hand and define the
+ * two properties `HoldToTalk.press` reads.
+ */
+function pointerDown(node: Element, { pointerType, button }: { pointerType: string; button: number }) {
+  const event = createEvent.pointerDown(node, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'pointerType', { value: pointerType, configurable: true });
+  Object.defineProperty(event, 'button', { value: button, configurable: true });
+  fireEvent(node, event);
+}
 
 describe('HoldToTalk', () => {
   it('presses on pointer down and releases on up, leave and cancel — once each', () => {
@@ -27,5 +40,28 @@ describe('HoldToTalk', () => {
     fireEvent.pointerDown(screen.getByRole('button'));
     unmount();
     expect(onRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a non-primary mouse button', () => {
+    const onPress = vi.fn();
+    const onRelease = vi.fn();
+    render(<HoldToTalk onPress={onPress} onRelease={onRelease} />);
+    const button = screen.getByRole('button');
+    pointerDown(button, { pointerType: 'mouse', button: 2 });
+    expect(button.textContent).toBe('Hold');
+    expect(onPress).not.toHaveBeenCalled();
+    fireEvent.pointerUp(button);
+    expect(onRelease).not.toHaveBeenCalled();
+  });
+
+  it('presses on the primary mouse button, and on a touch/pen pointer with no button semantics', () => {
+    const onPress = vi.fn();
+    render(<HoldToTalk onPress={onPress} onRelease={() => {}} />);
+    const button = screen.getByRole('button');
+    pointerDown(button, { pointerType: 'mouse', button: 0 });
+    expect(onPress).toHaveBeenCalledTimes(1);
+    fireEvent.pointerUp(button);
+    pointerDown(button, { pointerType: 'touch', button: 0 });
+    expect(onPress).toHaveBeenCalledTimes(2);
   });
 });

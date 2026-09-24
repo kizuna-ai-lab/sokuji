@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic } from 'lucide-react';
 
@@ -13,7 +13,12 @@ export function HoldToTalk({ onPress, onRelease }: { onPress: () => void; onRele
   const heldRef = useRef(false);
   const releaseRef = useRef(onRelease);
   releaseRef.current = onRelease;
-  const press = () => {
+  const press = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    // A right- or middle-click can lose its pointerup to a context menu or
+    // scroll gesture; only the primary mouse button presses. Touch and pen
+    // have no meaningful `button` outside the primary contact, so this only
+    // narrows `pointerType === 'mouse'`.
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (heldRef.current) return;
     heldRef.current = true;
     setHeld(true);
