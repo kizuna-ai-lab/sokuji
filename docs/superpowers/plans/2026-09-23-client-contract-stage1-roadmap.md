@@ -4,10 +4,12 @@
 
 Stage 1 of the spec ("the new spine and one provider, end to end") spans five
 subsystems that can each be built and tested on their own. It is therefore
-five plans — seven, since the runner splits from capture and playback (the
+five plans — nine, since the runner splits from capture and playback (the
 runner tests with a fake source and a recording sink; the audio side needs a
-live device), and playback splits from capture (the passthrough route and
-the echo monitor's reference live in playback's graph, so it comes first) —
+live device), playback splits from capture (the passthrough route and the
+echo monitor's reference live in playback's graph, so it comes first), and
+the surfaces split three ways (the view every surface shares with the panel's
+list; the two subtitle surfaces and their wire; export and auto-save) —
 executed in this order. Each plan leaves the tree green and its
 own layer usable; none of them touches the old clients, which keep working
 until plan 1e replaces MainPanel's session path.
@@ -19,7 +21,9 @@ until plan 1e replaces MainPanel's session path.
 | **1c-1 — the runner** (`2026-09-24-client-contract-stage1c1-runner.md`) | `sessions.*`, the run and its resource stack, the source and playback ports, the fake source, the turn object, the session hooks, analytics, the global turn mode | vitest with fake sources and the fake adapter; a live fake session in the preview, read but not heard |
 | **1c-2 — playback** (`2026-09-24-client-contract-stage1c2-playback.md`) | the clip queue, one Web Audio graph (five feeds, two buses, routes as gain edges), the route table and its two new switches, replay, the preview route and the test tone, the extension's virtual microphone from the virtual bus, the tts tap — behind the playback port | vitest with a recording Web Audio; the preview's fake session heard, checked headlessly by `scripts/dev/spine-audio-probe.mjs` |
 | **1c-3 — capture** (`2026-09-24-client-contract-stage1c3-capture.md`) | real sources (mic, system audio, tab) behind the source port, device switching and mute inside them, `ended` / `degraded`; the passthrough source into playback's route; the echo monitor on the source taps and playback's tts tap | vitest with fake media; headless Chromium's fake microphone; a live device |
-| **1d — the surfaces** | the panel's conversation list, the Electron subtitle takeover, the extension overlay, export, the idle surfaces, notices | headless Chromium against the fake provider |
+| **1d-1 — the conversation view and the panel list** (`2026-09-24-client-contract-stage1d1-conversation-view.md`) | rows that carry their text, typed notice codes and the frames port, one throttled view of the conversation, karaoke from the clip queues, the display filter, notices in words, the panel's conversation list | vitest; the preview's list, checked headlessly by `scripts/dev/spine-surface-probe.mjs` |
+| **1d-2 — the subtitle surfaces** | the shared subtitle view over `Entry[]` (bands joined by script, karaoke), the Electron takeover and the extension overlay on one typed wire (`Entry[]`, the run's state, karaoke), the overlay's hold-to-talk button, the subtitle idle states from the run's state | vitest; headless Chromium: the overlay in a page, fed over a `MessageChannel` wire |
+| **1d-3 — export and auto-save** | the export menu over the new writer (per-leg scope, header and metadata, clipboard, download), auto-save from `onRunEnded`, the panel's idle line (why the last run ended, in words) | vitest; the files a fake session exports |
 | **1e — LocalInference** | the first real adapter and definition; MainPanel's old session path deleted | a live local session on Electron and the extension |
 
 Interfaces that cross plan boundaries are named in each plan's `Interfaces`
@@ -357,3 +361,80 @@ under "Carried out of plan 1c-1" → 1c-3 and "Deferred by plan 1c-2 — for
   over the raw `getUserMedia` stream would drop app-side noise suppression.
   Decide explicitly; a processed graph's `MediaStreamAudioDestinationNode`
   stream works across contexts.
+
+Both landed in plan 1c-3: the echo watch is the tap's only reader in the app
+and drains it when it first attaches; passthrough carries the processed
+microphone pcm (after RNNoise / GTCRN), bounded at 0.3 s.
+
+## Deferred by plan 1c-3
+
+Plan 1c-3 (capture) landed as commits `f31c243f..d4332011`: nine tasks, two
+fix rounds and a final-review fix wave (the GTCRN worker disposed on
+release; an end while a source is still opening kept for the runner; a
+stale helper death ignored; a false `begin` refused; no tab capture without
+a target tab; notice listeners guarded). Its reviews leave these.
+
+**1e — the switch-over**
+- Passthrough starts when the microphone opens, not when the leg goes live:
+  with passthrough on, the meeting hears the raw voice through the connect,
+  including a start that then fails. Today it starts after connect. Decide it
+  on purpose.
+- `Playback.passthrough()` and `audio()` call `graph.resume()` per chunk;
+  while an output cannot start, each failure's console line repeats per chunk
+  (the dedupe key throttles only the panel).
+- A fresh `ModernAudioRecorder` per open pays the worklet warm-up (~300 ms)
+  and reloads RNNoise / GTCRN at every session start (the worker leak itself
+  is fixed): measure it on the packaged build, or keep one recorder per page.
+- The sources emit none of their analytics yet (`audio_error`,
+  `audio_device_changed`, spec: "Analytics").
+- `releaseMicrophone` on `pagehide`, with the `abandon()` item above.
+- The echo watch prints its diagnostics line behind the
+  `sokuji.echoDiagnostics` flag as today; when `ModernBrowserAudioService` is
+  deleted, confirm nothing else read that flag.
+
+**Stage 2**
+- `Source.track` is the raw device track: mute and device switches happen
+  downstream of it. Nothing reads it before the WebRTC adapters; before one
+  does, give them a processed track (a `MediaStreamAudioDestinationNode`
+  stream) that mute and switches reach.
+- No test hands `startBoth` a distinct track per leg (correct by inspection):
+  add one with Soniox's `startBoth`.
+
+**Housekeeping**
+- `fakeWebAudio`'s `createMediaStreamSource` / `streamSources` are unused since
+  passthrough became processed pcm.
+- `ModernAudioRecorder.ts` carries a TS6133 older than this branch
+  (`_noiseSuppressEnabled` written, never read); the typecheck gates name
+  `BaseAudioRecorder` only.
+
+## Scheduled by plan 1d-1
+
+Plan 1d-1 takes up the roadmap's 1d items that the panel's list and the
+shared view need, and rules on the open ones (its "Rulings" section). What it
+leaves, by the plan that first needs it:
+
+**1d-2 — the subtitle surfaces**
+- The compact bands join rows with `needsSpace` (`src/lib/projection/join.ts`),
+  never a bare space.
+- The overlay's tail is sliced from the merged `Entry[]`, never per leg (spec:
+  "Invariants").
+
+**1d-3 — export and auto-save**
+- The panel's idle line: `RunState.lastEnd` in words (`noticeText`). A start
+  that fails after opening replaces the conversation with empty legs (the
+  failure's notice is on a leg); a refused one keeps it (the notice is only in
+  `lastEnd`) — the idle line must show both.
+
+**1e — the switch-over**
+- Translate `notices.*` and `mainPanel.warning` into every locale before the
+  new list reaches users (1d-1 added English only).
+- Wire `RunnerDeps.frames` to `logStore.addRealtimeEvent` (it no-ops while
+  diagnostic logs are off).
+- The footer's output waveform: give the graph an analyser on the virtual bus
+  when the footer moves over (from plan 1c-2).
+- Lock `participantSpeech` while a run is on, with the other settings "What
+  may change during a run" does not list (from plan 1c-2).
+
+**Stage 2**
+- `busy` has no reader: add one with the first provider that queues typed
+  text while it responds (OpenAI).
