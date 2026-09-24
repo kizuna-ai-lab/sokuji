@@ -167,3 +167,92 @@ and the final-review fix wave). Its final review raised these for later plans.
   of the cache key.
 - With Palabra: `migrate(stored)` cannot tell "absent" from "default" and
   cannot see credentials, both of which Palabra's `authMode` migration needs.
+
+## Carried out of plan 1c-1
+
+Plan 1c-1 (the runner) landed as commits `109bd75c..10ef1c81`: ten tasks,
+five fix rounds and a final-review fix wave. Its reviews raised these for
+later plans.
+
+**1c-2 — capture and playback**
+- First, a test: "a playback port that throws on audio does not reach the
+  adapter" (`src/lib/session/runner.test.ts`) advances the clock only to
+  600 ms, before the fake's first audio, so it passes against unguarded code.
+  Advance past the first audio and assert the port was called. Likewise the
+  analytics-port test throws only on `translation_session_end`: make `track`
+  throw on every call, so "neither fails a start" is pinned too.
+- The guarded `playback.audio` writes a console line on every throw; on the
+  hot path, throttle the console as well as the panel.
+- `PlaybackPort.held` cannot tell push-to-translate from push-to-talk, but
+  only push-to-translate closes the original-voice route: pass the mode, or
+  call it for push-to-translate only.
+- `Source` has no `track`, and each `StartRequest` is built before its source
+  opens, so `input` is always empty: add `Source.track?` and build a leg's
+  request after `openSource`, for the WebRTC adapters.
+- A source's degradation reaches L1 through `Conversation.notice()`, which
+  skips the per-code throttle `degraded` events get; route it through the
+  throttle.
+- `appendAudio` throwing escapes into the source's delivery callback (it
+  stopped the fake's tick): guard the hot path and report only the ok →
+  failing transition.
+- A refused start still passes through `stopping` and `playback.clear()`,
+  which would stop a replay of the kept conversation: refusals go straight
+  to idle.
+- The turn counts voiced time as floating milliseconds; count samples as
+  integers once real, irregular chunk sizes arrive.
+
+**1d — the surfaces**
+- `busy` (the responding indicator) and `frame` (the Logs panel) are
+  ignored by `Conversation` and `Run`: give `RunState` a per-leg busy and
+  `RunnerDeps` a frames port.
+- Notice codes mix kebab-case (refusals: `not-ready`, `start-failed`) and
+  snake_case (leg ends: `source_ended`, `lease_ended`): unify them and type
+  the runner's own codes as a union before locale keys exist.
+- `build` / `admit` refusals are bare English strings: consider
+  `{ refused, code?, params? }` so the idle surface can localize them.
+- The conversation-replacement rule: a start that fails after opening
+  replaces the conversation with empty legs, a refused one keeps it.
+
+**1e — the switch-over**
+- First, before the close handshake and Stage 2's first managed provider: a
+  run waits for its opening before unwinding only when it has one leg. With
+  two, `Run`'s `Promise.all` over the legs (and over `startBoth`'s sources)
+  rejects at the first leg to see the abort, so the other leg, still opening,
+  is released after the lease and after `stop()` resolves. Keep each leg's
+  in-flight open and await them all (`allSettled`, bounded) before unwinding;
+  keep `Promise.all` for the start's own outcome, so D22 still fails fast.
+- A stop during `checking` (or a `prepare` that ignores its signal) now waits
+  up to `timeoutMs` in `stopping`, since `ensureReady` cannot be cancelled;
+  the check-signal item below removes it.
+- A lease that ends before the `opening` step has no leg to record its notice
+  on; it survives only in `lastEnd`.
+- `pagehide`: `ResourceStack` unwinds one release at a time, so a leg whose
+  `stop()` awaits the network blocks the lease below it. Add a synchronous
+  `ResourceStack.abandon()` / `Runner.abandon()` (fire every remaining
+  release now, in reverse, without awaiting), and the adapter rule "`stop()`
+  closes its socket before its first `await`", so the lease's `keepalive`
+  release goes out.
+- `loading` drives the starting step's model-load progress: route it into
+  `RunState`.
+- The close handshake needs its own overall bound: `stop()` can take the sum
+  of the per-release timeouts, plus the fill-in wait, plus `onRunEnded`'s.
+- `onRunEnded` failures reach only `reportError`: a failed auto-save becomes
+  state the idle surface shows.
+- `ensureReady` reads the store's live entry, not the shape: pass the
+  shape's settings and credentials, with the signal.
+- `connection_status` sends identical events per leg: add a `channel`, and
+  align `duration_ms` (the old path's connect latency, the runner's session
+  length). The two-leg `disconnected` loop is untested.
+- Analytics string values are not redacted port-wide (`api_error` is): have
+  the app's `AnalyticsPort` redact every string value.
+- `providerStore.select()` has no phase guard: the sign-in auto-switch must
+  not change the provider mid-run. Load `turnModeStore` and `providerStore`
+  before the first start; `persistIfUnchanged` resets readiness to unknown
+  in the middle of a start.
+- Lazy-load the preview's modules: `turnModeStore`'s store and
+  `SpinePreview.scss` ride into the release bundle through `App.tsx`'s static
+  import.
+
+**Stage 2**
+- A `startBoth` rejection is wrapped as `LegOpenError(legs[0])`, naming the
+  first leg whichever failed: let the provider name it (Soniox).
