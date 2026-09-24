@@ -7,6 +7,7 @@ import type { LegName, Segment } from '../conversation/types';
 import type { PlaybackPort } from '../session/ports';
 import { ClipQueue, type QueueView } from './clipQueue';
 import type { AudioGraph, OneShot } from './graph';
+import { LiveStream } from './liveStream';
 import type { PcmTap } from './pcmTap';
 import { routesFor, type RoutingSettings } from './routes';
 
@@ -37,8 +38,8 @@ export interface Playback extends PlaybackPort {
   /** Plays a clip on the real device, stopping the previous one; resolves when it ends or is stopped. */
   preview(clip: PreviewClip): Promise<void>;
   stopPreview(): void;
-  /** Mixes a capture into the meeting under the translation (the passthrough route); returns the detach. */
-  attachPassthrough(stream: MediaStream): () => void;
+  /** The microphone's chunk, processed: the original voice under the translation. The passthrough route and its ratio decide whether the meeting hears it. */
+  passthrough(pcm: Int16Array): void;
   /** The translated speech as played, before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
   dispose(): Promise<void>;
@@ -50,6 +51,7 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
     participant: new ClipQueue<ClipKey>(graph.timeline('participant')),
   };
   const replayQueue = new ClipQueue<ClipKey>(graph.timeline('replay'));
+  const passthroughStream = new LiveStream(graph.timeline('passthrough'));
   /**
    * Per `${leg}:${ref}`, how many clips have arrived: the next one's speech
    * entry index, since L1 appends one entry per `audio` event, in order.
@@ -127,7 +129,10 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
 
     stopPreview,
 
-    attachPassthrough: (stream) => graph.attachPassthrough(stream),
+    passthrough(pcm) {
+      void graph.resume();
+      passthroughStream.push(pcm);
+    },
 
     ttsTap: graph.ttsTap,
 
@@ -136,6 +141,7 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
       live.speaker.clear();
       live.participant.clear();
       replayQueue.clear();
+      passthroughStream.clear();
       stopPreview();
       await graph.close();
     },

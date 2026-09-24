@@ -37,7 +37,6 @@ function fakeGraph() {
     },
     route: (edges) => { routes.push([...edges]); },
     setSinks: async (s) => { sinks.push(s); },
-    attachPassthrough: () => () => {},
     ttsTap: createPcmTap(),
     resume: async () => { resumed += 1; },
     close: async () => {},
@@ -212,5 +211,23 @@ describe('createPlayback — preview', () => {
     graph.playOnce = () => { throw new Error('sample rate out of range'); };
     const playback = createPlayback(graph, routing().source);
     await expect(playback.preview({ audio: new Float32Array(10), sampleRate: 1 })).rejects.toThrow();
+  });
+});
+
+describe('createPlayback — passthrough', () => {
+  it("plays the microphone's chunks back to back on the passthrough feed", () => {
+    const { graph, plays } = fakeGraph();
+    const playback = createPlayback(graph, routing().source);
+    playback.passthrough(pcm(85));
+    playback.passthrough(pcm(85));
+    expect(plays.map((p) => p.feed)).toEqual(['passthrough', 'passthrough']);
+    expect(plays[1].at).toBeCloseTo(plays[0].at + 0.085, 9);
+  });
+
+  it('resumes the graph before it plays (autoplay)', () => {
+    const { graph, resumed } = fakeGraph();
+    const playback = createPlayback(graph, routing().source);
+    playback.passthrough(pcm(85));
+    expect(resumed()).toBeGreaterThan(0);
   });
 });

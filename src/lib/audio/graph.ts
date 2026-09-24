@@ -43,15 +43,14 @@ export interface OneShot {
 }
 
 export interface AudioGraph {
-  timeline(feed: 'speaker' | 'participant' | 'replay'): AudioTimeline;
+  /** A timeline playing into a feed: the clip queues' and the passthrough stream's. */
+  timeline(feed: 'speaker' | 'participant' | 'replay' | 'passthrough'): AudioTimeline;
   /** Plays a clip at its own rate on the preview feed. */
   playOnce(audio: Float32Array, sampleRate: number): OneShot;
   /** Makes the edges exactly these; an edge to a bus this platform lacks is ignored. */
   route(edges: readonly Edge[]): void;
   /** Points each bus's element at a device; the virtual one stays silent until it has one. */
   setSinks(sinks: { real?: string; virtual?: string }): Promise<void>;
-  /** Feeds a capture into the passthrough feed; returns the detach. */
-  attachPassthrough(stream: MediaStream): () => void;
   /** The translated speech the graph plays (speaker, participant, replay), before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
   /** Resumes a suspended context and restarts an output the browser paused (autoplay). */
@@ -240,12 +239,6 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
         applied[bus] = id;
         play(bus);
       }
-    },
-
-    attachPassthrough(stream) {
-      const source = ctx.createMediaStreamSource(stream);
-      source.connect(feeds.passthrough);
-      return () => source.disconnect();
     },
 
     ttsTap,

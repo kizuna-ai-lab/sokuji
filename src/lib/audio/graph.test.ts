@@ -34,7 +34,7 @@ async function setup(virtual: 'device' | 'tabs' | 'none' = 'device') {
   const [real, virtualSink] = sinks;
   const destinationOf = (sink: FakeSink): FakeNode => ctx.destinations.find((d) => d.stream === sink.srcObject)!;
   /** Plays a clip into a feed; returns its source node. */
-  const clip = (feed: 'speaker' | 'participant' | 'replay'): FakeBufferSource => {
+  const clip = (feed: 'speaker' | 'participant' | 'replay' | 'passthrough'): FakeBufferSource => {
     graph.timeline(feed).play(new Int16Array(2400), 0, () => {});
     return ctx.sources[ctx.sources.length - 1];
   };
@@ -54,9 +54,8 @@ describe('createAudioGraph — routes', () => {
   });
 
   it('applies a diff: a changed gain is updated in place, a missing edge is disconnected', async () => {
-    const { ctx, graph } = await setup();
-    graph.attachPassthrough({} as MediaStream);
-    const feed = [...ctx.streamSources[0].outputs][0];
+    const { graph, clip } = await setup();
+    const feed = [...clip('passthrough').outputs][0];
     const edge = () => [...feed.outputs][0] as FakeGain;
     graph.route([{ from: 'passthrough', to: 'virtual', gain: 0.2 }]);
     const first = edge();
@@ -83,6 +82,12 @@ describe('createAudioGraph — routes', () => {
     expect(reaches(clip('speaker'), virtualTap)).toBe(true);
     virtualTap.emit(Float32Array.of(0.5));
     expect(sent).toEqual([Float32Array.of(0.5)]);
+  });
+
+  it('routes the passthrough feed into the meeting at its ratio', async () => {
+    const { graph, virtualSink, destinationOf, clip } = await setup();
+    graph.route([{ from: 'passthrough', to: 'virtual', gain: 0.3 }]);
+    expect(reaches(clip('passthrough'), destinationOf(virtualSink))).toBe(true);
   });
 });
 
@@ -197,8 +202,7 @@ describe('createAudioGraph — the tts tap', () => {
     expect(reaches(clip('replay'), ttsTap)).toBe(true);
     graph.playOnce(new Float32Array(10), 48000);
     expect(reaches(ctx.sources[ctx.sources.length - 1], ttsTap)).toBe(false);
-    graph.attachPassthrough({} as MediaStream);
-    expect(reaches(ctx.streamSources[0], ttsTap)).toBe(false);
+    expect(reaches(clip('passthrough'), ttsTap)).toBe(false);
   });
 
   it('hands the reader what the worklet posts', async () => {

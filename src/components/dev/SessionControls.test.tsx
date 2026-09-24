@@ -97,7 +97,7 @@ function fakeAudio(): AppAudio & { playback: Playback } {
     audio: vi.fn(), held: vi.fn(), clear: vi.fn(),
     replay: vi.fn(), stopReplay: vi.fn(),
     preview: vi.fn(async () => {}), stopPreview: vi.fn(),
-    attachPassthrough: vi.fn(() => () => {}),
+    passthrough: vi.fn(),
     ttsTap: { read: () => new Float32Array(0) },
     dispose: vi.fn(async () => {}),
   } as unknown as Playback;
