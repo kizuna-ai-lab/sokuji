@@ -1,8 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   FakeAudioContext, FakeSink, FakeWorkletNode, reaches, type FakeBufferSource, type FakeGain, type FakeNode,
 } from './fakeWebAudio';
 import { createAudioGraph } from './graph';
+
+const reportWarningSpy = vi.hoisted(() => vi.fn());
+vi.mock('../diagnostics/report', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../diagnostics/report')>();
+  return { ...actual, reportWarning: reportWarningSpy };
+});
 
 async function setup(virtual: 'device' | 'tabs' | 'none' = 'device') {
   const ctx = new FakeAudioContext();
@@ -118,6 +124,42 @@ describe('createAudioGraph — outputs', () => {
     virtualSink.setSinkId = async () => { throw new Error('NotFoundError'); };
     await graph.setSinks({ virtual: 'cable-1' });
     expect(virtualSink.paused).toBe(true);
+  });
+
+  it('the virtual element does not start while its device switch is pending, even when resumed', async () => {
+    const { graph, virtualSink } = await setup();
+    let resolveSwitch!: () => void;
+    virtualSink.setSinkId = (id: string) => new Promise<void>((resolve) => {
+      resolveSwitch = () => { virtualSink.sinkId = id; resolve(); };
+    });
+    const switching = graph.setSinks({ virtual: 'cable-1' });
+    await graph.resume();
+    expect(virtualSink.paused).toBe(true);
+    resolveSwitch();
+    await switching;
+    expect(virtualSink.paused).toBe(false);
+    expect(virtualSink.sinkId).toBe('cable-1');
+  });
+
+  it('a virtual element that cannot choose its device never plays', async () => {
+    const { graph, virtualSink } = await setup();
+    (virtualSink as { setSinkId?: unknown }).setSinkId = undefined;
+    await graph.setSinks({ virtual: 'cable-1' });
+    await graph.resume();
+    expect(virtualSink.paused).toBe(true);
+  });
+
+  it('ignores an interrupted play() (AbortError), but reports any other failure to start', async () => {
+    const { graph, real } = await setup();
+    reportWarningSpy.mockClear();
+    real.pause();
+    real.play = async () => { throw new DOMException('interrupted', 'AbortError'); };
+    await graph.resume();
+    expect(reportWarningSpy.mock.calls.some(([, message]) => String(message).includes('did not start'))).toBe(false);
+    real.pause();
+    real.play = async () => { throw new Error('NotAllowedError'); };
+    await graph.resume();
+    expect(reportWarningSpy.mock.calls.some(([, message]) => String(message).includes('did not start'))).toBe(true);
   });
 
   it('resume() resumes a suspended context and restarts a paused real element', async () => {

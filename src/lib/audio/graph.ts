@@ -112,14 +112,23 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     tapInto(node, (chunk) => virtual.send(chunk));
   }
 
-  const sinkIds: Partial<Record<Bus, string>> = {};
+  // `requested`: what `setSinks` was last asked for, per bus. `applied`: what
+  // `setSinkId` actually resolved to. The virtual element plays only once its
+  // switch has *landed* on the id currently requested — not merely started —
+  // so a `resume()` racing a pending switch never starts it on whatever
+  // device the element happened to be on before (F1).
+  const requested: Partial<Record<Bus, string>> = {};
+  const applied: Partial<Record<Bus, string>> = {};
   const play = (bus: Bus) => {
     const element = elements[bus];
-    // The virtual element plays only once it points at a virtual device:
-    // otherwise the meeting's audio would play on the user's speakers.
-    if (!element || !element.paused || (bus === 'virtual' && !sinkIds.virtual)) return;
-    element.play().catch((error: unknown) =>
-      reportWarning('AudioGraph', `The ${bus} output did not start: ${describeCause(error)}`, { dedupeKey: `graph:play:${bus}` }));
+    if (!element || !element.paused) return;
+    if (bus === 'virtual' && (applied.virtual === undefined || applied.virtual !== requested.virtual)) return;
+    element.play().catch((error: unknown) => {
+      // A pending play() that pause() interrupted (the virtual device lost,
+      // close()) rejects with AbortError: not a failure to report (F6).
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      reportWarning('AudioGraph', `The ${bus} output did not start: ${describeCause(error)}`, { dedupeKey: `graph:play:${bus}` });
+    });
   };
   play('real');
 
@@ -193,11 +202,19 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       for (const bus of ['real', 'virtual'] as const) {
         const element = elements[bus];
         const id = sinks[bus];
-        if (!element || id === sinkIds[bus]) continue;
-        sinkIds[bus] = id;
-        if (bus === 'virtual' && !id) {
+        if (!element || id === requested[bus]) continue;
+        requested[bus] = id;
+        if (bus === 'virtual') {
+          // Never play the meeting's audio on whatever device the element is
+          // on while a switch is pending or absent (F1).
+          applied.virtual = undefined;
           element.pause();
-          continue;
+          if (!id) continue;
+          if (!element.setSinkId) {
+            reportWarning('AudioGraph', 'Could not switch the virtual output: it cannot choose its device', { dedupeKey: 'graph:sink:virtual' });
+            requested.virtual = undefined;
+            continue;
+          }
         }
         try {
           await element.setSinkId?.(id ?? '');
@@ -206,7 +223,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
           // Forget the id on either bus, so a later setSinks with the same id
           // (the device coming back, or routing re-applying unchanged
           // settings) retries instead of short-circuiting above.
-          sinkIds[bus] = undefined;
+          requested[bus] = undefined;
           if (bus === 'virtual') {
             // Never play the meeting's audio on whatever device the element was left on.
             element.pause();
@@ -214,7 +231,13 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
           }
           // The real element keeps playing wherever it was — the user still
           // hears their audio — so fall through to play() as on success.
+          play(bus);
+          continue;
         }
+        // A newer request for this bus arrived while this one was pending:
+        // let that one's own resolution decide `applied` and `play`.
+        if (requested[bus] !== id) continue;
+        applied[bus] = id;
         play(bus);
       }
     },
