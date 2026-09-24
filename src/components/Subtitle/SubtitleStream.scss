@@ -109,6 +109,17 @@
     .conversation-row .row-body {
       padding-left: 0;
     }
+
+    // ConversationList wraps its rows in `.conversation-display`, whose own
+    // rule (MainPanel.scss) paints an opaque `--conversation-bg-color`
+    // fallback and a second 12px gutter. `.subtitle-stream` already supplies
+    // both (its own background and its 8px/12px/10px padding), so here the
+    // list's container must stay see-through and unpadded or the subtitle's
+    // background/opacity settings stop applying and the text column shrinks.
+    .conversation-display {
+      background: transparent;
+      padding: 0;
+    }
   }
 }
 
