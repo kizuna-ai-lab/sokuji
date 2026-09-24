@@ -27,7 +27,10 @@ export interface MicRecorder {
   /** Throws a `MicrophoneCaptureError` whose message says what to do. */
   begin(deviceId?: string): Promise<boolean>;
   record(chunk: (data: { mono: Int16Array }) => void): Promise<boolean>;
+  /** Ends the recording, keeping the recorder (and its GTCRN worker) alive for reuse on the next `begin()`. */
   end(): Promise<unknown>;
+  /** Ends the recording if it is open, then disposes the recorder for good — the GTCRN worker included. */
+  quit(): Promise<unknown>;
   setNoiseSuppressionMode(mode: NoiseSuppression): Promise<void>;
   getStream(): MediaStream | null;
 }
@@ -59,10 +62,15 @@ export async function openMic(
     track: () => recorder.getStream()?.getAudioTracks()[0],
     release: async () => {
       unsubscribe();
-      // A switch in flight finishes (or fails) before the recorder is ended.
+      // A switch in flight finishes (or fails) before the recorder is disposed.
       await chain;
+      unwatch();
+      unwatch = () => {};
+      open = false;
+      // `quit()`, not `end()`: this recorder is not reused after this, so its GTCRN
+      // worker (kept alive across `end()` for the device switch above) must go too.
       try {
-        await close();
+        await recorder.quit();
       } catch (error) {
         reportWarning('Microphone', `Stopping the microphone failed: ${describeCause(error)}`, { dedupeKey: 'mic:end' });
       }
@@ -70,7 +78,7 @@ export async function openMic(
   });
 
   const begin = async () => {
-    await recorder.begin(deviceId);
+    if (!(await recorder.begin(deviceId))) throw new Error('The microphone could not be opened. Reload the page and try again.');
     open = true;
     unwatch = core.watch(recorder.getStream());
     await recorder.record((data) => core.deliver(data.mono));

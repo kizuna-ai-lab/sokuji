@@ -3,7 +3,7 @@ import { TRACK_ENDED } from './core';
 import { openMic, type MicRecorder, type MicSettings, type NoiseSuppression } from './mic';
 
 /** A recorder that records its calls; `push` delivers a chunk while it records, `endTrack` unplugs its device. */
-function fakeRecorder(o: { failBegins?: number[] } = {}) {
+function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[] } = {}) {
   const track = new EventTarget() as MediaStreamTrack;
   const stream = { getAudioTracks: () => [track] } as unknown as MediaStream;
   const calls: string[] = [];
@@ -15,6 +15,7 @@ function fakeRecorder(o: { failBegins?: number[] } = {}) {
       begins += 1;
       calls.push(`begin:${deviceId ?? 'default'}`);
       if (o.failBegins?.includes(begins)) throw new Error('The selected microphone is no longer available (NotFoundError).');
+      if (o.falseBegins?.includes(begins)) return false;
       open = true;
       return true;
     },
@@ -28,6 +29,12 @@ function fakeRecorder(o: { failBegins?: number[] } = {}) {
       open = false;
       chunk = null;
       return {};
+    },
+    async quit() {
+      calls.push('quit');
+      open = false;
+      chunk = null;
+      return true;
     },
     async setNoiseSuppressionMode(mode) {
       calls.push(`ns:${mode}`);
@@ -81,12 +88,20 @@ describe('openMic', () => {
     expect(source.track).toBe(fake.track);
   });
 
-  it("rejects with the recorder's message when the device will not open, and releases nothing", async () => {
+  it("rejects with the recorder's message when the device will not open, and disposes the recorder it built rather than just ending it", async () => {
     const fake = fakeRecorder({ failBegins: [1] });
     const { settings, listeners } = settingsFixture();
     await expect(openMic(settings, live(), () => fake.recorder)).rejects.toThrow('no longer available');
+    expect(fake.calls).toContain('quit');
     expect(fake.calls).not.toContain('end');
     expect(listeners.size).toBe(0);
+  });
+
+  it("throws a readable error when begin returns false, instead of recording a device that never opened", async () => {
+    const fake = fakeRecorder({ falseBegins: [1] });
+    const { settings } = settingsFixture();
+    await expect(openMic(settings, live(), () => fake.recorder)).rejects.toThrow(/could not/i);
+    expect(fake.calls).not.toContain('record');
   });
 
   it('stops what it opened when the run was cancelled while it opened', async () => {
@@ -95,7 +110,7 @@ describe('openMic', () => {
     const cancel = new AbortController();
     cancel.abort(new Error('the run ended'));
     await expect(openMic(settings, cancel.signal, () => fake.recorder)).rejects.toThrow('the run ended');
-    expect(fake.calls).toContain('end');
+    expect(fake.calls).toContain('quit');
   });
 
   it('delivers nothing while muted, at once', async () => {
@@ -120,7 +135,7 @@ describe('openMic', () => {
     expect(fake.calls).toEqual(['ns:off', 'begin:mic-1', 'record', 'ns:enhanced']);
   });
 
-  it('moves to a newly selected device in place, keeping its listeners', async () => {
+  it('moves to a newly selected device in place, keeping its listeners, by ending it (not quitting) so the recorder is reused', async () => {
     const fake = fakeRecorder();
     const { settings, set } = settingsFixture();
     const source = await openMic(settings, live(), () => fake.recorder);
@@ -130,6 +145,7 @@ describe('openMic', () => {
     await settle();
     fake.push();
     expect(fake.calls).toEqual(['ns:off', 'begin:mic-1', 'record', 'end', 'begin:mic-2', 'record']);
+    expect(fake.calls).not.toContain('quit');
     expect(heard).toHaveBeenCalledTimes(1);
   });
 
@@ -155,7 +171,7 @@ describe('openMic', () => {
     expect(ended).toHaveBeenCalledWith(TRACK_ENDED);
   });
 
-  it('stops once: ends the recorder and follows the settings no more', async () => {
+  it('stops once: disposes the recorder (quit, not end) and follows the settings no more', async () => {
     const fake = fakeRecorder();
     const { settings, set, listeners } = settingsFixture();
     const source = await openMic(settings, live(), () => fake.recorder);
@@ -163,7 +179,8 @@ describe('openMic', () => {
     await source.stop();
     set({ deviceId: 'mic-3' });
     await settle();
-    expect(fake.calls.filter((c) => c === 'end')).toHaveLength(1);
+    expect(fake.calls.filter((c) => c === 'quit')).toHaveLength(1);
+    expect(fake.calls).not.toContain('end');
     expect(fake.calls).not.toContain('begin:mic-3');
     expect(listeners.size).toBe(0);
   });
