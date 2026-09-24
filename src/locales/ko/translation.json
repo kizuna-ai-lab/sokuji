@@ -1305,6 +1305,12 @@
     "rate_limit": "제공자가 요청을 제한하고 있습니다. 잠시 후 다시 시도하세요: {{detail}}",
     "network": "제공자에 대한 연결이 실패했습니다: {{detail}}",
     "server": "제공자에서 문제가 발생했습니다: {{detail}}",
-    "client": "제공자가 요청을 거부했습니다: {{detail}}"
+    "client": "제공자가 요청을 거부했습니다: {{detail}}",
+    "no_asr": "{{source}}용 음성 인식 모델이 설치되어 있지 않습니다.",
+    "memory_exceeded": "이 모델들을 모두 합치면 이 기기가 가진 것보다 더 많은 메모리가 필요합니다.",
+    "gpu_out_of_memory": "GPU 메모리 부족 — 선택한 모델이 GPU에 비해 너무 큽니다. 더 작은 모델로 전환하세요.",
+    "transcription_failed": "일부 음성을 텍스트로 변환하지 못했습니다: {{detail}}",
+    "translation_failed": "번역 하나가 실패했습니다: {{detail}}",
+    "translation_unavailable": "이 방향에는 번역 모델이 없습니다: 음성은 텍스트로만 변환됩니다."
   }
 }

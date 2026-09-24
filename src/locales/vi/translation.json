@@ -1305,6 +1305,12 @@
     "rate_limit": "Nhà cung cấp đang giới hạn yêu cầu; hãy thử lại sau ít phút: {{detail}}",
     "network": "Kết nối đến nhà cung cấp thất bại: {{detail}}",
     "server": "Nhà cung cấp gặp sự cố: {{detail}}",
-    "client": "Nhà cung cấp đã từ chối yêu cầu: {{detail}}"
+    "client": "Nhà cung cấp đã từ chối yêu cầu: {{detail}}",
+    "no_asr": "Không có mô hình nhận dạng giọng nói nào được cài đặt cho {{source}}.",
+    "memory_exceeded": "Các mô hình này cộng lại cần nhiều bộ nhớ hơn thiết bị này có.",
+    "gpu_out_of_memory": "GPU hết bộ nhớ — mô hình đã chọn quá lớn so với GPU của bạn. Vui lòng chuyển sang mô hình nhỏ hơn.",
+    "transcription_failed": "Một số lời nói không thể chuyển thành văn bản: {{detail}}",
+    "translation_failed": "Một bản dịch không thành công: {{detail}}",
+    "translation_unavailable": "Không có mô hình dịch cho hướng này: lời nói chỉ được chuyển thành văn bản."
   }
 }

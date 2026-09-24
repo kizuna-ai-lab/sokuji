@@ -1305,6 +1305,12 @@
     "rate_limit": "Der Anbieter begrenzt gerade Anfragen; versuchen Sie es in Kürze erneut: {{detail}}",
     "network": "Die Verbindung zum Anbieter ist fehlgeschlagen: {{detail}}",
     "server": "Beim Anbieter ist ein Problem aufgetreten: {{detail}}",
-    "client": "Der Anbieter hat die Anfrage abgelehnt: {{detail}}"
+    "client": "Der Anbieter hat die Anfrage abgelehnt: {{detail}}",
+    "no_asr": "Für {{source}} ist kein Spracherkennungsmodell installiert.",
+    "memory_exceeded": "Diese Modelle benötigen zusammen mehr Speicher, als dieses Gerät hat.",
+    "gpu_out_of_memory": "GPU-Speicher voll — das gewählte Modell ist zu groß für Ihre GPU. Bitte wechseln Sie zu einem kleineren Modell.",
+    "transcription_failed": "Einige Äußerungen konnten nicht transkribiert werden: {{detail}}",
+    "translation_failed": "Eine Übersetzung ist fehlgeschlagen: {{detail}}",
+    "translation_unavailable": "Für diese Richtung gibt es kein Übersetzungsmodell: Die Sprache wird nur transkribiert."
   }
 }

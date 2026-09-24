@@ -1305,6 +1305,12 @@
     "rate_limit": "De provider beperkt momenteel verzoeken; probeer het straks opnieuw: {{detail}}",
     "network": "De verbinding met de provider is mislukt: {{detail}}",
     "server": "Er is een probleem opgetreden bij de provider: {{detail}}",
-    "client": "De provider heeft het verzoek geweigerd: {{detail}}"
+    "client": "De provider heeft het verzoek geweigerd: {{detail}}",
+    "no_asr": "Er is geen spraakherkenningsmodel geïnstalleerd voor {{source}}.",
+    "memory_exceeded": "Deze modellen samen hebben meer geheugen nodig dan dit apparaat heeft.",
+    "gpu_out_of_memory": "GPU-geheugen vol — het geselecteerde model is te groot voor uw GPU. Schakel over naar een kleiner model.",
+    "transcription_failed": "Een deel van de spraak kon niet worden getranscribeerd: {{detail}}",
+    "translation_failed": "Een vertaling is mislukt: {{detail}}",
+    "translation_unavailable": "Geen vertaalmodel voor deze richting: de spraak wordt alleen getranscribeerd."
   }
 }

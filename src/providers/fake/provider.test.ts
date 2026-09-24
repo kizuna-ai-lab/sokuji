@@ -9,7 +9,12 @@ import { FAKE_SCRIPT_NAMES, fakeScript } from './scripts';
 import { FAKE_DEFAULTS, migrateFakeSettings, type FakeSettings } from './settings';
 
 const context: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
-const shared: SharedSettings = { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 } };
+const shared: SharedSettings = {
+  instructions: () => '',
+  pauses: { sourceSeconds: 1, translationSeconds: 1 },
+  reversed: () => false,
+  segmentation: { mode: 'off', sentencesPerRow: 0 },
+};
 const noAuth = { signedIn: false, getToken: async () => null };
 const settings = (patch: Partial<FakeSettings> = {}): FakeSettings => ({ ...FAKE_DEFAULTS, ...patch });
 const checkCtx = { pair: { source: 'en', target: 'ja' }, legs: ['speaker'] as const };

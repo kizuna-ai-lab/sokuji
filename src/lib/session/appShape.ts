@@ -47,6 +47,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
         participantSystemInstructions: st.participantSystemInstructions,
       },
       { sourceSeconds: st.segmentationSourcePause, translationSeconds: st.segmentationTranslationPause },
+      { mode: st.segmentationMode, sentencesPerRow: st.sentenceSegmentationChunkSentences },
     ),
     auth,
   };

@@ -1305,6 +1305,12 @@
     "rate_limit": "Leverantören begränsar just nu förfrågningar; försök igen strax: {{detail}}",
     "network": "Anslutningen till leverantören misslyckades: {{detail}}",
     "server": "Leverantören fick ett problem: {{detail}}",
-    "client": "Leverantören avvisade förfrågan: {{detail}}"
+    "client": "Leverantören avvisade förfrågan: {{detail}}",
+    "no_asr": "Ingen taligenkänningsmodell är installerad för {{source}}.",
+    "memory_exceeded": "De här modellerna kräver tillsammans mer minne än den här enheten har.",
+    "gpu_out_of_memory": "GPU:n har slut på minne — den valda modellen är för stor för din GPU. Byt till en mindre modell.",
+    "transcription_failed": "En del av talet kunde inte transkriberas: {{detail}}",
+    "translation_failed": "En översättning misslyckades: {{detail}}",
+    "translation_unavailable": "Ingen översättningsmodell för den här riktningen: talet transkriberas bara."
   }
 }

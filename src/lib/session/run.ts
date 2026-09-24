@@ -203,6 +203,7 @@ export class Run {
       credentials: credentialsFor(leg),
       clock: deps.clock,
       signal: this.signal,
+      punctuate: deps.punctuate,
     }])) as Record<LegName, StartRequest<unknown, unknown>>;
 
     if (shape.legs.length === 2 && p.session?.startBoth) {

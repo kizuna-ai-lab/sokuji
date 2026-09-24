@@ -48,7 +48,12 @@ function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: Any
     textOnly: false,
     participantSpeech: false,
     keepReplayAudio: true,
-    shared: { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 } },
+    shared: {
+      instructions: () => '',
+      pauses: { sourceSeconds: 1, translationSeconds: 1 },
+      reversed: () => false,
+      segmentation: { mode: 'off', sentencesPerRow: 0 },
+    },
     auth: { signedIn: false, getToken: async () => null },
   };
   const runner = createRunner({

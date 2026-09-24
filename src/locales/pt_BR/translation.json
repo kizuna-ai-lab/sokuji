@@ -1305,6 +1305,12 @@
     "rate_limit": "O provedor está limitando as solicitações; tente novamente em breve: {{detail}}",
     "network": "A conexão com o provedor falhou: {{detail}}",
     "server": "O provedor teve um problema: {{detail}}",
-    "client": "O provedor rejeitou a solicitação: {{detail}}"
+    "client": "O provedor rejeitou a solicitação: {{detail}}",
+    "no_asr": "Nenhum modelo de reconhecimento de fala está instalado para {{source}}.",
+    "memory_exceeded": "Esses modelos juntos precisam de mais memória do que este dispositivo tem.",
+    "gpu_out_of_memory": "Memória da GPU esgotada — o modelo selecionado é grande demais para sua GPU. Mude para um modelo menor.",
+    "transcription_failed": "Parte da fala não pôde ser transcrita: {{detail}}",
+    "translation_failed": "Uma tradução falhou: {{detail}}",
+    "translation_unavailable": "Não há modelo de tradução para esta direção: sua fala é apenas transcrita."
   }
 }

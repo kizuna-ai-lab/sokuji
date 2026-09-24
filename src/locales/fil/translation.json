@@ -1305,6 +1305,12 @@
     "rate_limit": "Nililimitahan ng provider ang mga kahilingan; subukan ulit sa ilang sandali: {{detail}}",
     "network": "Nabigo ang koneksyon sa provider: {{detail}}",
     "server": "Nagkaroon ng problema ang provider: {{detail}}",
-    "client": "Tinanggihan ng provider ang kahilingan: {{detail}}"
+    "client": "Tinanggihan ng provider ang kahilingan: {{detail}}",
+    "no_asr": "Walang naka-install na modelo ng pagkilala sa pagsasalita para sa {{source}}.",
+    "memory_exceeded": "Kailangan ng mga modelong ito nang sama-sama ng mas maraming memory kaysa sa taglay ng device na ito.",
+    "gpu_out_of_memory": "Naubos ang memory ng GPU — masyadong malaki ang piniling modelo para sa inyong GPU. Lumipat sa mas maliit na modelo.",
+    "transcription_failed": "Hindi na-transcribe ang ilang bahagi ng pagsasalita: {{detail}}",
+    "translation_failed": "Nabigo ang isang pagsasalin: {{detail}}",
+    "translation_unavailable": "Walang modelo ng pagsasalin para sa direksyong ito: nai-transcribe lang ang pagsasalita nito."
   }
 }

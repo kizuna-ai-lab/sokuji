@@ -1305,6 +1305,12 @@
     "rate_limit": "Tarjoaja rajoittaa pyyntöjä; yritä uudelleen pian: {{detail}}",
     "network": "Yhteys tarjoajaan epäonnistui: {{detail}}",
     "server": "Tarjoajalla oli ongelma: {{detail}}",
-    "client": "Tarjoaja hylkäsi pyynnön: {{detail}}"
+    "client": "Tarjoaja hylkäsi pyynnön: {{detail}}",
+    "no_asr": "Puheentunnistusmallia ei ole asennettu kielelle {{source}}.",
+    "memory_exceeded": "Nämä mallit tarvitsevat yhteensä enemmän muistia kuin tässä laitteessa on.",
+    "gpu_out_of_memory": "GPU-muisti loppui — valittu malli on liian suuri GPU:llesi. Vaihda pienempään malliin.",
+    "transcription_failed": "Osaa puheesta ei voitu litteroida: {{detail}}",
+    "translation_failed": "Käännös epäonnistui: {{detail}}",
+    "translation_unavailable": "Tälle suunnalle ei ole käännösmallia: sen puhe vain litteroidaan."
   }
 }

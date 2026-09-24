@@ -1305,6 +1305,12 @@
     "rate_limit": "Dostawca ogranicza teraz żądania; spróbuj ponownie za chwilę: {{detail}}",
     "network": "Połączenie z dostawcą nie powiodło się: {{detail}}",
     "server": "Po stronie dostawcy wystąpił problem: {{detail}}",
-    "client": "Dostawca odrzucił żądanie: {{detail}}"
+    "client": "Dostawca odrzucił żądanie: {{detail}}",
+    "no_asr": "Brak zainstalowanego modelu rozpoznawania mowy dla {{source}}.",
+    "memory_exceeded": "Te modele razem wymagają więcej pamięci, niż ma to urządzenie.",
+    "gpu_out_of_memory": "Brak pamięci GPU — wybrany model jest zbyt duży dla Twojego GPU. Przełącz się na mniejszy model.",
+    "transcription_failed": "Część mowy nie mogła zostać transkrybowana: {{detail}}",
+    "translation_failed": "Jedno tłumaczenie nie powiodło się: {{detail}}",
+    "translation_unavailable": "Brak modelu tłumaczenia dla tego kierunku: jego mowa jest tylko transkrybowana."
   }
 }

@@ -21,10 +21,13 @@ export function buildSharedSettings<S>(
   pair: LanguagePair,
   instructions: InstructionSettings,
   pauses: SharedSettings['pauses'],
+  segmentation: SharedSettings['segmentation'],
 ): SharedSettings {
   const name = (code: string, options: readonly LanguageOption[]) => options.find((o) => o.value === code)?.englishName || code;
   return {
     pauses,
+    segmentation,
+    reversed: (direction) => direction.source === pair.target && direction.target === pair.source,
     instructions(direction) {
       if (instructions.useTemplateMode) {
         const source = name(direction.source, p.languages.sources(s));

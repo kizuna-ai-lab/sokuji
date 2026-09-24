@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { AdapterEvents, StartRequest } from '../contract/adapter';
+import { AdapterStartError, type AdapterEvents, type StartRequest } from '../contract/adapter';
 import type { Leg } from '../conversation/types';
 import type { Punctuator } from '../conversation/fillIn';
 import type { AnyProvider, Readiness } from '../provider/types';
@@ -83,7 +83,12 @@ function setup(o: Options = {}) {
     textOnly: false,
     participantSpeech: false,
     keepReplayAudio: true,
-    shared: { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 } },
+    shared: {
+      instructions: () => '',
+      pauses: { sourceSeconds: 1, translationSeconds: 1 },
+      reversed: () => false,
+      segmentation: { mode: 'off', sentencesPerRow: 0 },
+    },
     auth: { signedIn: false, getToken: async () => null },
     ...o.shape,
   };
@@ -238,6 +243,22 @@ describe('runner — starting', () => {
     expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'start-failed', notice: { message: 'The fake failed to start (fault knob).', leg: 'speaker' } } });
     expect(sources).toHaveLength(1);
     expect(sources[0].stopped).toBe(true);
+  });
+
+  it("hands the adapter the runner's punctuator", async () => {
+    const punctuate = vi.fn(async () => null);
+    let seen: unknown;
+    const provider = { ...fakeProvider, start: async (request: { punctuate?: unknown }, events: unknown) => { seen = request.punctuate; return fakeProvider.start(request as never, events as never); } } as unknown as AnyProvider;
+    const { runner } = setup({ punctuate, shape: { provider } });
+    await runner.start();
+    expect(seen).toBe(punctuate);
+  });
+
+  it("fails a start with the adapter's own code when it gives one", async () => {
+    const provider = { ...fakeProvider, start: async () => { throw new AdapterStartError('out of GPU memory', 'gpu_out_of_memory'); } } as unknown as AnyProvider;
+    const { runner } = setup({ shape: { provider } });
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'gpu_out_of_memory', message: 'out of GPU memory', leg: 'speaker' } } });
   });
 
   it('fails the start when a source ends while its leg is still opening (D22)', async () => {

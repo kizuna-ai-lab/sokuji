@@ -37,6 +37,12 @@ export const CLIENT_DIAGNOSTICS = {
   voice_fallback: { severity: 'warning' },
   /** A managed-session lease notification could not be delivered. */
   lease_notify_failed: { severity: 'warning' },
+  /** One utterance could not be transcribed; the session continues. */
+  transcription_failed: { severity: 'warning' },
+  /** One translation failed; the session continues. */
+  translation_failed: { severity: 'warning' },
+  /** This direction has no translation model: its speech is transcribed only. */
+  translation_unavailable: { severity: 'warning' },
 } satisfies Record<string, { severity: 'error' | 'warning' }>;
 
 export type ClientDiagnosticCode = keyof typeof CLIENT_DIAGNOSTICS;

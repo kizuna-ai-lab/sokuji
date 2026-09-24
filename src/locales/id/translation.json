@@ -1305,6 +1305,12 @@
     "rate_limit": "Penyedia sedang membatasi permintaan; coba lagi sebentar lagi: {{detail}}",
     "network": "Koneksi ke penyedia gagal: {{detail}}",
     "server": "Penyedia mengalami masalah: {{detail}}",
-    "client": "Penyedia menolak permintaan: {{detail}}"
+    "client": "Penyedia menolak permintaan: {{detail}}",
+    "no_asr": "Tidak ada model pengenalan ucapan yang terpasang untuk {{source}}.",
+    "memory_exceeded": "Model-model ini bersama-sama membutuhkan lebih banyak memori daripada yang dimiliki perangkat ini.",
+    "gpu_out_of_memory": "GPU kehabisan memori — model yang dipilih terlalu besar untuk GPU Anda. Silakan beralih ke model yang lebih kecil.",
+    "transcription_failed": "Sebagian ucapan tidak dapat ditranskripsikan: {{detail}}",
+    "translation_failed": "Satu terjemahan gagal: {{detail}}",
+    "translation_unavailable": "Tidak ada model terjemahan untuk arah ini: ucapannya hanya ditranskripsikan."
   }
 }

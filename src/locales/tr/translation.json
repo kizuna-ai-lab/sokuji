@@ -1305,6 +1305,12 @@
     "rate_limit": "Sağlayıcı istekleri sınırlıyor; kısa süre sonra tekrar deneyin: {{detail}}",
     "network": "Sağlayıcıya bağlantı başarısız oldu: {{detail}}",
     "server": "Sağlayıcıda bir sorun oluştu: {{detail}}",
-    "client": "Sağlayıcı isteği reddetti: {{detail}}"
+    "client": "Sağlayıcı isteği reddetti: {{detail}}",
+    "no_asr": "{{source}} için kurulu bir konuşma tanıma modeli yok.",
+    "memory_exceeded": "Bu modeller birlikte, bu cihazın sahip olduğundan daha fazla bellek gerektiriyor.",
+    "gpu_out_of_memory": "GPU belleği yetersiz — seçilen model GPU'nuz için çok büyük. Lütfen daha küçük bir modele geçin.",
+    "transcription_failed": "Konuşmanın bir kısmı yazıya dökülemedi: {{detail}}",
+    "translation_failed": "Bir çeviri başarısız oldu: {{detail}}",
+    "translation_unavailable": "Bu yön için çeviri modeli yok: konuşması yalnızca yazıya dökülür."
   }
 }

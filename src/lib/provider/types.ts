@@ -54,6 +54,10 @@ export interface SharedSettings {
   instructions(direction: SessionContext['direction']): string;
   /** The segmentation pauses, in seconds, as stored. */
   pauses: { sourceSeconds: number; translationSeconds: number };
+  /** This is the participant's direction: the pair's reverse. */
+  reversed(direction: SessionContext['direction']): boolean;
+  /** The display segmentation as stored: a provider that cuts its own jobs follows it (LocalInference). */
+  segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
 }
 
 export interface SettingsProps<S> {

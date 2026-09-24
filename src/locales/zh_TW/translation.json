@@ -1305,6 +1305,12 @@
     "rate_limit": "提供商目前正在限制請求；請稍後再試：{{detail}}",
     "network": "與提供商的連線失敗：{{detail}}",
     "server": "提供商發生了問題：{{detail}}",
-    "client": "提供商拒絕了此請求：{{detail}}"
+    "client": "提供商拒絕了此請求：{{detail}}",
+    "no_asr": "未安裝 {{source}} 的語音辨識模型。",
+    "memory_exceeded": "這些模型加起來所需的記憶體超過了此裝置的記憶體。",
+    "gpu_out_of_memory": "GPU記憶體不足 — 所選模型對您的GPU來說太大了，請切換到更小的模型。",
+    "transcription_failed": "部分語音無法轉錄：{{detail}}",
+    "translation_failed": "一次翻譯失敗：{{detail}}",
+    "translation_unavailable": "此方向沒有翻譯模型：其語音僅被轉錄。"
   }
 }

@@ -7,6 +7,7 @@
  * vocabulary are not its business (spec: "L0 — the client contract").
  */
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
+import type { Punctuator } from '../conversation/fillIn';
 import type { Clock } from './clock';
 
 /** Audio crosses the contract at this rate, mono, Int16, in both directions. */
@@ -39,6 +40,8 @@ export interface StartRequest<C, K> {
   clock: Clock;
   /** Aborted when the run is cancelled; an adapter still opening rejects and opens nothing. */
   signal: AbortSignal;
+  /** The runner's punctuation model, for an adapter that cuts its own translation jobs (LocalInference). Absent: none is installed. */
+  punctuate?: Punctuator;
 }
 
 export interface AdapterSession {
@@ -88,4 +91,11 @@ export interface AdapterEvents {
 
 export interface Adapter<C, K> {
   start(request: StartRequest<C, K>, events: AdapterEvents): Promise<AdapterSession>;
+}
+
+/** A start that failed for a reason the user can be told in words: `code` is a notice code. */
+export class AdapterStartError extends Error {
+  constructor(message: string, readonly code: string, readonly params?: Record<string, string | number>) {
+    super(message);
+  }
 }

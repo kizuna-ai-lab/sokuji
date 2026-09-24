@@ -38,6 +38,12 @@ describe('noticeText', () => {
     }
   });
 
+  it("puts the local engines' notices into words", () => {
+    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
+      expect(NOTICE_WORDS[code]).toBeDefined();
+    }
+  });
+
   it('matches the English locale word for word', () => {
     expect((en as unknown as { notices: Record<string, string> }).notices).toEqual(NOTICE_WORDS);
   });

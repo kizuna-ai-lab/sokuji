@@ -1305,6 +1305,12 @@
     "rate_limit": "提供商正在限制请求；请稍后重试：{{detail}}",
     "network": "与提供商的连接失败：{{detail}}",
     "server": "提供商出现了问题：{{detail}}",
-    "client": "提供商拒绝了此请求：{{detail}}"
+    "client": "提供商拒绝了此请求：{{detail}}",
+    "no_asr": "未安装 {{source}} 的语音识别模型。",
+    "memory_exceeded": "这些模型加起来所需的内存超过了此设备的内存。",
+    "gpu_out_of_memory": "GPU显存不足 — 所选模型对您的GPU来说太大了，请切换到更小的模型。",
+    "transcription_failed": "部分语音无法转录：{{detail}}",
+    "translation_failed": "一次翻译失败：{{detail}}",
+    "translation_unavailable": "此方向没有翻译模型：其语音仅被转录。"
   }
 }

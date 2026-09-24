@@ -1305,6 +1305,12 @@
     "rate_limit": "Penyedia sedang mengehadkan permintaan; cuba lagi sebentar lagi: {{detail}}",
     "network": "Sambungan kepada penyedia gagal: {{detail}}",
     "server": "Penyedia mengalami masalah: {{detail}}",
-    "client": "Penyedia menolak permintaan: {{detail}}"
+    "client": "Penyedia menolak permintaan: {{detail}}",
+    "no_asr": "Tiada model pengecaman pertuturan dipasang untuk {{source}}.",
+    "memory_exceeded": "Model-model ini bersama-sama memerlukan lebih banyak memori berbanding yang dimiliki peranti ini.",
+    "gpu_out_of_memory": "Memori GPU tidak mencukupi — model yang dipilih terlalu besar untuk GPU anda. Sila tukar kepada model yang lebih kecil.",
+    "transcription_failed": "Sebahagian pertuturan tidak dapat ditranskripkan: {{detail}}",
+    "translation_failed": "Satu terjemahan gagal: {{detail}}",
+    "translation_unavailable": "Tiada model terjemahan untuk arah ini: pertuturannya hanya ditranskripkan."
   }
 }

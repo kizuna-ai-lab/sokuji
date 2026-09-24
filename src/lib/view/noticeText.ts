@@ -47,6 +47,13 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   network: 'The connection to the provider failed: {{detail}}',
   server: 'The provider had a problem: {{detail}}',
   client: 'The provider rejected the request: {{detail}}',
+  // Local engines (LocalInference).
+  no_asr: 'No speech recognition model is installed for {{source}}.',
+  memory_exceeded: 'These models together need more memory than this device has.',
+  gpu_out_of_memory: 'GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model.',
+  transcription_failed: 'Some speech could not be transcribed: {{detail}}',
+  translation_failed: 'A translation failed: {{detail}}',
+  translation_unavailable: 'No translation model for this direction: its speech is transcribed only.',
 };
 
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */

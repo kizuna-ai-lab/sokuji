@@ -1305,6 +1305,12 @@
     "rate_limit": "Le fournisseur limite les requêtes ; réessayez sous peu : {{detail}}",
     "network": "La connexion au fournisseur a échoué : {{detail}}",
     "server": "Le fournisseur a rencontré un problème : {{detail}}",
-    "client": "Le fournisseur a rejeté la requête : {{detail}}"
+    "client": "Le fournisseur a rejeté la requête : {{detail}}",
+    "no_asr": "Aucun modèle de reconnaissance vocale n'est installé pour {{source}}.",
+    "memory_exceeded": "Ces modèles nécessitent ensemble plus de mémoire que n'en possède cet appareil.",
+    "gpu_out_of_memory": "Mémoire GPU insuffisante — le modèle sélectionné est trop volumineux pour votre GPU. Veuillez choisir un modèle plus petit.",
+    "transcription_failed": "Une partie de la parole n'a pas pu être transcrite : {{detail}}",
+    "translation_failed": "Une traduction a échoué : {{detail}}",
+    "translation_unavailable": "Aucun modèle de traduction pour ce sens : sa parole est seulement transcrite."
   }
 }

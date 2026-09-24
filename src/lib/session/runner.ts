@@ -3,6 +3,7 @@
  * Every surface calls the same methods; the UI reads only `state`.
  */
 import { createStore, type StoreApi } from 'zustand/vanilla';
+import { AdapterStartError } from '../contract/adapter';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import type { LegName } from '../conversation/types';
 import type { RunNoticeCode } from './codes';
@@ -212,13 +213,23 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
         return;
       }
       const leg = error instanceof LegOpenError ? error.leg : undefined;
+      const failure = error instanceof LegOpenError ? error.failure : error;
+      const adapterError = failure instanceof AdapterStartError ? failure : undefined;
       const message = describeCause(error);
       reportError('SessionRunner', `The session did not start: ${message}`, { cause: error });
       deps.analytics.track('error_occurred', {
         error_type: 'session_start', error_message: message, component: 'session-runner',
         severity: 'high', provider: shape.provider.id, recoverable: true,
       });
-      await end(run, { reason: 'start-failed', notice: { code: 'start_failed' satisfies RunNoticeCode, message, ...(leg ? { leg } : {}) } });
+      await end(run, {
+        reason: 'start-failed',
+        notice: {
+          code: adapterError?.code ?? ('start_failed' satisfies RunNoticeCode),
+          message,
+          ...(adapterError?.params ? { params: adapterError.params } : {}),
+          ...(leg ? { leg } : {}),
+        },
+      });
       return;
     }
     if (run !== current || run.signal.aborted) return;
