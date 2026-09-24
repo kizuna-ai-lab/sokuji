@@ -206,3 +206,14 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+// The overlay's hold-to-talk control, under the bands (plan 1d-2).
+.subtitle-hold {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 10px;
+}
+
+.subtitle-hold__button.is-held {
+  background: #e74c3c;
+}
