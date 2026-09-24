@@ -9,7 +9,7 @@ import { cutSegment } from './cut';
 import { DEFAULT_PAIRING, inferPairs } from './pair';
 import type { CutSettings, Entry, PairingThresholds, ProjectionSettings, Row } from './types';
 
-export const DEFAULT_PROJECTION: ProjectionSettings = { mode: 'off', sentencesPerRow: 0, pauseMs: 0, pairing: DEFAULT_PAIRING };
+export const DEFAULT_PROJECTION: ProjectionSettings = { mode: 'off', sentencesPerRow: 0, sourcePauseMs: 0, translationPauseMs: 0, pairing: DEFAULT_PAIRING };
 
 export interface Projector {
   project(legs: readonly Leg[], settings: ProjectionSettings): readonly Entry[];
@@ -43,7 +43,12 @@ export function createProjector(): Projector {
 
   return {
     project(legs, settings) {
-      const cut: CutSettings = { mode: settings.mode, sentencesPerRow: settings.sentencesPerRow, pauseMs: settings.pauseMs };
+      const cut: CutSettings = {
+        mode: settings.mode,
+        sentencesPerRow: settings.sentencesPerRow,
+        sourcePauseMs: settings.sourcePauseMs,
+        translationPauseMs: settings.translationPauseMs,
+      };
       const kept = new Map<string, Entry>();
       const next: Entry[] = [];
       for (const leg of legs) {
@@ -54,6 +59,7 @@ export function createProjector(): Projector {
             translation: group.translation.flatMap((s) => rowsOf(s, cut)),
             t: group.t,
           };
+          if (candidate.source.length === 0 && candidate.translation.length === 0) continue;
           next.push(reuse(entries, kept, candidate));
         }
         for (const notice of leg.notices) {
@@ -97,7 +103,8 @@ function groupsOf(leg: Leg, inferred: Map<SegmentId, SegmentId>): Group[] {
 function timeOf(e: Entry): number { return e.kind === 'exchange' ? e.t : e.at; }
 
 function sameCut(a: CutSettings, b: CutSettings): boolean {
-  return a.mode === b.mode && a.sentencesPerRow === b.sentencesPerRow && a.pauseMs === b.pauseMs;
+  return a.mode === b.mode && a.sentencesPerRow === b.sentencesPerRow
+    && a.sourcePauseMs === b.sourcePauseMs && a.translationPauseMs === b.translationPauseMs;
 }
 
 /** The previous call's entry when nothing about it changed, else the candidate. Either way
@@ -129,7 +136,9 @@ function sameRows(a: readonly Row[], b: readonly Row[]): boolean {
   for (let i = 0; i < a.length; i++) {
     const x = a[i];
     const y = b[i];
-    if (x !== y && (x.key !== y.key || x.segmentId !== y.segmentId || x.side !== y.side || x.start !== y.start || x.end !== y.end)) return false;
+    if (x === y) continue;
+    if (x.key !== y.key || x.segmentId !== y.segmentId || x.side !== y.side || x.start !== y.start || x.end !== y.end) return false;
+    if (x.text !== y.text || x.final !== y.final || x.language !== y.language) return false;
   }
   return true;
 }

@@ -1,7 +1,7 @@
 import type { Side } from '../contract/adapter';
 import type { Languages, LegName, SegmentId } from '../conversation/types';
 
-/** A drawn line: a stretch of one segment's text. */
+/** A drawn line: a stretch of one segment's text, carrying what a surface draws. */
 export interface Row {
   /** `${segmentId}:${k}` — stable while the cut does not change. */
   key: string;
@@ -9,6 +9,16 @@ export interface Row {
   side: Side;
   start: number;
   end: number;
+  /**
+   * The segment's text over [start, end), untrimmed: adjacent rows of one
+   * segment concatenated reproduce its text. A bubble trims it for display;
+   * a band joins rows as they are.
+   */
+  text: string;
+  /** The segment is final. */
+  final: boolean;
+  /** The segment's detected language, when the provider reported one. */
+  language?: string;
 }
 
 export type Pairing = 'stated' | 'inferred' | 'none';
@@ -40,7 +50,10 @@ export interface CutSettings {
   mode: 'off' | 'pause' | 'sentences';
   /** 0 = whole segment. */
   sentencesPerRow: number;
-  pauseMs: number;
+  /** The pause that cuts a source segment's rows under the pause mode; 0 = none. */
+  sourcePauseMs: number;
+  /** The same for a translation segment. */
+  translationPauseMs: number;
 }
 
 export interface PairingThresholds {

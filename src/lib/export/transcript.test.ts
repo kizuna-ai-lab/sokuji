@@ -7,7 +7,7 @@ let n = 0;
 const seg = (leg: 'speaker' | 'participant', over: Partial<Segment>): Segment => ({
   id: `s:${leg}:${++n}`, ref: n, side: 'source', text: '', final: true, openedAt: 0, marks: [], speech: [], ...over,
 });
-const rows = (s: Segment) => [{ key: `${s.id}:0`, segmentId: s.id, side: s.side, start: 0, end: s.text.length }];
+const rows = (s: Segment) => [{ key: `${s.id}:0`, segmentId: s.id, side: s.side, start: 0, end: s.text.length, text: s.text, final: s.final }];
 
 const src = seg('speaker', { text: '今天天气很好。我们去公园吧。', openedAt: 1_000 });
 const tr = seg('speaker', { side: 'translation', text: 'The weather is nice. Let us go to the park.', openedAt: 1_500 });

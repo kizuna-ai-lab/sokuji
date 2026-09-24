@@ -86,4 +86,18 @@ describe('createProjector', () => {
     expect(second.map((e) => e.id)).toEqual([`speaker:s:${src.id}`]);
     expect(exchanges(second)[0]).toMatchObject({ pairing: 'inferred' });
   });
+
+  it('leaves out an exchange with no text on either side', () => {
+    const empty = seg('speaker', { text: '', final: false });
+    expect(createProjector().project([legOf('speaker', [empty])], DEFAULT_PROJECTION)).toEqual([]);
+  });
+
+  it('makes a new entry when a segment only turned final, and its rows say so', () => {
+    const projector = createProjector();
+    const open = seg('speaker', { final: false });
+    const first = projector.project([legOf('speaker', [open])], DEFAULT_PROJECTION);
+    const second = projector.project([legOf('speaker', [{ ...open, final: true }])], DEFAULT_PROJECTION);
+    expect(second[0]).not.toBe(first[0]);
+    expect(exchanges(second)[0].source[0]).toMatchObject({ text: 'x.', final: true });
+  });
 });

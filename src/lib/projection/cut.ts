@@ -52,12 +52,49 @@ function rangesFromCuts(length: number, cuts: number[]): TextRange[] {
   return out;
 }
 
-/** A segment's rows under the settings. An open segment under the sentences
- *  mode is one live row; a pause cut applies to open and closed alike. */
+/** A segment's rows under the settings. An open segment is cut like a closed
+ *  one — its last row is the live one — and a pause cut applies to open and
+ *  closed alike, with the pause of the segment's own side. A segment with no
+ *  visible text has no rows. */
 export function cutSegment(seg: Segment, settings: CutSettings): Row[] {
+  if (seg.text.trim().length === 0) return [];
   let ranges: TextRange[];
-  if (settings.mode === 'sentences' && seg.final) ranges = cutRanges(seg.text, settings.sentencesPerRow);
-  else if (settings.mode === 'pause') ranges = rangesFromCuts(seg.text.length, pauseCuts(seg.marks, settings.pauseMs, seg.text.length));
-  else ranges = [[0, seg.text.length]];
-  return ranges.map(([start, end], k) => ({ key: `${seg.id}:${k}`, segmentId: seg.id, side: seg.side, start, end }));
+  if (settings.mode === 'sentences') {
+    ranges = cutRanges(seg.text, settings.sentencesPerRow);
+  } else if (settings.mode === 'pause') {
+    const pauseMs = seg.side === 'source' ? settings.sourcePauseMs : settings.translationPauseMs;
+    ranges = rangesFromCuts(seg.text.length, pauseCuts(seg.marks, pauseMs, seg.text.length));
+  } else {
+    ranges = [[0, seg.text.length]];
+  }
+  return withoutBlankRanges(seg.text, ranges).map(([start, end], k) => ({
+    key: `${seg.id}:${k}`,
+    segmentId: seg.id,
+    side: seg.side,
+    start,
+    end,
+    text: seg.text.slice(start, end),
+    final: seg.final,
+    ...(seg.language !== undefined ? { language: seg.language } : {}),
+  }));
+}
+
+/**
+ * A range holding only whitespace joins the range before it — or, at the
+ * start, the one after — so no row is blank and the ranges still tile the
+ * text. The caller has checked that the text is not blank as a whole.
+ */
+function withoutBlankRanges(text: string, ranges: TextRange[]): TextRange[] {
+  const out: TextRange[] = [];
+  let carried: number | null = null;
+  for (const [start, end] of ranges) {
+    if (text.slice(start, end).trim().length === 0) {
+      if (out.length > 0) out[out.length - 1] = [out[out.length - 1][0], end];
+      else carried ??= start;
+      continue;
+    }
+    out.push([carried ?? start, end]);
+    carried = null;
+  }
+  return out;
 }
