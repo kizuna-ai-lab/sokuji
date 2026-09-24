@@ -188,17 +188,20 @@ function PreviewSubtitle({ view, karaoke, session, controls }: {
 
 /**
  * The extension overlay's stand-in, in an iframe fed over a real
- * `MessageChannel` (`&overlay=1`, plan 1d-2): on `load`, one end goes to the
- * iframe and `publishSubtitles` starts sending down the other. Reconnects on
- * every reload, and stops on unmount.
+ * `MessageChannel` (`&overlay=1`, plan 1d-2): the overlay announces itself
+ * ready (once its own listener is live — `OverlayPreview`), this page hands
+ * it one end of a fresh `MessageChannel` on each such announcement, and
+ * `publishSubtitles` starts sending down the other. Reconnects on every
+ * reload (a reload re-mounts the overlay, which announces itself again), and
+ * stops on unmount. Nothing here is timed: there is no `load`/mount race to
+ * guess at, since the overlay itself says when it is listening.
  *
- * The port's own lifecycle (iframe `src`, its `load`, the handshake) is kept
- * in a separate effect from what gets published on it: `karaoke` starts as
- * the hoisted empty placeholder and is swapped for a real one once the page's
- * playback loads (a page-level, one-time identity change) — re-running the
- * connection effect over that would close the port mid-gesture (observed:
- * losing a `subtitle:turn-release` sent moments after a press). Restarting
- * only the publisher leaves the port, and a press in flight, alone.
+ * The port's own lifecycle is kept in a separate effect from what gets
+ * published on it: `karaoke` starts as the hoisted empty placeholder and is
+ * swapped for a real one once the page's playback loads (a page-level,
+ * one-time identity change) — re-running the connection effect over that
+ * would tear down and reopen the port for no reason. Restarting only the
+ * publisher leaves the port, and anything in flight on it, alone.
  */
 function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
   view: Readable<ConversationViewState>;
@@ -211,55 +214,26 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
   const [port, setPort] = useState<MessagePort | null>(null);
 
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
     let current: MessagePort | null = null;
-    let retryTimer: ReturnType<typeof setInterval> | null = null;
-    const clearRetry = () => {
-      if (retryTimer) clearInterval(retryTimer);
-      retryTimer = null;
-    };
-    const openPort = () => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      // A ready before the iframe's ref is set cannot happen (its document
+      // loads only after the element exists), but the guard costs nothing.
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if ((event.data as { type?: unknown } | null)?.type !== 'sokuji-subtitle:ready') return;
       current?.close();
       const channel = new MessageChannel();
       current = channel.port1;
-      iframe.contentWindow?.postMessage({ type: 'sokuji-subtitle:connect' }, window.location.origin, [channel.port2]);
+      iframeRef.current?.contentWindow?.postMessage({ type: 'sokuji-subtitle:connect' }, window.location.origin, [channel.port2]);
       setPort(channel.port1);
     };
-    const onLoad = () => {
-      // The overlay's own page mounts asynchronously after `load` fires (it
-      // awaits a dynamic style import before it draws anything, observed at
-      // ~5-20ms on a warm dev server), so its listener may not exist yet when
-      // the first connect message arrives — and there is nothing that arrives
-      // back to say it landed. Retry a few times over one second — each
-      // attempt replaces the overlay's receiver, which briefly drops its
-      // session to null and so unmounts a held HoldToTalk (auto-releasing
-      // it) — kept short and bounded so it is always long finished before any
-      // interaction the preview drives (the probe's own hold waits 3s first).
-      clearRetry();
-      let attempts = 0;
-      const attempt = () => {
-        attempts += 1;
-        openPort();
-        if (attempts >= 6) clearRetry();
-      };
-      attempt();
-      retryTimer = setInterval(attempt, 200);
-    };
-    iframe.addEventListener('load', onLoad);
-    // The listener must be attached before the navigation starts, or a fast
-    // (warm dev-server) load can finish and fire `load` before this effect
-    // ever runs — the JSX `src` prop would set it during React's commit,
-    // ahead of this effect. Setting it here, after `addEventListener`, keeps
-    // the two in the right order.
-    iframe.src = `?preview=overlay${compact ? '&compact=1' : ''}`;
+    window.addEventListener('message', onMessage);
     return () => {
-      iframe.removeEventListener('load', onLoad);
-      clearRetry();
+      window.removeEventListener('message', onMessage);
       current?.close();
       setPort(null);
     };
-  }, [compact]);
+  }, []);
 
   useEffect(() => {
     if (!port) return;
@@ -272,7 +246,14 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
     });
   }, [port, view, karaoke, session, controls]);
 
-  return <iframe ref={iframeRef} className="spine-overlay-frame" title="Overlay preview" />;
+  return (
+    <iframe
+      ref={iframeRef}
+      className="spine-overlay-frame"
+      src={`?preview=overlay${compact ? '&compact=1' : ''}`}
+      title="Overlay preview"
+    />
+  );
 }
 
 /**

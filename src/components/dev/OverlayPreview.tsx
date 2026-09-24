@@ -26,6 +26,10 @@ export function OverlayPreview() {
       });
     };
     window.addEventListener('message', onMessage);
+    // Announces readiness once the listener above is actually live, rather
+    // than making the parent guess how long that takes (this page mounts
+    // asynchronously after `load` fires, behind an awaited style import).
+    window.parent.postMessage({ type: 'sokuji-subtitle:ready' }, window.location.origin);
     return () => window.removeEventListener('message', onMessage);
   }, []);
   if (!receiver) return null;

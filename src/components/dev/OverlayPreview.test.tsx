@@ -23,4 +23,12 @@ describe('OverlayPreview', () => {
     await vi.waitFor(() => expect(view.dataset.entries).toBe('1'));
     channel.port1.close();
   });
+
+  it('posts sokuji-subtitle:ready to its parent once mounted', () => {
+    // jsdom: window.parent === window, so the ping lands on window itself.
+    const postMessage = vi.spyOn(window, 'postMessage');
+    render(<OverlayPreview />);
+    expect(postMessage).toHaveBeenCalledWith({ type: 'sokuji-subtitle:ready' }, window.location.origin);
+    postMessage.mockRestore();
+  });
 });
