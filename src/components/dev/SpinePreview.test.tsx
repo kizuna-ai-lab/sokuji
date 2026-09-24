@@ -19,6 +19,20 @@ vi.mock('../../services/ServiceFactory', () => ({
     }),
   },
 }));
+vi.mock('../../lib/audio/appAudio', () => ({
+  getAppAudio: async () => {
+    const queue = { position: () => null, pending: 0, subscribe: () => () => {} };
+    return {
+      playback: {
+        queues: { speaker: queue, participant: queue, replay: queue },
+        audio: () => {}, held: () => {}, clear: () => {},
+        replay: () => {}, stopReplay: () => {}, preview: async () => {}, stopPreview: () => {},
+        attachPassthrough: () => () => {}, ttsTap: { read: () => new Float32Array(0) }, dispose: async () => {},
+      },
+      testTone: async () => {},
+    };
+  },
+}));
 
 import { SpinePreview } from './SpinePreview';
 
@@ -26,5 +40,10 @@ describe('SpinePreview', () => {
   it('shows the providers this build offers, starting with the fake', async () => {
     render(<SpinePreview />);
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();
+  });
+
+  it('offers the test tone once the playback has loaded', async () => {
+    render(<SpinePreview />);
+    expect(await screen.findByRole('button', { name: 'Test tone' })).toBeInTheDocument();
   });
 });
