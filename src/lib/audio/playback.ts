@@ -111,7 +111,14 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
       stopPreview();
       if (clip.audio.length === 0) return Promise.resolve();
       void graph.resume();
-      const shot = graph.playOnce(clip.audio, clip.sampleRate);
+      let shot: OneShot;
+      try {
+        shot = graph.playOnce(clip.audio, clip.sampleRate);
+      } catch (error) {
+        // createBuffer rejects a rate outside its supported range: a caller
+        // awaiting this promise must see a rejection, not a synchronous throw.
+        return Promise.reject(error);
+      }
       current = shot;
       return shot.ended.then(() => {
         if (current === shot) current = null;

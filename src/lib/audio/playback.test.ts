@@ -206,4 +206,11 @@ describe('createPlayback — preview', () => {
     await playback.preview({ audio: new Float32Array(0), sampleRate: 44100 });
     expect(shots).toHaveLength(0);
   });
+
+  it('rejects rather than throwing when the graph refuses to play the clip', async () => {
+    const { graph } = fakeGraph();
+    graph.playOnce = () => { throw new Error('sample rate out of range'); };
+    const playback = createPlayback(graph, routing().source);
+    await expect(playback.preview({ audio: new Float32Array(10), sampleRate: 1 })).rejects.toThrow();
+  });
 });
