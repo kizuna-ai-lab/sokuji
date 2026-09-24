@@ -5,8 +5,9 @@ import { skeleton } from '../segmentation/sentenceEnd';
 /**
  * Speech ranges are measured against the text at production time, and the
  * text is replaced repeatedly. Three cases (spec: "Re-anchoring on every text
- * replacement"): the text only grew — ranges stand; the same letters and
- * digits in a different dress — re-anchor by skeleton; letters changed — the
+ * replacement"): the text only grew — ranges stand; the old letters and
+ * digits are still where the new text starts, in a different dress and
+ * perhaps followed by more — re-anchor by skeleton; letters changed — the
  * ranges are gone, the pcm stays.
  */
 export function reanchorRanges(
@@ -16,7 +17,7 @@ export function reanchorRanges(
 ): Array<TextRange | undefined> {
   if (ranges.every((r) => r === undefined)) return [...ranges];
   if (newText.startsWith(oldText)) return [...ranges];
-  if (skeleton(oldText) === skeleton(newText)) {
+  if (skeleton(newText).startsWith(skeleton(oldText))) {
     return ranges.map((r) => (r ? [mapOffset(oldText, newText, r[0]), mapOffset(oldText, newText, r[1])] : undefined));
   }
   return ranges.map(() => undefined);

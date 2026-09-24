@@ -18,4 +18,9 @@ describe('reanchorRanges', () => {
   it('is a no-op on a list with no ranges', () => {
     expect(reanchorRanges('a', 'b', [undefined])).toEqual([undefined]);
   });
+
+  it('re-anchors by skeleton when the text was re-punctuated and grew', () => {
+    // A translation re-punctuated while it grows: "hello world" → "Hello, world. How".
+    expect(reanchorRanges('hello world', 'Hello, world. How', [[0, 5], [6, 11]])).toEqual([[0, 7], [7, 14]]);
+  });
 });

@@ -71,6 +71,19 @@ describe('Conversation — identity and text', () => {
     apply({ kind: 'segmentText', payload: { ref: 1, text: 'abcdef' } });
     expect(conv.snapshot().segments[0].marks.map((m) => [m.at - 10_000, m.len])).toEqual([[0, 3], [2100, 6]]);
   });
+
+  it('pushes no growth mark when only the timing or the language changed', () => {
+    const { conv, clock, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } });
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello' } });
+    const before = conv.snapshot().segments[0].marks;
+    clock.advance(5000);
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello', timing: { startMs: 0, endMs: 400 }, language: 'en' } });
+    const seg = conv.snapshot().segments[0];
+    expect(seg.timing).toEqual({ startMs: 0, endMs: 400 });
+    expect(seg.language).toBe('en');
+    expect(seg.marks).toEqual(before);
+  });
 });
 
 describe('Conversation — audio', () => {

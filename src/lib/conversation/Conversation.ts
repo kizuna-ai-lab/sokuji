@@ -205,7 +205,9 @@ export class Conversation {
     if (i === undefined) return this.violation(`text for ref ${ref} before it opened`);
     const seg = this.segments[i];
     if (seg.text === text && sameTiming(seg.timing, timing ?? seg.timing) && (language ?? seg.language) === seg.language) return;
-    this.replaceText(i, text, { timing, language, mark: true });
+    // A timing- or language-only snapshot is not growth: a mark there would
+    // read as the end of a pause to L2's cut.
+    this.replaceText(i, text, { timing, language, mark: seg.text !== text });
   }
 
   private close(ref: number, origin?: string): void {
