@@ -3,6 +3,7 @@ import { createVirtualClock } from '../contract/clock';
 import type { Leg, Segment } from '../conversation/types';
 import { DEFAULT_PROJECTION } from '../projection/project';
 import type { ProjectionSettings } from '../projection/types';
+import type { ConversationInfo } from '../session/conversationSet';
 import { createConversationView, VIEW_INTERVAL_MS, type Readable } from './conversationView';
 
 const reportErrorSpy = vi.hoisted(() => vi.fn());
@@ -14,13 +15,15 @@ vi.mock('../diagnostics/report', async (importOriginal) => ({
 const segment = (text: string): Segment => ({ id: 's:speaker:1', ref: 1, side: 'source', text, final: true, openedAt: 0, marks: [], speech: [] });
 const legWith = (text: string): Leg => ({ leg: 'speaker', session: 's', languages: { source: 'en', target: 'ja' }, segments: [segment(text)], notices: [] });
 
-function conversation(initial: readonly Leg[]) {
+function conversation(initial: readonly Leg[], initialInfo: ConversationInfo | null = null) {
   let legs = initial;
+  let info = initialInfo;
   const listeners = new Set<() => void>();
   return {
     snapshot: () => legs,
+    get info() { return info; },
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    set(next: readonly Leg[]) { legs = next; listeners.forEach((listener) => listener()); },
+    set(next: readonly Leg[], nextInfo: ConversationInfo | null = info) { legs = next; info = nextInfo; listeners.forEach((listener) => listener()); },
     listening: () => listeners.size,
   };
 }
@@ -32,6 +35,7 @@ function flakyConversation(initial: readonly Leg[]) {
   const listeners = new Set<() => void>();
   return {
     snapshot: () => { if (fail) throw new Error('the conversation blew up'); return legs; },
+    info: null as ConversationInfo | null,
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
     set(next: readonly Leg[]) { legs = next; listeners.forEach((listener) => listener()); },
     setFail(next: boolean) { fail = next; listeners.forEach((listener) => listener()); },
@@ -71,6 +75,17 @@ describe('createConversationView', () => {
     clock.advance(VIEW_INTERVAL_MS);
     expect(listener).toHaveBeenCalledTimes(1);
     expect(firstSourceTexts(view)).toEqual(['Hello.']);
+  });
+
+  it("carries the conversation's info, and updates it on the flush after a replace", () => {
+    const clock = createVirtualClock(0);
+    const conv = conversation([legWith('Hello.')]);
+    const view = createConversationView(conv, settings(DEFAULT_PROJECTION), clock);
+    expect(view.get().info).toBeNull();
+    const info: ConversationInfo = { provider: 'fake', models: { asrModel: 'a' } };
+    conv.set([legWith('Hi.')], info);
+    clock.advance(VIEW_INTERVAL_MS);
+    expect(view.get().info).toBe(info);
   });
 
   it('re-projects when the settings change', () => {

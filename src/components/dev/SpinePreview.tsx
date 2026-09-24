@@ -11,7 +11,6 @@ import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { autoSaveConversation } from '../../lib/export/appAutoSave';
 import type { AuthContext } from '../../lib/provider/types';
 import { persistIfUnchanged, readShapeFromStores } from '../../lib/session/appShape';
-import type { ConversationInfo } from '../../lib/session/conversationSet';
 import type { AnalyticsPort, PlaybackPort } from '../../lib/session/ports';
 import { createRunner, type Runner } from '../../lib/session/runner';
 import type { OpenSource } from '../../lib/session/source';
@@ -142,7 +141,7 @@ function PreviewConversation({ view, karaoke, playback, runner }: {
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const display = useConversationDisplayStore();
   const runState = useStore(runner.state);
-  const exporter = useConversationExporter(viewState, runner.conversation.info);
+  const exporter = useConversationExporter(viewState);
   const items = useMemo(() => {
     const drawn = displayItems(entries, { speaker, participant });
     const last = lastEndItem(runState);
@@ -190,18 +189,17 @@ function PreviewConversation({ view, karaoke, playback, runner }: {
 }
 
 /** The Electron-style subtitle surface, on the page itself (`&subtitle=1`, plan 1d-2). */
-function PreviewSubtitle({ view, karaoke, session, controls, info }: {
+function PreviewSubtitle({ view, karaoke, session, controls }: {
   view: Readable<ConversationViewState>;
   karaoke: Readable<KaraokeState>;
   session: Readable<SubtitleSession>;
   controls: SubtitleControls;
-  info: ConversationInfo | null;
 }) {
   const viewState = useReadable(view);
   const { entries } = viewState;
   const { lit } = useReadable(karaoke);
   const sessionState = useReadable(session);
-  const exporter = useConversationExporter(viewState, info);
+  const exporter = useConversationExporter(viewState);
   const model: SubtitleModel = { entries, lit, session: sessionState };
   return (
     <div className="spine-subtitle">
@@ -382,7 +380,6 @@ export function SpinePreview() {
             karaoke={karaoke ?? NO_KARAOKE}
             session={session}
             controls={subtitleControls}
-            info={runner.conversation.info}
           />
         )}
         {previewParams.overlay && (

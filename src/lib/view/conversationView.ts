@@ -10,6 +10,7 @@ import type { Leg } from '../conversation/types';
 import { describeCause, reportError } from '../diagnostics/report';
 import { createProjector } from '../projection/project';
 import type { Entry, ProjectionSettings } from '../projection/types';
+import type { ConversationInfo } from '../session/conversationSet';
 
 /** A value that can be read and watched: the view, a settings source, karaoke. */
 export interface Readable<T> {
@@ -20,13 +21,15 @@ export interface Readable<T> {
 export interface ConversationViewState {
   legs: readonly Leg[];
   entries: readonly Entry[];
+  /** The legs' own run, from the same conversation snapshot — never read separately (plan 1d-3 review, Minor 1). */
+  info: ConversationInfo | null;
 }
 
 /** How long changes are gathered before one projection. */
 export const VIEW_INTERVAL_MS = 50;
 
 export function createConversationView(
-  conversation: { snapshot(): readonly Leg[]; subscribe(listener: () => void): () => void },
+  conversation: { snapshot(): readonly Leg[]; subscribe(listener: () => void): () => void; readonly info: ConversationInfo | null },
   settings: Readable<ProjectionSettings>,
   clock: Pick<Clock, 'setTimeout'>,
   intervalMs = VIEW_INTERVAL_MS,
@@ -35,7 +38,7 @@ export function createConversationView(
   const listeners = new Set<() => void>();
   const compute = (): ConversationViewState => {
     const legs = conversation.snapshot();
-    return { legs, entries: projector.project(legs, settings.get()) };
+    return { legs, entries: projector.project(legs, settings.get()), info: conversation.info };
   };
   let state = compute();
   let cancel: (() => void) | null = null;
@@ -59,7 +62,7 @@ export function createConversationView(
       return;
     }
     // The snapshot and the projection both keep their identity when nothing changed.
-    if (next.legs === state.legs && next.entries === state.entries) return;
+    if (next.legs === state.legs && next.entries === state.entries && next.info === state.info) return;
     state = next;
     for (const listener of listeners) {
       try {

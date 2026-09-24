@@ -17,7 +17,7 @@ afterEach(() => {
 function setup() {
   const state = createStore<RunState>(() => ({ phase: 'idle' }));
   const runner = { state } as unknown as Runner;
-  const view: Readable<ConversationViewState> = { get: () => ({ legs: [], entries: [] }), subscribe: () => () => {} };
+  const view: Readable<ConversationViewState> = { get: () => ({ legs: [], entries: [], info: null }), subscribe: () => () => {} };
   return { state, session: appSubtitleSession(runner, view) };
 }
 
