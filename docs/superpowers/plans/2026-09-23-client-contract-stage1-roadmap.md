@@ -429,9 +429,10 @@ requires it). What it leaves, by the plan that first needs it:
 
 **1d-3 — export and auto-save**
 - The panel's idle line: `RunState.lastEnd` in words (`noticeText`). A start
-  that fails after opening replaces the conversation with empty legs (the
-  failure's notice is on a leg); a refused one keeps it (the notice is only in
-  `lastEnd`) — the idle line must show both.
+  that fails after opening replaces the conversation with empty legs; a
+  refused one keeps it — the idle line must show both. (Done by plan 1d-3,
+  which corrected this note: a failed start's notice is *not* on a leg either
+  — the runner's `end()` writes it only to `lastEnd`.)
 
 **1e — the switch-over**
 - Have a native reader spot-check the 29 translations of `notices.*` and
@@ -502,3 +503,50 @@ quiet leg's newest entries so no band empties). What it leaves:
   meeting page's iframe, so its focus behaviour needs its own look.
 - Add `OverlayPreview` to the "lazy-load the preview's modules" item: `App.tsx`
   imports it statically too.
+
+## Scheduled by plan 1d-3
+
+Plan 1d-3 (export and auto-save) landed as commits `c3d48809..5ea5fb1b`: seven
+tasks, two task fix rounds and a final-review fix wave. The new writer takes a
+scope per leg (the display modes' union), writes a file header from the run
+(`ConversationInfo`: the provider and models the run described, kept with the
+conversation and carried in the view state) and puts the JSON's metadata
+first, behind a `format: 'sokuji-conversation/2'` marker. Today's export menu
+now draws over an `Exporter` (`ExportMenuButton`); the default `ExportButton`
+keeps its props and builds a legacy exporter, so `MainPanel` and `SubtitleApp`
+did not change. Today's auto-save was split so the new one
+(`autoSaveConversation`, for the runner's `onRunEnded`) shares its saving
+branch. A refused or failed start's reason is drawn after the list
+(`lastEndItem`). The preview exports and auto-saves real files, checked by
+`scripts/dev/spine-export-probe.mjs`. What it leaves:
+
+**1e — the switch-over**
+- Exactly one auto-save: the runner's `onRunEnded` → `autoSaveConversation`;
+  MainPanel's session-end `autoSaveTranscript` goes with MainPanel's old
+  session path.
+- Delete the legacy half: `ExportButton`'s default export and its nine props,
+  `SubtitleBar.exportProps`, `autoSaveTranscript`, and the old formatters in
+  `src/utils/conversationExport.ts` (`buildExportPayload`, `formatAsTxt`,
+  `formatAsJson`, `buildTxtExport`, `normalizeMessages`, `getActiveModelInfo`
+  and their types). Keep `downloadFile`, `copyToClipboard`, `exportFilename`,
+  `getAppVersion` and the two time formatters, moved next to the exporter.
+  Drop the locale keys only the old format reads (`headerNote`,
+  `translationSuffix`) from all 30 locales.
+- Mount `ExportMenuButton` over the app's view in MainPanel's toolbar
+  (`useConversationExporter`), and hand `SubtitleView` its `exporter` in
+  `MainLayout`'s Electron takeover.
+- The idle line is words only. Today's panel offers a way to Settings (and
+  the privacy prompt) for a blocked start; the typed `lastEnd.reason` and code
+  are there for it — give the notice bubble that action.
+- Release notes: the .txt is one block per exchange (the source whole, then
+  `→ translation`) instead of a line per message; the models line reads
+  `asr=` / `translation=` / `tts=` for every provider (today's OpenAI files say
+  `transcription=`); the .json is a new schema (`format`, `groups`,
+  `notices`).
+- A native reader spot-checks the 29 translations of
+  `mainPanel.export.noTranslation` / `noSource` with the other notices.
+- "Narrowed" in the header means the scope is not both/both, not that a line
+  was left out: a speaker-only run with the participant filter at `none` says
+  lines were left out. Today's export does the same.
+- A single-side scope drops a group missing that side (today's export does the
+  same); only a both-sides scope states a missing side.
