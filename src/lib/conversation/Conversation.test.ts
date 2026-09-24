@@ -345,3 +345,19 @@ describe('Conversation — what the runner adds', () => {
     expect(diagnostics).toEqual([{ code: 'listener_threw', message: 'A conversation subscriber threw: boom' }]);
   });
 });
+
+describe('Conversation — a degradation from outside the adapter', () => {
+  it('records it as a warning with its code, throttled per code like an adapter degradation', () => {
+    const { conv, clock } = make();
+    conv.degraded('app_capture_lost_using_system_audio', 'widened to system audio');
+    conv.degraded('app_capture_lost_using_system_audio', 'widened again');
+    conv.degraded('silent_no_permission', 'nothing heard');
+    clock.advance(DEGRADED_DEDUPE_MS);
+    conv.degraded('app_capture_lost_using_system_audio', 'widened a third time');
+    expect(conv.snapshot().notices.map((n) => [n.severity, n.code, n.message])).toEqual([
+      ['warning', 'app_capture_lost_using_system_audio', 'widened to system audio'],
+      ['warning', 'silent_no_permission', 'nothing heard'],
+      ['warning', 'app_capture_lost_using_system_audio', 'widened a third time'],
+    ]);
+  });
+});

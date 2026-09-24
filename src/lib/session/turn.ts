@@ -6,6 +6,9 @@ export const VOICED_LEVEL = 0.01;
 /** A turn holding less voice than this is cancelled rather than ended (today: five 100 ms chunks). */
 export const MIN_VOICED_MS = 500;
 
+/** `MIN_VOICED_MS` in samples at 24 kHz: counted whole, so irregular chunk sizes never round. */
+export const MIN_VOICED_SAMPLES = (SAMPLE_RATE * MIN_VOICED_MS) / 1000;
+
 export function isVoiced(pcm: Int16Array): boolean {
   if (pcm.length === 0) return false;
   let sum = 0;
@@ -19,7 +22,7 @@ export function isVoiced(pcm: Int16Array): boolean {
  * reset that turn's count.
  */
 export class Turn {
-  private voicedMs = 0;
+  private voicedSamples = 0;
   private open = true;
 
   constructor(readonly startedAt: number) {}
@@ -30,13 +33,13 @@ export class Turn {
 
   /** Counts a chunk sent during the turn. */
   add(pcm: Int16Array): void {
-    if (this.open && isVoiced(pcm)) this.voicedMs += (pcm.length / SAMPLE_RATE) * 1000;
+    if (this.open && isVoiced(pcm)) this.voicedSamples += pcm.length;
   }
 
   /** Closes the turn: 'end' when it held enough voice, else 'cancel'; null when it was already closed. */
   close(): 'end' | 'cancel' | null {
     if (!this.open) return null;
     this.open = false;
-    return this.voicedMs >= MIN_VOICED_MS ? 'end' : 'cancel';
+    return this.voicedSamples >= MIN_VOICED_SAMPLES ? 'end' : 'cancel';
   }
 }

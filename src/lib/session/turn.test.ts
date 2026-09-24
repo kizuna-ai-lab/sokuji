@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { synthPcm } from '../../providers/fake/synth';
-import { MIN_VOICED_MS, Turn, isVoiced } from './turn';
+import { MIN_VOICED_MS, MIN_VOICED_SAMPLES, Turn, isVoiced } from './turn';
 
 const silence = (ms: number) => new Int16Array((24000 * ms) / 1000);
 
@@ -39,5 +39,22 @@ describe('Turn', () => {
     expect(turn.close()).toBeNull();
     expect(turn.isOpen).toBe(false);
     expect(turn.startedAt).toBe(7);
+  });
+});
+
+describe('Turn — whole samples', () => {
+  it('ends a turn holding exactly 500 ms of voice, and cancels one a sample short', () => {
+    const voiced = (n: number) => new Int16Array(n).fill(8000);
+    const full = new Turn(0);
+    for (let i = 0; i < 5; i++) full.add(voiced(2400));
+    expect(full.close()).toBe('end');
+    const short = new Turn(0);
+    for (let i = 0; i < 4; i++) short.add(voiced(2400));
+    short.add(voiced(2399));
+    expect(short.close()).toBe('cancel');
+  });
+
+  it('exports the threshold in samples', () => {
+    expect(MIN_VOICED_SAMPLES).toBe(12_000);
   });
 });

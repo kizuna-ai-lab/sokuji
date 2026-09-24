@@ -9,7 +9,7 @@ import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/ad
 import { eventsFrom, type AdapterEvent } from '../contract/events';
 import { Conversation, DEFAULT_RETENTION } from '../conversation/Conversation';
 import type { LegName } from '../conversation/types';
-import { describeCause, reportWarning } from '../diagnostics/report';
+import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import { isMissing, readCredentials } from '../provider/credentials';
 import type { RunnerDeps } from './ports';
@@ -64,6 +64,7 @@ export class Run {
   /** Ended: events are discarded. */
   private finished = false;
   private turn: Turn | null = null;
+  private readonly appendFailing = new Set<LegName>();
   /** The promise of `open()`'s own body; `close()` waits for it (bounded) before it unwinds (F3). */
   private opening: Promise<void> | null = null;
 
@@ -181,6 +182,11 @@ export class Run {
           throw new LegOpenError(leg, error);
         }
       }));
+      // Built before the sources opened; a source with a track hands it to the adapter (WebRTC).
+      shape.legs.forEach((leg, i) => {
+        const track = sources[i].track;
+        if (track) requests[leg] = { ...requests[leg], input: track };
+      });
       const events = { speaker: this.eventsFor('speaker'), participant: this.eventsFor('participant') };
       let sessions: Record<LegName, AdapterSession>;
       try {
@@ -259,7 +265,9 @@ export class Run {
     try {
       const source = await this.openSource(leg);
       this.setLegState(leg, 'opening');
-      const session = await this.shape.provider.start(request, this.eventsFor(leg));
+      // Built before the source opened; a source with a track hands it to the adapter (WebRTC).
+      const withInput = source.track ? { ...request, input: source.track } : request;
+      const session = await this.shape.provider.start(withInput, this.eventsFor(leg));
       this.stack.defer(`${leg} session`, () => session.stop());
       this.throwIfAborted();
       this.connect(leg, source, session);
@@ -280,8 +288,8 @@ export class Run {
     const conversation = this.conversations.get(leg)!;
     this.stack.defer(`${leg} end watch`, source.onEnded((reason) =>
       this.legEnded(leg, 'source-ended', { code: 'source_ended', message: `The ${leg} capture ended: ${reason}` })));
-    this.stack.defer(`${leg} degradation watch`, source.onDegraded((message) =>
-      conversation.notice({ severity: 'warning', message, code: 'source_degraded' })));
+    this.stack.defer(`${leg} degradation watch`, source.onDegraded(({ code, message }) =>
+      conversation.degraded(code, message)));
     return source;
   }
 
@@ -296,13 +304,21 @@ export class Run {
   /** The participant leg and automatic turns stream everything; manual turns send only while the key is held. */
   private send(leg: LegName, session: AdapterSession, pcm: Int16Array): void {
     if (this.ending) return;
-    if (leg === 'participant' || this.shape.turnMode === 'auto') {
-      session.appendAudio(pcm);
-      return;
+    if (leg === 'speaker' && this.shape.turnMode !== 'auto') {
+      if (!this.turn?.isOpen) return;
+      this.turn.add(pcm);
     }
-    if (!this.turn?.isOpen) return;
-    this.turn.add(pcm);
-    session.appendAudio(pcm);
+    // Per chunk: an adapter that throws is reported when it starts failing,
+    // and the throw never reaches the source's delivery.
+    try {
+      session.appendAudio(pcm);
+      this.appendFailing.delete(leg);
+    } catch (error) {
+      if (!this.appendFailing.has(leg)) {
+        reportError('SessionRunner', `The ${leg} adapter did not take audio: ${describeCause(error)}`, { cause: error, dedupeKey: `append:${leg}` });
+      }
+      this.appendFailing.add(leg);
+    }
   }
 
   private eventsFor(leg: LegName): AdapterEvents {

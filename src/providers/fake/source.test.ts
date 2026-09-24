@@ -33,7 +33,7 @@ describe('createFakeSource', () => {
     const ends: string[] = [];
     const warnings: string[] = [];
     source.onEnded((r) => ends.push(r));
-    source.onDegraded((m) => warnings.push(m));
+    source.onDegraded(({ message }) => warnings.push(message));
     source.degrade('fell back to system audio');
     source.end('unplugged');
     source.end('again');
@@ -51,5 +51,19 @@ describe('createFakeSource', () => {
     off();
     clock.advance(300);
     expect(n).toBe(1);
+  });
+});
+
+describe('createFakeSource — degradation', () => {
+  it('hands its listeners a code and a message', () => {
+    const source = createFakeSource(createVirtualClock(0));
+    const heard: Array<{ code: string; message: string }> = [];
+    source.onDegraded((notice) => { heard.push(notice); });
+    source.degrade('fell back');
+    source.degrade('no audio yet', 'silent_no_permission');
+    expect(heard).toEqual([
+      { code: 'source_degraded', message: 'fell back' },
+      { code: 'silent_no_permission', message: 'no audio yet' },
+    ]);
   });
 });

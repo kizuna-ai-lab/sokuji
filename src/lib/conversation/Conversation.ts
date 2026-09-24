@@ -86,15 +86,21 @@ export class Conversation {
       }
       case 'degraded': {
         const { code, message } = event.payload;
-        const now = this.opts.clock.now();
-        const last = this.lastDegradedAt.get(code);
-        if (last !== undefined && now - last < DEGRADED_DEDUPE_MS) return;
-        this.lastDegradedAt.set(code, now);
+        if (!this.admitDegraded(code)) return;
         return this.addNotice({ severity: CLIENT_DIAGNOSTICS[code]?.severity ?? 'warning', message, code });
       }
       case 'closed': return this.finalizeAll();
       default: return;
     }
+  }
+
+  /** False when a degradation with this code was recorded within `DEGRADED_DEDUPE_MS`; otherwise notes it. */
+  private admitDegraded(code: string): boolean {
+    const now = this.opts.clock.now();
+    const last = this.lastDegradedAt.get(code);
+    if (last !== undefined && now - last < DEGRADED_DEDUPE_MS) return false;
+    this.lastDegradedAt.set(code, now);
+    return true;
   }
 
   /** Every open segment becomes final. Idempotent. */
@@ -109,6 +115,12 @@ export class Conversation {
   /** Records a notice from outside the adapter's stream: the runner's (a source ended, a lease ended). */
   notice(input: NoticeInput): void {
     this.batch(() => this.addNotice(input));
+  }
+
+  /** A degradation from outside the adapter's stream (a source's): a warning, throttled per code like `degraded`. */
+  degraded(code: string, message: string): void {
+    if (!this.admitDegraded(code)) return;
+    this.batch(() => this.addNotice({ severity: 'warning', message, code }));
   }
 
   /**

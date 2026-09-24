@@ -1,6 +1,6 @@
 import { SAMPLE_RATE } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
-import type { Source } from '../../lib/session/source';
+import type { Source, SourceNotice } from '../../lib/session/source';
 import { synthPcm } from './synth';
 
 export interface FakeSource extends Source {
@@ -8,8 +8,8 @@ export interface FakeSource extends Source {
   setVoiced(voiced: boolean): void;
   /** Ends the capture, as an unplugged device would. */
   end(reason: string): void;
-  /** Reports the capture as degraded. */
-  degrade(message: string): void;
+  /** Reports the capture as degraded, with a code (default 'source_degraded'). */
+  degrade(message: string, code?: string): void;
   readonly stopped: boolean;
 }
 
@@ -24,7 +24,7 @@ export function createFakeSource(clock: Clock, options: { chunkMs?: number; voic
   let stopped = false;
   const pcmListeners = new Set<(pcm: Int16Array) => void>();
   const endedListeners = new Set<(reason: string) => void>();
-  const degradedListeners = new Set<(message: string) => void>();
+  const degradedListeners = new Set<(notice: SourceNotice) => void>();
   const listen = <T>(set: Set<T>, listener: T) => {
     set.add(listener);
     return () => { set.delete(listener); };
@@ -54,8 +54,8 @@ export function createFakeSource(clock: Clock, options: { chunkMs?: number; voic
       cancel();
       for (const listener of endedListeners) listener(reason);
     },
-    degrade(message) {
-      for (const listener of degradedListeners) listener(message);
+    degrade(message, code = 'source_degraded') {
+      for (const listener of degradedListeners) listener({ code, message });
     },
     get stopped() {
       return stopped;

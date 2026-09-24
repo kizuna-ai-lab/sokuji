@@ -404,12 +404,75 @@ describe('runner — legs end together (D21)', () => {
     expect(sources[1].stopped).toBe(true);
   });
 
-  it('records a degraded source on its leg and keeps running', async () => {
+  it("records a degraded source on its leg with the source's code, throttled, and keeps running", async () => {
     const { runner, sources } = setup();
     await runner.start();
-    sources[0].degrade('fell back to system audio');
+    sources[0].degrade('fell back to system audio', 'app_capture_lost_using_system_audio');
+    sources[0].degrade('fell back again', 'app_capture_lost_using_system_audio');
     expect(runner.state.getState().phase).toBe('running');
-    expect(runner.conversation.snapshot()[0].notices).toEqual([expect.objectContaining({ severity: 'warning', code: 'source_degraded', message: 'fell back to system audio' })]);
+    expect(runner.conversation.snapshot()[0].notices).toEqual([
+      expect.objectContaining({ severity: 'warning', code: 'app_capture_lost_using_system_audio', message: 'fell back to system audio' }),
+    ]);
+  });
+});
+
+describe('runner — capture carry-over', () => {
+  /** The fake provider, with every request it starts recorded. */
+  function recordingInputs() {
+    const inputs: Array<MediaStreamTrack | undefined> = [];
+    const provider = {
+      ...fakeProvider,
+      async start(request: StartRequest<never, never>, events: AdapterEvents) {
+        inputs.push(request.input);
+        return fakeProvider.start(request, events);
+      },
+    } as unknown as AnyProvider;
+    return { inputs, provider };
+  }
+
+  it("hands the adapter the source's track, and builds the request once the source has opened", async () => {
+    const track = { kind: 'audio' } as MediaStreamTrack;
+    const { inputs, provider } = recordingInputs();
+    const { runner } = setup({
+      shape: { provider },
+      openSource: async () => Object.assign(createFakeSource(createVirtualClock(0)), { track }),
+    });
+    await runner.start();
+    expect(inputs).toEqual([track]);
+  });
+
+  it('builds a request without input when the source has no track', async () => {
+    const { inputs, provider } = recordingInputs();
+    const { runner } = setup({ shape: { provider } });
+    await runner.start();
+    expect(inputs).toEqual([undefined]);
+  });
+
+  it('keeps capturing when the adapter throws on audio, and reports it once per failing streak', async () => {
+    let appended = 0;
+    const provider = {
+      ...fakeProvider,
+      async start(request: StartRequest<never, never>, events: AdapterEvents) {
+        const session = await fakeProvider.start(request, events);
+        // Spreading a `FakeSession` instance would drop its prototype
+        // methods; delegate explicitly, only `appendAudio` throws.
+        return {
+          info: session.info,
+          appendAudio: () => { appended += 1; throw new Error('socket closed'); },
+          appendText: (text: string) => session.appendText(text),
+          beginTurn: () => session.beginTurn(),
+          endTurn: () => session.endTurn(),
+          cancelTurn: () => session.cancelTurn(),
+          stop: () => session.stop(),
+        };
+      },
+    } as unknown as AnyProvider;
+    const { runner, clock } = setup({ shape: { provider } });
+    reportErrorSpy.mockClear();
+    await runner.start();
+    clock.advance(500);
+    expect(appended).toBeGreaterThanOrEqual(4);
+    expect(reportErrorSpy.mock.calls.filter(([, message]) => String(message).includes('socket closed'))).toHaveLength(1);
   });
 });
 
