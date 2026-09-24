@@ -203,12 +203,17 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
           await element.setSinkId?.(id ?? '');
         } catch (error) {
           reportWarning('AudioGraph', `Could not switch the ${bus} output: ${describeCause(error)}`, { dedupeKey: `graph:sink:${bus}` });
+          // Forget the id on either bus, so a later setSinks with the same id
+          // (the device coming back, or routing re-applying unchanged
+          // settings) retries instead of short-circuiting above.
+          sinkIds[bus] = undefined;
           if (bus === 'virtual') {
             // Never play the meeting's audio on whatever device the element was left on.
-            sinkIds.virtual = undefined;
             element.pause();
             continue;
           }
+          // The real element keeps playing wherever it was — the user still
+          // hears their audio — so fall through to play() as on success.
         }
         play(bus);
       }

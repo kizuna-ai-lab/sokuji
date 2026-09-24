@@ -88,6 +88,21 @@ describe('createAudioGraph — outputs', () => {
     expect(real.sinkId).toBe('monitor-1');
   });
 
+  it('retries a monitor device whose switch failed once it is asked for again', async () => {
+    const { graph, real } = await setup();
+    let fail = true;
+    real.setSinkId = async (id: string) => {
+      if (fail) throw new Error('NotFoundError');
+      real.sinkId = id;
+    };
+    await graph.setSinks({ real: 'monitor-1' });
+    expect(real.sinkId).toBe('');
+    expect(real.paused).toBe(false);
+    fail = false;
+    await graph.setSinks({ real: 'monitor-1' });
+    expect(real.sinkId).toBe('monitor-1');
+  });
+
   it('keeps the virtual element silent until it points at a virtual device, and silent again without one', async () => {
     const { graph, virtualSink } = await setup();
     expect(virtualSink.paused).toBe(true);
