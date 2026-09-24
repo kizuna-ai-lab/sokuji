@@ -10,10 +10,11 @@ vi.mock('react-i18next', () => ({
 // The fullscreen flag + setter come from settingsStore.
 const setSubtitleFullscreen = vi.fn(async () => {});
 let fullscreenValue = false;
+const exitSubtitleModeSpy = vi.hoisted(() => vi.fn());
 vi.mock('../../stores/settingsStore', () => ({
   __esModule: true,
   default: { getState: () => ({}) },
-  useExitSubtitleMode: () => vi.fn(),
+  useExitSubtitleMode: () => exitSubtitleModeSpy,
   useSubtitleFullscreen: () => fullscreenValue,
   useSetSubtitleFullscreen: () => setSubtitleFullscreen,
 }));
@@ -58,9 +59,15 @@ const baseProps = {
   exportProps: {} as any,
 };
 
+// window.dispatchEvent, used by SubtitleBar's own requestExit for the
+// extension-overlay surface — asserted NOT to fire when onExit is given.
+const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
+
 beforeEach(() => {
   cleanup();
   setSubtitleFullscreen.mockClear();
+  exitSubtitleModeSpy.mockClear();
+  dispatchEventSpy.mockClear();
   fullscreenValue = false;
 });
 
@@ -185,5 +192,29 @@ describe('SubtitleBar session pill', () => {
   it('renders nothing when no session control is supplied', () => {
     render(<SubtitleBar {...baseProps} surface="electron" />);
     expect(screen.queryByLabelText('Start session')).not.toBeInTheDocument();
+  });
+});
+
+describe('SubtitleBar exit button', () => {
+  it('routes the ✕ through onExit instead of the store exit, on the electron surface', () => {
+    const onExit = vi.fn();
+    render(<SubtitleBar {...baseProps} surface="electron" onExit={onExit} />);
+    fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
+    expect(onExit).toHaveBeenCalledTimes(1);
+    expect(exitSubtitleModeSpy).not.toHaveBeenCalled();
+  });
+
+  it('routes the ✕ through onExit instead of the window event, on the extension-overlay surface', () => {
+    const onExit = vi.fn();
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" onExit={onExit} />);
+    fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
+    expect(onExit).toHaveBeenCalledTimes(1);
+    expect(dispatchEventSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'sokuji:user-exit' }));
+  });
+
+  it("falls back to the store's exit when onExit is absent (today's SubtitleApp, unaffected)", () => {
+    render(<SubtitleBar {...baseProps} surface="electron" />);
+    fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
+    expect(exitSubtitleModeSpy).toHaveBeenCalledTimes(1);
   });
 });

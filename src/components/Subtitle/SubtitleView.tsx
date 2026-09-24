@@ -43,7 +43,14 @@ function languageCodeShort(code: string | undefined): string {
 
 function idleState(idle: SubtitleIdleModel | undefined, t: TFunction): SubtitleIdleState {
   if (!idle) return { kind: 'ended' };
-  if (idle.kind === 'failed') return { kind: 'failed', message: noticeText(t, idle.notice) };
+  if (idle.kind === 'failed') {
+    // start_failed's own message is already "the session didn't start:
+    // <detail>" (NOTICE_WORDS); noticeText would wrap it a second time
+    // ("Failed to start: The session didn't start: …"). Every other failed
+    // code still goes through noticeText for its words.
+    const message = idle.notice.code === 'start_failed' ? idle.notice.message : noticeText(t, idle.notice);
+    return { kind: 'failed', message };
+  }
   return idle;
 }
 
@@ -72,9 +79,13 @@ export function SubtitleView({ surface, model, controls }: { surface: SubtitleSu
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [running]);
-  const elapsedMs = running && session.since !== null ? now - session.since : 0;
+  const elapsedMs = running && session.since !== null ? Math.max(0, now - session.since) : 0;
 
-  // A leg's display-mode button shows when the conversation has that leg (today: the mode's intent, or items for it).
+  // A leg's display-mode button shows when the conversation has that leg:
+  // the session's legs (set once a run is live) or an entry already drawn
+  // for it. Unlike today's SubtitleApp, which follows the routing mode's
+  // intent, nothing shows for either leg before the first run — plan 1e
+  // will feed that intent into `SubtitleSession.legs` while idle (roadmap).
   const legs = session?.legs ?? [];
   const speakerActive = legs.includes('speaker') || entries.some((e) => e.leg === 'speaker');
   const participantActive = legs.includes('participant') || entries.some((e) => e.leg === 'participant');
@@ -90,6 +101,7 @@ export function SubtitleView({ surface, model, controls }: { surface: SubtitleSu
         speakerActive={speakerActive}
         participantActive={participantActive}
         surface={surface}
+        onExit={controls.exit}
         sessionControl={surface === 'electron' && start && stop ? {
           isSessionActive: running,
           isInitializing: session?.phase === 'starting',

@@ -47,6 +47,12 @@ interface Props {
   exportProps?: React.ComponentProps<typeof ExportButton>;
   surface?: SubtitleSurfaceKind;
   /**
+   * Routes the ✕ button through `SubtitleControls.exit` instead of the bar's
+   * own `requestExit`. Absent: today's `SubtitleApp` behaves exactly as
+   * before (the window event on the overlay, the settings store on Electron).
+   */
+  onExit?: () => void;
+  /**
    * Session start/stop, Electron surface only. Absent on the extension
    * overlay, where the side panel owns session control.
    */
@@ -77,6 +83,7 @@ const SubtitleBar: React.FC<Props> = ({
   exportProps,
   surface = 'electron',
   sessionControl,
+  onExit,
 }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
@@ -307,7 +314,7 @@ const SubtitleBar: React.FC<Props> = ({
         <button
           type="button"
           className="subtitle-bar__btn"
-          onClick={requestExit}
+          onClick={onExit ?? requestExit}
           title={t('subtitle.bar.exit', 'Exit subtitle mode')}
           aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
         >

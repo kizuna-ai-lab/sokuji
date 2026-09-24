@@ -17,12 +17,16 @@ vi.mock('./useSubtitleChrome', () => ({
   useSubtitleChrome: () => ({ rootRef: { current: null }, rootProps: { className: 'subtitle-app', style: {}, onMouseEnter() {}, onMouseMove() {}, onMouseLeave() {} }, resizeHandles: null }),
 }));
 vi.mock('./SubtitleBar', () => ({
-  default: (p: { sessionControl?: unknown; speakerActive: boolean; participantActive: boolean; sourceLanguageCode: string }) =>
+  default: (p: { sessionControl?: unknown; speakerActive: boolean; participantActive: boolean; sourceLanguageCode: string; onExit?: () => void; sessionElapsedMs: number }) =>
     require('react').createElement('div', {
       'data-testid': 'bar',
       'data-control': p.sessionControl ? 'yes' : 'no',
       'data-legs': `${p.speakerActive}/${p.participantActive}`,
       'data-pair': p.sourceLanguageCode,
+      'data-elapsed': String(p.sessionElapsedMs),
+      // Records what SubtitleView hands the bar for exit (I3): clicking the
+      // stub calls whatever it was given.
+      onClick: p.onExit,
     }),
 }));
 vi.mock('../../stores/subtitleStore', () => ({
@@ -47,6 +51,12 @@ const controls = () => ({ exit: vi.fn(), clear: vi.fn(), press: vi.fn(), release
 beforeEach(() => cleanup());
 
 describe('SubtitleView', () => {
+  it('never shows a negative elapsed time when the session arrives after mount', () => {
+    const future = Date.now() + 5000;
+    render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ since: future }) }} controls={controls()} />);
+    expect(Number(screen.getByTestId('bar').dataset.elapsed)).toBe(0);
+  });
+
   it('draws the bands while a run is live', () => {
     const { container } = render(<SubtitleView surface="electron" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} />);
     expect(container.querySelector('.subtitle-stream__line')?.textContent).toBe('Hello.');
@@ -79,7 +89,12 @@ describe('SubtitleView', () => {
     expect(unready.container.querySelector('.subtitle-idle__action--fix')?.textContent).toBe('Download a model first');
     unready.unmount();
     const failed = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'failed', notice: { code: 'start_failed', message: 'socket closed' } } }) }} controls={controls()} />);
-    expect(failed.container.querySelector('.subtitle-idle__error')?.textContent).toBe("Failed to start: The session didn't start: socket closed");
+    expect(failed.container.querySelector('.subtitle-idle__error')?.textContent).toBe('Failed to start: socket closed');
+  });
+
+  it("shows a non-start_failed notice's own words, still wrapped by noticeText", () => {
+    const failed = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'failed', notice: { code: 'leg_closed', message: 'ignored for a code with fixed words' } } }) }} controls={controls()} />);
+    expect(failed.container.querySelector('.subtitle-idle__error')?.textContent).toBe('Failed to start: The provider ended the session.');
   });
 
   it('starts from the idle body on the Electron takeover', () => {
@@ -92,5 +107,18 @@ describe('SubtitleView', () => {
   it('shows the overlay its idle body before the side panel has said anything', () => {
     const { container } = render(<SubtitleView surface="extension-overlay" model={{ entries: [], lit: new Map(), session: null }} controls={controls()} />);
     expect(container.querySelector('.subtitle-idle__message')?.textContent).toBe('Session ended');
+  });
+
+  it("hands the bar's exit button to controls.exit, on both surfaces", () => {
+    const electronActs = controls();
+    render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session() }} controls={electronActs} />);
+    fireEvent.click(screen.getByTestId('bar'));
+    expect(electronActs.exit).toHaveBeenCalledTimes(1);
+
+    cleanup();
+    const overlayActs = controls();
+    render(<SubtitleView surface="extension-overlay" model={{ entries: [], lit: new Map(), session: session() }} controls={overlayActs} />);
+    fireEvent.click(screen.getByTestId('bar'));
+    expect(overlayActs.exit).toHaveBeenCalledTimes(1);
   });
 });
