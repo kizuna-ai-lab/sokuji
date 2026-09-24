@@ -4,9 +4,11 @@
 
 Stage 1 of the spec ("the new spine and one provider, end to end") spans five
 subsystems that can each be built and tested on their own. It is therefore
-five plans — six, since the runner splits from capture and playback (the
+five plans — seven, since the runner splits from capture and playback (the
 runner tests with a fake source and a recording sink; the audio side needs a
-live device) — executed in this order. Each plan leaves the tree green and its
+live device), and playback splits from capture (the passthrough route and
+the echo monitor's reference live in playback's graph, so it comes first) —
+executed in this order. Each plan leaves the tree green and its
 own layer usable; none of them touches the old clients, which keep working
 until plan 1e replaces MainPanel's session path.
 
@@ -15,7 +17,8 @@ until plan 1e replaces MainPanel's session path.
 | **1a — the spine** (`2026-09-23-client-contract-stage1a-spine.md`) | L0 contract types, the fake adapter and its script format, the conformance checker, L1 (`Conversation`), L2 (`project`), the export writer | vitest only: the fake's scripts are the fixtures |
 | **1b — the provider definition** | `Provider<S, K, C>`, the registry, generic settings and credential storage, the credential form, the language section, readiness (`check`), `VITE_ENABLED_PROVIDERS`, the fake as the first registered provider | vitest, plus the settings panel rendered against the fake |
 | **1c-1 — the runner** (`2026-09-24-client-contract-stage1c1-runner.md`) | `sessions.*`, the run and its resource stack, the source and playback ports, the fake source, the turn object, the session hooks, analytics, the global turn mode | vitest with fake sources and the fake adapter; a live fake session in the preview, read but not heard |
-| **1c-2 — capture and playback** | real sources (mic, system, tab) behind the source port; ClipQueue / AudioOut / routing behind the playback port; passthrough, the participant-TTS switch, replay, voice preview; the echo taps | vitest; the preview's fake session heard on a real device |
+| **1c-2 — playback** (`2026-09-24-client-contract-stage1c2-playback.md`) | the clip queue, one Web Audio graph (five feeds, two buses, routes as gain edges), the route table and its two new switches, replay, the preview route and the test tone, the extension's virtual microphone from the virtual bus, the tts tap — behind the playback port | vitest with a recording Web Audio; the preview's fake session heard, checked headlessly by `scripts/dev/spine-audio-probe.mjs` |
+| **1c-3 — capture** | real sources (mic, system audio, tab) behind the source port, device switching and mute inside them, `ended` / `degraded`; the passthrough source into playback's route; the echo monitor on the source taps and playback's tts tap | vitest with fake media; headless Chromium's fake microphone; a live device |
 | **1d — the surfaces** | the panel's conversation list, the Electron subtitle takeover, the extension overlay, export, the idle surfaces, notices | headless Chromium against the fake provider |
 | **1e — LocalInference** | the first real adapter and definition; MainPanel's old session path deleted | a live local session on Electron and the extension |
 
@@ -174,7 +177,7 @@ Plan 1c-1 (the runner) landed as commits `109bd75c..10ef1c81`: ten tasks,
 five fix rounds and a final-review fix wave. Its reviews raised these for
 later plans.
 
-**1c-2 — capture and playback**
+**1c-2 — playback** (all four are plan 1c-2's Task 1)
 - First, a test: "a playback port that throws on audio does not reach the
   adapter" (`src/lib/session/runner.test.ts`) advances the clock only to
   600 ms, before the fake's first audio, so it passes against unguarded code.
@@ -186,6 +189,11 @@ later plans.
 - `PlaybackPort.held` cannot tell push-to-translate from push-to-talk, but
   only push-to-translate closes the original-voice route: pass the mode, or
   call it for push-to-translate only.
+- A refused start still passes through `stopping` and `playback.clear()`,
+  which would stop a replay of the kept conversation: refusals go straight
+  to idle.
+
+**1c-3 — capture**
 - `Source` has no `track`, and each `StartRequest` is built before its source
   opens, so `input` is always empty: add `Source.track?` and build a leg's
   request after `openSource`, for the WebRTC adapters.
@@ -195,11 +203,21 @@ later plans.
 - `appendAudio` throwing escapes into the source's delivery callback (it
   stopped the fake's tick): guard the hot path and report only the ok →
   failing transition.
-- A refused start still passes through `stopping` and `playback.clear()`,
-  which would stop a replay of the kept conversation: refusals go straight
-  to idle.
 - The turn counts voiced time as floating milliseconds; count samples as
   integers once real, irregular chunk sizes arrive.
+- From plan 1c-2: the speaker source's stream goes to
+  `Playback.attachPassthrough` while its leg runs (the route and its ratio
+  already exist); the echo monitor reads the sources' pcm and
+  `Playback.ttsTap` (translated speech, before any route).
+- Four capture stacks exist today and none detects a device loss
+  (`track.onended` appears nowhere; only the app-capture helper's death is
+  noticed): `ModernAudioRecorder` (48 → 24 kHz, RNNoise / GTCRN, a
+  ScriptProcessor fallback that skips both), `WebRTCAudioBridge`,
+  `VoiceCreateModal`'s own ScriptProcessor, and the participant recorders
+  (Electron app / device / loopback capture, the extension's tab capture).
+  The map with line references is
+  `docs/superpowers/notes/2026-09-24-audio-stack-current-state.md`; mute is
+  enforced nowhere in the audio layer.
 
 **1d — the surfaces**
 - `busy` (the responding indicator) and `frame` (the Logs panel) are
@@ -256,3 +274,37 @@ later plans.
 **Stage 2**
 - A `startBoth` rejection is wrapped as `LegOpenError(legs[0])`, naming the
   first leg whichever failed: let the provider name it (Soniox).
+
+## Deferred by plan 1c-2
+
+Plan 1c-2 (playback) leaves these to the plans that first need them. Its
+capture-side items are under "Carried out of plan 1c-1" → 1c-3.
+
+**1d — the surfaces**
+- The footer's output waveform reads `ModernAudioPlayer`'s analyser today
+  (the signal sent to the virtual microphone, before the monitor gain): give
+  the graph an analyser on the virtual bus when the footer moves over.
+- Karaoke reads `QueueView.position()`, which runs on the context's clock;
+  what the user hears lags it by the output element's latency. Measure it
+  and offset, or accept the lag, when karaoke is drawn.
+- A clip key is `${leg}:${ref}:${index}`, the index being the speech entry's
+  position in `Segment.speech`; karaoke maps a key to a segment by leg and
+  ref, and to its range by index.
+- The four voice-preview sites (`VoiceLibrarySection`,
+  `SonioxCloneReviewStep`, `VoiceCreateModal`, `nativeVoiceStores`) fold
+  into `Playback.preview` as each provider's settings component is written
+  (Stage 2); the test tone already moved (`AppAudio.testTone`).
+
+**1e — the switch-over**
+- `ModernAudioPlayer` recovers a wedged `AudioContext` (#246: a `suspended`
+  state that never clears, rebuilt up to three times with the sink and
+  volume re-applied); the new graph only resumes. Port the recovery, or
+  prove it is no longer needed, before the old player is deleted.
+- The speaker leg's `SessionContext.speech` is `!textOnly` today; with
+  routes it can follow them (no speech when neither the meeting nor the
+  monitor hears it). Decide when mapping the old settings.
+- `keepReplayAudio` should take effect during a run (spec: "What may change
+  during a run"): subscribe the runner to it and call
+  `Conversation.setRetention`.
+- `playbackStore` must be loaded before the first start, as
+  `turnModeStore` must.
