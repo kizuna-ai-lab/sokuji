@@ -61,11 +61,17 @@ describe('SpinePreview', () => {
   it('draws the subtitle view on the page with &subtitle=1', async () => {
     const before = window.location.href;
     window.history.replaceState(null, '', '/?preview=spine&subtitle=1');
+    // The electron surface's SubtitleBar renders ChildWindowPopover, which
+    // calls window.open on mount; jsdom has no window.open, and without this
+    // stub it prints "Error: Not implemented: window.open" (harmless, but
+    // noise the component already handles a null return for).
+    const windowOpen = vi.spyOn(window, 'open').mockReturnValue(null);
     try {
       const { container } = render(<SpinePreview />);
       await waitFor(() => expect(container.querySelector('.spine-subtitle .subtitle-app')).not.toBeNull());
     } finally {
       window.history.replaceState(null, '', before);
+      windowOpen.mockRestore();
     }
   });
 });
