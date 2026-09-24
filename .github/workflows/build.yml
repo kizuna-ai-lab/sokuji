@@ -62,6 +62,7 @@ jobs:
           src/lib/projection
           src/lib/export
           src/lib/session
+          src/lib/audio
           src/lib/provider
           src/providers
           src/stores/providerStore.test.ts
