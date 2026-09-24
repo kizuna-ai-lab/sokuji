@@ -13,7 +13,11 @@ import { createSourceCore } from './core';
 
 /** The settings a tab source reads when it opens (and `muted` on every chunk). */
 export interface TabSettings {
-  /** The meeting tab the side panel was opened for; null lets the recorder take the active tab. */
+  /**
+   * The meeting tab the side panel was opened for. Null refuses to open
+   * rather than falling back to whichever tab happens to be active — that
+   * fallback could stream an unrelated tab's audio to the provider.
+   */
   tabId(): number | null;
   /** Where the captured tab is played back, since Chrome mutes it. */
   outputDeviceId(): string | undefined;
@@ -34,6 +38,11 @@ export async function openTab(
   signal: AbortSignal,
   createRecorder: () => TabCapture = () => new TabAudioRecorder(SAMPLE_RATE),
 ): Promise<Source> {
+  const tabId = settings.tabId();
+  // Refused before any recorder is built: `TabAudioRecorder`'s own fallback to the
+  // active tab must never be reached from here (ruling: keep today's refusal).
+  if (tabId === null) throw new Error('No meeting tab is targeted, so audio capture was refused rather than capturing whichever tab is active.');
+
   const recorder = createRecorder();
   let unwatch = () => {};
   let open = false;
@@ -52,7 +61,7 @@ export async function openTab(
     },
   });
 
-  const begun = await recorder.begin({ tabId: settings.tabId() ?? undefined, outputDeviceId: settings.outputDeviceId() });
+  const begun = await recorder.begin({ tabId, outputDeviceId: settings.outputDeviceId() });
   if (!begun) throw new Error('The meeting tab could not be captured. Reload the tab and try again.');
   open = true;
   unwatch = core.watch(recorder.getStream());

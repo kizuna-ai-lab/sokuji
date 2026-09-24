@@ -51,10 +51,13 @@ describe('openTab', () => {
     expect(heard).toHaveBeenCalledTimes(1);
   });
 
-  it("leaves the tab to the recorder's own fallback when the side panel names none", async () => {
+  it('refuses to open when the side panel names no tab, rather than falling back to whichever tab is active', async () => {
     const tab = fakeTab();
-    await openTab(settingsFixture({ tabId: null }).settings, live(), () => tab);
-    expect(tab.begun).toEqual([{ tabId: undefined, outputDeviceId: 'speakers-1' }]);
+    const createRecorder = vi.fn(() => tab);
+    await expect(openTab(settingsFixture({ tabId: null }).settings, live(), createRecorder)).rejects.toThrow();
+    expect(tab.begun).toEqual([]);
+    // No recorder is touched at all: not even built.
+    expect(createRecorder).not.toHaveBeenCalled();
   });
 
   it('rejects when the tab will not be captured', async () => {
