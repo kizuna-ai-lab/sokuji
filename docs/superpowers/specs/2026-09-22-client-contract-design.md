@@ -995,7 +995,7 @@ interface Provider<S, K, C> {
     fields(s: S): CredentialField[]
     read(values: CredentialValues, ctx: AuthContext): K | { missing: string }   // values: exactly fields(s)
   }
-  check(k: K, s: S): Promise<{ ok: true; models?: ModelOption[] } | { ok: false; reason: string }>
+  check(k: K, s: S, { pair, legs, signal }): Promise<{ ok: true; models?: ModelOption[] } | { ok: false; reason: string }>   // legs: those a run would open; signal: aborts with its start
 
   // languages
   languages: {
@@ -1110,11 +1110,11 @@ thing to redact.
 
 ### Readiness is one check
 
-`check(k, s)` answers "can this provider start now" for every kind: a network
-validation for own-key providers, model readiness for local ones (folding in the
-store's two short-circuits to `modelStore` and `nativeModelStore`), a signed-in
-session for managed ones. Its result goes to one generic per-provider readiness
-state.
+`check(k, s, { pair, legs, signal })` answers "can this provider start now" for
+every kind: a network validation for own-key providers, model readiness for
+local ones (folding in the store's two short-circuits to `modelStore` and
+`nativeModelStore`), a signed-in session for managed ones. Its result goes to
+one generic per-provider readiness state.
 
 The store's model auto-select, a switch covering three providers, becomes a pure
 effective-model function inside each provider that offers a model choice: the
@@ -1488,10 +1488,17 @@ session.
   the saved file.
 - **Electron close and update install** treat any phase but `idle` as busy and
   await `stop()`. Today a close during startup is not waited for.
+- **One bound for the whole ending.** An ending that overruns `closeTimeoutMs`
+  is reported and shown idle while its unwind goes on in the background, still
+  the runner's: `abandon()` reaches it, its auto-save saves its own legs, a
+  start meanwhile is refused (`still_stopping`), and `settled()` — what an
+  Electron close awaits — resolves once no ending is in flight or lingering.
 - **`pagehide`** — the extension side panel closing, a reload, the web build —
   closes sockets and captures synchronously and releases a managed lease with a
   `keepalive` request. Auto-save cannot run there, as today; the lease no longer
   leaks until expiry.
+- **`pagehide` calls `abandon()`**: every release on the run's stack starts
+  synchronously, none awaited, and nothing is auto-saved.
 
 ### State
 
