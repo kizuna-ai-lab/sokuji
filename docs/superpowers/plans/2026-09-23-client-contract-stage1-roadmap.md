@@ -574,3 +574,67 @@ The four "decide it" items the sections above leave for 1e:
 - **The speaker leg's speech stays `!textOnly`**: the switch-over does not
   change a setting the user sees; folding text-only into the routes is for
   later. Plan 1e-3.
+
+## Scheduled by plan 1e-1
+
+Plan 1e-1 (the runner's and the audio's loose ends) landed as commits
+`ab1a2c75..c0df5714`: nine tasks, two fix rounds on `abandon()`, and a
+final-review fix wave that amended the plan's ruling 3. It closes these items
+from the sections above: every leg's open awaited before a run unwinds;
+`abandon()` on `pagehide` (every release started synchronously, legs
+finalized, no auto-save, an ending already in flight preempted); one overall
+stop bound; readiness from the run's own shape (`check(k, s, { pair, legs,
+signal })`, the pair and the legs in the cache key, `setPair` / `setLegs`
+resetting readiness, a cancelled check no failure, a run's own check never
+superseded by the panel's); a stop during `checking` or `prepare` no longer
+waits; model loading in the starting state; per-leg `connection_status`;
+every analytics value redacted at the port; failed notices in words
+(`leg_failed` by default, five API error types); `keepReplayAudio` live; the
+replay cleared where the conversation is replaced; passthrough only while the
+run is live (decided); playback resting once quiet, a resume never losing to
+a suspend in flight; an idempotent graph close; a failing output reported once
+per streak; the preview's modules out of the release bundle. The item "a
+failed auto-save becomes state" is closed by plan 1d-3 (the auto-save reports
+and toasts its own failure).
+
+**The overall stop bound, as amended:** an ending that overruns
+`closeTimeoutMs` (15 s) is reported and shown idle; its unwind continues in
+the background, still the runner's — `abandon()` reaches it, its auto-save
+saves its own legs, a start while it lingers is refused (`still_stopping`),
+and `Runner.settled()` resolves once no ending is in flight or lingering.
+
+What it leaves:
+
+**1e-2 — LocalInference**
+- `start()` aborts its model load on the request's signal: otherwise a Stop
+  mid-load goes idle while the load goes on, and the next start loads a
+  second copy.
+- `stop()` terminates its workers before its first `await` (the adapter rule
+  on `AdapterSession.stop`: `pagehide` calls it without awaiting).
+- `check(k, s, ctx)` reads `ctx.pair` and `ctx.legs`: the reverse direction
+  matters only when the participant leg is in `legs`.
+
+**1e-3 — the switch-over**
+- Wire `runner.abandon()` to `pagehide` and `watchLegsFromStores()` at
+  startup; Electron close and update install await `runner.settled()`, not
+  `stop()` alone. `settled()` resolves at once after `abandon()` — an
+  abandoned unwind is no longer waited for — so never call `abandon()` on a
+  path that still means to wait.
+- The microphone's release awaits a pending device switch before it stops the
+  recorder: make it stop capturing first (the rule now written on
+  `Source.stop`).
+- Port the wedged-`AudioContext` recovery (#246) knowing the context now
+  suspends every idle period.
+- Still open from the sections above: the provider choice locked during a run
+  and the sign-in auto-switch; the stores loaded before the first start;
+  `persistIfUnchanged` resetting readiness in the middle of a start; the
+  sources' own analytics; the recorder warm-up measurement; frames into
+  `logStore`; the replay gate while the participant leg captures the whole
+  system (decided).
+- The audio probe checks only what happens before the routes: add a tap on a
+  bus before trusting it for a routing change.
+
+**Stage 2**
+- `RunnerDeps.replayAudio` is not guarded like the other ports; the notice
+  codes (`auth`, `network`, `server`, `client`, …) share one flat namespace
+  with every other code — revisit when a provider's own codes arrive.
