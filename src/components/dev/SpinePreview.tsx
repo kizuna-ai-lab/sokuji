@@ -9,6 +9,8 @@ import { realClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { autoSaveConversation } from '../../lib/export/appAutoSave';
+import { getManifestEntry } from '../../lib/local-inference/modelManifest';
+import { directionKey, emptyDirection, type DirectionSelection } from '../../lib/local-inference/selection/types';
 import type { AuthContext } from '../../lib/provider/types';
 import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from '../../lib/session/appShape';
 import type { AnalyticsPort, PlaybackPort } from '../../lib/session/ports';
@@ -28,6 +30,7 @@ import { FAKE_SCRIPT_NAMES } from '../../providers/fake/scripts';
 import { createFakeSource } from '../../providers/fake/source';
 import { presentProviders } from '../../providers/registry';
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
+import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -298,11 +301,17 @@ export function SpinePreview() {
   bridge.notify = { showToast };
   const providers = useMemo(() => presentProviders(), []);
   // This page's probes run on the fake unless a parameter asks for another
-  // provider (plan 1e-2 ruling 10). ProviderPanel is a child, so its own
-  // mount effect — defaulting to `providers[0]`, LocalInference now that
-  // it's registered first — runs before this one; covering the
-  // `localInference` case too (not just "nothing selected yet") undoes that.
+  // provider (plan 1e-2 ruling 10, `&provider=<id>`). ProviderPanel is a
+  // child, so its own mount effect — defaulting to `providers[0]`,
+  // LocalInference now that it's registered first — runs before this one;
+  // covering the `localInference` case too (not just "nothing selected
+  // yet") undoes that default, and `&provider=` overrides it the other way.
   useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get('provider');
+    if (wanted && providers.some((p) => p.id === wanted)) {
+      useProviderStore.getState().select(wanted);
+      return;
+    }
     const selected = useProviderStore.getState().selected;
     if (selected === null || selected === 'localInference') {
       useProviderStore.getState().select('fake');
@@ -373,7 +382,66 @@ export function SpinePreview() {
     if (params.get('compact') === '1') void useSubtitleStore.getState().setCompactMode(true);
     // `&autosave=1`: the stored auto-save switch, on — the run's end saves the conversation.
     if (params.get('autosave') === '1') void useSettingsStore.getState().setAutoSaveOnStop(true);
-    void runner.start();
+    // `&models=<id>,<id>…` (LocalInference's live probe, task 9): download
+    // each one not already downloaded, then `&pair=<source>:<target>`
+    // through the provider store. A downloaded model alone is not enough to
+    // make LocalInference actually use it: `byRank` ranks a `recommended`
+    // candidate first regardless of download state, and the always-ready
+    // cloud fallbacks (Bing Translator, Edge TTS) are both `recommended` —
+    // so auto-resolution would translate over the network instead of
+    // exercising the WASM model the probe just downloaded. Pinning each
+    // downloaded model as the explicit pick for its own stage, on the
+    // `&pair=` direction, is what makes the download meaningful.
+    const modelsParam = params.get('models');
+    const pairParam = params.get('pair');
+    const ids = modelsParam ? modelsParam.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    void (async () => {
+      if (ids.length > 0) {
+        // `ModelManagementSection` (this provider's own `Engine`) calls this
+        // too on its own mount, racing this effect; `initialize()` is
+        // idempotent (a no-op once `initialized`), and awaiting it here is
+        // what lets "already downloaded" (IndexedDB, from a previous run
+        // against the same profile directory) be trusted below instead of
+        // re-downloading into a `modelStatuses` that just hasn't loaded yet.
+        await useModelStore.getState().initialize();
+        await Promise.all(ids.map(async (id) => {
+          if (useModelStore.getState().modelStatuses[id] === 'downloaded') return;
+          try {
+            await useModelStore.getState().downloadModel(id);
+          } catch (error) {
+            reportError('SpinePreview', `The preview could not download "${id}": ${describeCause(error)}`, { cause: error });
+          }
+        }));
+      }
+      if (pairParam) {
+        const [source, target] = pairParam.split(':');
+        const localInference = providers.find((p) => p.id === 'localInference');
+        // `setPair` throws on an unloaded entry — only reachable once
+        // `ProviderPanel` has loaded it, i.e. `&provider=localInference` was
+        // also given (the probe's own usage).
+        const loaded = localInference && useProviderStore.getState().entries[localInference.id];
+        if (source && target && localInference && loaded) {
+          useProviderStore.getState().setPair(localInference, { source, target });
+          if (ids.length > 0) {
+            const liEntry = useProviderStore.getState().entries[localInference.id];
+            const selections = (liEntry?.settings as { selections?: Record<string, DirectionSelection> } | undefined)?.selections;
+            if (selections) {
+              const dir = directionKey(source, target);
+              const patch: DirectionSelection = { ...(selections[dir] ?? emptyDirection()) };
+              for (const id of ids) {
+                if (useModelStore.getState().modelStatuses[id] !== 'downloaded') continue;
+                const manifestType = getManifestEntry(id)?.type;
+                if (manifestType === 'asr' || manifestType === 'asr-stream') patch.asr = { modelId: id };
+                else if (manifestType === 'translation') patch.translation = { modelId: id };
+                else if (manifestType === 'tts') patch.tts = { modelId: id };
+              }
+              useProviderStore.getState().updateSettings(localInference, { selections: { ...selections, [dir]: patch } });
+            }
+          }
+        }
+      }
+      void runner.start();
+    })();
   }, [entry, audio, runner, providers]);
 
   // The panel's readiness is about the legs a start would open: the audio mode's.

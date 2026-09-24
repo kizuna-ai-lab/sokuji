@@ -59,6 +59,23 @@ describe('SpinePreview', () => {
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();
   });
 
+  // Task 9: `&provider=<id>` picks a provider on load instead of the fake —
+  // the exception the mount effect carves out of ruling 10's default.
+  it('selects the provider named by &provider= instead of the fake', async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, '', '/?preview=spine&provider=localInference');
+    try {
+      render(<SpinePreview />);
+      // This page's i18n mock returns the raw key (no fallback), unlike
+      // LocalInferenceSettings.test.tsx's own mock — `TtsSpeedControl`'s
+      // `aria-label` is `t('settings.ttsSpeed', 'Speech Speed')`.
+      expect(await screen.findByLabelText('settings.ttsSpeed')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Script')).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState(null, '', before);
+    }
+  });
+
   it('offers the test tone once the playback has loaded', async () => {
     render(<SpinePreview />);
     expect(await screen.findByRole('button', { name: 'Test tone' })).toBeInTheDocument();
