@@ -446,4 +446,32 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
       expect(voiceWrites[0][0].edgeTtsVoice).toBe('ja-JP-NanamiNeural');
     });
   });
+
+  // Review fix round 1: `updateLocalInference` must keep one identity across
+  // renders, like the zustand action it replaces (`useUpdateLocalInference`)
+  // — an inline arrow literal would be a fresh function every render, which
+  // this effect's own dependency array would see as "a dep changed", re-
+  // running (and re-writing) on every unrelated re-render. `mockSettings`
+  // never actually gets mutated by the mocked `mockUpdate`, so the voice
+  // stays "invalid" across a re-render — the write must not repeat anyway.
+  it('does not write the auto-selected voice again on a re-render with unchanged inputs', async () => {
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+    mockSettings.edgeTtsVoice = 'en-US-AriaNeural'; // wrong language for target ja
+
+    const { rerender } = render(<ModelManagementSection isSessionActive={false} />);
+
+    await waitFor(() => {
+      const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
+      expect(voiceWrites).toHaveLength(1);
+    });
+
+    // A re-render with unchanged props/inputs (e.g. a parent re-rendering
+    // for an unrelated reason) must not re-trigger the effect.
+    rerender(<ModelManagementSection isSessionActive={false} />);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
+    expect(voiceWrites).toHaveLength(1); // still just the one write, not two
+  });
 });

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { EngineSurface } from '../../components/Settings/engine/EngineSurface';
 import { ModelManagementSection } from '../../components/Settings/sections/ModelManagementSection';
 import { StoragePage } from '../../components/Settings/engine/StoragePage';
@@ -21,7 +22,10 @@ const FALLBACK_PAIR = { source: 'ja', target: 'en' };
  * legs are threaded through (a later plan's gap, not this task's to close).
  */
 export function LocalInferenceEngine({ settings, update, disabled = false, pair = FALLBACK_PAIR }: SettingsProps<LocalInferenceSettings>) {
-  const adapter = useWasmEngineAdapter(disabled, { settings, update, pair });
+  // A fresh object literal every render would defeat useWasmEngineAdapter's
+  // own useMemo (its deps array holds this `override` reference).
+  const override = useMemo(() => ({ settings, update, pair }), [settings, update, pair]);
+  const adapter = useWasmEngineAdapter(disabled, override);
   return (
     <EngineSurface
       adapter={adapter}

@@ -347,8 +347,16 @@ export function ModelManagementSection({
   const legacySettings = useLocalInferenceSettings();
   const legacyUpdate = useUpdateLocalInference();
   const settings: LocalInferenceSettings = settingsProp ?? legacySettings;
-  const updateLocalInference = (patch: Partial<LocalInferenceSettings>) =>
-    (updateProp ? updateProp(patch) : legacyUpdate(patch));
+  // Stable identity, like the zustand action this replaces: an inline arrow
+  // here would be a fresh function every render for every caller — including
+  // the legacy ones, since `updateProp`/`legacyUpdate` don't gate which
+  // branch a plain literal takes — and this sits in the edge-TTS voice
+  // auto-select effect's deps, four lines below the "2026-08-23 freeze"
+  // comment documenting a real incident with this exact field.
+  const updateLocalInference = useCallback(
+    (patch: Partial<LocalInferenceSettings>) => (updateProp ? updateProp(patch) : legacyUpdate(patch)),
+    [updateProp, legacyUpdate],
+  );
   // The forward pair: `pair` when given (the new contract — `S` no longer
   // carries it), else the legacy slice's own fields.
   const forwardSource = pair?.source ?? legacySettings.sourceLanguage;
