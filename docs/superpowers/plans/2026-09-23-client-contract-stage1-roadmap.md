@@ -294,6 +294,17 @@ capture-side items are under "Carried out of plan 1c-1" → 1c-3.
   `SonioxCloneReviewStep`, `VoiceCreateModal`, `nativeVoiceStores`) fold
   into `Playback.preview` as each provider's settings component is written
   (Stage 2); the test tone already moved (`AppAudio.testTone`).
+- There is no `seal` (spec "The clip queue", amended): `position()` is null
+  in a gap between one segment's clips, and some engines leave up to ~2 s
+  between chunks. Decide what karaoke and the playing indicator show in such
+  a gap — from the queue's positions and the segment's `final`, not a timer
+  guessing inside the player.
+- Surfaces should not parse `ClipKey` strings: give them a structured
+  `Playing` (`{ leg, ref, index, t }`) or one parse helper.
+- `participantSpeech` is frozen in the run's shape but live in the route:
+  toggled on mid-run nothing arrives, toggled off the clips still play into
+  a feed with no route (and reach the tts tap). Lock it while a run is on,
+  with the other settings "What may change during a run" does not list.
 
 **1e — the switch-over**
 - `ModernAudioPlayer` recovers a wedged `AudioContext` (#246: a `suspended`
@@ -308,3 +319,37 @@ capture-side items are under "Carried out of plan 1c-1" → 1c-3.
   `Conversation.setRetention`.
 - `routingStore` must be loaded before the first start, as
   `turnModeStore` must.
+- A run replaces the conversation at `opening`, but a replay of the previous
+  conversation keeps playing into it, and refs restart per session, so its
+  clip keys alias the new run's segments: clear the replay where the
+  conversation is replaced (a refused start never gets there, so ruling 8
+  holds).
+- Ruling 4 makes replay, preview and the test tone audible in participant
+  and both modes, where today the mode silences them; with whole-system
+  participant capture, a replay during a run is captured and translated
+  again as "Other". Accept it, or gate replay while the participant leg
+  captures the whole system.
+- Make `AudioGraph.close()` and `Playback.dispose()` idempotent before
+  anything calls `dispose` (a closed `AudioContext` rejects a second
+  `close()`).
+- The extension's virtual microphone now receives the virtual bus as one
+  real-time stream (100 ms messages) instead of faster-than-real-time
+  bursts: before the switch-over, check it in a real Google Meet tab, with
+  passthrough on at a low ratio, for gaps from page-side scheduling jitter.
+- Once built, the page's context renders forever and its two taps post
+  twenty messages a second: suspend it while idle.
+- `scripts/dev/spine-audio-probe.mjs` asserts only what happens before the
+  routes (queue positions, the tts tap), so a routing or sink failure still
+  passes it; a routed-output check needs a tap on a bus.
+
+## Deferred by plan 1c-2 — for 1c-3
+
+- `ttsTap` has one reader and fills to its 30 s cap before anyone reads it:
+  the echo monitor must be its only reader and must drain it when it starts
+  (today's tap is created fresh per capture lifecycle). The development
+  preview's probe also drains it.
+- `attachPassthrough(stream)` plays whatever stream it is handed. Today the
+  meeting hears the processed microphone (after RNNoise / GTCRN); handing
+  over the raw `getUserMedia` stream would drop app-side noise suppression.
+  Decide explicitly; a processed graph's `MediaStreamAudioDestinationNode`
+  stream works across contexts.

@@ -840,26 +840,37 @@ block the first.
 
 ```ts
 ClipQueue
-  append(key, pcm)   // append to a clip, creating it if new; plays in call order
-  seal(key)          // no more audio for this clip
+  enqueue(key, pcm)  // one whole clip; clips play back to back in call order
   clear()            // drop the queue and stop
-  subscribe(cb)      // cb({ key, t }) | cb(null)
+  position()         // { key, t } | null — exact, against the audio clock
+  subscribe(cb)      // called when a clip is enqueued or ends, or the queue clears
 ```
 
-A clip is one speech entry. Sources carrying text (speaker translation,
-participant translation, replay) get a queue; sources without (passthrough,
-preview, test tone) are plain streams into the mix.
+A clip is one speech entry — one `audio` event's pcm, whole when it arrives —
+keyed `${leg}:${ref}:${index}`, `index` being the entry's position in
+`Segment.speech`; replay enqueues a segment's entries under the same keys, so
+karaoke reads live audio and replay alike. Sources carrying text (speaker
+translation, participant translation, replay) get a queue; sources without
+(passthrough, preview, test tone) are plain streams into the mix.
 
-**`seal` is the load-bearing method.** The player cannot distinguish "this item
-finished" from "a gap between chunks" today, so MainPanel reads
-`item.status === 'completed'` to guess and falls back to a 2500 ms debounce
-(`MainPanel.tsx:3806-3821`). With `seal` the player knows. One method removes the
-debounce, the cross-layer dependency, and the class of bug where the guess is
-wrong in either direction.
+**There is no `seal`** (amended by plan 1c-2, ruling 2). An earlier draft had
+`append(key, pcm)` + `seal(key)`, with a clip spanning a segment and `seal`
+telling "this item finished" from "a gap between chunks" — the question MainPanel
+answers today with `item.status === 'completed'` and a 2500 ms debounce
+(`MainPanel.tsx:3806-3821`). But L0 has no "this segment's audio is complete"
+event: `segmentClosed` marks the *text* final, and a local engine's speech for a
+closed segment arrives after it. A clip that is one speech entry is complete by
+construction. The cost moves to L3: `position()` is null in a gap between one
+segment's clips, so what karaoke and the playing indicator show in such a gap is
+a surface decision (plan 1d), made from the queue's positions and the segments'
+`final` — not from a guess inside the player. An adapter that knows when a
+segment's speech ends could one day say so in L0; none needs it yet.
 
 **Position is `{key, t}`, not a ratio.** Each clip is one unit whose start we
 enqueued, so `_cumOffset`, `_maxProgress`, `progressRatio`, `duration` and
 `bufferedTime` are all unnecessary, and the playback wire shrinks accordingly.
+`subscribe` says when to look; `position()` is exact, since a pushed `{key, t}`
+cannot be without a timer.
 
 **Replay is its own queue** — derived, not assumed: it targets the real device
 while the speaker's live translation targets the virtual one. Sharing a queue
@@ -1498,7 +1509,7 @@ auto-saved, and is cleared only by the next Start or by the user. So the two L1
 legs are not the run's: the runner holds **the conversation** — the legs of the
 last run — until the next `start()` replaces it or `clear()` empties it. Export,
 replay, auto-save and the subtitle surfaces read the conversation, never a run.
-`clear()` during a run drops every segment and its pcm, seals the clip queues,
+`clear()` during a run drops every segment and its pcm, clears the clip queues,
 and leaves open segments open with empty text; today's
 `clearConversationVersion` watcher becomes a call to it.
 
