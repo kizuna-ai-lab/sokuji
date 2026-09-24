@@ -35,6 +35,8 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
   /** Degradations raised before anyone listened: the first listener gets them. */
   const held: SourceNotice[] = [];
   let ended = false;
+  /** The reason once ended, for a listener that subscribes after the fact (mirrors `held`). */
+  let endReason: string | null = null;
   let stopping: Promise<void> | null = null;
   const failing = new Set<(pcm: Int16Array) => void>();
 
@@ -43,10 +45,20 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
     return () => { set.delete(listener); };
   };
 
+  /** A notice listener never breaks the source's own sequence, or the call that hands it a held notice. */
+  const guard = (kind: 'ended' | 'degraded', run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      reportError('SourceCore', `A ${kind} listener threw: ${describeCause(error)}`, { cause: error, dedupeKey: `source:${kind}` });
+    }
+  };
+
   const end = (reason: string) => {
     if (ended || stopping) return;
     ended = true;
-    for (const listener of [...endedListeners]) listener(reason);
+    endReason = reason;
+    for (const listener of [...endedListeners]) guard('ended', () => listener(reason));
   };
 
   return {
@@ -57,11 +69,15 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
         failing.delete(listener);
       };
     },
-    onEnded: (listener) => listen(endedListeners, listener),
+    onEnded: (listener) => {
+      const off = listen(endedListeners, listener);
+      if (endReason !== null) guard('ended', () => listener(endReason as string));
+      return off;
+    },
     onDegraded: (listener) => {
       const off = listen(degradedListeners, listener);
       if (!ended && !stopping) {
-        for (const notice of held.splice(0)) listener(notice);
+        for (const notice of held.splice(0)) guard('degraded', () => listener(notice));
       }
       return off;
     },
@@ -86,6 +102,11 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
     watch(stream) {
       const track = stream?.getAudioTracks()[0];
       if (!track) return () => {};
+      // Already gone by the time anyone watched it: nothing will ever fire 'ended'.
+      if (track.readyState === 'ended') {
+        end(TRACK_ENDED);
+        return () => {};
+      }
       const onEnded = () => end(TRACK_ENDED);
       track.addEventListener('ended', onEnded);
       return () => track.removeEventListener('ended', onEnded);
@@ -99,7 +120,7 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
         held.push(notice);
         return;
       }
-      for (const listener of [...degradedListeners]) listener(notice);
+      for (const listener of [...degradedListeners]) guard('degraded', () => listener(notice));
     },
 
     stop() {

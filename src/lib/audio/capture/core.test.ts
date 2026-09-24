@@ -8,8 +8,9 @@ vi.mock('../../diagnostics/report', async (importOriginal) => {
 });
 
 /** A track whose `ended` the test fires, and a stream holding it. */
-function fakeStream() {
+function fakeStream(o: { ended?: boolean } = {}) {
   const track = new EventTarget() as MediaStreamTrack;
+  (track as unknown as { readyState: MediaStreamTrackState }).readyState = o.ended ? 'ended' : 'live';
   const stream = { getAudioTracks: () => [track] } as unknown as MediaStream;
   const end = () => track.dispatchEvent(new Event('ended'));
   return { track, stream, end };
@@ -167,5 +168,66 @@ describe('createSourceCore', () => {
     const heard = vi.fn();
     core.onDegraded(heard);
     expect(heard).not.toHaveBeenCalled();
+  });
+
+  it('ends a source whose track had already ended by the time it was watched', () => {
+    const { core } = setup();
+    const { stream } = fakeStream({ ended: true });
+    core.watch(stream);
+    expect(core.ended).toBe(true);
+  });
+
+  it('hands the end reason to a listener that subscribes after the source has already ended', () => {
+    const { core } = setup();
+    core.end('gone before anyone listened');
+    const ended = vi.fn();
+    core.onEnded(ended);
+    expect(ended).toHaveBeenCalledWith('gone before anyone listened');
+  });
+
+  it('does not call a listener subscribed before the end twice', () => {
+    const { core } = setup();
+    const ended = vi.fn();
+    core.onEnded(ended);
+    core.end('gone');
+    expect(ended).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps notifying degraded listeners when one throws, reporting the throw once', () => {
+    const { core } = setup();
+    reportErrorSpy.mockClear();
+    core.onDegraded(() => { throw new Error('degraded sink broke'); });
+    const heard = vi.fn();
+    core.onDegraded(heard);
+    core.degrade({ code: 'x', message: 'live notice' });
+    expect(heard).toHaveBeenCalledWith({ code: 'x', message: 'live notice' });
+    expect(reportErrorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let a throwing degraded listener escape the held-notice hand-over at subscribe time', () => {
+    const { core } = setup();
+    core.degrade({ code: 'y', message: 'held notice' });
+    reportErrorSpy.mockClear();
+    expect(() => core.onDegraded(() => { throw new Error('held sink broke'); })).not.toThrow();
+    expect(reportErrorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps notifying ended listeners when one throws, reporting the throw once', () => {
+    const { core } = setup();
+    reportErrorSpy.mockClear();
+    core.onEnded(() => { throw new Error('ended sink broke'); });
+    const heard = vi.fn();
+    core.onEnded(heard);
+    expect(() => core.end('gone')).not.toThrow();
+    expect(heard).toHaveBeenCalledWith('gone');
+    expect(reportErrorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let a throwing ended listener escape the held-reason hand-over at subscribe time', () => {
+    const { core } = setup();
+    core.end('gone');
+    reportErrorSpy.mockClear();
+    expect(() => core.onEnded(() => { throw new Error('held sink broke'); })).not.toThrow();
+    expect(reportErrorSpy).toHaveBeenCalledTimes(1);
   });
 });
