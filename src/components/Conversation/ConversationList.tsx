@@ -96,6 +96,9 @@ function RowBubble({ item, upTo, replaying, replaySlot, canReplay, onReplay, com
   const played = upTo === undefined ? 0 : Math.min(text.length, Math.max(0, upTo - row.start - lead));
   const segmentId = row.segmentId;
   const enabled = canReplay(segmentId);
+  // The tint marks only the row that holds the karaoke boundary — not every
+  // row of a segment lit is on, or a row karaoke has already passed.
+  const isPlayingRow = upTo !== undefined && ((upTo >= row.start && upTo < row.end) || (item.endsSegment && upTo >= row.end));
 
   return (
     <div className={`conversation-row source-${leg} ${item.header ? 'with-header' : 'grouped'} ${compact ? 'compact' : 'expanded'}`}>
@@ -110,7 +113,7 @@ function RowBubble({ item, upTo, replaying, replaySlot, canReplay, onReplay, com
           </div>
         </div>
       )}
-      <div className={`row-body ${upTo !== undefined ? 'playing' : ''}`}>
+      <div className={`row-body ${isPlayingRow ? 'playing' : ''}`}>
         {compact && item.header && (
           <span className={`row-role-dot source-${leg}`} role="img" aria-label={scopeName} />
         )}
@@ -152,13 +155,16 @@ function RowBubble({ item, upTo, replaying, replaySlot, canReplay, onReplay, com
 function NoticeBubble({ notice }: { notice: NoticeEntry }) {
   const { t } = useTranslation();
   const warning = notice.severity === 'warning';
+  // A code-less notice with an empty message has no words at all: today's
+  // bubble falls back to the same "Unknown error" rather than an empty line.
+  const words = noticeText(t, notice) || t('mainPanel.unknownError', 'Unknown error');
   return (
     <div className={`message-bubble error${warning ? ' warning' : ''}`}>
       <div className="message-header">
         <AlertCircle size={12} />
         {warning ? t('mainPanel.warning', 'Warning') : t('mainPanel.error', 'Error')}
       </div>
-      <div className="message-content error-content">{noticeText(t, notice)}</div>
+      <div className="message-content error-content">{words}</div>
     </div>
   );
 }

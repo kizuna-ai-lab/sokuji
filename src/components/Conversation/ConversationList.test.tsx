@@ -62,6 +62,26 @@ describe('ConversationList — rows', () => {
     expect(container.querySelector('.row-body.playing')).not.toBeNull();
   });
 
+  it("tints only the row that holds the karaoke boundary, not every row of a multi-row segment", () => {
+    const items: DisplayItem[] = [
+      rowItem({ row: row({ key: 's:speaker:1:0', segmentId: 's:speaker:1', start: 0, end: 4, text: 'One.' }), header: true, endsSegment: false }),
+      rowItem({ row: row({ key: 's:speaker:1:1', segmentId: 's:speaker:1', start: 4, end: 9, text: ' Two.' }), header: false, endsSegment: true }),
+    ];
+    const { container } = render(<ConversationList {...props({ items, lit: new Map([['s:speaker:1', 6]]) })} />);
+    const bodies = [...container.querySelectorAll('.row-body')];
+    expect(bodies).toHaveLength(2);
+    expect(bodies[0].classList.contains('playing')).toBe(false);
+    expect(bodies[1].classList.contains('playing')).toBe(true);
+    // The whole first row is still lit; karaoke has passed it.
+    expect(bodies[0].querySelector('.karaoke-played')?.textContent).toBe('One.');
+  });
+
+  it("tints a segment's last drawn row once karaoke has passed its end", () => {
+    const item = rowItem({ row: row({ key: 's:speaker:1:0', segmentId: 's:speaker:1', start: 0, end: 4, text: 'One.' }), endsSegment: true });
+    const { container } = render(<ConversationList {...props({ items: [item], lit: new Map([['s:speaker:1', 9]]) })} />);
+    expect(container.querySelector('.row-body.playing')).not.toBeNull();
+  });
+
   it('trims a row for display and keeps karaoke on the trimmed text', () => {
     const item = rowItem({ row: row({ key: 's:speaker:1:1', segmentId: 's:speaker:1', side: 'source', start: 4, end: 9, text: ' Two.' }) });
     const { container } = render(<ConversationList {...props({ items: [item], lit: new Map([['s:speaker:1', 6]]) })} />);
@@ -119,6 +139,12 @@ describe('ConversationList — notices and the empty state', () => {
     expect(container.querySelector('.message-bubble.error.warning')).toBeNull();
     expect(container.querySelector('.message-header')?.textContent).toBe('Error');
     expect(container.querySelector('.message-content')?.textContent).toBe('gone');
+  });
+
+  it("falls back to today's Unknown error for a code-less notice with an empty message", () => {
+    const notice: DisplayItem = { kind: 'notice', notice: { kind: 'notice', id: 'n', leg: 'speaker', severity: 'error', message: '', at: 0 } };
+    const { container } = render(<ConversationList {...props({ items: [notice] })} />);
+    expect(container.querySelector('.message-content')?.textContent).toBe('Unknown error');
   });
 
   it('shows the empty state when there is nothing to draw', () => {
