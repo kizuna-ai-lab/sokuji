@@ -94,6 +94,42 @@ describe('the subtitle wire', () => {
     expect(received.get().session).toEqual(session);
   });
 
+  it('ignores a subtitle:session message with no session, or one whose session has no string phase', () => {
+    const { panel, received } = setup();
+    panel.post({ type: 'subtitle:session' });
+    expect(received.get().session).toEqual(session);
+    panel.post({ type: 'subtitle:session', session: { since: 1 } });
+    expect(received.get().session).toEqual(session);
+    panel.post({ type: 'subtitle:session', session: { phase: 3 } });
+    expect(received.get().session).toEqual(session);
+  });
+
+  it('ignores a subtitle:entries message whose entries is not an array', () => {
+    const { panel, received } = setup();
+    panel.post({ type: 'subtitle:entries', entries: 'nope' });
+    expect(received.get().entries).toEqual([notice(1)]);
+  });
+
+  it('reports a failing send once per streak, and again after a successful post', () => {
+    reportErrorSpy.mockClear();
+    let throwing = true;
+    const broken: WirePort = {
+      post: () => { if (throwing) throw new Error('port closed'); },
+      onMessage: () => () => {},
+      onDisconnect: () => () => {},
+      close: () => {},
+    };
+    const received = receiveSubtitles(broken);
+    received.send({ type: 'subtitle:turn-press' });
+    received.send({ type: 'subtitle:turn-press' });
+    expect(reportErrorSpy).toHaveBeenCalledTimes(1);
+    throwing = false;
+    received.send({ type: 'subtitle:turn-press' });
+    throwing = true;
+    received.send({ type: 'subtitle:turn-press' });
+    expect(reportErrorSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('stops publishing when the overlay disconnects', () => {
     const { overlay, sources, received } = setup();
     overlay.disconnect();

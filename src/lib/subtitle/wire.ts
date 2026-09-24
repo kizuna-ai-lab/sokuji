@@ -138,6 +138,10 @@ const NOTHING: OverlayModel = { entries: [], session: null, lit: new Map() };
 export function receiveSubtitles(port: WirePort): Readable<OverlayModel> & { send(message: ToPanel): void; dispose(): void } {
   let model = NOTHING;
   const listeners = new Set<() => void>();
+  // A control the user presses/releases/clears/exits repeatedly is a
+  // per-message path: report a broken port once per failing streak, not once
+  // per press, and let a later failure report again once a post succeeds.
+  let sendFailing = false;
   const set = (next: OverlayModel) => {
     model = next;
     for (const listener of listeners) {
@@ -154,9 +158,13 @@ export function receiveSubtitles(port: WirePort): Readable<OverlayModel> & { sen
       case 'subtitle:entries':
         if (Array.isArray((m as { entries?: unknown }).entries)) set({ ...model, entries: (m as Extract<ToOverlay, { type: 'subtitle:entries' }>).entries });
         return;
-      case 'subtitle:session':
-        set({ ...model, session: (m as Extract<ToOverlay, { type: 'subtitle:session' }>).session });
+      case 'subtitle:session': {
+        const session = (m as { session?: unknown }).session;
+        if (typeof session === 'object' && session !== null && typeof (session as { phase?: unknown }).phase === 'string') {
+          set({ ...model, session: session as SubtitleSession });
+        }
         return;
+      }
       case 'subtitle:karaoke':
         if (Array.isArray((m as { lit?: unknown }).lit)) set({ ...model, lit: new Map((m as Extract<ToOverlay, { type: 'subtitle:karaoke' }>).lit) });
         return;
@@ -174,8 +182,12 @@ export function receiveSubtitles(port: WirePort): Readable<OverlayModel> & { sen
       if (!TO_PANEL.has(message.type)) return;
       try {
         port.post(message);
+        sendFailing = false;
       } catch (error) {
-        reportError('SubtitleWire', `The side panel's port did not take a control: ${describeCause(error)}`, { cause: error, dedupeKey: 'subtitle-wire-send' });
+        if (!sendFailing) {
+          reportError('SubtitleWire', `The side panel's port did not take a control: ${describeCause(error)}`, { cause: error, dedupeKey: 'subtitle-wire-send' });
+        }
+        sendFailing = true;
       }
     },
     dispose() {
