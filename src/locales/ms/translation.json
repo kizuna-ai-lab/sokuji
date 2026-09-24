@@ -564,6 +564,7 @@
     "typeMessage": "Teks untuk diterjemah...",
     "send": "Hantar",
     "error": "Ralat",
+    "warning": "Amaran",
     "unknownError": "Ralat tidak diketahui",
     "insufficientBalance": "Baki tidak mencukupi: {{balance}}",
     "walletFrozen": "Dompet dibekukan. Sila hubungi sokongan.",
@@ -1272,5 +1273,30 @@
         "content": "Tetapan lanjutan — pengesanan pertuturan, gesaan, suara, log — berada di sebalik suis Lanjutan di penjuru kanan atas Tetapan. Main semula panduan ini bila-bila masa daripada Bantuan."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Pilih penyedia dalam tetapan sebelum bermula.",
+    "no_legs": "Pilih apa yang hendak diterjemahkan sebelum bermula.",
+    "turn_mode_unsupported": "Penyedia ini tidak menawarkan mod bertutur yang dipilih.",
+    "participant_source_unavailable": "Menterjemah pihak lain tidak tersedia di sini.",
+    "participant_unsupported": "Penyedia ini tidak dapat menterjemah pihak lain untuk pasangan bahasa ini.",
+    "credentials_missing": "Masukkan kunci API anda dalam tetapan sebelum bermula.",
+    "not_ready": "Penyedia belum sedia: {{detail}}",
+    "build_refused": "Penyedia tidak dapat bermula dengan tetapan ini: {{detail}}",
+    "admit_refused": "Penyedia tidak dapat menjalankan kombinasi ini: {{detail}}",
+    "start_failed": "Sesi tidak bermula: {{detail}}",
+    "leg_failed": "Sesi terhenti: {{detail}}",
+    "leg_closed": "Penyedia menamatkan sesi.",
+    "source_ended": "Sumber audio hilang (dicabut, ditutup atau dihentikan).",
+    "app_capture_lost_using_system_audio": "Tangkapan aplikasi terhenti, jadi semua audio sistem kini diterjemahkan.",
+    "app_capture_monitor_missing": "Tangkapan aplikasi tidak bermula, jadi semua audio sistem kini diterjemahkan.",
+    "parse_error": "Mesej daripada penyedia tidak dapat dibaca; sesi diteruskan.",
+    "cleanup_failed": "Satu langkah semasa menutup sesi gagal.",
+    "input_pipeline_failed": "Tangkapan audio berhenti berfungsi; tiada lagi yang akan diterjemahkan.",
+    "tts_degraded": "Main balik suara merosot; teks terjemahan terus tiba.",
+    "resume_attempt_failed": "Penyambungan semula gagal; mencuba lagi.",
+    "send_dropped": "Sebahagian audio atau teks tidak dapat dihantar dan telah dibuang.",
+    "voice_fallback": "Suara yang dipilih tidak tersedia, jadi suara lain digunakan.",
+    "lease_notify_failed": "Perkhidmatan tidak dapat dimaklumkan tentang status sesi."
   }
 }

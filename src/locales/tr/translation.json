@@ -564,6 +564,7 @@
     "typeMessage": "Çevrilecek metin...",
     "send": "Gönder",
     "error": "Hata",
+    "warning": "Uyarı",
     "unknownError": "Bilinmeyen hata",
     "insufficientBalance": "Yetersiz bakiye: {{balance}}",
     "walletFrozen": "Cüzdan donduruldu. Lütfen destek ile iletişime geçin.",
@@ -1272,5 +1273,30 @@
         "content": "Gelişmiş ayarlar — konuşma algılama, prompt'lar, sesler, günlükler — Ayarlar'ın sağ üstündeki Gelişmiş anahtarının arkasında bulunur. Bu rehberi istediğiniz zaman Yardım'dan tekrar oynatabilirsiniz."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Başlamadan önce ayarlarda bir sağlayıcı seçin.",
+    "no_legs": "Başlamadan önce ne çevrileceğini seçin.",
+    "turn_mode_unsupported": "Bu sağlayıcı seçilen konuşma modunu sunmuyor.",
+    "participant_source_unavailable": "Karşı tarafı çevirmek burada mevcut değil.",
+    "participant_unsupported": "Bu sağlayıcı, bu dil çifti için karşı tarafı çeviremez.",
+    "credentials_missing": "Başlamadan önce API anahtarınızı ayarlarda girin.",
+    "not_ready": "Sağlayıcı hazır değil: {{detail}}",
+    "build_refused": "Sağlayıcı bu ayarlarla başlatılamıyor: {{detail}}",
+    "admit_refused": "Sağlayıcı bu kombinasyonu çalıştıramıyor: {{detail}}",
+    "start_failed": "Oturum başlamadı: {{detail}}",
+    "leg_failed": "Oturum durdu: {{detail}}",
+    "leg_closed": "Sağlayıcı oturumu sonlandırdı.",
+    "source_ended": "Ses kaynağı ortadan kayboldu (bağlantısı kesildi, kapatıldı veya durduruldu).",
+    "app_capture_lost_using_system_audio": "Uygulama yakalaması durdu, bu yüzden artık tüm sistem sesi çevriliyor.",
+    "app_capture_monitor_missing": "Uygulama yakalaması başlamadı, bu yüzden artık tüm sistem sesi çevriliyor.",
+    "parse_error": "Sağlayıcıdan gelen bir mesaj okunamadı; oturum devam ediyor.",
+    "cleanup_failed": "Oturumu kapatma adımlarından biri başarısız oldu.",
+    "input_pipeline_failed": "Ses yakalama çalışmayı durdurdu; artık hiçbir şey çevrilmeyecek.",
+    "tts_degraded": "Konuşma oynatma düşük kalitede; çevrilen metin gelmeye devam ediyor.",
+    "resume_attempt_failed": "Yeniden bağlanma başarısız oldu; tekrar deneniyor.",
+    "send_dropped": "Bazı ses veya metinler gönderilemedi ve atıldı.",
+    "voice_fallback": "Seçilen ses kullanılamadı, bu yüzden başka bir ses kullanılıyor.",
+    "lease_notify_failed": "Hizmete oturumun durumu bildirilemedi."
   }
 }

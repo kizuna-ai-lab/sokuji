@@ -564,6 +564,7 @@
     "typeMessage": "Text att översätta...",
     "send": "Skicka",
     "error": "Fel",
+    "warning": "Varning",
     "unknownError": "Okänt fel",
     "insufficientBalance": "Otillräckligt saldo: {{balance}}",
     "walletFrozen": "Plånboken är frusen. Kontakta supporten.",
@@ -1272,5 +1273,30 @@
         "content": "Avancerade inställningar — taldetektering, promptar, röster, loggar — finns bakom reglaget Avancerat uppe till höger i Inställningar. Spela upp den här guiden igen när som helst från Hjälp."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Välj en leverantör i inställningarna innan du startar.",
+    "no_legs": "Välj vad som ska översättas innan du startar.",
+    "turn_mode_unsupported": "Den här leverantören erbjuder inte det valda samtalsläget.",
+    "participant_source_unavailable": "Att översätta den andra är inte tillgängligt här.",
+    "participant_unsupported": "Den här leverantören kan inte översätta den andra för det här språkparet.",
+    "credentials_missing": "Ange din API-nyckel i inställningarna innan du startar.",
+    "not_ready": "Leverantören är inte redo: {{detail}}",
+    "build_refused": "Leverantören kan inte starta med dessa inställningar: {{detail}}",
+    "admit_refused": "Leverantören kan inte köra den här kombinationen: {{detail}}",
+    "start_failed": "Sessionen startade inte: {{detail}}",
+    "leg_failed": "Sessionen avbröts: {{detail}}",
+    "leg_closed": "Leverantören avslutade sessionen.",
+    "source_ended": "Ljudkällan försvann (bortkopplad, stängd eller stoppad).",
+    "app_capture_lost_using_system_audio": "Appinsamlingen stoppades, så nu översätts allt systemljud i stället.",
+    "app_capture_monitor_missing": "Appinsamlingen startade inte, så nu översätts allt systemljud i stället.",
+    "parse_error": "Ett meddelande från leverantören kunde inte läsas; sessionen fortsätter.",
+    "cleanup_failed": "Ett steg vid avslutning av sessionen misslyckades.",
+    "input_pipeline_failed": "Ljudinspelningen slutade fungera; inget mer kommer att översättas.",
+    "tts_degraded": "Röstuppspelningen är försämrad; den översatta texten fortsätter att komma.",
+    "resume_attempt_failed": "Återanslutningen misslyckades; försöker igen.",
+    "send_dropped": "En del ljud eller text kunde inte skickas och kasserades.",
+    "voice_fallback": "Den valda rösten var inte tillgänglig, så en annan röst används.",
+    "lease_notify_failed": "Tjänsten kunde inte informeras om sessionens status."
   }
 }

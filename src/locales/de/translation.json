@@ -564,6 +564,7 @@
     "typeMessage": "Text zum Übersetzen...",
     "send": "Senden",
     "error": "Fehler",
+    "warning": "Warnung",
     "unknownError": "Unbekannter Fehler",
     "insufficientBalance": "Unzureichendes Guthaben: {{balance}}",
     "walletFrozen": "Wallet ist eingefroren. Bitte kontaktieren Sie den Support.",
@@ -1272,5 +1273,30 @@
         "content": "Erweiterte Einstellungen — Sprachverarbeitung, Systemanweisungen, Stimmen, Protokolle — befinden sich hinter dem Schalter \"Erweitert\" oben rechts in den Einstellungen. Wiederholen Sie diese Anleitung jederzeit über Hilfe."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Wählen Sie vor dem Start einen Anbieter in den Einstellungen.",
+    "no_legs": "Wählen Sie vor dem Start aus, was übersetzt werden soll.",
+    "turn_mode_unsupported": "Dieser Anbieter bietet den gewählten Sprechmodus nicht an.",
+    "participant_source_unavailable": "Die Übersetzung des Gegenübers ist hier nicht verfügbar.",
+    "participant_unsupported": "Dieser Anbieter kann für dieses Sprachpaar keine Übersetzung des Gegenübers durchführen.",
+    "credentials_missing": "Geben Sie vor dem Start Ihren API-Schlüssel in den Einstellungen ein.",
+    "not_ready": "Der Anbieter ist nicht bereit: {{detail}}",
+    "build_refused": "Der Anbieter kann mit diesen Einstellungen nicht gestartet werden: {{detail}}",
+    "admit_refused": "Der Anbieter kann diese Kombination nicht verarbeiten: {{detail}}",
+    "start_failed": "Die Sitzung konnte nicht gestartet werden: {{detail}}",
+    "leg_failed": "Die Sitzung wurde beendet: {{detail}}",
+    "leg_closed": "Der Anbieter hat die Sitzung beendet.",
+    "source_ended": "Die Audioquelle ist nicht mehr verfügbar (getrennt, geschlossen oder gestoppt).",
+    "app_capture_lost_using_system_audio": "Die App-Erfassung wurde beendet, daher wird stattdessen das gesamte Systemaudio übersetzt.",
+    "app_capture_monitor_missing": "Die App-Erfassung konnte nicht gestartet werden, daher wird stattdessen das gesamte Systemaudio übersetzt.",
+    "parse_error": "Eine Nachricht des Anbieters konnte nicht gelesen werden; die Sitzung wird fortgesetzt.",
+    "cleanup_failed": "Ein Schritt beim Beenden der Sitzung ist fehlgeschlagen.",
+    "input_pipeline_failed": "Die Audioaufnahme hat aufgehört zu funktionieren; es wird nichts weiter übersetzt.",
+    "tts_degraded": "Die Sprachwiedergabe ist beeinträchtigt; der übersetzte Text wird weiterhin geliefert.",
+    "resume_attempt_failed": "Die Wiederverbindung ist fehlgeschlagen; ein neuer Versuch folgt.",
+    "send_dropped": "Einiges an Audio oder Text konnte nicht gesendet werden und wurde verworfen.",
+    "voice_fallback": "Die gewählte Stimme war nicht verfügbar, daher wird eine andere Stimme verwendet.",
+    "lease_notify_failed": "Der Dienst konnte nicht über den Sitzungsstatus informiert werden."
   }
 }

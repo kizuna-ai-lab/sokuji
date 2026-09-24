@@ -564,6 +564,7 @@
     "typeMessage": "Texte à traduire...",
     "send": "Envoyer",
     "error": "Erreur",
+    "warning": "Avertissement",
     "unknownError": "Erreur inconnue",
     "insufficientBalance": "Solde insuffisant : {{balance}}",
     "walletFrozen": "Portefeuille gelé. Veuillez contacter le support.",
@@ -1272,5 +1273,30 @@
         "content": "Les paramètres avancés — détection de la parole, prompts, voix, journaux — se trouvent derrière le bouton Avancé, en haut à droite des Paramètres. Rejouez ce guide à tout moment depuis Aide."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Choisissez un fournisseur dans les paramètres avant de démarrer.",
+    "no_legs": "Choisissez ce qu'il faut traduire avant de démarrer.",
+    "turn_mode_unsupported": "Ce fournisseur ne propose pas le mode de parole choisi.",
+    "participant_source_unavailable": "La traduction de l'autre n'est pas disponible ici.",
+    "participant_unsupported": "Ce fournisseur ne peut pas traduire l'autre pour cette paire de langues.",
+    "credentials_missing": "Saisissez votre clé API dans les paramètres avant de démarrer.",
+    "not_ready": "Le fournisseur n'est pas prêt : {{detail}}",
+    "build_refused": "Le fournisseur ne peut pas démarrer avec ces paramètres : {{detail}}",
+    "admit_refused": "Le fournisseur ne peut pas gérer cette combinaison : {{detail}}",
+    "start_failed": "La session n'a pas démarré : {{detail}}",
+    "leg_failed": "La session s'est arrêtée : {{detail}}",
+    "leg_closed": "Le fournisseur a mis fin à la session.",
+    "source_ended": "La source audio a disparu (débranchée, fermée ou arrêtée).",
+    "app_capture_lost_using_system_audio": "La capture de l'application s'est arrêtée ; tout l'audio du système est donc traduit à la place.",
+    "app_capture_monitor_missing": "La capture de l'application n'a pas démarré ; tout l'audio du système est donc traduit à la place.",
+    "parse_error": "Un message du fournisseur n'a pas pu être lu ; la session continue.",
+    "cleanup_failed": "Une étape de fermeture de la session a échoué.",
+    "input_pipeline_failed": "La capture audio a cessé de fonctionner ; plus rien ne sera traduit.",
+    "tts_degraded": "La lecture vocale est dégradée ; le texte traduit continue d'arriver.",
+    "resume_attempt_failed": "La reconnexion a échoué ; nouvelle tentative en cours.",
+    "send_dropped": "De l'audio ou du texte n'a pas pu être envoyé et a été abandonné.",
+    "voice_fallback": "La voix choisie n'était pas disponible, une autre voix est donc utilisée.",
+    "lease_notify_failed": "Le service n'a pas pu être informé de l'état de la session."
   }
 }

@@ -564,6 +564,7 @@
     "typeMessage": "Texto a traducir...",
     "send": "Enviar",
     "error": "Error",
+    "warning": "Advertencia",
     "unknownError": "Error desconocido",
     "insufficientBalance": "Saldo insuficiente: {{balance}}",
     "walletFrozen": "Billetera congelada. Contacte con soporte.",
@@ -1272,5 +1273,30 @@
         "content": "Los ajustes avanzados — detección de voz, prompts, voces, registros — están detrás del interruptor Avanzado, arriba a la derecha de Configuración. Puedes repetir esta guía cuando quieras desde Ayuda."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Elige un proveedor en la configuración antes de empezar.",
+    "no_legs": "Elige qué traducir antes de empezar.",
+    "turn_mode_unsupported": "Este proveedor no ofrece el modo de conversación elegido.",
+    "participant_source_unavailable": "Traducir al otro no está disponible aquí.",
+    "participant_unsupported": "Este proveedor no puede traducir al otro para este par de idiomas.",
+    "credentials_missing": "Introduce tu clave API en la configuración antes de empezar.",
+    "not_ready": "El proveedor no está listo: {{detail}}",
+    "build_refused": "El proveedor no puede iniciarse con esta configuración: {{detail}}",
+    "admit_refused": "El proveedor no puede ejecutar esta combinación: {{detail}}",
+    "start_failed": "La sesión no se inició: {{detail}}",
+    "leg_failed": "La sesión se detuvo: {{detail}}",
+    "leg_closed": "El proveedor finalizó la sesión.",
+    "source_ended": "La fuente de audio desapareció (desconectada, cerrada o detenida).",
+    "app_capture_lost_using_system_audio": "La captura de la aplicación se detuvo, por lo que ahora se traduce todo el audio del sistema.",
+    "app_capture_monitor_missing": "La captura de la aplicación no se inició, por lo que ahora se traduce todo el audio del sistema.",
+    "parse_error": "No se pudo leer un mensaje del proveedor; la sesión continúa.",
+    "cleanup_failed": "Un paso al cerrar la sesión falló.",
+    "input_pipeline_failed": "La captura de audio dejó de funcionar; no se traducirá nada más.",
+    "tts_degraded": "La reproducción de voz está degradada; el texto traducido sigue llegando.",
+    "resume_attempt_failed": "La reconexión falló; reintentando.",
+    "send_dropped": "Parte del audio o texto no pudo enviarse y se descartó.",
+    "voice_fallback": "La voz elegida no estaba disponible, así que se usa otra voz.",
+    "lease_notify_failed": "No se pudo informar al servicio del estado de la sesión."
   }
 }

@@ -564,6 +564,7 @@
     "typeMessage": "Testo da tradurre...",
     "send": "Invia",
     "error": "Errore",
+    "warning": "Avviso",
     "unknownError": "Errore sconosciuto",
     "insufficientBalance": "Saldo insufficiente: {{balance}}",
     "walletFrozen": "Portafoglio congelato. Contatta il supporto.",
@@ -1272,5 +1273,30 @@
         "content": "Le impostazioni avanzate — rilevamento vocale, prompt, voci, log — si trovano dietro l'interruttore Avanzato in alto a destra in Impostazioni. Rivedi questa guida in qualsiasi momento da Aiuto."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Scegli un fornitore nelle impostazioni prima di iniziare.",
+    "no_legs": "Scegli cosa tradurre prima di iniziare.",
+    "turn_mode_unsupported": "Questo fornitore non offre la modalità di conversazione scelta.",
+    "participant_source_unavailable": "Tradurre l'altro non è disponibile qui.",
+    "participant_unsupported": "Questo fornitore non può tradurre l'altro per questa coppia di lingue.",
+    "credentials_missing": "Inserisci la tua chiave API nelle impostazioni prima di iniziare.",
+    "not_ready": "Il fornitore non è pronto: {{detail}}",
+    "build_refused": "Il fornitore non può avviarsi con queste impostazioni: {{detail}}",
+    "admit_refused": "Il fornitore non può gestire questa combinazione: {{detail}}",
+    "start_failed": "La sessione non è partita: {{detail}}",
+    "leg_failed": "La sessione si è interrotta: {{detail}}",
+    "leg_closed": "Il fornitore ha terminato la sessione.",
+    "source_ended": "La sorgente audio è scomparsa (scollegata, chiusa o interrotta).",
+    "app_capture_lost_using_system_audio": "La cattura dell'app si è interrotta, quindi ora viene tradotto tutto l'audio di sistema.",
+    "app_capture_monitor_missing": "La cattura dell'app non è partita, quindi ora viene tradotto tutto l'audio di sistema.",
+    "parse_error": "Un messaggio del fornitore non è stato leggibile; la sessione continua.",
+    "cleanup_failed": "Un passaggio della chiusura della sessione non è riuscito.",
+    "input_pipeline_failed": "La cattura audio ha smesso di funzionare; non verrà tradotto altro.",
+    "tts_degraded": "La riproduzione vocale è degradata; il testo tradotto continua ad arrivare.",
+    "resume_attempt_failed": "La riconnessione non è riuscita; nuovo tentativo in corso.",
+    "send_dropped": "Una parte dell'audio o del testo non è stata inviata ed è stata scartata.",
+    "voice_fallback": "La voce scelta non era disponibile, quindi viene usata un'altra voce.",
+    "lease_notify_failed": "Non è stato possibile comunicare al servizio lo stato della sessione."
   }
 }

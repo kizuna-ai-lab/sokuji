@@ -564,6 +564,7 @@
     "typeMessage": "輸入要翻譯的文字...",
     "send": "發送",
     "error": "錯誤",
+    "warning": "警告",
     "unknownError": "未知錯誤",
     "insufficientBalance": "餘額不足：{{balance}}",
     "walletFrozen": "錢包已凍結。請聯繫客服。",
@@ -1272,5 +1273,30 @@
         "content": "進階設定 — 語音偵測、提示詞、語音、日誌 — 都在「設定」右上角的「進階」開關後面。隨時可以在「說明」中重看本導覽。"
       }
     }
+  },
+  "notices": {
+    "no_provider": "開始前請在設定中選擇提供商。",
+    "no_legs": "開始前請選擇要翻譯的內容。",
+    "turn_mode_unsupported": "此提供商不支援所選的通話模式。",
+    "participant_source_unavailable": "此處無法翻譯對方。",
+    "participant_unsupported": "此提供商無法為此語言對翻譯對方。",
+    "credentials_missing": "開始前請在設定中輸入您的API金鑰。",
+    "not_ready": "提供商尚未就緒：{{detail}}",
+    "build_refused": "提供商無法以這些設定啟動：{{detail}}",
+    "admit_refused": "提供商無法執行此組合：{{detail}}",
+    "start_failed": "工作階段未能啟動：{{detail}}",
+    "leg_failed": "工作階段已停止：{{detail}}",
+    "leg_closed": "提供商已結束工作階段。",
+    "source_ended": "音訊來源已消失（已拔除、關閉或停止）。",
+    "app_capture_lost_using_system_audio": "應用程式擷取已停止，現在改為翻譯整個系統的聲音。",
+    "app_capture_monitor_missing": "應用程式擷取未能啟動，現在改為翻譯整個系統的聲音。",
+    "parse_error": "無法讀取來自提供商的訊息；工作階段將繼續。",
+    "cleanup_failed": "結束工作階段時的某個步驟失敗。",
+    "input_pipeline_failed": "音訊擷取已停止運作；此後將不再翻譯任何內容。",
+    "tts_degraded": "語音播放已降級；翻譯文字仍會正常送達。",
+    "resume_attempt_failed": "重新連線失敗，正在重試。",
+    "send_dropped": "部分音訊或文字未能傳送，已被捨棄。",
+    "voice_fallback": "所選語音不可用，已改用另一個語音。",
+    "lease_notify_failed": "無法將工作階段狀態告知服務。"
   }
 }

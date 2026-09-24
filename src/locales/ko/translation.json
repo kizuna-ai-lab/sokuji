@@ -564,6 +564,7 @@
     "typeMessage": "번역할 텍스트...",
     "send": "전송",
     "error": "오류",
+    "warning": "경고",
     "unknownError": "알 수 없는 오류",
     "insufficientBalance": "잔액 부족: {{balance}}",
     "walletFrozen": "지갑이 동결되었습니다. 고객 지원에 문의하세요.",
@@ -1272,5 +1273,30 @@
         "content": "음성 감지, 프롬프트, 음성, 로그 등 고급 설정은 설정 화면 오른쪽 위의 고급 토글 뒤에 있습니다. 이 가이드는 도움말에서 언제든 다시 볼 수 있습니다."
       }
     }
+  },
+  "notices": {
+    "no_provider": "시작하기 전에 설정에서 제공자를 선택하세요.",
+    "no_legs": "시작하기 전에 번역할 대상을 선택하세요.",
+    "turn_mode_unsupported": "이 제공자는 선택한 대화 모드를 지원하지 않습니다.",
+    "participant_source_unavailable": "여기서는 상대방 번역을 사용할 수 없습니다.",
+    "participant_unsupported": "이 제공자는 이 언어 쌍에 대해 상대방을 번역할 수 없습니다.",
+    "credentials_missing": "시작하기 전에 설정에서 API 키를 입력하세요.",
+    "not_ready": "제공자가 준비되지 않았습니다: {{detail}}",
+    "build_refused": "이 설정으로는 제공자를 시작할 수 없습니다: {{detail}}",
+    "admit_refused": "제공자가 이 조합을 실행할 수 없습니다: {{detail}}",
+    "start_failed": "세션이 시작되지 않았습니다: {{detail}}",
+    "leg_failed": "세션이 중단되었습니다: {{detail}}",
+    "leg_closed": "제공자가 세션을 종료했습니다.",
+    "source_ended": "오디오 소스가 사라졌습니다(연결 해제, 종료 또는 중지됨).",
+    "app_capture_lost_using_system_audio": "앱 캡처가 중지되어 지금은 시스템 오디오 전체가 대신 번역되고 있습니다.",
+    "app_capture_monitor_missing": "앱 캡처가 시작되지 않아 지금은 시스템 오디오 전체가 대신 번역되고 있습니다.",
+    "parse_error": "제공자로부터 온 메시지를 읽을 수 없습니다. 세션은 계속됩니다.",
+    "cleanup_failed": "세션을 종료하는 단계 중 하나가 실패했습니다.",
+    "input_pipeline_failed": "오디오 캡처가 작동을 멈췄습니다. 더 이상 번역되지 않습니다.",
+    "tts_degraded": "음성 재생 품질이 저하되었지만 번역된 텍스트는 계속 도착합니다.",
+    "resume_attempt_failed": "재연결에 실패했습니다. 다시 시도합니다.",
+    "send_dropped": "일부 오디오 또는 텍스트를 전송하지 못해 버려졌습니다.",
+    "voice_fallback": "선택한 음성을 사용할 수 없어 다른 음성을 사용합니다.",
+    "lease_notify_failed": "세션 상태를 서비스에 알릴 수 없었습니다."
   }
 }

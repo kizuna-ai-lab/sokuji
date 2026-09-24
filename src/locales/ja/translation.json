@@ -564,6 +564,7 @@
     "typeMessage": "翻訳するテキスト...",
     "send": "送信",
     "error": "エラー",
+    "warning": "警告",
     "unknownError": "不明なエラー",
     "insufficientBalance": "残高不足: {{balance}}",
     "walletFrozen": "ウォレットが凍結されています。サポートにお問い合わせください。",
@@ -1272,5 +1273,30 @@
         "content": "高度な設定——発話検出、プロンプト、声、ログ——は「設定」右上の「アドバンス」切り替えの先にあります。このガイドは「ヘルプ」からいつでも見直せます。"
       }
     }
+  },
+  "notices": {
+    "no_provider": "開始する前に設定でプロバイダーを選択してください。",
+    "no_legs": "開始する前に翻訳する対象を選択してください。",
+    "turn_mode_unsupported": "このプロバイダーは選択した会話モードに対応していません。",
+    "participant_source_unavailable": "ここでは相手の翻訳はできません。",
+    "participant_unsupported": "このプロバイダーはこの言語ペアで相手を翻訳できません。",
+    "credentials_missing": "開始する前に設定でAPIキーを入力してください。",
+    "not_ready": "プロバイダーの準備ができていません: {{detail}}",
+    "build_refused": "この設定ではプロバイダーを開始できません: {{detail}}",
+    "admit_refused": "プロバイダーはこの組み合わせを実行できません: {{detail}}",
+    "start_failed": "セッションを開始できませんでした: {{detail}}",
+    "leg_failed": "セッションが停止しました: {{detail}}",
+    "leg_closed": "プロバイダーがセッションを終了しました。",
+    "source_ended": "音声ソースがなくなりました（取り外し、終了、または停止）。",
+    "app_capture_lost_using_system_audio": "アプリのキャプチャが停止したため、代わりにシステム音声全体が翻訳されています。",
+    "app_capture_monitor_missing": "アプリのキャプチャが開始しなかったため、代わりにシステム音声全体が翻訳されています。",
+    "parse_error": "プロバイダーからのメッセージを読み取れませんでした。セッションは継続します。",
+    "cleanup_failed": "セッション終了時の処理の一部が失敗しました。",
+    "input_pipeline_failed": "音声キャプチャが動作しなくなりました。これ以降は翻訳されません。",
+    "tts_degraded": "音声再生が低下していますが、翻訳されたテキストは引き続き届きます。",
+    "resume_attempt_failed": "再接続に失敗しました。再試行しています。",
+    "send_dropped": "音声またはテキストの一部を送信できず、破棄されました。",
+    "voice_fallback": "選択した音声が利用できなかったため、別の音声が使用されます。",
+    "lease_notify_failed": "セッションの状態をサービスに伝えられませんでした。"
   }
 }

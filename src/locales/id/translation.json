@@ -564,6 +564,7 @@
     "typeMessage": "Teks untuk diterjemahkan...",
     "send": "Kirim",
     "error": "Kesalahan",
+    "warning": "Peringatan",
     "unknownError": "Kesalahan tidak diketahui",
     "insufficientBalance": "Saldo tidak mencukupi: {{balance}}",
     "walletFrozen": "Dompet dibekukan. Silakan hubungi dukungan.",
@@ -1272,5 +1273,30 @@
         "content": "Pengaturan lanjutan — deteksi ucapan, prompt, suara, log — ada di balik sakelar Lanjutan di pojok kanan atas Pengaturan. Putar ulang panduan ini kapan saja dari Bantuan."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Pilih penyedia di pengaturan sebelum memulai.",
+    "no_legs": "Pilih apa yang akan diterjemahkan sebelum memulai.",
+    "turn_mode_unsupported": "Penyedia ini tidak menawarkan mode bicara yang dipilih.",
+    "participant_source_unavailable": "Menerjemahkan lawan bicara tidak tersedia di sini.",
+    "participant_unsupported": "Penyedia ini tidak dapat menerjemahkan lawan bicara untuk pasangan bahasa ini.",
+    "credentials_missing": "Masukkan kunci API Anda di pengaturan sebelum memulai.",
+    "not_ready": "Penyedia belum siap: {{detail}}",
+    "build_refused": "Penyedia tidak dapat memulai dengan pengaturan ini: {{detail}}",
+    "admit_refused": "Penyedia tidak dapat menjalankan kombinasi ini: {{detail}}",
+    "start_failed": "Sesi tidak dimulai: {{detail}}",
+    "leg_failed": "Sesi terhenti: {{detail}}",
+    "leg_closed": "Penyedia mengakhiri sesi.",
+    "source_ended": "Sumber audio hilang (dicabut, ditutup, atau dihentikan).",
+    "app_capture_lost_using_system_audio": "Penangkapan aplikasi berhenti, jadi seluruh audio sistem kini diterjemahkan.",
+    "app_capture_monitor_missing": "Penangkapan aplikasi tidak dimulai, jadi seluruh audio sistem kini diterjemahkan.",
+    "parse_error": "Pesan dari penyedia tidak dapat dibaca; sesi tetap berlanjut.",
+    "cleanup_failed": "Salah satu langkah saat menutup sesi gagal.",
+    "input_pipeline_failed": "Penangkapan audio berhenti berfungsi; tidak ada lagi yang akan diterjemahkan.",
+    "tts_degraded": "Pemutaran suara menurun kualitasnya; teks terjemahan tetap masuk.",
+    "resume_attempt_failed": "Penyambungan ulang gagal; mencoba lagi.",
+    "send_dropped": "Sebagian audio atau teks tidak dapat dikirim dan dibuang.",
+    "voice_fallback": "Suara yang dipilih tidak tersedia, jadi suara lain digunakan.",
+    "lease_notify_failed": "Layanan tidak dapat diberi tahu tentang status sesi."
   }
 }

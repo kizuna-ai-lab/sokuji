@@ -564,6 +564,7 @@
     "typeMessage": "Teksto para isalin...",
     "send": "Ipadala",
     "error": "Error",
+    "warning": "Babala",
     "unknownError": "Hindi kilalang error",
     "insufficientBalance": "Hindi sapat ang balanse: {{balance}}",
     "walletFrozen": "Naka-freeze ang wallet. Mangyaring makipag-ugnayan sa support.",
@@ -1272,5 +1273,30 @@
         "content": "Ang mga advanced na setting — pagtukoy ng pagsasalita, prompt, boses, log — ay nasa likod ng Advanced toggle sa kanang itaas ng Mga Setting. I-replay ang gabay na ito anumang oras mula sa Tulong."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Pumili ng provider sa settings bago magsimula.",
+    "no_legs": "Piliin ang isasalin bago magsimula.",
+    "turn_mode_unsupported": "Hindi inaalok ng provider na ito ang napiling talk mode.",
+    "participant_source_unavailable": "Hindi available dito ang pagsasalin sa kausap.",
+    "participant_unsupported": "Hindi kayang isalin ng provider na ito ang kausap para sa language pair na ito.",
+    "credentials_missing": "Ilagay ang iyong API key sa settings bago magsimula.",
+    "not_ready": "Hindi pa handa ang provider: {{detail}}",
+    "build_refused": "Hindi makapagsimula ang provider gamit ang mga setting na ito: {{detail}}",
+    "admit_refused": "Hindi kayang patakbuhin ng provider ang kombinasyong ito: {{detail}}",
+    "start_failed": "Hindi nagsimula ang session: {{detail}}",
+    "leg_failed": "Huminto ang session: {{detail}}",
+    "leg_closed": "Tinapos ng provider ang session.",
+    "source_ended": "Naglaho ang audio source (na-unplug, na-close, o huminto).",
+    "app_capture_lost_using_system_audio": "Huminto ang capture ng app, kaya isinasalin na ngayon ang buong system audio.",
+    "app_capture_monitor_missing": "Hindi nagsimula ang capture ng app, kaya isinasalin na ngayon ang buong system audio.",
+    "parse_error": "Hindi mabasa ang isang mensahe mula sa provider; magpapatuloy ang session.",
+    "cleanup_failed": "Nabigo ang isang hakbang habang isinasara ang session.",
+    "input_pipeline_failed": "Huminto sa paggana ang audio capture; wala nang isasalin pa.",
+    "tts_degraded": "Naantala ang pag-playback ng boses; patuloy pa ring dumarating ang isinaling teksto.",
+    "resume_attempt_failed": "Nabigo ang muling pagkonekta; sinusubukan ulit.",
+    "send_dropped": "May audio o tekstong hindi naipadala at naitapon.",
+    "voice_fallback": "Hindi available ang napiling boses, kaya ibang boses ang ginagamit.",
+    "lease_notify_failed": "Hindi maipaalam sa serbisyo ang estado ng session."
   }
 }

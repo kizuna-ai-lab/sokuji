@@ -564,6 +564,7 @@
     "typeMessage": "Tekst do przetłumaczenia...",
     "send": "Wyślij",
     "error": "Błąd",
+    "warning": "Ostrzeżenie",
     "unknownError": "Nieznany błąd",
     "insufficientBalance": "Niewystarczające saldo: {{balance}}",
     "walletFrozen": "Portfel zamrożony. Skontaktuj się z pomocą techniczną.",
@@ -1272,5 +1273,30 @@
         "content": "Ustawienia zaawansowane — wykrywanie mowy, prompty, głosy, logi — znajdziesz po włączeniu przełącznika Zaawansowany w prawym górnym rogu Ustawień. Ten przewodnik możesz odtworzyć w dowolnej chwili z Pomocy."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Wybierz dostawcę w ustawieniach przed rozpoczęciem.",
+    "no_legs": "Wybierz, co tłumaczyć, przed rozpoczęciem.",
+    "turn_mode_unsupported": "Ten dostawca nie oferuje wybranego trybu rozmowy.",
+    "participant_source_unavailable": "Tłumaczenie rozmówcy nie jest tutaj dostępne.",
+    "participant_unsupported": "Ten dostawca nie może przetłumaczyć rozmówcy dla tej pary językowej.",
+    "credentials_missing": "Wprowadź swój klucz API w ustawieniach przed rozpoczęciem.",
+    "not_ready": "Dostawca nie jest gotowy: {{detail}}",
+    "build_refused": "Dostawca nie może uruchomić się z tymi ustawieniami: {{detail}}",
+    "admit_refused": "Dostawca nie może obsłużyć tej kombinacji: {{detail}}",
+    "start_failed": "Sesja się nie rozpoczęła: {{detail}}",
+    "leg_failed": "Sesja została przerwana: {{detail}}",
+    "leg_closed": "Dostawca zakończył sesję.",
+    "source_ended": "Źródło dźwięku zniknęło (odłączone, zamknięte lub zatrzymane).",
+    "app_capture_lost_using_system_audio": "Przechwytywanie aplikacji zostało przerwane, więc tłumaczony jest teraz cały dźwięk systemowy.",
+    "app_capture_monitor_missing": "Przechwytywanie aplikacji się nie rozpoczęło, więc tłumaczony jest teraz cały dźwięk systemowy.",
+    "parse_error": "Nie udało się odczytać wiadomości od dostawcy; sesja jest kontynuowana.",
+    "cleanup_failed": "Nie powiódł się jeden z kroków zamykania sesji.",
+    "input_pipeline_failed": "Przechwytywanie dźwięku przestało działać; nic więcej nie zostanie przetłumaczone.",
+    "tts_degraded": "Odtwarzanie mowy jest pogorszone; przetłumaczony tekst nadal się pojawia.",
+    "resume_attempt_failed": "Ponowne połączenie nie powiodło się; próbuję ponownie.",
+    "send_dropped": "Część dźwięku lub tekstu nie mogła zostać wysłana i została odrzucona.",
+    "voice_fallback": "Wybrany głos był niedostępny, więc używany jest inny głos.",
+    "lease_notify_failed": "Nie udało się poinformować usługi o stanie sesji."
   }
 }

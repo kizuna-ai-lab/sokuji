@@ -564,6 +564,7 @@
     "typeMessage": "Văn bản cần dịch...",
     "send": "Gửi",
     "error": "Lỗi",
+    "warning": "Cảnh báo",
     "unknownError": "Lỗi không xác định",
     "insufficientBalance": "Số dư không đủ: {{balance}}",
     "walletFrozen": "Ví đã bị đóng băng. Vui lòng liên hệ hỗ trợ.",
@@ -1272,5 +1273,30 @@
         "content": "Cài đặt nâng cao — phát hiện giọng nói, prompt, giọng nói, nhật ký — nằm sau công tắc Nâng cao ở góc trên bên phải của Cài đặt. Xem lại hướng dẫn này bất cứ lúc nào từ Trợ giúp."
       }
     }
+  },
+  "notices": {
+    "no_provider": "Chọn một nhà cung cấp trong cài đặt trước khi bắt đầu.",
+    "no_legs": "Chọn nội dung cần dịch trước khi bắt đầu.",
+    "turn_mode_unsupported": "Nhà cung cấp này không hỗ trợ chế độ trò chuyện đã chọn.",
+    "participant_source_unavailable": "Không thể dịch đối phương ở đây.",
+    "participant_unsupported": "Nhà cung cấp này không thể dịch đối phương cho cặp ngôn ngữ này.",
+    "credentials_missing": "Nhập khóa API của bạn trong cài đặt trước khi bắt đầu.",
+    "not_ready": "Nhà cung cấp chưa sẵn sàng: {{detail}}",
+    "build_refused": "Nhà cung cấp không thể khởi động với các cài đặt này: {{detail}}",
+    "admit_refused": "Nhà cung cấp không thể chạy sự kết hợp này: {{detail}}",
+    "start_failed": "Phiên không khởi động được: {{detail}}",
+    "leg_failed": "Phiên đã dừng: {{detail}}",
+    "leg_closed": "Nhà cung cấp đã kết thúc phiên.",
+    "source_ended": "Nguồn âm thanh đã biến mất (bị ngắt kết nối, đóng hoặc dừng).",
+    "app_capture_lost_using_system_audio": "Việc thu ứng dụng đã dừng, nên toàn bộ âm thanh hệ thống đang được dịch thay thế.",
+    "app_capture_monitor_missing": "Việc thu ứng dụng chưa bắt đầu, nên toàn bộ âm thanh hệ thống đang được dịch thay thế.",
+    "parse_error": "Không thể đọc một thông báo từ nhà cung cấp; phiên vẫn tiếp tục.",
+    "cleanup_failed": "Một bước khi đóng phiên đã thất bại.",
+    "input_pipeline_failed": "Việc thu âm thanh đã ngừng hoạt động; sẽ không còn gì được dịch nữa.",
+    "tts_degraded": "Phát lại giọng nói bị giảm chất lượng; văn bản đã dịch vẫn tiếp tục đến.",
+    "resume_attempt_failed": "Kết nối lại thất bại; đang thử lại.",
+    "send_dropped": "Một số âm thanh hoặc văn bản không thể gửi được và đã bị bỏ qua.",
+    "voice_fallback": "Giọng nói đã chọn không khả dụng, nên một giọng nói khác được sử dụng.",
+    "lease_notify_failed": "Không thể báo cho dịch vụ biết trạng thái của phiên."
   }
 }
