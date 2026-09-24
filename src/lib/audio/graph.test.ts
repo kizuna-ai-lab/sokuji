@@ -207,6 +207,15 @@ describe('createAudioGraph — outputs', () => {
     expect(ctx.suspended).toBe(1);
   });
 
+  it('a resume while a suspend is still in flight leaves the context running', async () => {
+    const { ctx, graph } = await setup();
+    const suspending = graph.suspend();
+    const resuming = graph.resume();
+    await Promise.all([suspending, resuming]);
+    expect(ctx.state).toBe('running');
+    expect(ctx.resumed).toBe(1);
+  });
+
   it('suspend() reports a context that will not suspend instead of rejecting', async () => {
     const { ctx, graph } = await setup();
     ctx.suspend = async () => { throw new Error('InvalidStateError'); };

@@ -53,7 +53,7 @@ export interface AudioGraph {
   setSinks(sinks: { real?: string; virtual?: string }): Promise<void>;
   /** The translated speech the graph plays (speaker, participant, replay), before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
-  /** Resumes a suspended context and restarts an output the browser paused (autoplay). */
+  /** Resumes a suspended context (once any suspend still in flight has landed) and restarts an output the browser paused (autoplay). */
   resume(): Promise<void>;
   /** Pauses rendering while nothing plays; `resume()` undoes it. */
   suspend(): Promise<void>;
@@ -166,6 +166,8 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   let resumeFailing = false;
   /** `close()` runs once: every call while it is in flight, or after, gets the same settled promise. */
   let closing: Promise<void> | null = null;
+  /** A `suspend()` still in flight: the context reads 'running' until it lands, so a `resume()` waits for it before looking. */
+  let suspending: Promise<void> | null = null;
 
   return {
     timeline: (feed) => ({
@@ -257,6 +259,8 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     ttsTap,
 
     async resume() {
+      // A resume never loses to a suspend in flight: let it land, then undo it.
+      if (suspending) await suspending;
       if (ctx.state === 'suspended') {
         try {
           await ctx.resume();
@@ -270,12 +274,19 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       play('virtual');
     },
 
-    async suspend() {
-      try {
-        if (ctx.state === 'running') await ctx.suspend();
-      } catch (error) {
-        reportWarning('AudioGraph', `The audio context did not suspend: ${describeCause(error)}`, { dedupeKey: 'graph:suspend' });
-      }
+    suspend() {
+      // One at a time: a call while one is in flight shares it (the context still reads 'running').
+      if (suspending) return suspending;
+      const pending = (async () => {
+        try {
+          if (ctx.state === 'running') await ctx.suspend();
+        } catch (error) {
+          reportWarning('AudioGraph', `The audio context did not suspend: ${describeCause(error)}`, { dedupeKey: 'graph:suspend' });
+        }
+      })();
+      suspending = pending;
+      void pending.then(() => { if (suspending === pending) suspending = null; });
+      return pending;
     },
 
     close() {

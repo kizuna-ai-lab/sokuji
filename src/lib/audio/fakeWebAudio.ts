@@ -129,8 +129,10 @@ export class FakeAudioContext {
     return source;
   }
 
+  /** As a real context: `state` changes only once the returned promise settles, not when it is asked. */
   async suspend(): Promise<void> {
     this.suspended += 1;
+    await Promise.resolve();
     this.state = 'suspended';
   }
 
