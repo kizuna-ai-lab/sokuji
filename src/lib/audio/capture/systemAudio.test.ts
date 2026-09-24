@@ -215,6 +215,51 @@ describe('openSystemAudio — running', () => {
     expect(s.app.begun).toEqual([{ deviceId: 'app:9' }]);
   });
 
+  it('ignores a helper death from a recorder a queued switch has already replaced, and raises no APP_CAPTURE_LOST', async () => {
+    // A fresh recorder object per 'app' connection (as the real deps do), so identity can be checked.
+    const recorders: Array<ReturnType<typeof fakeCapture>> = [];
+    const loopback = fakeCapture();
+    const deps: SystemAudioDeps = {
+      invoke: async (channel) => (channel === 'connect-system-audio-source' ? { success: true, capture: 'app' } : { success: true }),
+      enumerateDevices: async () => [],
+      wait: async () => {},
+      app: () => { const c = fakeCapture(); recorders.push(c); return c; },
+      device: () => fakeCapture(),
+      loopback: () => loopback,
+    };
+    let current = { sourceId: 'app:1', muted: false };
+    const listeners = new Set<() => void>();
+    const settings: SystemAudioSettings = {
+      sourceId: () => current.sourceId,
+      muted: () => current.muted,
+      subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+      audioSeen: () => {},
+    };
+    const set = (patch: Partial<typeof current>) => { current = { ...current, ...patch }; for (const listener of listeners) listener(); };
+
+    const source = await openSystemAudio(settings, live(), deps);
+    const degraded = vi.fn();
+    source.onDegraded(degraded);
+
+    // Switch once, fully: the recorder it opens is the one that is about to "die".
+    set({ sourceId: 'app:2' });
+    await settle();
+    const died = recorders[1];
+    expect(died).toBeDefined();
+
+    // Queue a second switch, and fire the first recorder's death in the same tick,
+    // before that switch has had any chance to run — it is still waiting on `chain`.
+    set({ sourceId: 'app:3' });
+    died.onLost?.();
+    await settle();
+
+    expect(degraded).not.toHaveBeenCalledWith(expect.objectContaining({ code: APP_CAPTURE_LOST }));
+    // A live fallback would have widened to whole-system capture; it must not have run.
+    expect(loopback.begun).toEqual([]);
+    expect(recorders).toHaveLength(3);
+    expect(recorders[2].begun).toHaveLength(1);
+  });
+
   it('stops once: ends the recorder without reading its own teardown as a loss, then disconnects', async () => {
     const s = setup({ sourceId: 'app:42', answer: { success: true, capture: 'app' } });
     const source = await openSystemAudio(s.settings, live(), s.deps);

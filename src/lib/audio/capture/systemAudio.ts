@@ -148,7 +148,10 @@ export async function openSystemAudio(
       next.onWarning = (code) => core.degrade({ code, message: code === SILENT_NO_PERMISSION ? SILENT_MESSAGE : `The application capture warned: ${code}` });
       next.onAudioSeen = () => settings.audioSeen();
       next.onLost = () => {
-        chain = chain.then(fallBack).catch((error: unknown) => core.end(`System audio stopped: ${describeCause(error)}`));
+        // Captured now: by the time this runs, a queued switch may have already
+        // made `recorder` point elsewhere, and this death is then stale (M1).
+        const lost = next;
+        chain = chain.then(() => fallBack(lost)).catch((error: unknown) => core.end(`System audio stopped: ${describeCause(error)}`));
       };
     }
     recorder = next;
@@ -161,9 +164,13 @@ export async function openSystemAudio(
     await next.record((data) => core.deliver(data.mono));
   };
 
-  /** The helper died: widen to whole-system capture, visibly (ruling 5). */
-  const fallBack = async () => {
-    if (core.stopped || core.ended) return;
+  /**
+   * The helper died: widen to whole-system capture, visibly (ruling 5). Only
+   * when the dead recorder is still the current one — a queued switch may
+   * already have replaced it, in which case this death is stale (M1).
+   */
+  const fallBack = async (lost: ParticipantCapture) => {
+    if (core.stopped || core.ended || recorder !== lost) return;
     core.degrade({ code: APP_CAPTURE_LOST, message: 'The application capture stopped, so all system audio is being translated instead.' });
     await stopRecorder();
     await record({ mode: 'loopback' });
