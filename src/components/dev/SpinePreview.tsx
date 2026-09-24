@@ -10,7 +10,7 @@ import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { autoSaveConversation } from '../../lib/export/appAutoSave';
 import type { AuthContext } from '../../lib/provider/types';
-import { persistIfUnchanged, readShapeFromStores } from '../../lib/session/appShape';
+import { ensureReadyFromStores, persistIfUnchanged, readShapeFromStores } from '../../lib/session/appShape';
 import type { AnalyticsPort, PlaybackPort } from '../../lib/session/ports';
 import { createRunner, type Runner } from '../../lib/session/runner';
 import type { OpenSource } from '../../lib/session/source';
@@ -94,7 +94,7 @@ function getPreviewRunner(): Runner {
     platform: getEnvironment(),
     // `&refuse=1`: no shape, so every start is refused — the idle line's check.
     readShape: () => (new URLSearchParams(window.location.search).get('refuse') === '1' ? null : readShapeFromStores(bridge.auth)),
-    ensureReady: (p, auth) => useProviderStore.getState().refreshReadiness(p, auth),
+    ensureReady: ensureReadyFromStores,
     persistIfUnchanged,
     openSource: (leg, signal) => bridge.openSource(leg, signal),
     playback: playbackBridge,

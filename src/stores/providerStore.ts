@@ -26,6 +26,13 @@ export type { Readiness } from '../lib/provider/types';
 
 export const UNKNOWN: Readiness = { state: 'unknown' };
 
+/** What a readiness check reads: the live entry's by default, or a run's frozen shape. */
+export interface ReadinessInputs {
+  settings: unknown;
+  credentials: Readonly<Record<string, string>>;
+  pair: LanguagePair;
+}
+
 export interface ProviderStore {
   /** Loaded providers, by id; a provider is absent until `load` resolves. */
   entries: Readonly<Record<string, ProviderEntry>>;
@@ -36,7 +43,7 @@ export interface ProviderStore {
   setCredential(p: AnyProvider, key: string, value: string): void;
   setPair(p: AnyProvider, pair: LanguagePair): void;
   /** Runs the provider's `check` on its saved settings and credentials, and records the answer. */
-  refreshReadiness(p: AnyProvider, auth: AuthContext): Promise<Readiness>;
+  refreshReadiness(p: AnyProvider, auth: AuthContext, from?: ReadinessInputs, signal?: AbortSignal): Promise<Readiness>;
   /** The provider the panel shows and a run starts; in memory until plan 1e persists it under `settings.common.provider`. */
   selected: string | null;
   select(id: string): void;
@@ -139,28 +146,29 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const next = normalizePair(p, entry.settings, pair);
       put(p, { ...entry, pair: next });
       persistPair(p, entry.pair, next);
+      forgetReadiness(p);
     },
 
-    async refreshReadiness(p, auth) {
-      const entry = loaded(p);
+    async refreshReadiness(p, auth, from, signal) {
+      const inputs = from ?? loaded(p);
       const seq = supersede(p);
-      const credentials = readCredentials(p, entry.settings, entry.credentials, auth);
+      const credentials = readCredentials(p, inputs.settings, inputs.credentials, auth);
       if (isMissing(credentials)) return setReadiness(p, { state: 'not-ready', reason: credentials.missing });
       // The fields these settings show, for the cache key below.
-      const values = Object.fromEntries(p.credentials.fields(entry.settings).map((f) => [f.key, entry.credentials[f.key] ?? '']));
+      const values = Object.fromEntries(p.credentials.fields(inputs.settings).map((f) => [f.key, inputs.credentials[f.key] ?? '']));
       // A network check gives the same ready answer to the same inputs, so a
       // ready answer is kept; a refusal is asked again, and a local engine's
       // readiness changes as models download.
-      const inputs = JSON.stringify([entry.settings, values, auth.signedIn]);
+      const key = JSON.stringify([inputs.settings, values, auth.signedIn, inputs.pair]);
       const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
-      if (kept && kept.inputs === inputs) return setReadiness(p, kept.readiness);
+      if (kept && kept.inputs === key) return setReadiness(p, kept.readiness);
 
       setReadiness(p, { state: 'checking' });
       let answer: Readiness;
       try {
-        const result = await p.check(credentials, entry.settings);
+        const result = await p.check(credentials, inputs.settings, { pair: inputs.pair, signal });
         answer = result.ok ? { state: 'ready', models: result.models ?? [] } : { state: 'not-ready', reason: result.reason };
-        if (p.kind !== 'local' && result.ok) lastAnswer.set(p.id, { inputs, readiness: answer });
+        if (p.kind !== 'local' && result.ok) lastAnswer.set(p.id, { inputs: key, readiness: answer });
       } catch (error) {
         // A check that threw did not find out; show it, never keep it.
         reportError('ProviderStore', `The readiness check for ${p.id} failed: ${describeCause(error)}`, {

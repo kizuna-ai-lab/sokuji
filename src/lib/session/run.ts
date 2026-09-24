@@ -112,7 +112,7 @@ export class Run {
     host.step('checking');
     const credentials = readCredentials(p, shape.settings, shape.credentials, shape.auth);
     if (isMissing(credentials)) throw new RefusedError({ code: 'credentials_missing' satisfies RunNoticeCode, message: credentials.missing });
-    const readiness = await deps.ensureReady(p, shape.auth);
+    const readiness = await this.untilAborted(deps.ensureReady(shape, this.signal));
     this.throwIfAborted();
     if (readiness.state !== 'ready') {
       throw new RefusedError({ code: 'not_ready' satisfies RunNoticeCode, message: readiness.state === 'not-ready' ? readiness.reason : `readiness is ${readiness.state}` });
@@ -418,6 +418,19 @@ export class Run {
 
   private throwIfAborted(): void {
     if (this.signal.aborted) throw this.signal.reason ?? new Error('aborted');
+  }
+
+  /** `task`, or the abort, whichever comes first: a check that cannot be cancelled no longer holds a stop. */
+  private untilAborted<T>(task: Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const onAbort = () => reject(this.signal.reason ?? new Error('aborted'));
+      if (this.signal.aborted) return onAbort();
+      this.signal.addEventListener('abort', onAbort, { once: true });
+      task.then(
+        (value) => { this.signal.removeEventListener('abort', onAbort); resolve(value); },
+        (error) => { this.signal.removeEventListener('abort', onAbort); reject(error); },
+      );
+    });
   }
 
   /**

@@ -5,7 +5,7 @@
  * during the run.
  */
 import type { LegName } from '../conversation/types';
-import type { AnyProvider, AuthContext } from '../provider/types';
+import type { AnyProvider, AuthContext, Readiness } from '../provider/types';
 import { presentProviders } from '../../providers/registry';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -50,6 +50,15 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     ),
     auth,
   };
+}
+
+/** The runner's `ensureReady` in the app: the shape's own inputs, through the provider store's cache. */
+export function ensureReadyFromStores(shape: RunShape, signal: AbortSignal): Promise<Readiness> {
+  return useProviderStore.getState().refreshReadiness(
+    shape.provider, shape.auth,
+    { settings: shape.settings, credentials: shape.credentials, pair: shape.pair },
+    signal,
+  );
 }
 
 export function persistIfUnchanged(p: AnyProvider, snapshot: unknown, patch: Readonly<Record<string, unknown>>): void {

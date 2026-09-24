@@ -12,6 +12,7 @@ const context: SessionContext = { direction: { source: 'en', target: 'ja' }, spe
 const shared: SharedSettings = { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 } };
 const noAuth = { signedIn: false, getToken: async () => null };
 const settings = (patch: Partial<FakeSettings> = {}): FakeSettings => ({ ...FAKE_DEFAULTS, ...patch });
+const checkCtx = { pair: { source: 'en', target: 'ja' } };
 
 describe('the fake provider', () => {
   it('shows no credential field by default, and reads without one', () => {
@@ -33,8 +34,8 @@ describe('the fake provider', () => {
   });
 
   it('is ready unless checkFails is on', async () => {
-    await expect(fakeProvider.check({}, settings())).resolves.toEqual({ ok: true });
-    await expect(fakeProvider.check({}, settings({ checkFails: true }))).resolves.toMatchObject({ ok: false });
+    await expect(fakeProvider.check({}, settings(), checkCtx)).resolves.toEqual({ ok: true });
+    await expect(fakeProvider.check({}, settings({ checkFails: true }), checkCtx)).resolves.toMatchObject({ ok: false });
   });
 
   it('refuses to build when buildRefused is on, with a code of its own', () => {

@@ -30,6 +30,14 @@ export interface ModelOption { id: string }
 /** `models`, when present, is newest first. */
 export type CheckResult = { ok: true; models?: readonly ModelOption[] } | { ok: false; reason: string };
 
+/** What a readiness check may consult besides the credentials and settings. */
+export interface CheckContext {
+  /** The speaker's pair; the participant leg runs its reverse. A local engine's models are per direction. */
+  pair: LanguagePair;
+  /** Aborted when the start that asked is cancelled. */
+  signal?: AbortSignal;
+}
+
 /** Whether a provider can start now (spec: "Readiness is one check"). */
 export type Readiness =
   | { state: 'unknown' }
@@ -95,9 +103,10 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   /**
    * Can this provider start now: a network validation, model readiness, or a
    * signed-in session. Throw when the check could not find out (offline);
-   * answer `ok: false` only when the provider said no.
+   * answer `ok: false` only when the provider said no. Readiness is cached
+   * per settings, credentials, sign-in and pair.
    */
-  check(k: K, s: S): Promise<CheckResult>;
+  check(k: K, s: S, ctx: CheckContext): Promise<CheckResult>;
 
   languages: {
     /** Includes `AUTO` when the provider detects the language. */

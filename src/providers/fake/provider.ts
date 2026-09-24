@@ -36,7 +36,7 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
     // `values` holds exactly the fields shown: nothing at all unless requireKey is on.
     read: (values): FakeCredentials | { missing: string } => (values.apiKey === '' ? { missing: 'Type any key: the fake accepts anything.' } : {}),
   },
-  check: async (_k, s) => (s.checkFails ? { ok: false, reason: 'The fake reports not ready (fault knob).' } : { ok: true }),
+  check: async (_k, s, _ctx) => (s.checkFails ? { ok: false, reason: 'The fake reports not ready (fault knob).' } : { ok: true }),
 
   languages: {
     sources: () => [{ value: AUTO, name: 'Auto', englishName: 'Auto' }, ...LANGUAGES],

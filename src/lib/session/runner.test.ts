@@ -502,6 +502,15 @@ describe('runner — stopping', () => {
     await second;
     expect(sources.length).toBe(opens + 1);
   });
+
+  it('a stop during checking ends at once, without waiting for the check', async () => {
+    const { runner } = setup({ ensureReady: () => new Promise(() => {}) });
+    void runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'checking' });
+    await runner.stop();
+    expect(runner.state.getState().phase).toBe('idle');
+  });
 });
 
 describe('runner — legs end together (D21)', () => {

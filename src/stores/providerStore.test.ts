@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { AnyProvider, LanguageOption } from '../lib/provider/types';
+import type { AnyProvider, CheckContext, LanguageOption } from '../lib/provider/types';
 
 const { stored, getSetting, setSetting } = vi.hoisted(() => {
   const stored = new Map<string, unknown>();
@@ -186,5 +186,29 @@ describe('writes', () => {
     expect(useProviderStore.getState().selected).toBeNull();
     useProviderStore.getState().select('probe');
     expect(useProviderStore.getState().selected).toBe('probe');
+  });
+});
+
+describe('refreshReadiness', () => {
+  const auth = { signedIn: false, getToken: async () => null };
+
+  it('asks check about the pair, and forgets readiness when the pair changes', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, check };
+    await useProviderStore.getState().load(p);
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    expect(check.mock.calls[0][2]).toMatchObject({ pair: useProviderStore.getState().entries[p.id].pair });
+    useProviderStore.getState().setPair(p, { source: 'ja', target: 'en' });
+    expect(useProviderStore.getState().readiness[p.id]).toEqual({ state: 'unknown' });
+  });
+
+  it("checks the inputs it is given — a run's shape — instead of the live entry", async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, check };
+    await useProviderStore.getState().load(p);
+    const from = { settings: { ...p.settings.defaults, marker: 1 }, credentials: {}, pair: { source: 'en', target: 'ja' } };
+    await useProviderStore.getState().refreshReadiness(p, auth, from);
+    expect(check.mock.calls[0][1]).toBe(from.settings);
+    expect(check.mock.calls[0][2]).toMatchObject({ pair: from.pair });
   });
 });

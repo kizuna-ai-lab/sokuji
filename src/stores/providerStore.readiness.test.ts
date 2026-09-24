@@ -70,12 +70,12 @@ describe('refreshReadiness', () => {
     expect(readiness()).toEqual({ state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] });
   });
 
-  it('passes what read returned, and the settings, to check', async () => {
+  it('passes what read returned, the settings, and the pair, to check', async () => {
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('own-key', check);
     await loadedWithKey(p, 'sk-9');
     await store.useProviderStore.getState().refreshReadiness(p, noAuth);
-    expect(check).toHaveBeenCalledWith({ key: 'sk-9' }, { mode: 'a' });
+    expect(check).toHaveBeenCalledWith({ key: 'sk-9' }, { mode: 'a' }, { pair: { source: 'en', target: 'ja' }, signal: undefined });
   });
 
   it('records a refusal as not ready, with its reason', async () => {

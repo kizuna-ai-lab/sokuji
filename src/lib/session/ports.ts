@@ -4,7 +4,7 @@ import type { Clock } from '../contract/clock';
 import type { Punctuator } from '../conversation/fillIn';
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError } from '../diagnostics/report';
-import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
+import type { AnyProvider, Platform, Readiness } from '../provider/types';
 import type { OpenSource } from './source';
 import type { RunShape } from './types';
 
@@ -42,8 +42,8 @@ export interface RunnerDeps {
   platform: Platform;
   /** Everything a run freezes; null when no provider is chosen or it has not loaded. */
   readShape(): RunShape | null;
-  /** Readiness through the shared cache (the provider store's `refreshReadiness`). */
-  ensureReady(p: AnyProvider, auth: AuthContext): Promise<Readiness>;
+  /** Readiness of the run's own shape (settings, credentials, pair), through the shared cache; honours `signal`. */
+  ensureReady(shape: RunShape, signal: AbortSignal): Promise<Readiness>;
   /** Writes a `prepare` patch field by field, only where the stored value still equals the run's snapshot. */
   persistIfUnchanged(p: AnyProvider, snapshot: unknown, patch: Readonly<Record<string, unknown>>): void;
   openSource: OpenSource;
