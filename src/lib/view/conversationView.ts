@@ -39,10 +39,25 @@ export function createConversationView(
   };
   let state = compute();
   let cancel: (() => void) | null = null;
+  // A throw from `compute()` (the conversation's `snapshot()`, or the
+  // projector) is a hot path — up to once per interval, 20 Hz — so it is
+  // reported once per failing streak, not per flush, and the previous state
+  // is kept rather than losing what was last drawn.
+  let computeFailing = false;
 
   const flush = () => {
     cancel = null;
-    const next = compute();
+    let next: ConversationViewState;
+    try {
+      next = compute();
+      computeFailing = false;
+    } catch (error) {
+      if (!computeFailing) {
+        reportError('ConversationView', `Projecting the conversation failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'view-compute' });
+      }
+      computeFailing = true;
+      return;
+    }
     // The snapshot and the projection both keep their identity when nothing changed.
     if (next.legs === state.legs && next.entries === state.entries) return;
     state = next;

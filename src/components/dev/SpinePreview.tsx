@@ -127,8 +127,13 @@ function PreviewConversation({ view, karaoke, playback }: {
         lit={lit}
         replaying={replaying}
         replayLegs={replayLegs}
-        // Retention may have dropped a segment's pcm: then there is nothing to replay.
-        canReplay={(id) => segments.get(id)?.speech.some((s) => s.pcm.length > 0) ?? false}
+        // Retention may have dropped a segment's pcm: then there is nothing
+        // to replay. An open segment's speech is still streaming, so it is
+        // not final yet either (today's `canReplay` also requires it).
+        canReplay={(id) => {
+          const segment = segments.get(id);
+          return !!segment?.final && segment.speech.some((s) => s.pcm.length > 0);
+        }}
         onReplay={(leg, id) => {
           const segment = segments.get(id);
           if (playback && segment) playback.replay(leg, segment);

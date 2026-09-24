@@ -25,6 +25,19 @@ function conversation(initial: readonly Leg[]) {
   };
 }
 
+/** A conversation whose `snapshot()` can be made to throw, to exercise `flush`'s guard around `compute()`. */
+function flakyConversation(initial: readonly Leg[]) {
+  let legs = initial;
+  let fail = false;
+  const listeners = new Set<() => void>();
+  return {
+    snapshot: () => { if (fail) throw new Error('the conversation blew up'); return legs; },
+    subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    set(next: readonly Leg[]) { legs = next; listeners.forEach((listener) => listener()); },
+    setFail(next: boolean) { fail = next; listeners.forEach((listener) => listener()); },
+  };
+}
+
 function settings(initial: ProjectionSettings): Readable<ProjectionSettings> & { set(next: ProjectionSettings): void } {
   let value = initial;
   const listeners = new Set<() => void>();
@@ -99,5 +112,39 @@ describe('createConversationView', () => {
     const view = createConversationView(conv, settings(DEFAULT_PROJECTION), createVirtualClock(0));
     view.dispose();
     expect(conv.listening()).toBe(0);
+  });
+
+  it('catches a throw from compute inside flush, keeps the previous state, and reports once per failing streak', () => {
+    const clock = createVirtualClock(0);
+    const conv = flakyConversation([legWith('Hello.')]);
+    const view = createConversationView(conv, settings(DEFAULT_PROJECTION), clock);
+    const before = view.get();
+    const listener = vi.fn();
+    view.subscribe(listener);
+    reportErrorSpy.mockClear();
+
+    // First failing flush: the throw is caught, the previous state kept, one report.
+    conv.setFail(true);
+    clock.advance(VIEW_INTERVAL_MS);
+    expect(view.get()).toBe(before);
+    expect(listener).not.toHaveBeenCalled();
+    expect(reportErrorSpy).toHaveBeenCalledTimes(1);
+
+    // A second flush while the fault persists reports nothing further.
+    conv.set([legWith('Hello.')]);
+    clock.advance(VIEW_INTERVAL_MS);
+    expect(reportErrorSpy).toHaveBeenCalledTimes(1);
+
+    // Recovery: the next successful flush delivers the update, and a later
+    // failure reports again — the streak reset.
+    conv.setFail(false);
+    conv.set([legWith('Hello again.')]);
+    clock.advance(VIEW_INTERVAL_MS);
+    expect(firstSourceTexts(view)).toEqual(['Hello again.']);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    conv.setFail(true);
+    clock.advance(VIEW_INTERVAL_MS);
+    expect(reportErrorSpy).toHaveBeenCalledTimes(2);
   });
 });
