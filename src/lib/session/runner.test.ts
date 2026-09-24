@@ -24,6 +24,29 @@ vi.mock('../diagnostics/report', async (importOriginal) => {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+/** The fake, but its sessions' `stop()` hangs until `finishStop()`: an ending that can outlive its bound. */
+function hangingStop() {
+  let finish: () => void = () => {};
+  const provider = {
+    ...fakeProvider,
+    start: async (request: unknown, events: unknown) => {
+      const session = await fakeProvider.start(request as never, events as never);
+      // Spreading a `FakeSession` instance would drop its prototype methods;
+      // delegate explicitly, only `stop` hangs.
+      return {
+        info: session.info,
+        appendAudio: (pcm: Int16Array) => session.appendAudio(pcm),
+        appendText: (text: string) => session.appendText(text),
+        beginTurn: () => session.beginTurn(),
+        endTurn: () => session.endTurn(),
+        cancelTurn: () => session.cancelTurn(),
+        stop: () => new Promise<void>((resolve) => { finish = () => { void session.stop(); resolve(); }; }),
+      };
+    },
+  } as unknown as AnyProvider;
+  return { provider, finishStop: () => finish() };
+}
+
 interface Options {
   shape?: Partial<RunShape>;
   settings?: Partial<FakeSettings>;
@@ -489,56 +512,133 @@ describe('runner — stopping', () => {
     expect(order).toEqual(['participant source stopped', 'speaker source stopped', 'idle']);
   });
 
-  it('goes idle when ending overruns closeTimeoutMs, and the next start waits for the unwind still running', async () => {
-    let finishStop!: () => void;
-    const provider = {
-      ...fakeProvider,
-      start: async (request: unknown, events: unknown) => {
-        const session = await fakeProvider.start(request as never, events as never);
-        return { ...session, stop: () => new Promise<void>((resolve) => { finishStop = resolve; }) };
-      },
-    } as unknown as AnyProvider;
-    const { runner, clock, sources } = setup({ shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
+  it('goes idle when ending overruns closeTimeoutMs, and refuses a start while that unwind still runs', async () => {
+    const { provider, finishStop } = hangingStop();
+    const { runner, clock, sources, events } = setup({ shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
     await runner.start();
     const stopped = runner.stop();
     await flush();
     clock.advance(3000);
     await stopped;
-    expect(runner.state.getState().phase).toBe('idle');
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
     const opens = sources.length;
-    const next = runner.start();
+    void runner.start();
     await flush();
+    expect(runner.state.getState()).toEqual({
+      phase: 'idle',
+      lastEnd: { reason: 'refused', notice: { code: 'still_stopping', message: 'The last session is still stopping.' } },
+    });
     expect(sources.length).toBe(opens);
+    // The click an ordinary refused start sends, and nothing more.
+    expect(events('session_control_clicked')).toEqual([
+      { action: 'start', method: 'button' }, { action: 'stop', method: 'button' }, { action: 'start', method: 'button' },
+    ]);
     finishStop();
-    await flush();
-    await next;
-    expect(sources.length).toBe(opens + 1);
   });
 
-  it('a second start while the first is still waiting on the lingering unwind does nothing extra', async () => {
-    let finishStop!: () => void;
-    const provider = {
-      ...fakeProvider,
-      start: async (request: unknown, events: unknown) => {
-        const session = await fakeProvider.start(request as never, events as never);
-        return { ...session, stop: () => new Promise<void>((resolve) => { finishStop = resolve; }) };
-      },
-    } as unknown as AnyProvider;
-    const { runner, clock, sources } = setup({ shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
+  it("hands onRunEnded the overrun run's own legs once its unwind finishes, even after a start was tried meanwhile", async () => {
+    const onRunEnded = vi.fn();
+    const { provider, finishStop } = hangingStop();
+    const { runner, clock, sources } = setup({ onRunEnded, shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
+    await runner.start();
+    clock.advance(600);
+    const stopped = runner.stop();
+    await flush();
+    clock.advance(3000);
+    await stopped;
+    void runner.start();
+    await flush();
+    clock.advance(3000);
+    await flush();
+    expect(sources).toHaveLength(1);
+    expect(onRunEnded).not.toHaveBeenCalled();
+    finishStop();
+    await flush();
+    expect(onRunEnded).toHaveBeenCalledTimes(1);
+    // The run's own legs, never the runner's conversation set. A `clear()` of
+    // the conversation during the linger empties these same legs (they are the
+    // same `Conversation` objects): accepted, as the user asked for it.
+    const legs = onRunEnded.mock.calls[0][0] as readonly Leg[];
+    expect(legs.map((leg) => leg.session)).toEqual(['run1']);
+    expect(legs[0].segments.length).toBeGreaterThan(0);
+    // Once it has unwound, nothing lingers: the next start opens.
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('running');
+  });
+
+  it('abandon reaches an ending that overran: its remaining releases fire now, and nothing is saved or reported', async () => {
+    const onRunEnded = vi.fn();
+    const { provider } = hangingStop();
+    const { runner, clock, sources, events, playback } = setup({ onRunEnded, shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
     await runner.start();
     const stopped = runner.stop();
     await flush();
     clock.advance(3000);
     await stopped;
-    const opens = sources.length;
-    const first = runner.start();
+    // The session's stop still hangs; the source's release is below it on the stack.
+    expect(sources[0].stopped).toBe(false);
+    playback.live.mockClear();
+    playback.clear.mockClear();
+    runner.abandon();
+    expect(sources[0].stopped).toBe(true);
+    expect(playback.live.mock.calls).toEqual([[false]]);
+    expect(playback.clear).toHaveBeenCalledTimes(1);
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    for (let i = 0; i < 4; i++) {
+      clock.advance(10_000);
+      await flush();
+    }
+    expect(onRunEnded).not.toHaveBeenCalled();
+    expect(events('translation_session_end')).toEqual([]);
+    // Abandoned, it no longer lingers: the next start opens.
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('running');
+  });
+
+  it('abandoning an ending still within its bound leaves nothing lingering once the bound passes', async () => {
+    const { provider } = hangingStop();
+    const { runner, clock } = setup({ shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
+    await runner.start();
+    void runner.stop();
     await flush();
-    const second = runner.start();
+    runner.abandon();
+    clock.advance(3000);
+    await flush();
+    void runner.start();
+    await flush();
+    expect(runner.state.getState().phase).toBe('running');
+  });
+
+  it('settled() waits for an ending, and for an unwind that outlived its bound; idle, it resolves at once', async () => {
+    const order: string[] = [];
+    const { provider, finishStop } = hangingStop();
+    const { runner, clock } = setup({ onRunEnded: () => { order.push('saved'); }, shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
+    let idle = false;
+    void runner.settled().then(() => { idle = true; });
+    await flush();
+    expect(idle).toBe(true);
+    await runner.start();
+    clock.advance(600);
+    const stopped = runner.stop();
+    void runner.settled().then(() => { order.push('settled'); });
+    await flush();
+    clock.advance(3000);
+    await stopped;
+    await flush();
+    expect(order).toEqual([]);
     finishStop();
     await flush();
-    await first;
-    await second;
-    expect(sources.length).toBe(opens + 1);
+    expect(order).toEqual(['saved', 'settled']);
+  });
+
+  it('settled() after a stop within its bound resolves once the auto-save has run', async () => {
+    const order: string[] = [];
+    const { runner } = setup({ onRunEnded: async () => { await flush(); order.push('saved'); } });
+    await runner.start();
+    void runner.stop();
+    await runner.settled();
+    order.push('settled');
+    expect(order).toEqual(['saved', 'settled']);
   });
 
   it('a stop during checking ends at once, without waiting for the check', async () => {
@@ -548,6 +648,39 @@ describe('runner — stopping', () => {
     expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'checking' });
     await runner.stop();
     expect(runner.state.getState().phase).toBe('idle');
+  });
+
+  it('a stop during a prepare that ignores its signal ends at once, without waiting for it', async () => {
+    const provider = { ...fakeProvider, session: { prepare: () => new Promise(() => {}) } } as unknown as AnyProvider;
+    const { runner, sources } = setup({ shape: { provider } });
+    void runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'preparing' });
+    let stopped = false;
+    void runner.stop().then(() => { stopped = true; });
+    await flush();
+    expect(stopped).toBe(true);
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(sources).toHaveLength(0);
+  });
+
+  it('a check still pending when a stop came before it was even asked never rejects unhandled', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      let fail: (error: unknown) => void = () => {};
+      const { runner } = setup({ ensureReady: () => new Promise<Readiness>((_resolve, reject) => { fail = reject; }) });
+      // Stops the run before `open()` asks for readiness: the signal is aborted when the check is asked.
+      runner.state.subscribe((s) => { if (s.phase === 'starting') void runner.stop(); });
+      await runner.start();
+      fail(new Error('offline'));
+      await flush();
+      await flush();
+      expect(unhandled).not.toHaveBeenCalled();
+      expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
   });
 });
 
@@ -802,6 +935,15 @@ describe('runner — playback live signal (T8)', () => {
     await runner.start();
     expect(playback.clear).not.toHaveBeenCalled();
   });
+
+  it('a subscriber that stops the run as it goes running leaves playback not live', async () => {
+    const { runner, playback } = setup();
+    runner.state.subscribe((s) => { if (s.phase === 'running') void runner.stop(); });
+    await runner.start();
+    await flush();
+    expect(runner.state.getState().phase).toBe('idle');
+    expect(playback.live.mock.calls[playback.live.mock.calls.length - 1]).toEqual([false]);
+  });
 });
 
 describe('runner — subscriber isolation (F2)', () => {
@@ -1032,6 +1174,17 @@ describe('runner — abandon', () => {
     const { runner } = setup();
     runner.abandon();
     expect(runner.state.getState()).toEqual({ phase: 'idle' });
+  });
+
+  it('closes a push-to-translate hold, and drops the queued audio', async () => {
+    const { runner, playback } = setup({ shape: { turnMode: 'push-to-translate' } });
+    await runner.start();
+    runner.press();
+    expect(playback.held.mock.calls).toEqual([[true]]);
+    playback.clear.mockClear();
+    runner.abandon();
+    expect(playback.held.mock.calls).toEqual([[true], [false]]);
+    expect(playback.clear).toHaveBeenCalledTimes(1);
   });
 
   it('preempts a stop still closing: no end analytics, no auto-save, and the idle state stays its own', async () => {

@@ -1290,6 +1290,7 @@
     "leg_failed": "A sessão foi interrompida: {{detail}}",
     "leg_closed": "O fornecedor terminou a sessão.",
     "source_ended": "A fonte de áudio desapareceu (desligada, fechada ou interrompida).",
+    "still_stopping": "A última sessão ainda está a ser terminada; tente novamente dentro de momentos.",
     "app_capture_lost_using_system_audio": "A captação da aplicação parou, pelo que todo o áudio do sistema está agora a ser traduzido.",
     "app_capture_monitor_missing": "A captação da aplicação não iniciou, pelo que todo o áudio do sistema está agora a ser traduzido.",
     "parse_error": "Não foi possível ler uma mensagem do fornecedor; a sessão continua.",

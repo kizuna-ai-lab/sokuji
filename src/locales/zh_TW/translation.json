@@ -1290,6 +1290,7 @@
     "leg_failed": "工作階段已停止：{{detail}}",
     "leg_closed": "提供商已結束工作階段。",
     "source_ended": "音訊來源已消失（已拔除、關閉或停止）。",
+    "still_stopping": "上一個工作階段仍在停止中，請稍後再試。",
     "app_capture_lost_using_system_audio": "應用程式擷取已停止，現在改為翻譯整個系統的聲音。",
     "app_capture_monitor_missing": "應用程式擷取未能啟動，現在改為翻譯整個系統的聲音。",
     "parse_error": "無法讀取來自提供商的訊息；工作階段將繼續。",

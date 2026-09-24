@@ -1290,6 +1290,7 @@
     "leg_failed": "Sesja została przerwana: {{detail}}",
     "leg_closed": "Dostawca zakończył sesję.",
     "source_ended": "Źródło dźwięku zniknęło (odłączone, zamknięte lub zatrzymane).",
+    "still_stopping": "Poprzednia sesja wciąż się zatrzymuje; spróbuj ponownie za chwilę.",
     "app_capture_lost_using_system_audio": "Przechwytywanie aplikacji zostało przerwane, więc tłumaczony jest teraz cały dźwięk systemowy.",
     "app_capture_monitor_missing": "Przechwytywanie aplikacji się nie rozpoczęło, więc tłumaczony jest teraz cały dźwięk systemowy.",
     "parse_error": "Nie udało się odczytać wiadomości od dostawcy; sesja jest kontynuowana.",

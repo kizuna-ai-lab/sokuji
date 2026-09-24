@@ -1290,6 +1290,7 @@
     "leg_failed": "La session s'est arrêtée : {{detail}}",
     "leg_closed": "Le fournisseur a mis fin à la session.",
     "source_ended": "La source audio a disparu (débranchée, fermée ou arrêtée).",
+    "still_stopping": "La dernière session est encore en cours d'arrêt ; réessayez dans un instant.",
     "app_capture_lost_using_system_audio": "La capture de l'application s'est arrêtée ; tout l'audio du système est donc traduit à la place.",
     "app_capture_monitor_missing": "La capture de l'application n'a pas démarré ; tout l'audio du système est donc traduit à la place.",
     "parse_error": "Un message du fournisseur n'a pas pu être lu ; la session continue.",

@@ -1290,6 +1290,7 @@
     "leg_failed": "De sessie is gestopt: {{detail}}",
     "leg_closed": "De provider heeft de sessie beëindigd.",
     "source_ended": "De audiobron is verdwenen (losgekoppeld, gesloten of gestopt).",
+    "still_stopping": "De vorige sessie wordt nog gestopt; probeer het zo opnieuw.",
     "app_capture_lost_using_system_audio": "Het vastleggen van de app is gestopt, dus wordt nu alle systeemaudio vertaald.",
     "app_capture_monitor_missing": "Het vastleggen van de app is niet gestart, dus wordt nu alle systeemaudio vertaald.",
     "parse_error": "Een bericht van de provider kon niet worden gelezen; de sessie gaat door.",

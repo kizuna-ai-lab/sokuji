@@ -1290,6 +1290,7 @@
     "leg_failed": "Istunto pysähtyi: {{detail}}",
     "leg_closed": "Tarjoaja lopetti istunnon.",
     "source_ended": "Äänilähde katosi (irrotettu, suljettu tai pysäytetty).",
+    "still_stopping": "Edellistä istuntoa lopetetaan vielä; yritä hetken päästä uudelleen.",
     "app_capture_lost_using_system_audio": "Sovelluksen kaappaus pysähtyi, joten nyt käännetään kaikki järjestelmän ääni.",
     "app_capture_monitor_missing": "Sovelluksen kaappaus ei käynnistynyt, joten nyt käännetään kaikki järjestelmän ääni.",
     "parse_error": "Tarjoajan viestiä ei voitu lukea; istunto jatkuu.",

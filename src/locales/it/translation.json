@@ -1290,6 +1290,7 @@
     "leg_failed": "La sessione si è interrotta: {{detail}}",
     "leg_closed": "Il fornitore ha terminato la sessione.",
     "source_ended": "La sorgente audio è scomparsa (scollegata, chiusa o interrotta).",
+    "still_stopping": "L'ultima sessione si sta ancora chiudendo; riprova tra un momento.",
     "app_capture_lost_using_system_audio": "La cattura dell'app si è interrotta, quindi ora viene tradotto tutto l'audio di sistema.",
     "app_capture_monitor_missing": "La cattura dell'app non è partita, quindi ora viene tradotto tutto l'audio di sistema.",
     "parse_error": "Un messaggio del fornitore non è stato leggibile; la sessione continua.",

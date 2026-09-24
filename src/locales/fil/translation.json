@@ -1290,6 +1290,7 @@
     "leg_failed": "Huminto ang session: {{detail}}",
     "leg_closed": "Tinapos ng provider ang session.",
     "source_ended": "Naglaho ang audio source (na-unplug, na-close, o huminto).",
+    "still_stopping": "Hinihinto pa ang huling session; subukan ulit sa ilang sandali.",
     "app_capture_lost_using_system_audio": "Huminto ang capture ng app, kaya isinasalin na ngayon ang buong system audio.",
     "app_capture_monitor_missing": "Hindi nagsimula ang capture ng app, kaya isinasalin na ngayon ang buong system audio.",
     "parse_error": "Hindi mabasa ang isang mensahe mula sa provider; magpapatuloy ang session.",

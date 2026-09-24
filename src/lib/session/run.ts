@@ -8,7 +8,7 @@ import type { AnalyticsEvents } from '../analytics';
 import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/adapter';
 import { eventsFrom, type AdapterEvent } from '../contract/events';
 import { Conversation, DEFAULT_RETENTION, type Retention } from '../conversation/Conversation';
-import type { LegName } from '../conversation/types';
+import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import { isMissing, readCredentials } from '../provider/credentials';
@@ -19,7 +19,7 @@ import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
 import { ResourceStack } from './stack';
 import { Turn } from './turn';
-import type { LegState, Prepared, RunEnd, RunNotice, RunShape } from './types';
+import type { LegState, LoadingProgress, Prepared, RunEnd, RunNotice, RunShape } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const API_ERROR_TYPES = ['auth', 'rate_limit', 'network', 'server', 'client'] as const;
@@ -48,7 +48,8 @@ export class LegOpenError extends Error {
 export interface RunHost {
   step(step: 'checking' | 'preparing' | 'opening'): void;
   legState(leg: LegName, state: LegState): void;
-  loading(leg: LegName, progress: Omit<import('./types').LoadingProgress, 'leg'>): void;
+  /** A leg is loading its models while it opens: the starting state shows it. */
+  loading(leg: LegName, progress: Omit<LoadingProgress, 'leg'>): void;
   /** The run's legs exist: they become the conversation now, so text shows as it arrives. */
   conversations(legs: ReadonlyMap<LegName, Conversation>, info: ConversationInfo): void;
   /** A leg ended on its own, or a lease did: end the run. */
@@ -128,7 +129,9 @@ export class Run {
     let prepared: Prepared<unknown> = {};
     if (p.session?.prepare) {
       host.step('preparing');
-      prepared = await p.session.prepare(shape, settings, this.signal);
+      // A `prepare` that ignores its signal no longer holds a stop. It holds
+      // nothing to release, and `persist` applies only once it has returned.
+      prepared = await this.untilAborted(p.session.prepare(shape, settings, this.signal));
       this.throwIfAborted();
       if (prepared.override) settings = { ...(settings as object), ...prepared.override };
       if (prepared.persist) deps.persistIfUnchanged(p, shape.settings, prepared.persist);
@@ -251,9 +254,10 @@ export class Run {
     await this.settled();
   }
 
-  /** `pagehide`: decide nothing more, abort, fire every release now, finalize the legs (spec: "Stopping, and closing the window"). */
+  /** `pagehide`: decide nothing more, close an open turn, abort, fire every release now, finalize the legs (spec: "Stopping, and closing the window"). */
   abandon(): void {
     this.ending = true;
+    if (this.turn?.close()) this.hold(false);
     this.controller.abort(new Error('the page went away'));
     this.stack.abandon();
     // As `close()` does: a page restored from the back/forward cache must
@@ -286,6 +290,11 @@ export class Run {
       hold_duration_ms: this.deps.clock.now() - turn.startedAt,
       mode: this.shape.turnMode === 'push-to-translate' ? 'push-to-translate' : 'push-to-talk',
     });
+  }
+
+  /** Each leg's conversation as it stands, speaker first (the shape's order): what auto-save reads once this run has ended. */
+  legs(): readonly Leg[] {
+    return [...this.conversations.values()].map((conversation) => conversation.snapshot());
   }
 
   /** Typed text for the speaker leg, when the provider takes text. */
@@ -431,6 +440,8 @@ export class Run {
 
   /** `task`, or the abort, whichever comes first: a check that cannot be cancelled no longer holds a stop. */
   private untilAborted<T>(task: Promise<T>): Promise<T> {
+    // On an abort the answer is dropped: observe it, so a late rejection is never unhandled.
+    task.catch(() => {});
     return new Promise<T>((resolve, reject) => {
       const onAbort = () => reject(this.signal.reason ?? new Error('aborted'));
       if (this.signal.aborted) return onAbort();

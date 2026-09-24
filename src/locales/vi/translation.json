@@ -1290,6 +1290,7 @@
     "leg_failed": "Phiên đã dừng: {{detail}}",
     "leg_closed": "Nhà cung cấp đã kết thúc phiên.",
     "source_ended": "Nguồn âm thanh đã biến mất (bị ngắt kết nối, đóng hoặc dừng).",
+    "still_stopping": "Phiên trước vẫn đang dừng; hãy thử lại sau giây lát.",
     "app_capture_lost_using_system_audio": "Việc thu ứng dụng đã dừng, nên toàn bộ âm thanh hệ thống đang được dịch thay thế.",
     "app_capture_monitor_missing": "Việc thu ứng dụng chưa bắt đầu, nên toàn bộ âm thanh hệ thống đang được dịch thay thế.",
     "parse_error": "Không thể đọc một thông báo từ nhà cung cấp; phiên vẫn tiếp tục.",

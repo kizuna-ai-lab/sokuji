@@ -66,11 +66,11 @@ export interface RunnerDeps {
   frames?: FramePort;
   punctuate?: Punctuator;
   newSessionId(): string;
-  /** After a run that went live has ended and its legs are final: where auto-save plugs in. */
+  /** After a run that went live has ended and its legs are final — that run's own legs: where auto-save plugs in. */
   onRunEnded?(legs: readonly Leg[]): Promise<void> | void;
   /** Bounds each release and the wait for punctuation fill-in; default 5000. */
   timeoutMs?: number;
-  /** Bounds a whole ending — every release, the fill-in wait, `onRunEnded` — at once; default 15000. What outlives it unwinds in the background. */
+  /** Bounds a whole ending — every release, the fill-in wait, `onRunEnded` — at once; default 15000. What outlives it unwinds in the background, still the runner's: a start is refused until it finishes. */
   closeTimeoutMs?: number;
   /** `keepReplayAudio`, live (spec: "What may change during a run"); absent, the shape's value holds for the run. */
   replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };

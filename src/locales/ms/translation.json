@@ -1290,6 +1290,7 @@
     "leg_failed": "Sesi terhenti: {{detail}}",
     "leg_closed": "Penyedia menamatkan sesi.",
     "source_ended": "Sumber audio hilang (dicabut, ditutup atau dihentikan).",
+    "still_stopping": "Sesi terakhir masih sedang dihentikan; cuba lagi sebentar lagi.",
     "app_capture_lost_using_system_audio": "Tangkapan aplikasi terhenti, jadi semua audio sistem kini diterjemahkan.",
     "app_capture_monitor_missing": "Tangkapan aplikasi tidak bermula, jadi semua audio sistem kini diterjemahkan.",
     "parse_error": "Mesej daripada penyedia tidak dapat dibaca; sesi diteruskan.",

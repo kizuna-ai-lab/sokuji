@@ -1290,6 +1290,7 @@
     "leg_failed": "La sesión se detuvo: {{detail}}",
     "leg_closed": "El proveedor finalizó la sesión.",
     "source_ended": "La fuente de audio desapareció (desconectada, cerrada o detenida).",
+    "still_stopping": "La última sesión todavía se está deteniendo; inténtalo de nuevo en un momento.",
     "app_capture_lost_using_system_audio": "La captura de la aplicación se detuvo, por lo que ahora se traduce todo el audio del sistema.",
     "app_capture_monitor_missing": "La captura de la aplicación no se inició, por lo que ahora se traduce todo el audio del sistema.",
     "parse_error": "No se pudo leer un mensaje del proveedor; la sesión continúa.",

@@ -1290,6 +1290,7 @@
     "leg_failed": "Sessionen avbröts: {{detail}}",
     "leg_closed": "Leverantören avslutade sessionen.",
     "source_ended": "Ljudkällan försvann (bortkopplad, stängd eller stoppad).",
+    "still_stopping": "Den senaste sessionen håller fortfarande på att stoppas; försök igen om en stund.",
     "app_capture_lost_using_system_audio": "Appinsamlingen stoppades, så nu översätts allt systemljud i stället.",
     "app_capture_monitor_missing": "Appinsamlingen startade inte, så nu översätts allt systemljud i stället.",
     "parse_error": "Ett meddelande från leverantören kunde inte läsas; sessionen fortsätter.",

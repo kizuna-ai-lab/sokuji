@@ -32,6 +32,7 @@ function fakeRunner(initial: RunState = { phase: 'idle' }) {
     conversation: new ConversationSet(),
     start: vi.fn(async () => {}),
     stop: vi.fn(async () => {}),
+    settled: vi.fn(async () => {}),
     abandon: vi.fn(),
     press: vi.fn(),
     release: vi.fn(),

@@ -1290,6 +1290,7 @@
     "leg_failed": "Die Sitzung wurde beendet: {{detail}}",
     "leg_closed": "Der Anbieter hat die Sitzung beendet.",
     "source_ended": "Die Audioquelle ist nicht mehr verfügbar (getrennt, geschlossen oder gestoppt).",
+    "still_stopping": "Die letzte Sitzung wird noch beendet; versuchen Sie es gleich noch einmal.",
     "app_capture_lost_using_system_audio": "Die App-Erfassung wurde beendet, daher wird stattdessen das gesamte Systemaudio übersetzt.",
     "app_capture_monitor_missing": "Die App-Erfassung konnte nicht gestartet werden, daher wird stattdessen das gesamte Systemaudio übersetzt.",
     "parse_error": "Eine Nachricht des Anbieters konnte nicht gelesen werden; die Sitzung wird fortgesetzt.",

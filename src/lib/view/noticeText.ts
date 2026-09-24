@@ -28,6 +28,7 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   leg_failed: 'The session stopped: {{detail}}',
   leg_closed: 'The provider ended the session.',
   source_ended: 'The audio source went away (unplugged, closed or stopped).',
+  still_stopping: 'The last session is still stopping; try again in a moment.',
   // The capture's degradations.
   app_capture_lost_using_system_audio: 'The app capture stopped, so all system audio is being translated instead.',
   app_capture_monitor_missing: "The app capture didn't start, so all system audio is being translated instead.",

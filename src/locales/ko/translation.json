@@ -1290,6 +1290,7 @@
     "leg_failed": "세션이 중단되었습니다: {{detail}}",
     "leg_closed": "제공자가 세션을 종료했습니다.",
     "source_ended": "오디오 소스가 사라졌습니다(연결 해제, 종료 또는 중지됨).",
+    "still_stopping": "이전 세션이 아직 종료되는 중입니다. 잠시 후 다시 시도하세요.",
     "app_capture_lost_using_system_audio": "앱 캡처가 중지되어 지금은 시스템 오디오 전체가 대신 번역되고 있습니다.",
     "app_capture_monitor_missing": "앱 캡처가 시작되지 않아 지금은 시스템 오디오 전체가 대신 번역되고 있습니다.",
     "parse_error": "제공자로부터 온 메시지를 읽을 수 없습니다. 세션은 계속됩니다.",

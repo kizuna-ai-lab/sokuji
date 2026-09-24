@@ -1290,6 +1290,7 @@
     "leg_failed": "Oturum durdu: {{detail}}",
     "leg_closed": "Sağlayıcı oturumu sonlandırdı.",
     "source_ended": "Ses kaynağı ortadan kayboldu (bağlantısı kesildi, kapatıldı veya durduruldu).",
+    "still_stopping": "Son oturum hâlâ durduruluyor; birazdan tekrar deneyin.",
     "app_capture_lost_using_system_audio": "Uygulama yakalaması durdu, bu yüzden artık tüm sistem sesi çevriliyor.",
     "app_capture_monitor_missing": "Uygulama yakalaması başlamadı, bu yüzden artık tüm sistem sesi çevriliyor.",
     "parse_error": "Sağlayıcıdan gelen bir mesaj okunamadı; oturum devam ediyor.",

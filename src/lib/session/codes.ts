@@ -18,6 +18,7 @@ export const RUN_NOTICE_CODES = [
   'leg_failed',
   'leg_closed',
   'source_ended',
+  'still_stopping',
 ] as const;
 
 export type RunNoticeCode = (typeof RUN_NOTICE_CODES)[number];

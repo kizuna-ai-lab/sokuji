@@ -19,9 +19,11 @@ export interface Runner {
   /** The legs of the last run, until the next start replaces them. */
   readonly conversation: ConversationSet;
   start(method?: ControlMethod): Promise<void>;
-  /** Idempotent: every call while a run ends returns the same promise. */
+  /** Idempotent: every call while a run ends returns the same promise. Resolves by the overall bound (`closeTimeoutMs`); `settled()` waits for what outlives it. */
   stop(method?: ControlMethod): Promise<void>;
-  /** `pagehide`: closes every leg and source synchronously; no auto-save, no end analytics. Idle: does nothing. */
+  /** Resolves once no ending is in flight and none still unwinds past its bound (what an Electron close awaits); at once when there is neither. */
+  settled(): Promise<void>;
+  /** `pagehide`: closes every leg and source synchronously — the run's, or those of an ending still unwinding past its bound; no auto-save, no end analytics. Idle with neither: does nothing. */
   abandon(): void;
   press(): void;
   release(): void;
@@ -64,10 +66,12 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
   // analytics/`onRunEnded` branch, nor overwrite the idle state `abandon()`
   // set — `current` may already be a newer run by the time it finishes.
   const abandoned = new WeakSet<Run>();
-  /** An ending that outlived its bound, still unwinding: the next start waits for it. */
-  let lingering: Promise<void> | null = null;
-  /** A start already waiting on `lingering`: a second one while it waits does nothing, as a second start while `starting` does today. */
-  let waitingToStart = false;
+  /**
+   * An ending that outlived its bound, still unwinding and still this
+   * runner's: `abandon()` reaches it, and a start is refused until it has
+   * finished, so two runs never hold the microphone at once.
+   */
+  let lingering: { run: Run; done: Promise<void> } | null = null;
 
   const set = (next: RunState) => { state.setState(next, true); };
   const legs = (run: Run) => Object.fromEntries(run.legStates) as Partial<Record<LegName, LegState>>;
@@ -127,7 +131,9 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
             // One per leg, as `connected` was.
             run.shape.legs.forEach((leg) => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration, channel: leg }));
             deps.analytics.track('translation_session_end', { session_id: run.id, duration, provider });
-            if (deps.onRunEnded) await bounded(Promise.resolve(deps.onRunEnded(conversation.snapshot())));
+            // The run's own legs, never the runner's conversation set: an
+            // ending that outlived its bound must save what it ran.
+            if (deps.onRunEnded) await bounded(Promise.resolve(deps.onRunEnded(run.legs())));
           }
         } catch (error) {
           reportError('SessionRunner', `Ending the session failed: ${describeCause(error)}`, { cause: error });
@@ -140,11 +146,12 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
           const cancel = deps.clock.setTimeout(() => resolve(true), deps.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS);
           void work.then(() => { cancel(); resolve(false); });
         });
-        if (overran) {
+        // An abandoned run is no longer this runner's: it never lingers.
+        if (overran && !abandoned.has(run)) {
           reportWarning('SessionRunner', 'Stopping the session is taking long; it goes on in the background', { dedupeKey: 'close:timeout' });
-          // Cleared when it finishes — unless a newer lingering ending replaced it meanwhile.
-          const lingerFor: Promise<void> = work.then(() => { if (lingering === lingerFor) lingering = null; });
-          lingering = lingerFor;
+          // Cleared when it finishes — unless `abandon()` already let it go.
+          const linger: { run: Run; done: Promise<void> } = { run, done: work.then(() => { if (lingering === linger) lingering = null; }) };
+          lingering = linger;
         }
       } finally {
         // Already forced idle by `abandon()`; `current` may already be a
@@ -182,21 +189,12 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
 
   const start = async (method: ControlMethod = 'button'): Promise<void> => {
     if (state.getState().phase !== 'idle') return;
+    deps.analytics.track('session_control_clicked', { action: 'start', method });
     if (lingering) {
       // The last run is still unwinding past its bound: never open a second one over it.
-      if (waitingToStart) return;
-      waitingToStart = true;
-      try {
-        await new Promise<void>((resolve) => {
-          const cancel = deps.clock.setTimeout(resolve, deps.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS);
-          void lingering!.then(() => { cancel(); resolve(); });
-        });
-      } finally {
-        waitingToStart = false;
-      }
-      if (state.getState().phase !== 'idle') return;
+      set({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'still_stopping' satisfies RunNoticeCode, message: 'The last session is still stopping.' } } });
+      return;
     }
-    deps.analytics.track('session_control_clicked', { action: 'start', method });
     const shape = deps.readShape();
     if (!shape) {
       set({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_provider' satisfies RunNoticeCode, message: 'No provider is chosen, or it has not loaded.' } } });
@@ -224,8 +222,10 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       return;
     }
     if (run !== current || run.signal.aborted) return;
-    set({ phase: 'running', since: run.liveSince!, legs: legs(run) });
+    // Before the state says running: a subscriber that stops the run at once
+    // must leave playback not live, not live again after its stop.
     deps.playback.live(true);
+    set({ phase: 'running', since: run.liveSince!, legs: legs(run) });
     deps.analytics.track('translation_session_start', {
       session_id: run.id,
       provider: shape.provider.id,
@@ -255,15 +255,25 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     conversation,
     start,
     stop,
+    settled: async () => {
+      // An ending in flight may overrun into a lingering one: wait until neither is left.
+      for (let wait = ending ?? lingering?.done; wait; wait = ending ?? lingering?.done) await wait;
+    },
     abandon: () => {
-      const run = current;
+      // The current run, or an ending still unwinding past its bound — never
+      // both, since a start is refused while one lingers.
+      const run = current ?? lingering?.run;
       if (!run) return;
+      const wasCurrent = run === current;
       abandoned.add(run);
       current = null;
       ending = null;
+      lingering = null;
       run.abandon();
       deps.playback.live(false);
-      set({ phase: 'idle', lastEnd: { reason: 'user' } });
+      deps.playback.clear();
+      // A lingering run already shows idle, with its own end: that stays as it is.
+      if (wasCurrent) set({ phase: 'idle', lastEnd: { reason: 'user' } });
     },
     press: () => current?.press(),
     release: () => current?.release(),

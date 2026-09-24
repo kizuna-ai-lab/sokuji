@@ -15,6 +15,7 @@ export interface Source {
   onDegraded(listener: (notice: SourceNotice) => void): () => void;
   /** The capture's own track, for an adapter that sends a native track (WebRTC); absent where there is none. */
   readonly track?: MediaStreamTrack;
+  /** Stops capturing before its first `await`: on `pagehide` it is called and not awaited. */
   stop(): Promise<void>;
 }
 
