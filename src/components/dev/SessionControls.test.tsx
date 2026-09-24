@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { createStore } from 'zustand/vanilla';
-import { createVirtualClock } from '../../lib/contract/clock';
-import { Conversation } from '../../lib/conversation/Conversation';
 import type { AppAudio } from '../../lib/audio/appAudio';
 import type { Playback } from '../../lib/audio/playback';
 import { ConversationSet } from '../../lib/session/conversationSet';
@@ -104,29 +102,7 @@ function fakeAudio(): AppAudio & { playback: Playback } {
   return { playback, testTone: vi.fn(async () => {}) };
 }
 
-/** One exchange whose translation (ref 2) kept its speech. */
-function oneExchange(): Conversation {
-  const conversation = new Conversation({ leg: 'speaker', session: 's', languages: { source: 'en', target: 'ja' }, clock: createVirtualClock(0) });
-  conversation.apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'x' } });
-  conversation.apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello.' } });
-  conversation.apply({ kind: 'segmentClosed', payload: { ref: 1, origin: 'x' } });
-  conversation.apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'x' } });
-  conversation.apply({ kind: 'segmentText', payload: { ref: 2, text: 'こんにちは。' } });
-  conversation.apply({ kind: 'audio', payload: { ref: 2, pcm: new Int16Array(2400) } });
-  conversation.apply({ kind: 'segmentClosed', payload: { ref: 2, origin: 'x' } });
-  return conversation;
-}
-
 describe('SessionControls — playback', () => {
-  it("replays an exchange's translation", () => {
-    const { runner } = fakeRunner();
-    runner.conversation.replace(new Map([['speaker' as const, oneExchange()]]));
-    const audio = fakeAudio();
-    render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Replay' }));
-    expect(audio.playback.replay).toHaveBeenCalledWith('speaker', expect.objectContaining({ ref: 2 }));
-  });
-
   it('plays the test tone', () => {
     const { runner } = fakeRunner();
     const audio = fakeAudio();

@@ -6,3 +6,10 @@
   background-color: #1e1e1e;
   color: white;
 }
+
+.spine-conversation {
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  background: var(--conversation-bg-color, #1f1f1f);
+}

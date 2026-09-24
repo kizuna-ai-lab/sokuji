@@ -78,6 +78,11 @@ describe('the fake provider', () => {
   it('has a script for every name in the catalogue', () => {
     for (const name of FAKE_SCRIPT_NAMES) expect(fakeScript(name).blocks.length).toBeGreaterThan(0);
   });
+
+  it('offers a script that raises a notice between two exchanges', () => {
+    const steps = fakeScript('notices').blocks.flatMap((block) => block.steps);
+    expect(steps.some((step) => 'degraded' in step)).toBe(true);
+  });
 });
 
 describe('migrateFakeSettings', () => {

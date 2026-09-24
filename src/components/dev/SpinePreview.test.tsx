@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 
 vi.mock('../../lib/auth/hooks', () => ({
   useAuth: () => ({ isSignedIn: false, getToken: async () => null }),
@@ -51,5 +51,10 @@ describe('SpinePreview', () => {
   it('offers the test tone once the playback has loaded', async () => {
     render(<SpinePreview />);
     expect(await screen.findByRole('button', { name: 'Test tone' })).toBeInTheDocument();
+  });
+
+  it("draws the conversation list's empty state before a session", async () => {
+    const { container } = render(<SpinePreview />);
+    await waitFor(() => expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull());
   });
 });

@@ -1,10 +1,10 @@
 import { longScript } from './generate';
 import { exchange, type FakeScript } from './script';
 
-export type FakeScriptName = 'exchange' | 'cjk' | 'rewrite' | 'long';
+export type FakeScriptName = 'exchange' | 'cjk' | 'rewrite' | 'long' | 'notices';
 
 /** In the order the fake's settings list them. */
-export const FAKE_SCRIPT_NAMES: readonly FakeScriptName[] = ['exchange', 'cjk', 'rewrite', 'long'];
+export const FAKE_SCRIPT_NAMES: readonly FakeScriptName[] = ['exchange', 'cjk', 'rewrite', 'long', 'notices'];
 
 /** The scripts the fake can play (spec: "Testing" — script playback and the shape knobs). */
 export function fakeScript(name: FakeScriptName): FakeScript {
@@ -35,5 +35,14 @@ export function fakeScript(name: FakeScriptName): FakeScript {
     case 'long':
       // Enough segments to load the projection.
       return longScript(500, 3000);
+    case 'notices':
+      // A degradation between two exchanges: the list draws a notice among the rows.
+      return {
+        blocks: [
+          exchange({ startAt: 500, ref: 1, source: ['Testing', 'Testing notices.'], translation: 'お知らせのテストです。', origin: 'n1', audioChunks: 1 }),
+          { startAt: 3500, steps: [{ at: 0, degraded: { code: 'tts_degraded', message: 'The fake degraded its speech (script).' } }] },
+          exchange({ startAt: 4500, ref: 3, source: ['Still here.'], translation: 'まだいます。', origin: 'n2', audioChunks: 1 }),
+        ],
+      };
   }
 }

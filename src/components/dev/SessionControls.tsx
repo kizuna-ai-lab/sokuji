@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import type { AppAudio } from '../../lib/audio/appAudio';
 import type { Playback } from '../../lib/audio/playback';
-import type { Segment } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import type { Runner } from '../../lib/session/runner';
 import type { TurnMode } from '../../lib/session/types';
 import useAudioStore from '../../stores/audioStore';
@@ -67,18 +65,14 @@ function usePlaybackProbe(
 }
 
 /**
- * Development builds only: drive a runner by hand, read its conversation
- * raw, and check the playback by ear. The real surfaces (plan 1d) replace
- * this; its copy is not localized.
+ * Development builds only: drive a runner by hand and check the playback by
+ * ear; the conversation is drawn by the list beside it (plan 1d-1). Its copy
+ * is not localized.
  */
 export function SessionControls({ runner, turnMode, audio, capture }: SessionControlsProps) {
   const state = useStore(runner.state);
-  const legs = useSyncExternalStore((l) => runner.conversation.subscribe(l), () => runner.conversation.snapshot());
-  const projector = useMemo(() => createProjector(), []);
-  const entries = projector.project(legs, DEFAULT_PROJECTION);
   const [text, setText] = useState('');
   const running = state.phase === 'running';
-  const segments = new Map(legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const)));
   const meeting = useRoutingStore((s) => s.meeting);
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const monitorMuted = useAudioStore((s) => s.isMonitorMuted);
@@ -157,22 +151,6 @@ export function SessionControls({ runner, turnMode, audio, capture }: SessionCon
           </p>
         </div>
       )}
-      <ol className="setting-item">
-        {entries.map((entry) => {
-          if (entry.kind === 'notice') return <li key={entry.id}>{`[${entry.severity}] ${entry.message}`}</li>;
-          const spoken = entry.translation
-            .map((row) => segments.get(row.segmentId))
-            .find((segment): segment is Segment => !!segment && segment.speech.some((s) => s.pcm.length > 0));
-          return (
-            <li key={entry.id}>
-              {`${entry.leg}: ${[...entry.source, ...entry.translation].map((row) => segments.get(row.segmentId)?.text.slice(row.start, row.end) ?? '').join(' | ')}`}
-              {audio && spoken && (
-                <button type="button" className="validate-button" onClick={() => audio.playback.replay(entry.leg, spoken)}>Replay</button>
-              )}
-            </li>
-          );
-        })}
-      </ol>
     </div>
   );
 }
