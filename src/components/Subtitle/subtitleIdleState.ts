@@ -11,7 +11,9 @@ export type SubtitleIdleState =
   | { kind: 'ended' }
   | { kind: 'starting'; completed?: number; total?: number }
   | { kind: 'blocked'; reason: StartBlockReason; balance?: number; deviceScope?: DeviceScope }
-  | { kind: 'failed'; message: string };
+  | { kind: 'failed'; message: string }
+  /** The new runner's provider is not ready (plan 1d-2): its reason, in words the provider gave. */
+  | { kind: 'unready'; message: string };
 
 export interface IdleStateInput {
   isInitializing: boolean;

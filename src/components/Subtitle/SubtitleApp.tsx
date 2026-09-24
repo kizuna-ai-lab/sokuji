@@ -7,25 +7,21 @@ import SubtitleIdle from './SubtitleIdle';
 import { deriveSubtitleIdleState } from './subtitleIdleState';
 import type { StartBlockReason, DeviceScope } from '../MainPanel/sessionStartGate';
 import { reasonToSettingsTarget } from '../MainPanel/sessionStartGate';
-import useSettingsStore, {
+import {
   useExitSubtitleMode,
   useProvider,
   useCurrentProviderSettings,
   useLocalInferenceSettings,
   useCurrentTurnDetectionMode,
-  useSubtitleFullscreen,
-  useSetSubtitleFullscreen,
   useNavigateToSettings,
 } from '../../stores/settingsStore';
 import {
   useSubtitleSettings,
-  useSaveSubtitleWindowBounds,
-  useSubtitlePositionLocked,
   useSubtitleSpeakerDisplayMode as useSpeakerDisplayMode,
   useSubtitleParticipantDisplayMode as useParticipantDisplayMode,
   useSubtitleNewItemHighlightEnabled,
 } from '../../stores/subtitleStore';
-import { useOverlayDragResize } from './useOverlayDragResize';
+import { useSubtitleChrome, type SubtitleSurfaceKind } from './useSubtitleChrome';
 import {
   useIsSessionActive,
   useSessionStartTime,
@@ -44,57 +40,20 @@ import type { ConversationItem } from '../../services/interfaces/IClient';
 import { isPushGatedMode } from '../../services/providers/speechMode';
 import './SubtitleApp.scss';
 
-const AUTO_HIDE_MS = 1500;
+// Re-exported so existing importers (SubtitleApp.test.tsx, SubtitleBar.tsx,
+// useOverlayDragResize.ts) keep working after the move into useSubtitleChrome.
+export { getHighlightOverlayForBg } from './useSubtitleChrome';
+export type { SubtitleSurfaceKind } from './useSubtitleChrome';
 
 function languageCodeShort(longCode: string | undefined): string {
   if (!longCode) return '?';
   return longCode.slice(0, 2).toUpperCase();
 }
 
-function hexToRgba(hex: string, alpha: number): string {
-  const m = /^#?([a-fA-F0-9]{6})$/.exec(hex);
-  if (!m) return `rgba(0,0,0,${alpha})`;
-  const v = parseInt(m[1], 16);
-  const r = (v >> 16) & 0xff;
-  const g = (v >> 8) & 0xff;
-  const b = v & 0xff;
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-const HIGHLIGHT_ALPHA = 0.3;
-
-/**
- * Returns a CSS color for the "newly-arrived item" overlay, chosen so it
- * contrasts with the user-selected background. YIQ luminance < 128 means
- * the background is dark → use a light overlay; otherwise use dark.
- *
- * The user-set bgOpacity is intentionally not factored in. When opacity is
- * very low and the actual visible background is whatever sits behind the
- * subtitle window, this falls back to the bgColor's nominal lightness —
- * a known limitation accepted in the design spec.
- */
-export function getHighlightOverlayForBg(hex: string): string {
-  const m = /^#?([a-fA-F0-9]{6})$/.exec(hex);
-  if (!m) return `rgba(255,255,255,${HIGHLIGHT_ALPHA})`;
-  const v = parseInt(m[1], 16);
-  const r = (v >> 16) & 0xff;
-  const g = (v >> 8) & 0xff;
-  const b = v & 0xff;
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq < 128
-    ? `rgba(255,255,255,${HIGHLIGHT_ALPHA})`
-    : `rgba(0,0,0,${HIGHLIGHT_ALPHA})`;
-}
-
-export type SubtitleSurfaceKind = 'electron' | 'extension-overlay';
-
 const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'electron' }) => {
   const { t } = useTranslation();
   const subtitle = useSubtitleSettings();
   const exitSubtitleMode = useExitSubtitleMode();
-  const fullscreen = useSubtitleFullscreen();
-  const setFullscreen = useSetSubtitleFullscreen();
-  const saveBounds = useSaveSubtitleWindowBounds();
   const items = useItems();
   const participantItems = useParticipantItems();
   const speakerMode = useSpeakerDisplayMode();
@@ -209,33 +168,6 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   }, [isSessionActive]);
   const elapsedMs = isSessionActive && sessionStartTime ? now - sessionStartTime : 0;
 
-  // Root ref — used to derive the owner document for keyboard listeners so
-  // ESC works correctly when SubtitleApp is mounted inside an iframe.
-  const rootRef = useRef<HTMLDivElement | null>(null);
-
-  // Auto-hide bar
-  const [barVisible, setBarVisible] = useState(true);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Reveal the bar and (re)arm an inactivity timer that hides it after
-  // AUTO_HIDE_MS. Driven by mouse MOVEMENT, not just enter/leave: in
-  // fullscreen the root fills the entire screen, so the pointer never
-  // "leaves" and a leave-only hide would keep the bar stuck visible.
-  // Movement-based inactivity hides correctly in both windowed and fullscreen.
-  const revealBar = useCallback(() => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    setBarVisible(true);
-    hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
-  }, []);
-  const onMouseLeave = () => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
-  };
-  // Clear the pending auto-hide timer on unmount so it can't fire after the
-  // component is gone (movement-based revealBar arms one frequently).
-  useEffect(() => () => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-  }, []);
-
   // Centralised exit request. In the extension-overlay surface we don't have
   // direct access to the side panel's settingsStore.exitSubtitleMode; instead
   // we dispatch a window event that the iframe entry forwards to the side
@@ -248,59 +180,10 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
     }
   }, [surface, exitSubtitleMode]);
 
-  // ESC is layered: if we're in fullscreen, the first ESC drops back to the
-  // windowed bar; otherwise (or on the next ESC) it exits subtitle mode.
-  useEffect(() => {
-    const target = rootRef.current?.ownerDocument ?? document;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (fullscreen) {
-        void setFullscreen(false);
-      } else {
-        requestExit();
-      }
-    };
-    target.addEventListener('keydown', onKey);
-    return () => target.removeEventListener('keydown', onKey);
-  }, [requestExit, fullscreen, setFullscreen]);
-
-  // The OS fullscreen state can change outside our button (app menu, F11,
-  // macOS gesture). Mirror it into the store so the bar button + layered ESC
-  // stay correct. Electron surface only.
-  useEffect(() => {
-    if (surface !== 'electron') return;
-    if (!window.electron?.receive) return;
-    const handler = (flag: boolean) => {
-      useSettingsStore.getState().__syncSubtitleFullscreen(Boolean(flag));
-    };
-    window.electron.receive('subtitle:fullscreen-changed', handler);
-    return () => {
-      window.electron?.removeListener?.('subtitle:fullscreen-changed', handler);
-    };
-  }, [surface]);
-
-  // Bounds-changed listener (debounced 500 ms before persistence).
-  // The main process emits this for any resize/move regardless of mode, so
-  // we double-guard: only persist while subtitle mode is still active. This
-  // prevents the resize event triggered by exiting (setBounds(restore))
-  // from being saved as subtitle bounds.
-  useEffect(() => {
-    if (surface !== 'electron') return;
-    if (!window.electron?.receive) return;
-    let debounce: ReturnType<typeof setTimeout> | null = null;
-    const handler = (bounds: { x: number; y: number; width: number; height: number }) => {
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => {
-        if (!useSettingsStore.getState().subtitleModeActive) return;
-        void saveBounds(bounds);
-      }, 500);
-    };
-    window.electron.receive('subtitle:window-bounds-changed', handler);
-    return () => {
-      if (debounce) clearTimeout(debounce);
-      window.electron?.removeListener?.('subtitle:window-bounds-changed', handler);
-    };
-  }, [saveBounds, surface]);
+  // The window's own chrome (auto-hiding bar, layered Escape, Electron
+  // fullscreen/bounds mirroring, overlay resize handles, root style) — shared
+  // with the new SubtitleView. See useSubtitleChrome.
+  const chrome = useSubtitleChrome({ surface, onExit: requestExit });
 
   // Display-mode buttons follow the same intent-driven logic as MainPanel's
   // conversation toolbar: show a channel's button when that channel is
@@ -315,39 +198,8 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
   const speakerActive = effectiveMode === 'speaker' || effectiveMode === 'both' || items.length > 0;
   const participantActive = effectiveMode === 'participant' || effectiveMode === 'both' || participantItems.length > 0;
 
-  // Resize handles (extension-overlay only). Lock state from subtitleStore
-  // gates rendering — locked = no handles, no cursor change.
-  const positionLocked = useSubtitlePositionLocked();
-  const { resizeHandleProps } = useOverlayDragResize({ surface });
-  const showResizeHandles = surface === 'extension-overlay' && !positionLocked;
-
-  // Build CSS variables for background. The intersection with
-  // Record<string, string | number> lets us set CSS custom properties
-  // without TS rejecting non-camelCase keys.
-  const bgAlpha = subtitle.bgOpacity / 100;
-  const rootStyle: React.CSSProperties & Record<string, string | number> = {
-    background: hexToRgba(subtitle.bgColor, bgAlpha),
-    '--bar-opacity': barVisible ? 1 : 0,
-    '--bar-pointer-events': barVisible ? 'auto' : 'none',
-    '--subtitle-highlight-overlay': getHighlightOverlayForBg(subtitle.bgColor),
-    // SubtitleApp.scss reads this for `.subtitle-app`'s inherited text
-    // colour. It had never been defined at the root, so that declaration
-    // always resolved to its #FFFFFF fallback. Every chrome element below
-    // (idle body, PTT hint, bar) sets its own colour and overrides this, so
-    // defining it changes nothing that is on screen today — it just makes
-    // the rule mean what it says for anything that inherits.
-    '--subtitle-source-color': subtitle.sourceTextColor,
-  };
-
   return (
-    <div
-      ref={rootRef}
-      className={`subtitle-app${fullscreen ? ' fullscreen' : ''}`}
-      style={rootStyle}
-      onMouseEnter={revealBar}
-      onMouseMove={revealBar}
-      onMouseLeave={onMouseLeave}
-    >
+    <div ref={chrome.rootRef} {...chrome.rootProps}>
       <SubtitleBar
         sessionElapsedMs={elapsedMs}
         sourceLanguageCode={languageCodeShort(sourceLanguage)}
@@ -405,18 +257,7 @@ const SubtitleApp: React.FC<{ surface?: SubtitleSurfaceKind }> = ({ surface = 'e
           canStart={startGate.canStart}
         />
       )}
-      {showResizeHandles && (
-        <>
-          <div className="subtitle-app__resize subtitle-app__resize--n"  {...resizeHandleProps.n} />
-          <div className="subtitle-app__resize subtitle-app__resize--e"  {...resizeHandleProps.e} />
-          <div className="subtitle-app__resize subtitle-app__resize--s"  {...resizeHandleProps.s} />
-          <div className="subtitle-app__resize subtitle-app__resize--w"  {...resizeHandleProps.w} />
-          <div className="subtitle-app__resize subtitle-app__resize--nw" {...resizeHandleProps.nw} />
-          <div className="subtitle-app__resize subtitle-app__resize--ne" {...resizeHandleProps.ne} />
-          <div className="subtitle-app__resize subtitle-app__resize--sw" {...resizeHandleProps.sw} />
-          <div className="subtitle-app__resize subtitle-app__resize--se" {...resizeHandleProps.se} />
-        </>
-      )}
+      {chrome.resizeHandles}
     </div>
   );
 };

@@ -63,6 +63,24 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
     );
   }
 
+  if (state.kind === 'unready') {
+    // The `blocked` markup, with the provider's own reason as the label. No
+    // settings page is mapped to a readiness reason yet (plan 1e), so the
+    // action is inert, as `blocked` is when it has no destination.
+    const label = state.message.replace(/[.。！!]+$/, '');
+    return (
+      <div className="subtitle-idle">
+        <button type="button" className="subtitle-idle__action subtitle-idle__action--fix" disabled>
+          <AlertTriangle size={15} />
+          <span>{label}</span>
+        </button>
+        <button type="button" className="subtitle-idle__link" onClick={onReturn}>
+          {t('subtitle.backToMain', 'Return to main window')}
+        </button>
+      </div>
+    );
+  }
+
   if (state.kind === 'blocked') {
     const { key, defaultValue, values } = reasonToI18n(state.reason, state.balance);
     const message = t(key, defaultValue, values);

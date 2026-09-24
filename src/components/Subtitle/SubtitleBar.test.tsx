@@ -106,6 +106,12 @@ describe('SubtitleBar export button', () => {
     render(<SubtitleBar {...baseProps} surface="extension-overlay" />);
     expect(screen.queryByTestId('export-button')).not.toBeInTheDocument();
   });
+
+  it('renders no export button without exportProps', () => {
+    const { exportProps: _unused, ...withoutExport } = baseProps;
+    render(<SubtitleBar {...withoutExport} surface="electron" />);
+    expect(screen.queryByTestId('export-button')).not.toBeInTheDocument();
+  });
 });
 
 describe('SubtitleBar session pill', () => {

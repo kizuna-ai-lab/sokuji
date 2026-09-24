@@ -166,6 +166,16 @@ describe('SubtitleIdle failed state', () => {
   });
 });
 
+describe('SubtitleIdle unready state', () => {
+  it("shows a provider that is not ready by its reason, punctuation trimmed, with an inert action", () => {
+    const h = handlers();
+    render(<SubtitleIdle state={{ kind: 'unready', message: 'Download a model first.' }} {...h} />);
+    expect(screen.getByRole('button', { name: 'Download a model first' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /return to main window/i }));
+    expect(h.onReturn).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('SubtitleIdle return affordance', () => {
   it('is present in every non-starting state', () => {
     const h = handlers();

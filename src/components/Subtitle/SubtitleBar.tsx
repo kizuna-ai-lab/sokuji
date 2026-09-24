@@ -43,7 +43,8 @@ interface Props {
   onClearConversation: () => void;
   speakerActive: boolean;
   participantActive: boolean;
-  exportProps: React.ComponentProps<typeof ExportButton>;
+  // absent: no export button — the new subtitle view gets its own in plan 1d-3
+  exportProps?: React.ComponentProps<typeof ExportButton>;
   surface?: SubtitleSurfaceKind;
   /**
    * Session start/stop, Electron surface only. Absent on the extension
@@ -234,7 +235,7 @@ const SubtitleBar: React.FC<Props> = ({
             messages. The side panel holds the full conversation and is the
             export source of truth — only offer export on the Electron surface,
             where the overlay shares the full session store. */}
-        {surface === 'electron' && <ExportButton {...exportProps} popoverHost="child-window" />}
+        {surface === 'electron' && exportProps && <ExportButton {...exportProps} popoverHost="child-window" />}
         <button
           type="button"
           className="subtitle-bar__btn"
