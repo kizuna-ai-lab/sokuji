@@ -306,5 +306,5 @@ capture-side items are under "Carried out of plan 1c-1" → 1c-3.
 - `keepReplayAudio` should take effect during a run (spec: "What may change
   during a run"): subscribe the runner to it and call
   `Conversation.setRetention`.
-- `playbackStore` must be loaded before the first start, as
+- `routingStore` must be loaded before the first start, as
   `turnModeStore` must.

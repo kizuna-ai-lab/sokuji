@@ -4,7 +4,7 @@
 
 **Goal:** The playback half of the audio layer behind plan 1c-1's `PlaybackPort`: a clip queue per leg and one for replay on one Web Audio graph, the route table (switches, and one mix gain), replay, voice preview and the test tone on the real device, the extension's virtual microphone fed from the virtual bus, and a pcm tap of the translated speech for the echo monitor — heard in the development preview. Capture is plan 1c-3.
 
-**Architecture:** `src/lib/audio/`. A `ClipQueue` schedules clips — one speech entry each — back to back on an `AudioTimeline`. `createAudioGraph(deps)` builds one 24 kHz `AudioContext` with five feeds (speaker, participant, replay, preview, passthrough), two buses (real, virtual) that leave through `<audio>` elements (or, in the extension, a tap that feeds the tabs' virtual microphone), and a tap of the translated speech; it applies a route table as a diff of gain edges. `routesFor(settings, held)` is the pure route table. `createPlayback(graph, routing)` implements `PlaybackPort` plus replay, preview, queue positions and the tap. `appAudio.ts` composes it for the page: the worklet from the platform's URL, the virtual device by label, the routing settings read from `audioStore` and a new `playbackStore`. Nothing the app runs today changes; plan 1e switches MainPanel over.
+**Architecture:** `src/lib/audio/`. A `ClipQueue` schedules clips — one speech entry each — back to back on an `AudioTimeline`. `createAudioGraph(deps)` builds one 24 kHz `AudioContext` with five feeds (speaker, participant, replay, preview, passthrough), two buses (real, virtual) that leave through `<audio>` elements (or, in the extension, a tap that feeds the tabs' virtual microphone), and a tap of the translated speech; it applies a route table as a diff of gain edges. `routesFor(settings, held)` is the pure route table. `createPlayback(graph, routing)` implements `PlaybackPort` plus replay, preview, queue positions and the tap. `appAudio.ts` composes it for the page: the worklet from the platform's URL, the virtual device by label, the routing settings read from `audioStore` and a new `routingStore`. Nothing the app runs today changes; plan 1e switches MainPanel over.
 
 **Tech Stack:** TypeScript (strict, `noUnusedLocals`, `noUnusedParameters`, `allowJs` without `checkJs`, `jsx: react-jsx` — never import `React` for JSX), Web Audio (`AudioContext`, `AudioWorkletNode`, `MediaStreamAudioDestinationNode`, `HTMLAudioElement.setSinkId`), Zustand 5, vitest 4 (`globals`, jsdom — which has no Web Audio, hence the fakes below), `@testing-library/react`; plan 1a's `SAMPLE_RATE`, `Conversation`, projection; plan 1c-1's runner, `PlaybackPort`, `guardPorts`.
 
@@ -40,7 +40,7 @@ These settle what the spec leaves open or gets wrong. The controller records the
 - **Typecheck gate.** Run exactly:
   ```bash
   npx tsc --noEmit -p tsconfig.json 2>&1 | grep 'error TS' \
-    | grep -E '^(src/(lib/(session|audio|provider|conversation|projection|export|contract|analytics\.ts)|providers|components/(providers|dev/(SpinePreview|SessionControls))|stores/(providerStore|turnModeStore|playbackStore)|utils/environment|App\.tsx))' \
+    | grep -E '^(src/(lib/(session|audio|provider|conversation|projection|export|contract|analytics\.ts)|providers|components/(providers|dev/(SpinePreview|SessionControls))|stores/(providerStore|turnModeStore|routingStore)|utils/environment|App\.tsx))' \
     | sed -E 's/\([0-9]+,[0-9]+\)//' | cut -c1-90
   ```
   It must print exactly these four baseline lines and nothing else:
@@ -65,7 +65,7 @@ These settle what the spec leaves open or gets wrong. The controller records the
 | `src/lib/audio/tabMicrophone.ts` | `toPcmDataMessage`, `sendToTabs`, `targetTabIdFromSearch`, `TabsApi` — the extension's virtual microphone |
 | `src/lib/audio/virtualSpeaker.ts` | `findVirtualSpeaker` — the Electron virtual device, by label |
 | `src/lib/audio/routes.ts` | `Feed`, `Bus`, `Edge`, `RoutingSettings`, `routesFor` — the route table |
-| `src/stores/playbackStore.ts` | the two new switches: the meeting hears the translation (on), participant speech (off) |
+| `src/stores/routingStore.ts` | the two new switches: the meeting hears the translation (on), participant speech (off) |
 | `src/lib/audio/fakeWebAudio.ts` | test support: a recording Web Audio for jsdom |
 | `src/lib/audio/graph.ts` | `createAudioGraph`, `AudioGraph`, `GraphDeps`, `SinkElement`, `VirtualOutput`, `OneShot` |
 | `src/lib/audio/playback.ts` | `createPlayback`, `Playback`, `RoutingSource`, `PreviewClip`, `ClipKey`, `clipKey` |
@@ -1092,15 +1092,15 @@ git commit -m "feat(audio): a pcm tap worklet, the tabs' virtual microphone and 
 ### Task 4: The route table and its two new switches
 
 **Files:**
-- Create: `src/lib/audio/routes.ts`, `src/stores/playbackStore.ts`
+- Create: `src/lib/audio/routes.ts`, `src/stores/routingStore.ts`
 - Modify: `src/lib/session/appShape.ts`, `.github/workflows/build.yml`
-- Test: `src/lib/audio/routes.test.ts`, `src/stores/playbackStore.test.ts`, `src/lib/session/appShape.test.ts`
+- Test: `src/lib/audio/routes.test.ts`, `src/stores/routingStore.test.ts`, `src/lib/session/appShape.test.ts`
 
 **Interfaces:**
 - Produces:
   - `type Feed = 'speaker' | 'participant' | 'replay' | 'preview' | 'passthrough'`; `type Bus = 'real' | 'virtual'`; `interface Edge { from: Feed; to: Bus; gain: number }`; `interface RoutingSettings { meeting: boolean; monitor: boolean; participantSpeech: boolean; passthrough: { on: boolean; ratio: number }; sinks: { real?: string; virtual?: string } }`; `routesFor(s: RoutingSettings, held: boolean): Edge[]`.
-  - `usePlaybackStore` with `{ meeting: boolean /* default true */; participantSpeech: boolean /* default false */; load(): Promise<void>; setMeeting(on: boolean): void; setParticipantSpeech(on: boolean): void }`, persisted at `settings.playback.meeting` and `settings.playback.participantSpeech`.
-  - `readShapeFromStores` fills `participantSpeech` from `usePlaybackStore`.
+  - `useRoutingStore` with `{ meeting: boolean /* default true */; participantSpeech: boolean /* default false */; load(): Promise<void>; setMeeting(on: boolean): void; setParticipantSpeech(on: boolean): void }`, persisted at `settings.routing.meeting` and `settings.routing.participantSpeech`.
+  - `readShapeFromStores` fills `participantSpeech` from `useRoutingStore`.
 
 The spec's route table ("Playback" → "Routing") as data: a route is a switch; passthrough's ratio is the one mix gain; replay and preview (the test tone is a preview) are fixed routes to the real device. Push-to-translate's hold closes the passthrough route (ruling 7). The two switches that did not exist before get a store of their own; the monitor switch and passthrough stay in `audioStore`, where they live today, and Task 7 reads them there.
 
@@ -1154,7 +1154,7 @@ describe('routesFor', () => {
 });
 ```
 
-`src/stores/playbackStore.test.ts`:
+`src/stores/routingStore.test.ts`:
 
 ```ts
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -1172,43 +1172,43 @@ vi.mock('../services/ServiceFactory', () => ({
   },
 }));
 
-import { usePlaybackStore } from './playbackStore';
+import { useRoutingStore } from './routingStore';
 
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  usePlaybackStore.setState({ meeting: true, participantSpeech: false });
+  useRoutingStore.setState({ meeting: true, participantSpeech: false });
 });
 
-describe('playbackStore', () => {
+describe('routingStore', () => {
   it('lets the meeting hear the translation and keeps participant speech off, until something was saved', async () => {
-    await usePlaybackStore.getState().load();
-    expect(usePlaybackStore.getState()).toMatchObject({ meeting: true, participantSpeech: false });
-    stored.set('settings.playback.meeting', false);
-    stored.set('settings.playback.participantSpeech', true);
-    await usePlaybackStore.getState().load();
-    expect(usePlaybackStore.getState()).toMatchObject({ meeting: false, participantSpeech: true });
+    await useRoutingStore.getState().load();
+    expect(useRoutingStore.getState()).toMatchObject({ meeting: true, participantSpeech: false });
+    stored.set('settings.routing.meeting', false);
+    stored.set('settings.routing.participantSpeech', true);
+    await useRoutingStore.getState().load();
+    expect(useRoutingStore.getState()).toMatchObject({ meeting: false, participantSpeech: true });
   });
 
   it('ignores a saved value that is not a boolean', async () => {
-    stored.set('settings.playback.meeting', 'yes');
-    await usePlaybackStore.getState().load();
-    expect(usePlaybackStore.getState().meeting).toBe(true);
+    stored.set('settings.routing.meeting', 'yes');
+    await useRoutingStore.getState().load();
+    expect(useRoutingStore.getState().meeting).toBe(true);
   });
 
   it('saves each switch', async () => {
-    usePlaybackStore.getState().setMeeting(false);
-    usePlaybackStore.getState().setParticipantSpeech(true);
-    expect(usePlaybackStore.getState()).toMatchObject({ meeting: false, participantSpeech: true });
+    useRoutingStore.getState().setMeeting(false);
+    useRoutingStore.getState().setParticipantSpeech(true);
+    expect(useRoutingStore.getState()).toMatchObject({ meeting: false, participantSpeech: true });
     await vi.waitFor(() => {
-      expect(setSetting).toHaveBeenCalledWith('settings.playback.meeting', false);
-      expect(setSetting).toHaveBeenCalledWith('settings.playback.participantSpeech', true);
+      expect(setSetting).toHaveBeenCalledWith('settings.routing.meeting', false);
+      expect(setSetting).toHaveBeenCalledWith('settings.routing.participantSpeech', true);
     });
   });
 });
 ```
 
-In `src/lib/session/appShape.test.ts`: add `import { usePlaybackStore } from '../../stores/playbackStore';` beside the other store imports; add `usePlaybackStore.setState({ participantSpeech: false });` to its `beforeEach`; append to `describe('readShapeFromStores', …)`:
+In `src/lib/session/appShape.test.ts`: add `import { useRoutingStore } from '../../stores/routingStore';` beside the other store imports; add `useRoutingStore.setState({ participantSpeech: false });` to its `beforeEach`; append to `describe('readShapeFromStores', …)`:
 
 ```ts
   it('freezes the participant-TTS switch', () => {
@@ -1216,15 +1216,15 @@ In `src/lib/session/appShape.test.ts`: add `import { usePlaybackStore } from '..
       selected: 'fake',
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
-    usePlaybackStore.setState({ participantSpeech: true });
+    useRoutingStore.setState({ participantSpeech: true });
     expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
   });
 ```
 
 - [ ] **Step 2: Run the tests to see them fail**
 
-Run: `npx vitest run src/lib/audio/routes.test.ts src/stores/playbackStore.test.ts src/lib/session/appShape.test.ts`
-Expected: FAIL — `./routes` and `./playbackStore` do not exist; the shape still reads `participantSpeech: false`.
+Run: `npx vitest run src/lib/audio/routes.test.ts src/stores/routingStore.test.ts src/lib/session/appShape.test.ts`
+Expected: FAIL — `./routes` and `./routingStore` do not exist; the shape still reads `participantSpeech: false`.
 
 - [ ] **Step 3: Implement**
 
@@ -1280,7 +1280,7 @@ export function routesFor(s: RoutingSettings, held: boolean): Edge[] {
 }
 ```
 
-`src/stores/playbackStore.ts`:
+`src/stores/routingStore.ts`:
 
 ```ts
 /**
@@ -1293,10 +1293,10 @@ import { create } from 'zustand';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 
-const MEETING = 'settings.playback.meeting';
-const PARTICIPANT_SPEECH = 'settings.playback.participantSpeech';
+const MEETING = 'settings.routing.meeting';
+const PARTICIPANT_SPEECH = 'settings.routing.participantSpeech';
 
-interface PlaybackStore {
+interface RoutingStore {
   meeting: boolean;
   participantSpeech: boolean;
   load(): Promise<void>;
@@ -1304,7 +1304,7 @@ interface PlaybackStore {
   setParticipantSpeech(on: boolean): void;
 }
 
-export const usePlaybackStore = create<PlaybackStore>()((set) => ({
+export const useRoutingStore = create<RoutingStore>()((set) => ({
   meeting: true,
   participantSpeech: false,
   async load() {
@@ -1329,7 +1329,7 @@ export const usePlaybackStore = create<PlaybackStore>()((set) => ({
 }));
 ```
 
-`src/lib/session/appShape.ts` — add `import { usePlaybackStore } from '../../stores/playbackStore';` beside the other store imports, and replace these two lines:
+`src/lib/session/appShape.ts` — add `import { useRoutingStore } from '../../stores/routingStore';` beside the other store imports, and replace these two lines:
 
 ```ts
     // The participant-TTS switch arrives with plan 1c-2's routing.
@@ -1339,17 +1339,17 @@ export const usePlaybackStore = create<PlaybackStore>()((set) => ({
 with:
 
 ```ts
-    participantSpeech: usePlaybackStore.getState().participantSpeech,
+    participantSpeech: useRoutingStore.getState().participantSpeech,
 ```
 
 - [ ] **Step 4: Run the tests to see them pass**
 
-Run: `npx vitest run src/lib/audio/routes.test.ts src/stores/playbackStore.test.ts src/lib/session/appShape.test.ts`
+Run: `npx vitest run src/lib/audio/routes.test.ts src/stores/routingStore.test.ts src/lib/session/appShape.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: CI**
 
-In `.github/workflows/build.yml`'s client-contract test step, add `src/stores/playbackStore.test.ts` after `src/stores/turnModeStore.test.ts`.
+In `.github/workflows/build.yml`'s client-contract test step, add `src/stores/routingStore.test.ts` after `src/stores/turnModeStore.test.ts`.
 
 - [ ] **Step 6: The whole suite and the gate**
 
@@ -1358,7 +1358,7 @@ Run: `npx vitest run src` — 0 failed. The typecheck gate — the four baseline
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/lib/audio/routes.ts src/lib/audio/routes.test.ts src/stores/playbackStore.ts src/stores/playbackStore.test.ts src/lib/session/appShape.ts src/lib/session/appShape.test.ts .github/workflows/build.yml
+git add src/lib/audio/routes.ts src/lib/audio/routes.test.ts src/stores/routingStore.ts src/stores/routingStore.test.ts src/lib/session/appShape.ts src/lib/session/appShape.test.ts .github/workflows/build.yml
 git commit -m "feat(audio): the route table, and switches for the meeting hearing the translation and participant speech"
 ```
 
@@ -2533,10 +2533,10 @@ git commit -m "feat(audio): playback behind the runner's port — clips per leg,
 - Modify: `extension/vite.config.ts`
 
 **Interfaces:**
-- Consumes: `createAudioGraph`, `SinkElement`, `VirtualOutput` (Task 5); `createPlayback`, `Playback`, `PreviewClip`, `RoutingSource` (Task 6); `RoutingSettings` (Task 4); `toPcmDataMessage`, `sendToTabs`, `targetTabIdFromSearch`, `TabsApi` (Task 3); `findVirtualSpeaker` (Task 3); `loadTestTone` (Task 6); `useAudioStore` (default export of `src/stores/audioStore.ts`); `usePlaybackStore` (Task 4); `getEnvironment` (`src/utils/environment.ts`); `Platform` (`src/lib/provider/types.ts`).
+- Consumes: `createAudioGraph`, `SinkElement`, `VirtualOutput` (Task 5); `createPlayback`, `Playback`, `PreviewClip`, `RoutingSource` (Task 6); `RoutingSettings` (Task 4); `toPcmDataMessage`, `sendToTabs`, `targetTabIdFromSearch`, `TabsApi` (Task 3); `findVirtualSpeaker` (Task 3); `loadTestTone` (Task 6); `useAudioStore` (default export of `src/stores/audioStore.ts`); `useRoutingStore` (Task 4); `getEnvironment` (`src/utils/environment.ts`); `Platform` (`src/lib/provider/types.ts`).
 - Produces: `interface AppAudio { playback: Playback; testTone(): Promise<void> }`; `getAppAudio(): Promise<AppAudio>` (one per page, built on first use); `readRouting(audio, playback, platform): RoutingSettings`; `createAppRouting(platform: Platform): RoutingSource`.
 
-The one module in `src/lib/audio` that reads the stores, as `session/appShape.ts` is for the runner. The routing settings: the meeting and participant-speech switches from `playbackStore`; the monitor route from `audioStore` under today's rule (ruling 4); passthrough and its ratio from `audioStore`; the real sink is the selected monitor device; the virtual sink is the Electron virtual speaker found by label among `audioStore.audioMonitorDevices` (every output, labels included). The graph: one `AudioContext` at 24 kHz; the tap worklet from `chrome.runtime.getURL('worklets/pcm-tap-processor.js')` in the extension (its CSP forbids `blob:` and `data:` modules, as `ModernAudioPlayer`'s own worklet shows) and from Vite's `new URL(…, import.meta.url)` elsewhere; `<audio>` elements as sinks; the virtual output per platform. The extension build must copy the worklet next to the others.
+The one module in `src/lib/audio` that reads the stores, as `session/appShape.ts` is for the runner. The routing settings: the meeting and participant-speech switches from `routingStore`; the monitor route from `audioStore` under today's rule (ruling 4); passthrough and its ratio from `audioStore`; the real sink is the selected monitor device; the virtual sink is the Electron virtual speaker found by label among `audioStore.audioMonitorDevices` (every output, labels included). The graph: one `AudioContext` at 24 kHz; the tap worklet from `chrome.runtime.getURL('worklets/pcm-tap-processor.js')` in the extension (its CSP forbids `blob:` and `data:` modules, as `ModernAudioPlayer`'s own worklet shows) and from Vite's `new URL(…, import.meta.url)` elsewhere; `<audio>` elements as sinks; the virtual output per platform. The extension build must copy the worklet next to the others.
 
 `getAppAudio` itself needs a real `AudioContext`; it is exercised by Task 8's headless run. Its pure parts are tested here.
 
@@ -2557,7 +2557,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 }));
 
 import useAudioStore from '../../stores/audioStore';
-import { usePlaybackStore } from '../../stores/playbackStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { createAppRouting, readRouting } from './appAudio';
 
 const AUDIO = {
@@ -2600,21 +2600,21 @@ describe('readRouting', () => {
 describe('createAppRouting', () => {
   beforeEach(() => {
     useAudioStore.setState(AUDIO);
-    usePlaybackStore.setState(SWITCHES);
+    useRoutingStore.setState(SWITCHES);
   });
 
   it('reads the live stores, and tells its listener when either changes', () => {
     const routing = createAppRouting('electron');
     const heard = vi.fn();
     const off = routing.subscribe(heard);
-    usePlaybackStore.getState().setMeeting(false);
+    useRoutingStore.getState().setMeeting(false);
     expect(heard).toHaveBeenCalledTimes(1);
     expect(routing.get().meeting).toBe(false);
     useAudioStore.setState({ isMonitorMuted: true });
     expect(heard).toHaveBeenCalledTimes(2);
     expect(routing.get().monitor).toBe(false);
     off();
-    usePlaybackStore.getState().setMeeting(true);
+    useRoutingStore.getState().setMeeting(true);
     expect(heard).toHaveBeenCalledTimes(2);
   });
 });
@@ -2636,12 +2636,12 @@ Expected: FAIL — `./appAudio` does not exist.
  * a 24 kHz context; `<audio>` elements as its outputs; the tap worklet from
  * the platform's URL; the virtual output per platform (Electron's virtual
  * speaker, the extension's tabs, nothing on the web); the routing settings
- * read live from `audioStore` and `playbackStore`.
+ * read live from `audioStore` and `routingStore`.
  */
 import { SAMPLE_RATE } from '../contract/adapter';
 import type { Platform } from '../provider/types';
 import useAudioStore from '../../stores/audioStore';
-import { usePlaybackStore } from '../../stores/playbackStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment } from '../../utils/environment';
 import { createAudioGraph, type VirtualOutput } from './graph';
 import { createPlayback, type Playback, type PreviewClip, type RoutingSource } from './playback';
@@ -2679,10 +2679,10 @@ export function readRouting(
 
 export function createAppRouting(platform: Platform): RoutingSource {
   return {
-    get: () => readRouting(useAudioStore.getState(), usePlaybackStore.getState(), platform),
+    get: () => readRouting(useAudioStore.getState(), useRoutingStore.getState(), platform),
     subscribe(listener) {
       const offAudio = useAudioStore.subscribe(() => listener());
-      const offSwitches = usePlaybackStore.subscribe(() => listener());
+      const offSwitches = useRoutingStore.subscribe(() => listener());
       return () => {
         offAudio();
         offSwitches();
@@ -2803,7 +2803,7 @@ git commit -m "feat(audio): the page's playback — routing from the stores, the
 - Create: `scripts/dev/spine-audio-probe.mjs`
 
 **Interfaces:**
-- Consumes: `getAppAudio`, `AppAudio` (Task 7); `Playback` (Task 6); `usePlaybackStore` (Task 4); `useAudioStore` (default export); `PlaybackPort` (Task 1); the runner and `SessionControls` from plan 1c-1.
+- Consumes: `getAppAudio`, `AppAudio` (Task 7); `Playback` (Task 6); `useRoutingStore` (Task 4); `useAudioStore` (default export); `PlaybackPort` (Task 1); the runner and `SessionControls` from plan 1c-1.
 - Produces: `SessionControls` gains an optional prop `audio?: AppAudio | null` and renders, when it is given: a `Test tone` button; four switches labelled `Meeting hears the translation`, `Monitor`, `Participant speech` and `Keep audio for replay` (the old `settingsStore.keepReplayAudio`, through its own `setKeepReplayAudio`); a `Replay` button on each exchange whose translation kept speech; and a probe line `<p data-probe="playback">heard: <keys|-> · tap peak: <n></p>` updated every 100 ms. `scripts/dev/spine-audio-probe.mjs [url] [seconds]` exits 0 only when the preview's session played a clip and the tts tap heard it.
 
 The preview's fake session becomes audible: the runner's playback port forwards to the page's playback once it has loaded (a bridge, so the runner can be created synchronously as before), and the controls add what a listener needs to check the routes by ear. The probe line is what a headless check reads: `requestAnimationFrame` never fires in headless Chromium (see the rendering notes), so the probe runs on `setInterval`. Reading the tts tap here drains it — acceptable on a development page that runs no echo monitor.
@@ -2817,7 +2817,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { Conversation } from '../../lib/conversation/Conversation';
 import type { AppAudio } from '../../lib/audio/appAudio';
 import type { Playback } from '../../lib/audio/playback';
-import { usePlaybackStore } from '../../stores/playbackStore';
+import { useRoutingStore } from '../../stores/routingStore';
 ```
 
 and this mock, before the first import of the component (it keeps the stores' `persistSetting` off the real settings service):
@@ -2882,11 +2882,11 @@ describe('SessionControls — playback', () => {
   });
 
   it('switches whether the meeting hears the translation', () => {
-    usePlaybackStore.setState({ meeting: true });
+    useRoutingStore.setState({ meeting: true });
     const { runner } = fakeRunner();
     render(<SessionControls runner={runner} turnMode="auto" audio={fakeAudio()} />);
     fireEvent.click(screen.getByLabelText('Meeting hears the translation'));
-    expect(usePlaybackStore.getState().meeting).toBe(false);
+    expect(useRoutingStore.getState().meeting).toBe(false);
   });
 
   it('shows the clips it heard and the loudest sample the tap heard', () => {
@@ -3000,7 +3000,7 @@ export function SpinePreview() {
 
   useEffect(() => {
     void useTurnModeStore.getState().load();
-    void usePlaybackStore.getState().load();
+    void useRoutingStore.getState().load();
     let live = true;
     getAppAudio().then(
       (loaded) => {
@@ -3028,7 +3028,7 @@ export function SpinePreview() {
 }
 ```
 
-and update its imports: add `useState` to the `react` import; add `import { getAppAudio, type AppAudio } from '../../lib/audio/appAudio';`, `import type { Playback } from '../../lib/audio/playback';`, `import { describeCause, reportError } from '../../lib/diagnostics/report';`, `import { usePlaybackStore } from '../../stores/playbackStore';`, and add `PlaybackPort` to the type import from `../../lib/session/ports` (which already brings `AnalyticsPort`).
+and update its imports: add `useState` to the `react` import; add `import { getAppAudio, type AppAudio } from '../../lib/audio/appAudio';`, `import type { Playback } from '../../lib/audio/playback';`, `import { describeCause, reportError } from '../../lib/diagnostics/report';`, `import { useRoutingStore } from '../../stores/routingStore';`, and add `PlaybackPort` to the type import from `../../lib/session/ports` (which already brings `AnalyticsPort`).
 
 `src/components/dev/SessionControls.tsx` — add the prop, the playback controls and the probe. The full new file:
 
@@ -3042,7 +3042,7 @@ import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/projec
 import type { Runner } from '../../lib/session/runner';
 import type { TurnMode } from '../../lib/session/types';
 import useAudioStore from '../../stores/audioStore';
-import { usePlaybackStore } from '../../stores/playbackStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 
 interface SessionControlsProps {
@@ -3092,8 +3092,8 @@ export function SessionControls({ runner, turnMode, audio }: SessionControlsProp
   const [text, setText] = useState('');
   const running = state.phase === 'running';
   const segments = new Map(legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const)));
-  const meeting = usePlaybackStore((s) => s.meeting);
-  const participantSpeech = usePlaybackStore((s) => s.participantSpeech);
+  const meeting = useRoutingStore((s) => s.meeting);
+  const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const monitorMuted = useAudioStore((s) => s.isMonitorMuted);
   // Read when a run starts (its shape), so it applies from the next Start.
   const keepReplayAudio = useSettingsStore((s) => s.keepReplayAudio);
@@ -3138,7 +3138,7 @@ export function SessionControls({ runner, turnMode, audio }: SessionControlsProp
       {audio && (
         <div className="setting-item">
           <label>
-            <input type="checkbox" checked={meeting} onChange={(e) => usePlaybackStore.getState().setMeeting(e.target.checked)} />
+            <input type="checkbox" checked={meeting} onChange={(e) => useRoutingStore.getState().setMeeting(e.target.checked)} />
             Meeting hears the translation
           </label>
           <label>
@@ -3146,7 +3146,7 @@ export function SessionControls({ runner, turnMode, audio }: SessionControlsProp
             Monitor
           </label>
           <label>
-            <input type="checkbox" checked={participantSpeech} onChange={(e) => usePlaybackStore.getState().setParticipantSpeech(e.target.checked)} />
+            <input type="checkbox" checked={participantSpeech} onChange={(e) => useRoutingStore.getState().setParticipantSpeech(e.target.checked)} />
             Participant speech
           </label>
           <label>
