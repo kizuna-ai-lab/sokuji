@@ -25,19 +25,29 @@ const TTS = { modelId: 'tts-model', speakerId: 0, speed: 1 };
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /** Starts a session without settling any engine's `init`. */
-function begin(config = makeConfig(), context = auto, signal = new AbortController().signal) {
+function begin(
+  config = makeConfig(),
+  context = auto,
+  signal = new AbortController().signal,
+  punctuate?: (lang: string, text: string) => Promise<string | null>,
+) {
   const fakes = createFakeEngines();
   const recorder = recordConformance();
+  const clock = createVirtualClock();
   const starting = createLocalInferenceAdapter(fakes.engines).start(
-    { context, config, credentials: {}, clock: createVirtualClock(), signal },
+    { context, config, credentials: {}, clock, signal, punctuate },
     recorder.events,
   );
-  return { ...fakes, ...recorder, starting, context };
+  return { ...fakes, ...recorder, starting, context, clock };
 }
 
 /** Starts a session and settles every engine it created. */
-async function open(config = makeConfig(), context = auto) {
-  const t = begin(config, context);
+async function open(
+  config = makeConfig(),
+  context = auto,
+  punctuate?: (lang: string, text: string) => Promise<string | null>,
+) {
+  const t = begin(config, context, undefined, punctuate);
   if (t.created.includes('asr')) t.asr.ready();
   if (t.created.includes('translation')) t.translation.ready();
   if (t.created.includes('tts')) t.tts.ready();
@@ -203,6 +213,125 @@ describe('the LocalInference adapter — segments and jobs', () => {
   it('reports itself as local', async () => {
     const t = await open();
     expect(t.session.info).toEqual({ transport: 'local' });
+    expectConformant(t.log, t.context);
+  });
+});
+
+describe('the LocalInference adapter — turns', () => {
+  it('endTurn feeds seven 2400-sample silences at 24 kHz, then flushes', async () => {
+    const t = await open();
+    t.session.endTurn();
+    expect(t.asr.fed).toHaveLength(7);
+    expect(t.asr.fed.every((a) => a.length === 2400 && a.every((v) => v === 0))).toBe(true);
+    expect(t.asr.rates).toEqual(new Array(7).fill(24000));
+    expect(t.asr.flushes).toBe(1);
+    expectConformant(t.log, t.context);
+  });
+
+  it('cancelTurn does the same as endTurn: no worker can discard a VAD segment or acknowledge a flush', async () => {
+    const t = await open();
+    t.session.cancelTurn();
+    expect(t.asr.fed).toHaveLength(7);
+    expect(t.asr.fed.every((a) => a.length === 2400 && a.every((v) => v === 0))).toBe(true);
+    expect(t.asr.rates).toEqual(new Array(7).fill(24000));
+    expect(t.asr.flushes).toBe(1);
+    expectConformant(t.log, t.context);
+  });
+
+  it('beginTurn feeds nothing', async () => {
+    const t = await open();
+    t.session.beginTurn();
+    expect(t.asr.fed).toEqual([]);
+    expect(t.asr.flushes).toBe(0);
+    expectConformant(t.log, t.context);
+  });
+});
+
+describe('the LocalInference adapter — typed text', () => {
+  it('appendText answers typed text with a source segment holding exactly the typed string, then its translation', async () => {
+    const t = await open();
+    t.mark('appendText', '  hi  ');
+    t.session.appendText('  hi  ');
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['  hi  ']);
+    t.translation.answer('Hi.');
+    await settle();
+    expect(content(t.log)).toEqual([
+      { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 1, text: '  hi  ' } },
+      { kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } },
+      { kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 2, text: 'Hi.' } },
+      { kind: 'segmentClosed', payload: { ref: 2, origin: 'u1' } },
+    ]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('an AST session answers typed text with a source segment only, and says translation_unavailable once however often it is called', async () => {
+    const t = await open(makeConfig({ asr: { modelId: 'granite', streaming: false }, translation: { kind: 'ast' } }));
+    t.session.appendText('hi');
+    t.session.appendText('there');
+    await settle();
+    expect(ofKind(t.log, 'segmentOpened').map((p) => p.side)).toEqual(['source', 'source']);
+    expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['translation_unavailable']);
+    expect(t.translation.calls).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a transcription-only session answers appendText with a source segment only, sharing the start notice', async () => {
+    const t = begin(makeConfig({ translation: { kind: 'none' } }));
+    t.asr.ready();
+    const session = await t.starting;
+    expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['translation_unavailable']);
+    session.appendText('hi');
+    await settle();
+    expect(ofKind(t.log, 'segmentOpened').map((p) => p.side)).toEqual(['source']);
+    expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['translation_unavailable']);
+    await session.stop();
+    expectConformant(t.log, t.context);
+  });
+});
+
+describe('the LocalInference adapter — punctuated jobs', () => {
+  it("sends the punctuator's answer to the translation engine when punctuateJobs is set and it answers", async () => {
+    const punctuate = async (lang: string, text: string) => {
+      expect(lang).toBe('ja');
+      return text === 'hello there' ? 'hello there.' : null;
+    };
+    const t = await open(makeConfig({ punctuateJobs: true }), auto, punctuate);
+    t.asr.final('hello there');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['hello there.']);
+    t.translation.answer('Konnichiwa.');
+    await settle();
+    expectConformant(t.log, t.context);
+  });
+
+  it('sends the raw text when punctuateJobs is set but no punctuator is installed', async () => {
+    const t = await open(makeConfig({ punctuateJobs: true }));
+    t.asr.final('hello there');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['hello there']);
+    expectConformant(t.log, t.context);
+  });
+
+  it('sends the raw text once punctuateJobs is off, even with a punctuator installed', async () => {
+    const punctuate = async () => 'should never be used';
+    const t = await open(makeConfig({ punctuateJobs: false }), auto, punctuate);
+    t.asr.final('hello there');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['hello there']);
+    expectConformant(t.log, t.context);
+  });
+
+  it('sends the raw text after a 1 s budget on the virtual clock when the punctuator never answers', async () => {
+    const neverAnswers = () => new Promise<string | null>(() => {});
+    const t = await open(makeConfig({ punctuateJobs: true }), auto, neverAnswers);
+    t.asr.final('hello there');
+    await settle();
+    expect(t.translation.calls).toEqual([]); // still waiting on the budget
+    t.clock.advance(1000);
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['hello there']);
     expectConformant(t.log, t.context);
   });
 });

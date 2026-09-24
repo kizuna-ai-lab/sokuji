@@ -7,6 +7,7 @@ import {
   type Ref,
   type StartRequest,
 } from '../../lib/contract/adapter';
+import { fillIn, type Punctuator } from '../../lib/conversation/fillIn';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { redact } from '../../lib/diagnostics/redact';
@@ -124,6 +125,10 @@ class LocalSession implements AdapterSession {
   private failOpening: ((error: unknown) => void) | null = null;
   /** Notices found while opening, said once the start resolves. */
   private notices: Array<{ code: ClientDiagnosticCode; message: string; cause?: unknown }> = [];
+  /** `translation_unavailable` at most once per session (ruling 5): the start's
+   *  own notice for a transcription-only session, or the first `appendText` in
+   *  an AST or transcription-only session — never both. */
+  private translationUnavailableAnnounced = false;
 
   private nextRef: Ref = 1;
   private utterances = 0;
@@ -271,13 +276,18 @@ class LocalSession implements AdapterSession {
   announce(): void {
     for (const notice of this.notices) this.emit('degraded', notice);
     this.notices = [];
-    if (this.config.translation.kind === 'none') {
-      const { source, target } = this.request.context.direction;
-      this.emit('degraded', {
-        code: 'translation_unavailable',
-        message: `No translation model for ${source} → ${target} — transcription only.`,
-      });
-    }
+    if (this.config.translation.kind === 'none') this.announceTranslationUnavailable();
+  }
+
+  /** Said once per session: at the start for a transcription-only config, or on the first `appendText` an AST/transcription-only session gets. */
+  private announceTranslationUnavailable(): void {
+    if (this.translationUnavailableAnnounced) return;
+    this.translationUnavailableAnnounced = true;
+    const { source, target } = this.request.context.direction;
+    this.emit('degraded', {
+      code: 'translation_unavailable',
+      message: `No translation model for ${source} → ${target} — transcription only.`,
+    });
   }
 
   appendAudio(pcm: Int16Array): void {
@@ -286,13 +296,38 @@ class LocalSession implements AdapterSession {
     this.asr.feedAudio(pcm.slice(), SAMPLE_RATE);
   }
 
-  // Typed text and manual turns are not taken yet: typed text will be a
-  // source segment with exactly its text, then a job; a turn's end, a silence
-  // tail and a flush.
-  appendText(): void {}
+  /**
+   * A source segment with exactly the typed text (ruling 5: today trims it,
+   * this contract does not), then a job as for an ASR final. An AST or
+   * transcription-only session has no engine to hand the text to: the source
+   * segment only, and `translation_unavailable` once (never twice with the
+   * start's own notice).
+   */
+  appendText(text: string): void {
+    if (this.ended) return;
+    const ref = this.nextRef++;
+    const origin = this.nextOrigin();
+    this.emit('segmentOpened', { ref, side: 'source', origin });
+    this.emit('segmentText', { ref, text });
+    this.emit('segmentClosed', { ref, origin });
+    if (this.config.translation.kind === 'engine') {
+      this.enqueue({ text, origin });
+    } else {
+      this.announceTranslationUnavailable();
+    }
+  }
+
   beginTurn(): void {}
-  endTurn(): void {}
-  cancelTurn(): void {}
+  /** No worker can discard a VAD segment or acknowledge a flush (ruling 5): both end a turn the same way. */
+  endTurn(): void { this.flushTurn(); }
+  cancelTurn(): void { this.flushTurn(); }
+
+  /** Today's manual-turn release: a 700 ms zero tail (seven 100 ms frames at 24 kHz), then flush. */
+  private flushTurn(): void {
+    if (this.ended) return;
+    for (let i = 0; i < 7; i++) this.asr.feedAudio(new Int16Array(2400), SAMPLE_RATE);
+    this.asr.flush();
+  }
 
   async stop(): Promise<void> {
     this.ended = true;
@@ -443,15 +478,22 @@ class LocalSession implements AdapterSession {
     const { translation } = this;
     const tr = this.config.translation;
     if (!translation || tr.kind !== 'engine') return job.text;
+    // A ternary, not a call unconditionally awaited: with punctuation off (the
+    // common case) this takes no `await` at all, so `translation.translate()`
+    // below still runs in the same microtask as the job's enqueue — every
+    // existing synchronous assertion on `translation.calls` still holds.
+    const { punctuate } = this.request;
+    const text = this.config.punctuateJobs && punctuate ? await this.punctuate(job.text, punctuate) : job.text;
+    if (this.ended) return undefined; // stop() while the punctuation budget ran
     this.frame('out', 'local.translation.start', {
-      sourceText: job.text,
+      sourceText: text,
       modelId: tr.modelId,
       systemPrompt: tr.instructions,
       wrapTranscript: tr.wrapTranscript,
     });
     let result: TranslationResult;
     try {
-      result = await translation.translate(job.text, tr.instructions, tr.wrapTranscript);
+      result = await translation.translate(text, tr.instructions, tr.wrapTranscript);
     } catch (error) {
       if (this.ended) return undefined; // disposed by stop(): expected, not a failure
       const message = error instanceof Error ? error.message : String(error);
@@ -463,7 +505,7 @@ class LocalSession implements AdapterSession {
     }
     if (this.ended || !result.translatedText) return undefined;
     this.frame('in', 'local.translation.end', {
-      sourceText: job.text,
+      sourceText: text,
       translatedText: result.translatedText,
       inferenceTimeMs: result.inferenceTimeMs,
       systemPrompt: result.systemPrompt,
@@ -471,6 +513,33 @@ class LocalSession implements AdapterSession {
       modelId: tr.modelId,
     });
     return result.translatedText;
+  }
+
+  /**
+   * The job's text as handed to the translation engine, once the caller has
+   * already checked `config.punctuateJobs` and a punctuator is installed
+   * (ruling: "Punctuated jobs"): `fillIn` — which leaves text that already
+   * ends a sentence untouched and discards an answer that alters letters or
+   * digits — raced against a 1 s budget on the request's clock; the raw text
+   * on timeout. The source segment's own display text is untouched either
+   * way: L1 punctuates it for display.
+   */
+  private async punctuate(text: string, punctuate: Punctuator): Promise<string> {
+    const { source } = this.request.context.direction;
+    return new Promise<string>((resolve) => {
+      let settled = false;
+      const cancel = this.request.clock.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        resolve(text);
+      }, 1000);
+      fillIn(source, text, punctuate).then((filled) => {
+        if (settled) return;
+        settled = true;
+        cancel();
+        resolve(filled);
+      });
+    });
   }
 
   /**
