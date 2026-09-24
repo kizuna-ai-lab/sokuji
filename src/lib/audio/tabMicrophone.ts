@@ -1,14 +1,13 @@
 /**
  * The extension's virtual microphone. The virtual bus's tap hands over 100 ms
- * chunks; each one that is not near-silent becomes one `PCM_DATA` message in
- * the format the page-side microphone (`extension/content/virtual-microphone.js`)
- * reads, sent to the meeting tab the side panel was opened for, or to every web
- * tab — the wire format and routing of `ModernBrowserAudioService.sendPcmDataToTabs`.
+ * chunks; each one becomes one `PCM_DATA` message in the format the page-side
+ * microphone (`extension/content/virtual-microphone.js`) reads, sent to the
+ * meeting tab the side panel was opened for, or to every web tab — the wire
+ * format and routing of `ModernBrowserAudioService.sendPcmDataToTabs`. Today's
+ * tabs path sends every chunk; this skips only chunks that are silent at 16
+ * bits, which is what the bus carries when idle.
  */
 import { SAMPLE_RATE } from '../contract/adapter';
-
-/** Mean absolute amplitude below which a chunk is not sent (≈ −50 dBFS, today's passthrough skip). */
-export const SILENT_MEAN = 0.003;
 
 export interface PcmDataMessage {
   type: 'PCM_DATA';
@@ -22,14 +21,15 @@ export interface PcmDataMessage {
 
 export function toPcmDataMessage(chunk: Float32Array, timestamp: number): PcmDataMessage | null {
   if (chunk.length === 0) return null;
-  let sum = 0;
-  for (let i = 0; i < chunk.length; i++) sum += Math.abs(chunk[i]);
-  if (sum / chunk.length < SILENT_MEAN) return null;
   const pcmData = new Array<number>(chunk.length);
+  let silent = true;
   for (let i = 0; i < chunk.length; i++) {
     const s = Math.max(-1, Math.min(1, chunk[i]));
-    pcmData[i] = s < 0 ? Math.round(s * 32768) : Math.round(s * 32767);
+    const sample = s < 0 ? Math.round(s * 32768) : Math.round(s * 32767);
+    pcmData[i] = sample;
+    if (sample !== 0) silent = false;
   }
+  if (silent) return null;
   return { type: 'PCM_DATA', pcmData, chunkIndex: 0, totalChunks: 1, sampleRate: SAMPLE_RATE, trackId: 'default', timestamp };
 }
 

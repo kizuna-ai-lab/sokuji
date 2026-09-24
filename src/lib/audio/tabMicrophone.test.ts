@@ -14,9 +14,15 @@ describe('toPcmDataMessage', () => {
     });
   });
 
-  it('skips a near-silent chunk, and an empty one', () => {
-    expect(toPcmDataMessage(new Float32Array(2400).fill(0.002), 0)).toBeNull();
+  it('skips a chunk that is silent at 16 bits, and an empty one', () => {
+    expect(toPcmDataMessage(new Float32Array(2400), 0)).toBeNull();
+    expect(toPcmDataMessage(new Float32Array(2400).fill(1e-6), 0)).toBeNull();
     expect(toPcmDataMessage(new Float32Array(0), 0)).toBeNull();
+  });
+
+  it('sends a quiet chunk', () => {
+    const message = toPcmDataMessage(new Float32Array(2400).fill(0.002), 0);
+    expect(message?.pcmData).toEqual(new Array(2400).fill(66));
   });
 });
 
