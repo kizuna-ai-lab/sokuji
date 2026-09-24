@@ -107,8 +107,13 @@ function pairOf(legs: readonly Leg[]): Languages | null {
   return participant ? { source: participant.languages.target, target: participant.languages.source } : null;
 }
 
+/** A stage with nothing named is left out, in the JSON's `models` as in the text's line. */
+function nonEmptyModels(models: Readonly<Record<string, string>>): Record<string, string> {
+  return Object.fromEntries(Object.entries(models).filter(([, value]) => value));
+}
+
 function modelsLine(models: Readonly<Record<string, string>>): string {
-  return Object.entries(models).filter(([, value]) => value).map(([key, value]) => `${key}=${value}`).join(', ');
+  return Object.entries(nonEmptyModels(models)).map(([key, value]) => `${key}=${value}`).join(', ');
 }
 
 function headerLines(header: NonNullable<TranscriptOptions['header']>, legs: readonly Leg[], narrowed: boolean): string[] {
@@ -153,7 +158,7 @@ export function renderTranscriptJson(
     meta.exportedAt = new Date(o.meta.exportedAt).toISOString();
     meta.appVersion = o.meta.appVersion;
     meta.provider = o.meta.provider;
-    meta.models = o.meta.models;
+    meta.models = nonEmptyModels(o.meta.models);
     meta.languages = pairOf(legs);
   }
   if (isNarrowed(scope)) meta.scope = scope;

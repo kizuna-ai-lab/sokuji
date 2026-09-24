@@ -35,6 +35,13 @@ const legs: Leg[] = [{
     seg({ id: 'r:speaker:2', side: 'translation', text: '今天天气很好。我们去公园吧。', origin: 'c1' }),
   ],
 }];
+const participantLeg: Leg = {
+  leg: 'participant', session: 'r', languages: { source: 'zh', target: 'ja' }, notices: [],
+  segments: [
+    seg({ id: 'r:participant:1', text: '你好。', origin: 'p1', openedAt: 1_700_000_010_000 }),
+    seg({ id: 'r:participant:2', side: 'translation', text: 'こんにちは。', origin: 'p1', openedAt: 1_700_000_010_400 }),
+  ],
+};
 const info = { provider: 'fake', models: { asrModel: 'fake' } };
 const invoke = vi.fn();
 const showToast = vi.fn();
@@ -58,6 +65,16 @@ describe('autoSaveConversation', () => {
     expect(content).toMatch(/\[\d{2}:\d{2}:\d{2}\] Me\n  今日は天気がいいですね。公園に行きましょう。\n  → 今天天气很好。我们去公园吧。\n/);
     expect(filename).toMatch(/^sokuji-conversation-\d{8}-\d{6}\.txt$/);
     expect(mime).toBe('text/plain;charset=utf-8');
+  });
+
+  it('auto-saves both legs, Me then Other, in time order', async () => {
+    expect(await autoSaveConversation([legs[0], participantLeg], info, { showToast })).toBe('saved');
+    const [content] = downloadFile.mock.calls[0];
+    const meIndex = content.indexOf('] Me');
+    const otherIndex = content.indexOf('] Other');
+    expect(meIndex).toBeGreaterThan(-1);
+    expect(otherIndex).toBeGreaterThan(-1);
+    expect(meIndex).toBeLessThan(otherIndex);
   });
 
   it('does nothing while the switch is off, or when nothing was said', async () => {

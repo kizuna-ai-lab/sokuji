@@ -85,6 +85,19 @@ describe('scope, header and metadata', () => {
     expect(narrowed).toContain('Note: narrowed.');
   });
 
+  it("reverses the participant leg's pair for a participant-only conversation (pairOf's second branch)", () => {
+    const participantOnly: Leg[] = [
+      { leg: 'participant', session: 's', languages: { source: 'en', target: 'zh' }, segments: [], notices: [] },
+    ];
+    const text = renderTranscriptTxt([], participantOnly, { ...options, header });
+    expect(text).toContain("My Language: zh → Other's Language: en");
+  });
+
+  it('drops an empty model value from the JSON, as the text does', () => {
+    const json = renderTranscriptJson(entries, legs, { meta: header.meta });
+    expect(json.models).toEqual({ asr: 'a1', tts: 't1' });
+  });
+
   it("gives the JSON the run's metadata, leaves out hidden sides, and records a narrowed scope", () => {
     const json = renderTranscriptJson(entries, legs, { scope: { speaker: 'source', participant: 'none' }, meta: header.meta });
     expect(json).toMatchObject({ exportedAt: new Date(0).toISOString(), appVersion: '1.2.3', provider: 'fake', languages: { source: 'zh', target: 'en' }, scope: { speaker: 'source', participant: 'none' } });
