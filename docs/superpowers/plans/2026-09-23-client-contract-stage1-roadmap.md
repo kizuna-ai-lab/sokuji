@@ -4,15 +4,17 @@
 
 Stage 1 of the spec ("the new spine and one provider, end to end") spans five
 subsystems that can each be built and tested on their own. It is therefore
-five plans — nine, since the runner splits from capture and playback (the
+five plans — twelve, since the runner splits from capture and playback (the
 runner tests with a fake source and a recording sink; the audio side needs a
 live device), playback splits from capture (the passthrough route and the
-echo monitor's reference live in playback's graph, so it comes first), and
-the surfaces split three ways (the view every surface shares with the panel's
-list; the two subtitle surfaces and their wire; export and auto-save) —
-executed in this order. Each plan leaves the tree green and its
-own layer usable; none of them touches the old clients, which keep working
-until plan 1e replaces MainPanel's session path.
+echo monitor's reference live in playback's graph, so it comes first), the
+surfaces split three ways (the view every surface shares with the panel's
+list; the two subtitle surfaces and their wire; export and auto-save), and 1e
+splits four ways (the runner's and the audio's loose ends; LocalInference in
+the preview; the switch-over; the extension) — executed in this order. Each
+plan leaves the tree green and its own layer usable; none of them touches the
+old clients, which keep working until plan 1e-3 replaces MainPanel's session
+path.
 
 | Plan | Builds | Proven by |
 |---|---|---|
@@ -24,7 +26,10 @@ until plan 1e replaces MainPanel's session path.
 | **1d-1 — the conversation view and the panel list** (`2026-09-24-client-contract-stage1d1-conversation-view.md`) | rows that carry their text, typed notice codes and the frames port, one throttled view of the conversation, karaoke from the clip queues, the display filter, notices in words, the panel's conversation list | vitest; the preview's list, checked headlessly by `scripts/dev/spine-surface-probe.mjs` |
 | **1d-2 — the subtitle surfaces** (`2026-09-24-client-contract-stage1d2-subtitle-surfaces.md`) | the shared subtitle view over `Entry[]` (bands joined by script, karaoke), the Electron takeover and the extension overlay on one typed wire (`Entry[]`, the run's state, karaoke), the overlay's hold-to-talk button, the subtitle idle states from the run's state | vitest; headless Chromium: the overlay in a page, fed over a `MessageChannel` wire |
 | **1d-3 — export and auto-save** (`2026-09-24-client-contract-stage1d3-export.md`) | the export menu over the new writer (per-leg scope, header and metadata, clipboard, download), auto-save from `onRunEnded`, the panel's idle line (why the last run ended, in words) | vitest; the files a fake session exports |
-| **1e — LocalInference** | the first real adapter and definition; MainPanel's old session path deleted | a live local session on Electron and the extension |
+| **1e-1 — runner and audio hardening** | the run's loose ends before a real provider (the "1e" items in the sections below that need no provider): every leg's open awaited before unwinding, `abandon()` on `pagehide`, one overall close bound, `ensureReady` from the shape with a signal, model-load progress in `RunState`, a failed auto-save as state, per-leg `connection_status`, redacted analytics, stores loaded and the provider choice locked during a run, replay cleared where the conversation is replaced, live `keepReplayAudio`, passthrough from the leg going live, an idempotent graph close, the context suspended while idle | vitest; the preview |
+| **1e-2 — LocalInference** | its definition and adapter over today's pipeline (engines and workers unchanged): settings composed from the shared fields, `check` with the pair, `build` / `describe`, turns with its own silence tail, the translation-job cut, TTS and model loading; plan 1a's conformance items | vitest; a live local session in the preview |
+| **1e-3 — the switch-over** | MainPanel, the Electron takeover and export on the runner; the other clients and their descriptors deleted (spec: "Migration"); stored settings mapped; the three tests that read MainPanel's source replaced | a live local session on Electron |
+| **1e-4 — the extension** | the side panel publishes the wire and the overlay renders `SubtitleView`; the virtual microphone checked in a real Meet tab | a live local session in the extension |
 
 Interfaces that cross plan boundaries are named in each plan's `Interfaces`
 blocks. The ones fixed here, so a later plan never has to guess:
@@ -550,3 +555,22 @@ branch. A refused or failed start's reason is drawn after the list
   lines were left out. Today's export does the same.
 - A single-side scope drops a group missing that side (today's export does the
   same); only a both-sides scope states a missing side.
+
+## Decided for 1e (jiangzhuo, 2026-09-24)
+
+The four "decide it" items the sections above leave for 1e:
+
+- **Local readiness sees the pair.** `check` takes the language pair, and
+  changing the pair resets readiness, so the settings panel keeps showing
+  which direction lacks a model before a start (not a `build` refusal at
+  start). Plan 1e-2.
+- **Passthrough starts when the leg goes live**, as today: nothing of the raw
+  voice reaches the meeting while connecting, or from a start that then
+  fails. Plan 1e-1.
+- **Replay is disabled while the participant leg captures the whole system
+  during a run** (with a tooltip); idle, or with only the speaker leg, replay
+  works. Otherwise a replay would be captured and translated again as
+  "Other". Plan 1e-3.
+- **The speaker leg's speech stays `!textOnly`**: the switch-over does not
+  change a setting the user sees; folding text-only into the routes is for
+  later. Plan 1e-3.
