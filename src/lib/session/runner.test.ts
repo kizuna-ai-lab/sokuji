@@ -733,3 +733,17 @@ describe('runner — small corrections (F6)', () => {
     );
   });
 });
+
+describe('runner — one clip per speech entry', () => {
+  it("hands playback as many clips for each segment as L1 kept speech entries for it", async () => {
+    const { runner, clock, playback } = setup();
+    await runner.start();
+    clock.advance(10_000);
+    const clips = new Map<string, number>();
+    for (const [leg, ref] of playback.audio.mock.calls) clips.set(`${leg}:${ref}`, (clips.get(`${leg}:${ref}`) ?? 0) + 1);
+    const spoken = runner.conversation.snapshot()[0].segments.filter((s) => s.speech.length > 0);
+    expect(spoken.length).toBeGreaterThan(0);
+    for (const segment of spoken) expect(clips.get(`speaker:${segment.ref}`)).toBe(segment.speech.length);
+    expect([...clips.keys()].sort()).toEqual(spoken.map((s) => `speaker:${s.ref}`).sort());
+  });
+});
