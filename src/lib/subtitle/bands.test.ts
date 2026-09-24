@@ -59,4 +59,12 @@ describe('buildBands', () => {
     expect(band.pieces.map((piece) => piece.text)).toEqual(['Word1.', 'Word2.']);
     expect(band.pieces[0].before).toBe('');
   });
+
+  it("trims a segment's end even when its last row is only whitespace", () => {
+    const bands = buildBands([
+      exchange('a', 'speaker', [row('s1', 0, 0, 'Hi. '), row('s1', 1, 4, '   ')]),
+      exchange('b', 'speaker', [row('s2', 0, 0, 'Bye.')]),
+    ], both, words);
+    expect(text(bands[0])).toBe('Hi. Bye.');
+  });
 });
