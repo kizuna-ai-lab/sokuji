@@ -409,13 +409,21 @@ a target tab; notice listeners guarded). Its reviews leave these.
 
 ## Scheduled by plan 1d-1
 
-Plan 1d-1 takes up the roadmap's 1d items that the panel's list and the
-shared view need, and rules on the open ones (its "Rulings" section). What it
-leaves, by the plan that first needs it:
+Plan 1d-1 landed as commits `61c8ec8b..9e2e8b9d`: seven tasks and a
+final-review fix wave. It takes up the roadmap's 1d items that the panel's
+list and the shared view need, and rules on the open ones (its "Rulings"
+section, amended by the fix wave: karaoke's clip duration comes from the
+queue, since L1 keeps no pcm by default; a held karaoke ends when its queue is
+cleared or the segment's ranges were all dropped; the cut resolves through the
+selected provider's `boundaries(s)` — pause only where our silence timers end
+segments, Auto as three sentences there). The `notices.*` keys and
+`mainPanel.warning` were translated into all 30 locales (the parity test
+requires it). What it leaves, by the plan that first needs it:
 
 **1d-2 — the subtitle surfaces**
-- The compact bands join rows with `needsSpace` (`src/lib/projection/join.ts`),
-  never a bare space.
+- A compact band concatenates one segment's rows as they are (rows tile the
+  text) and puts `needsSpace` (`src/lib/projection/join.ts`) only between
+  segments — never a bare space.
 - The overlay's tail is sliced from the merged `Entry[]`, never per leg (spec:
   "Invariants").
 
@@ -426,8 +434,26 @@ leaves, by the plan that first needs it:
   `lastEnd`) — the idle line must show both.
 
 **1e — the switch-over**
-- Translate `notices.*` and `mainPanel.warning` into every locale before the
-  new list reaches users (1d-1 added English only).
+- Have a native reader spot-check the 29 translations of `notices.*` and
+  `mainPanel.warning` (written by a model, reusing each locale's own terms)
+  before the new list reaches users.
+- `failed` notices are never in words: L1 records the adapter's `code`
+  (undefined, or `auth` / `rate_limit` / `network` / `server` / `client`),
+  none of which has words, so the list shows the adapter's English. Default
+  L1's failed code to `leg_failed`, add words for the five API error types, or
+  both.
+- Per-row memoization before the list goes into `MainPanel`: every karaoke
+  tick (10 Hz) and view flush (20 Hz) re-renders every row today (`React.memo`
+  on the row with stable callbacks; `displayItems` reusing an item while its
+  row, header and end flag are unchanged). Measure with the fake's `long`
+  script.
+- A letters-changed rewrite can map a growth mark into the middle of a word
+  (`Conversation.replaceText` remaps by counting skeleton characters), leaving
+  a pause cut mid-word after an ASR re-decode — LocalInference re-decodes.
+- A leg whose TTS stops mid-segment while the run goes on keeps its karaoke
+  hold until the next clip on that queue or the next clear.
+- The live `canReplay` should require the segment to be final (the preview's
+  does).
 - Wire `RunnerDeps.frames` to `logStore.addRealtimeEvent` (it no-ops while
   diagnostic logs are off).
 - The footer's output waveform: give the graph an analyser on the virtual bus
