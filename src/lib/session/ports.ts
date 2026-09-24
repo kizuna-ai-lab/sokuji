@@ -20,6 +20,8 @@ export interface PlaybackPort {
   held(held: boolean): void;
   /** The run ended or the conversation was cleared: stop, and drop what is queued. */
   clear(): void;
+  /** A run went live (every leg up), or ended: the original voice reaches its route only while live, and playback may rest once not. */
+  live(on: boolean): void;
 }
 
 /** The session events the runner owns (spec: "Analytics"). */
@@ -106,6 +108,7 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
       },
       held: guard('playback.held', (held: boolean) => playback.held(held)),
       clear: guard('playback.clear', () => playback.clear()),
+      live: guard('playback.live', (on: boolean) => playback.live(on)),
     },
     analytics: { track: guard('analytics.track', (event, properties) => analytics.track(event, redactValues(properties))) as AnalyticsPort['track'] },
     // Frames arrive per message: report when the port starts failing, not on

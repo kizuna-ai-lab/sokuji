@@ -85,6 +85,7 @@ const playbackBridge: PlaybackPort = {
   audio: (leg, ref, pcm) => bridge.playback?.audio(leg, ref, pcm),
   held: (held) => bridge.playback?.held(held),
   clear: () => bridge.playback?.clear(),
+  live: (on) => bridge.playback?.live(on),
 };
 
 /** One runner per page: the preview's stand-in for the app's, on the fake source unless the page asks for `&capture=device`. */

@@ -35,7 +35,7 @@ function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: Any
   const clock = createVirtualClock(0);
   const log = o.log ?? [];
   const sources: FakeSource[] = [];
-  const playback = { audio: vi.fn(), held: vi.fn(), clear: vi.fn() };
+  const playback = { audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn() };
   Object.assign(playback, o.playback);
   const tracked: Array<[string, unknown]> = [];
   const shape: RunShape = {

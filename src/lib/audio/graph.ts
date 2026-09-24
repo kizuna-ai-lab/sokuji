@@ -55,6 +55,8 @@ export interface AudioGraph {
   readonly ttsTap: PcmTap;
   /** Resumes a suspended context and restarts an output the browser paused (autoplay). */
   resume(): Promise<void>;
+  /** Pauses rendering while nothing plays; `resume()` undoes it. */
+  suspend(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -118,16 +120,22 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   // device the element happened to be on before (F1).
   const requested: Partial<Record<Bus, string>> = {};
   const applied: Partial<Record<Bus, string>> = {};
+  // An output that will not start is reported once per failing streak, not once per chunk/resume.
+  const playFailing: Partial<Record<Bus, boolean>> = {};
   const play = (bus: Bus) => {
     const element = elements[bus];
     if (!element || !element.paused) return;
     if (bus === 'virtual' && (applied.virtual === undefined || applied.virtual !== requested.virtual)) return;
-    element.play().catch((error: unknown) => {
-      // A pending play() that pause() interrupted (the virtual device lost,
-      // close()) rejects with AbortError: not a failure to report (F6).
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      reportWarning('AudioGraph', `The ${bus} output did not start: ${describeCause(error)}`, { dedupeKey: `graph:play:${bus}` });
-    });
+    element.play().then(
+      () => { playFailing[bus] = false; },
+      (error: unknown) => {
+        // A pending play() that pause() interrupted (the virtual device lost,
+        // close()) rejects with AbortError: not a failure to report (F6).
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        if (!playFailing[bus]) reportWarning('AudioGraph', `The ${bus} output did not start: ${describeCause(error)}`, { dedupeKey: `graph:play:${bus}` });
+        playFailing[bus] = true;
+      },
+    );
   };
   play('real');
 
@@ -153,6 +161,11 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   };
 
   const edges = new Map<string, { from: Feed; node: GainNode }>();
+
+  // A context that keeps refusing to resume is reported once per failing streak, not on every call.
+  let resumeFailing = false;
+  /** `close()` runs once: every call while it is in flight, or after, gets the same settled promise. */
+  let closing: Promise<void> | null = null;
 
   return {
     timeline: (feed) => ({
@@ -247,21 +260,37 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       if (ctx.state === 'suspended') {
         try {
           await ctx.resume();
+          resumeFailing = false;
         } catch (error) {
-          reportWarning('AudioGraph', `The audio context did not resume: ${describeCause(error)}`, { dedupeKey: 'graph:resume' });
+          if (!resumeFailing) reportWarning('AudioGraph', `The audio context did not resume: ${describeCause(error)}`, { dedupeKey: 'graph:resume' });
+          resumeFailing = true;
         }
       }
       play('real');
       play('virtual');
     },
 
-    async close() {
-      for (const element of Object.values(elements)) {
-        element.pause();
-        element.srcObject = null;
+    async suspend() {
+      try {
+        if (ctx.state === 'running') await ctx.suspend();
+      } catch (error) {
+        reportWarning('AudioGraph', `The audio context did not suspend: ${describeCause(error)}`, { dedupeKey: 'graph:suspend' });
       }
-      for (const tap of taps) tap.port.onmessage = null;
-      await ctx.close();
+    },
+
+    close() {
+      // Idempotent: a second close() while the first is still in flight (or
+      // after it settled) returns the same promise instead of asking the
+      // context to close twice, which a real context refuses.
+      closing ??= (async () => {
+        for (const element of Object.values(elements)) {
+          element.pause();
+          element.srcObject = null;
+        }
+        for (const tap of taps) tap.port.onmessage = null;
+        await ctx.close();
+      })();
+      return closing;
     },
   };
 }

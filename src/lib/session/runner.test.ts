@@ -47,7 +47,7 @@ function setup(o: Options = {}) {
   // `Object.assign`, not a spread, so `playback`'s declared type stays the
   // plain mock shape below (with `.mockClear()` etc.) instead of widening to
   // a union with `Partial<PlaybackPort>`'s plain function types.
-  const playback = { audio: vi.fn(), held: vi.fn(), clear: vi.fn() };
+  const playback = { audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn() };
   Object.assign(playback, o.playback);
   const tracked: Array<[string, unknown]> = [];
   const shape: RunShape = {
@@ -783,6 +783,23 @@ describe('runner — a refused start', () => {
     await runner.start();
     expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } });
     expect(phases).not.toContain('stopping');
+    expect(playback.clear).not.toHaveBeenCalled();
+  });
+});
+
+describe('runner — playback live signal (T8)', () => {
+  it('tells playback when the run is live and when it ended, and clears the replay where the conversation is replaced', async () => {
+    const { runner, playback } = setup();
+    await runner.start();
+    expect(playback.clear).toHaveBeenCalledTimes(1);
+    expect(playback.live.mock.calls).toEqual([[true]]);
+    await runner.stop();
+    expect(playback.live.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('a refused start clears nothing: the replay of the kept conversation plays on', async () => {
+    const { runner, playback } = setup({ ready: { state: 'not-ready', reason: 'no' } });
+    await runner.start();
     expect(playback.clear).not.toHaveBeenCalled();
   });
 });

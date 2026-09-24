@@ -1,21 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { SAMPLE_RATE } from '../contract/adapter';
+import { createVirtualClock } from '../contract/clock';
 import { EMPTY_PCM, type Segment } from '../conversation/types';
 import { LEAD_S } from './clipQueue';
 import type { AudioGraph } from './graph';
 import { createPcmTap } from './pcmTap';
-import { clipKey, createPlayback, parseClipKey, type RoutingSource } from './playback';
+import { clipKey, createPlayback, parseClipKey, QUIET_MS, type RoutingSource } from './playback';
 import { routesFor, type Edge, type RoutingSettings } from './routes';
 
-/** A graph whose timelines the test moves by hand, and which records routes, sinks and one-shots. */
+/** A graph whose timelines the test moves by hand, and which records routes, sinks, one-shots, and how often it was suspended or closed. */
 function fakeGraph() {
   let now = 0;
   let resumed = 0;
+  let suspendedCount = 0;
+  let closedCount = 0;
   const plays: Array<{ feed: string; pcm: Int16Array; at: number; onEnded: () => void; done: boolean }> = [];
   const routes: Edge[][] = [];
   const sinks: Array<{ real?: string; virtual?: string }> = [];
   const shots: Array<{ audio: Float32Array; sampleRate: number; stopped: boolean; end: () => void }> = [];
-  const graph: AudioGraph = {
+  const graph: AudioGraph & { readonly suspended: number; readonly closed: number } = {
     timeline: (feed) => ({
       now: () => now,
       play(pcm, at, onEnded) {
@@ -39,7 +42,10 @@ function fakeGraph() {
     setSinks: async (s) => { sinks.push(s); },
     ttsTap: createPcmTap(),
     resume: async () => { resumed += 1; },
-    close: async () => {},
+    suspend: async () => { suspendedCount += 1; },
+    close: async () => { closedCount += 1; },
+    get suspended() { return suspendedCount; },
+    get closed() { return closedCount; },
   };
   const advance = (seconds: number) => {
     now += seconds;
@@ -51,6 +57,15 @@ function fakeGraph() {
     }
   };
   return { graph, plays, routes, sinks, shots, advance, resumed: () => resumed };
+}
+
+/** As `fakeGraph`, but wired through `createPlayback` with a virtual clock the test drives by hand. */
+function build(routingSettings: RoutingSettings = ROUTING) {
+  const { graph, plays, advance, resumed } = fakeGraph();
+  const clock = createVirtualClock(0);
+  const playback = createPlayback(graph, routing(routingSettings).source, clock);
+  const passthroughPlayed = () => plays.filter((p) => p.feed === 'passthrough').length;
+  return { playback, graph, clock, plays, advance, resumed, passthroughPlayed };
 }
 
 const ROUTING: RoutingSettings = {
@@ -222,9 +237,10 @@ describe('parseClipKey', () => {
 });
 
 describe('createPlayback — passthrough', () => {
-  it("plays the microphone's chunks back to back on the passthrough feed", () => {
+  it("plays the microphone's chunks back to back on the passthrough feed, while live", () => {
     const { graph, plays } = fakeGraph();
     const playback = createPlayback(graph, routing().source);
+    playback.live(true);
     playback.passthrough(pcm(85));
     playback.passthrough(pcm(85));
     expect(plays.map((p) => p.feed)).toEqual(['passthrough', 'passthrough']);
@@ -234,7 +250,40 @@ describe('createPlayback — passthrough', () => {
   it('resumes the graph before it plays (autoplay)', () => {
     const { graph, resumed } = fakeGraph();
     const playback = createPlayback(graph, routing().source);
+    playback.live(true);
     playback.passthrough(pcm(85));
     expect(resumed()).toBeGreaterThan(0);
+  });
+
+  it('forwards the original voice only while the run is live', () => {
+    const { playback, passthroughPlayed } = build();
+    playback.passthrough(pcm(85));
+    playback.live(true);
+    playback.passthrough(pcm(85));
+    playback.live(false);
+    playback.passthrough(pcm(85));
+    expect(passthroughPlayed()).toBe(1);
+  });
+});
+
+describe('createPlayback — resting', () => {
+  it('suspends the graph once quiet for QUIET_MS, never while live or while something is queued', async () => {
+    const { playback, graph, clock } = build();
+    playback.live(true);
+    clock.advance(QUIET_MS);
+    expect(graph.suspended).toBe(0);
+    playback.live(false);
+    playback.audio('speaker', 1, pcm(1000));
+    clock.advance(QUIET_MS);
+    expect(graph.suspended).toBe(0);
+    playback.clear();
+    clock.advance(QUIET_MS);
+    expect(graph.suspended).toBe(1);
+  });
+
+  it('disposes once', async () => {
+    const { playback, graph } = build();
+    await Promise.all([playback.dispose(), playback.dispose()]);
+    expect(graph.closed).toBe(1);
   });
 });

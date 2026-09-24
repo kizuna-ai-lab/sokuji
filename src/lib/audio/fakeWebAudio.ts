@@ -99,7 +99,9 @@ export class FakeAudioContext {
   readonly destinations: FakeStreamDestination[] = [];
   readonly streamSources: FakeStreamSource[] = [];
   resumed = 0;
-  closed = false;
+  suspended = 0;
+  /** How many times `close()` has actually closed the context (never more than one, as a real context refuses a second). */
+  closed = 0;
 
   createGain(): FakeGain {
     return new FakeGain();
@@ -127,13 +129,20 @@ export class FakeAudioContext {
     return source;
   }
 
+  async suspend(): Promise<void> {
+    this.suspended += 1;
+    this.state = 'suspended';
+  }
+
   async resume(): Promise<void> {
     this.resumed += 1;
     this.state = 'running';
   }
 
   async close(): Promise<void> {
-    this.closed = true;
+    // A real context rejects a second close() with InvalidStateError.
+    if (this.state === 'closed') throw new DOMException('the context is already closed', 'InvalidStateError');
+    this.closed += 1;
     this.state = 'closed';
   }
 

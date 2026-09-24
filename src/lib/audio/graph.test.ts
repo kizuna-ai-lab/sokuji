@@ -189,7 +189,39 @@ describe('createAudioGraph — outputs', () => {
     await graph.close();
     expect(real.paused).toBe(true);
     expect(real.srcObject).toBeNull();
-    expect(ctx.closed).toBe(true);
+    expect(ctx.closed).toBe(1);
+  });
+
+  it('closes once, however often it is asked', async () => {
+    const { ctx, graph } = await setup();
+    await Promise.all([graph.close(), graph.close()]);
+    expect(ctx.closed).toBe(1);
+  });
+
+  it('suspend() pauses a running context, and does nothing to one already suspended', async () => {
+    const { ctx, graph } = await setup();
+    await graph.suspend();
+    expect(ctx.state).toBe('suspended');
+    expect(ctx.suspended).toBe(1);
+    await graph.suspend();
+    expect(ctx.suspended).toBe(1);
+  });
+
+  it('suspend() reports a context that will not suspend instead of rejecting', async () => {
+    const { ctx, graph } = await setup();
+    ctx.suspend = async () => { throw new Error('InvalidStateError'); };
+    await expect(graph.suspend()).resolves.toBeUndefined();
+  });
+
+  it('reports an output that will not start once per failing streak, not per chunk', async () => {
+    const { graph, real } = await setup();
+    reportWarningSpy.mockClear();
+    real.pause();
+    real.play = () => Promise.reject(new DOMException('blocked', 'NotAllowedError'));
+    await graph.resume();
+    await graph.resume();
+    await graph.resume();
+    expect(reportWarningSpy.mock.calls.filter(([, message]) => String(message).includes('did not start'))).toHaveLength(1);
   });
 });
 

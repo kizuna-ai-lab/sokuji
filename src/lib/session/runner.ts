@@ -119,6 +119,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
           const endedAt = deps.clock.now();
           // Stop speaking now; the port is guarded, so a throw here cannot keep the run open.
           if (!refused) deps.playback.clear();
+          deps.playback.live(false);
           await run.close();
           if (liveSince !== null && !abandoned.has(run)) {
             const duration = endedAt - liveSince;
@@ -173,7 +174,9 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       const now = state.getState();
       if (run === current && now.phase === 'starting') set({ ...now, loading: { leg, ...progress } });
     },
-    conversations: (map, info: ConversationInfo) => conversation.replace(map, info),
+    // The replay of the last conversation stops where that conversation goes:
+    // refs restart per run, so its clip keys would alias the new run's segments.
+    conversations: (map, info: ConversationInfo) => { deps.playback.clear(); conversation.replace(map, info); },
     end: (result) => { void end(run, result); },
   });
 
@@ -222,6 +225,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     }
     if (run !== current || run.signal.aborted) return;
     set({ phase: 'running', since: run.liveSince!, legs: legs(run) });
+    deps.playback.live(true);
     deps.analytics.track('translation_session_start', {
       session_id: run.id,
       provider: shape.provider.id,
@@ -258,6 +262,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       current = null;
       ending = null;
       run.abandon();
+      deps.playback.live(false);
       set({ phase: 'idle', lastEnd: { reason: 'user' } });
     },
     press: () => current?.press(),

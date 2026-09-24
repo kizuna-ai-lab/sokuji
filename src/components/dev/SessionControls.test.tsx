@@ -93,7 +93,7 @@ function fakeAudio(): AppAudio & { playback: Playback } {
   const queue = { position: () => null, pending: 0, subscribe: () => () => {} };
   const playback = {
     queues: { speaker: queue, participant: queue, replay: queue },
-    audio: vi.fn(), held: vi.fn(), clear: vi.fn(),
+    audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn(),
     replay: vi.fn(), stopReplay: vi.fn(),
     preview: vi.fn(async () => {}), stopPreview: vi.fn(),
     passthrough: vi.fn(),

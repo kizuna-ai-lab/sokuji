@@ -3,6 +3,7 @@
  * "Playback"): a clip queue per leg and one for replay, the preview route,
  * the route table kept live from the routing settings, and the tts tap.
  */
+import { realClock, type Clock } from '../contract/clock';
 import type { LegName, Segment } from '../conversation/types';
 import type { PlaybackPort } from '../session/ports';
 import { ClipQueue, type QueueView } from './clipQueue';
@@ -10,6 +11,9 @@ import type { AudioGraph, OneShot } from './graph';
 import { LiveStream } from './liveStream';
 import type { PcmTap } from './pcmTap';
 import { routesFor, type RoutingSettings } from './routes';
+
+/** How long playback must be quiet — no run live, nothing queued, no preview — before its context rests. */
+export const QUIET_MS = 5_000;
 
 /** One clip: a leg, the segment its `ref` names ('none' when it names none), and which of the segment's speech entries. */
 export type ClipKey = `${LegName}:${number | 'none'}:${number}`;
@@ -51,8 +55,8 @@ export interface Playback extends PlaybackPort {
   dispose(): Promise<void>;
 }
 
-export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playback {
-  const live: Record<LegName, ClipQueue<ClipKey>> = {
+export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock: Pick<Clock, 'setTimeout'> = realClock): Playback {
+  const queues: Record<LegName, ClipQueue<ClipKey>> = {
     speaker: new ClipQueue<ClipKey>(graph.timeline('speaker')),
     participant: new ClipQueue<ClipKey>(graph.timeline('participant')),
   };
@@ -65,6 +69,21 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
   const counts = new Map<string, number>();
   let held = false;
   let current: OneShot | null = null;
+  let live = false;
+  let rest: (() => void) | null = null;
+  let disposing: Promise<void> | null = null;
+
+  const quiet = () => !live && current === null
+    && queues.speaker.pending === 0 && queues.participant.pending === 0 && replayQueue.pending === 0;
+
+  /** Rests the graph once it has stayed quiet for QUIET_MS; anything that plays resumes it. */
+  const restLater = () => {
+    rest?.();
+    rest = clock.setTimeout(() => {
+      rest = null;
+      if (quiet()) void graph.suspend();
+    }, QUIET_MS);
+  };
 
   const apply = () => {
     const settings = routing.get();
@@ -72,7 +91,12 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
     void graph.setSinks(settings.sinks);
   };
   apply();
-  const unsubscribe = routing.subscribe(apply);
+  const unsubscribeRouting = routing.subscribe(apply);
+  // Any clip starting or ending, on any queue, may turn playback quiet (or
+  // end a quiet stretch): re-arm the rest timer whenever it does.
+  const unsubscribeQueues = [queues.speaker, queues.participant, replayQueue].map((q) =>
+    q.subscribe(() => { if (quiet()) restLater(); }));
+  restLater();
 
   const stopPreview = () => {
     current?.stop();
@@ -80,14 +104,14 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
   };
 
   return {
-    queues: { speaker: live.speaker, participant: live.participant, replay: replayQueue },
+    queues: { speaker: queues.speaker, participant: queues.participant, replay: replayQueue },
 
     audio(leg, ref, pcm) {
       const id = `${leg}:${ref ?? 'none'}`;
       const index = counts.get(id) ?? 0;
       counts.set(id, index + 1);
       void graph.resume();
-      live[leg].enqueue(clipKey(leg, ref, index), pcm);
+      queues[leg].enqueue(clipKey(leg, ref, index), pcm);
     },
 
     held(next) {
@@ -96,9 +120,19 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
       apply();
     },
 
+    live(on) {
+      live = on;
+      if (!on) {
+        // Push-to-translate already closes this route while held; ending a
+        // run must drop whatever the microphone still had in flight too.
+        passthroughStream.clear();
+        restLater();
+      }
+    },
+
     clear() {
-      live.speaker.clear();
-      live.participant.clear();
+      queues.speaker.clear();
+      queues.participant.clear();
       replayQueue.clear();
       // L1's `clear()` empties every segment's speech too: the indices restart together.
       counts.clear();
@@ -130,26 +164,33 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource): Playb
       current = shot;
       return shot.ended.then(() => {
         if (current === shot) current = null;
+        restLater();
       });
     },
 
     stopPreview,
 
     passthrough(pcm) {
+      if (!live) return;
       void graph.resume();
       passthroughStream.push(pcm);
     },
 
     ttsTap: graph.ttsTap,
 
-    async dispose() {
-      unsubscribe();
-      live.speaker.clear();
-      live.participant.clear();
-      replayQueue.clear();
-      passthroughStream.clear();
-      stopPreview();
-      await graph.close();
+    dispose() {
+      disposing ??= (async () => {
+        rest?.();
+        unsubscribeRouting();
+        for (const off of unsubscribeQueues) off();
+        queues.speaker.clear();
+        queues.participant.clear();
+        replayQueue.clear();
+        passthroughStream.clear();
+        stopPreview();
+        await graph.close();
+      })();
+      return disposing;
     },
   };
 }
