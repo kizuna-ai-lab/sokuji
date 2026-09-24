@@ -10,7 +10,7 @@ import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { autoSaveConversation } from '../../lib/export/appAutoSave';
 import type { AuthContext } from '../../lib/provider/types';
-import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores } from '../../lib/session/appShape';
+import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from '../../lib/session/appShape';
 import type { AnalyticsPort, PlaybackPort } from '../../lib/session/ports';
 import { createRunner, type Runner } from '../../lib/session/runner';
 import type { OpenSource } from '../../lib/session/source';
@@ -364,6 +364,9 @@ export function SpinePreview() {
     if (params.get('autosave') === '1') void useSettingsStore.getState().setAutoSaveOnStop(true);
     void runner.start();
   }, [entry, audio, runner, providers]);
+
+  // The panel's readiness is about the legs a start would open: the audio mode's.
+  useEffect(() => watchLegsFromStores(), []);
 
   // `pagehide` (a reload, the tab closing): close every leg and capture now; nothing is saved, as in the app.
   useEffect(() => {

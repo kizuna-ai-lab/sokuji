@@ -206,9 +206,9 @@ describe('refreshReadiness', () => {
     const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
     const p = { ...probe, check };
     await useProviderStore.getState().load(p);
-    const from = { settings: { ...p.settings.defaults, marker: 1 }, credentials: {}, pair: { source: 'en', target: 'ja' } };
+    const from = { settings: { ...p.settings.defaults, marker: 1 }, credentials: {}, pair: { source: 'en', target: 'ja' }, legs: ['speaker', 'participant'] as const };
     await useProviderStore.getState().refreshReadiness(p, auth, from);
     expect(check.mock.calls[0][1]).toBe(from.settings);
-    expect(check.mock.calls[0][2]).toMatchObject({ pair: from.pair });
+    expect(check.mock.calls[0][2]).toMatchObject({ pair: from.pair, legs: from.legs });
   });
 });

@@ -4,6 +4,7 @@
  */
 import type { ComponentType } from 'react';
 import type { Adapter, SessionContext } from '../contract/adapter';
+import type { LegName } from '../conversation/types';
 import type { SessionHooks } from '../session/types';
 
 export type Platform = 'electron' | 'extension' | 'web';
@@ -34,6 +35,8 @@ export type CheckResult = { ok: true; models?: readonly ModelOption[] } | { ok: 
 export interface CheckContext {
   /** The speaker's pair; the participant leg runs its reverse. A local engine's models are per direction. */
   pair: LanguagePair;
+  /** The legs a run would open, speaker first: the participant leg runs the pair's reverse. */
+  legs: readonly LegName[];
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }
@@ -104,7 +107,7 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * Can this provider start now: a network validation, model readiness, or a
    * signed-in session. Throw when the check could not find out (offline);
    * answer `ok: false` only when the provider said no. Readiness is cached
-   * per settings, credentials, sign-in and pair.
+   * per settings, credentials, sign-in, pair and legs.
    */
   check(k: K, s: S, ctx: CheckContext): Promise<CheckResult>;
 

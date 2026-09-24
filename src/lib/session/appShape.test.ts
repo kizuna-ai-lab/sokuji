@@ -9,6 +9,7 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+import type { AnyProvider, CheckContext } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import useAudioStore from '../../stores/audioStore';
@@ -16,12 +17,13 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { legsFor, persistIfUnchanged, readShapeFromStores } from './appShape';
+import { ensureReadyFromStores, legsFor, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from './appShape';
+import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+  useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'] });
   useTurnModeStore.setState({ turnMode: 'auto' });
   useRoutingStore.setState({ participantSpeech: false });
 });
@@ -83,5 +85,33 @@ describe('readShapeFromStores', () => {
     });
     useRoutingStore.setState({ participantSpeech: true });
     expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
+  });
+});
+
+describe('ensureReadyFromStores', () => {
+  it("checks the shape's own settings, credentials, pair and legs, with the run's signal", async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    // A local kind: nothing cached from another test answers for it.
+    const provider = { ...fakeProvider, kind: 'local', check } as unknown as AnyProvider;
+    const settings = { ...FAKE_DEFAULTS };
+    const shape = {
+      provider, settings, credentials: {}, pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], auth,
+    } as unknown as RunShape;
+    const signal = new AbortController().signal;
+    await expect(ensureReadyFromStores(shape, signal)).resolves.toEqual({ state: 'ready', models: [] });
+    expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], signal });
+  });
+});
+
+describe('watchLegsFromStores', () => {
+  it("keeps the provider store's legs on the audio mode's, now and on every change, until unsubscribed", () => {
+    useAudioStore.setState({ mode: 'participant' });
+    const unwatch = watchLegsFromStores();
+    expect(useProviderStore.getState().legs).toEqual(['participant']);
+    useAudioStore.setState({ mode: 'both' });
+    expect(useProviderStore.getState().legs).toEqual(['speaker', 'participant']);
+    unwatch();
+    useAudioStore.setState({ mode: 'speaker' });
+    expect(useProviderStore.getState().legs).toEqual(['speaker', 'participant']);
   });
 });

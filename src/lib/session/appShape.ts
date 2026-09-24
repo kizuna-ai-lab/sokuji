@@ -7,7 +7,7 @@
 import type { LegName } from '../conversation/types';
 import type { AnyProvider, AuthContext, Readiness } from '../provider/types';
 import { presentProviders } from '../../providers/registry';
-import useAudioStore from '../../stores/audioStore';
+import useAudioStore, { type AudioMode } from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
@@ -56,9 +56,16 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
 export function ensureReadyFromStores(shape: RunShape, signal: AbortSignal): Promise<Readiness> {
   return useProviderStore.getState().refreshReadiness(
     shape.provider, shape.auth,
-    { settings: shape.settings, credentials: shape.credentials, pair: shape.pair },
+    { settings: shape.settings, credentials: shape.credentials, pair: shape.pair, legs: shape.legs },
     signal,
   );
+}
+
+/** Keeps the provider store's `legs` on the audio mode's, now and on every change, so the panel's readiness is about the legs a start would open. Returns the unsubscribe. */
+export function watchLegsFromStores(): () => void {
+  const apply = (mode: AudioMode) => useProviderStore.getState().setLegs(legsFor(mode));
+  apply(useAudioStore.getState().mode);
+  return useAudioStore.subscribe((s) => s.mode, apply);
 }
 
 /** `keepReplayAudio`, live from the settings store: the runner's `replayAudio`. */

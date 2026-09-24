@@ -12,7 +12,7 @@ const context: SessionContext = { direction: { source: 'en', target: 'ja' }, spe
 const shared: SharedSettings = { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 } };
 const noAuth = { signedIn: false, getToken: async () => null };
 const settings = (patch: Partial<FakeSettings> = {}): FakeSettings => ({ ...FAKE_DEFAULTS, ...patch });
-const checkCtx = { pair: { source: 'en', target: 'ja' } };
+const checkCtx = { pair: { source: 'en', target: 'ja' }, legs: ['speaker'] as const };
 
 describe('the fake provider', () => {
   it('shows no credential field by default, and reads without one', () => {
