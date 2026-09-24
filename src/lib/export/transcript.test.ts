@@ -98,6 +98,11 @@ describe('scope, header and metadata', () => {
     expect(json.groups.find((g) => g.id === 'c')).toMatchObject({ source: { text: '下午三点吧。' }, translation: null });
     expect(Object.keys(json)).toEqual(['groups', 'notices']);
   });
+
+  it('puts what the file is before its groups', () => {
+    const json = renderTranscriptJson(entries, legs, { scope: { speaker: 'both', participant: 'source' }, meta: header.meta });
+    expect(Object.keys(json)).toEqual(['exportedAt', 'appVersion', 'provider', 'models', 'languages', 'scope', 'groups', 'notices']);
+  });
 });
 
 describe('renderTranscriptJson', () => {

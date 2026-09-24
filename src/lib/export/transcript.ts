@@ -145,16 +145,19 @@ export function renderTranscriptJson(
     if (group.source == null && group.translation == null) continue;
     groups.push(group);
   }
-  const json: TranscriptJson = { groups, notices };
+  // A downloaded file must say what it is before thousands of groups: key
+  // order here is meaningful (JSON.stringify follows insertion order), so
+  // metadata is built first and groups/notices are spread in last.
+  const meta: Partial<TranscriptJson> = {};
   if (o.meta) {
-    json.exportedAt = new Date(o.meta.exportedAt).toISOString();
-    json.appVersion = o.meta.appVersion;
-    json.provider = o.meta.provider;
-    json.models = o.meta.models;
-    json.languages = pairOf(legs);
+    meta.exportedAt = new Date(o.meta.exportedAt).toISOString();
+    meta.appVersion = o.meta.appVersion;
+    meta.provider = o.meta.provider;
+    meta.models = o.meta.models;
+    meta.languages = pairOf(legs);
   }
-  if (isNarrowed(scope)) json.scope = scope;
-  return json;
+  if (isNarrowed(scope)) meta.scope = scope;
+  return { ...meta, groups, notices };
 }
 
 export function renderTranscriptTxt(entries: readonly Entry[], legs: readonly Leg[], o: TranscriptOptions): string {
