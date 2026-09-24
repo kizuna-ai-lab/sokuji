@@ -8,19 +8,23 @@ import { useAuth } from '../../lib/auth/hooks';
 import { realClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
+import { autoSaveConversation } from '../../lib/export/appAutoSave';
 import type { AuthContext } from '../../lib/provider/types';
 import { persistIfUnchanged, readShapeFromStores } from '../../lib/session/appShape';
+import type { ConversationInfo } from '../../lib/session/conversationSet';
 import type { AnalyticsPort, PlaybackPort } from '../../lib/session/ports';
 import { createRunner, type Runner } from '../../lib/session/runner';
 import type { OpenSource } from '../../lib/session/source';
 import { appSubtitleSession } from '../../lib/subtitle/appSession';
 import type { SubtitleSession } from '../../lib/subtitle/session';
 import { messagePortWire, publishSubtitles } from '../../lib/subtitle/wire';
+import type { AutoSaveNotifier } from '../../lib/transcript/autoSave';
 import type { Entry } from '../../lib/projection/types';
 import { createConversationView, type ConversationViewState, type Readable } from '../../lib/view/conversationView';
 import { appProjectionSettings } from '../../lib/view/appViewSettings';
 import { displayItems } from '../../lib/view/filter';
 import { createKaraoke, type KaraokeState } from '../../lib/view/karaoke';
+import { lastEndItem } from '../../lib/view/lastEnd';
 import { FAKE_SCRIPT_NAMES } from '../../providers/fake/scripts';
 import { createFakeSource } from '../../providers/fake/source';
 import { presentProviders } from '../../providers/registry';
@@ -32,9 +36,12 @@ import { useSubtitleStore } from '../../stores/subtitleStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { getEnvironment } from '../../utils/environment';
 import { ConversationList } from '../Conversation/ConversationList';
+import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
+import { ExportMenuButton } from '../MainPanel/ExportButton';
 import { ProviderPanel } from '../providers/ProviderPanel';
 import { SubtitleView, type SubtitleControls, type SubtitleModel } from '../Subtitle/SubtitleView';
+import { useToast } from '../Toast';
 import { SessionControls } from './SessionControls';
 import '../Settings/Settings.scss';
 import './SpinePreview.scss';
@@ -46,13 +53,14 @@ function manualTurnFromUrl(): boolean {
 }
 
 let previewRunner: Runner | null = null;
-const bridge: { auth: AuthContext; track: AnalyticsPort['track']; playback: Playback | null; openSource: OpenSource } = {
+const bridge: { auth: AuthContext; track: AnalyticsPort['track']; playback: Playback | null; openSource: OpenSource; notify: AutoSaveNotifier } = {
   auth: { signedIn: false, getToken: async () => null },
   track: () => {},
   playback: null,
   // Under a manual turn, a held press needs voice to end (not cancel) the
   // turn (`MIN_VOICED_MS`) — the fake source stays voiced throughout.
   openSource: async () => createFakeSource(realClock, { voiced: manualTurnFromUrl() }),
+  notify: { showToast: () => {} },
 };
 
 /** What the page's capture delivered, for the probe (`&capture=device`). */
@@ -85,13 +93,15 @@ function getPreviewRunner(): Runner {
   previewRunner ??= createRunner({
     clock: realClock,
     platform: getEnvironment(),
-    readShape: () => readShapeFromStores(bridge.auth),
+    // `&refuse=1`: no shape, so every start is refused — the idle line's check.
+    readShape: () => (new URLSearchParams(window.location.search).get('refuse') === '1' ? null : readShapeFromStores(bridge.auth)),
     ensureReady: (p, auth) => useProviderStore.getState().refreshReadiness(p, auth),
     persistIfUnchanged,
     openSource: (leg, signal) => bridge.openSource(leg, signal),
     playback: playbackBridge,
     analytics: { track: (event, properties) => bridge.track(event, properties) },
     newSessionId: () => crypto.randomUUID(),
+    onRunEnded: async (legs) => { await autoSaveConversation(legs, getPreviewRunner().conversation.info, bridge.notify); },
   });
   return previewRunner;
 }
@@ -117,19 +127,27 @@ const IDLE: KaraokeState = { lit: new Map(), replaying: null };
 const NO_KARAOKE: Readable<KaraokeState> = { get: () => IDLE, subscribe: () => () => {} };
 
 /** The new conversation list over the preview's view (plan 1d-1). Its copy is not localized. */
-function PreviewConversation({ view, karaoke, playback }: {
+function PreviewConversation({ view, karaoke, playback, runner }: {
   view: Readable<ConversationViewState>;
   karaoke: Readable<KaraokeState>;
   playback: Playback | null;
+  runner: Runner;
 }) {
-  const { legs, entries } = useReadable(view);
+  const viewState = useReadable(view);
+  const { legs, entries } = viewState;
   const { lit, replaying } = useReadable(karaoke);
   const speaker = useSettingsStore((s) => s.speakerDisplayMode);
   const participant = useSettingsStore((s) => s.participantDisplayMode);
   const keepReplayAudio = useSettingsStore((s) => s.keepReplayAudio);
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const display = useConversationDisplayStore();
-  const items = useMemo(() => displayItems(entries, { speaker, participant }), [entries, speaker, participant]);
+  const runState = useStore(runner.state);
+  const exporter = useConversationExporter(viewState, runner.conversation.info);
+  const items = useMemo(() => {
+    const drawn = displayItems(entries, { speaker, participant });
+    const last = lastEndItem(runState);
+    return last ? [...drawn, last] : drawn;
+  }, [entries, speaker, participant, runState]);
   const segments = useMemo(() => new Map(legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [legs]);
   const replayLegs = useMemo(
     () => new Set<LegName>(keepReplayAudio ? (participantSpeech ? ['speaker', 'participant'] : ['speaker']) : []),
@@ -144,6 +162,9 @@ function PreviewConversation({ view, karaoke, playback }: {
         '--conversation-translation-color': display.translationTextColor,
       } as CSSProperties}
     >
+      <div className="conversation-toolbar">
+        <ExportMenuButton exporter={exporter} speakerMode={speaker} participantMode={participant} />
+      </div>
       <ConversationList
         items={items}
         lit={lit}
@@ -169,19 +190,22 @@ function PreviewConversation({ view, karaoke, playback }: {
 }
 
 /** The Electron-style subtitle surface, on the page itself (`&subtitle=1`, plan 1d-2). */
-function PreviewSubtitle({ view, karaoke, session, controls }: {
+function PreviewSubtitle({ view, karaoke, session, controls, info }: {
   view: Readable<ConversationViewState>;
   karaoke: Readable<KaraokeState>;
   session: Readable<SubtitleSession>;
   controls: SubtitleControls;
+  info: ConversationInfo | null;
 }) {
-  const { entries } = useReadable(view);
+  const viewState = useReadable(view);
+  const { entries } = viewState;
   const { lit } = useReadable(karaoke);
   const sessionState = useReadable(session);
+  const exporter = useConversationExporter(viewState, info);
   const model: SubtitleModel = { entries, lit, session: sessionState };
   return (
     <div className="spine-subtitle">
-      <SubtitleView surface="electron" model={model} controls={controls} />
+      <SubtitleView surface="electron" model={model} controls={controls} exporter={exporter} />
     </div>
   );
 }
@@ -267,9 +291,11 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
 export function SpinePreview() {
   const { isSignedIn, getToken } = useAuth();
   const { trackEvent } = useAnalytics();
+  const { showToast } = useToast();
   const auth = useMemo(() => ({ signedIn: isSignedIn, getToken }), [isSignedIn, getToken]);
   bridge.auth = auth;
   bridge.track = trackEvent as AnalyticsPort['track'];
+  bridge.notify = { showToast };
   const providers = useMemo(() => presentProviders(), []);
   const runner = getPreviewRunner();
   const phase = useStore(runner.state, (s) => s.phase);
@@ -334,6 +360,8 @@ export function SpinePreview() {
     if (turn === 'push-to-talk' || turn === 'push-to-translate') useTurnModeStore.getState().setTurnMode(turn);
     // `&compact=1`: the subtitle surfaces' bands (not the panel's own compact mode).
     if (params.get('compact') === '1') void useSubtitleStore.getState().setCompactMode(true);
+    // `&autosave=1`: the stored auto-save switch, on — the run's end saves the conversation.
+    if (params.get('autosave') === '1') void useSettingsStore.getState().setAutoSaveOnStop(true);
     void runner.start();
   }, [entry, audio, runner, providers]);
 
@@ -347,9 +375,15 @@ export function SpinePreview() {
           audio={audio}
           capture={deviceCapture ? () => ({ ...captured }) : undefined}
         />
-        <PreviewConversation view={getPreviewView(runner)} karaoke={karaoke ?? NO_KARAOKE} playback={audio?.playback ?? null} />
+        <PreviewConversation view={getPreviewView(runner)} karaoke={karaoke ?? NO_KARAOKE} playback={audio?.playback ?? null} runner={runner} />
         {previewParams.subtitle && (
-          <PreviewSubtitle view={getPreviewView(runner)} karaoke={karaoke ?? NO_KARAOKE} session={session} controls={subtitleControls} />
+          <PreviewSubtitle
+            view={getPreviewView(runner)}
+            karaoke={karaoke ?? NO_KARAOKE}
+            session={session}
+            controls={subtitleControls}
+            info={runner.conversation.info}
+          />
         )}
         {previewParams.overlay && (
           <PreviewOverlayFrame
