@@ -1,4 +1,5 @@
 import type { AnalyticsEvents } from '../analytics';
+import type { AdapterFrame } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { Punctuator } from '../conversation/fillIn';
 import type { Leg, LegName } from '../conversation/types';
@@ -25,12 +26,9 @@ export interface AnalyticsPort {
   track<E extends keyof AnalyticsEvents>(event: E, properties: AnalyticsEvents[E]): void;
 }
 
-/** One protocol frame an adapter reported (spec D8): what the Logs panel lists. */
-export interface AdapterFrame {
-  direction: 'in' | 'out';
-  type: string;
-  payload?: unknown;
-}
+// `AdapterFrame` lives once, in `contract/adapter.ts` — `AdapterEvents.frame`
+// and this port share it. Re-exported so a caller can still import it here.
+export type { AdapterFrame } from '../contract/adapter';
 
 /** Where a run's frames go: the app's log store (plan 1e). */
 export interface FramePort {

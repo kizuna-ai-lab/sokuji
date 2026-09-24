@@ -65,7 +65,10 @@ export interface SessionHooks<S, K, C> {
   ): Promise<Record<LegName, AdapterSession>>;
 }
 
-/** Why a run ended; the idle surfaces look the text up by the notice's code. */
+/** Why a run ended; the idle surfaces look the text up by the notice's code.
+ *  Kebab-case on purpose: these are reasons, read by the runner and its
+ *  callers, not notice codes — notice codes (`RunNoticeCode` and a
+ *  provider's own) are snake_case. */
 export type EndReason = 'user' | 'refused' | 'start-failed' | 'leg-failed' | 'leg-closed' | 'source-ended' | 'lease-ended';
 
 export interface RunEnd {

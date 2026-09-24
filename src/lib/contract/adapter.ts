@@ -53,6 +53,13 @@ export interface AdapterSession {
   readonly info: { transport?: string };
 }
 
+/** One protocol frame an adapter reported (spec D8): what the Logs panel lists. Never audio, never a credential. */
+export interface AdapterFrame {
+  direction: 'in' | 'out';
+  type: string;
+  payload?: unknown;
+}
+
 export interface AdapterEvents {
   segmentOpened(e: { ref: Ref; side: Side; origin?: string }): void;
   /** Always the whole text; a snapshot, never a delta. */
@@ -71,7 +78,7 @@ export interface AdapterEvents {
   loading(e: { stage: string; done: number; total: number }): void;
   busy(e: boolean): void;
   /** Wire traffic for the Logs panel. Never audio, never a credential. */
-  frame(e: { direction: 'in' | 'out'; type: string; payload?: unknown }): void;
+  frame(e: AdapterFrame): void;
 }
 
 export interface Adapter<C, K> {
