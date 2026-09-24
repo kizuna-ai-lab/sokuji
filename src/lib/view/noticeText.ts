@@ -40,6 +40,12 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   send_dropped: "Some audio or text couldn't be sent and was dropped.",
   voice_fallback: 'The chosen voice was unavailable, so another voice is used.',
   lease_notify_failed: "The service couldn't be told about the session's state.",
+  // A failed leg's API error type (the adapter's code).
+  auth: 'The provider did not accept the credentials: {{detail}}',
+  rate_limit: 'The provider is limiting requests; try again shortly: {{detail}}',
+  network: 'The connection to the provider failed: {{detail}}',
+  server: 'The provider had a problem: {{detail}}',
+  client: 'The provider rejected the request: {{detail}}',
 };
 
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */

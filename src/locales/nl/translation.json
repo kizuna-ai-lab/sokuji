@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Opnieuw verbinden is mislukt; nieuwe poging.",
     "send_dropped": "Sommige audio of tekst kon niet worden verzonden en is verwijderd.",
     "voice_fallback": "De gekozen stem was niet beschikbaar, dus wordt een andere stem gebruikt.",
-    "lease_notify_failed": "De service kon niet op de hoogte worden gebracht van de sessiestatus."
+    "lease_notify_failed": "De service kon niet op de hoogte worden gebracht van de sessiestatus.",
+    "auth": "De provider heeft de inloggegevens niet geaccepteerd: {{detail}}",
+    "rate_limit": "De provider beperkt momenteel verzoeken; probeer het straks opnieuw: {{detail}}",
+    "network": "De verbinding met de provider is mislukt: {{detail}}",
+    "server": "Er is een probleem opgetreden bij de provider: {{detail}}",
+    "client": "De provider heeft het verzoek geweigerd: {{detail}}"
   }
 }

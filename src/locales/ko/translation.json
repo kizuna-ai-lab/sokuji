@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "재연결에 실패했습니다. 다시 시도합니다.",
     "send_dropped": "일부 오디오 또는 텍스트를 전송하지 못해 버려졌습니다.",
     "voice_fallback": "선택한 음성을 사용할 수 없어 다른 음성을 사용합니다.",
-    "lease_notify_failed": "세션 상태를 서비스에 알릴 수 없었습니다."
+    "lease_notify_failed": "세션 상태를 서비스에 알릴 수 없었습니다.",
+    "auth": "제공자가 자격 증명을 수락하지 않았습니다: {{detail}}",
+    "rate_limit": "제공자가 요청을 제한하고 있습니다. 잠시 후 다시 시도하세요: {{detail}}",
+    "network": "제공자에 대한 연결이 실패했습니다: {{detail}}",
+    "server": "제공자에서 문제가 발생했습니다: {{detail}}",
+    "client": "제공자가 요청을 거부했습니다: {{detail}}"
   }
 }

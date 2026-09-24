@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Nabigo ang muling pagkonekta; sinusubukan ulit.",
     "send_dropped": "May audio o tekstong hindi naipadala at naitapon.",
     "voice_fallback": "Hindi available ang napiling boses, kaya ibang boses ang ginagamit.",
-    "lease_notify_failed": "Hindi maipaalam sa serbisyo ang estado ng session."
+    "lease_notify_failed": "Hindi maipaalam sa serbisyo ang estado ng session.",
+    "auth": "Hindi tinanggap ng provider ang mga kredensyal: {{detail}}",
+    "rate_limit": "Nililimitahan ng provider ang mga kahilingan; subukan ulit sa ilang sandali: {{detail}}",
+    "network": "Nabigo ang koneksyon sa provider: {{detail}}",
+    "server": "Nagkaroon ng problema ang provider: {{detail}}",
+    "client": "Tinanggihan ng provider ang kahilingan: {{detail}}"
   }
 }

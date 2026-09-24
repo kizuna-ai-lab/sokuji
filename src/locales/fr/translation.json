@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "La reconnexion a échoué ; nouvelle tentative en cours.",
     "send_dropped": "De l'audio ou du texte n'a pas pu être envoyé et a été abandonné.",
     "voice_fallback": "La voix choisie n'était pas disponible, une autre voix est donc utilisée.",
-    "lease_notify_failed": "Le service n'a pas pu être informé de l'état de la session."
+    "lease_notify_failed": "Le service n'a pas pu être informé de l'état de la session.",
+    "auth": "Le fournisseur n'a pas accepté les identifiants : {{detail}}",
+    "rate_limit": "Le fournisseur limite les requêtes ; réessayez sous peu : {{detail}}",
+    "network": "La connexion au fournisseur a échoué : {{detail}}",
+    "server": "Le fournisseur a rencontré un problème : {{detail}}",
+    "client": "Le fournisseur a rejeté la requête : {{detail}}"
   }
 }

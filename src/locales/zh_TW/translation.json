@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "重新連線失敗，正在重試。",
     "send_dropped": "部分音訊或文字未能傳送，已被捨棄。",
     "voice_fallback": "所選語音不可用，已改用另一個語音。",
-    "lease_notify_failed": "無法將工作階段狀態告知服務。"
+    "lease_notify_failed": "無法將工作階段狀態告知服務。",
+    "auth": "提供商未接受憑證：{{detail}}",
+    "rate_limit": "提供商目前正在限制請求；請稍後再試：{{detail}}",
+    "network": "與提供商的連線失敗：{{detail}}",
+    "server": "提供商發生了問題：{{detail}}",
+    "client": "提供商拒絕了此請求：{{detail}}"
   }
 }

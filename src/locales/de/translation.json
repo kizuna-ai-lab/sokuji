@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Die Wiederverbindung ist fehlgeschlagen; ein neuer Versuch folgt.",
     "send_dropped": "Einiges an Audio oder Text konnte nicht gesendet werden und wurde verworfen.",
     "voice_fallback": "Die gewählte Stimme war nicht verfügbar, daher wird eine andere Stimme verwendet.",
-    "lease_notify_failed": "Der Dienst konnte nicht über den Sitzungsstatus informiert werden."
+    "lease_notify_failed": "Der Dienst konnte nicht über den Sitzungsstatus informiert werden.",
+    "auth": "Der Anbieter hat die Zugangsdaten nicht akzeptiert: {{detail}}",
+    "rate_limit": "Der Anbieter begrenzt gerade Anfragen; versuchen Sie es in Kürze erneut: {{detail}}",
+    "network": "Die Verbindung zum Anbieter ist fehlgeschlagen: {{detail}}",
+    "server": "Beim Anbieter ist ein Problem aufgetreten: {{detail}}",
+    "client": "Der Anbieter hat die Anfrage abgelehnt: {{detail}}"
   }
 }

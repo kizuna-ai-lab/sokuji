@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "La riconnessione non è riuscita; nuovo tentativo in corso.",
     "send_dropped": "Una parte dell'audio o del testo non è stata inviata ed è stata scartata.",
     "voice_fallback": "La voce scelta non era disponibile, quindi viene usata un'altra voce.",
-    "lease_notify_failed": "Non è stato possibile comunicare al servizio lo stato della sessione."
+    "lease_notify_failed": "Non è stato possibile comunicare al servizio lo stato della sessione.",
+    "auth": "Il fornitore non ha accettato le credenziali: {{detail}}",
+    "rate_limit": "Il fornitore sta limitando le richieste; riprova a breve: {{detail}}",
+    "network": "La connessione al fornitore non è riuscita: {{detail}}",
+    "server": "Il fornitore ha avuto un problema: {{detail}}",
+    "client": "Il fornitore ha rifiutato la richiesta: {{detail}}"
   }
 }

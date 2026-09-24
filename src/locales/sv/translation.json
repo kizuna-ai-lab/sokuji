@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Återanslutningen misslyckades; försöker igen.",
     "send_dropped": "En del ljud eller text kunde inte skickas och kasserades.",
     "voice_fallback": "Den valda rösten var inte tillgänglig, så en annan röst används.",
-    "lease_notify_failed": "Tjänsten kunde inte informeras om sessionens status."
+    "lease_notify_failed": "Tjänsten kunde inte informeras om sessionens status.",
+    "auth": "Leverantören godkände inte autentiseringsuppgifterna: {{detail}}",
+    "rate_limit": "Leverantören begränsar just nu förfrågningar; försök igen strax: {{detail}}",
+    "network": "Anslutningen till leverantören misslyckades: {{detail}}",
+    "server": "Leverantören fick ett problem: {{detail}}",
+    "client": "Leverantören avvisade förfrågan: {{detail}}"
   }
 }

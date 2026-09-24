@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "A reconexão falhou; tentando novamente.",
     "send_dropped": "Parte do áudio ou texto não pôde ser enviada e foi descartada.",
     "voice_fallback": "A voz escolhida não estava disponível, então outra voz é usada.",
-    "lease_notify_failed": "Não foi possível informar o serviço sobre o estado da sessão."
+    "lease_notify_failed": "Não foi possível informar o serviço sobre o estado da sessão.",
+    "auth": "O provedor não aceitou as credenciais: {{detail}}",
+    "rate_limit": "O provedor está limitando as solicitações; tente novamente em breve: {{detail}}",
+    "network": "A conexão com o provedor falhou: {{detail}}",
+    "server": "O provedor teve um problema: {{detail}}",
+    "client": "O provedor rejeitou a solicitação: {{detail}}"
   }
 }

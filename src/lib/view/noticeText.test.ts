@@ -25,6 +25,13 @@ describe('noticeText', () => {
     expect(noticeText(t, { message: 'plain' })).toBe('plain');
   });
 
+  it('puts the five API error types into words', () => {
+    for (const code of ['auth', 'rate_limit', 'network', 'server', 'client']) {
+      expect(NOTICE_WORDS[code]).toBeDefined();
+      expect(noticeText(t, { code, message: 'HTTP 401' })).toContain('HTTP 401');
+    }
+  });
+
   it('has words for every code the runner, the capture and the adapters record', () => {
     for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING]) {
       expect(NOTICE_WORDS[code], code).toBeDefined();

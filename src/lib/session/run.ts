@@ -7,7 +7,7 @@
 import type { AnalyticsEvents } from '../analytics';
 import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/adapter';
 import { eventsFrom, type AdapterEvent } from '../contract/events';
-import { Conversation, DEFAULT_RETENTION } from '../conversation/Conversation';
+import { Conversation, DEFAULT_RETENTION, type Retention } from '../conversation/Conversation';
 import type { LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
@@ -24,6 +24,11 @@ import type { LegState, Prepared, RunEnd, RunNotice, RunShape } from './types';
 const DEFAULT_TIMEOUT_MS = 5_000;
 const API_ERROR_TYPES = ['auth', 'rate_limit', 'network', 'server', 'client'] as const;
 type ApiErrorType = AnalyticsEvents['api_error']['error_type'];
+
+/** The retention a `keepReplayAudio` value means. */
+export function retentionFor(keep: boolean): Retention {
+  return keep ? DEFAULT_RETENTION : { keepPcm: false, maxPcmBytes: 0 };
+}
 
 /** The start was refused before anything opened. */
 export class RefusedError extends Error {
@@ -182,7 +187,7 @@ export class Run {
         languages: contexts[leg]!.direction,
         clock: deps.clock,
         punctuate: deps.punctuate,
-        retention: shape.keepReplayAudio ? DEFAULT_RETENTION : { keepPcm: false, maxPcmBytes: 0 },
+        retention: retentionFor(deps.replayAudio?.get() ?? shape.keepReplayAudio),
         onDiagnostic: (d) => reportWarning('SessionRunner', `${leg}: ${d.message}`, { dedupeKey: `conversation:${d.code}` }),
       }));
     }

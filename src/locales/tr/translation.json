@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Yeniden bağlanma başarısız oldu; tekrar deneniyor.",
     "send_dropped": "Bazı ses veya metinler gönderilemedi ve atıldı.",
     "voice_fallback": "Seçilen ses kullanılamadı, bu yüzden başka bir ses kullanılıyor.",
-    "lease_notify_failed": "Hizmete oturumun durumu bildirilemedi."
+    "lease_notify_failed": "Hizmete oturumun durumu bildirilemedi.",
+    "auth": "Sağlayıcı kimlik bilgilerini kabul etmedi: {{detail}}",
+    "rate_limit": "Sağlayıcı istekleri sınırlıyor; kısa süre sonra tekrar deneyin: {{detail}}",
+    "network": "Sağlayıcıya bağlantı başarısız oldu: {{detail}}",
+    "server": "Sağlayıcıda bir sorun oluştu: {{detail}}",
+    "client": "Sağlayıcı isteği reddetti: {{detail}}"
   }
 }

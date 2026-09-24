@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Penyambungan semula gagal; mencuba lagi.",
     "send_dropped": "Sebahagian audio atau teks tidak dapat dihantar dan telah dibuang.",
     "voice_fallback": "Suara yang dipilih tidak tersedia, jadi suara lain digunakan.",
-    "lease_notify_failed": "Perkhidmatan tidak dapat dimaklumkan tentang status sesi."
+    "lease_notify_failed": "Perkhidmatan tidak dapat dimaklumkan tentang status sesi.",
+    "auth": "Penyedia tidak menerima kelayakan: {{detail}}",
+    "rate_limit": "Penyedia sedang mengehadkan permintaan; cuba lagi sebentar lagi: {{detail}}",
+    "network": "Sambungan kepada penyedia gagal: {{detail}}",
+    "server": "Penyedia mengalami masalah: {{detail}}",
+    "client": "Penyedia menolak permintaan: {{detail}}"
   }
 }

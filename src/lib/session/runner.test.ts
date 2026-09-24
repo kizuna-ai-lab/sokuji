@@ -38,6 +38,7 @@ interface Options {
   frames?: FramePort;
   timeoutMs?: number;
   closeTimeoutMs?: number;
+  replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };
 }
 
 function setup(o: Options = {}) {
@@ -84,6 +85,7 @@ function setup(o: Options = {}) {
     onRunEnded: o.onRunEnded,
     timeoutMs: o.timeoutMs ?? 1000,
     closeTimeoutMs: o.closeTimeoutMs,
+    replayAudio: o.replayAudio,
   });
   const events = (name: string) => tracked.filter(([e]) => e === name).map(([, p]) => p);
   return { clock, runner, sources, playback, events, shape, persistIfUnchanged };
@@ -671,6 +673,20 @@ describe('runner — the conversation', () => {
     const speech = runner.conversation.snapshot()[0].segments.flatMap((s) => s.speech);
     expect(speech.length).toBeGreaterThan(0);
     expect(speech.every((s) => s.pcm.length === 0)).toBe(true);
+  });
+
+  it('applies keepReplayAudio during a run, and a new run takes its current value', async () => {
+    let keep = true;
+    const listeners = new Set<() => void>();
+    const replayAudio = { get: () => keep, subscribe: (l: () => void) => { listeners.add(l); return () => listeners.delete(l); } };
+    const { runner, clock } = setup({ replayAudio, shape: { keepReplayAudio: false } });
+    await runner.start();
+    clock.advance(5000);
+    const speech = () => runner.conversation.snapshot()[0].segments.flatMap((s) => s.speech);
+    expect(speech().some((s) => s.pcm.length > 0)).toBe(true);
+    keep = false;
+    listeners.forEach((l) => l());
+    expect(speech().every((s) => s.pcm.length === 0)).toBe(true);
   });
 
   it('discards events from a run that has ended', async () => {

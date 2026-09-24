@@ -8,7 +8,7 @@ import type { LegName } from '../conversation/types';
 import type { RunNoticeCode } from './codes';
 import { ConversationSet, type ConversationInfo } from './conversationSet';
 import { guardPorts, type ControlMethod, type RunnerDeps } from './ports';
-import { LegOpenError, RefusedError, Run, type RunHost } from './run';
+import { LegOpenError, RefusedError, retentionFor, Run, type RunHost } from './run';
 import type { LegState, RunEnd, RunState } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -52,6 +52,11 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     }),
   };
   const conversation = new ConversationSet();
+  // `keepReplayAudio` takes effect at once: the kept conversation and a live run alike. The runner lives as long as the page.
+  deps.replayAudio?.subscribe(() => {
+    const retention = retentionFor(deps.replayAudio!.get());
+    for (const leg of ['speaker', 'participant'] as const) conversation.get(leg)?.setRetention(retention);
+  });
   let current: Run | null = null;
   let ending: Promise<void> | null = null;
   // A run `abandon()` has already forced idle: an `end()` for it already in

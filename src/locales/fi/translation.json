@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Uudelleenyhdistäminen epäonnistui; yritetään uudelleen.",
     "send_dropped": "Osaa äänestä tai tekstistä ei voitu lähettää, ja se hylättiin.",
     "voice_fallback": "Valittu ääni ei ollut käytettävissä, joten käytetään toista ääntä.",
-    "lease_notify_failed": "Palvelulle ei voitu ilmoittaa istunnon tilasta."
+    "lease_notify_failed": "Palvelulle ei voitu ilmoittaa istunnon tilasta.",
+    "auth": "Tarjoaja ei hyväksynyt tunnistetietoja: {{detail}}",
+    "rate_limit": "Tarjoaja rajoittaa pyyntöjä; yritä uudelleen pian: {{detail}}",
+    "network": "Yhteys tarjoajaan epäonnistui: {{detail}}",
+    "server": "Tarjoajalla oli ongelma: {{detail}}",
+    "client": "Tarjoaja hylkäsi pyynnön: {{detail}}"
   }
 }

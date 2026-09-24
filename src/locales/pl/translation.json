@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Ponowne połączenie nie powiodło się; próbuję ponownie.",
     "send_dropped": "Część dźwięku lub tekstu nie mogła zostać wysłana i została odrzucona.",
     "voice_fallback": "Wybrany głos był niedostępny, więc używany jest inny głos.",
-    "lease_notify_failed": "Nie udało się poinformować usługi o stanie sesji."
+    "lease_notify_failed": "Nie udało się poinformować usługi o stanie sesji.",
+    "auth": "Dostawca nie zaakceptował danych uwierzytelniających: {{detail}}",
+    "rate_limit": "Dostawca ogranicza teraz żądania; spróbuj ponownie za chwilę: {{detail}}",
+    "network": "Połączenie z dostawcą nie powiodło się: {{detail}}",
+    "server": "Po stronie dostawcy wystąpił problem: {{detail}}",
+    "client": "Dostawca odrzucił żądanie: {{detail}}"
   }
 }

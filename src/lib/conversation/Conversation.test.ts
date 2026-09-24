@@ -138,6 +138,13 @@ describe('Conversation — notices and closing', () => {
     expect(conv.snapshot().segments[0].final).toBe(true);
   });
 
+  it('records a failure without a code as leg_failed, so it has words', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'failed', payload: { message: 'socket closed' } });
+    const notices = conv.snapshot().notices;
+    expect(notices[notices.length - 1]).toMatchObject({ severity: 'error', code: 'leg_failed', message: 'socket closed' });
+  });
+
   it('finalizes every open segment on closed and on finalizeAll', () => {
     const { conv, apply } = make();
     apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'source' } }, { kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } });

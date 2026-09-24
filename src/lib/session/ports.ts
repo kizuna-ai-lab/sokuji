@@ -70,6 +70,8 @@ export interface RunnerDeps {
   timeoutMs?: number;
   /** Bounds a whole ending — every release, the fill-in wait, `onRunEnded` — at once; default 15000. What outlives it unwinds in the background. */
   closeTimeoutMs?: number;
+  /** `keepReplayAudio`, live (spec: "What may change during a run"); absent, the shape's value holds for the run. */
+  replayAudio?: { get(): boolean; subscribe(listener: () => void): () => void };
 }
 
 /**

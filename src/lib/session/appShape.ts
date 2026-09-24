@@ -61,6 +61,14 @@ export function ensureReadyFromStores(shape: RunShape, signal: AbortSignal): Pro
   );
 }
 
+/** `keepReplayAudio`, live from the settings store: the runner's `replayAudio`. */
+export const appReplayAudio = {
+  get: () => useSettingsStore.getState().keepReplayAudio,
+  subscribe: (listener: () => void) => useSettingsStore.subscribe((now, before) => {
+    if (now.keepReplayAudio !== before.keepReplayAudio) listener();
+  }),
+};
+
 export function persistIfUnchanged(p: AnyProvider, snapshot: unknown, patch: Readonly<Record<string, unknown>>): void {
   const entry = useProviderStore.getState().entries[p.id];
   if (!entry) return;

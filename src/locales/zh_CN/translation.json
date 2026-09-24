@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "重新连接失败，正在重试。",
     "send_dropped": "部分音频或文本未能发送，已被丢弃。",
     "voice_fallback": "所选语音不可用，已改用另一个语音。",
-    "lease_notify_failed": "无法将会话状态告知服务端。"
+    "lease_notify_failed": "无法将会话状态告知服务端。",
+    "auth": "提供商未接受凭据：{{detail}}",
+    "rate_limit": "提供商正在限制请求；请稍后重试：{{detail}}",
+    "network": "与提供商的连接失败：{{detail}}",
+    "server": "提供商出现了问题：{{detail}}",
+    "client": "提供商拒绝了此请求：{{detail}}"
   }
 }

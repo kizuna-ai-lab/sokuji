@@ -1299,6 +1299,11 @@
     "resume_attempt_failed": "Kết nối lại thất bại; đang thử lại.",
     "send_dropped": "Một số âm thanh hoặc văn bản không thể gửi được và đã bị bỏ qua.",
     "voice_fallback": "Giọng nói đã chọn không khả dụng, nên một giọng nói khác được sử dụng.",
-    "lease_notify_failed": "Không thể báo cho dịch vụ biết trạng thái của phiên."
+    "lease_notify_failed": "Không thể báo cho dịch vụ biết trạng thái của phiên.",
+    "auth": "Nhà cung cấp không chấp nhận thông tin xác thực: {{detail}}",
+    "rate_limit": "Nhà cung cấp đang giới hạn yêu cầu; hãy thử lại sau ít phút: {{detail}}",
+    "network": "Kết nối đến nhà cung cấp thất bại: {{detail}}",
+    "server": "Nhà cung cấp gặp sự cố: {{detail}}",
+    "client": "Nhà cung cấp đã từ chối yêu cầu: {{detail}}"
   }
 }

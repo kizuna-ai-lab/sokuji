@@ -80,7 +80,7 @@ export class Conversation {
       case 'segmentClosed': return this.close(event.payload.ref, event.payload.origin);
       case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm);
       case 'failed': {
-        this.addNotice({ severity: 'error', message: event.payload.message, code: event.payload.code });
+        this.addNotice({ severity: 'error', message: event.payload.message, code: event.payload.code ?? 'leg_failed' });
         this.finalizeAll();
         return;
       }
