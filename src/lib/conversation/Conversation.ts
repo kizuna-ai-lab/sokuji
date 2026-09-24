@@ -316,17 +316,31 @@ export class Conversation {
     return pcm;
   }
 
-  /** Drops the oldest pcm until the leg is under its ceiling, scanning from `trimCursor` — the oldest segment that may still hold pcm — not from segment 0. */
+  /**
+   * Drops the oldest pcm until the leg is under its ceiling, scanning from
+   * `trimCursor` — the oldest segment that may still hold pcm — not from
+   * segment 0. A drained segment is only retired from `trimCursor` once it
+   * is also `final`: an open one (LocalInference sends several clips to one
+   * open translation segment before it closes) can regain pcm later, so a
+   * local scan index walks past it for this call without retiring it.
+   */
   private afterAudio(): void {
     const max = this.retention.maxPcmBytes;
-    while (this.trimCursor < this.segments.length && this.pcmBytes > max) {
-      const seg = this.segments[this.trimCursor];
+    let i = this.trimCursor;
+    while (i < this.segments.length && this.pcmBytes > max) {
+      const seg = this.segments[i];
       const k = seg.speech.findIndex((s) => s.pcm.length > 0);
-      if (k < 0) { this.trimCursor++; continue; }
+      if (k < 0) {
+        if (seg.final && i === this.trimCursor) this.trimCursor++;
+        i++;
+        continue;
+      }
       const speech = seg.speech.map((s, j) => (j === k ? { ...s, pcm: EMPTY_PCM } : s));
       this.pcmBytes -= seg.speech[k].pcm.byteLength;
-      this.replace(this.trimCursor, { ...seg, speech });
-      if (!speech.some((s) => s.pcm.length > 0)) this.trimCursor++; // fully drained: move on
+      this.replace(i, { ...seg, speech });
+      if (speech.some((s) => s.pcm.length > 0)) continue; // this segment may hold more pcm: stay on it
+      if (seg.final && i === this.trimCursor) this.trimCursor++;
+      i++;
     }
     // Still over: audio held for refs that have not opened yet, oldest first.
     for (const [ref, list] of this.pending) {

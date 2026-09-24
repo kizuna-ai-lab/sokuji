@@ -130,6 +130,9 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
       case 'failed':
       case 'closed':
         ended = true;
+        // Mirrors L1's finalizeAll: every ref still open when the session
+        // ends is checked too, not only one that got its own segmentClosed.
+        for (const ref of opened) { if (!closedRefs.has(ref)) checkRangesForRef(ref); }
         break;
       case 'frame': {
         const { type, payload } = entry.payload;

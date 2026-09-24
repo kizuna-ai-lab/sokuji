@@ -151,6 +151,15 @@ describe('Conversation — notices and closing', () => {
     expect(conv.snapshot().segments[0].final).toBe(true);
   });
 
+  it('a session-level failed also checks an open segment\'s held ranges, via finalizeAll', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } });
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hi.' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 40], pcm: pcm(10) } });
+    apply({ kind: 'failed', payload: { message: 'socket died' } });
+    expect(conv.snapshot().segments[0].speech[0].range).toBeUndefined();
+  });
+
   it('records a failure without a code as leg_failed, so it has words', () => {
     const { conv, apply } = make();
     apply({ kind: 'failed', payload: { message: 'socket closed' } });
@@ -323,6 +332,21 @@ describe('Conversation — retention and clear', () => {
     }
     const kept = conv.snapshot().segments.flatMap((s) => s.speech).filter((s) => s.pcm.length > 0);
     expect(kept).toHaveLength(2);
+  });
+
+  it('keeps trimming an open segment that the cursor already drained once it regains pcm, including after setRetention lowers the ceiling', () => {
+    // LocalInference sends several audio clips to one open translation segment before it
+    // closes (one per sentence): a segment the cursor has already passed can still grow.
+    const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 400 } });
+    const total = () => conv.snapshot().segments.flatMap((s) => s.speech).reduce((n, s) => n + s.pcm.byteLength, 0);
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(200) } }); // 400, at the ceiling
+    apply({ kind: 'audio', payload: { ref: 2, pcm: pcm(200) } }); // 800: drains ref1's chunk; ref1 stays open
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(200) } }); // ref1 regains pcm: drains ref2's chunk in turn
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(200) } }); // ref1 regains pcm again: must still be trimmable
+    expect(total()).toBeLessThanOrEqual(400);
+    conv.setRetention({ keepPcm: true, maxPcmBytes: 200 });
+    expect(total()).toBeLessThanOrEqual(200);
   });
 
   it('enforces the ceiling when a segment opens with held pcm', () => {

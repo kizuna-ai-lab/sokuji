@@ -71,6 +71,11 @@ describe('checkConformance rules', () => {
     expect(rules(log)).toContain('range-in-text');
   });
 
+  it('flags a range past the text on a still-open ref when the session ends', () => {
+    const log: ConformanceLog = [opened(1, 'translation'), text(1, 'hi'), { kind: 'audio', payload: { ref: 1, pcm, range: [0, 5] } }, { kind: 'failed', payload: { message: 'x' } }];
+    expect(rules(log)).toContain('range-in-text');
+  });
+
   it('flags a close for a ref that never opened', () => {
     expect(rules([closed(9)])).toContain('close-unopened');
   });
