@@ -277,8 +277,12 @@ later plans.
 
 ## Deferred by plan 1c-2
 
-Plan 1c-2 (playback) leaves these to the plans that first need them. Its
-capture-side items are under "Carried out of plan 1c-1" → 1c-3.
+Plan 1c-2 (playback) landed as commits `80a7ed74..15ded883`: eight tasks,
+two fix rounds and a final-review fix wave; its ruling that a clip is one
+speech entry, with no `seal`, is now in the spec ("The clip queue"). It
+leaves these to the plans that first need them. Its capture-side items are
+under "Carried out of plan 1c-1" → 1c-3 and "Deferred by plan 1c-2 — for
+1c-3" below.
 
 **1d — the surfaces**
 - The footer's output waveform reads `ModernAudioPlayer`'s analyser today
