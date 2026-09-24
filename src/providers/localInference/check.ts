@@ -1,6 +1,5 @@
 import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
-import i18n from '../../locales';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
 import type { LocalInferenceSettings } from './settings';
@@ -51,9 +50,14 @@ export async function checkLocalInference(
   if (mandatory?.asr && mandatory?.translation) {
     return { ok: true };
   }
+  // Plain English, not i18n: `reason` is rendered raw (`CredentialForm.tsx`),
+  // and `settings.localInferenceModelsRequired`'s loaded value is written for
+  // a <Trans> component's markup interpolation, not raw text — putting
+  // readiness reasons into words by a code is plan 1e-3's (matches the only
+  // other `src/providers/**` precedent, `fake/provider.ts`'s plain `reason`).
   return {
     ok: false,
-    reason: i18n.t('settings.localInferenceModelsRequired'),
+    reason: 'Required models are not available for the selected language pair.',
   };
 }
 

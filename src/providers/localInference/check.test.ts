@@ -65,7 +65,10 @@ describe('checkLocalInference', () => {
 
   it('names what the speaker direction lacks', async () => {
     resolved({ 'ja>en': { asr: 'a', translation: null } });
-    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toMatchObject({ ok: false });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toEqual({
+      ok: false,
+      reason: 'Required models are not available for the selected language pair.',
+    });
   });
 
   it('asks the participant direction only when the participant leg runs alone', async () => {
