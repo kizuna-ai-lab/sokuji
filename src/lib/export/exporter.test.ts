@@ -45,8 +45,20 @@ describe('conversationExporter', () => {
     expect(exporter({ entries: [], legs: [] }).hasContent).toBe(false);
   });
 
+  it('answers false for a scope that shows only a side the one exchange has no rows for', () => {
+    const noTranslation: Entry[] = [
+      { kind: 'exchange', id: 'g', leg: 'speaker', languages: legs[0].languages, pairing: 'stated', source: [row(src)], translation: [], t: said },
+    ];
+    expect(exporter({ entries: noTranslation }).hasScopedContent({ speaker: 'translation', participant: 'none' })).toBe(false);
+  });
+
   it('writes the JSON with the metadata of the export and the run', () => {
-    expect(JSON.parse(exporter().json(FULL_SCOPE))).toMatchObject({
+    const written = exporter().json(FULL_SCOPE);
+    expect(written.endsWith('\n')).toBe(true);
+    const parsed = JSON.parse(written);
+    expect(Object.keys(parsed)[0]).toBe('format');
+    expect(parsed).toMatchObject({
+      format: 'sokuji-conversation/2',
       exportedAt: new Date(exported).toISOString(),
       appVersion: '9.9.9',
       provider: 'fake',

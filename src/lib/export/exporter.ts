@@ -8,6 +8,7 @@ import { formatLocalDateTime, formatLocalTime } from '../../utils/conversationEx
 import type { Leg } from '../conversation/types';
 import type { Entry } from '../projection/types';
 import type { ConversationInfo } from '../session/conversationSet';
+import { showsSide } from '../view/filter';
 import {
   renderTranscriptJson,
   renderTranscriptTxt,
@@ -79,14 +80,24 @@ const formatTime = (ms: number) => `[${formatLocalTime(ms)}]`;
 export function conversationExporter({ entries, legs, info, words, appVersion, now }: ConversationExportInput): Exporter {
   const meta = (): TranscriptMeta => ({ exportedAt: now(), appVersion, provider: info?.provider ?? null, models: modelsOf(info) });
   return {
-    hasContent: renderTranscriptJson(entries, legs).groups.length > 0,
-    hasScopedContent: (scope) => renderTranscriptJson(entries, legs, { scope }).groups.length > 0,
+    // Answered from the entries' rows, not a render: an exchange always has
+    // rows (the projector drops exchanges with none, and `sideOf` returns
+    // null exactly for no rows), so a row on a scoped-in side is enough
+    // (plan 1d-3 review, Minor 2).
+    hasContent: entries.some((e) => e.kind === 'exchange'),
+    hasScopedContent: (scope) => entries.some((e) =>
+      e.kind === 'exchange'
+      && ((showsSide(scope[e.leg], 'source') && e.source.length > 0)
+        || (showsSide(scope[e.leg], 'translation') && e.translation.length > 0))),
     text: (scope, withHeader) => renderTranscriptTxt(entries, legs, {
       labels: words.labels,
       formatTime,
       scope,
       ...(withHeader ? { header: { labels: words.header, meta: meta(), formatDateTime: formatLocalDateTime } } : {}),
     }),
-    json: (scope) => JSON.stringify(renderTranscriptJson(entries, legs, { scope, meta: meta() }), null, 2),
+    // `format` first, so a reader of the file knows its schema before its
+    // groups (plan 1d-3 review, Minor 3); this is the only JSON schema after
+    // plan 1e.
+    json: (scope) => `${JSON.stringify({ format: 'sokuji-conversation/2', ...renderTranscriptJson(entries, legs, { scope, meta: meta() }) }, null, 2)}\n`,
   };
 }
