@@ -97,17 +97,26 @@ function virtualOutput(platform: Platform): VirtualOutput {
 async function build(): Promise<AppAudio> {
   const platform = getEnvironment();
   const context = new AudioContext({ sampleRate: SAMPLE_RATE });
-  const graph = await createAudioGraph({
-    context,
-    addTapModule: (ctx) => ctx.audioWorklet.addModule(tapModuleUrl(platform)),
-    createTapNode: (ctx, chunk) => new AudioWorkletNode(ctx, 'pcm-tap-processor', { processorOptions: { chunk } }),
-    createSink: (stream) => {
-      const element = new Audio();
-      element.srcObject = stream;
-      return element;
-    },
-    virtual: virtualOutput(platform),
-  });
+  let graph;
+  try {
+    graph = await createAudioGraph({
+      context,
+      addTapModule: (ctx) => ctx.audioWorklet.addModule(tapModuleUrl(platform)),
+      createTapNode: (ctx, chunk) => new AudioWorkletNode(ctx, 'pcm-tap-processor', { processorOptions: { chunk } }),
+      createSink: (stream) => {
+        const element = new Audio();
+        element.srcObject = stream;
+        return element;
+      },
+      virtual: virtualOutput(platform),
+    });
+  } catch (error) {
+    // The worklet module failed to load: nothing else opened this context, so
+    // nothing else will close it. Without this, every retry through
+    // getAppAudio leaks another one.
+    void context.close();
+    throw error;
+  }
   const playback = createPlayback(graph, createAppRouting(platform));
   let tone: Promise<PreviewClip> | null = null;
   return {

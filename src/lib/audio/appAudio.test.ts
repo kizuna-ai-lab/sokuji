@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
@@ -47,6 +47,37 @@ describe('readRouting', () => {
     expect(readRouting(AUDIO, SWITCHES, 'extension').sinks.virtual).toBeUndefined();
     expect(readRouting(AUDIO, SWITCHES, 'web').sinks.virtual).toBeUndefined();
     expect(readRouting({ ...AUDIO, audioMonitorDevices: [AUDIO.audioMonitorDevices[0]] }, SWITCHES, 'electron').sinks.virtual).toBeUndefined();
+  });
+});
+
+describe('getAppAudio', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('closes the context a failed build opened, and retries on the next call', async () => {
+    // getAppAudio caches its build per module instance, so this test needs its
+    // own fresh copy of the module rather than the one imported statically above.
+    const closeSpy = vi.fn(async () => {});
+    let constructed = 0;
+    class FakeAudioContext {
+      audioWorklet = { addModule: vi.fn(async () => { throw new Error('module not found'); }) };
+      close = closeSpy;
+      constructor() { constructed += 1; }
+    }
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    vi.stubGlobal('Audio', class { srcObject: unknown = null; });
+    vi.stubGlobal('AudioWorkletNode', class { constructor() {} });
+
+    vi.resetModules();
+    const { getAppAudio } = await import('./appAudio');
+
+    await expect(getAppAudio()).rejects.toThrow();
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    expect(constructed).toBe(1);
+
+    await expect(getAppAudio()).rejects.toThrow();
+    expect(constructed).toBe(2);
   });
 });
 
