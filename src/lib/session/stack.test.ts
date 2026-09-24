@@ -94,4 +94,17 @@ describe('ResourceStack', () => {
     expect(released).toEqual(['c', 'a']);
     expect(failures).toEqual([{ name: 'boom', message: 'socket stuck' }]);
   });
+
+  it('a release that rejects later during abandon is reported, and does not stop the releases below it', async () => {
+    const { stack, failures } = setup();
+    const released: string[] = [];
+    stack.defer('a', () => { released.push('a'); });
+    stack.defer('boom', () => Promise.reject(new Error('socket stuck')));
+    stack.defer('c', () => { released.push('c'); });
+    stack.abandon();
+    expect(released).toEqual(['c', 'a']);
+    expect(failures).toEqual([]);
+    await flush();
+    expect(failures).toEqual([{ name: 'boom', message: 'socket stuck' }]);
+  });
 });

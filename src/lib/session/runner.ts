@@ -53,6 +53,11 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
   const conversation = new ConversationSet();
   let current: Run | null = null;
   let ending: Promise<void> | null = null;
+  // A run `abandon()` has already forced idle: an `end()` for it already in
+  // flight (a stop, a leg's end, a failed start) must not run its
+  // analytics/`onRunEnded` branch, nor overwrite the idle state `abandon()`
+  // set — `current` may already be a newer run by the time it finishes.
+  const abandoned = new WeakSet<Run>();
 
   const set = (next: RunState) => { state.setState(next, true); };
   const legs = (run: Run) => Object.fromEntries(run.legStates) as Partial<Record<LegName, LegState>>;
@@ -102,7 +107,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
         // Stop speaking now; the port is guarded, so a throw here cannot keep the run open.
         if (!refused) deps.playback.clear();
         await run.close();
-        if (liveSince !== null) {
+        if (liveSince !== null && !abandoned.has(run)) {
           const duration = endedAt - liveSince;
           const provider = run.shape.provider.id;
           // One per leg, as `connected` was.
@@ -113,11 +118,15 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       } catch (error) {
         reportError('SessionRunner', `Ending the session failed: ${describeCause(error)}`, { cause: error });
       } finally {
-        current = null;
-        ending = null;
-        // `set` now absorbs a subscriber's throw; `finished()` still runs
-        // last so `done` always resolves.
-        set({ phase: 'idle', lastEnd: result });
+        // Already forced idle by `abandon()`; `current` may already be a
+        // newer run by now, so this stale closure must not touch it.
+        if (!abandoned.has(run)) {
+          current = null;
+          ending = null;
+          // `set` now absorbs a subscriber's throw; `finished()` still runs
+          // last so `done` always resolves.
+          set({ phase: 'idle', lastEnd: result });
+        }
         finished();
       }
     })();
@@ -199,6 +208,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     abandon: () => {
       const run = current;
       if (!run) return;
+      abandoned.add(run);
       current = null;
       ending = null;
       run.abandon();

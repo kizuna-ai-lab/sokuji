@@ -900,6 +900,30 @@ describe('runner — abandon', () => {
     runner.abandon();
     expect(runner.state.getState()).toEqual({ phase: 'idle' });
   });
+
+  it('preempts a stop still closing: no end analytics, no auto-save, and the idle state stays its own', async () => {
+    const onRunEnded = vi.fn();
+    let finishStop!: () => void;
+    const provider = {
+      ...fakeProvider,
+      start: async (request: unknown, events: unknown) => {
+        const session = await fakeProvider.start(request as never, events as never);
+        return { ...session, stop: () => new Promise<void>((resolve) => { finishStop = resolve; }) };
+      },
+    } as unknown as AnyProvider;
+    const { runner, events } = setup({ onRunEnded, shape: { provider } });
+    await runner.start();
+    const stopping = runner.stop();
+    await flush();
+    runner.abandon();
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    finishStop();
+    await stopping;
+    await flush();
+    expect(onRunEnded).not.toHaveBeenCalled();
+    expect(events('translation_session_end')).toEqual([]);
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+  });
 });
 
 describe('runner — one clip per speech entry', () => {
