@@ -23,8 +23,10 @@ interface SessionControlsProps {
 /**
  * What the playback played, for a listener and for a headless check (which
  * cannot use requestAnimationFrame): every clip key heard, and the loudest
- * sample the tts tap heard. Reading the tap drains it — this page runs no
- * echo monitor. When `capture` is given, also reports what it delivered.
+ * sample the tts tap heard. Reading the tap drains it: under `&capture=device`
+ * the app capture's own echo watch also drains the tap, every 250 ms, so the
+ * peak shown here is partial. When `capture` is given, also reports what it
+ * delivered.
  */
 function usePlaybackProbe(
   playback: Playback | undefined,
