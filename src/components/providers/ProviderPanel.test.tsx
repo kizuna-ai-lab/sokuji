@@ -25,6 +25,8 @@ vi.mock('react-i18next', async (importOriginal) => {
 });
 
 import { fakeProvider } from '../../providers/fake/provider';
+import type { FakeSettings } from '../../providers/fake/settings';
+import type { SettingsProps } from '../../lib/provider/types';
 import { useProviderStore } from '../../stores/providerStore';
 import { ProviderPanel } from './ProviderPanel';
 
@@ -106,5 +108,24 @@ describe('ProviderPanel', () => {
     expect(screen.getByLabelText('simpleSettings.provider')).toBeDisabled();
     expect(screen.getByLabelText('settings.sourceLanguage')).toBeDisabled();
     expect(screen.getByTitle('simpleSettings.validate')).toBeDisabled();
+  });
+
+  it("renders a provider's Engine below its Settings, with the same settings", async () => {
+    const Engine = ({ settings }: SettingsProps<FakeSettings>) => (
+      <div data-testid="engine-marker">{settings.script}</div>
+    );
+    const withEngine = { ...fakeProvider, Engine };
+    render(<ProviderPanel providers={[withEngine]} auth={noAuth} />);
+    const settingsHeading = await screen.findByText('Fake provider');
+    const engineMarker = screen.getByTestId('engine-marker');
+    expect(engineMarker).toHaveTextContent('exchange');
+    // "below": the Engine node comes after the Settings node in document order.
+    expect(settingsHeading.compareDocumentPosition(engineMarker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('draws no Engine when the provider offers none', async () => {
+    render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
+    await screen.findByLabelText('Script');
+    expect(screen.queryByTestId('engine-marker')).toBeNull();
   });
 });

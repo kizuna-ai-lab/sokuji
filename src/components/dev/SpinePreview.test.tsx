@@ -41,9 +41,20 @@ vi.mock('../../lib/audio/appAudio', () => ({
 }));
 
 import { SpinePreview } from './SpinePreview';
+import { useProviderStore } from '../../stores/providerStore';
 
 describe('SpinePreview', () => {
   it('shows the providers this build offers, starting with the fake', async () => {
+    render(<SpinePreview />);
+    expect(await screen.findByLabelText('Script')).toBeInTheDocument();
+  });
+
+  // Plan 1e-2 ruling 10: LocalInference is first in the registry now, so
+  // ProviderPanel's own mount effect (a child of this page, so it runs
+  // first) would otherwise leave `localInference` selected — this page's
+  // probes must still land on the fake.
+  it('opens on the fake even when localInference was left selected', async () => {
+    useProviderStore.setState({ selected: 'localInference' });
     render(<SpinePreview />);
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();
   });

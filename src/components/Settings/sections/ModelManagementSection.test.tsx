@@ -5,6 +5,7 @@ import { getManifestByType, getManifestEntry, type ModelStatus } from '../../../
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { directionKey, type Selections } from '../../../lib/local-inference/selection/types';
+import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 
 const defaultSettings = {
   sourceLanguage: 'en', targetLanguage: 'en',
@@ -110,6 +111,37 @@ describe('ModelManagementSection (self-reads store)', () => {
     await waitFor(() =>
       expect(screen.getByText('ASR (Speech Recognition)')).toBeInTheDocument(),
     );
+  });
+});
+
+describe('ModelManagementSection (prop-driven, LocalInference Engine)', () => {
+  it("writes through the given `update`, not the store, and reads `selections` from the given `settings`, not the store's", () => {
+    // The store's own selections carry an unrelated direction — proof that a
+    // write built from the PROP's settings (empty) never resurrects it.
+    mockSettings.selections = {
+      'zh→fr': { asr: { modelId: 'ghost-model' }, translation: { modelId: '' }, tts: { modelId: '' } },
+    };
+    mockStatuses['moonshine-tiny-ja-quant'] = 'downloaded';
+    const propUpdate = vi.fn();
+
+    render(
+      <ModelManagementSection
+        isSessionActive={false}
+        stageFilter="asr"
+        direction="ja→en"
+        settings={LOCAL_INFERENCE_DEFAULTS}
+        update={propUpdate}
+        pair={{ source: 'en', target: 'ja' }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('model-card-moonshine-tiny-ja-quant'));
+
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(propUpdate).toHaveBeenCalled();
+    const written = propUpdate.mock.calls[propUpdate.mock.calls.length - 1][0].selections;
+    expect(written['ja→en'].asr.modelId).toBe('moonshine-tiny-ja-quant');
+    expect(written['zh→fr']).toBeUndefined();
   });
 });
 

@@ -37,6 +37,7 @@ export function ProviderPanel({ providers, auth, disabled }: ProviderPanelProps)
 
   if (!provider) return null;
   const Settings = provider.Settings;
+  const Engine = provider.Engine;
 
   return (
     <>
@@ -70,7 +71,10 @@ export function ProviderPanel({ providers, auth, disabled }: ProviderPanelProps)
       {entry && (
         <>
           <LanguagePairSection provider={provider} settings={entry.settings} pair={entry.pair} onChange={(pair) => setPair(provider, pair)} disabled={disabled} />
-          <Settings settings={entry.settings} update={(patch) => updateSettings(provider, patch)} disabled={disabled} />
+          <Settings settings={entry.settings} update={(patch) => updateSettings(provider, patch)} disabled={disabled} pair={entry.pair} />
+          {Engine && (
+            <Engine settings={entry.settings} update={(patch) => updateSettings(provider, patch)} disabled={disabled} pair={entry.pair} />
+          )}
         </>
       )}
     </>

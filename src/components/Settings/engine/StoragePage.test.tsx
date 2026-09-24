@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
+import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 
 // Partial mock (not a full replacement, unlike SlotRow.test.tsx): StoragePage
 // renders against the REAL settingsStore, which statically imports
@@ -209,6 +210,29 @@ describe('StoragePage (wasm)', () => {
     fireEvent.click(screen.getByTestId('storage-delete-opus-mt-es-fr'));
     const confirm = screen.getByTestId('storage-confirm');
     expect(confirm.textContent).toMatch(/Delete .*\?/);
+  });
+});
+
+describe('StoragePage (wasm, prop-driven — LocalInference Engine)', () => {
+  beforeEach(async () => {
+    // The store deliberately disagrees with the props passed below, so a
+    // pass that reads the store instead would fail this test.
+    await useSettingsStore.getState().updateLocalInference({
+      sourceLanguage: 'en', targetLanguage: 'en', selections: {},
+    });
+  });
+
+  it('resolves against the given `settings`/`pair`, not the store', () => {
+    useModelStore.setState({ modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true });
+    render(
+      <StoragePage
+        provider="wasm"
+        settings={{ ...LOCAL_INFERENCE_DEFAULTS, selections: {} }}
+        pair={{ source: 'ja', target: 'en' }}
+      />,
+    );
+    const row = screen.getByTestId(`storage-row-${asrId()}`);
+    expect(row).toHaveTextContent('In use'); // resolved for ja→en, the given pair — not en→en, the store's
   });
 });
 

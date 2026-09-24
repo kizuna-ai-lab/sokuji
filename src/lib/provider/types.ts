@@ -65,6 +65,8 @@ export interface SettingsProps<S> {
   update(patch: Partial<S>): void;
   /** A run is not idle: the provider's settings are locked. */
   disabled?: boolean;
+  /** The provider's language pair, for a `Settings`/`Engine` that needs it (LocalInference's model management is per direction). Set by `ProviderPanel`; absent elsewhere. */
+  pair?: LanguagePair;
 }
 
 /** A refusal to build or admit: diagnostic English, and a code a surface can put into words. */

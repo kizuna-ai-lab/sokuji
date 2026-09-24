@@ -7,9 +7,10 @@ import { isPresent, type PresenceEnv } from '../lib/provider/presence';
 import type { AnyProvider } from '../lib/provider/types';
 import { enabledProviderIds, getEnvironment, isDevelopmentMode } from '../utils/environment';
 import { fakeProvider } from './fake/provider';
+import { localInferenceProvider } from './localInference/provider';
 
-/** Shipped providers, in UI order. Plan 1e adds LocalInference here first. */
-const RELEASED = [] as const;
+/** Shipped providers, in UI order (ruling 10: LocalInference first). */
+const RELEASED = [localInferenceProvider] as const;
 /** Compiled into development builds only (D24). */
 const DEV_ONLY = [fakeProvider] as const;
 

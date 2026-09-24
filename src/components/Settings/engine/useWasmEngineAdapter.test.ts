@@ -93,3 +93,28 @@ describe('useWasmEngineAdapter', () => {
     expect(result.current.stagesFor('ja→en', true)).toEqual(['asr', 'translation', 'tts']);
   });
 });
+
+describe('useWasmEngineAdapter — LocalInference Engine override', () => {
+  it('reads directions from the override, not the store', () => {
+    const { result } = renderHook(() => useWasmEngineAdapter(false, {
+      settings: { selections: {} } as any,
+      update: vi.fn(),
+      pair: { source: 'zh', target: 'ko' },
+    }));
+    expect(result.current.directions.map(d => d.dir)).toEqual(['zh→ko', 'ko→zh']);
+  });
+
+  it('writes a pick through the override\'s update, and leaves the store untouched', async () => {
+    const update = vi.fn();
+    const { result } = renderHook(() => useWasmEngineAdapter(false, {
+      settings: { selections: {} } as any,
+      update,
+      pair: { source: 'ja', target: 'en' },
+    }));
+    await act(() => result.current.select({ dir: 'en→ja', stage: 'translation' }, 'some-model'));
+    expect(update).toHaveBeenCalledWith({
+      selections: { 'en→ja': { asr: { modelId: '' }, translation: { modelId: 'some-model' }, tts: { modelId: '' } } },
+    });
+    expect(useSettingsStore.getState().localInference.selections['en→ja']).toBeUndefined();
+  });
+});

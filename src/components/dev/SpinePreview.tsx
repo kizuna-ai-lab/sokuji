@@ -297,6 +297,17 @@ export function SpinePreview() {
   bridge.track = trackEvent as AnalyticsPort['track'];
   bridge.notify = { showToast };
   const providers = useMemo(() => presentProviders(), []);
+  // This page's probes run on the fake unless a parameter asks for another
+  // provider (plan 1e-2 ruling 10). ProviderPanel is a child, so its own
+  // mount effect — defaulting to `providers[0]`, LocalInference now that
+  // it's registered first — runs before this one; covering the
+  // `localInference` case too (not just "nothing selected yet") undoes that.
+  useEffect(() => {
+    const selected = useProviderStore.getState().selected;
+    if (selected === null || selected === 'localInference') {
+      useProviderStore.getState().select('fake');
+    }
+  }, [providers]);
   const runner = getPreviewRunner();
   const phase = useStore(runner.state, (s) => s.phase);
   const turnMode = useTurnModeStore((s) => s.turnMode);

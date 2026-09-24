@@ -14,6 +14,8 @@ import { resolveDirection } from '../../../lib/local-inference/selection/resolve
 import { directionKey, type DirectionResult, type Selections, type Stage } from '../../../lib/local-inference/selection/types';
 import { ModelImportModal } from '../sections/ModelImportModal';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
+import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
+import type { LanguagePair } from '../../../lib/provider/types';
 import './Engine.scss';
 
 /** Stage nouns reuse the same chip vocabulary resolutionNotes.ts uses — the
@@ -76,8 +78,19 @@ function computeDeleteNotes(
  *  Clear all (relocated from ModelStorageFooter), and Import (WASM only,
  *  reusing ModelImportModal — StoragePage is the one place a user can import
  *  a model with no direction/compatibility context attached to it yet). */
-export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActive?: boolean }> = ({
-  provider, isSessionActive = false,
+export const StoragePage: React.FC<{
+  provider: 'wasm' | 'native';
+  isSessionActive?: boolean;
+  /**
+   * LocalInference's own `S`/pair (the new provider contract) — used for the
+   * `wasm` half instead of the legacy `settingsStore` hook when given,
+   * falling back to it otherwise. The `native` half is unaffected here
+   * (plan 1e-3 splits it — see the doc comment above).
+   */
+  settings?: LocalInferenceSettings;
+  pair?: LanguagePair;
+}> = ({
+  provider, isSessionActive = false, settings: settingsProp, pair,
 }) => {
   const { t } = useTranslation();
 
@@ -86,7 +99,10 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
   const wasmStorageMb = useStorageUsedMb();
   const webgpuAvailable = useWebGPUAvailable();
   const deviceFeatures = useDeviceFeatures();
-  const wasmSettings = useLocalInferenceSettings();
+  const legacyWasmSettings = useLocalInferenceSettings();
+  const wasmSettings: LocalInferenceSettings = settingsProp ?? legacyWasmSettings;
+  const wasmSourceLanguage = pair?.source ?? legacyWasmSettings.sourceLanguage;
+  const wasmTargetLanguage = pair?.target ?? legacyWasmSettings.targetLanguage;
 
   // ── Native data ───────────────────────────────────────────────────────
   const nativeStatuses = useNativeModelStore((s) => s.statuses);
@@ -117,8 +133,8 @@ export const StoragePage: React.FC<{ provider: 'wasm' | 'native'; isSessionActiv
 
   const isWasm = provider === 'wasm';
 
-  const sourceLanguage = isWasm ? wasmSettings.sourceLanguage : nativeSettings.sourceLanguage;
-  const targetLanguage = isWasm ? wasmSettings.targetLanguage : nativeSettings.targetLanguage;
+  const sourceLanguage = isWasm ? wasmSourceLanguage : nativeSettings.sourceLanguage;
+  const targetLanguage = isWasm ? wasmTargetLanguage : nativeSettings.targetLanguage;
   const selections: Selections = isWasm ? wasmSettings.selections : nativeSettings.selections;
   const speakerDir = directionKey(sourceLanguage, targetLanguage);
   const participantDir = directionKey(targetLanguage, sourceLanguage);

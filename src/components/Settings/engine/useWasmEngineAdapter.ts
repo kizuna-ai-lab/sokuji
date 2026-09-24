@@ -9,15 +9,34 @@ import { getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/m
 import { shortenModelName } from '../../../lib/local-inference/modelName';
 import { languageNameFor } from './languageName';
 import type { EngineAdapter } from './EngineTypes';
+import type { LanguagePair } from '../../../lib/provider/types';
+import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
+
+/**
+ * LocalInference's own `S`/`update`/pair (the new provider contract), used
+ * instead of the legacy `settingsStore` hooks when given — the same
+ * fallback `ModelManagementSection`/`StoragePage` offer, so every existing
+ * caller (`SimpleSettings`, `ProviderSpecificSettings`) keeps reading the
+ * store unchanged.
+ */
+export interface WasmEngineAdapterOverride {
+  settings: LocalInferenceSettings;
+  update: (patch: Partial<LocalInferenceSettings>) => void;
+  pair: LanguagePair;
+}
 
 /** LOCAL_INFERENCE's EngineAdapter — resolve() for display, selections for writes. */
-export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
-  const { sourceLanguage, targetLanguage, selections } = useLocalInferenceSettings();
-  const updateLocalInference = useUpdateLocalInference();
+export function useWasmEngineAdapter(isSessionActive = false, override?: WasmEngineAdapterOverride): EngineAdapter {
+  const legacySettings = useLocalInferenceSettings();
+  const legacyUpdate = useUpdateLocalInference();
   const modelStatuses = useModelStatuses();
   const webgpuAvailable = useWebGPUAvailable();
   const deviceFeatures = useDeviceFeatures();
   const storageUsedMb = useStorageUsedMb();
+
+  const sourceLanguage = override?.pair.source ?? legacySettings.sourceLanguage;
+  const targetLanguage = override?.pair.target ?? legacySettings.targetLanguage;
+  const selections = override?.settings.selections ?? legacySettings.selections;
 
   return useMemo<EngineAdapter>(() => {
     const speaker = directionKey(sourceLanguage, targetLanguage);
@@ -82,11 +101,12 @@ export function useWasmEngineAdapter(isSessionActive = false): EngineAdapter {
         if (!nextDir.asr.modelId && !nextDir.translation.modelId && !nextDir.tts.modelId) {
           delete next[slot.dir]; // all-auto directions carry no information
         }
-        await updateLocalInference({ selections: next });
+        if (override) await override.update({ selections: next });
+        else await legacyUpdate({ selections: next });
       },
       storageSummary: `${storageUsedMb} MB`,
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),
       disabled: isSessionActive,
     };
-  }, [sourceLanguage, targetLanguage, selections, modelStatuses, webgpuAvailable, deviceFeatures, storageUsedMb, updateLocalInference, isSessionActive]);
+  }, [sourceLanguage, targetLanguage, selections, modelStatuses, webgpuAvailable, deviceFeatures, storageUsedMb, override, legacyUpdate, isSessionActive]);
 }
