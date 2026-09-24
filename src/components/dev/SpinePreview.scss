@@ -13,3 +13,12 @@
   height: 420px;
   background: var(--conversation-bg-color, #1f1f1f);
 }
+
+.spine-subtitle,
+.spine-overlay-frame {
+  display: block;
+  width: 900px;
+  height: 240px;
+  margin-top: 12px;
+  border: 1px solid #444;
+}

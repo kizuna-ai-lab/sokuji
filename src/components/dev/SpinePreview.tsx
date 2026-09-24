@@ -13,6 +13,10 @@ import { persistIfUnchanged, readShapeFromStores } from '../../lib/session/appSh
 import type { AnalyticsPort, PlaybackPort } from '../../lib/session/ports';
 import { createRunner, type Runner } from '../../lib/session/runner';
 import type { OpenSource } from '../../lib/session/source';
+import { appSubtitleSession } from '../../lib/subtitle/appSession';
+import type { SubtitleSession } from '../../lib/subtitle/session';
+import { messagePortWire, publishSubtitles } from '../../lib/subtitle/wire';
+import type { Entry } from '../../lib/projection/types';
 import { createConversationView, type ConversationViewState, type Readable } from '../../lib/view/conversationView';
 import { appProjectionSettings } from '../../lib/view/appViewSettings';
 import { displayItems } from '../../lib/view/filter';
@@ -24,21 +28,31 @@ import { useConversationDisplayStore } from '../../stores/conversationDisplaySto
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useSubtitleStore } from '../../stores/subtitleStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { getEnvironment } from '../../utils/environment';
 import { ConversationList } from '../Conversation/ConversationList';
 import { useReadable } from '../Conversation/useReadable';
 import { ProviderPanel } from '../providers/ProviderPanel';
+import { SubtitleView, type SubtitleControls, type SubtitleModel } from '../Subtitle/SubtitleView';
 import { SessionControls } from './SessionControls';
 import '../Settings/Settings.scss';
 import './SpinePreview.scss';
+
+/** `&turn=push-to-talk|push-to-translate`: this page's session uses a manual turn. */
+function manualTurnFromUrl(): boolean {
+  const turn = new URLSearchParams(window.location.search).get('turn');
+  return turn === 'push-to-talk' || turn === 'push-to-translate';
+}
 
 let previewRunner: Runner | null = null;
 const bridge: { auth: AuthContext; track: AnalyticsPort['track']; playback: Playback | null; openSource: OpenSource } = {
   auth: { signedIn: false, getToken: async () => null },
   track: () => {},
   playback: null,
-  openSource: async () => createFakeSource(realClock),
+  // Under a manual turn, a held press needs voice to end (not cancel) the
+  // turn (`MIN_VOICED_MS`) — the fake source stays voiced throughout.
+  openSource: async () => createFakeSource(realClock, { voiced: manualTurnFromUrl() }),
 };
 
 /** What the page's capture delivered, for the probe (`&capture=device`). */
@@ -88,6 +102,14 @@ let previewView: (Readable<ConversationViewState> & { dispose(): void }) | null 
 function getPreviewView(runner: Runner) {
   previewView ??= createConversationView(runner.conversation, appProjectionSettings(), realClock);
   return previewView;
+}
+
+let previewSession: (Readable<SubtitleSession> & { dispose(): void }) | null = null;
+
+/** One subtitle session per page, beside `previewView` (plan 1d-2). */
+function getPreviewSession(runner: Runner) {
+  previewSession ??= appSubtitleSession(runner, getPreviewView(runner));
+  return previewSession;
 }
 
 // Hoisted so `get()` returns the same object every call — `useSyncExternalStore` requires it.
@@ -146,6 +168,113 @@ function PreviewConversation({ view, karaoke, playback }: {
   );
 }
 
+/** The Electron-style subtitle surface, on the page itself (`&subtitle=1`, plan 1d-2). */
+function PreviewSubtitle({ view, karaoke, session, controls }: {
+  view: Readable<ConversationViewState>;
+  karaoke: Readable<KaraokeState>;
+  session: Readable<SubtitleSession>;
+  controls: SubtitleControls;
+}) {
+  const { entries } = useReadable(view);
+  const { lit } = useReadable(karaoke);
+  const sessionState = useReadable(session);
+  const model: SubtitleModel = { entries, lit, session: sessionState };
+  return (
+    <div className="spine-subtitle">
+      <SubtitleView surface="electron" model={model} controls={controls} />
+    </div>
+  );
+}
+
+/**
+ * The extension overlay's stand-in, in an iframe fed over a real
+ * `MessageChannel` (`&overlay=1`, plan 1d-2): on `load`, one end goes to the
+ * iframe and `publishSubtitles` starts sending down the other. Reconnects on
+ * every reload, and stops on unmount.
+ *
+ * The port's own lifecycle (iframe `src`, its `load`, the handshake) is kept
+ * in a separate effect from what gets published on it: `karaoke` starts as
+ * the hoisted empty placeholder and is swapped for a real one once the page's
+ * playback loads (a page-level, one-time identity change) — re-running the
+ * connection effect over that would close the port mid-gesture (observed:
+ * losing a `subtitle:turn-release` sent moments after a press). Restarting
+ * only the publisher leaves the port, and a press in flight, alone.
+ */
+function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
+  view: Readable<ConversationViewState>;
+  karaoke: Readable<KaraokeState>;
+  session: Readable<SubtitleSession>;
+  controls: SubtitleControls;
+  compact: boolean;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [port, setPort] = useState<MessagePort | null>(null);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    let current: MessagePort | null = null;
+    let retryTimer: ReturnType<typeof setInterval> | null = null;
+    const clearRetry = () => {
+      if (retryTimer) clearInterval(retryTimer);
+      retryTimer = null;
+    };
+    const openPort = () => {
+      current?.close();
+      const channel = new MessageChannel();
+      current = channel.port1;
+      iframe.contentWindow?.postMessage({ type: 'sokuji-subtitle:connect' }, window.location.origin, [channel.port2]);
+      setPort(channel.port1);
+    };
+    const onLoad = () => {
+      // The overlay's own page mounts asynchronously after `load` fires (it
+      // awaits a dynamic style import before it draws anything, observed at
+      // ~5-20ms on a warm dev server), so its listener may not exist yet when
+      // the first connect message arrives — and there is nothing that arrives
+      // back to say it landed. Retry a few times over one second — each
+      // attempt replaces the overlay's receiver, which briefly drops its
+      // session to null and so unmounts a held HoldToTalk (auto-releasing
+      // it) — kept short and bounded so it is always long finished before any
+      // interaction the preview drives (the probe's own hold waits 3s first).
+      clearRetry();
+      let attempts = 0;
+      const attempt = () => {
+        attempts += 1;
+        openPort();
+        if (attempts >= 6) clearRetry();
+      };
+      attempt();
+      retryTimer = setInterval(attempt, 200);
+    };
+    iframe.addEventListener('load', onLoad);
+    // The listener must be attached before the navigation starts, or a fast
+    // (warm dev-server) load can finish and fire `load` before this effect
+    // ever runs — the JSX `src` prop would set it during React's commit,
+    // ahead of this effect. Setting it here, after `addEventListener`, keeps
+    // the two in the right order.
+    iframe.src = `?preview=overlay${compact ? '&compact=1' : ''}`;
+    return () => {
+      iframe.removeEventListener('load', onLoad);
+      clearRetry();
+      current?.close();
+      setPort(null);
+    };
+  }, [compact]);
+
+  useEffect(() => {
+    if (!port) return;
+    const entries: Readable<readonly Entry[]> = { get: () => view.get().entries, subscribe: view.subscribe };
+    return publishSubtitles(messagePortWire(port), { entries, session, karaoke }, {
+      clear: controls.clear,
+      exit: controls.exit,
+      press: controls.press,
+      release: controls.release,
+    });
+  }, [port, view, karaoke, session, controls]);
+
+  return <iframe ref={iframeRef} className="spine-overlay-frame" title="Overlay preview" />;
+}
+
 /**
  * Development builds only: the new provider layer and a live fake session on
  * a page of their own (plans 1b–1d), heard through the new playback. Open the
@@ -169,6 +298,21 @@ export function SpinePreview() {
   const [karaoke, setKaraoke] = useState<(Readable<KaraokeState> & { dispose(): void }) | null>(null);
   const autostarted = useRef(false);
   const deviceCapture = useMemo(() => new URLSearchParams(window.location.search).get('capture') === 'device', []);
+  // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2).
+  const previewParams = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return { subtitle: params.get('subtitle') === '1', overlay: params.get('overlay') === '1', compact: params.get('compact') === '1' };
+  }, []);
+  const session = getPreviewSession(runner);
+  const subtitleControls: SubtitleControls = useMemo(() => ({
+    start: () => void runner.start(),
+    stop: () => void runner.stop(),
+    press: () => runner.press(),
+    release: () => runner.release(),
+    clear: () => runner.clear(),
+    // The preview has no subtitle mode to leave.
+    exit: () => {},
+  }), [runner]);
 
   useEffect(() => {
     void useTurnModeStore.getState().load();
@@ -204,6 +348,11 @@ export function SpinePreview() {
       if (mode === 'off' || mode === 'pause' || mode === 'sentences') void useSettingsStore.getState().setSegmentationMode(mode);
       if (mode === 'sentences' && size) void useSettingsStore.getState().setSentenceSegmentationChunkSentences(Number(size));
     }
+    // `&turn=push-to-talk|push-to-translate`: the stored turn mode this session runs under.
+    const turn = params.get('turn');
+    if (turn === 'push-to-talk' || turn === 'push-to-translate') useTurnModeStore.getState().setTurnMode(turn);
+    // `&compact=1`: the subtitle surfaces' bands (not the panel's own compact mode).
+    if (params.get('compact') === '1') void useSubtitleStore.getState().setCompactMode(true);
     void runner.start();
   }, [entry, audio, runner, providers]);
 
@@ -218,6 +367,18 @@ export function SpinePreview() {
           capture={deviceCapture ? () => ({ ...captured }) : undefined}
         />
         <PreviewConversation view={getPreviewView(runner)} karaoke={karaoke ?? NO_KARAOKE} playback={audio?.playback ?? null} />
+        {previewParams.subtitle && (
+          <PreviewSubtitle view={getPreviewView(runner)} karaoke={karaoke ?? NO_KARAOKE} session={session} controls={subtitleControls} />
+        )}
+        {previewParams.overlay && (
+          <PreviewOverlayFrame
+            view={getPreviewView(runner)}
+            karaoke={karaoke ?? NO_KARAOKE}
+            session={session}
+            controls={subtitleControls}
+            compact={previewParams.compact}
+          />
+        )}
       </div>
     </div>
   );

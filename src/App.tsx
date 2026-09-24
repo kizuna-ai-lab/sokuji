@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import './App.scss';
 import './locales'; // Initialize i18n
 import { NativeTtsProto } from './components/dev/NativeTtsProto';
+import { OverlayPreview } from './components/dev/OverlayPreview';
 import { SpinePreview } from './components/dev/SpinePreview';
 import { RootLayout } from './layouts/RootLayout';
 import { Home } from './routes/Home';
@@ -42,6 +43,16 @@ function App() {
     return (
       <div className="App">
         <SpinePreview />
+      </div>
+    );
+  }
+
+  // Dev-only: `?preview=overlay` is the extension overlay's stand-in, drawn
+  // inside the spine preview's iframe (plan 1d-2).
+  if (import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'overlay') {
+    return (
+      <div className="App">
+        <OverlayPreview />
       </div>
     );
   }

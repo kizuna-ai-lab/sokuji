@@ -57,4 +57,15 @@ describe('SpinePreview', () => {
     const { container } = render(<SpinePreview />);
     await waitFor(() => expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull());
   });
+
+  it('draws the subtitle view on the page with &subtitle=1', async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, '', '/?preview=spine&subtitle=1');
+    try {
+      const { container } = render(<SpinePreview />);
+      await waitFor(() => expect(container.querySelector('.spine-subtitle .subtitle-app')).not.toBeNull());
+    } finally {
+      window.history.replaceState(null, '', before);
+    }
+  });
 });
