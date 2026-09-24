@@ -28,6 +28,9 @@ export class TranslationEngine {
   private readonly reqs = new RequestRegistry<TranslationResult>();
   private requestCounter = 0;
   private bingDnrActive = false;
+  /** Set by `dispose()`: an `init()` still awaiting its model files stops
+   *  before it creates a worker (a load aborted mid-way). */
+  private disposed = false;
 
   onError: ErrorCallback | null = null;
 
@@ -64,6 +67,8 @@ export class TranslationEngine {
     if (this.session) {
       this.dispose();
     }
+    // A dispose() from here on cancels this load before its worker exists.
+    this.disposed = false;
 
     this.sourceLang = sourceLang;
     this.targetLang = targetLang;
@@ -76,8 +81,11 @@ export class TranslationEngine {
       if (!await manager.isModelReady(entry.id)) {
         throw new Error(`Translation model "${entry.id}" is not downloaded. Download it first via Model Management.`);
       }
+      if (this.disposed) throw new Error('disposed');
       ({ dtype } = await manager.getModelVariantInfo(entry.id));
+      if (this.disposed) throw new Error('disposed');
       fileUrls = await manager.getModelBlobUrls(entry.id);
+      if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
     }
 
     const workerType = entry.translationWorkerType
@@ -91,6 +99,7 @@ export class TranslationEngine {
     // No-op outside extensions.
     if (workerType === 'bing') {
       await setBingTranslatorDNR(true);
+      if (this.disposed) { setBingTranslatorDNR(false); throw new Error('disposed'); }
       this.bingDnrActive = true;
     }
 
@@ -238,6 +247,7 @@ export class TranslationEngine {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.session?.dispose();
     this.session = null;
     if (this.bingDnrActive) {

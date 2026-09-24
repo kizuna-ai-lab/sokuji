@@ -36,6 +36,9 @@ type ErrorCallback = (error: string) => void;
 export class StreamingAsrEngine {
   private session: WorkerSession | null = null;
   private currentModel: ModelManifestEntry | null = null;
+  /** Set by `dispose()`: an `init()` still awaiting its model files stops
+   *  before it creates a worker (a load aborted mid-way). */
+  private disposed = false;
 
   onResult: ResultCallback | null = null;
   onPartialResult: PartialResultCallback | null = null;
@@ -59,6 +62,8 @@ export class StreamingAsrEngine {
     if (this.session) {
       this.dispose();
     }
+    // A dispose() from here on cancels this load before its worker exists.
+    this.disposed = false;
 
     const manager = ModelManager.getInstance();
     const workerType = model.asrWorkerType || 'sherpa-onnx';
@@ -81,16 +86,21 @@ export class StreamingAsrEngine {
       if (!await manager.isModelReady(modelId)) {
         throw new Error(`Model "${modelId}" is not downloaded.`);
       }
+      if (this.disposed) throw new Error('disposed');
       // Variant info before blob URLs: if it throws, no object URLs exist yet
       // to leak (matches AsrEngine's ordering).
       ({ dtype } = await manager.getModelVariantInfo(modelId));
+      if (this.disposed) throw new Error('disposed');
       fileUrls = await manager.getModelBlobUrls(modelId);
+      if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
     } else {
       // sherpa-onnx streaming path
       if (!await manager.isModelReady(modelId)) {
         throw new Error(`Streaming ASR model "${modelId}" is not downloaded.`);
       }
+      if (this.disposed) throw new Error('disposed');
       fileUrls = await manager.getModelBlobUrls(modelId);
+      if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
 
       // `revokeBlobs` isn't wired up until the WorkerSession is constructed
       // below, so any throw here must revoke the raw map itself, or the model's
@@ -107,6 +117,7 @@ export class StreamingAsrEngine {
         manager.revokeBlobUrls(fileUrls);
         throw new Error(`Failed to read package metadata: ${err.message}`);
       }
+      if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
 
       dataFileUrls = {};
       for (const [name, url] of Object.entries(fileUrls)) {
@@ -234,6 +245,7 @@ export class StreamingAsrEngine {
   }
 
   dispose(): void {
+    this.disposed = true;
     this.session?.dispose();
     this.session = null;
     this.currentModel = null;

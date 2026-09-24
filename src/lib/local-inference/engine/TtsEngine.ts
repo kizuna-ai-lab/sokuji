@@ -47,6 +47,9 @@ export class TtsEngine {
   } | null = null;
 
   private edgeTtsConnection: EdgeTtsConnection | null = null;
+  /** Set by `dispose()`: an `init()` still awaiting its model files stops
+   *  before it creates a worker (a load aborted mid-way). */
+  private disposed = false;
 
   onStatus: StatusCallback | null = null;
   onError: ErrorCallback | null = null;
@@ -80,6 +83,8 @@ export class TtsEngine {
     if (this.session) {
       this.dispose();
     }
+    // A dispose() from here on cancels this load before its worker exists.
+    this.disposed = false;
 
     const isPiperPlus = model.engine === 'piper-plus';
     const isEdgeTts = model.engine === 'edge-tts';
@@ -101,8 +106,10 @@ export class TtsEngine {
         if (!await manager.isModelReady(modelId)) {
           throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
         }
+        if (this.disposed) throw new Error('disposed');
       }
       fileUrls = await manager.getModelBlobUrls(modelId);
+      if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
       if (isSupertonic && Object.keys(fileUrls).length === 0) {
         throw new Error(`TTS model "${modelId}" is not downloaded. Download it first via Model Management.`);
       }
@@ -115,7 +122,9 @@ export class TtsEngine {
           throw new Error(`Missing package-metadata.json for TTS model "${modelId}"`);
         }
         const metadataResponse = await fetch(metadataBlobUrl);
+        if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
         dataPackageMetadata = await metadataResponse.json();
+        if (this.disposed) { manager.revokeBlobUrls(fileUrls); throw new Error('disposed'); }
         // Strip metadata from file URLs sent to worker
         dataFileUrls = {};
         for (const [name, url] of Object.entries(fileUrls)) {
@@ -133,6 +142,7 @@ export class TtsEngine {
     }> = [];
     if (isSupertonic) {
       const imported = await listVoices('supertonic-3');
+      if (this.disposed) { ModelManager.getInstance().revokeBlobUrls(fileUrls); throw new Error('disposed'); }
       supertonicImportedEntries = imported.map(v => ({
         sid: importedSidFromDbKey(v.id),
         name: v.name,
@@ -496,6 +506,7 @@ export class TtsEngine {
   }
 
   dispose(): void {
+    this.disposed = true;
     if (this.edgeTtsConnection) {
       this.edgeTtsConnection.dispose();
       this.edgeTtsConnection = null;
