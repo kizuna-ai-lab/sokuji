@@ -21,6 +21,7 @@ interface Entry {
 export class ResourceStack {
   private readonly entries: Entry[] = [];
   private unwinding: Promise<void> | null = null;
+  private abandoned = false;
 
   constructor(
     private readonly clock: Clock,
@@ -38,6 +39,10 @@ export class ResourceStack {
    * kept.
    */
   defer(name: string, release: () => Promise<void> | void): void {
+    if (this.abandoned) {
+      this.fireNow({ name, release });
+      return;
+    }
     if (this.unwinding) {
       void this.release({ name, release });
       return;
@@ -57,8 +62,19 @@ export class ResourceStack {
    * ones below it. The stack counts as unwound: a later `defer` runs at once.
    */
   abandon(): void {
+    this.abandoned = true;
     this.unwinding ??= Promise.resolve();
-    for (let entry = this.entries.pop(); entry; entry = this.entries.pop()) void this.release(entry);
+    for (let entry = this.entries.pop(); entry; entry = this.entries.pop()) this.fireNow(entry);
+  }
+
+  /** Starts `entry`'s release now, on this stack; a throw or a rejection is reported, never awaited. */
+  private fireNow(entry: Entry): void {
+    const fail = (error: unknown) => this.onFailure({ name: entry.name, message: describeCause(error) });
+    try {
+      void Promise.resolve(entry.release()).catch(fail);
+    } catch (error) {
+      fail(error);
+    }
   }
 
   private async run(): Promise<void> {

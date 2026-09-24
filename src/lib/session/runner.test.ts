@@ -888,12 +888,6 @@ describe('runner — abandon', () => {
     await runner.start();
     const stopSource = vi.spyOn(sources[0], 'stop');
     runner.abandon();
-    // `abandon()` goes through `stack.abandon()`, which starts every release
-    // via `release()`'s own `Promise.resolve().then(...)` — one microtask
-    // beyond the synchronous call to `abandon()`; a flush observes it. The
-    // property under test survives: every leg and source closes in one
-    // pass, not sequentially awaited the way `stop()` closes them.
-    await flush();
     expect(stops).toEqual(['session']);
     expect(stopSource).toHaveBeenCalledTimes(1);
     expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
