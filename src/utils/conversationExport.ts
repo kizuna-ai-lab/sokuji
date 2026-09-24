@@ -110,14 +110,14 @@ function formatModelsLine(models: Record<string, string>): string {
 }
 
 /** Format ms timestamp as local "YYYY-MM-DD HH:MM:SS". */
-function formatLocalDateTime(ts: number): string {
+export function formatLocalDateTime(ts: number): string {
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 /** Format ms timestamp as local "HH:MM:SS". */
-function formatLocalTime(ts: number): string {
+export function formatLocalTime(ts: number): string {
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
