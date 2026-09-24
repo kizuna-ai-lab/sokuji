@@ -36,7 +36,7 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
   const held: SourceNotice[] = [];
   let ended = false;
   let stopping: Promise<void> | null = null;
-  let failing = false;
+  const failing = new Set<(pcm: Int16Array) => void>();
 
   const listen = <T>(set: Set<T>, listener: T) => {
     set.add(listener);
@@ -50,11 +50,19 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
   };
 
   return {
-    onPcm: (listener) => listen(pcmListeners, listener),
+    onPcm: (listener) => {
+      const off = listen(pcmListeners, listener);
+      return () => {
+        off();
+        failing.delete(listener);
+      };
+    },
     onEnded: (listener) => listen(endedListeners, listener),
     onDegraded: (listener) => {
       const off = listen(degradedListeners, listener);
-      for (const notice of held.splice(0)) listener(notice);
+      if (!ended && !stopping) {
+        for (const notice of held.splice(0)) listener(notice);
+      }
       return off;
     },
     get track() {
@@ -63,17 +71,16 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
 
     deliver(pcm) {
       if (ended || stopping || options.muted()) return;
-      let threw = false;
-      for (const listener of pcmListeners) {
+      for (const listener of [...pcmListeners]) {
         try {
           listener(pcm);
+          failing.delete(listener);
         } catch (error) {
-          threw = true;
           // Per chunk: report when a listener starts failing, not on every chunk after.
-          if (!failing) reportError('SourceCore', `A capture listener threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'source:listener' });
+          if (!failing.has(listener)) reportError('SourceCore', `A capture listener threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'source:listener' });
+          failing.add(listener);
         }
       }
-      failing = threw;
     },
 
     watch(stream) {

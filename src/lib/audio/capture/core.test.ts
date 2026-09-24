@@ -130,4 +130,42 @@ describe('createSourceCore', () => {
     current = track;
     expect(core.track).toBe(track);
   });
+
+  it("reports each listener's own failing streak", () => {
+    const { core } = setup();
+    reportErrorSpy.mockClear();
+    let bFails = false;
+    core.onPcm(() => { throw new Error('a broke'); });
+    core.onPcm(() => { if (bFails) throw new Error('b broke'); });
+    core.deliver(chunk());
+    bFails = true;
+    core.deliver(chunk());
+    core.deliver(chunk());
+    expect(reportErrorSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('a listener added during a delivery hears the next chunk, not the current one', () => {
+    const { core } = setup();
+    const late = vi.fn();
+    let added = false;
+    core.onPcm(() => {
+      if (!added) {
+        added = true;
+        core.onPcm(late);
+      }
+    });
+    core.deliver(chunk());
+    expect(late).not.toHaveBeenCalled();
+    core.deliver(chunk());
+    expect(late).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops a held degradation once the source has ended', () => {
+    const { core } = setup();
+    core.degrade({ code: 'app_capture_monitor_missing', message: 'widened while opening' });
+    core.end('gone');
+    const heard = vi.fn();
+    core.onDegraded(heard);
+    expect(heard).not.toHaveBeenCalled();
+  });
 });
