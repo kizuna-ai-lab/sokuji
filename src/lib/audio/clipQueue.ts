@@ -40,6 +40,9 @@ export interface QueueView<K extends string = string> {
 /** How far ahead of the clock a clip is scheduled when the queue is idle: absorbs main-thread jitter. */
 export const LEAD_S = 0.05;
 
+/** Two render quanta (128 samples each, at SAMPLE_RATE): below this much buffer left at the tail, a new clip starts fresh instead of continuing there, which could otherwise land on the render thread late. */
+export const STARVED_S = (2 * 128) / SAMPLE_RATE;
+
 interface Scheduled<K> {
   key: K;
   at: number;
@@ -58,11 +61,21 @@ export class ClipQueue<K extends string = string> implements QueueView<K> {
 
   enqueue(key: K, pcm: Int16Array): void {
     if (pcm.length === 0) return;
-    const at = Math.max(this.timeline.now() + this.leadS, this.tail);
+    const now = this.timeline.now();
+    // Continue at the tail while at least two render quanta of it are still
+    // ahead of the clock; otherwise start fresh, one lead ahead. Streaming
+    // TTS usually leaves less than a full lead buffered, so gluing every
+    // clip to `tail` (the old rule) opened a gap of up to LEAD_S between
+    // back-to-back clips whenever less was buffered.
+    const at = this.tail > now + STARVED_S ? this.tail : now + this.leadS;
     const clip: Scheduled<K> = { key, at, end: at + pcm.length / SAMPLE_RATE, stop: () => {}, done: false };
+    // Play before recording anything: if this throws, nothing is left
+    // behind (no stuck `pending`); if `onEnded` already fired inside `play`
+    // (`clip.done`), there is nothing to keep either.
+    clip.stop = this.timeline.play(pcm, at, () => this.finish(clip));
+    if (clip.done) return;
     this.tail = clip.end;
     this.clips.push(clip);
-    clip.stop = this.timeline.play(pcm, at, () => this.finish(clip));
     this.notify();
   }
 

@@ -123,6 +123,52 @@ describe('ClipQueue', () => {
     expect(queue.pending).toBe(0);
   });
 
+  it('continues back to back while two render quanta are still buffered, and starts fresh once starved', () => {
+    const { timeline, plays, advance } = fakeTimeline();
+    const queue = new ClipQueue(timeline);
+    queue.enqueue('a', pcm(100));
+    expect(plays[0].at).toBeCloseTo(LEAD_S, 9);
+    advance(0.12);
+    queue.enqueue('b', pcm(100));
+    expect(plays[1].at).toBeCloseTo(LEAD_S + 0.1, 9);
+    advance(0.125); // now 0.245; b ends at 0.25 — less than STARVED_S left
+    queue.enqueue('c', pcm(100));
+    expect(plays[2].at).toBeCloseTo(0.245 + LEAD_S, 9);
+  });
+
+  it('a timeline that throws leaves no clip behind', () => {
+    let calls = 0;
+    const ats: number[] = [];
+    const timeline: AudioTimeline = {
+      now: () => 0,
+      play: (_pcm, at) => {
+        calls += 1;
+        ats.push(at);
+        if (calls === 1) throw new Error('sink gone');
+        return () => {};
+      },
+    };
+    const queue = new ClipQueue(timeline);
+    expect(() => queue.enqueue('a', pcm(100))).toThrow();
+    expect(queue.pending).toBe(0);
+    queue.enqueue('b', pcm(100));
+    expect(queue.pending).toBe(1);
+    expect(ats[1]).toBeCloseTo(LEAD_S, 9);
+  });
+
+  it('a clip the timeline ends at once is not kept', () => {
+    const timeline: AudioTimeline = {
+      now: () => 0,
+      play: (_pcm, _at, onEnded) => {
+        onEnded();
+        return () => {};
+      },
+    };
+    const queue = new ClipQueue(timeline);
+    queue.enqueue('a', pcm(100));
+    expect(queue.pending).toBe(0);
+  });
+
   it('a subscriber that throws is reported and does not keep the next from hearing', () => {
     const { timeline } = fakeTimeline();
     const queue = new ClipQueue(timeline);
