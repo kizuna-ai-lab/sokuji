@@ -228,7 +228,13 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     ttsTap,
 
     async resume() {
-      if (ctx.state === 'suspended') await ctx.resume();
+      if (ctx.state === 'suspended') {
+        try {
+          await ctx.resume();
+        } catch (error) {
+          reportWarning('AudioGraph', `The audio context did not resume: ${describeCause(error)}`, { dedupeKey: 'graph:resume' });
+        }
+      }
       play('real');
       play('virtual');
     },

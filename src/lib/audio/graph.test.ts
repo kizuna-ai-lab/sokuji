@@ -130,6 +130,13 @@ describe('createAudioGraph — outputs', () => {
     expect(virtualSink.paused).toBe(true);
   });
 
+  it('resume() reports a context that will not resume instead of rejecting', async () => {
+    const { ctx, graph } = await setup();
+    ctx.state = 'suspended';
+    ctx.resume = async () => { throw new Error('InvalidStateError'); };
+    await expect(graph.resume()).resolves.toBeUndefined();
+  });
+
   it('close() pauses the outputs and closes the context', async () => {
     const { ctx, graph, real } = await setup();
     await graph.close();
