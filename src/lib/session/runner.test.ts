@@ -8,7 +8,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
 import { RUN_NOTICE_CODES } from './codes';
-import type { OpenSource } from './source';
+import type { OpenSource, Source } from './source';
 import type { FramePort, PlaybackPort } from './ports';
 import { createRunner } from './runner';
 import type { RunEnd, RunNotice, RunShape } from './types';
@@ -420,6 +420,32 @@ describe('runner — stopping', () => {
     clock.advance(1000);
     await stopping;
     expect(runner.state.getState().phase).toBe('idle');
+  });
+
+  it("waits for a leg still opening before it unwinds, so nothing is released after the run went idle", async () => {
+    const order: string[] = [];
+    let openParticipant!: () => void;
+    const quietSource = (leg: string): Source => ({
+      onPcm: () => () => {}, onEnded: () => () => {}, onDegraded: () => () => {},
+      stop: async () => { order.push(`${leg} source stopped`); },
+    });
+    const openSource: OpenSource = async (leg) => {
+      if (leg === 'participant') await new Promise<void>((resolve) => { openParticipant = resolve; });
+      return quietSource(leg);
+    };
+    const provider = { ...fakeProvider, start: async () => { throw new Error('the speaker leg failed'); } } as unknown as AnyProvider;
+    const { runner } = setup({ openSource, shape: { provider, legs: ['speaker', 'participant'] } });
+    runner.state.subscribe((s) => { if (s.phase === 'idle') order.push('idle'); });
+    const started = runner.start();
+    await flush();
+    openParticipant();
+    await started;
+    // The stack is LIFO (`stack.ts`): the speaker source is pushed first (its
+    // open settles well before `flush()` returns), the participant source is
+    // pushed last (its push waits on `openParticipant()`), so it unwinds
+    // first. The property under test is that both precede 'idle', not which
+    // of the two comes first.
+    expect(order).toEqual(['participant source stopped', 'speaker source stopped', 'idle']);
   });
 });
 

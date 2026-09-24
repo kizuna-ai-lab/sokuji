@@ -69,6 +69,14 @@ export class Run {
   private readonly appendFailing = new Set<LegName>();
   /** The promise of `open()`'s own body; `close()` waits for it (bounded) before it unwinds (F3). */
   private opening: Promise<void> | null = null;
+  /** Every leg's open still in flight — a source, an adapter's start: `close()` waits for all of them, not just the first to fail. */
+  private readonly legOpens: Promise<unknown>[] = [];
+
+  /** Keeps `task` among the opens `close()` waits for. */
+  private opened<T>(task: Promise<T>): Promise<T> {
+    this.legOpens.push(task);
+    return task;
+  }
 
   /** `host` is a factory because the runner's host closes over the run it serves. */
   constructor(private readonly deps: RunnerDeps, host: (run: Run) => RunHost, readonly shape: RunShape) {
@@ -189,14 +197,14 @@ export class Run {
     }])) as Record<LegName, StartRequest<unknown, unknown>>;
 
     if (shape.legs.length === 2 && p.session?.startBoth) {
-      const sources = await Promise.all(shape.legs.map(async (leg) => {
+      const sources = await Promise.all(shape.legs.map((leg) => this.opened((async () => {
         try {
           return await this.openSource(leg);
         } catch (error) {
           if (this.signal.aborted) throw error;
           throw new LegOpenError(leg, error);
         }
-      }));
+      })())));
       // Built before the sources opened; a source with a track hands it to the adapter (WebRTC).
       shape.legs.forEach((leg, i) => {
         const track = sources[i].track;
@@ -213,7 +221,7 @@ export class Run {
       this.throwIfAborted();
       shape.legs.forEach((leg, i) => this.connect(leg, sources[i], sessions[leg]));
     } else {
-      await Promise.all(shape.legs.map((leg) => this.openLeg(leg, requests[leg])));
+      await Promise.all(shape.legs.map((leg) => this.opened(this.openLeg(leg, requests[leg]))));
     }
     this.throwIfAborted();
     this.liveSince = deps.clock.now();
@@ -402,14 +410,17 @@ export class Run {
   }
 
   /**
-   * Waits for `open()`'s own promise to settle, bounded by the run's timeout
-   * so a hung adapter that ignores the signal cannot hold the stop forever.
-   * What it resolves or rejects to does not matter here — only that whatever
-   * it was going to defer has had the chance to.
+   * Waits for `open()`'s own promise to settle, and then for every leg's
+   * open still in flight, bounded by one timeout so a hung adapter that
+   * ignores the signal cannot hold the stop forever: a leg still opening
+   * when another failed is released before the run unwinds. What any of them
+   * resolves or rejects to does not matter here — only that whatever it was
+   * going to defer has had the chance to.
    */
   private awaitOpening(): Promise<void> {
     const opening = this.opening;
     if (!opening) return Promise.resolve();
+    const all = opening.then(() => undefined, () => undefined).then(() => Promise.allSettled(this.legOpens));
     return new Promise<void>((resolve) => {
       let settled = false;
       const finish = () => {
@@ -418,10 +429,7 @@ export class Run {
         resolve();
       };
       const cancel = this.deps.clock.setTimeout(finish, this.deps.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-      opening.then(
-        () => { cancel(); finish(); },
-        () => { cancel(); finish(); },
-      );
+      void all.then(() => { cancel(); finish(); });
     });
   }
 }
