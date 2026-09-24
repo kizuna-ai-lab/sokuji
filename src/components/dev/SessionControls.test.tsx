@@ -10,6 +10,12 @@ import type { Runner } from '../../lib/session/runner';
 import type { RunState } from '../../lib/session/types';
 import { useRoutingStore } from '../../stores/routingStore';
 
+const reportErrorSpy = vi.hoisted(() => vi.fn());
+vi.mock('../../lib/diagnostics/report', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/diagnostics/report')>();
+  return { ...actual, reportError: reportErrorSpy };
+});
+
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({
@@ -127,6 +133,23 @@ describe('SessionControls — playback', () => {
     render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
     fireEvent.click(screen.getByRole('button', { name: 'Test tone' }));
     expect(audio.testTone).toHaveBeenCalled();
+  });
+
+  it('reports when the test tone does not play, instead of an unhandled rejection', async () => {
+    reportErrorSpy.mockClear();
+    const { runner } = fakeRunner();
+    const audio = fakeAudio();
+    audio.testTone = vi.fn(async () => { throw new Error('rate out of range'); });
+    render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Test tone' }));
+      await Promise.resolve();
+    });
+    expect(reportErrorSpy).toHaveBeenCalledWith(
+      'SessionControls',
+      'The test tone did not play: rate out of range',
+      expect.objectContaining({ cause: expect.any(Error) }),
+    );
   });
 
   it('switches whether the meeting hears the translation', () => {

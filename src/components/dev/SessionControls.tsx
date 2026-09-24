@@ -3,6 +3,7 @@ import { useStore } from 'zustand';
 import type { AppAudio } from '../../lib/audio/appAudio';
 import type { Playback } from '../../lib/audio/playback';
 import type { Segment } from '../../lib/conversation/types';
+import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import type { Runner } from '../../lib/session/runner';
 import type { TurnMode } from '../../lib/session/types';
@@ -118,7 +119,17 @@ export function SessionControls({ runner, turnMode, audio }: SessionControlsProp
             <input type="checkbox" checked={keepReplayAudio} onChange={(e) => void useSettingsStore.getState().setKeepReplayAudio(e.target.checked)} />
             Keep audio for replay
           </label>
-          <button type="button" className="validate-button" onClick={() => void audio.testTone()}>Test tone</button>
+          <button
+            type="button"
+            className="validate-button"
+            onClick={() => {
+              audio.testTone().catch((error: unknown) => {
+                reportError('SessionControls', `The test tone did not play: ${describeCause(error)}`, { cause: error });
+              });
+            }}
+          >
+            Test tone
+          </button>
           <p data-probe="playback">{`heard: ${probe.heard.join(',') || '-'} · tap peak: ${probe.peak.toFixed(3)}`}</p>
         </div>
       )}
