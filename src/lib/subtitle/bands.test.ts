@@ -67,4 +67,17 @@ describe('buildBands', () => {
     ], both, words);
     expect(text(bands[0])).toBe('Hi. Bye.');
   });
+
+  it('drops any number of blank rows at a segment end, keeping the separator', () => {
+    const bands = buildBands([
+      exchange('a', 'speaker', [row('s1', 0, 0, 'Hi.'), row('s1', 1, 3, '   '), row('s1', 2, 6, '  ')]),
+      exchange('b', 'speaker', [row('s2', 0, 0, 'Bye.')]),
+    ], both, words);
+    expect(text(bands[0])).toBe('Hi. Bye.');
+  });
+
+  it("drops a blank first row and the next row's leading whitespace, keeping karaoke's offset", () => {
+    const bands = buildBands([exchange('a', 'speaker', [row('s1', 0, 0, '  '), row('s1', 1, 2, ' Hi.')])], both, words);
+    expect(bands[0].pieces.map((piece) => [piece.text, piece.start])).toEqual([['Hi.', 3]]);
+  });
 });

@@ -81,104 +81,47 @@ export function buildBands(
     .filter((band) => band.pieces.length > 0);
 }
 
-/** Two items of the same segment, which join as written. */
-function sameSegment(a: Item | undefined, b: Item | undefined): boolean {
-  return a !== undefined && b !== undefined && a.segmentId !== undefined && a.segmentId === b.segmentId;
-}
-
-/** A band's pieces: segment edges trimmed, separators decided, only the newest `maxChars` kept. */
+/**
+ * A band's pieces. A run is consecutive items of one segment (a notice is a
+ * run of its own): its rows joined are its text as written, and only that
+ * joined text's outer whitespace goes — each row keeps the part of itself
+ * inside the trimmed stretch, so blank rows at either edge vanish whole. A
+ * run's first piece gets a separator only where `needsSpace` says; inside a
+ * run there is none. Then only the newest `maxChars` are kept.
+ */
 function piecesOf(items: readonly Item[], maxChars: number): BandPiece[] {
-  // Pass 1: Build raw pieces with START edges trimmed at segment boundaries.
-  // Trim the leading whitespace of the first item in each same-segment run,
-  // adjusting `start` to reflect the trim, and drop any piece that becomes empty.
-  const rawPieces: Array<{ key: string; text: string; segmentId?: SegmentId; start?: number; notice?: NoticeEntry }> = [];
-  items.forEach((item, i) => {
-    let text = item.text;
-    let start = item.start;
-    if (!sameSegment(items[i - 1], item)) {
-      const trimmed = text.trimStart();
-      if (start !== undefined) start += text.length - trimmed.length;
-      text = trimmed;
-    }
-    if (text.length === 0) return;
-    rawPieces.push({
-      key: item.key,
-      text,
-      ...(item.segmentId !== undefined ? { segmentId: item.segmentId, start } : {}),
-      ...(item.notice ? { notice: item.notice } : {}),
-    });
-  });
-
-  // Pass 2: Trim END edges at segment boundaries.
-  // Each piece whose next piece (after dropping empties) is not of the same segment
-  // gets its trailing whitespace trimmed. Drop any piece that becomes empty.
-  // First, identify which pieces will be empty after trimming their END.
-  const willBeEmpty: boolean[] = [];
-  rawPieces.forEach((piece, i) => {
-    if (piece.segmentId === undefined) {
-      // Notices are never trimmed or dropped
-      willBeEmpty.push(false);
-      return;
-    }
-    let text = piece.text;
-    // Trim END if there's no next piece of the same segment remaining
-    const hasNextNonEmptySameSegment = rawPieces.some(
-      (p, j) => j > i && p.segmentId === piece.segmentId
-    );
-    if (!hasNextNonEmptySameSegment) {
-      text = text.trimEnd();
-    }
-    willBeEmpty.push(text.length === 0);
-  });
-
-  // Now build trimmedPieces, adjusting trimming for pieces before dropped ones.
-  const trimmedPieces: Array<{ key: string; text: string; segmentId?: SegmentId; start?: number; notice?: NoticeEntry }> = [];
-  rawPieces.forEach((piece, i) => {
-    if (willBeEmpty[i]) return;
-
-    let text = piece.text;
-    // Re-trim if the next non-empty piece is of a different segment
-    if (piece.segmentId !== undefined) {
-      const hasNextNonEmptySameSegment = rawPieces.some(
-        (p, j) => j > i && p.segmentId === piece.segmentId && !willBeEmpty[j]
-      );
-      if (!hasNextNonEmptySameSegment) {
-        text = text.trimEnd();
-      }
-    }
-
-    trimmedPieces.push({
-      key: piece.key,
-      text,
-      ...(piece.segmentId !== undefined ? { segmentId: piece.segmentId, start: piece.start } : {}),
-      ...(piece.notice ? { notice: piece.notice } : {}),
-    });
-  });
-
-  // Pass 3: Decide spacing and build final pieces.
-  // Within a segment, use empty string. Between segments/notices, use space if `needsSpace` approves.
+  const runs: Item[][] = [];
+  for (const item of items) {
+    const run = runs[runs.length - 1];
+    if (run && item.segmentId !== undefined && run[0].segmentId === item.segmentId) run.push(item);
+    else runs.push([item]);
+  }
   const pieces: BandPiece[] = [];
-  let lastItem: Item | undefined;
-  trimmedPieces.forEach((piece) => {
-    // Reconstruct the item for sameSegment checks
-    const item: Item = {
-      key: piece.key,
-      text: piece.text,
-      ...(piece.segmentId !== undefined ? { segmentId: piece.segmentId, start: piece.start } : {}),
-      ...(piece.notice ? { notice: piece.notice } : {}),
-    };
-    const previous = pieces[pieces.length - 1];
-    const before = previous && !sameSegment(lastItem, item) && needsSpace(previous.text, piece.text) ? ' ' : '';
-    pieces.push({
-      key: piece.key,
-      text: piece.text,
-      before,
-      ...(piece.segmentId !== undefined ? { segmentId: piece.segmentId, start: piece.start } : {}),
-      ...(piece.notice ? { notice: piece.notice } : {}),
-    });
-    lastItem = item;
-  });
-
+  for (const run of runs) {
+    const whole = run.map((item) => item.text).join('');
+    const from = whole.length - whole.trimStart().length;
+    const to = whole.trimEnd().length;
+    let at = 0;
+    let first = true;
+    for (const item of run) {
+      const start = Math.max(from, at);
+      const end = Math.min(to, at + item.text.length);
+      if (end > start) {
+        const text = item.text.slice(start - at, end - at);
+        const previous = pieces[pieces.length - 1];
+        const before = first && previous !== undefined && needsSpace(previous.text, text) ? ' ' : '';
+        pieces.push({
+          key: item.key,
+          text,
+          before,
+          ...(item.segmentId !== undefined ? { segmentId: item.segmentId, start: (item.start ?? 0) + (start - at) } : {}),
+          ...(item.notice ? { notice: item.notice } : {}),
+        });
+        first = false;
+      }
+      at += item.text.length;
+    }
+  }
   // Cap: keep only the newest `maxChars` characters.
   let kept = 0;
   let from = pieces.length;
