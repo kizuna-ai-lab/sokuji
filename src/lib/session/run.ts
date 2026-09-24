@@ -333,7 +333,7 @@ export class Run {
     if (leg === 'speaker' || this.transport === undefined) this.transport = session.info.transport;
     this.stack.defer(`${leg} capture`, source.onPcm((pcm) => this.send(leg, session, pcm)));
     this.setLegState(leg, 'live');
-    this.deps.analytics.track('connection_status', { status: 'connected', provider: this.shape.provider.id });
+    this.deps.analytics.track('connection_status', { status: 'connected', provider: this.shape.provider.id, channel: leg });
   }
 
   /** The participant leg and automatic turns stream everything; manual turns send only while the key is held. */
@@ -379,7 +379,7 @@ export class Run {
         return;
       case 'reconnecting':
         this.setLegState(leg, 'reconnecting');
-        analytics.track('connection_status', { status: 'reconnecting', provider });
+        analytics.track('connection_status', { status: 'reconnecting', provider, channel: leg });
         return;
       case 'reconnected':
         this.setLegState(leg, 'live');

@@ -4,6 +4,7 @@ import type { Clock } from '../contract/clock';
 import type { Punctuator } from '../conversation/fillIn';
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError } from '../diagnostics/report';
+import { redact } from '../diagnostics/redact';
 import type { AnyProvider, Platform, Readiness } from '../provider/types';
 import type { OpenSource } from './source';
 import type { RunShape } from './types';
@@ -36,6 +37,16 @@ export interface FramePort {
 }
 
 export type ControlMethod = AnalyticsEvents['session_control_clicked']['method'];
+
+/** Every string value — and every string in an array value — through `redact`: an event never carries a secret, whoever built it. */
+function redactValues<T extends object>(properties: T): T {
+  return Object.fromEntries(Object.entries(properties).map(([key, value]) => [
+    key,
+    typeof value === 'string' ? redact(value)
+      : Array.isArray(value) ? value.map((item) => (typeof item === 'string' ? redact(item) : item))
+        : value,
+  ])) as T;
+}
 
 export interface RunnerDeps {
   clock: Clock;
@@ -94,7 +105,7 @@ export function guardPorts(deps: RunnerDeps): Pick<RunnerDeps, 'playback' | 'ana
       held: guard('playback.held', (held: boolean) => playback.held(held)),
       clear: guard('playback.clear', () => playback.clear()),
     },
-    analytics: { track: guard('analytics.track', (event, properties) => analytics.track(event, properties)) as AnalyticsPort['track'] },
+    analytics: { track: guard('analytics.track', (event, properties) => analytics.track(event, redactValues(properties))) as AnalyticsPort['track'] },
     // Frames arrive per message: report when the port starts failing, not on
     // every frame after, so a dead sink costs one console line per failing streak.
     ...(frames ? {

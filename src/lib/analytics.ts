@@ -196,7 +196,10 @@ export interface AnalyticsEvents {
   'connection_status': {
     status: 'connected' | 'disconnected' | 'reconnecting';
     provider: string;
+    /** On `disconnected` only: the session's length. */
     duration_ms?: number;
+    /** The leg; absent in events from before the session runner. */
+    channel?: 'speaker' | 'participant';
   };
   
   // Error tracking

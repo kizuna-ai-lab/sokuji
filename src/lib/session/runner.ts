@@ -119,7 +119,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
             const duration = endedAt - liveSince;
             const provider = run.shape.provider.id;
             // One per leg, as `connected` was.
-            run.shape.legs.forEach(() => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration }));
+            run.shape.legs.forEach((leg) => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration, channel: leg }));
             deps.analytics.track('translation_session_end', { session_id: run.id, duration, provider });
             if (deps.onRunEnded) await bounded(Promise.resolve(deps.onRunEnded(conversation.snapshot())));
           }

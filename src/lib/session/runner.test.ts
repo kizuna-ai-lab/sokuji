@@ -317,8 +317,25 @@ describe('runner — stopping', () => {
     expect(onRunEnded).toHaveBeenCalledWith(legs);
     expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake' }]);
     expect(events('connection_status')).toEqual([
-      { status: 'connected', provider: 'fake' },
-      { status: 'disconnected', provider: 'fake', duration_ms: 600 },
+      { status: 'connected', provider: 'fake', channel: 'speaker' },
+      { status: 'disconnected', provider: 'fake', duration_ms: 600, channel: 'speaker' },
+    ]);
+  });
+
+  it('reports connected and disconnected once per leg, each with its channel and the session length', async () => {
+    const { runner, clock, events } = setup({ shape: { legs: ['speaker', 'participant'] } });
+    await runner.start();
+    clock.advance(4000);
+    await runner.stop();
+    const connectionEvents = events('connection_status');
+    expect(connectionEvents).toHaveLength(4);
+    expect(connectionEvents).toEqual(expect.arrayContaining([
+      { status: 'connected', provider: 'fake', channel: 'speaker' },
+      { status: 'connected', provider: 'fake', channel: 'participant' },
+    ]));
+    expect(connectionEvents.filter((e: any) => e.status === 'disconnected')).toEqual([
+      { status: 'disconnected', provider: 'fake', channel: 'speaker', duration_ms: 4000 },
+      { status: 'disconnected', provider: 'fake', channel: 'participant', duration_ms: 4000 },
     ]);
   });
 
