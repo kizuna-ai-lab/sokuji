@@ -15,6 +15,7 @@ import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { legsFor, persistIfUnchanged, readShapeFromStores } from './appShape';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -22,6 +23,7 @@ const auth = { signedIn: false, getToken: async () => null };
 beforeEach(() => {
   useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
   useTurnModeStore.setState({ turnMode: 'auto' });
+  useRoutingStore.setState({ participantSpeech: false });
 });
 
 describe('legsFor', () => {
@@ -70,5 +72,16 @@ describe('persistIfUnchanged', () => {
     });
     persistIfUnchanged(fakeProvider, snapshot, { script: 'long', startDelayMs: 100 });
     expect(useProviderStore.getState().entries.fake.settings).toMatchObject({ script: 'long', startDelayMs: 900 });
+  });
+});
+
+describe('readShapeFromStores', () => {
+  it('freezes the participant-TTS switch', () => {
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useRoutingStore.setState({ participantSpeech: true });
+    expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
   });
 });

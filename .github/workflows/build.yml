@@ -68,6 +68,7 @@ jobs:
           src/stores/providerStore.test.ts
           src/stores/providerStore.readiness.test.ts
           src/stores/turnModeStore.test.ts
+          src/stores/routingStore.test.ts
           src/components/providers
           src/components/dev
           src/utils/featureGateForwarding.consistency.test.ts

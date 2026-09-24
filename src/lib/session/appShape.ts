@@ -11,6 +11,7 @@ import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { buildSharedSettings } from './shared';
 import type { RunShape } from './types';
 
@@ -33,8 +34,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: st.textOnly,
-    // The participant-TTS switch arrives with plan 1c-2's routing.
-    participantSpeech: false,
+    participantSpeech: useRoutingStore.getState().participantSpeech,
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
       provider,
