@@ -57,6 +57,8 @@ export interface RunnerDeps {
   onRunEnded?(legs: readonly Leg[]): Promise<void> | void;
   /** Bounds each release and the wait for punctuation fill-in; default 5000. */
   timeoutMs?: number;
+  /** Bounds a whole ending — every release, the fill-in wait, `onRunEnded` — at once; default 15000. What outlives it unwinds in the background. */
+  closeTimeoutMs?: number;
 }
 
 /**

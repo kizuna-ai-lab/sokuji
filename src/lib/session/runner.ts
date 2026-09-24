@@ -12,6 +12,7 @@ import { LegOpenError, RefusedError, Run, type RunHost } from './run';
 import type { LegState, RunEnd, RunState } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
+const DEFAULT_CLOSE_TIMEOUT_MS = 15_000;
 
 export interface Runner {
   readonly state: StoreApi<RunState>;
@@ -58,6 +59,10 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
   // analytics/`onRunEnded` branch, nor overwrite the idle state `abandon()`
   // set — `current` may already be a newer run by the time it finishes.
   const abandoned = new WeakSet<Run>();
+  /** An ending that outlived its bound, still unwinding: the next start waits for it. */
+  let lingering: Promise<void> | null = null;
+  /** A start already waiting on `lingering`: a second one while it waits does nothing, as a second start while `starting` does today. */
+  let waitingToStart = false;
 
   const set = (next: RunState) => { state.setState(next, true); };
   const legs = (run: Run) => Object.fromEntries(run.legStates) as Partial<Record<LegName, LegState>>;
@@ -96,27 +101,45 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     const done = new Promise<void>((resolve) => { finished = resolve; });
     ending = done;
     void (async () => {
-      try {
-        // A refused start opened nothing and played nothing: straight back to
-        // idle, leaving a replay of the kept conversation playing.
-        const refused = result.reason === 'refused';
-        if (!refused) set({ phase: 'stopping' });
-        // Captured before `run.close()`, so teardown time (a hung release,
-        // the bounded wait for fill-in) is never counted as session duration.
-        const endedAt = deps.clock.now();
-        // Stop speaking now; the port is guarded, so a throw here cannot keep the run open.
-        if (!refused) deps.playback.clear();
-        await run.close();
-        if (liveSince !== null && !abandoned.has(run)) {
-          const duration = endedAt - liveSince;
-          const provider = run.shape.provider.id;
-          // One per leg, as `connected` was.
-          run.shape.legs.forEach(() => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration }));
-          deps.analytics.track('translation_session_end', { session_id: run.id, duration, provider });
-          if (deps.onRunEnded) await bounded(Promise.resolve(deps.onRunEnded(conversation.snapshot())));
+      // Never rejects: its own `try`/`catch` absorbs everything, so the race
+      // below always sees it settle rather than hang on an unhandled throw.
+      const work = (async () => {
+        try {
+          // A refused start opened nothing and played nothing: straight back to
+          // idle, leaving a replay of the kept conversation playing.
+          const refused = result.reason === 'refused';
+          if (!refused) set({ phase: 'stopping' });
+          // Captured before `run.close()`, so teardown time (a hung release,
+          // the bounded wait for fill-in) is never counted as session duration.
+          const endedAt = deps.clock.now();
+          // Stop speaking now; the port is guarded, so a throw here cannot keep the run open.
+          if (!refused) deps.playback.clear();
+          await run.close();
+          if (liveSince !== null && !abandoned.has(run)) {
+            const duration = endedAt - liveSince;
+            const provider = run.shape.provider.id;
+            // One per leg, as `connected` was.
+            run.shape.legs.forEach(() => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration }));
+            deps.analytics.track('translation_session_end', { session_id: run.id, duration, provider });
+            if (deps.onRunEnded) await bounded(Promise.resolve(deps.onRunEnded(conversation.snapshot())));
+          }
+        } catch (error) {
+          reportError('SessionRunner', `Ending the session failed: ${describeCause(error)}`, { cause: error });
         }
-      } catch (error) {
-        reportError('SessionRunner', `Ending the session failed: ${describeCause(error)}`, { cause: error });
+      })();
+      try {
+        // Bounds the whole ending — every release, the fill-in wait,
+        // `onRunEnded` — at once, so a stop cannot take their sum.
+        const overran = await new Promise<boolean>((resolve) => {
+          const cancel = deps.clock.setTimeout(() => resolve(true), deps.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS);
+          void work.then(() => { cancel(); resolve(false); });
+        });
+        if (overran) {
+          reportWarning('SessionRunner', 'Stopping the session is taking long; it goes on in the background', { dedupeKey: 'close:timeout' });
+          // Cleared when it finishes — unless a newer lingering ending replaced it meanwhile.
+          const lingerFor: Promise<void> = work.then(() => { if (lingering === lingerFor) lingering = null; });
+          lingering = lingerFor;
+        }
       } finally {
         // Already forced idle by `abandon()`; `current` may already be a
         // newer run by now, so this stale closure must not touch it.
@@ -147,6 +170,20 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
 
   const start = async (method: ControlMethod = 'button'): Promise<void> => {
     if (state.getState().phase !== 'idle') return;
+    if (lingering) {
+      // The last run is still unwinding past its bound: never open a second one over it.
+      if (waitingToStart) return;
+      waitingToStart = true;
+      try {
+        await new Promise<void>((resolve) => {
+          const cancel = deps.clock.setTimeout(resolve, deps.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS);
+          void lingering!.then(() => { cancel(); resolve(); });
+        });
+      } finally {
+        waitingToStart = false;
+      }
+      if (state.getState().phase !== 'idle') return;
+    }
     deps.analytics.track('session_control_clicked', { action: 'start', method });
     const shape = deps.readShape();
     if (!shape) {

@@ -36,6 +36,8 @@ interface Options {
   /** Runs alongside the normal tracking; throwing here exercises a throwing analytics port. */
   track?: (event: string, properties: unknown) => void;
   frames?: FramePort;
+  timeoutMs?: number;
+  closeTimeoutMs?: number;
 }
 
 function setup(o: Options = {}) {
@@ -80,7 +82,8 @@ function setup(o: Options = {}) {
     punctuate: o.punctuate,
     newSessionId: () => `run${++runs}`,
     onRunEnded: o.onRunEnded,
-    timeoutMs: 1000,
+    timeoutMs: o.timeoutMs ?? 1000,
+    closeTimeoutMs: o.closeTimeoutMs,
   });
   const events = (name: string) => tracked.filter(([e]) => e === name).map(([, p]) => p);
   return { clock, runner, sources, playback, events, shape, persistIfUnchanged };
@@ -446,6 +449,58 @@ describe('runner — stopping', () => {
     // first. The property under test is that both precede 'idle', not which
     // of the two comes first.
     expect(order).toEqual(['participant source stopped', 'speaker source stopped', 'idle']);
+  });
+
+  it('goes idle when ending overruns closeTimeoutMs, and the next start waits for the unwind still running', async () => {
+    let finishStop!: () => void;
+    const provider = {
+      ...fakeProvider,
+      start: async (request: unknown, events: unknown) => {
+        const session = await fakeProvider.start(request as never, events as never);
+        return { ...session, stop: () => new Promise<void>((resolve) => { finishStop = resolve; }) };
+      },
+    } as unknown as AnyProvider;
+    const { runner, clock, sources } = setup({ shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
+    await runner.start();
+    const stopped = runner.stop();
+    await flush();
+    clock.advance(3000);
+    await stopped;
+    expect(runner.state.getState().phase).toBe('idle');
+    const opens = sources.length;
+    const next = runner.start();
+    await flush();
+    expect(sources.length).toBe(opens);
+    finishStop();
+    await flush();
+    await next;
+    expect(sources.length).toBe(opens + 1);
+  });
+
+  it('a second start while the first is still waiting on the lingering unwind does nothing extra', async () => {
+    let finishStop!: () => void;
+    const provider = {
+      ...fakeProvider,
+      start: async (request: unknown, events: unknown) => {
+        const session = await fakeProvider.start(request as never, events as never);
+        return { ...session, stop: () => new Promise<void>((resolve) => { finishStop = resolve; }) };
+      },
+    } as unknown as AnyProvider;
+    const { runner, clock, sources } = setup({ shape: { provider }, closeTimeoutMs: 3000, timeoutMs: 10_000 });
+    await runner.start();
+    const stopped = runner.stop();
+    await flush();
+    clock.advance(3000);
+    await stopped;
+    const opens = sources.length;
+    const first = runner.start();
+    await flush();
+    const second = runner.start();
+    finishStop();
+    await flush();
+    await first;
+    await second;
+    expect(sources.length).toBe(opens + 1);
   });
 });
 
