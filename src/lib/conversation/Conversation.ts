@@ -244,6 +244,10 @@ export class Conversation {
       kept = undefined;
     }
     this.replace(i, { ...seg, speech: [...seg.speech, { range: kept, pcm: this.retain(pcm) }] });
+    // Local speech can still arrive after close, so a segment already
+    // retired by the trim cursor (final and drained) is not done for good:
+    // pull the cursor back to it so `afterAudio` re-examines it.
+    if (i < this.trimCursor) this.trimCursor = i;
     this.afterAudio();
   }
 

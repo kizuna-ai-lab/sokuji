@@ -349,6 +349,18 @@ describe('Conversation — retention and clear', () => {
     expect(total()).toBeLessThanOrEqual(200);
   });
 
+  it('pulls the cursor back to a closed, already-retired segment that regains pcm after close', () => {
+    // The spec allows local speech to arrive after a segment closes, so a
+    // segment the cursor retired (final and drained) is not done for good.
+    const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 0 } });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } }); // final; no pcm yet
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(200) } }); // over the (zero) ceiling: drained and retired at once
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(200) } }); // regains pcm after being retired
+    const total = conv.snapshot().segments.flatMap((s) => s.speech).reduce((n, s) => n + s.pcm.byteLength, 0);
+    expect(total).toBe(0);
+  });
+
   it('enforces the ceiling when a segment opens with held pcm', () => {
     const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 1000 } });
     apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(300) } }); // 600
