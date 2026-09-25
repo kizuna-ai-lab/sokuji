@@ -14,8 +14,13 @@
  *
  * Exits 1 unless both surfaces end with the same texts — with `&compact=1`
  * the bands (at least a source and a translation band), without it the
- * expanded list's rows (at least four) — the overlay lit karaoke at least
- * once, the page view lit karaoke at least once too, and:
+ * expanded list's rows (at least four). Under `&wire=1` (the long, measuring
+ * run) that becomes a suffix check instead of equality: past `OVERLAY_ENTRIES`
+ * entries the page keeps the whole conversation while the overlay's wire
+ * carries only its tail, so each overlay band must be a suffix of the page's
+ * band at the same position — the overlay shows exactly the page's tail —
+ * failing by band index if it is not. Also checked: the overlay lit karaoke
+ * at least once, the page view lit karaoke at least once too, and:
  * for `script=cjk`, no ASCII space sits between two CJK characters in any
  * band; for `turn=`, the Electron view showed the Space hint and the overlay
  * its hold button before the press, and both drew bands after it; in every
@@ -147,7 +152,21 @@ process.exitCode = await withPage(url, async (send) => {
   console.log(`overlay ${compact ? 'bands' : 'rows'}: ${JSON.stringify(overlay)}`);
   console.log(`overlay karaoke: ${litEver ? 'lit' : 'never'}; page karaoke: ${litPageEver ? 'lit' : 'never'}` + (manual ? ` · before the press: hint ${before?.hint}, hold ${before?.hold}` : ''));
   if (page.length < (compact ? 2 : 4)) failures.push(compact ? 'the page view drew fewer than two bands' : 'the page view drew fewer than four rows');
-  if (JSON.stringify(page) !== JSON.stringify(overlay)) failures.push('the two surfaces drew different bands');
+  if (measureWire) {
+    // A long, measuring run outlives OVERLAY_ENTRIES: the page keeps the
+    // whole conversation while the overlay's wire carries only its tail, so
+    // equality no longer holds — each overlay band must instead be a suffix
+    // of the page's band at the same position.
+    if (page.length !== overlay.length) {
+      failures.push('the two surfaces drew a different number of bands');
+    } else {
+      for (let i = 0; i < page.length; i++) {
+        if (!page[i].endsWith(overlay[i])) failures.push(`band ${i}: the overlay's text is not a suffix of the page's`);
+      }
+    }
+  } else if (JSON.stringify(page) !== JSON.stringify(overlay)) {
+    failures.push('the two surfaces drew different bands');
+  }
   if (!litEver) failures.push('the overlay never lit karaoke');
   if (!litPageEver) failures.push('the page view never lit karaoke');
   if (cjk && [...page, ...overlay].some((text) => CJK_SPACE.test(text))) failures.push('a space sits between CJK characters');
