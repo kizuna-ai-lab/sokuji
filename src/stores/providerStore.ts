@@ -120,7 +120,11 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       set({ selected: id });
     },
     selectionLocked: false,
-    setSelectionLocked(locked) { set({ selectionLocked: locked }); },
+    setSelectionLocked(locked) {
+      // Called on every runner state change: an unchanged value notifies no one.
+      if (get().selectionLocked === locked) return;
+      set({ selectionLocked: locked });
+    },
     legs: ['speaker'],
 
     setLegs(legs) {

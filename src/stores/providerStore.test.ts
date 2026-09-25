@@ -198,6 +198,16 @@ describe('writes', () => {
     useProviderStore.getState().select('x');
     expect(useProviderStore.getState().selected).toBe('x');
   });
+
+  it('notifies subscribers only when the lock changes', () => {
+    // `attach()` sets it on every runner state change; an unchanged value must not wake the store's readers.
+    const listener = vi.fn();
+    const off = useProviderStore.subscribe(listener);
+    useProviderStore.getState().setSelectionLocked(true);
+    useProviderStore.getState().setSelectionLocked(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+    off();
+  });
 });
 
 describe('refreshReadiness', () => {
