@@ -5,6 +5,7 @@
  */
 import type { LegName } from '../conversation/types';
 import type { LanguagePair, Readiness } from '../provider/types';
+import { NO_MICROPHONE } from '../session/shape';
 import type { RunNotice, RunState, TurnMode } from '../session/types';
 
 /** What the subtitle body shows while no run is live. */
@@ -37,24 +38,29 @@ export interface SubtitleSessionInput {
   pair: LanguagePair | null;
   turnMode: TurnMode;
   legs: readonly LegName[];
+  /** The app's capture needs a microphone and none is chosen (1e-3 ruling 5). */
+  microphoneMissing?: boolean;
 }
 
 /**
- * The idle body, first match wins: a start under way; a provider that is not
- * ready (a live blocker outranks a stale failure, as today); a start that was
- * refused or failed; any other end — a run that failed mid-way ended, and its
- * notice is in the conversation; nothing yet.
+ * The idle body, first match wins: a start under way; no microphone chosen
+ * (today's precedence, `computeStartGate`: a missing device before the
+ * provider's own blocker); a provider that is not ready (a live blocker
+ * outranks a stale failure, as today); a start that was refused or failed;
+ * any other end — a run that failed mid-way ended, and its notice is in the
+ * conversation; nothing yet.
  */
-export function idleOf(run: RunState, readiness: Readiness | undefined): SubtitleIdleModel {
+export function idleOf(run: RunState, readiness: Readiness | undefined, microphoneMissing = false): SubtitleIdleModel {
   if (run.phase === 'starting') return { kind: 'starting' };
   if (run.phase !== 'idle') return { kind: 'ended' };
+  if (microphoneMissing) return { kind: 'unready', message: 'No microphone is chosen for the speaker leg.', code: NO_MICROPHONE };
   if (readiness?.state === 'not-ready') return { kind: 'unready', message: readiness.reason, ...(readiness.code ? { code: readiness.code } : {}), ...(readiness.params ? { params: readiness.params } : {}) };
   const end = run.lastEnd;
   if (end && (end.reason === 'refused' || end.reason === 'start-failed') && end.notice) return { kind: 'failed', notice: end.notice };
   return end ? { kind: 'ended' } : { kind: 'ready' };
 }
 
-export function subtitleSession({ run, readiness, pair, turnMode, legs }: SubtitleSessionInput): SubtitleSession {
+export function subtitleSession({ run, readiness, pair, turnMode, legs, microphoneMissing = false }: SubtitleSessionInput): SubtitleSession {
   return {
     phase: run.phase,
     since: run.phase === 'running' ? run.since : null,
@@ -62,8 +68,8 @@ export function subtitleSession({ run, readiness, pair, turnMode, legs }: Subtit
     pair,
     holdToTalk: run.phase === 'running' && turnMode !== 'auto',
     // The runner checks readiness at start; only a known blocker or a check in flight keeps Start off.
-    canStart: run.phase === 'idle' && readiness?.state !== 'not-ready' && readiness?.state !== 'checking',
-    idle: idleOf(run, readiness),
+    canStart: run.phase === 'idle' && !microphoneMissing && readiness?.state !== 'not-ready' && readiness?.state !== 'checking',
+    idle: idleOf(run, readiness, microphoneMissing),
   };
 }
 

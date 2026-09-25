@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
+import { SourceOpenError } from '../../session/source';
 import { TRACK_ENDED } from './core';
 import {
-  APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION, openSystemAudio,
+  APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMISSION, openSystemAudio,
   type ParticipantCapture, type SystemAudioDeps, type SystemAudioSettings,
 } from './systemAudio';
 
@@ -41,6 +42,7 @@ function setup(o: {
   device?: ReturnType<typeof fakeCapture>;
   loopback?: ReturnType<typeof fakeCapture>;
   sourceId?: string;
+  screenRecording?: string;
 } = {}) {
   const invoked: Array<[string, unknown]> = [];
   const answers: unknown[] = Array.isArray(o.answer) ? [...o.answer] : [o.answer ?? { success: true, capture: 'system' }];
@@ -48,6 +50,7 @@ function setup(o: {
   const device = o.device ?? fakeCapture();
   const loopback = o.loopback ?? fakeCapture();
   const wait = vi.fn(async () => {});
+  const screenRecording = vi.fn(async () => o.screenRecording ?? 'granted');
   const deps: SystemAudioDeps = {
     invoke: async (channel, data) => {
       invoked.push([channel, data]);
@@ -58,6 +61,7 @@ function setup(o: {
     app: () => app,
     device: () => device,
     loopback: () => loopback,
+    screenRecording,
   };
   let current = { sourceId: o.sourceId ?? 'desktop-audio-loopback', muted: false };
   const listeners = new Set<() => void>();
@@ -75,7 +79,7 @@ function setup(o: {
     current = { ...current, ...patch };
     for (const listener of listeners) listener();
   };
-  return { deps, settings, set, invoked, app, device, loopback, wait, audioSeen };
+  return { deps, settings, set, invoked, app, device, loopback, wait, audioSeen, screenRecording };
 }
 
 const settle = async () => {
@@ -119,6 +123,27 @@ describe('openSystemAudio — opening', () => {
 
   it('records the whole system through loopback otherwise', async () => {
     const s = setup();
+    await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.loopback.begun).toEqual([undefined]);
+  });
+
+  it('fails a whole-system capture in words when Screen Recording permission is denied (ruling 6)', async () => {
+    const s = setup({ screenRecording: 'denied' });
+    const error = await openSystemAudio(s.settings, live(), s.deps).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(SourceOpenError);
+    expect((error as InstanceType<typeof SourceOpenError>).code).toBe(LOOPBACK_DENIED);
+    expect(s.loopback.begun).toEqual([]);
+    expect(s.invoked.map(([c]) => c)).toEqual(['connect-system-audio-source', 'disconnect-system-audio-source']);
+  });
+
+  it('opens an application capture without asking about Screen Recording permission at all', async () => {
+    const s = setup({ sourceId: 'app:42', answer: { success: true, capture: 'app' }, screenRecording: 'denied' });
+    await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.screenRecording).not.toHaveBeenCalled();
+  });
+
+  it('opens whole-system capture when the permission is merely undetermined: the OS asks at getDisplayMedia, as today', async () => {
+    const s = setup({ screenRecording: 'not-determined' });
     await openSystemAudio(s.settings, live(), s.deps);
     expect(s.loopback.begun).toEqual([undefined]);
   });
@@ -226,6 +251,7 @@ describe('openSystemAudio — running', () => {
       app: () => { const c = fakeCapture(); recorders.push(c); return c; },
       device: () => fakeCapture(),
       loopback: () => loopback,
+      screenRecording: async () => 'granted',
     };
     let current = { sourceId: 'app:1', muted: false };
     const listeners = new Set<() => void>();

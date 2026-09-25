@@ -4,12 +4,14 @@
  * a 24 kHz context; `<audio>` elements as its outputs; the tap worklet from
  * the platform's URL; the virtual output per platform (Electron's virtual
  * speaker, the extension's tabs, nothing on the web); the routing settings
- * read live from `audioStore` and `routingStore`.
+ * read live from `audioStore`, `routingStore` and `turnModeStore`.
  */
 import { SAMPLE_RATE } from '../contract/adapter';
 import type { Platform } from '../provider/types';
+import type { TurnMode } from '../session/types';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
+import { useTurnModeStore } from '../../stores/turnModeStore';
 import { getEnvironment } from '../../utils/environment';
 import { createAudioGraph, type VirtualOutput } from './graph';
 import { createPlayback, type Playback, type PreviewClip, type RoutingSource } from './playback';
@@ -30,6 +32,7 @@ export function readRouting(
   audio: Pick<AudioState, 'mode' | 'isMonitorMuted' | 'isRealVoicePassthroughEnabled' | 'realVoicePassthroughVolume' | 'selectedMonitorDevice' | 'audioMonitorDevices'>,
   switches: { meeting: boolean; participantSpeech: boolean },
   platform: Platform,
+  turnMode: TurnMode,
 ): RoutingSettings {
   return {
     meeting: switches.meeting,
@@ -37,7 +40,12 @@ export function readRouting(
     // whole-system participant capture never hears it.
     monitor: audio.mode === 'speaker' && !audio.isMonitorMuted,
     participantSpeech: switches.participantSpeech,
-    passthrough: { on: audio.isRealVoicePassthroughEnabled, ratio: audio.realVoicePassthroughVolume },
+    // 1e-3 ruling 4, today's rule (`isPassthroughActive`): under push-to-translate
+    // the original voice is on at full level whenever the key is not held (the
+    // route closes while held), whatever the passthrough toggle says.
+    passthrough: turnMode === 'push-to-translate'
+      ? { on: true, ratio: 1 }
+      : { on: audio.isRealVoicePassthroughEnabled, ratio: audio.realVoicePassthroughVolume },
     sinks: {
       real: audio.selectedMonitorDevice?.deviceId,
       virtual: platform === 'electron' ? findVirtualSpeaker(audio.audioMonitorDevices) : undefined,
@@ -47,13 +55,15 @@ export function readRouting(
 
 export function createAppRouting(platform: Platform): RoutingSource {
   return {
-    get: () => readRouting(useAudioStore.getState(), useRoutingStore.getState(), platform),
+    get: () => readRouting(useAudioStore.getState(), useRoutingStore.getState(), platform, useTurnModeStore.getState().turnMode),
     subscribe(listener) {
       const offAudio = useAudioStore.subscribe(() => listener());
       const offSwitches = useRoutingStore.subscribe(() => listener());
+      const offTurnMode = useTurnModeStore.subscribe(() => listener());
       return () => {
         offAudio();
         offSwitches();
+        offTurnMode();
       };
     },
   };

@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import type { TFunction } from 'i18next';
 import en from '../../locales/en/translation.json';
-import { APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION } from '../audio/capture/systemAudio';
+import { APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMISSION } from '../audio/capture/systemAudio';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
 import { RUN_NOTICE_CODES } from '../session/codes';
+import { NO_MICROPHONE } from '../session/shape';
 import { NOTICE_WORDS, noticeText } from './noticeText';
 
 /** A stand-in for i18next: fills `{{name}}` from the options. */
@@ -33,7 +34,7 @@ describe('noticeText', () => {
   });
 
   it('has words for every code the runner, the capture and the adapters record', () => {
-    for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION]) {
+    for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION, LOOPBACK_DENIED, NO_MICROPHONE]) {
       expect(NOTICE_WORDS[code], code).toBeDefined();
     }
   });

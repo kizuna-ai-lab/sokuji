@@ -8,7 +8,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
 import { RUN_NOTICE_CODES } from './codes';
-import type { OpenSource, Source } from './source';
+import { SourceOpenError, type OpenSource, type Source } from './source';
 import type { FramePort, PlaybackPort } from './ports';
 import { createRunner } from './runner';
 import type { RunEnd, RunNotice, RunShape } from './types';
@@ -267,6 +267,22 @@ describe('runner — starting', () => {
     const { runner } = setup({ shape: { provider } });
     await runner.start();
     expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'gpu_out_of_memory', message: 'out of GPU memory', leg: 'speaker' } } });
+  });
+
+  it("fails a start with a source's own open error in words (ruling 6: SourceOpenError)", async () => {
+    const { runner } = setup({
+      shape: { legs: ['speaker', 'participant'] },
+      openSource: async (leg) => {
+        if (leg === 'participant') throw new SourceOpenError('Screen Recording permission is denied.', 'loopback_denied');
+        const source = createFakeSource(createVirtualClock(0));
+        return source;
+      },
+    });
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({
+      phase: 'idle',
+      lastEnd: { reason: 'start-failed', notice: { code: 'loopback_denied', message: 'Screen Recording permission is denied.', leg: 'participant' } },
+    });
   });
 
   it('fails the start when a source ends while its leg is still opening (D22)', async () => {

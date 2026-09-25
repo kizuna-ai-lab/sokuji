@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { AUTO } from '../provider/languages';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
-import { contextsFor, gate } from './shape';
+import { contextsFor, gate, microphoneMissing } from './shape';
 import type { RunShape } from './types';
 
 const shape = (patch: Partial<RunShape> = {}): RunShape => ({
@@ -69,5 +69,15 @@ describe('gate', () => {
     expect(gate(shape({ provider: manualOnly }), 'electron')).toMatchObject({ code: 'turn_mode_unsupported', leg: 'speaker' });
     expect(gate(shape({ provider: manualOnly, turnMode: 'push-to-talk', legs: ['speaker', 'participant'] }), 'electron'))
       .toMatchObject({ code: 'turn_mode_unsupported', leg: 'participant' });
+  });
+});
+
+describe('microphoneMissing (1e-3 ruling 5)', () => {
+  it('is missing only for the speaker leg with no chosen device', () => {
+    expect(microphoneMissing(['speaker'], undefined)).toBe(true);
+    expect(microphoneMissing(['speaker'], '')).toBe(true);
+    expect(microphoneMissing(['speaker'], 'mic-1')).toBe(false);
+    expect(microphoneMissing(['participant'], undefined)).toBe(false);
+    expect(microphoneMissing(['speaker', 'participant'], undefined)).toBe(true);
   });
 });

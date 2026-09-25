@@ -52,6 +52,19 @@ describe('subtitleSession', () => {
     expect(subtitleSession({ ...input, readiness: { state: 'checking' } }).canStart).toBe(false);
     expect(subtitleSession({ ...input, run: { phase: 'starting', step: 'checking' } }).canStart).toBe(false);
   });
+
+  it('keeps Start off with no microphone chosen, before the provider blocker (1e-3 ruling 5)', () => {
+    expect(subtitleSession({ ...input, microphoneMissing: true })).toMatchObject({
+      canStart: false,
+      idle: { kind: 'unready', message: expect.any(String), code: 'no_microphone' },
+    });
+    expect(subtitleSession({ ...input, microphoneMissing: true, readiness: { state: 'not-ready', reason: 'x' } })).toMatchObject({
+      canStart: false,
+      idle: { kind: 'unready', message: expect.any(String), code: 'no_microphone' },
+    });
+    expect(subtitleSession({ ...input, microphoneMissing: true, run: { phase: 'starting', step: 'checking' } }).idle).toEqual({ kind: 'starting' });
+    expect(subtitleSession({ ...input, microphoneMissing: false }).canStart).toBe(true);
+  });
 });
 
 describe('sameSession', () => {

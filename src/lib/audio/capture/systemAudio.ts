@@ -11,12 +11,13 @@ import { describeCause, reportWarning } from '../../diagnostics/report';
 import { AppAudioRecorder } from '../../modern-audio/AppAudioRecorder';
 import { DeviceCaptureRecorder } from '../../modern-audio/DeviceCaptureRecorder';
 import { LoopbackRecorder } from '../../modern-audio/LoopbackRecorder';
-import type { Source } from '../../session/source';
+import { SourceOpenError, type Source } from '../../session/source';
 import { createSourceCore } from './core';
 
 export const APP_CAPTURE_LOST = 'app_capture_lost_using_system_audio';
 export const APP_MONITOR_MISSING = 'app_capture_monitor_missing';
 export const SILENT_NO_PERMISSION = 'silent_no_permission';
+export const LOOPBACK_DENIED = 'loopback_denied';
 
 /** The settings a system-audio source follows, read live. */
 export interface SystemAudioSettings {
@@ -47,6 +48,8 @@ export interface SystemAudioDeps {
   app(): ParticipantCapture;
   device(): ParticipantCapture;
   loopback(): ParticipantCapture;
+  /** The OS's Screen Recording permission as the main process reports it (`granted`, `denied`, `not-determined`, `unknown`); outside macOS always `granted`. */
+  screenRecording(): Promise<string>;
 }
 
 export const electronSystemAudio = (): SystemAudioDeps => ({
@@ -56,6 +59,15 @@ export const electronSystemAudio = (): SystemAudioDeps => ({
   app: () => new AppAudioRecorder(SAMPLE_RATE),
   device: () => new DeviceCaptureRecorder(SAMPLE_RATE),
   loopback: () => new LoopbackRecorder(SAMPLE_RATE),
+  screenRecording: async () => {
+    try {
+      const answer = (await window.electron.invoke('check-screen-recording-permission')) as { status?: unknown } | undefined;
+      return typeof answer?.status === 'string' ? answer.status : 'unknown';
+    } catch {
+      // As today's `requestLoopbackAudioStream`: a failed check is not read as a denial.
+      return 'unknown';
+    }
+  },
 });
 
 type Connection = { mode: 'app' } | { mode: 'device'; monitorId: string } | { mode: 'loopback' };
@@ -143,6 +155,14 @@ export async function openSystemAudio(
   };
 
   const record = async (connection: Connection) => {
+    // Today's `requestLoopbackAudioStream` denial (MainPanel's Screen Recording
+    // modal): the start fails (D22) with a code the idle surface puts into
+    // words and plan 1e-3b's modal deep-links from. Asked only before a
+    // whole-system loopback. (A fall-back to loopback mid-run that meets a
+    // denial ends the source through the existing chain's `core.end`.)
+    if (connection.mode === 'loopback' && (await deps.screenRecording()) === 'denied') {
+      throw new SourceOpenError('Screen Recording permission is denied, so the whole system cannot be captured.', LOOPBACK_DENIED);
+    }
     const next = connection.mode === 'app' ? deps.app() : connection.mode === 'device' ? deps.device() : deps.loopback();
     if (connection.mode === 'app') {
       next.onWarning = (code) => core.degrade({ code, message: code === SILENT_NO_PERMISSION ? SILENT_MESSAGE : `The application capture warned: ${code}` });

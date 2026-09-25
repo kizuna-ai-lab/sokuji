@@ -1,3 +1,4 @@
+import { AdapterStartError } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 
 /** A degradation a source reports: still delivering, but worse. The code lets a surface localize it. */
@@ -21,3 +22,10 @@ export interface Source {
 
 /** Opens one leg's capture; rejects when it cannot open, and honours `signal`. */
 export type OpenSource = (leg: LegName, signal: AbortSignal) => Promise<Source>;
+
+/**
+ * A source that could not open, for a reason the user can be told in words:
+ * `code` is a notice code (`notices.<code>`). An `AdapterStartError`, so a
+ * failed start carries its code exactly as it carries an adapter's.
+ */
+export class SourceOpenError extends AdapterStartError {}

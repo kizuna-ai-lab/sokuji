@@ -59,3 +59,17 @@ export function gate(shape: RunShape, platform: Platform): Refusal | null {
   }
   return null;
 }
+
+/** Why the app's surfaces keep Start off while no microphone is chosen. */
+export const NO_MICROPHONE = 'no_microphone';
+
+/**
+ * A start would open the speaker's leg with no microphone chosen (1e-3
+ * ruling 5): the surfaces keep Start off, as today — the microphone source
+ * would open the system default, which may be a loopback input. Muting never
+ * blocks a start. The subtitle session's gate reads it now, MainPanel's mode
+ * picker in plan 1e-3b.
+ */
+export function microphoneMissing(legs: readonly LegName[], deviceId: string | undefined): boolean {
+  return legs.includes('speaker') && !deviceId;
+}
