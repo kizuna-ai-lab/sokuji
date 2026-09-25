@@ -25,6 +25,19 @@ vi.mock('../../lib/audio/appCapture', () => ({
     echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
   }),
 }));
+// The page's runner is the real one; this only watches its `start()` — the
+// post-start signal `&punctuation=1`'s test needs.
+const runnerStart = vi.hoisted(() => vi.fn());
+vi.mock('../../lib/session/runner', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/session/runner')>();
+  return {
+    ...actual,
+    createRunner: (deps: Parameters<typeof actual.createRunner>[0]) => {
+      const runner = actual.createRunner(deps);
+      return { ...runner, start: (method?: Parameters<typeof runner.start>[0]) => { runnerStart(); return runner.start(method); } };
+    },
+  };
+});
 vi.mock('../../lib/audio/appAudio', () => ({
   getAppAudio: async () => {
     const queue = { position: () => null, pending: 0, subscribe: () => () => {} };
@@ -122,9 +135,15 @@ describe('SpinePreview', () => {
       useSegmentationStore.setState({ phase: 'ready' });
     });
     useSegmentationStore.setState({ phase: 'missing', download });
+    // What the pack's phase was when the run started: `ready` only once the download has finished.
+    const phaseAtStart: string[] = [];
+    runnerStart.mockReset();
+    runnerStart.mockImplementation(() => { phaseAtStart.push(useSegmentationStore.getState().phase); });
     try {
       render(<SpinePreview />);
-      await waitFor(() => expect(download).toHaveBeenCalled());
+      await waitFor(() => expect(runnerStart).toHaveBeenCalledTimes(1));
+      expect(download).toHaveBeenCalledTimes(1);
+      expect(phaseAtStart).toEqual(['ready']);
     } finally {
       window.history.replaceState(null, '', before);
     }

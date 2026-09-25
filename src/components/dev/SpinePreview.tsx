@@ -97,7 +97,7 @@ const playbackBridge: PlaybackPort = {
  *  `local.segmentation.seal` only, mutated directly the way `captured` above
  *  is for the capture-device probe — `useSealProbe` below polls it into the
  *  DOM for `--sentences` (the seal count, not the rows, is what proves the
- *  cut made them). */
+ *  cut made them). It counts for the page's lifetime, not per run. */
 const sealCounts: Record<string, number> = {};
 
 const framesBridge: FramePort = {

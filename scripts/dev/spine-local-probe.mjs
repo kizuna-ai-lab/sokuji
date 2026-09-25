@@ -50,7 +50,12 @@
  *
  * Default url: http://localhost:5199/?preview=spine&provider=localInference
  * &capture=device&autostart=1&models=moonshine-tiny-en-quant,opus-mt-en-jap
- * &pair=en:ja
+ * &pair=en:ja&cut=off
+ *
+ * `&cut=off` pins the stored display cut: both modes share one browser
+ * profile (below) and `--sentences`' `&cut=sentences:1` persists in it, so
+ * without the pin a default run after a `--sentences` run would run the
+ * stream shape instead of the one-job-per-final check it describes.
  *
  * `&models=` / `&pair=` write the profile's LocalInference selections and pair (the app's own keys): open them in the probe's own profile, never a real one.
  *
@@ -76,20 +81,25 @@
  *
  * `--sentences`: task 5's live check of LocalInference's sentence-cut jobs
  * (plan 1e-2b) instead of the default per-final check above. It plays the
- * same wav with its deliberate mid-file silence cut down to ~200 ms (built
- * once per run into a fixture beside the browser profile, from the source
- * wav's own header — nothing is hard-coded about its layout), so the two
- * spoken parts arrive as one utterance instead of two. The URL adds
- * `&cut=sentences:1&punctuation=1` to the default one: `&punctuation=1`
- * downloads the punctuation pack (~400 MB) into the probe's profile before
- * autostart — slow on a first run against a fresh profile, fast against a
- * profile that already has it. Passes once at least two source rows and at
- * least two translation rows have drawn text AND SpinePreview's seal-count
- * probe (`[data-probe="seals"]`) shows at least one `local.segmentation.seal`
- * frame with reason `sentences` — the seal count is what proves the
- * sentence cut made the rows, not the VAD (a VAD-only cut would also draw
- * two-plus rows for two spoken parts, seal count or no). Without this flag
- * the probe is unchanged: same url, same wav, same single-row pass bar.
+ * same wav with its deliberate mid-file silence cut down to ~200 ms and ~2 s
+ * of silence appended at its end (built once per run into a fixture beside
+ * the browser profile, from the source wav's own header — nothing is
+ * hard-coded about its layout), so the two spoken parts arrive as one
+ * utterance instead of two, and that utterance ends at every loop of
+ * Chromium's fake capture: the file's own edges hold under 0.2 s of quiet,
+ * short of the VAD's 1.4 s minimum silence, so without the appended pause an
+ * utterance ended only at the VAD's cap and the first rows took minutes. The
+ * URL swaps the default one's `&cut=off` for `&cut=sentences:1&punctuation=1`:
+ * `&punctuation=1` downloads the punctuation pack (~400 MB) into the probe's
+ * profile before autostart — slow on a first run against a fresh profile,
+ * fast against a profile that already has it. Passes once at least two
+ * source rows and at least two translation rows have drawn text AND
+ * SpinePreview's seal-count probe (`[data-probe="seals"]`) shows at least one
+ * `local.segmentation.seal` frame with reason `sentences` — the seal count is
+ * what proves the sentence cut made the rows, not the VAD (a VAD-only cut
+ * would also draw two-plus rows for two spoken parts, seal count or no).
+ * Without this flag the probe runs the default check above: its own url, the
+ * wav as it is, the single-row pass bar.
  *
  *   node scripts/dev/spine-local-probe.mjs --sentences
  *   node scripts/dev/spine-local-probe.mjs --sentences [url] [seconds]
@@ -111,8 +121,10 @@ const jobTmpDir = process.env.CLAUDE_JOB_DIR ? join(process.env.CLAUDE_JOB_DIR, 
 const PROFILE_DIR = join(jobTmpDir, 'spine-local-probe-profile');
 mkdirSync(PROFILE_DIR, { recursive: true });
 
-const DEFAULT_URL = `http://localhost:5199/?preview=spine&provider=localInference&capture=device&autostart=1&models=${DEFAULT_MODELS}&pair=en:ja`;
-const SENTENCES_URL = `${DEFAULT_URL}&cut=sentences:1&punctuation=1`;
+const BASE_URL = `http://localhost:5199/?preview=spine&provider=localInference&capture=device&autostart=1&models=${DEFAULT_MODELS}&pair=en:ja`;
+// Each mode names its own cut: the stored one persists in the shared profile.
+const DEFAULT_URL = `${BASE_URL}&cut=off`;
+const SENTENCES_URL = `${BASE_URL}&cut=sentences:1&punctuation=1`;
 
 const url = positional[0] ?? (sentences ? SENTENCES_URL : DEFAULT_URL);
 const seconds = Number(positional[1] ?? 600);
@@ -223,9 +235,11 @@ function writeWavPcm16Mono(path, samples, sampleRate) {
  * (the deliberate gap between its two spoken parts, found by amplitude —
  * every natural pause inside either spoken part is far shorter) cut down to
  * `targetSilenceMs`, so the two parts arrive close enough together to read
- * as one utterance. Node only: no ffmpeg/sox dependency.
+ * as one utterance, then `trailingSilenceMs` of silence appended, so each
+ * loop of the fake capture ends that utterance. Node only: no ffmpeg/sox
+ * dependency.
  */
-function buildSentencesFixture(sourcePath, outPath, targetSilenceMs) {
+function buildSentencesFixture(sourcePath, outPath, targetSilenceMs, trailingSilenceMs) {
   const { samples, sampleRate } = readWavPcm16Mono(sourcePath);
   const windowMs = 20;
   const windowSamples = Math.max(1, Math.round((sampleRate * windowMs) / 1000));
@@ -262,12 +276,14 @@ function buildSentencesFixture(sourcePath, outPath, targetSilenceMs) {
 
   const head = samples.subarray(0, cutAt);
   const tail = samples.subarray(gapEnd);
-  const trimmed = new Int16Array(head.length + tail.length);
-  trimmed.set(head, 0);
-  trimmed.set(tail, head.length);
+  const trailingSamples = Math.round((sampleRate * trailingSilenceMs) / 1000);
+  // Zero-filled: the appended samples are the silence.
+  const fixture = new Int16Array(head.length + tail.length + trailingSamples);
+  fixture.set(head, 0);
+  fixture.set(tail, head.length);
 
-  writeWavPcm16Mono(outPath, trimmed, sampleRate);
-  console.log(`--sentences fixture: gap ${Math.round((bestLen * windowMs))}ms at ${Math.round((gapStart / sampleRate) * 1000)}ms cut to ${Math.round(((cutAt - gapStart) / sampleRate) * 1000)}ms (${outPath})`);
+  writeWavPcm16Mono(outPath, fixture, sampleRate);
+  console.log(`--sentences fixture: gap ${Math.round((bestLen * windowMs))}ms at ${Math.round((gapStart / sampleRate) * 1000)}ms cut to ${Math.round(((cutAt - gapStart) / sampleRate) * 1000)}ms, ${trailingSilenceMs}ms of silence appended (${outPath})`);
 }
 
 if (!existsSync(WAV)) {
@@ -278,7 +294,7 @@ if (!existsSync(WAV)) {
 let audioFile = WAV;
 if (sentences) {
   audioFile = join(jobTmpDir, 'spine-local-probe-sentences.wav');
-  buildSentencesFixture(WAV, audioFile, 200);
+  buildSentencesFixture(WAV, audioFile, 200, 2000);
 }
 
 /** The default check: at least one source row and one translation row with text. */
