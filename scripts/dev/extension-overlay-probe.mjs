@@ -28,13 +28,14 @@
  * virtual microphone's PCM reaches the meeting page; (--ptt) where Space and
  * Escape go after a hold — recorded, not failed; whether the overlay shares
  * the extension's storage (a sentinel written in the side panel only), and
- * the side panel's language on the overlay once the run stops; Escape in the
+ * the side panel's language on the overlay once the run stops, then on a new
+ * overlay after the meeting tab reloads over the stopped run; Escape in the
  * overlay exits subtitle mode; closing the side panel unmounts the overlay.
  * Without --ptt, a two-panel case follows: a second meeting tab with its own
  * side panel on the fake's `exchange` script — each overlay must draw its own
  * tab's session only; what an overlay shows once its own panel closes while
- * the other panel lives (and whether Escape still dismisses it), and once
- * both have closed, is recorded.
+ * the other panel lives is recorded, and Escape must still dismiss it; once
+ * both panels have closed, both overlays must be gone.
  *
  * The side panel's page also records the `sender` of every `sokuji-subtitle`
  * port it hears (a listener that keeps no reference to the port, beside the
@@ -520,6 +521,27 @@ async function main(cdp) {
     else console.log('  storage is partitioned: the Japanese words came over the wire');
   }
 
+  // 4b. The meeting tab reloads over the stopped run, still in subtitle mode:
+  // the side panel mounts a new overlay (`status: 'complete'`), which draws
+  // the idle message once and has nothing else to redraw it — the language
+  // must be there when its bundle lands (plan 1e-4 Task 9, fix round).
+  await meeting.send('Page.bringToFront');
+  await meeting.send('Page.reload');
+  const remounted = await waitForOverlay(meeting, known, 10000);
+  if (!remounted) {
+    miss('after the meeting tab reloaded over the stopped run, no overlay was mounted again within 10 s');
+  } else {
+    overlay = remounted;
+    const want = JA.subtitle.sessionEnded;
+    let idle = '';
+    const shown = await pollUntil(5000, 200, async () => {
+      idle = await overlay.evaluate(`document.querySelector('.subtitle-idle__message')?.textContent ?? ''`);
+      return idle === want;
+    });
+    if (!shown) miss(`after the meeting tab reloaded over the stopped run, the new overlay's .subtitle-idle__message read ${JSON.stringify(idle)}, expected ${JSON.stringify(want)}`);
+    else console.log(`after the meeting tab reloaded over the stopped run, the new overlay reads ${JSON.stringify(idle)}`);
+  }
+
   // 5. Exit from the overlay.
   if (!(await click(panel, '[data-tour="main-action"]')) || !(await running(panel))) {
     miss('the run never restarted for the exit check');
@@ -563,10 +585,10 @@ async function main(cdp) {
     console.log(`  ports heard — panel A: ${JSON.stringify(await panelA.evaluate('window.__probePorts'))}; panel B: ${JSON.stringify(await panelB.evaluate('window.__probePorts'))}`);
 
     // Panel B goes while panel A lives. Overlay B opened its port after panel A
-    // was already listening, so panel A holds an unheld receiving end of it:
-    // the Task 6 ruling's stated cost is overlay B showing its last state
-    // until the user exits. (Overlay A opened before panel B listened; only
-    // panel A ever heard it.)
+    // was already listening, so panel A holds an unheld receiving end of it
+    // and overlay B hears no disconnect: the Task 6 ruling's stated cost. It
+    // stays up until the user exits it, and its exit must still dismiss it.
+    // (Overlay A opened before panel B listened; only panel A ever heard it.)
     await cdp.send('Target.closeTarget', { targetId: panelB.targetId });
     await sleep(3000);
     const bHost = await hasHost(second);
@@ -578,9 +600,11 @@ async function main(cdp) {
     console.log(`two panels, B closed while A lives (3 s): overlay A mounted: ${aHost ? 'yes' : 'no'}; overlay B mounted: ${bHost ? 'yes' : 'no'}${bShows ? ` — it shows ${bShows.idle !== null ? `the idle message ${JSON.stringify(bShows.idle)}` : `entries ${JSON.stringify(bShows.entries)}`}` : ''}`);
     if (!aHost) miss('two panels: closing panel B unmounted overlay A, whose panel lives');
     if (bHost) {
-      // Its exit goes out on its port, and no one holding the port listens.
+      // No one holding its port listens: the overlay unmounts itself on an exit (`overlayPort.ts`).
       await overlayB.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
-      console.log(`  Escape in the orphaned overlay B unmounts it: ${(await hostGone(second, 2000)) ? 'yes' : 'no'}`);
+      const dismissed = await hostGone(second, 2000);
+      console.log(`  Escape in the orphaned overlay B unmounts it: ${dismissed ? 'yes' : 'no'}`);
+      if (!dismissed) miss('two panels: Escape in the orphaned overlay B left it mounted after 2 s');
     }
 
     await cdp.send('Target.closeTarget', { targetId: panelA.targetId });
