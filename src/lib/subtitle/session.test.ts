@@ -45,6 +45,15 @@ describe('subtitleSession', () => {
     expect(subtitleSession({ ...input, turnMode: 'push-to-talk' })).toMatchObject({ since: null, holdToTalk: false });
   });
 
+  it('offers hold-to-talk only when the run has a speaker leg (plan 1e-4 ruling 8)', () => {
+    const participantOnly: RunState = { phase: 'running', since: 1000, legs: { participant: 'live' } };
+    expect(subtitleSession({ ...input, run: participantOnly, turnMode: 'push-to-talk' }).holdToTalk).toBe(false);
+    const both: RunState = { phase: 'running', since: 1000, legs: { speaker: 'live', participant: 'live' } };
+    expect(subtitleSession({ ...input, run: both, turnMode: 'push-to-translate' }).holdToTalk).toBe(true);
+    const reconnecting: RunState = { phase: 'running', since: 1000, legs: { speaker: 'reconnecting' } };
+    expect(subtitleSession({ ...input, run: reconnecting, turnMode: 'push-to-talk' }).holdToTalk).toBe(true);
+  });
+
   it('allows a start only while idle and not blocked by the provider', () => {
     expect(subtitleSession(input).canStart).toBe(true);
     expect(subtitleSession({ ...input, readiness: undefined }).canStart).toBe(true);

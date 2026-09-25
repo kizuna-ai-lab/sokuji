@@ -25,7 +25,7 @@ export interface SubtitleSession {
   legs: readonly LegName[];
   /** The selected provider's language pair, for the bar. */
   pair: LanguagePair | null;
-  /** A run is live under manual turns: the surface offers its hold control. */
+  /** A run is live under manual turns with a speaker leg to hold (plan 1e-4 ruling 8): the surface offers its hold control. */
   holdToTalk: boolean;
   /** Start is offered: idle, and the provider neither known to be unready nor being checked. */
   canStart: boolean;
@@ -68,7 +68,9 @@ export function subtitleSession({ run, readiness, pair, turnMode, legs, micropho
     since: run.phase === 'running' ? run.since : null,
     legs,
     pair,
-    holdToTalk: run.phase === 'running' && turnMode !== 'auto',
+    // A press opens a turn on the speaker leg only (`Run.press`, run.ts:275-281):
+    // a participant-only run offers no hold — it would do nothing.
+    holdToTalk: run.phase === 'running' && turnMode !== 'auto' && run.legs.speaker !== undefined,
     // The runner checks readiness at start; only a known blocker or a check in flight keeps Start off.
     canStart: run.phase === 'idle' && !microphoneMissing && readiness?.state !== 'not-ready' && readiness?.state !== 'checking' && providerLoaded,
     idle: idleOf(run, readiness, microphoneMissing),
