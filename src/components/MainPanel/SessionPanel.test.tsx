@@ -47,13 +47,15 @@ const playback = vi.hoisted(() => {
 });
 // `failures`: how many loads fail before one succeeds (the session retries a failed load on its next call).
 const load = vi.hoisted(() => ({ failures: 0 }));
+// The test tone: a case gives it `AppAudio.testTone`'s behaviour (appAudio.test.ts covers the real one).
+const tone = vi.hoisted(() => ({ testTone: vi.fn(async (_signal?: AbortSignal) => {}) }));
 vi.mock('../../lib/audio/appAudio', () => ({
   getAppAudio: async () => {
     if (load.failures > 0) {
       load.failures -= 1;
       throw new Error('the graph did not build');
     }
-    return { playback, testTone: async () => {} };
+    return { playback, testTone: tone.testTone };
   },
 }));
 
@@ -66,10 +68,6 @@ const capture = vi.hoisted(() => ({
   },
 }));
 vi.mock('../../lib/audio/appCapture', () => ({ createAppCapture: () => capture }));
-
-// The test tone's decode, held open until a case lets it finish.
-const tone = vi.hoisted(() => ({ load: vi.fn() }));
-vi.mock('../../lib/audio/testTone', () => ({ loadTestTone: tone.load }));
 
 vi.mock('../../lib/segmentation/PunctuationRuntime', () => {
   class FakePunctuationRuntime {
@@ -552,12 +550,16 @@ describe('SessionPanel', () => {
   // Ruling 16's toggle: a second press stops the tone, even one still decoding.
   it('stops the test tone on a second press: a playing one ends, a decoding one never plays', async () => {
     const restoreCanvas = stubCanvas();
-    vi.stubGlobal('OfflineAudioContext', class {});
     const preview = vi.spyOn(playback, 'preview');
     const stopPreview = vi.spyOn(playback, 'stopPreview');
+    // `AppAudio.testTone`'s contract: decode, then play unless the press's signal aborted meanwhile.
     let decoded!: (clip: { audio: Float32Array; sampleRate: number }) => void;
-    tone.load.mockReset();
-    tone.load.mockImplementation(() => new Promise((resolve) => { decoded = resolve; }));
+    const decode = new Promise<{ audio: Float32Array; sampleRate: number }>((resolve) => { decoded = resolve; });
+    tone.testTone.mockImplementation(async (signal?: AbortSignal) => {
+      const clip = await decode;
+      if (signal?.aborted) return;
+      await playback.preview(clip);
+    });
     try {
       useSettingsStore.setState({ uiMode: 'advanced' });
       const { container } = await renderPanel();
@@ -568,6 +570,8 @@ describe('SessionPanel', () => {
       expect(debug().classList.contains('active')).toBe(true);
       fireEvent.click(debug());
       expect(debug().classList.contains('active')).toBe(false);
+      const [firstPress] = tone.testTone.mock.calls[0];
+      expect(firstPress?.aborted).toBe(true);
       const clip = { audio: new Float32Array(8), sampleRate: 24000 };
       await act(async () => { decoded(clip); });
       expect(preview).not.toHaveBeenCalled();
@@ -582,7 +586,10 @@ describe('SessionPanel', () => {
       await act(async () => { fireEvent.click(debug()); });
       expect(stopPreview).toHaveBeenCalled();
       expect(debug().classList.contains('active')).toBe(false);
+      expect(tone.testTone.mock.calls[1][0]?.aborted).toBe(true);
     } finally {
+      tone.testTone.mockReset();
+      tone.testTone.mockImplementation(async () => {});
       preview.mockRestore();
       stopPreview.mockRestore();
       restoreCanvas();

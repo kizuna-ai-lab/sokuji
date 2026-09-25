@@ -92,7 +92,12 @@ describe('getAppAudio', () => {
     expect(constructed).toBe(2);
   });
 
-  it('decodes the test tone on an offline context of its own, never on the live one (a rebuild may have closed it)', async () => {
+  /**
+   * A fresh `getAppAudio` over fake Web Audio, for the test tone: the live
+   * contexts it opens, the offline contexts it decodes on, and the decode.
+   * `fetched` is when the tone's asset arrives (at once unless a case holds it).
+   */
+  async function toneAudio(fetched: Promise<void> = Promise.resolve()) {
     const decoded = async () => ({
       length: 4, numberOfChannels: 1, sampleRate: SAMPLE_RATE, getChannelData: () => new Float32Array(4).fill(0.5),
     });
@@ -119,11 +124,18 @@ describe('getAppAudio', () => {
         return new FakeWorkletNode(name, options.processorOptions.chunk);
       }
     });
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })));
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      await fetched;
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+    }));
 
     vi.resetModules();
     const { getAppAudio } = await import('./appAudio');
-    const audio = await getAppAudio();
+    return { audio: await getAppAudio(), live, offline, offlineDecode };
+  }
+
+  it('decodes the test tone on an offline context of its own, never on the live one (a rebuild may have closed it)', async () => {
+    const { audio, live, offline, offlineDecode } = await toneAudio();
     const playing = audio.testTone();
     await vi.waitFor(() => expect(live[0].sources).toHaveLength(1));
     live[0].advance(1);
@@ -132,6 +144,31 @@ describe('getAppAudio', () => {
     expect(offline).toEqual([[1, 1, SAMPLE_RATE]]);
     expect(offlineDecode).toHaveBeenCalledTimes(1);
     expect(live[0].decodeAudioData).not.toHaveBeenCalled();
+  });
+
+  // A stop while the tone still decodes (the panel's second press): nothing may play once it has.
+  it('plays nothing when the signal aborts before the tone has decoded', async () => {
+    let arrive!: () => void;
+    const { audio, live, offlineDecode } = await toneAudio(new Promise<void>((resolve) => { arrive = resolve; }));
+    const press = new AbortController();
+    let settled = false;
+    void audio.testTone(press.signal).then(() => { settled = true; });
+    press.abort();
+    arrive();
+    await vi.waitFor(() => expect(offlineDecode).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(live[0].sources).toHaveLength(0);
+    // Settled at once: a preview would hold it until its clip ended.
+    expect(settled).toBe(true);
+  });
+
+  it('plays the tone when the signal never aborts', async () => {
+    const { audio, live } = await toneAudio();
+    const playing = audio.testTone(new AbortController().signal);
+    await vi.waitFor(() => expect(live[0].sources).toHaveLength(1));
+    live[0].advance(1);
+    await playing;
   });
 });
 

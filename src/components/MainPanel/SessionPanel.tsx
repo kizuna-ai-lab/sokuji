@@ -12,9 +12,6 @@ import { useRunState } from '../../app/useRun';
 import { isDevelopment } from '../../config/analytics';
 import { useAnalytics } from '../../lib/analytics';
 import { LOOPBACK_DENIED } from '../../lib/audio/capture/systemAudio';
-import type { PreviewClip } from '../../lib/audio/playback';
-import { loadTestTone } from '../../lib/audio/testTone';
-import { SAMPLE_RATE } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
 import { NO_MICROPHONE } from '../../lib/session/shape';
@@ -89,38 +86,27 @@ function useLoadedAudio(session: AppSession, phase: RunState['phase']): LoadedAu
 
 /**
  * The development test tone (1e-3 ruling 16): a press plays it, a second
- * press stops it — a playing tone ends, and one still decoding never plays.
- * `AppAudio.testTone()` decodes and plays in one call, so a stop during its
- * first decode would find nothing to stop; the panel decodes and plays the
- * same clip on the same route (`Playback.preview`) itself instead, with the
- * press cancelled between the two. Development builds only.
+ * press stops it — a playing tone ends (`stopPreview`), and one still
+ * decoding never plays (its press's signal aborts). Development builds only.
  */
 function useTestTone(audio: LoadedAudio | null): { playing: boolean; toggle(): void } | undefined {
   const [playing, setPlaying] = useState(false);
-  // Decoded once for the panel's life; a failed decode is tried again on the next press.
-  const tone = useRef<Promise<PreviewClip> | null>(null);
-  // The press in flight; a second press marks it cancelled.
-  const press = useRef<{ cancelled: boolean } | null>(null);
+  // The press in flight; a second press aborts it.
+  const press = useRef<AbortController | null>(null);
   const toggle = useCallback(() => {
     if (!audio) return;
     const current = press.current;
     if (current) {
-      current.cancelled = true;
+      current.abort();
       press.current = null;
       audio.playback.stopPreview();
       setPlaying(false);
       return;
     }
-    const mine = { cancelled: false };
+    const mine = new AbortController();
     press.current = mine;
     setPlaying(true);
-    // An offline context of the playback's rate, as `AppAudio.testTone` decodes on: never closed, unlike a rebuilt live one (#246).
-    tone.current ??= loadTestTone(new OfflineAudioContext(1, 1, SAMPLE_RATE)).catch((error: unknown) => {
-      tone.current = null;
-      throw error;
-    });
-    tone.current
-      .then((clip) => (mine.cancelled ? undefined : audio.playback.preview(clip)))
+    audio.testTone(mine.signal)
       .catch((error: unknown) => reportError('MainPanel', `The test tone did not play: ${describeCause(error)}`, { cause: error }))
       .finally(() => {
         if (press.current !== mine) return;

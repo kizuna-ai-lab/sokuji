@@ -24,8 +24,13 @@ type AudioState = ReturnType<typeof useAudioStore.getState>;
 
 export interface AppAudio {
   playback: Playback;
-  /** Plays the bundled test tone on the real device: a fixed route, never into the meeting. */
-  testTone(): Promise<void>;
+  /**
+   * Plays the bundled test tone on the real device: a fixed route, never into
+   * the meeting. A `signal` that aborts before the tone has decoded plays
+   * nothing — a stop pressed during the first decode; once playing,
+   * `playback.stopPreview()` ends it.
+   */
+  testTone(signal?: AbortSignal): Promise<void>;
 }
 
 export function readRouting(
@@ -132,7 +137,7 @@ async function build(): Promise<AppAudio> {
   let tone: Promise<PreviewClip> | null = null;
   return {
     playback,
-    async testTone() {
+    async testTone(signal) {
       // Not on `context`: a rebuild (#246) may have closed it before the first
       // decode, and browsers have differed on decoding on a closed context. An
       // offline context of the same rate decodes to the same samples and is
@@ -141,7 +146,9 @@ async function build(): Promise<AppAudio> {
         tone = null;
         throw error;
       });
-      await playback.preview(await tone);
+      const clip = await tone;
+      if (signal?.aborted) return;
+      await playback.preview(clip);
     },
   };
 }

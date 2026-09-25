@@ -17,13 +17,12 @@ export function lastEndItem(state: RunState): DisplayItem | null {
     notice: {
       kind: 'notice',
       // A list caches a notice's action by its id (plan 1e-3b-1 ruling 14), and
-      // the action follows the code: an end with another code is another
-      // notice. Without a code there is no action to go stale.
-      id: notice.code !== undefined ? `last-end:${notice.code}` : 'last-end',
+      // the action follows the code: an end with another code is another notice.
+      id: `last-end:${notice.code}`,
       leg: notice.leg ?? 'speaker',
       severity: 'error',
       message: notice.message,
-      ...(notice.code !== undefined ? { code: notice.code } : {}),
+      code: notice.code,
       ...(notice.params ? { params: notice.params } : {}),
       at: 0,
     },
