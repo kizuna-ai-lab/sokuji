@@ -692,3 +692,49 @@ What it leaves:
 - An Edge TTS worker that dies during its decode-start handshake leaves the
   engine's promise unsettled (the adapter no longer waits on it); the engine
   is where to fix it.
+
+## Scheduled by plan 1e-2b
+
+Plan 1e-2b (LocalInference's sentence-cut jobs) landed as commits
+`a8357ecb..7ec9f781`: five tasks and a final-review fix wave. With the display
+set to sentences and a size of 1–5, LocalInference translates every N sentences
+inside an utterance, as today: `src/providers/localInference/sentenceCut.ts`
+ports today's seal cursor and truncated re-decode guard over the runner's
+punctuator, the adapter gives each job its own source segment and origin, and the
+voxtral worker's endpoint is off only while this stage seals. The runner gives a
+run a punctuator only when a model can run for it (`punctuationReady`, read once).
+Checked live in the preview (`spine-local-probe.mjs --sentences`: one utterance
+of two sentences becomes two source rows, each with its translation). Plan
+1e-2's ruling 1 ("a size of 1–5 behaves as Auto") is retired.
+
+The fix wave also fixed an ordering bug the stream shape made routine: the
+projection ordered two exchanges of one leg that opened in the same millisecond
+by id as a string, so `u10` sorted before `u9`; same-leg ties now keep L1's
+order, ties between legs go by leg name.
+
+Stated departures from today (the plan's rulings): transcription-only
+(`kind: 'none'`) no longer streams — the display cut is L2's; long typed text
+is one job; a stale cursor no longer survives an ASR error or an empty final.
+
+What it leaves:
+
+**1e-3 — the switch-over**
+- Wire the app's `punctuationReady` from `PunctuationRuntime.enabled`; it still
+  reads true for a model the runtime disabled mid-session (today's client has
+  the same gap).
+- Check live: L1 punctuates `length` and `end` source rows for display while
+  the job translates their raw text, so an `end` tail filled into several
+  sentences shows several source rows over one translation row.
+- The seal-count analytics (`segmentation_seals`, `_model_calls` in
+  `translation_session_end`): the shim carries no `observe`.
+
+**Stage 2**
+- Fill the `end` tail's job text if translation quality on unpunctuated engines
+  asks for it (`SealedChunk.reason` makes it one line).
+- The truncated re-decode guard compares trimmed prefixes; a skeleton prefix
+  would also catch a re-decode that only recases or re-punctuates.
+- A letterless seal (an utterance opening with a lone mark or bracket) leaves
+  the cursor in place, so each later partial re-seals it and logs its frame
+  again; rows and jobs stay right. Today's client has the same cursor.
+- Move `SentenceCut` to a shared home when LocalNative ports: it drives
+  `SentenceStream` the same way.
