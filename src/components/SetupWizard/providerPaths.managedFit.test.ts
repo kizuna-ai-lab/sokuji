@@ -31,9 +31,9 @@ const { Provider } = await import('../../types/Provider');
 const { managedProvider, managedOption, availablePaths } = await import('./providerPaths');
 
 describe('the managed path answers for the scenario, like every other card', () => {
-  it('still offers the path — the card is the only way to reach the managed provider', () => {
+  it('offers no managed card until Stage 2, though a managed provider is registered', () => {
     expect(managedProvider()).toBe(Provider.KIZUNA_AI_OPENAI_TRANSLATE);
-    expect(availablePaths()).toContain('managed');
+    expect(availablePaths()).not.toContain('managed');
   });
 
   it('reports the provider as unfit for a scenario it cannot serve', () => {

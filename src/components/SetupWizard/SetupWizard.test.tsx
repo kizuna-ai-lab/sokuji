@@ -124,101 +124,23 @@ describe('SetupWizard', () => {
     expect(screen.getByRole('radio', { name: /Be understood in a meeting/ })).toBeChecked();
   });
 
-  it('greys out a provider that cannot serve the scenario and says why', () => {
-    render(<SetupWizard variant="first-run" />);
-    next();
-    // A subtitles-only scenario plus a provider that always speaks: the other
-    // half of providerFitForScenario, and the one with a subject that is not
-    // itself a candidate for removal.
-    fireEvent.click(screen.getByRole('radio', { name: /Subtitle my own speech/ }));
-    next();
-    fireEvent.click(screen.getByRole('radio', { name: /I have my own API key/ }));
-    const palabra = screen.getByRole('radio', { name: /PalabraAI/ });
-    expect(palabra).toBeDisabled();
-    expect(palabra.closest('label')?.textContent).toMatch(/always speaks; it cannot run subtitles-only/);
-  });
-
-  it('keeps showing a saved key after Skip and Back, and does not call it missing', async () => {
-    // Reported 2026-08-25: skipping cleared the box for a key that is still in
-    // settings. Skipping when a validated key is already saved means "leave it
-    // as it is", not "I have no key".
-    sliceState = { openai: { apiKey: 'sk-saved' }, soniox: { apiKey: '', region: 'us' } };
-    apiKeyValid = true;
-    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'openai', completedAt: 'x' };
-    render(<SetupWizard variant="rerun" onClose={() => {}} />);
-    next(); next(); next();                           // language → scenario → path → credentials
-    expect(screen.getByLabelText('apiKey')).toHaveValue('sk-saved');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
-    back();
-    expect(screen.getByLabelText('apiKey')).toHaveValue('sk-saved');
-
-    next(); next();                                   // language pair → finish
-    expect(screen.queryByText(/No API key yet/)).toBeNull();
-  });
-
-  it('lets an own-key user skip the credentials for now and finish', async () => {
+  it('finishes the offline path with nothing to enter', async () => {
     render(<SetupWizard variant="first-run" />);
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Subtitle my own speech/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /I have my own API key/ }));
-    fireEvent.click(screen.getByRole('radio', { name: /^OpenAI$/ }));
-    next();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-    // Skip carries the user forward itself; it is a button beside a button and
-    // a version that only set a flag looked broken.
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
-    // The language-pair step itself, not just an enabled Next: skipping also
-    // sets credentialsPending, which enables Next on the credential step too.
-    expect(screen.getByRole('combobox', { name: 'they read' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next();                                           // the hardware notice
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    next();                                           // language pair
     next();                                           // finish
-    expect(screen.getByText(/No API key yet/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(applied).toHaveLength(1));
-    expect(applied[0]).toMatchObject({ scenario: 'subtitle-myself', providerPath: 'own-key', provider: 'openai', credentialsPending: true });
-    // First-run Finish hands straight off to the tour, seeded with the outcome
-    // the store does not know yet: the key was skipped, so apiKeyValid is false.
+    expect(applied[0]).toMatchObject({ scenario: 'subtitle-myself', providerPath: 'offline', provider: 'local_inference', credentialsPending: false });
+    // First-run Finish hands straight off to the tour. Nothing to validate on
+    // the offline path, so apiKeyValid stays null rather than true/false.
     expect(startTourSpy).toHaveBeenCalledTimes(1);
-    expect(startTourSpy).toHaveBeenCalledWith(expect.objectContaining({ providerPath: 'own-key', apiKeyValid: false, mode: 'speaker', textOnly: true }));
-  });
-
-  it('opens the sign-in overlay from the managed path and passes once signed in', () => {
-    const { rerender } = render(<SetupWizard variant="first-run" />);
-    next();
-    fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
-    next();
-    fireEvent.click(screen.getByRole('radio', { name: /Start right away/ }));
-    next();
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(setAuthOverlay).toHaveBeenCalledWith('sign-in');
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-    signedIn = true;
-    rerender(<SetupWizard variant="first-run" />);
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
-  });
-
-  it('stops calling a managed user pending once they have signed in', async () => {
-    const { rerender } = render(<SetupWizard variant="first-run" />);
-    next();
-    fireEvent.click(screen.getByRole('radio', { name: /Understand what others say/ }));
-    next();
-    fireEvent.click(screen.getByRole('radio', { name: /Start right away/ }));
-    next();
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));   // pending, and on to the pair
-    signedIn = true;
-    rerender(<SetupWizard variant="first-run" />);
-    next();                                           // finish
-    expect(screen.queryByText(/Not signed in/)).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
-    await waitFor(() => expect(trackSpy.mock.calls.some((c) => c[0] === 'setup_completed')).toBe(true));
-    expect(trackSpy.mock.calls.find((c) => c[0] === 'setup_completed')![1]).toMatchObject({ credentials_pending: false });
-    // The tour is seeded from the draft, so the managed path hands it
-    // apiKeyValid: null — the key is the backend's business, not the user's,
-    // and "false" would send the tour down the "add your key" copy.
-    expect(startTourSpy).toHaveBeenCalledTimes(1);
-    expect(startTourSpy).toHaveBeenCalledWith(expect.objectContaining({ providerPath: 'managed', apiKeyValid: null, isSignedIn: true }));
+    expect(startTourSpy).toHaveBeenCalledWith(expect.objectContaining({ providerPath: 'offline', apiKeyValid: null, mode: 'speaker', textOnly: true }));
   });
 
   it('does not start the tour when Finish fails', async () => {
@@ -351,16 +273,15 @@ describe('SetupWizard', () => {
   });
 
   it('pre-fills a re-run from the stored record', () => {
-    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'openai', completedAt: 'x' };
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'offline', provider: 'local_inference', completedAt: 'x' };
     apiKeyValid = true;
     render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
     next();
     expect(screen.getByRole('radio', { name: /Be understood in a meeting/ })).toBeChecked();
     next();
-    expect(screen.getByRole('radio', { name: /I have my own API key/ })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /^OpenAI$/ })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /Free, offline/ })).toBeChecked();
     next();
-    // credentialsAlreadyValid carried over from a valid live key: nothing to re-enter.
+    // Nothing to re-enter on the offline path.
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
   });
 
@@ -370,6 +291,38 @@ describe('SetupWizard', () => {
     render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
     next();
     expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
+  });
+
+  it('starts blank from a managed record — the card is gone until Stage 2', async () => {
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'managed', provider: 'kizunaai_soniox', completedAt: 'x' };
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
+
+    // Walking the (only) offline card through Finish hands the offline
+    // provider, never the record's stale one.
+    fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next(); next(); next();                           // credentials, language pair, finish
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    await waitFor(() => expect(applied).toHaveLength(1));
+    expect(applied[0]).toMatchObject({ provider: 'local_inference' });
+  });
+
+  it('starts blank from an own-key record — the card is gone until Stage 2', async () => {
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'openai', completedAt: 'x' };
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next(); next(); next();
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    await waitFor(() => expect(applied).toHaveLength(1));
+    expect(applied[0]).toMatchObject({ provider: 'local_inference' });
   });
 
   it('will not abandon setup while Finish is in flight', async () => {
@@ -410,23 +363,28 @@ describe('SetupWizard', () => {
   });
 
   it('emits setup_started once and setup_step_viewed once per step, never on a keystroke', () => {
+    // No own-key card remains to type a credential into (offline only until
+    // Stage 2), so the repeated-interaction-without-a-step-change half of this
+    // test uses the language pair's source select instead of a credential
+    // field — same property: a re-render that does not change draft.step must
+    // not refire the tracking effect.
     render(<SetupWizard variant="first-run" />);
     next();
     fireEvent.click(screen.getByRole('radio', { name: /Subtitle my own speech/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /I have my own API key/ }));
-    fireEvent.click(screen.getByRole('radio', { name: /^OpenAI$/ }));
-    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
+    next();                                           // credentials: nothing to enter
+    next();                                           // language pair
 
-    const apiKeyInput = screen.getByLabelText('apiKey');
-    fireEvent.change(apiKeyInput, { target: { value: 'a' } });
-    fireEvent.change(apiKeyInput, { target: { value: 'ab' } });
-    fireEvent.change(apiKeyInput, { target: { value: 'abc' } });
+    const sourceSelect = screen.getByRole('combobox', { name: 'I speak' }) as HTMLSelectElement;
+    fireEvent.change(sourceSelect, { target: { value: sourceSelect.value } });
+    fireEvent.change(sourceSelect, { target: { value: sourceSelect.value } });
+    fireEvent.change(sourceSelect, { target: { value: sourceSelect.value } });
 
     const startedCalls = trackSpy.mock.calls.filter((c) => c[0] === 'setup_started');
     const stepViewedCalls = trackSpy.mock.calls.filter((c) => c[0] === 'setup_step_viewed');
     expect(startedCalls).toHaveLength(1);
-    expect(stepViewedCalls).toHaveLength(4);
-    expect(stepViewedCalls[stepViewedCalls.length - 1][1]).toEqual({ step: 3, step_id: 'credentials' });
+    expect(stepViewedCalls).toHaveLength(5);
+    expect(stepViewedCalls[stepViewedCalls.length - 1][1]).toEqual({ step: 4, step_id: 'language-pair' });
   });
 });

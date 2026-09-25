@@ -170,7 +170,10 @@ const LEDGER: Record<string, number> = {
   'src/components/Settings/AdvancedSettings/AdvancedSettings.tsx': 1,
   'src/components/Settings/engine/EnginePage.tsx': 1,
   'src/components/SetupWizard/SetupWizard.tsx': 1,
-  'src/components/SetupWizard/applySetup.ts': 1,
+  // applySetup.ts's row is gone, not lowered to 0: its one call —
+  // `console.warn('[applySetup] Post-finish validation failed:', err)` —
+  // moved with the re-validation into useApplySetup.ts's applyProvider as a
+  // `reportWarning`, so there is nothing left here to swallow.
   'src/components/SetupWizard/steps/StepLanguage.tsx': 1,
   'src/components/Subtitle/ChildWindowPopover.tsx': 1,
   'src/components/Toast/ToastContext.tsx': 1,
