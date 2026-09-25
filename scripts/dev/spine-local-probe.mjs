@@ -73,8 +73,28 @@
  * non-empty translation row are drawn, printing the preview's own
  * start-failure line (`SessionControls`' `state.lastEnd`) when one is
  * showing, and whatever rows did get drawn either way.
+ *
+ * `--sentences`: task 5's live check of LocalInference's sentence-cut jobs
+ * (plan 1e-2b) instead of the default per-final check above. It plays the
+ * same wav with its deliberate mid-file silence cut down to ~200 ms (built
+ * once per run into a fixture beside the browser profile, from the source
+ * wav's own header — nothing is hard-coded about its layout), so the two
+ * spoken parts arrive as one utterance instead of two. The URL adds
+ * `&cut=sentences:1&punctuation=1` to the default one: `&punctuation=1`
+ * downloads the punctuation pack (~400 MB) into the probe's profile before
+ * autostart — slow on a first run against a fresh profile, fast against a
+ * profile that already has it. Passes once at least two source rows and at
+ * least two translation rows have drawn text AND SpinePreview's seal-count
+ * probe (`[data-probe="seals"]`) shows at least one `local.segmentation.seal`
+ * frame with reason `sentences` — the seal count is what proves the
+ * sentence cut made the rows, not the VAD (a VAD-only cut would also draw
+ * two-plus rows for two spoken parts, seal count or no). Without this flag
+ * the probe is unchanged: same url, same wav, same single-row pass bar.
+ *
+ *   node scripts/dev/spine-local-probe.mjs --sentences
+ *   node scripts/dev/spine-local-probe.mjs --sentences [url] [seconds]
  */
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { evaluate, sleep, withPage } from './headless.mjs';
@@ -82,13 +102,20 @@ import { evaluate, sleep, withPage } from './headless.mjs';
 const REPO_ROOT = join(import.meta.dirname, '..', '..');
 const WAV = join(REPO_ROOT, 'benchmark', 'test-speech-silence-speech.wav');
 const DEFAULT_MODELS = 'moonshine-tiny-en-quant,opus-mt-en-jap';
-const url = process.argv[2]
-  ?? `http://localhost:5199/?preview=spine&provider=localInference&capture=device&autostart=1&models=${DEFAULT_MODELS}&pair=en:ja`;
-const seconds = Number(process.argv[3] ?? 600);
+
+const argv = process.argv.slice(2);
+const sentences = argv.includes('--sentences');
+const positional = argv.filter((a) => a !== '--sentences');
 
 const jobTmpDir = process.env.CLAUDE_JOB_DIR ? join(process.env.CLAUDE_JOB_DIR, 'tmp') : tmpdir();
 const PROFILE_DIR = join(jobTmpDir, 'spine-local-probe-profile');
 mkdirSync(PROFILE_DIR, { recursive: true });
+
+const DEFAULT_URL = `http://localhost:5199/?preview=spine&provider=localInference&capture=device&autostart=1&models=${DEFAULT_MODELS}&pair=en:ja`;
+const SENTENCES_URL = `${DEFAULT_URL}&cut=sentences:1&punctuation=1`;
+
+const url = positional[0] ?? (sentences ? SENTENCES_URL : DEFAULT_URL);
+const seconds = Number(positional[1] ?? 600);
 
 // `.lang-badge`'s `src`/`tr` class and `.row-text` mirror spine-surface-probe.mjs's
 // own reading of the same conversation list. The phase line is SessionControls'
@@ -110,12 +137,152 @@ const READ = `(() => {
   return { rows, phase: (startStop?.nextElementSibling?.textContent ?? '').trim(), lastEnd };
 })()`;
 
+// Extends READ with the seal counts SpinePreview exposes for this check
+// (task 5, plan 1e-2b rulings 11-12): `reason:count` pairs parsed back into
+// an object, e.g. `{ sentences: 2 }`.
+const READ_SENTENCES = `(() => {
+  const base = (${READ});
+  const sealsText = (document.querySelector('[data-probe="seals"]')?.textContent ?? '').trim();
+  const seals = {};
+  if (sealsText && sealsText !== '-') {
+    for (const part of sealsText.split(',')) {
+      const [reason, count] = part.split(':');
+      if (reason) seals[reason] = Number(count) || 0;
+    }
+  }
+  return { ...base, seals };
+})()`;
+
+/**
+ * Reads a mono 16-bit PCM WAV's `fmt `/`data` chunks (walking every chunk by
+ * its own size, so an intervening chunk — this file carries a `LIST` between
+ * them — is skipped rather than assumed away) and returns its samples and
+ * sample rate. Throws on anything else: this probe's fixture-building has no
+ * use for a format it would have to guess at.
+ */
+function readWavPcm16Mono(path) {
+  const buf = readFileSync(path);
+  if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') {
+    throw new Error(`${path}: not a RIFF/WAVE file`);
+  }
+  let offset = 12;
+  let fmt = null;
+  let dataOffset = -1;
+  let dataLength = 0;
+  while (offset + 8 <= buf.length) {
+    const id = buf.toString('ascii', offset, offset + 4);
+    const size = buf.readUInt32LE(offset + 4);
+    const body = offset + 8;
+    if (id === 'fmt ') {
+      fmt = {
+        audioFormat: buf.readUInt16LE(body),
+        channels: buf.readUInt16LE(body + 2),
+        sampleRate: buf.readUInt32LE(body + 4),
+        bitsPerSample: buf.readUInt16LE(body + 14),
+      };
+    } else if (id === 'data') {
+      dataOffset = body;
+      dataLength = size;
+    }
+    // Chunks are word-aligned: an odd-sized body is followed by one pad byte.
+    offset = body + size + (size % 2);
+  }
+  if (!fmt || dataOffset < 0) throw new Error(`${path}: missing fmt or data chunk`);
+  if (fmt.audioFormat !== 1 || fmt.channels !== 1 || fmt.bitsPerSample !== 16) {
+    throw new Error(`${path}: expected 16-bit mono PCM, got format=${fmt.audioFormat} channels=${fmt.channels} bits=${fmt.bitsPerSample}`);
+  }
+  const samples = new Int16Array(dataLength / 2);
+  for (let i = 0; i < samples.length; i++) samples[i] = buf.readInt16LE(dataOffset + i * 2);
+  return { samples, sampleRate: fmt.sampleRate };
+}
+
+/** Writes `samples` as a mono 16-bit PCM WAV at `sampleRate`. */
+function writeWavPcm16Mono(path, samples, sampleRate) {
+  const dataLength = samples.length * 2;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(36 + dataLength, 4);
+  header.write('WAVE', 8, 'ascii');
+  header.write('fmt ', 12, 'ascii');
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20); // PCM
+  header.writeUInt16LE(1, 22); // mono
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28); // byte rate = sampleRate * blockAlign
+  header.writeUInt16LE(2, 32); // block align = channels(1) * bitsPerSample(16)/8
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36, 'ascii');
+  header.writeUInt32LE(dataLength, 40);
+  const body = Buffer.alloc(dataLength);
+  for (let i = 0; i < samples.length; i++) body.writeInt16LE(samples[i], i * 2);
+  writeFileSync(path, Buffer.concat([header, body]));
+}
+
+/**
+ * Builds the `--sentences` fixture: `sourcePath`'s longest low-amplitude run
+ * (the deliberate gap between its two spoken parts, found by amplitude —
+ * every natural pause inside either spoken part is far shorter) cut down to
+ * `targetSilenceMs`, so the two parts arrive close enough together to read
+ * as one utterance. Node only: no ffmpeg/sox dependency.
+ */
+function buildSentencesFixture(sourcePath, outPath, targetSilenceMs) {
+  const { samples, sampleRate } = readWavPcm16Mono(sourcePath);
+  const windowMs = 20;
+  const windowSamples = Math.max(1, Math.round((sampleRate * windowMs) / 1000));
+  const windowCount = Math.floor(samples.length / windowSamples);
+  let peakAll = 0;
+  const peaks = new Array(windowCount);
+  for (let w = 0; w < windowCount; w++) {
+    let peak = 0;
+    const base = w * windowSamples;
+    for (let i = 0; i < windowSamples; i++) peak = Math.max(peak, Math.abs(samples[base + i]));
+    peaks[w] = peak;
+    peakAll = Math.max(peakAll, peak);
+  }
+  const threshold = peakAll * 0.05;
+  let bestStart = -1;
+  let bestLen = 0;
+  let runStart = -1;
+  for (let w = 0; w <= windowCount; w++) {
+    const silent = w < windowCount && peaks[w] < threshold;
+    if (silent) {
+      if (runStart < 0) runStart = w;
+    } else if (runStart >= 0) {
+      const len = w - runStart;
+      if (len > bestLen) { bestLen = len; bestStart = runStart; }
+      runStart = -1;
+    }
+  }
+  if (bestStart < 0) throw new Error(`${sourcePath}: no silent gap found between the two spoken parts`);
+
+  const gapStart = bestStart * windowSamples;
+  const gapEnd = (bestStart + bestLen) * windowSamples;
+  const targetSamples = Math.round((sampleRate * targetSilenceMs) / 1000);
+  const cutAt = Math.min(gapEnd, gapStart + targetSamples);
+
+  const head = samples.subarray(0, cutAt);
+  const tail = samples.subarray(gapEnd);
+  const trimmed = new Int16Array(head.length + tail.length);
+  trimmed.set(head, 0);
+  trimmed.set(tail, head.length);
+
+  writeWavPcm16Mono(outPath, trimmed, sampleRate);
+  console.log(`--sentences fixture: gap ${Math.round((bestLen * windowMs))}ms at ${Math.round((gapStart / sampleRate) * 1000)}ms cut to ${Math.round(((cutAt - gapStart) / sampleRate) * 1000)}ms (${outPath})`);
+}
+
 if (!existsSync(WAV)) {
   console.log(`FAIL: no wav at ${WAV}`);
   process.exit(1);
 }
 
-process.exitCode = await withPage(url, async (send) => {
+let audioFile = WAV;
+if (sentences) {
+  audioFile = join(jobTmpDir, 'spine-local-probe-sentences.wav');
+  buildSentencesFixture(WAV, audioFile, 200);
+}
+
+/** The default check: at least one source row and one translation row with text. */
+async function runDefaultCheck(send) {
   let last = { rows: [], phase: '', lastEnd: null };
   let sourceSeen = false;
   let translationSeen = false;
@@ -142,12 +309,52 @@ process.exitCode = await withPage(url, async (send) => {
   console.log(`FAIL: source row with text seen: ${sourceSeen} · translation row with text seen: ${translationSeen}`);
   if (last.lastEnd) console.log(`FAIL: the preview's lastEnd: ${last.lastEnd}`);
   return 1;
-}, {
+}
+
+/**
+ * `--sentences`: at least two source rows and two translation rows with
+ * text, AND at least one `sentences` seal — the seal count is what proves
+ * the sentence cut (not the VAD) made the rows.
+ */
+async function runSentencesCheck(send) {
+  let last = { rows: [], phase: '', lastEnd: null, seals: {} };
+  let sourceRows = 0;
+  let translationRows = 0;
+  let sentenceSeals = 0;
+  for (
+    let waited = 0;
+    waited < seconds * 1000 && !(sourceRows >= 2 && translationRows >= 2 && sentenceSeals >= 1);
+    waited += 3000
+  ) {
+    await sleep(3000);
+    const now = await evaluate(send, READ_SENTENCES);
+    if (!now) continue;
+    const phaseChanged = now.phase !== last.phase;
+    last = now;
+    sourceRows = last.rows.filter((r) => r.side === 'src' && r.text.length > 0).length;
+    translationRows = last.rows.filter((r) => r.side === 'tr' && r.text.length > 0).length;
+    sentenceSeals = last.seals.sentences ?? 0;
+    if (phaseChanged || waited % 15000 < 3000) {
+      console.log(`${Math.round(waited / 1000)}s — phase: ${last.phase || '?'} · rows: ${last.rows.length} · seals: ${JSON.stringify(last.seals)}${last.lastEnd ? ` · lastEnd: ${last.lastEnd}` : ''}`);
+    }
+  }
+
+  console.log(`rows drawn: ${last.rows.length}`);
+  for (const row of last.rows) console.log(`  ${row.side || '?'} | ${row.text}`);
+  console.log(`seal counts: ${JSON.stringify(last.seals)}`);
+
+  if (sourceRows >= 2 && translationRows >= 2 && sentenceSeals >= 1) return 0;
+  console.log(`FAIL: source rows with text: ${sourceRows} (need >=2) · translation rows with text: ${translationRows} (need >=2) · sentences seals: ${sentenceSeals} (need >=1)`);
+  if (last.lastEnd) console.log(`FAIL: the preview's lastEnd: ${last.lastEnd}`);
+  return 1;
+}
+
+process.exitCode = await withPage(url, (send) => (sentences ? runSentencesCheck(send) : runDefaultCheck(send)), {
   port: 9334,
   userDataDir: PROFILE_DIR,
   flags: [
     '--use-fake-ui-for-media-stream',
     '--use-fake-device-for-media-stream',
-    `--use-file-for-fake-audio-capture=${WAV}`,
+    `--use-file-for-fake-audio-capture=${audioFile}`,
   ],
 });

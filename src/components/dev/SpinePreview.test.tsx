@@ -42,11 +42,18 @@ vi.mock('../../lib/audio/appAudio', () => ({
 
 import { SpinePreview } from './SpinePreview';
 import { useProviderStore } from '../../stores/providerStore';
+import { useSegmentationStore } from '../../stores/segmentationStore';
 
 describe('SpinePreview', () => {
   it('shows the providers this build offers, starting with the fake', async () => {
     render(<SpinePreview />);
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();
+  });
+
+  it('shows no seals until the runner hands the preview a seal frame', async () => {
+    const { container } = render(<SpinePreview />);
+    await waitFor(() => expect(container.querySelector('[data-probe="seals"]')).not.toBeNull());
+    expect(container.querySelector('[data-probe="seals"]')?.textContent).toBe('-');
   });
 
   // Plan 1e-2 ruling 10: LocalInference is first in the registry now, so
@@ -100,6 +107,26 @@ describe('SpinePreview', () => {
     } finally {
       window.history.replaceState(null, '', before);
       windowOpen.mockRestore();
+    }
+  });
+
+  // Task 5, plan 1e-2b ruling 12: `&punctuation=1` downloads the punctuation
+  // pack before autostart so a `sentences` cut gets a real punctuator instead
+  // of racing a background load. Last in the file: this is the only test
+  // that actually starts the (module-singleton) preview runner, and nothing
+  // after it depends on that runner still being idle.
+  it('with &punctuation=1, downloads the punctuation pack before autostart when it is not ready', async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, '', '/?preview=spine&autostart=1&punctuation=1');
+    const download = vi.fn(async () => {
+      useSegmentationStore.setState({ phase: 'ready' });
+    });
+    useSegmentationStore.setState({ phase: 'missing', download });
+    try {
+      render(<SpinePreview />);
+      await waitFor(() => expect(download).toHaveBeenCalled());
+    } finally {
+      window.history.replaceState(null, '', before);
     }
   });
 });

@@ -12,8 +12,9 @@ import { autoSaveConversation } from '../../lib/export/appAutoSave';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, type DirectionSelection } from '../../lib/local-inference/selection/types';
 import type { AuthContext } from '../../lib/provider/types';
+import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
 import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from '../../lib/session/appShape';
-import type { AnalyticsPort, PlaybackPort } from '../../lib/session/ports';
+import type { AnalyticsPort, FramePort, PlaybackPort } from '../../lib/session/ports';
 import { createRunner, type Runner } from '../../lib/session/runner';
 import type { OpenSource } from '../../lib/session/source';
 import { appSubtitleSession } from '../../lib/subtitle/appSession';
@@ -33,6 +34,7 @@ import { useConversationDisplayStore } from '../../stores/conversationDisplaySto
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
+import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
@@ -91,8 +93,42 @@ const playbackBridge: PlaybackPort = {
   live: (on) => bridge.playback?.live(on),
 };
 
+/** Seal frames the runner hands the preview, by reason (plan 1e-2b ruling 11):
+ *  `local.segmentation.seal` only, mutated directly the way `captured` above
+ *  is for the capture-device probe — `useSealProbe` below polls it into the
+ *  DOM for `--sentences` (the seal count, not the rows, is what proves the
+ *  cut made them). */
+const sealCounts: Record<string, number> = {};
+
+const framesBridge: FramePort = {
+  frame: (_leg, frame) => {
+    if (frame.type !== 'local.segmentation.seal') return;
+    const payload = frame.payload as { reason?: unknown } | undefined;
+    const reason = typeof payload?.reason === 'string' ? payload.reason : 'unknown';
+    sealCounts[reason] = (sealCounts[reason] ?? 0) + 1;
+  },
+};
+
+let previewPunctuation: PunctuationRuntime | null = null;
+
+/**
+ * One PunctuationRuntime per page (plan 1e-2b ruling 12), built lazily beside
+ * `getPreviewRunner` the way MainPanel's `useSegmentationRuntime` builds the
+ * app's — minus its telemetry (log-store entries, analytics, load/inference
+ * console lines): this page only needs a punctuator that actually runs.
+ * `isEnabled` mirrors the hook's own rule: the stored display mode is by
+ * sentences AND the pack is on disk.
+ */
+function getPreviewPunctuation(): PunctuationRuntime {
+  previewPunctuation ??= new PunctuationRuntime({
+    isEnabled: () => useSettingsStore.getState().segmentationMode === 'sentences' && useSegmentationStore.getState().phase === 'ready',
+  });
+  return previewPunctuation;
+}
+
 /** One runner per page: the preview's stand-in for the app's, on the fake source unless the page asks for `&capture=device`. */
 function getPreviewRunner(): Runner {
+  const punctuation = getPreviewPunctuation();
   previewRunner ??= createRunner({
     clock: realClock,
     platform: getEnvironment(),
@@ -104,6 +140,9 @@ function getPreviewRunner(): Runner {
     openSource: (leg, signal) => bridge.openSource(leg, signal),
     playback: playbackBridge,
     analytics: { track: (event, properties) => bridge.track(event, properties) },
+    frames: framesBridge,
+    punctuate: (lang, text) => punctuation.punctuate(lang, text).then((r) => r?.text ?? null),
+    punctuationReady: () => punctuation.enabled,
     newSessionId: () => crypto.randomUUID(),
     onRunEnded: async (legs) => { await autoSaveConversation(legs, getPreviewRunner().conversation.info, bridge.notify); },
   });
@@ -129,6 +168,24 @@ function getPreviewSession(runner: Runner) {
 // Hoisted so `get()` returns the same object every call — `useSyncExternalStore` requires it.
 const IDLE: KaraokeState = { lit: new Map(), replaying: null };
 const NO_KARAOKE: Readable<KaraokeState> = { get: () => IDLE, subscribe: () => () => {} };
+
+/**
+ * Live view of `sealCounts`, for the probe's `--sentences` check: `FramePort`
+ * has no subscribe of its own, so this polls it into the DOM the way
+ * `usePlaybackProbe` (SessionControls.tsx) reads `captured` for
+ * `&capture=device`. `reason:count` pairs, `-` when nothing has sealed yet.
+ */
+function useSealProbe(): string {
+  const [text, setText] = useState('-');
+  useEffect(() => {
+    const id = setInterval(() => {
+      const next = Object.entries(sealCounts).map(([reason, count]) => `${reason}:${count}`).join(',') || '-';
+      setText((prev) => (prev === next ? prev : next));
+    }, 200);
+    return () => clearInterval(id);
+  }, []);
+  return text;
+}
 
 /** The new conversation list over the preview's view (plan 1d-1). Its copy is not localized. */
 function PreviewConversation({ view, karaoke, playback, runner }: {
@@ -289,7 +346,10 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
  * dev server at `/?preview=spine`; add `&autostart=1` to start a session on
  * load, for headless rendering, and `&capture=device` to run the session on
  * the page's real capture (the microphone for the speaker leg) instead of the
- * fake source.
+ * fake source. `&punctuation=1` downloads the punctuation pack before
+ * autostart, so a real `PunctuationRuntime` (built lazily beside the preview's
+ * runner, plan 1e-2b ruling 12) is on disk for a `sentences` cut — a dry run
+ * of plan 1e-3's own wiring.
  */
 export function SpinePreview() {
   const { isSignedIn, getToken } = useAuth();
@@ -341,6 +401,14 @@ export function SpinePreview() {
     exit: () => {},
   }), [runner]);
 
+  // Ask the disk once per page load, the way `useSegmentationRuntime` does for
+  // the app (plan 1e-2b ruling 12): without this, `getPreviewPunctuation`'s
+  // `isEnabled` would see `phase: 'unknown'` — never 'ready' — for a page
+  // that never opens Settings, and seal nothing even with all three models
+  // already on disk.
+  useEffect(() => {
+    void useSegmentationStore.getState().refresh();
+  }, []);
   useEffect(() => {
     void useTurnModeStore.getState().load();
     void useRoutingStore.getState().load();
@@ -440,6 +508,25 @@ export function SpinePreview() {
           }
         }
       }
+      // `&punctuation=1`: download the punctuation pack before autostart
+      // (plan 1e-2b ruling 12), beside the `&models=` downloads above — a
+      // `sentences` cut with no punctuator on disk would just fall back to
+      // cutting by length, and this page's whole point is a live check of the
+      // real sentence cut. `refresh()` is called again here (the mount
+      // effect's own call is fire-and-forget) so "phase is not ready" is read
+      // only once it has actually settled; a download failure is reported the
+      // same way a failed `&models=` download is above, and the run starts
+      // either way.
+      if (params.get('punctuation') === '1') {
+        await useSegmentationStore.getState().refresh();
+        if (useSegmentationStore.getState().phase !== 'ready') {
+          try {
+            await useSegmentationStore.getState().download();
+          } catch (error) {
+            reportError('SpinePreview', `The preview could not download the punctuation pack: ${describeCause(error)}`, { cause: error });
+          }
+        }
+      }
       void runner.start();
     })();
   }, [entry, audio, runner, providers]);
@@ -453,6 +540,7 @@ export function SpinePreview() {
     window.addEventListener('pagehide', onPageHide);
     return () => window.removeEventListener('pagehide', onPageHide);
   }, [runner]);
+  const sealProbe = useSealProbe();
 
   return (
     <div className="settings-container spine-preview">
@@ -464,6 +552,7 @@ export function SpinePreview() {
           audio={audio}
           capture={deviceCapture ? () => ({ ...captured }) : undefined}
         />
+        <p data-probe="seals">{sealProbe}</p>
         <PreviewConversation view={getPreviewView(runner)} karaoke={karaoke ?? NO_KARAOKE} playback={audio?.playback ?? null} runner={runner} />
         {previewParams.subtitle && (
           <PreviewSubtitle
