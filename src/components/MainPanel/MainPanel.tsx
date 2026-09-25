@@ -14,6 +14,7 @@ import { useAnalytics } from '../../lib/analytics';
 import { LOOPBACK_DENIED } from '../../lib/audio/capture/systemAudio';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
+import { participantSpeechHeard } from '../../lib/modern-audio/participantSource';
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
@@ -117,7 +118,7 @@ function useTestTone(audio: LoadedAudio | null): { playing: boolean; toggle(): v
   return isDevelopment() ? { playing, toggle } : undefined;
 }
 
-/** Today's update and audio-system listener inits (`MainPanel.tsx:1111-1125`), verbatim. */
+/** Today's update and audio-system listener inits (pre-switch MainPanel.tsx:1111-1125), verbatim. */
 function useUpdateAndAudioSystemListeners(): void {
   // Initialize auto-update listeners
   const initUpdateListeners = useInitUpdateListeners();
@@ -180,7 +181,10 @@ export default function MainPanel() {
   );
   const items = useMemo(() => (lastEnd ? [...drawn, lastEnd] : drawn), [drawn, lastEnd]);
   const segments = useMemo(() => new Map(viewState.legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [viewState.legs]);
-  const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (participantSpeech ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, participantSpeech]);
+  // No participant replay slot while the whole-system rule mutes it (ruling
+  // 7, completed): the switch, the run's shape and the route all agree.
+  const heardParticipantSpeech = participantSpeech && participantSpeechHeard(getEnvironment(), participantSource?.deviceId);
+  const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (heardParticipantSpeech ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, heardParticipantSpeech]);
   const participantNoticeCodes = useMemo(
     () => viewState.legs.find((leg) => leg.leg === 'participant')?.notices.flatMap((n) => (n.code ? [n.code] : [])) ?? [],
     [viewState.legs],
@@ -228,7 +232,7 @@ export default function MainPanel() {
     },
   );
   const testTone = useTestTone(audio);   // dev only: { playing, toggle } | undefined
-  useUpdateAndAudioSystemListeners();    // today's two listener inits, MainPanel.tsx:1111-1125
+  useUpdateAndAudioSystemListeners();    // today's two listener inits, pre-switch MainPanel.tsx:1111-1125
 
   const takeover = subtitleModeActive && isExtension();
   // The idle line counts: after a failed start it is all there is, and Clear takes it away.
@@ -275,7 +279,7 @@ export default function MainPanel() {
             canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}
             onReplay={(leg, id) => {
               if (!audio) return;
-              // The replay that is playing: its button stops it (today's toggle, `MainPanel.tsx:3543-3551`).
+              // The replay that is playing: its button stops it (today's toggle, pre-switch MainPanel.tsx:3543-3551).
               if (replaying === id) { audio.playback.stopReplay(); return; }
               const s = segments.get(id);
               if (s) audio.playback.replay(leg, s);

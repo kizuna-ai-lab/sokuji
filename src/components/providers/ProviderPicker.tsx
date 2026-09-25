@@ -6,8 +6,12 @@ import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/ty
 import { storedProviderValue } from '../../lib/session/storedSettings';
 import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useProviderStore } from '../../stores/providerStore';
+import Tooltip from '../Tooltip/Tooltip';
 import { CredentialForm } from './CredentialForm';
 import { useSelectedProvider } from './useSelectedProvider';
+
+/** Today's link (`ProviderSection.tsx:599`) — a literal, never imported from `src/services`. */
+const AI_PROVIDERS_DOCS_URL = 'https://sokuji.kizuna.ai/docs/ai-providers';
 
 /** Today's key (`ProviderSection.tsx`'s `DISMISSED_KEY`) — a dismissal made in today's Settings carries over. */
 const DISMISSED_TUTORIALS_KEY = 'sokuji-dismissed-tutorials';
@@ -65,6 +69,25 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
       <h3>
         <Cpu size={18} />
         <span>{t('simpleSettings.provider')}</span>
+        <Tooltip
+          content={
+            <div>
+              <p>{t('settings.providerTooltip')}</p>
+              <p style={{ marginTop: '8px' }}>{t('simpleSettings.apiKeyHelpTooltip2')}</p>
+              <a
+                href={AI_PROVIDERS_DOCS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#10a37f', textDecoration: 'underline' }}
+              >
+                {AI_PROVIDERS_DOCS_URL}
+              </a>
+            </div>
+          }
+          position="top"
+          icon="help"
+          maxWidth={350}
+        />
       </h3>
       <div className="provider-selection-area">
         <select

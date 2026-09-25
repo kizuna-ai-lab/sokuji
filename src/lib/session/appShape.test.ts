@@ -9,6 +9,16 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+// appShape.ts calls getEnvironment() directly (not isElectron()): mocking
+// isElectron alone would not reach it, since getEnvironment's own internal
+// call to isElectron() resolves within environment.ts's module scope, not
+// through this mock's exported binding.
+const environment = vi.hoisted(() => ({ value: 'web' as 'web' | 'electron' | 'extension' }));
+vi.mock('../../utils/environment', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/environment')>();
+  return { ...actual, getEnvironment: () => environment.value };
+});
+
 import type { AnyProvider, CheckContext } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -26,6 +36,8 @@ beforeEach(() => {
   useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'] });
   useTurnModeStore.setState({ turnMode: 'auto' });
   useRoutingStore.setState({ participantSpeech: false });
+  useAudioStore.setState({ selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
+  environment.value = 'web';
 });
 
 describe('legsFor', () => {
@@ -84,6 +96,38 @@ describe('readShapeFromStores', () => {
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useRoutingStore.setState({ participantSpeech: true });
+    expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
+  });
+});
+
+// 1e-3b-2 ruling 7, completed (final-review Important 1): the run's shape
+// must follow the same whole-system rule the switch and `readRouting` do, or
+// LocalInference loads Other's TTS model and MainPanel offers a replay slot
+// for a leg the switch shows off.
+describe("readShapeFromStores — participant speech follows the whole-system rule", () => {
+  beforeEach(() => {
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useRoutingStore.setState({ participantSpeech: true });
+  });
+
+  it('is off on Electron under a whole-system participant source', () => {
+    environment.value = 'electron';
+    useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
+    expect(readShapeFromStores(auth)?.participantSpeech).toBe(false);
+  });
+
+  it('is on on Electron once an application source is chosen', () => {
+    environment.value = 'electron';
+    useAudioStore.setState({ selectedParticipantSource: { deviceId: 'app:42', label: 'App' } });
+    expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
+  });
+
+  it('is on off Electron whatever the source', () => {
+    environment.value = 'web';
+    useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
     expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
   });
 });

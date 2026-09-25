@@ -107,4 +107,19 @@ describe("Settings — the 'provider' navigation target switches tabs without fl
 
     expect(getByTestId('advanced-body')).toHaveAttribute('data-active-tab', 'general');
   });
+
+  // Review Minor 2: 'model-management' switches tabs (NAVIGATION_TAB_MAP)
+  // but has no `#model-management-section` element outside a pushed page, so
+  // the 150ms scrollTimer finds nothing. Before the fix, that left the
+  // target stuck — the next Fix for the same code was a no-op.
+  it("target='model-management' (its section isn't rendered here): still clears after the scroll delay", () => {
+    mockTarget = 'model-management';
+    const { getByTestId } = render(<Settings />);
+
+    expect(getByTestId('advanced-body')).toHaveAttribute('data-active-tab', 'provider');
+    expect(navigateToSettings).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(200);
+    expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
 });

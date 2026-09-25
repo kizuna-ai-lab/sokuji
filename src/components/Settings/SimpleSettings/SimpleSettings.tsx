@@ -91,6 +91,11 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
           highlightedEl = null;
           navigateToSettings(null);
         }, 3000);
+      } else if (useSettingsStore.getState().settingsNavigationTarget === targetSection) {
+        // Nothing to highlight (e.g. a pushed page's section, never rendered
+        // here) — clear anyway, or the same code's next Fix is a no-op: the
+        // store value never changes, so nothing reopens Settings (review Minor 2).
+        navigateToSettings(null);
       }
     }, 100);
     return () => {

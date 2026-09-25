@@ -85,6 +85,15 @@ describe('ProviderPicker', () => {
     expect(await screen.findByLabelText('setup.credentials.apiKey')).toBeDisabled();
   });
 
+  // Review Minor 3: today's ProviderSection.tsx:590-611 had a help tooltip in
+  // the heading (same keys and link as its own languages heading's, restored
+  // by group check 1's LanguagePairSection); ProviderPicker's had none.
+  it('the heading holds a help tooltip trigger (parity with ProviderSection.tsx)', async () => {
+    const { container } = render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+    await screen.findByTitle('simpleSettings.validate');
+    expect(container.querySelector('h3 .tooltip-trigger')).toBeTruthy();
+  });
+
   it("shows a provider's EngineSummary, with the store's legs and openSlot passed through", async () => {
     const seen: EngineSummaryProps<FakeSettings>[] = [];
     const EngineSummary = (props: EngineSummaryProps<FakeSettings>) => { seen.push(props); return <div data-testid="engine-summary" />; };

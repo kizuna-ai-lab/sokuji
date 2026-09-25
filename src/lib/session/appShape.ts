@@ -5,6 +5,7 @@
  * during the run.
  */
 import type { LegName } from '../conversation/types';
+import { participantSpeechHeard } from '../modern-audio/participantSource';
 import type { AnyProvider, AuthContext, Readiness } from '../provider/types';
 import { presentProviders } from '../../providers/registry';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
@@ -12,6 +13,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
+import { getEnvironment } from '../../utils/environment';
 import { buildSharedSettings } from './shared';
 import type { RunShape } from './types';
 
@@ -34,7 +36,12 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: st.textOnly,
-    participantSpeech: useRoutingStore.getState().participantSpeech,
+    // 1e-3b-2 ruling 7, completed: the run must not ask the participant leg to
+    // speak when the switch shows it off (a whole-system participant capture
+    // on Electron would recapture it and translate it again as Other) — the
+    // same predicate `readRouting` and the switch itself use.
+    participantSpeech: useRoutingStore.getState().participantSpeech
+      && participantSpeechHeard(getEnvironment(), useAudioStore.getState().selectedParticipantSource?.deviceId),
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
       provider,

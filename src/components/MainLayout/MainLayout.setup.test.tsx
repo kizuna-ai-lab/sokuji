@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
+import { useProviderStore } from '../../stores/providerStore';
 import MainLayout from './MainLayout';
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
@@ -95,12 +96,15 @@ describe('signing in switches no provider', () => {
   // all, and Stage 2's managed step decides what, if anything, replaces it
   // (1e-3 ruling 12).
   it('switches no provider when a user signs in, wizard closed, Basic mode', () => {
+    const selectSpy = vi.fn();
+    useProviderStore.setState({ select: selectSpy });
     const { rerender } = render(<MainLayout />);
     signedIn = true;
     rerender(<MainLayout />);
     // The settings store's mock offers no provider setter at all: a switch
     // that reached for one would throw on this render.
     expect(screen.getByTestId('title-bar')).toBeInTheDocument();
+    expect(selectSpy).not.toHaveBeenCalled();
   });
 });
 

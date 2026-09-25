@@ -30,15 +30,80 @@ vi.mock('../../lib/edge-tts/voiceList', async (importOriginal) => ({
   getEdgeTtsVoices: edge.voices,
 }));
 
+// Ruling 11's case 1 mounts the real <AppSessionRoot /> beside
+// SettingsInitializer, so `attach()` genuinely runs (watchLegsFromStores,
+// driveLocalReadiness) — the same mocks AppSessionRoot.test.tsx uses for the
+// pieces only a running session would touch (audio/capture/punctuation),
+// none of which this case reaches: it never starts a run.
+vi.mock('../../lib/audio/appAudio', () => ({
+  getAppAudio: vi.fn(async () => {
+    const queue = { position: () => null, pending: 0, subscribe: () => () => {} };
+    return {
+      playback: {
+        queues: { speaker: queue, participant: queue, replay: queue },
+        audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn(), passthrough: vi.fn(),
+        ttsTap: { read: () => new Float32Array(0) },
+        meter: vi.fn(() => null),
+      },
+      testTone: async () => {},
+    };
+  }),
+}));
+vi.mock('../../lib/audio/appCapture', () => ({
+  createAppCapture: () => ({
+    openSource: async () => { throw new Error('no capture in tests'); },
+    echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
+    levels: {
+      speaker: { push() {}, read: () => new Float32Array(32), reset() {} },
+      participant: { push() {}, read: () => new Float32Array(32), reset() {} },
+    },
+  }),
+}));
+vi.mock('../../lib/segmentation/PunctuationRuntime', () => {
+  class FakePunctuationRuntime {
+    dispose = vi.fn();
+    punctuate = vi.fn(async () => null);
+    constructor(public opts: { isEnabled(): boolean }) {}
+    get enabled(): boolean {
+      return this.opts.isEnabled();
+    }
+  }
+  const PunctuationRuntime = vi.fn(function (opts: { isEnabled(): boolean }) {
+    return new FakePunctuationRuntime(opts);
+  });
+  const MODEL_IDS = {
+    'fireredpunc': 'punct-zh-fireredpunc',
+    'edge-punct-en': 'punct-en-edge',
+    'sat-3l-sm': 'punct-multi-sat',
+  };
+  return { PunctuationRuntime, MODEL_IDS };
+});
+vi.mock('../../lib/export/appAutoSave', () => ({
+  autoSaveConversation: vi.fn(async () => 'saved'),
+}));
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
+vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false, getToken: async () => null }) }));
+vi.mock('../../contexts/UserProfileContext', () => ({ useUserProfile: () => ({ refetchAll: vi.fn(async () => {}) }) }));
+
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
+import { AppSessionRoot } from '../../app/AppSessionRoot';
+import { READINESS_DELAY_MS } from '../../app/readiness';
+import { configureAppSession } from '../../app/session';
+import { createVirtualClock } from '../../lib/contract/clock';
 import useAudioStore from '../../stores/audioStore';
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore, type ProviderStore } from '../../stores/providerStore';
 import useSettingsStore from '../../stores/settingsStore';
+import { ToastProvider } from '../Toast';
 import { SettingsInitializer } from './SettingsInitializer';
+
+// The virtual clock attach()'s driveLocalReadiness reads, so its 150ms
+// debounce advances deterministically instead of racing real timers.
+const clock = createVirtualClock(0);
+configureAppSession({ clock, newSessionId: () => 'r1', ipc: null });
 
 const initial = {
   settings: useSettingsStore.getState(),
@@ -76,7 +141,11 @@ beforeEach(() => {
 describe('SettingsInitializer', () => {
   // Ruling 11. Before the switch, the settings store's mode subscription
   // re-ran `validateApiKey`, whose LocalInference arm calls
-  // `ensureSelectionReady` (and its prune wrote the old slice).
+  // `ensureSelectionReady` (and its prune wrote the old slice). This mounts
+  // the real <AppSessionRoot /> too, so attach()'s own wiring
+  // (watchLegsFromStores -> setLegs -> driveLocalReadiness's re-check) is
+  // the path a mode change actually takes now — not just SettingsInitializer
+  // in isolation.
   it('never reaches the old gate or the old slice, at startup or on a mode change', async () => {
     const writeSpy = vi.fn();
     const readySpy = vi.fn(async () => ({ ready: true, notes: [] }));
@@ -86,8 +155,11 @@ describe('SettingsInitializer', () => {
     await useProviderStore.getState().load(localInferenceProvider);
     useProviderStore.getState().select(localInferenceProvider.id);
 
-    render(<SettingsInitializer />);
+    render(<ToastProvider><SettingsInitializer /><AppSessionRoot /></ToastProvider>);
     act(() => { useAudioStore.getState().setMode('both'); });
+    // Lets attach()'s debounced local-readiness check actually run, through
+    // the provider's own `check` (check.ts) — not the old gate.
+    act(() => { clock.advance(READINESS_DELAY_MS); });
     await settle();
 
     expect(readySpy).not.toHaveBeenCalled();

@@ -41,10 +41,10 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'system-audio': 'audio',
   'participant': 'audio',
   // Engine chips (Task 10) deep-link here to switch to the provider tab
-  // without forcing Advanced mode — see ProviderSection's openSlot handler.
+  // without forcing Advanced mode — see AdvancedSettings' openSlot handler.
   // The target IS 'provider' (not a separate 'provider-section' key): the
   // scroll/highlight lookup below builds `${target}-section` as the DOM id,
-  // and ProviderSection's root carries id="provider-section" — so 'provider'
+  // and ProviderPicker's root carries id="provider-section" — so 'provider'
   // is the only target string that resolves to a real element.
   'provider': 'provider',
   'system-instructions': 'provider',
@@ -86,8 +86,8 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
       setActiveTab(targetTab);
     }
     // 'provider' is special (Finding 4): it's the engine chips' deep-link
-    // target (see ProviderSection's openSlot), and the section this would
-    // scroll/highlight is id="provider-section" — the WHOLE ProviderSection,
+    // target (see AdvancedSettings' openSlot), and the section this would
+    // scroll/highlight is id="provider-section" — the WHOLE ProviderPicker,
     // not the slot the chip actually opened. That flash now belongs to
     // EngineSurface's own expanded SlotRow (its one-shot `flashSlot` prop)
     // instead. Switch tabs only, and clear the one-shot target immediately
@@ -113,6 +113,10 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
           highlightedEl = null;
           navigateToSettings(null);
         }, 3000);
+      } else {
+        // Nothing to highlight (e.g. a pushed page's section) — clear
+        // anyway, or the same code's next Fix is a no-op (review Minor 2).
+        navigateToSettings(null);
       }
     }, 150);
     return () => {

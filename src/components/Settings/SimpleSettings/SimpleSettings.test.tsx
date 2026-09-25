@@ -195,4 +195,19 @@ describe('SimpleSettings — highlight ring cleanup (F2)', () => {
     expect(settingsNavigationTarget).toBe('participant');
     expect(navigateToSettings).not.toHaveBeenCalled();
   });
+
+  // Review Minor 2: 'model-management' (a pushed page's section) has no
+  // element outside that page, so the 100ms scrollTimer fires and finds
+  // nothing. Before the fix, that left the target stuck forever — the next
+  // Fix for the same code was a no-op, since the store value never changed.
+  it('clears the stored navigation target even when nothing in the DOM matches it', () => {
+    settingsNavigationTarget = 'model-management';
+    render(<SimpleSettings highlightSection="model-management" />);
+
+    expect(navigateToSettings).not.toHaveBeenCalled();
+    act(() => { vi.advanceTimersByTime(100); });
+
+    expect(settingsNavigationTarget).toBeNull();
+    expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
 });

@@ -55,11 +55,9 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => false,
   isKizunaAIEnabled: () => false,
 }));
+// MainLayout no longer reads a provider or a UI mode setter (ruling 12: the
+// sign-in auto-switch is gone) — only the three exports it still uses.
 vi.mock('../../stores/settingsStore', () => ({
-  useProvider: () => 'openai',
-  useUIMode: () => 'advanced',
-  useSetProvider: () => vi.fn(),
-  useSetUIMode: () => vi.fn(),
   useSettingsNavigationTarget: () => null,
   useSubtitleModeActive: () => false,
   // The logs button exists only while diagnostic logs are on, and these tests

@@ -44,3 +44,18 @@ export function needsLoopbackStream(deviceId: string | null | undefined): boolea
   if (isMacOS()) return false;
   return true;
 }
+
+/**
+ * Whether Other's translation, read aloud on the real device, is actually
+ * heard rather than recaptured and translated again as Other (1e-3b-2 ruling
+ * 7, completed): on Electron, a whole-system participant capture hears the
+ * real device too — Sokuji's own output included — so it is heard only off
+ * Electron, or on Electron while the chosen source is one application. The
+ * one predicate the participant-speech switch, the run's shape
+ * (`appShape.ts`'s `readShapeFromStores`), the playback route (`appAudio.ts`'s
+ * `readRouting`) and the replay slot (`MainPanel.tsx`'s `replayLegs`) all
+ * share, so what the switch shows is what the run does.
+ */
+export function participantSpeechHeard(platform: string, participantSourceId: string | null | undefined): boolean {
+  return platform !== 'electron' || isApplicationSource(participantSourceId);
+}

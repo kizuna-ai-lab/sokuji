@@ -7,7 +7,7 @@
  * read live from `audioStore`, `routingStore` and `turnModeStore`.
  */
 import { SAMPLE_RATE } from '../contract/adapter';
-import { isApplicationSource } from '../modern-audio/participantSource';
+import { participantSpeechHeard } from '../modern-audio/participantSource';
 import type { Platform } from '../provider/types';
 import type { TurnMode } from '../session/types';
 import useAudioStore from '../../stores/audioStore';
@@ -47,9 +47,11 @@ export function readRouting(
     monitor: audio.mode === 'speaker' && !audio.isMonitorMuted,
     // Other's translation on the real device is recaptured by a whole-system
     // participant capture and translated again as Other — the replay gate's
-    // reason (plan 1e-3b-2 ruling 7). An application capture that falls back
-    // to the whole system mid-run is not seen here: a follow-up.
-    participantSpeech: switches.participantSpeech && (platform !== 'electron' || isApplicationSource(audio.selectedParticipantSource?.deviceId)),
+    // reason (plan 1e-3b-2 ruling 7, completed: `participantSpeechHeard` is
+    // the one predicate this, the switch, the run's shape and the replay
+    // slot all share). An application capture that falls back to the whole
+    // system mid-run is not seen here: a follow-up.
+    participantSpeech: switches.participantSpeech && participantSpeechHeard(platform, audio.selectedParticipantSource?.deviceId),
     // 1e-3 ruling 4, today's rule (`isPassthroughActive`): under push-to-translate
     // the original voice is on at full level whenever the key is not held (the
     // route closes while held), whatever the passthrough toggle says.
