@@ -19,7 +19,7 @@ struct sk_vk_record {
     std::string driver_name, driver_info;
 };
 
-/* ggml_vk_instance_init's device list, replicated (ggml-vulkan.cpp:7441-7581 at v0.22.0):
+/* ggml_vk_instance_init's device list, replicated (ggml-vulkan.cpp:5076-5216 at v0.25.3):
  *  - GGML_VK_VISIBLE_DEVICES set → those raw indices, no filtering;
  *  - else keep DISCRETE/INTEGRATED devices with 16-bit storage, collapse duplicates by UUID
  *    (or LUID when valid; never when both drivers are MoltenVK) keeping the driver ggml's

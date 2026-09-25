@@ -62,7 +62,7 @@ def test_version_and_engines():
     # native/CMakeLists.txt and tests/test_common.cpp's own assert.
     assert re.fullmatch(r"\d+\.\d+\.\d+", sokuji_native.version())
     ev = sokuji_native.engine_versions()
-    assert ev["ggml"] == "0.22.0"
+    assert ev["ggml"] == "0.25.3"
     assert ev["transcribe"] == "0.2.3"
     assert ev["audiocpp"] == "0.7.1"
     assert ev["llama"] == "0.3.0"       # normalised: the upstream tag is v0.3.0

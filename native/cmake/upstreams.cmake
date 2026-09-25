@@ -23,15 +23,15 @@ if(SOKUJI_GGML_PATCH_SPEC)
 endif()
 FetchContent_Declare(ggml
     GIT_REPOSITORY https://github.com/ggml-org/ggml.git
-    GIT_TAG        34dc0e5589504286cb40e13cbdae4bf2b5b4071b   # v0.22.0
+    GIT_TAG        353b63b439f27ab2cc19dac97ab1681ba6d2d084   # v0.25.3
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
     ${_ggml_patch})
-set(SOKUJI_GGML_VERSION "0.22.0")
+set(SOKUJI_GGML_VERSION "0.25.3")
 
 FetchContent_MakeAvailable(ggml)
 set(SOKUJI_GGML_SOURCE_DIR "${ggml_SOURCE_DIR}")
-# ggml gives its two shared libraries VERSION/SOVERSION, i.e. libggml.so.0.22.0 plus the
+# ggml gives its two shared libraries VERSION/SOVERSION, i.e. libggml.so.0.25.3 plus the
 # libggml.so.0 and libggml.so symlinks (same on macOS). A wheel is a zip: it cannot carry
 # symlinks, so each link became a full third copy of the library. Nothing outside this
 # wheel ever links these — the engines are static inside libsokuji_native and the backend
