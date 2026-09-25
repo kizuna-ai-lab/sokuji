@@ -177,9 +177,11 @@ const LEDGER: Record<string, number> = {
   'src/components/Settings/engine/EnginePage.tsx': 1,
   'src/components/SetupWizard/SetupWizard.tsx': 1,
   // applySetup.ts's row is gone, not lowered to 0: its one call —
-  // `console.warn('[applySetup] Post-finish validation failed:', err)` —
-  // moved with the re-validation into useApplySetup.ts's applyProvider as a
-  // `reportWarning`, so there is nothing left here to swallow.
+  // `console.warn('[applySetup] Post-finish validation failed:', err)` — was
+  // the re-validation for an unchanged provider. The switch's applyProvider
+  // (useApplySetup.ts) binds straight to providerStore, whose own readiness
+  // driver (attach()'s driveLocalReadiness) re-checks automatically, so
+  // there is nothing left here to swallow — the call is gone, not moved.
   'src/components/SetupWizard/steps/StepLanguage.tsx': 1,
   'src/components/Subtitle/ChildWindowPopover.tsx': 1,
   'src/components/Toast/ToastContext.tsx': 1,

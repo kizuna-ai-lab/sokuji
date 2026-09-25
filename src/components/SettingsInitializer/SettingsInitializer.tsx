@@ -29,7 +29,7 @@ export function SettingsInitializer() {
       reportWarning('SettingsInitializer', `Scanning the downloaded models failed: ${describeCause(error)}`, { cause: error }));
   }, [isLocal]);
 
-  // Today's rule (SettingsInitializer.tsx:165-199): the picker's own effect runs only while Settings is open.
+  // Today's rule (pre-switch SettingsInitializer.tsx:165-199): the picker's own effect runs only while Settings is open.
   useEffect(() => {
     if (!isLocal || !settings || !source || !target) return;
     if (useModelStore.getState().resolve(source, target, settings.selections).tts?.modelId !== 'edge-tts') return;

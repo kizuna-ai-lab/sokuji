@@ -14,10 +14,12 @@ import type { LocalInferenceSettings } from '../../../providers/localInference/s
 
 /**
  * LocalInference's own `S`/`update`/pair (the new provider contract), used
- * instead of the legacy `settingsStore` hooks when given — the same
- * fallback `ModelManagementSection`/`StoragePage` offer, so every existing
- * caller (`SimpleSettings`, `ProviderSpecificSettings`) keeps reading the
- * store unchanged.
+ * instead of the legacy `settingsStore` hooks when given — the fallback
+ * `ModelManagementSection`/`StoragePage` still offer for an unmounted caller
+ * (`ProviderSpecificSettings`, compiled but never rendered since plan
+ * 1e-3b-2's switch). Every mount the switched app reaches
+ * (`LocalInferenceEngine`, wired from both `SimpleSettings` and
+ * `AdvancedSettings`) passes the override now.
  */
 export interface WasmEngineAdapterOverride {
   settings: LocalInferenceSettings;
