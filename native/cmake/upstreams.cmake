@@ -80,10 +80,10 @@ FetchContent_MakeAvailable(transcribe)
 # so it reuses our ggml target above instead of building its own copy: no patch needed.
 FetchContent_Declare(llama
     GIT_REPOSITORY https://github.com/ggml-org/llama.cpp.git
-    GIT_TAG        c1d0e7a004015f23bc0233470b747b596f29b264   # v0.3.0 (in-tree ggml 0.22.0)
+    GIT_TAG        7fe450e19305b828c199d602c23a8337aaa1f03b   # v0.5.0 (in-tree ggml 0.25.1)
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE)
-set(SOKUJI_LLAMA_VERSION "0.3.0")   # upstream tag is v0.3.0; the string is normalised like the other three
+set(SOKUJI_LLAMA_VERSION "0.5.0")   # upstream tag is v0.5.0; the string is normalised like the other three
 
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)

@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     assert(std::string(sk_version()) == "1.1.0");
     assert(std::strstr(sk_engine_versions(), "ggml=0.25.3") != nullptr);
     assert(std::strstr(sk_engine_versions(), "transcribe=0.2.4") != nullptr);
-    assert(std::strstr(sk_engine_versions(), "llama=0.3.0;") != nullptr);   // normalised: no "v", no suffix
+    assert(std::strstr(sk_engine_versions(), "llama=0.5.0;") != nullptr);   // normalised: no "v", no suffix
     assert(std::string(sk_last_error()).empty());
 
     sk_device before[8];
