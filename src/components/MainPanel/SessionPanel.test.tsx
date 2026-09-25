@@ -13,32 +13,63 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+// The replay queue karaoke reads: a case says which clip it is playing.
+const replayQueue = vi.hoisted(() => {
+  const listeners = new Set<() => void>();
+  let playing: { key: string; t: number; ms: number } | null = null;
+  return {
+    position: () => playing,
+    pending: 0,
+    clears: 0,
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => { listeners.delete(listener); };
+    },
+    /** Plays `key` (or nothing) and tells the listeners, as a clip starting or ending does. */
+    play(key: string | null) {
+      playing = key ? { key, t: 0, ms: 1000 } : null;
+      for (const listener of [...listeners]) listener();
+    },
+  };
+});
+
 // The page's playback, as far as the panel reaches it: the queues karaoke
 // reads, the ports the runner calls, and the bus meters the advanced footer asks for.
 const playback = vi.hoisted(() => {
-  const queue = { position: () => null, pending: 0, subscribe: () => () => {} };
+  const queue = { position: () => null, pending: 0, clears: 0, subscribe: () => () => {} };
   return {
-    queues: { speaker: queue, participant: queue, replay: queue },
+    queues: { speaker: queue, participant: queue, replay: replayQueue },
     audio() {}, held() {}, clear() {}, live() {}, passthrough() {},
-    replay() {}, stopReplay() {}, preview: async () => {}, stopPreview() {},
+    replay(_leg: string, _segment: { ref: number }) {}, stopReplay() {}, preview: async (_clip: unknown) => {}, stopPreview() {},
     ttsTap: { read: () => new Float32Array(0) },
     meter: (_bus: string): null => null,
   };
 });
+// `failures`: how many loads fail before one succeeds (the session retries a failed load on its next call).
+const load = vi.hoisted(() => ({ failures: 0 }));
 vi.mock('../../lib/audio/appAudio', () => ({
-  getAppAudio: async () => ({ playback, testTone: async () => {} }),
+  getAppAudio: async () => {
+    if (load.failures > 0) {
+      load.failures -= 1;
+      throw new Error('the graph did not build');
+    }
+    return { playback, testTone: async () => {} };
+  },
 }));
 
-vi.mock('../../lib/audio/appCapture', () => ({
-  createAppCapture: () => ({
-    openSource: async () => { throw new Error('no capture in tests'); },
-    echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
-    levels: {
-      speaker: { push() {}, read: () => new Float32Array(32), reset() {} },
-      participant: { push() {}, read: () => new Float32Array(32), reset() {} },
-    },
-  }),
+const capture = vi.hoisted(() => ({
+  openSource: async () => { throw new Error('no capture in tests'); },
+  echo: { attach: () => () => {}, onNotice: vi.fn(), setDiagnostics: () => {} },
+  levels: {
+    speaker: { push() {}, read: () => new Float32Array(32), reset() {} },
+    participant: { push() {}, read: () => new Float32Array(32), reset() {} },
+  },
 }));
+vi.mock('../../lib/audio/appCapture', () => ({ createAppCapture: () => capture }));
+
+// The test tone's decode, held open until a case lets it finish.
+const tone = vi.hoisted(() => ({ load: vi.fn() }));
+vi.mock('../../lib/audio/testTone', () => ({ loadTestTone: tone.load }));
 
 vi.mock('../../lib/segmentation/PunctuationRuntime', () => {
   class FakePunctuationRuntime {
@@ -136,6 +167,16 @@ async function renderPanel() {
   return result;
 }
 
+/** The advanced footer's strips draw one frame on mount; nothing schedules the next, and no canvas is real here. Returns the restore. */
+function stubCanvas(): () => void {
+  vi.stubGlobal('requestAnimationFrame', () => 0);
+  const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+  return () => {
+    getContext.mockRestore();
+    vi.unstubAllGlobals();
+  };
+}
+
 /** Clicks the main action and waits, inside act, until the run's state says `done`. */
 async function click(container: HTMLElement, done: () => void): Promise<void> {
   await act(async () => {
@@ -179,13 +220,39 @@ beforeEach(async () => {
   useProviderStore.getState().updateSettings(fakeProvider, { checkFails: false });
   useTurnModeStore.setState({ turnMode: 'auto' });
   useSettingsStore.setState({ uiMode: 'basic', keepReplayAudio: false, subtitleModeActive: false });
-  useAudioStore.setState({ mode: 'speaker', participantSources: [] });
+  useAudioStore.setState({ mode: 'speaker', participantSources: [], selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
   env.extension = false;
   modal.calls.length = 0;
   trackEvent.mockClear();
   // Answers as the real gate does, unless a case says otherwise.
   replayBlockedSpy.mockReset();
   replayBlockedSpy.mockImplementation(gate.actual!);
+});
+
+// First in the file: the page's session keeps its playback once loaded, and
+// this case needs the page's first load to fail.
+describe('SessionPanel before its playback has loaded', () => {
+  it('asks for the playback again when the phase moves, and picks it up', async () => {
+    load.failures = 1;
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      render(<SessionPanel />);
+      await act(async () => {
+        await vi.waitFor(() => expect(error).toHaveBeenCalledWith(expect.stringContaining('The playback did not load'), expect.anything()));
+      });
+      // No playback, no capture: the echo notice has nothing to listen to.
+      expect(capture.echo.onNotice).not.toHaveBeenCalled();
+
+      // A start retries the load (the runner's own call); the panel asks again when the phase moves.
+      act(() => { runner().state.setState({ phase: 'starting', step: 'checking' }, true); });
+      // The load the panel's own call began: its answer reaches the panel first.
+      await act(() => getAppSession().audio());
+      expect(capture.echo.onNotice).toHaveBeenCalledWith(expect.any(Function));
+    } finally {
+      error.mockRestore();
+      act(() => { runner().state.setState({ phase: 'idle' }, true); });
+    }
+  });
 });
 
 describe('SessionPanel', () => {
@@ -361,9 +428,7 @@ describe('SessionPanel', () => {
   });
 
   it('draws the advanced footer: both input strips, the output strip on the virtual bus, and the debug button', async () => {
-    // One frame is drawn on mount; nothing schedules the next, and no canvas is real here.
-    vi.stubGlobal('requestAnimationFrame', () => 0);
-    const getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    const restoreCanvas = stubCanvas();
     const meter = vi.spyOn(playback, 'meter');
     try {
       useSettingsStore.setState({ uiMode: 'advanced' });
@@ -379,8 +444,7 @@ describe('SessionPanel', () => {
       expect(meter.mock.calls.every(([bus]) => bus === 'virtual')).toBe(true);
     } finally {
       meter.mockRestore();
-      getContext.mockRestore();
-      vi.unstubAllGlobals();
+      restoreCanvas();
     }
   });
 
@@ -403,9 +467,9 @@ describe('SessionPanel', () => {
     }
   });
 
-  // `lastEndItem` names every end 'last-end', and the list caches a notice's
-  // action by its id for as long as the action callback keeps its identity —
-  // the panel's whole life. A later end must not show an earlier one's action.
+  // The list caches a notice's action by its id for as long as the action
+  // callback keeps its identity — the panel's whole life — so `lastEndItem`
+  // names an end by its code: a later end must not show an earlier one's action.
   it("gives each end its own action, not the one the panel drew for an earlier end", async () => {
     const { container } = await renderPanel();
     act(() => {
@@ -416,6 +480,113 @@ describe('SessionPanel', () => {
       runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_microphone', message: 'm', leg: 'speaker' } } }, true);
     });
     expect(container.querySelector('.message-action')?.textContent).toBe('settings.title');
+  });
+
+  // Today's toggle (`MainPanel.tsx:3543-3551`): the playing item's button stops it.
+  it('stops the replay that is playing when its button is clicked again', async () => {
+    useSettingsStore.setState({ keepReplayAudio: true });
+    const replay = vi.spyOn(playback, 'replay');
+    const stopReplay = vi.spyOn(playback, 'stopReplay');
+    try {
+      const { container } = await renderPanel();
+      await start(container);
+      playFirstExchange();
+      await stop();
+      const button = container.querySelector<HTMLButtonElement>('.row-play-btn')!;
+      expect(button.disabled).toBe(false);
+
+      fireEvent.click(button);
+      expect(replay).toHaveBeenCalledTimes(1);
+      const [leg, segment] = replay.mock.calls[0];
+      // The replay queue plays that segment: karaoke says so, and the row shows it.
+      act(() => { replayQueue.play(`${leg}:${segment.ref}:0`); });
+      expect(button.classList.contains('playing')).toBe(true);
+
+      fireEvent.click(button);
+      expect(stopReplay).toHaveBeenCalledTimes(1);
+      expect(replay).toHaveBeenCalledTimes(1);
+    } finally {
+      act(() => { replayQueue.play(null); });
+      replay.mockRestore();
+      stopReplay.mockRestore();
+    }
+  });
+
+  // The end stays on the runner (the subtitle surfaces read it); Clear dismisses the panel's line for it.
+  it("clears a failed start's line, and draws a later end again", async () => {
+    const { container } = await renderPanel();
+    const clear = () => container.querySelector('.clear-conversation-btn') as HTMLButtonElement;
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'socket closed' } } }, true);
+    });
+    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+    expect(clear().disabled).toBe(false);
+
+    fireEvent.click(clear());
+    expect(container.querySelector('.message-bubble')).toBeNull();
+    expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull();
+    expect(clear().disabled).toBe(true);
+
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', message: 'socket closed again' } } }, true);
+    });
+    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+  });
+
+  it("clears a refused start's line with the conversation it kept", async () => {
+    const { container } = await renderPanel();
+    await start(container);
+    playFirstExchange();
+    await stop();
+    act(() => { useProviderStore.getState().updateSettings(fakeProvider, { checkFails: true }); });
+    await click(container, () => expect(runner().state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused' } }));
+    expect(container.querySelectorAll('.conversation-list .conversation-row').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.conversation-list .message-bubble').length).toBe(1);
+
+    fireEvent.click(container.querySelector('.clear-conversation-btn') as HTMLButtonElement);
+    act(() => { clock.advance(VIEW_INTERVAL_MS); });
+    expect(container.querySelector('.conversation-list')).toBeNull();
+    expect(container.querySelector('.conversation-display .empty-state')).not.toBeNull();
+  });
+
+  // Ruling 16's toggle: a second press stops the tone, even one still decoding.
+  it('stops the test tone on a second press: a playing one ends, a decoding one never plays', async () => {
+    const restoreCanvas = stubCanvas();
+    vi.stubGlobal('OfflineAudioContext', class {});
+    const preview = vi.spyOn(playback, 'preview');
+    const stopPreview = vi.spyOn(playback, 'stopPreview');
+    let decoded!: (clip: { audio: Float32Array; sampleRate: number }) => void;
+    tone.load.mockReset();
+    tone.load.mockImplementation(() => new Promise((resolve) => { decoded = resolve; }));
+    try {
+      useSettingsStore.setState({ uiMode: 'advanced' });
+      const { container } = await renderPanel();
+      const debug = () => container.querySelector('.debug-button') as HTMLButtonElement;
+
+      // Pressed, then pressed again while the tone still decodes.
+      fireEvent.click(debug());
+      expect(debug().classList.contains('active')).toBe(true);
+      fireEvent.click(debug());
+      expect(debug().classList.contains('active')).toBe(false);
+      const clip = { audio: new Float32Array(8), sampleRate: 24000 };
+      await act(async () => { decoded(clip); });
+      expect(preview).not.toHaveBeenCalled();
+
+      // Pressed once more: it plays; a second press stops it.
+      let ended!: () => void;
+      preview.mockImplementation(() => new Promise<void>((resolve) => { ended = resolve; }));
+      stopPreview.mockImplementation(() => ended());
+      await act(async () => { fireEvent.click(debug()); });
+      expect(preview).toHaveBeenCalledWith(clip);
+      expect(debug().classList.contains('active')).toBe(true);
+      await act(async () => { fireEvent.click(debug()); });
+      expect(stopPreview).toHaveBeenCalled();
+      expect(debug().classList.contains('active')).toBe(false);
+    } finally {
+      preview.mockRestore();
+      stopPreview.mockRestore();
+      restoreCanvas();
+    }
   });
 
   it("draws the extension's overlay placeholder in place of the list, and no toolbar while idle with nothing to show", async () => {

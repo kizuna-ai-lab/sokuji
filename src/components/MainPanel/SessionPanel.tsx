@@ -12,10 +12,13 @@ import { useRunState } from '../../app/useRun';
 import { isDevelopment } from '../../config/analytics';
 import { useAnalytics } from '../../lib/analytics';
 import { LOOPBACK_DENIED } from '../../lib/audio/capture/systemAudio';
+import type { PreviewClip } from '../../lib/audio/playback';
+import { loadTestTone } from '../../lib/audio/testTone';
+import { SAMPLE_RATE } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
 import { NO_MICROPHONE } from '../../lib/session/shape';
-import type { RunEnd } from '../../lib/session/types';
+import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
 import { lastEndItem } from '../../lib/view/lastEnd';
 import { noticeText } from '../../lib/view/noticeText';
@@ -63,41 +66,65 @@ import { usePushToTalk } from './panel/usePushToTalk';
 import { InputWaveforms, OutputWaveform } from './panel/Waveforms';
 import './MainPanel.scss';
 
-/** The page's playback and capture, once loaded (as the preview's own effect did). */
-function useLoadedAudio(session: AppSession): LoadedAudio | null {
+/**
+ * The page's playback and capture, once loaded (as the preview's own effect
+ * did). A failed load is asked for again on each phase change until one
+ * lands: a start retries the load itself (`session.audio()`), and the panel
+ * picks up what it loaded.
+ */
+function useLoadedAudio(session: AppSession, phase: RunState['phase']): LoadedAudio | null {
   const [audio, setAudio] = useState<LoadedAudio | null>(null);
+  const loaded = audio !== null;
   useEffect(() => {
+    if (loaded) return;
     let live = true;
     session.audio().then(
-      (loaded) => { if (live) setAudio(loaded); },
-      (error: unknown) => reportError('MainPanel', `The playback did not load: ${describeCause(error)}`, { cause: error }),
+      (next) => { if (live) setAudio(next); },
+      (error: unknown) => reportError('MainPanel', `The playback did not load: ${describeCause(error)}`, { cause: error, dedupeKey: 'panel:audio' }),
     );
     return () => { live = false; };
-  }, [session]);
+  }, [session, phase, loaded]);
   return audio;
 }
 
 /**
- * The development test tone (1e-3 ruling 16): a click plays it, a second
- * click while it plays stops it. Development builds only.
+ * The development test tone (1e-3 ruling 16): a press plays it, a second
+ * press stops it — a playing tone ends, and one still decoding never plays.
+ * `AppAudio.testTone()` decodes and plays in one call, so a stop during its
+ * first decode would find nothing to stop; the panel decodes and plays the
+ * same clip on the same route (`Playback.preview`) itself instead, with the
+ * press cancelled between the two. Development builds only.
  */
 function useTestTone(audio: LoadedAudio | null): { playing: boolean; toggle(): void } | undefined {
   const [playing, setPlaying] = useState(false);
-  const pending = useRef<Promise<void> | null>(null);
+  // Decoded once for the panel's life; a failed decode is tried again on the next press.
+  const tone = useRef<Promise<PreviewClip> | null>(null);
+  // The press in flight; a second press marks it cancelled.
+  const press = useRef<{ cancelled: boolean } | null>(null);
   const toggle = useCallback(() => {
     if (!audio) return;
-    if (pending.current) {
+    const current = press.current;
+    if (current) {
+      current.cancelled = true;
+      press.current = null;
       audio.playback.stopPreview();
+      setPlaying(false);
       return;
     }
-    const tone = audio.testTone();
-    pending.current = tone;
+    const mine = { cancelled: false };
+    press.current = mine;
     setPlaying(true);
-    tone
+    // An offline context of the playback's rate, as `AppAudio.testTone` decodes on: never closed, unlike a rebuilt live one (#246).
+    tone.current ??= loadTestTone(new OfflineAudioContext(1, 1, SAMPLE_RATE)).catch((error: unknown) => {
+      tone.current = null;
+      throw error;
+    });
+    tone.current
+      .then((clip) => (mine.cancelled ? undefined : audio.playback.preview(clip)))
       .catch((error: unknown) => reportError('MainPanel', `The test tone did not play: ${describeCause(error)}`, { cause: error }))
       .finally(() => {
-        if (pending.current !== tone) return;
-        pending.current = null;
+        if (press.current !== mine) return;
+        press.current = null;
         setPlaying(false);
       });
   }, [audio]);
@@ -133,7 +160,7 @@ export default function SessionPanel() {
   const { lit, replaying } = useReadable(session.karaoke);
   const subtitle = useReadable(session.subtitle);
   const exporter = useConversationExporter(viewState);
-  const audio = useLoadedAudio(session);
+  const audio = useLoadedAudio(session, run.phase);
 
   const uiMode = useUIMode();
   const speakerMode = useSpeakerDisplayMode();
@@ -157,21 +184,14 @@ export default function SessionPanel() {
     previous.current = next;
     return next;
   }, [viewState.entries, speakerMode, participantMode]);
-  // `lastEndItem` names every end 'last-end', and the list caches a notice's
-  // action by its id (ruling 14): each end gets an id of its own, or a later
-  // end would show the action drawn for an earlier one.
-  const endIds = useRef({ next: 0, byEnd: new WeakMap<RunEnd, string>() });
-  const lastEnd = useMemo((): DisplayItem | null => {
-    const item = lastEndItem(run);
-    if (item?.kind !== 'notice' || run.phase !== 'idle' || !run.lastEnd) return item;
-    const ids = endIds.current;
-    let id = ids.byEnd.get(run.lastEnd);
-    if (id === undefined) {
-      id = `last-end:${ids.next++}`;
-      ids.byEnd.set(run.lastEnd, id);
-    }
-    return { kind: 'notice', notice: { ...item.notice, id } };
-  }, [run]);
+  // Clear dismisses the idle line too. The end stays on the runner, which the
+  // subtitle surfaces read, so the panel keeps the end it cleared, by
+  // reference: a later end is another object and draws again.
+  const [dismissedEnd, setDismissedEnd] = useState<RunEnd | null>(null);
+  const lastEnd = useMemo(
+    () => (run.phase === 'idle' && run.lastEnd !== undefined && run.lastEnd === dismissedEnd ? null : lastEndItem(run)),
+    [run, dismissedEnd],
+  );
   const items = useMemo(() => (lastEnd ? [...drawn, lastEnd] : drawn), [drawn, lastEnd]);
   const segments = useMemo(() => new Map(viewState.legs.flatMap((leg) => leg.segments.map((s) => [s.id, s] as const))), [viewState.legs]);
   const replayLegs = useMemo(() => new Set<LegName>(keepReplayAudio ? (participantSpeech ? ['speaker', 'participant'] : ['speaker']) : []), [keepReplayAudio, participantSpeech]);
@@ -186,7 +206,8 @@ export default function SessionPanel() {
   const permission = usePermissionWarning(run, viewState.legs);
   const openWarning = permission.open;
   // Stable for the panel's life (`t`, the store action and `open` are), so the list's per-notice cache holds (ruling 14).
-  // That cache is never pruned: one entry per notice drawn, for the panel's life — a page's worth, and ids never repeat.
+  // That cache is never pruned: one entry per notice drawn, for the panel's life — a page's worth. An id always names
+  // the same action: a leg's notice ids are unique per run, and an end's names its code (`lastEndItem`).
   const noticeAction = useCallback((notice: NoticeEntry): NoticeAction | null => {
     if (notice.code === LOOPBACK_DENIED) return { label: t('audioPanel.openSystemSettings', 'Open System Settings'), run: () => openWarning('screen-recording-denied') };
     const target = settingsTargetForCode(notice.code);
@@ -224,7 +245,13 @@ export default function SessionPanel() {
   useUpdateAndAudioSystemListeners();    // today's two listener inits, MainPanel.tsx:1111-1125
 
   const takeover = subtitleModeActive && isExtension();
-  const hasConversation = viewState.entries.length > 0;
+  // The idle line counts: after a failed start it is all there is, and Clear takes it away.
+  const hasConversation = viewState.entries.length > 0 || lastEnd !== null;
+  const onClear = useCallback(() => {
+    runner.clear();
+    const now = runner.state.getState();
+    if (now.phase === 'idle' && now.lastEnd) setDismissedEnd(now.lastEnd);
+  }, [runner]);
   const footer = (site: 'basic' | 'advanced') => (
     <PanelFooter
       site={site} run={run} mode={mode} missingDevice={missingDevice}
@@ -248,7 +275,7 @@ export default function SessionPanel() {
       <UpdateDialog />
       <div className="main-panel">
         {(!takeover || run.phase !== 'idle' || hasConversation) && (
-          <PanelToolbar legs={subtitle.legs} exporter={exporter} hasConversation={hasConversation} onClear={runner.clear} />
+          <PanelToolbar legs={subtitle.legs} exporter={exporter} hasConversation={hasConversation} onClear={onClear} />
         )}
         {takeover ? (
           <div className="conversation-display">
@@ -258,7 +285,13 @@ export default function SessionPanel() {
           <ConversationList
             items={items} lit={lit} replaying={replaying} replayLegs={replayLegs}
             canReplay={(id) => { const s = segments.get(id); return !!s?.final && s.speech.some((e) => e.pcm.length > 0); }}
-            onReplay={(leg, id) => { const s = segments.get(id); if (audio && s) audio.playback.replay(leg, s); }}
+            onReplay={(leg, id) => {
+              if (!audio) return;
+              // The replay that is playing: its button stops it (today's toggle, `MainPanel.tsx:3543-3551`).
+              if (replaying === id) { audio.playback.stopReplay(); return; }
+              const s = segments.get(id);
+              if (s) audio.playback.replay(leg, s);
+            }}
             replayBlocked={blocked} noticeAction={noticeAction}
             compact={display.compactMode} fontSize={display.fontSize}
             empty={<><MessageSquare size={32} /><p>{t('simplePanel.startToBegin', 'Click Start to begin real-time translation')}</p></>}
