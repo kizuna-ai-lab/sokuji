@@ -20,6 +20,9 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   kind: 'local',
   platforms: ['electron', 'extension', 'web'],
   icon: KizunaAIIcon,
+  // Today's TUTORIAL_URLS value (`services/providers/tutorialUrls.ts`), as a
+  // literal: that module is under `src/services`, which plan 1e-3c deletes.
+  guideUrl: 'https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup',
 
   settings: { key: 'localInference', defaults: LOCAL_INFERENCE_DEFAULTS },
   Settings: LocalInferenceSettingsView,

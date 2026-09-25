@@ -1,6 +1,7 @@
 import { ArrowLeftRight, Languages } from 'lucide-react';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
+import Tooltip from '../Tooltip/Tooltip';
 import { pairSentence } from '../SetupWizard/languageSentence';
 import { AUTO, normalizePair, swapped } from '../../lib/provider/languages';
 import type { AnyProvider, LanguageOption, LanguagePair } from '../../lib/provider/types';
@@ -57,6 +58,11 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       <h3>
         <Languages size={18} />
         <span>{t('simpleConfig.translationLanguages')}</span>
+        <Tooltip
+          content={t('simpleConfig.translationLanguagesDesc')}
+          position="top"
+          icon="help"
+        />
       </h3>
       <div className="language-pair-row">
         <div className="language-select-group">

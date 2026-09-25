@@ -1,11 +1,27 @@
-import { Cpu } from 'lucide-react';
+import { Cpu, ExternalLink, X } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
 import { storedProviderValue } from '../../lib/session/storedSettings';
+import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useProviderStore } from '../../stores/providerStore';
 import { CredentialForm } from './CredentialForm';
 import { useSelectedProvider } from './useSelectedProvider';
+
+/** Today's key (`ProviderSection.tsx`'s `DISMISSED_KEY`) — a dismissal made in today's Settings carries over. */
+const DISMISSED_TUTORIALS_KEY = 'sokuji-dismissed-tutorials';
+
+function readDismissedTutorials(): Set<string> {
+  try {
+    const stored = localStorage.getItem(DISMISSED_TUTORIALS_KEY);
+    if (!stored) return new Set();
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? new Set(parsed as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
 
 interface ProviderPickerProps {
   providers: readonly AnyProvider[];
@@ -28,10 +44,21 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   const { trackEvent } = useAnalytics();
   const legs = useProviderStore((s) => s.legs);
   const selection = useSelectedProvider(providers);
+  const [dismissedTutorials, setDismissedTutorials] = useState<Set<string>>(readDismissedTutorials);
 
   if (!selection) return null;
   const { provider, entry, readiness, update } = selection;
   const { setCredential, refreshReadiness, select } = useProviderStore.getState();
+
+  // Today's `ProviderSection.tsx` keys dismissal by the old enum's spelling
+  // (e.g. `local_inference`), so a dismissal made there carries over.
+  const storedProviderId = storedProviderValue(provider.id);
+  const dismissTutorial = (id: string) => {
+    const updated = new Set(dismissedTutorials);
+    updated.add(id);
+    setDismissedTutorials(updated);
+    localStorage.setItem(DISMISSED_TUTORIALS_KEY, JSON.stringify([...updated]));
+  };
 
   return (
     <div className="config-section provider-section" id="provider-section" data-tour="provider-section">
@@ -68,6 +95,17 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
       )}
       {openSlot && provider.EngineSummary && entry && (
         <provider.EngineSummary settings={entry.settings} update={update} disabled={disabled} pair={entry.pair} legs={legs} openSlot={openSlot} />
+      )}
+      {provider.guideUrl && !dismissedTutorials.has(storedProviderId) && (
+        <div className="tutorial-link">
+          <a href={provider.guideUrl} onClick={(e) => { e.preventDefault(); openExternalUrl(provider.guideUrl!); }}>
+            <ExternalLink size={12} />
+            {t('simpleSettings.setupGuide', 'Setup guide')}
+          </a>
+          <button type="button" className="tutorial-dismiss" onClick={() => dismissTutorial(storedProviderId)} title={t('common.dismiss', 'Dismiss')}>
+            <X size={12} />
+          </button>
+        </div>
       )}
     </div>
   );

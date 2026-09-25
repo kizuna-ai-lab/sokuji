@@ -45,6 +45,7 @@ beforeEach(() => {
   setSetting.mockClear();
   trackEvent.mockClear();
   useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+  localStorage.clear();
 });
 
 describe('ProviderPicker', () => {
@@ -118,5 +119,45 @@ describe('ProviderPicker', () => {
     });
     expect(await screen.findByText('notices.local_models_missing')).toHaveClass('validation-message', 'error');
     expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
+  });
+
+  describe('the setup guide link (parity with ProviderSection.tsx)', () => {
+    it('shows the link for a provider with guideUrl', async () => {
+      const guided = { ...fakeProvider, guideUrl: 'https://example.com/guide' };
+      render(<ProviderPicker providers={[guided]} auth={noAuth} />);
+      const link = await screen.findByRole('link', { name: /simpleSettings\.setupGuide/ });
+      expect(link).toHaveAttribute('href', 'https://example.com/guide');
+    });
+
+    it('shows no link for a provider without guideUrl', async () => {
+      render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+      await screen.findByTitle('simpleSettings.validate');
+      expect(screen.queryByRole('link', { name: /simpleSettings\.setupGuide/ })).toBeNull();
+    });
+
+    it('dismissing hides the link and writes the dismissed-tutorials key with the stored spelling', async () => {
+      const guided = { ...fakeProvider, guideUrl: 'https://example.com/guide' };
+      render(<ProviderPicker providers={[guided]} auth={noAuth} />);
+      await screen.findByRole('link', { name: /simpleSettings\.setupGuide/ });
+      fireEvent.click(screen.getByTitle('common.dismiss'));
+      expect(screen.queryByRole('link', { name: /simpleSettings\.setupGuide/ })).toBeNull();
+      expect(JSON.parse(localStorage.getItem('sokuji-dismissed-tutorials') ?? '[]')).toEqual(['fake']);
+    });
+
+    it('shows no link for an already-dismissed provider (seeded key)', async () => {
+      localStorage.setItem('sokuji-dismissed-tutorials', JSON.stringify(['fake']));
+      const guided = { ...fakeProvider, guideUrl: 'https://example.com/guide' };
+      render(<ProviderPicker providers={[guided]} auth={noAuth} />);
+      await screen.findByTitle('simpleSettings.validate');
+      expect(screen.queryByRole('link', { name: /simpleSettings\.setupGuide/ })).toBeNull();
+    });
+
+    it("stores LocalInference's dismissal under the old enum's spelling", async () => {
+      const guided = { ...localInferenceProvider, guideUrl: 'https://example.com/guide' };
+      render(<ProviderPicker providers={[guided]} auth={noAuth} />);
+      await screen.findByRole('link', { name: /simpleSettings\.setupGuide/ });
+      fireEvent.click(screen.getByTitle('common.dismiss'));
+      expect(JSON.parse(localStorage.getItem('sokuji-dismissed-tutorials') ?? '[]')).toEqual(['local_inference']);
+    });
   });
 });

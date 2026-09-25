@@ -69,6 +69,13 @@ describe('LanguagePairSection', () => {
     expect(screen.getByTitle('simpleConfig.swapLanguages')).toBeDisabled();
   });
 
+  it('the heading holds a help tooltip trigger (parity with LanguageSection.tsx)', () => {
+    const { container } = render(
+      <LanguagePairSection provider={fakeProvider} settings={FAKE_DEFAULTS} pair={{ source: 'en', target: 'ja' }} onChange={vi.fn()} />,
+    );
+    expect(container.querySelector('h3 .tooltip-trigger')).toBeTruthy();
+  });
+
   describe('with a sentence', () => {
     it("'both': I speak / they hear, and the mirror line shows", () => {
       draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'both', textOnly: false } });

@@ -48,6 +48,10 @@ describe('localInferenceProvider', () => {
     expect(localInferenceProvider.credentials.read({}, noAuth)).toEqual({});
   });
 
+  it("links its setup guide (today's TUTORIAL_URLS value, as a literal — never imported from src/services)", () => {
+    expect(localInferenceProvider.guideUrl).toBe('https://sokuji.kizuna.ai/docs/tutorials/local-inference-setup');
+  });
+
   it('offers optional speech, text input, provider-cut boundaries, and both turn modes', () => {
     expect(localInferenceProvider.speech).toBe('optional');
     expect(localInferenceProvider.textInput).toBe(true);

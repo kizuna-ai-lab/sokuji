@@ -109,6 +109,8 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   icon: ComponentType<{ size?: string | number }>;
   docs?: string;
   vendor?: string;
+  /** Where a user reads how to set this provider up; the picker links it, dismissibly. */
+  guideUrl?: string;
 
   // settings — never secrets
   settings: {
