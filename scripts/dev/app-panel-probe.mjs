@@ -161,15 +161,19 @@ process.exitCode = await withPage('about:blank', async (send) => {
     if (!(await click(send, `document.querySelector('.main-panel [data-tour="main-action"]')`))) {
       failures.push('no start button to click');
     } else if (refuse) {
+      // The refused start's notice must be the list's LAST CHILD, not merely
+      // the last `.message-bubble.error` on the page — a weaker selector
+      // could not tell a genuine "nothing else in the list" from "a notice
+      // happens to sort last among several" (review minor).
       const refused = await pollUntil(3000, 250, async () => evaluate(send, `(() => {
-        const bubbles = [...document.querySelectorAll('.main-panel .message-bubble.error')];
-        const last = bubbles[bubbles.length - 1];
-        if (!last) return false;
+        const list = document.querySelector('.main-panel .conversation-list');
+        const last = list ? list.lastElementChild : null;
+        if (!last || !last.classList.contains('message-bubble') || !last.classList.contains('error')) return false;
         const action = last.querySelector('.message-action');
         const noActive = !document.querySelector('.main-panel .status-dot.active');
         return !!(action && action.textContent === 'Settings' && noActive);
       })()`));
-      if (!refused) failures.push('the refused start did not draw a notice with a Settings action');
+      if (!refused) failures.push("the refused start did not draw a notice with a Settings action as the list's last child");
     } else {
       const started = await pollUntil(5000, 250, async () => evaluate(send, `(() => {
         const active = document.querySelector('.main-panel .status-dot.active');
@@ -249,28 +253,34 @@ process.exitCode = await withPage('about:blank', async (send) => {
         if (!micLit) failures.push('the mic waveform strip never painted a non-transparent pixel');
       }
 
-      // Step 8: export the .txt while the run is on.
+      // Step 8: export the .txt while the run is on. `manual` (the files it
+      // saved, if any) feeds step 9's "a different file" check below; it
+      // stays `[]` when the export button or menu item was never found, so
+      // step 9 still runs and is independently reported (review minor: Stop
+      // must not be skipped just because export failed).
+      let manual = [];
       if (!(await click(send, `document.querySelector('.main-panel .export-btn')`))) {
         failures.push('no export button in the panel');
       } else {
         await sleep(300);
         if (!(await click(send, byText('[role="menuitem"]', 'Download as .txt')))) failures.push('no "Download as .txt" in the menu');
-        const manual = await waitForFiles(downloads, 1, 5000);
+        manual = await waitForFiles(downloads, 1, 5000);
         if (manual.length < 1) failures.push('the export menu saved no file');
         else checkExport('export menu', readFileSync(join(downloads, manual[0]), 'utf8'));
+      }
 
-        // Step 9: Stop — a different second, so the auto-saved file gets its own name.
-        await sleep(1100);
-        if (!(await click(send, `document.querySelector('.main-panel [data-tour="main-action"]')`))) {
-          failures.push('no Stop button to click');
-        } else {
-          const stopped = await pollUntil(8000, 250, async () => evaluate(send, `!document.querySelector('.main-panel .status-dot.active')`));
-          if (!stopped) failures.push('the run never stopped (status dot stayed active)');
-          const all = await waitForFiles(downloads, manual.length + 1, 8000);
-          const saved = all.filter((f) => !manual.includes(f));
-          if (saved.length < 1) failures.push('stopping the run wrote no auto-save file');
-          else checkExport('auto-save', readFileSync(join(downloads, saved[0]), 'utf8'));
-        }
+      // Step 9: Stop — a different second, so the auto-saved file gets its
+      // own name. Independent of step 8's outcome.
+      await sleep(1100);
+      if (!(await click(send, `document.querySelector('.main-panel [data-tour="main-action"]')`))) {
+        failures.push('no Stop button to click');
+      } else {
+        const stopped = await pollUntil(8000, 250, async () => evaluate(send, `!document.querySelector('.main-panel .status-dot.active')`));
+        if (!stopped) failures.push('the run never stopped (status dot stayed active)');
+        const all = await waitForFiles(downloads, manual.length + 1, 8000);
+        const saved = all.filter((f) => !manual.includes(f));
+        if (saved.length < 1) failures.push('stopping the run wrote no auto-save file');
+        else checkExport('auto-save', readFileSync(join(downloads, saved[0]), 'utf8'));
       }
     }
   }

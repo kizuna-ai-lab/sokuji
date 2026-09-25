@@ -17,6 +17,15 @@ vi.mock('../../services/ServiceFactory', () => ({
       getSetting: async (_key: string, def: unknown) => def,
       setSetting: async () => ({ success: true }),
     }),
+    // Fix round 1: the load effect now also calls `initializeAudioService()`
+    // (as `Home.tsx` does), which reaches this. A stub with no devices keeps
+    // that call harmless and deterministic — no real device enumeration.
+    getAudioService: () => ({
+      initialize: async () => {},
+      getDevices: async () => ({ inputs: [], outputs: [] }),
+      setMonitorVolume: () => {},
+      connectMonitoringDevice: async () => ({ success: true }),
+    }),
   },
 }));
 vi.mock('../../lib/audio/appCapture', () => ({
@@ -139,6 +148,25 @@ describe('SpinePreview', () => {
     window.history.replaceState(null, '', '/?preview=spine&panel=1');
     try {
       const { container } = render(<SpinePreview />);
+      await waitFor(() => expect(container.querySelector('.spine-panel [data-tour="main-action"]')).not.toBeNull());
+    } finally {
+      window.history.replaceState(null, '', before);
+    }
+  });
+
+  // Fix round 1 (task-13 review, controller's group check): the panel's own
+  // Start enables as soon as the stores and the provider's entry have
+  // loaded, which can race ahead of the URL's `&script=`/`&turn=` — a probe
+  // that clicks at once would then run the fake's default script instead.
+  // `<SessionPanel />` now waits on `urlApplied` too, so it is absent right
+  // after render (before the stores' load promise has had a microtask to
+  // resolve) and present once `waitFor` lets it settle.
+  it('draws the panel only once the URL settings have applied, not before', async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, '', '/?preview=spine&panel=1');
+    try {
+      const { container } = render(<SpinePreview />);
+      expect(container.querySelector('.spine-panel [data-tour="main-action"]')).toBeNull();
       await waitFor(() => expect(container.querySelector('.spine-panel [data-tour="main-action"]')).not.toBeNull());
     } finally {
       window.history.replaceState(null, '', before);

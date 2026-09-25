@@ -312,8 +312,15 @@ export function SpinePreview() {
   const [storesLoaded, setStoresLoaded] = useState(false);
   // What a run reads, loaded the way the app loads it (Home.tsx): the turn
   // mode, the routing switches, the punctuation pack's phase — without which
-  // the punctuator would see `unknown`, never `ready` — and the provider.
-  useEffect(() => { void loadSessionStores().finally(() => setStoresLoaded(true)); }, []);
+  // the punctuator would see `unknown`, never `ready` — and the provider; and
+  // the audio store's devices (`initializeAudioService`, fire-and-forget as
+  // Home does it too) — without this no input device is ever selected, and
+  // the advanced footer's start gate reads "Configure devices for this mode
+  // to start.".
+  useEffect(() => {
+    void loadSessionStores().finally(() => setStoresLoaded(true));
+    void useAudioStore.getState().initializeAudioService();
+  }, []);
   // The page's wiring, as the app's will be (plan 1e-3b): pagehide → abandon,
   // the provider store's legs, a local provider checking itself.
   useEffect(() => session.attach(), [session]);
@@ -457,7 +464,8 @@ export function SpinePreview() {
           audio={audio}
           capture={deviceCapture() ? () => ({ ...captured }) : undefined}
         />
-        {previewParams.panel && (
+        {/* Not before `urlApplied`: the panel's own Start enables as soon as the stores and the provider's entry have loaded, ahead of the URL's `&script=`/`&turn=` — a probe that clicks at once would otherwise race the fake's default script. */}
+        {previewParams.panel && urlApplied && (
           <div className="spine-panel">
             <SessionPanel />
           </div>
