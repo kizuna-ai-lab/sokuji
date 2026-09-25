@@ -141,9 +141,10 @@ describe('SpinePreview', () => {
     await screen.findByLabelText('Script');
     expect(getAppSession().runner.state.getState()).toEqual({ phase: 'idle' });
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
-    // A run started, or a refusal recorded its `lastEnd` — either way the
-    // state is no longer the bare idle it started at.
-    await waitFor(() => expect(getAppSession().runner.state.getState()).not.toEqual({ phase: 'idle' }));
+    // The fake is this page's default and needs no microphone (1e-3 ruling
+    // 5's exemption), so a click here proves a run, not just a refusal
+    // (final review M8): the root's runner reaches `running`.
+    await waitFor(() => expect(getAppSession().runner.state.getState().phase).toBe('running'));
     await act(() => getAppSession().runner.stop());
     await getAppSession().runner.settled();
   });

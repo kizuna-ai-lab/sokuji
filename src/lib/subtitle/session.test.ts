@@ -79,4 +79,9 @@ describe('sameSession', () => {
     expect(sameSession(withCode('no_asr', { source: 'en' }), withCode('local_models_missing', { source: 'en' }))).toBe(false);
     expect(sameSession(withCode('no_asr', { source: 'en' }), withCode('no_asr', { source: 'ja' }))).toBe(false);
   });
+
+  it('treats the same code, message and params as the same idle body', () => {
+    const withCode = (code: string, params: Record<string, string>) => subtitleSession({ ...input, readiness: { state: 'not-ready', reason: 'r', code, params } });
+    expect(sameSession(withCode('no_asr', { source: 'en' }), withCode('no_asr', { source: 'en' }))).toBe(true);
+  });
 });
