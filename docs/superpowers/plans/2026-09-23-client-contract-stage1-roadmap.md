@@ -849,3 +849,60 @@ What it leaves:
   settings the old app reads, so they outlive the page.
 - `app-panel-probe --ptt` reads the basic footer's hold button; with
   `--advanced` it exits 2.
+
+## Scheduled by plan 1e-3b-2
+
+Plan 1e-3b-2 (Settings, and the switch) landed as commits `8044e074..3f847893`:
+six tasks and a final-review fix wave. **The app now runs the new session.**
+MainPanel is plan 1e-3b-1's panel, the Electron takeover is `SubtitleTakeover`,
+`AppSessionRoot` owns the page's wiring in `Home`, and Settings compose the
+provider area in pieces over `providerStore` (picker with LocalInference's
+chips, memory estimate and fallback notes; the pair with its sentence; the
+provider's own settings; the engine following the legs), the global turn mode
+with the headless Output block, and the participant-speech switch. Every
+stored key the session reads has one writer. The SetupWizard offers its
+offline path only and writes through `providerStore`; signing in switches no
+provider. The branch offers LocalInference only (and the fake in development
+builds) until Stage 2; the old clients, descriptors and slices stay compiled
+but unreachable for plan 1e-3c.
+
+Checked headlessly against the switched app (`app-panel-probe --app` in every
+variant, `--settings`, all ten `spine-*` probes, a run under Chrome's default
+autoplay policy started by a trusted click, and a profile whose stored
+provider is `openai` running LocalInference with `openai` kept and its old
+Push-to-Talk migrated); both release builds build with no fake-provider code.
+The per-row memoization on the switched app (`--app --long`): one long task,
+the longest 98 ms.
+
+Stated departures, besides the plan's: participant speech follows the
+whole-system rule everywhere — the switch, the route, the run's shape (no
+participant TTS model is loaded while Other's source captures the whole
+system on Electron) and the replay slots — through one predicate,
+`participantSpeechHeard`.
+
+What it leaves:
+
+**The owner's Electron acceptance (Task 7) — owed before 1e-3c**
+- Plan 1e-3b-2 Task 7's list on the owner's machine, plus: a fresh profile
+  through the first-run wizard onto LocalInference; the takeover's Fix pressed
+  twice; no participant TTS model loaded under whole-system capture;
+  passthrough and the monitor heard once, not doubled (the old audio service
+  is initialized beside the new graph until 1e-3c).
+- Audio in the extension side panel by hand (the panel builds its audio
+  context at mount; only the web page was checked with a trusted click).
+
+**Before the first release**
+- Close the participant-speech route when an application capture falls back
+  to the whole system mid-run (`app_capture_lost_using_system_audio`,
+  `app_capture_monitor_missing`): ruling 7's stated gap.
+
+**1e-4 — the extension**
+- The meeting page's subtitle overlay still reads the old `sessionStore`,
+  which nothing writes now: 1e-4 publishes the wire from the side panel and
+  renders `SubtitleView` in the overlay.
+
+**1e-3c**
+- The old clients, descriptors, settings slices, sections and MainPanel
+  helpers (`1e3-deletion.md`), the old audio service beside the new graph,
+  and two stale comments in test files (`Settings.highlight.test.tsx`'s
+  header, `SystemAudioSection.test.tsx:126`).
