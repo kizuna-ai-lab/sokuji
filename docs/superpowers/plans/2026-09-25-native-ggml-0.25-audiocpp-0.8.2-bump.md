@@ -46,6 +46,7 @@ Facts the tasks rely on:
 
 ## Global Constraints
 
+- **Exactly one shared ggml and no duplicated module code in the wheel** (jiangzhuo, 2026-09-25: bundle size). Every engine links the single upstream ggml target; no engine may compile its vendored ggml (transcribe.cpp 0.2.4 ships one in `ggml/`, audio.cpp in `external/ggml`, llama.cpp in `ggml/`), and no upstream option that builds an extra shared library may be enabled (audio.cpp's new `AUDIOCPP_BUILD_C_API` stays OFF). Task 0's gate enforces this on every build. Baseline to compare against, the native-v1.1.0 linux-arm64 wheel: 24.5 MB, containing exactly `libggml`, `libggml-base`, `libggml-vulkan`, six `libggml-cpu-armv8.*` variants and `libsokuji_native.so` (12.9 MB; 0 exported `ggml_*`, 287 imported).
 - One pristine upstream ggml. Never build or link audio.cpp's `external/ggml` fork. If a family misbehaves, port that op into `audiocpp_compat.h` (the rule in that header's preamble).
 - Pins are release-tag commit SHAs with `GIT_SHALLOW TRUE` (upstreams.cmake header comment). All four targets above are tag commits.
 - Engine version strings are normalised: no `v`, no suffix. `SOKUJI_AUDIOCPP_VERSION` becomes `"0.8.2"` (the `-audio8-perf-hotfix` suffix is dropped, the same way llama's tag is normalised).
@@ -61,6 +62,138 @@ Facts the tasks rely on:
 3. **ASR text that now arrives already punctuated** (transcribe.cpp #157: `sensevoice-small` and the `canary-*` cards switch ITN/PnC on by default). Expected: the renderer does not punctuate it a second time or split sentences twice, and a Local Native session on `sensevoice-small` produces the same sentence boundaries a user would write. No native or sidecar test can see this. Check it in the running app (Local Native, SenseVoice, one ja and one en session) during Task 7's fleet step, and compare against a punctuating cloud provider.
 4. **A stale parity reference passing for the wrong reason**: after PR #496, `build_reference_cli.sh` stamps `PIN_SHA` and `test_tts_parity.py` fails on a stale reference. Expected: the first parity run after the pin moves rebuilds the reference or fails loudly. Task 5 checks the stamp explicitly.
 5. **Op-coverage refusing a rung that used to run** (spec A: only the `tts` stage refuses). A re-recorded `.ops` can now contain an op or dtype that some device's `supports_op` rejects. Expected: every family × rung stays `all_supported` on GB10 Vulkan, M4 Metal and the RTX 4070 SUPER. Covered by the GPU-lane `test_ops_coverage` run (Task 5) and the fleet smoke's coverage check (Task 7).
+
+---
+
+### Task 0: The single-ggml gate (before any pin moves)
+
+Today, "one shared ggml" holds only because three patch/guard lines hold (`transcribe.cpp.json`, `audio.cpp.json`'s `if(NOT TARGET ggml)`, llama's own `NOT TARGET ggml`). Nothing fails if an upstream starts building its vendored copy under a new option name. The copy would be linked statically and with hidden visibility, so it is invisible in the stripped wheel's dynamic symbol table. This gate makes it a build failure instead.
+
+**Files:**
+- Create: `native/ci/check_single_ggml.py`
+- Modify: `native/ci/build.sh` (call it between `cmake --install` and `strip`)
+
+**Interfaces:**
+- Consumes: the staged tree `native/build/<lane>/stage` (unstripped at that point).
+- Produces: `check_single_ggml.py <stage_dir>`, exit 0 on pass, 1 with a list of violations. Every later task's build runs it.
+
+- [ ] **Step 1: Write the gate**
+
+`native/ci/check_single_ggml.py`:
+```python
+"""Gate: the staged tree carries exactly ONE ggml, and libsokuji_native carries none of it.
+
+usage: check_single_ggml.py <stage_dir>
+
+jiangzhuo's rule (2026-09-25): no duplicated module code in the sidecar bundle — every engine
+links the single shared ggml. Each of transcribe.cpp, llama.cpp and audio.cpp vendors its own
+ggml; three patch/guard lines keep them off it today. If an upstream ever builds its copy
+anyway, the copy is linked statically with hidden visibility, so the stripped wheel's dynamic
+symbol table cannot show it. This runs on the UNSTRIPPED stage (build.sh calls it before
+strip) and checks:
+  1. libsokuji_native defines none of ggml's core symbols (any binding: nm lists locals too).
+     audiocpp_compat.h's static-inline shims are local ggml_* symbols by design, which is why
+     this checks a fixed set of core names rather than every ggml_* symbol.
+  2. every shared library in the stage is one we ship on purpose, and each appears once.
+Linux and macOS (nm). The Windows lane (build.ps1) is not gated by this script.
+"""
+import pathlib
+import re
+import subprocess
+import sys
+
+CORE = ("ggml_init", "ggml_free", "ggml_graph_compute", "gguf_init_from_file",
+        "ggml_backend_sched_new", "ggml_backend_load_all")
+SHIPPED = re.compile(r"^lib(sokuji_native|ggml|ggml-base|ggml-cpu(-[A-Za-z0-9_.]+)?|ggml-vulkan|ggml-metal)"
+                     r"\.(so|dylib)$")
+
+
+def _nm(args: list[str]) -> tuple[set[str], bool]:
+    """Defined symbol names, and whether nm had any symbol table to read at all."""
+    r = subprocess.run(["nm", *args], capture_output=True, text=True)
+    names = set()
+    for line in r.stdout.splitlines():
+        parts = line.split()
+        if len(parts) == 3 and parts[1] not in ("U", "w", "v"):
+            names.add(parts[2][1:] if sys.platform == "darwin" and parts[2].startswith("_") else parts[2])
+    readable = r.returncode == 0 and "no symbols" not in r.stderr and bool(r.stdout.strip())
+    return names, readable
+
+
+def defined_symbols(lib: pathlib.Path) -> set[str]:
+    """Full symbol table (locals included) plus, on Linux, the dynamic table. Fails closed:
+    a stripped library cannot prove it carries no second ggml, so that is an error, not a pass
+    (seen while writing this gate: a stripped copy of libggml-base read as 'no ggml here')."""
+    full, readable = _nm([str(lib)])
+    if not readable:
+        raise SystemExit(f"check_single_ggml: {lib.name} has no symbol table — run this on the "
+                         f"unstripped stage (build.sh calls it before strip)")
+    if sys.platform.startswith("linux"):
+        full |= _nm(["-D", str(lib)])[0]
+    return full
+
+
+def main(stage: pathlib.Path) -> int:
+    bad = []
+    libs = [p for p in stage.rglob("*") if p.is_file() and re.search(r"\.(so|dylib)(\.|$)", p.name)]
+    seen: dict[str, pathlib.Path] = {}
+    for p in libs:
+        if not SHIPPED.match(p.name):
+            bad.append(f"unexpected shared library in the stage: {p.relative_to(stage)}")
+        if p.name in seen:
+            bad.append(f"duplicate: {p.relative_to(stage)} and {seen[p.name].relative_to(stage)}")
+        seen[p.name] = p
+    host = [p for p in libs if p.name.startswith("libsokuji_native.")]
+    if len(host) != 1:
+        bad.append(f"expected exactly one libsokuji_native, found {len(host)}")
+    else:
+        dup = sorted(set(CORE) & defined_symbols(host[0]))
+        if dup:
+            bad.append(f"{host[0].name} defines ggml core symbols (a second ggml is linked in): {dup}")
+    for b in bad:
+        print(f"check_single_ggml: {b}", file=sys.stderr)
+    if not bad:
+        print(f"check_single_ggml: OK — {len(libs)} shared libraries, one ggml")
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(pathlib.Path(sys.argv[1])))
+```
+
+- [ ] **Step 2: Prove it can fail (mutation check), then prove it passes today**
+
+Run on the existing 1.1.0-era CPU tree (`native/build/cpu`, built from main):
+```bash
+cmake --install native/build/cpu --prefix "$CLAUDE_JOB_DIR/tmp/stage-probe" --component sokuji
+python3 native/ci/check_single_ggml.py "$CLAUDE_JOB_DIR/tmp/stage-probe"
+```
+Expected: `OK — N shared libraries, one ggml`.
+Mutation 1: `cp "$CLAUDE_JOB_DIR/tmp/stage-probe/libggml-base.so" "$CLAUDE_JOB_DIR/tmp/stage-probe/libsokuji_native.so"` (a "host library" that defines `ggml_init`), then re-run. Expected: exit 1, naming `ggml_init`.
+Mutation 1b: `strip --strip-unneeded "$CLAUDE_JOB_DIR/tmp/stage-probe/libsokuji_native.so"`, then re-run. Expected: exit non-zero with `has no symbol table` (fails closed, never reads as a pass).
+Mutation 2: in a fresh probe stage, `touch "$CLAUDE_JOB_DIR/tmp/stage-probe/libaudiocpp.so"`, then re-run. Expected: exit 1, `unexpected shared library`.
+Delete the probe stage afterwards.
+
+- [ ] **Step 3: Wire it into build.sh before the strip**
+
+In `native/ci/build.sh`, directly after `cmake --install "$BUILD" --prefix "$BUILD/stage" --component sokuji`:
+```bash
+# One shared ggml, nothing duplicated (jiangzhuo's bundle-size rule): checked on the
+# UNSTRIPPED stage, since a statically linked second copy vanishes from a stripped .so's
+# dynamic symbol table. Linux + macOS; build.ps1 is not gated.
+"$PYTHON" "$ROOT/ci/check_single_ggml.py" "$BUILD/stage"
+```
+Run: `SOKUJI_BUILD_RECORD=0 native/ci/build.sh none manylinux_2_35_aarch64`
+Expected: the log shows `check_single_ggml: OK`, and the rest of the script is green.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add native/ci/check_single_ggml.py native/ci/build.sh
+git commit -m "ci(native): gate the stage on a single shared ggml" -m "Fails the build if libsokuji_native defines ggml core symbols (a vendored copy linked in) or the stage carries a shared library we do not ship on purpose.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+```
 
 ---
 
@@ -628,6 +761,13 @@ FetchContent_Declare(audiocpp
     ...
 set(SOKUJI_AUDIOCPP_VERSION "0.8.2")   # upstream tag is v0.8.2-audio8-perf-hotfix; normalised like llama's
 ```
+Beside the other `ENGINE_*` / `AUDIOCPP_*` cache forces lower in the same file, add:
+```cmake
+# 0.8.x adds a C ABI shared library (include/audiocpp.h). It defaults OFF; forced OFF so a
+# changed upstream default can never put a second engine library into the wheel
+# (single-shared-ggml rule, ci/check_single_ggml.py).
+set(AUDIOCPP_BUILD_C_API OFF CACHE BOOL "" FORCE)
+```
 
 - [ ] **Step 6: Full CPU build**
 
@@ -747,6 +887,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - [ ] **Step 1: ASK FIRST — push branch `worktree-native-ggml-audiocpp-bump` to `kizuna-ai-lab/sokuji` and run `native-build.yml` via `workflow_dispatch` on it (dry run, no tag)**
 
 Expected: all five SKUs green (linux-x64, linux-arm64, win-x64, mac-arm64, mac-x64), five wheel names correct. If the gh token cannot dispatch, ask jiangzhuo to run `gh auth refresh -h github.com -s workflow`.
+
+- [ ] **Step 1b: Wheel inventory and size against native-v1.1.0 (single-ggml rule)**
+
+Download the five dry-run wheels (`gh run download <run>`) and the five 1.1.0 wheels (`gh release download native-v1.1.0 -R kizuna-ai-lab/sokuji -p '*.whl'`). For each SKU, list `sokuji_native/_native/*` with sizes from both (`python3 -c "import zipfile,sys; [print(i.file_size, i.filename) for i in zipfile.ZipFile(sys.argv[1]).infolist()]" <whl>`).
+Expected: the same set of file names per SKU (in particular one `libggml`, one `libggml-base`, one GPU backend, the same CPU variants, and no new library). **win-x64 must be checked by hand here**, because Task 0's gate does not run on the Windows lane. Report the per-SKU wheel and `libsokuji_native` size delta in the PR body. Growth over 10% on any SKU is shown to jiangzhuo with its cause (likely audio.cpp's framework growth, 60 files) before the tag. It is not waved through.
 
 - [ ] **Step 2: Fleet with the dry run's wheels**
 
