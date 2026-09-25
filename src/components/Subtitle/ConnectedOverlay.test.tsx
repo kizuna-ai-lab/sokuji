@@ -117,6 +117,18 @@ describe('ConnectedOverlay', () => {
     expect(showLanguageUncached).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps asking for every language the side panel sends, even while i18n.language has not moved yet, and ends on the last one (final-fix review Minor 2)", () => {
+    const { port, deliver } = overlayPort();
+    const receiver = receiveSubtitles(port);
+    render(<ConnectedOverlay receiver={receiver} />);
+    // i18n.language never advances in this stub — as it would not, in the
+    // real detector, while an earlier switch's bundle is still loading.
+    deliver({ type: 'subtitle:language', language: 'ja' });
+    deliver({ type: 'subtitle:language', language: 'en' });
+    deliver({ type: 'subtitle:language', language: 'ja' });
+    expect(showLanguageUncached.mock.calls.map(([lng]) => lng)).toEqual(['ja', 'en', 'ja']);
+  });
+
   it('reports a switch that failed, once', async () => {
     showLanguageUncached.mockRejectedValueOnce(new Error('offline'));
     const { port, deliver } = overlayPort();

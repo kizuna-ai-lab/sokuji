@@ -99,6 +99,12 @@ export async function changeLanguageWithLoad(lng: string): Promise<string> {
 
 let cachingLanguage = true;
 
+// The most recent language `showLanguageUncached` was asked to show. A call
+// checks this again after its own bundle load: if a later call has taken
+// over by then, the earlier one changes nothing (last call wins, final-fix
+// review Minor 2).
+let latestRequested: string | null = null;
+
 /**
  * Shows `lng` in this document without storing it as the document's own
  * choice. The extension overlay follows the side panel's language (plan 1e-4
@@ -110,13 +116,26 @@ let cachingLanguage = true;
  * document's own i18next init has already cached the language it detected,
  * before any call here; where the storage is shared, that writes back the
  * `i18nextLng` it just read, so the guarantee is never a different value.
+ *
+ * Last call wins. Two requests can be in flight together — the side panel
+ * sends a language, then a newer one, before the first has finished loading
+ * its bundle (`ConnectedOverlay.tsx`'s own guard is what makes sure both are
+ * sent at all). Whichever settles last only takes effect if it is still the
+ * most recently requested language; an overtaken one resolves without
+ * calling `changeLanguage`.
  */
 export async function showLanguageUncached(lng: string): Promise<string> {
   if (cachingLanguage) {
     cachingLanguage = false;
     i18n.services.languageDetector?.init?.(i18n.services, { ...i18n.options.detection, caches: [] }, i18n.options);
   }
-  return changeLanguageWithLoad(lng);
+  latestRequested = lng;
+  if (lng && lng !== 'en') {
+    await loadTranslation(lng);
+  }
+  if (latestRequested !== lng) return lng;
+  await i18n.changeLanguage(lng);
+  return lng;
 }
 
 i18n

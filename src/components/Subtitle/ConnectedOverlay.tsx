@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import type { OverlayReceiver } from '../../lib/subtitle/wire';
@@ -19,9 +19,21 @@ export function ConnectedOverlay({ receiver }: { receiver: OverlayReceiver }) {
   const model = useReadable(receiver);
   const { i18n } = useTranslation();
   const language = model.language;
+  // The last language this effect itself asked for — not `i18n.language`,
+  // which does not move while a switch's own bundle is still loading. A
+  // language that arrives mid-load would otherwise compare equal to that
+  // stale value and be dropped (final-fix review Minor 2).
+  // `showLanguageUncached` itself resolves the race between two such
+  // requests (last call wins); this ref only makes sure every one of them is
+  // actually sent.
+  const requested = useRef<string | null>(null);
   useEffect(() => {
-    // Only when it differs: a remount over a receiver whose language this document already shows switches nothing.
-    if (!language || language === i18n.language) return;
+    if (!language) return;
+    // Nothing requested yet (a fresh mount): a receiver whose language this
+    // document already shows switches nothing.
+    const baseline = requested.current ?? i18n.language;
+    if (language === baseline) return;
+    requested.current = language;
     showLanguageUncached(language).catch((error: unknown) =>
       reportWarning('SubtitleOverlay', `The overlay could not switch to the side panel's language (${language}): ${describeCause(error)}`, { cause: error, dedupeKey: 'overlay:language' }));
   }, [language, i18n]);

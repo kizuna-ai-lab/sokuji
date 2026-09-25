@@ -30,4 +30,15 @@ describe('showLanguageUncached', () => {
     expect(i18n.language).toBe('fr');
     expect(localStorage.getItem('i18nextLng')).toBe('de');
   });
+
+  it("last call wins: a request whose bundle resolves after a later one's does not override it (final-fix review Minor 2)", async () => {
+    // 'ja' was cached by the test above, so its own load resolves from
+    // memory; 'ko' was not, so its dynamic import genuinely resolves later —
+    // the real race the guard protects against, not a simulated one.
+    const first = showLanguageUncached('ko');
+    const second = showLanguageUncached('ja');
+    await second;
+    await first;
+    expect(i18n.language).toBe('ja');
+  });
 });
