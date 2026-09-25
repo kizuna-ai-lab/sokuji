@@ -106,6 +106,12 @@ FetchContent_Declare(audiocpp
     GIT_TAG        ac16661d144f00f84ea0483f3574c374c9868e2d   # v0.8.2-audio8-perf-hotfix
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
+    # No submodules. FetchContent clones every submodule recursively by default, and 0.8.x
+    # added one: external/audio.cpp-server-frontends, optional adapters for audiocpp_server
+    # (AUDIOCPP_BUILD_SERVER_FRONTENDS, default OFF), registered with an SSH URL. We never
+    # build it, and a runner without an SSH key fails the whole configure trying to clone it.
+    # An empty list means "none" under CMP0097, which cmake_minimum_required(3.28) sets NEW.
+    GIT_SUBMODULES ""
     # audio.cpp declares its CLI/server/converter executables unconditionally; we only
     # ever build the targets sokuji_native links, so the rest is never compiled.
     EXCLUDE_FROM_ALL
