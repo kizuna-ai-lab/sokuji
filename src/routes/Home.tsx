@@ -9,6 +9,7 @@ import { useConversationDisplayStore } from '../stores/conversationDisplayStore'
 import { useSetupStore } from '../stores/setupStore';
 import { SettingsInitializer } from '../components/SettingsInitializer/SettingsInitializer';
 import AuthOverlay from '../components/Auth/AuthOverlay';
+import { loadSessionStores } from '../app/loadStores';
 
 export function Home() {
   const initializeAudioService = useInitializeAudioService();
@@ -29,6 +30,10 @@ export function Home() {
     ]).catch((err) => {
       console.warn('[Home] Settings/subtitle/conversationDisplay/setup hydration error:', err);
     });
+
+    // The new session's stores (plan 1e-3a): loaded now, read by nothing here
+    // until plan 1e-3b switches MainPanel over. Reads only.
+    void loadSessionStores();
   }, []); // Empty dependency array - only run once on mount
 
   return (

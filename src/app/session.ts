@@ -12,7 +12,7 @@ import { realClock, type Clock } from '../lib/contract/clock';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
-import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores } from '../lib/session/appShape';
+import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from '../lib/session/appShape';
 import type { AnalyticsPort, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -22,8 +22,11 @@ import type { AutoSaveNotifier } from '../lib/transcript/autoSave';
 import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
-import { getEnvironment } from '../utils/environment';
+import { presentProviders } from '../providers/registry';
+import { getEnvironment, isElectron } from '../utils/environment';
+import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
+import { driveLocalReadiness } from './readiness';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
 
 /** What only React can reach, handed in by `useAppSessionBridges`. */
@@ -48,6 +51,8 @@ export interface AppSessionOptions {
   clock?: Clock;
   /** Tests: each run's session id. Absent: a random UUID. */
   newSessionId?(): string;
+  /** Electron's IPC, for the busy flag; default `window.electron` in Electron, none elsewhere; `null` for none. */
+  ipc?: { invoke(channel: string, data?: unknown): Promise<unknown> } | null;
 }
 
 /** The page's playback with the legs' capture over it. */
@@ -65,6 +70,8 @@ export interface AppSession {
   /** The page's playback and capture, loaded on the first call; a failed load is retried on the next. */
   audio(): Promise<LoadedAudio>;
   setBridges(next: Partial<AppBridges>): void;
+  /** Wires the page's lifetime into the session: legs on the audio mode, local readiness, `pagehide`, and Electron's busy flag. Returns the detach. */
+  attach(): () => void;
 }
 
 // Hoisted so `get()` returns the same object every call — `useSyncExternalStore` requires it.
@@ -165,6 +172,32 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     runner, view, karaoke, subtitle, punctuation, frames,
     audio,
     setBridges(next) { Object.assign(bridges, next); },
+    attach() {
+      const offs: Array<() => void> = [
+        // The panel's readiness is about the legs a start would open: the audio mode's.
+        watchLegsFromStores(),
+        driveLocalReadiness({ runner, providers: () => presentProviders(), auth: () => bridges.auth, clock }),
+      ];
+      // A reload, the window or side panel closing, a page frozen into the
+      // back/forward cache: close every leg and capture now; nothing is saved
+      // (spec: "Stopping, and closing the window"; ruling 14).
+      const onPageHide = () => runner.abandon();
+      window.addEventListener('pagehide', onPageHide);
+      offs.push(() => window.removeEventListener('pagehide', onPageHide));
+      const ipc = options.ipc === undefined ? (isElectron() ? window.electron : null) : options.ipc;
+      if (ipc) {
+        offs.push(trackBusy(runner, (busy) => {
+          void ipc.invoke('app:session-busy', busy).catch((error: unknown) =>
+            reportWarning('AppSession', `Telling the app the session is ${busy ? 'busy' : 'idle'} failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:busy' }));
+        }));
+      }
+      let detached = false;
+      return () => {
+        if (detached) return;
+        detached = true;
+        for (const off of offs.reverse()) off();
+      };
+    },
   };
 }
 

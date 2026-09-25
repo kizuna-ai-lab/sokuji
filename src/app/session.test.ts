@@ -62,13 +62,16 @@ import { createVirtualClock } from '../lib/contract/clock';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { fakeProvider } from '../providers/fake/provider';
 import { createFakeSource } from '../providers/fake/source';
+import { localInferenceProvider } from '../providers/localInference/provider';
 import useAudioStore from '../stores/audioStore';
 import { useProviderStore } from '../stores/providerStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { READINESS_DELAY_MS } from './readiness';
 import { createAppSession, type AppSessionOptions } from './session';
 
 const autoSave = vi.mocked(autoSaveConversation);
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const providersBefore = useProviderStore.getState();
 const audioBefore = useAudioStore.getState();
@@ -200,6 +203,89 @@ describe('createAppSession', () => {
     expect(asked.session.subtitle.get()).toMatchObject({ canStart: false, idle: { code: 'no_microphone' } });
     const told = await setup();
     expect(told.session.subtitle.get().canStart).toBe(true);
+  });
+});
+
+describe('attach', () => {
+  it('abandons the run on pagehide, only while attached', async () => {
+    const { session } = await setup();
+    await session.runner.start();
+    const detach = session.attach();
+
+    window.dispatchEvent(new Event('pagehide'));
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(autoSave).not.toHaveBeenCalled();
+
+    detach();
+    await session.runner.start();
+    window.dispatchEvent(new Event('pagehide'));
+    expect(session.runner.state.getState().phase).not.toBe('idle');
+    await session.runner.stop();
+  });
+
+  it("keeps the provider store's legs on the audio mode", async () => {
+    const { session } = await setup();
+    const detach = session.attach();
+
+    useAudioStore.setState({ mode: 'both' });
+    expect(useProviderStore.getState().legs).toEqual(['speaker', 'participant']);
+
+    detach();
+  });
+
+  it('checks a local provider by itself', async () => {
+    const { session, clock } = await setup();
+    const spy = vi.fn(async () => ({ state: 'unknown' as const }));
+    useProviderStore.setState({
+      selected: 'localInference',
+      entries: { localInference: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+      readiness: {},
+      refreshReadiness: spy,
+    });
+    const detach = session.attach();
+
+    clock.advance(READINESS_DELAY_MS);
+    await flush();
+
+    expect(spy).toHaveBeenCalledWith(localInferenceProvider, { signedIn: false, getToken: expect.any(Function) });
+
+    detach();
+  });
+
+  it('tells Electron it is busy through a run', async () => {
+    const invoke = vi.fn(async () => undefined);
+    const { session } = await setup({ ipc: { invoke } });
+    const detach = session.attach();
+
+    await session.runner.start();
+    expect(invoke).toHaveBeenCalledWith('app:session-busy', true);
+
+    await session.runner.stop();
+    await session.runner.settled();
+    await flush();
+    expect(invoke).toHaveBeenCalledWith('app:session-busy', false);
+
+    detach();
+  });
+
+  it('invokes nothing with ipc: null', async () => {
+    // window.electron stands in for what the default would reach, so a
+    // regression that ignores `ipc: null` shows up here instead of silently
+    // finding nothing to call.
+    const invoke = vi.fn(async () => undefined);
+    (window as unknown as { electron: { invoke: typeof invoke } }).electron = { invoke };
+    const { session } = await setup({ ipc: null });
+    const detach = session.attach();
+
+    await session.runner.start();
+    await session.runner.stop();
+    await session.runner.settled();
+    await flush();
+
+    expect(invoke).not.toHaveBeenCalled();
+
+    detach();
+    delete (window as { electron?: unknown }).electron;
   });
 });
 
