@@ -786,3 +786,66 @@ What it leaves:
   a hot reload keeps the first session (plan 1e-3a ruling 2) — the page's probe
   counters stop reading, and a second session can be built over the same
   playback.
+
+## Scheduled by plan 1e-3b-1
+
+Plan 1e-3b-1 (the panel on the root) landed as commits `758da202..2b1e1f66`:
+thirteen tasks and a final-review fix wave. Built beside the old path and
+mounted only in the development preview (`/?preview=spine&panel=1`): the new
+MainPanel (`src/components/MainPanel/SessionPanel.tsx` over `panel/` — both
+footers, the toolbar, typed text, the waveforms over the graph's bus meters,
+push-to-talk, the clock, the start label, the permission warnings, the echo
+notice), the subtitle takeover over the app session (legs from intent, a
+Settings deep link per readiness code), the audio graph's #246 recovery, the
+microphone stopping first and notices redacted at L1, notice languages by
+name, reused display items with memoized rows, a replay that stops on a second
+click, one start every surface calls (`AppSession.start`, which honours the
+provider-loaded and microphone rules the runner does not check), and the
+stored provider and turn mode applied at load. The running app sees two
+things: the turn mode's one migration write and Electron's 16 s close bound.
+The preview now applies its URL settings at load (with or without
+`&autostart=1`) and runs `initializeAudioService()` as `Home` does; a new
+headless probe, `scripts/dev/app-panel-probe.mjs`, drives the panel through
+Start, rows, karaoke, typed text, push-to-talk, the advanced strips over the
+app's own capture, export, auto-save and a refused start's Settings action
+(`--preview` now; `--app` after the switch). Every preview probe passes, both
+release builds build, and the new advanced footer was compared with today's
+side by side. The per-row memoization's measurement (`--long`, 20 rows and
+more): 2 long tasks, the longest 82 ms.
+
+What it leaves:
+
+**1e-3b-2 — Settings and the switch**
+- `useSelectedProvider` selects nothing on its own: `loadSelectedProvider`
+  owns the default and the stored selection. A child's default-select runs
+  before `Home`'s load effect and would beat the stored provider (safe today
+  only because `MainLayout` waits on `setupLoaded`).
+- `Home` keeps the old `initializeAudioService()` for device enumeration and
+  selection; its player stays idle beside the new graph until 1e-3c. The
+  acceptance checks that passthrough and the monitor are heard once.
+- One acceptance run without `--autoplay-policy=no-user-gesture-required`
+  (`headless.mjs` passes it to every probe): after the switch the graph is
+  built at mount, with no gesture.
+- Any start path the switch adds goes through `AppSession.start`, never
+  `runner.start`.
+- Clear on the two surfaces: the panel's Clear hides a failed start's line on
+  the panel only; the takeover's idle body keeps showing that failure until
+  the next start.
+
+**Before the first release**
+- `SessionPanel` re-renders about 30 times a second during a run; the toolbar
+  and the footer are not memoized. `React.memo` on both is the cheap next step
+  if a measurement regresses.
+- de, nl, sv and tr drop "audio" in one of plan 1e-3b-1's four new sentences —
+  for the native-reader spot-check.
+
+**1e-3c**
+- Three test files copy one mock block (`SubtitleTakeover`, `SessionPanel`,
+  `SessionPanel.microphone`), and a partial `react-i18next` mock prints
+  i18next's Locize banner: revisit when the old tests go.
+
+**Development only**
+- The preview's `&monitor=1`, `&autosave=1` and `&turn=` write the stored
+  settings the old app reads, so they outlive the page.
+- `app-panel-probe --ptt` reads the basic footer's hold button; with
+  `--advanced` it exits 2.
