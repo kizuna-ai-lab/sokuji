@@ -33,9 +33,11 @@
  * overlay exits subtitle mode; closing the side panel unmounts the overlay.
  * Without --ptt, a two-panel case follows: a second meeting tab with its own
  * side panel on the fake's `exchange` script — each overlay must draw its own
- * tab's session only; what an overlay shows once its own panel closes while
- * the other panel lives is recorded, and Escape must still dismiss it; once
- * both panels have closed, both overlays must be gone.
+ * tab's session only; an overlay whose own panel closes while the other lives
+ * becomes an orphan, showing the idle message, and closing that last holder
+ * too (without ever dismissing it) must unmount it on its own (D2's fact an
+ * Escape check alone would hide, review Minor 3); a separate, short re-run
+ * then checks Escape dismisses a fresh orphan the other way.
  *
  * The side panel's page also records the `sender` of every `sokuji-subtitle`
  * port it hears (a listener that keeps no reference to the port, beside the
@@ -587,32 +589,71 @@ async function main(cdp) {
     // Panel B goes while panel A lives. Overlay B opened its port after panel A
     // was already listening, so panel A holds an unheld receiving end of it
     // and overlay B hears no disconnect: the Task 6 ruling's stated cost. It
-    // stays up until the user exits it, and its exit must still dismiss it.
+    // becomes an orphan, showing the idle message.
     // (Overlay A opened before panel B listened; only panel A ever heard it.)
+    const sessionEndedMsg = JA.subtitle.sessionEnded;
     await cdp.send('Target.closeTarget', { targetId: panelB.targetId });
-    await sleep(3000);
-    const bHost = await hasHost(second);
+    let bIdle = null;
+    const bOrphaned = await pollUntil(3000, 100, async () => {
+      if (!(await hasHost(second))) return false;
+      bIdle = await overlayB.evaluate(`document.querySelector('.subtitle-idle__message')?.textContent ?? ''`);
+      return bIdle === sessionEndedMsg;
+    });
     const aHost = await hasHost(meeting);
-    const bShows = bHost ? await overlayB.evaluate(`({
-      entries: [...document.querySelectorAll('.subtitle-stream__line')].map((l) => l.textContent),
-      idle: document.querySelector('.subtitle-idle__message')?.textContent ?? null,
-    })`) : null;
-    console.log(`two panels, B closed while A lives (3 s): overlay A mounted: ${aHost ? 'yes' : 'no'}; overlay B mounted: ${bHost ? 'yes' : 'no'}${bShows ? ` — it shows ${bShows.idle !== null ? `the idle message ${JSON.stringify(bShows.idle)}` : `entries ${JSON.stringify(bShows.entries)}`}` : ''}`);
+    console.log(`two panels, B closed while A lives: overlay A mounted: ${aHost ? 'yes' : 'no'}; overlay B orphaned, shows the idle message: ${bOrphaned ? 'yes' : `no (reads ${JSON.stringify(bIdle)})`}`);
     if (!aHost) miss('two panels: closing panel B unmounted overlay A, whose panel lives');
-    if (bHost) {
-      // No one holding its port listens: the overlay unmounts itself on an exit (`overlayPort.ts`).
-      await overlayB.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
-      const dismissed = await hostGone(second, 2000);
-      console.log(`  Escape in the orphaned overlay B unmounts it: ${dismissed ? 'yes' : 'no'}`);
-      if (!dismissed) miss('two panels: Escape in the orphaned overlay B left it mounted after 2 s');
-    }
+    if (!bOrphaned) miss(`two panels: after panel B closed, the orphaned overlay B never showed the idle message ${JSON.stringify(sessionEndedMsg)}`);
 
+    // Closing panel A too, without ever dismissing the orphan, removes its
+    // last receiving end — the fact that dismissing it by Escape (below)
+    // would otherwise hide (review Minor 3): the orphan unmounts on its own
+    // once the last panel holding its port is gone too (`overlayPort.ts`).
     await cdp.send('Target.closeTarget', { targetId: panelA.targetId });
     const aGone = await hostGone(meeting, 3000);
-    const bGone = await hostGone(second, 3000);
-    console.log(`two panels, both closed (3 s): overlay A unmounted: ${aGone ? 'yes' : 'no'}; overlay B unmounted: ${bGone ? 'yes' : 'no'}`);
+    const bGoneAlone = await hostGone(second, 3000);
+    console.log(`two panels, then A closed too (B never dismissed): overlay A unmounted: ${aGone ? 'yes' : 'no'}; the orphaned overlay B unmounted once its last holder went too: ${bGoneAlone ? 'yes' : 'no'}`);
     if (!aGone) miss('two panels: closing panel A left overlay A mounted (no sidepanel-gone)');
-    if (!bGone) miss('two panels: with both panels closed, overlay B stayed mounted');
+    if (!bGoneAlone) miss('two panels: the orphaned overlay B stayed mounted once its last holding panel closed');
+
+    // A separate, short re-run: a fresh orphan, this time dismissed by
+    // Escape — the other way an orphan can go (D2).
+    const panelC = await openPanel(MEETING_URL, {});
+    if (!(await click(panelC, '[data-tour="main-action"]')) || !(await running(panelC))) noGo('two panels (escape)', "panel C's run never started");
+    await enterSubtitles(panelC, meeting, known, 'two panels (escape)');
+    const panelD = await openPanel(SECOND_MEETING_URL, {});
+    if (!(await click(panelD, '[data-tour="main-action"]')) || !(await running(panelD))) noGo('two panels (escape)', "panel D's run never started");
+    const overlayD = await enterSubtitles(panelD, second, known, 'two panels (escape)');
+    await cdp.send('Target.closeTarget', { targetId: panelD.targetId });
+    // Wait for the idle message itself, not just the host: the overlay keeps
+    // its last-received model until its own publisher's teardown (panel D's
+    // `pagehide`) posts one final "ended" state over the still-open wire —
+    // dispatching Escape before that lands would race a page mid-transition.
+    let dIdle = '';
+    const dOrphaned = await pollUntil(3000, 100, async () => {
+      if (!(await hasHost(second))) return false;
+      dIdle = await overlayD.evaluate(`document.querySelector('.subtitle-idle__message')?.textContent ?? ''`);
+      return dIdle === sessionEndedMsg;
+    });
+    console.log(`two panels (escape): overlay D orphaned, shows the idle message: ${dOrphaned ? 'yes' : `no (reads ${JSON.stringify(dIdle)})`}`);
+    if (!dOrphaned) {
+      miss(`two panels (escape): overlay D never showed the idle message ${JSON.stringify(sessionEndedMsg)} after panel D closed while panel C lives`);
+    } else {
+      await overlayD.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
+      const dDismissed = await hostGone(second, 2000);
+      console.log(`  Escape in the orphaned overlay D unmounts it: ${dDismissed ? 'yes' : 'no'}`);
+      if (!dDismissed) miss('two panels (escape): Escape in the orphaned overlay D left it mounted after 2 s');
+    }
+    await cdp.send('Target.closeTarget', { targetId: panelC.targetId });
+    await hostGone(meeting, 3000);
+
+    // Item 1 (a new side panel on an orphan's own tab replacing it,
+    // `enter()`'s `subtitle:exit` before `subtitle:enter`) is checked by a
+    // unit test only (ExtensionContentScriptSubtitleSurface.test.ts):
+    // reproducing it here costs a third full panel/run cycle on top of this
+    // phase's two, for no more assurance than the message-order test already
+    // gives — that `subtitle:exit` is what makes the content script's
+    // `mountHost` drop the stale host (`subtitle-overlay-content.js:76-77`,
+    // read-only), which the probe cannot see either way.
   }
 }
 

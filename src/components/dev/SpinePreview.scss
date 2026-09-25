@@ -23,8 +23,7 @@
   border: 1px solid #333;
 }
 
-.spine-subtitle,
-.spine-overlay-frame {
+.spine-subtitle {
   display: block;
   width: 900px;
   margin-top: 12px;
@@ -36,6 +35,10 @@
 // ruling 10): the hold button and a notice in a band are judged at the size
 // a meeting page shows them. 900 px is about 70vw of a 1280-px window.
 .spine-overlay-frame {
+  display: block;
+  width: 900px;
+  margin-top: 12px;
+  border: 1px solid #444;
   height: 140px;
 }
 
