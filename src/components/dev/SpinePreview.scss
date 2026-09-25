@@ -27,9 +27,16 @@
 .spine-overlay-frame {
   display: block;
   width: 900px;
-  height: 240px;
   margin-top: 12px;
   border: 1px solid #444;
+}
+
+// The real overlay's iframe opens 140 px high (extension/content/
+// subtitle-overlay-content.js:94), so its stand-in does too (plan 1e-4
+// ruling 10): the hold button and a notice in a band are judged at the size
+// a meeting page shows them. 900 px is about 70vw of a 1280-px window.
+.spine-overlay-frame {
+  height: 140px;
 }
 
 // `.subtitle-app` is 100vw × 100vh by design (in the real Electron takeover
@@ -40,6 +47,7 @@
 .spine-subtitle {
   position: relative;
   overflow: hidden;
+  height: 240px;
 
   .subtitle-app {
     width: 100%;

@@ -36,10 +36,12 @@ import { ProviderPanel } from '../providers/ProviderPanel';
 import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } from '../Settings/ProviderArea';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import type { SubtitleControls } from '../Subtitle/SubtitleView';
+import { uiLanguage } from '../Subtitle/uiLanguage';
 import { configureAppSession, getAppSession, type LoadedAudio } from '../../app/session';
 import { useAppSessionBridges, useRunPhase, useRunState } from '../../app/useAppSession';
 import { loadSessionStores } from '../../app/loadStores';
 import { SessionControls } from './SessionControls';
+import { tallied, type WireTally } from './wireTally';
 import '../Settings/Settings.scss';
 import './SpinePreview.scss';
 
@@ -70,6 +72,9 @@ function counting(open: OpenSource): OpenSource {
  *  DOM for `--sentences` (the seal count, not the rows, is what proves the
  *  cut made them). It counts for the page's lifetime, not per run. */
 const sealCounts: Record<string, number> = {};
+
+/** `&wire=1` (plan 1e-4 ruling 6): the overlay wire's traffic, read by `spine-subtitle-probe.mjs` from `window.__sokujiWire`. Page-lifetime, like `sealCounts`. */
+const wireTally: WireTally = {};
 
 const framesBridge: FramePort = {
   frame: (_leg, frame) => {
@@ -189,7 +194,8 @@ function PreviewConversation({ view, karaoke, playback }: {
 
 /**
  * The extension overlay's stand-in, in an iframe fed over a real
- * `MessageChannel` (`&overlay=1`, plan 1d-2): the overlay announces itself
+ * `MessageChannel` (`&overlay=1`, plan 1d-2; at the real 140 px and with the
+ * language, plan 1e-4): the overlay announces itself
  * ready (once its own listener is live — `OverlayPreview`), this page hands
  * it one end of a fresh `MessageChannel` on each such announcement, and
  * `publishSubtitles` starts sending down the other. Reconnects on every
@@ -197,12 +203,13 @@ function PreviewConversation({ view, karaoke, playback }: {
  * stops on unmount. Nothing here is timed: there is no `load`/mount race to
  * guess at, since the overlay itself says when it is listening.
  */
-function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
+function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measure }: {
   view: Readable<ConversationViewState>;
   karaoke: Readable<KaraokeState>;
   session: Readable<SubtitleSession>;
   controls: SubtitleControls;
   compact: boolean;
+  measure: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [port, setPort] = useState<MessagePort | null>(null);
@@ -232,13 +239,17 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
   useEffect(() => {
     if (!port) return;
     const entries: Readable<readonly Entry[]> = { get: () => view.get().entries, subscribe: view.subscribe };
-    return publishSubtitles(messagePortWire(port), { entries, session, karaoke }, {
+    const wire = messagePortWire(port);
+    if (measure) (window as unknown as { __sokujiWire?: WireTally }).__sokujiWire = wireTally;
+    // The side panel's language rides too, as in the extension (plan 1e-4
+    // ruling 5): the preview's wire carries the extension's four messages.
+    return publishSubtitles(measure ? tallied(wire, wireTally) : wire, { entries, session, karaoke, language: uiLanguage }, {
       clear: controls.clear,
       exit: controls.exit,
       press: controls.press,
       release: controls.release,
     });
-  }, [port, view, karaoke, session, controls]);
+  }, [port, view, karaoke, session, controls, measure]);
 
   return (
     <iframe
@@ -268,6 +279,9 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
  * with a back row, the way Simple mode's own list does), `advanced` is
  * `SessionSettingsProvider` alone (Advanced's Provider tab — drawing the
  * General tab's blocks beside it would double `#provider-section`).
+ * `&wire=1` (with `&overlay=1`) tallies the overlay's wire per message type
+ * as the JSON bytes the extension's port would carry, on `window.__sokujiWire`
+ * (plan 1e-4).
  */
 export function SpinePreview() {
   const auth = useAppSessionBridges();
@@ -310,6 +324,7 @@ export function SpinePreview() {
       overlay: params.get('overlay') === '1',
       compact: params.get('compact') === '1',
       panel: params.get('panel') === '1',
+      wire: params.get('wire') === '1',
     };
   }, []);
   const subtitleControls: SubtitleControls = useMemo(() => ({
@@ -514,6 +529,7 @@ export function SpinePreview() {
             session={session.subtitle}
             controls={subtitleControls}
             compact={previewParams.compact}
+            measure={previewParams.wire}
           />
         )}
       </div>

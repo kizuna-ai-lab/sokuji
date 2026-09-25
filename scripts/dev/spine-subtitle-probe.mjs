@@ -24,6 +24,16 @@
  * on both surfaces, `.conversation-display`'s computed background is
  * transparent (the subtitle's own background must show through, not an
  * opaque panel).
+ *
+ * Add `&script=long&wire=1` and about 150 seconds to measure the overlay's
+ * wire (plan 1e-4 ruling 6): the page tallies every message the overlay's
+ * port carries, as the bytes Chrome's messaging would (JSON, UTF-8); the
+ * probe prints each type's count, total and largest message and its rate
+ * over the last 30 s. It exits 1 if a `subtitle:entries` message sent
+ * after the tail reached its cap (`OVERLAY_ENTRIES` entries: the steady
+ * state) exceeds 64 KB — the roadmap's entries delta is owed then — or if
+ * the tail never reached its cap (run longer: the `long` script adds one
+ * entry every 3 s). The overlay frame is the real 140 px high.
  */
 import { writeFileSync } from 'node:fs';
 import { evaluate, sleep, withPage } from './headless.mjs';
@@ -36,6 +46,11 @@ const cjk = url.includes('script=cjk');
 // Declared before `READ` below: its template literal reads `compact`
 // immediately (it is a plain string, not a function), so this must exist first.
 const compact = url.includes('compact=1');
+const measureWire = url.includes('wire=1');
+const WIRE = 'JSON.stringify(window.__sokujiWire ?? null)';
+const WIRE_WINDOW_S = 30;
+const ENTRIES_BUDGET = 64 * 1024;
+const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 
 const READ = `(() => {
   // Compact: the band texts. Expanded: the list's row texts.
@@ -100,6 +115,7 @@ process.exitCode = await withPage(url, async (send) => {
   const bgBad = { page: null, overlay: null };
   let before = null;
   let last = null;
+  let wireFrom = null;
   if (manual) {
     await sleep(3000);
     before = await evaluate(send, READ);
@@ -117,6 +133,9 @@ process.exitCode = await withPage(url, async (send) => {
     if (last.segmentsOk.overlay === false) segmentsBad.overlay = true;
     if (last.bg.page !== null && last.bg.page !== true) bgBad.page = last.bg.page;
     if (last.bg.overlay !== null && last.bg.overlay !== true) bgBad.overlay = last.bg.overlay;
+    if (measureWire && !wireFrom && waited >= Math.max(0, seconds - WIRE_WINDOW_S) * 1000) {
+      wireFrom = { at: waited, tally: JSON.parse((await evaluate(send, WIRE)) ?? 'null') };
+    }
   }
   if (screenshot) {
     const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
@@ -137,6 +156,25 @@ process.exitCode = await withPage(url, async (send) => {
   if (segmentsBad.overlay) failures.push('two adjacent items in one band share a segment on the overlay (a within-segment gap)');
   if (bgBad.page) failures.push(`the page view's .conversation-display is not transparent: ${bgBad.page}`);
   if (bgBad.overlay) failures.push(`the overlay's .conversation-display is not transparent: ${bgBad.overlay}`);
+  if (measureWire) {
+    const tally = JSON.parse((await evaluate(send, WIRE)) ?? 'null');
+    if (!tally) {
+      failures.push('no wire tally on the page — the URL needs &overlay=1 as well as &wire=1');
+    } else {
+      const span = Math.max(1, (seconds * 1000 - (wireFrom?.at ?? 0)) / 1000);
+      for (const [type, t] of Object.entries(tally).sort(([a], [b]) => a.localeCompare(b))) {
+        const before = wireFrom?.tally?.[type] ?? { count: 0, bytes: 0 };
+        console.log(`wire ${type}: ${t.count} messages, ${kb(t.bytes)} in all, largest ${kb(t.max)}; last ${span.toFixed(0)} s: ${((t.count - before.count) / span).toFixed(1)}/s, ${kb((t.bytes - before.bytes) / span)}/s`);
+      }
+      // The steady state only (controller ruling M2): a message sent while the tail was still filling is not what the budget is about.
+      const steady = tally['subtitle:entries']?.steadyMax;
+      if (steady === undefined) failures.push(`the tail never reached its cap in ${seconds} s — run longer`);
+      else {
+        console.log(`wire subtitle:entries at the cap: largest ${kb(steady)} (budget 64 KB)`);
+        if (steady > ENTRIES_BUDGET) failures.push(`a steady subtitle:entries message reached ${kb(steady)}, over the 64 KB budget: the entries delta is owed (roadmap 1d-2 → 1e; plan 1e-4 ruling 6)`);
+      }
+    }
+  }
   for (const failure of failures) console.log(`FAIL: ${failure}`);
   return failures.length === 0 ? 0 : 1;
 }, { viewport: { width: 1000, height: 2200 } });
