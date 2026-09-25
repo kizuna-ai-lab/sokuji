@@ -7,10 +7,10 @@ import { realClock, type Clock } from '../contract/clock';
 import type { LegName, Segment } from '../conversation/types';
 import type { PlaybackPort } from '../session/ports';
 import { ClipQueue, type QueueView } from './clipQueue';
-import type { AudioGraph, OneShot } from './graph';
+import type { AudioGraph, BusMeter, OneShot } from './graph';
 import { LiveStream } from './liveStream';
 import type { PcmTap } from './pcmTap';
-import { routesFor, type RoutingSettings } from './routes';
+import { routesFor, type RoutingSettings, type Bus } from './routes';
 
 /** How long playback must be quiet — no run live, nothing queued, no preview — before its context rests. */
 export const QUIET_MS = 5_000;
@@ -52,6 +52,8 @@ export interface Playback extends PlaybackPort {
   passthrough(pcm: Int16Array): void;
   /** The translated speech as played, before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
+  /** What a bus carries, for a waveform: the virtual one is what the meeting hears. */
+  meter(bus: Bus): BusMeter | null;
   dispose(): Promise<void>;
 }
 
@@ -187,6 +189,8 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     },
 
     ttsTap: graph.ttsTap,
+
+    meter: (bus) => graph.meter(bus),
 
     dispose() {
       disposing ??= (async () => {

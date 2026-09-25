@@ -17,6 +17,7 @@ import { lastEndItem } from '../../lib/view/lastEnd';
 import { FAKE_SCRIPT_NAMES } from '../../providers/fake/scripts';
 import { createFakeSource } from '../../providers/fake/source';
 import { presentProviders } from '../../providers/registry';
+import useAudioStore from '../../stores/audioStore';
 import { useConversationDisplayStore } from '../../stores/conversationDisplayStore';
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -353,6 +354,8 @@ export function SpinePreview() {
     if (params.get('compact') === '1') void useSubtitleStore.getState().setCompactMode(true);
     // `&autosave=1`: the stored auto-save switch, on — the run's end saves the conversation.
     if (params.get('autosave') === '1') void useSettingsStore.getState().setAutoSaveOnStop(true);
+    // &monitor=1: the speaker's translation reaches the real bus (the monitor is off by default), for the probe's tap on a bus.
+    if (params.get('monitor') === '1') useAudioStore.getState().setMonitorMuted(false);
     // `&models=<id>,<id>…` (LocalInference's live probe, task 9): download
     // each one not already downloaded, then `&pair=<source>:<target>`
     // through the provider store. A downloaded model alone is not enough to

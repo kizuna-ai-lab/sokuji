@@ -49,6 +49,11 @@ export interface OneShot {
   stop(): void;
 }
 
+/** A bus's `AnalyserNode`, read as 0–1 levels (spec: "Meters"). */
+export interface BusMeter {
+  read(): Float32Array;
+}
+
 export interface AudioGraph {
   /** A timeline playing into a feed: the clip queues' and the passthrough stream's. */
   timeline(feed: 'speaker' | 'participant' | 'replay' | 'passthrough'): AudioTimeline;
@@ -60,6 +65,12 @@ export interface AudioGraph {
   setSinks(sinks: { real?: string; virtual?: string }): Promise<void>;
   /** The translated speech the graph plays (speaker, participant, replay), before any route: the echo monitor's reference. */
   readonly ttsTap: PcmTap;
+  /**
+   * An `AnalyserNode` on `bus`, pulled through the muted path like a tap;
+   * null where this platform lacks the bus. The same object every time it is
+   * asked for, and it keeps reading across a rebuild (#246).
+   */
+  meter(bus: Bus): BusMeter | null;
   /** Resumes a suspended context (once any suspend still in flight has landed) and restarts an output the browser paused (autoplay). */
   resume(): Promise<void>;
   /** Pauses rendering while nothing plays; `resume()` undoes it. */
@@ -91,6 +102,7 @@ interface Built {
   /** The stream each output element plays, per bus that has an element. */
   outs: Partial<Record<Bus, MediaStreamAudioDestinationNode>>;
   taps: AudioWorkletNode[];
+  /** One per bus a meter has been asked for (`metered`); a rebuild recreates them. */
   analysers: Partial<Record<Bus, AnalyserNode>>;
 }
 
@@ -107,6 +119,19 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
   const virtual = deps.virtual;
   /** Created by the first build; a rebuild's swap points them at the new streams, so they keep their devices. */
   const elements: Partial<Record<Bus, SinkElement>> = {};
+  /** Buses a meter has been asked for; a build wires an analyser for each. */
+  const metered = new Set<Bus>();
+  /** Wires `bus`'s analyser once, pulled through the muted path like a tap. */
+  const wireAnalyser = (built: Built, bus: Bus): void => {
+    const busNode = built.buses[bus];
+    if (!busNode || built.analysers[bus]) return;
+    const analyser = built.ctx.createAnalyser();
+    analyser.fftSize = 64;
+    analyser.smoothingTimeConstant = 0.8;
+    busNode.connect(analyser);
+    analyser.connect(built.muted);
+    built.analysers[bus] = analyser;
+  };
 
   /** Everything that lives on a context: the first one's, and each replacement's (#246). */
   const build = (ctx: AudioContext): Built => {
@@ -157,7 +182,9 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       tapInto(node, (chunk) => virtual.send(chunk));
     }
 
-    return { ctx, muted, feeds, buses, outs, taps, analysers: {} };
+    const built: Built = { ctx, muted, feeds, buses, outs, taps, analysers: {} };
+    for (const bus of metered) wireAnalyser(built, bus);
+    return built;
   };
   let current = build(deps.context);
 
@@ -339,6 +366,20 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     return rebuilding;
   };
 
+  // One `BusMeter` per bus ever asked for; its `read()` looks up `current`
+  // each time, so it keeps reading across a rebuild (`metered` above is what
+  // makes `build()` recreate the analyser it reads).
+  const meters = new Map<Bus, BusMeter>();
+  const readMeter = (bus: Bus): Float32Array => {
+    const analyser = current.analysers[bus];
+    if (!analyser) return new Float32Array(0);
+    const raw = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(raw);
+    const levels = new Float32Array(raw.length);
+    for (let i = 0; i < raw.length; i++) levels[i] = raw[i] / 255;
+    return levels;
+  };
+
   return {
     timeline: (feed) => ({
       now: () => current.ctx.currentTime,
@@ -365,6 +406,18 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
     route(next) {
       lastRoute = next;
       applyRoute(next);
+    },
+
+    meter(bus) {
+      if (!current.buses[bus]) return null;
+      metered.add(bus);
+      wireAnalyser(current, bus);
+      let meter = meters.get(bus);
+      if (!meter) {
+        meter = { read: () => readMeter(bus) };
+        meters.set(bus, meter);
+      }
+      return meter;
     },
 
     async setSinks(sinks) {

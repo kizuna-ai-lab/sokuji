@@ -23,6 +23,10 @@ vi.mock('../../lib/audio/appCapture', () => ({
   createAppCapture: () => ({
     openSource: async () => { throw new Error('no capture in tests'); },
     echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
+    levels: {
+      speaker: { push() {}, read: () => new Float32Array(32), reset() {} },
+      participant: { push() {}, read: () => new Float32Array(32), reset() {} },
+    },
   }),
 }));
 // The page's runner is the real one; this only watches its `start()` — the
@@ -47,6 +51,7 @@ vi.mock('../../lib/audio/appAudio', () => ({
         audio: () => {}, held: () => {}, clear: () => {}, live: () => {},
         replay: () => {}, stopReplay: () => {}, preview: async () => {}, stopPreview: () => {},
         passthrough: () => {}, ttsTap: { read: () => new Float32Array(0) }, dispose: async () => {},
+        meter: () => null,
       },
       testTone: async () => {},
     };

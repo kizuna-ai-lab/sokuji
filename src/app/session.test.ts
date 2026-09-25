@@ -20,6 +20,7 @@ const { playback, getAppAudio } = vi.hoisted(() => {
     queues: { speaker: queue(), participant: queue(), replay: queue() },
     audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn(), passthrough: vi.fn(),
     ttsTap: { read: () => new Float32Array(0) },
+    meter: vi.fn(() => null),
   };
   return { playback, getAppAudio: vi.fn(async () => ({ playback, testTone: async () => {} })) };
 });
@@ -29,6 +30,10 @@ vi.mock('../lib/audio/appCapture', () => ({
   createAppCapture: () => ({
     openSource: async () => { throw new Error('no capture in tests'); },
     echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
+    levels: {
+      speaker: { push() {}, read: () => new Float32Array(32), reset() {} },
+      participant: { push() {}, read: () => new Float32Array(32), reset() {} },
+    },
   }),
 }));
 
@@ -137,7 +142,7 @@ describe('createAppSession', () => {
     const loaded = await first;
     expect(getAppAudio).toHaveBeenCalledTimes(1);
     expect(loaded.playback).toBe(playback);
-    expect(loaded.capture).toEqual({ openSource: expect.any(Function), echo: expect.any(Object) });
+    expect(loaded.capture).toMatchObject({ openSource: expect.any(Function), echo: expect.any(Object), levels: expect.any(Object) });
   });
 
   it('opens a leg only once the playback has loaded, and plays the run through it', async () => {

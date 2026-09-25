@@ -27,6 +27,7 @@ vi.mock('./capture/echoWatch', () => ({
 
 import useAudioStore from '../../stores/audioStore';
 import { createAppCapture, micSettings, systemAudioSettings } from './appCapture';
+import { LEVEL_BARS } from './levelMeter';
 import type { Playback } from './playback';
 
 function fakePlayback() {
@@ -77,6 +78,30 @@ describe('createAppCapture', () => {
     expect(watch.detached).toEqual(['speaker']);
     expect(opened.sources[0].stopped).toBe(true);
     expect(playback.passthrough).not.toHaveBeenCalled();
+  });
+});
+
+describe('createAppCapture — levels', () => {
+  it('has a level meter for each leg', () => {
+    const capture = createAppCapture(fakePlayback(), 'electron');
+    expect(capture.levels.speaker).toBeDefined();
+    expect(capture.levels.participant).toBeDefined();
+  });
+
+  it("moves the leg's level meter as its source delivers chunks", async () => {
+    const capture = createAppCapture(fakePlayback(), 'electron');
+    await capture.openSource('speaker', live());
+    clock.advance(100);
+    expect([...capture.levels.speaker.read()].some((v) => v > 0)).toBe(true);
+  });
+
+  it('resets the level meter once the source stops', async () => {
+    const capture = createAppCapture(fakePlayback(), 'electron');
+    const source = await capture.openSource('speaker', live());
+    clock.advance(100);
+    expect([...capture.levels.speaker.read()].some((v) => v > 0)).toBe(true);
+    await source.stop();
+    expect([...capture.levels.speaker.read()]).toEqual(new Array(LEVEL_BARS).fill(0));
   });
 });
 

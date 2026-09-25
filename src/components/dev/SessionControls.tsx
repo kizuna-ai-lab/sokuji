@@ -29,10 +29,11 @@ interface SessionControlsProps {
 function usePlaybackProbe(
   playback: Playback | undefined,
   capture?: () => { chunks: number; peak: number },
-): { heard: string[]; peak: number; captured: { chunks: number; peak: number } | null } {
-  const [probe, setProbe] = useState<{ heard: string[]; peak: number; captured: { chunks: number; peak: number } | null }>({
+): { heard: string[]; peak: number; busPeak: number; captured: { chunks: number; peak: number } | null } {
+  const [probe, setProbe] = useState<{ heard: string[]; peak: number; busPeak: number; captured: { chunks: number; peak: number } | null }>({
     heard: [],
     peak: 0,
+    busPeak: 0,
     captured: capture ? { chunks: 0, peak: 0 } : null,
   });
   // A new arrow function on every render must not tear down the interval below
@@ -43,20 +44,23 @@ function usePlaybackProbe(
     if (!playback) return;
     const heard = new Set<string>();
     let peak = 0;
+    let busPeak = 0;
     let last = { chunks: 0, peak: 0 };
     const id = setInterval(() => {
       const before = heard.size;
       const beforePeak = peak;
+      const beforeBusPeak = busPeak;
       for (const queue of Object.values(playback.queues)) {
         const playing = queue.position();
         if (playing) heard.add(playing.key);
       }
       for (const sample of playback.ttsTap.read()) peak = Math.max(peak, Math.abs(sample));
+      busPeak = Math.max(0, ...(playback.meter('real')?.read() ?? []));
       const seen = captureRef.current?.();
       const captureChanged = seen && (seen.chunks !== last.chunks || seen.peak !== last.peak);
-      if (heard.size !== before || peak !== beforePeak || captureChanged) {
+      if (heard.size !== before || peak !== beforePeak || busPeak !== beforeBusPeak || captureChanged) {
         if (seen) last = seen;
-        setProbe({ heard: [...heard], peak, captured: seen ?? null });
+        setProbe({ heard: [...heard], peak, busPeak, captured: seen ?? null });
       }
     }, 100);
     return () => clearInterval(id);
@@ -146,7 +150,7 @@ export function SessionControls({ runner, turnMode, audio, capture }: SessionCon
             Test tone
           </button>
           <p data-probe="playback">
-            {`heard: ${probe.heard.join(',') || '-'} · tap peak: ${probe.peak.toFixed(3)}`
+            {`heard: ${probe.heard.join(',') || '-'} · tap peak: ${probe.peak.toFixed(3)} · bus peak: ${probe.busPeak.toFixed(3)}`
               + (probe.captured ? ` · captured: ${probe.captured.chunks} · mic peak: ${probe.captured.peak.toFixed(3)}` : '')}
           </p>
         </div>

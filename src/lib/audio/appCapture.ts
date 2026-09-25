@@ -13,6 +13,7 @@ import { createEchoWatch, type EchoWatch } from './capture/echoWatch';
 import { openMic, type MicSettings } from './capture/mic';
 import { openSystemAudio, type SystemAudioSettings } from './capture/systemAudio';
 import { openTab, type TabSettings } from './capture/tab';
+import { createLevelMeter, type LevelMeter } from './levelMeter';
 import type { Playback } from './playback';
 import { targetTabIdFromSearch } from './tabMicrophone';
 
@@ -20,6 +21,8 @@ export interface AppCapture {
   openSource: OpenSource;
   /** For the echo notice (plan 1d): `useEchoNotice`'s one-listener contract. */
   echo: EchoWatch;
+  /** Each leg's input level, for the footer's waveform (plan 1e-3b-1 ruling 3). */
+  levels: Readonly<Record<LegName, LevelMeter>>;
 }
 
 const audio = () => useAudioStore.getState();
@@ -73,6 +76,7 @@ function withCleanup(source: Source, cleanup: () => void): Source {
 
 export function createAppCapture(playback: Playback, platform: Platform = getEnvironment()): AppCapture {
   const echo = createEchoWatch(playback.ttsTap);
+  const levels: Record<LegName, LevelMeter> = { speaker: createLevelMeter(), participant: createLevelMeter() };
 
   const open = (leg: LegName, signal: AbortSignal): Promise<Source> => {
     if (leg === 'speaker') return openMic(micSettings(), signal);
@@ -83,13 +87,17 @@ export function createAppCapture(playback: Playback, platform: Platform = getEnv
 
   return {
     echo,
+    levels,
     async openSource(leg, signal) {
       const source = await open(leg, signal);
       // The processed microphone is the original voice under the translation.
       const offPassthrough = leg === 'speaker' ? source.onPcm((pcm) => playback.passthrough(pcm)) : () => {};
+      const offLevel = source.onPcm((pcm) => levels[leg].push(pcm));
       const detach = echo.attach(leg, source);
       return withCleanup(source, () => {
         offPassthrough();
+        offLevel();
+        levels[leg].reset();
         detach();
       });
     },

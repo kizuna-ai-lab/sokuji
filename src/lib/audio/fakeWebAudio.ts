@@ -90,6 +90,18 @@ export class FakeWorkletNode extends FakeNode {
   }
 }
 
+export class FakeAnalyser extends FakeNode {
+  frequencyBinCount = 16;
+  fftSize = 32;
+  smoothingTimeConstant = 0;
+  /** Set by a test to control what the next read returns. */
+  level = 0;
+
+  getByteFrequencyData(out: Uint8Array): void {
+    out.fill(Math.round(this.level * 255));
+  }
+}
+
 export class FakeAudioContext {
   currentTime = 0;
   state: AudioContextState = 'running';
@@ -98,6 +110,7 @@ export class FakeAudioContext {
   readonly sources: FakeBufferSource[] = [];
   readonly destinations: FakeStreamDestination[] = [];
   readonly streamSources: FakeStreamSource[] = [];
+  readonly analysers: FakeAnalyser[] = [];
   resumed = 0;
   suspended = 0;
   /** How many times `close()` has actually closed the context (never more than one, as a real context refuses a second). */
@@ -160,6 +173,12 @@ export class FakeAudioContext {
     const source = new FakeStreamSource(stream);
     this.streamSources.push(source);
     return source;
+  }
+
+  createAnalyser(): FakeAnalyser {
+    const analyser = new FakeAnalyser();
+    this.analysers.push(analyser);
+    return analyser;
   }
 
   /** As a real context: `state` changes only once the returned promise settles, not when it is asked. */

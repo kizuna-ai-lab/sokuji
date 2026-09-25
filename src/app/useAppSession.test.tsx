@@ -18,6 +18,7 @@ vi.mock('../lib/audio/appAudio', () => ({
         queues: { speaker: queue, participant: queue, replay: queue },
         audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn(), passthrough: vi.fn(),
         ttsTap: { read: () => new Float32Array(0) },
+        meter: vi.fn(() => null),
       },
       testTone: async () => {},
     };
@@ -27,6 +28,10 @@ vi.mock('../lib/audio/appCapture', () => ({
   createAppCapture: () => ({
     openSource: async () => { throw new Error('no capture in tests'); },
     echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
+    levels: {
+      speaker: { push() {}, read: () => new Float32Array(32), reset() {} },
+      participant: { push() {}, read: () => new Float32Array(32), reset() {} },
+    },
   }),
 }));
 vi.mock('../lib/segmentation/PunctuationRuntime', () => {

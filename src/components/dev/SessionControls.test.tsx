@@ -99,6 +99,7 @@ function fakeAudio(): AppAudio & { playback: Playback } {
     preview: vi.fn(async () => {}), stopPreview: vi.fn(),
     passthrough: vi.fn(),
     ttsTap: { read: () => new Float32Array(0) },
+    meter: () => null,
     dispose: vi.fn(async () => {}),
   } as unknown as Playback;
   return { playback, testTone: vi.fn(async () => {}) };
@@ -148,7 +149,21 @@ describe('SessionControls — playback', () => {
       Object.assign(audio.playback, { ttsTap: { read: () => Float32Array.of(0.25, -0.5) } });
       render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
       act(() => { vi.advanceTimersByTime(100); });
-      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.500');
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.500 · bus peak: 0.000');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows the peak the real bus meter reads', () => {
+    vi.useFakeTimers();
+    try {
+      const { runner } = fakeRunner();
+      const audio = fakeAudio();
+      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'real' ? { read: () => Float32Array.of(0.1, 0.4) } : null) });
+      render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.400');
     } finally {
       vi.useRealTimers();
     }
@@ -160,7 +175,7 @@ describe('SessionControls — playback', () => {
       const { runner } = fakeRunner();
       render(<SessionControls runner={runner} turnMode="auto" audio={fakeAudio()} capture={() => ({ chunks: 3, peak: 0.25 })} />);
       act(() => { vi.advanceTimersByTime(100); });
-      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · captured: 3 · mic peak: 0.250');
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.000 · captured: 3 · mic peak: 0.250');
     } finally {
       vi.useRealTimers();
     }
@@ -178,7 +193,7 @@ describe('SessionControls — playback', () => {
       Object.assign(audio.playback.queues, { speaker: { position: () => null, pending: 0, subscribe: () => () => {} } });
       rerender(<SessionControls runner={runner} turnMode="auto" audio={audio} capture={() => ({ chunks: 2, peak: 0.1 })} />);
       act(() => { vi.advanceTimersByTime(100); });
-      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.000 · captured: 2 · mic peak: 0.100');
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: speaker:2:0 · tap peak: 0.000 · bus peak: 0.000 · captured: 2 · mic peak: 0.100');
     } finally {
       vi.useRealTimers();
     }

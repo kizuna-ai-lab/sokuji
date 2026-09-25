@@ -264,6 +264,37 @@ describe('createAudioGraph — the tts tap', () => {
   });
 });
 
+describe('createAudioGraph — meters', () => {
+  it('meter(bus) connects an analyser from the bus to the destination (the muted path)', async () => {
+    const { ctx, graph, clip } = await setup();
+    const meter = graph.meter('real');
+    expect(meter).not.toBeNull();
+    graph.route([{ from: 'speaker', to: 'real', gain: 1 }]);
+    const source = clip('speaker');
+    expect(reaches(source, ctx.analysers[0])).toBe(true);
+  });
+
+  it('is null where the platform lacks the bus', async () => {
+    const { graph } = await setup('none');
+    expect(graph.meter('virtual')).toBeNull();
+  });
+
+  it('returns the same object and one analyser however often it is asked', async () => {
+    const { ctx, graph } = await setup();
+    const first = graph.meter('real');
+    const second = graph.meter('real');
+    expect(second).toBe(first);
+    expect(ctx.analysers).toHaveLength(1);
+  });
+
+  it("reads the analyser's level, scaled to 0-1", async () => {
+    const { ctx, graph } = await setup();
+    const meter = graph.meter('real')!;
+    ctx.analysers[0].level = 0.5;
+    expect([...meter.read()]).toEqual(new Array(16).fill(Math.fround(128 / 255)));
+  });
+});
+
 describe('createAudioGraph — clips', () => {
   it('writes a clip at 24 kHz, and ends it once: on its end, or on stop', async () => {
     const { ctx, graph } = await setup();
@@ -627,6 +658,17 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     tabs.emit(Float32Array.of(0.5));
     expect([...graph.ttsTap.read()]).toEqual([0.5]);
     expect(sent).toEqual([Float32Array.of(0.5)]);
+  });
+
+  it('keeps a bus meter across a rebuild, reading an analyser on the new context', async () => {
+    const setup = await setupRecovering();
+    const { contexts, graph } = setup;
+    const meter = graph.meter('real');
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(2);
+    expect(contexts[1].analysers).toHaveLength(1);
+    contexts[1].analysers[0].level = 0.5;
+    expect(meter!.read()[0]).toBeCloseTo(Math.fround(128 / 255));
   });
 
   it('a rebuild whose module fails to load leaves the context it keeps as it was, still watched', async () => {
