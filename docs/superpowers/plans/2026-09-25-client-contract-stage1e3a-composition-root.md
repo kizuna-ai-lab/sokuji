@@ -25,7 +25,7 @@
 
   The 11 lines: App.tsx TS6133 'React'; SubtitleApp.handleStart.test.tsx TS6133 'provider'; 6× SubtitleBar.test.tsx TS2322 'SessionControl'; analytics.ts TS6133; environment.ts TS2717; environment.ts TS2339. Do not fix them; do not add to them. (`src/routes/Home.tsx` is outside the gate; its own pre-existing TS6133 stays.)
 - Never start a dev server and never run a probe: after each task's commit the controller runs the headless probes the task names against a fresh vite (`SOKUJI_DEV_NO_ELECTRON=1 npx vite --port 5199 --strictPort`).
-- Commits: conventional, English; every message ends with the implementing model's `Co-Authored-By` line and `Claude-Session: https://claude.ai/code/session_01FbeFQk7tVuf6umXVwEeX28`. In this worktree the shell refuses compound git commands: run `git add` and `git commit -q -F - <<'EOF' … EOF` as separate calls. Never push.
+- Commits: conventional, English; every message ends with the implementing model's `Co-Authored-By` line (no `Claude-Session` line since the 2026-09-25 account change). In this worktree the shell refuses compound git commands: run `git add` and `git commit -q -F - <<'EOF' … EOF` as separate calls. Never push.
 
 ## Rulings this plan makes
 
