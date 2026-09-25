@@ -38,6 +38,7 @@ const REPO_ROOT = resolve(__dirname, '../../..');
  * what reports. Listing them would imply a rule nothing can satisfy.
  */
 const ROOTS = [
+  'src/app',
   'src/stores',
   'src/services',
   'src/contexts',
@@ -238,7 +239,7 @@ describe('console ledger', () => {
   // absence of ledger rows, so re-adding one fails here with the reason instead
   // of quietly earning a new baseline entry.
   it('the roots #441 covered stay at zero', () => {
-    const CLEARED = ['src/stores/', 'src/services/', 'src/contexts/'];
+    const CLEARED = ['src/stores/', 'src/services/', 'src/contexts/', 'src/app/'];
     const offenders = scannedFiles()
       .filter((f) => CLEARED.some((root) => f.startsWith(root)))
       .filter((f) => countConsoleCalls(read(f), f) > 0);
