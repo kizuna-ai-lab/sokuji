@@ -13,7 +13,7 @@ import { LegOpenError, RefusedError, retentionFor, Run, type RunHost } from './r
 import type { LegState, RunEnd, RunState } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
-const DEFAULT_CLOSE_TIMEOUT_MS = 15_000;
+export const DEFAULT_CLOSE_TIMEOUT_MS = 15_000;
 
 export interface Runner {
   readonly state: StoreApi<RunState>;

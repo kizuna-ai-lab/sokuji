@@ -1,26 +1,19 @@
 /**
- * The app session's React side: the run's state, and the bridges the runner
- * reads — sign-in, analytics, toasts, the balance refetch — which only React
- * can reach. The only file under `src/app` that imports React or
- * `src/lib/analytics.ts`.
+ * The app session's React side: the bridges the runner reads — sign-in,
+ * analytics, toasts, the balance refetch — which only React can reach. The
+ * run's state lives in `useRun.ts`, re-exported here. The only file under
+ * `src/app` that imports `src/lib/analytics.ts`; with `useRun.ts` and
+ * `AppSessionRoot.tsx`, the only ones that use React.
  */
 import { useMemo } from 'react';
-import { useStore } from 'zustand';
 import { useToast } from '../components/Toast';
 import { useAnalytics } from '../lib/analytics';
 import { useAuth } from '../lib/auth/hooks';
 import type { AuthContext } from '../lib/provider/types';
 import type { AnalyticsPort } from '../lib/session/ports';
-import type { RunState } from '../lib/session/types';
 import { getAppSession } from './session';
 
-export function useRunState(): RunState {
-  return useStore(getAppSession().runner.state);
-}
-
-export function useRunPhase(): RunState['phase'] {
-  return useStore(getAppSession().runner.state, (s) => s.phase);
-}
+export { useRunState, useRunPhase } from './useRun';
 
 /** Hands the session the page's sign-in, analytics, toasts and balance refetch; returns the sign-in for the settings panel. */
 export function useAppSessionBridges(refetchQuota?: () => Promise<void>): AuthContext {

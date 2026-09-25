@@ -45,7 +45,7 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null });
+  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false });
 });
 
 describe('load', () => {
@@ -186,6 +186,17 @@ describe('writes', () => {
     expect(useProviderStore.getState().selected).toBeNull();
     useProviderStore.getState().select('probe');
     expect(useProviderStore.getState().selected).toBe('probe');
+  });
+
+  it('refuses a new choice while the selection is locked, and takes it once unlocked', () => {
+    useProviderStore.getState().select('probe');
+    useProviderStore.getState().setSelectionLocked(true);
+    useProviderStore.getState().select('x');
+    expect(useProviderStore.getState().selected).toBe('probe');
+
+    useProviderStore.getState().setSelectionLocked(false);
+    useProviderStore.getState().select('x');
+    expect(useProviderStore.getState().selected).toBe('x');
   });
 });
 

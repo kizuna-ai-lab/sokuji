@@ -170,7 +170,8 @@ export interface AnalyticsEvents {
   };
   'session_control_clicked': {
     action: 'start' | 'stop' | 'cancel';
-    method: 'button' | 'keyboard';
+    /** `window`: the Electron window closing, or an update installing, ended the run. */
+    method: 'button' | 'keyboard' | 'window';
   };
   'panel_viewed': {
     panel_name: 'main' | 'settings' | 'audio' | 'logs';

@@ -7,7 +7,7 @@
  */
 import { create } from 'zustand';
 import type { LegName } from '../lib/conversation/types';
-import { describeCause, reportError } from '../lib/diagnostics/report';
+import { describeCause, reportError, reportWarning } from '../lib/diagnostics/report';
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, Readiness } from '../lib/provider/types';
@@ -59,7 +59,11 @@ export interface ProviderStore {
   setLegs(legs: readonly LegName[]): void;
   /** The provider the panel shows and a run starts; in memory until plan 1e persists it under `settings.common.provider`. */
   selected: string | null;
+  /** Refused, with a warning, while `selectionLocked`. */
   select(id: string): void;
+  /** True while a run is not idle (the app session's `attach()` keeps it): the provider is fixed then. */
+  selectionLocked: boolean;
+  setSelectionLocked(locked: boolean): void;
 }
 
 /** The pair persists beside the settings, under the field names every slice uses today. */
@@ -107,7 +111,16 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     entries: {},
     readiness: {},
     selected: null,
-    select(id) { set({ selected: id }); },
+    select(id) {
+      if (get().selectionLocked) {
+        // Spec, "What may change during a run": the provider is fixed while the phase is not idle.
+        reportWarning('ProviderStore', `The provider cannot change during a session; "${id}" was not selected.`, { dedupeKey: 'select:locked' });
+        return;
+      }
+      set({ selected: id });
+    },
+    selectionLocked: false,
+    setSelectionLocked(locked) { set({ selectionLocked: locked }); },
     legs: ['speaker'],
 
     setLegs(legs) {

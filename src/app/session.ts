@@ -9,6 +9,7 @@ import { getAppAudio, type AppAudio } from '../lib/audio/appAudio';
 import { createAppCapture, type AppCapture } from '../lib/audio/appCapture';
 import type { Playback } from '../lib/audio/playback';
 import { realClock, type Clock } from '../lib/contract/clock';
+import { redact } from '../lib/diagnostics/redact';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
@@ -23,10 +24,12 @@ import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
+import { useProviderStore } from '../stores/providerStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
 import { driveLocalReadiness } from './readiness';
+import { registerRunPhase } from './runPhase';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
 
 /** What only React can reach, handed in by `useAppSessionBridges`. */
@@ -51,8 +54,12 @@ export interface AppSessionOptions {
   clock?: Clock;
   /** Tests: each run's session id. Absent: a random UUID. */
   newSessionId?(): string;
-  /** Electron's IPC, for the busy flag; default `window.electron` in Electron, none elsewhere; `null` for none. */
-  ipc?: { invoke(channel: string, data?: unknown): Promise<unknown> } | null;
+  /** Electron's IPC, for the busy flag and the close request; default `window.electron` in Electron, none elsewhere; `null` for none. */
+  ipc?: {
+    invoke(channel: string, data?: unknown): Promise<unknown>;
+    receive?(channel: string, fn: (...args: unknown[]) => void): void;
+    removeListener?(channel: string, fn: (...args: unknown[]) => void): void;
+  } | null;
 }
 
 /** The page's playback with the legs' capture over it. */
@@ -70,7 +77,7 @@ export interface AppSession {
   /** The page's playback and capture, loaded on the first call; a failed load is retried on the next. */
   audio(): Promise<LoadedAudio>;
   setBridges(next: Partial<AppBridges>): void;
-  /** Wires the page's lifetime into the session: legs on the audio mode, local readiness, `pagehide`, and Electron's busy flag. Returns the detach. */
+  /** Wires the page's lifetime into the session: legs on the audio mode, local readiness, the provider held during a run, a source's end as an `audio_error`, `pagehide`, and Electron's busy flag and close request. Returns the detach. */
   attach(): () => void;
 }
 
@@ -215,6 +222,15 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         watchLegsFromStores(),
         driveLocalReadiness({ runner, providers: () => presentProviders(), auth: () => bridges.auth, clock }),
       ];
+      // The store's own guard on the provider (plan 1e-3b-1 ruling 7).
+      const lock = () => useProviderStore.getState().setSelectionLocked(runner.state.getState().phase !== 'idle');
+      lock();
+      offs.push(runner.state.subscribe(lock), () => useProviderStore.getState().setSelectionLocked(false));
+      // A source that ended the run (a device unplugged, a switch that failed): today's `audio_error` (ruling 10).
+      offs.push(runner.state.subscribe((now, before) => {
+        if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;
+        bridges.track('audio_error', { error_type: 'device_access', error_message: redact(now.lastEnd.notice.message), device_info: now.lastEnd.notice.leg });
+      }));
       // A reload, the window or side panel closing, a page frozen into the
       // back/forward cache: close every leg and capture now; nothing is saved
       // (spec: "Stopping, and closing the window"; ruling 14).
@@ -227,6 +243,23 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
           void ipc.invoke('app:session-busy', busy).catch((error: unknown) =>
             reportWarning('AppSession', `Telling the app the session is ${busy ? 'busy' : 'idle'} failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:busy' }));
         }));
+        if (ipc.receive) {
+          // Electron's window close and update install (one channel): end the run,
+          // wait out what outlives its bound, then let the close through. Never
+          // `abandon()` here — `settled()` no longer waits for an abandoned unwind
+          // (roadmap 1e-1). The main process waits the runner's bound + 1 s.
+          const onCloseRequested = async () => {
+            try {
+              await runner.stop('window');
+              await runner.settled();
+            } finally {
+              void ipc.invoke('app:close-ready').catch((error: unknown) =>
+                reportWarning('AppSession', `Answering the close request failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'session:close-ready' }));
+            }
+          };
+          ipc.receive('app:close-requested', onCloseRequested);
+          offs.push(() => ipc.removeListener?.('app:close-requested', onCloseRequested));
+        }
       }
       let detached = false;
       return () => {
@@ -250,6 +283,10 @@ export function configureAppSession(options: AppSessionOptions): void {
 
 /** The page's one session, built on the first call. */
 export function getAppSession(): AppSession {
-  session ??= createAppSession(configured);
+  if (!session) {
+    session = createAppSession(configured);
+    // The building call only: code outside React reads this session's phase from now on (ruling 5).
+    registerRunPhase(() => session!.runner.state.getState().phase);
+  }
   return session;
 }

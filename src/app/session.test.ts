@@ -83,14 +83,16 @@ vi.mock('../lib/view/karaoke', () => ({
 import { createVirtualClock } from '../lib/contract/clock';
 import { settleReports } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
+import { DEFAULT_CLOSE_TIMEOUT_MS } from '../lib/session/runner';
 import { fakeProvider } from '../providers/fake/provider';
-import { createFakeSource } from '../providers/fake/source';
+import { createFakeSource, type FakeSource } from '../providers/fake/source';
 import { localInferenceProvider } from '../providers/localInference/provider';
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useTurnModeStore } from '../stores/turnModeStore';
 import { READINESS_DELAY_MS } from './readiness';
 import { createAppSession, type AppSessionOptions } from './session';
 
@@ -101,6 +103,7 @@ const providersBefore = useProviderStore.getState();
 const audioBefore = useAudioStore.getState();
 const settingsBefore = useSettingsStore.getState();
 const segmentationBefore = useSegmentationStore.getState();
+const turnModeBefore = useTurnModeStore.getState();
 
 beforeEach(() => {
   useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'] });
@@ -113,6 +116,7 @@ afterEach(() => {
   useAudioStore.setState(audioBefore, true);
   useSettingsStore.setState(settingsBefore, true);
   useSegmentationStore.setState(segmentationBefore, true);
+  useTurnModeStore.setState(turnModeBefore, true);
   useLogStore.getState().setEnabled(false);
 });
 
@@ -130,6 +134,18 @@ async function setup(options: AppSessionOptions = {}) {
   const track = vi.fn();
   session.setBridges({ track });
   return { clock, session, track };
+}
+
+/** Electron's IPC as the preload exposes it: `receive` keeps each handler by channel, `invoke` records each channel in `order`. */
+function electronIpc(order: string[] = []) {
+  const handlers = new Map<string, (...args: unknown[]) => unknown>();
+  const ipc = {
+    invoke: vi.fn(async (channel: string, _data?: unknown) => { order.push(channel); }),
+    receive: vi.fn((channel: string, fn: (...args: unknown[]) => void) => { handlers.set(channel, fn); }),
+    removeListener: vi.fn(),
+  };
+  const closeRequested = () => handlers.get('app:close-requested')!();
+  return { ipc, handlers, order, closeRequested };
 }
 
 describe('createAppSession', () => {
@@ -385,6 +401,184 @@ describe('attach', () => {
     detach();
     delete (window as { electron?: unknown }).electron;
   });
+
+  it("names each run's id on every event of that run, and the next run its own", async () => {
+    const ids = ['run1', 'run2'];
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { session, clock, track } = await setup({ newSessionId: () => ids.shift()! });
+    const detach = session.attach();
+
+    await session.runner.start();
+    session.runner.press();
+    clock.advance(1_000);
+    session.runner.release();
+    session.runner.sendText('hi');
+    await session.runner.stop();
+    await session.runner.start();
+    await session.runner.stop();
+
+    const withId = track.mock.calls
+      .filter(([, properties]) => properties && typeof properties === 'object' && 'session_id' in properties)
+      .map(([event, properties]) => [event, (properties as { session_id: string }).session_id]);
+    expect(withId).toEqual([
+      ['translation_session_start', 'run1'],
+      ['push_to_talk_used', 'run1'],
+      ['text_input_sent', 'run1'],
+      ['translation_session_end', 'run1'],
+      ['translation_session_start', 'run2'],
+      ['translation_session_end', 'run2'],
+    ]);
+
+    detach();
+  });
+
+  it("answers Electron's close request only once the run's save has landed", async () => {
+    const { ipc, order, closeRequested } = electronIpc();
+    let save!: () => void;
+    autoSave.mockImplementationOnce(() => new Promise((resolve) => {
+      save = () => {
+        order.push('saved');
+        resolve('saved');
+      };
+    }));
+    const { session } = await setup({ ipc });
+    const detach = session.attach();
+    await session.runner.start();
+
+    const closing = closeRequested();
+    await flush();
+    expect(autoSave).toHaveBeenCalledTimes(1);
+    expect(ipc.invoke).not.toHaveBeenCalledWith('app:close-ready');
+
+    save();
+    await closing;
+    expect(order.filter((step) => step === 'app:close-ready')).toHaveLength(1);
+    expect(order.indexOf('saved')).toBeLessThan(order.indexOf('app:close-ready'));
+    expect(session.runner.state.getState().phase).toBe('idle');
+
+    detach();
+  });
+
+  it("waits out an ending that outlived the runner's bound before answering the close", async () => {
+    const { ipc, closeRequested } = electronIpc();
+    let save!: () => void;
+    autoSave.mockImplementationOnce(() => new Promise((resolve) => { save = () => resolve('saved'); }));
+    const sourceClock = createVirtualClock(0);
+    // A capture that never finishes stopping: its release times out at 5 s,
+    // then the held save runs past the runner's 15 s bound.
+    const { session, clock } = await setup({
+      ipc,
+      capture: () => async () => ({ ...createFakeSource(sourceClock), stop: () => new Promise<void>(() => {}) }),
+    });
+    const detach = session.attach();
+    await session.runner.start();
+
+    const closing = closeRequested();
+    await flush();
+    clock.advance(DEFAULT_CLOSE_TIMEOUT_MS);
+    await flush();
+    expect(session.runner.state.getState().phase).toBe('idle');
+    expect(autoSave).toHaveBeenCalledTimes(1);
+    expect(ipc.invoke).not.toHaveBeenCalledWith('app:close-ready');
+
+    save();
+    await closing;
+    expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
+
+    detach();
+  });
+
+  it("answers Electron's close request at once when nothing runs", async () => {
+    const { ipc, closeRequested } = electronIpc();
+    const { session } = await setup({ ipc });
+    const detach = session.attach();
+
+    await closeRequested();
+    expect(ipc.invoke).toHaveBeenCalledWith('app:close-ready');
+
+    detach();
+  });
+
+  it('counts a close as the window ending the run, not a Stop button press', async () => {
+    const { ipc, closeRequested } = electronIpc();
+    const { session, track } = await setup({ ipc });
+    const detach = session.attach();
+    await session.runner.start();
+
+    await closeRequested();
+    expect(track).toHaveBeenCalledWith('session_control_clicked', { action: 'stop', method: 'window' });
+    expect(track).not.toHaveBeenCalledWith('session_control_clicked', { action: 'stop', method: 'button' });
+
+    detach();
+  });
+
+  it('stops listening for the close request on detach', async () => {
+    const { ipc, handlers } = electronIpc();
+    const { session } = await setup({ ipc });
+    const detach = session.attach();
+    const handler = handlers.get('app:close-requested');
+    expect(handler).toEqual(expect.any(Function));
+
+    detach();
+    expect(ipc.removeListener).toHaveBeenCalledWith('app:close-requested', handler);
+  });
+
+  it('reports a source that ended the run as an audio error, and a normal stop as none', async () => {
+    let source!: FakeSource;
+    const sourceClock = createVirtualClock(0);
+    const { session, track } = await setup({ capture: () => async () => (source = createFakeSource(sourceClock)) });
+    const detach = session.attach();
+
+    await session.runner.start();
+    await session.runner.stop();
+    await session.runner.settled();
+    expect(track).not.toHaveBeenCalledWith('audio_error', expect.anything());
+
+    await session.runner.start();
+    source.end('unplugged');
+    await session.runner.settled();
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'source-ended' } });
+    expect(track).toHaveBeenCalledWith('audio_error', {
+      error_type: 'device_access',
+      error_message: 'The speaker capture ended: unplugged',
+      device_info: 'speaker',
+    });
+    expect(track.mock.calls.filter(([event]) => event === 'audio_error')).toHaveLength(1);
+
+    detach();
+  });
+
+  it('keeps the provider put while a run is not idle, and lets it change once idle', async () => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    const { session } = await setup();
+    const detach = session.attach();
+
+    await session.runner.start();
+    expect(session.runner.state.getState().phase).toBe('running');
+    useProviderStore.getState().select('localInference');
+    expect(useProviderStore.getState().selected).toBe('fake');
+    await settleReports();
+    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot change during a session'))).toHaveLength(1);
+
+    await session.runner.stop();
+    await session.runner.settled();
+    useProviderStore.getState().select('localInference');
+    expect(useProviderStore.getState().selected).toBe('localInference');
+
+    detach();
+  });
+
+  it('holds the provider from an attach made mid-run, and lets it go on detach', async () => {
+    const { session } = await setup();
+    await session.runner.start();
+    const detach = session.attach();
+    expect(useProviderStore.getState().selectionLocked).toBe(true);
+
+    detach();
+    expect(useProviderStore.getState().selectionLocked).toBe(false);
+    await session.runner.stop();
+  });
 });
 
 describe('getAppSession', () => {
@@ -395,15 +589,27 @@ describe('getAppSession', () => {
     const m = await import('./session');
     const { useProviderStore: freshProviders } = await import('../stores/providerStore');
     const { fakeProvider: freshFake } = await import('../providers/fake/provider');
+    const { currentRunPhase } = await import('./runPhase');
     // A provider a start could open, so only `refuse` stands between a start and a run.
     await freshProviders.getState().load(freshFake);
     freshProviders.getState().select('fake');
-    m.configureAppSession({ refuse: () => true, clock: createVirtualClock(0) });
+    let refusing = true;
+    const clock = createVirtualClock(0);
+    m.configureAppSession({ refuse: () => refusing, clock, capture: () => async () => createFakeSource(clock) });
+    expect(currentRunPhase()).toBe('idle');
     const session = m.getAppSession();
     expect(m.getAppSession()).toBe(session);
     m.configureAppSession({});
     expect(m.getAppSession()).toBe(session);
     await session.runner.start();
     expect(session.runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'no_provider' } } });
+
+    // The page's run phase, for code outside React, reads the session built here.
+    refusing = false;
+    await session.runner.start();
+    expect(session.runner.state.getState().phase).toBe('running');
+    expect(currentRunPhase()).toBe('running');
+    await session.runner.stop();
+    expect(currentRunPhase()).toBe('idle');
   });
 });
