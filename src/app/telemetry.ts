@@ -5,6 +5,7 @@
  */
 import type { AnalyticsEvents } from '../lib/analytics';
 import type { LegName } from '../lib/conversation/types';
+import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { sentenceEnds, skeleton } from '../lib/segmentation/sentenceEnd';
 import {
   resolveSegmentationMode,
@@ -216,6 +217,13 @@ export function appStartInputs(punctuationActive: boolean): StartInputs {
  * `translation_session_end`; every other event passes through unchanged.
  * `track()` is read at each call, not captured once, so swapping the bridge
  * between the two events reaches the new one.
+ *
+ * Redaction rule (final review M3, ruling 12 amended): `guardPorts`
+ * (`lib/session/ports.ts`) redacts the runner's own properties *before*
+ * this decorator runs, so nothing added here is redacted. Everything this
+ * function adds today is a boolean, a number, an enum or a model-name slug —
+ * none of it secret — but any string property added here in future must be
+ * passed through `redact()` (`lib/diagnostics/redact.ts`) itself.
  */
 export function decorateSessionAnalytics(
   track: () => AnalyticsPort['track'],
@@ -231,12 +239,29 @@ export function decorateSessionAnalytics(
         // the run goes live.
         deps.frames.reset();
         run = { pair: { source: start.source_language, target: start.target_language }, legs: start.channels ?? [] };
-        send('translation_session_start', { ...start, ...sessionStartProperties(deps.startInputs()) });
+        // A throw computing the app's extras (e.g. a provider's `boundaries()`
+        // inside `appStartInputs`) must not lose the runner's own start event
+        // (final review M5): send it unchanged and report once.
+        let extra: Partial<AnalyticsEvents['translation_session_start']> = {};
+        try {
+          extra = sessionStartProperties(deps.startInputs());
+        } catch (error) {
+          reportWarning('AppSession', `Computing the app's session-start properties failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'telemetry:start' });
+        }
+        send('translation_session_start', { ...start, ...extra });
         return;
       }
       if (event === 'translation_session_end') {
         const end = properties as AnalyticsEvents['translation_session_end'];
-        send('translation_session_end', { ...end, ...sessionEndProperties(deps.frames.snapshot(), run) });
+        // Same as the start event: a throw taking the frame log's snapshot
+        // must not lose the runner's own end event.
+        let extra: Partial<AnalyticsEvents['translation_session_end']> = {};
+        try {
+          extra = sessionEndProperties(deps.frames.snapshot(), run);
+        } catch (error) {
+          reportWarning('AppSession', `Computing the app's session-end properties failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'telemetry:end' });
+        }
+        send('translation_session_end', { ...end, ...extra });
         return;
       }
       // Passed straight through. `send`'s own generic cannot be called here:

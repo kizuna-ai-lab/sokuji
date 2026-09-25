@@ -12,6 +12,7 @@ vi.mock('../services/ServiceFactory', () => ({
   },
 }));
 
+import { settleReports } from '../lib/diagnostics/report';
 import { sentenceEnds } from '../lib/segmentation/sentenceEnd';
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
@@ -63,13 +64,14 @@ describe('createFrameLog', () => {
     expect(second).toMatchObject({ clientId: 'participant', eventType: 'local.asr.end', source: 'client' });
   });
 
-  it('still counts a frame while diagnostic logs are off', () => {
+  it('still counts a frame while diagnostic logs are off, and logs nothing', () => {
     useLogStore.getState().setEnabled(false);
     const log = createFrameLog();
 
     log.port.frame('speaker', { direction: 'in', type: 'local.asr.end', payload: { text: 'Hi.', modelId: 'm' } });
 
     expect(log.snapshot().text['speaker|m']).toMatchObject({ chars: 3, terminals: 1 });
+    expect(useLogStore.getState().allLogs).toEqual([]);
   });
 
   it('tallies a seal by leg and reason', () => {
@@ -374,6 +376,48 @@ describe('decorateSessionAnalytics', () => {
     analytics.track('session_control_clicked', { action: 'start', method: 'button' });
 
     expect(track).toHaveBeenCalledWith('session_control_clicked', { action: 'start', method: 'button' });
+  });
+
+  it("computes the start properties in a try: a throw sends the runner's own properties unchanged, with one warning", async () => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    const track = vi.fn();
+    const frames = fakeFrameLog(emptyTally());
+    const startInputs = (): never => { throw new Error('boom'); };
+    const analytics = decorateSessionAnalytics(() => track, { frames, startInputs });
+
+    analytics.track('translation_session_start', {
+      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', channels: ['speaker'],
+    });
+
+    expect(track).toHaveBeenCalledWith('translation_session_start', {
+      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', channels: ['speaker'],
+    });
+    await settleReports();
+    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning')).toHaveLength(1);
+  });
+
+  it("computes the end properties in a try: a throw sends the runner's own properties unchanged, with one warning", async () => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    const track = vi.fn();
+    const frames = fakeFrameLog(emptyTally());
+    frames.snapshot = () => { throw new Error('boom'); };
+    const startInputs = () => ({
+      audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
+      segmentation: { mode: 'off' as const, size: 0 as const },
+      punctuationActive: false,
+    });
+    const analytics = decorateSessionAnalytics(() => track, { frames, startInputs });
+
+    analytics.track('translation_session_start', {
+      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', channels: ['speaker'],
+    });
+    analytics.track('translation_session_end', { session_id: 's1', duration: 1000, provider: 'fake' });
+
+    expect(track).toHaveBeenLastCalledWith('translation_session_end', { session_id: 's1', duration: 1000, provider: 'fake' });
+    await settleReports();
+    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning')).toHaveLength(1);
   });
 
   it('reads track() at each call, so swapping the bridge between two events reaches the new one', () => {
