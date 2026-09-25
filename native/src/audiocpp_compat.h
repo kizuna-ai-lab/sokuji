@@ -3,8 +3,8 @@
  * audio.cpp v0.8.2-audio8-perf-hotfix (upstream ac16661d; re-scanned at the 2026-09-25 pin bump)
  * carries a ggml fork (base
  * 0.12.0) that differs from the pristine upstream ggml 0.25.3 we build on in the ways below.
- * This header covers both, and the distinction matters: (A) fails to LINK if you get it
- * wrong, (B) fails silently.
+ * This header covers all of these — (A)/(D)/(E) fail to LINK if you get them wrong, (B) fails
+ * silently.
  *
  * (A) SEVEN SYMBOLS THE FORK ADDS. audio.cpp's *framework* code references them
  *     unconditionally, but none of the five original TTS families we build (moss_tts_nano,
@@ -35,8 +35,9 @@
  *     the "conv family" block below for what that cost and how it was found.
  *
  * SCAN STATUS (2026-09-01, ruling R11). The public API surface was diffed both ways.
- * Symbols declared only in the fork's ggml.h are exactly the seven in (A), so (A) is
- * provably complete. Of the 372 symbols declared in BOTH, 20 have a differing ggml.c
+ * Symbols declared only in the fork's ggml.h are exactly the seven in (A), so (A) was
+ * provably complete for 0.7.1 — see RESCAN below for 0.8.2, where (D)/(E) cover the rest.
+ * Of the 372 symbols declared in BOTH, 20 have a differing ggml.c
  * body, and the only one that changes VALUES at a call site audio.cpp reaches is the
  * conv family in (B). The residue is recorded in native/README.md's compat-header
  * section so a future ggml bump can re-run the same pass instead of re-deriving it.

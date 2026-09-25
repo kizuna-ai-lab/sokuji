@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
     }
     assert(rounded[0] == 1.0f);
 
-    // (D3) every lowering hint is a no-op on this build: op, type and params untouched.
+    // (D3) two representative lowering hints (mul_mat, concat) are no-ops on this build:
+    // op and op_params untouched.
     {
         ggml_init_params p = {16 * ggml_tensor_overhead(), nullptr, true};
         ggml_context *c = ggml_init(p);

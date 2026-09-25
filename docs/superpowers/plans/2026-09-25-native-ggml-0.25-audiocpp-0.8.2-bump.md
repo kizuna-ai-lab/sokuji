@@ -881,6 +881,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 7: CI dry run, fleet, release (every outward step is ASK FIRST)
 
+No `sidecar-v*` tag may be cut from main between this branch's merge and the native-v1.2.0 pin
+commit (Step 5): main's catalog lists `granite-speech-5.0-470m-turboctc`, which the native-v1.1.0
+wheel pinned by sidecar/requirements.txt cannot load (no granite5_ctc arch).
+
 **Files:**
 - Modify (later, on main): `sidecar/requirements.txt`, `sidecar/tests/test_runtime_gate.py` (`NATIVE_RELEASE_BASE`/`NATIVE_WHEELS`), root `package.json` `sidecarVersion`
 
@@ -903,7 +907,7 @@ Expected: the same set of file names per SKU (in particular one `libggml`, one `
 
 - [ ] **Step 3: ASK FIRST — open a PR `worktree-native-ggml-audiocpp-bump` → `kizuna-ai-lab/sokuji` `main`**
 
-The body carries the Survey table, the D1–D4 defaults, the fleet table, and the drift list from Task 5. Merge only on jiangzhuo's word. If the PR touches no workflow file, `gh pr merge` works.
+The body carries the Survey table, the D1–D4 defaults, the fleet table, and the drift list from Task 5. Merge only on jiangzhuo's word. If the PR touches no workflow file, `gh pr merge` works. The PR body must also state: no `sidecar-v*` tag may be cut from main between this branch's merge and the native-v1.2.0 pin commit (Step 5), because main's catalog lists `granite-speech-5.0-470m-turboctc`, which the native-v1.1.0 wheel pinned by sidecar/requirements.txt cannot load (no granite5_ctc arch).
 
 - [ ] **Step 4: ASK FIRST — tag `native-v1.2.0` on the merge commit, push the tag to `kizuna-ai-lab/sokuji` (publishes five prerelease wheels)**
 

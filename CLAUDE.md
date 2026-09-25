@@ -180,9 +180,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      docs/superpowers/specs/2026-09-04-native-device-profile-design.md). `native-v1.2.0`
      (2026-09-25) moves ggml to 0.25.3, transcribe.cpp to 0.2.4, llama.cpp to v0.5.0 and
      audio.cpp to 0.8.2-audio8-perf-hotfix; `audiocpp_compat.h` gains sections (D)/(E);
-     transcribe.cpp 0.2.4 also makes sensevoice/canary output cased, punctuated text by
-     default (sk_asr now passes DEFAULT rather than raw text — upstream #157). Current
-     native version is 1.2.0 (ABI unchanged at 2).
+     `sk_asr` leaves PnC/ITN at `DEFAULT` (unchanged); transcribe.cpp 0.2.4 turns `DEFAULT`
+     on for sensevoice/canary, so those two now output cased, punctuated text by default
+     (upstream #157). Current native version is 1.2.0 (ABI unchanged at 2).
    - **Dev loop**: `native/ci/build.sh <none|vulkan|metal> <plat tag>` (`.ps1` on Windows)
      builds and runs CTest + the Python suite against a fresh stage;
      `SOKUJI_NATIVE_DIR=.../stage` points a wheel-less `import sokuji_native` at it. Models
@@ -448,7 +448,8 @@ Every card carries a `graph_family`, the key the op-coverage gate looks up in th
 baked from `native/src/ops/<stage>-<family>.ops`. For TTS it is the audio.cpp family name. For
 ASR it is what `sk_asr_caps.arch` reports, i.e. the GGUF's `general.architecture` — read it with
 `gguf_header.read_header(path).architecture`, never from the transcribe.cpp `src/arch/` directory
-name (three differ: `cohere_asr`, `granite_speech`, `granite_speech_nar`). For translation it is
+name (four differ: `cohere_asr`, `granite_speech`, `granite_speech_nar`, `granite_speech5_ctc`
+— directory `granite5_ctc`). For translation it is
 llama.cpp's `general.architecture` (`qwen2`, `qwen3`, `qwen35`, `gemma3`, `llama`,
 `hunyuan-dense`). A recording is per (stage, family), not per card; a missing ASR or translation
 recording is a pass-through, and only the `tts` stage ever refuses a rung

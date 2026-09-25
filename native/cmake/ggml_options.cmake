@@ -73,8 +73,9 @@ list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-gguf-bulk-array-read.json")
 # and ggml-cuda all do. Every audio.cpp
 # attention block reached without an explicit mask builds that op (16 call sites across 13
 # files under audio.cpp 0.7.0's src/, external/ excluded; on our five families the live
-# ones are moss_tts_nano and qwen3_tts), and audio.cpp never uses
-# ggml_backend_sched, so there is no per-node CPU fallback: the single missing kernel
+# ones are moss_tts_nano and qwen3_tts), and engine_core and the nine families we build never
+# use ggml_backend_sched (0.8.2 references it only in unbuilt models: moonshine_asr,
+# liveavatar), so there is no per-node CPU fallback: the single missing kernel
 # aborts the process. The patch re-adds the kernel ggml's own Metal backend carried until
 # llama.cpp moved to masked soft_max_ext, so it restores an op every other backend has
 # rather than inventing one. Metal lane only: it touches src/ggml-metal/, which no other

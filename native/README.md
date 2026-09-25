@@ -73,7 +73,7 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
 - `src/audiocpp_compat.h` — the bridge between audio.cpp's forked ggml (base 0.12.0) and the
   pristine upstream ggml we build on (0.25.3 as of native-v1.2.0). Two kinds of difference, and
   the second is the dangerous one; read the header comment before touching it.
-  - the **eight symbols the fork adds** at the 0.12→0.22 gap (ruling R11), provided here. Two
+  - the **seven symbols the fork adds** at the 0.12→0.22 gap (ruling R11), provided here. Two
     of them reproduce the fork's graph node for node rather than aliasing a nearby upstream
     call. native-v1.2.0's audio.cpp bump (0.7.1 → 0.8.2-audio8-perf-hotfix) widened the fork's
     own private surface to 28 functions and 7 enum types against ggml 0.25.3; section (D) shims
@@ -436,7 +436,10 @@ non-emptiness, never a transcript.
    `build/record-vk` with `-DSOKUJI_GPU=vulkan -DSOKUJI_RECORD_OPS=ON` (or `metal` on macOS)
    and run the gate there; a CPU-only runner prints `SKIPPED (no device)` for every tts family
    and gates **asr/translate drift only**, which is what CI's CPU lanes do. A tts .ops file
-   whose `# recorded-on:` says `cpu` is rejected by the gate.
+   whose `# recorded-on:` says `cpu` is rejected by the gate. The `# engine:` header line is
+   provenance only — the gate never compares it — so a recording that did not drift keeps its
+   original `# engine:` line across a pin bump; the asr/translate recordings in this tree still
+   name the 0.22.0-era engines for exactly that reason.
    All nine TTS families are cached under
    `~/.cache/sokuji-native-tests/tts/` — `ci/ops-env.sh` reads that path from
    `$SOKUJI_NATIVE_TEST_CACHE`, defaulting to `$HOME/.cache/sokuji-native-tests`, so set the
@@ -483,7 +486,7 @@ docs/superpowers/specs/2026-09-04-native-device-profile-design.md). `native-v1.2
 audio.cpp to 0.8.2-audio8-perf-hotfix; `audiocpp_compat.h` gains sections (D)/(E).
 transcribe.cpp's v0.2.4 tag was re-pointed twice upstream on 2026-09-25 (CI/packaging-only
 commits), so that pin alone is the release commit `7d37cea2` fetched WITHOUT
-`GIT_SHALLOW`; the other three pins stay shallow. transcribe.cpp 0.2.4 also changes ASR
-behaviour (#157): sensevoice/canary now output cased, punctuated text by default, since
-`sk_asr` passes `DEFAULT` rather than raw text. Current native version is 1.2.0 (ABI
+`GIT_SHALLOW`; the other three pins stay shallow. `sk_asr` leaves PnC/ITN at `DEFAULT`
+(unchanged); transcribe.cpp 0.2.4 turns `DEFAULT` on for sensevoice/canary (#157), so those
+two now output cased, punctuated text by default. Current native version is 1.2.0 (ABI
 unchanged at 2).
