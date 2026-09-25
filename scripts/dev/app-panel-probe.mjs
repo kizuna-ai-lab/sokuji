@@ -13,7 +13,8 @@
  *                        fake source bypasses them), &refuse=1 (--refuse)
  *   --app                the app itself at `/`, seeded as a finished setup on the
  *                        fake provider (plan 1e-3b-2's switch must have landed)
- * Flags: --advanced, --ptt (Space holds a turn), --long (the fake's `long`
+ * Flags: --advanced, --ptt (Space holds a turn; reads the basic footer's hold
+ *        button, so it refuses with --advanced), --long (the fake's `long`
  *        script: prints long-task totals, the row memoization's measurement),
  *        --refuse (preview only: a refused start's idle line and its action),
  *        --shot <file.png>.
@@ -54,6 +55,11 @@ const refuse = flag('--refuse');
 
 if (refuse && appTarget) {
   console.log('the app has no refusing stand-in; use --preview');
+  process.exit(2);
+}
+
+if (advanced && ptt) {
+  console.log("--ptt reads the basic footer's hold button; run it without --advanced");
   process.exit(2);
 }
 
@@ -188,11 +194,11 @@ process.exitCode = await withPage('about:blank', async (send) => {
       })()`));
       if (!started) failures.push('the run never showed an active status dot with a duration');
 
-      // `--ptt`, right after Start and before step 4 (fix round 2): under
-      // push-to-talk the fake's first block plays only inside a held turn,
-      // so step 4's rows/karaoke must come from this held turn, not before
-      // it — the basic footer's own words ("Hold to speak" / "Release to
-      // stop"). Holds 1.5s total, as `spine-subtitle-probe.mjs` does.
+      // Step 4 (`--ptt`), right after Start and before step 5 (fix round 2):
+      // under push-to-talk the fake's first block plays only inside a held
+      // turn, so step 5's rows/karaoke must come from this held turn, not
+      // before it — the basic footer's own words ("Hold to speak" /
+      // "Release to stop"). Holds 1.5s total, as `spine-subtitle-probe.mjs` does.
       if (ptt) {
         // Off any focused element, so Space is not swallowed as typing (usePushToTalk's own rule).
         await evaluate(send, `document.activeElement && document.activeElement.blur && document.activeElement.blur()`);
@@ -208,7 +214,7 @@ process.exitCode = await withPage('about:blank', async (send) => {
         if (!heldAgain) failures.push('the hold button never read "Hold…" again after Space up');
       }
 
-      // Step 4: rows with karaoke. `--long` needs a much longer window (see
+      // Step 5: rows with karaoke. `--long` needs a much longer window (see
       // the header comment) to actually pile up 20 rows.
       const rowsWindowMs = long ? 34000 : 12000;
       let rowsOk = false;
@@ -230,7 +236,7 @@ process.exitCode = await withPage('about:blank', async (send) => {
       if (!rowsOk) failures.push(long ? 'never drew 20 rows' : 'the cjk translation never appeared in the row list');
       if (karaokePolls < 1) failures.push('karaoke never lit a row');
 
-      // Step 5: typed text.
+      // Step 6: typed text.
       const hasInput = await pollUntil(3000, 250, async () => evaluate(send, `!!document.querySelector('.main-panel .text-input')`));
       if (!hasInput) {
         failures.push('no .text-input in the panel');
