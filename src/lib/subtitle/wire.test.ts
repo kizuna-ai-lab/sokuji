@@ -107,6 +107,78 @@ describe('the subtitle wire', () => {
     expect(order).toEqual(['subtitle:session', 'subtitle:entries', 'subtitle:karaoke']);
   });
 
+  it('sends the language first, before session, entries and karaoke, when the side panel has one', () => {
+    const [panel] = portPair();
+    const order: string[] = [];
+    const tracking: WirePort = { ...panel, post: (message: unknown) => { order.push((message as { type: string }).type); panel.post(message); } };
+    const sources = {
+      entries: box<readonly Entry[]>([notice(1)]),
+      session: box(session),
+      karaoke: box<KaraokeState>({ lit: new Map(), replaying: null }),
+      language: box('ja'),
+    };
+    publishSubtitles(tracking, sources, controls());
+    expect(order).toEqual(['subtitle:language', 'subtitle:session', 'subtitle:entries', 'subtitle:karaoke']);
+  });
+
+  it('sends a language change once; the same language again sends nothing', () => {
+    const [panel] = portPair();
+    const sent: unknown[] = [];
+    const recording: WirePort = { ...panel, post: (message: unknown) => { sent.push(message); panel.post(message); } };
+    const language = box('en');
+    const sources = {
+      entries: box<readonly Entry[]>([notice(1)]),
+      session: box(session),
+      karaoke: box<KaraokeState>({ lit: new Map(), replaying: null }),
+      language,
+    };
+    publishSubtitles(recording, sources, controls());
+    expect(sent).toHaveLength(4);
+    language.set('ja');
+    expect(sent).toHaveLength(5);
+    expect(sent[4]).toEqual({ type: 'subtitle:language', language: 'ja' });
+    language.set('ja');
+    expect(sent).toHaveLength(5);
+  });
+
+  it('holds the language it heard, null before', () => {
+    const { panel, received } = setup();
+    expect(received.get().language).toBeNull();
+    const listener = vi.fn();
+    received.subscribe(listener);
+    panel.post({ type: 'subtitle:language', language: 'ja' });
+    expect(received.get().language).toBe('ja');
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a subtitle:language message whose language is not a non-empty string', () => {
+    const { panel, received } = setup();
+    panel.post({ type: 'subtitle:language', language: 'ja' });
+    expect(received.get().language).toBe('ja');
+    panel.post({ type: 'subtitle:language' });
+    expect(received.get().language).toBe('ja');
+    panel.post({ type: 'subtitle:language', language: 3 });
+    expect(received.get().language).toBe('ja');
+    panel.post({ type: 'subtitle:language', language: '' });
+    expect(received.get().language).toBe('ja');
+  });
+
+  it('sends no language after the publisher stops', () => {
+    const [panel, overlay] = portPair();
+    const received = receiveSubtitles(overlay);
+    const language = box('ja');
+    publishSubtitles(panel, {
+      entries: box<readonly Entry[]>([notice(1)]),
+      session: box(session),
+      karaoke: box<KaraokeState>({ lit: new Map(), replaying: null }),
+      language,
+    }, controls());
+    expect(received.get().language).toBe('ja');
+    overlay.disconnect();
+    language.set('fr');
+    expect(received.get().language).toBe('ja');
+  });
+
   it("keeps a quiet leg's newest entries alongside the merged tail, in merged order", () => {
     const participantEntries = [0, 1, 2].map((i) => notice(1000 + i, 'participant'));
     const speakerEntries = Array.from({ length: 40 }, (_, i) => notice(i, 'speaker'));

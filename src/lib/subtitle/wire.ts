@@ -22,8 +22,12 @@ export interface WirePort {
   close(): void;
 }
 
+/** The `chrome.runtime` port's name, on both ends: the overlay connects with it, the side panel accepts only it (plan 1e-4). */
+export const SUBTITLE_PORT = 'sokuji-subtitle';
+
 /** Side panel → overlay. */
 export type ToOverlay =
+  | { type: 'subtitle:language'; language: string }
   | { type: 'subtitle:entries'; entries: readonly Entry[] }
   | { type: 'subtitle:session'; session: SubtitleSession }
   | { type: 'subtitle:karaoke'; lit: ReadonlyArray<readonly [SegmentId, number]> };
@@ -65,6 +69,12 @@ export interface PanelSources {
   entries: Readable<readonly Entry[]>;
   session: Readable<SubtitleSession>;
   karaoke: Readable<KaraokeState>;
+  /**
+   * The side panel's interface language (plan 1e-4 ruling 5): the overlay's
+   * own detection reads storage that sits inside the meeting page, which is
+   * untested. Absent: nothing is sent, and the overlay keeps its own.
+   */
+  language?: Readable<string>;
 }
 
 export interface PanelControls {
@@ -95,7 +105,8 @@ function overlayTail(entries: readonly Entry[]): readonly Entry[] {
 
 /**
  * The side panel's end: sends everything once when the overlay connects —
- * session, then entries, then karaoke — then each further change. Entries
+ * the side panel's language when it has one, then session, then entries,
+ * then karaoke — then each further change. Entries
  * changes after the first coalesce trailing (`entriesIntervalMs`): the first
  * schedules one post after the interval, carrying the entries as they are
  * then; changes inside that window add nothing further. Session and karaoke
@@ -141,6 +152,14 @@ export function publishSubtitles(
   let entries: readonly Entry[] | null = null;
   let session: SubtitleSession | null = null;
   let karaoke: KaraokeState | null = null;
+  let language: string | null = null;
+  const sendLanguage = () => {
+    if (!sources.language) return;
+    const next = sources.language.get();
+    if (next === language) return;
+    language = next;
+    post({ type: 'subtitle:language', language: next });
+  };
   const flushEntries = () => {
     cancelPendingEntries = null;
     const latest = sources.entries.get();
@@ -188,8 +207,11 @@ export function publishSubtitles(
     }),
     port.onDisconnect(stop),
   );
-  // First sends go session → entries → karaoke, so a connect mid-run never
-  // draws one frame of "Session ended" before the session lands.
+  if (sources.language) offs.push(sources.language.subscribe(sendLanguage));
+  // First sends go language → session → entries → karaoke: the overlay
+  // picks its words before it draws, and a connect mid-run never draws one
+  // frame of "Session ended" before the session lands.
+  sendLanguage();
   sendSession();
   sendEntries();
   sendKaraoke();
@@ -202,12 +224,17 @@ export interface OverlayModel {
   /** Null until the side panel has sent one. */
   session: SubtitleSession | null;
   lit: ReadonlyMap<SegmentId, number>;
+  /** The side panel's interface language; null until it has sent one. */
+  language: string | null;
 }
 
-const NOTHING: OverlayModel = { entries: [], session: null, lit: new Map() };
+const NOTHING: OverlayModel = { entries: [], session: null, lit: new Map(), language: null };
+
+/** The overlay's end: the model as last heard, and the way back. */
+export type OverlayReceiver = Readable<OverlayModel> & { send(message: ToPanel): void; dispose(): void };
 
 /** The overlay's end: the last model the side panel sent, and a way to send it controls. */
-export function receiveSubtitles(port: WirePort): Readable<OverlayModel> & { send(message: ToPanel): void; dispose(): void } {
+export function receiveSubtitles(port: WirePort): OverlayReceiver {
   let model = NOTHING;
   const listeners = new Set<() => void>();
   // A control the user presses/releases/clears/exits repeatedly is a
@@ -227,6 +254,11 @@ export function receiveSubtitles(port: WirePort): Readable<OverlayModel> & { sen
   const off = port.onMessage((message) => {
     const m = message as ToOverlay;
     switch (typeOf(message)) {
+      case 'subtitle:language': {
+        const language = (m as { language?: unknown }).language;
+        if (typeof language === 'string' && language !== '') set({ ...model, language });
+        return;
+      }
       case 'subtitle:entries':
         if (Array.isArray((m as { entries?: unknown }).entries)) set({ ...model, entries: (m as Extract<ToOverlay, { type: 'subtitle:entries' }>).entries });
         return;
@@ -292,7 +324,7 @@ export interface ChromePortLike {
   disconnect(): void;
 }
 
-/** A `chrome.runtime` port as a wire: the extension's side panel and overlay (plan 1e wires them). */
+/** A `chrome.runtime` port as a wire: the extension's side panel and overlay (plan 1e-4 wires them). */
 export function chromePortWire(port: ChromePortLike): WirePort {
   return {
     post: (message) => port.postMessage(message),
