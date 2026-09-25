@@ -13,6 +13,10 @@ strip) and checks:
      this checks a fixed set of core names rather than every ggml_* symbol.
   2. every shared library in the stage is one we ship on purpose, and each appears once.
 Linux and macOS (nm). The Windows lane (build.ps1) is not gated by this script.
+
+macOS also ships libggml-blas.so: ggml sets GGML_BLAS_DEFAULT ON under APPLE, and
+transcribe.cpp's FORCE OFF for it is applied after our ggml is already configured, so a fresh
+mac CI configure still builds the BLAS backend. That is expected — SHIPPED allows it below.
 """
 import pathlib
 import re
@@ -21,7 +25,7 @@ import sys
 
 CORE = ("ggml_init", "ggml_free", "ggml_graph_compute", "gguf_init_from_file",
         "ggml_backend_sched_new", "ggml_backend_load_all")
-SHIPPED = re.compile(r"^lib(sokuji_native|ggml|ggml-base|ggml-cpu(-[A-Za-z0-9_.]+)?|ggml-vulkan|ggml-metal)"
+SHIPPED = re.compile(r"^lib(sokuji_native|ggml|ggml-base|ggml-cpu(-[A-Za-z0-9_.]+)?|ggml-vulkan|ggml-metal|ggml-blas)"
                      r"\.(so|dylib)$")
 
 
