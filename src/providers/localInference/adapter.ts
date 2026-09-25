@@ -12,9 +12,11 @@ import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnosti
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { redact } from '../../lib/diagnostics/redact';
 import type { TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
-import { gateChars } from '../../lib/segmentation/SentenceStream';
+import { countSkeleton } from '../../lib/segmentation/sealCursor';
+import { gateChars, type SealedChunk } from '../../lib/segmentation/SentenceStream';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { defaultEngines, type AsrLike, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
+import { SentenceCut, runtimeOver } from './sentenceCut';
 import { speakTranslation } from './speech';
 import type { LocalInferenceConfig } from './config';
 
@@ -24,7 +26,8 @@ import type { LocalInferenceConfig } from './config';
  * (`src/services/clients/LocalInferenceClient.ts`) without its display
  * bookkeeping — items, statuses, audio segments and write lanes are L1/L2's
  * now. What stays is the pipeline: which engines load, source segments from
- * the ASR's partials and finals, and one serial translation job per final.
+ * the ASR's partials and finals, and serial translation jobs — one per final,
+ * or, in the stream shape, one every N sentences inside the utterance.
  */
 
 export type LocalCredentials = Record<string, never>;
@@ -139,10 +142,16 @@ class LocalSession implements AdapterSession {
 
   private nextRef: Ref = 1;
   private utterances = 0;
-  /** The source segment of the utterance in progress, opened at its first partial. */
+  /** The open source segment: the utterance in progress — its unsealed tail, in the stream shape — opened at its first non-empty text. */
   private utterance: { ref: Ref; origin: string; text: string } | null = null;
   private jobs: Job[] = [];
   private processing = false;
+  /**
+   * The stream shape, decided once per session (plan 1e-2b ruling 1): an
+   * engine translation, a job size of 1–5, and a punctuator. It seals a job
+   * every N sentences inside the utterance; null — one job per final.
+   */
+  private readonly cut: SentenceCut | null;
 
   constructor(
     private readonly request: StartRequest<LocalInferenceConfig, LocalCredentials>,
@@ -154,6 +163,17 @@ class LocalSession implements AdapterSession {
     this.translation = this.config.translation.kind === 'engine' ? engines.translation() : null;
     this.tts = this.config.tts ? engines.tts() : null;
     this.ttsDeath = new Promise<void>((resolve) => { this.ttsDeathSettle = resolve; });
+    const { jobSentences } = this.config;
+    const { punctuate } = request;
+    this.cut = this.config.translation.kind === 'engine' && jobSentences !== undefined && jobSentences >= 1 && jobSentences <= 5 && punctuate
+      ? new SentenceCut({
+        lang: request.context.direction.source,
+        sentences: jobSentences,
+        runtime: runtimeOver(punctuate, request.clock),
+        onPending: (tail) => this.show(tail),
+        onSeal: (chunk) => this.seal(chunk),
+      })
+      : null;
   }
 
   /**
@@ -174,6 +194,8 @@ class LocalSession implements AdapterSession {
         vadConfig: config.vad,
         language: source,
         translateTo: config.translation.kind === 'ast' ? target : undefined,
+        // Exactly one layer may cut (ruling 10): the worker's own sentence endpoint stays on unless the stream shape seals.
+        punctuationEndpoint: this.cut === null,
       }),
       dispose: () => this.asr.dispose(),
       loaded: () => this.listenToAsr(),
@@ -348,6 +370,7 @@ class LocalSession implements AdapterSession {
   async stop(): Promise<void> {
     this.ended = true;
     this.jobs = [];
+    this.cut?.reset(); // a model answer landing later seals nothing
     this.disposeEngines();
   }
 
@@ -368,8 +391,10 @@ class LocalSession implements AdapterSession {
       if (isDeviceLost(error)) { this.fatal(`The GPU device was lost: ${error}`); return; }
       // The worker gave up on this utterance (the streaming one resets and
       // starts over): close its segment with the text it has, or the next
-      // utterance's partials would take over its ref.
+      // utterance's partials would take over its ref — and drop its cut, or
+      // the next would be sliced by this one's cursor (ruling 9).
       this.abandonUtterance();
+      this.cut?.reset();
       this.emit('degraded', { code: 'transcription_failed', message: error });
     };
     asr.onFatal = (error) => {
@@ -379,15 +404,26 @@ class LocalSession implements AdapterSession {
   }
 
   /**
-   * A partial is the cumulative hypothesis for the utterance. The source
-   * segment opens at the first non-empty one — not at speech start: a VAD
-   * false start ends in an empty final and would strand a blank segment.
-   * Trimmed, or an engine's leading space (cohere, voxtral-3b) would make the
-   * final a rewrite rather than a growth of the partials.
+   * A partial is the cumulative hypothesis for the utterance: the open
+   * source segment shows it, or, in the stream shape, the cut slices it
+   * (raw — its cursor ignores whitespace) and the segment shows what is
+   * not sealed yet.
    */
   private partial(raw: string): void {
     this.frame('in', 'local.asr.partial', { text: raw });
     if (this.ended || this.config.translation.kind === 'ast') return;
+    if (this.cut) this.cut.partial(raw);
+    else this.show(raw);
+  }
+
+  /**
+   * The open source segment shows this text. It opens at the first
+   * non-empty one — not at speech start: a VAD false start ends in an empty
+   * final and would strand a blank segment. Trimmed, or an engine's leading
+   * space (cohere, voxtral-3b) would make the final a rewrite rather than a
+   * growth of the partials.
+   */
+  private show(raw: string): void {
     const text = raw.trim();
     if (!text) return;
     if (!this.utterance) {
@@ -400,26 +436,54 @@ class LocalSession implements AdapterSession {
   }
 
   /**
+   * A chunk the cut sealed: the open source segment closes with its text
+   * and its job is queued under that segment's origin (ruling 3) — the
+   * remainder opens the next segment — never filled in (ruling 6). A chunk
+   * with no letter or digit — a lone mark or bracket the cursor left behind
+   * — closes the segment and queues nothing (ruling 9).
+   */
+  private seal({ text, reason }: SealedChunk): void {
+    this.frame('out', 'local.segmentation.seal', { reason, text });
+    const sealed = text.trim();
+    if (countSkeleton(sealed) === 0) {
+      this.abandonUtterance();
+      return;
+    }
+    this.show(sealed); // opens the segment for an end() sealing a tail no pending showed
+    const segment = this.utterance!;
+    this.utterance = null;
+    this.emit('segmentClosed', { ref: segment.ref, origin: segment.origin });
+    this.enqueue({ text: sealed, origin: segment.origin, fill: false });
+  }
+
+  /**
    * The final closes the utterance's source segment (opening it now for an
-   * engine that sent no partial) and queues its job. An empty final is
-   * dropped, closing a segment its partials opened with its last text. AST:
-   * the final already is the translation — no source segment.
+   * engine that sent no partial) and queues its job — in the stream shape,
+   * the cut seals what is left of it instead. An empty final is dropped,
+   * closing a segment its partials opened with its last text. AST: the final
+   * already is the translation — no source segment.
    */
   private final(result: { text: string; durationMs: number; recognitionTimeMs: number }): void {
     if (this.ended) return;
     const text = result.text.trim();
     if (!text) {
+      this.cut?.reset();
       this.abandonUtterance();
       return;
     }
-    const current = this.utterance;
-    this.utterance = null;
     this.frame('in', 'local.asr.end', {
       text,
       modelId: this.config.asr.modelId,
       durationMs: result.durationMs,
       recognitionTimeMs: result.recognitionTimeMs,
     });
+    if (this.cut) {
+      // False: a truncated re-decode of text already sealed — what the segment shows closes without a job.
+      if (!this.cut.final(text)) this.abandonUtterance();
+      return;
+    }
+    const current = this.utterance;
+    this.utterance = null;
     const { kind } = this.config.translation;
     const fill = this.config.jobSentences !== undefined;
     if (kind === 'ast') {
@@ -440,6 +504,11 @@ class LocalSession implements AdapterSession {
     if (current) this.emit('segmentClosed', { ref: current.ref, origin: current.origin });
   }
 
+  /**
+   * The origin pairing a job's source and translation segments: one per job
+   * (ruling 3) — an utterance, a sealed chunk in the stream shape, or a typed
+   * text. The counter keeps its name; it counts jobs now.
+   */
   private nextOrigin(): string {
     return `u${++this.utterances}`;
   }
@@ -615,6 +684,7 @@ class LocalSession implements AdapterSession {
   /** The session can no longer work: while opening, the start rejects; after, `failed`, and nothing more. */
   private fatal(message: string): void {
     if (this.ended) return;
+    this.cut?.reset();
     if (!this.live) {
       this.failOpening?.(new Error(message));
       return;

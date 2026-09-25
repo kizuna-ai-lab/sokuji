@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
-import { AdapterStartError, type AdapterSession, type SessionContext } from '../../lib/contract/adapter';
+import { AdapterStartError, type AdapterSession, type Punctuator, type SessionContext } from '../../lib/contract/adapter';
 import { checkConformance, recordConformance, type ConformanceLog } from '../../lib/contract/conformance';
 import { eventsFrom, type AdapterEvent } from '../../lib/contract/events';
 import { gateChars } from '../../lib/segmentation/SentenceStream';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { createLocalInferenceAdapter } from './adapter';
-import { createFakeEngines } from './fakeEngines';
+import { createFakeEngines, type FakeAsr } from './fakeEngines';
 import type { LocalInferenceConfig } from './config';
 
 const auto: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: false, turns: 'auto' };
@@ -61,6 +61,26 @@ const events = (log: ConformanceLog) => log.filter((e): e is AdapterEvent => e.k
 const content = (log: ConformanceLog) => events(log).filter((e) => e.kind.startsWith('segment') || e.kind === 'audio');
 const ofKind = <K extends AdapterEvent['kind']>(log: ConformanceLog, kind: K) =>
   events(log).filter((e) => e.kind === kind).map((e) => e.payload as Extract<AdapterEvent, { kind: K }>['payload']);
+
+/** Each segment of one side as it stands: its origin, its latest text, and whether it has closed. */
+function segments(log: ConformanceLog, side: 'source' | 'translation') {
+  const bySide = new Map<number, { origin?: string; text: string; closed: boolean }>();
+  for (const e of events(log)) {
+    if (e.kind === 'segmentOpened' && e.payload.side === side) {
+      bySide.set(e.payload.ref, { origin: e.payload.origin, text: '', closed: false });
+    } else if (e.kind === 'segmentText') {
+      const segment = bySide.get(e.payload.ref);
+      if (segment) segment.text = e.payload.text;
+    } else if (e.kind === 'segmentClosed') {
+      const segment = bySide.get(e.payload.ref);
+      if (segment) segment.closed = true;
+    }
+  }
+  return [...bySide.values()];
+}
+
+/** The `local.segmentation.seal` frames, whole. */
+const sealFrames = (log: ConformanceLog) => ofKind(log, 'frame').filter((f) => f.type === 'local.segmentation.seal');
 
 function expectConformant(log: ConformanceLog, context: SessionContext) {
   expect(checkConformance(log, context)).toEqual([]);
@@ -342,20 +362,6 @@ describe('the LocalInference adapter — punctuated jobs', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('fills a job the same way when jobSentences is 1-5 (until Task 4 wires the stream shape, every value behaves as Auto: one job per final, punctuated)', async () => {
-    const punctuate = async (lang: string, text: string) => {
-      expect(lang).toBe('ja');
-      return text === AT_GATE ? `${AT_GATE}.` : null;
-    };
-    const t = await open(makeConfig({ jobSentences: 3 }), auto, punctuate);
-    t.asr.final(AT_GATE);
-    await settle();
-    expect(t.translation.calls.map((c) => c.text)).toEqual([`${AT_GATE}.`]);
-    t.translation.answer('Konnichiwa.');
-    await settle();
-    expectConformant(t.log, t.context);
-  });
-
   it('sends a text shorter than the gate raw, without asking the punctuator', async () => {
     const asked: string[] = [];
     const punctuate = async (_lang: string, text: string) => { asked.push(text); return `${text}.`; };
@@ -426,6 +432,239 @@ describe('the LocalInference adapter — punctuated jobs', () => {
   });
 });
 
+describe('the LocalInference adapter — sentence-cut jobs (the stream shape)', () => {
+  /** The cut's cases are English: its gates and the casing rule read the source language. */
+  const en: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: false, turns: 'auto' };
+  /** The rule path: the ASR's own marks seal; the model answers nothing. */
+  const noAnswer: Punctuator = async () => null;
+  /** The stream shape (ruling 1): an engine translation and a size of 1–5 — with a punctuator. */
+  const streamConfig = (over: Partial<LocalInferenceConfig> = {}) => makeConfig({ jobSentences: 1, ...over });
+
+  const P1 = 'Sentence one is done. Sentence two begins';
+  const P2 = 'Sentence one is done. Sentence two begins now yes. Sentence three starts';
+  const P3 = 'Sentence one is done. Sentence two begins now yes. Sentence three starts and ends well. Tail padding here';
+
+  it('runs the stream shape with the worker\'s own sentence endpoint off: exactly one layer cuts', async () => {
+    const t = await open(streamConfig(), en, noAnswer);
+    expect(t.asr.inits[0].options.punctuationEndpoint).toBe(false);
+    expectConformant(t.log, t.context);
+  });
+
+  it.each<[string, LocalInferenceConfig, Punctuator | undefined]>([
+    ['Auto (jobSentences 0)', makeConfig({ jobSentences: 0 }), noAnswer],
+    ['a display not by sentences (jobSentences absent)', makeConfig(), noAnswer],
+    ['no punctuator', streamConfig(), undefined],
+    ['transcription-only', streamConfig({ translation: { kind: 'none' } }), noAnswer],
+  ])('%s: the endpoint stays on, and partials grow one cumulative source segment per utterance', async (_name, config, punctuate) => {
+    const t = await open(config, en, punctuate);
+    expect(t.asr.inits[0].options.punctuationEndpoint).toBe(true);
+    t.asr.partial(P1);
+    t.asr.partial(P2);
+    expect(content(t.log)).toEqual([
+      { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 1, text: P1 } },
+      { kind: 'segmentText', payload: { ref: 1, text: P2 } },
+    ]);
+    expect(t.translation.calls).toEqual([]);
+    expect(sealFrames(t.log)).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('AST: the endpoint stays on, and partials open nothing', async () => {
+    const t = await open(streamConfig({ asr: { modelId: 'granite', streaming: false }, translation: { kind: 'ast' } }), en, noAnswer);
+    expect(t.asr.inits[0].options.punctuationEndpoint).toBe(true);
+    t.asr.partial(P1);
+    t.asr.partial(P2);
+    expect(content(t.log)).toEqual([]);
+    expect(sealFrames(t.log)).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('one source segment and one origin per job: a seal closes the open segment with its text and queues its job; the tail opens the next', async () => {
+    const t = await open(streamConfig(), en, noAnswer);
+    t.asr.partial(P1);
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['Sentence one is done.']); // queued at the seal, before the next partial
+    t.asr.partial(P2);
+    t.asr.partial(P3);
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'Sentence one is done.', closed: true },
+      { origin: 'u2', text: 'Sentence two begins now yes.', closed: true },
+      { origin: 'u3', text: 'Sentence three starts and ends well.', closed: true },
+      { origin: 'u4', text: 'Tail padding here', closed: false },
+    ]);
+    t.translation.answer('One.');
+    await settle();
+    t.translation.answer('Two.');
+    await settle();
+    t.translation.answer('Three.');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual([
+      'Sentence one is done.',
+      'Sentence two begins now yes.',
+      'Sentence three starts and ends well.',
+    ]);
+    expect(segments(t.log, 'translation')).toEqual([
+      { origin: 'u1', text: 'One.', closed: true },
+      { origin: 'u2', text: 'Two.', closed: true },
+      { origin: 'u3', text: 'Three.', closed: true },
+    ]);
+
+    t.asr.final(`${P3}.`);
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'Sentence one is done.', closed: true },
+      { origin: 'u2', text: 'Sentence two begins now yes.', closed: true },
+      { origin: 'u3', text: 'Sentence three starts and ends well.', closed: true },
+      { origin: 'u4', text: 'Tail padding here.', closed: true },
+    ]);
+    expect(last(t.translation.calls)?.text).toBe('Tail padding here.');
+    t.translation.answer('Four.');
+    await settle();
+    expect(last(segments(t.log, 'translation'))).toEqual({ origin: 'u4', text: 'Four.', closed: true });
+    expectConformant(t.log, t.context);
+  });
+
+  it('an offline final (no partials) at N=3: two source segments and two jobs, distinct origins', async () => {
+    const t = await open(streamConfig({ asr: { modelId: 'whisper', streaming: false }, jobSentences: 3 }), en, noAnswer);
+    t.asr.final('One is done. Two is done. Three is done. Four is done. Five is done. Six is done and finished well.');
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'One is done. Two is done. Three is done.', closed: true },
+      { origin: 'u2', text: 'Four is done. Five is done. Six is done and finished well.', closed: true },
+    ]);
+    t.translation.answer('First half.');
+    await settle();
+    t.translation.answer('Second half.');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual([
+      'One is done. Two is done. Three is done.',
+      'Four is done. Five is done. Six is done and finished well.',
+    ]);
+    expect(segments(t.log, 'translation').map((s) => s.origin)).toEqual(['u1', 'u2']);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a truncated re-decode of what was sealed queues nothing more: the open segment closes as it stands, untranslated', async () => {
+    const t = await open(streamConfig(), en, noAnswer);
+    t.asr.partial('First sentence done. Second begins');
+    t.asr.final('First sentence done.');
+    t.translation.answer('Premier.');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['First sentence done.']);
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'First sentence done.', closed: true },
+      { origin: 'u2', text: 'Second begins', closed: true },
+    ]);
+    expect(segments(t.log, 'translation').map((s) => s.origin)).toEqual(['u1']);
+    expectConformant(t.log, t.context);
+  });
+
+  it('never fills a seal in: a sentences chunk and the end tail reach the engine exactly as sealed', async () => {
+    // Capitalised, so the period before it ends a sentence; unmarked, and past
+    // Auto's length gate, so a fill-in would add a period to it.
+    const TAIL = 'And then we walked along the river for a long while talking about nothing in particular until the sun went down behind the hills and the air turned cold around us';
+    expect(TAIL.length).toBeGreaterThanOrEqual(160);
+    expect(TAIL.length).toBeGreaterThan(gateChars('en', DEFAULT_CHUNK_SENTENCES));
+    const endsWithPeriod: Punctuator = async (_lang, text) => (text.endsWith('.') ? text : `${text}.`);
+    const t = await open(streamConfig({ asr: { modelId: 'whisper', streaming: false } }), en, endsWithPeriod);
+    t.asr.final(`Sentence one is done. ${TAIL}`);
+    t.translation.answer('Un.');
+    await settle();
+    t.translation.answer('Deux.');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['Sentence one is done.', TAIL]);
+    expect(sealFrames(t.log).map((f) => (f.payload as { reason: string }).reason)).toEqual(['sentences', 'end']);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a seal without a letter or digit queues nothing, and closes the segment it was showing', async () => {
+    const t = await open(streamConfig(), en, noAnswer);
+    t.asr.partial('Sentence one is done. Sentence two begins');
+    t.asr.final('Sentence one is done. (');
+    t.translation.answer('Un.');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['Sentence one is done.']);
+    expect(segments(t.log, 'source').map((s) => s.closed)).toEqual([true, true]);
+    expect(segments(t.log, 'translation').map((s) => s.origin)).toEqual(['u1']);
+    expectConformant(t.log, t.context);
+  });
+
+  it.each<[string, (asr: FakeAsr) => void]>([
+    ['an ASR error', (asr) => asr.fail('decode failed')],
+    ['an empty final', (asr) => asr.final('')],
+  ])('after %s, the next utterance seals from a clean cursor: its first job holds its first sentence whole', async (_name, interrupt) => {
+    const t = await open(streamConfig(), en, noAnswer);
+    t.asr.partial('Sentence one is done. Sentence two begins');
+    interrupt(t.asr);
+    t.asr.partial('Brand new words start here. And they keep going');
+    t.translation.answer('Un.');
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['Sentence one is done.', 'Brand new words start here.']);
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'Sentence one is done.', closed: true },
+      { origin: 'u2', text: 'Sentence two begins', closed: true },
+      { origin: 'u3', text: 'Brand new words start here.', closed: true },
+      { origin: 'u4', text: 'And they keep going', closed: false },
+    ]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('stop() with a model call in flight: its late answer emits nothing', async () => {
+    const UNMARKED = 'the quick brown fox jumps over the lazy dog and then keeps running far away';
+    const asked: string[] = [];
+    let answer: (text: string | null) => void = () => {};
+    const held: Punctuator = (_lang, text) => {
+      asked.push(text);
+      return new Promise((resolve) => { answer = resolve; });
+    };
+    const t = await open(streamConfig(), en, held);
+    t.asr.partial(UNMARKED);
+    expect(asked).toEqual([UNMARKED]); // no mark, past the gate: the model was asked
+    t.mark('stop');
+    await t.session.stop();
+    const before = t.log.length;
+    answer(UNMARKED.replace('dog and', 'dog. And')); // an answer that would seal
+    await settle();
+    expect(t.log.length).toBe(before);
+    expect(t.translation.calls).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('typed text stays one job: one source segment with exactly the typed text, one translation', async () => {
+    const t = await open(streamConfig(), en, noAnswer);
+    const typed = 'Hello there. How are you doing today?';
+    t.mark('appendText', typed);
+    t.session.appendText(typed);
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual([typed]);
+    t.translation.answer('こんにちは。お元気ですか？');
+    await settle();
+    expect(content(t.log)).toEqual([
+      { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 1, text: typed } },
+      { kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } },
+      { kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 2, text: 'こんにちは。お元気ですか？' } },
+      { kind: 'segmentClosed', payload: { ref: 2, origin: 'u1' } },
+    ]);
+    expect(sealFrames(t.log)).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('says each seal in a frame: its reason and its text', async () => {
+    const t = await open(streamConfig(), en, noAnswer);
+    t.asr.partial(P1);
+    t.asr.partial(P2);
+    t.asr.partial(P3);
+    t.asr.final(`${P3}.`);
+    expect(sealFrames(t.log)).toEqual([
+      { direction: 'out', type: 'local.segmentation.seal', payload: { reason: 'sentences', text: 'Sentence one is done.' } },
+      { direction: 'out', type: 'local.segmentation.seal', payload: { reason: 'sentences', text: 'Sentence two begins now yes.' } },
+      { direction: 'out', type: 'local.segmentation.seal', payload: { reason: 'sentences', text: 'Sentence three starts and ends well.' } },
+      { direction: 'out', type: 'local.segmentation.seal', payload: { reason: 'end', text: 'Tail padding here.' } },
+    ]);
+    expectConformant(t.log, t.context);
+  });
+});
+
 describe('the LocalInference adapter — loading', () => {
   it('reports each engine settling: three engines, total 3, done 1..3', async () => {
     const t = begin(makeConfig({ tts: TTS }), { ...auto, speech: true });
@@ -455,7 +694,7 @@ describe('the LocalInference adapter — loading', () => {
     const config = makeConfig();
     const t = await open(config);
     expect(t.asr.config).toEqual(config.asr);
-    expect(t.asr.inits).toEqual([{ modelId: 'asr-model', options: { vadConfig: config.vad, language: 'ja' } }]);
+    expect(t.asr.inits).toEqual([{ modelId: 'asr-model', options: { vadConfig: config.vad, language: 'ja', punctuationEndpoint: true } }]);
     expect(t.translation.inits).toEqual([{ sourceLang: 'ja', targetLang: 'en', modelId: 'mt-model' }]);
     expectConformant(t.log, t.context);
   });
