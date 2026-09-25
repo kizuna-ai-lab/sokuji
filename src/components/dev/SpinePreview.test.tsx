@@ -142,7 +142,7 @@ describe('SpinePreview', () => {
   });
 
   // Task 12, plan 1e-3b-1: `&panel=1` draws the new main panel on the app's
-  // session, in a box of its own (SessionPanel.test.tsx covers the panel).
+  // session, in a box of its own (MainPanel.test.tsx covers the panel).
   it('draws the new main panel on the page with &panel=1', async () => {
     const before = window.location.href;
     window.history.replaceState(null, '', '/?preview=spine&panel=1');
@@ -158,7 +158,7 @@ describe('SpinePreview', () => {
   // Start enables as soon as the stores and the provider's entry have
   // loaded, which can race ahead of the URL's `&script=`/`&turn=` — a probe
   // that clicks at once would then run the fake's default script instead.
-  // `<SessionPanel />` now waits on `urlApplied` too, so it is absent right
+  // `<MainPanel />` now waits on `urlApplied` too, so it is absent right
   // after render (before the stores' load promise has had a microtask to
   // resolve) and present once `waitFor` lets it settle.
   it('draws the panel only once the URL settings have applied, not before', async () => {

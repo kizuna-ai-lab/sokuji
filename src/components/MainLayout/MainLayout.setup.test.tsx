@@ -4,7 +4,7 @@ import MainLayout from './MainLayout';
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
 vi.mock('../Tour/TourOverlay', () => ({ default: () => <div data-testid="tour-overlay" /> }));
-vi.mock('../Subtitle/SubtitleApp', () => ({ default: () => null }));
+vi.mock('../Subtitle/SubtitleTakeover', () => ({ SubtitleTakeover: () => <div data-testid="subtitle-takeover" /> }));
 vi.mock('./PanelResizer', () => ({ default: () => null }));
 vi.mock('../LogsPanel/LogsPanel', () => ({ default: () => null }));
 vi.mock('../Settings', () => ({ Settings: () => null }));
@@ -17,24 +17,16 @@ vi.mock('../SetupWizard/SetupWizard', () => ({ default: ({ variant }: { variant:
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 let signedIn = false;
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: signedIn }) }));
-// The sign-in auto-switch needs a managed provider to switch TO, and the real
-// factory registers none under this file's feature flags.
-const setProvider = vi.hoisted(() => vi.fn());
-vi.mock('../../services/providers/ProviderConfigFactory', () => ({
-  ProviderConfigFactory: { getDefaultManagedProvider: () => 'kizunaai_soniox' },
-}));
 // Both halves of the tour's render gate are mutable: only Electron reshapes
 // its window for subtitle mode, so the takeover needs the pair to be true.
-// vi.hoisted, not a plain `let`: ProviderConfigFactory's static initializer
-// calls isElectron() while this module is still evaluating, which a `let`
-// would answer from its temporal dead zone.
+// vi.hoisted: the mocks' factories below read it.
 const flags = vi.hoisted(() => ({ electron: false, subtitleActive: false, diagnosticLogs: false }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isElectron: () => flags.electron, isKizunaAIEnabled: () => false,
 }));
+// Only what MainLayout reads: no provider, no UI mode, no provider setter.
 vi.mock('../../stores/settingsStore', () => ({
-  useProvider: () => 'openai', useUIMode: () => 'basic', useSetProvider: () => setProvider,
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => flags.subtitleActive,
   useDiagnosticLogs: () => flags.diagnosticLogs,
 }));
@@ -49,7 +41,6 @@ beforeEach(() => {
   cleanup();
   loaded = true; complete = true; wizardOpen = false; signedIn = false;
   flags.electron = false; flags.subtitleActive = false; flags.diagnosticLogs = false;
-  setProvider.mockClear();
 });
 
 describe('MainLayout first-run gating (spec §1.1)', () => {
@@ -93,6 +84,8 @@ describe('MainLayout first-run gating (spec §1.1)', () => {
     render(<MainLayout />);
     expect(screen.queryByTestId('tour-overlay')).toBeNull();
     expect(screen.queryByTestId('title-bar')).toBeNull();
+    // The app session's takeover in the layout's place.
+    expect(screen.getByTestId('subtitle-takeover')).toBeInTheDocument();
   });
 });
 
@@ -105,7 +98,9 @@ describe('signing in switches no provider', () => {
     const { rerender } = render(<MainLayout />);
     signedIn = true;
     rerender(<MainLayout />);
-    expect(setProvider).not.toHaveBeenCalled();
+    // The settings store's mock offers no provider setter at all: a switch
+    // that reached for one would throw on this render.
+    expect(screen.getByTestId('title-bar')).toBeInTheDocument();
   });
 });
 

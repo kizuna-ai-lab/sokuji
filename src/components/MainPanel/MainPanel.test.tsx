@@ -134,6 +134,7 @@ vi.mock('../Settings/shared/WarningModal', () => ({
 
 import { configureAppSession, getAppSession } from '../../app/session';
 import { createVirtualClock } from '../../lib/contract/clock';
+import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
 import type { AnalyticsPort } from '../../lib/session/ports';
 import { VIEW_INTERVAL_MS } from '../../lib/view/conversationView';
 import { fakeProvider } from '../../providers/fake/provider';
@@ -142,7 +143,7 @@ import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
-import SessionPanel from './SessionPanel';
+import MainPanel from './MainPanel';
 
 const clock = createVirtualClock(0);
 // Before any render builds the page's session: the fake source, no microphone needed.
@@ -160,7 +161,7 @@ const lastModal = () => modal.calls[modal.calls.length - 1];
 
 /** Renders the panel and lets the page's playback land, which it loads after the first render. */
 async function renderPanel() {
-  const result = render(<SessionPanel />);
+  const result = render(<MainPanel />);
   await act(() => getAppSession().audio());
   return result;
 }
@@ -229,12 +230,12 @@ beforeEach(async () => {
 
 // First in the file: the page's session keeps its playback once loaded, and
 // this case needs the page's first load to fail.
-describe('SessionPanel before its playback has loaded', () => {
+describe('MainPanel before its playback has loaded', () => {
   it('asks for the playback again when the phase moves, and picks it up', async () => {
     load.failures = 1;
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      render(<SessionPanel />);
+      render(<MainPanel />);
       await act(async () => {
         await vi.waitFor(() => expect(error).toHaveBeenCalledWith(expect.stringContaining('The playback did not load'), expect.anything()));
       });
@@ -253,13 +254,22 @@ describe('SessionPanel before its playback has loaded', () => {
   });
 });
 
-describe('SessionPanel', () => {
+describe('MainPanel', () => {
   it('draws the empty state and a Start before anything has happened', async () => {
     const { container } = await renderPanel();
     expect(container.querySelector('.conversation-display .empty-state')?.textContent).toContain('simplePanel.startToBegin');
     expect(mainAction(container)).not.toBeNull();
     expect(mainAction(container).disabled).toBe(false);
     expect(mainAction(container).textContent).toContain('simplePanel.start');
+  });
+
+  // Roadmap 1e-3a: "or the page runs two punctuation runtimes". The old
+  // panel built its own (`useSegmentationRuntime`); this one uses the root's.
+  it("constructs no punctuation runtime of its own: the page's one is the root's", async () => {
+    await renderPanel();
+    const { results } = vi.mocked(PunctuationRuntime).mock;
+    expect(results).toHaveLength(1);
+    expect(results[0].value).toBe(getAppSession().punctuation.runtime);
   });
 
   it("starts the root runner and draws the run's rows, with the export menu", async () => {

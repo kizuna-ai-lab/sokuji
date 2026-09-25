@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LayoutGrid, Sliders, Settings as SettingsIcon, Headphones, Cpu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUIMode, useSetUIMode, useNavigateToSettings, useSettingsNavigationTarget } from '../../stores/settingsStore';
-import { useIsSessionActive } from '../../stores/sessionStore';
+import { useSessionLocked } from '../../app/useRun';
 import { useAnalytics } from '../../lib/analytics';
 import SimpleSettings from './SimpleSettings/SimpleSettings';
 import AdvancedSettings from './AdvancedSettings/AdvancedSettings';
@@ -49,7 +49,8 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
   'provider': 'provider',
   'system-instructions': 'provider',
   'voice-settings': 'provider',
-  'turn-detection': 'provider',
+  // The global turn mode lives on the General tab (plan 1e-3b-2).
+  'turn-detection': 'general',
   'model-management': 'provider',
   'model-asr': 'provider',
   'model-translation': 'provider',
@@ -59,7 +60,7 @@ const NAVIGATION_TAB_MAP: Record<string, string> = {
 const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection }) => {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const isSessionActive = useIsSessionActive();
+  const locked = useSessionLocked();
 
   const uiMode = useUIMode();
   const setUIMode = useSetUIMode();
@@ -130,7 +131,7 @@ const Settings: React.FC<SettingsProps> = ({ toggleSettings, highlightSection })
     trackEvent('settings_mode_switched', {
       from_mode: uiMode,
       to_mode: newMode,
-      during_session: isSessionActive,
+      during_session: locked,
     });
   };
 

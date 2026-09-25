@@ -9,9 +9,10 @@
  * analogous effect in Settings.tsx:101-121 (see Settings.highlight.test.tsx
  * / SimpleSettings.order.test.tsx for this file's mocking idiom).
  *
- * Mounting the real child sections (ProviderSection, AudioDeviceSection,
+ * Mounting the real child sections (the provider blocks, AudioDeviceSection,
  * SystemAudioSection, HelpSection, ...) drags in ServiceFactory, TourProvider
- * and per-provider settings wiring unrelated to this effect, so — per the
+ * and the provider registry's stores, unrelated to this effect (and this
+ * file's total settingsStore mock lacks what they read), so — per the
  * brief — they're stubbed to plain `<div id="…-section">` markers instead;
  * only AudioDeviceSection and SystemAudioSection matter here since the effect
  * targets 'microphone' and 'participant'.
@@ -31,10 +32,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
 }));
 
-vi.mock('../../../stores/sessionStore', () => ({
-  useIsSessionActive: () => false,
-  useLockedMode: () => null,
-}));
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false }));
 
 vi.mock('../../../stores/audioStore', () => ({
   useMode: () => 'speaker',
@@ -50,7 +48,6 @@ const navigateToSettings = vi.fn((target: string | null) => { settingsNavigation
 vi.mock('../../../stores/settingsStore', () => ({
   useNavigateToSettings: () => navigateToSettings,
   useSettingsNavigationTarget: () => settingsNavigationTarget,
-  useProvider: () => 'openai',
   useEngineSlotTarget: () => null,
   useSetEngineSlotTarget: () => vi.fn(),
   // getState() rather than the hook: the fix's cleanup reads the store
@@ -67,20 +64,20 @@ vi.mock('../../../stores/settingsStore', () => ({
 // SystemAudioSection.tsx:86 (`id="participant-section"`) — re-check these
 // line numbers if either section is restructured.
 vi.mock('../sections', () => ({
-  ProviderSection: () => null,
-  LanguageSection: () => null,
-  SentenceSegmentationSection: () => null,
   AudioDeviceSection: ({ showMicrophone }: { showMicrophone?: boolean }) =>
     showMicrophone ? <div id="microphone-section" /> : <div id="speaker-section" />,
   SystemAudioSection: () => <div id="participant-section" />,
   HelpSection: () => null,
 }));
-vi.mock('../sections/ModelManagementSection', () => ({ ModelManagementSection: () => null }));
-vi.mock('../sections/NativeModelManagementSection', () => ({ NativeModelManagementSection: () => null }));
-vi.mock('../engine/useWasmEngineAdapter', () => ({ useWasmEngineAdapter: () => ({}) }));
-vi.mock('../engine/useNativeEngineAdapter', () => ({ useNativeEngineAdapter: () => ({}) }));
-vi.mock('../engine/EngineSurface', () => ({ EngineSurface: () => null }));
-vi.mock('../engine/StoragePage', () => ({ StoragePage: () => null }));
+// The provider blocks and what SimpleSettings asks of the provider store: nothing selected, so no engine page.
+vi.mock('../ProviderArea', () => ({
+  SessionSettingsGeneral: () => <div id="languages-section" />,
+  SessionEnginePage: () => null,
+}));
+vi.mock('../../../stores/providerStore', () => ({
+  useProviderStore: (select: (s: { selected: null }) => unknown) => select({ selected: null }),
+}));
+vi.mock('../../../providers/registry', () => ({ getProvider: () => undefined }));
 
 import SimpleSettings from './SimpleSettings';
 

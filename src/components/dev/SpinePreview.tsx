@@ -31,7 +31,7 @@ import { ConversationList } from '../Conversation/ConversationList';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import { ExportMenuButton } from '../MainPanel/ExportButton';
-import SessionPanel from '../MainPanel/SessionPanel';
+import MainPanel from '../MainPanel/MainPanel';
 import { ProviderPanel } from '../providers/ProviderPanel';
 import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } from '../Settings/ProviderArea';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
@@ -497,7 +497,7 @@ export function SpinePreview() {
         {/* Not before `urlApplied`: the panel's own Start enables as soon as the stores and the provider's entry have loaded, ahead of the URL's `&script=`/`&turn=` — a probe that clicks at once would otherwise race the fake's default script. */}
         {previewParams.panel && urlApplied && (
           <div className="spine-panel">
-            <SessionPanel />
+            <MainPanel />
           </div>
         )}
         <p data-probe="seals">{sealProbe}</p>

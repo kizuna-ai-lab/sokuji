@@ -3,8 +3,8 @@
 // The one place the wizard writes anything (spec §1.5). Store actions come in
 // as an argument so this stays testable without the stores' import graph, and
 // so the ORDER is a fact of this file rather than of whichever component calls
-// it: the provider's write before the record (SettingsInitializer's validation
-// effect then fires once, over final values), record last.
+// it: the provider's write before the record (the app session's readiness
+// then re-checks once, over final values), record last.
 import { getScenario } from '../../lib/setup/scenarios';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import type { ProviderType } from '../../types/Provider';

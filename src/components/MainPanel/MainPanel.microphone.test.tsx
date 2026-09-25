@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { act, render } from '@testing-library/react';
 
-// SessionPanel.test.tsx's mocks. A file of its own because the page's session
+// MainPanel.test.tsx's mocks. A file of its own because the page's session
 // is one per module graph, and this one is configured to need a microphone.
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
@@ -80,7 +80,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
-import SessionPanel from './SessionPanel';
+import MainPanel from './MainPanel';
 
 const clock = createVirtualClock(0);
 // The app's own rule (1e-3 ruling 5): a start needs a chosen microphone.
@@ -96,10 +96,10 @@ beforeAll(async () => {
   useProviderStore.getState().select('fake');
 });
 
-describe('SessionPanel without a microphone', () => {
+describe('MainPanel without a microphone', () => {
   it('keeps Start off, in words, and paints the speaker segment amber until a microphone is chosen', async () => {
     useAudioStore.setState({ mode: 'speaker', selectedInputDevice: null });
-    const { container } = render(<SessionPanel />);
+    const { container } = render(<MainPanel />);
     // The page's playback loads after the first render.
     await act(() => getAppSession().audio());
     const start = () => container.querySelector('[data-tour="main-action"]') as HTMLButtonElement;

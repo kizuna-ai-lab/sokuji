@@ -14,7 +14,7 @@ import { useAnalytics } from '../../lib/analytics';
 import { useSettingsNavigationTarget, useSubtitleModeActive, useDiagnosticLogs } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
 import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen } from '../../stores/layoutStore';
-import SubtitleApp from '../Subtitle/SubtitleApp';
+import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import { useSetupLoaded, useSetupComplete } from '../../stores/setupStore';
 
 type PanelName = 'settings' | 'logs' | 'main';
@@ -154,8 +154,9 @@ const MainLayout: React.FC = () => {
 
   // In Electron subtitle mode the main process reshapes the BrowserWindow
   // into a tiny bar. Hide TitleBar and the main-layout tree (display:none
-  // keeps MainPanel mounted so the active session survives) and mount
-  // SubtitleApp in their place. Extension subtitle mode is handled inside
+  // keeps MainPanel mounted, so its Space key keeps holding turns) and mount
+  // the takeover in their place: the same app session's view and runner, so
+  // the run carries on untouched. Extension subtitle mode is handled inside
   // an injected iframe — sidepanel chrome stays visible.
   const electronSubtitleTakeover = subtitleActive && isElectron();
 
@@ -216,7 +217,7 @@ const MainLayout: React.FC = () => {
         takeover display:none) wherever it sat. During an Electron subtitle
         takeover the anchored UI is gone, so the tour does not render at all. */}
     {!electronSubtitleTakeover && <TourOverlay />}
-    {electronSubtitleTakeover && <SubtitleApp />}
+    {electronSubtitleTakeover && <SubtitleTakeover />}
     </>
   );
 };

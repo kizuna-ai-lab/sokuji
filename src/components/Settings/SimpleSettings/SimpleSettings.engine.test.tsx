@@ -1,13 +1,11 @@
 /**
  * SimpleSettings' engine host: the store's one-shot `engineSlotTarget`
- * signal (fired by Task 10's chips) deep-links into the same EngineSurface
- * ProviderSpecificSettings hosts in advanced mode. Follows
- * ProviderSpecificSettings.engine.test.tsx's mount idiom — real
- * settingsStore/sessionStore/modelStore, ServiceFactory mocked, an
- * interpolating `t()` mock for EnginePage's direction headings — with
- * SimpleSettings' own section list stubbed to recognizable markers, since
- * these tests are about the host switch (section list <-> engine surface),
- * not about any individual section's content.
+ * signal (fired by a chip) pushes the selected provider's `Engine` in place
+ * of the section list (1e-3 ruling 10), for a provider that has one. Real
+ * settingsStore and providerStore, ServiceFactory mocked, the run's lock
+ * mocked; the provider blocks (`../ProviderArea`) and the section list are
+ * stubbed to markers recording their props, since these tests are about the
+ * host switch (section list <-> engine page), not about any block's content.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -35,89 +33,98 @@ vi.mock('../../../services/ServiceFactory', () => ({
   },
 }));
 
-// SimpleSettings' section list isn't what's under test here — each section
-// is stubbed to a recognizable marker so "back returns to the normal list"
-// has something concrete to assert on.
+const run = vi.hoisted(() => ({ locked: false }));
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => run.locked }));
+
+// What each block was handed, by render.
+const blocks = vi.hoisted(() => ({
+  general: [] as Array<{ locked: boolean; onOpenSlot(slot: unknown): void }>,
+  page: [] as Array<{ locked: boolean; slot: { dir: string; stage: string } }>,
+}));
+vi.mock('../ProviderArea', () => ({
+  SessionSettingsGeneral: (props: { locked: boolean; onOpenSlot(slot: unknown): void }) => {
+    blocks.general.push(props);
+    return <div data-testid="session-settings-general" />;
+  },
+  SessionEnginePage: (props: { locked: boolean; slot: { dir: string; stage: string } }) => {
+    blocks.page.push(props);
+    return <div data-testid="session-engine-page" />;
+  },
+}));
+
+// SimpleSettings' remaining sections aren't what's under test here.
 vi.mock('../sections', () => ({
-  ProviderSection: () => <div data-testid="provider-section" />,
-  LanguageSection: () => <div data-testid="language-section" />,
-  SentenceSegmentationSection: () => <div data-testid="sentence-segmentation-section" />,
   AudioDeviceSection: () => <div data-testid="audio-device-section" />,
   SystemAudioSection: () => <div data-testid="system-audio-section" />,
   HelpSection: () => <div data-testid="help-section" />,
 }));
 
-// Heavy Library sections — never rendered by these tests (EngineSurface
-// opens on its overview page, not a pushed Library view), stubbed the way
-// ProviderSpecificSettings.engine.test.tsx stubs them.
-vi.mock('../sections/ModelManagementSection', () => ({ ModelManagementSection: () => null }));
-vi.mock('../sections/NativeModelManagementSection', () => ({ NativeModelManagementSection: () => null }));
-
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
-const { default: useSessionStore } = await import('../../../stores/sessionStore');
-const { Provider } = await import('../../../types/Provider');
+const { useProviderStore } = await import('../../../stores/providerStore');
 const { default: SimpleSettings } = await import('./SimpleSettings');
 
+const lastPage = () => blocks.page[blocks.page.length - 1];
+
 beforeEach(() => {
-  useSessionStore.setState({ isSessionActive: false });
+  run.locked = false;
+  blocks.general.length = 0;
+  blocks.page.length = 0;
   useSettingsStore.setState({ engineSlotTarget: null });
+  useProviderStore.setState({ selected: null });
 });
 
-describe('SimpleSettings — engine host (Task 9)', () => {
-  it('a local provider with a set engineSlotTarget renders the surface with that slot expanded, and clears the signal', () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+describe('SimpleSettings — engine host', () => {
+  it("a provider with an Engine and a set engineSlotTarget renders the engine page on that slot, and clears the signal", () => {
+    useProviderStore.setState({ selected: 'localInference' });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
-    const { container } = render(<SimpleSettings />);
+    render(<SimpleSettings />);
 
-    // Dropdown form: the deep link's landing is the flash on the targeted
-    // row — nothing expands anymore.
-    const slot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]');
-    expect(slot).not.toBeNull();
-    expect(slot!.classList.contains('highlight')).toBe(true);
-    expect(container.querySelectorAll('.engine-slot.highlight')).toHaveLength(1);
-
+    expect(screen.getByTestId('session-engine-page')).not.toBeNull();
+    expect(lastPage()).toMatchObject({ locked: false, slot: { dir: 'ja→en', stage: 'asr' } });
+    expect(screen.queryByTestId('session-settings-general')).toBeNull();
     // One-shot: consumed immediately, not left around for a later mount.
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
   });
 
-  it('renders the session-active banner above the surface when a session is active', () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+  it('renders the session banner above the engine page while the run is locked, and hands the page the lock', () => {
+    run.locked = true;
+    useProviderStore.setState({ selected: 'localInference' });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
-    useSessionStore.setState({ isSessionActive: true });
 
     const { container } = render(<SimpleSettings />);
 
-    const content = container.querySelector('.settings-content');
-    expect(content).not.toBeNull();
-    const children = Array.from(content!.children);
+    const children = Array.from(container.querySelector('.settings-content')!.children);
     const bannerIndex = children.findIndex((el) => el.classList.contains('session-warning'));
     const backRowIndex = children.findIndex((el) => el.classList.contains('engine-back-row'));
     expect(bannerIndex).toBeGreaterThanOrEqual(0);
     expect(backRowIndex).toBeGreaterThan(bannerIndex);
+    expect(lastPage().locked).toBe(true);
   });
 
-  it('the back row returns to the normal section list', () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
+  it('the back row returns to the section list', () => {
+    useProviderStore.setState({ selected: 'localInference' });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
     render(<SimpleSettings />);
-    expect(screen.queryByTestId('provider-section')).toBeNull();
+    expect(screen.queryByTestId('session-settings-general')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
-    expect(screen.getByTestId('provider-section')).not.toBeNull();
+    expect(screen.getByTestId('session-settings-general')).not.toBeNull();
+    expect(screen.queryByTestId('session-engine-page')).toBeNull();
   });
 
-  it('a non-local provider ignores a set engineSlotTarget: the normal list renders, and the signal is still cleared', () => {
-    useSettingsStore.setState({ provider: Provider.OPENAI });
+  it('a provider without an Engine ignores a set engineSlotTarget: the list renders, and the signal is still cleared', () => {
+    useProviderStore.setState({ selected: 'fake' });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
     render(<SimpleSettings />);
 
-    expect(screen.getByTestId('provider-section')).not.toBeNull();
-    // Cleared rather than left stale — a later switch to a local provider
-    // must not suddenly pop the engine surface from this old target.
+    expect(screen.getByTestId('session-settings-general')).not.toBeNull();
+    expect(screen.queryByTestId('session-engine-page')).toBeNull();
+    // Cleared rather than left stale — a later switch to a provider with an
+    // Engine must not suddenly pop the engine page from this old target.
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
   });
 });

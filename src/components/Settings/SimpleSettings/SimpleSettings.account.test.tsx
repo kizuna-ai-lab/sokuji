@@ -13,8 +13,11 @@
  * section still rendered - a test that can never fail. The real sections
  * render instead, which is what makes the assertion mean anything.
  *
- * `HelpSection` is the one section still stubbed: it calls `useStartBasicsTour`
- * and throws outside a `TourProvider`.
+ * `HelpSection` is stubbed: it calls `useStartBasicsTour` and throws outside a
+ * `TourProvider`. So are the provider blocks (`../ProviderArea`, covered by
+ * `ProviderArea.test.tsx`): the provider no longer shapes this list, and no
+ * block of theirs carries an account entry. Their marker is a `config-section`
+ * so the "rendered sections" guard below still counts one.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from '@testing-library/react';
@@ -50,30 +53,27 @@ vi.mock('../sections/HelpSection', () => ({
   default: () => <div className="config-section" data-testid="help-section" />,
 }));
 
-// Heavy Library sections - never reached by this test, stubbed the way
-// SimpleSettings.engine.test.tsx stubs them.
+vi.mock('../ProviderArea', () => ({
+  SessionSettingsGeneral: () => <div className="config-section" data-testid="session-settings-general" />,
+  SessionEnginePage: () => null,
+}));
+
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false }));
+
+// Heavy Library sections - never reached by this test.
 vi.mock('../sections/ModelManagementSection', () => ({ ModelManagementSection: () => null }));
 vi.mock('../sections/NativeModelManagementSection', () => ({ NativeModelManagementSection: () => null }));
 
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
-const { default: useSessionStore } = await import('../../../stores/sessionStore');
-const { Provider } = await import('../../../types/Provider');
 const { MemoryRouter } = await import('react-router-dom');
 const { default: SimpleSettings } = await import('./SimpleSettings');
 
 beforeEach(() => {
-  useSessionStore.setState({ isSessionActive: false });
   useSettingsStore.setState({ engineSlotTarget: null });
 });
 
 describe('SimpleSettings - no account section', () => {
-  it.each([
-    // The managed provider is the case that used to render the section.
-    Provider.KIZUNA_AI_OPENAI_TRANSLATE,
-    Provider.OPENAI,
-  ])('renders no account section, whatever the provider (%s)', (provider) => {
-    useSettingsStore.setState({ provider });
-
+  it('renders no account section', () => {
     // A router is still wrapped around it: the removed section navigated to
     // /sign-in, so a resurrected one fails on this assertion rather than on a
     // missing router.

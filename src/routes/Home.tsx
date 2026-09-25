@@ -9,6 +9,7 @@ import { useConversationDisplayStore } from '../stores/conversationDisplayStore'
 import { useSetupStore } from '../stores/setupStore';
 import { SettingsInitializer } from '../components/SettingsInitializer/SettingsInitializer';
 import AuthOverlay from '../components/Auth/AuthOverlay';
+import { AppSessionRoot } from '../app/AppSessionRoot';
 import { loadSessionStores } from '../app/loadStores';
 
 export function Home() {
@@ -31,14 +32,17 @@ export function Home() {
       console.warn('[Home] Settings/subtitle/conversationDisplay/setup hydration error:', err);
     });
 
-    // The new session's stores (plan 1e-3a): loaded now, read by nothing here
-    // until plan 1e-3b switches MainPanel over. Reads only.
+    // The app session's stores: the stored provider selected and loaded, the
+    // turn mode migrated, the routing switches, the punctuation pack — read by
+    // the session from the first Start.
     void loadSessionStores();
   }, []); // Empty dependency array - only run once on mount
 
   return (
     <UserProfileProvider>
       <TourProvider>
+        {/* The app session's page wiring; inside UserProfileProvider, which it reads. */}
+        <AppSessionRoot />
         <SettingsInitializer />
         <MainLayout />
         {/* Over the app, not instead of it: MainLayout and every provider above

@@ -140,7 +140,9 @@ function countConsoleCalls(source: string, fileName = 'scan.tsx'): number {
  */
 const LEDGER: Record<string, number> = {
   // --- Later, under the ledger: components ---
-  'src/components/MainPanel/MainPanel.tsx': 43,
+  // MainPanel.tsx's row (43) is gone, not lowered to 0: plan 1e-3b-2's switch
+  // replaced the old panel with the app session's, which reports through
+  // report.ts only.
   'src/components/Auth/UserAccountInfo.tsx': 5,
   // `Rename failed:` and `Delete failed:` — the picker takes `onRename`/
   // `onAskDelete` and VoiceDeleteModal takes `onConfirm` as props, so the
@@ -158,7 +160,9 @@ const LEDGER: Record<string, number> = {
   // there is nothing left to swallow and no breadcrumb to leave.
   'src/components/Settings/sections/VoiceCreateModal.tsx': 3,
   'shared/index.tsx': 4,
-  'src/components/SettingsInitializer/SettingsInitializer.tsx': 3,
+  // SettingsInitializer.tsx's row (3) is gone, not lowered to 0: the switch
+  // cut it to two jobs (plan 1e-3b-2 ruling 10), each reporting through
+  // report.ts.
   'src/components/Tour/TourProvider.tsx': 3,
   'src/components/Auth/ForgotPasswordForm.tsx': 2,
   'src/components/MainPanel/participantTelemetry.ts': 2,
@@ -167,7 +171,9 @@ const LEDGER: Record<string, number> = {
   'src/components/Settings/sections/ProviderSpecificSettings.tsx': 2,
   'src/components/Auth/SignInForm.tsx': 1,
   'src/components/Auth/SignUpForm.tsx': 1,
-  'src/components/Settings/AdvancedSettings/AdvancedSettings.tsx': 1,
+  // AdvancedSettings.tsx's row (1) is gone, not lowered to 0: its one call
+  // warned of an unknown provider in the old provider config memo, which the
+  // switch removed with the old provider sections.
   'src/components/Settings/engine/EnginePage.tsx': 1,
   'src/components/SetupWizard/SetupWizard.tsx': 1,
   // applySetup.ts's row is gone, not lowered to 0: its one call —
@@ -285,9 +291,6 @@ describe('console ledger', () => {
       /src\/lib\/diagnostics\/report\.ts$/,
       // Reads the log list and calls clearLogs; never writes an entry.
       /src\/components\/LogsPanel\/LogsPanel\.tsx$/,
-      // The echo notice. Migrates with the rest of MainPanel in PR3a; listed
-      // here so PR1 does not have to touch the repo's most-edited file.
-      /src\/components\/MainPanel\/MainPanel\.tsx$/,
     ];
     const writers = scannedFiles().filter((file) => {
       if (ALLOWED.some((re) => re.test(file))) return false;

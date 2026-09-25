@@ -33,9 +33,7 @@ vi.mock('../../stores/settingsStore', () => ({
   useSettingsNavigationTarget: () => mockTarget,
 }));
 
-vi.mock('../../stores/sessionStore', () => ({
-  useIsSessionActive: () => false,
-}));
+vi.mock('../../app/useRun', () => ({ useSessionLocked: () => false }));
 
 vi.mock('../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
@@ -98,5 +96,15 @@ describe("Settings — the 'provider' navigation target switches tabs without fl
     vi.advanceTimersByTime(3000);
     expect(getByTestId('microphone-section-el').classList.contains('highlight')).toBe(false);
     expect(navigateToSettings).toHaveBeenCalledWith(null);
+  });
+
+  // The global turn mode's section sits under the language pair on the
+  // General tab (plan 1e-3b-2), no longer among the provider's own settings.
+  it("target='turn-detection' switches to the General tab", () => {
+    sessionStorage.setItem('panelState.settingsActiveTab', 'provider');
+    mockTarget = 'turn-detection';
+    const { getByTestId } = render(<Settings />);
+
+    expect(getByTestId('advanced-body')).toHaveAttribute('data-active-tab', 'general');
   });
 });

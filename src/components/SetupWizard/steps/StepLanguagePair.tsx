@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { useSettingsStore } from '../../../stores/settingsStore';
-import type { SettingsStore } from '../../../stores/settingsStore';
+import { providerIdFromStored } from '../../../lib/session/storedSettings';
+import { useProviderStore } from '../../../stores/providerStore';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { pairSentence } from '../languageSentence';
 import { defaultLanguagePair } from '../languageDefaults';
@@ -26,10 +26,13 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
     // lands on '', and a truthiness guard would read that as unseeded and
     // re-seed on the next render, throwing away the source the user just picked.
     if (draft.sourceLanguage !== null && draft.targetLanguage !== null) return;
-    const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore] as { sourceLanguage?: string; targetLanguage?: string };
+    // The provider store's entry, not the old slice: that is loaded once at
+    // startup and no longer follows edits (plan 1e-3b-2's switch).
+    const id = providerIdFromStored(draft.provider);
+    const entry = id ? useProviderStore.getState().entries[id] : undefined;
     const pair = defaultLanguagePair({
       sources, targetsFor, uiLanguage,
-      providerDefault: { source: slice?.sourceLanguage ?? sources[0]?.value ?? 'en', target: slice?.targetLanguage ?? 'en' },
+      providerDefault: { source: entry?.pair.source ?? sources[0]?.value ?? 'en', target: entry?.pair.target ?? 'en' },
     });
     dispatch({ type: 'setLanguages', source: pair.source, target: pair.target });
   }, [descriptor, sources, uiLanguage, draft.sourceLanguage, draft.targetLanguage, dispatch]);
