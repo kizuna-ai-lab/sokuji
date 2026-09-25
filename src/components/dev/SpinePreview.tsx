@@ -1,31 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { useStore } from 'zustand';
-import { useAnalytics } from '../../lib/analytics';
-import { getAppAudio, type AppAudio } from '../../lib/audio/appAudio';
-import { createAppCapture } from '../../lib/audio/appCapture';
 import type { Playback } from '../../lib/audio/playback';
-import { useAuth } from '../../lib/auth/hooks';
 import { realClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { autoSaveConversation } from '../../lib/export/appAutoSave';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, type DirectionSelection } from '../../lib/local-inference/selection/types';
-import type { AuthContext } from '../../lib/provider/types';
-import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
-import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from '../../lib/session/appShape';
-import type { AnalyticsPort, FramePort, PlaybackPort } from '../../lib/session/ports';
-import { createRunner, type Runner } from '../../lib/session/runner';
+import type { FramePort } from '../../lib/session/ports';
 import type { OpenSource } from '../../lib/session/source';
-import { appSubtitleSession } from '../../lib/subtitle/appSession';
 import type { SubtitleSession } from '../../lib/subtitle/session';
 import { messagePortWire, publishSubtitles } from '../../lib/subtitle/wire';
-import type { AutoSaveNotifier } from '../../lib/transcript/autoSave';
 import type { Entry } from '../../lib/projection/types';
-import { createConversationView, type ConversationViewState, type Readable } from '../../lib/view/conversationView';
-import { appProjectionSettings } from '../../lib/view/appViewSettings';
+import type { ConversationViewState, Readable } from '../../lib/view/conversationView';
 import { displayItems } from '../../lib/view/filter';
-import { createKaraoke, type KaraokeState } from '../../lib/view/karaoke';
+import type { KaraokeState } from '../../lib/view/karaoke';
 import { lastEndItem } from '../../lib/view/lastEnd';
 import { FAKE_SCRIPT_NAMES } from '../../providers/fake/scripts';
 import { createFakeSource } from '../../providers/fake/source';
@@ -38,14 +25,15 @@ import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
-import { getEnvironment } from '../../utils/environment';
 import { ConversationList } from '../Conversation/ConversationList';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import { ExportMenuButton } from '../MainPanel/ExportButton';
 import { ProviderPanel } from '../providers/ProviderPanel';
 import { SubtitleView, type SubtitleControls, type SubtitleModel } from '../Subtitle/SubtitleView';
-import { useToast } from '../Toast';
+import { configureAppSession, getAppSession, type LoadedAudio } from '../../app/session';
+import { useAppSessionBridges, useRunPhase, useRunState } from '../../app/useAppSession';
+import { loadSessionStores } from '../../app/loadStores';
 import { SessionControls } from './SessionControls';
 import '../Settings/Settings.scss';
 import './SpinePreview.scss';
@@ -55,17 +43,6 @@ function manualTurnFromUrl(): boolean {
   const turn = new URLSearchParams(window.location.search).get('turn');
   return turn === 'push-to-talk' || turn === 'push-to-translate';
 }
-
-let previewRunner: Runner | null = null;
-const bridge: { auth: AuthContext; track: AnalyticsPort['track']; playback: Playback | null; openSource: OpenSource; notify: AutoSaveNotifier } = {
-  auth: { signedIn: false, getToken: async () => null },
-  track: () => {},
-  playback: null,
-  // Under a manual turn, a held press needs voice to end (not cancel) the
-  // turn (`MIN_VOICED_MS`) — the fake source stays voiced throughout.
-  openSource: async () => createFakeSource(realClock, { voiced: manualTurnFromUrl() }),
-  notify: { showToast: () => {} },
-};
 
 /** What the page's capture delivered, for the probe (`&capture=device`). */
 const captured = { chunks: 0, peak: 0 };
@@ -82,17 +59,6 @@ function counting(open: OpenSource): OpenSource {
   };
 }
 
-/**
- * Forwards to the page's playback once it has loaded, so the runner can be
- * created synchronously; audio before then is dropped (autostart waits for it).
- */
-const playbackBridge: PlaybackPort = {
-  audio: (leg, ref, pcm) => bridge.playback?.audio(leg, ref, pcm),
-  held: (held) => bridge.playback?.held(held),
-  clear: () => bridge.playback?.clear(),
-  live: (on) => bridge.playback?.live(on),
-};
-
 /** Seal frames the runner hands the preview, by reason (plan 1e-2b ruling 11):
  *  `local.segmentation.seal` only, mutated directly the way `captured` above
  *  is for the capture-device probe — `useSealProbe` below polls it into the
@@ -108,66 +74,6 @@ const framesBridge: FramePort = {
     sealCounts[reason] = (sealCounts[reason] ?? 0) + 1;
   },
 };
-
-let previewPunctuation: PunctuationRuntime | null = null;
-
-/**
- * One PunctuationRuntime per page (plan 1e-2b ruling 12), built lazily beside
- * `getPreviewRunner` the way MainPanel's `useSegmentationRuntime` builds the
- * app's — minus its telemetry (log-store entries, analytics, load/inference
- * console lines): this page only needs a punctuator that actually runs.
- * `isEnabled` mirrors the hook's own rule: the stored display mode is by
- * sentences AND the pack is on disk.
- */
-function getPreviewPunctuation(): PunctuationRuntime {
-  previewPunctuation ??= new PunctuationRuntime({
-    isEnabled: () => useSettingsStore.getState().segmentationMode === 'sentences' && useSegmentationStore.getState().phase === 'ready',
-  });
-  return previewPunctuation;
-}
-
-/** One runner per page: the preview's stand-in for the app's, on the fake source unless the page asks for `&capture=device`. */
-function getPreviewRunner(): Runner {
-  const punctuation = getPreviewPunctuation();
-  previewRunner ??= createRunner({
-    clock: realClock,
-    platform: getEnvironment(),
-    // `&refuse=1`: no shape, so every start is refused — the idle line's check.
-    readShape: () => (new URLSearchParams(window.location.search).get('refuse') === '1' ? null : readShapeFromStores(bridge.auth)),
-    ensureReady: ensureReadyFromStores,
-    persistIfUnchanged,
-    replayAudio: appReplayAudio,
-    openSource: (leg, signal) => bridge.openSource(leg, signal),
-    playback: playbackBridge,
-    analytics: { track: (event, properties) => bridge.track(event, properties) },
-    frames: framesBridge,
-    punctuate: (lang, text) => punctuation.punctuate(lang, text).then((r) => r?.text ?? null),
-    punctuationReady: () => punctuation.enabled,
-    newSessionId: () => crypto.randomUUID(),
-    onRunEnded: async (legs) => { await autoSaveConversation(legs, getPreviewRunner().conversation.info, bridge.notify); },
-  });
-  return previewRunner;
-}
-
-let previewView: (Readable<ConversationViewState> & { dispose(): void }) | null = null;
-
-/** One view per page, over the preview runner's conversation and the stored cut. */
-function getPreviewView(runner: Runner) {
-  previewView ??= createConversationView(runner.conversation, appProjectionSettings(), realClock);
-  return previewView;
-}
-
-let previewSession: (Readable<SubtitleSession> & { dispose(): void }) | null = null;
-
-/** One subtitle session per page, beside `previewView` (plan 1d-2). */
-function getPreviewSession(runner: Runner) {
-  previewSession ??= appSubtitleSession(runner, getPreviewView(runner));
-  return previewSession;
-}
-
-// Hoisted so `get()` returns the same object every call — `useSyncExternalStore` requires it.
-const IDLE: KaraokeState = { lit: new Map(), replaying: null };
-const NO_KARAOKE: Readable<KaraokeState> = { get: () => IDLE, subscribe: () => () => {} };
 
 /**
  * Live view of `sealCounts`, for the probe's `--sentences` check: `FramePort`
@@ -187,12 +93,33 @@ function useSealProbe(): string {
   return text;
 }
 
+/** A URL parameter of this page, read when asked — the tests change the URL between renders. */
+const param = (name: string) => new URLSearchParams(window.location.search).get(name);
+
+/** `&capture=device`: the session runs on the app's own capture (the microphone for the speaker leg) instead of the fake source. */
+const deviceCapture = () => param('capture') === 'device';
+
+// The page's session is the app's (plan 1e-3a): the same runner, view,
+// karaoke, subtitle session, punctuator, frames, analytics and auto-save the
+// app runs, with this page's stand-ins, each read per call as before.
+configureAppSession({
+  capture: (app) => (leg, signal) => (deviceCapture()
+    ? counting(app)(leg, signal)
+    // Under a manual turn, a held press needs voice to end (not cancel) the
+    // turn (`MIN_VOICED_MS`) — the fake source stays voiced throughout.
+    : Promise.resolve(createFakeSource(realClock, { voiced: manualTurnFromUrl() }))),
+  // The fake source needs no microphone; the app's capture does (1e-3 ruling 5).
+  microphoneRequired: deviceCapture,
+  // `&refuse=1`: no shape, so every start is refused — the idle line's check.
+  refuse: () => param('refuse') === '1',
+  observeFrames: framesBridge,
+});
+
 /** The new conversation list over the preview's view (plan 1d-1). Its copy is not localized. */
-function PreviewConversation({ view, karaoke, playback, runner }: {
+function PreviewConversation({ view, karaoke, playback }: {
   view: Readable<ConversationViewState>;
   karaoke: Readable<KaraokeState>;
   playback: Playback | null;
-  runner: Runner;
 }) {
   const viewState = useReadable(view);
   const { legs, entries } = viewState;
@@ -202,7 +129,7 @@ function PreviewConversation({ view, karaoke, playback, runner }: {
   const keepReplayAudio = useSettingsStore((s) => s.keepReplayAudio);
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const display = useConversationDisplayStore();
-  const runState = useStore(runner.state);
+  const runState = useRunState();
   const exporter = useConversationExporter(viewState);
   const items = useMemo(() => {
     const drawn = displayItems(entries, { speaker, participant });
@@ -279,13 +206,6 @@ function PreviewSubtitle({ view, karaoke, session, controls }: {
  * reload (a reload re-mounts the overlay, which announces itself again), and
  * stops on unmount. Nothing here is timed: there is no `load`/mount race to
  * guess at, since the overlay itself says when it is listening.
- *
- * The port's own lifecycle is kept in a separate effect from what gets
- * published on it: `karaoke` starts as the hoisted empty placeholder and is
- * swapped for a real one once the page's playback loads (a page-level,
- * one-time identity change) — re-running the connection effect over that
- * would tear down and reopen the port for no reason. Restarting only the
- * publisher leaves the port, and anything in flight on it, alone.
  */
 function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
   view: Readable<ConversationViewState>;
@@ -342,23 +262,18 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
 
 /**
  * Development builds only: the new provider layer and a live fake session on
- * a page of their own (plans 1b–1d), heard through the new playback. Open the
- * dev server at `/?preview=spine`; add `&autostart=1` to start a session on
- * load, for headless rendering, and `&capture=device` to run the session on
- * the page's real capture (the microphone for the speaker leg) instead of the
- * fake source. `&punctuation=1` downloads the punctuation pack before
- * autostart, so a real `PunctuationRuntime` (built lazily beside the preview's
- * runner, plan 1e-2b ruling 12) is on disk for a `sentences` cut — a dry run
- * of plan 1e-3's own wiring.
+ * a page of their own (plans 1b–1d), heard through the new playback. This
+ * page runs the app's own session (`src/app/session.ts`, plan 1e-3a) with two
+ * stand-ins: the fake source unless `&capture=device` asks for the page's
+ * real capture (the microphone for the speaker leg), and `&refuse=1` to
+ * refuse every start with no shape. Open the dev server at `/?preview=spine`;
+ * add `&autostart=1` to start a session on load, for headless rendering.
+ * `&punctuation=1` downloads the punctuation pack before autostart, so the
+ * session's punctuator is on disk for a `sentences` cut — a dry run of plan
+ * 1e-3's own wiring.
  */
 export function SpinePreview() {
-  const { isSignedIn, getToken } = useAuth();
-  const { trackEvent } = useAnalytics();
-  const { showToast } = useToast();
-  const auth = useMemo(() => ({ signedIn: isSignedIn, getToken }), [isSignedIn, getToken]);
-  bridge.auth = auth;
-  bridge.track = trackEvent as AnalyticsPort['track'];
-  bridge.notify = { showToast };
+  const auth = useAppSessionBridges();
   const providers = useMemo(() => presentProviders(), []);
   // This page's probes run on the fake unless a parameter asks for another
   // provider (plan 1e-2 ruling 10, `&provider=<id>`). ProviderPanel is a
@@ -377,20 +292,18 @@ export function SpinePreview() {
       useProviderStore.getState().select('fake');
     }
   }, [providers]);
-  const runner = getPreviewRunner();
-  const phase = useStore(runner.state, (s) => s.phase);
+  const session = getAppSession();
+  const { runner } = session;
+  const phase = useRunPhase();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const entry = useProviderStore((s) => (s.selected ? s.entries[s.selected] : undefined));
-  const [audio, setAudio] = useState<AppAudio | null>(null);
-  const [karaoke, setKaraoke] = useState<(Readable<KaraokeState> & { dispose(): void }) | null>(null);
+  const [audio, setAudio] = useState<LoadedAudio | null>(null);
   const autostarted = useRef(false);
-  const deviceCapture = useMemo(() => new URLSearchParams(window.location.search).get('capture') === 'device', []);
   // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2).
   const previewParams = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return { subtitle: params.get('subtitle') === '1', overlay: params.get('overlay') === '1', compact: params.get('compact') === '1' };
   }, []);
-  const session = getPreviewSession(runner);
   const subtitleControls: SubtitleControls = useMemo(() => ({
     start: () => void runner.start(),
     stop: () => void runner.stop(),
@@ -401,31 +314,21 @@ export function SpinePreview() {
     exit: () => {},
   }), [runner]);
 
-  // Ask the disk once per page load, the way `useSegmentationRuntime` does for
-  // the app (plan 1e-2b ruling 12): without this, `getPreviewPunctuation`'s
-  // `isEnabled` would see `phase: 'unknown'` — never 'ready' — for a page
-  // that never opens Settings, and seal nothing even with all three models
-  // already on disk.
+  // What a run reads, loaded the way the app loads it (Home.tsx): the turn
+  // mode, the routing switches, the punctuation pack's phase — without which
+  // the punctuator would see `unknown`, never `ready` — and the provider.
+  useEffect(() => { void loadSessionStores(); }, []);
+  // The page's wiring, as the app's will be (plan 1e-3b): pagehide → abandon,
+  // the provider store's legs, a local provider checking itself.
+  useEffect(() => session.attach(), [session]);
   useEffect(() => {
-    void useSegmentationStore.getState().refresh();
-  }, []);
-  useEffect(() => {
-    void useTurnModeStore.getState().load();
-    void useRoutingStore.getState().load();
     let live = true;
-    getAppAudio().then(
-      (loaded) => {
-        bridge.playback = loaded.playback;
-        if (deviceCapture) bridge.openSource = counting(createAppCapture(loaded.playback).openSource);
-        if (live) {
-          setAudio(loaded);
-          setKaraoke(createKaraoke(loaded.playback.queues, getPreviewView(runner), realClock));
-        }
-      },
+    session.audio().then(
+      (loaded) => { if (live) setAudio(loaded); },
       (error: unknown) => reportError('SpinePreview', `The playback did not load: ${describeCause(error)}`, { cause: error }),
     );
     return () => { live = false; };
-  }, [deviceCapture, runner]);
+  }, [session]);
   useEffect(() => {
     if (autostarted.current || !entry || !audio || new URLSearchParams(window.location.search).get('autostart') !== '1') return;
     autostarted.current = true;
@@ -531,15 +434,6 @@ export function SpinePreview() {
     })();
   }, [entry, audio, runner, providers]);
 
-  // The panel's readiness is about the legs a start would open: the audio mode's.
-  useEffect(() => watchLegsFromStores(), []);
-
-  // `pagehide` (a reload, the tab closing): close every leg and capture now; nothing is saved, as in the app.
-  useEffect(() => {
-    const onPageHide = () => runner.abandon();
-    window.addEventListener('pagehide', onPageHide);
-    return () => window.removeEventListener('pagehide', onPageHide);
-  }, [runner]);
   const sealProbe = useSealProbe();
 
   return (
@@ -550,23 +444,23 @@ export function SpinePreview() {
           runner={runner}
           turnMode={turnMode}
           audio={audio}
-          capture={deviceCapture ? () => ({ ...captured }) : undefined}
+          capture={deviceCapture() ? () => ({ ...captured }) : undefined}
         />
         <p data-probe="seals">{sealProbe}</p>
-        <PreviewConversation view={getPreviewView(runner)} karaoke={karaoke ?? NO_KARAOKE} playback={audio?.playback ?? null} runner={runner} />
+        <PreviewConversation view={session.view} karaoke={session.karaoke} playback={audio?.playback ?? null} />
         {previewParams.subtitle && (
           <PreviewSubtitle
-            view={getPreviewView(runner)}
-            karaoke={karaoke ?? NO_KARAOKE}
-            session={session}
+            view={session.view}
+            karaoke={session.karaoke}
+            session={session.subtitle}
             controls={subtitleControls}
           />
         )}
         {previewParams.overlay && (
           <PreviewOverlayFrame
-            view={getPreviewView(runner)}
-            karaoke={karaoke ?? NO_KARAOKE}
-            session={session}
+            view={session.view}
+            karaoke={session.karaoke}
+            session={session.subtitle}
             controls={subtitleControls}
             compact={previewParams.compact}
           />

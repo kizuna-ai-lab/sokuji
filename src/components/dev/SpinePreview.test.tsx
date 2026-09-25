@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 vi.mock('../../lib/auth/hooks', () => ({
   useAuth: () => ({ isSignedIn: false, getToken: async () => null }),
@@ -54,6 +54,7 @@ vi.mock('../../lib/audio/appAudio', () => ({
 }));
 
 import { SpinePreview } from './SpinePreview';
+import { getAppSession } from '../../app/session';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 
@@ -123,11 +124,36 @@ describe('SpinePreview', () => {
     }
   });
 
+  // Task 9, plan 1e-3a: the fake source is the page's default, and it does
+  // not need a chosen microphone (1e-3 ruling 5 exempts it).
+  it('runs the fake source without asking for a microphone', async () => {
+    render(<SpinePreview />);
+    await screen.findByLabelText('Script');
+    const session = getAppSession().subtitle.get();
+    expect(session.canStart).toBe(true);
+    expect(session.idle.kind === 'unready' ? session.idle.code : undefined).not.toBe('no_microphone');
+  });
+
+  // Task 9: the page is a thin shell over the app's own session — its Start
+  // button drives `getAppSession().runner`, not a runner of the page's own.
+  it("is the app's session: the page's Start drives the root's runner", async () => {
+    render(<SpinePreview />);
+    await screen.findByLabelText('Script');
+    expect(getAppSession().runner.state.getState()).toEqual({ phase: 'idle' });
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    // A run started, or a refusal recorded its `lastEnd` — either way the
+    // state is no longer the bare idle it started at.
+    await waitFor(() => expect(getAppSession().runner.state.getState()).not.toEqual({ phase: 'idle' }));
+    await act(() => getAppSession().runner.stop());
+    await getAppSession().runner.settled();
+  });
+
   // Task 5, plan 1e-2b ruling 12: `&punctuation=1` downloads the punctuation
   // pack before autostart so a `sentences` cut gets a real punctuator instead
-  // of racing a background load. Last in the file: this is the only test
-  // that actually starts the (module-singleton) preview runner, and nothing
-  // after it depends on that runner still being idle.
+  // of racing a background load. Last in the file: the previous test also
+  // started the app's (module-singleton) runner, but stopped it and awaited
+  // `settled()` first, so it is idle again here; nothing after this depends
+  // on it staying idle.
   it('with &punctuation=1, downloads the punctuation pack before autostart when it is not ready', async () => {
     const before = window.location.href;
     window.history.replaceState(null, '', '/?preview=spine&autostart=1&punctuation=1');
