@@ -87,8 +87,9 @@ const MODES: readonly TurnMode[] = ['auto', 'push-to-talk', 'push-to-translate']
  * The one-time migration (ruling 3). `common` is `settings.common.turnMode`
  * read with `''` as its default, so `''` (or nothing) means never written;
  * `legacy` is the value at `legacyTurnModeKey(storedProvider)`. Once the
- * global mode exists it wins as `turnModeStore.load` reads it, and nothing is
- * written.
+ * global mode exists it wins — `loadTurnMode` (`src/app/loadStores.ts`) calls
+ * this on every load and finds `common` already set — and nothing is
+ * written again.
  */
 export function migrateTurnMode(common: unknown, legacy: unknown): { turnMode: TurnMode; write: boolean } {
   if (common !== undefined && common !== null && common !== '') {

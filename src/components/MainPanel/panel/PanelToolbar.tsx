@@ -99,13 +99,16 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
     <>
       <div className="conversation-toolbar">
         {/*
-          Show each display-mode button when its channel is intent-active for
-          the (current or locked) session, OR when items already exist for that
-          channel — the items fallback keeps the buttons available after the
-          session ends so users can still reconfigure display of historical
-          conversation. Previously: speaker button always showed (wrong in
-          participant-only mode) and participant button was late-binding on
-          items (no preconfig before the first translation arrived).
+          `legs` already merges the audio mode's intent with the
+          conversation's (ruling 12, Task 7's `PanelToolbarProps.legs`
+          comment above): a display-mode button shows for a channel that
+          prop names, with no separate "items exist" fallback here — the
+          channel stays visible after the run ends as long as the merged
+          legs still name it, so users can still reconfigure display of
+          historical conversation. Previously: speaker button always showed
+          (wrong in participant-only mode) and participant button was
+          late-binding on items (no preconfig before the first translation
+          arrived).
         */}
         {legs.includes('speaker') && (
           <DisplayModeButton
@@ -160,11 +163,11 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
           {conversationCompactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
         </button>
         {/* Export */}
-        {/* combinedItems, not filteredItems: the export menu holds its own
-            scope, seeded from these two modes. Handing it a pre-filtered
-            list would narrow the file with no way for the user to widen it
-            back — and would drag the unrelated basic/advanced uiMode
-            filter into the export as well. */}
+        {/* The export menu holds its own scope over the `Exporter`, seeded
+            from `speakerMode`/`participantMode` — not a pre-filtered item
+            list. Handing it one would narrow the file with no way for the
+            user to widen it back — and would drag the unrelated
+            basic/advanced uiMode filter into the export as well. */}
         <ExportMenuButton
           exporter={exporter}
           speakerMode={speakerDisplayMode}

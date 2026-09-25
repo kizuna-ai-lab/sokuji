@@ -258,7 +258,9 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
  * add `&autostart=1` to start a session on load, for headless rendering.
  * `&punctuation=1` downloads the punctuation pack before autostart, so the
  * session's punctuator is on disk for a `sentences` cut — a dry run of plan
- * 1e-3's own wiring.
+ * 1e-3's own wiring. `&monitor=1` writes the stored monitor switch (the old
+ * app reads the same key), so it outlives the page — as `&autosave=1` and
+ * `&turn=` do.
  */
 export function SpinePreview() {
   const auth = useAppSessionBridges();

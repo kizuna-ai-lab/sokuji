@@ -34,7 +34,9 @@ export function usePermissionWarning(
   }, [run, open]);
 
   // Every participant notice id seen once, so a later render with the same
-  // notice (still on the leg) never opens the modal a second time.
+  // notice (still on the leg) never opens the modal a second time. Never
+  // cleared: a leg's notice ids are unique per run, so this only grows —
+  // a page's worth, held for the panel's lifetime.
   const seenNoticeIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     const participant = legs.find((leg) => leg.leg === 'participant');

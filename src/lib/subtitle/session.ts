@@ -21,7 +21,7 @@ export interface SubtitleSession {
   phase: RunState['phase'];
   /** The wall clock the run went live; null unless running. */
   since: number | null;
-  /** The legs of the conversation on screen: the bar's display-mode buttons follow them. */
+  /** The audio mode's legs (intent) joined with the conversation's (ruling 12): the bar's display-mode buttons follow them. Also crosses the overlay's wire. */
   legs: readonly LegName[];
   /** The selected provider's language pair, for the bar. */
   pair: LanguagePair | null;
