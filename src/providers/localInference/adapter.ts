@@ -127,10 +127,13 @@ class LocalSession implements AdapterSession {
   private failOpening: ((error: unknown) => void) | null = null;
   /** Notices found while opening, said once the start resolves. */
   private notices: Array<{ code: ClientDiagnosticCode; message: string; cause?: unknown }> = [];
-  /** `translation_unavailable` at most once per session (ruling 5), and only
-   *  for a transcription-only one: the start's own notice, or its first
-   *  `appendText` — never both. */
+  /** `translation_unavailable` at most once per session (ruling 5): the start's
+   *  own notice for a transcription-only session, or the first `appendText` in
+   *  an AST or transcription-only session — never both. */
   private translationUnavailableAnnounced = false;
+  /** Settles when the TTS worker dies (`ttsDied`): a `speak()` in flight stops waiting for its synthesis. */
+  private readonly ttsDeath: Promise<void>;
+  private ttsDeathSettle: () => void = () => {};
 
   private nextRef: Ref = 1;
   private utterances = 0;
@@ -148,6 +151,7 @@ class LocalSession implements AdapterSession {
     this.asr = engines.asr(this.config.asr);
     this.translation = this.config.translation.kind === 'engine' ? engines.translation() : null;
     this.tts = this.config.tts ? engines.tts() : null;
+    this.ttsDeath = new Promise<void>((resolve) => { this.ttsDeathSettle = resolve; });
   }
 
   /**
@@ -281,14 +285,20 @@ class LocalSession implements AdapterSession {
     if (this.config.translation.kind === 'none') this.announceTranslationUnavailable();
   }
 
-  /** Said once per transcription-only session: at the start, or on the first `appendText` it gets. */
+  /**
+   * Said once per session: at the start for a transcription-only config, or
+   * on the first `appendText` an AST/transcription-only session gets. AST
+   * translates speech, so its words say typed text is what goes untranslated.
+   */
   private announceTranslationUnavailable(): void {
     if (this.translationUnavailableAnnounced) return;
     this.translationUnavailableAnnounced = true;
     const { source, target } = this.request.context.direction;
     this.emit('degraded', {
       code: 'translation_unavailable',
-      message: `No translation model for ${source} → ${target} — transcription only.`,
+      message: this.config.translation.kind === 'ast'
+        ? 'Typed text cannot be translated in a speech-translation session — shown as typed.'
+        : `No translation model for ${source} → ${target} — transcription only.`,
     });
   }
 
@@ -303,10 +313,9 @@ class LocalSession implements AdapterSession {
    * this contract does not), then a job as for an ASR final — whose text is
    * trimmed, as every ASR job's is. Text that is blank once trimmed is
    * ignored, as today. An AST or transcription-only session has no engine to
-   * hand the text to: the source segment only. Transcription-only says
-   * `translation_unavailable` once (never twice with the start's own
-   * notice); AST says nothing — that notice says speech is transcribed only,
-   * and AST's speech is translated.
+   * hand the text to: the source segment only, and `translation_unavailable`
+   * once (never twice with the start's own notice) — worded for AST as typed
+   * text going untranslated, since AST's speech is translated.
    */
   appendText(text: string): void {
     if (this.ended || !text.trim()) return;
@@ -315,10 +324,9 @@ class LocalSession implements AdapterSession {
     this.emit('segmentOpened', { ref, side: 'source', origin });
     this.emit('segmentText', { ref, text });
     this.emit('segmentClosed', { ref, origin });
-    const { kind } = this.config.translation;
-    if (kind === 'engine') {
+    if (this.config.translation.kind === 'engine') {
       this.enqueue({ text: text.trim(), origin });
-    } else if (kind === 'none') {
+    } else {
       this.announceTranslationUnavailable();
     }
   }
@@ -558,29 +566,30 @@ class LocalSession implements AdapterSession {
    * lands once L1's re-anchor runs. Nothing to say without TTS, or when this
    * leg does not speak — the conformance rule forbids audio then regardless
    * of what `config.tts` carries. A TTS worker that dies meanwhile
-   * (`ttsDied`) rejects the sentence it was synthesizing, and the speech
-   * ends there: no later sentence is asked for, and the rejected one says
-   * nothing more than the death already did.
+   * (`ttsDied`) ends the speech at once — the race below, since nothing
+   * guarantees the engine settles what it was synthesizing (Edge TTS's
+   * decode handshake is never rejected) — so the segment closes and the
+   * queue moves on. The abandoned synthesis says nothing afterwards: its
+   * stop predicate names the engine this job started speaking with.
    */
   private async speak(ref: Ref, text: string): Promise<void> {
     const { tts } = this;
     const ttsConfig = this.config.tts;
     if (!tts || !ttsConfig || !this.request.context.speech) return;
-    await speakTranslation(
+    const spoken = speakTranslation(
       tts,
       text,
       this.request.context.direction.target,
       ttsConfig,
       {
         audio: (pcm, range) => this.emit('audio', { ref, pcm, range }),
-        degraded: (message, cause) => {
-          if (this.tts === tts) this.emit('degraded', { code: 'tts_degraded', message, cause });
-        },
+        degraded: (message, cause) => this.emit('degraded', { code: 'tts_degraded', message, cause }),
         frame: (direction, type, payload) => this.frame(direction, type, payload),
       },
       () => this.ended || this.tts !== tts,
       this.request.clock,
     );
+    await Promise.race([spoken, this.ttsDeath]);
   }
 
   /**
@@ -594,6 +603,7 @@ class LocalSession implements AdapterSession {
     if (isDeviceLost(error)) { this.fatal(`The GPU device was lost: ${error}`); return; }
     this.tts = null;
     tts.dispose();
+    this.ttsDeathSettle();
     const notice = { code: 'tts_degraded' as const, message: `Speech synthesis stopped: ${error}` };
     if (this.live) this.emit('degraded', notice);
     else this.notices.push(notice);

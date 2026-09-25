@@ -118,6 +118,9 @@ export class FakeTts implements TtsLike {
   /** Set: `generate` stays pending, a sentence still being synthesized, until
    *  `die()` or `dispose()` rejects it — as the real engine rejects its pending request. */
   holdGenerate = false;
+  /** With `holdGenerate`: death and dispose leave the held sentence pending —
+   *  nothing rejects Edge TTS's decode handshake — and only `release()` settles it. */
+  holdPastDeath = false;
 
   generateCalls: Array<{ text: string; sid?: number; speed?: number; lang?: string }> = [];
   streamCalls: Array<{ text: string; sid: number; speed: number; lang?: string; voice?: string }> = [];
@@ -167,7 +170,13 @@ export class FakeTts implements TtsLike {
     this.onFatal?.(message);
     this.rejectPending(new Error(message));
   }
+  /** Settles the held sentence with its samples: a late answer from synthesis that may already be abandoned. */
+  release(): void {
+    this.pendingGenerate?.resolve({ samples: new Float32Array(this.samplesPerSentence), sampleRate: this.rate, generationTimeMs: 0 });
+    this.pendingGenerate = null;
+  }
   private rejectPending(error: Error): void {
+    if (this.holdPastDeath) return;
     this.pendingGenerate?.reject(error);
     this.pendingGenerate = null;
   }

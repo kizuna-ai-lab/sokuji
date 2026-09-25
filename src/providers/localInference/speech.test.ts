@@ -110,6 +110,32 @@ describe('speakTranslation', () => {
     expect(clips.map((c) => c.range)).toEqual([[0, 4]]);
   });
 
+  it('says nothing for a sentence whose synthesis settles after the session ended — no clip, no frame, no failure', async () => {
+    const config: TtsConfig = { modelId: 'fake-tts-model', speakerId: 0, speed: 1 };
+    for (const settleLate of [(tts: FakeTts) => tts.release(), (tts: FakeTts) => tts.dispose()]) {
+      const tts = new FakeTts();
+      tts.samplesPerSentence = 10;
+      tts.holdGenerate = true;
+      let ended = false;
+      const clips: Int16Array[] = [];
+      const degraded: string[] = [];
+      const frames: string[] = [];
+      const speaking = speakTranslation(
+        tts, 'One. Two.', 'en', config,
+        { audio: (pcm) => clips.push(pcm), degraded: (m) => degraded.push(m), frame: (_d, type) => frames.push(type) },
+        () => ended, createVirtualClock(),
+      );
+      expect(tts.generateCalls.map((c) => c.text)).toEqual(['One.']); // held
+      ended = true;
+      settleLate(tts); // answers, or rejects, late
+      await speaking;
+      expect(clips).toEqual([]);
+      expect(degraded).toEqual([]);
+      expect(frames).toEqual(['local.tts.start', 'local.tts.sentence.start']);
+      expect(tts.generateCalls.map((c) => c.text)).toEqual(['One.']);
+    }
+  });
+
   it('reports local.tts.* frames around a spoken translation, in order and direction, with today\'s payload fields', async () => {
     const { frames } = await speakAllWith('One. Two.', { samplesPerSentence: 10 });
     expect(frames.map((f) => f.type)).toEqual([

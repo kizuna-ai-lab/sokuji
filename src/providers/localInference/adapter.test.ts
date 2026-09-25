@@ -249,20 +249,6 @@ describe('the LocalInference adapter — turns', () => {
   });
 });
 
-/**
- * A session that cannot translate typed text answers it with its source
- * segment only (ruling 5), so `text-input-answered` — a source segment with
- * exactly the text, then a translation segment — fires once per text: the
- * rule has no exception for such a session (fix-wave report, M5b). Every
- * other rule must hold.
- */
-function expectConformantButUntranslated(log: ConformanceLog, context: SessionContext, texts: string[]) {
-  expect(checkConformance(log, context)).toEqual(texts.map((text) => expect.objectContaining({
-    rule: 'text-input-answered',
-    detail: expect.stringContaining(`"${text}"`),
-  })));
-}
-
 describe('the LocalInference adapter — typed text', () => {
   it('appendText answers typed text with a source segment holding exactly the typed string, then its translation of the trimmed text', async () => {
     const t = await open();
@@ -293,8 +279,9 @@ describe('the LocalInference adapter — typed text', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('an AST session answers typed text with its source segment only, and says nothing: its speech is translated', async () => {
+  it('an AST session answers typed text with its source segment only, and says once that typed text is not translated', async () => {
     const t = await open(makeConfig({ asr: { modelId: 'granite', streaming: false }, translation: { kind: 'ast' } }));
+    expect(ofKind(t.log, 'degraded')).toEqual([]); // its speech is translated: nothing to say at the start
     t.mark('appendText', 'hi');
     t.session.appendText('hi');
     t.mark('appendText', 'there');
@@ -308,9 +295,12 @@ describe('the LocalInference adapter — typed text', () => {
       { kind: 'segmentText', payload: { ref: 2, text: 'there' } },
       { kind: 'segmentClosed', payload: { ref: 2, origin: 'u2' } },
     ]);
-    expect(ofKind(t.log, 'degraded')).toEqual([]);
+    expect(ofKind(t.log, 'degraded')).toEqual([{
+      code: 'translation_unavailable',
+      message: 'Typed text cannot be translated in a speech-translation session — shown as typed.',
+    }]);
     expect(t.translation.calls).toEqual([]);
-    expectConformantButUntranslated(t.log, t.context, ['hi', 'there']);
+    expectConformant(t.log, t.context);
   });
 
   it('a transcription-only session answers appendText with a source segment only, sharing the start notice', async () => {
@@ -329,7 +319,7 @@ describe('the LocalInference adapter — typed text', () => {
     expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['translation_unavailable']);
     t.mark('stop');
     await session.stop();
-    expectConformantButUntranslated(t.log, t.context, ['hi']);
+    expectConformant(t.log, t.context);
   });
 });
 
@@ -697,6 +687,33 @@ describe('the LocalInference adapter — errors', () => {
     await settle();
     expect(last(ofKind(t.log, 'segmentClosed'))).toEqual({ ref: 4, origin: 'u2' });
     expect(ofKind(t.log, 'audio')).toEqual([]);
+    expect(ofKind(t.log, 'failed')).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a TTS death whose held sentence never settles still ends the job at once, and the late answer emits nothing', async () => {
+    const t = await open(makeConfig({ tts: TTS }), { ...auto, speech: true });
+    t.tts.samplesPerSentence = 480;
+    t.tts.holdGenerate = true;
+    t.tts.holdPastDeath = true; // as Edge TTS's decode handshake: nothing rejects it
+    t.asr.final('一');
+    t.translation.answer('One. Two.');
+    await settle();
+    expect(t.tts.generateCalls.map((c) => c.text)).toEqual(['One.']);
+    t.tts.die('tts worker crashed');
+    await settle();
+    expect(ofKind(t.log, 'segmentClosed').map((p) => p.ref)).toEqual([1, 2]); // the job ended at once
+    t.asr.final('二');
+    t.translation.answer('Two.');
+    await settle();
+    expect(last(ofKind(t.log, 'segmentClosed'))).toEqual({ ref: 4, origin: 'u2' });
+    const before = t.log.length;
+    t.tts.release(); // the abandoned synthesis answers late
+    await settle();
+    expect(t.log.length).toBe(before);
+    expect(ofKind(t.log, 'audio')).toEqual([]);
+    expect(t.tts.generateCalls.map((c) => c.text)).toEqual(['One.']);
+    expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['tts_degraded']);
     expect(ofKind(t.log, 'failed')).toEqual([]);
     expectConformant(t.log, t.context);
   });

@@ -22,9 +22,11 @@ import type { LocalInferenceConfig } from './config';
  * to synthesize is reported and skipped, without reporting the clip's own
  * delivery (a throwing event handler is the caller's problem, not a
  * synthesis failure); the next sentence still runs. `isEnded` is checked
- * between sentences, since the session may stop while one is being
- * synthesized — matching today's own `this.disposed` check, ending the run
- * without a closing `local.tts.end` frame either.
+ * between sentences and again when a sentence's synthesis settles, since
+ * the session may stop (or its TTS die) while one is being synthesized —
+ * matching today's own `this.disposed` checks: a late answer or failure is
+ * dropped unreported, and the run ends without a closing `local.tts.end`
+ * frame either.
  */
 export interface SpeechEmit {
   /** One synthesized clip and the exact stretch of the translation it speaks. */
@@ -93,10 +95,12 @@ export async function speakTranslation(
         ? await speakEdgeSentence(tts, sentence, lang, config)
         : await speakSentence(tts, sentence, lang, config);
     } catch (error) {
+      if (isEnded()) return; // abandoned while synthesizing: its failure is nobody's news
       emit.frame?.('in', 'local.tts.error', { error: error instanceof Error ? error.message : String(error), sentenceIndex: i });
       emit.degraded(`a sentence could not be spoken: ${describeCause(error)}`, error);
       continue;
     }
+    if (isEnded()) return; // abandoned while synthesizing: a late answer is not spoken
 
     emit.frame?.('in', 'local.tts.sentence.end', {
       sentenceIndex: i,

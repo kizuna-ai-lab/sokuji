@@ -118,6 +118,34 @@ describe('checkConformance rules', () => {
     expect(rules(log)).toContain('text-input-answered');
   });
 
+  it('accepts a typed text answered by its exact source segment alone in a session that says translation_unavailable', () => {
+    const log: ConformanceLog = [
+      { kind: 'degraded', payload: { code: 'translation_unavailable', message: 'transcription only' } },
+      { kind: 'marker', payload: 'appendText', text: 'hi' },
+      opened(1), text(1, 'hi'), closed(1),
+      { kind: 'marker', payload: 'appendText', text: 'there' },
+      opened(2), text(2, 'there'), closed(2),
+    ];
+    expect(checkConformance(log, auto)).toEqual([]);
+  });
+
+  it('still flags a typed text answered by its source segment alone when the session never says translation_unavailable', () => {
+    const log: ConformanceLog = [
+      { kind: 'marker', payload: 'appendText', text: 'hi' },
+      opened(1), text(1, 'hi'), closed(1),
+    ];
+    expect(rules(log)).toEqual(['text-input-answered']);
+  });
+
+  it('does not let translation_unavailable answer a typed text with no exact source segment', () => {
+    const log: ConformanceLog = [
+      { kind: 'marker', payload: 'appendText', text: 'hi' },
+      opened(1), text(1, 'hi there'), closed(1),
+      { kind: 'degraded', payload: { code: 'translation_unavailable', message: 'transcription only' } },
+    ];
+    expect(rules(log)).toEqual(['text-input-answered']);
+  });
+
   it('accepts a typed text answered after an interleaved speech segment', () => {
     const log: ConformanceLog = [
       { kind: 'marker', payload: 'appendText', text: 'hi' },

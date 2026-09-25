@@ -35,7 +35,9 @@ export function recordConformance(): {
 }
 
 /** A typed text waiting for its answer: a source segment with exactly this
- *  text, then a translation segment opening after it. */
+ *  text, then a translation segment opening after it — or, in a session that
+ *  cannot translate typed text and says so (`translation_unavailable`, once,
+ *  anywhere in the session), that source segment alone (plan 1e-2 ruling 5). */
 interface PendingText { index: number; text: string; sourceRef?: number; answered: boolean }
 
 export function checkConformance(log: ConformanceLog, context: SessionContext): Violation[] {
@@ -46,6 +48,7 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   const pending: PendingText[] = [];
   let ended = false;
   let stopped = false;
+  let translationUnavailable = false;
 
   const flag = (rule: string, detail: string, index: number) => out.push({ rule, detail, index });
 
@@ -127,6 +130,9 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         }
         break;
       }
+      case 'degraded':
+        if (entry.payload.code === 'translation_unavailable') translationUnavailable = true;
+        break;
       case 'failed':
       case 'closed':
         ended = true;
@@ -155,7 +161,8 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   }
 
   for (const p of pending) {
-    if (!p.answered) flag('text-input-answered', `typed text "${p.text}" was not answered with a source segment and then a translation`, p.index);
+    if (p.answered || (translationUnavailable && p.sourceRef !== undefined)) continue;
+    flag('text-input-answered', `typed text "${p.text}" was not answered with a source segment and then a translation (or, in a session that says translation_unavailable, that source segment alone)`, p.index);
   }
   return out;
 }
