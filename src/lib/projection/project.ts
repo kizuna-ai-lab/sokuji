@@ -67,7 +67,7 @@ export function createProjector(): Projector {
         }
       }
       entries = kept;
-      next.sort((a, b) => timeOf(a) - timeOf(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+      next.sort(byTime);
       if (next.length === last.length && next.every((e, i) => e === last[i])) return last;
       last = next;
       return next;
@@ -101,6 +101,19 @@ function groupsOf(leg: Leg, inferred: Map<SegmentId, SegmentId>): Group[] {
 }
 
 function timeOf(e: Entry): number { return e.kind === 'exchange' ? e.t : e.at; }
+
+/**
+ * Earliest first. At one instant, one leg keeps L1's own order — `next` is
+ * built leg by leg, its exchanges in segment order and then its notices, and
+ * the sort is stable — never its ids' string order, where `u10` sorts before
+ * `u9` (an adapter closing several segments in one message opens them all at
+ * one `openedAt`). Between legs the leg decides, as the ids' own leg part did:
+ * comparing whole ids there could not agree with a tie inside a leg, whose
+ * ids do not share one prefix (`:o:`, `:s:`, `:n:`).
+ */
+function byTime(a: Entry, b: Entry): number {
+  return timeOf(a) - timeOf(b) || (a.leg === b.leg ? 0 : a.leg < b.leg ? -1 : 1);
+}
 
 function sameCut(a: CutSettings, b: CutSettings): boolean {
   return a.mode === b.mode && a.sentencesPerRow === b.sentencesPerRow

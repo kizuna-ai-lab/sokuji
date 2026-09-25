@@ -42,6 +42,24 @@ describe('createProjector', () => {
     expect(entries[1]).toMatchObject({ kind: 'notice', id: 'speaker:n:s:speaker:n1', severity: 'warning' });
   });
 
+  // A final holding several chunks opens several segments in one synchronous
+  // burst, all at one `openedAt`: their origins' ids must not decide, or `u10`
+  // sorts before `u9`.
+  it("keeps one leg's own order for exchanges opened at the same instant, past u9 → u10", () => {
+    const segs = ['u8', 'u9', 'u10', 'u11'].map((origin) => seg('speaker', { origin, openedAt: 100 }));
+    const es = exchanges(createProjector().project([legOf('speaker', segs)], DEFAULT_PROJECTION));
+    expect(es.map((e) => e.id)).toEqual(['s:speaker:o:u8', 's:speaker:o:u9', 's:speaker:o:u10', 's:speaker:o:u11']);
+  });
+
+  it("between legs, a tie still goes by leg — participant first — and each leg's entries keep their own order", () => {
+    const u1 = seg('speaker', { origin: 'u1', openedAt: 100 });
+    const u2 = seg('speaker', { origin: 'u2', openedAt: 100 });
+    const notice: Notice = { id: 's:speaker:n1', at: 100, severity: 'warning', message: 'w' };
+    const other = seg('participant', { origin: 'u1', openedAt: 100 });
+    const entries = createProjector().project([legOf('speaker', [u1, u2], [notice]), legOf('participant', [other])], DEFAULT_PROJECTION);
+    expect(entries.map((e) => e.id)).toEqual(['s:participant:o:u1', 's:speaker:o:u1', 's:speaker:o:u2', 'speaker:n:s:speaker:n1']);
+  });
+
   it("carries a notice's params onto its entry", () => {
     const notice: Notice = { id: 's:speaker:n1', at: 5, severity: 'error', message: 'lease ended', code: 'lease_ended', params: { minutes: 3 } };
     const [entry] = createProjector().project([legOf('speaker', [], [notice])], DEFAULT_PROJECTION);
