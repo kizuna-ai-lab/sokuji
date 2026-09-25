@@ -1,0 +1,225 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Same reason as appShape.test.ts: settingsStore's static import graph reaches
+// ModernBrowserAudioService's worklet `?url` import via ServiceFactory, which
+// this sandboxed Vite test transform denies outright.
+vi.mock('../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: () => ({
+      getSetting: async (_key: string, def: unknown) => def,
+      setSetting: async () => ({ success: true }),
+    }),
+  },
+}));
+
+// The page's playback, as SpinePreview.test.tsx mocks it: no Web Audio in
+// jsdom. Module-level so a test can see what the run handed it.
+const { playback, getAppAudio } = vi.hoisted(() => {
+  const queue = () => ({ position: () => null, pending: 0, subscribe: () => () => {} });
+  const playback = {
+    queues: { speaker: queue(), participant: queue(), replay: queue() },
+    audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn(), passthrough: vi.fn(),
+    ttsTap: { read: () => new Float32Array(0) },
+  };
+  return { playback, getAppAudio: vi.fn(async () => ({ playback, testTone: async () => {} })) };
+});
+vi.mock('../lib/audio/appAudio', () => ({ getAppAudio }));
+
+vi.mock('../lib/audio/appCapture', () => ({
+  createAppCapture: () => ({
+    openSource: async () => { throw new Error('no capture in tests'); },
+    echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
+  }),
+}));
+
+// As punctuation.test.ts mocks it: this file only needs the runtime's
+// `enabled` (the stores decide it) and a `punctuate` that answers nothing.
+vi.mock('../lib/segmentation/PunctuationRuntime', () => {
+  class FakePunctuationRuntime {
+    dispose = vi.fn();
+    punctuate = vi.fn(async () => null);
+    constructor(public opts: { isEnabled(): boolean }) {}
+    get enabled(): boolean {
+      return this.opts.isEnabled();
+    }
+  }
+  const PunctuationRuntime = vi.fn(function (opts: { isEnabled(): boolean }) {
+    return new FakePunctuationRuntime(opts);
+  });
+  const MODEL_IDS = {
+    'fireredpunc': 'punct-zh-fireredpunc',
+    'edge-punct-en': 'punct-en-edge',
+    'sat-3l-sm': 'punct-multi-sat',
+  };
+  return { PunctuationRuntime, MODEL_IDS };
+});
+
+vi.mock('../lib/export/appAutoSave', () => ({
+  autoSaveConversation: vi.fn(async () => 'saved'),
+}));
+
+import { createVirtualClock } from '../lib/contract/clock';
+import { autoSaveConversation } from '../lib/export/appAutoSave';
+import { fakeProvider } from '../providers/fake/provider';
+import { createFakeSource } from '../providers/fake/source';
+import useAudioStore from '../stores/audioStore';
+import { useProviderStore } from '../stores/providerStore';
+import { useSegmentationStore } from '../stores/segmentationStore';
+import { useSettingsStore } from '../stores/settingsStore';
+import { createAppSession, type AppSessionOptions } from './session';
+
+const autoSave = vi.mocked(autoSaveConversation);
+
+const providersBefore = useProviderStore.getState();
+const audioBefore = useAudioStore.getState();
+const settingsBefore = useSettingsStore.getState();
+const segmentationBefore = useSegmentationStore.getState();
+
+beforeEach(() => {
+  useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'] });
+  useAudioStore.setState({ mode: 'speaker', selectedInputDevice: null });
+  vi.clearAllMocks();
+});
+
+afterEach(() => {
+  useProviderStore.setState(providersBefore, true);
+  useAudioStore.setState(audioBefore, true);
+  useSettingsStore.setState(settingsBefore, true);
+  useSegmentationStore.setState(segmentationBefore, true);
+});
+
+async function setup(options: AppSessionOptions = {}) {
+  const clock = createVirtualClock(0);
+  await useProviderStore.getState().load(fakeProvider);
+  useProviderStore.getState().select('fake');
+  const session = createAppSession({
+    clock,
+    newSessionId: () => 'run1',
+    capture: () => async () => createFakeSource(clock),
+    microphoneRequired: () => false,
+    ...options,
+  });
+  const track = vi.fn();
+  session.setBridges({ track });
+  return { clock, session, track };
+}
+
+describe('createAppSession', () => {
+  it('builds no playback until asked, and builds it once', async () => {
+    const { session } = await setup();
+    expect(getAppAudio).not.toHaveBeenCalled();
+    const first = session.audio();
+    const second = session.audio();
+    expect(second).toBe(first);
+    const loaded = await first;
+    expect(getAppAudio).toHaveBeenCalledTimes(1);
+    expect(loaded.playback).toBe(playback);
+    expect(loaded.capture).toEqual({ openSource: expect.any(Function), echo: expect.any(Object) });
+  });
+
+  it('opens a leg only once the playback has loaded, and plays the run through it', async () => {
+    const { session } = await setup();
+    await session.runner.start();
+    expect(session.runner.state.getState().phase).toBe('running');
+    expect(getAppAudio).toHaveBeenCalledTimes(1);
+    expect(playback.live).toHaveBeenCalledWith(true);
+    await session.runner.stop();
+  });
+
+  it('keeps one karaoke: nothing lit before the playback loads, the real one after, behind the same object', async () => {
+    const { session } = await setup();
+    const karaoke = session.karaoke;
+    const idle = karaoke.get();
+    expect(idle.lit.size).toBe(0);
+    expect(idle.replaying).toBeNull();
+    expect(karaoke.get()).toBe(idle);
+    const listener = vi.fn();
+    karaoke.subscribe(listener);
+    await session.audio();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(session.karaoke).toBe(karaoke);
+  });
+
+  it("auto-saves a run's end once, then refetches the balance", async () => {
+    const order: string[] = [];
+    autoSave.mockImplementationOnce(async () => {
+      await Promise.resolve();
+      order.push('saved');
+      return 'saved';
+    });
+    const refetchQuota = vi.fn(async () => { order.push('refetch'); });
+    const { session } = await setup();
+    session.setBridges({ refetchQuota });
+    await session.runner.start();
+    await session.runner.stop();
+    expect(autoSave).toHaveBeenCalledTimes(1);
+    const [legs, info, notify] = autoSave.mock.calls[0];
+    expect(legs.map((leg) => leg.leg)).toEqual(['speaker']);
+    expect(info).toBe(session.runner.conversation.info);
+    expect(notify).toEqual({ showToast: expect.any(Function) });
+    expect(refetchQuota).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['saved', 'refetch']);
+  });
+
+  it('saves nothing and loads nothing for a refused start', async () => {
+    const { session } = await setup({ refuse: () => true });
+    await session.runner.start();
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_provider' } } });
+    expect(autoSave).not.toHaveBeenCalled();
+    expect(getAppAudio).not.toHaveBeenCalled();
+  });
+
+  it('sends the session events with what the app keeps', async () => {
+    useAudioStore.setState({ noiseSuppressionMode: 'standard', isMicMuted: false, isMonitorMuted: true, isRealVoicePassthroughEnabled: true });
+    useSettingsStore.setState({ segmentationMode: 'sentences', sentenceSegmentationChunkSentences: 2 });
+    useSegmentationStore.setState({ phase: 'ready' });
+    const { session, track } = await setup();
+    await session.runner.start();
+    const start = track.mock.calls.find(([event]) => event === 'translation_session_start')?.[1];
+    expect(start).toEqual(expect.objectContaining({
+      session_id: 'run1',
+      noise_suppression_enabled: true,
+      noise_suppression_mode: 'standard',
+      real_voice_passthrough_enabled: true,
+      input_device_on: true,
+      monitor_device_on: false,
+      sentence_segmentation_enabled: true,
+      sentence_segmentation_active: true,
+      sentence_segmentation_chunk_sentences: 2,
+    }));
+    expect(start).not.toHaveProperty('model');
+    session.frames.port.frame('speaker', { direction: 'out', type: 'local.segmentation.seal', payload: { reason: 'sentences', text: 'One.' } });
+    await session.runner.stop();
+    const end = track.mock.calls.find(([event]) => event === 'translation_session_end')?.[1];
+    expect(end).toEqual(expect.objectContaining({ session_id: 'run1', segmentation_seals: { speaker_sentences: 1 } }));
+    expect(end).not.toHaveProperty('translation_count');
+  });
+
+  it('asks for a microphone unless told otherwise', async () => {
+    const asked = await setup({ microphoneRequired: undefined });
+    expect(asked.session.subtitle.get()).toMatchObject({ canStart: false, idle: { code: 'no_microphone' } });
+    const told = await setup();
+    expect(told.session.subtitle.get().canStart).toBe(true);
+  });
+});
+
+describe('getAppSession', () => {
+  // Last in the file: it swaps the module registry, so this module's imports
+  // above no longer reach the fresh stores it builds against.
+  it('builds one session per page, with the options given before it was built', async () => {
+    vi.resetModules();
+    const m = await import('./session');
+    const { useProviderStore: freshProviders } = await import('../stores/providerStore');
+    const { fakeProvider: freshFake } = await import('../providers/fake/provider');
+    // A provider a start could open, so only `refuse` stands between a start and a run.
+    await freshProviders.getState().load(freshFake);
+    freshProviders.getState().select('fake');
+    m.configureAppSession({ refuse: () => true, clock: createVirtualClock(0) });
+    const session = m.getAppSession();
+    expect(m.getAppSession()).toBe(session);
+    m.configureAppSession({});
+    expect(m.getAppSession()).toBe(session);
+    await session.runner.start();
+    expect(session.runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'no_provider' } } });
+  });
+});
