@@ -60,8 +60,11 @@ vi.mock('../../lib/audio/appAudio', () => ({
 
 import { SpinePreview } from './SpinePreview';
 import { getAppSession } from '../../app/session';
+import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { useTurnModeStore } from '../../stores/turnModeStore';
 
 describe('SpinePreview', () => {
   it('shows the providers this build offers, starting with the fake', async () => {
@@ -192,6 +195,39 @@ describe('SpinePreview', () => {
     } finally {
       window.history.replaceState(null, '', before);
       windowOpen.mockRestore();
+    }
+  });
+
+  // Task 13, plan 1e-3b-1: the stored-settings URL parameters (`&script=`,
+  // `&turn=`, `&autosave=`, `&monitor=`, …) apply once the stores have
+  // loaded, whether or not `&autostart=1` is present — the panel's probe
+  // starts by clicking, so it needs them applied before it does (ruling 19).
+  // This file's `ServiceFactory` mock answers every stored setting with its
+  // default ('auto' for the turn mode), so the stores' load would reset the
+  // turn mode had the URL been applied before it finished: the final
+  // 'push-to-talk' below proves the load happens first.
+  it('applies the stored-settings URL parameters once the stores have loaded, without autostart', async () => {
+    const before = window.location.href;
+    const prevAutoSave = useSettingsStore.getState().autoSaveOnStop;
+    const prevTurnMode = useTurnModeStore.getState().turnMode;
+    const prevMonitorMuted = useAudioStore.getState().isMonitorMuted;
+    window.history.replaceState(null, '', '/?preview=spine&script=cjk&autosave=1&turn=push-to-talk&monitor=1');
+    runnerStart.mockClear();
+    try {
+      render(<SpinePreview />);
+      await waitFor(() => {
+        expect(useProviderStore.getState().entries.fake?.settings).toMatchObject({ script: 'cjk' });
+        expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
+        expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
+        expect(useAudioStore.getState().isMonitorMuted).toBe(false);
+      });
+      // No `&autostart=1`: the settings apply, but nothing starts.
+      expect(runnerStart).not.toHaveBeenCalled();
+    } finally {
+      window.history.replaceState(null, '', before);
+      useSettingsStore.setState({ autoSaveOnStop: prevAutoSave });
+      useTurnModeStore.setState({ turnMode: prevTurnMode });
+      useAudioStore.setState({ isMonitorMuted: prevMonitorMuted });
     }
   });
 

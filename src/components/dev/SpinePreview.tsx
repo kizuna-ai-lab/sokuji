@@ -309,10 +309,11 @@ export function SpinePreview() {
     exit: () => {},
   }), [runner]);
 
+  const [storesLoaded, setStoresLoaded] = useState(false);
   // What a run reads, loaded the way the app loads it (Home.tsx): the turn
   // mode, the routing switches, the punctuation pack's phase — without which
   // the punctuator would see `unknown`, never `ready` — and the provider.
-  useEffect(() => { void loadSessionStores(); }, []);
+  useEffect(() => { void loadSessionStores().finally(() => setStoresLoaded(true)); }, []);
   // The page's wiring, as the app's will be (plan 1e-3b): pagehide → abandon,
   // the provider store's legs, a local provider checking itself.
   useEffect(() => session.attach(), [session]);
@@ -324,9 +325,15 @@ export function SpinePreview() {
     );
     return () => { live = false; };
   }, [session]);
+
+  const [urlApplied, setUrlApplied] = useState(false);
+  // The page's stored settings from the URL, applied once — with or without
+  // `&autostart=1`, since the panel's probe starts by clicking (plan 1e-3b-1
+  // Task 13). After the stores' load, so the load cannot overwrite them (the
+  // turn mode's migration writes too), and once the selected provider's entry
+  // is there (`&script=` is the fake's own setting).
   useEffect(() => {
-    if (autostarted.current || !entry || !audio || new URLSearchParams(window.location.search).get('autostart') !== '1') return;
-    autostarted.current = true;
+    if (urlApplied || !storesLoaded || !entry) return;
     const params = new URLSearchParams(window.location.search);
     // `&script=<name>`: which script the fake plays (the headless checks pick theirs).
     const script = params.get('script');
@@ -350,6 +357,13 @@ export function SpinePreview() {
     if (params.get('autosave') === '1') void useSettingsStore.getState().setAutoSaveOnStop(true);
     // &monitor=1: the speaker's translation reaches the real bus (the monitor is off by default), for the probe's tap on a bus.
     if (params.get('monitor') === '1') useAudioStore.getState().setMonitorMuted(false);
+    setUrlApplied(true);
+  }, [urlApplied, storesLoaded, entry, providers]);
+
+  useEffect(() => {
+    if (autostarted.current || !entry || !audio || !urlApplied || new URLSearchParams(window.location.search).get('autostart') !== '1') return;
+    autostarted.current = true;
+    const params = new URLSearchParams(window.location.search);
     // `&models=<id>,<id>…` (LocalInference's live probe, task 9): download
     // each one not already downloaded, then `&pair=<source>:<target>`
     // through the provider store. A downloaded model alone is not enough to
@@ -429,7 +443,7 @@ export function SpinePreview() {
       }
       void runner.start();
     })();
-  }, [entry, audio, runner, providers]);
+  }, [entry, audio, runner, providers, urlApplied]);
 
   const sealProbe = useSealProbe();
 
