@@ -6,11 +6,8 @@ import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-i
 import { shortenModelName } from '../../lib/local-inference/modelName';
 import { useModelStore } from '../../stores/modelStore';
 import { directionKey, emptyDirection, type DirectionResult, type Selections, type ResolutionNote } from '../../lib/local-inference/selection/types';
-import { modeOfLegs } from './LocalInferenceEngine';
+import { FALLBACK_PAIR, modeOfLegs } from './engineLegs';
 import type { LocalInferenceSettings } from './settings';
-
-/** `ProviderPicker` always supplies `pair`; this only matters standalone. */
-const FALLBACK_PAIR = { source: 'ja', target: 'en' };
 
 /**
  * LocalInference's summary under the provider picker (1e-3 ruling 10): a

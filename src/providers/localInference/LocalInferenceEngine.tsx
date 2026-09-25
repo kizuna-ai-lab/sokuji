@@ -4,23 +4,8 @@ import { ModelManagementSection } from '../../components/Settings/sections/Model
 import { StoragePage } from '../../components/Settings/engine/StoragePage';
 import { useWasmEngineAdapter } from '../../components/Settings/engine/useWasmEngineAdapter';
 import type { EngineProps } from '../../lib/provider/types';
-import type { LegName } from '../../lib/conversation/types';
+import { FALLBACK_PAIR, modeOfLegs } from './engineLegs';
 import type { LocalInferenceSettings } from './settings';
-
-/** `ProviderPanel` always supplies `pair`; this only matters standalone. */
-const FALLBACK_PAIR = { source: 'ja', target: 'en' };
-
-/**
- * `legs` → the audio mode a start would actually run: more than one leg is
- * `'both'`, one leg is itself, and no legs at all (standalone, never true
- * once mounted under `ProviderEngine`) falls back to `'speaker'`. Spelled
- * out as the literal union rather than importing `AudioMode` — `src/providers/**`
- * imports no store but `modelStore` and `turnModeStore`, and `audioStore` is
- * one more than that.
- */
-export function modeOfLegs(legs: readonly LegName[]): 'speaker' | 'participant' | 'both' {
-  return legs.length > 1 ? 'both' : legs[0] ?? 'speaker';
-}
 
 /**
  * LocalInference's `Engine` (ruling 9): today's model management —

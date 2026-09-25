@@ -1,25 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
-// `LocalInferenceEngine.tsx` (the home of `modeOfLegs`, imported below) also
-// pulls in `useWasmEngineAdapter`/`ModelManagementSection`/`StoragePage`,
-// which reach the real `settingsStore` and, through it, `src/locales/index.ts`
-// — which calls `.use(initReactI18next)` at import time. `importOriginal`
-// keeps that export real while overriding `useTranslation` (same pattern as
-// `LanguageSection.sentence.test.tsx`).
-vi.mock('react-i18next', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-i18next')>();
-  return {
-    ...actual,
-    useTranslation: () => ({
-      t: (_k: string, def?: any, opts?: any) => {
-        const str = typeof def === 'string' ? def : _k;
-        const o = typeof def === 'object' && def !== null ? def : opts;
-        return str.replace(/\{\{(\w+)\}\}/g, (_m: string, n: string) => String(o?.[n] ?? ''));
-      },
-    }),
-  };
-});
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (_k: string, def?: any, opts?: any) => {
+      const str = typeof def === 'string' ? def : _k;
+      const o = typeof def === 'object' && def !== null ? def : opts;
+      return str.replace(/\{\{(\w+)\}\}/g, (_m: string, n: string) => String(o?.[n] ?? ''));
+    },
+  }),
+}));
 
 const mockResolve = vi.fn();
 vi.mock('../../stores/modelStore', () => ({
@@ -31,31 +21,15 @@ vi.mock('../../stores/modelStore', () => ({
 }));
 
 const mockEstimate = vi.fn((_ids: (string | undefined | null)[], _deviceFeatures: string[]) => ({ vramMb: 0, ramMb: 0 }));
-// Keyed on the mock, not on a plain-named const: `modeOfLegs` (imported
-// below) shares a file with `LocalInferenceEngine`, whose own imports
-// (`useWasmEngineAdapter`, `ModelManagementSection`, `StoragePage`) reach
-// `getManifestEntry` at MODULE-EVAL time through `segmentationStore.ts`'s
-// initial state — before this file's own top-level `const`s have run. Only
-// a `mock`-prefixed binding is safe to reference from inside a `vi.mock`
-// factory at that point (Vitest's special hoisting for it).
-const mockManifest: Record<string, { name: string; shortName?: string; isCloudModel?: boolean }> = {
+const MANIFEST: Record<string, { name: string; shortName?: string; isCloudModel?: boolean }> = {
   'asr-model': { name: 'Asr Model' },
   'old-asr': { name: 'Old Asr' },
   'cloud-tts': { name: 'Cloud Voice', isCloudModel: true },
 };
 vi.mock('../../lib/local-inference/modelManifest', () => ({
-  getManifestEntry: (id: string) => mockManifest[id],
+  getManifestEntry: (id: string) => MANIFEST[id],
   estimateModelMemoryByDevice: (ids: (string | undefined | null)[], deviceFeatures: string[]) => mockEstimate(ids, deviceFeatures),
 }));
-
-// `modeOfLegs` is a pure helper, but it shares `LocalInferenceEngine.tsx`
-// with the `Engine` component, so importing it evaluates that component's
-// own imports too — the same heavy chain `LocalInferenceEngine.test.tsx`
-// mutes for the same reason.
-vi.mock('../../components/Settings/engine/useWasmEngineAdapter', () => ({ useWasmEngineAdapter: () => ({}) }));
-vi.mock('../../components/Settings/engine/EngineSurface', () => ({ EngineSurface: () => null }));
-vi.mock('../../components/Settings/sections/ModelManagementSection', () => ({ ModelManagementSection: () => null }));
-vi.mock('../../components/Settings/engine/StoragePage', () => ({ StoragePage: () => null }));
 
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
