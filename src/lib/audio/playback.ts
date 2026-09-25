@@ -103,6 +103,16 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
     current = null;
   };
 
+  // The clips were scheduled on a context that is gone. The indices (`counts`)
+  // stay: L1's speech entries go on, so the next clip keeps its place.
+  const unsubscribeReset = graph.onReset(() => {
+    queues.speaker.clear();
+    queues.participant.clear();
+    replayQueue.clear();
+    passthroughStream.clear();
+    stopPreview();
+  });
+
   return {
     queues: { speaker: queues.speaker, participant: queues.participant, replay: replayQueue },
 
@@ -182,6 +192,7 @@ export function createPlayback(graph: AudioGraph, routing: RoutingSource, clock:
       disposing ??= (async () => {
         rest?.();
         unsubscribeRouting();
+        unsubscribeReset();
         for (const off of unsubscribeQueues) off();
         queues.speaker.clear();
         queues.participant.clear();

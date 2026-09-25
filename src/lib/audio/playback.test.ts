@@ -18,6 +18,7 @@ function fakeGraph() {
   const routes: Edge[][] = [];
   const sinks: Array<{ real?: string; virtual?: string }> = [];
   const shots: Array<{ audio: Float32Array; sampleRate: number; stopped: boolean; end: () => void }> = [];
+  const resets = new Set<() => void>();
   const graph: AudioGraph & { readonly suspended: number; readonly closed: number } = {
     timeline: (feed) => ({
       now: () => now,
@@ -44,9 +45,15 @@ function fakeGraph() {
     resume: async () => { resumed += 1; },
     suspend: async () => { suspendedCount += 1; },
     close: async () => { closedCount += 1; },
+    onReset(listener) {
+      resets.add(listener);
+      return () => resets.delete(listener);
+    },
     get suspended() { return suspendedCount; },
     get closed() { return closedCount; },
   };
+  /** As the graph does once it has replaced a wedged context. */
+  const reset = () => { for (const listener of [...resets]) listener(); };
   const advance = (seconds: number) => {
     now += seconds;
     for (const play of plays) {
@@ -56,7 +63,7 @@ function fakeGraph() {
       }
     }
   };
-  return { graph, plays, routes, sinks, shots, advance, resumed: () => resumed };
+  return { graph, plays, routes, sinks, shots, advance, reset, resumed: () => resumed };
 }
 
 /** As `fakeGraph`, but wired through `createPlayback` with a virtual clock the test drives by hand. */
@@ -141,6 +148,21 @@ describe('createPlayback — live audio', () => {
     playback.audio('speaker', 2, pcm(100));
     advance(LEAD_S + 0.01);
     expect(playback.queues.speaker.position()?.key).toBe('speaker:2:0');
+  });
+
+  it('a context reset drops what was queued but not the clip indices', () => {
+    const { graph, plays, advance, reset } = fakeGraph();
+    const playback = createPlayback(graph, routing().source);
+    playback.audio('speaker', 1, pcm(100));
+    expect(plays).toHaveLength(1);
+    const clears = playback.queues.speaker.clears;
+    reset();
+    expect(plays[0].done).toBe(true);
+    expect(playback.queues.speaker.pending).toBe(0);
+    expect(playback.queues.speaker.clears).toBe(clears + 1);
+    playback.audio('speaker', 1, pcm(100));
+    advance(LEAD_S);
+    expect(parseClipKey(playback.queues.speaker.position()!.key).index).toBe(1);
   });
 });
 

@@ -1,8 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
+import { createVirtualClock } from '../contract/clock';
+import { LEAD_S } from './clipQueue';
 import {
   FakeAudioContext, FakeSink, FakeWorkletNode, reaches, type FakeBufferSource, type FakeGain, type FakeNode,
 } from './fakeWebAudio';
-import { createAudioGraph } from './graph';
+import { createAudioGraph, MAX_REBUILDS } from './graph';
+import { createPlayback, type RoutingSource } from './playback';
 
 const reportWarningSpy = vi.hoisted(() => vi.fn());
 vi.mock('../diagnostics/report', async (importOriginal) => {
@@ -290,5 +293,229 @@ describe('createAudioGraph — clips', () => {
     const { ctx, graph } = await setup();
     await expect(graph.playOnce(new Float32Array(0), 48000).ended).resolves.toBeUndefined();
     expect(ctx.sources).toHaveLength(0);
+  });
+});
+
+async function setupRecovering({ replace = true }: { replace?: boolean } = {}) {
+  const first = new FakeAudioContext();
+  const contexts = [first];
+  const clock = createVirtualClock(0);
+  const sinks: FakeSink[] = [];
+  const graph = await createAudioGraph({
+    context: first.asContext(),
+    addTapModule: async () => {},
+    createTapNode: (_context, chunk) => new FakeWorkletNode('pcm-tap-processor', chunk) as unknown as AudioWorkletNode,
+    createSink: (stream) => {
+      const sink = new FakeSink(stream);
+      sinks.push(sink);
+      return sink;
+    },
+    virtual: { kind: 'device' },
+    clock,
+    ...(replace
+      ? { replaceContext: () => { const next = new FakeAudioContext(); contexts.push(next); return next.asContext(); } }
+      : {}),
+  });
+  const [real, virtualSink] = sinks;
+  /** The stream destination a sink plays, on the given context (undefined when it plays another context's). */
+  const destinationOn = (ctx: FakeAudioContext, sink: FakeSink): FakeNode | undefined =>
+    ctx.destinations.find((d) => d.stream === sink.srcObject);
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+  return { first, contexts, clock, graph, sinks, real, virtualSink, destinationOn, flush };
+}
+
+/** Wedges the newest context so that resuming it never lands, and lets the watch run its course. */
+async function wedgeFor(
+  { contexts, clock, flush }: Pick<Awaited<ReturnType<typeof setupRecovering>>, 'contexts' | 'clock' | 'flush'>,
+) {
+  const newest = contexts[contexts.length - 1];
+  newest.stuck = true;
+  newest.wedge();
+  clock.advance(1_750);
+  await flush();
+}
+
+const rebuildWarnings = () =>
+  reportWarningSpy.mock.calls.filter(([, , options]) => (options as { dedupeKey?: string } | undefined)?.dedupeKey === 'graph:rebuild');
+
+describe('createAudioGraph — a wedged context (#246)', () => {
+  it('rebuilds a context left suspended by something else', async () => {
+    const { first, contexts, clock, graph, real, destinationOn, flush } = await setupRecovering();
+    first.stuck = true;
+    first.wedge();
+    clock.advance(249);
+    expect(first.resumed).toBe(0);
+    clock.advance(1);
+    expect(first.resumed).toBe(1);
+    clock.advance(1_500);
+    await flush();
+    expect(first.closed).toBe(1);
+    expect(contexts).toHaveLength(2);
+    expect(destinationOn(contexts[1], real)).toBeDefined();
+    expect(destinationOn(first, real)).toBeUndefined();
+    graph.timeline('speaker').play(new Int16Array(2400), 0, () => {});
+    expect(contexts[1].sources).toHaveLength(1);
+    expect(first.sources).toHaveLength(0);
+  });
+
+  it('keeps the routes across a rebuild', async () => {
+    const setup = await setupRecovering();
+    const { contexts, graph, real, virtualSink, destinationOn } = setup;
+    graph.route([{ from: 'speaker', to: 'real', gain: 1 }]);
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(2);
+    graph.timeline('speaker').play(new Int16Array(2400), 0, () => {});
+    const source = contexts[1].sources[contexts[1].sources.length - 1];
+    expect(reaches(source, destinationOn(contexts[1], real)!)).toBe(true);
+    expect(reaches(source, destinationOn(contexts[1], virtualSink)!)).toBe(false);
+  });
+
+  it('leaves its own rest alone', async () => {
+    const { first, contexts, clock, graph } = await setupRecovering();
+    await graph.suspend();
+    expect(first.state).toBe('suspended');
+    // A real context dispatches statechange as a task, once the suspend has
+    // landed: the event of the graph's own rest arrives after it, as here.
+    first.wedge();
+    clock.advance(10_000);
+    expect(first.resumed).toBe(0);
+    expect(contexts).toHaveLength(1);
+  });
+
+  it('leaves alone a wedge that clears inside the grace', async () => {
+    const { first, contexts, clock, flush } = await setupRecovering();
+    first.wedge();
+    clock.advance(100);
+    first.recover();
+    clock.advance(5_000);
+    await flush();
+    expect(first.resumed).toBe(0);
+    expect(contexts).toHaveLength(1);
+  });
+
+  it('cancels the rebuild when its resume lands in time', async () => {
+    const { first, contexts, clock, flush } = await setupRecovering();
+    first.wedge();
+    clock.advance(250);
+    expect(first.resumed).toBe(1);
+    expect(first.state).toBe('running');
+    clock.advance(1_500);
+    await flush();
+    expect(contexts).toHaveLength(1);
+  });
+
+  it('tells its listeners once the new context is in, before the old one goes', async () => {
+    const setup = await setupRecovering();
+    const { first, contexts, graph } = setup;
+    first.currentTime = 1_000;
+    const order: string[] = [];
+    const off = graph.onReset(() => {
+      order.push(`reset:${first.closed}:${contexts.length}:${graph.timeline('speaker').now() === contexts[1].currentTime}`);
+    });
+    await wedgeFor(setup);
+    expect(order).toEqual(['reset:0:2:true']);
+    expect(first.closed).toBe(1);
+    off();
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(3);
+    expect(order).toHaveLength(1);
+  });
+
+  it('treats a resume of its own that never lands as a wedge, and does not hang on it', async () => {
+    const { first, contexts, clock, graph, flush } = await setupRecovering();
+    await graph.suspend();
+    first.stuck = true;
+    const resumed = graph.resume();
+    clock.advance(1_500);
+    await resumed;
+    await flush();
+    expect(contexts).toHaveLength(2);
+  });
+
+  it(`gives up after ${MAX_REBUILDS} rebuilds until a context runs again`, async () => {
+    const setup = await setupRecovering();
+    const { contexts } = setup;
+    reportWarningSpy.mockClear();
+    for (let round = 0; round < 3; round++) await wedgeFor(setup);
+    expect(contexts).toHaveLength(4);
+    expect(rebuildWarnings()).toHaveLength(3);
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(4);
+    contexts[3].recover();
+    expect(contexts[3].state).toBe('running');
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(5);
+  });
+
+  it('watches nothing without replaceContext', async () => {
+    const { first, contexts, clock, flush } = await setupRecovering({ replace: false });
+    first.wedge();
+    clock.advance(10_000);
+    await flush();
+    expect(first.resumed).toBe(0);
+    expect(contexts).toHaveLength(1);
+  });
+
+  it('close() during the grace cancels the watch', async () => {
+    const { first, contexts, clock, graph, flush } = await setupRecovering();
+    first.stuck = true;
+    first.wedge();
+    clock.advance(100);
+    await graph.close();
+    clock.advance(10_000);
+    await flush();
+    expect(first.resumed).toBe(0);
+    expect(contexts).toHaveLength(1);
+  });
+
+  it('close() during the deadline cancels the watch', async () => {
+    const { first, contexts, clock, graph, flush } = await setupRecovering();
+    first.stuck = true;
+    first.wedge();
+    clock.advance(1_000);
+    expect(first.resumed).toBe(1);
+    await graph.close();
+    clock.advance(10_000);
+    await flush();
+    expect(contexts).toHaveLength(1);
+  });
+
+  it('starts on the new clock what was scheduled while the rebuild ran', async () => {
+    const { first, contexts, clock, graph, flush } = await setupRecovering();
+    // Speaker clips reach the real bus, passthrough the virtual one.
+    const routing: RoutingSource = {
+      get: () => ({ meeting: false, monitor: true, participantSpeech: false, passthrough: { on: true, ratio: 1 }, sinks: {} }),
+      subscribe: () => () => {},
+    };
+    const playback = createPlayback(graph, routing, clock);
+    const pcm = new Int16Array(2400);
+    // The dead context ran a while; passthrough plays only during a run.
+    first.currentTime = 1_000;
+    playback.live(true);
+    first.stuck = true;
+    first.wedge();
+    clock.advance(1_750);
+    // The rebuild now awaits the tap module: both of these land on the dead context.
+    playback.audio('speaker', 1, pcm);
+    playback.passthrough(pcm);
+    expect(first.sources).toHaveLength(2);
+    await flush();
+    expect(contexts).toHaveLength(2);
+    playback.audio('speaker', 2, pcm);
+    const clip = contexts[1].sources[contexts[1].sources.length - 1];
+    expect(clip.startedAt).toBeLessThan(contexts[1].currentTime + LEAD_S + 0.01);
+    const before = contexts[1].sources.length;
+    playback.passthrough(pcm);
+    expect(contexts[1].sources).toHaveLength(before + 1);
+  });
+
+  it('finishes a rebuild whose dead context never settles its close()', async () => {
+    const setup = await setupRecovering();
+    const { first, contexts } = setup;
+    first.close = () => new Promise<void>(() => {});
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(2);
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(3);
   });
 });

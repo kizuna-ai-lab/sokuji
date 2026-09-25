@@ -9,10 +9,12 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+import { SAMPLE_RATE } from '../contract/adapter';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { createAppRouting, readRouting } from './appAudio';
+import { FakeAudioContext, FakeSink, FakeWorkletNode } from './fakeWebAudio';
 
 const AUDIO = {
   mode: 'speaker' as const,
@@ -88,6 +90,48 @@ describe('getAppAudio', () => {
 
     await expect(getAppAudio()).rejects.toThrow();
     expect(constructed).toBe(2);
+  });
+
+  it('decodes the test tone on an offline context of its own, never on the live one (a rebuild may have closed it)', async () => {
+    const decoded = async () => ({
+      length: 4, numberOfChannels: 1, sampleRate: SAMPLE_RATE, getChannelData: () => new Float32Array(4).fill(0.5),
+    });
+    const live: LiveContext[] = [];
+    class LiveContext extends FakeAudioContext {
+      audioWorklet = { addModule: vi.fn(async () => {}) };
+      decodeAudioData = vi.fn(decoded);
+      constructor() {
+        super();
+        live.push(this);
+      }
+    }
+    const offline: unknown[][] = [];
+    const offlineDecode = vi.fn(decoded);
+    class OfflineContext {
+      decodeAudioData = offlineDecode;
+      constructor(...args: unknown[]) { offline.push(args); }
+    }
+    vi.stubGlobal('AudioContext', LiveContext);
+    vi.stubGlobal('OfflineAudioContext', OfflineContext);
+    vi.stubGlobal('Audio', class extends FakeSink { constructor() { super(null); } });
+    vi.stubGlobal('AudioWorkletNode', class {
+      constructor(_ctx: unknown, name: string, options: { processorOptions: { chunk: number } }) {
+        return new FakeWorkletNode(name, options.processorOptions.chunk);
+      }
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })));
+
+    vi.resetModules();
+    const { getAppAudio } = await import('./appAudio');
+    const audio = await getAppAudio();
+    const playing = audio.testTone();
+    await vi.waitFor(() => expect(live[0].sources).toHaveLength(1));
+    live[0].advance(1);
+    await playing;
+
+    expect(offline).toEqual([[1, 1, SAMPLE_RATE]]);
+    expect(offlineDecode).toHaveBeenCalledTimes(1);
+    expect(live[0].decodeAudioData).not.toHaveBeenCalled();
   });
 });
 

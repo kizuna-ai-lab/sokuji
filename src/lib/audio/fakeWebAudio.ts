@@ -102,6 +102,39 @@ export class FakeAudioContext {
   suspended = 0;
   /** How many times `close()` has actually closed the context (never more than one, as a real context refuses a second). */
   closed = 0;
+  /** A wedged renderer (#246): while true, `resume()` is counted but never settles and leaves `state` alone. */
+  stuck = false;
+  private readonly stateListeners = new Set<() => void>();
+
+  addEventListener(type: string, listener: () => void): void {
+    if (type === 'statechange') this.stateListeners.add(listener);
+  }
+
+  removeEventListener(type: string, listener: () => void): void {
+    if (type === 'statechange') this.stateListeners.delete(listener);
+  }
+
+  /** Something outside the graph suspends the context — a sink that vanished. */
+  wedge(): void {
+    this.state = 'suspended';
+    this.fireStateChange();
+  }
+
+  /** The context runs again by itself. */
+  recover(): void {
+    this.state = 'running';
+    this.fireStateChange();
+  }
+
+  private setState(next: AudioContextState): void {
+    if (this.state === next) return;
+    this.state = next;
+    this.fireStateChange();
+  }
+
+  private fireStateChange(): void {
+    for (const listener of [...this.stateListeners]) listener();
+  }
 
   createGain(): FakeGain {
     return new FakeGain();
@@ -133,12 +166,14 @@ export class FakeAudioContext {
   async suspend(): Promise<void> {
     this.suspended += 1;
     await Promise.resolve();
-    this.state = 'suspended';
+    this.setState('suspended');
   }
 
-  async resume(): Promise<void> {
+  resume(): Promise<void> {
     this.resumed += 1;
-    this.state = 'running';
+    if (this.stuck) return new Promise<void>(() => {});
+    this.setState('running');
+    return Promise.resolve();
   }
 
   async close(): Promise<void> {

@@ -111,6 +111,7 @@ async function build(): Promise<AppAudio> {
   try {
     graph = await createAudioGraph({
       context,
+      replaceContext: () => new AudioContext({ sampleRate: SAMPLE_RATE }),
       addTapModule: (ctx) => ctx.audioWorklet.addModule(tapModuleUrl(platform)),
       createTapNode: (ctx, chunk) => new AudioWorkletNode(ctx, 'pcm-tap-processor', { processorOptions: { chunk } }),
       createSink: (stream) => {
@@ -132,7 +133,11 @@ async function build(): Promise<AppAudio> {
   return {
     playback,
     async testTone() {
-      tone ??= loadTestTone(context).catch((error: unknown) => {
+      // Not on `context`: a rebuild (#246) may have closed it before the first
+      // decode, and browsers have differed on decoding on a closed context. An
+      // offline context of the same rate decodes to the same samples and is
+      // never closed.
+      tone ??= loadTestTone(new OfflineAudioContext(1, 1, SAMPLE_RATE)).catch((error: unknown) => {
         tone = null;
         throw error;
       });
