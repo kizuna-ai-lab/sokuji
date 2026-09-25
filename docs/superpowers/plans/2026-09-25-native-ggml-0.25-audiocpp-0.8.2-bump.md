@@ -48,7 +48,7 @@ Facts the tasks rely on:
 
 - **Exactly one shared ggml and no duplicated module code in the wheel** (jiangzhuo, 2026-09-25: bundle size). Every engine links the single upstream ggml target; no engine may compile its vendored ggml (transcribe.cpp 0.2.4 ships one in `ggml/`, audio.cpp in `external/ggml`, llama.cpp in `ggml/`), and no upstream option that builds an extra shared library may be enabled (audio.cpp's new `AUDIOCPP_BUILD_C_API` stays OFF). Task 0's gate enforces this on every build. Baseline to compare against, the native-v1.1.0 linux-arm64 wheel: 24.5 MB, containing exactly `libggml`, `libggml-base`, `libggml-vulkan`, six `libggml-cpu-armv8.*` variants and `libsokuji_native.so` (12.9 MB; 0 exported `ggml_*`, 287 imported).
 - One pristine upstream ggml. Never build or link audio.cpp's `external/ggml` fork. If a family misbehaves, port that op into `audiocpp_compat.h` (the rule in that header's preamble).
-- Pins are release-tag commit SHAs with `GIT_SHALLOW TRUE` (upstreams.cmake header comment). All four targets above are tag commits.
+- Pins are release-tag commit SHAs with `GIT_SHALLOW TRUE` (upstreams.cmake header comment) — for ggml, llama.cpp and audio.cpp. **transcribe.cpp is the exception** (execution ruling R7): upstream re-pointed its `v0.2.4` tag forward twice on 2026-09-25, so it is pinned to the release commit `7d37cea2` on main and fetched **without** `GIT_SHALLOW` (a depth-1 clone cannot reach a SHA that is no longer a tag or branch tip).
 - Engine version strings are normalised: no `v`, no suffix. `SOKUJI_AUDIOCPP_VERSION` becomes `"0.8.2"` (the `-audio8-perf-hotfix` suffix is dropped, the same way llama's tag is normalised).
 - English only in code, comments and docs. Conventional commits. End every commit message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - **Outward acts need jiangzhuo's explicit go, each time, naming the target**: pushing a branch, opening a PR, a `workflow_dispatch` run, any tag. Task 7 marks each one with **ASK FIRST**.
@@ -331,8 +331,8 @@ Expected: `test_common` FAILS on `transcribe=0.2.4`.
 ```cmake
 FetchContent_Declare(transcribe
     GIT_REPOSITORY https://github.com/handy-computer/transcribe.cpp.git
-    GIT_TAG        7d37cea2248a1fb6aca9652a1d37debccbbb1ff3   # v0.2.4
-    GIT_SHALLOW    TRUE
+    GIT_TAG        7d37cea2248a1fb6aca9652a1d37debccbbb1ff3   # release: 0.2.4 (#173)
+    # no GIT_SHALLOW — see the Global Constraints note on R7: the v0.2.4 tag moves
     GIT_PROGRESS   TRUE
     PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
                    <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/transcribe.cpp.json)
