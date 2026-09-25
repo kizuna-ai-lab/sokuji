@@ -136,6 +136,28 @@ describe('SubtitleTakeover', () => {
     await getAppSession().runner.settled();
   });
 
+  // Ruling 11 (plan 1e-3b-1): a click before the selected provider's entry
+  // has loaded must not reach the runner at all — today's `SubtitleApp.tsx`
+  // has the same early return (`handleStart`, `if (!startGate.canStart) return;`).
+  it("skips the start while the selected provider's entry has not loaded, then starts once it has (ruling 11)", async () => {
+    render(<SubtitleTakeover />);
+    useProviderStore.setState({ entries: {} });
+    expect(getAppSession().subtitle.get().canStart).toBe(false);
+    const before = getAppSession().runner.state.getState();
+    act(() => { lastControls().start!(); });
+    // Untouched, not just still `idle`: an earlier test may have already left
+    // a `lastEnd` of its own on this module-singleton runner, so a bare
+    // `{ phase: 'idle' }` is the wrong assertion — the same reference proves
+    // this click never reached the runner at all.
+    expect(getAppSession().runner.state.getState()).toBe(before);
+    await act(async () => { await useProviderStore.getState().load(fakeProvider); });
+    expect(getAppSession().subtitle.get().canStart).toBe(true);
+    act(() => { lastControls().start!(); });
+    await waitFor(() => expect(getAppSession().runner.state.getState().phase).not.toBe('idle'));
+    await act(() => getAppSession().runner.stop());
+    await getAppSession().runner.settled();
+  });
+
   it("empties the runner's conversation through controls.clear()", async () => {
     render(<SubtitleTakeover />);
     await act(async () => { await getAppSession().runner.start(); });
