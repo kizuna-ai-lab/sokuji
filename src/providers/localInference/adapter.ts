@@ -35,6 +35,8 @@ type Stage = 'asr' | 'translation' | 'tts';
 interface Job {
   text: string;
   origin: string;
+  /** Punctuate the text before translating: per-final and typed-text jobs under a sentences display; never a seal. */
+  fill: boolean;
 }
 
 /** Worded as today's `errors.gpuOutOfMemory`; surfaces put `gpu_out_of_memory` into words by code. */
@@ -325,7 +327,7 @@ class LocalSession implements AdapterSession {
     this.emit('segmentText', { ref, text });
     this.emit('segmentClosed', { ref, origin });
     if (this.config.translation.kind === 'engine') {
-      this.enqueue({ text: text.trim(), origin });
+      this.enqueue({ text: text.trim(), origin, fill: this.config.jobSentences !== undefined });
     } else {
       this.announceTranslationUnavailable();
     }
@@ -419,15 +421,16 @@ class LocalSession implements AdapterSession {
       recognitionTimeMs: result.recognitionTimeMs,
     });
     const { kind } = this.config.translation;
+    const fill = this.config.jobSentences !== undefined;
     if (kind === 'ast') {
-      this.enqueue({ text, origin: this.nextOrigin() });
+      this.enqueue({ text, origin: this.nextOrigin(), fill });
       return;
     }
     const segment = current ?? { ref: this.nextRef++, origin: this.nextOrigin(), text: '' };
     if (!current) this.emit('segmentOpened', { ref: segment.ref, side: 'source', origin: segment.origin });
     if (text !== segment.text) this.emit('segmentText', { ref: segment.ref, text });
     this.emit('segmentClosed', { ref: segment.ref, origin: segment.origin });
-    if (kind === 'engine') this.enqueue({ text, origin: segment.origin });
+    if (kind === 'engine') this.enqueue({ text, origin: segment.origin, fill });
   }
 
   /** Closes the open source segment with the text it has, and queues nothing for it. */
@@ -497,7 +500,7 @@ class LocalSession implements AdapterSession {
     // below still runs in the same microtask as the job's enqueue — every
     // existing synchronous assertion on `translation.calls` still holds.
     const { punctuate } = this.request;
-    const text = this.config.punctuateJobs && punctuate ? await this.punctuate(job.text, punctuate) : job.text;
+    const text = job.fill && punctuate ? await this.punctuate(job.text, punctuate) : job.text;
     if (this.ended) return undefined; // stop() while the punctuation budget ran
     this.frame('out', 'local.translation.start', {
       sourceText: text,
@@ -531,7 +534,7 @@ class LocalSession implements AdapterSession {
 
   /**
    * The job's text as handed to the translation engine, once the caller has
-   * already checked `config.punctuateJobs` and a punctuator is installed
+   * already checked `job.fill` and a punctuator is installed
    * (ruling: "Punctuated jobs"). Today's Auto shape (`punctuateDefinite`):
    * a text shorter than three sentences' worth of the source language
    * (`gateChars`) goes raw, without asking the model; a longer one goes

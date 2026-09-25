@@ -22,8 +22,14 @@ export interface LocalInferenceConfig {
     | { kind: 'ast' }
     | { kind: 'none' };
   tts?: { modelId: string; speakerId: number; speed: number; edgeVoice?: string };
-  /** Punctuate the job text before translating (today's Auto shape); the stream shape is plan 1e-2b's. */
-  punctuateJobs: boolean;
+  /**
+   * The translation-job cut, from the display's segmentation (today's three
+   * shapes): absent — the display is not by sentences, one raw job per ASR
+   * final; 0 (Auto) — one job per final, punctuated first; 1–5 — a job every
+   * N sentences inside the utterance (the stream shape, when a punctuator
+   * runs).
+   */
+  jobSentences?: number;
 }
 
 /**
@@ -101,14 +107,8 @@ export function buildLocalInference(
     translation = { kind: 'engine', modelId: resolved.translation.modelId, instructions, wrapTranscript };
   }
 
-  const config: LocalInferenceConfig = {
-    asr,
-    vad,
-    translation,
-    // Auto shape only (ruling 1): the fill-in size punctuates the job text
-    // before translating; the stream shape ships in plan 1e-2b.
-    punctuateJobs: shared.segmentation.mode === 'sentences',
-  };
+  const config: LocalInferenceConfig = { asr, vad, translation };
+  if (shared.segmentation.mode === 'sentences') config.jobSentences = shared.segmentation.sentencesPerRow;
   if (context.speech && resolved.tts) {
     config.tts = {
       modelId: resolved.tts.modelId,

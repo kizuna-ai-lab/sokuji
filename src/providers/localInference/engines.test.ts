@@ -72,6 +72,12 @@ describe('defaultEngines over the real engine classes', () => {
     expect(worker.postMessage).toHaveBeenCalledWith({ type: 'audio', samples, sampleRate: 24000 }, [samples.buffer]);
   });
 
+  it('ASR: an explicit punctuationEndpoint: false reaches the streaming worker as false (the adapter sealing its own stream)', async () => {
+    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true });
+    const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en', punctuationEndpoint: false }));
+    expect(initMessage(worker)).toMatchObject({ punctuationEndpoint: false });
+  });
+
   it('ASR: AST asks the offline engine to translate into the target', async () => {
     const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false });
     const worker = await ready(asr.init('granite-speech', { vadConfig: vad, language: 'ja', translateTo: 'en' }));

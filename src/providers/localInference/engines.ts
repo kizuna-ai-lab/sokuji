@@ -18,6 +18,8 @@ export interface AsrInit {
   language: string;
   /** AST: the model itself translates into this language (Granite Speech). */
   translateTo?: string;
+  /** The voxtral worker's own sentence endpoint (default on): off only while the adapter's stream shape seals — exactly one layer may cut. */
+  punctuationEndpoint?: boolean;
 }
 
 /** `AsrEngine` or `StreamingAsrEngine` behind one shape. */
@@ -75,11 +77,9 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
     onSpeechStart: null,
     onError: null,
     onFatal: null,
-    async init(modelId, { vadConfig, language, translateTo }) {
+    async init(modelId, { vadConfig, language, translateTo, punctuationEndpoint }) {
       if (engine instanceof StreamingAsrEngine) {
-        // The worker's own punctuation endpoint stays on: nothing above it
-        // cuts an utterance (the stream shape, which would, is plan 1e-2b's).
-        await engine.init(modelId, { language, vadConfig, punctuationEndpoint: true });
+        await engine.init(modelId, { language, vadConfig, punctuationEndpoint: punctuationEndpoint ?? true });
       } else {
         await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined);
       }

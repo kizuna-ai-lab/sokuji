@@ -83,7 +83,6 @@ function cfg(ids: { asr: string; translation?: string; tts?: string }): LocalInf
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30 },
     translation: ids.translation ? { kind: 'engine', modelId: ids.translation, instructions: '', wrapTranscript: false } : { kind: 'none' },
     ...(ids.tts ? { tts: { modelId: ids.tts, speakerId: 0, speed: 1, edgeVoice: undefined } } : {}),
-    punctuateJobs: false,
   };
 }
 
@@ -108,16 +107,30 @@ beforeEach(() => {
 });
 
 describe('buildLocalInference', () => {
-  it("builds the speaker's direction with its own prompt, TTS when speaking, and punctuated jobs under Auto sentences", () => {
+  it("builds the speaker's direction with its own prompt, TTS when speaking, and a job cut sized by the stored Auto sentences-per-row", () => {
     resolved({ 'ja>en': { asr: 'sherpa-ja', translation: 'opus-ja-en', tts: 'piper-en' } });
     const c = buildLocalInference(ctx({ source: 'ja', target: 'en' }, { speech: true }), settings({ useTemplateMode: true }), shared({ segmentation: { mode: 'sentences', sentencesPerRow: 0 } }));
     expect(c).toMatchObject({
       asr: { modelId: 'sherpa-ja' },
       translation: { kind: 'engine', modelId: 'opus-ja-en', wrapTranscript: true },
       tts: { modelId: 'piper-en' },
-      punctuateJobs: true,
+      jobSentences: 0,
     });
     expect((c as LocalInferenceConfig).translation).toMatchObject({ instructions: buildDefaultLocalPrompt('ja', 'en') });
+  });
+
+  it('carries the stored sentences-per-row count into jobSentences', () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    const c = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ segmentation: { mode: 'sentences', sentencesPerRow: 3 } })) as LocalInferenceConfig;
+    expect(c.jobSentences).toBe(3);
+  });
+
+  it('leaves jobSentences absent when the display is not segmented by sentences (off or pause)', () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    const off = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ segmentation: { mode: 'off', sentencesPerRow: 0 } }));
+    expect(off).not.toHaveProperty('jobSentences');
+    const paused = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ segmentation: { mode: 'pause', sentencesPerRow: 2 } }));
+    expect(paused).not.toHaveProperty('jobSentences');
   });
 
   it('uses the participant prompt for the reversed direction, and no TTS when not speaking', () => {

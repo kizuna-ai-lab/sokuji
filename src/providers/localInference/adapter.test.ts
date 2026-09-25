@@ -16,7 +16,6 @@ function makeConfig(over: Partial<LocalInferenceConfig> = {}): LocalInferenceCon
     asr: { modelId: 'asr-model', streaming: true },
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30 },
     translation: { kind: 'engine', modelId: 'mt-model', instructions: 'Translate ja to en.', wrapTranscript: true },
-    punctuateJobs: false,
     ...over,
   };
 }
@@ -329,12 +328,26 @@ describe('the LocalInference adapter — punctuated jobs', () => {
   /** A job text exactly at the gate, with no sentence end: punctuated. */
   const AT_GATE = 'x'.repeat(GATE);
 
-  it("sends the punctuator's answer to the translation engine when punctuateJobs is set and it answers", async () => {
+  it("sends the punctuator's answer to the translation engine when jobSentences is set and it answers", async () => {
     const punctuate = async (lang: string, text: string) => {
       expect(lang).toBe('ja');
       return text === AT_GATE ? `${AT_GATE}.` : null;
     };
-    const t = await open(makeConfig({ punctuateJobs: true }), auto, punctuate);
+    const t = await open(makeConfig({ jobSentences: 0 }), auto, punctuate);
+    t.asr.final(AT_GATE);
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual([`${AT_GATE}.`]);
+    t.translation.answer('Konnichiwa.');
+    await settle();
+    expectConformant(t.log, t.context);
+  });
+
+  it('fills a job the same way when jobSentences is 1-5 (until Task 4 wires the stream shape, every value behaves as Auto: one job per final, punctuated)', async () => {
+    const punctuate = async (lang: string, text: string) => {
+      expect(lang).toBe('ja');
+      return text === AT_GATE ? `${AT_GATE}.` : null;
+    };
+    const t = await open(makeConfig({ jobSentences: 3 }), auto, punctuate);
     t.asr.final(AT_GATE);
     await settle();
     expect(t.translation.calls.map((c) => c.text)).toEqual([`${AT_GATE}.`]);
@@ -346,7 +359,7 @@ describe('the LocalInference adapter — punctuated jobs', () => {
   it('sends a text shorter than the gate raw, without asking the punctuator', async () => {
     const asked: string[] = [];
     const punctuate = async (_lang: string, text: string) => { asked.push(text); return `${text}.`; };
-    const t = await open(makeConfig({ punctuateJobs: true }), auto, punctuate);
+    const t = await open(makeConfig({ jobSentences: 0 }), auto, punctuate);
     const short = 'x'.repeat(GATE - 1);
     t.asr.final(short);
     await settle();
@@ -355,17 +368,17 @@ describe('the LocalInference adapter — punctuated jobs', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('sends the raw text when punctuateJobs is set but no punctuator is installed', async () => {
-    const t = await open(makeConfig({ punctuateJobs: true }));
+  it('sends the raw text when jobSentences is set but no punctuator is installed', async () => {
+    const t = await open(makeConfig({ jobSentences: 0 }));
     t.asr.final(AT_GATE);
     await settle();
     expect(t.translation.calls.map((c) => c.text)).toEqual([AT_GATE]);
     expectConformant(t.log, t.context);
   });
 
-  it('sends the raw text once punctuateJobs is off, even with a punctuator installed', async () => {
+  it('sends the raw text once jobSentences is absent, even with a punctuator installed', async () => {
     const punctuate = async () => 'should never be used';
-    const t = await open(makeConfig({ punctuateJobs: false }), auto, punctuate);
+    const t = await open(makeConfig(), auto, punctuate);
     t.asr.final(AT_GATE);
     await settle();
     expect(t.translation.calls.map((c) => c.text)).toEqual([AT_GATE]);
@@ -374,7 +387,7 @@ describe('the LocalInference adapter — punctuated jobs', () => {
 
   it('sends the raw text after a 1 s budget on the virtual clock when the punctuator never answers', async () => {
     const neverAnswers = () => new Promise<string | null>(() => {});
-    const t = await open(makeConfig({ punctuateJobs: true }), auto, neverAnswers);
+    const t = await open(makeConfig({ jobSentences: 0 }), auto, neverAnswers);
     t.asr.final(AT_GATE);
     await settle();
     expect(t.translation.calls).toEqual([]); // still waiting on the budget
@@ -387,7 +400,7 @@ describe('the LocalInference adapter — punctuated jobs', () => {
   it('a punctuation answer that lands after stop() emits nothing', async () => {
     let answer: (text: string | null) => void = () => {};
     const held = () => new Promise<string | null>((resolve) => { answer = resolve; });
-    const t = await open(makeConfig({ punctuateJobs: true }), auto, held);
+    const t = await open(makeConfig({ jobSentences: 0 }), auto, held);
     t.asr.final(AT_GATE);
     await settle();
     t.mark('stop');
@@ -397,6 +410,18 @@ describe('the LocalInference adapter — punctuated jobs', () => {
     await settle();
     expect(t.log.length).toBe(before);
     expect(t.translation.calls).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('fills typed text (appendText) the same way as a final, under jobSentences', async () => {
+    const punctuate = async (_lang: string, text: string) => `${text}.`;
+    const t = await open(makeConfig({ jobSentences: 0 }), auto, punctuate);
+    t.mark('appendText', AT_GATE);
+    t.session.appendText(AT_GATE);
+    await settle();
+    expect(t.translation.calls.map((c) => c.text)).toEqual([`${AT_GATE}.`]);
+    t.translation.answer('Konnichiwa.');
+    await settle();
     expectConformant(t.log, t.context);
   });
 });
