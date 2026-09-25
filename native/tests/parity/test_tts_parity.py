@@ -8,7 +8,8 @@ Round 2 / ledger ruling R10(s4): a full numeric investigation
 found that audio.cpp's forked ggml 0.12.0 has a real bug — `ggml_vec_dot_f32`'s SVE
 tail-lane handling (`svmad_f32_m` instead of `svmla_f32_m`) silently corrupts F32 matmul
 accumulators whenever the reduction length isn't a multiple of 4 AND an SVE-capable CPU
-module is selected. Our upstream ggml 0.22.0 has the fix and is correct. On any SVE-capable
+module is selected. Our upstream ggml (0.25.3 as of native-v1.2.0) has the fix and is
+correct. On any SVE-capable
 aarch64 box (this one included), the OFFICIAL reference binary is therefore itself numerically
 broken for some shapes — comparing sample-exact against it conflates "the ggml swap changed
 behavior" with "the official binary's own arithmetic is wrong for this input." Two
@@ -143,7 +144,8 @@ MAX_ABS_TOLERANCE = 1.5 / 32768
 # zeroing part of the accumulator whenever a matmul's reduction length isn't a multiple of
 # 4) — confirmed by direct investigation, ledger ruling R10(s4):
 # .superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/moss-divergence-investigation.md.
-# Our upstream ggml 0.22.0 already has the fix (`svmla_f32_m`) and is correct. Excluding
+# Our upstream ggml (0.25.3 as of native-v1.2.0) already has the fix (`svmla_f32_m`) and is
+# correct. Excluding
 # these three module files from BOTH sides' module-search directories forces the best
 # REMAINING tier (armv8.2_2 on this box) — correct on both ggml versions — out of the
 # comparison entirely, instead of comparing a correct build against a broken one. A no-op on

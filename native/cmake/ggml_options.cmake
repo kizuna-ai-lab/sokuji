@@ -27,7 +27,8 @@ else()
 endif()
 message(STATUS "sokuji-native GPU lane: ${SOKUJI_GPU_RESOLVED}")
 
-# ggml 0.22.0 hard-codes SME CPU variants on arm64: two armv9.2 ones on Linux and
+# ggml 0.25.3 still hard-codes SME CPU variants on arm64 (re-verified at the native-v1.2.0
+# bump): two armv9.2 ones on Linux and
 # apple_m4 on macOS. GCC 11/13 reject `+sme` outright, and Apple clang (Xcode 15 and 16)
 # accepts the flag but then rejects the SVE intrinsics ggml's SME paths use under
 # `+nosve`. When a variant cannot be built we comment its line out of ggml's
@@ -52,9 +53,10 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     endif()
 endif()
 
-# Every lane, every model: ggml 0.22.0's GGUF reader fills an array KV one element at a
-# time (`gguf_reader::read(std::vector<T>&, n)` loops `read(dst[i])`, and each of those is
-# a read_raw through the reader callback — one locked fread() per element). audio.cpp
+# Every lane, every model: ggml 0.25.3's GGUF reader still fills an array KV one element at a
+# time (re-verified at the native-v1.2.0 bump; `gguf_reader::read(std::vector<T>&, n)` loops
+# `read(dst[i])`, and each of those is a read_raw through the reader callback — one locked
+# fread() per element). audio.cpp
 # stores a model's sidecar files as ONE `audiocpp.embedded_files.data` UINT8 array KV, and
 # it reopens the model GGUF 14 times per load, so the cost is 14 * (array bytes) freads:
 # 800M of them for supertonic-3, which is 13.7s of its 14.0s load on the GB10 dev box
@@ -66,8 +68,9 @@ endif()
 # output for the types it covers: it is a read-shape change only.
 list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-gguf-bulk-array-read.json")
 
-# ggml 0.22.0's Metal backend implements no GGML_OP_DIAG_MASK_INF at all - no supports_op
-# case, no kernel - while ggml-cpu, ggml-vulkan and ggml-cuda all do. Every audio.cpp
+# ggml 0.25.3's Metal backend still implements no GGML_OP_DIAG_MASK_INF at all (re-verified
+# at the native-v1.2.0 bump) - no supports_op case, no kernel - while ggml-cpu, ggml-vulkan
+# and ggml-cuda all do. Every audio.cpp
 # attention block reached without an explicit mask builds that op (16 call sites across 13
 # files under audio.cpp 0.7.0's src/, external/ excluded; on our five families the live
 # ones are moss_tts_nano and qwen3_tts), and audio.cpp never uses
@@ -77,9 +80,10 @@ list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-gguf-bulk-array-read.json")
 # rather than inventing one. Metal lane only: it touches src/ggml-metal/, which no other
 # lane compiles.
 #
-# The second Metal gap on the same families: ggml 0.22.0's Metal GGML_OP_PAD pads only at
-# the END of an axis (its supports_op rejects any non-zero leading pad), while ggml-cpu and
-# ggml-vulkan both implement the full lp/rp form ggml_pad_ext builds. qwen3_tts's speech
+# The second Metal gap on the same families: ggml 0.25.3's Metal GGML_OP_PAD still pads only
+# at the END of an axis (re-verified at the native-v1.2.0 bump; its supports_op rejects any
+# non-zero leading pad), while ggml-cpu and ggml-vulkan both implement the full lp/rp form
+# ggml_pad_ext builds. qwen3_tts's speech
 # tokenizer decoder pads causally - left_pad = kernel_extent - stride, in
 # tokenizer_speech_decoder.cpp's causal_conv1d - so every one of its depthwise convs is a
 # leading pad. The patch teaches kernel_pad_impl the leading pads with exactly ggml-cpu's

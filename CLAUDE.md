@@ -116,7 +116,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - Automatic device switching and reconnection, including dynamic switching during active sessions
 
 6. **Native runtime (`native/`)**
-   - One CMake super-project builds three engines on ONE pristine upstream ggml 0.22 behind
+   - One CMake super-project builds three engines on ONE pristine upstream ggml 0.25 behind
      the `sk_*` C ABI (`native/include/sokuji_native.h`) in `libsokuji_native` / Python package
      `sokuji_native`: transcribe.cpp (ASR), llama.cpp (translation), audio.cpp (TTS — nine
      families: moss_tts_nano, qwen3_tts, omnivoice, pocket_tts, supertonic, voxcpm1,
@@ -175,9 +175,14 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      character to U+FFFD; fixed with a per-call incremental UTF-8 decoder) before any bundle
      pinned it. `native-v1.0.2` / `sidecar-v0.2.1` (2026-09-03) follow: engine pins to
      transcribe.cpp 0.2.3 and audio.cpp 0.7.1, and four more TTS families compiled in
-     (voxcpm1, voxcpm2, irodori_tts, index_tts2 — nine in total). Current native version
-     is 1.1.0 (ABI 2: device profile and op coverage — spec
-     docs/superpowers/specs/2026-09-04-native-device-profile-design.md).
+     (voxcpm1, voxcpm2, irodori_tts, index_tts2 — nine in total). `native-v1.1.0` follows
+     (ABI 2: device profile and op coverage — spec
+     docs/superpowers/specs/2026-09-04-native-device-profile-design.md). `native-v1.2.0`
+     (2026-09-25) moves ggml to 0.25.3, transcribe.cpp to 0.2.4, llama.cpp to v0.5.0 and
+     audio.cpp to 0.8.2-audio8-perf-hotfix; `audiocpp_compat.h` gains sections (D)/(E);
+     transcribe.cpp 0.2.4 also makes sensevoice/canary output cased, punctuated text by
+     default (sk_asr now passes DEFAULT rather than raw text — upstream #157). Current
+     native version is 1.2.0 (ABI unchanged at 2).
    - **Dev loop**: `native/ci/build.sh <none|vulkan|metal> <plat tag>` (`.ps1` on Windows)
      builds and runs CTest + the Python suite against a fresh stage;
      `SOKUJI_NATIVE_DIR=.../stage` points a wheel-less `import sokuji_native` at it. Models
@@ -471,11 +476,11 @@ never copy that); nothing re-checks them at runtime, so a wrong number is what t
    marked incompatible. Nothing else in the renderer enumerates ASR cards.
 
 **An ASR architecture new to Sokuji**: first check that the pinned transcribe.cpp registers it
-(`ls native/build/cpu/_deps/transcribe-src/src/arch/`; at 0.2.3 `medasr` (HF-gated) and
+(`ls native/build/cpu/_deps/transcribe-src/src/arch/`; at 0.2.4 `medasr` (HF-gated) and
 `sortformer` (a diarization arch, not ASR) are compiled in but have no card). Otherwise it is a
 pin bump first: `GIT_TAG` and `SOKUJI_TRANSCRIBE_VERSION` in `native/cmake/upstreams.cmake`, the
-anchors in `native/patches/transcribe.cpp.json`, the `transcribe=0.2.3` literal in
-`native/tests/test_common.cpp` and `ev["transcribe"] == "0.2.3"` in
+anchors in `native/patches/transcribe.cpp.json`, the `transcribe=0.2.4` literal in
+`native/tests/test_common.cpp` and `ev["transcribe"] == "0.2.4"` in
 `native/python/tests/test_sokuji_native.py`, then `native/README.md` "Bumping a pin" end to end
 and a `native-v` release. Then the card as above. An op recording is optional for ASR
 (diagnostics only): `record_ops … asr <arch> …` on the CPU record tree (`-DSOKUJI_RECORD_OPS=ON`,
@@ -502,8 +507,8 @@ id first: the test model lives at `~/.cache/sokuji-native-tests/tts/<card-id>/` 
 every gate keys on that path.
 1. Native: the family must be in the pinned audio.cpp (else a pin bump first: `GIT_TAG` and
    `SOKUJI_AUDIOCPP_VERSION` in `native/cmake/upstreams.cmake`, the anchors in
-   `native/patches/audio.cpp.json`, the `audiocpp=0.7.1` literal in `native/tests/test_common.cpp`
-   and `ev["audiocpp"] == "0.7.1"` in `native/python/tests/test_sokuji_native.py`, then every
+   `native/patches/audio.cpp.json`, the `audiocpp=0.8.2` literal in `native/tests/test_common.cpp`
+   and `ev["audiocpp"] == "0.8.2"` in `native/python/tests/test_sokuji_native.py`, then every
    existing TTS recording re-recorded and the parity reference rebuilt). Add it to
    `AUDIOCPP_MODELS` in `native/cmake/upstreams.cmake` and a `kFamilies[]` row in
    `native/src/sk_tts.cpp` (streaming, clones, transcript_required, default rate, sample_decode,
@@ -563,7 +568,7 @@ TTS: the `quants` dict) and give it a `RUNG_FALLBACK_DTYPES` entry — weight-ca
 spellings only (`q4_K`, not `q4_k_m`); a rung without one silently queries coverage over `{f32}`.
 If the `q4_k_m` set changes length, `WIDEST_FALLBACK` in `native/cmake/gen_ops_data.py` moves with
 it (`test_widest_fallback_matches_gen_ops_data`); the generated `static_assert` against
-`SK_OP_COVERAGE_MAX` is the hard cap, and raising that is an ABI change. A dtype ggml 0.22 lacks
+`SK_OP_COVERAGE_MAX` is the hard cap, and raising that is an ABI change. A dtype ggml 0.25 lacks
 is a ggml pin bump; one it has but `gguf_header.GGML_TYPE_NAMES` lacks is one dict entry. No new
 recording is needed — WEIGHT expands over the caller's dtype set at query time — unless the test
 cache is repointed at the new rung's file, which drifts `dtypes-in-file` and forces a

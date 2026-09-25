@@ -90,7 +90,8 @@ fi
 
 JOBS="$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
 
-# ggml 0.22.0 hard-codes two armv9.2+sme CPU-kernel variants on arm64/Linux. GCC (11 and 13,
+# ggml 0.25.3 (as of native-v1.2.0) hard-codes two armv9.2+sme CPU-kernel variants on
+# arm64/Linux. GCC (11 and 13,
 # at least) rejects `+sme` outright — native/cmake/ggml_options.cmake documents the same wall
 # for OUR separately-fetched ggml copy and works around it by applying
 # native/patches/ggml-drop-sme.json via native/cmake/patch_upstream.py. This is a pure
