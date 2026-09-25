@@ -61,6 +61,10 @@ export async function openMic(
     muted: () => settings.muted(),
     track: () => recorder.getStream()?.getAudioTracks()[0],
     release: async () => {
+      // `Source.stop` stops capturing before its first `await` (roadmap 1e-1): a
+      // `pagehide` never awaits this, and a device switch in flight must not keep
+      // the microphone open while it settles. `quit()` below still ends the recorder.
+      for (const track of recorder.getStream()?.getTracks() ?? []) track.stop();
       unsubscribe();
       // A switch in flight finishes (or fails) before the recorder is disposed.
       await chain;

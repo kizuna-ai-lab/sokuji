@@ -4,19 +4,35 @@ import { openMic, type MicRecorder, type MicSettings, type NoiseSuppression } fr
 
 /** A recorder that records its calls; `push` delivers a chunk while it records, `endTrack` unplugs its device. */
 function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[] } = {}) {
-  const track = new EventTarget() as MediaStreamTrack;
-  const stream = { getAudioTracks: () => [track] } as unknown as MediaStream;
   const calls: string[] = [];
+  const track = Object.assign(new EventTarget(), { stop: vi.fn(() => calls.push('track.stop')) }) as unknown as MediaStreamTrack;
+  const stream = { getAudioTracks: () => [track], getTracks: () => [track] } as unknown as MediaStream;
   let begins = 0;
   let open = false;
   let chunk: ((data: { mono: Int16Array }) => void) | null = null;
+  /** Set by `hangNextBegin`: the next `begin()` awaits this before it resolves. */
+  let hang: Promise<void> | null = null;
   const recorder: MicRecorder = {
     async begin(deviceId) {
       begins += 1;
       calls.push(`begin:${deviceId ?? 'default'}`);
-      if (o.failBegins?.includes(begins)) throw new Error('The selected microphone is no longer available (NotFoundError).');
-      if (o.falseBegins?.includes(begins)) return false;
+      // The stream is live as soon as the device is acquired, before the rest of
+      // `begin()`'s setup finishes (`ModernAudioRecorder.begin` assigns `this.stream`
+      // from its first await, `getUserMedia`, well before it resolves).
       open = true;
+      if (hang) {
+        const pending = hang;
+        hang = null;
+        await pending;
+      }
+      if (o.failBegins?.includes(begins)) {
+        open = false;
+        throw new Error('The selected microphone is no longer available (NotFoundError).');
+      }
+      if (o.falseBegins?.includes(begins)) {
+        open = false;
+        return false;
+      }
       return true;
     },
     async record(fn) {
@@ -47,6 +63,12 @@ function fakeRecorder(o: { failBegins?: number[]; falseBegins?: number[] } = {})
     track,
     push: (pcm = new Int16Array(4)) => chunk?.({ mono: pcm }),
     endTrack: () => track.dispatchEvent(new Event('ended')),
+    /** The next `begin()` call awaits a deferred; returns the function that resolves it. */
+    hangNextBegin: () => {
+      let resolve!: () => void;
+      hang = new Promise<void>((r) => { resolve = r; });
+      return resolve;
+    },
   };
 }
 
@@ -183,5 +205,30 @@ describe('openMic', () => {
     expect(fake.calls).not.toContain('end');
     expect(fake.calls).not.toContain('begin:mic-3');
     expect(listeners.size).toBe(0);
+  });
+
+  it("stops the microphone's track before a switch in flight settles", async () => {
+    const fake = fakeRecorder();
+    const { settings, set } = settingsFixture();
+    const source = await openMic(settings, live(), () => fake.recorder);
+    const resolveBegin = fake.hangNextBegin();
+    set({ deviceId: 'mic-2' });
+    await settle();
+    const stopping = source.stop();
+    // Synchronously: `stop()` has not awaited anything yet, but the track is
+    // already released, so a `pagehide` that never awaits it still works.
+    expect(fake.track.stop).toHaveBeenCalledTimes(1);
+    resolveBegin();
+    await stopping;
+    expect(fake.calls[fake.calls.length - 1]).toBe('quit');
+  });
+
+  it('stops the track before disposing the recorder on a plain stop too', async () => {
+    const fake = fakeRecorder();
+    const { settings } = settingsFixture();
+    const source = await openMic(settings, live(), () => fake.recorder);
+    await source.stop();
+    expect(fake.calls).toContain('track.stop');
+    expect(fake.calls.indexOf('track.stop')).toBeLessThan(fake.calls.indexOf('quit'));
   });
 });

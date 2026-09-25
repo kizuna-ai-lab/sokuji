@@ -454,3 +454,45 @@ describe('Conversation — a degradation from outside the adapter', () => {
     ]);
   });
 });
+
+describe('Conversation — every notice is redacted', () => {
+  const secret = 'upload failed: https://x/y?key=AIzaSyA-secret';
+
+  it("redacts an adapter's degraded notice", () => {
+    const { conv, apply } = make();
+    apply({ kind: 'degraded', payload: { code: 'parse_error', message: secret } });
+    const notice = conv.snapshot().notices[0];
+    expect(notice.message).toContain('[REDACTED]');
+    expect(notice.message).not.toContain('AIzaSyA-secret');
+  });
+
+  it("redacts an adapter's failed notice", () => {
+    const { conv, apply } = make();
+    apply({ kind: 'failed', payload: { message: secret } });
+    const notice = conv.snapshot().notices[0];
+    expect(notice.message).toContain('[REDACTED]');
+    expect(notice.message).not.toContain('AIzaSyA-secret');
+  });
+
+  it('redacts a notice raised outside the adapter, via notice()', () => {
+    const { conv } = make();
+    conv.notice({ severity: 'error', message: secret, code: 'source_ended' });
+    const notice = conv.snapshot().notices[0];
+    expect(notice.message).toContain('[REDACTED]');
+    expect(notice.message).not.toContain('AIzaSyA-secret');
+  });
+
+  it("redacts a source's degradation, via degraded()", () => {
+    const { conv } = make();
+    conv.degraded('app_capture_lost_using_system_audio', secret);
+    const notice = conv.snapshot().notices[0];
+    expect(notice.message).toContain('[REDACTED]');
+    expect(notice.message).not.toContain('AIzaSyA-secret');
+  });
+
+  it('leaves a message with nothing secret unchanged', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
+    expect(conv.snapshot().notices[0].message).toBe('bad frame');
+  });
+});

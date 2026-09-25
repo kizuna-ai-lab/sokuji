@@ -8,6 +8,7 @@ import type { Clock } from '../contract/clock';
 import type { AdapterEvent } from '../contract/events';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
 import { describeCause } from '../diagnostics/describeCause';
+import { redact } from '../diagnostics/redact';
 import { countSkeleton, offsetAfterSkeleton } from '../segmentation/sealCursor';
 import { baseLang } from '../segmentation/sentenceEnd';
 import { fillIn, type Punctuator } from './fillIn';
@@ -252,7 +253,9 @@ export class Conversation {
   }
 
   private addNotice(input: NoticeInput): void {
-    this.notices.push({ id: `${this.opts.session}:${this.opts.leg}:n${++this.noticeCounter}`, at: this.opts.clock.now(), ...input });
+    // Every notice is shown, exported and auto-saved: worker and provider text
+    // is redacted here, once, for every provider (roadmap 1e-2).
+    this.notices.push({ id: `${this.opts.session}:${this.opts.leg}:n${++this.noticeCounter}`, at: this.opts.clock.now(), ...input, message: redact(input.message) });
     this.touch();
   }
 
