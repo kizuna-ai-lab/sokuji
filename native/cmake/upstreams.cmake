@@ -45,12 +45,20 @@ set_property(TARGET ggml ggml-base PROPERTY SOVERSION)
 # own include path, which breaks when it is nested instead of top-level.
 FetchContent_Declare(transcribe
     GIT_REPOSITORY https://github.com/handy-computer/transcribe.cpp.git
-    GIT_TAG        63a44d9239d610b3908e8a66b384924cd4a77217   # v0.2.3
+    # v0.2.4's tag was moved upstream the same day this was pinned (from
+    # 7d37cea2248a1fb6aca9652a1d37debccbbb1ff3 to the commit below); the only
+    # diff between the two is .github/workflows/python-wheels.yml and
+    # pyproject.toml (sdist packaging), verified identical otherwise —
+    # in particular CMakeLists.txt and src/CMakeLists.txt (what
+    # transcribe.cpp.json patches) are byte-for-byte the same. The old SHA is
+    # no longer reachable from any ref, so a fresh clone fails; pin the
+    # tag's current target instead.
+    GIT_TAG        6e45c7cef4266f32e0b00e873d0cb5861ab3331d   # v0.2.4
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
     PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
                    <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/transcribe.cpp.json)
-set(SOKUJI_TRANSCRIBE_VERSION "0.2.3")
+set(SOKUJI_TRANSCRIBE_VERSION "0.2.4")
 
 # transcribe.cpp options: static, dynamic ggml backends, nothing but the library.
 #
