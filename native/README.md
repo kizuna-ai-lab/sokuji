@@ -106,7 +106,10 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   `.so`'s dynamic symbol table): checks that `libsokuji_native` defines none of ggml's core
   symbols itself and that every shared library in the stage is one we ship on purpose,
   appearing exactly once — jiangzhuo's rule that no engine gets its own duplicated ggml.
-  `build.ps1` is not gated.
+  Given the lane (`build.sh` passes it), it also requires the lane's runtime to be complete:
+  `libggml`, `libggml-base`, a CPU backend module, and the Vulkan/Metal module. Those backends
+  are dlopen'd, so no `DT_NEEDED` check sees them, and CI runners have no GPU — a missing GPU
+  module would otherwise ship green under a Vulkan/Metal wheel name. `build.ps1` is not gated.
 - `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built: every
   staged shared object may depend only on glibc/libstdc++/libgcc, the system Vulkan loader
   and its siblings, and may reference no glibc symbol newer than the wheel tag's floor.

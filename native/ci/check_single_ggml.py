@@ -1,6 +1,6 @@
 """Gate: the staged tree carries exactly ONE ggml, and libsokuji_native carries none of it.
 
-usage: check_single_ggml.py <stage_dir>
+usage: check_single_ggml.py <stage_dir> [<lane: none|vulkan|metal>]
 
 jiangzhuo's rule (2026-09-25): no duplicated module code in the sidecar bundle — every engine
 links the single shared ggml. Each of transcribe.cpp, llama.cpp and audio.cpp vendors its own
@@ -12,6 +12,12 @@ strip) and checks:
      audiocpp_compat.h's static-inline shims are local ggml_* symbols by design, which is why
      this checks a fixed set of core names rather than every ggml_* symbol.
   2. every shared library in the stage is one we ship on purpose, and each appears once.
+  3. with a lane given, the lane's runtime is all there: libggml, libggml-base, at least one
+     CPU backend module, and the lane's GPU backend module (vulkan / metal). The backends are
+     dlopen'd modules (GGML_BACKEND_DL), so no DT_NEEDED check sees them, and CI runners have
+     no GPU, so a GPU module missing from the stage would otherwise ship green under a
+     Vulkan/Metal wheel name (a missing CPU module is also caught by the Python suite's
+     test_init_and_devices; a missing GPU module is not).
 Linux and macOS (nm). The Windows lane (build.ps1) is not gated by this script.
 
 macOS also ships libggml-blas.so: ggml sets GGML_BLAS_DEFAULT ON under APPLE, and
@@ -54,8 +60,23 @@ def defined_symbols(lib: pathlib.Path) -> set[str]:
     return full
 
 
-def main(stage: pathlib.Path) -> int:
+LANE_GPU_MODULE = {"none": None, "vulkan": "ggml-vulkan", "metal": "ggml-metal"}
+
+
+def missing_runtime(names: set[str], lane: str) -> list[str]:
+    """Libraries the lane needs at run time that the stage lacks (base names, no suffix)."""
+    stems = {re.sub(r"\.(so|dylib)$", "", n)[len("lib"):] for n in names}
+    need = ["ggml", "ggml-base"] + ([LANE_GPU_MODULE[lane]] if LANE_GPU_MODULE[lane] else [])
+    missing = [f"lib{n}" for n in need if n not in stems]
+    if not any(s == "ggml-cpu" or s.startswith("ggml-cpu-") for s in stems):
+        missing.append("libggml-cpu* (no CPU backend module)")
+    return missing
+
+
+def main(stage: pathlib.Path, lane=None) -> int:
     bad = []
+    if lane is not None and lane not in LANE_GPU_MODULE:
+        raise SystemExit(f"check_single_ggml: unknown lane {lane!r} (expected none|vulkan|metal)")
     libs = [p for p in stage.rglob("*") if p.is_file() and re.search(r"\.(so|dylib)(\.|$)", p.name)]
     seen: dict[str, pathlib.Path] = {}
     for p in libs:
@@ -71,6 +92,9 @@ def main(stage: pathlib.Path) -> int:
         dup = sorted(set(CORE) & defined_symbols(host[0]))
         if dup:
             bad.append(f"{host[0].name} defines ggml core symbols (a second ggml is linked in): {dup}")
+    if lane is not None:
+        for m in missing_runtime({p.name for p in libs}, lane):
+            bad.append(f"lane {lane} is missing a runtime library from the stage: {m}")
     for b in bad:
         print(f"check_single_ggml: {b}", file=sys.stderr)
     if not bad:
@@ -79,4 +103,4 @@ def main(stage: pathlib.Path) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(pathlib.Path(sys.argv[1])))
+    sys.exit(main(pathlib.Path(sys.argv[1]), sys.argv[2] if len(sys.argv) > 2 else None))

@@ -48,8 +48,10 @@ rm -rf "$BUILD/stage" "$ROOT/python/sokuji_native/_native" "$ROOT/python/build"
 cmake --install "$BUILD" --prefix "$BUILD/stage" --component sokuji
 # One shared ggml, nothing duplicated (jiangzhuo's bundle-size rule): checked on the
 # UNSTRIPPED stage, since a statically linked second copy vanishes from a stripped .so's
-# dynamic symbol table. Linux + macOS; build.ps1 is not gated.
-"$PYTHON" "$ROOT/ci/check_single_ggml.py" "$BUILD/stage"
+# dynamic symbol table. With the lane it also requires the lane's runtime modules
+# (CPU backend, and the Vulkan/Metal module), which no DT_NEEDED check and no GPU-less CI
+# runner would notice missing. Linux + macOS; build.ps1 is not gated.
+"$PYTHON" "$ROOT/ci/check_single_ggml.py" "$BUILD/stage" "$LANE"
 if command -v strip >/dev/null && [ "$(uname -s)" != "Darwin" ]; then
     find "$BUILD/stage" -name '*.so*' -exec strip --strip-unneeded {} +
 fi
