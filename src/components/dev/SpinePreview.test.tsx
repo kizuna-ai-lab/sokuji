@@ -129,6 +129,25 @@ describe('SpinePreview', () => {
     }
   });
 
+  // Task 12, plan 1e-3b-1: `&panel=1` draws the new main panel on the app's
+  // session, in a box of its own (SessionPanel.test.tsx covers the panel).
+  it('draws the new main panel on the page with &panel=1', async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, '', '/?preview=spine&panel=1');
+    try {
+      const { container } = render(<SpinePreview />);
+      await waitFor(() => expect(container.querySelector('.spine-panel [data-tour="main-action"]')).not.toBeNull());
+    } finally {
+      window.history.replaceState(null, '', before);
+    }
+  });
+
+  it('draws no main panel without &panel=1', async () => {
+    const { container } = render(<SpinePreview />);
+    await screen.findByLabelText('Script');
+    expect(container.querySelector('.spine-panel')).toBeNull();
+  });
+
   // Task 9, plan 1e-3a: the fake source is the page's default, and it does
   // not need a chosen microphone (1e-3 ruling 5 exempts it).
   it('runs the fake source without asking for a microphone', async () => {

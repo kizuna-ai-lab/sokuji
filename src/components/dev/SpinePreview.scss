@@ -14,6 +14,15 @@
   background: var(--conversation-bg-color, #1f1f1f);
 }
 
+// `&panel=1`: the panel's flex layout needs a height to fill, which
+// MainLayout gives it in the app.
+.spine-panel {
+  height: 640px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #333;
+}
+
 .spine-subtitle,
 .spine-overlay-frame {
   display: block;

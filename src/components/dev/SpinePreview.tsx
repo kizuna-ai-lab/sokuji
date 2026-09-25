@@ -30,6 +30,7 @@ import { ConversationList } from '../Conversation/ConversationList';
 import { useConversationExporter } from '../Conversation/useConversationExporter';
 import { useReadable } from '../Conversation/useReadable';
 import { ExportMenuButton } from '../MainPanel/ExportButton';
+import SessionPanel from '../MainPanel/SessionPanel';
 import { ProviderPanel } from '../providers/ProviderPanel';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import type { SubtitleControls } from '../Subtitle/SubtitleView';
@@ -97,6 +98,11 @@ function useSealProbe(): string {
 
 /** A URL parameter of this page, read when asked — the tests change the URL between renders. */
 const param = (name: string) => new URLSearchParams(window.location.search).get(name);
+
+// `&ui=advanced`: the panel's advanced footer, for its probe — set in memory
+// before the first render and never persisted, so the running app's stored
+// UI mode is untouched.
+if (param('ui') === 'advanced') useSettingsStore.setState({ uiMode: 'advanced' });
 
 /** `&capture=device`: the session runs on the app's own capture (the microphone for the speaker leg) instead of the fake source. */
 const deviceCapture = () => param('capture') === 'device';
@@ -282,10 +288,16 @@ export function SpinePreview() {
   const entry = useProviderStore((s) => (s.selected ? s.entries[s.selected] : undefined));
   const [audio, setAudio] = useState<LoadedAudio | null>(null);
   const autostarted = useRef(false);
-  // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2).
+  // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2);
+  // `&panel=1`: the new main panel on the app's session (plan 1e-3b-1).
   const previewParams = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    return { subtitle: params.get('subtitle') === '1', overlay: params.get('overlay') === '1', compact: params.get('compact') === '1' };
+    return {
+      subtitle: params.get('subtitle') === '1',
+      overlay: params.get('overlay') === '1',
+      compact: params.get('compact') === '1',
+      panel: params.get('panel') === '1',
+    };
   }, []);
   const subtitleControls: SubtitleControls = useMemo(() => ({
     start: () => void runner.start(),
@@ -431,6 +443,11 @@ export function SpinePreview() {
           audio={audio}
           capture={deviceCapture() ? () => ({ ...captured }) : undefined}
         />
+        {previewParams.panel && (
+          <div className="spine-panel">
+            <SessionPanel />
+          </div>
+        )}
         <p data-probe="seals">{sealProbe}</p>
         <PreviewConversation view={session.view} karaoke={session.karaoke} playback={audio?.playback ?? null} />
         {previewParams.subtitle && (
