@@ -64,7 +64,7 @@ def test_version_and_engines():
     ev = sokuji_native.engine_versions()
     assert ev["ggml"] == "0.25.3"
     assert ev["transcribe"] == "0.2.4"
-    assert ev["audiocpp"] == "0.7.1"
+    assert ev["audiocpp"] == "0.8.2"
     assert ev["llama"] == "0.5.0"       # normalised: the upstream tag is v0.5.0
 
 

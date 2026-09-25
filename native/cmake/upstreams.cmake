@@ -95,13 +95,13 @@ set(BUILD_SHARED_LIBS OFF)   # engines are static; ggml above was added while th
 FetchContent_MakeAvailable(llama)
 
 # audio.cpp's CMake adds AUDIOCPP_GGML_SOURCE_DIR as a subdirectory unconditionally
-# (CMakeLists.txt line 283 at v0.7.0, unchanged at v0.7.1); the JSON patch guards that one line with
+# (CMakeLists.txt line 365 at v0.8.2-audio8-perf-hotfix); the JSON patch guards that one line with
 # `if(NOT TARGET ggml)` so it reuses our ggml target instead of building its own copy.
 # The directory-exists check just above that line stays satisfied because we point
 # AUDIOCPP_GGML_SOURCE_DIR at our already-fetched upstream tree below.
 FetchContent_Declare(audiocpp
     GIT_REPOSITORY https://github.com/0xShug0/audio.cpp.git
-    GIT_TAG        c4dde1c2608a97f430f63f486f2912f531cb5e02   # v0.7.1
+    GIT_TAG        ac16661d144f00f84ea0483f3574c374c9868e2d   # v0.8.2-audio8-perf-hotfix
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
     # audio.cpp declares its CLI/server/converter executables unconditionally; we only
@@ -109,7 +109,7 @@ FetchContent_Declare(audiocpp
     EXCLUDE_FROM_ALL
     PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
                    <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/audio.cpp.json)
-set(SOKUJI_AUDIOCPP_VERSION "0.7.1")
+set(SOKUJI_AUDIOCPP_VERSION "0.8.2")   # upstream tag is v0.8.2-audio8-perf-hotfix; normalised like llama's
 
 set(AUDIOCPP_GGML_SOURCE_DIR "${SOKUJI_GGML_SOURCE_DIR}" CACHE PATH "" FORCE)
 set(AUDIOCPP_MODEL_SET "custom" CACHE STRING "" FORCE)
@@ -134,6 +134,10 @@ set(AUDIOCPP_MODELS
     CACHE STRING "" FORCE)
 set(AUDIOCPP_DEPLOYMENT_BUILD ON CACHE BOOL "" FORCE)        # model specs compiled in: no runtime JSON dir to ship
 set(AUDIOCPP_BUILD_NATIVE_MODEL_MANAGER OFF CACHE BOOL "" FORCE)
+# 0.8.x adds a C ABI shared library (include/audiocpp.h). It defaults OFF; forced OFF so a
+# changed upstream default can never put a second engine library into the wheel
+# (single-shared-ggml rule, ci/check_single_ggml.py).
+set(AUDIOCPP_BUILD_C_API OFF CACHE BOOL "" FORCE)
 set(ENGINE_ENABLE_CPU_ALL_VARIANTS OFF CACHE BOOL "" FORCE)  # we own the ggml knobs (ggml_options.cmake)
 set(ENGINE_ENABLE_NATIVE_CPU OFF CACHE BOOL "" FORCE)
 set(ENGINE_ENABLE_CUDA OFF CACHE BOOL "" FORCE)

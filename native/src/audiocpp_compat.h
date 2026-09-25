@@ -1,8 +1,8 @@
 /* audiocpp_compat.h — force-included into every audio.cpp translation unit.
  *
- * audio.cpp v0.7.1 (upstream c4dde1c2; re-scanned at the pin bump, sokuji commit c440bc78)
+ * audio.cpp v0.8.2-audio8-perf-hotfix (upstream ac16661d; re-scanned at the 2026-09-25 pin bump)
  * carries a ggml fork (base
- * 0.12.0) that differs from the pristine upstream ggml 0.22.0 we build on in TWO ways.
+ * 0.12.0) that differs from the pristine upstream ggml 0.25.3 we build on in the ways below.
  * This header covers both, and the distinction matters: (A) fails to LINK if you get it
  * wrong, (B) fails silently.
  *
@@ -40,6 +40,11 @@
  * body, and the only one that changes VALUES at a call site audio.cpp reaches is the
  * conv family in (B). The residue is recorded in native/README.md's compat-header
  * section so a future ggml bump can re-run the same pass instead of re-deriving it.
+ *
+ * RESCAN 2026-09-25 (audio.cpp ac16661d vs ggml 0.25.3): fork-only functions 7 -> 28, of which
+ * (D) shims the reachable ones and (E) stubs the link-only ones; differing shared ggml.c
+ * bodies 20 -> 22, the two new ones harmless (ggml_nbytes adds bytes only for the fork-only
+ * I8_S/I2_S types; ggml_permute is upstream widening int -> int64_t/size_t). (B) unchanged.
  *
  * If a family ever fails parity on upstream ggml, port THAT op's kernel or constructor
  * here — do not resurrect the fork. */
@@ -242,6 +247,107 @@ static inline struct ggml_tensor *ggml_convrot_linear(
         struct ggml_tensor *weight_scale, struct ggml_tensor *bias, int group_size) {
     (void)ctx; (void)weight_i8; (void)input; (void)weight_scale; (void)bias; (void)group_size;
     GGML_ABORT("ggml_convrot_linear: MiniMax-H3 op, not built in sokuji-native");
+}
+
+/* ===== (D) audio.cpp 0.8.2 fork additions our build reaches ========================
+ *
+ * The 0.8.2 fork (audio.cpp ac16661d, base still labelled 0.12.0) adds 21 functions and
+ * 7 enum types over 0.7.1. Only the ones referenced from engine_core (everything under src/framework,
+ * always compiled) or from our nine families are shimmed; the rest live in families we do
+ * not build and never reach the linker. Survey and reachability: the 2026-09-25 bump plan,
+ * docs/superpowers/plans/2026-09-25-native-ggml-0.25-audiocpp-0.8.2-bump.md, fact 6.
+ * Pinned by native/tests/test_audiocpp_compat.cpp.
+ *
+ * Enum values are the fork's verbatim (external/ggml/include/ggml.h at ac16661d). */
+enum ggml_mul_mat_lowering {
+    GGML_MUL_MAT_LOWERING_DEFAULT                    = 0,
+    GGML_MUL_MAT_LOWERING_CUDA_NVFP4_F16_ACTIVATION  = 2,
+    GGML_MUL_MAT_LOWERING_CUDA_TILE_F16_ACCUM_OUTPUT = 3,
+};
+enum ggml_concat_lowering {
+    GGML_CONCAT_LOWERING_DEFAULT            = 0,
+    GGML_CONCAT_LOWERING_CUDA_CONTIGUOUS_4D = 1,
+};
+enum ggml_im2col_2d_lowering {
+    GGML_IM2COL_2D_LOWERING_DEFAULT           = 0,
+    GGML_IM2COL_2D_LOWERING_CUDA_N_K3_PAD1_X8 = 1,
+    GGML_IM2COL_2D_LOWERING_CUDA_N_K3_NOPAD_X8 = 2,
+    GGML_IM2COL_2D_LOWERING_CUDA_F32_K3_TILED = 3,
+};
+enum ggml_im2col_3d_lowering {
+    GGML_IM2COL_3D_LOWERING_DEFAULT             = 0,
+    GGML_IM2COL_3D_LOWERING_CUDA_N1_K3_NOPAD_X8 = 1,
+};
+enum ggml_rms_norm_channels_lowering {
+    GGML_RMS_NORM_CHANNELS_LOWERING_DEFAULT        = 0,
+    GGML_RMS_NORM_CHANNELS_LOWERING_CUDA_COALESCED = 1,
+};
+enum ggml_conv_3d_concat_pad_spatial_gemm_lowering {
+    GGML_CONV_3D_CONCAT_PAD_SPATIAL_GEMM_LOWERING_DEFAULT         = 0,
+    GGML_CONV_3D_CONCAT_PAD_SPATIAL_GEMM_LOWERING_CUDA_C48        = 1,
+    GGML_CONV_3D_CONCAT_PAD_SPATIAL_GEMM_LOWERING_CUDA_TILED_C48  = 2,
+};
+
+/* Lowering hints. In the fork each writes one op param that only CUDA kernels read
+ * (e.g. ggml_mul_mat_set_lowering: ggml_set_op_params_i32(a, 1, lowering)); upstream kernels
+ * have no such param, so the faithful port is to write nothing. Callers gate them on
+ * CUDA-only config flags (linear_module.cpp:94, structural_modules.cpp:340), and we build no
+ * CUDA lane. */
+static inline void ggml_mul_mat_set_lowering(struct ggml_tensor *a, enum ggml_mul_mat_lowering l) { (void)a; (void)l; }
+static inline void ggml_concat_set_lowering(struct ggml_tensor *t, enum ggml_concat_lowering l) { (void)t; (void)l; }
+static inline void ggml_im2col_2d_set_lowering(struct ggml_tensor *t, enum ggml_im2col_2d_lowering l) { (void)t; (void)l; }
+static inline void ggml_im2col_3d_set_lowering(struct ggml_tensor *t, enum ggml_im2col_3d_lowering l) { (void)t; (void)l; }
+static inline void ggml_rms_norm_channels_set_lowering(struct ggml_tensor *t, enum ggml_rms_norm_channels_lowering l) { (void)t; (void)l; }
+static inline void ggml_conv_3d_concat_pad_spatial_gemm_set_lowering(
+        struct ggml_tensor *t, enum ggml_conv_3d_concat_pad_spatial_gemm_lowering l) { (void)t; (void)l; }
+
+/* Fork: acc += a*b written in place into acc's memory (GGML_OP_MUL_MAT_ACC, a view of acc).
+ * Reached only on Metal, by conv_modules.cpp's per-tap conv1d fast path when
+ * in_channels >= 64 && output_frames > 8; the line after that call site is the fork's own
+ * non-fused spelling, which is exactly this. Same F32 sum, one extra node, no aliasing —
+ * the caller only ever uses the returned tensor. */
+static inline struct ggml_tensor *ggml_mul_mat_acc(
+        struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *b, struct ggml_tensor *acc) {
+    return ggml_add(ctx, acc, ggml_mul_mat(ctx, a, b));
+}
+
+/* Fork: a fused GGML_UNARY_OP_ROUND_BF16, always F32 out. Its own header comment and its
+ * caller (qwen_decoder.cpp:281-283) define it as the f32 -> bf16 -> f32 cast round trip,
+ * which is what this builds. Reached by qwen_decoder (policy.fused_round) and by
+ * qwen_causal_decode_runtime's non-Metal bf16 readback rounding. */
+static inline struct ggml_tensor *ggml_round_bf16(struct ggml_context *ctx, struct ggml_tensor *a) {
+    return ggml_cast(ctx, ggml_cast(ctx, a, GGML_TYPE_BF16), GGML_TYPE_F32);
+}
+
+/* ===== (E) fork ops referenced by engine_core but reachable only from families we do not
+ * build: they must link, and reaching one is a bug, not a fallback (same rule as the
+ * MiniMax-H3 stubs above). */
+static inline struct ggml_tensor *ggml_rope_interleaved_pairs(
+        struct ggml_context *ctx, struct ggml_tensor *even, struct ggml_tensor *odd,
+        struct ggml_tensor *cos, struct ggml_tensor *sin) {
+    (void)ctx; (void)even; (void)odd; (void)cos; (void)sin;
+    GGML_ABORT("ggml_rope_interleaved_pairs: LiveAvatar op, not built in sokuji-native");
+}
+static inline struct ggml_tensor *ggml_rms_norm_channels(
+        struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *gamma, float eps) {
+    (void)ctx; (void)a; (void)gamma; (void)eps;
+    GGML_ABORT("ggml_rms_norm_channels: Wan video VAE op, not built in sokuji-native");
+}
+static inline struct ggml_tensor *ggml_rms_norm_channels_silu(
+        struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *gamma, float eps) {
+    (void)ctx; (void)a; (void)gamma; (void)eps;
+    GGML_ABORT("ggml_rms_norm_channels_silu: Wan video VAE op, not built in sokuji-native");
+}
+static inline struct ggml_tensor *ggml_rms_norm_channels_add_bias_silu(
+        struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *bias, struct ggml_tensor *gamma, float eps) {
+    (void)ctx; (void)a; (void)bias; (void)gamma; (void)eps;
+    GGML_ABORT("ggml_rms_norm_channels_add_bias_silu: Wan video VAE op, not built in sokuji-native");
+}
+static inline struct ggml_tensor *ggml_conv_3d_concat_pad_spatial_gemm_ex(
+        struct ggml_context *ctx, struct ggml_tensor *a, struct ggml_tensor *b, struct ggml_tensor *w,
+        int lp0, int rp0, int lp1, int rp1, int lp2, int rp2, enum ggml_type dst_type) {
+    (void)ctx; (void)a; (void)b; (void)w; (void)lp0; (void)rp0; (void)lp1; (void)rp1; (void)lp2; (void)rp2; (void)dst_type;
+    GGML_ABORT("ggml_conv_3d_concat_pad_spatial_gemm_ex: Wan video VAE op, not built in sokuji-native");
 }
 
 /* ===== (C) ggml_sub — upstream requires a row-contiguous src0, ruling R13 ==========

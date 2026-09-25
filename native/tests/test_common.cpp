@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
     sk_free(buf);                                                     // must accept malloc'd memory
     sk_free(nullptr);                                                 // and null
 
-    assert(std::strstr(sk_engine_versions(), "audiocpp=0.7.1") != nullptr);
+    assert(std::strstr(sk_engine_versions(), "audiocpp=0.8.2") != nullptr);
     const char *fams[32];
     int nf = sk_audio_families(fams, 32);
     assert(nf >= 10);                                                 // may include companion families too

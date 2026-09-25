@@ -52,6 +52,15 @@ target_include_directories(test_ops_format PRIVATE ../src ../include)
 target_link_libraries(test_ops_format PRIVATE ggml)
 add_test(NAME test_ops_format COMMAND test_ops_format)
 
+# The audio.cpp compat shims (src/audiocpp_compat.h (D)/(E)) against the fork's documented
+# equivalents, on the ggml we build. Header-only, so compiled straight in, with ggml-impl.h
+# from the ggml source tree like the engine targets that force-include it.
+add_executable(test_audiocpp_compat test_audiocpp_compat.cpp)
+target_include_directories(test_audiocpp_compat PRIVATE ../src ${SOKUJI_GGML_SOURCE_DIR}/src)
+target_link_libraries(test_audiocpp_compat PRIVATE ggml)
+add_test(NAME test_audiocpp_compat COMMAND test_audiocpp_compat ${CMAKE_BINARY_DIR}/lib)
+set_tests_properties(test_audiocpp_compat PROPERTIES ENVIRONMENT "GGML_BACKEND_PATH=${CMAKE_BINARY_DIR}/lib")
+
 # Spec A §3.2: the op-recording driver. Only the SOKUJI_RECORD_OPS configure builds it —
 # that variant rewires ggml_backend_graph_compute inside audio.cpp and never ships.
 # Not an add_test: it is run by hand, once per family, to regenerate src/ops/*.ops.
