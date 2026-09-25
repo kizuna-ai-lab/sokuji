@@ -5,10 +5,14 @@ set(FETCHCONTENT_QUIET OFF)
 #
 # GIT_SHALLOW with a SHA: CMake clones `--depth 1 --no-single-branch` (every branch tip
 # and every tag, one commit deep) and then checks the SHA out. That works only while each
-# pin is a commit some tag or branch tip points at — all four below are release-tag
-# commits, which is what the pin comments record. A mid-history SHA fails at configure
-# with "Failed to checkout tag: '<sha>'"; if a pin ever has to be one, drop GIT_SHALLOW
-# for that upstream. Kept because a full llama.cpp history is several hundred MB per lane.
+# pin is a commit some tag or branch tip points at — three of the four below (ggml,
+# llama.cpp, audio.cpp) are release-tag commits fetched shallow this way, which is what
+# their pin comments record. transcribe.cpp is the exception: it is pinned to its release
+# commit on main, not to the v0.2.4 tag, because that tag keeps moving past the commit
+# (see its own comment below), so it is fetched without GIT_SHALLOW. A mid-history SHA
+# fails at configure with "Failed to checkout tag: '<sha>'"; if a pin ever has to be one,
+# drop GIT_SHALLOW for that upstream. Kept because a full llama.cpp history is several
+# hundred MB per lane.
 set(_ggml_patch "")
 if(SOKUJI_GGML_PATCH_SPEC)
     # SOKUJI_GGML_PATCH_SPEC is a LIST. Interpolating it inside the path would prefix
