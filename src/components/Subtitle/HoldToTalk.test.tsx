@@ -64,4 +64,92 @@ describe('HoldToTalk', () => {
     pointerDown(button, { pointerType: 'touch', button: 0 });
     expect(onPress).toHaveBeenCalledTimes(2);
   });
+
+  it('holds on Space while focused', () => {
+    const onPress = vi.fn();
+    const onRelease = vi.fn();
+    render(<HoldToTalk onPress={onPress} onRelease={onRelease} />);
+    const button = screen.getByRole('button') as HTMLButtonElement;
+    button.focus();
+    // Auto-repeat: the browser fires keydown again and again while a key stays down.
+    fireEvent.keyDown(button, { key: ' ' });
+    fireEvent.keyDown(button, { key: ' ' });
+    fireEvent.keyDown(button, { key: ' ' });
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(button.textContent).toBe('Release');
+    fireEvent.keyUp(button, { key: ' ' });
+    expect(onRelease).toHaveBeenCalledTimes(1);
+    expect(button.textContent).toBe('Hold');
+  });
+
+  it('holds on Enter the same way', () => {
+    const onPress = vi.fn();
+    const onRelease = vi.fn();
+    render(<HoldToTalk onPress={onPress} onRelease={onRelease} />);
+    const button = screen.getByRole('button');
+    button.focus();
+    fireEvent.keyDown(button, { key: 'Enter' });
+    expect(onPress).toHaveBeenCalledTimes(1);
+    fireEvent.keyUp(button, { key: 'Enter' });
+    expect(onRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes the key from the button', () => {
+    render(<HoldToTalk onPress={() => {}} onRelease={() => {}} />);
+    const button = screen.getByRole('button');
+    expect(fireEvent.keyDown(button, { key: ' ' })).toBe(false);
+    expect(fireEvent.keyUp(button, { key: ' ' })).toBe(false);
+  });
+
+  it('leaves every other key alone', () => {
+    const onPress = vi.fn();
+    render(<HoldToTalk onPress={onPress} onRelease={() => {}} />);
+    const button = screen.getByRole('button');
+    expect(fireEvent.keyDown(button, { key: 'a' })).toBe(true);
+    expect(fireEvent.keyDown(button, { key: 'Escape' })).toBe(true);
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('gives focus back after a keyboard release', () => {
+    render(<HoldToTalk onPress={() => {}} onRelease={() => {}} />);
+    const button = screen.getByRole('button') as HTMLButtonElement;
+    button.focus();
+    fireEvent.keyDown(button, { key: ' ' });
+    fireEvent.keyUp(button, { key: ' ' });
+    expect(document.activeElement).not.toBe(button);
+  });
+
+  it('gives focus back after a pointer release', () => {
+    render(<HoldToTalk onPress={() => {}} onRelease={() => {}} />);
+    const button = screen.getByRole('button') as HTMLButtonElement;
+    button.focus();
+    fireEvent.pointerDown(button);
+    fireEvent.pointerUp(button);
+    expect(document.activeElement).not.toBe(button);
+  });
+
+  it('ends a key hold when the button loses focus', () => {
+    const onRelease = vi.fn();
+    render(<HoldToTalk onPress={() => {}} onRelease={onRelease} />);
+    const button = screen.getByRole('button') as HTMLButtonElement;
+    button.focus();
+    fireEvent.keyDown(button, { key: ' ' });
+    fireEvent.blur(button);
+    expect(onRelease).toHaveBeenCalledTimes(1);
+    fireEvent.keyUp(button, { key: ' ' });
+    expect(onRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not press again from a key while the pointer holds', () => {
+    const onPress = vi.fn();
+    const onRelease = vi.fn();
+    render(<HoldToTalk onPress={onPress} onRelease={onRelease} />);
+    const button = screen.getByRole('button');
+    fireEvent.pointerDown(button);
+    expect(onPress).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(button, { key: ' ' });
+    expect(onPress).toHaveBeenCalledTimes(1);
+    fireEvent.keyUp(button, { key: ' ' });
+    expect(onRelease).toHaveBeenCalledTimes(1);
+  });
 });
