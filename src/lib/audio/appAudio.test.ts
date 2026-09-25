@@ -26,6 +26,7 @@ const AUDIO = {
     { deviceId: 'monitor-1', label: 'Headphones' },
     { deviceId: 'cable-1', label: 'CABLE Input (VB-Audio Virtual Cable)', isVirtual: true },
   ],
+  selectedParticipantSource: null as { deviceId: string; label: string } | null,
 };
 const SWITCHES = { meeting: true, participantSpeech: false };
 
@@ -59,6 +60,27 @@ describe('readRouting', () => {
       .toEqual({ on: false, ratio: 0.2 });
     expect(readRouting({ ...AUDIO, isRealVoicePassthroughEnabled: false, realVoicePassthroughVolume: 0.2 }, SWITCHES, 'electron', 'push-to-talk').passthrough)
       .toEqual({ on: false, ratio: 0.2 });
+  });
+
+  // 1e-3b-2 ruling 7: a whole-system participant capture on Electron would
+  // recapture Other's own translation played on the real device and
+  // translate it again as Other, so the switch's "on" is honoured only while
+  // the chosen source is one application.
+  it("blocks participant speech on Electron under a whole-system participant capture, on or with nothing selected", () => {
+    const withSwitch = { meeting: true, participantSpeech: true };
+    expect(readRouting({ ...AUDIO, selectedParticipantSource: null }, withSwitch, 'electron', 'auto').participantSpeech).toBe(false);
+    expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } }, withSwitch, 'electron', 'auto').participantSpeech).toBe(false);
+  });
+
+  it('allows participant speech on Electron once an application source is chosen', () => {
+    const withSwitch = { meeting: true, participantSpeech: true };
+    expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'app:42', label: 'App' } }, withSwitch, 'electron', 'auto').participantSpeech).toBe(true);
+  });
+
+  it('is unaffected by the participant source outside Electron', () => {
+    const withSwitch = { meeting: true, participantSpeech: true };
+    expect(readRouting({ ...AUDIO, selectedParticipantSource: null }, withSwitch, 'extension', 'auto').participantSpeech).toBe(true);
+    expect(readRouting({ ...AUDIO, selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } }, withSwitch, 'web', 'auto').participantSpeech).toBe(true);
   });
 });
 

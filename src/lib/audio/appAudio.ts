@@ -34,7 +34,7 @@ export interface AppAudio {
 }
 
 export function readRouting(
-  audio: Pick<AudioState, 'mode' | 'isMonitorMuted' | 'isRealVoicePassthroughEnabled' | 'realVoicePassthroughVolume' | 'selectedMonitorDevice' | 'audioMonitorDevices'>,
+  audio: Pick<AudioState, 'mode' | 'isMonitorMuted' | 'isRealVoicePassthroughEnabled' | 'realVoicePassthroughVolume' | 'selectedMonitorDevice' | 'audioMonitorDevices' | 'selectedParticipantSource'>,
   switches: { meeting: boolean; participantSpeech: boolean },
   platform: Platform,
   turnMode: TurnMode,
@@ -44,7 +44,11 @@ export function readRouting(
     // Today's rule: the monitor is heard only in speaker mode, so a
     // whole-system participant capture never hears it.
     monitor: audio.mode === 'speaker' && !audio.isMonitorMuted,
-    participantSpeech: switches.participantSpeech,
+    // Other's translation on the real device is recaptured by a whole-system
+    // participant capture and translated again as Other — the replay gate's
+    // reason (plan 1e-3b-2 ruling 7). An application capture that falls back
+    // to the whole system mid-run is not seen here: a follow-up.
+    participantSpeech: switches.participantSpeech && (platform !== 'electron' || !!audio.selectedParticipantSource?.deviceId.startsWith('app:')),
     // 1e-3 ruling 4, today's rule (`isPassthroughActive`): under push-to-translate
     // the original voice is on at full level whenever the key is not held (the
     // route closes while held), whatever the passthrough toggle says.

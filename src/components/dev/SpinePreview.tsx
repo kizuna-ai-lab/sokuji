@@ -10,6 +10,7 @@ import type { OpenSource } from '../../lib/session/source';
 import type { SubtitleSession } from '../../lib/subtitle/session';
 import { messagePortWire, publishSubtitles } from '../../lib/subtitle/wire';
 import type { Entry } from '../../lib/projection/types';
+import type { EngineSlot } from '../../lib/provider/types';
 import type { ConversationViewState, Readable } from '../../lib/view/conversationView';
 import { displayItems } from '../../lib/view/filter';
 import type { KaraokeState } from '../../lib/view/karaoke';
@@ -32,6 +33,7 @@ import { useReadable } from '../Conversation/useReadable';
 import { ExportMenuButton } from '../MainPanel/ExportButton';
 import SessionPanel from '../MainPanel/SessionPanel';
 import { ProviderPanel } from '../providers/ProviderPanel';
+import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } from '../Settings/ProviderArea';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import type { SubtitleControls } from '../Subtitle/SubtitleView';
 import { configureAppSession, getAppSession, type LoadedAudio } from '../../app/session';
@@ -260,7 +262,12 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact }: {
  * session's punctuator is on disk for a `sentences` cut — a dry run of plan
  * 1e-3's own wiring. `&monitor=1` writes the stored monitor switch (the old
  * app reads the same key), so it outlives the page — as `&autosave=1` and
- * `&turn=` do.
+ * `&turn=` do. `&settings=simple|advanced` (plan 1e-3b-2 Task 3) draws the
+ * Settings blocks the app's two layouts show, in place of `ProviderPanel`:
+ * `simple` is `SessionSettingsGeneral` (a chip pushes `SessionEnginePage`,
+ * with a back row, the way Simple mode's own list does), `advanced` is
+ * `SessionSettingsProvider` alone (Advanced's Provider tab — drawing the
+ * General tab's blocks beside it would double `#provider-section`).
  */
 export function SpinePreview() {
   const auth = useAppSessionBridges();
@@ -290,6 +297,9 @@ export function SpinePreview() {
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const entry = useProviderStore((s) => (s.selected ? s.entries[s.selected] : undefined));
   const [audio, setAudio] = useState<LoadedAudio | null>(null);
+  // `&settings=simple|advanced`: Simple mode's own slot state (a chip opens
+  // `SessionEnginePage` in place of the list, the app's own back row returns).
+  const [engineSlot, setEngineSlot] = useState<EngineSlot | null>(null);
   const autostarted = useRef(false);
   // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2);
   // `&panel=1`: the new main panel on the app's session (plan 1e-3b-1).
@@ -456,11 +466,28 @@ export function SpinePreview() {
   }, [entry, audio, runner, providers, urlApplied]);
 
   const sealProbe = useSealProbe();
+  const settingsMode = param('settings');
+  const locked = phase !== 'idle';
 
   return (
     <div className="settings-container spine-preview">
       <div className="settings-body">
-        <ProviderPanel providers={providers} auth={auth} disabled={phase !== 'idle'} />
+        {settingsMode === 'simple' ? (
+          engineSlot ? (
+            <>
+              <button type="button" className="engine-back-row" onClick={() => setEngineSlot(null)}>
+                Back
+              </button>
+              <SessionEnginePage locked={locked} slot={engineSlot} />
+            </>
+          ) : (
+            <SessionSettingsGeneral locked={locked} onOpenSlot={setEngineSlot} />
+          )
+        ) : settingsMode === 'advanced' ? (
+          <SessionSettingsProvider locked={locked} />
+        ) : (
+          <ProviderPanel providers={providers} auth={auth} disabled={locked} />
+        )}
         <SessionControls
           runner={runner}
           turnMode={turnMode}
