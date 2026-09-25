@@ -5,7 +5,7 @@
  * runner owns the phases and ends a run through `close()`.
  */
 import type { AnalyticsEvents } from '../analytics';
-import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/adapter';
+import type { AdapterEvents, AdapterSession, Punctuator, StartRequest } from '../contract/adapter';
 import { eventsFrom, type AdapterEvent } from '../contract/events';
 import { Conversation, DEFAULT_RETENTION, type Retention } from '../conversation/Conversation';
 import type { Leg, LegName } from '../conversation/types';
@@ -183,13 +183,14 @@ export class Run {
     }
 
     host.step('opening');
+    const punctuate = this.punctuatorForRun();
     for (const leg of shape.legs) {
       this.conversations.set(leg, new Conversation({
         leg,
         session: this.id,
         languages: contexts[leg]!.direction,
         clock: deps.clock,
-        punctuate: deps.punctuate,
+        punctuate,
         retention: retentionFor(deps.replayAudio?.get() ?? shape.keepReplayAudio),
         onDiagnostic: (d) => reportWarning('SessionRunner', `${leg}: ${d.message}`, { dedupeKey: `conversation:${d.code}` }),
       }));
@@ -203,7 +204,7 @@ export class Run {
       credentials: credentialsFor(leg),
       clock: deps.clock,
       signal: this.signal,
-      punctuate: deps.punctuate,
+      punctuate,
     }])) as Record<LegName, StartRequest<unknown, unknown>>;
 
     if (shape.legs.length === 2 && p.session?.startBoth) {
@@ -309,6 +310,18 @@ export class Run {
   /** Push-to-translate closes the original-voice route while the key is held; push-to-talk leaves it alone. */
   private hold(held: boolean): void {
     if (this.shape.turnMode === 'push-to-translate') this.deps.playback.held(held);
+  }
+
+  /** The run's punctuator, decided once (`RunnerDeps.punctuationReady`). */
+  private punctuatorForRun(): Punctuator | undefined {
+    const { deps } = this;
+    if (!deps.punctuate || !deps.punctuationReady) return deps.punctuate;
+    try {
+      return deps.punctuationReady() ? deps.punctuate : undefined;
+    } catch (error) {
+      reportWarning('SessionRunner', `The punctuationReady port threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'port:punctuationReady' });
+      return undefined;
+    }
   }
 
   private async openLeg(leg: LegName, request: StartRequest<unknown, unknown>): Promise<void> {

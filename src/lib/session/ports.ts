@@ -65,6 +65,15 @@ export interface RunnerDeps {
   /** The Logs panel's feed; absent, frames are dropped. */
   frames?: FramePort;
   punctuate?: Punctuator;
+  /**
+   * Whether a punctuation model can run for this run (the display is by
+   * sentences, the pack is on disk, the device can hold it). Read once when a
+   * run starts; false — or a getter that throws — and this run gets no
+   * punctuator at all: an always-null one would look like a model still
+   * loading, and LocalInference would cut unpunctuated speech by length
+   * instead of by pause. Absent: `punctuate` alone decides.
+   */
+  punctuationReady?(): boolean;
   newSessionId(): string;
   /** After a run that went live has ended and its legs are final — that run's own legs: where auto-save plugs in. */
   onRunEnded?(legs: readonly Leg[]): Promise<void> | void;

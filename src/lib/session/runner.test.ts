@@ -55,6 +55,7 @@ interface Options {
   ensureReady?: () => Promise<Readiness>;
   onRunEnded?: (legs: readonly Leg[]) => void;
   punctuate?: Punctuator;
+  punctuationReady?: () => boolean;
   playback?: Partial<PlaybackPort>;
   /** Runs alongside the normal tracking; throwing here exercises a throwing analytics port. */
   track?: (event: string, properties: unknown) => void;
@@ -109,6 +110,7 @@ function setup(o: Options = {}) {
     analytics: { track: (event, properties) => { o.track?.(event, properties); tracked.push([event, properties]); } },
     frames: o.frames,
     punctuate: o.punctuate,
+    punctuationReady: o.punctuationReady,
     newSessionId: () => `run${++runs}`,
     onRunEnded: o.onRunEnded,
     timeoutMs: o.timeoutMs ?? 1000,
@@ -313,6 +315,96 @@ describe('runner — starting', () => {
     open();
     await started;
     expect(runner.state.getState().phase).toBe('running');
+  });
+});
+
+describe('runner — punctuation readiness (ruling 2)', () => {
+  /** A provider whose `start` captures the request's punctuate and the events it can drive. */
+  function capturingProvider() {
+    let seenPunctuate: unknown;
+    let captured: AdapterEvents | undefined;
+    const provider = {
+      ...fakeProvider,
+      start: async (request: StartRequest<unknown, unknown> & { punctuate?: unknown }, events: AdapterEvents) => {
+        seenPunctuate = request.punctuate;
+        captured = events;
+        return { appendAudio() {}, appendText() {}, beginTurn() {}, endTurn() {}, cancelTurn() {}, async stop() {}, info: {} };
+      },
+    } as unknown as AnyProvider;
+    return { provider, seenPunctuate: () => seenPunctuate, events: () => captured! };
+  }
+
+  it('punctuationReady false: the adapter gets no punctuate, and a closed segment without a sentence end is not filled', async () => {
+    const punctuate = vi.fn(async () => 'Hello world.');
+    const { provider, seenPunctuate, events } = capturingProvider();
+    const { runner } = setup({ punctuate, punctuationReady: () => false, shape: { provider } });
+    await runner.start();
+    expect(seenPunctuate()).toBeUndefined();
+    events().segmentOpened({ ref: 1, side: 'source' });
+    events().segmentText({ ref: 1, text: 'hello world' });
+    events().segmentClosed({ ref: 1 });
+    await flush();
+    expect(runner.conversation.snapshot()[0].segments[0].text).toBe('hello world');
+    expect(punctuate).not.toHaveBeenCalled();
+  });
+
+  it('punctuationReady true: the adapter gets the punctuator, and the fill-in happens', async () => {
+    const punctuate = vi.fn(async () => 'Hello world.');
+    const { provider, seenPunctuate, events } = capturingProvider();
+    const { runner } = setup({ punctuate, punctuationReady: () => true, shape: { provider } });
+    await runner.start();
+    expect(seenPunctuate()).toBe(punctuate);
+    events().segmentOpened({ ref: 1, side: 'source' });
+    events().segmentText({ ref: 1, text: 'hello world' });
+    events().segmentClosed({ ref: 1 });
+    await flush();
+    expect(runner.conversation.snapshot()[0].segments[0].text).toBe('Hello world.');
+  });
+
+  it('punctuationReady absent: the adapter gets the punctuator, and the fill-in happens (today)', async () => {
+    const punctuate = vi.fn(async () => 'Hello world.');
+    const { provider, seenPunctuate, events } = capturingProvider();
+    const { runner } = setup({ punctuate, shape: { provider } });
+    await runner.start();
+    expect(seenPunctuate()).toBe(punctuate);
+    events().segmentOpened({ ref: 1, side: 'source' });
+    events().segmentText({ ref: 1, text: 'hello world' });
+    events().segmentClosed({ ref: 1 });
+    await flush();
+    expect(runner.conversation.snapshot()[0].segments[0].text).toBe('Hello world.');
+  });
+
+  it('reads punctuationReady exactly once per run: a run keeps its punctuator even once the getter flips', async () => {
+    let ready = true;
+    const punctuationReady = vi.fn(() => ready);
+    const punctuate = vi.fn(async () => 'Hello world.');
+    const { provider, seenPunctuate, events } = capturingProvider();
+    const { runner } = setup({ punctuate, punctuationReady, shape: { provider } });
+    await runner.start();
+    expect(punctuationReady).toHaveBeenCalledTimes(1);
+    expect(seenPunctuate()).toBe(punctuate);
+    ready = false;
+    events().segmentOpened({ ref: 1, side: 'source' });
+    events().segmentText({ ref: 1, text: 'hello world' });
+    events().segmentClosed({ ref: 1 });
+    await flush();
+    expect(runner.conversation.snapshot()[0].segments[0].text).toBe('Hello world.');
+    expect(punctuationReady).toHaveBeenCalledTimes(1);
+  });
+
+  it('a punctuationReady getter that throws is treated as false, reported once, and the start still goes on', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const punctuate = vi.fn(async () => 'Hello world.');
+    const punctuationReady = vi.fn(() => { throw new Error('model check failed'); });
+    const { provider, seenPunctuate } = capturingProvider();
+    const { runner } = setup({ punctuate, punctuationReady, shape: { provider } });
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('running');
+    expect(seenPunctuate()).toBeUndefined();
+    expect(punctuationReady).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain('The punctuationReady port threw');
+    warn.mockRestore();
   });
 });
 
