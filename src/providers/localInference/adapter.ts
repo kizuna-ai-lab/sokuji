@@ -12,6 +12,8 @@ import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnosti
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { redact } from '../../lib/diagnostics/redact';
 import type { TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
+import { gateChars } from '../../lib/segmentation/SentenceStream';
+import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { defaultEngines, type AsrLike, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
 import { speakTranslation } from './speech';
 import type { LocalInferenceConfig } from './config';
@@ -125,9 +127,9 @@ class LocalSession implements AdapterSession {
   private failOpening: ((error: unknown) => void) | null = null;
   /** Notices found while opening, said once the start resolves. */
   private notices: Array<{ code: ClientDiagnosticCode; message: string; cause?: unknown }> = [];
-  /** `translation_unavailable` at most once per session (ruling 5): the start's
-   *  own notice for a transcription-only session, or the first `appendText` in
-   *  an AST or transcription-only session — never both. */
+  /** `translation_unavailable` at most once per session (ruling 5), and only
+   *  for a transcription-only one: the start's own notice, or its first
+   *  `appendText` — never both. */
   private translationUnavailableAnnounced = false;
 
   private nextRef: Ref = 1;
@@ -193,7 +195,7 @@ class LocalSession implements AdapterSession {
         load: () => tts.init(ttsConfig.modelId),
         dispose: () => tts.dispose(),
         loaded: (ready) => {
-          tts.onFatal = (error) => this.fatal(`Speech synthesis stopped: ${error}`);
+          tts.onFatal = (error) => this.ttsDied(tts, error);
           // The worker substitutes its default voice at generate time, so speech still works.
           const { voices } = ready as TtsReady;
           if (voices && voices.length > 0 && !voices.some((v) => v.sid === ttsConfig.speakerId)) {
@@ -262,7 +264,7 @@ class LocalSession implements AdapterSession {
               return;
             }
             if (isGpuOutOfMemory(message)) {
-              fail(new AdapterStartError(GPU_OUT_OF_MEMORY, 'gpu_out_of_memory'));
+              fail(new AdapterStartError(GPU_OUT_OF_MEMORY, 'gpu_out_of_memory', undefined, { cause: error }));
               return;
             }
             fail(new Error(`${init.stage === 'asr' ? 'ASR' : 'Translation'} engine init failed: ${message}`));
@@ -279,7 +281,7 @@ class LocalSession implements AdapterSession {
     if (this.config.translation.kind === 'none') this.announceTranslationUnavailable();
   }
 
-  /** Said once per session: at the start for a transcription-only config, or on the first `appendText` an AST/transcription-only session gets. */
+  /** Said once per transcription-only session: at the start, or on the first `appendText` it gets. */
   private announceTranslationUnavailable(): void {
     if (this.translationUnavailableAnnounced) return;
     this.translationUnavailableAnnounced = true;
@@ -298,21 +300,25 @@ class LocalSession implements AdapterSession {
 
   /**
    * A source segment with exactly the typed text (ruling 5: today trims it,
-   * this contract does not), then a job as for an ASR final. An AST or
-   * transcription-only session has no engine to hand the text to: the source
-   * segment only, and `translation_unavailable` once (never twice with the
-   * start's own notice).
+   * this contract does not), then a job as for an ASR final — whose text is
+   * trimmed, as every ASR job's is. Text that is blank once trimmed is
+   * ignored, as today. An AST or transcription-only session has no engine to
+   * hand the text to: the source segment only. Transcription-only says
+   * `translation_unavailable` once (never twice with the start's own
+   * notice); AST says nothing — that notice says speech is transcribed only,
+   * and AST's speech is translated.
    */
   appendText(text: string): void {
-    if (this.ended) return;
+    if (this.ended || !text.trim()) return;
     const ref = this.nextRef++;
     const origin = this.nextOrigin();
     this.emit('segmentOpened', { ref, side: 'source', origin });
     this.emit('segmentText', { ref, text });
     this.emit('segmentClosed', { ref, origin });
-    if (this.config.translation.kind === 'engine') {
-      this.enqueue({ text, origin });
-    } else {
+    const { kind } = this.config.translation;
+    if (kind === 'engine') {
+      this.enqueue({ text: text.trim(), origin });
+    } else if (kind === 'none') {
       this.announceTranslationUnavailable();
     }
   }
@@ -518,14 +524,18 @@ class LocalSession implements AdapterSession {
   /**
    * The job's text as handed to the translation engine, once the caller has
    * already checked `config.punctuateJobs` and a punctuator is installed
-   * (ruling: "Punctuated jobs"): `fillIn` — which leaves text that already
-   * ends a sentence untouched and discards an answer that alters letters or
-   * digits — raced against a 1 s budget on the request's clock; the raw text
-   * on timeout. The source segment's own display text is untouched either
-   * way: L1 punctuates it for display.
+   * (ruling: "Punctuated jobs"). Today's Auto shape (`punctuateDefinite`):
+   * a text shorter than three sentences' worth of the source language
+   * (`gateChars`) goes raw, without asking the model; a longer one goes
+   * through `fillIn` — which leaves text that already ends a sentence
+   * untouched and discards an answer that alters letters or digits — raced
+   * against a 1 s budget on the request's clock; the raw text on timeout.
+   * The source segment's own display text is untouched either way: L1
+   * punctuates it for display.
    */
-  private async punctuate(text: string, punctuate: Punctuator): Promise<string> {
+  private async punctuate(text: string, punctuator: Punctuator): Promise<string> {
     const { source } = this.request.context.direction;
+    if (text.length < gateChars(source, DEFAULT_CHUNK_SENTENCES)) return text;
     return new Promise<string>((resolve) => {
       let settled = false;
       const cancel = this.request.clock.setTimeout(() => {
@@ -533,7 +543,7 @@ class LocalSession implements AdapterSession {
         settled = true;
         resolve(text);
       }, 1000);
-      fillIn(source, text, punctuate).then((filled) => {
+      fillIn(source, text, punctuator).then((filled) => {
         if (settled) return;
         settled = true;
         cancel();
@@ -547,7 +557,10 @@ class LocalSession implements AdapterSession {
    * resolves (ruling 8), so a range computed on the pre-fill-in text still
    * lands once L1's re-anchor runs. Nothing to say without TTS, or when this
    * leg does not speak — the conformance rule forbids audio then regardless
-   * of what `config.tts` carries.
+   * of what `config.tts` carries. A TTS worker that dies meanwhile
+   * (`ttsDied`) rejects the sentence it was synthesizing, and the speech
+   * ends there: no later sentence is asked for, and the rejected one says
+   * nothing more than the death already did.
    */
   private async speak(ref: Ref, text: string): Promise<void> {
     const { tts } = this;
@@ -560,12 +573,30 @@ class LocalSession implements AdapterSession {
       ttsConfig,
       {
         audio: (pcm, range) => this.emit('audio', { ref, pcm, range }),
-        degraded: (message, cause) => this.emit('degraded', { code: 'tts_degraded', message, cause }),
+        degraded: (message, cause) => {
+          if (this.tts === tts) this.emit('degraded', { code: 'tts_degraded', message, cause });
+        },
         frame: (direction, type, payload) => this.frame(direction, type, payload),
       },
-      () => this.ended,
+      () => this.ended || this.tts !== tts,
       this.request.clock,
     );
+  }
+
+  /**
+   * The TTS worker died. A lost GPU device ends the session, as on any
+   * engine; otherwise speech stops for the session and the text goes on —
+   * the same as TTS failing to load: `tts_degraded`, held until the start
+   * resolves when it dies while other engines still load.
+   */
+  private ttsDied(tts: TtsLike, error: string): void {
+    if (this.ended || this.tts !== tts) return;
+    if (isDeviceLost(error)) { this.fatal(`The GPU device was lost: ${error}`); return; }
+    this.tts = null;
+    tts.dispose();
+    const notice = { code: 'tts_degraded' as const, message: `Speech synthesis stopped: ${error}` };
+    if (this.live) this.emit('degraded', notice);
+    else this.notices.push(notice);
   }
 
   /** The session can no longer work: while opening, the start rejects; after, `failed`, and nothing more. */

@@ -93,9 +93,16 @@ export interface Adapter<C, K> {
   start(request: StartRequest<C, K>, events: AdapterEvents): Promise<AdapterSession>;
 }
 
-/** A start that failed for a reason the user can be told in words: `code` is a notice code. */
+/**
+ * A start that failed for a reason the user can be told in words: `code` is a
+ * notice code. `cause` is the underlying failure, for the console — set here,
+ * not passed to `super`: this project's lib (ES2020) has no `Error` options.
+ */
 export class AdapterStartError extends Error {
-  constructor(message: string, readonly code: string, readonly params?: Record<string, string | number>) {
+  readonly cause?: unknown;
+
+  constructor(message: string, readonly code: string, readonly params?: Record<string, string | number>, options?: { cause?: unknown }) {
     super(message);
+    this.cause = options?.cause;
   }
 }

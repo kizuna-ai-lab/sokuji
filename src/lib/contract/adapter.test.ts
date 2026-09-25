@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from './clock';
-import { SAMPLE_RATE, type Adapter, type AdapterEvents, type AdapterSession } from './adapter';
+import { AdapterStartError, SAMPLE_RATE, type Adapter, type AdapterEvents, type AdapterSession } from './adapter';
 
 /** A no-op adapter: proves the interface can be implemented as written. */
 const nullAdapter: Adapter<{ name: string }, { key: string }> = {
@@ -47,5 +47,13 @@ describe('contract', () => {
     );
     expect(seen).toEqual(['opened', 'text:hi', 'closed']);
     expect(session.info.transport).toBe('none');
+  });
+
+  it('keeps the error a start failed on as the cause of its AdapterStartError', () => {
+    const original = new Error('OrtRun failed: OUT_OF_DEVICE_MEMORY');
+    const error = new AdapterStartError('GPU out of memory', 'gpu_out_of_memory', undefined, { cause: original });
+    expect(error.cause).toBe(original);
+    expect(error.message).toBe('GPU out of memory');
+    expect(new AdapterStartError('no cause', 'code').cause).toBeUndefined();
   });
 });

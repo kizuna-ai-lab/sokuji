@@ -115,10 +115,14 @@ export class FakeTts implements TtsLike {
   /** Zero-based call indices, counted across `generate` and `generateStream`
    *  together, that reject instead of synthesizing. */
   failOn = new Set<number>();
+  /** Set: `generate` stays pending, a sentence still being synthesized, until
+   *  `die()` or `dispose()` rejects it — as the real engine rejects its pending request. */
+  holdGenerate = false;
 
   generateCalls: Array<{ text: string; sid?: number; speed?: number; lang?: string }> = [];
   streamCalls: Array<{ text: string; sid: number; speed: number; lang?: string; voice?: string }> = [];
   private callIndex = 0;
+  private pendingGenerate: Deferred<TtsResult> | null = null;
 
   init(modelId: string): Promise<TtsReady> {
     this.inits.push(modelId);
@@ -131,6 +135,10 @@ export class FakeTts implements TtsLike {
     const index = this.callIndex++;
     this.generateCalls.push({ text, sid, speed, lang });
     if (this.failOn.has(index)) throw new Error(`fake synthesis failed for "${text}"`);
+    if (this.holdGenerate) {
+      this.pendingGenerate = deferred<TtsResult>();
+      return this.pendingGenerate.promise;
+    }
     return { samples: new Float32Array(this.samplesPerSentence), sampleRate: this.rate, generationTimeMs: 0 };
   }
 
@@ -150,8 +158,19 @@ export class FakeTts implements TtsLike {
     }
     return { generationTimeMs: 0 };
   }
-  dispose(): void { this.disposes++; }
-  die(message = 'RuntimeError: unreachable'): void { this.onFatal?.(message); }
+  dispose(): void {
+    this.disposes++;
+    this.rejectPending(new Error('TTS engine disposed'));
+  }
+  /** The worker died: `onFatal` first, then the pending request rejects — the real engine's order. */
+  die(message = 'RuntimeError: unreachable'): void {
+    this.onFatal?.(message);
+    this.rejectPending(new Error(message));
+  }
+  private rejectPending(error: Error): void {
+    this.pendingGenerate?.reject(error);
+    this.pendingGenerate = null;
+  }
 }
 
 /** One of each fake, and the `LocalEngines` that hands them out; `created` lists what the adapter asked for. */

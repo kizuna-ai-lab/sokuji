@@ -3,6 +3,8 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { AdapterStartError, type AdapterSession, type SessionContext } from '../../lib/contract/adapter';
 import { checkConformance, recordConformance, type ConformanceLog } from '../../lib/contract/conformance';
 import { eventsFrom, type AdapterEvent } from '../../lib/contract/events';
+import { gateChars } from '../../lib/segmentation/SentenceStream';
+import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { createLocalInferenceAdapter } from './adapter';
 import { createFakeEngines } from './fakeEngines';
 import type { LocalInferenceConfig } from './config';
@@ -247,12 +249,26 @@ describe('the LocalInference adapter — turns', () => {
   });
 });
 
+/**
+ * A session that cannot translate typed text answers it with its source
+ * segment only (ruling 5), so `text-input-answered` — a source segment with
+ * exactly the text, then a translation segment — fires once per text: the
+ * rule has no exception for such a session (fix-wave report, M5b). Every
+ * other rule must hold.
+ */
+function expectConformantButUntranslated(log: ConformanceLog, context: SessionContext, texts: string[]) {
+  expect(checkConformance(log, context)).toEqual(texts.map((text) => expect.objectContaining({
+    rule: 'text-input-answered',
+    detail: expect.stringContaining(`"${text}"`),
+  })));
+}
+
 describe('the LocalInference adapter — typed text', () => {
-  it('appendText answers typed text with a source segment holding exactly the typed string, then its translation', async () => {
+  it('appendText answers typed text with a source segment holding exactly the typed string, then its translation of the trimmed text', async () => {
     const t = await open();
     t.mark('appendText', '  hi  ');
     t.session.appendText('  hi  ');
-    expect(t.translation.calls.map((c) => c.text)).toEqual(['  hi  ']);
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['hi']);
     t.translation.answer('Hi.');
     await settle();
     expect(content(t.log)).toEqual([
@@ -266,15 +282,35 @@ describe('the LocalInference adapter — typed text', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('an AST session answers typed text with a source segment only, and says translation_unavailable once however often it is called', async () => {
-    const t = await open(makeConfig({ asr: { modelId: 'granite', streaming: false }, translation: { kind: 'ast' } }));
-    t.session.appendText('hi');
-    t.session.appendText('there');
+  it('ignores typed text that is blank once trimmed: no segment, no job', async () => {
+    const t = await open();
+    // No appendText marker: blank text is not text the contract answers (Run.sendText drops it too).
+    t.session.appendText('');
+    t.session.appendText('  \n ');
     await settle();
-    expect(ofKind(t.log, 'segmentOpened').map((p) => p.side)).toEqual(['source', 'source']);
-    expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['translation_unavailable']);
+    expect(content(t.log)).toEqual([]);
     expect(t.translation.calls).toEqual([]);
     expectConformant(t.log, t.context);
+  });
+
+  it('an AST session answers typed text with its source segment only, and says nothing: its speech is translated', async () => {
+    const t = await open(makeConfig({ asr: { modelId: 'granite', streaming: false }, translation: { kind: 'ast' } }));
+    t.mark('appendText', 'hi');
+    t.session.appendText('hi');
+    t.mark('appendText', 'there');
+    t.session.appendText('there');
+    await settle();
+    expect(content(t.log)).toEqual([
+      { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 1, text: 'hi' } },
+      { kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } },
+      { kind: 'segmentOpened', payload: { ref: 2, side: 'source', origin: 'u2' } },
+      { kind: 'segmentText', payload: { ref: 2, text: 'there' } },
+      { kind: 'segmentClosed', payload: { ref: 2, origin: 'u2' } },
+    ]);
+    expect(ofKind(t.log, 'degraded')).toEqual([]);
+    expect(t.translation.calls).toEqual([]);
+    expectConformantButUntranslated(t.log, t.context, ['hi', 'there']);
   });
 
   it('a transcription-only session answers appendText with a source segment only, sharing the start notice', async () => {
@@ -282,56 +318,95 @@ describe('the LocalInference adapter — typed text', () => {
     t.asr.ready();
     const session = await t.starting;
     expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['translation_unavailable']);
+    t.mark('appendText', 'hi');
     session.appendText('hi');
     await settle();
-    expect(ofKind(t.log, 'segmentOpened').map((p) => p.side)).toEqual(['source']);
+    expect(content(t.log)).toEqual([
+      { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
+      { kind: 'segmentText', payload: { ref: 1, text: 'hi' } },
+      { kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } },
+    ]);
     expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['translation_unavailable']);
+    t.mark('stop');
     await session.stop();
-    expectConformant(t.log, t.context);
+    expectConformantButUntranslated(t.log, t.context, ['hi']);
   });
 });
 
 describe('the LocalInference adapter — punctuated jobs', () => {
+  /** Auto's length gate for the session's source language (ja): today's `punctuateDefinite` under Auto. */
+  const GATE = gateChars('ja', DEFAULT_CHUNK_SENTENCES);
+  /** A job text exactly at the gate, with no sentence end: punctuated. */
+  const AT_GATE = 'x'.repeat(GATE);
+
   it("sends the punctuator's answer to the translation engine when punctuateJobs is set and it answers", async () => {
     const punctuate = async (lang: string, text: string) => {
       expect(lang).toBe('ja');
-      return text === 'hello there' ? 'hello there.' : null;
+      return text === AT_GATE ? `${AT_GATE}.` : null;
     };
     const t = await open(makeConfig({ punctuateJobs: true }), auto, punctuate);
-    t.asr.final('hello there');
+    t.asr.final(AT_GATE);
     await settle();
-    expect(t.translation.calls.map((c) => c.text)).toEqual(['hello there.']);
+    expect(t.translation.calls.map((c) => c.text)).toEqual([`${AT_GATE}.`]);
     t.translation.answer('Konnichiwa.');
     await settle();
     expectConformant(t.log, t.context);
   });
 
+  it('sends a text shorter than the gate raw, without asking the punctuator', async () => {
+    const asked: string[] = [];
+    const punctuate = async (_lang: string, text: string) => { asked.push(text); return `${text}.`; };
+    const t = await open(makeConfig({ punctuateJobs: true }), auto, punctuate);
+    const short = 'x'.repeat(GATE - 1);
+    t.asr.final(short);
+    await settle();
+    expect(asked).toEqual([]);
+    expect(t.translation.calls.map((c) => c.text)).toEqual([short]);
+    expectConformant(t.log, t.context);
+  });
+
   it('sends the raw text when punctuateJobs is set but no punctuator is installed', async () => {
     const t = await open(makeConfig({ punctuateJobs: true }));
-    t.asr.final('hello there');
+    t.asr.final(AT_GATE);
     await settle();
-    expect(t.translation.calls.map((c) => c.text)).toEqual(['hello there']);
+    expect(t.translation.calls.map((c) => c.text)).toEqual([AT_GATE]);
     expectConformant(t.log, t.context);
   });
 
   it('sends the raw text once punctuateJobs is off, even with a punctuator installed', async () => {
     const punctuate = async () => 'should never be used';
     const t = await open(makeConfig({ punctuateJobs: false }), auto, punctuate);
-    t.asr.final('hello there');
+    t.asr.final(AT_GATE);
     await settle();
-    expect(t.translation.calls.map((c) => c.text)).toEqual(['hello there']);
+    expect(t.translation.calls.map((c) => c.text)).toEqual([AT_GATE]);
     expectConformant(t.log, t.context);
   });
 
   it('sends the raw text after a 1 s budget on the virtual clock when the punctuator never answers', async () => {
     const neverAnswers = () => new Promise<string | null>(() => {});
     const t = await open(makeConfig({ punctuateJobs: true }), auto, neverAnswers);
-    t.asr.final('hello there');
+    t.asr.final(AT_GATE);
     await settle();
     expect(t.translation.calls).toEqual([]); // still waiting on the budget
     t.clock.advance(1000);
     await settle();
-    expect(t.translation.calls.map((c) => c.text)).toEqual(['hello there']);
+    expect(t.translation.calls.map((c) => c.text)).toEqual([AT_GATE]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a punctuation answer that lands after stop() emits nothing', async () => {
+    let answer: (text: string | null) => void = () => {};
+    const held = () => new Promise<string | null>((resolve) => { answer = resolve; });
+    const t = await open(makeConfig({ punctuateJobs: true }), auto, held);
+    t.asr.final(AT_GATE);
+    await settle();
+    t.mark('stop');
+    await t.session.stop();
+    const before = t.log.length;
+    answer(`${AT_GATE}.`);
+    await settle();
+    expect(t.log.length).toBe(before);
+    expect(t.translation.calls).toEqual([]);
     expectConformant(t.log, t.context);
   });
 });
@@ -403,6 +478,8 @@ describe('the LocalInference adapter — loading', () => {
     const failure = await t.starting.catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(AdapterStartError);
     expect((failure as AdapterStartError).code).toBe('gpu_out_of_memory');
+    // The engine's own error rides along: which model or stage failed survives past the sentence.
+    expect((failure as AdapterStartError).cause).toEqual(new Error('Error: OrtRun failed: OUT_OF_DEVICE_MEMORY'));
     expect([t.asr.disposes, t.translation.disposes, t.tts.disposes]).toEqual([1, 1, 1]);
     expectConformant(t.log, t.context);
   });
@@ -429,6 +506,41 @@ describe('the LocalInference adapter — loading', () => {
     expect(t.tts.disposes).toBe(1);
     expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['tts_degraded']);
     expect(ofKind(t.log, 'loading').map((l) => l.done)).toEqual([1, 2, 3]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('the TTS worker dying while other engines still load degrades too: the start resolves, and the notice is said once after it', async () => {
+    const t = begin(makeConfig({ tts: TTS }), { ...auto, speech: true });
+    t.tts.ready();
+    await settle();
+    t.tts.die('tts worker crashed');
+    expect(ofKind(t.log, 'degraded')).toEqual([]); // held while the start is pending
+    t.asr.ready();
+    t.translation.ready();
+    await t.starting;
+    await settle();
+    expect(ofKind(t.log, 'degraded')).toEqual([
+      expect.objectContaining({ code: 'tts_degraded', message: expect.stringContaining('tts worker crashed') }),
+    ]);
+    const kinds = events(t.log).map((e) => (e.kind === 'frame' ? e.payload.type : e.kind));
+    expect(kinds.indexOf('degraded')).toBeGreaterThan(kinds.indexOf('local.session.opened'));
+    expect(ofKind(t.log, 'failed')).toEqual([]);
+    expect(t.tts.disposes).toBe(1);
+    t.asr.final('一');
+    t.translation.answer('One.');
+    await settle();
+    expect(t.tts.generateCalls).toEqual([]);
+    expect(ofKind(t.log, 'audio')).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a lost GPU device on the TTS worker while opening still rejects the start', async () => {
+    const t = begin(makeConfig({ tts: TTS }), { ...auto, speech: true });
+    t.tts.ready();
+    await settle();
+    t.tts.die('WebGPU device lost: the GPU was reset');
+    await expect(t.starting).rejects.toThrow('device lost');
+    expect([t.asr.disposes, t.translation.disposes, t.tts.disposes]).toEqual([1, 1, 1]);
     expectConformant(t.log, t.context);
   });
 
@@ -542,10 +654,58 @@ describe('the LocalInference adapter — errors', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('the TTS worker dying fails the session', async () => {
+  it('the TTS worker dying degrades to no speech: one tts_degraded, and later jobs translate without audio', async () => {
     const t = await open(makeConfig({ tts: TTS }), { ...auto, speech: true });
+    t.tts.samplesPerSentence = 480;
     t.tts.die('tts worker crashed');
-    expect(ofKind(t.log, 'failed')).toEqual([expect.objectContaining({ message: expect.stringContaining('tts worker crashed') })]);
+    expect(ofKind(t.log, 'degraded')).toEqual([
+      expect.objectContaining({ code: 'tts_degraded', message: 'Speech synthesis stopped: tts worker crashed' }),
+    ]);
+    expect(t.tts.disposes).toBe(1);
+    t.asr.final('一');
+    t.translation.answer('One.');
+    await settle();
+    t.asr.final('二');
+    t.translation.answer('Two.');
+    await settle();
+    expect(ofKind(t.log, 'segmentOpened').map((p) => p.side)).toEqual(['source', 'translation', 'source', 'translation']);
+    expect(ofKind(t.log, 'segmentClosed')).toHaveLength(4);
+    expect(t.tts.generateCalls).toEqual([]);
+    expect(ofKind(t.log, 'audio')).toEqual([]);
+    expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['tts_degraded']);
+    expect(ofKind(t.log, 'failed')).toEqual([]);
+    t.mark('stop');
+    await t.session.stop();
+    expect(t.tts.disposes).toBe(1); // not disposed twice
+    expectConformant(t.log, t.context);
+  });
+
+  it('the TTS worker dying mid-sentence ends that job cleanly: its segment closes, no second notice, the next job runs', async () => {
+    const t = await open(makeConfig({ tts: TTS }), { ...auto, speech: true });
+    t.tts.holdGenerate = true;
+    t.asr.final('一');
+    t.translation.answer('One. Two.');
+    await settle();
+    expect(t.tts.generateCalls.map((c) => c.text)).toEqual(['One.']); // still synthesizing
+    t.tts.die('tts worker crashed');
+    await settle();
+    expect(t.tts.generateCalls.map((c) => c.text)).toEqual(['One.']); // 'Two.' never asked for
+    expect(ofKind(t.log, 'segmentClosed').map((p) => p.ref)).toEqual([1, 2]);
+    expect(ofKind(t.log, 'degraded').map((d) => d.code)).toEqual(['tts_degraded']);
+    t.asr.final('二');
+    t.translation.answer('Two.');
+    await settle();
+    expect(last(ofKind(t.log, 'segmentClosed'))).toEqual({ ref: 4, origin: 'u2' });
+    expect(ofKind(t.log, 'audio')).toEqual([]);
+    expect(ofKind(t.log, 'failed')).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a lost GPU device on the TTS worker still fails the session', async () => {
+    const t = await open(makeConfig({ tts: TTS }), { ...auto, speech: true });
+    t.tts.die('WebGPU device lost: the GPU was reset');
+    expect(ofKind(t.log, 'failed')).toEqual([expect.objectContaining({ message: expect.stringContaining('device lost') })]);
+    expect(ofKind(t.log, 'degraded')).toEqual([]);
     expectConformant(t.log, t.context);
   });
 });
@@ -658,6 +818,22 @@ describe('the LocalInference adapter — stop', () => {
     expect(ofKind(t.log, 'closed')).toEqual([]);
     t.session.appendAudio(new Int16Array(4));
     expect(t.asr.fed).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('endTurn, cancelTurn and appendText after stop() emit nothing and feed nothing', async () => {
+    const t = await open();
+    t.mark('stop');
+    await t.session.stop();
+    const before = t.log.length;
+    t.session.endTurn();
+    t.session.cancelTurn();
+    t.session.appendText('late');
+    await settle();
+    expect(t.log.length).toBe(before);
+    expect(t.asr.fed).toEqual([]);
+    expect(t.asr.flushes).toBe(0);
+    expect(t.translation.calls).toEqual([]);
     expectConformant(t.log, t.context);
   });
 
