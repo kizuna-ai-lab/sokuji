@@ -53,7 +53,7 @@ function stubFeed() {
 /**
  * An overlay's port as `onConnect` hands it over; `null` is a sender with no
  * tab (an `undefined` argument would take the default). `drop()` is Chrome
- * firing this end's `onDisconnect`.
+ * firing this end's `onDisconnect`; `listening()` counts the listeners left on it.
  */
 function makePort(tabId: number | null = 7, name = 'sokuji-subtitle') {
   const messages = new Set<(m: unknown) => void>();
@@ -67,6 +67,7 @@ function makePort(tabId: number | null = 7, name = 'sokuji-subtitle') {
     disconnect: vi.fn(),
     deliver: (m: unknown) => { [...messages].forEach((fn) => fn(m)); },
     drop: () => { [...gone].forEach((fn) => fn()); },
+    listening: () => messages.size + gone.size,
   };
 }
 const sentTypes = (port: ReturnType<typeof makePort>) => port.postMessage.mock.calls.map(([m]) => (m as { type: string }).type);
@@ -161,12 +162,13 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     expect(removeOnConnect).toHaveBeenCalledTimes(1);
     expect(removeOnRemoved).toHaveBeenCalledTimes(1);
     expect(removeOnUpdated).toHaveBeenCalledTimes(1);
-    // A failed enter forgets its tab: an overlay that connects anyway has no
-    // side panel to be published to…
+    // A failed enter forgets its tab: an overlay that connects anyway is not
+    // this side panel's, so it is left alone…
     const stray = makePort(7);
     listeners.onConnect[0](stray);
-    expect(stray.disconnect).toHaveBeenCalledTimes(1);
+    expect(stray.disconnect).not.toHaveBeenCalled();
     expect(stray.postMessage).not.toHaveBeenCalled();
+    expect(stray.listening()).toBe(0);
     // …and the next enter() is not short-circuited by a tab it never reached.
     sendMessage.mockClear();
     await surface.enter();
@@ -200,7 +202,10 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     expect((port.postMessage.mock.calls[1][0] as { session: unknown }).session).toEqual(running);
   });
 
-  it('disconnects a port from another tab, or from no tab, and never posts to it', async () => {
+  // Chrome's "Port lifetime": a `disconnect()` on any one receiving port fires
+  // `onDisconnect` only at the sender — so a refusal by disconnect would close
+  // the other tab's live overlay, and its own side panel would never learn.
+  it('leaves a port from another tab, or from no tab, alone: never disconnected, never posted to, nothing listening', async () => {
     await entered();
     const otherTab = makePort(8);
     connect(otherTab);
@@ -208,12 +213,27 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     connect(noTab);
     await flush();
     for (const port of [otherTab, noTab]) {
-      expect(port.disconnect).toHaveBeenCalledTimes(1);
+      expect(port.disconnect).not.toHaveBeenCalled();
       expect(port.postMessage).not.toHaveBeenCalled();
+      expect(port.listening()).toBe(0);
     }
     const own = makePort(7);
     connect(own);
     expect(sentTypes(own)).toEqual(FIRST_SENDS);
+  });
+
+  it("keeps publishing to its own overlay when another tab's overlay connects after it", async () => {
+    await entered();
+    const own = makePort(7);
+    connect(own);
+    const foreign = makePort(8);
+    connect(foreign);
+    expect(own.disconnect).not.toHaveBeenCalled();
+    expect(foreign.disconnect).not.toHaveBeenCalled();
+    const ownPosts = own.postMessage.mock.calls.length;
+    session.set({ ...running, since: 9 });
+    expect(own.postMessage).toHaveBeenCalledTimes(ownPosts + 1);
+    expect(foreign.postMessage).not.toHaveBeenCalled();
   });
 
   it('leaves a port of another name alone', async () => {
@@ -297,6 +317,8 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     const p1Posts = p1.postMessage.mock.calls.length;
     session.set({ ...running, since: 9 });
     expect(p1.postMessage).toHaveBeenCalledTimes(p1Posts);
+    // Nothing is left listening on the closed port: the publisher's, nor the surface's own.
+    expect(p1.listening()).toBe(0);
   });
 
   it('tears the publisher down when the tab closes', async () => {
@@ -332,7 +354,7 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
       expect(sentTypes(own)).toEqual(FIRST_SENDS);
       const active = makePort(7);
       connect(active);
-      expect(active.disconnect).toHaveBeenCalledTimes(1);
+      expect(active.disconnect).not.toHaveBeenCalled();
       expect(active.postMessage).not.toHaveBeenCalled();
     } finally {
       window.history.replaceState(null, '', '/');
@@ -361,5 +383,22 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     expect(sentTypes(port)).toEqual(FIRST_SENDS);
     arrived();
     await entering;
+  });
+
+  it('closes the publisher an in-flight enter accepted when subtitle:enter then fails', async () => {
+    let refused!: (error: Error) => void;
+    sendMessage.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { refused = reject; }));
+    const entering = new ExtensionContentScriptSubtitleSurface().enter();
+    await vi.waitFor(() => expect(listeners.onConnect).toHaveLength(1));
+    const port = makePort(7);
+    connect(port);
+    port.deliver({ type: 'subtitle:turn-press' });
+    refused(new Error('Could not establish connection. Receiving end does not exist.'));
+    await expect(entering).rejects.toMatchObject({ code: 'CONTENT_SCRIPT_UNAVAILABLE' });
+    expect(feed.release).toHaveBeenCalledTimes(1);
+    expect(port.disconnect).toHaveBeenCalledTimes(1);
+    const posts = port.postMessage.mock.calls.length;
+    session.set({ ...running, since: 9 });
+    expect(port.postMessage).toHaveBeenCalledTimes(posts);
   });
 });

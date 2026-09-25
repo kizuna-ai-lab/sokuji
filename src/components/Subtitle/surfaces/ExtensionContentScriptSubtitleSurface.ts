@@ -36,25 +36,27 @@ export const CONTENT_SCRIPT_UNAVAILABLE = 'CONTENT_SCRIPT_UNAVAILABLE';
  * the app session to that overlay over a `chrome.runtime` port — the wire of
  * `src/lib/subtitle/wire.ts`, with the side panel's interface language. It
  * reaches the session through `src/app/subtitleFeed.ts`, never the root
- * itself: `settingsStore` imports this class (ruling 1).
+ * itself: `settingsStore` imports this class (ruling 1). Another tab's
+ * overlay is left alone rather than refused, and that has a cost: while
+ * another tab's side panel lives, its unheld receiving end keeps an
+ * overlay's channel open after the overlay's own side panel goes, so that
+ * overlay shows its last state until the user exits.
  */
 export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
   private targetTabId: number | null = null;
-  private publisher: { wire: WirePort; stop(): void } | null = null;
+  private publisher: { wire: WirePort; stop(): void; forget(): void } | null = null;
 
   private handleConnect = (port: IncomingPort) => {
     // Another extension port is not this surface's to judge.
     if (port.name !== SUBTITLE_PORT) return;
     // One overlay per tab (ruling 4): `runtime.connect` reaches every
     // extension page that listens, so a side panel in subtitle mode for
-    // another meeting tab hears this overlay too. Refuse it by disconnecting —
-    // an overlay's port stays open while any receiving end holds it, so an end
-    // left open here would keep the overlay alive after its own side panel
-    // let it go (choice 2).
-    if (this.targetTabId === null || port.sender?.tab?.id !== this.targetTabId) {
-      port.disconnect();
-      return;
-    }
+    // another meeting tab hears this overlay too. Leave it alone — no
+    // disconnect, no listener, no reference: a `disconnect()` on any one
+    // receiving port fires `onDisconnect` only at the sender (Chrome's "Port
+    // lifetime"), so a refusal by disconnect would close that tab's live
+    // overlay, and its own side panel would never learn.
+    if (this.targetTabId === null || port.sender?.tab?.id !== this.targetTabId) return;
     const feed = currentSubtitleFeed();
     if (!feed) {
       // Nothing to show: closing the port unmounts the overlay (its sidepanel-gone; choice 5).
@@ -72,13 +74,13 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
       release: feed.release,
       exit: () => void useSettingsStore.getState().exitSubtitleMode(),
     });
-    const current = { wire, stop };
-    this.publisher = current;
     // The publisher stops itself when the overlay goes (a tab reload, the tab
     // closing); forget it then, so a teardown does not close it a second time.
-    wire.onDisconnect(() => {
+    const forget = wire.onDisconnect(() => {
       if (this.publisher === current) this.publisher = null;
     });
+    const current = { wire, stop, forget };
+    this.publisher = current;
   };
 
   private handleTabRemoved = (tabId: number) => {
@@ -128,6 +130,8 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
       chrome.runtime.onConnect.removeListener(this.handleConnect);
       chrome.tabs.onRemoved.removeListener(this.handleTabRemoved);
       chrome.tabs.onUpdated.removeListener(this.handleTabUpdated);
+      // An overlay may have connected while the message was in flight.
+      this.closePublisher();
       this.targetTabId = null;
       const err = new Error(
         rawError instanceof Error ? rawError.message : String(rawError),
@@ -180,12 +184,13 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
    * Stops the publisher, then closes its port — in that order (choice 1):
    * `disconnect()` fires no `onDisconnect` on the end that calls it, so a
    * publisher not stopped first would keep its subscriptions and an
-   * outstanding press.
+   * outstanding press. The surface's own forgetting listener goes with it.
    */
   private closePublisher(): void {
     const current = this.publisher;
     if (!current) return;
     this.publisher = null;
+    current.forget();
     current.stop();
     current.wire.close();
   }
