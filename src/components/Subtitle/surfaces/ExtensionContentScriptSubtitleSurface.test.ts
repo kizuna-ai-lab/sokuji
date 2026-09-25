@@ -172,8 +172,16 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     // …and the next enter() is not short-circuited by a tab it never reached.
     sendMessage.mockClear();
     await surface.enter();
-    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(sendMessage.mock.calls.map(([, m]) => (m as { type: string }).type)).toEqual(['subtitle:exit', 'subtitle:enter']);
     expect(sendMessage).toHaveBeenCalledWith(7, { type: 'subtitle:enter' });
+  });
+
+  it('enter() sends subtitle:exit before subtitle:enter, to this tab, so a stale host from an earlier session is cleared first (final-fix review Minor 1)', async () => {
+    const surface = new ExtensionContentScriptSubtitleSurface();
+    await surface.enter();
+    expect(sendMessage.mock.calls.map(([, m]) => (m as { type: string }).type)).toEqual(['subtitle:exit', 'subtitle:enter']);
+    expect(sendMessage).toHaveBeenNthCalledWith(1, 7, { type: 'subtitle:exit' });
+    expect(sendMessage).toHaveBeenNthCalledWith(2, 7, { type: 'subtitle:enter' });
   });
 
   it('exit() sends subtitle:exit to the captured tab', async () => {
@@ -243,6 +251,17 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     await flush();
     expect(port.disconnect).not.toHaveBeenCalled();
     expect(port.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('leaves a foreign-tab port alone even when no feed is attached: the tab check runs before the feed check (review Minor 6)', async () => {
+    off();
+    await entered();
+    const port = makePort(8);
+    connect(port);
+    await flush();
+    expect(port.disconnect).not.toHaveBeenCalled();
+    expect(port.postMessage).not.toHaveBeenCalled();
+    expect(reportWarningSpy).not.toHaveBeenCalled();
   });
 
   it('closes the port, with one warning, when no session is attached', async () => {

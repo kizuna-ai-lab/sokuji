@@ -40,7 +40,9 @@ export const CONTENT_SCRIPT_UNAVAILABLE = 'CONTENT_SCRIPT_UNAVAILABLE';
  * overlay is left alone rather than refused, and that has a cost: while
  * another tab's side panel lives, its unheld receiving end keeps an
  * overlay's channel open after the overlay's own side panel goes, so that
- * overlay shows its last state until the user exits.
+ * overlay shows its last state until the user dismisses it (✕, Escape,
+ * Return — D2), a new side panel on its own tab enters subtitle mode and
+ * replaces it (`enter()` below), or the last panel holding its port closes.
  */
 export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
   private targetTabId: number | null = null;
@@ -120,6 +122,15 @@ export class ExtensionContentScriptSubtitleSurface implements SubtitleSurface {
     chrome.tabs.onRemoved.addListener(this.handleTabRemoved);
     chrome.tabs.onUpdated.addListener(this.handleTabUpdated);
     try {
+      // `subtitle:exit` first: an overlay orphaned on this tab by an earlier
+      // side panel that has since closed keeps its host mounted, and the
+      // content script's `mountHost` returns early on an existing host
+      // (`subtitle-overlay-content.js:76-77`) — so without this, a new
+      // panel's `subtitle:enter` would never mount a fresh overlay.
+      // `unmountHost` is idempotent (`:115-121`), and a tab has at most one
+      // side panel, so the only host this can ever remove is a stale one
+      // (final-fix review Minor 1).
+      await chrome.tabs.sendMessage(tabId, { type: 'subtitle:exit' });
       await chrome.tabs.sendMessage(tabId, { type: 'subtitle:enter' });
     } catch (rawError) {
       // The most common cause is a stale meeting tab — the extension was

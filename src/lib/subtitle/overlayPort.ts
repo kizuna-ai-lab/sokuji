@@ -46,11 +46,15 @@ export function connectOverlay(connect: (info: { name: string }) => ChromePortLi
     send(message) {
       receiver.send(message);
       // An exit also unmounts the overlay itself, whether or not a side panel
-      // answers it. A side panel that went while another side panel in
-      // subtitle mode lives leaves this port open — the other one heard it
-      // connect and holds its end with no listener — so no disconnect comes,
-      // and an exit sent only down the port would reach no one. A live side
-      // panel's own `subtitle:exit` then finds the host already gone.
+      // answers it. Any side panel that was listening — in subtitle mode or
+      // not — when this overlay's port connected, and is still alive, keeps
+      // that receiving end open after the overlay's own side panel goes: no
+      // disconnect ever comes, and an exit sent only down the port would
+      // reach no one. The orphan then stays up until the user dismisses it
+      // here (✕, Escape, Return), the meeting tab reloads or navigates away,
+      // a new side panel on that tab replaces it (the surface class's
+      // `enter()`), or the last such panel closes. A live side panel's own
+      // `subtitle:exit` then finds the host already gone.
       if (message.type === 'subtitle:user-exit') tellGone(parent);
     },
   };
