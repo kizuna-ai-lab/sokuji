@@ -738,3 +738,51 @@ What it leaves:
   again; rows and jobs stay right. Today's client has the same cursor.
 - Move `SentenceCut` to a shared home when LocalNative ports: it drives
   `SentenceStream` the same way.
+
+## Scheduled by plan 1e-3a
+
+Plan 1e-3a (the composition root) landed as commits `5c5d7140..5f4b2a72`:
+nine tasks and a final-review fix wave. The new session layer now has one
+composition root, `src/app/session.ts` (`getAppSession()`), built the way the
+app will run it: one runner with its view, a karaoke readable of one identity,
+the subtitle session, the app's punctuator (today's diagnostics, and one model
+call per `(language, text)`), capture loaded on first use, frames into the Logs
+panel with one run's segmentation tallies, the analytics the app keeps, one
+auto-save per run then the balance refetch, and `attach()` for the page
+(`pagehide` → abandon, the provider store's legs, a local provider checking its
+own readiness, Electron's busy flag). Around it: readiness says why by a code
+(four new notices worded in 30 locales from sentences each already had),
+`SourceOpenError` / `loopback_denied`, `microphoneMissing`, push-to-translate's
+passthrough in `readRouting`, and the stored-settings mapping as pure functions
+(`src/lib/session/storedSettings.ts`). The dev preview runs the root, and every
+headless probe passes on it. The running app gained one read-only call
+(`loadSessionStores()` in `Home.tsx`); both release builds were checked — no
+fake-provider code ships (D24).
+
+What it leaves:
+
+**1e-3b — the switch**
+- One owner each for `attach()` and `useAppSessionBridges` (a second live
+  `attach()` is refused with a warning); remove `useSegmentationRuntime` in the
+  same change that moves MainPanel onto the root, or the page runs two
+  punctuation runtimes.
+- `settingsStore.enterSubtitleMode` reaching `getAppSession()` closes an import
+  cycle back to `settingsStore`: use a lazy accessor.
+- A local provider has no Validate button; its readiness is checked only while
+  something has called `attach()` — the app must attach at startup.
+- Apply `storedSettings.ts`: the stored selection (never overwritten by a
+  fallback; an explicit pick writes the old enum's spelling) and the one-time
+  turn-mode migration.
+- The Screen Recording `WarningModal` and its System Settings deep link off
+  `loopback_denied`; the idle line's `onFix` links off the readiness codes.
+- The renderer's answer to `app:close-requested` on `settled()`, and the main
+  process's close/update wait raised to the runner's bound + 1 s (1e-3
+  ruling 12) — MainPanel's own handler goes in the same change.
+- `no_asr`'s `{{source}}` as a language name (the params carry the code).
+- The global turn-mode control (1e-3 ruling 7).
+
+**Development only**
+- After editing `SpinePreview.tsx` or `session.ts`, reload the preview fully:
+  a hot reload keeps the first session (plan 1e-3a ruling 2) — the page's probe
+  counters stop reading, and a second session can be built over the same
+  playback.
