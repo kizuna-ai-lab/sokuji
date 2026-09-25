@@ -11,6 +11,7 @@ import { describeCause, reportError, reportWarning } from '../lib/diagnostics/re
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, Readiness } from '../lib/provider/types';
+import { selectionToPersist } from '../lib/session/storedSettings';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 
@@ -57,10 +58,10 @@ export interface ProviderStore {
   legs: readonly LegName[];
   /** Other legs change what a check answers: every loaded provider's readiness is forgotten. The same legs change nothing. */
   setLegs(legs: readonly LegName[]): void;
-  /** The provider the panel shows and a run starts; in memory until plan 1e persists it under `settings.common.provider`. */
+  /** The provider the panel shows and a run starts. A person's pick persists (old enum spelling, `storedSettings.ts`); a load never writes (1e-3 ruling 2). */
   selected: string | null;
   /** Refused, with a warning, while `selectionLocked`. */
-  select(id: string): void;
+  select(id: string, how?: 'load' | 'pick'): void;
   /** True while a run is not idle (the app session's `attach()` keeps it): the provider is fixed then. */
   selectionLocked: boolean;
   setSelectionLocked(locked: boolean): void;
@@ -111,13 +112,15 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     entries: {},
     readiness: {},
     selected: null,
-    select(id) {
+    select(id, how = 'load') {
       if (get().selectionLocked) {
         // Spec, "What may change during a run": the provider is fixed while the phase is not idle.
         reportWarning('ProviderStore', `The provider cannot change during a session; "${id}" was not selected.`, { dedupeKey: 'select:locked' });
         return;
       }
       set({ selected: id });
+      const value = selectionToPersist(id, how);
+      if (value !== null) void persistSetting('settings.common.provider', value);
     },
     selectionLocked: false,
     setSelectionLocked(locked) {

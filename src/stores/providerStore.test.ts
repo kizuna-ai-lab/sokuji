@@ -188,6 +188,30 @@ describe('writes', () => {
     expect(useProviderStore.getState().selected).toBe('probe');
   });
 
+  it('persists a pick under the old enum spelling; a load writes nothing', async () => {
+    useProviderStore.getState().select('localInference', 'pick');
+    expect(useProviderStore.getState().selected).toBe('localInference');
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'local_inference'));
+
+    setSetting.mockClear();
+    useProviderStore.getState().select('fake', 'pick');
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'fake'));
+
+    setSetting.mockClear();
+    useProviderStore.getState().select('localInference');
+    useProviderStore.getState().select('localInference', 'load');
+    expect(setSetting).not.toHaveBeenCalled();
+  });
+
+  it('refuses a locked pick, so it writes nothing either', () => {
+    useProviderStore.getState().select('probe');
+    useProviderStore.getState().setSelectionLocked(true);
+    useProviderStore.getState().select('x', 'pick');
+    expect(useProviderStore.getState().selected).toBe('probe');
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+    useProviderStore.getState().setSelectionLocked(false);
+  });
+
   it('refuses a new choice while the selection is locked, and takes it once unlocked', () => {
     useProviderStore.getState().select('probe');
     useProviderStore.getState().setSelectionLocked(true);

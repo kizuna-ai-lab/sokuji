@@ -102,6 +102,16 @@ describe('ProviderPanel', () => {
     expect(useProviderStore.getState().selected).toBe('fake');
   });
 
+  it("persists a person's pick under settings.common.provider, but not the panel's own mount selection", async () => {
+    const second = { ...fakeProvider, id: 'second', settings: { ...fakeProvider.settings, key: 'second' } };
+    render(<ProviderPanel providers={[fakeProvider, second]} auth={noAuth} />);
+    await screen.findByLabelText('Script');
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+
+    fireEvent.change(screen.getByLabelText('simpleSettings.provider'), { target: { value: 'second' } });
+    await waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'second'));
+  });
+
   it('locks every control while disabled', async () => {
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} disabled />);
     expect(await screen.findByLabelText('Script')).toBeDisabled();

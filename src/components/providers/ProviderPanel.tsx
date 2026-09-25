@@ -56,7 +56,7 @@ export function ProviderPanel({ providers, auth, disabled }: ProviderPanelProps)
           <select
             className="select-dropdown provider-select"
             value={provider.id}
-            onChange={(e) => select(e.target.value)}
+            onChange={(e) => select(e.target.value, 'pick')}
             aria-label={t('simpleSettings.provider')}
             disabled={disabled}
           >

@@ -284,6 +284,7 @@ export function SpinePreview() {
   // yet") undoes that default, and `&provider=` overrides it the other way.
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get('provider');
+    // Both calls below are loads: the preview never writes the app's stored provider.
     if (wanted && providers.some((p) => p.id === wanted)) {
       useProviderStore.getState().select(wanted);
       return;

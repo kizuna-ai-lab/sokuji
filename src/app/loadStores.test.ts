@@ -22,6 +22,7 @@ vi.mock('../services/ServiceFactory', () => ({
 }));
 
 import { settleReports } from '../lib/diagnostics/report';
+import { ServiceFactory } from '../services/ServiceFactory';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { useRoutingStore } from '../stores/routingStore';
@@ -45,10 +46,11 @@ afterEach(() => {
   useRoutingStore.setState(routingBefore, true);
   useSegmentationStore.setState(segmentationBefore, true);
   useTurnModeStore.setState(turnModeBefore, true);
+  vi.restoreAllMocks();
 });
 
 describe('loadSessionStores', () => {
-  it('loads the turn mode, the routing switches, the punctuation pack, and the first offered provider — writing nothing', async () => {
+  it('loads the turn mode, the routing switches, the punctuation pack, and selects the first offered provider in memory — writing nothing', async () => {
     stored.set('settings.common.turnMode', 'push-to-talk');
     stored.set('settings.routing.meeting', false);
     const refresh = vi.fn(async () => {});
@@ -60,18 +62,85 @@ describe('loadSessionStores', () => {
     expect(useRoutingStore.getState().meeting).toBe(false);
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(useProviderStore.getState().entries.localInference).toBeDefined();
-    expect(useProviderStore.getState().selected).toBeNull();
+    expect(useProviderStore.getState().selected).toBe('localInference');
     expect(setSetting).not.toHaveBeenCalled();
   });
 
-  it("loads the selected provider's entry instead of the first offered", async () => {
+  it('selects the stored provider in memory, loads its entry, and never writes it back', async () => {
+    stored.set('settings.common.provider', 'local_inference');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(useProviderStore.getState().entries.localInference).toBeDefined();
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+  });
+
+  it('falls back to the first offered provider when the stored one is not offered here, and never overwrites the stored value', async () => {
+    stored.set('settings.common.provider', 'openai');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+  });
+
+  it("loads the selected provider's entry instead of the first offered, when the page already selected one", async () => {
     useProviderStore.setState({ selected: 'fake' });
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 
     await loadSessionStores();
 
+    expect(useProviderStore.getState().selected).toBe('fake');
     expect(useProviderStore.getState().entries.fake).toBeDefined();
     expect(useProviderStore.getState().entries.localInference).toBeUndefined();
+  });
+
+  it('selects the stored fake provider in a development build', async () => {
+    stored.set('settings.common.provider', 'fake');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(useProviderStore.getState().selected).toBe('fake');
+    expect(useProviderStore.getState().entries.fake).toBeDefined();
+  });
+
+  it('migrates the turn mode from the stored provider once, when nothing is stored under the global key', async () => {
+    stored.set('settings.common.provider', 'openai');
+    stored.set('settings.openai.turnDetectionMode', 'Push-to-Talk');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
+    expect(setSetting).toHaveBeenCalledWith('settings.common.turnMode', 'push-to-talk');
+    expect(setSetting).toHaveBeenCalledTimes(1);
+  });
+
+  it('never migrates once the global turn mode is already stored', async () => {
+    stored.set('settings.common.turnMode', 'push-to-translate');
+    stored.set('settings.openai.turnDetectionMode', 'Push-to-Talk');
+    stored.set('settings.common.provider', 'openai');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(useTurnModeStore.getState().turnMode).toBe('push-to-translate');
+    expect(setSetting).not.toHaveBeenCalled();
+  });
+
+  it('migrates to auto when the stored provider has no legacy slice', async () => {
+    stored.set('settings.common.provider', 'fake');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(useTurnModeStore.getState().turnMode).toBe('auto');
+    expect(setSetting).toHaveBeenCalledWith('settings.common.turnMode', 'auto');
+    expect(setSetting).toHaveBeenCalledTimes(1);
   });
 
   it('reports a rejected turn-mode load once as a warning, and still loads the rest', async () => {
@@ -79,7 +148,11 @@ describe('loadSessionStores', () => {
     useLogStore.getState().clearLogs();
     const refresh = vi.fn(async () => {});
     useSegmentationStore.setState({ refresh });
-    useTurnModeStore.setState({ load: vi.fn(async () => { throw new Error('disk'); }) });
+    const getSetting = vi.fn(async (key: string, def: unknown) => {
+      if (key === 'settings.common.turnMode') throw new Error('disk');
+      return stored.has(key) ? stored.get(key) : def;
+    });
+    vi.spyOn(ServiceFactory, 'getSettingsService').mockReturnValue({ getSetting, setSetting } as unknown as ReturnType<typeof ServiceFactory.getSettingsService>);
 
     await loadSessionStores();
     await settleReports();
