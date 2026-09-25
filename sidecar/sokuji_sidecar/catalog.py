@@ -167,6 +167,13 @@ ASR_MODELS: list[AsrModel] = [
             "handy-computer/granite-speech-4.1-2b-gguf", "granite-speech-4.1-2b",
             20, {"F16": 4632623104, "Q8_0": 2559878848, "Q6_K": 2024967936,
                  "Q5_K_M": 1829704544, "Q4_K_M": 1602904800}, default="Q4_K_M", arch="granite_speech"),
+    # WER 1.33 — Granite Speech 5.0 TurboCTC (transcribe.cpp 0.2.4, #159): English-only
+    # CTC, sub-GB and CPU-fast (RTF 17 on a Ryzen 4750U). Arch::name granite_speech5_ctc
+    # (directory granite5_ctc). The -nc sibling is CC-BY-NC-SA and not listed.
+    _tc_row("granite-speech-5.0-470m-turboctc", "Granite Speech 5.0 TurboCTC (470M)", ("en",),
+            "handy-computer/granite-speech-5.0-470m-turboctc-gguf", "granite-speech-5.0-470m-turboctc",
+            22, {"F16": 947824480, "Q8_0": 505606496, "Q6_K": 391836000,
+                 "Q5_K_M": 335737184, "Q4_K_M": 279114080}, default="Q8_0", arch="granite_speech5_ctc"),
     # WER 1.38 — the big English parakeet; second-best English figure in the roster.
     _tc_row("parakeet-tdt-1.1b", "Parakeet TDT 1.1B", ("en",),
             "handy-computer/parakeet-tdt-1.1b-gguf", "parakeet-tdt-1.1b",
