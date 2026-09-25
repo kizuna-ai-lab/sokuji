@@ -3,7 +3,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { DEFAULT_PAIRING } from '../projection/pair';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { appProjectionSettings, projectionFrom } from './appViewSettings';
+import { appProjectionSettings, offerFor, projectionFrom } from './appViewSettings';
 
 const initial = useSettingsStore.getState();
 const initialProvider = useProviderStore.getState();
@@ -13,6 +13,16 @@ afterEach(() => {
 });
 
 const stored = { segmentationMode: 'pause' as const, sentenceSegmentationChunkSentences: 3, segmentationSourcePause: 1.5, segmentationTranslationPause: 0.8 };
+
+describe('offerFor', () => {
+  it("offers pause and not Auto for a silence-boundaried provider (pause is ours to time)", () => {
+    expect(offerFor('silence')).toEqual({ pause: true, auto: false, sizes: true });
+  });
+
+  it("offers Auto and not pause for a provider-boundaried provider (pause is not ours to time)", () => {
+    expect(offerFor('provider')).toEqual({ pause: false, auto: true, sizes: true });
+  });
+});
 
 describe('projectionFrom', () => {
   it('cuts by pause for a silence-boundaried provider: the stored pause, in milliseconds', () => {

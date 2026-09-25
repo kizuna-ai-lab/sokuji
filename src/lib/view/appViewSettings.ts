@@ -32,6 +32,13 @@ export interface StoredSegmentation {
   segmentationTranslationPause: number;
 }
 
+/** What a provider whose boundaries are `boundaries` offers the stored cut:
+ *  pause only where the boundaries are ours to time, Auto only where they
+ *  are not. */
+export function offerFor(boundaries: 'provider' | 'silence'): SegmentationOffer {
+  return { pause: boundaries === 'silence', auto: boundaries === 'provider', sizes: true };
+}
+
 /**
  * The cut for a provider whose boundaries are `boundaries`: pause is only
  * offered where the boundaries are ours to time (`'silence'`), Auto is only
@@ -39,7 +46,7 @@ export interface StoredSegmentation {
  * unaffected either way.
  */
 export function projectionFrom(s: StoredSegmentation, boundaries: 'provider' | 'silence'): ProjectionSettings {
-  const offer: SegmentationOffer = { pause: boundaries === 'silence', auto: boundaries === 'provider', sizes: true };
+  const offer: SegmentationOffer = offerFor(boundaries);
   const mode = resolveSegmentationMode(s.segmentationMode, offer);
   const pause = mode === 'pause';
   return {
@@ -52,7 +59,7 @@ export function projectionFrom(s: StoredSegmentation, boundaries: 'provider' | '
 }
 
 /** The selected provider's `boundaries(s)`; `'provider'` when none is selected or it has not loaded — nothing here for the cut to time itself against. */
-function selectedBoundaries(): 'provider' | 'silence' {
+export function selectedBoundaries(): 'provider' | 'silence' {
   const { selected, entries } = useProviderStore.getState();
   const provider = selected ? getProvider(selected) : undefined;
   const entry = selected ? entries[selected] : undefined;
