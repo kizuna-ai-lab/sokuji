@@ -129,6 +129,12 @@ describe('ConversationList — replay gate', () => {
     expect(button.title).toBe('Replay is off…');
   });
 
+  it("names the blocked reason in the button's aria-label too, not the plain replay label", () => {
+    const { container } = render(<ConversationList {...props({ replayBlocked: 'Replay is off…' })} />);
+    const button = container.querySelector('.row-play-btn') as HTMLButtonElement;
+    expect(button.getAttribute('aria-label')).toBe('Replay is off…');
+  });
+
   it('leaves the existing enabled/disabled cases when not blocked', () => {
     const { container } = render(<ConversationList {...props()} />);
     const button = container.querySelector('.row-play-btn') as HTMLButtonElement;

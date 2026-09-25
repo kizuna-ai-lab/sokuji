@@ -175,7 +175,7 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
             className={`row-play-btn ${replayingThis ? 'playing' : ''}`}
             onClick={canReplay && blocked === null ? () => onReplay(leg, segmentId) : undefined}
             disabled={!canReplay || replayingOther || blocked !== null}
-            aria-label={t('mainPanel.playItemAudio', "Play this item's audio")}
+            aria-label={blocked ?? t('mainPanel.playItemAudio', "Play this item's audio")}
             title={blocked ?? t('mainPanel.playItemAudio', "Play this item's audio")}
           >
             <Play size={10} />

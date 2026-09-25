@@ -23,9 +23,10 @@ export function SubtitleTakeover() {
   const controls = useMemo<SubtitleControls>(() => ({
     // `SubtitleIdle`'s ready/ended button carries no `disabled` of its own
     // (today's `SubtitleApp.handleStart` has the same guard, `SubtitleApp.tsx:92`):
-    // a click before the selected provider's entry has loaded must not reach
-    // the runner at all, or it is refused as `no_provider` (ruling 11).
-    start: () => { if (session.subtitle.get().canStart) void session.runner.start(); },
+    // `session.start` is the one start every surface calls (ruling 11) — a
+    // click before the selected provider's entry has loaded must not reach
+    // the runner at all, or it is refused as `no_provider`.
+    start: () => void session.start(),
     stop: () => void session.runner.stop(),
     press: () => session.runner.press(),
     release: () => session.runner.release(),

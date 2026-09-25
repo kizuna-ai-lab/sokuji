@@ -288,6 +288,31 @@ describe('createAppSession', () => {
   });
 });
 
+describe('start', () => {
+  it('never reaches the runner while canStart is false: its state stays the same object', async () => {
+    const { session, track } = await setup({ microphoneRequired: undefined });
+    expect(session.subtitle.get().canStart).toBe(false);
+    const before = session.runner.state.getState();
+
+    await session.start('button');
+
+    expect(session.runner.state.getState()).toBe(before);
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it('starts once canStart is true, forwarding the method to the runner', async () => {
+    const { session, track } = await setup();
+    expect(session.subtitle.get().canStart).toBe(true);
+
+    await session.start('button');
+
+    expect(session.runner.state.getState().phase).toBe('running');
+    expect(track).toHaveBeenCalledWith('session_control_clicked', { action: 'start', method: 'button' });
+
+    await session.runner.stop();
+  });
+});
+
 describe('attach', () => {
   it('abandons the run on pagehide, only while attached', async () => {
     const { session } = await setup();

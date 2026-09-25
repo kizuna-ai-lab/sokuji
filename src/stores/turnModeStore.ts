@@ -6,23 +6,16 @@
 import { create } from 'zustand';
 import type { TurnMode } from '../lib/session/types';
 import { persistSetting } from '../services/persistSetting';
-import { ServiceFactory } from '../services/ServiceFactory';
 
 const KEY = 'settings.common.turnMode';
-const MODES: readonly TurnMode[] = ['auto', 'push-to-talk', 'push-to-translate'];
 
 interface TurnModeStore {
   turnMode: TurnMode;
-  load(): Promise<void>;
   setTurnMode(turnMode: TurnMode): void;
 }
 
 export const useTurnModeStore = create<TurnModeStore>()((set) => ({
   turnMode: 'auto',
-  async load() {
-    const stored = await ServiceFactory.getSettingsService().getSetting(KEY, 'auto');
-    set({ turnMode: MODES.find((m) => m === stored) ?? 'auto' });
-  },
   setTurnMode(turnMode) {
     set({ turnMode });
     void persistSetting(KEY, turnMode);

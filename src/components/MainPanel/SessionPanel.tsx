@@ -238,19 +238,21 @@ export default function SessionPanel() {
     const now = runner.state.getState();
     if (now.phase === 'idle' && now.lastEnd) setDismissedEnd(now.lastEnd);
   }, [runner]);
+  // Out of render (review Minor 8): the first call wires an AnalyserNode into the graph.
+  const outputMeter = useMemo(() => audio?.playback.meter('virtual') ?? null, [audio]);
   const footer = (site: 'basic' | 'advanced') => (
     <PanelFooter
       site={site} run={run} mode={mode} missingDevice={missingDevice}
       canStart={subtitle.canStart} startBlockMessage={startBlockMessage}
       holdToTalk={speakerLive && subtitle.holdToTalk} held={ptt.held} micMuted={micMuted}
       pair={subtitle.pair} duration={duration}
-      // Ruling 11: never a start while the gate is shut — the button is off then; this also holds for a click that beat its render (as the takeover's Start).
-      onStart={() => { if (session.subtitle.get().canStart) void runner.start('button'); }}
+      // Ruling 11: `session.start` is the one start every surface calls — never a start while the gate is shut, the button is off then; this also holds for a click that beat its render (as the takeover's Start).
+      onStart={() => void session.start('button')}
       onStop={() => void runner.stop('button')}
       onPress={ptt.press} onRelease={ptt.release}
       onModeSegment={onModeSegment} onLanguages={() => navigateToSettings('languages')}
       testTone={site === 'advanced' ? testTone : undefined}
-      waveforms={site === 'advanced' ? { input: <InputWaveforms mode={mode} levels={audio?.capture.levels ?? null} />, output: <OutputWaveform meter={audio?.playback.meter('virtual') ?? null} /> } : undefined}
+      waveforms={site === 'advanced' ? { input: <InputWaveforms mode={mode} levels={audio?.capture.levels ?? null} />, output: <OutputWaveform meter={outputMeter} /> } : undefined}
     />
   );
 

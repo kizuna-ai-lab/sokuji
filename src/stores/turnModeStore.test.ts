@@ -22,19 +22,6 @@ beforeEach(() => {
 });
 
 describe('turnModeStore', () => {
-  it('starts automatic, and loads what was saved', async () => {
-    expect(useTurnModeStore.getState().turnMode).toBe('auto');
-    stored.set('settings.common.turnMode', 'push-to-talk');
-    await useTurnModeStore.getState().load();
-    expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
-  });
-
-  it('ignores a saved value it does not know', async () => {
-    stored.set('settings.common.turnMode', 'Semantic');
-    await useTurnModeStore.getState().load();
-    expect(useTurnModeStore.getState().turnMode).toBe('auto');
-  });
-
   it('saves a new mode', async () => {
     useTurnModeStore.getState().setTurnMode('push-to-translate');
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-translate');
