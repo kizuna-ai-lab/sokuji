@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
+import { settleReports } from '../../diagnostics/report';
 import { SourceOpenError } from '../../session/source';
+import useLogStore from '../../../stores/logStore';
 import { TRACK_ENDED } from './core';
 import {
-  APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMISSION, openSystemAudio,
+  APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMISSION, electronSystemAudio, openSystemAudio,
   type ParticipantCapture, type SystemAudioDeps, type SystemAudioSettings,
 } from './systemAudio';
 
@@ -297,5 +299,23 @@ describe('openSystemAudio — running', () => {
     expect(degraded).not.toHaveBeenCalled();
     expect(s.loopback.begun).toEqual([]);
     expect(s.invoked.filter(([c]) => c === 'disconnect-system-audio-source')).toHaveLength(1);
+  });
+});
+
+describe('electronSystemAudio', () => {
+  it("screenRecording() reports one warning and answers 'unknown' when the check fails, as its neighbours do", async () => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    (window as unknown as { electron: { invoke: (channel: string, data?: unknown) => Promise<unknown> } }).electron = {
+      invoke: async () => { throw new Error('boom'); },
+    };
+    try {
+      await expect(electronSystemAudio().screenRecording()).resolves.toBe('unknown');
+      await settleReports();
+      expect(useLogStore.getState().logs.filter((l) => l.type === 'warning')).toHaveLength(1);
+    } finally {
+      delete (window as { electron?: unknown }).electron;
+      useLogStore.getState().setEnabled(false);
+    }
   });
 });

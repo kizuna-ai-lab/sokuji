@@ -63,8 +63,9 @@ export const electronSystemAudio = (): SystemAudioDeps => ({
     try {
       const answer = (await window.electron.invoke('check-screen-recording-permission')) as { status?: unknown } | undefined;
       return typeof answer?.status === 'string' ? answer.status : 'unknown';
-    } catch {
+    } catch (error) {
       // As today's `requestLoopbackAudioStream`: a failed check is not read as a denial.
+      reportWarning('SystemAudio', `Checking the Screen Recording permission failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'system:screen-recording' });
       return 'unknown';
     }
   },
