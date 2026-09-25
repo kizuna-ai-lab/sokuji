@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Entradas de loopback como \"Stereo Mix\" ou um dispositivo \"Monitor of ...\" gravam a própria saída de áudio do sistema. Em uma sessão com a fala traduzida do Sokuji, o Sokuji ouviria e traduziria a si mesmo em loop.",
     "loopbackMicWarningText2": "O dispositivo permanece selecionado caso esse roteamento seja intencional, mas para uso normal escolha um microfone físico.",
     "participantNoAudioYet": "Ainda não chegou áudio da fonte selecionada. Se ela está tocando e nada é traduzido, permita o Sokuji em Ajustes do Sistema > Privacidade e Segurança > Apenas Gravação de Áudio do Sistema (macOS) e inicie a sessão novamente.",
+    "participantSpeech": "Ler a tradução do outro em voz alta",
+    "participantSpeechDesc": "Lê em voz alta o que o outro diz, no seu idioma, pelos seus alto-falantes. Acompanha a voz dele com um atraso.",
+    "participantSpeechBlockedWholeSystem": "Desativado enquanto o áudio do outro captura todo o áudio do sistema: a tradução dele seria capturada e traduzida novamente. Escolha um aplicativo como fonte do outro.",
     "audioCaptureUnprovenNotice": "Nada capturado ainda",
     "audioCaptureUnprovenTitle": "Ainda não chegou áudio da fonte selecionada",
     "audioCaptureUnprovenText1": "Se a fonte está tocando e nada é traduzido, o macOS provavelmente está entregando silêncio: capturar um aplicativo exige a permissão \"Apenas Gravação de Áudio do Sistema\" e, sem ela, não há erro, apenas silêncio.",
@@ -590,6 +593,7 @@
       "legendNone": "Desligado: ocultar este lado"
     },
     "playItemAudio": "Reproduzir o áudio deste item",
+    "replayBlockedWholeSystem": "A reprodução fica desativada enquanto o áudio do outro captura todo o áudio do sistema: seria traduzido novamente.",
     "toolbar": {
       "export": "Exportar conversa"
     },

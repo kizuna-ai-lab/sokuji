@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "\"Stereo Mix\"나 \"Monitor of ...\" 같은 루프백 입력은 시스템 자체의 오디오 출력을 녹음합니다. Sokuji의 번역 음성이 포함된 세션에서는 Sokuji가 자기 자신을 듣고 루프로 번역하게 됩니다.",
     "loopbackMicWarningText2": "의도적인 라우팅일 수 있어 장치 선택은 유지되지만, 일반적인 사용에는 실제 마이크를 선택하세요.",
     "participantNoAudioYet": "선택한 소스에서 아직 오디오가 들어오지 않았습니다. 재생 중인데도 번역되지 않는다면 시스템 설정 > 개인정보 보호 및 보안 > 시스템 오디오 녹음만에서 Sokuji를 허용한 뒤(macOS) 세션을 다시 시작하세요.",
+    "participantSpeech": "상대방 번역 소리 내어 읽기",
+    "participantSpeechDesc": "상대방이 말하는 내용을 당신의 언어로, 당신의 스피커를 통해 소리 내어 읽어줍니다. 약간의 지연을 두고 상대방의 목소리를 따라갑니다.",
+    "participantSpeechBlockedWholeSystem": "상대방 오디오가 시스템 오디오 전체를 캡처하는 동안에는 꺼집니다. 상대방의 번역이 다시 캡처되어 번역되기 때문입니다. 애플리케이션을 상대방 소스로 선택하세요.",
     "audioCaptureUnprovenNotice": "아직 캡처된 오디오가 없습니다",
     "audioCaptureUnprovenTitle": "선택한 소스에서 아직 오디오가 들어오지 않았습니다",
     "audioCaptureUnprovenText1": "소스가 재생 중인데도 번역되지 않는다면 macOS가 무음을 전달하고 있을 가능성이 큽니다. 앱의 오디오를 캡처하려면 \"시스템 오디오 녹음만\" 권한이 필요하며, 이 권한이 없으면 오류 없이 무음만 전달됩니다.",
@@ -590,6 +593,7 @@
       "legendNone": "끄기: 이쪽 숨기기"
     },
     "playItemAudio": "이 항목의 오디오 재생",
+    "replayBlockedWholeSystem": "상대방 오디오가 시스템 오디오 전체를 캡처하는 동안에는 재생이 꺼집니다. 다시 번역되기 때문입니다.",
     "toolbar": {
       "export": "대화 내보내기"
     },

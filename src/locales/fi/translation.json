@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Loopback-tulot kuten \"Stereo Mix\" tai \"Monitor of ...\" -laitteet äänittävät järjestelmän omaa äänilähtöä. Istunnossa, joka sisältää Sokujin käännetyn puheen, Sokuji kuulisi ja kääntäisi itseään silmukassa.",
     "loopbackMicWarningText2": "Laite pysyy valittuna, jos tämä reititys on tarkoituksellinen, mutta tavalliseen käyttöön valitse fyysinen mikrofoni.",
     "participantNoAudioYet": "Valitusta lähteestä ei ole vielä tullut ääntä. Jos se toistaa eikä mitään käännetä, salli Sokuji kohdassa Järjestelmäasetukset > Tietosuoja ja turvallisuus > Vain järjestelmän äänen tallennus (macOS) ja aloita istunto uudelleen.",
+    "participantSpeech": "Lue toisen käännös ääneen",
+    "participantSpeechDesc": "Lukee ääneen, mitä toinen sanoo, sinun kielelläsi, kaiuttimistasi. Se seuraa heidän ääntään viiveellä.",
+    "participantSpeechBlockedWholeSystem": "Pois päältä, kun toisen ääni kaappaa koko järjestelmän äänen: heidän käännöksensä kaapattaisiin ja käännettäisiin uudelleen. Valitse sovellus toisen äänilähteeksi.",
     "audioCaptureUnprovenNotice": "Mitään ei ole vielä kaapattu",
     "audioCaptureUnprovenTitle": "Valitusta lähteestä ei ole vielä tullut ääntä",
     "audioCaptureUnprovenText1": "Jos lähde toistaa eikä mitään käännetä, macOS toimittaa todennäköisesti hiljaisuutta: sovelluksen kaappaaminen vaatii käyttöoikeuden \"Vain järjestelmän äänen tallennus\", ja ilman sitä ei tule virhettä, vain hiljaisuutta.",
@@ -590,6 +593,7 @@
       "legendNone": "Pois: piilota tämä puoli"
     },
     "playItemAudio": "Toista tämän kohteen ääni",
+    "replayBlockedWholeSystem": "Toisto on pois päältä, kun toisen ääni kaappaa koko järjestelmän äänen: se käännettäisiin uudelleen.",
     "toolbar": {
       "export": "Vie keskustelu"
     },

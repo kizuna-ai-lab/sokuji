@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Loopback-invoer zoals \"Stereo Mix\" of een \"Monitor of ...\"-apparaat neemt de audio-uitvoer van het systeem zelf op. Tijdens een sessie met Sokuji's vertaalde spraak zou Sokuji zichzelf horen en in een lus vertalen.",
     "loopbackMicWarningText2": "Het apparaat blijft geselecteerd voor het geval deze routering opzettelijk is, maar kies voor normaal gebruik een fysieke microfoon.",
     "participantNoAudioYet": "Er is nog geen audio van de geselecteerde bron binnengekomen. Speelt die af en wordt er niets vertaald, sta Sokuji dan toe onder Systeeminstellingen > Privacy en beveiliging > Alleen systeemaudio-opname (macOS) en start de sessie opnieuw.",
+    "participantSpeech": "Vertaling van de ander hardop voorlezen",
+    "participantSpeechDesc": "Leest u hardop voor wat de ander zegt, in uw taal, via uw luidsprekers. Het volgt hun stem met een vertraging.",
+    "participantSpeechBlockedWholeSystem": "Uitgeschakeld zolang de audio van de ander alle systeemaudio vastlegt: hun vertaling zou opnieuw worden vastgelegd en vertaald. Kies een applicatie als bron van de ander.",
     "audioCaptureUnprovenNotice": "Nog niets vastgelegd",
     "audioCaptureUnprovenTitle": "Er is nog geen audio van de geselecteerde bron binnengekomen",
     "audioCaptureUnprovenText1": "Speelt de bron af en wordt er niets vertaald, dan levert macOS waarschijnlijk stilte: het vastleggen van een app vereist de toestemming 'Alleen systeemaudio-opname', en zonder die toestemming is er geen fout, alleen stilte.",
@@ -590,6 +593,7 @@
       "legendNone": "Uit: deze kant verbergen"
     },
     "playItemAudio": "Audio van dit item afspelen",
+    "replayBlockedWholeSystem": "Herhaling is uitgeschakeld zolang de audio van de ander alle systeemaudio vastlegt: het zou opnieuw worden vertaald.",
     "toolbar": {
       "export": "Gesprek exporteren"
     },

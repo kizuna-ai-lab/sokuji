@@ -5,11 +5,20 @@
  * message — the provider's error text, which today's error bubbles show.
  */
 import type { TFunction } from 'i18next';
+import { getLanguageOption } from '../../utils/languages';
 
 export interface NoticeWords {
   code?: string;
   params?: Record<string, string | number>;
   message: string;
+}
+
+/** Params that carry a language code: shown by the name every language menu uses (`no_asr`'s `{{source}}`, roadmap 1e-2 → 1e-3). */
+const LANGUAGE_PARAMS = new Set(['source', 'target']);
+
+function named(params: Record<string, string | number> | undefined): Record<string, string | number> | undefined {
+  if (!params) return params;
+  return Object.fromEntries(Object.entries(params).map(([key, value]) => [key, LANGUAGE_PARAMS.has(key) && typeof value === 'string' ? getLanguageOption(value).name : value]));
 }
 
 /** The English for every code a surface puts into words; `src/locales/en/translation.json`'s `notices` holds the same, word for word. */
@@ -65,5 +74,5 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
 export function noticeText(t: TFunction, notice: NoticeWords): string {
   const words = notice.code === undefined ? undefined : NOTICE_WORDS[notice.code];
   if (words === undefined) return notice.message;
-  return t(`notices.${notice.code}`, { defaultValue: words, ...notice.params, detail: notice.message });
+  return t(`notices.${notice.code}`, { defaultValue: words, ...named(notice.params), detail: notice.message });
 }

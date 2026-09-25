@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "「立體聲混音」或「Monitor of ...」這類環回輸入錄製的是系統自身的音訊輸出。在包含 Sokuji 翻譯語音的工作階段中，Sokuji 會聽到並循環翻譯自己。",
     "loopbackMicWarningText2": "若此路由是刻意設定，裝置會保持選取；一般使用請改選實體麥克風。",
     "participantNoAudioYet": "所選來源尚未傳來任何音訊。如果它正在播放卻沒有譯文，請在「系統設定」>「隱私權與安全性」>「僅系統錄音」中允許 Sokuji（macOS），然後重新開始。",
+    "participantSpeech": "朗讀對方的譯文",
+    "participantSpeechDesc": "用您的語言，透過您的喇叭，把對方所說的內容朗讀給您聽。它會有延遲地跟隨對方的聲音。",
+    "participantSpeechBlockedWholeSystem": "當對方音訊正在擷取整個系統的聲音時會關閉：對方的譯文會被再次擷取並翻譯。請選擇一個應用程式作為對方的來源。",
     "audioCaptureUnprovenNotice": "尚未擷取到音訊",
     "audioCaptureUnprovenTitle": "所選來源尚未傳來任何音訊",
     "audioCaptureUnprovenText1": "如果來源正在播放卻沒有譯文，很可能是 macOS 只給出了靜音：擷取某個應用程式的音訊需要「僅系統錄音」權限，沒有該權限時不會報錯，只會是靜音。",
@@ -590,6 +593,7 @@
       "legendNone": "關閉：隱藏這一側"
     },
     "playItemAudio": "播放此項目的音訊",
+    "replayBlockedWholeSystem": "當對方音訊正在擷取整個系統的聲音時，重播功能會關閉：否則會被再次翻譯。",
     "toolbar": {
       "export": "匯出對話"
     },

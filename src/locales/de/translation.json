@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Loopback-Eingänge wie \"Stereo Mix\" oder ein \"Monitor of ...\"-Gerät nehmen die Audioausgabe des Systems selbst auf. In einer Sitzung mit Sokujis übersetzter Sprache würde Sokuji sich selbst hören und in einer Schleife übersetzen.",
     "loopbackMicWarningText2": "Das Gerät bleibt ausgewählt, falls dieses Routing beabsichtigt ist; für den normalen Gebrauch wählen Sie bitte ein physisches Mikrofon.",
     "participantNoAudioYet": "Von der ausgewählten Quelle ist noch kein Audio angekommen. Wenn sie abspielt und nichts übersetzt wird, erlauben Sie Sokuji unter Systemeinstellungen > Datenschutz & Sicherheit > Nur Systemaudioaufnahme (macOS) und starten Sie die Sitzung erneut.",
+    "participantSpeech": "Übersetzung des Gegenübers vorlesen",
+    "participantSpeechDesc": "Liest Ihnen laut vor, was das Gegenüber sagt, in Ihrer Sprache, über Ihre Lautsprecher. Es folgt der Stimme mit einer Verzögerung.",
+    "participantSpeechBlockedWholeSystem": "Deaktiviert, solange das Audio des Gegenübers das gesamte Systemaudio erfasst: Die Übersetzung würde erneut erfasst und übersetzt. Wählen Sie eine Anwendung als Quelle des Gegenübers.",
     "audioCaptureUnprovenNotice": "Noch nichts erfasst",
     "audioCaptureUnprovenTitle": "Von der ausgewählten Quelle ist noch kein Audio angekommen",
     "audioCaptureUnprovenText1": "Wenn die Quelle abspielt und nichts übersetzt wird, liefert macOS wahrscheinlich Stille: Das Erfassen einer App erfordert die Berechtigung „Nur Systemaudioaufnahme“, und ohne sie gibt es keinen Fehler, nur Stille.",
@@ -590,6 +593,7 @@
       "legendNone": "Aus: diese Seite ausblenden"
     },
     "playItemAudio": "Audio dieses Elements abspielen",
+    "replayBlockedWholeSystem": "Die Wiedergabe ist deaktiviert, solange das Audio des Gegenübers das gesamte Systemaudio erfasst: Es würde erneut übersetzt.",
     "toolbar": {
       "export": "Unterhaltung exportieren"
     },

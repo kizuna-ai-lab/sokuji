@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Ang mga loopback input tulad ng \"Stereo Mix\" o \"Monitor of ...\" na device ay nagre-record ng sariling audio output ng system. Sa session na may isinaling boses ng Sokuji, maririnig at isasalin ng Sokuji ang sarili nito nang paulit-ulit.",
     "loopbackMicWarningText2": "Mananatiling napili ang device kung sinadya ang routing na ito, ngunit para sa normal na paggamit ay pumili ng pisikal na mikropono.",
     "participantNoAudioYet": "Wala pang audio na dumarating mula sa napiling source. Kung tumutugtog ito at walang naisasalin, payagan ang Sokuji sa System Settings > Privacy & Security > System Audio Recording Only (macOS), pagkatapos ay simulan muli ang session.",
+    "participantSpeech": "Bigkasin nang malakas ang salin ng kausap",
+    "participantSpeechDesc": "Binabasa nang malakas sa inyo ang sinasabi ng kausap, sa inyong wika, sa inyong speaker. Sinusundan nito ang kanilang boses nang may kaunting antala.",
+    "participantSpeechBlockedWholeSystem": "Naka-off habang kinukuha ng audio ng kausap ang buong system audio: makukuha at isasalin muli ang kanilang salin. Pumili ng application bilang pinagmulan ng kausap.",
     "audioCaptureUnprovenNotice": "Wala pang nakukuha",
     "audioCaptureUnprovenTitle": "Wala pang audio na dumarating mula sa napiling source",
     "audioCaptureUnprovenText1": "Kung tumutugtog ang source at walang naisasalin, malamang na katahimikan ang ibinibigay ng macOS: kailangan ng pahintulot na \"System Audio Recording Only\" para makuha ang audio ng isang app, at kung wala ito ay walang error, katahimikan lang.",
@@ -590,6 +593,7 @@
       "legendNone": "Patay: itago ang panig na ito"
     },
     "playItemAudio": "I-play ang audio ng item na ito",
+    "replayBlockedWholeSystem": "Naka-off ang muling pagpapatugtog habang kinukuha ng audio ng kausap ang buong system audio: muli itong isasalin.",
     "toolbar": {
       "export": "I-export ang usapan"
     },

@@ -11,6 +11,11 @@ import { NOTICE_WORDS, noticeText } from './noticeText';
 const t = ((key: string, options: Record<string, unknown>) =>
   `${key}|${String(options.defaultValue).replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(options[name]))}`) as unknown as TFunction;
 
+/** A stand-in that just interpolates, with no key prefix — the shape a real
+ * catalog lookup returns. */
+const plainT = ((_key: string, options: Record<string, unknown>) =>
+  String(options.defaultValue).replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(options[name]))) as unknown as TFunction;
+
 describe('noticeText', () => {
   it("looks a known code up, with the notice's own message as its detail", () => {
     expect(noticeText(t, { code: 'leg_failed', message: 'Invalid API key' })).toBe('notices.leg_failed|The session stopped: Invalid API key');
@@ -24,6 +29,17 @@ describe('noticeText', () => {
   it('shows the message itself for a code it has no words for, or no code', () => {
     expect(noticeText(t, { code: 'fake_build_refused', message: 'The fake refuses to build (fault knob).' })).toBe('The fake refuses to build (fault knob).');
     expect(noticeText(t, { message: 'plain' })).toBe('plain');
+  });
+
+  it('names a source/target language param the way every language menu does, and leaves other params alone', () => {
+    expect(noticeText(plainT, { code: 'no_asr', message: 'x', params: { source: 'en' } })).toBe('No speech recognition model is installed for English.');
+    expect(noticeText(plainT, { code: 'no_asr', message: 'x', params: { source: 'ja' } })).toBe('No speech recognition model is installed for 日本語.');
+    // An unrecognized code stays itself — `getLanguageOption`'s own fallback.
+    expect(noticeText(plainT, { code: 'no_asr', message: 'x', params: { source: 'xx' } })).toBe('No speech recognition model is installed for xx.');
+    // A param that isn't `source`/`target` (a detail-style one) is untouched —
+    // not run through `getLanguageOption`, unlike `source`/`target` above.
+    const capture = ((key: string, options: Record<string, unknown>) => `${key}:${String(options.device)}`) as unknown as TFunction;
+    expect(noticeText(capture, { code: 'source_ended', message: 'x', params: { device: 'USB microphone' } })).toBe('notices.source_ended:USB microphone');
   });
 
   it('puts the five API error types into words', () => {
@@ -65,4 +81,12 @@ it('words the four new codes with a sentence every locale already has', () => {
       expect(at(catalog, `notices.${code}`), `${path}: ${code}`).toBe(at(catalog, key));
     }
   }
+});
+
+it("en carries the four new sentences, word for word", () => {
+  const enCatalog = en as unknown as Record<string, unknown>;
+  expect(at(enCatalog, 'mainPanel.replayBlockedWholeSystem')).toBe("Replay is off while Other's audio captures all system sound: it would be translated again.");
+  expect(at(enCatalog, 'audioPanel.participantSpeech')).toBe("Speak Other's translation");
+  expect(at(enCatalog, 'audioPanel.participantSpeechDesc')).toBe("Reads what Other says aloud to you, in your language, on your speakers. It follows their voice with a delay.");
+  expect(at(enCatalog, 'audioPanel.participantSpeechBlockedWholeSystem')).toBe("Off while Other's audio captures all system sound: their translation would be captured and translated again. Pick an application as Other's source.");
 });

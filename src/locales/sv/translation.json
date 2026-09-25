@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Loopback-ingångar som \"Stereo Mix\" eller en \"Monitor of ...\"-enhet spelar in systemets egen ljudutgång. I en session med Sokujis översatta tal skulle Sokuji höra och översätta sig själv i en slinga.",
     "loopbackMicWarningText2": "Enheten förblir vald om denna routning är avsiktlig, men välj en fysisk mikrofon för normal användning.",
     "participantNoAudioYet": "Inget ljud har kommit från den valda källan ännu. Om den spelar upp och inget översätts, tillåt Sokuji under Systeminställningar > Integritet och säkerhet > Endast inspelning av systemljud (macOS) och starta sessionen igen.",
+    "participantSpeech": "Läs upp den andras översättning",
+    "participantSpeechDesc": "Läser högt för dig vad den andra säger, på ditt språk, genom dina högtalare. Det följer deras röst med en fördröjning.",
+    "participantSpeechBlockedWholeSystem": "Avstängt medan den andras ljud fångar allt systemljud: deras översättning skulle fångas och översättas igen. Välj ett program som den andras källa.",
     "audioCaptureUnprovenNotice": "Inget har fångats ännu",
     "audioCaptureUnprovenTitle": "Inget ljud har kommit från den valda källan ännu",
     "audioCaptureUnprovenText1": "Om källan spelar upp och inget översätts levererar macOS troligen tystnad: att fånga en app kräver behörigheten \"Endast inspelning av systemljud\", och utan den uppstår inget fel, bara tystnad.",
@@ -590,6 +593,7 @@
       "legendNone": "Av: dölj denna sida"
     },
     "playItemAudio": "Spela upp ljudet för detta objekt",
+    "replayBlockedWholeSystem": "Uppspelning är avstängd medan den andras ljud fångar allt systemljud: det skulle översättas igen.",
     "toolbar": {
       "export": "Exportera konversation"
     },

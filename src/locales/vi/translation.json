@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Các đầu vào loopback như \"Stereo Mix\" hoặc thiết bị \"Monitor of ...\" ghi lại chính đầu ra âm thanh của hệ thống. Trong phiên có giọng dịch của Sokuji, Sokuji sẽ nghe và dịch chính mình theo vòng lặp.",
     "loopbackMicWarningText2": "Thiết bị vẫn được chọn phòng khi cách định tuyến này là chủ ý, nhưng khi dùng bình thường hãy chọn micrô vật lý.",
     "participantNoAudioYet": "Chưa có âm thanh nào từ nguồn đã chọn. Nếu nguồn đang phát mà không có gì được dịch, hãy cho phép Sokuji trong System Settings > Privacy & Security > System Audio Recording Only (macOS), rồi bắt đầu lại phiên.",
+    "participantSpeech": "Đọc to bản dịch của đối phương",
+    "participantSpeechDesc": "Đọc to cho bạn nghe những gì đối phương nói, bằng ngôn ngữ của bạn, qua loa của bạn. Nó theo sát giọng nói của họ với một độ trễ.",
+    "participantSpeechBlockedWholeSystem": "Bị tắt trong khi âm thanh đối phương đang thu toàn bộ âm thanh hệ thống: bản dịch của họ sẽ bị thu và dịch lại. Hãy chọn một ứng dụng làm nguồn của đối phương.",
     "audioCaptureUnprovenNotice": "Chưa thu được gì",
     "audioCaptureUnprovenTitle": "Chưa có âm thanh nào từ nguồn đã chọn",
     "audioCaptureUnprovenText1": "Nếu nguồn đang phát mà không có gì được dịch, nhiều khả năng macOS đang trả về im lặng: thu âm thanh của một ứng dụng cần quyền \"System Audio Recording Only\", và không có quyền này thì sẽ không có lỗi, chỉ có im lặng.",
@@ -590,6 +593,7 @@
       "legendNone": "Tắt: ẩn phía này"
     },
     "playItemAudio": "Phát âm thanh của mục này",
+    "replayBlockedWholeSystem": "Phát lại bị tắt trong khi âm thanh đối phương đang thu toàn bộ âm thanh hệ thống: nó sẽ bị dịch lại.",
     "toolbar": {
       "export": "Xuất hội thoại"
     },

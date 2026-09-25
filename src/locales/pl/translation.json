@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Wejścia loopback, takie jak \"Stereo Mix\" lub urządzenie \"Monitor of ...\", nagrywają własne wyjście audio systemu. Podczas sesji z przetłumaczoną mową Sokuji program słyszałby i tłumaczył sam siebie w pętli.",
     "loopbackMicWarningText2": "Urządzenie pozostaje wybrane, jeśli to trasowanie jest zamierzone, ale do normalnego użytku wybierz fizyczny mikrofon.",
     "participantNoAudioYet": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk. Jeśli źródło odtwarza, a nic nie jest tłumaczone, zezwól Sokuji w Ustawienia systemowe > Prywatność i ochrona > Tylko nagrywanie dźwięku systemowego (macOS), a następnie uruchom sesję ponownie.",
+    "participantSpeech": "Odczytaj na głos tłumaczenie rozmówcy",
+    "participantSpeechDesc": "Czyta na głos to, co mówi rozmówca, w twoim języku, przez twoje głośniki. Podąża za jego głosem z opóźnieniem.",
+    "participantSpeechBlockedWholeSystem": "Wyłączone, gdy dźwięk rozmówcy przechwytuje cały dźwięk systemowy: jego tłumaczenie zostałoby ponownie przechwycone i przetłumaczone. Wybierz aplikację jako źródło rozmówcy.",
     "audioCaptureUnprovenNotice": "Nic jeszcze nie przechwycono",
     "audioCaptureUnprovenTitle": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk",
     "audioCaptureUnprovenText1": "Jeśli źródło odtwarza, a nic nie jest tłumaczone, macOS prawdopodobnie dostarcza ciszę: przechwytywanie aplikacji wymaga uprawnienia „Tylko nagrywanie dźwięku systemowego”, a bez niego nie ma błędu, tylko cisza.",
@@ -590,6 +593,7 @@
       "legendNone": "Wyłącz: ukryj tę stronę"
     },
     "playItemAudio": "Odtwórz dźwięk tego elementu",
+    "replayBlockedWholeSystem": "Odtwarzanie jest wyłączone, gdy dźwięk rozmówcy przechwytuje cały dźwięk systemowy: zostałby przetłumaczony ponownie.",
     "toolbar": {
       "export": "Eksportuj rozmowę"
     },

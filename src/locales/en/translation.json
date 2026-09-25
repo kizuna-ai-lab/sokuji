@@ -363,6 +363,9 @@
     "participantSourceDesc": "Choose which application to translate. System Audio captures everything you hear, including games and music.",
     "turnOffParticipant": "Turn off Other's audio",
     "participantNoAudioYet": "No audio has come through from the selected source yet. If it is playing and nothing is translated, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only (macOS), then start the session again.",
+    "participantSpeech": "Speak Other's translation",
+    "participantSpeechDesc": "Reads what Other says aloud to you, in your language, on your speakers. It follows their voice with a delay.",
+    "participantSpeechBlockedWholeSystem": "Off while Other's audio captures all system sound: their translation would be captured and translated again. Pick an application as Other's source.",
     "audioCaptureUnprovenNotice": "Nothing captured yet",
     "audioCaptureUnprovenTitle": "No audio has come through from the selected source yet",
     "audioCaptureUnprovenText1": "If the source is playing and nothing is translated, macOS is probably delivering silence: capturing an application needs the \"System Audio Recording Only\" permission, and without it there is no error, only silence.",
@@ -590,6 +593,7 @@
       "ariaLabel": "{{scope}}: {{mode}} — click to change"
     },
     "playItemAudio": "Play this item's audio",
+    "replayBlockedWholeSystem": "Replay is off while Other's audio captures all system sound: it would be translated again.",
     "toolbar": {
       "export": "Export conversation"
     },

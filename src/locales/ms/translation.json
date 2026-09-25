@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Input loopback seperti \"Stereo Mix\" atau peranti \"Monitor of ...\" merakam output audio sistem itu sendiri. Dalam sesi yang mengandungi suara terjemahan Sokuji, Sokuji akan mendengar dan menterjemah dirinya sendiri dalam gelung.",
     "loopbackMicWarningText2": "Peranti kekal dipilih sekiranya penghalaan ini disengajakan, tetapi untuk kegunaan biasa sila pilih mikrofon fizikal.",
     "participantNoAudioYet": "Belum ada audio diterima daripada sumber yang dipilih. Jika ia sedang dimainkan tetapi tiada apa yang diterjemahkan, benarkan Sokuji di System Settings > Privacy & Security > System Audio Recording Only (macOS), kemudian mulakan sesi semula.",
+    "participantSpeech": "Sebutkan terjemahan pihak lain",
+    "participantSpeechDesc": "Membacakan dengan kuat apa yang pihak lain katakan, dalam bahasa anda, melalui pembesar suara anda. Ia mengikuti suara mereka dengan sedikit kelewatan.",
+    "participantSpeechBlockedWholeSystem": "Dimatikan semasa audio pihak lain menangkap semua audio sistem: terjemahan mereka akan ditangkap dan diterjemah semula. Pilih aplikasi sebagai sumber pihak lain.",
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio diterima daripada sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang dimainkan tetapi tiada apa yang diterjemahkan, macOS berkemungkinan menghantar kesenyapan: menangkap sesebuah aplikasi memerlukan kebenaran \"System Audio Recording Only\", dan tanpanya tiada ralat, hanya kesenyapan.",
@@ -590,6 +593,7 @@
       "legendNone": "Mati: sembunyikan sisi ini"
     },
     "playItemAudio": "Main audio item ini",
+    "replayBlockedWholeSystem": "Main semula dimatikan semasa audio pihak lain menangkap semua audio sistem: ia akan diterjemah semula.",
     "toolbar": {
       "export": "Eksport perbualan"
     },

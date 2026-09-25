@@ -369,6 +369,9 @@
     "loopbackMicWarningText1": "Las entradas de bucle como \"Stereo Mix\" o un dispositivo \"Monitor of ...\" graban la propia salida de audio del sistema. Durante una sesión que incluya la voz traducida de Sokuji, Sokuji se oiría y se traduciría a sí mismo en bucle.",
     "loopbackMicWarningText2": "El dispositivo permanece seleccionado por si este enrutamiento es intencional, pero para un uso normal elija un micrófono físico.",
     "participantNoAudioYet": "Todavía no ha llegado audio de la fuente seleccionada. Si está reproduciendo y no se traduce nada, permite Sokuji en Ajustes del Sistema > Privacidad y seguridad > Solo grabación de audio del sistema (macOS) y vuelve a iniciar la sesión.",
+    "participantSpeech": "Leer en voz alta la traducción del otro",
+    "participantSpeechDesc": "Te lee en voz alta lo que dice el otro, en tu idioma, por tus altavoces. Sigue su voz con un retraso.",
+    "participantSpeechBlockedWholeSystem": "Desactivado mientras el audio del otro captura todo el audio del sistema: su traducción se capturaría y traduciría de nuevo. Elige una aplicación como fuente del otro.",
     "audioCaptureUnprovenNotice": "Aún no se ha capturado nada",
     "audioCaptureUnprovenTitle": "Todavía no ha llegado audio de la fuente seleccionada",
     "audioCaptureUnprovenText1": "Si la fuente está reproduciendo y no se traduce nada, probablemente macOS esté entregando silencio: capturar una aplicación requiere el permiso «Solo grabación de audio del sistema», y sin él no hay error, solo silencio.",
@@ -590,6 +593,7 @@
       "legendNone": "Apagado: ocultar este lado"
     },
     "playItemAudio": "Reproducir el audio de este elemento",
+    "replayBlockedWholeSystem": "La reproducción está desactivada mientras el audio del otro captura todo el audio del sistema: se traduciría de nuevo.",
     "toolbar": {
       "export": "Exportar conversación"
     },
