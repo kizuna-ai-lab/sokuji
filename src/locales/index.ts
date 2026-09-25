@@ -106,7 +106,10 @@ let cachingLanguage = true;
  * would cache `i18nextLng` there, a second writer of the side panel's choice
  * (controller ruling M11). The first call turns the language detector's
  * caches off for the rest of this document's life — through `init`, the
- * detector module's own API. Only the overlay's page calls this.
+ * detector module's own API. Only the overlay's page calls this. The
+ * document's own i18next init has already cached the language it detected,
+ * before any call here; where the storage is shared, that writes back the
+ * `i18nextLng` it just read, so the guarantee is never a different value.
  */
 export async function showLanguageUncached(lng: string): Promise<string> {
   if (cachingLanguage) {
@@ -135,6 +138,11 @@ i18n
     
     react: {
       useSuspense: false,
+      // A bundle's arrival redraws what `useTranslation` mounted. The detected
+      // language loads in the background (below), after the first render; a
+      // page with nothing else to redraw it — the extension overlay, idle
+      // after a stop — would otherwise keep English (plan 1e-4 Task 9).
+      bindI18nStore: 'added',
     },
     
     // Don't preload any languages except the fallback
