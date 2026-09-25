@@ -1,4 +1,5 @@
 import { FlaskConical } from 'lucide-react';
+import type { Adapter } from '../../lib/contract/adapter';
 import { AUTO } from '../../lib/provider/languages';
 import type { LanguageOption, Provider } from '../../lib/provider/types';
 import { createFakeAdapter, type FakeConfig, type FakeCredentials } from './adapter';
@@ -12,7 +13,11 @@ const LANGUAGES: readonly LanguageOption[] = [
   { value: 'zh', name: '中文', englishName: 'Chinese' },
 ];
 
-const adapter = createFakeAdapter();
+// Built on the first `start()`, not here: a module-scope `createFakeAdapter()`
+// call cannot be proven side-effect free, so a bundler keeps the whole module
+// even once DEV-only tree-shaking (registry.ts) drops every reference to it —
+// against D24, "compiled into development builds only" (final review, M1).
+let adapter: Adapter<FakeConfig, FakeCredentials> | null = null;
 
 /**
  * The fake provider (D24): a real definition, compiled into development builds
@@ -59,5 +64,5 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
         },
       }),
   describe: () => ({ asrModel: 'fake', translationModel: 'fake', ttsModel: 'fake' }),
-  start: adapter.start,
+  start: (request, events) => (adapter ??= createFakeAdapter()).start(request, events),
 };
