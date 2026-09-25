@@ -7,7 +7,13 @@
 import type { Runner } from '../lib/session/runner';
 
 export function trackBusy(runner: Pick<Runner, 'state' | 'settled'>, send: (busy: boolean) => void): () => void {
-  let busy = false;
+  // Seeded from the runner's phase (final review M4), not `false`: a tracker
+  // that attaches mid-run — a re-attach, or a second surface joining one
+  // already live — must say busy at once, or Electron's close handshake
+  // never learns the session is live and the run's own end never clears it
+  // (nothing here saw the start that made it busy).
+  let busy = runner.state.getState().phase !== 'idle';
+  if (busy) send(true);
   /** Bumped on every change: a settle that resolves after a newer change says nothing. */
   let generation = 0;
   return runner.state.subscribe((state) => {

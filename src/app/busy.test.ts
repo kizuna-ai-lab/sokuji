@@ -71,6 +71,22 @@ describe('trackBusy', () => {
     expect(sent).toEqual([true, false]);
   });
 
+  it('sends true at once when attached while a run is already live, then not busy once it settles', async () => {
+    const { state, resolvers, settled } = fakeRunner();
+    state.setState({ phase: 'running', since: 0, legs: {} });
+    const sent: boolean[] = [];
+
+    trackBusy({ state, settled }, (busy) => sent.push(busy));
+
+    expect(sent).toEqual([true]);
+
+    state.setState({ phase: 'stopping' });
+    state.setState({ phase: 'idle' });
+    resolvers[0]();
+    await flush();
+    expect(sent).toEqual([true, false]);
+  });
+
   it('sends nothing after unsubscribing', () => {
     const { state, settled } = fakeRunner();
     const sent: boolean[] = [];
