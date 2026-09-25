@@ -1,23 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { messagePortWire, receiveSubtitles, type OverlayModel } from '../../lib/subtitle/wire';
+import { useEffect, useRef, useState } from 'react';
+import { messagePortWire, receiveSubtitles, type OverlayReceiver } from '../../lib/subtitle/wire';
 import { useSubtitleStore } from '../../stores/subtitleStore';
-import { useReadable } from '../Conversation/useReadable';
-import { SubtitleView, type SubtitleControls } from '../Subtitle/SubtitleView';
-
-type Receiver = ReturnType<typeof receiveSubtitles>;
+import { ConnectedOverlay } from '../Subtitle/ConnectedOverlay';
 
 /**
  * Development builds only (`?preview=overlay`): the extension overlay's
  * stand-in, drawn inside the preview's iframe. Its parent hands it one end of
  * a `MessageChannel` — the wire the extension carries over `chrome.runtime`
- * (plan 1e) — and it draws what arrives.
+ * (plan 1e-4) — and it draws what arrives.
  */
 export function OverlayPreview() {
-  const [receiver, setReceiver] = useState<Receiver | null>(null);
+  const [receiver, setReceiver] = useState<OverlayReceiver | null>(null);
   // The current receiver, alongside the state: disposing the old one and
   // building the new one happens here, in the message handler — not inside
   // the `setReceiver` updater, which StrictMode may invoke twice.
-  const receiverRef = useRef<Receiver | null>(null);
+  const receiverRef = useRef<OverlayReceiver | null>(null);
   useEffect(() => {
     // `&compact=1`: this page has its own subtitle store, like the real overlay's iframe.
     if (new URLSearchParams(window.location.search).get('compact') === '1') void useSubtitleStore.getState().setCompactMode(true);
@@ -38,15 +35,4 @@ export function OverlayPreview() {
   }, []);
   if (!receiver) return null;
   return <ConnectedOverlay receiver={receiver} />;
-}
-
-function ConnectedOverlay({ receiver }: { receiver: Receiver }) {
-  const model: OverlayModel = useReadable(receiver);
-  const controls: SubtitleControls = useMemo(() => ({
-    exit: () => receiver.send({ type: 'subtitle:user-exit' }),
-    clear: () => receiver.send({ type: 'subtitle:request-clear' }),
-    press: () => receiver.send({ type: 'subtitle:turn-press' }),
-    release: () => receiver.send({ type: 'subtitle:turn-release' }),
-  }), [receiver]);
-  return <SubtitleView surface="extension-overlay" model={model} controls={controls} />;
 }

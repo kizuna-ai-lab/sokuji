@@ -97,6 +97,25 @@ export async function changeLanguageWithLoad(lng: string): Promise<string> {
   return lng;
 }
 
+let cachingLanguage = true;
+
+/**
+ * Shows `lng` in this document without storing it as the document's own
+ * choice. The extension overlay follows the side panel's language (plan 1e-4
+ * ruling 5), and its storage may be the side panel's: an ordinary switch
+ * would cache `i18nextLng` there, a second writer of the side panel's choice
+ * (controller ruling M11). The first call turns the language detector's
+ * caches off for the rest of this document's life — through `init`, the
+ * detector module's own API. Only the overlay's page calls this.
+ */
+export async function showLanguageUncached(lng: string): Promise<string> {
+  if (cachingLanguage) {
+    cachingLanguage = false;
+    i18n.services.languageDetector?.init?.(i18n.services, { ...i18n.options.detection, caches: [] }, i18n.options);
+  }
+  return changeLanguageWithLoad(lng);
+}
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
