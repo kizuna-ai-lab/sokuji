@@ -58,12 +58,31 @@ vi.mock('../lib/export/appAutoSave', () => ({
   autoSaveConversation: vi.fn(async () => 'saved'),
 }));
 
+// The real karaoke's own subscribe/unsubscribe, spied on: item 8's proxy
+// gating test needs to see whether the root ever bridges into it, without a
+// real playback's queues to drive `createKaraoke`'s internal sampling.
+const { karaokeSubscribe, karaokeUnsubscribe } = vi.hoisted(() => ({
+  karaokeSubscribe: vi.fn(),
+  karaokeUnsubscribe: vi.fn(),
+}));
+vi.mock('../lib/view/karaoke', () => ({
+  createKaraoke: () => ({
+    get: () => ({ lit: new Map(), replaying: null }),
+    subscribe: (listener: () => void) => {
+      karaokeSubscribe(listener);
+      return () => { karaokeUnsubscribe(); };
+    },
+  }),
+}));
+
 import { createVirtualClock } from '../lib/contract/clock';
+import { settleReports } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { fakeProvider } from '../providers/fake/provider';
 import { createFakeSource } from '../providers/fake/source';
 import { localInferenceProvider } from '../providers/localInference/provider';
 import useAudioStore from '../stores/audioStore';
+import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -89,6 +108,7 @@ afterEach(() => {
   useAudioStore.setState(audioBefore, true);
   useSettingsStore.setState(settingsBefore, true);
   useSegmentationStore.setState(segmentationBefore, true);
+  useLogStore.getState().setEnabled(false);
 });
 
 async function setup(options: AppSessionOptions = {}) {
@@ -164,6 +184,20 @@ describe('createAppSession', () => {
     expect(order).toEqual(['saved', 'refetch']);
   });
 
+  it('never erases a bridge with undefined: a later setBridges without refetchQuota keeps the earlier one', async () => {
+    const { session } = await setup();
+    const refetchQuota = vi.fn(async () => {});
+    session.setBridges({ refetchQuota });
+    const track = vi.fn();
+    session.setBridges({ refetchQuota: undefined, track });
+
+    await session.runner.start();
+    await session.runner.stop();
+    await flush();
+
+    expect(refetchQuota).toHaveBeenCalledTimes(1);
+  });
+
   it('saves nothing and loads nothing for a refused start', async () => {
     const { session } = await setup({ refuse: () => true });
     await session.runner.start();
@@ -204,6 +238,33 @@ describe('createAppSession', () => {
     const told = await setup();
     expect(told.session.subtitle.get().canStart).toBe(true);
   });
+
+  it('subscribes to the real karaoke only while the proxy has a listener, unsubscribing when the last one leaves', async () => {
+    const { session } = await setup();
+    await session.audio();
+    expect(karaokeSubscribe).not.toHaveBeenCalled();
+
+    const offA = session.karaoke.subscribe(() => {});
+    expect(karaokeSubscribe).toHaveBeenCalledTimes(1);
+    const offB = session.karaoke.subscribe(() => {});
+    expect(karaokeSubscribe).toHaveBeenCalledTimes(1); // one bridging subscription serves every listener
+
+    offA();
+    expect(karaokeUnsubscribe).not.toHaveBeenCalled();
+    offB();
+    expect(karaokeUnsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a failed playback load', async () => {
+    getAppAudio.mockRejectedValueOnce(new Error('boom'));
+    const { session } = await setup();
+
+    await expect(session.audio()).rejects.toThrow('boom');
+    const loaded = await session.audio();
+
+    expect(loaded.playback).toBe(playback);
+    expect(getAppAudio).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('attach', () => {
@@ -221,6 +282,38 @@ describe('attach', () => {
     window.dispatchEvent(new Event('pagehide'));
     expect(session.runner.state.getState().phase).not.toBe('idle');
     await session.runner.stop();
+  });
+
+  it('does nothing on a second live attach, reported once as a warning', async () => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    const { session } = await setup();
+    const detach1 = session.attach();
+    const detach2 = session.attach();
+
+    await settleReports();
+    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning')).toHaveLength(1);
+
+    // The second attach's own effects never registered: detaching it changes nothing.
+    await session.runner.start();
+    detach2();
+    window.dispatchEvent(new Event('pagehide'));
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'user' } });
+
+    detach1();
+  });
+
+  it('attaches again once the first has detached', async () => {
+    const { session } = await setup();
+    const detach1 = session.attach();
+    detach1();
+
+    const detach2 = session.attach();
+    await session.runner.start();
+    window.dispatchEvent(new Event('pagehide'));
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'user' } });
+
+    detach2();
   });
 
   it("keeps the provider store's legs on the audio mode", async () => {

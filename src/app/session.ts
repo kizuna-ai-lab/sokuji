@@ -91,6 +91,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   let playback: Playback | null = null;
   let openLeg: OpenSource | null = null;
   let loading: Promise<LoadedAudio> | null = null;
+  /** One live `attach()` at a time (final review M6). */
+  let attached = false;
 
   const refetchQuota = () => {
     const refetch = bridges.refetchQuota;
@@ -134,15 +136,30 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   const view = createConversationView(runner.conversation, appProjectionSettings(), clock);
   const subtitle = appSubtitleSession(runner, view, { microphoneRequired: options.microphoneRequired ?? (() => true) });
 
-  // Karaoke over the playback's queues, behind one identity: nothing lit until the playback loads.
+  // Karaoke over the playback's queues, behind one identity: nothing lit until
+  // the playback loads. The root bridges into the real karaoke only while the
+  // proxy itself has at least one listener (final review, parked item 8):
+  // `createKaraoke` only samples at its interval while *something* is
+  // subscribed to it, so an unconditional bridging subscription here would
+  // keep it sampling at 10 Hz even with nobody watching the proxy.
   let karaokeReal: Readable<KaraokeState> | null = null;
+  let karaokeUnsubscribeReal: (() => void) | null = null;
   const karaokeListeners = new Set<() => void>();
   const notifyKaraoke = () => { for (const listener of [...karaokeListeners]) listener(); };
   const karaoke: Readable<KaraokeState> = {
     get: () => karaokeReal?.get() ?? IDLE,
     subscribe(listener) {
       karaokeListeners.add(listener);
-      return () => { karaokeListeners.delete(listener); };
+      if (karaokeListeners.size === 1 && karaokeReal && !karaokeUnsubscribeReal) {
+        karaokeUnsubscribeReal = karaokeReal.subscribe(notifyKaraoke);
+      }
+      return () => {
+        karaokeListeners.delete(listener);
+        if (karaokeListeners.size === 0 && karaokeUnsubscribeReal) {
+          karaokeUnsubscribeReal();
+          karaokeUnsubscribeReal = null;
+        }
+      };
     },
   };
 
@@ -155,7 +172,9 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         if (!karaokeReal) {
           const real = createKaraoke(app.playback.queues, view, clock);
           karaokeReal = real;
-          real.subscribe(notifyKaraoke);
+          if (karaokeListeners.size > 0) karaokeUnsubscribeReal = real.subscribe(notifyKaraoke);
+          // Notifies the proxy's own listeners (if any — a no-op otherwise):
+          // the real karaoke exists now, behind the same identity.
           notifyKaraoke();
         }
         return { ...app, capture };
@@ -171,8 +190,26 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   return {
     runner, view, karaoke, subtitle, punctuation, frames,
     audio,
-    setBridges(next) { Object.assign(bridges, next); },
+    setBridges(next) {
+      // Never `Object.assign`: a caller that omits a key (rather than naming
+      // it `undefined`) must not erase what an earlier caller set (M2) — a
+      // second `useAppSessionBridges()` bare of `refetchQuota` would
+      // otherwise switch the balance refetch off.
+      for (const key of Object.keys(next) as (keyof AppBridges)[]) {
+        const value = next[key];
+        if (value !== undefined) (bridges as Record<keyof AppBridges, unknown>)[key] = value;
+      }
+    },
     attach() {
+      // One live attach at a time (final review M6): a second one while the
+      // first is still live would double the pagehide listener, the local
+      // readiness driver and the busy tracker. 1e-3b picks the owner; until
+      // then this makes a wrong second caller visible instead of silent.
+      if (attached) {
+        reportWarning('AppSession', 'A second attach() while one is already live did nothing.', { dedupeKey: 'session:attach' });
+        return () => {};
+      }
+      attached = true;
       const offs: Array<() => void> = [
         // The panel's readiness is about the legs a start would open: the audio mode's.
         watchLegsFromStores(),
@@ -195,6 +232,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       return () => {
         if (detached) return;
         detached = true;
+        attached = false;
         for (const off of offs.reverse()) off();
       };
     },
