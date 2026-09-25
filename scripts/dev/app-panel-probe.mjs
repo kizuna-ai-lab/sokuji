@@ -28,6 +28,12 @@
  * two rows per exchange), so 20 rows need on the order of 30s of real time —
  * the whole point of the script is to pile up enough rows to measure the
  * per-row memoization's long tasks, which a 12s window cannot show.
+ *
+ * `--ptt` holds Space right after Start, before the rows/karaoke check: the
+ * fake's first block plays only inside a held turn under push-to-talk (the
+ * same reason `spine-subtitle-probe.mjs` holds before reading), so the rows
+ * check must come from that held turn, not before it. Without `--ptt`
+ * nothing about the ordering changes.
  */
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -182,6 +188,26 @@ process.exitCode = await withPage('about:blank', async (send) => {
       })()`));
       if (!started) failures.push('the run never showed an active status dot with a duration');
 
+      // `--ptt`, right after Start and before step 4 (fix round 2): under
+      // push-to-talk the fake's first block plays only inside a held turn,
+      // so step 4's rows/karaoke must come from this held turn, not before
+      // it — the basic footer's own words ("Hold to speak" / "Release to
+      // stop"). Holds 1.5s total, as `spine-subtitle-probe.mjs` does.
+      if (ptt) {
+        // Off any focused element, so Space is not swallowed as typing (usePushToTalk's own rule).
+        await evaluate(send, `document.activeElement && document.activeElement.blur && document.activeElement.blur()`);
+        const holdText = () => evaluate(send, `document.querySelector('.main-panel .push-to-talk-btn .btn-text')?.textContent ?? ''`);
+        const holdStarted = Date.now();
+        await send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 });
+        const released = await pollUntil(1000, 100, async () => (await holdText()).startsWith('Release'));
+        if (!released) failures.push('the hold button never read "Release…" after Space down');
+        const remaining = 1500 - (Date.now() - holdStarted);
+        if (remaining > 0) await sleep(remaining);
+        await send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 });
+        const heldAgain = await pollUntil(1000, 100, async () => (await holdText()).startsWith('Hold'));
+        if (!heldAgain) failures.push('the hold button never read "Hold…" again after Space up');
+      }
+
       // Step 4: rows with karaoke. `--long` needs a much longer window (see
       // the header comment) to actually pile up 20 rows.
       const rowsWindowMs = long ? 34000 : 12000;
@@ -218,19 +244,6 @@ process.exitCode = await withPage('about:blank', async (send) => {
         })()`);
         const sent = await pollUntil(5000, 250, async () => evaluate(send, `document.querySelector('.main-panel .conversation-list')?.textContent.includes('probe text') ?? false`));
         if (!sent) failures.push('the typed text never reached a row');
-        // Off the text input, so a held Space (--ptt) is not swallowed as typing (usePushToTalk's own rule).
-        await evaluate(send, `document.activeElement && document.activeElement.blur && document.activeElement.blur()`);
-      }
-
-      // Step 6: push-to-talk — the basic footer's own words (ruling: "Hold to speak" / "Release to stop").
-      if (ptt) {
-        const holdText = () => evaluate(send, `document.querySelector('.main-panel .push-to-talk-btn .btn-text')?.textContent ?? ''`);
-        await send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 });
-        const released = await pollUntil(1000, 100, async () => (await holdText()).startsWith('Release'));
-        if (!released) failures.push('the hold button never read "Release…" after Space down');
-        await send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'Space', key: ' ', windowsVirtualKeyCode: 32 });
-        const heldAgain = await pollUntil(1000, 100, async () => (await holdText()).startsWith('Hold'));
-        if (!heldAgain) failures.push('the hold button never read "Hold…" again after Space up');
       }
 
       // Step 7: the advanced footer's waveforms — the app's own capture, not the fake source.
