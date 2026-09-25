@@ -147,11 +147,15 @@ function sameRows(a: readonly Row[], b: readonly Row[]): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
-    const x = a[i];
-    const y = b[i];
-    if (x === y) continue;
-    if (x.key !== y.key || x.segmentId !== y.segmentId || x.side !== y.side || x.start !== y.start || x.end !== y.end) return false;
-    if (x.text !== y.text || x.final !== y.final || x.language !== y.language) return false;
+    if (!sameRow(a[i], b[i])) return false;
   }
+  return true;
+}
+
+/** By value: a row rebuilt around the same text is still the same row (`filter.ts`'s `displayItems` reuses on it). */
+export function sameRow(a: Row, b: Row): boolean {
+  if (a === b) return true;
+  if (a.key !== b.key || a.segmentId !== b.segmentId || a.side !== b.side || a.start !== b.start || a.end !== b.end) return false;
+  if (a.text !== b.text || a.final !== b.final || a.language !== b.language) return false;
   return true;
 }

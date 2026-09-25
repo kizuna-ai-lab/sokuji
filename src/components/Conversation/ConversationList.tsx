@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { memo, useCallback, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertCircle, Play, User, Users } from 'lucide-react';
 import type { LegName, SegmentId } from '../../lib/conversation/types';
@@ -7,6 +7,12 @@ import { noticeText } from '../../lib/view/noticeText';
 import '../MainPanel/MainPanel.scss';
 import '../MainPanel/ConversationRow.scss';
 import '../../styles/karaoke.scss';
+
+/** What a notice's bubble offers below its words (plan 1e-3b-1 ruling 13). */
+export interface NoticeAction {
+  label: string;
+  run(): void;
+}
 
 export interface ConversationListProps {
   items: readonly DisplayItem[];
@@ -19,6 +25,10 @@ export interface ConversationListProps {
   /** The segment kept pcm to replay. */
   canReplay(segmentId: SegmentId): boolean;
   onReplay(leg: LegName, segmentId: SegmentId): void;
+  /** Set while replay is gated session-wide (plan 1e-3b-1 ruling 15): every slot is disabled and shows this as its title. */
+  replayBlocked?: string | null;
+  /** The action a notice's bubble offers, if any (plan 1e-3b-1 ruling 13). */
+  noticeAction?(notice: NoticeEntry): NoticeAction | null;
   compact: boolean;
   /** In px: the display's `--conversation-font-size`. */
   fontSize: number;
@@ -33,7 +43,9 @@ function formatTime(ts: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export function ConversationList({ items, lit, replaying, replayLegs, canReplay, onReplay, compact, fontSize, empty }: ConversationListProps) {
+export function ConversationList({
+  items, lit, replaying, replayLegs, canReplay, onReplay, replayBlocked, noticeAction, compact, fontSize, empty,
+}: ConversationListProps) {
   const display = useRef<HTMLDivElement>(null);
   // Follow the newest line, as today's panel does; layout has run by the time this fires.
   useLayoutEffect(() => {
@@ -41,28 +53,49 @@ export function ConversationList({ items, lit, replaying, replayLegs, canReplay,
     if (el) el.scrollTop = el.scrollHeight;
   }, [items]);
 
+  // One stable callback identity for RowBubble's memo, whatever identity `onReplay` holds this render.
+  const onReplayRef = useRef(onReplay);
+  onReplayRef.current = onReplay;
+  const replay = useCallback((leg: LegName, segmentId: SegmentId) => onReplayRef.current(leg, segmentId), []);
+
+  // A notice's action keeps its identity while `noticeAction` does (plan 1e-3b-1 ruling 14).
+  const actions = useRef<{ from: ConversationListProps['noticeAction']; byId: Map<string, NoticeAction | null> }>({ from: undefined, byId: new Map() });
+  if (actions.current.from !== noticeAction) actions.current = { from: noticeAction, byId: new Map() };
+  const actionFor = (notice: NoticeEntry): NoticeAction | null => {
+    const { byId } = actions.current;
+    if (!byId.has(notice.id)) byId.set(notice.id, noticeAction?.(notice) ?? null);
+    return byId.get(notice.id)!;
+  };
+
   return (
     <div className="conversation-display" ref={display} style={{ '--conversation-font-size': `${fontSize}px` } as CSSProperties}>
       {items.length === 0 ? (
         <div className="empty-state">{empty}</div>
       ) : (
         <div className="conversation-list">
-          {items.map((item) =>
-            item.kind === 'notice' ? (
-              <NoticeBubble key={item.notice.id} notice={item.notice} />
-            ) : (
+          {items.map((item) => {
+            if (item.kind === 'notice') {
+              return <NoticeBubble key={item.notice.id} notice={item.notice} action={actionFor(item.notice)} />;
+            }
+            // The slot is decided here, session-wide, so a row without one never
+            // re-renders for a replay-state change (plan 1e-3b-1 ruling 14).
+            const slot = !compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg);
+            const id = item.row.segmentId;
+            return (
               <RowBubble
                 key={item.row.key}
                 item={item}
-                upTo={lit.get(item.row.segmentId)}
-                replaying={replaying}
-                replaySlot={!compact && item.row.side === 'translation' && item.endsSegment && replayLegs.has(item.leg)}
-                canReplay={canReplay}
-                onReplay={onReplay}
+                upTo={lit.get(id)}
+                replaySlot={slot}
+                canReplay={slot && canReplay(id)}
+                replayingThis={slot && replaying === id}
+                replayingOther={slot && replaying !== null && replaying !== id}
+                blocked={slot ? replayBlocked ?? null : null}
+                onReplay={replay}
                 compact={compact}
               />
-            ),
-          )}
+            );
+          })}
         </div>
       )}
     </div>
@@ -73,14 +106,16 @@ interface RowBubbleProps {
   item: RowItem;
   /** Characters [0, upTo) of the row's segment are spoken; undefined when karaoke is not on it. */
   upTo: number | undefined;
-  replaying: SegmentId | null;
   replaySlot: boolean;
-  canReplay(segmentId: SegmentId): boolean;
+  canReplay: boolean;
+  replayingThis: boolean;
+  replayingOther: boolean;
+  blocked: string | null;
   onReplay(leg: LegName, segmentId: SegmentId): void;
   compact: boolean;
 }
 
-function RowBubble({ item, upTo, replaying, replaySlot, canReplay, onReplay, compact }: RowBubbleProps) {
+const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, replayingThis, replayingOther, blocked, onReplay, compact }: RowBubbleProps) {
   const { t } = useTranslation();
   const { row, leg, languages } = item;
   const isTranslation = row.side === 'translation';
@@ -95,7 +130,6 @@ function RowBubble({ item, upTo, replaying, replaySlot, canReplay, onReplay, com
   const lead = row.text.length - row.text.trimStart().length;
   const played = upTo === undefined ? 0 : Math.min(text.length, Math.max(0, upTo - row.start - lead));
   const segmentId = row.segmentId;
-  const enabled = canReplay(segmentId);
   // The tint marks only the row that holds the karaoke boundary — not every
   // row of a segment lit is on, or a row karaoke has already passed.
   const isPlayingRow = upTo !== undefined && ((upTo >= row.start && upTo < row.end) || (item.endsSegment && upTo >= row.end));
@@ -138,11 +172,11 @@ function RowBubble({ item, upTo, replaying, replaySlot, canReplay, onReplay, com
           // (today's `ConversationRow` rule). One replay plays at a time.
           <button
             type="button"
-            className={`row-play-btn ${replaying === segmentId ? 'playing' : ''}`}
-            onClick={enabled ? () => onReplay(leg, segmentId) : undefined}
-            disabled={!enabled || (replaying !== null && replaying !== segmentId)}
+            className={`row-play-btn ${replayingThis ? 'playing' : ''}`}
+            onClick={canReplay && blocked === null ? () => onReplay(leg, segmentId) : undefined}
+            disabled={!canReplay || replayingOther || blocked !== null}
             aria-label={t('mainPanel.playItemAudio', "Play this item's audio")}
-            title={t('mainPanel.playItemAudio', "Play this item's audio")}
+            title={blocked ?? t('mainPanel.playItemAudio', "Play this item's audio")}
           >
             <Play size={10} />
           </button>
@@ -150,9 +184,9 @@ function RowBubble({ item, upTo, replaying, replaySlot, canReplay, onReplay, com
       </div>
     </div>
   );
-}
+});
 
-function NoticeBubble({ notice }: { notice: NoticeEntry }) {
+const NoticeBubble = memo(function NoticeBubble({ notice, action }: { notice: NoticeEntry; action: NoticeAction | null }) {
   const { t } = useTranslation();
   const warning = notice.severity === 'warning';
   // A code-less notice with an empty message has no words at all: today's
@@ -165,6 +199,11 @@ function NoticeBubble({ notice }: { notice: NoticeEntry }) {
         {warning ? t('mainPanel.warning', 'Warning') : t('mainPanel.error', 'Error')}
       </div>
       <div className="message-content error-content">{words}</div>
+      {action && (
+        <button type="button" className="message-action" onClick={action.run}>
+          {action.label}
+        </button>
+      )}
     </div>
   );
-}
+});

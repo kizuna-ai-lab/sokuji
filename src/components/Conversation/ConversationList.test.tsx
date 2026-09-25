@@ -121,6 +121,57 @@ describe('ConversationList — replay', () => {
   });
 });
 
+describe('ConversationList — replay gate', () => {
+  it('disables every replay slot and sets its title while replay is blocked', () => {
+    const { container } = render(<ConversationList {...props({ replayBlocked: 'Replay is off…' })} />);
+    const button = container.querySelector('.row-play-btn') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.title).toBe('Replay is off…');
+  });
+
+  it('leaves the existing enabled/disabled cases when not blocked', () => {
+    const { container } = render(<ConversationList {...props()} />);
+    const button = container.querySelector('.row-play-btn') as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+    expect(button.title).toBe("Play this item's audio");
+
+    const { container: disabledContainer } = render(<ConversationList {...props({ replaying: 's:speaker:9' })} />);
+    expect((disabledContainer.querySelector('.row-play-btn') as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe('ConversationList — a notice action', () => {
+  it("shows a notice's action button, labelled by the caller, and runs it on click", () => {
+    const run = vi.fn();
+    const target: DisplayItem = {
+      kind: 'notice',
+      notice: { kind: 'notice', id: 'n1', leg: 'speaker', severity: 'warning', message: 'w', code: 'no_microphone', at: 0 },
+    };
+    const other: DisplayItem = {
+      kind: 'notice',
+      notice: { kind: 'notice', id: 'n2', leg: 'speaker', severity: 'warning', message: 'w2', code: 'start_failed', at: 0 },
+    };
+    const { container } = render(
+      <ConversationList
+        {...props({
+          items: [target, other],
+          noticeAction: (n) => (n.code === 'no_microphone' ? { label: 'Settings', run } : null),
+        })}
+      />,
+    );
+    const buttons = container.querySelectorAll('.message-action');
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].textContent).toBe('Settings');
+    fireEvent.click(buttons[0]);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no action button when the caller gives none', () => {
+    const { container } = render(<ConversationList {...props({ items: [{ kind: 'notice', notice: { kind: 'notice', id: 'n', leg: 'speaker', severity: 'error', message: 'gone', at: 0 } } as DisplayItem] })} />);
+    expect(container.querySelector('.message-action')).toBeNull();
+  });
+});
+
 describe('ConversationList — notices and the empty state', () => {
   it("draws a notice as today's error bubble, labelled by its severity and put into words", () => {
     const notice: DisplayItem = {
