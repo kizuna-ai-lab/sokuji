@@ -141,4 +141,11 @@ describe('ProviderPanel', () => {
     await screen.findByLabelText('Script');
     expect(screen.queryByTestId('engine-marker')).toBeNull();
   });
+
+  it('offers no Validate button for a local provider: it checks itself', async () => {
+    const local = { ...fakeProvider, kind: 'local' as const };
+    render(<ProviderPanel providers={[local]} auth={noAuth} />);
+    await screen.findByLabelText('Script');
+    expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
+  });
 });

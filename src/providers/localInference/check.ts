@@ -74,6 +74,11 @@ export async function checkLocalInference(
   return { ok: true };
 }
 
+/** `check` reads the model store: a download, a delete or the store's first load can change its answer. */
+export function watchLocalInferenceReadiness(onChange: () => void): () => void {
+  return useModelStore.subscribe((s) => s.modelStatuses, () => onChange());
+}
+
 /**
  * Resolves once the model store finishes initializing, or rejects with the
  * abort reason if `signal` fires first (mirrors `fake/adapter.ts`'s own

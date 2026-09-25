@@ -1,7 +1,7 @@
 import { KizunaAIIcon } from '../../components/Icons/ProviderIcons';
 import type { Provider } from '../../lib/provider/types';
 import { createLocalInferenceAdapter, type LocalCredentials } from './adapter';
-import { checkLocalInference } from './check';
+import { checkLocalInference, watchLocalInferenceReadiness } from './check';
 import { admitLocalInference, buildLocalInference, describeLocalInference, type LocalInferenceConfig } from './config';
 import { LocalInferenceEngine } from './LocalInferenceEngine';
 import { LocalInferenceSettingsView } from './LocalInferenceSettings';
@@ -26,6 +26,7 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
 
   credentials: { keys: [], fields: () => [], read: () => ({}) },
   check: (_k, s, ctx) => checkLocalInference(s, ctx),
+  watchReadiness: watchLocalInferenceReadiness,
 
   languages: localInferenceLanguages,
 

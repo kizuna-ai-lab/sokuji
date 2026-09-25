@@ -11,6 +11,8 @@ let mockInitialized = true;
 let mockTable: Table = {};
 const mockInitialize = vi.fn(async () => { mockInitialized = true; });
 const mockApplyPrunes = vi.fn(async () => {});
+const mockOff = vi.fn();
+const mockSubscribe = vi.fn((_selector: (s: { modelStatuses: unknown }) => unknown, _listener: () => void) => mockOff);
 const mockResolve = vi.fn((src: string, tgt: string, _selections: unknown): DirectionResult => {
   const entry = mockTable[`${src}>${tgt}`];
   const stage = (id: string | null | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
@@ -31,10 +33,15 @@ vi.mock('../../stores/modelStore', () => ({
       resolve: mockResolve,
       applyPrunes: mockApplyPrunes,
     }),
+    // Deferred through a wrapper (not a direct reference): this property is
+    // evaluated eagerly when the factory object is built, before `mockSubscribe`
+    // (declared below, after the hoisted `vi.mock` call) is assigned — a direct
+    // reference here would throw a TDZ ReferenceError at import time.
+    subscribe: (selector: (s: { modelStatuses: unknown }) => unknown, listener: () => void) => mockSubscribe(selector, listener),
   },
 }));
 
-import { checkLocalInference } from './check';
+import { checkLocalInference, watchLocalInferenceReadiness } from './check';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 
 /** Sets what `resolve(src, tgt, …)` answers, keyed `${src}>${tgt}`. */
@@ -55,6 +62,8 @@ beforeEach(() => {
   mockInitialize.mockClear();
   mockApplyPrunes.mockClear();
   mockResolve.mockClear();
+  mockSubscribe.mockClear();
+  mockOff.mockClear();
 });
 
 describe('checkLocalInference', () => {
@@ -135,5 +144,18 @@ describe('checkLocalInference', () => {
     controller.abort(reason);
     await expect(promise).rejects.toBe(reason);
     releaseInit();
+  });
+});
+
+describe('watchLocalInferenceReadiness', () => {
+  it('subscribes to the model store, calling onChange when the recorded listener fires', () => {
+    const onChange = vi.fn();
+    const off = watchLocalInferenceReadiness(onChange);
+    expect(mockSubscribe).toHaveBeenCalledTimes(1);
+    const [selector, listener] = mockSubscribe.mock.calls[0] as [(s: { modelStatuses: unknown }) => unknown, () => void];
+    expect(selector({ modelStatuses: { a: 'downloaded' } })).toEqual({ a: 'downloaded' });
+    listener();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(off).toBe(mockOff);
   });
 });

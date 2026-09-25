@@ -119,6 +119,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * per settings, credentials, sign-in, pair and legs.
    */
   check(k: K, s: S, ctx: CheckContext): Promise<CheckResult>;
+  /**
+   * Calls back when something `check` reads besides the settings,
+   * credentials, pair and legs has changed — a local engine's models
+   * downloading. The app re-checks a local provider then (plan 1e-3a
+   * ruling 6). Returns the unsubscribe.
+   */
+  watchReadiness?(onChange: () => void): () => void;
 
   languages: {
     /** Includes `AUTO` when the provider detects the language. */

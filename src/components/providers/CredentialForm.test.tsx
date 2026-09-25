@@ -62,4 +62,15 @@ describe('CredentialForm', () => {
     expect(screen.getByLabelText('setup.credentials.accessToken')).toHaveClass('api-key-input', 'invalid');
     expect(screen.getByText('bad key')).toHaveClass('validation-message', 'error');
   });
+
+  it('draws no check button without onCheck and without fields: a local provider checks itself', () => {
+    render(<CredentialForm fields={[]} values={{}} readiness={unknown} onChange={vi.fn()} />);
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(document.querySelector('.api-key-input-group')).toBeNull();
+  });
+
+  it('shows a coded not-ready reason in its words', () => {
+    render(<CredentialForm fields={[]} values={{}} readiness={{ state: 'not-ready', reason: 'diagnostic', code: 'local_models_missing' }} onChange={vi.fn()} />);
+    expect(screen.getByText('notices.local_models_missing')).toHaveClass('validation-message', 'error');
+  });
 });

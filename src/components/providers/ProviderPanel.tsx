@@ -69,7 +69,7 @@ export function ProviderPanel({ providers, auth, disabled }: ProviderPanelProps)
             values={entry.credentials}
             readiness={readiness}
             onChange={(key, value) => setCredential(provider, key, value)}
-            onCheck={() => void refreshReadiness(provider, auth)}
+            onCheck={provider.kind === 'local' ? undefined : () => void refreshReadiness(provider, auth)}
             disabled={disabled}
           />
         )}

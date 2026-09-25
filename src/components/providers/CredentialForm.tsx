@@ -2,13 +2,15 @@ import { CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { CredentialField, CredentialValues } from '../../lib/provider/types';
 import type { Readiness } from '../../stores/providerStore';
+import { noticeText } from '../../lib/view/noticeText';
 
 interface CredentialFormProps {
   fields: readonly CredentialField[];
   values: CredentialValues;
   readiness: Readiness;
   onChange(key: string, value: string): void;
-  onCheck(): void;
+  /** Absent: no check button — a local provider checks itself. */
+  onCheck?(): void;
   disabled?: boolean;
 }
 
@@ -21,7 +23,7 @@ export function CredentialForm({ fields, values, readiness, onChange, onCheck, d
   const { t } = useTranslation();
   const checking = readiness.state === 'checking';
   const status = readiness.state === 'ready' ? 'valid' : readiness.state === 'not-ready' ? 'invalid' : '';
-  const check = (
+  const check = onCheck && (
     <button
       type="button"
       className="validate-button"
@@ -36,7 +38,7 @@ export function CredentialForm({ fields, values, readiness, onChange, onCheck, d
   return (
     <>
       {fields.length === 0 ? (
-        <div className="api-key-input-group">{check}</div>
+        check && <div className="api-key-input-group">{check}</div>
       ) : (
         fields.map((f, i) => (
           <div className="api-key-input-group" key={f.key}>
@@ -53,7 +55,9 @@ export function CredentialForm({ fields, values, readiness, onChange, onCheck, d
           </div>
         ))
       )}
-      {readiness.state === 'not-ready' && <div className="validation-message error">{readiness.reason}</div>}
+      {readiness.state === 'not-ready' && (
+        <div className="validation-message error">{noticeText(t, { code: readiness.code, params: readiness.params, message: readiness.reason })}</div>
+      )}
     </>
   );
 }

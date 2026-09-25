@@ -1,7 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockCheck = vi.fn();
-vi.mock('./check', () => ({ checkLocalInference: (...args: unknown[]) => mockCheck(...args) }));
+const mockWatchReadiness = vi.fn();
+vi.mock('./check', () => ({
+  checkLocalInference: (...args: unknown[]) => mockCheck(...args),
+  // Wrapped, not a direct reference: this factory is invoked as soon as
+  // something imports './check' (via this test file's own hoisted `vi.mock`
+  // call), which happens before `mockWatchReadiness` (declared above, but
+  // after the hoisted call) is assigned — a direct reference here would
+  // throw a TDZ ReferenceError.
+  watchLocalInferenceReadiness: (onChange: () => void) => mockWatchReadiness(onChange),
+}));
 
 const mockBuild = vi.fn();
 const mockDescribe = vi.fn();
@@ -20,6 +29,7 @@ const noAuth = { signedIn: false, getToken: async () => null };
 
 beforeEach(() => {
   mockCheck.mockReset();
+  mockWatchReadiness.mockReset();
   mockBuild.mockReset();
   mockDescribe.mockReset();
   mockAdmit.mockReset();
@@ -78,5 +88,14 @@ describe('localInferenceProvider', () => {
 
   it('is first in the registry, in UI order', () => {
     expect(PROVIDERS[0]).toBe(localInferenceProvider);
+  });
+
+  it('delegates watchReadiness() to watchLocalInferenceReadiness', () => {
+    const off = vi.fn();
+    mockWatchReadiness.mockReturnValue(off);
+    const onChange = vi.fn();
+    const result = localInferenceProvider.watchReadiness?.(onChange);
+    expect(mockWatchReadiness).toHaveBeenCalledWith(onChange);
+    expect(result).toBe(off);
   });
 });
