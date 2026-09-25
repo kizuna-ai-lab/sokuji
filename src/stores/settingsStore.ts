@@ -21,12 +21,12 @@ import {
   MAX_SEGMENT_PAUSE_SECONDS,
 } from '../lib/segmentation/segmentationMode';
 import { useNativeModelStore } from './nativeModelStore';
-import useSessionStore from './sessionStore';
 import useAudioStore, { speakerChannelInScope } from './audioStore';
 import useLogStore from './logStore';
 import { effectiveTextOnly } from '../utils/effectiveTextOnly';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
 import { canEnterSubtitleMode } from '../components/Subtitle/subtitleEnterGate';
+import { currentRunPhase } from '../app/runPhase';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType, isKizunaManagedProvider} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -901,8 +901,10 @@ const useSettingsStore = create<SettingsStore>()(
       if (get().subtitleModeActive) return;
       // Mirrors SubtitleEnterButton's `canEnter` gating exactly (see
       // subtitleEnterGate.ts) so the button can never be enabled while this
-      // guard silently refuses the entry it triggers.
-      if (!canEnterSubtitleMode(useSessionStore.getState().isSessionActive)) {
+      // guard silently refuses the entry it triggers. Reads the page's run
+      // phase through the non-React leaf (src/app/runPhase.ts) rather than
+      // importing the root's stores back into this module.
+      if (!canEnterSubtitleMode(currentRunPhase() === 'running')) {
         reportWarning('SettingsStore', 'enterSubtitleMode ignored — no active session');
         return;
       }

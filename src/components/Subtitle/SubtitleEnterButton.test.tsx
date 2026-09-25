@@ -6,9 +6,9 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
 }));
 
-let sessionActive = false;
-vi.mock('../../stores/sessionStore', () => ({
-  useIsSessionActive: () => sessionActive,
+let phase: 'idle' | 'starting' | 'running' | 'stopping' = 'idle';
+vi.mock('../../app/useRun', () => ({
+  useRunPhase: () => phase,
 }));
 
 const enterSubtitleMode = vi.fn(async () => {});
@@ -30,7 +30,7 @@ vi.mock('../../utils/environment', () => ({
 beforeEach(() => {
   cleanup();
   enterSubtitleMode.mockClear();
-  sessionActive = false;
+  phase = 'idle';
   subtitleActive = false;
   electron = true;
 });
@@ -47,7 +47,7 @@ describe('SubtitleEnterButton on Electron', () => {
   });
 
   it('is enabled during a session', () => {
-    sessionActive = true;
+    phase = 'running';
     render(<SubtitleEnterButton />);
     expect(screen.getByRole('button')).toBeEnabled();
   });
@@ -64,8 +64,18 @@ describe('SubtitleEnterButton on the extension', () => {
 
   it('is enabled once a session is running', () => {
     electron = false;
-    sessionActive = true;
+    phase = 'running';
     render(<SubtitleEnterButton />);
     expect(screen.getByRole('button')).toBeEnabled();
+  });
+
+  // 'starting' and 'stopping' are a run in flight, not "running" — the
+  // extension's overlay has no start/stop control of its own, so it must stay
+  // gated until the run actually reaches 'running'.
+  it.each(['starting', 'stopping'] as const)('stays disabled while %s', (p) => {
+    electron = false;
+    phase = p;
+    render(<SubtitleEnterButton />);
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 });

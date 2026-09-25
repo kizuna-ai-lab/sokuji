@@ -6,6 +6,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 
+// providerStore imports ServiceFactory at module scope, which chains into
+// SettingsService -> ClientOperations -> ProviderConfigFactory (a static
+// initializer reading isKizunaAIEnabled at import time) and into i18n's own
+// setup. Stubbed, as every other test that pulls in the real providerStore
+// does, so this file stays scoped to the hook's own wiring.
+vi.mock('../../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: () => ({
+      getSetting: async (_k: string, d: unknown) => d,
+      setSetting: async () => ({ success: true }),
+    }),
+  },
+}));
+
+// `provider` is deliberately NOT LocalInference here — the ctx's provider now
+// comes from providerStore, never from this store, and this mock stays
+// different from it to prove the point.
 vi.mock('../../stores/settingsStore', () => ({
   useSettingsStore: { getState: () => ({ provider: 'kizunaai_soniox', textOnly: false, isApiKeyValid: true }) },
 }));
@@ -28,13 +45,19 @@ const startSpy = vi.fn();
 vi.mock('./TourProvider', () => ({ useTour: () => ({ start: startSpy }) }));
 
 import { useStartBasicsTour } from './useStartBasicsTour';
+import { useProviderStore } from '../../stores/providerStore';
 
 const Probe: React.FC = () => {
   const startTour = useStartBasicsTour();
   return <button type="button" onClick={startTour}>restart</button>;
 };
 
-beforeEach(() => { cleanup(); startSpy.mockClear(); setShowSettings.mockClear(); });
+beforeEach(() => {
+  cleanup();
+  startSpy.mockClear();
+  setShowSettings.mockClear();
+  useProviderStore.setState({ selected: 'localInference' });
+});
 
 describe('useStartBasicsTour', () => {
   it('builds the ctx from the live stores, not from the stored setup record', () => {
@@ -48,8 +71,8 @@ describe('useStartBasicsTour', () => {
       scenario: 'be-heard',
       // Everything else from the stores and the environment, the provider path
       // included: derived from the live provider, never from the record's.
-      providerPath: 'managed',
-      provider: 'kizunaai_soniox', mode: 'speaker', textOnly: false,
+      providerPath: 'offline',
+      provider: 'local_inference', mode: 'speaker', textOnly: false,
       isSignedIn: true, apiKeyValid: true, platform: 'electron', os: 'linux',
     }));
   });

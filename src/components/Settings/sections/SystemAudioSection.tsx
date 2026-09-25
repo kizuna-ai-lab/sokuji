@@ -1,5 +1,5 @@
 import React from 'react';
-import { AudioLines, AlertTriangle, RefreshCw } from 'lucide-react';
+import { AudioLines, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
@@ -11,12 +11,13 @@ import {
 } from '../../../stores/audioStore';
 import DeviceList from '../shared/DeviceList';
 import { useAnalytics } from '../../../lib/analytics';
-import { useProvider } from '../../../stores/settingsStore';
-import { Provider } from '../../../types/Provider';
+import { ParticipantSpeechSwitch } from './ParticipantSpeechSwitch';
 import { isExtension, isElectron } from '../../../utils/environment';
 
 interface SystemAudioSectionProps {
-  /** Real session-active state — reserved for analytics-style consumers. */
+  /** Real session-active state. Locks the participant-speech switch
+   *  (ParticipantSpeechSwitch) for the run's whole shape — unlike `isLocked`
+   *  below, this one never varies by mode scope. */
   isSessionActive: boolean;
   /**
    * Lock the picker. Callers pass a mode-scope lock; the participant channel is
@@ -39,7 +40,6 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
   className = ''
 }) => {
   const { t } = useTranslation();
-  const provider = useProvider();
   const isParticipantMuted = useIsParticipantMuted();
   const setParticipantMuted = useSetParticipantMuted();
   const participantSources = useParticipantSources();
@@ -96,19 +96,6 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           icon="help"
           maxWidth={300}
         />
-        {/* Gemini discards the audio it generates for Other's audio but still
-            bills for its tokens. The gate is the channel, not the mode — the
-            channel is unmuted in Other AND Both (see audioStore's mode->mute
-            binding), so the warning must not name a single mode. */}
-        {provider === Provider.GEMINI && !isParticipantMuted && (
-          <Tooltip
-            content={t('settings.geminiParticipantTokenWarning', "Gemini generates audio responses for Other's audio that are discarded, resulting in additional token usage.")}
-            position="top"
-            maxWidth={280}
-          >
-            <AlertTriangle size={16} style={{ color: '#f59e0b', marginLeft: '4px' }} />
-          </Tooltip>
-        )}
         {/* Applications come and go far more often than sound cards do, so this
             list goes stale faster than the mic/speaker ones. */}
         {showSourcePicker && (
@@ -143,6 +130,10 @@ const SystemAudioSection: React.FC<SystemAudioSectionProps> = ({
           disabled={locked}
         />
       )}
+      {/* Locked by the run, not by the mode-scope `locked` above (ruling 8):
+          the participant-TTS opt-in freezes for the run's whole shape, not
+          only while this channel is scoped out. */}
+      <ParticipantSpeechSwitch locked={isSessionActive} />
     </div>
   );
 };

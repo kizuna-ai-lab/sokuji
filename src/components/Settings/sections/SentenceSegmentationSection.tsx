@@ -4,8 +4,6 @@ import { Scissors, Download, Trash2, AlertTriangle, X, RotateCw } from 'lucide-r
 import Tooltip from '../../Tooltip/Tooltip';
 import SegmentationDownloadModal from './SegmentationDownloadModal';
 import {
-  useProvider,
-  useOpenAITranslateSettings,
   useSegmentationMode,
   useSetSegmentationMode,
   useSentenceSegmentationChunkSentences,
@@ -15,8 +13,8 @@ import {
   useSegmentationTranslationPause,
   useSetSegmentationTranslationPause,
 } from '../../../stores/settingsStore';
-import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { resolveSegmentationOffer, type ProviderCapabilities } from '../../../services/providers/ProviderConfig';
+import { useProviderStore } from '../../../stores/providerStore';
+import { offerFor, selectedBoundaries } from '../../../lib/view/appViewSettings';
 import {
   MAX_SEGMENT_PAUSE_SECONDS,
   MIN_SEGMENT_PAUSE_SECONDS,
@@ -24,7 +22,6 @@ import {
   resolveSegmentationSize,
   type SegmentationMode,
 } from '../../../lib/segmentation/segmentationMode';
-import { Provider } from '../../../types/Provider';
 import {
   useSegmentationStore,
   useSegmentationPhase,
@@ -67,7 +64,6 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   className = '',
 }) => {
   const { t } = useTranslation();
-  const provider = useProvider();
   const storedMode = useSegmentationMode();
   const setSegmentationMode = useSetSegmentationMode();
   const storedSize = useSentenceSegmentationChunkSentences();
@@ -76,13 +72,6 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   const setSourcePause = useSetSegmentationSourcePause();
   const translationPause = useSegmentationTranslationPause();
   const setTranslationPause = useSetSegmentationTranslationPause();
-  // OpenAI Translate over WebRTC runs ONE timer for the pair and gives it the
-  // translation pause (the last delta of a pair is the translation's — see
-  // OpenAITranslateWebRTCClient), so a Source slider there would move
-  // nothing. One provider's transport, read off its own slice: it is not a
-  // capability, because no other descriptor behaves this way and inventing a
-  // field would put the exception in fifteen rows to describe one.
-  const translateTransport = useOpenAITranslateSettings().transportType;
 
   const phase = useSegmentationPhase();
   const { downloadedBytes } = useSegmentationProgress();
@@ -91,18 +80,12 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   const { trackEvent } = useAnalytics();
 
   // What this provider offers, and therefore what the stored mode and size
-  // mean here.
-  const offer = useMemo(() => {
-    try {
-      return resolveSegmentationOffer(ProviderConfigFactory.getConfig(provider).capabilities);
-    } catch {
-      // An id this build did not register — a provider behind a gate that is
-      // off, or a stale stored value. `resolveSegmentationOffer` reads only
-      // `capabilities.segmentation`, so an empty object yields exactly the
-      // documented default without this file restating it.
-      return resolveSegmentationOffer({} as ProviderCapabilities);
-    }
-  }, [provider]);
+  // mean here. `offerFor`/`selectedBoundaries` read the provider store
+  // directly (appViewSettings.ts), so this component only needs a
+  // subscription to force a re-render when the selected provider or its
+  // entry changes — the offer itself is not read from the selector.
+  const selectedEntry = useProviderStore((s) => (s.selected ? s.entries[s.selected] : undefined));
+  const offer = useMemo(() => offerFor(selectedBoundaries()), [selectedEntry]);
 
   const mode = resolveSegmentationMode(storedMode, offer);
   const size = resolveSegmentationSize(storedSize, offer);
@@ -248,7 +231,10 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
     });
   };
 
-  const hasSourcePause = !(provider === Provider.OPENAI_TRANSLATE && translateTransport === 'webrtc');
+  // OpenAI Translate's one-timer-for-the-pair exception (no Source slider
+  // over WebRTC) went with the provider that had it; every provider on this
+  // branch offers a Source pause.
+  const hasSourcePause = true;
   const packReady = phase === 'ready';
   // The three modes in the order A2 names them, minus the one this provider
   // cannot run. Off and By sentences survive everywhere — By sentences is
@@ -312,7 +298,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
               type="button"
               key={m}
               className={`segmented-option ${mode === m ? 'active' : ''}`}
-              disabled={isSessionActive || (m === 'sentences' && lowMemory && mode !== 'sentences')}
+              disabled={m === 'sentences' && lowMemory && mode !== 'sentences'}
               onClick={() => chooseMode(m)}
             >
               {modeLabels[m]}
@@ -344,7 +330,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
                 type="button"
                 key={n}
                 className={`segmented-option ${size === n ? 'active' : ''}`}
-                disabled={isSessionActive || !packReady}
+                disabled={!packReady}
                 onClick={() => { if (size !== n) void setChunkSentences(n); }}
               >
                 {n === 0 ? t('settings.sentenceSegmentationChunkAuto', 'Auto') : n}
@@ -381,7 +367,6 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
                 data-testid="segmentation-source-pause"
                 value={sourcePause}
                 onChange={(e) => void setSourcePause(parseFloat(e.target.value))}
-                disabled={isSessionActive}
               />
             </>
           )}
@@ -400,7 +385,6 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
             data-testid="segmentation-translation-pause"
             value={translationPause}
             onChange={(e) => void setTranslationPause(parseFloat(e.target.value))}
-            disabled={isSessionActive}
           />
         </div>
       )}

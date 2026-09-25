@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth, useUser } from '../lib/auth/hooks';
-import { useIsSessionActive } from '../stores/sessionStore';
+import { useRunPhase } from '../app/useRun';
 import { getApiUrl } from '../utils/environment';
 import { mapWalletStatusToQuota } from '../utils/walletQuota';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
@@ -70,7 +70,8 @@ interface UserProfileProviderProps {
 export function UserProfileProvider({ children }: UserProfileProviderProps) {
   const { isSignedIn, getToken } = useAuth();
   const { user: betterAuthUser } = useUser();
-  const isSessionActive = useIsSessionActive();
+  // A start or a stop in flight polls every minute too, not only 'running'.
+  const isSessionActive = useRunPhase() !== 'idle';
 
   const [quota, setQuota] = useState<QuotaData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
