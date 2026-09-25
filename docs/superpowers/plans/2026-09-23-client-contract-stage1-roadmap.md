@@ -906,3 +906,110 @@ What it leaves:
   helpers (`1e3-deletion.md`), the old audio service beside the new graph,
   and two stale comments in test files (`Settings.highlight.test.tsx`'s
   header, `SystemAudioSection.test.tsx:126`).
+
+## Scheduled by plan 1e-4
+
+Plan 1e-4 (the extension overlay on the new session) landed as commits
+`245e4cfa..b661ecd6`: nine tasks, a spike that became a probe and fixed two
+product defects, and a final-review fix wave. **The meeting page's subtitle
+overlay runs on the app session again.** The side panel's surface class
+publishes the typed wire (`src/lib/subtitle/wire.ts`) from the app session —
+reached through the leaf `src/app/subtitleFeed.ts`, never the root — to its
+own tab's overlay only; the overlay page opens its port and receiver in one
+step and draws `SubtitleView` through `ConnectedOverlay`, in the side panel's
+language (a wire message, switched without being stored, last call wins).
+Hold-to-talk needs a speaker leg; the overlay's hold button holds on pointer,
+Space or Enter and blurs after every release; the overlay stays read-only for
+start and stop. Every wire message is pinned JSON-safe.
+
+What was checked:
+- The preview (`spine-subtitle-probe`, every form) at the real iframe's 140 px;
+  `spine-surface`, `spine-audio`, `app-panel-probe --app`; the app at `/`
+  loads with no `SubtitleSurface` / `AppSession` warning.
+- The wire (fake `long` script, 150 s, `&wire=1`): `subtitle:entries` 251
+  messages, largest 18.4 KB at the tail's cap (budget 64 KB — held, so no
+  entries delta), 1.7/s and 30.5 KB/s over the last 30 s; `subtitle:karaoke`
+  5.8/s, 0.5 KB/s; one `subtitle:language`, one `subtitle:session`.
+- The release extension build: the overlay page's graph holds neither the app
+  root nor the provider registry (sentinels, with positive controls in the side
+  panel's chunks), no fake-provider code ships, and the overlay page's
+  preloaded chunks went from 12 to 7 (`sessionStore`, `playbackStore` gone).
+- **Headless, in a meeting page** (`scripts/dev/extension-overlay-probe.mjs`,
+  `--load-extension` with the Playwright Chromium, a stub served at the real
+  `https://meet.google.com/…` URL): Chrome sets `port.sender.tab` on the
+  overlay iframe's port; the overlay draws the run with karaoke; the extension's
+  storage is shared with the overlay; after Stop and after a reload over a
+  stopped run the overlay reads the side panel's language; with two meeting
+  tabs and two side panels each overlay draws only its own tab; after a hold
+  neither Space nor Escape reaches the meeting page, and Escape exits subtitle
+  mode. The spike found two defects, fixed: the overlay could stay in English
+  after a stop (a bundle's arrival re-rendered nothing — react-i18next
+  `bindI18nStore: 'added'` now, app-wide), and an orphaned overlay could not be
+  closed (its exit now unmounts it).
+- The layout at 140 px: under push-to-talk the hold button takes about a third
+  of the frame and the source line fades into the bar row; the top fade itself
+  is the compact bands' designed mask, as the old overlay had. The old overlay
+  showed a text hint ("Press Space to speak") where the new one has a button.
+
+Stated departures, besides the plan's: a side panel **ignores** a port from
+another tab (the plan's choice 2 said disconnect it — Chrome fires a
+receiver's `disconnect()` at the sender, so that closed the other tab's live
+overlay). The cost: an overlay whose own side panel closed while another tab's
+panel lives stays up showing "Session ended" until the user closes it, a new
+side panel on its tab enters subtitle mode (it replaces it), or the last panel
+that heard it closes. Entering subtitle mode first sends `subtitle:exit`, so a
+stale host never blocks a fresh overlay.
+
+What it leaves:
+
+**The owner's extension acceptance — owed before 1e-3c**
+- The virtual microphone in a real Google Meet tab, passthrough on at a low
+  ratio, checked for gaps (deferred by plan 1c-2).
+- Audio in the extension side panel by hand, and a live local session in the
+  extension (LocalInference with models, in the side panel).
+- The overlay in a real Meet tab: the run drawn, karaoke, the hold button,
+  Clear, ✕ / Escape, the side panel closing, a tab reload, the language after a
+  change in Help.
+- Two meeting tabs, each with its side panel in subtitle mode: each overlay
+  shows its own tab's run, and a hold, Clear or ✕ in one reaches only its own
+  side panel; whether a background tab's side panel stays alive.
+- The hold button's placement at 140 px (screenshots with the slice report):
+  the recommendation is to move the hold control into the bar at compact
+  height so the bands keep theirs.
+
+**Decided, not owed:** after a hold's release focus stays in the overlay's
+iframe until the user clicks the page, and an Escape meant for the meeting
+then exits subtitle mode. Handing focus back (the content script blurring the
+iframe) is a follow-up only if the owner asks.
+
+**1e-3c** — delete, in addition to its own list (`1e3-deletion.md`):
+- `src/stores/sessionPortMirror.ts` (+ its tests, `subtitleWire.roundtrip.test.ts`),
+  `src/types/subtitleWire.ts`, `src/stores/playbackStore.ts` (+ tests) — no
+  importer outside their own tests now.
+- `SubtitleApp.tsx` and its tests (first move `SubtitleSurfaceKind`'s imports
+  to `useSubtitleChrome`, re-home `getHighlightOverlayForBg`'s test; keep
+  `SubtitleApp.scss`), `SubtitleStream.tsx` (keep `SubtitleStream.scss`),
+  `deriveSubtitleIdleState` (keep the type, without `blocked`), `SubtitleIdle`'s
+  `blocked` branch and `onFix`, `SubtitleBar`'s `exportProps` / legacy export
+  and its dead `sokuji:user-exit` fallback (`:108-117`, `onExit` becomes
+  required), `isPushGatedMode`, `sessionStore`'s `SubtitleApp`-only hooks
+  (`useRequestClearConversation` among them), `useSubtitleSessionBridge`.
+- The duplicated entries adapter: the preview publishes from
+  `currentSubtitleFeed()`; the tests' `box<T>()` to one helper.
+- Stale text: `SubtitleBar.tsx:243-247`, `types/subtitleWire.ts:12`,
+  `SubtitleIdle.tsx:3-8, 20-24`, `MainPanel.tsx:198` (`t` is no longer stable for
+  the panel's life since `bindI18nStore: 'added'`; the behaviour is right), and
+  two surface tests whose names still say `subtitle:enter` is the message held
+  in flight (it is `subtitle:exit` now).
+
+**Before the first release**
+- A publisher that stops itself on a failed post leaves its port open: the
+  overlay can then only close itself, and the side panel stays flagged in
+  subtitle mode. Rare (every message is JSON-safe).
+
+**Development only**
+- `node scripts/dev/extension-overlay-probe.mjs --build-dir <dir>` builds a
+  development copy of the extension and runs headless; `--no-build` reuses it,
+  `--ptt` holds a turn on a voiced WAV, `--shot <png>` saves the meeting page.
+  Chromium 151 ships its own `background.js` component worker: the probe picks
+  the worker whose manifest names `fullpage.html`.
