@@ -23,4 +23,13 @@ describe('reanchorRanges', () => {
     // A translation re-punctuated while it grows: "hello world" → "Hello, world. How".
     expect(reanchorRanges('hello world', 'Hello, world. How', [[0, 5], [6, 11]])).toEqual([[0, 7], [7, 14]]);
   });
+
+  it('drops a range reaching past the old text when the text is rewritten, instead of shrinking it to the old text', () => {
+    // [6, 20] was held beyond "hello world" (11): mapping its end would saturate at the old text's end, [7, 13].
+    expect(reanchorRanges('hello world', 'Hello, world.', [[0, 5], [6, 20]])).toEqual([[0, 7], undefined]);
+  });
+
+  it('keeps a range reaching past the old text when the text only grew', () => {
+    expect(reanchorRanges('hello', 'hello world', [[6, 11]])).toEqual([[6, 11]]);
+  });
 });

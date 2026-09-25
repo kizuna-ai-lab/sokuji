@@ -1,7 +1,8 @@
+import type { Punctuator } from '../contract/adapter';
 import { sentenceEnds, skeleton } from '../segmentation/sentenceEnd';
 
-/** Asks a punctuation model for `text` with marks. Null: no answer. */
-export type Punctuator = (lang: string, text: string) => Promise<string | null>;
+// Defined in the contract (the runner hands it to an adapter); re-exported for L1's importers.
+export type { Punctuator };
 
 /**
  * Punctuation fill-in, once, when a segment goes final. Text that already

@@ -186,6 +186,16 @@ describe('runner — typed text and clearing', () => {
     expect(events('text_input_sent')).toEqual([{ session_id: 'run1', provider: 'fake', text_length: 2 }]);
   });
 
+  it('drops typed text that is blank once trimmed before any adapter sees it, and records nothing', async () => {
+    const { runner, log, events } = setup({ turnMode: 'auto' });
+    await runner.start();
+    runner.sendText('');
+    runner.sendText('  \n\t ');
+    expect(log).not.toContain('speaker:text');
+    expect(events('text_input_sent')).toEqual([]);
+    expect(runner.conversation.snapshot()[0].segments).toEqual([]);
+  });
+
   it('ignores typed text when no run is live, or the provider takes none', async () => {
     const log: string[] = [];
     const { runner } = setup({ turnMode: 'auto', provider: spyingProvider(log, { textInput: false }), log });

@@ -148,6 +148,12 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
     }
   });
 
+  // A log that ends without failed/closed (after `stop`, say): the refs
+  // still open are checked as the session end above checks them.
+  if (!ended) {
+    for (const ref of opened) { if (!closedRefs.has(ref)) checkRangesForRef(ref); }
+  }
+
   for (const p of pending) {
     if (!p.answered) flag('text-input-answered', `typed text "${p.text}" was not answered with a source segment and then a translation`, p.index);
   }

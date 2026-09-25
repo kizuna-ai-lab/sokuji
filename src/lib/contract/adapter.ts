@@ -7,7 +7,6 @@
  * vocabulary are not its business (spec: "L0 — the client contract").
  */
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
-import type { Punctuator } from '../conversation/fillIn';
 import type { Clock } from './clock';
 
 /** Audio crosses the contract at this rate, mono, Int16, in both directions. */
@@ -28,6 +27,9 @@ export interface SessionContext {
   /** Always 'auto' on the participant leg. */
   turns: 'auto' | 'manual';
 }
+
+/** Asks a punctuation model for `text` with marks. Null: no answer. */
+export type Punctuator = (lang: string, text: string) => Promise<string | null>;
 
 export interface StartRequest<C, K> {
   context: SessionContext;

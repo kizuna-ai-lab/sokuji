@@ -8,7 +8,10 @@ import { skeleton } from '../segmentation/sentenceEnd';
  * replacement"): the text only grew — ranges stand; the old letters and
  * digits are still where the new text starts, in a different dress and
  * perhaps followed by more — re-anchor by skeleton; letters changed — the
- * ranges are gone, the pcm stays.
+ * ranges are gone, the pcm stays. A range reaching past the old text (held
+ * while its segment is open) survives only the first case: re-anchoring
+ * would map its end onto the old text's end and silently shrink it, so it
+ * is left unmapped instead.
  */
 export function reanchorRanges(
   oldText: string,
@@ -18,7 +21,9 @@ export function reanchorRanges(
   if (ranges.every((r) => r === undefined)) return [...ranges];
   if (newText.startsWith(oldText)) return [...ranges];
   if (skeleton(newText).startsWith(skeleton(oldText))) {
-    return ranges.map((r) => (r ? [mapOffset(oldText, newText, r[0]), mapOffset(oldText, newText, r[1])] : undefined));
+    return ranges.map((r) => (r && r[1] <= oldText.length
+      ? [mapOffset(oldText, newText, r[0]), mapOffset(oldText, newText, r[1])]
+      : undefined));
   }
   return ranges.map(() => undefined);
 }

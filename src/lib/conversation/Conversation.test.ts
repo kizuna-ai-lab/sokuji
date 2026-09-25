@@ -234,6 +234,19 @@ describe('Conversation — re-anchoring and fill-in', () => {
     expect(conv.snapshot().segments[0].speech.every((s) => s.pcm.length === 10)).toBe(true);
   });
 
+  it('a range held past an open segment\'s text is dropped when the text is rewritten, not shrunk, and kept when it grows', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [6, 20], pcm: pcm(10) } }); // past the text so far: kept while open
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'Hello, world.' } }); // re-punctuated, not grown
+    expect(conv.snapshot().segments[0].speech[0]).toEqual({ range: undefined, pcm: pcm(10) });
+
+    apply({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 2, text: 'hello' } });
+    apply({ kind: 'audio', payload: { ref: 2, range: [6, 11], pcm: pcm(10) } });
+    apply({ kind: 'segmentText', payload: { ref: 2, text: 'hello world' } }); // grown
+    expect(conv.snapshot().segments[1].speech[0].range).toEqual([6, 11]);
+  });
+
   it('runs fill-in when a segment closes, in the segment\'s language, and re-anchors through it', async () => {
     const seen: string[] = [];
     const { conv, apply } = make({ punctuate: async (lang, text) => { seen.push(`${lang}:${text}`); return `${text}.`; } });

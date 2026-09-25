@@ -298,10 +298,10 @@ export class Run {
     return [...this.conversations.values()].map((conversation) => conversation.snapshot());
   }
 
-  /** Typed text for the speaker leg, when the provider takes text. */
+  /** Typed text for the speaker leg, when the provider takes text. Blank once trimmed: nothing to send, for any provider. */
   sendText(text: string): void {
     const session = this.sessions.get('speaker');
-    if (this.ending || this.liveSince === null || !this.shape.provider.textInput || !session) return;
+    if (this.ending || this.liveSince === null || !this.shape.provider.textInput || !session || !text.trim()) return;
     session.appendText(text);
     this.deps.analytics.track('text_input_sent', { session_id: this.id, provider: this.shape.provider.id, text_length: text.length });
   }
