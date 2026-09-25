@@ -49,11 +49,18 @@
  * fake's first block plays only inside a held turn under push-to-talk (the
  * same reason `spine-subtitle-probe.mjs` holds before reading), so the rows
  * check must come from that held turn, not before it. Without `--ptt`
- * nothing about the ordering changes.
+ * nothing about the ordering changes. Under `--app --ptt` specifically, the
+ * app's own capture runs on Chrome's fake microphone — a beep, too little
+ * voice for `MIN_VOICED_MS` (`src/lib/session/turn.ts`) inside the 1.5s
+ * hold — so this run also passes
+ * `--use-file-for-fake-audio-capture=<repo>/benchmark/test-speech-silence-speech.wav`
+ * (controller ruling P9); the preview's fake source needs no real audio, so
+ * plain `--ptt` is unaffected.
  */
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { evaluate, sleep, withPage } from './headless.mjs';
 
 const args = process.argv.slice(2);
@@ -68,6 +75,11 @@ const ptt = flag('--ptt');
 const long = flag('--long');
 const refuse = flag('--refuse');
 const settingsTarget = flag('--settings');
+
+// P9: --app --ptt's voiced microphone fixture (a beep is too little voice
+// for MIN_VOICED_MS inside the 1.5s hold). Resolved from this script's own
+// path, never the process cwd.
+const FAKE_AUDIO_FIXTURE = fileURLToPath(new URL('../../benchmark/test-speech-silence-speech.wav', import.meta.url));
 
 if (refuse && appTarget) {
   console.log('the app has no refusing stand-in; use --preview');
@@ -187,10 +199,12 @@ const SETTINGS_SEED_SCRIPT = `(() => {
  * The blocks a Simple page (or, in `--app`, Advanced's General tab too)
  * shows: the language pair, the global turn mode, the headless Output
  * block, sentence segmentation, and the provider picker with LocalInference's
- * chips. Static only — the interactive checks are `checkChipFlow`/
- * `checkOneWriter`, run once, on the Simple page alone (ruling 3: Advanced's
- * General tab sends a chip click to the Provider tab instead of pushing a
- * page in place, so the same push-and-back flow does not apply there).
+ * chips. Static only — the interactive checks are `checkChipFlow` (the
+ * Simple page alone: ruling 3, Advanced's General tab sends a chip click to
+ * the Provider tab instead of pushing a page in place, so the same
+ * push-and-back flow does not apply there — `checkAdvancedChipFlow` covers
+ * that one) and `checkOneWriter` (both: it has nothing to do with the chip
+ * flow, so it runs on the Simple page AND Advanced's General tab).
  */
 async function checkGeneralStatic(send, failures, prefix) {
   const ready = await pollUntil(8000, 250, async () => evaluate(send, `
@@ -564,5 +578,11 @@ if (settingsTarget) {
     }
     console.log(`ok — ${appTarget ? '--app' : '--preview'}${advanced ? ' --advanced' : ''}${ptt ? ' --ptt' : ''}${long ? ' --long' : ''}${refuse ? ' --refuse' : ''} (files in ${downloads})`);
     return 0;
-  }, { flags: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'], viewport: { width: 1000, height: 1400 } });
+  }, {
+    flags: [
+      '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream',
+      ...(appTarget && ptt ? [`--use-file-for-fake-audio-capture=${FAKE_AUDIO_FIXTURE}`] : []),
+    ],
+    viewport: { width: 1000, height: 1400 },
+  });
 }
