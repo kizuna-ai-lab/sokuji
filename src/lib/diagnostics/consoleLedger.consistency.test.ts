@@ -185,7 +185,9 @@ const LEDGER: Record<string, number> = {
   'src/components/SetupWizard/steps/StepLanguage.tsx': 1,
   'src/components/Subtitle/ChildWindowPopover.tsx': 1,
   'src/components/Toast/ToastContext.tsx': 1,
-  'src/subtitle-overlay-entry.tsx': 1,
+  // subtitle-overlay-entry.tsx's row (1) is gone, not lowered to 0: plan 1e-4
+  // rewrote the overlay page over the wire; its one failure (no #root) reports
+  // through report.ts.
   // --- Later, under the ledger: src/lib (audio pipeline and helpers) ---
   'src/lib/modern-audio/ModernBrowserAudioService.ts': 29,
   'src/lib/modern-audio/WebRTCAudioBridge.ts': 10,

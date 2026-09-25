@@ -1,30 +1,32 @@
-// src/subtitle-overlay-entry.tsx
+/**
+ * The extension overlay's page (plan 1e-4): the iframe the content script
+ * mounts in the meeting page draws `SubtitleView` from the side panel's wire.
+ * Its display settings are its own (`subtitleStore`, hydrated from
+ * `chrome.storage` first); everything about the run arrives on the port.
+ */
 import { createRoot } from 'react-dom/client';
 import { AppProviders } from './components/AppProviders';
-import SubtitleApp from './components/Subtitle/SubtitleApp';
-import { installSessionPortMirror, postUserExit } from './stores/sessionPortMirror';
+import { ConnectedOverlay } from './components/Subtitle/ConnectedOverlay';
+import { reportError } from './lib/diagnostics/report';
+import { connectOverlay } from './lib/subtitle/overlayPort';
+import type { ChromePortLike } from './lib/subtitle/wire';
 import { useSubtitleStore } from './stores/subtitleStore';
 
-async function bootstrap() {
-  // Hydrate the subtitle store from chrome.storage (via SettingsService).
+/** The part of the extension API this page uses: the repo's global `chrome` typing has no `connect`. */
+declare const chrome: { runtime: { connect(info: { name: string }): ChromePortLike } };
+
+async function bootstrap(): Promise<void> {
   await useSubtitleStore.getState().hydrate();
-
-  // Open the session-data port to the sidepanel.
-  installSessionPortMirror();
-
-  // Wire ✕ → port. SubtitleApp's local exitSubtitleMode resolves no-op in the
-  // iframe context (no real settings store wiring for lifecycle here); we use
-  // a window-level event to forward the click.
-  window.addEventListener('sokuji:user-exit', postUserExit);
-
   const rootEl = document.getElementById('root');
   if (!rootEl) {
-    console.error('[Sokuji subtitle overlay] #root not found');
+    reportError('SubtitleOverlay', 'The overlay page has no #root to draw into.');
     return;
   }
+  const receiver = connectOverlay((info) => chrome.runtime.connect(info), window.parent);
+  if (!receiver) return;
   createRoot(rootEl).render(
     <AppProviders posthogClient={null}>
-      <SubtitleApp surface="extension-overlay" />
+      <ConnectedOverlay receiver={receiver} />
     </AppProviders>,
   );
 }
