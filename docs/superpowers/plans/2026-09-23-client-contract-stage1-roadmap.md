@@ -28,7 +28,7 @@ path.
 | **1d-3 — export and auto-save** (`2026-09-24-client-contract-stage1d3-export.md`) | the export menu over the new writer (per-leg scope, header and metadata, clipboard, download), auto-save from `onRunEnded`, the panel's idle line (why the last run ended, in words) | vitest; the files a fake session exports |
 | **1e-1 — runner and audio hardening** (`2026-09-24-client-contract-stage1e1-hardening.md`) | the run's loose ends before a real provider (the "1e" items in the sections below that need no provider): every leg's open awaited before unwinding, `abandon()` on `pagehide`, one overall close bound, `ensureReady` from the shape with a signal, `check` with the pair, model-load progress in `RunState`, per-leg `connection_status`, redacted analytics, failed notices in words, replay cleared where the conversation is replaced, live `keepReplayAudio`, passthrough from the leg going live, an idempotent graph close, the context suspended while idle | vitest; the preview |
 | **1e-2 — LocalInference** (`2026-09-25-client-contract-stage1e2-local-inference.md`) | its definition and adapter over today's pipeline (engines and workers unchanged): settings composed from the shared fields, `check` with the pair, `build` / `describe`, turns with its own silence tail, the translation-job cut, TTS and model loading; plan 1a's conformance items | vitest; a live local session in the preview |
-| **1e-2b — LocalInference's sentence-cut jobs** | today's stream shape: a translation job every N sentences inside an utterance (the seal cursor, the truncated re-decode guard, the voxtral endpoint coupling), over the runner's punctuator; until it lands a size of 1–5 behaves as Auto | vitest over scripted partials; a live long utterance in the preview |
+| **1e-2b — LocalInference's sentence-cut jobs** (`2026-09-25-client-contract-stage1e2b-sentence-jobs.md`) | today's stream shape: a translation job every N sentences inside an utterance (the seal cursor, the truncated re-decode guard, the voxtral endpoint coupling), over the runner's punctuator; until it lands a size of 1–5 behaves as Auto | vitest over scripted partials; a live long utterance in the preview |
 | **1e-3 — the switch-over** | MainPanel, the Electron takeover and export on the runner; the other clients and their descriptors deleted (spec: "Migration"); stored settings mapped; the three tests that read MainPanel's source replaced | a live local session on Electron |
 | **1e-4 — the extension** | the side panel publishes the wire and the overlay renders `SubtitleView`; the virtual microphone checked in a real Meet tab | a live local session in the extension |
 
@@ -639,3 +639,56 @@ What it leaves:
 - `RunnerDeps.replayAudio` is not guarded like the other ports; the notice
   codes (`auth`, `network`, `server`, `client`, …) share one flat namespace
   with every other code — revisit when a provider's own codes arrive.
+
+## Scheduled by plan 1e-2
+
+Plan 1e-2 (LocalInference on the spine) landed as commits
+`70a14dbf..c027643d`: nine tasks and a final-review fix wave. LocalInference
+is the first real provider on the new contract — its definition, settings and
+model-management components, and an adapter over today's engines (whose only
+change is a `disposed` check in `init()` and a public `onFatal` hook), run live
+in the preview (`scripts/dev/spine-local-probe.mjs`: English speech → an
+English source row and a Japanese translation row). It closes the three
+1e-1 → 1e-2 items: the load aborts on the start's signal, `stop()` ends the
+workers before its first `await`, and `check` reads the pair and the legs.
+
+Decided while it ran (the plan's ledger has each one's cost if wrong):
+
+- A TTS worker that dies mid-session stops speech only (`tts_degraded`); the
+  text keeps flowing, as today. A lost GPU device still fails the session.
+- In both-mode, readiness requires the participant direction's ASR (not its
+  translation: transcription-only stays allowed), so a missing reverse model
+  shows before a start — jiangzhuo's "Decided for 1e" item, over the plan's
+  own ruling 5.
+- Short jobs are not punctuated, as today (Auto's length gate).
+- Typed text: the source segment carries it exactly, the job its trimmed
+  text; blank text is dropped in `Run.sendText` for every provider. A
+  session that cannot translate answers typed text with its source segment
+  and one `translation_unavailable` — the conformance checker now accepts
+  that answer.
+- `Punctuator` lives in the contract (`src/lib/contract/adapter.ts`).
+- `reanchorRanges` keeps a range past the old text only when the new text
+  grew from it.
+
+What it leaves:
+
+**1e-2b — sentence-cut jobs** (its own plan).
+
+**1e-3 — the switch-over**
+- Readiness reasons in words by code (LocalInference's are English sentences
+  today), and `no_asr`'s `{{source}}` as a language name.
+- `LocalInferenceEngine` learns the legs (`effectiveMode: 'both'` today).
+- A notice code of its own for typed text in an AST session (it says
+  `translation_unavailable` today, worded for transcription-only).
+- Wire the app's punctuator (`PunctuationRuntime`) with a `(lang, text)`
+  memo: L1's display fill-in and the adapter's job fill-in ask the same
+  question once per utterance.
+- Redact `degraded` / `failed` messages at L1's notice sink, for every
+  provider (frames are redacted; notices and exports carry worker text as it
+  came).
+
+**Stage 2**
+- The resampler to 24 kHz keeps today's linear interpolation (aliasing).
+- An Edge TTS worker that dies during its decode-start handshake leaves the
+  engine's promise unsettled (the adapter no longer waits on it); the engine
+  is where to fix it.
