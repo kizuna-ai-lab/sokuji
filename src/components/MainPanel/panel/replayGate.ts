@@ -1,3 +1,4 @@
+import { isApplicationSource } from '../../../lib/modern-audio/participantSource';
 import type { RunState } from '../../../lib/session/types';
 import type { Platform } from '../../../lib/provider/types';
 import { APP_CAPTURE_LOST, APP_MONITOR_MISSING } from '../../../lib/audio/capture/systemAudio';
@@ -19,6 +20,6 @@ export interface ReplayGateInput {
  */
 export function replayBlocked({ run, platform, participantSourceId, participantNoticeCodes }: ReplayGateInput): boolean {
   if (run.phase !== 'running' || !run.legs.participant || platform !== 'electron') return false;
-  if (!participantSourceId?.startsWith('app:')) return true;
+  if (!isApplicationSource(participantSourceId)) return true;
   return participantNoticeCodes.some((code) => code === APP_CAPTURE_LOST || code === APP_MONITOR_MISSING);
 }

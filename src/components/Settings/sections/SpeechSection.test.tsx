@@ -67,11 +67,15 @@ describe('SpeechSection', () => {
     expect(section!.querySelector('[role="switch"]')).toBeNull();
   });
 
-  it('clicking a mode sets it and tracks speech_mode_changed with LocalInference selected (old spelling)', () => {
+  it('clicking a mode sets it, persists it and tracks speech_mode_changed with LocalInference selected (old spelling)', () => {
     render(<SpeechSection locked={false} />);
     fireEvent.click(screen.getByText('Push-to-Talk'));
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
     expect(trackEvent).toHaveBeenCalledWith('speech_mode_changed', { provider: 'local_inference', from_mode: 'Auto', to_mode: 'Push-to-Talk' });
+    // `setTurnMode` persists through the real settings service (not mocked in
+    // this file), which writes settings.common.turnMode straight to
+    // localStorage — no ServiceFactory mock needed to observe it.
+    expect(localStorage.getItem('settings.common.turnMode')).toBe('push-to-talk');
   });
 
   it('clicking the active mode does nothing', () => {

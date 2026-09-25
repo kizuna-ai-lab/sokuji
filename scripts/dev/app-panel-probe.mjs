@@ -20,14 +20,19 @@
  *        --shot <file.png>.
  *
  * `--settings` (plan 1e-3b-2 Task 3) is a separate flow, run instead of the
- * steps below: it checks the Settings blocks `ProviderArea.tsx` composes
- * (the language pair, the global turn mode, the headless Output block,
- * sentence segmentation, the provider picker with its chips), a chip's
- * push-and-back flow, and that a language pick writes through exactly one
- * path. `--preview` opens `&settings=simple` then `&settings=advanced`,
- * both on `&provider=localInference` (the chips are LocalInference's);
- * `--app` seeds the fake-free provider, opens Settings, checks Simple mode,
- * switches to Advanced (its General tab, then its Provider tab).
+ * steps below (never combined with --advanced/--ptt/--long/--refuse — exits
+ * 2). It checks the Settings blocks `ProviderArea.tsx` composes (the
+ * language pair, the global turn mode, the headless Output block, sentence
+ * segmentation, the provider picker with its chips), a chip's push-and-back
+ * flow, and that a language pick writes through exactly one path.
+ * `--preview` opens `&settings=simple` then `&settings=advanced`, both on
+ * `&provider=localInference` (the chips are LocalInference's); `--app`
+ * seeds LocalInference (not the fake — its chips), opens Settings, checks
+ * Simple mode (the static blocks, the chip's push-and-back flow, the
+ * one-writer check), switches to Advanced (waits for the switch to land,
+ * then its General tab: the same static blocks and one-writer check, plus
+ * ruling 3's own chip flow — a tab switch to Provider, no back row — then
+ * its Provider tab).
  *
  *   SOKUJI_DEV_NO_ELECTRON=1 npx vite --port 5199 --strictPort    # another shell
  *   node scripts/dev/app-panel-probe.mjs [origin] [flags]
@@ -71,6 +76,11 @@ if (refuse && appTarget) {
 
 if (advanced && ptt) {
   console.log("--ptt reads the basic footer's hold button; run it without --advanced");
+  process.exit(2);
+}
+
+if (settingsTarget && (advanced || ptt || long || refuse)) {
+  console.log('--settings runs its own flow; drop --advanced/--ptt/--long/--refuse');
   process.exit(2);
 }
 
@@ -285,6 +295,25 @@ async function checkProviderTabOnly(send, failures, prefix) {
   if (!(await evaluate(send, `document.body.textContent.includes('Speech Speed')`))) failures.push(`${prefix}: no "Speech Speed" control on the provider tab`);
 }
 
+/**
+ * Ruling 3's Advanced chip flow: a chip does not push a page there — Task 5's
+ * `openSlot` switches to the Provider tab, where the engine renders inline
+ * (`task-5-brief.md:99-103`). No back row, unlike Simple mode's own flow.
+ */
+async function checkAdvancedChipFlow(send, failures, prefix) {
+  if (!(await click(send, `document.querySelector('[data-tour="engine-chips"] .model-chip')`))) {
+    failures.push(`${prefix}: no model chip to click`);
+    return;
+  }
+  const switched = await pollUntil(4000, 250, async () => evaluate(send, `
+    document.querySelector('#tab-provider')?.getAttribute('aria-selected') === 'true' && !!document.querySelector('.engine-surface')
+  `));
+  if (!switched) failures.push(`${prefix}: the chip click never switched to #tab-provider with .engine-surface inline`);
+  if (await evaluate(send, `!!document.querySelector('.engine-back-row')`)) {
+    failures.push(`${prefix}: an .engine-back-row appeared — Advanced never pushes a page for a chip`);
+  }
+}
+
 async function takeScreenshot(send) {
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   writeFileSync(screenshot, Buffer.from(shot.result.data, 'base64'));
@@ -310,13 +339,29 @@ async function runSettingsProbe() {
         if (!switchedAdvanced) {
           failures.push('never found the Advanced mode button');
         } else {
-          // The default active tab is General (a fresh profile's sessionStorage).
-          await checkGeneralStatic(send, failures, "Advanced's General tab");
-          const openedProvider = await pollUntil(4000, 250, async () => click(send, `document.querySelector('#tab-provider')`));
-          if (!openedProvider) {
-            failures.push('never found #tab-provider');
+          // Wait for the switch to actually land — Simple and Advanced share
+          // every id these checks look for, so a failed switch would
+          // otherwise surface only later, as "never found #tab-provider".
+          const advancedActive = await pollUntil(4000, 250, async () => evaluate(send, `(() => {
+            const btn = document.querySelectorAll('.mode-toggle .mode-button')[1];
+            return (!!btn && btn.classList.contains('active')) || !!document.querySelector('#tab-general');
+          })()`));
+          if (!advancedActive) {
+            failures.push('never switched to Advanced mode');
           } else {
-            await checkProviderTabOnly(send, failures, "Advanced's Provider tab");
+            // The default active tab is General (a fresh profile's sessionStorage).
+            // Ruling 3: the same static blocks and the same one-writer rule as
+            // Simple mode; only the chip flow differs (a tab switch, no back row).
+            await checkGeneralStatic(send, failures, "Advanced's General tab");
+            await checkOneWriter(send, failures, "Advanced's General tab");
+            await checkAdvancedChipFlow(send, failures, "Advanced's General tab");
+
+            const openedProvider = await pollUntil(4000, 250, async () => click(send, `document.querySelector('#tab-provider')`));
+            if (!openedProvider) {
+              failures.push('never found #tab-provider');
+            } else {
+              await checkProviderTabOnly(send, failures, "Advanced's Provider tab");
+            }
           }
         }
       }
@@ -335,7 +380,7 @@ async function runSettingsProbe() {
       for (const failure of failures) console.log(`FAIL: ${failure}`);
       return 1;
     }
-    console.log(`ok — --settings${appTarget ? ' --app' : ' --preview'} (files in ${downloads})`);
+    console.log(`ok — --settings${appTarget ? ' --app' : ' --preview'}`);
     return 0;
   }, { flags: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'], viewport: { width: 1000, height: 1400 } });
 }
@@ -511,10 +556,7 @@ if (settingsTarget) {
     if (longTasks.max > 500) failures.push(`the longest task ran ${Math.round(longTasks.max)}ms — a hung frame, not a slow one`);
 
     // Step 11.
-    if (screenshot) {
-      const shot = await send('Page.captureScreenshot', { format: 'png' });
-      writeFileSync(screenshot, Buffer.from(shot.result.data, 'base64'));
-    }
+    if (screenshot) await takeScreenshot(send);
 
     if (failures.length > 0) {
       for (const failure of failures) console.log(`FAIL: ${failure}`);

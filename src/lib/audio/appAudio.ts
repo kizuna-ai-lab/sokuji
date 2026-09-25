@@ -7,6 +7,7 @@
  * read live from `audioStore`, `routingStore` and `turnModeStore`.
  */
 import { SAMPLE_RATE } from '../contract/adapter';
+import { isApplicationSource } from '../modern-audio/participantSource';
 import type { Platform } from '../provider/types';
 import type { TurnMode } from '../session/types';
 import useAudioStore from '../../stores/audioStore';
@@ -48,7 +49,7 @@ export function readRouting(
     // participant capture and translated again as Other — the replay gate's
     // reason (plan 1e-3b-2 ruling 7). An application capture that falls back
     // to the whole system mid-run is not seen here: a follow-up.
-    participantSpeech: switches.participantSpeech && (platform !== 'electron' || !!audio.selectedParticipantSource?.deviceId.startsWith('app:')),
+    participantSpeech: switches.participantSpeech && (platform !== 'electron' || isApplicationSource(audio.selectedParticipantSource?.deviceId)),
     // 1e-3 ruling 4, today's rule (`isPassthroughActive`): under push-to-translate
     // the original voice is on at full level whenever the key is not held (the
     // route closes while held), whatever the passthrough toggle says.

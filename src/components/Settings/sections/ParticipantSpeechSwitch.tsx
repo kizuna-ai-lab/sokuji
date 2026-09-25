@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import ToggleSwitch from '../shared/ToggleSwitch';
+import { isApplicationSource } from '../../../lib/modern-audio/participantSource';
 import useAudioStore from '../../../stores/audioStore';
 import { useRoutingStore } from '../../../stores/routingStore';
 import { isElectron } from '../../../utils/environment';
@@ -22,7 +23,7 @@ export function ParticipantSpeechSwitch({ locked }: { locked: boolean }) {
   const { t } = useTranslation();
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const selectedParticipantSource = useAudioStore((s) => s.selectedParticipantSource);
-  const wholeSystem = isElectron() && !selectedParticipantSource?.deviceId.startsWith('app:');
+  const wholeSystem = isElectron() && !isApplicationSource(selectedParticipantSource?.deviceId);
   return (
     <ToggleSwitch
       checked={participantSpeech && !wholeSystem}
