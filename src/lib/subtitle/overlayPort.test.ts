@@ -63,6 +63,40 @@ describe('connectOverlay', () => {
     expect(port.postMessage).toHaveBeenCalledWith({ type: 'subtitle:turn-press' });
   });
 
+  it('an exit goes down the port, then asks the content script to unmount the overlay, once', () => {
+    const port = chromePort();
+    const connect = vi.fn(() => port);
+    const parent = stubParent();
+
+    const receiver = connectOverlay(connect, parent)!;
+    receiver.send({ type: 'subtitle:user-exit' });
+
+    expect(port.postMessage).toHaveBeenCalledTimes(1);
+    expect(port.postMessage).toHaveBeenCalledWith({ type: 'subtitle:user-exit' });
+    expect(parent.postMessage).toHaveBeenCalledTimes(1);
+    expect(parent.postMessage).toHaveBeenCalledWith(SIDEPANEL_GONE, '*');
+    // The side panel hears the exit before the overlay can go.
+    expect(vi.mocked(port.postMessage).mock.invocationCallOrder[0]).toBeLessThan(parent.postMessage.mock.invocationCallOrder[0]);
+  });
+
+  it('press, release and Clear go down the port only', () => {
+    const port = chromePort();
+    const connect = vi.fn(() => port);
+    const parent = stubParent();
+
+    const receiver = connectOverlay(connect, parent)!;
+    receiver.send({ type: 'subtitle:turn-press' });
+    receiver.send({ type: 'subtitle:turn-release' });
+    receiver.send({ type: 'subtitle:request-clear' });
+
+    expect(vi.mocked(port.postMessage).mock.calls).toEqual([
+      [{ type: 'subtitle:turn-press' }],
+      [{ type: 'subtitle:turn-release' }],
+      [{ type: 'subtitle:request-clear' }],
+    ]);
+    expect(parent.postMessage).not.toHaveBeenCalled();
+  });
+
   it('when the side panel goes, disposes the receiver and asks the content script to unmount it', () => {
     const port = chromePort();
     const connect = vi.fn(() => port);

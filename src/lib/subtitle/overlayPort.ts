@@ -10,7 +10,7 @@
 import { describeCause, reportError } from '../diagnostics/report';
 import { chromePortWire, receiveSubtitles, SUBTITLE_PORT, type ChromePortLike, type OverlayReceiver } from './wire';
 
-/** What the overlay asks of the content script when its side panel has gone (`extension/content/subtitle-overlay-content.js:61-65`). */
+/** What the overlay asks of the content script when its side panel has gone, or the user exits (`extension/content/subtitle-overlay-content.js:61-65`). */
 export const SIDEPANEL_GONE = { type: 'sokuji-subtitle:sidepanel-gone' } as const;
 
 /** The meeting page's window, from the overlay's iframe: `window.parent`. */
@@ -41,5 +41,17 @@ export function connectOverlay(connect: (info: { name: string }) => ChromePortLi
     receiver.dispose();
     tellGone(parent);
   });
-  return receiver;
+  return {
+    ...receiver,
+    send(message) {
+      receiver.send(message);
+      // An exit also unmounts the overlay itself, whether or not a side panel
+      // answers it. A side panel that went while another side panel in
+      // subtitle mode lives leaves this port open — the other one heard it
+      // connect and holds its end with no listener — so no disconnect comes,
+      // and an exit sent only down the port would reach no one. A live side
+      // panel's own `subtitle:exit` then finds the host already gone.
+      if (message.type === 'subtitle:user-exit') tellGone(parent);
+    },
+  };
 }
