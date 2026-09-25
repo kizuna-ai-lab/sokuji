@@ -52,6 +52,8 @@
  * &capture=device&autostart=1&models=moonshine-tiny-en-quant,opus-mt-en-jap
  * &pair=en:ja
  *
+ * `&models=` / `&pair=` write the profile's LocalInference selections and pair (the app's own keys): open them in the probe's own profile, never a real one.
+ *
  * Default seconds: 600 (10 minutes) — a first run downloads ~140 MB and
  * compiles two WASM engines; every later run against the same profile
  * directory (below) finds both models already downloaded and is much
