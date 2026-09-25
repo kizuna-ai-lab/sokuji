@@ -40,6 +40,8 @@ export interface SubtitleSessionInput {
   legs: readonly LegName[];
   /** The app's capture needs a microphone and none is chosen (1e-3 ruling 5). */
   microphoneMissing?: boolean;
+  /** The selected provider's entry has loaded: until then a start would be refused as no provider (plan 1e-3b-1 ruling 11). Default true. */
+  providerLoaded?: boolean;
 }
 
 /**
@@ -60,7 +62,7 @@ export function idleOf(run: RunState, readiness: Readiness | undefined, micropho
   return end ? { kind: 'ended' } : { kind: 'ready' };
 }
 
-export function subtitleSession({ run, readiness, pair, turnMode, legs, microphoneMissing = false }: SubtitleSessionInput): SubtitleSession {
+export function subtitleSession({ run, readiness, pair, turnMode, legs, microphoneMissing = false, providerLoaded = true }: SubtitleSessionInput): SubtitleSession {
   return {
     phase: run.phase,
     since: run.phase === 'running' ? run.since : null,
@@ -68,7 +70,7 @@ export function subtitleSession({ run, readiness, pair, turnMode, legs, micropho
     pair,
     holdToTalk: run.phase === 'running' && turnMode !== 'auto',
     // The runner checks readiness at start; only a known blocker or a check in flight keeps Start off.
-    canStart: run.phase === 'idle' && !microphoneMissing && readiness?.state !== 'not-ready' && readiness?.state !== 'checking',
+    canStart: run.phase === 'idle' && !microphoneMissing && readiness?.state !== 'not-ready' && readiness?.state !== 'checking' && providerLoaded,
     idle: idleOf(run, readiness, microphoneMissing),
   };
 }

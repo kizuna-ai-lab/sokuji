@@ -174,6 +174,24 @@ describe('SubtitleIdle unready state', () => {
     fireEvent.click(screen.getByRole('button', { name: /return to main window/i }));
     expect(h.onReturn).toHaveBeenCalledTimes(1);
   });
+
+  // The fix action's destination comes from the readiness code, not from a
+  // StartBlockReason (plan 1e-3b-1 ruling 13).
+  it('opens Settings at the given target when the fix action is clicked', () => {
+    const h = handlers();
+    const onOpenSettings = vi.fn();
+    render(
+      <SubtitleIdle
+        state={{ kind: 'unready', message: 'Configure devices for this mode to start.', target: 'microphone' }}
+        {...h}
+        onOpenSettings={onOpenSettings}
+      />,
+    );
+    const btn = screen.getByRole('button', { name: 'Configure devices for this mode to start' });
+    expect(btn).toBeEnabled();
+    fireEvent.click(btn);
+    expect(onOpenSettings).toHaveBeenCalledWith('microphone');
+  });
 });
 
 describe('SubtitleIdle return affordance', () => {

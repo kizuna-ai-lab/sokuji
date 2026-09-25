@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 vi.mock('../../lib/auth/hooks', () => ({
   useAuth: () => ({ isSignedIn: false, getToken: async () => null }),
@@ -152,6 +152,28 @@ describe('SpinePreview', () => {
     await waitFor(() => expect(getAppSession().runner.state.getState().phase).toBe('running'));
     await act(() => getAppSession().runner.stop());
     await getAppSession().runner.settled();
+  });
+
+  // Task 7, plan 1e-3b-1: `&subtitle=1` now mounts SubtitleTakeover, a thin
+  // shell over the root session (SubtitleTakeover.test.tsx covers its wiring
+  // in isolation) — its own Start action must still drive the root's runner.
+  it("the takeover's own Start drives the root runner", async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, '', '/?preview=spine&subtitle=1');
+    const windowOpen = vi.spyOn(window, 'open').mockReturnValue(null);
+    try {
+      const { container } = render(<SpinePreview />);
+      await screen.findByLabelText('Script');
+      const subtitle = container.querySelector('.spine-subtitle') as HTMLElement;
+      // This file's own i18n mock (above) returns the raw key, no fallback.
+      fireEvent.click(within(subtitle).getByRole('button', { name: 'subtitle.idle.start' }));
+      await waitFor(() => expect(getAppSession().runner.state.getState().phase).not.toBe('idle'));
+      await act(() => getAppSession().runner.stop());
+      await getAppSession().runner.settled();
+    } finally {
+      window.history.replaceState(null, '', before);
+      windowOpen.mockRestore();
+    }
   });
 
   // Task 5, plan 1e-2b ruling 12: `&punctuation=1` downloads the punctuation

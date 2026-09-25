@@ -31,7 +31,8 @@ import { useConversationExporter } from '../Conversation/useConversationExporter
 import { useReadable } from '../Conversation/useReadable';
 import { ExportMenuButton } from '../MainPanel/ExportButton';
 import { ProviderPanel } from '../providers/ProviderPanel';
-import { SubtitleView, type SubtitleControls, type SubtitleModel } from '../Subtitle/SubtitleView';
+import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
+import type { SubtitleControls } from '../Subtitle/SubtitleView';
 import { configureAppSession, getAppSession, type LoadedAudio } from '../../app/session';
 import { useAppSessionBridges, useRunPhase, useRunState } from '../../app/useAppSession';
 import { loadSessionStores } from '../../app/loadStores';
@@ -174,26 +175,6 @@ function PreviewConversation({ view, karaoke, playback }: {
         fontSize={display.fontSize}
         empty={<p>Start a session to see the conversation.</p>}
       />
-    </div>
-  );
-}
-
-/** The Electron-style subtitle surface, on the page itself (`&subtitle=1`, plan 1d-2). */
-function PreviewSubtitle({ view, karaoke, session, controls }: {
-  view: Readable<ConversationViewState>;
-  karaoke: Readable<KaraokeState>;
-  session: Readable<SubtitleSession>;
-  controls: SubtitleControls;
-}) {
-  const viewState = useReadable(view);
-  const { entries } = viewState;
-  const { lit } = useReadable(karaoke);
-  const sessionState = useReadable(session);
-  const exporter = useConversationExporter(viewState);
-  const model: SubtitleModel = { entries, lit, session: sessionState };
-  return (
-    <div className="spine-subtitle">
-      <SubtitleView surface="electron" model={model} controls={controls} exporter={exporter} />
     </div>
   );
 }
@@ -453,12 +434,9 @@ export function SpinePreview() {
         <p data-probe="seals">{sealProbe}</p>
         <PreviewConversation view={session.view} karaoke={session.karaoke} playback={audio?.playback ?? null} />
         {previewParams.subtitle && (
-          <PreviewSubtitle
-            view={session.view}
-            karaoke={session.karaoke}
-            session={session.subtitle}
-            controls={subtitleControls}
-          />
+          <div className="spine-subtitle">
+            <SubtitleTakeover />
+          </div>
         )}
         {previewParams.overlay && (
           <PreviewOverlayFrame

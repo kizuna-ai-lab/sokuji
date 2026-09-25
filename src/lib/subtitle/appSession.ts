@@ -26,13 +26,19 @@ export function appSubtitleSession(
     const providers = useProviderStore.getState();
     const id = providers.selected;
     const audio = useAudioStore.getState();
+    // The display-mode buttons follow the audio mode's intent as well as the
+    // conversation on screen: before the first run, and after the mode
+    // changed (roadmap 1d-2 → 1e; today's `effectiveMode || items` rule).
+    const intent = legsFor(audio.mode);
+    const shown = view.get().legs.map((leg) => leg.leg);
     return subtitleSession({
       run: runner.state.getState(),
       readiness: id ? providers.readiness[id] : undefined,
       pair: id ? providers.entries[id]?.pair ?? null : null,
       turnMode: useTurnModeStore.getState().turnMode,
-      legs: view.get().legs.map((leg) => leg.leg),
-      microphoneMissing: (options.microphoneRequired?.() ?? false) && microphoneMissing(legsFor(audio.mode), audio.selectedInputDevice?.deviceId),
+      legs: (['speaker', 'participant'] as const).filter((leg) => intent.includes(leg) || shown.includes(leg)),
+      microphoneMissing: (options.microphoneRequired?.() ?? false) && microphoneMissing(intent, audio.selectedInputDevice?.deviceId),
+      providerLoaded: !!(id && providers.entries[id]),
     });
   };
   let state = read();

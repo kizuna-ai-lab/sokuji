@@ -53,6 +53,11 @@ describe('subtitleSession', () => {
     expect(subtitleSession({ ...input, run: { phase: 'starting', step: 'checking' } }).canStart).toBe(false);
   });
 
+  it('keeps Start off until the provider has loaded, without touching the idle body (1e-3b-1 ruling 11)', () => {
+    expect(subtitleSession({ ...input, providerLoaded: false })).toMatchObject({ canStart: false, idle: { kind: 'ready' } });
+    expect(subtitleSession(input).canStart).toBe(true);
+  });
+
   it('keeps Start off with no microphone chosen, before the provider blocker (1e-3 ruling 5)', () => {
     expect(subtitleSession({ ...input, microphoneMissing: true })).toMatchObject({
       canStart: false,

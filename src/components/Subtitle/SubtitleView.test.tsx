@@ -47,7 +47,7 @@ const entry: Entry = {
 const session = (over: Partial<SubtitleSession> = {}): SubtitleSession => ({
   phase: 'running', since: 0, legs: ['speaker'], pair: { source: 'en', target: 'ja' }, holdToTalk: false, canStart: false, idle: { kind: 'ended' }, ...over,
 });
-const controls = () => ({ exit: vi.fn(), clear: vi.fn(), press: vi.fn(), release: vi.fn(), start: vi.fn(), stop: vi.fn() });
+const controls = () => ({ exit: vi.fn(), clear: vi.fn(), press: vi.fn(), release: vi.fn(), start: vi.fn(), stop: vi.fn(), openSettings: vi.fn() });
 
 beforeEach(() => cleanup());
 
@@ -96,6 +96,20 @@ describe('SubtitleView', () => {
   it("shows local_models_missing's words in the idle action", () => {
     const { container } = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'unready', message: 'Required models are not available…', code: 'local_models_missing' } }) }} controls={controls()} />);
     expect(container.querySelector('.subtitle-idle__action--fix')?.textContent).toBe('Please download the required models in Settings to start');
+  });
+
+  // Plan 1e-3b-1 ruling 13: the idle body's fix action deep-links the same
+  // way a notice's action does — a code that maps to a Settings section.
+  it("routes the fix action to controls.openSettings, at the readiness code's target", () => {
+    const acts = controls();
+    render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'unready', message: 'm', code: 'no_microphone' } }) }} controls={acts} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Configure devices for this mode to start' }));
+    expect(acts.openSettings).toHaveBeenCalledWith('microphone');
+  });
+
+  it('disables the fix action when the readiness code maps to no Settings section', () => {
+    const { container } = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'unready', message: 'm', code: 'start_failed' } }) }} controls={controls()} />);
+    expect(container.querySelector('.subtitle-idle__action--fix')).toBeDisabled();
   });
 
   it("shows a non-start_failed notice's own words, still wrapped by noticeText", () => {

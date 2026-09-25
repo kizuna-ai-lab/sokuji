@@ -5,6 +5,7 @@ import type { SegmentId } from '../../lib/conversation/types';
 import type { Exporter } from '../../lib/export/exporter';
 import type { Entry } from '../../lib/projection/types';
 import type { SubtitleIdleModel, SubtitleSession } from '../../lib/subtitle/session';
+import { settingsTargetForCode } from '../../lib/view/noticeTargets';
 import { noticeText } from '../../lib/view/noticeText';
 import {
   useSubtitleNewItemHighlightEnabled,
@@ -36,6 +37,8 @@ export interface SubtitleControls {
   /** The Electron takeover starts and stops the run itself; the overlay does not. */
   start?(): void;
   stop?(): void;
+  /** Leaves subtitle mode and opens a Settings section — the Electron takeover; the overlay has no Settings to open. */
+  openSettings?(target: string): void;
 }
 
 function languageCodeShort(code: string | undefined): string {
@@ -45,7 +48,7 @@ function languageCodeShort(code: string | undefined): string {
 function idleState(idle: SubtitleIdleModel | undefined, t: TFunction): SubtitleIdleState {
   if (!idle) return { kind: 'ended' };
   // An uncoded reason stays as it is — `noticeText` returns the message.
-  if (idle.kind === 'unready') return { kind: 'unready', message: noticeText(t, idle) };
+  if (idle.kind === 'unready') return { kind: 'unready', message: noticeText(t, idle), target: settingsTargetForCode(idle.code) };
   if (idle.kind === 'failed') {
     // start_failed's own message is already "the session didn't start:
     // <detail>" (NOTICE_WORDS); noticeText would wrap it a second time
@@ -91,10 +94,9 @@ export function SubtitleView({ surface, model, controls, exporter }: {
   const elapsedMs = running && session.since !== null ? Math.max(0, now - session.since) : 0;
 
   // A leg's display-mode button shows when the conversation has that leg:
-  // the session's legs (set once a run is live) or an entry already drawn
-  // for it. Unlike today's SubtitleApp, which follows the routing mode's
-  // intent, nothing shows for either leg before the first run — plan 1e
-  // will feed that intent into `SubtitleSession.legs` while idle (roadmap).
+  // the session's legs already carry the audio mode's intent as well as the
+  // conversation on screen (plan 1e-3b-1 ruling 12), or an entry already
+  // drawn for it.
   const legs = session?.legs ?? [];
   const speakerActive = legs.includes('speaker') || entries.some((e) => e.leg === 'speaker');
   const participantActive = legs.includes('participant') || entries.some((e) => e.leg === 'participant');
@@ -151,6 +153,7 @@ export function SubtitleView({ surface, model, controls, exporter }: {
           onReturn={controls.exit}
           allowSessionControl={surface === 'electron'}
           canStart={session?.canStart ?? false}
+          onOpenSettings={controls.openSettings}
         />
       )}
       {chrome.resizeHandles}

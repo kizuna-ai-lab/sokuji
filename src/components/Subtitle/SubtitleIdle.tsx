@@ -31,9 +31,11 @@ interface Props {
   // clickable in that case, since it would just re-express a start the gate
   // already refuses.
   canStart: boolean;
+  /** The `unready` state's fix action, at its `target` (plan 1e-3b-1 ruling 13). */
+  onOpenSettings?: (target: string) => void;
 }
 
-const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowSessionControl, canStart }) => {
+const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowSessionControl, canStart, onOpenSettings }) => {
   const { t } = useTranslation();
 
   if (!allowSessionControl) {
@@ -64,13 +66,19 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
   }
 
   if (state.kind === 'unready') {
-    // The `blocked` markup, with the provider's own reason as the label. No
-    // settings page is mapped to a readiness reason yet (plan 1e), so the
-    // action is inert, as `blocked` is when it has no destination.
+    // The `blocked` markup, with the provider's own reason as the label. The
+    // fix action's destination comes from the readiness code, not from a
+    // StartBlockReason (plan 1e-3b-1 ruling 13); no destination means the
+    // action is inert, as `blocked` is when it has none either.
     const label = state.message.replace(/[.。！!]+$/, '');
     return (
       <div className="subtitle-idle">
-        <button type="button" className="subtitle-idle__action subtitle-idle__action--fix" disabled>
+        <button
+          type="button"
+          className="subtitle-idle__action subtitle-idle__action--fix"
+          disabled={!state.target || !onOpenSettings}
+          onClick={() => { if (state.target) onOpenSettings?.(state.target); }}
+        >
           <AlertTriangle size={15} />
           <span>{label}</span>
         </button>

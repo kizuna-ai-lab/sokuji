@@ -10,13 +10,17 @@ vi.mock('../../services/ServiceFactory', () => ({
 }));
 
 import { createStore } from 'zustand/vanilla';
+import type { Leg } from '../conversation/types';
 import type { Runner } from '../session/runner';
 import type { RunState } from '../session/types';
 import type { ConversationViewState, Readable } from '../view/conversationView';
+import { fakeProvider } from '../../providers/fake/provider';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { appSubtitleSession } from './appSession';
+
+const speakerLeg: Leg = { leg: 'speaker', session: 's', languages: { source: 'en', target: 'ja' }, segments: [], notices: [] };
 
 const providersBefore = useProviderStore.getState();
 const turnBefore = useTurnModeStore.getState();
@@ -27,10 +31,19 @@ afterEach(() => {
   useAudioStore.setState(audioBefore, true);
 });
 
-function setup(options?: { microphoneRequired?(): boolean }) {
+function setup(options?: { microphoneRequired?(): boolean; provider?: boolean; view?: Readable<ConversationViewState> }) {
   const state = createStore<RunState>(() => ({ phase: 'idle' }));
   const runner = { state } as unknown as Runner;
-  const view: Readable<ConversationViewState> = { get: () => ({ legs: [], entries: [], info: null }), subscribe: () => () => {} };
+  const view: Readable<ConversationViewState> = options?.view ?? { get: () => ({ legs: [], entries: [], info: null }), subscribe: () => () => {} };
+  // Every case but one about `providerLoaded` itself wants a loaded provider
+  // (plan 1e-3b-1 ruling 11): otherwise every canStart it checks would be
+  // false for a reason unrelated to what the case is testing.
+  if (options?.provider !== false) {
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { fake: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+  }
   return { state, session: appSubtitleSession(runner, view, options) };
 }
 
@@ -82,5 +95,36 @@ describe('appSubtitleSession — the microphone gate (1e-3 ruling 5)', () => {
     expect(setup().session.get().canStart).toBe(true);
     useAudioStore.setState({ mode: 'participant', selectedInputDevice: null });
     expect(setup({ microphoneRequired: () => true }).session.get().canStart).toBe(true);
+  });
+});
+
+describe("appSubtitleSession — legs follow the audio mode's intent (1e-3b-1 ruling 12)", () => {
+  it('offers both legs once the mode is "both", even with nothing on screen yet', () => {
+    useAudioStore.setState({ mode: 'both' });
+    expect(setup().session.get().legs).toEqual(['speaker', 'participant']);
+  });
+
+  it('keeps a leg the conversation already shows, even once the mode narrows past it', () => {
+    useAudioStore.setState({ mode: 'participant' });
+    const view: Readable<ConversationViewState> = { get: () => ({ legs: [speakerLeg], entries: [], info: null }), subscribe: () => () => {} };
+    expect(setup({ view }).session.get().legs).toEqual(['speaker', 'participant']);
+  });
+
+  it("offers only the mode's leg with nothing on screen", () => {
+    useAudioStore.setState({ mode: 'speaker' });
+    expect(setup().session.get().legs).toEqual(['speaker']);
+  });
+});
+
+describe('appSubtitleSession — providerLoaded (1e-3b-1 ruling 11)', () => {
+  it("keeps Start off until the selected provider's entry has loaded, then turns it back on", async () => {
+    useProviderStore.setState({ selected: 'fake', entries: {} });
+    const { session } = setup({ provider: false });
+    expect(session.get().canStart).toBe(false);
+    const listener = vi.fn();
+    session.subscribe(listener);
+    await useProviderStore.getState().load(fakeProvider);
+    expect(listener).toHaveBeenCalled();
+    expect(session.get().canStart).toBe(true);
   });
 });

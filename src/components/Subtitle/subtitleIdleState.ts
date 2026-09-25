@@ -13,7 +13,7 @@ export type SubtitleIdleState =
   | { kind: 'blocked'; reason: StartBlockReason; balance?: number; deviceScope?: DeviceScope }
   | { kind: 'failed'; message: string }
   /** The new runner's provider is not ready (plan 1d-2): its reason, in words the provider gave. */
-  | { kind: 'unready'; message: string };
+  | { kind: 'unready'; message: string; /** Where Settings fixes it (`settingsTargetForCode`); null or absent: nowhere. */ target?: string | null };
 
 export interface IdleStateInput {
   isInitializing: boolean;
