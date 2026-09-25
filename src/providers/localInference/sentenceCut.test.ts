@@ -186,6 +186,21 @@ describe('SentenceCut', () => {
     expect(seals[0].reason).toBe('length');
   });
 
+  // A port that breaks its type: anything but a string or null counts as no
+  // answer. `undefined` is the one that used to throw inside the shim after it
+  // had settled and cancelled its budget, leaving the stream's call in flight.
+  it.each([['a number', 42], ['undefined', undefined]])('a malformed answer (%s) does not wedge the stream: the length fallback still seals later', async (_name, answer) => {
+    const punctuate = (async () => answer) as unknown as Punctuator;
+    const { cut, seals } = harness({ punctuate });
+    cut.partial(longUnmarkedText(80)); // past the model gate, short of the length fallback
+    await settle();
+    expect(seals).toHaveLength(0);
+    cut.partial(longUnmarkedText(120)); // asks again — possible only once the first call settled
+    await settle();
+    expect(seals).toHaveLength(1);
+    expect(seals[0].reason).toBe('length');
+  });
+
   it('reset() drops a model call in flight', async () => {
     let resolveHeld: (value: string | null) => void = () => {};
     const punctuate: Punctuator = () => new Promise((resolve) => { resolveHeld = resolve; });
@@ -217,6 +232,15 @@ describe('runtimeOver', () => {
     const clock = createVirtualClock();
     const runtime = runtimeOver(async () => null, clock);
     const result = await runtime.punctuate('en', 'text');
+    expect(result).toBeNull();
+  });
+
+  it.each([['a number', 42], ['undefined', undefined]])('treats an answer that is not a string (%s) as null', async (_name, answer) => {
+    const clock = createVirtualClock();
+    const runtime = runtimeOver((async () => answer) as unknown as Punctuator, clock);
+    let result: unknown = 'unsettled';
+    void runtime.punctuate('en', 'text').then((r) => { result = r; });
+    await settle();
     expect(result).toBeNull();
   });
 

@@ -39,9 +39,15 @@ export function runtimeOver(punctuate: Punctuator, clock: Clock): SegmentationRu
       let settled = false;
       const finish = (out: string | null) => {
         if (settled) return;
+        // Built before settling: an answer that breaks the port's type is no
+        // answer, and a throw here must leave the budget running rather than
+        // the stream's call in flight for the rest of the utterance.
+        const result = typeof out === 'string'
+          ? { text: out, sentenceEnds: sentenceEnds(out), breakpoints: breakpoints(out), model: modelFor(lang) }
+          : null;
         settled = true;
         cancel();
-        resolve(out === null ? null : { text: out, sentenceEnds: sentenceEnds(out), breakpoints: breakpoints(out), model: modelFor(lang) });
+        resolve(result);
       };
       const cancel = clock.setTimeout(() => finish(null), PUNCTUATION_BUDGET_MS);
       punctuate(lang, text).then(finish, () => finish(null));
@@ -105,6 +111,8 @@ export class SentenceCut {
       this.feed(stream, text);
       stream.end();
     }
+    // Clears `lastRaw`, which today's client keeps across utterances (`lastRawPartialText`): harmless —
+    // the guard reads it only once `sealed > 0`, and a fresh utterance gets there only through a partial of its own.
     this.reset();
     return sealsTail;
   }

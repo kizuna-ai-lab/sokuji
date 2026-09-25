@@ -142,7 +142,7 @@ class LocalSession implements AdapterSession {
 
   private nextRef: Ref = 1;
   private utterances = 0;
-  /** The open source segment: the utterance in progress — its unsealed tail, in the stream shape — opened at its first non-empty text. */
+  /** The open source segment: the utterance in progress — its unsealed tail, in the stream shape — opened at its first text holding a letter or digit. */
   private utterance: { ref: Ref; origin: string; text: string } | null = null;
   private jobs: Job[] = [];
   private processing = false;
@@ -418,14 +418,16 @@ class LocalSession implements AdapterSession {
 
   /**
    * The open source segment shows this text. It opens at the first
-   * non-empty one — not at speech start: a VAD false start ends in an empty
-   * final and would strand a blank segment. Trimmed, or an engine's leading
-   * space (cohere, voxtral-3b) would make the final a rewrite rather than a
-   * growth of the partials.
+   * one holding a letter or digit — not at speech start: a VAD false start
+   * ends in an empty final and would strand a blank segment. A text with none
+   * (a lone mark or bracket, in the stream shape the cursor's leftovers)
+   * opens nothing and changes nothing. Trimmed, or an engine's leading space
+   * (cohere, voxtral-3b) would make the final a rewrite rather than a growth
+   * of the partials.
    */
   private show(raw: string): void {
     const text = raw.trim();
-    if (!text) return;
+    if (countSkeleton(text) === 0) return;
     if (!this.utterance) {
       this.utterance = { ref: this.nextRef++, origin: this.nextOrigin(), text: '' };
       this.emit('segmentOpened', { ref: this.utterance.ref, side: 'source', origin: this.utterance.origin });
@@ -440,15 +442,14 @@ class LocalSession implements AdapterSession {
    * and its job is queued under that segment's origin (ruling 3) — the
    * remainder opens the next segment — never filled in (ruling 6). A chunk
    * with no letter or digit — a lone mark or bracket the cursor left behind
-   * — closes the segment and queues nothing (ruling 9).
+   * — closes nothing and queues nothing: the remainder that follows it
+   * replaces what the open segment shows, and the final closes a segment
+   * still open (ruling 9, as the final review amended it).
    */
   private seal({ text, reason }: SealedChunk): void {
     this.frame('out', 'local.segmentation.seal', { reason, text });
     const sealed = text.trim();
-    if (countSkeleton(sealed) === 0) {
-      this.abandonUtterance();
-      return;
-    }
+    if (countSkeleton(sealed) === 0) return;
     this.show(sealed); // opens the segment for an end() sealing a tail no pending showed
     const segment = this.utterance!;
     this.utterance = null;
@@ -478,8 +479,13 @@ class LocalSession implements AdapterSession {
       recognitionTimeMs: result.recognitionTimeMs,
     });
     if (this.cut) {
-      // False: a truncated re-decode of text already sealed — what the segment shows closes without a job.
-      if (!this.cut.final(text)) this.abandonUtterance();
+      // The utterance is over whatever the cut did, so a segment still open
+      // closes as it stands, without a job: after a truncated re-decode of
+      // text already sealed (`final()` false), or when the tail the end seal
+      // held was letterless and replaced nothing. Otherwise the end seal has
+      // closed it already.
+      this.cut.final(text);
+      this.abandonUtterance();
       return;
     }
     const current = this.utterance;

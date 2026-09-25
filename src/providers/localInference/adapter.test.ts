@@ -3,6 +3,8 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { AdapterStartError, type AdapterSession, type Punctuator, type SessionContext } from '../../lib/contract/adapter';
 import { checkConformance, recordConformance, type ConformanceLog } from '../../lib/contract/conformance';
 import { eventsFrom, type AdapterEvent } from '../../lib/contract/events';
+import { Conversation } from '../../lib/conversation/Conversation';
+import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { gateChars } from '../../lib/segmentation/SentenceStream';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { createLocalInferenceAdapter } from './adapter';
@@ -542,6 +544,73 @@ describe('the LocalInference adapter — sentence-cut jobs (the stream shape)', 
     expectConformant(t.log, t.context);
   });
 
+  it('two sentences seals out of one final: a segment and a job each — and through L1 and L2 they stay in order past u9 → u10', async () => {
+    // The adapter's events feed L1 as the runner's do, on the adapter's own clock.
+    const clock = createVirtualClock();
+    const conversation = new Conversation({ leg: 'speaker', session: 's', languages: en.direction, clock });
+    const log: ConformanceLog = [];
+    const fakes = createFakeEngines();
+    const starting = createLocalInferenceAdapter(fakes.engines).start(
+      { context: en, config: streamConfig({ asr: { modelId: 'whisper', streaming: false } }), credentials: {}, clock, signal: new AbortController().signal, punctuate: noAnswer },
+      eventsFrom((e) => { log.push(e); conversation.apply(e); }),
+    );
+    fakes.asr.ready();
+    fakes.translation.ready();
+    await starting;
+    for (let i = 1; i <= 8; i++) {
+      clock.advance(1000);
+      fakes.asr.final(`Utterance number ${i} is here.`);
+    }
+    clock.advance(1000);
+    // One offline final: three one-sentence chunks at size 1, sealed in one synchronous burst — one clock instant.
+    fakes.asr.final('Alpha sentence is done now. Bravo sentence is done now. Charlie sentence is done now.');
+    expect(segments(log, 'source').slice(8)).toEqual([
+      { origin: 'u9', text: 'Alpha sentence is done now.', closed: true },
+      { origin: 'u10', text: 'Bravo sentence is done now.', closed: true },
+      { origin: 'u11', text: 'Charlie sentence is done now.', closed: true },
+    ]);
+    expect(sealFrames(log).slice(8).map((f) => f.payload)).toEqual([
+      { reason: 'sentences', text: 'Alpha sentence is done now.' },
+      { reason: 'sentences', text: ' Bravo sentence is done now.' },
+      { reason: 'end', text: ' Charlie sentence is done now.' },
+    ]);
+    for (let i = 1; i <= 11; i++) {
+      fakes.translation.answer(`T${i}.`);
+      await settle();
+    }
+    expect(fakes.translation.calls.map((c) => c.text).slice(8)).toEqual([
+      'Alpha sentence is done now.',
+      'Bravo sentence is done now.',
+      'Charlie sentence is done now.',
+    ]);
+    const projected = createProjector().project([conversation.snapshot()], DEFAULT_PROJECTION).flatMap((e) => (e.kind === 'exchange' ? [e] : []));
+    expect(projected.map((e) => [e.id.split(':o:')[1], e.source.map((r) => r.text).join(''), e.translation.map((r) => r.text).join('')]).slice(7)).toEqual([
+      ['u8', 'Utterance number 8 is here.', 'T8.'],
+      ['u9', 'Alpha sentence is done now.', 'T9.'],
+      ['u10', 'Bravo sentence is done now.', 'T10.'],
+      ['u11', 'Charlie sentence is done now.', 'T11.'],
+    ]);
+    expect(projected.map((e) => e.id.split(':o:')[1])).toEqual(['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7', 'u8', 'u9', 'u10', 'u11']);
+    expectConformant(log, en);
+  });
+
+  it('jobSentences 5 runs the stream shape: the endpoint off, and a seal only at the fifth sentence', async () => {
+    const t = await open(streamConfig({ jobSentences: 5 }), en, noAnswer);
+    expect(t.asr.inits[0].options.punctuationEndpoint).toBe(false);
+    t.asr.partial('One is done. Two is done. Three is done. Four is done. Five is');
+    expect(t.translation.calls).toEqual([]);
+    t.asr.partial('One is done. Two is done. Three is done. Four is done. Five is done. Six is still going on');
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'One is done. Two is done. Three is done. Four is done. Five is done.', closed: true },
+      { origin: 'u2', text: 'Six is still going on', closed: false },
+    ]);
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['One is done. Two is done. Three is done. Four is done. Five is done.']);
+    expect(sealFrames(t.log).map((f) => f.payload)).toEqual([
+      { reason: 'sentences', text: 'One is done. Two is done. Three is done. Four is done. Five is done.' },
+    ]);
+    expectConformant(t.log, t.context);
+  });
+
   it('a truncated re-decode of what was sealed queues nothing more: the open segment closes as it stands, untranslated', async () => {
     const t = await open(streamConfig(), en, noAnswer);
     t.asr.partial('First sentence done. Second begins');
@@ -575,15 +644,38 @@ describe('the LocalInference adapter — sentence-cut jobs (the stream shape)', 
     expectConformant(t.log, t.context);
   });
 
-  it('a seal without a letter or digit queues nothing, and closes the segment it was showing', async () => {
+  it('a letterless tail at the final replaces nothing and queues nothing: the segment closes as it stood', async () => {
     const t = await open(streamConfig(), en, noAnswer);
     t.asr.partial('Sentence one is done. Sentence two begins');
     t.asr.final('Sentence one is done. (');
     t.translation.answer('Un.');
     await settle();
     expect(t.translation.calls.map((c) => c.text)).toEqual(['Sentence one is done.']);
-    expect(segments(t.log, 'source').map((s) => s.closed)).toEqual([true, true]);
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'Sentence one is done.', closed: true },
+      { origin: 'u2', text: 'Sentence two begins', closed: true },
+    ]);
     expect(segments(t.log, 'translation').map((s) => s.origin)).toEqual(['u1']);
+    expect(sealFrames(t.log).map((f) => f.payload)).toEqual([
+      { reason: 'sentences', text: 'Sentence one is done.' },
+      { reason: 'end', text: '(' },
+    ]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('a letterless seal mid-utterance closes nothing: the remainder replaces what the open segment shows', async () => {
+    const t = await open(streamConfig(), en, noAnswer);
+    t.asr.partial('? Hello there my good friend how are you');
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'Hello there my good friend how are you', closed: false },
+    ]);
+    expect(t.translation.calls).toEqual([]);
+    expect(sealFrames(t.log).map((f) => f.payload)).toEqual([{ reason: 'sentences', text: '?' }]);
+    t.asr.final('? Hello there my good friend how are you.');
+    expect(segments(t.log, 'source')).toEqual([
+      { origin: 'u1', text: 'Hello there my good friend how are you.', closed: true },
+    ]);
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['Hello there my good friend how are you.']);
     expectConformant(t.log, t.context);
   });
 
