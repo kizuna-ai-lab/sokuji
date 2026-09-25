@@ -267,10 +267,11 @@ export function SpinePreview() {
   const providers = useMemo(() => presentProviders(), []);
   // This page's probes run on the fake unless a parameter asks for another
   // provider (plan 1e-2 ruling 10, `&provider=<id>`). ProviderPanel is a
-  // child, so its own mount effect — defaulting to `providers[0]`,
-  // LocalInference now that it's registered first — runs before this one;
-  // covering the `localInference` case too (not just "nothing selected
-  // yet") undoes that default, and `&provider=` overrides it the other way.
+  // child, so its own mount effect selects nothing (1e-3b-2 Task 1, P3) — this
+  // effect, together with `loadSessionStores` below, owns the page's
+  // selection; covering the `localInference` case too (not just "nothing
+  // selected yet") undoes LocalInference's stored default, and `&provider=`
+  // overrides it the other way.
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get('provider');
     // Both calls below are loads: the preview never writes the app's stored provider.

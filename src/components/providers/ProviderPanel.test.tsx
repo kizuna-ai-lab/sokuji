@@ -19,6 +19,11 @@ vi.mock('../../services/ServiceFactory', () => ({
     }),
   },
 }));
+// ProviderPicker now sends `provider_switched` and ProviderLanguages sends
+// `language_changed`: unmocked, `useAnalytics` drags in `shared/index.tsx`'s
+// real bootstrap (`ReactDOM.createRoot(document.getElementById('root'))`),
+// which throws outside a real host page.
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
@@ -96,10 +101,10 @@ describe('ProviderPanel', () => {
     expect(useProviderStore.getState().selected).toBe('fake');
   });
 
-  it('records the provider it shows when the store has none', async () => {
+  it('shows the first offered provider when the store has none, and selects nothing', async () => {
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
     await screen.findByLabelText('Script');
-    expect(useProviderStore.getState().selected).toBe('fake');
+    expect(useProviderStore.getState().selected).toBeNull();
   });
 
   it("persists a person's pick under settings.common.provider, but not the panel's own mount selection", async () => {

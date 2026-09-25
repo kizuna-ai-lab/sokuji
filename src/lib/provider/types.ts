@@ -72,6 +72,24 @@ export interface SettingsProps<S> {
   pair?: LanguagePair;
 }
 
+/** One slot of a local engine's model management: a stage of one direction (`src→tgt`). */
+export interface EngineSlot { dir: string; stage: 'asr' | 'translation' | 'tts' }
+
+/** What an `Engine` is handed besides its settings. */
+export interface EngineProps<S> extends SettingsProps<S> {
+  /** The legs a start would open (the audio mode's): the directions it shows. */
+  legs: readonly LegName[];
+  /** Open this slot on mount — a chip's deep link; `onInitialSlotConsumed` says it was. */
+  initialSlot?: EngineSlot | null;
+  onInitialSlotConsumed?(): void;
+}
+
+/** A local engine's summary under the picker: its slot chips and memory estimate (Simple mode's way into the `Engine`). */
+export interface EngineSummaryProps<S> extends SettingsProps<S> {
+  legs: readonly LegName[];
+  openSlot(slot: EngineSlot): void;
+}
+
 /** A refusal to build or admit: diagnostic English, and a code a surface can put into words. */
 export interface ProviderRefusal {
   refused: string;
@@ -101,8 +119,10 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     migrate?(stored: Readonly<Record<string, unknown>>): S;
   };
   Settings: ComponentType<SettingsProps<S>>;
-  /** Model management, shown in Simple mode too; the local engines only. */
-  Engine?: ComponentType<SettingsProps<S>>;
+  /** Model management, the local engines only: pushed from the summary in Simple mode, inline on Advanced's Provider tab. */
+  Engine?: ComponentType<EngineProps<S>>;
+  /** The `Engine`'s summary under the picker: its slot chips and memory estimate — Simple mode's way in, and drawn before `Engine` on Advanced's Provider tab (ruling 15). */
+  EngineSummary?: ComponentType<EngineSummaryProps<S>>;
 
   // credentials — stored apart from settings
   credentials: {

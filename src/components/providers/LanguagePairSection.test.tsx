@@ -10,8 +10,20 @@ vi.mock('react-i18next', async (importOriginal) => {
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
 });
 
-const draw = (pair: { source: string; target: string }, onChange = vi.fn()) => {
-  render(<LanguagePairSection provider={fakeProvider} settings={FAKE_DEFAULTS} pair={pair} onChange={onChange} />);
+const draw = (
+  pair: { source: string; target: string },
+  onChange = vi.fn(),
+  extra: { sentence?: { mode: 'speaker' | 'participant' | 'both'; textOnly: boolean }; provider?: typeof fakeProvider } = {},
+) => {
+  render(
+    <LanguagePairSection
+      provider={extra.provider ?? fakeProvider}
+      settings={FAKE_DEFAULTS}
+      pair={pair}
+      onChange={onChange}
+      sentence={extra.sentence}
+    />,
+  );
   return onChange;
 };
 const values = (select: HTMLElement) => [...(select as HTMLSelectElement).options].map((o) => o.value);
@@ -55,5 +67,27 @@ describe('LanguagePairSection', () => {
   it('cannot swap an AUTO source', () => {
     draw({ source: AUTO, target: 'en' });
     expect(screen.getByTitle('simpleConfig.swapLanguages')).toBeDisabled();
+  });
+
+  describe('with a sentence', () => {
+    it("'both': I speak / they hear, and the mirror line shows", () => {
+      draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'both', textOnly: false } });
+      expect(screen.getByText('settings.langSentence.iSpeak')).toBeTruthy();
+      expect(screen.getByText('settings.langSentence.theyHear')).toBeTruthy();
+      expect(screen.getByTestId('language-mirror-line')).toBeTruthy();
+    });
+
+    it("'participant': I read / they speak, and no mirror line", () => {
+      draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'participant', textOnly: false } });
+      expect(screen.getByText('settings.langSentence.iRead')).toBeTruthy();
+      expect(screen.getByText('settings.langSentence.theySpeak')).toBeTruthy();
+      expect(screen.queryByTestId('language-mirror-line')).toBeNull();
+    });
+
+    it("textOnly on an 'optional' provider: they read", () => {
+      draw({ source: 'ja', target: 'en' }, undefined, { sentence: { mode: 'speaker', textOnly: true } });
+      expect(screen.getByText('settings.langSentence.iSpeak')).toBeTruthy();
+      expect(screen.getByText('settings.langSentence.theyRead')).toBeTruthy();
+    });
   });
 });
