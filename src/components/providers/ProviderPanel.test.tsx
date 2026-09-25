@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const { stored, setSetting } = vi.hoisted(() => {
   const stored = new Map<string, unknown>();
@@ -121,6 +121,19 @@ describe('ProviderPanel', () => {
     expect(engineMarker).toHaveTextContent('exchange');
     // "below": the Engine node comes after the Settings node in document order.
     expect(settingsHeading.compareDocumentPosition(engineMarker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("hands the provider's Settings and Engine one update function across the panel's re-renders", async () => {
+    const seen: Array<SettingsProps<FakeSettings>['update']> = [];
+    const Inner = fakeProvider.Settings;
+    const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props.update); return <Inner {...props} />; };
+    const Engine = ({ update }: SettingsProps<FakeSettings>) => { seen.push(update); return null; };
+    render(<ProviderPanel providers={[{ ...fakeProvider, Settings, Engine }]} auth={noAuth} />);
+    await screen.findByLabelText('Script');
+    const before = seen.length;
+    act(() => { useProviderStore.setState((st) => ({ readiness: { ...st.readiness, fake: { state: 'checking' } } })); });
+    expect(seen.length).toBeGreaterThan(before); // the panel did re-render
+    expect(new Set(seen).size).toBe(1);
   });
 
   it('draws no Engine when the provider offers none', async () => {

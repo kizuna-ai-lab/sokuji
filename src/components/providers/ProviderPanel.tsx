@@ -1,5 +1,5 @@
 import { Cpu } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import { UNKNOWN, useProviderStore } from '../../stores/providerStore';
@@ -34,6 +34,12 @@ export function ProviderPanel({ providers, auth, disabled }: ProviderPanelProps)
   useEffect(() => {
     if (provider && selected !== provider.id) select(provider.id);
   }, [provider, selected, select]);
+
+  // One identity per provider: a Settings/Engine may hold `update` in an effect's deps.
+  const update = useCallback(
+    (patch: Readonly<Record<string, unknown>>) => { if (provider) updateSettings(provider, patch); },
+    [provider, updateSettings],
+  );
 
   if (!provider) return null;
   const Settings = provider.Settings;
@@ -71,9 +77,9 @@ export function ProviderPanel({ providers, auth, disabled }: ProviderPanelProps)
       {entry && (
         <>
           <LanguagePairSection provider={provider} settings={entry.settings} pair={entry.pair} onChange={(pair) => setPair(provider, pair)} disabled={disabled} />
-          <Settings settings={entry.settings} update={(patch) => updateSettings(provider, patch)} disabled={disabled} pair={entry.pair} />
+          <Settings settings={entry.settings} update={update} disabled={disabled} pair={entry.pair} />
           {Engine && (
-            <Engine settings={entry.settings} update={(patch) => updateSettings(provider, patch)} disabled={disabled} pair={entry.pair} />
+            <Engine settings={entry.settings} update={update} disabled={disabled} pair={entry.pair} />
           )}
         </>
       )}

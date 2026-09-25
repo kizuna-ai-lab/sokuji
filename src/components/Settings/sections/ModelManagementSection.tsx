@@ -347,12 +347,9 @@ export function ModelManagementSection({
   const legacySettings = useLocalInferenceSettings();
   const legacyUpdate = useUpdateLocalInference();
   const settings: LocalInferenceSettings = settingsProp ?? legacySettings;
-  // Stable identity, like the zustand action this replaces: an inline arrow
-  // here would be a fresh function every render for every caller — including
-  // the legacy ones, since `updateProp`/`legacyUpdate` don't gate which
-  // branch a plain literal takes — and this sits in the edge-TTS voice
-  // auto-select effect's deps, four lines below the "2026-08-23 freeze"
-  // comment documenting a real incident with this exact field.
+  // Stable identity: the edge-TTS voice auto-select effect holds it in its
+  // deps, and a fresh function every render would re-run that effect's write
+  // (the 2026-08-23 freeze).
   const updateLocalInference = useCallback(
     (patch: Partial<LocalInferenceSettings>) => (updateProp ? updateProp(patch) : legacyUpdate(patch)),
     [updateProp, legacyUpdate],

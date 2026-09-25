@@ -15,10 +15,14 @@ import type { LocalInferenceSettings } from './settings';
  * The mandatory direction — the one whose ASR and translation must both
  * resolve for `ok: true` — is the participant's only when the participant
  * leg runs alone; otherwise (speaker alone, or both legs) it is the
- * speaker's, matching today's audio-mode gate (`modelStore.ts:514`). TTS
- * never gates readiness, in either direction. The participant direction is
- * resolved at all only when the participant leg is in `ctx.legs` — it is
- * otherwise never asked for by this check.
+ * speaker's, matching today's audio-mode gate (`modelStore.ts:514`). With
+ * both legs the participant direction's ASR is required too, but not its
+ * translation: `build` refuses a direction without ASR (`no_asr`) and runs
+ * one without translation transcription-only, so readiness says what a
+ * start would meet rather than being refused at it. TTS never gates
+ * readiness, in either direction. The participant direction is resolved at
+ * all only when the participant leg is in `ctx.legs` — it is otherwise
+ * never asked for by this check.
  */
 export async function checkLocalInference(
   s: LocalInferenceSettings,
@@ -47,18 +51,24 @@ export async function checkLocalInference(
     : undefined;
   const mandatory = participantOnly ? participant : speaker;
 
-  if (mandatory?.asr && mandatory?.translation) {
-    return { ok: true };
-  }
   // Plain English, not i18n: `reason` is rendered raw (`CredentialForm.tsx`),
   // and `settings.localInferenceModelsRequired`'s loaded value is written for
   // a <Trans> component's markup interpolation, not raw text — putting
   // readiness reasons into words by a code is plan 1e-3's (matches the only
   // other `src/providers/**` precedent, `fake/provider.ts`'s plain `reason`).
-  return {
-    ok: false,
-    reason: 'Required models are not available for the selected language pair.',
-  };
+  if (!mandatory?.asr || !mandatory?.translation) {
+    return {
+      ok: false,
+      reason: 'Required models are not available for the selected language pair.',
+    };
+  }
+  if (participant && !participantOnly && !participant.asr) {
+    return {
+      ok: false,
+      reason: 'Required models are not available for the reverse language pair.',
+    };
+  }
+  return { ok: true };
 }
 
 /**

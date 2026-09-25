@@ -71,9 +71,35 @@ describe('checkLocalInference', () => {
     });
   });
 
-  it('asks the participant direction only when the participant leg runs alone', async () => {
+  it('with both legs, also requires the reverse direction\'s ASR, and names that direction when it lacks one', async () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' }, 'en>ja': { asr: null, translation: 't2' } });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] })).toEqual({
+      ok: false,
+      reason: 'Required models are not available for the reverse language pair.',
+    });
+  });
+
+  it('with both legs, is ready when the reverse direction has ASR but no translation: it runs transcription-only', async () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' }, 'en>ja': { asr: 'a2', translation: null } });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] })).toEqual({ ok: true });
+  });
+
+  it('with both legs, names the speaker direction first when both lack models', async () => {
+    resolved({ 'ja>en': { asr: null, translation: null }, 'en>ja': { asr: null, translation: null } });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] })).toEqual({
+      ok: false,
+      reason: 'Required models are not available for the selected language pair.',
+    });
+  });
+
+  it('with the speaker leg alone, never asks the reverse direction', async () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' }, 'en>ja': { asr: null, translation: null } });
-    expect((await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] })).ok).toBe(true);
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toEqual({ ok: true });
+    expect(mockResolve.mock.calls.map(([src, tgt]) => `${src}>${tgt}`)).toEqual(['ja>en']);
+  });
+
+  it('with the participant leg alone, requires the reverse direction\'s ASR and translation', async () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' }, 'en>ja': { asr: 'a2', translation: null } });
     expect((await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['participant'] })).ok).toBe(false);
   });
 

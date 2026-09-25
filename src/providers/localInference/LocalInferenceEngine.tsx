@@ -23,8 +23,11 @@ const FALLBACK_PAIR = { source: 'ja', target: 'en' };
  */
 export function LocalInferenceEngine({ settings, update, disabled = false, pair = FALLBACK_PAIR }: SettingsProps<LocalInferenceSettings>) {
   // A fresh object literal every render would defeat useWasmEngineAdapter's
-  // own useMemo (its deps array holds this `override` reference).
-  const override = useMemo(() => ({ settings, update, pair }), [settings, update, pair]);
+  // own useMemo (its deps array holds this `override` reference). Keyed on
+  // the pair's languages: the store hands out a new pair object on every
+  // settings write.
+  const { source, target } = pair;
+  const override = useMemo(() => ({ settings, update, pair: { source, target } }), [settings, update, source, target]);
   const adapter = useWasmEngineAdapter(disabled, override);
   return (
     <EngineSurface

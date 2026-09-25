@@ -133,6 +133,29 @@ describe('buildLocalInference', () => {
     expect(buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared({ reversed: true }))).toMatchObject({ translation: { kind: 'none' } });
   });
 
+  it('builds AST when a Granite Speech ASR model was also picked as the translation stage: no translation engine, the ASR model counted as both', () => {
+    mockManifest = { granite: { type: 'asr', asrEngine: 'granite-speech', astLanguages: { en: ['ja'] } } };
+    resolved({ 'en>ja': { asr: 'granite', translation: 'granite' } });
+    const c = buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig;
+    expect(c.translation).toEqual({ kind: 'ast' });
+    expect(describeLocalInference(c)).toEqual({ asrModel: 'granite', translationModel: 'granite', ttsModel: undefined });
+  });
+
+  it('marks an asr-stream model streaming, and any other ASR model not', () => {
+    mockManifest = { 'stream-asr': { type: 'asr-stream' } };
+    resolved({ 'ja>en': { asr: 'stream-asr', translation: 't' }, 'en>ja': { asr: 'offline-asr', translation: 't' } });
+    expect((buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'stream-asr', streaming: true });
+    expect((buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'offline-asr', streaming: false });
+  });
+
+  it('carries a set VAD negative threshold into vad.negativeThreshold, and leaves it out when unset', () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    const withIt = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ vadNegativeThreshold: 0.15 }), shared()) as LocalInferenceConfig;
+    expect(withIt.vad).toEqual({ threshold: 0.3, negativeThreshold: 0.15, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30 });
+    const without = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig;
+    expect(without.vad).not.toHaveProperty('negativeThreshold');
+  });
+
   it("trims the speaker prompt before falling back to the default, matching today's cascade", () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
     const c = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ useTemplateMode: false, systemPrompt: '  MINE  ' }), shared());
