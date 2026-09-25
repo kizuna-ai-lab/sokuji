@@ -30,6 +30,7 @@ import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
 import { driveLocalReadiness } from './readiness';
 import { registerRunPhase } from './runPhase';
+import { registerSubtitleFeed } from './subtitleFeed';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
 
 /** What only React can reach, handed in by `useAppSessionBridges`. */
@@ -84,7 +85,7 @@ export interface AppSession {
    */
   start(method?: ControlMethod): Promise<void>;
   setBridges(next: Partial<AppBridges>): void;
-  /** Wires the page's lifetime into the session: legs on the audio mode, local readiness, the provider held during a run, a source's end as an `audio_error`, `pagehide`, and Electron's busy flag and close request. Returns the detach. */
+  /** Wires the page's lifetime into the session: legs on the audio mode, local readiness, the provider held during a run, a source's end as an `audio_error`, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
   attach(): () => void;
 }
 
@@ -237,6 +238,15 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       const lock = () => useProviderStore.getState().setSelectionLocked(runner.state.getState().phase !== 'idle');
       lock();
       offs.push(runner.state.subscribe(lock), () => useProviderStore.getState().setSelectionLocked(false));
+      // The extension overlay's publisher reaches the session through this
+      // leaf, for as long as the page is attached: the side panel's surface
+      // class cannot import the root (plan 1e-4 ruling 1).
+      offs.push(registerSubtitleFeed({
+        sources: { entries: { get: () => view.get().entries, subscribe: view.subscribe }, session: subtitle, karaoke },
+        clear: () => runner.clear(),
+        press: () => runner.press(),
+        release: () => runner.release(),
+      }));
       // A source that ended the run (a device unplugged, a switch that failed): today's `audio_error` (ruling 10).
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;

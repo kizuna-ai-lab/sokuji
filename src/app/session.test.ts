@@ -95,6 +95,7 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
 import { READINESS_DELAY_MS } from './readiness';
 import { createAppSession, type AppSessionOptions } from './session';
+import { currentSubtitleFeed } from './subtitleFeed';
 
 const autoSave = vi.mocked(autoSaveConversation);
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -314,6 +315,30 @@ describe('start', () => {
 });
 
 describe('attach', () => {
+  it("registers the subtitle feed the extension overlay's publisher reads, only while attached (plan 1e-4 ruling 1)", async () => {
+    const { session } = await setup();
+    expect(currentSubtitleFeed()).toBeNull();
+    const detach = session.attach();
+
+    const feed = currentSubtitleFeed()!;
+    expect(feed.sources.session).toBe(session.subtitle);
+    expect(feed.sources.karaoke).toBe(session.karaoke);
+    expect(feed.sources.entries.get()).toBe(session.view.get().entries);
+
+    const press = vi.spyOn(session.runner, 'press');
+    const release = vi.spyOn(session.runner, 'release');
+    const clear = vi.spyOn(session.runner, 'clear');
+    feed.press();
+    feed.release();
+    feed.clear();
+    expect(press).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(clear).toHaveBeenCalledTimes(1);
+
+    detach();
+    expect(currentSubtitleFeed()).toBeNull();
+  });
+
   it('abandons the run on pagehide, only while attached', async () => {
     const { session } = await setup();
     await session.runner.start();
