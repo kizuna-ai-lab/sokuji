@@ -3,11 +3,24 @@ import { EngineSurface } from '../../components/Settings/engine/EngineSurface';
 import { ModelManagementSection } from '../../components/Settings/sections/ModelManagementSection';
 import { StoragePage } from '../../components/Settings/engine/StoragePage';
 import { useWasmEngineAdapter } from '../../components/Settings/engine/useWasmEngineAdapter';
-import type { SettingsProps } from '../../lib/provider/types';
+import type { EngineProps } from '../../lib/provider/types';
+import type { LegName } from '../../lib/conversation/types';
 import type { LocalInferenceSettings } from './settings';
 
 /** `ProviderPanel` always supplies `pair`; this only matters standalone. */
 const FALLBACK_PAIR = { source: 'ja', target: 'en' };
+
+/**
+ * `legs` → the audio mode a start would actually run: more than one leg is
+ * `'both'`, one leg is itself, and no legs at all (standalone, never true
+ * once mounted under `ProviderEngine`) falls back to `'speaker'`. Spelled
+ * out as the literal union rather than importing `AudioMode` — `src/providers/**`
+ * imports no store but `modelStore` and `turnModeStore`, and `audioStore` is
+ * one more than that.
+ */
+export function modeOfLegs(legs: readonly LegName[]): 'speaker' | 'participant' | 'both' {
+  return legs.length > 1 ? 'both' : legs[0] ?? 'speaker';
+}
 
 /**
  * LocalInference's `Engine` (ruling 9): today's model management —
@@ -16,12 +29,12 @@ const FALLBACK_PAIR = { source: 'ja', target: 'en' };
  * provider row (`SimpleSettings.tsx`), now fed from `settings`/`update`
  * instead of the store.
  *
- * `effectiveMode` is fixed at `'both'`: which legs a run will actually open
- * (`ctx.legs`) is not part of `SettingsProps`, so this Engine cannot yet
- * tell — showing both directions unconditionally is the safe default until
- * legs are threaded through (a later plan's gap, not this task's to close).
+ * The legs are the audio mode's (`providerStore.legs`), so the page shows
+ * the directions a start would run (roadmap 1e-2 → 1e-3).
  */
-export function LocalInferenceEngine({ settings, update, disabled = false, pair = FALLBACK_PAIR }: SettingsProps<LocalInferenceSettings>) {
+export function LocalInferenceEngine({
+  settings, update, disabled = false, pair = FALLBACK_PAIR, legs, initialSlot, onInitialSlotConsumed,
+}: EngineProps<LocalInferenceSettings>) {
   // A fresh object literal every render would defeat useWasmEngineAdapter's
   // own useMemo (its deps array holds this `override` reference). Keyed on
   // the pair's languages: the store hands out a new pair object on every
@@ -32,7 +45,9 @@ export function LocalInferenceEngine({ settings, update, disabled = false, pair 
   return (
     <EngineSurface
       adapter={adapter}
-      effectiveMode="both"
+      effectiveMode={modeOfLegs(legs)}
+      initialSlot={initialSlot ?? null}
+      onInitialSlotConsumed={onInitialSlotConsumed}
       renderLibrary={(slot) => (
         <ModelManagementSection
           isSessionActive={disabled}

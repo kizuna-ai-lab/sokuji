@@ -4,6 +4,7 @@ import { createLocalInferenceAdapter, type LocalCredentials } from './adapter';
 import { checkLocalInference, watchLocalInferenceReadiness } from './check';
 import { admitLocalInference, buildLocalInference, describeLocalInference, type LocalInferenceConfig } from './config';
 import { LocalInferenceEngine } from './LocalInferenceEngine';
+import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
 import { LocalInferenceSettingsView } from './LocalInferenceSettings';
 import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages, type LocalInferenceSettings } from './settings';
 
@@ -23,6 +24,7 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   settings: { key: 'localInference', defaults: LOCAL_INFERENCE_DEFAULTS },
   Settings: LocalInferenceSettingsView,
   Engine: LocalInferenceEngine,
+  EngineSummary: LocalInferenceEngineSummary,
 
   credentials: { keys: [], fields: () => [], read: () => ({}) },
   check: (_k, s, ctx) => checkLocalInference(s, ctx),

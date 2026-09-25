@@ -24,6 +24,7 @@ vi.mock('./config', () => ({
 import { localInferenceProvider } from './provider';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { PROVIDERS } from '../registry';
+import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
 
 const noAuth = { signedIn: false, getToken: async () => null };
 
@@ -88,6 +89,10 @@ describe('localInferenceProvider', () => {
 
   it('is first in the registry, in UI order', () => {
     expect(PROVIDERS[0]).toBe(localInferenceProvider);
+  });
+
+  it('shows its EngineSummary under the picker', () => {
+    expect(localInferenceProvider.EngineSummary).toBe(LocalInferenceEngineSummary);
   });
 
   it('delegates watchReadiness() to watchLocalInferenceReadiness', () => {
