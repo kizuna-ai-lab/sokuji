@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "GPU-geheugen vol — het geselecteerde model is te groot voor uw GPU. Schakel over naar een kleiner model.",
     "transcription_failed": "Een deel van de spraak kon niet worden getranscribeerd: {{detail}}",
     "translation_failed": "Een vertaling is mislukt: {{detail}}",
-    "translation_unavailable": "Geen vertaalmodel voor deze richting: de spraak wordt alleen getranscribeerd."
+    "translation_unavailable": "Geen vertaalmodel voor deze richting: de spraak wordt alleen getranscribeerd.",
+    "local_models_missing": "Download de vereiste modellen in Instellingen om te beginnen.",
+    "no_microphone": "Configureer apparaten voor deze modus om te starten.",
+    "silent_no_permission": "Er is nog geen audio van de geselecteerde bron binnengekomen. Speelt die af en wordt er niets vertaald, sta Sokuji dan toe onder Systeeminstellingen > Privacy en beveiliging > Alleen systeemaudio-opname (macOS) en start de sessie opnieuw.",
+    "loopback_denied": "Audio van de ander vereist toestemming voor schermopname om systeemaudio vast te leggen."
   }
 }

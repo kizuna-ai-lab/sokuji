@@ -32,6 +32,11 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   // The capture's degradations.
   app_capture_lost_using_system_audio: 'The app capture stopped, so all system audio is being translated instead.',
   app_capture_monitor_missing: "The app capture didn't start, so all system audio is being translated instead.",
+  silent_no_permission: 'No audio has come through from the selected source yet. If it is playing and nothing is translated, allow Sokuji under System Settings > Privacy & Security > System Audio Recording Only (macOS), then start the session again.',
+  loopback_denied: "Other's audio requires Screen Recording permission to capture system audio.",
+  no_microphone: 'Configure devices for this mode to start.',
+  // Readiness (a provider's check).
+  local_models_missing: 'Please download the required models in Settings to start.',
   // The adapters' degradations (CLIENT_DIAGNOSTICS).
   parse_error: "A message from the provider couldn't be read; the session continues.",
   cleanup_failed: 'A step while closing the session failed.',

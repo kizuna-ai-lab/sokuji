@@ -28,8 +28,10 @@ export interface AuthContext { signedIn: boolean; getToken(): Promise<string | n
 
 export interface ModelOption { id: string }
 
-/** `models`, when present, is newest first. */
-export type CheckResult = { ok: true; models?: readonly ModelOption[] } | { ok: false; reason: string };
+/** `models`, when present, is newest first. A refusal's `code` (and `params`) put it into the user's words (`notices.<code>`); `reason` stays diagnostic English. */
+export type CheckResult =
+  | { ok: true; models?: readonly ModelOption[] }
+  | { ok: false; reason: string; code?: string; params?: Record<string, string | number> };
 
 /** What a readiness check may consult besides the credentials and settings. */
 export interface CheckContext {
@@ -46,7 +48,8 @@ export type Readiness =
   | { state: 'unknown' }
   | { state: 'checking' }
   | { state: 'ready'; models: readonly ModelOption[] }
-  | { state: 'not-ready'; reason: string };
+  /** `code` / `params` as a refusal's: the provider's own code puts `reason` into the user's words. */
+  | { state: 'not-ready'; reason: string; code?: string; params?: Record<string, string | number> };
 
 /** What a builder may read beyond its own settings; a builder never reaches into a store. */
 export interface SharedSettings {

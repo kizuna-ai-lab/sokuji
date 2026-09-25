@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "GPU 메모리 부족 — 선택한 모델이 GPU에 비해 너무 큽니다. 더 작은 모델로 전환하세요.",
     "transcription_failed": "일부 음성을 텍스트로 변환하지 못했습니다: {{detail}}",
     "translation_failed": "번역 하나가 실패했습니다: {{detail}}",
-    "translation_unavailable": "이 방향에는 번역 모델이 없습니다: 음성은 텍스트로만 변환됩니다."
+    "translation_unavailable": "이 방향에는 번역 모델이 없습니다: 음성은 텍스트로만 변환됩니다.",
+    "local_models_missing": "시작하려면 설정에서 필요한 모델을 다운로드하세요.",
+    "no_microphone": "이 모드를 시작하려면 장치를 구성하세요.",
+    "silent_no_permission": "선택한 소스에서 아직 오디오가 들어오지 않았습니다. 재생 중인데도 번역되지 않는다면 시스템 설정 > 개인정보 보호 및 보안 > 시스템 오디오 녹음만에서 Sokuji를 허용한 뒤(macOS) 세션을 다시 시작하세요.",
+    "loopback_denied": "상대방 오디오는 시스템 오디오를 캡처하기 위해 화면 기록 권한이 필요합니다."
   }
 }

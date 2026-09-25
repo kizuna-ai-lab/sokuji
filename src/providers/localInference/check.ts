@@ -4,6 +4,9 @@ import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
 import type { LocalInferenceSettings } from './settings';
 
+/** The mandatory direction lacks ASR or translation: the code for this check's "selected language pair" refusal. */
+export const LOCAL_MODELS_MISSING = 'local_models_missing';
+
 /**
  * LocalInference's readiness check (spec: "Readiness is one check"). Ports
  * today's `ensureSelectionReady` (`src/stores/modelStore.ts`) without its
@@ -51,21 +54,21 @@ export async function checkLocalInference(
     : undefined;
   const mandatory = participantOnly ? participant : speaker;
 
-  // Plain English, not i18n: `reason` is rendered raw (`CredentialForm.tsx`),
-  // and `settings.localInferenceModelsRequired`'s loaded value is written for
-  // a <Trans> component's markup interpolation, not raw text — putting
-  // readiness reasons into words by a code is plan 1e-3's (matches the only
-  // other `src/providers/**` precedent, `fake/provider.ts`'s plain `reason`).
+  // `reason` is diagnostic English; `code` is what a surface words (plan 1e-3a ruling 4).
   if (!mandatory?.asr || !mandatory?.translation) {
     return {
       ok: false,
       reason: 'Required models are not available for the selected language pair.',
+      code: LOCAL_MODELS_MISSING,
     };
   }
   if (participant && !participantOnly && !participant.asr) {
     return {
       ok: false,
       reason: 'Required models are not available for the reverse language pair.',
+      // The code `build` uses for the same gap (config.ts).
+      code: 'no_asr',
+      params: { source: ctx.pair.target },
     };
   }
   return { ok: true };

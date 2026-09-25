@@ -68,7 +68,7 @@ describe('refreshReadiness', () => {
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('own-key', check);
     await store.useProviderStore.getState().load(p);
-    await expect(store.useProviderStore.getState().refreshReadiness(p, noAuth)).resolves.toEqual({ state: 'not-ready', reason: 'no key' });
+    await expect(store.useProviderStore.getState().refreshReadiness(p, noAuth)).resolves.toEqual({ state: 'not-ready', reason: 'no key', code: 'credentials_missing' });
     expect(check).not.toHaveBeenCalled();
   });
 
@@ -95,6 +95,13 @@ describe('refreshReadiness', () => {
     const p = probe('own-key', async () => ({ ok: false, reason: 'bad key' }));
     await loadedWithKey(p);
     await expect(store.useProviderStore.getState().refreshReadiness(p, noAuth)).resolves.toEqual({ state: 'not-ready', reason: 'bad key' });
+  });
+
+  it("carries a refusal's code and params into readiness, and the store", async () => {
+    const p = probe('own-key', async () => ({ ok: false, reason: 'r', code: 'c', params: { n: 1 } }));
+    await loadedWithKey(p);
+    await expect(store.useProviderStore.getState().refreshReadiness(p, noAuth)).resolves.toEqual({ state: 'not-ready', reason: 'r', code: 'c', params: { n: 1 } });
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'r', code: 'c', params: { n: 1 } });
   });
 
   it('shows a thrown check as not ready, and asks again next time', async () => {

@@ -68,6 +68,7 @@ describe('checkLocalInference', () => {
     expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toEqual({
       ok: false,
       reason: 'Required models are not available for the selected language pair.',
+      code: 'local_models_missing',
     });
   });
 
@@ -76,6 +77,8 @@ describe('checkLocalInference', () => {
     expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] })).toEqual({
       ok: false,
       reason: 'Required models are not available for the reverse language pair.',
+      code: 'no_asr',
+      params: { source: 'en' },
     });
   });
 
@@ -89,6 +92,7 @@ describe('checkLocalInference', () => {
     expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] })).toEqual({
       ok: false,
       reason: 'Required models are not available for the selected language pair.',
+      code: 'local_models_missing',
     });
   });
 

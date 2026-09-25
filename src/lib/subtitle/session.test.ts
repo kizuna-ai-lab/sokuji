@@ -15,6 +15,11 @@ describe('idleOf', () => {
     expect(idleOf(run, { state: 'not-ready', reason: 'Download a model first.' })).toEqual({ kind: 'unready', message: 'Download a model first.' });
   });
 
+  it("carries the provider's readiness code and params into the idle model", () => {
+    expect(idleOf({ phase: 'idle' }, { state: 'not-ready', reason: 'r', code: 'no_asr', params: { source: 'en' } }))
+      .toEqual({ kind: 'unready', message: 'r', code: 'no_asr', params: { source: 'en' } });
+  });
+
   it('calls a refused or failed start a failure, with its notice', () => {
     const notice = { code: 'build_refused', message: 'no' };
     expect(idleOf({ phase: 'idle', lastEnd: { reason: 'refused', notice } }, undefined)).toEqual({ kind: 'failed', notice });
@@ -54,5 +59,11 @@ describe('sameSession', () => {
     expect(sameSession(subtitleSession(input), subtitleSession({ ...input, legs: ['speaker'], pair: { source: 'en', target: 'ja' } }))).toBe(true);
     expect(sameSession(subtitleSession(input), subtitleSession({ ...input, legs: ['speaker', 'participant'] }))).toBe(false);
     expect(sameSession(subtitleSession(input), subtitleSession({ ...input, readiness: { state: 'not-ready', reason: 'x' } }))).toBe(false);
+  });
+
+  it('treats a different code, or different params, as a different idle body', () => {
+    const withCode = (code: string, params: Record<string, string>) => subtitleSession({ ...input, readiness: { state: 'not-ready', reason: 'r', code, params } });
+    expect(sameSession(withCode('no_asr', { source: 'en' }), withCode('local_models_missing', { source: 'en' }))).toBe(false);
+    expect(sameSession(withCode('no_asr', { source: 'en' }), withCode('no_asr', { source: 'ja' }))).toBe(false);
   });
 });

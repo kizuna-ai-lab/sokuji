@@ -178,7 +178,8 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const seq = from ? (checkSeq.get(p.id) ?? 0) : supersede(p);
       const newest = () => (checkSeq.get(p.id) ?? 0) === seq;
       const credentials = readCredentials(p, inputs.settings, inputs.credentials, auth);
-      if (isMissing(credentials)) return setReadiness(p, { state: 'not-ready', reason: credentials.missing });
+      // The runner's own code for the same gap, `RunNoticeCode`.
+      if (isMissing(credentials)) return setReadiness(p, { state: 'not-ready', reason: credentials.missing, code: 'credentials_missing' });
       // The fields these settings show, for the cache key below.
       const values = Object.fromEntries(p.credentials.fields(inputs.settings).map((f) => [f.key, inputs.credentials[f.key] ?? '']));
       // A network check gives the same ready answer to the same inputs, so a
@@ -196,7 +197,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       try {
         const result = await p.check(credentials, inputs.settings, { pair: inputs.pair, legs: inputs.legs, signal });
         if (signal?.aborted) return cancelled();
-        answer = result.ok ? { state: 'ready', models: result.models ?? [] } : { state: 'not-ready', reason: result.reason };
+        answer = result.ok
+          ? { state: 'ready', models: result.models ?? [] }
+          : { state: 'not-ready', reason: result.reason, ...(result.code ? { code: result.code } : {}), ...(result.params ? { params: result.params } : {}) };
         if (p.kind !== 'local' && result.ok) lastAnswer.set(p.id, { inputs: key, readiness: answer });
       } catch (error) {
         if (signal?.aborted) return cancelled();

@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "Memori GPU tidak mencukupi — model yang dipilih terlalu besar untuk GPU anda. Sila tukar kepada model yang lebih kecil.",
     "transcription_failed": "Sebahagian pertuturan tidak dapat ditranskripkan: {{detail}}",
     "translation_failed": "Satu terjemahan gagal: {{detail}}",
-    "translation_unavailable": "Tiada model terjemahan untuk arah ini: pertuturannya hanya ditranskripkan."
+    "translation_unavailable": "Tiada model terjemahan untuk arah ini: pertuturannya hanya ditranskripkan.",
+    "local_models_missing": "Sila muat turun model yang diperlukan dalam Tetapan untuk bermula.",
+    "no_microphone": "Konfigurasikan peranti untuk mod ini bagi bermula.",
+    "silent_no_permission": "Belum ada audio diterima daripada sumber yang dipilih. Jika ia sedang dimainkan tetapi tiada apa yang diterjemahkan, benarkan Sokuji di System Settings > Privacy & Security > System Audio Recording Only (macOS), kemudian mulakan sesi semula.",
+    "loopback_denied": "Audio pihak lain memerlukan kebenaran Rakaman Skrin untuk menangkap audio sistem."
   }
 }

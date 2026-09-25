@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "Naubos ang memory ng GPU — masyadong malaki ang piniling modelo para sa inyong GPU. Lumipat sa mas maliit na modelo.",
     "transcription_failed": "Hindi na-transcribe ang ilang bahagi ng pagsasalita: {{detail}}",
     "translation_failed": "Nabigo ang isang pagsasalin: {{detail}}",
-    "translation_unavailable": "Walang modelo ng pagsasalin para sa direksyong ito: nai-transcribe lang ang pagsasalita nito."
+    "translation_unavailable": "Walang modelo ng pagsasalin para sa direksyong ito: nai-transcribe lang ang pagsasalita nito.",
+    "local_models_missing": "Mangyaring i-download ang mga kinakailangang modelo sa Mga Setting para makapagsimula.",
+    "no_microphone": "I-configure ang mga device para sa mode na ito upang magsimula.",
+    "silent_no_permission": "Wala pang audio na dumarating mula sa napiling source. Kung tumutugtog ito at walang naisasalin, payagan ang Sokuji sa System Settings > Privacy & Security > System Audio Recording Only (macOS), pagkatapos ay simulan muli ang session.",
+    "loopback_denied": "Kailangan ng Audio ng kausap ang pahintulot sa Screen Recording para makuha ang system audio."
   }
 }

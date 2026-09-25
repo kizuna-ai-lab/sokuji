@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "GPU:n har slut på minne — den valda modellen är för stor för din GPU. Byt till en mindre modell.",
     "transcription_failed": "En del av talet kunde inte transkriberas: {{detail}}",
     "translation_failed": "En översättning misslyckades: {{detail}}",
-    "translation_unavailable": "Ingen översättningsmodell för den här riktningen: talet transkriberas bara."
+    "translation_unavailable": "Ingen översättningsmodell för den här riktningen: talet transkriberas bara.",
+    "local_models_missing": "Ladda ner de nödvändiga modellerna i Inställningar för att börja.",
+    "no_microphone": "Konfigurera enheter för detta läge för att börja.",
+    "silent_no_permission": "Inget ljud har kommit från den valda källan ännu. Om den spelar upp och inget översätts, tillåt Sokuji under Systeminställningar > Integritet och säkerhet > Endast inspelning av systemljud (macOS) och starta sessionen igen.",
+    "loopback_denied": "Den andras ljud kräver behörighet för skärminspelning för att fånga systemljud."
   }
 }

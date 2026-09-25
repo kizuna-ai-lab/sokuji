@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "GPU belleği yetersiz — seçilen model GPU'nuz için çok büyük. Lütfen daha küçük bir modele geçin.",
     "transcription_failed": "Konuşmanın bir kısmı yazıya dökülemedi: {{detail}}",
     "translation_failed": "Bir çeviri başarısız oldu: {{detail}}",
-    "translation_unavailable": "Bu yön için çeviri modeli yok: konuşması yalnızca yazıya dökülür."
+    "translation_unavailable": "Bu yön için çeviri modeli yok: konuşması yalnızca yazıya dökülür.",
+    "local_models_missing": "Başlamak için lütfen Ayarlar'dan gerekli modelleri indirin.",
+    "no_microphone": "Başlamak için bu mod için cihazları yapılandırın.",
+    "silent_no_permission": "Seçilen kaynaktan henüz ses gelmedi. Kaynak oynatılıyor ve hiçbir şey çevrilmiyorsa Sistem Ayarları > Gizlilik ve Güvenlik > Yalnızca Sistem Sesi Kaydı (macOS) altında Sokuji'ye izin verin, ardından oturumu yeniden başlatın.",
+    "loopback_denied": "Karşı tarafın sesi, sistem sesini yakalamak için Ekran Kaydı izni gerektirir."
   }
 }

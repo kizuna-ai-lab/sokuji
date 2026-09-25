@@ -122,7 +122,10 @@ export class Run {
     const readiness = await this.untilAborted(deps.ensureReady(shape, this.signal));
     this.throwIfAborted();
     if (readiness.state !== 'ready') {
-      throw new RefusedError({ code: 'not_ready' satisfies RunNoticeCode, message: readiness.state === 'not-ready' ? readiness.reason : `readiness is ${readiness.state}` });
+      throw new RefusedError(readiness.state === 'not-ready'
+        // The provider's own code puts its reason into words; `not_ready` wraps an uncoded one.
+        ? { code: readiness.code ?? ('not_ready' satisfies RunNoticeCode), message: readiness.reason, ...(readiness.params ? { params: readiness.params } : {}) }
+        : { code: 'not_ready' satisfies RunNoticeCode, message: `readiness is ${readiness.state}` });
     }
 
     let settings = shape.settings;

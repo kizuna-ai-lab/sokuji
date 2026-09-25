@@ -93,6 +93,11 @@ describe('SubtitleView', () => {
     expect(failed.container.querySelector('.subtitle-idle__error')?.textContent).toBe('Failed to start: socket closed');
   });
 
+  it("shows local_models_missing's words in the idle action", () => {
+    const { container } = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'unready', message: 'Required models are not available…', code: 'local_models_missing' } }) }} controls={controls()} />);
+    expect(container.querySelector('.subtitle-idle__action--fix')?.textContent).toBe('Please download the required models in Settings to start');
+  });
+
   it("shows a non-start_failed notice's own words, still wrapped by noticeText", () => {
     const failed = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'failed', notice: { code: 'leg_closed', message: 'ignored for a code with fixed words' } } }) }} controls={controls()} />);
     expect(failed.container.querySelector('.subtitle-idle__error')?.textContent).toBe('Failed to start: The provider ended the session.');

@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "GPU記憶體不足 — 所選模型對您的GPU來說太大了，請切換到更小的模型。",
     "transcription_failed": "部分語音無法轉錄：{{detail}}",
     "translation_failed": "一次翻譯失敗：{{detail}}",
-    "translation_unavailable": "此方向沒有翻譯模型：其語音僅被轉錄。"
+    "translation_unavailable": "此方向沒有翻譯模型：其語音僅被轉錄。",
+    "local_models_missing": "請先在設定中下載所需的模型才能開始使用。",
+    "no_microphone": "請為此模式配置裝置以開始。",
+    "silent_no_permission": "所選來源尚未傳來任何音訊。如果它正在播放卻沒有譯文，請在「系統設定」>「隱私權與安全性」>「僅系統錄音」中允許 Sokuji（macOS），然後重新開始。",
+    "loopback_denied": "對方音訊需要螢幕錄製權限才能擷取系統音訊。"
   }
 }

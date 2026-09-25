@@ -170,6 +170,12 @@ describe('runner — starting', () => {
     expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'not_ready', message: 'model not downloaded' } } });
   });
 
+  it("carries the provider's own readiness code and params into the refusal", async () => {
+    const { runner } = setup({ ready: { state: 'not-ready', reason: 'Required models…', code: 'no_asr', params: { source: 'ja' } } });
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'no_asr', message: 'Required models…', params: { source: 'ja' } } } });
+  });
+
   it('refuses when the credentials the settings ask for are missing', async () => {
     const { runner } = setup({ settings: { requireKey: true } });
     await runner.start();

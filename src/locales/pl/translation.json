@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "Brak pamięci GPU — wybrany model jest zbyt duży dla Twojego GPU. Przełącz się na mniejszy model.",
     "transcription_failed": "Część mowy nie mogła zostać transkrybowana: {{detail}}",
     "translation_failed": "Jedno tłumaczenie nie powiodło się: {{detail}}",
-    "translation_unavailable": "Brak modelu tłumaczenia dla tego kierunku: jego mowa jest tylko transkrybowana."
+    "translation_unavailable": "Brak modelu tłumaczenia dla tego kierunku: jego mowa jest tylko transkrybowana.",
+    "local_models_missing": "Pobierz wymagane modele w Ustawieniach, aby rozpocząć.",
+    "no_microphone": "Skonfiguruj urządzenia dla tego trybu, aby rozpocząć.",
+    "silent_no_permission": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk. Jeśli źródło odtwarza, a nic nie jest tłumaczone, zezwól Sokuji w Ustawienia systemowe > Prywatność i ochrona > Tylko nagrywanie dźwięku systemowego (macOS), a następnie uruchom sesję ponownie.",
+    "loopback_denied": "Dźwięk rozmówcy wymaga uprawnienia do nagrywania ekranu, aby przechwycić dźwięk systemowy."
   }
 }

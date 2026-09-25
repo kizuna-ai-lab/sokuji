@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "Memoria GPU esaurita — il modello selezionato è troppo grande per la tua GPU. Passa a un modello più piccolo.",
     "transcription_failed": "Alcune parti del parlato non sono state trascritte: {{detail}}",
     "translation_failed": "Una traduzione non è riuscita: {{detail}}",
-    "translation_unavailable": "Nessun modello di traduzione per questa direzione: il parlato viene solo trascritto."
+    "translation_unavailable": "Nessun modello di traduzione per questa direzione: il parlato viene solo trascritto.",
+    "local_models_missing": "Scarica i modelli necessari nelle Impostazioni per iniziare.",
+    "no_microphone": "Configura i dispositivi per questa modalità per iniziare.",
+    "silent_no_permission": "Dalla sorgente selezionata non è ancora arrivato alcun audio. Se sta riproducendo e non viene tradotto nulla, consenti Sokuji in Impostazioni di Sistema > Privacy e sicurezza > Solo registrazione audio di sistema (macOS), poi riavvia la sessione.",
+    "loopback_denied": "L'Audio dell'altro richiede l'autorizzazione alla Registrazione Schermo per acquisire l'audio di sistema."
   }
 }

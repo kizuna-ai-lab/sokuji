@@ -1311,6 +1311,10 @@
     "gpu_out_of_memory": "GPU-muisti loppui — valittu malli on liian suuri GPU:llesi. Vaihda pienempään malliin.",
     "transcription_failed": "Osaa puheesta ei voitu litteroida: {{detail}}",
     "translation_failed": "Käännös epäonnistui: {{detail}}",
-    "translation_unavailable": "Tälle suunnalle ei ole käännösmallia: sen puhe vain litteroidaan."
+    "translation_unavailable": "Tälle suunnalle ei ole käännösmallia: sen puhe vain litteroidaan.",
+    "local_models_missing": "Lataa tarvittavat mallit Asetuksista aloittaaksesi.",
+    "no_microphone": "Määritä tämän tilan laitteet aloittaaksesi.",
+    "silent_no_permission": "Valitusta lähteestä ei ole vielä tullut ääntä. Jos se toistaa eikä mitään käännetä, salli Sokuji kohdassa Järjestelmäasetukset > Tietosuoja ja turvallisuus > Vain järjestelmän äänen tallennus (macOS) ja aloita istunto uudelleen.",
+    "loopback_denied": "Toisen ääni vaatii näytön tallennuksen käyttöoikeuden järjestelmän äänen kaappaamiseen."
   }
 }

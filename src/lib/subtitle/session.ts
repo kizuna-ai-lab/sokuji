@@ -12,7 +12,8 @@ export type SubtitleIdleModel =
   | { kind: 'ready' }
   | { kind: 'ended' }
   | { kind: 'starting' }
-  | { kind: 'unready'; message: string }
+  /** `message` is diagnostic English; `code`, when present, is what the surface words. */
+  | { kind: 'unready'; message: string; code?: string; params?: Record<string, string | number> }
   | { kind: 'failed'; notice: RunNotice };
 
 export interface SubtitleSession {
@@ -47,7 +48,7 @@ export interface SubtitleSessionInput {
 export function idleOf(run: RunState, readiness: Readiness | undefined): SubtitleIdleModel {
   if (run.phase === 'starting') return { kind: 'starting' };
   if (run.phase !== 'idle') return { kind: 'ended' };
-  if (readiness?.state === 'not-ready') return { kind: 'unready', message: readiness.reason };
+  if (readiness?.state === 'not-ready') return { kind: 'unready', message: readiness.reason, ...(readiness.code ? { code: readiness.code } : {}), ...(readiness.params ? { params: readiness.params } : {}) };
   const end = run.lastEnd;
   if (end && (end.reason === 'refused' || end.reason === 'start-failed') && end.notice) return { kind: 'failed', notice: end.notice };
   return end ? { kind: 'ended' } : { kind: 'ready' };
@@ -66,9 +67,18 @@ export function subtitleSession({ run, readiness, pair, turnMode, legs }: Subtit
   };
 }
 
+/** Shallow: every key of `a` and `b` matches, both ways. */
+function sameParams(a: Record<string, string | number> | undefined, b: Record<string, string | number> | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  return aKeys.length === bKeys.length && aKeys.every((key) => a[key] === b[key]);
+}
+
 function sameIdle(a: SubtitleIdleModel, b: SubtitleIdleModel): boolean {
   if (a.kind !== b.kind) return false;
-  if (a.kind === 'unready' && b.kind === 'unready') return a.message === b.message;
+  if (a.kind === 'unready' && b.kind === 'unready') return a.message === b.message && a.code === b.code && sameParams(a.params, b.params);
   if (a.kind === 'failed' && b.kind === 'failed') return a.notice === b.notice || (a.notice.code === b.notice.code && a.notice.message === b.notice.message);
   return true;
 }

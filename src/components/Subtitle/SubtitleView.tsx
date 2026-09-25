@@ -44,6 +44,8 @@ function languageCodeShort(code: string | undefined): string {
 
 function idleState(idle: SubtitleIdleModel | undefined, t: TFunction): SubtitleIdleState {
   if (!idle) return { kind: 'ended' };
+  // An uncoded reason stays as it is — `noticeText` returns the message.
+  if (idle.kind === 'unready') return { kind: 'unready', message: noticeText(t, idle) };
   if (idle.kind === 'failed') {
     // start_failed's own message is already "the session didn't start:
     // <detail>" (NOTICE_WORDS); noticeText would wrap it a second time
