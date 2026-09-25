@@ -55,7 +55,7 @@ function usePlaybackProbe(
         if (playing) heard.add(playing.key);
       }
       for (const sample of playback.ttsTap.read()) peak = Math.max(peak, Math.abs(sample));
-      busPeak = Math.max(0, ...(playback.meter('real')?.read() ?? []));
+      for (const sample of playback.meter('real')?.read() ?? []) busPeak = Math.max(busPeak, sample);
       const seen = captureRef.current?.();
       const captureChanged = seen && (seen.chunks !== last.chunks || seen.peak !== last.peak);
       if (heard.size !== before || peak !== beforePeak || busPeak !== beforeBusPeak || captureChanged) {

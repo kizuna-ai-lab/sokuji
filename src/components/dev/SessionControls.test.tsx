@@ -169,6 +169,25 @@ describe('SessionControls — playback', () => {
     }
   });
 
+  it('keeps the bus peak once the bus goes quiet on a later tick', () => {
+    vi.useFakeTimers();
+    try {
+      const { runner } = fakeRunner();
+      const audio = fakeAudio();
+      let busLevel = Float32Array.of(0.6);
+      Object.assign(audio.playback, { meter: (bus: string) => (bus === 'real' ? { read: () => busLevel } : null) });
+      render(<SessionControls runner={runner} turnMode="auto" audio={audio} />);
+      act(() => { vi.advanceTimersByTime(100); });
+      // The bus has gone quiet: the analyser now reads zeros, as it does once
+      // the clip has ended and the graph is resting.
+      busLevel = new Float32Array(1);
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(document.querySelector('[data-probe="playback"]')?.textContent).toBe('heard: - · tap peak: 0.000 · bus peak: 0.600');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows what the capture delivered, when it is watched', () => {
     vi.useFakeTimers();
     try {
