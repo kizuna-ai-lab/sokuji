@@ -4,6 +4,7 @@ import SubtitleEnterButton from './SubtitleEnterButton';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
+  initReactI18next: { type: '3rdParty', init: () => {} },
 }));
 
 let phase: 'idle' | 'starting' | 'running' | 'stopping' = 'idle';
