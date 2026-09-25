@@ -8,9 +8,17 @@ describe('settingsTargetForCode', () => {
   });
 
   it('sends every provider-readiness code to the provider section', () => {
-    for (const code of ['local_models_missing', 'no_asr', 'credentials_missing', 'no_provider', 'memory_exceeded', 'gpu_out_of_memory']) {
+    for (const code of ['no_asr', 'credentials_missing', 'no_provider', 'memory_exceeded', 'gpu_out_of_memory']) {
       expect(settingsTargetForCode(code)).toBe('provider');
     }
+  });
+
+  // Matches today's reasonToSettingsTarget('local-models-missing'), which
+  // sends the same underlying readiness failure to 'model-management' — the
+  // section Settings.tsx both switches to AND scrolls to/highlights, unlike
+  // 'provider', which only switches tabs.
+  it('sends missing local models to the model-management section', () => {
+    expect(settingsTargetForCode('local_models_missing')).toBe('model-management');
   });
 
   it('sends an unsupported turn mode to the turn-detection section', () => {
