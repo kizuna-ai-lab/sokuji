@@ -4,13 +4,14 @@ import { LEAD_S } from './clipQueue';
 import {
   FakeAudioContext, FakeSink, FakeWorkletNode, reaches, type FakeBufferSource, type FakeGain, type FakeNode,
 } from './fakeWebAudio';
-import { createAudioGraph, MAX_REBUILDS } from './graph';
+import { CLOSE_WAIT_MS, createAudioGraph, MAX_REBUILDS } from './graph';
 import { createPlayback, type RoutingSource } from './playback';
 
 const reportWarningSpy = vi.hoisted(() => vi.fn());
+const reportErrorSpy = vi.hoisted(() => vi.fn());
 vi.mock('../diagnostics/report', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../diagnostics/report')>();
-  return { ...actual, reportWarning: reportWarningSpy };
+  return { ...actual, reportWarning: reportWarningSpy, reportError: reportErrorSpy };
 });
 
 async function setup(virtual: 'device' | 'tabs' | 'none' = 'device') {
@@ -296,47 +297,98 @@ describe('createAudioGraph — clips', () => {
   });
 });
 
-async function setupRecovering({ replace = true }: { replace?: boolean } = {}) {
+/** A virtual clock that also counts its timers still pending: neither fired nor cancelled. */
+function countingClock() {
+  const clock = createVirtualClock(0);
+  let pending = 0;
+  return {
+    now: clock.now,
+    advance: clock.advance,
+    setTimeout(fn: () => void, ms: number): () => void {
+      let settled = false;
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        pending -= 1;
+      };
+      pending += 1;
+      const cancel = clock.setTimeout(() => { settle(); fn(); }, ms);
+      return () => { settle(); cancel(); };
+    },
+    get pending() { return pending; },
+  };
+}
+
+async function setupRecovering({ replace = true, virtual = 'device' }: { replace?: boolean; virtual?: 'device' | 'tabs' } = {}) {
   const first = new FakeAudioContext();
   const contexts = [first];
-  const clock = createVirtualClock(0);
+  const clock = countingClock();
   const sinks: FakeSink[] = [];
+  /** Every tap node with the context it was made on: per context, the tts tap first, then the tabs bus's. */
+  const taps: Array<{ ctx: AudioContext; node: FakeWorkletNode }> = [];
+  const sent: Float32Array[] = [];
+  /** How the next replacement goes: its construction throws, its module load rejects or waits for `release()`, or `onNew` alters it. */
+  const control = {
+    failReplace: false,
+    failModule: false,
+    hold: false,
+    release: () => {},
+    onNew: undefined as ((ctx: FakeAudioContext) => void) | undefined,
+  };
   const graph = await createAudioGraph({
     context: first.asContext(),
-    addTapModule: async () => {},
-    createTapNode: (_context, chunk) => new FakeWorkletNode('pcm-tap-processor', chunk) as unknown as AudioWorkletNode,
+    addTapModule: async () => {
+      if (control.failModule) throw new Error('module not found');
+      if (control.hold) await new Promise<void>((resolve) => { control.release = resolve; });
+    },
+    createTapNode: (ctx, chunk) => {
+      const node = new FakeWorkletNode('pcm-tap-processor', chunk);
+      taps.push({ ctx, node });
+      return node as unknown as AudioWorkletNode;
+    },
     createSink: (stream) => {
       const sink = new FakeSink(stream);
       sinks.push(sink);
       return sink;
     },
-    virtual: { kind: 'device' },
+    virtual: virtual === 'tabs' ? { kind: 'tabs', send: (chunk) => { sent.push(chunk); } } : { kind: 'device' },
     clock,
     ...(replace
-      ? { replaceContext: () => { const next = new FakeAudioContext(); contexts.push(next); return next.asContext(); } }
+      ? {
+          replaceContext: () => {
+            if (control.failReplace) throw new Error('no output device');
+            const next = new FakeAudioContext();
+            control.onNew?.(next);
+            contexts.push(next);
+            return next.asContext();
+          },
+        }
       : {}),
   });
   const [real, virtualSink] = sinks;
   /** The stream destination a sink plays, on the given context (undefined when it plays another context's). */
   const destinationOn = (ctx: FakeAudioContext, sink: FakeSink): FakeNode | undefined =>
     ctx.destinations.find((d) => d.stream === sink.srcObject);
+  const tapsOn = (ctx: FakeAudioContext) => taps.filter((t) => t.ctx === ctx.asContext()).map((t) => t.node);
   const flush = () => new Promise((r) => setTimeout(r, 0));
-  return { first, contexts, clock, graph, sinks, real, virtualSink, destinationOn, flush };
+  return { first, contexts, clock, graph, sinks, real, virtualSink, sent, control, destinationOn, tapsOn, flush };
 }
 
-/** Wedges the newest context so that resuming it never lands, and lets the watch run its course. */
+/** Wedges a context (the newest by default) so that resuming it never lands, and lets the watch run its course. */
 async function wedgeFor(
   { contexts, clock, flush }: Pick<Awaited<ReturnType<typeof setupRecovering>>, 'contexts' | 'clock' | 'flush'>,
+  ctx: FakeAudioContext = contexts[contexts.length - 1],
 ) {
-  const newest = contexts[contexts.length - 1];
-  newest.stuck = true;
-  newest.wedge();
+  ctx.stuck = true;
+  ctx.wedge();
   clock.advance(1_750);
   await flush();
 }
 
-const rebuildWarnings = () =>
-  reportWarningSpy.mock.calls.filter(([, , options]) => (options as { dedupeKey?: string } | undefined)?.dedupeKey === 'graph:rebuild');
+const withKey = (spy: typeof reportWarningSpy, key: string) =>
+  spy.mock.calls.filter(([, , options]) => (options as { dedupeKey?: string } | undefined)?.dedupeKey === key);
+const rebuildWarnings = () => withKey(reportWarningSpy, 'graph:rebuild');
+const rebuildFailures = () => withKey(reportErrorSpy, 'graph:rebuild-failed');
 
 describe('createAudioGraph — a wedged context (#246)', () => {
   it('rebuilds a context left suspended by something else', async () => {
@@ -462,6 +514,7 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     first.wedge();
     clock.advance(100);
     await graph.close();
+    expect(clock.pending).toBe(0);
     clock.advance(10_000);
     await flush();
     expect(first.resumed).toBe(0);
@@ -475,9 +528,29 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     clock.advance(1_000);
     expect(first.resumed).toBe(1);
     await graph.close();
+    expect(clock.pending).toBe(0);
     clock.advance(10_000);
     await flush();
     expect(contexts).toHaveLength(1);
+  });
+
+  it('stops listening to its context once closed', async () => {
+    const { first, clock, graph, flush } = await setupRecovering();
+    await graph.close();
+    first.wedge();
+    clock.advance(10_000);
+    await flush();
+    expect(first.resumed).toBe(0);
+    expect(clock.pending).toBe(0);
+  });
+
+  it('close() does not hang on a context whose close never settles', async () => {
+    const { first, clock, graph, real } = await setupRecovering();
+    first.close = () => new Promise<void>(() => {});
+    const closed = graph.close();
+    clock.advance(CLOSE_WAIT_MS);
+    await expect(closed).resolves.toBeUndefined();
+    expect(real.srcObject).toBeNull();
   });
 
   it('starts on the new clock what was scheduled while the rebuild ran', async () => {
@@ -517,5 +590,155 @@ describe('createAudioGraph — a wedged context (#246)', () => {
     expect(contexts).toHaveLength(2);
     await wedgeFor(setup);
     expect(contexts).toHaveLength(3);
+  });
+
+  it('keeps both outputs on their devices and playing across a rebuild', async () => {
+    const setup = await setupRecovering();
+    const { contexts, graph, real, virtualSink, destinationOn } = setup;
+    await graph.setSinks({ real: 'monitor-1', virtual: 'cable-1' });
+    const before = { real: real.plays, virtual: virtualSink.plays };
+    await wedgeFor(setup);
+    expect(destinationOn(contexts[1], real)).toBeDefined();
+    expect(destinationOn(contexts[1], virtualSink)).toBeDefined();
+    // A new source pauses an element, as a browser's load algorithm does: the rebuild plays both again.
+    expect(real.paused).toBe(false);
+    expect(virtualSink.paused).toBe(false);
+    expect(real.plays).toBe(before.real + 1);
+    expect(virtualSink.plays).toBe(before.virtual + 1);
+    expect(real.sinkId).toBe('monitor-1');
+    expect(virtualSink.sinkId).toBe('cable-1');
+  });
+
+  it('moves the tts tap and the tabs bus to the new context', async () => {
+    const setup = await setupRecovering({ virtual: 'tabs' });
+    const { first, contexts, graph, sent, tapsOn } = setup;
+    graph.route([{ from: 'speaker', to: 'virtual', gain: 1 }]);
+    await wedgeFor(setup);
+    const [tts, tabs] = tapsOn(contexts[1]);
+    graph.timeline('speaker').play(new Int16Array(2400), 0, () => {});
+    const clip = contexts[1].sources[contexts[1].sources.length - 1];
+    expect(reaches(clip, tts)).toBe(true);
+    expect(reaches(clip, tabs)).toBe(true);
+    // The new taps deliver; the dead context's no longer do.
+    const [oldTts, oldTabs] = tapsOn(first);
+    oldTts.emit(Float32Array.of(0.25));
+    oldTabs.emit(Float32Array.of(0.25));
+    tts.emit(Float32Array.of(0.5));
+    tabs.emit(Float32Array.of(0.5));
+    expect([...graph.ttsTap.read()]).toEqual([0.5]);
+    expect(sent).toEqual([Float32Array.of(0.5)]);
+  });
+
+  it('a rebuild whose module fails to load leaves the context it keeps as it was, still watched', async () => {
+    const setup = await setupRecovering();
+    const { first, contexts, graph, control, tapsOn } = setup;
+    control.failModule = true;
+    reportErrorSpy.mockClear();
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(2);
+    expect(contexts[1].closed).toBe(1);
+    expect(rebuildFailures()).toHaveLength(1);
+    // Its taps still deliver...
+    tapsOn(first)[0].emit(Float32Array.of(0.5));
+    expect([...graph.ttsTap.read()]).toEqual([0.5]);
+    // ...and its listener still hears it: it runs again, wedges again, and this rebuild lands.
+    control.failModule = false;
+    first.stuck = false;
+    first.recover();
+    await wedgeFor(setup, first);
+    expect(contexts).toHaveLength(3);
+    expect(graph.timeline('speaker').now()).toBe(contexts[2].currentTime);
+  });
+
+  it('a replacement that cannot be made is reported once, not thrown, and the context it keeps stays watched', async () => {
+    const setup = await setupRecovering();
+    const { first, contexts, control, flush } = setup;
+    control.failReplace = true;
+    reportErrorSpy.mockClear();
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      await wedgeFor(setup);
+      await flush();
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+    expect(contexts).toHaveLength(1);
+    expect(rebuildFailures()).toHaveLength(1);
+    control.failReplace = false;
+    first.stuck = false;
+    first.recover();
+    await wedgeFor(setup, first);
+    expect(contexts).toHaveLength(2);
+  });
+
+  it('a build that throws leaves every output on the context it keeps', async () => {
+    const setup = await setupRecovering();
+    const { first, contexts, real, virtualSink, control, destinationOn, flush } = setup;
+    // The replacement's second stream destination (the virtual bus's) fails, after the real one was made.
+    control.onNew = (ctx) => {
+      let made = 0;
+      const create = ctx.createMediaStreamDestination.bind(ctx);
+      ctx.createMediaStreamDestination = () => {
+        made += 1;
+        if (made === 2) throw new Error('out of resources');
+        return create();
+      };
+    };
+    reportErrorSpy.mockClear();
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      await wedgeFor(setup);
+      await flush();
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+    expect(contexts[1].closed).toBe(1);
+    expect(rebuildFailures()).toHaveLength(1);
+    expect(destinationOn(first, real)).toBeDefined();
+    expect(destinationOn(first, virtualSink)).toBeDefined();
+  });
+
+  it('does not carry a rest of the old context over to the new one', async () => {
+    const setup = await setupRecovering();
+    const { first, contexts, clock, graph, control, flush } = setup;
+    control.hold = true;
+    first.stuck = true;
+    first.wedge();
+    clock.advance(1_750);
+    // While the module loads, the old context runs again by itself, and the graph rests it.
+    first.stuck = false;
+    first.recover();
+    await graph.suspend();
+    control.hold = false;
+    control.release();
+    await flush();
+    expect(contexts).toHaveLength(2);
+    await wedgeFor(setup);
+    expect(contexts).toHaveLength(3);
+  });
+
+  it('does not count a resume that timed out as one that landed', async () => {
+    const { first, clock, graph } = await setupRecovering();
+    const resumeWarnings = () => withKey(reportWarningSpy, 'graph:resume');
+    reportWarningSpy.mockClear();
+    await graph.suspend();
+    first.resume = () => Promise.reject(new Error('InvalidStateError'));
+    await graph.resume();
+    expect(resumeWarnings()).toHaveLength(1);
+    // A resume that never settles while the context runs again by itself: the race's timer wins.
+    first.resume = () => new Promise<void>(() => {});
+    const timingOut = graph.resume();
+    first.recover();
+    clock.advance(1_500);
+    await timingOut;
+    // The failing streak goes on: not reported again.
+    first.wedge();
+    first.resume = () => Promise.reject(new Error('InvalidStateError'));
+    await graph.resume();
+    expect(resumeWarnings()).toHaveLength(1);
   });
 });

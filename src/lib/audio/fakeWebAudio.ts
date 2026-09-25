@@ -206,8 +206,21 @@ export class FakeSink {
   sinkId = '';
   paused = true;
   plays = 0;
+  private source: MediaProvider | null;
 
-  constructor(public srcObject: MediaProvider | null) {}
+  constructor(srcObject: MediaProvider | null) {
+    this.source = srcObject;
+  }
+
+  get srcObject(): MediaProvider | null {
+    return this.source;
+  }
+
+  /** As a browser's media element: a new source runs the load algorithm, which pauses it. */
+  set srcObject(next: MediaProvider | null) {
+    this.source = next;
+    this.paused = true;
+  }
 
   async setSinkId(sinkId: string): Promise<void> {
     this.sinkId = sinkId;

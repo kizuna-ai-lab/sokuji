@@ -79,6 +79,8 @@ export const WEDGE_GRACE_MS = 250;
 export const RESUME_DEADLINE_MS = 1_500;
 /** Rebuilds allowed until a context reaches 'running' again. */
 export const MAX_REBUILDS = 3;
+/** How long `close()` waits for the context's own close: a wedged one may never settle it (#246). */
+export const CLOSE_WAIT_MS = 1_000;
 
 interface Built {
   ctx: AudioContext;
@@ -103,7 +105,7 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
 
   const ttsTap = createPcmTap();
   const virtual = deps.virtual;
-  /** Created by the first build; a later one points them at its own streams, so they keep their devices. */
+  /** Created by the first build; a rebuild's swap points them at the new streams, so they keep their devices. */
   const elements: Partial<Record<Bus, SinkElement>> = {};
 
   /** Everything that lives on a context: the first one's, and each replacement's (#246). */
@@ -143,9 +145,9 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       node.connect(out);
       buses[bus] = node;
       outs[bus] = out;
-      const element = elements[bus];
-      if (element) element.srcObject = out.stream;
-      else elements[bus] = deps.createSink(out.stream);
+      // Only the first build makes the elements. A rebuild leaves them alone
+      // until its swap, so a build that throws leaves them where they were.
+      elements[bus] ??= deps.createSink(out.stream);
     };
     toElement('real');
     if (virtual.kind === 'device') toElement('virtual');
@@ -286,25 +288,37 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
       if (closing || !deps.replaceContext || rebuilds >= MAX_REBUILDS) return;
       rebuilds += 1;
       clearWatch();
+      // Everything that can fail comes before the old context is touched: a
+      // rebuild that fails leaves it exactly as it was, watched, its taps live.
+      let ctx: AudioContext | undefined;
+      let next: Built;
+      try {
+        ctx = deps.replaceContext();
+        await deps.addTapModule(ctx);
+        if (closing) {
+          // The graph closed while the module loaded.
+          void ctx.close().catch(() => {});
+          return;
+        }
+        next = build(ctx);
+      } catch (error) {
+        if (ctx) void ctx.close().catch(() => {});
+        reportError('AudioGraph', `The audio output could not be rebuilt: ${describeCause(error)}`, { cause: error, dedupeKey: 'graph:rebuild-failed' });
+        return;
+      }
       const old = current;
       old.ctx.removeEventListener('statechange', onState);
       for (const tap of old.taps) tap.port.onmessage = null;
-      const ctx = deps.replaceContext();
-      try {
-        await deps.addTapModule(ctx);
-      } catch (error) {
-        void ctx.close().catch(() => {});
-        reportError('AudioGraph', `The audio output could not be rebuilt: ${describeCause(error)}`, { cause: error });
-        return;
-      }
-      if (closing) {
-        // The graph closed while the module loaded.
-        void ctx.close().catch(() => {});
-        return;
-      }
       // Swap first: from here every queue's clock is the new context's.
-      current = build(ctx);
-      watch(ctx);
+      current = next;
+      for (const bus of ['real', 'virtual'] as const) {
+        const element = elements[bus];
+        const out = next.outs[bus];
+        if (element && out) element.srcObject = out.stream;
+      }
+      watch(next.ctx);
+      // A rest of the old context's (it may have run again, and rested, while the module loaded) is not the new one's.
+      resting = false;
       clearWatch(); // a resume() asked while the module loaded armed a deadline on the old context
       edges.clear();
       applyRoute(lastRoute);
@@ -408,10 +422,12 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
         // A resume that never lands is a wedge too (#246); the deadline rebuilds it.
         armDeadline();
         try {
-          await (deps.replaceContext
-            ? Promise.race([ctx.resume(), new Promise<void>((resolve) => { clock.setTimeout(resolve, RESUME_DEADLINE_MS); })])
-            : ctx.resume());
-          resumeFailing = false;
+          const resumed = ctx.resume().then(() => true);
+          const landed = await (deps.replaceContext
+            ? Promise.race([resumed, new Promise<boolean>((resolve) => { clock.setTimeout(() => resolve(false), RESUME_DEADLINE_MS); })])
+            : resumed);
+          // A resume the deadline outran did not land: the failing streak, if any, goes on.
+          if (landed) resumeFailing = false;
         } catch (error) {
           if (!resumeFailing) reportWarning('AudioGraph', `The audio context did not resume: ${describeCause(error)}`, { dedupeKey: 'graph:resume' });
           resumeFailing = true;
@@ -457,7 +473,15 @@ export async function createAudioGraph(deps: GraphDeps): Promise<AudioGraph> {
           element.srcObject = null;
         }
         for (const tap of current.taps) tap.port.onmessage = null;
-        await current.ctx.close();
+        // A wedged context may never settle its close(), as the rebuild's dead
+        // one may not: wait for it at most CLOSE_WAIT_MS, so it never holds a close.
+        let cancelWait = () => {};
+        const waited = new Promise<void>((resolve) => { cancelWait = clock.setTimeout(resolve, CLOSE_WAIT_MS); });
+        try {
+          await Promise.race([current.ctx.close(), waited]);
+        } finally {
+          cancelWait();
+        }
       })();
       return closing;
     },

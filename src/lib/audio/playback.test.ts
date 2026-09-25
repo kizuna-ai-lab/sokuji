@@ -150,16 +150,23 @@ describe('createPlayback — live audio', () => {
     expect(playback.queues.speaker.position()?.key).toBe('speaker:2:0');
   });
 
-  it('a context reset drops what was queued but not the clip indices', () => {
-    const { graph, plays, advance, reset } = fakeGraph();
+  it('a context reset drops what was queued but not the clip indices', async () => {
+    const { graph, plays, shots, advance, reset } = fakeGraph();
     const playback = createPlayback(graph, routing().source);
     playback.audio('speaker', 1, pcm(100));
     expect(plays).toHaveLength(1);
+    playback.replay('speaker', translation(4, [{ pcm: pcm(100) }]));
+    const previewing = playback.preview({ audio: new Float32Array(10), sampleRate: 44100 });
     const clears = playback.queues.speaker.clears;
     reset();
     expect(plays[0].done).toBe(true);
     expect(playback.queues.speaker.pending).toBe(0);
     expect(playback.queues.speaker.clears).toBe(clears + 1);
+    // The replay and the preview sat on the dead context too: a preview left there might never end.
+    expect(plays[1].done).toBe(true);
+    expect(playback.queues.replay.pending).toBe(0);
+    expect(shots[0].stopped).toBe(true);
+    await previewing;
     playback.audio('speaker', 1, pcm(100));
     advance(LEAD_S);
     expect(parseClipKey(playback.queues.speaker.position()!.key).index).toBe(1);
