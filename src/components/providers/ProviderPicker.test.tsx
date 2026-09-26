@@ -48,7 +48,7 @@ import '../../locales';
 
 import { fakeProvider } from '../../providers/fake/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
-import type { EngineSummaryProps } from '../../lib/provider/types';
+import type { EngineSummaryProps, Readiness } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
 import { ProviderPicker } from './ProviderPicker';
@@ -196,6 +196,38 @@ describe('ProviderPicker', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(trackEvent).not.toHaveBeenCalledWith('api_key_validated', expect.anything());
+  });
+
+  it('Validate tracks nothing for a check a newer one superseded while that one still runs: the press answers checking', async () => {
+    const answers: Array<(result: { ok: true }) => void> = [];
+    const overtaken = {
+      ...fakeProvider, id: 'overtaken', settings: { ...fakeProvider.settings, key: 'overtaken' },
+      check: () => new Promise<{ ok: true }>((resolve) => { answers.push(resolve); }),
+    };
+    // The store's refreshReadiness, with the answer each call got back.
+    const realRefresh = useProviderStore.getState().refreshReadiness;
+    const got: Array<Promise<Readiness>> = [];
+    useProviderStore.setState({ refreshReadiness: (...args) => { const answer = realRefresh(...args); got.push(answer); return answer; } });
+    try {
+      render(<ProviderPicker providers={[overtaken]} auth={noAuth} />);
+      fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+      await waitFor(() => expect(answers).toHaveLength(1));
+      // A newer check (the readiness driver's, or a start's) begins while the press's still runs.
+      act(() => { void useProviderStore.getState().refreshReadiness(overtaken, noAuth); });
+      expect(answers).toHaveLength(2);
+      await act(async () => {
+        answers[0]({ ok: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      await expect(got[0]).resolves.toEqual({ state: 'checking' });
+      expect(trackEvent).not.toHaveBeenCalledWith('api_key_validated', expect.anything());
+      await act(async () => {
+        answers[1]({ ok: true });
+        await got[1];
+      });
+    } finally {
+      useProviderStore.setState({ refreshReadiness: realRefresh });
+    }
   });
 
   it('offers no Validate button for a managed provider: its readiness follows the sign-in', async () => {

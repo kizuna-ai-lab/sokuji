@@ -28,7 +28,7 @@ export type { Readiness } from '../lib/provider/types';
 
 export const UNKNOWN: Readiness = { state: 'unknown' };
 
-export const NO_MODELS: readonly ModelOption[] = [];
+export const NO_MODELS: readonly ModelOption[] = Object.freeze([]);
 
 /** What a readiness check reads: the live entry's by default, or a run's frozen shape. */
 export interface ReadinessInputs {
@@ -58,7 +58,7 @@ export interface ProviderStore {
    * unknown and reports nothing.
    */
   refreshReadiness(p: AnyProvider, auth: AuthContext, from?: ReadinessInputs, signal?: AbortSignal): Promise<Readiness>;
-  /** Forgets what `check` answered for `p` — a sign-in flip, for a managed provider: readiness is unknown, and a check still running no longer counts. */
+  /** Forgets `p`'s readiness — a sign-in flip, for a managed provider: it is unknown, and a check still in flight no longer counts. The ready answer kept for its inputs stays: the next check for inputs already answered ready is served from it. */
   forgetReadiness(p: Pick<AnyProvider, 'id'>): void;
   /** The legs a start would open now, speaker first (appShape's `watchLegsFromStores` keeps them); the speaker alone until then. */
   legs: readonly LegName[];
@@ -234,8 +234,10 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const values = Object.fromEntries(p.credentials.fields(inputs.settings).map((f) => [f.key, inputs.credentials[f.key] ?? '']));
       // A network check gives the same ready answer to the same inputs, so a
       // ready answer is kept; a refusal is asked again, and a local engine's
-      // readiness changes as models download.
-      const key = JSON.stringify([inputs.settings, values, auth.signedIn, auth.userId ?? null, inputs.pair, inputs.legs]);
+      // readiness changes as models download. Only a managed provider's
+      // answer turns on the sign-in and the account; an own-key one checks its key.
+      const account = p.kind === 'managed' ? [auth.signedIn, auth.userId ?? null] : [];
+      const key = JSON.stringify([inputs.settings, values, ...account, inputs.pair, inputs.legs]);
       const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
       if (kept && kept.inputs === key) return answered(kept.readiness);
 

@@ -54,7 +54,10 @@ export function driveReadiness({ runner, providers, auth, clock, watchSignIn, de
     cancel = null;
     pendingAtOnce = false;
     const p = current();
-    if (p && idle()) void useProviderStore.getState().refreshReadiness(p, auth());
+    if (!p || !idle()) return;
+    // A network provider no longer unknown was checked meanwhile (a Validate, a start); a local one re-checks whatever it knows.
+    if (p.kind !== 'local' && (useProviderStore.getState().readiness[p.id]?.state ?? 'unknown') !== 'unknown') return;
+    void useProviderStore.getState().refreshReadiness(p, auth());
   };
   const schedule = (p: AnyProvider, atOnce: boolean) => {
     if (pendingAtOnce) return;

@@ -182,7 +182,7 @@ const LEDGER: Record<string, number> = {
   // `console.warn('[applySetup] Post-finish validation failed:', err)` — was
   // the re-validation for an unchanged provider. The switch's applyProvider
   // (useApplySetup.ts) binds straight to providerStore, whose own readiness
-  // driver (attach()'s driveLocalReadiness) re-checks automatically, so
+  // driver (attach()'s driveReadiness) re-checks automatically, so
   // there is nothing left here to swallow — the call is gone, not moved.
   'src/components/SetupWizard/steps/StepLanguage.tsx': 1,
   'src/components/Subtitle/ChildWindowPopover.tsx': 1,

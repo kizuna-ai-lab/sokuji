@@ -151,6 +151,16 @@ describe('refreshReadiness', () => {
     expect(check).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps an own-key provider's answer through a sign-in flip: its key, not the account, is what it checks", async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = probe('own-key', check);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, signedIn);
+    await store.useProviderStore.getState().refreshReadiness(p, signedOut);
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+  });
+
   it('asks a local engine every time, since its readiness changes as models download', async () => {
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('local', check);

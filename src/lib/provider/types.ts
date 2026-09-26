@@ -233,8 +233,9 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   /**
    * Can this provider start now: a network validation, model readiness, or a
    * signed-in session. Throw when the check could not find out (offline);
-   * answer `ok: false` only when the provider said no. Readiness is cached
-   * per settings, credentials, sign-in, pair and legs.
+   * answer `ok: false` only when the provider said no. A ready answer is
+   * kept per settings, credentials, pair and legs — and, for a managed
+   * provider, per sign-in and account; a local provider is asked every time.
    */
   check(k: K, s: S, ctx: CheckContext): Promise<CheckResult>;
   /**

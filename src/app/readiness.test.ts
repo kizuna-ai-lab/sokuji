@@ -161,6 +161,28 @@ describe('driveReadiness', () => {
     detach();
   });
 
+  it('an edit\'s check is skipped when a check was asked for meanwhile: a Validate already moved the readiness', async () => {
+    const { provider } = makeProbe('probe', 'own-key');
+    setupStore(provider);
+    const { calls } = spyRefresh();
+    const runner = idleRunner();
+    const clock = createVirtualClock(0);
+    const detach = driveReadiness({ runner, providers: () => [provider], auth: () => auth, clock });
+
+    clock.advance(0);
+    await flush();
+    expect(calls('probe')).toBe(1);
+
+    useProviderStore.setState({ readiness: { probe: { state: 'unknown' } } }); // an edit: 800 ms armed
+    clock.advance(300);
+    useProviderStore.setState({ readiness: { probe: { state: 'checking' } } }); // a Validate press
+    clock.advance(NETWORK_READINESS_DELAY_MS);
+    await flush();
+    expect(calls('probe')).toBe(1);
+
+    detach();
+  });
+
   it('a store change before the immediate check does not delay it', async () => {
     const { provider } = makeProbe('probe', 'own-key');
     setupStore(provider);
