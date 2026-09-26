@@ -86,7 +86,7 @@ workload untouched does not count.
 | D8 | Logs | One generic `frame({direction, type, payload?})` replaces 15-18 bespoke event types per client. |
 | D9 | Analytics | Translation latency and `translation_count` are no longer collected. |
 | D10 | Audio routing | An explicit routing table replaces volume-as-control. The only genuine volume left is the passthrough ratio. |
-| D11 | Migration | Rewrite, not migrate. New display layer plus one provider end to end, then one provider at a time. Old clients are deleted and read from git history as protocol documentation. |
+| D11 | Migration | Rewrite, not migrate. New display layer plus one provider end to end, then one provider at a time. **Amended 2026-09-26 (owner):** the old provider code — clients, descriptors, the old settings UI and store slices — stays in the tree as the source each provider is ported from; a provider's old code is deleted once the owner has live-tested its port. |
 | D12 | Branch | A long-lived branch. `main` stays releasable but is not expected to move. |
 | D13 | Export | One block per group, each segment's text whole, one timestamp per group. Inferred pairings are written paired like stated ones; the JSON form keeps `pairing`. |
 | D14 | Turns | Every provider offers auto, push-to-talk and push-to-translate. Adapters see only `turns: 'auto' \| 'manual'` and implement `beginTurn` / `endTurn` / `cancelTurn`; the voice gate is generic; push-to-translate is a routing rule; `pttFinalization` is deleted. |
@@ -1020,6 +1020,13 @@ interface Provider<S, K, C> {
 }
 ```
 
+**Amended by the Stage 2 foundation plan:** `i18nKey?`; `testerSwitch?`;
+`settings.legacyKeys?` and `migrate(stored, { legacy, credentials })`;
+`languages.migratePair?`; `credentials.read` → `K | { missing; code?; params? }`;
+`AuthContext.userId?`; `SettingsProps.models?` / `account?`;
+`SharedSettings.models`; and `SessionHooks.acquire`'s context carries the run's
+`clock`.
+
 `settings.key` is today's slice key, and values persist under
 `settings.<key>.<field>` exactly as now: no user's saved settings move.
 
@@ -1060,7 +1067,7 @@ three stages. L0 never learns what a stage is.
 | `validateAndFetchModels`, `latestRealtimeModel`, the store's model auto-select switch, its readiness short-circuits for the local engines | `check`, plus an internal effective-model function |
 | `capabilities.segmentation` `{ pause, auto, sizes }` | `boundaries(s)` |
 | `textOnlyCapability`, `supportsTextInput` | `speech`, `textInput` |
-| `settingsSliceKey`, `i18nKey` | `settings.key`; locale keys use the id |
+| `settingsSliceKey`, `i18nKey` | `settings.key`; locale keys use the id, or `i18nKey` where the catalogs spell it otherwise |
 | `createClient`, `buildSessionConfig` | `build` + `start` |
 | `prepareToStart`, `acquireSessionResources`, `planBothMode` | `session.prepare` / `acquire`; `planBothMode` folds into `startBoth` (see Session lifecycle) |
 | the six unread fields, `registerProvider`, the `ClientFactory` and `ClientOperations` façades | deleted |
@@ -1175,12 +1182,14 @@ transport: OpenAI Translate over WebRTC has no source pause today
 
 A Kizuna twin is `managed(base, overrides)`: its own `id`, `kind: 'managed'`,
 `vendor`, credentials read from the sign-in session with no fields, a static
-`check`, and the relay endpoint in `K`. Its settings component, languages,
-builder and adapter are the base's. The `KizunaManagedProvider` union,
-`isKizunaManagedProvider`, `kizunaBaseProvider`, `KIZUNA_HOSTED_ICONS`,
-`getDefaultManagedProvider`'s preference list and the settings UI's active-slice
-ternaries reduce to `kind` and registry order. Removing the relay later touches
-the three twins and nothing else.
+`check`, and per-leg keys minted by its lease (`acquire`). Its settings
+component, languages, builder and adapter are the base's. The
+`KizunaManagedProvider` union, `isKizunaManagedProvider`, `kizunaBaseProvider`,
+`KIZUNA_HOSTED_ICONS`, `getDefaultManagedProvider`'s preference list and the
+settings UI's active-slice ternaries reduce to `kind` and registry order. Only
+Kizuna Soniox is built this way: the backend mints its keys per role, and the
+audio goes from the device to Soniox directly. The relay twins, whose `K` was a
+relay endpoint, are not ported (see Migration).
 
 ### The registry is a list (D19)
 
@@ -1262,7 +1271,8 @@ not move.
 1. One folder, `src/providers/<id>/`: the definition, the adapter, the `Settings`
    component, tests.
 2. One line in the registry, one in the order test.
-3. `providers.<id>.name` and `.description` in the 30 locale catalogs — unchanged.
+3. `providers.<id>.name` and `.description` in the 30 locale catalogs — or under
+   the definition's `i18nKey` where the catalogs already spell it otherwise.
 4. The extension manifest, when the provider uses a new host — MV3 declares hosts
    statically.
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
@@ -1551,7 +1561,10 @@ surface looks the text up — as `reasonToI18n`, `voicePrepNotice` and
 `mainPanel.openaiLiveConnectionLost` do today, each its own way. The same
 holds for `lastEnd.reason`: a typed code, so the idle surface can offer the
 settings deep link (`reasonToSettingsTarget`) or the privacy-settings prompt
-(`WarningModal` → `open-privacy-settings`) that the reason calls for.
+(`WarningModal` → `open-privacy-settings`) that the reason calls for. A
+provider's code may reuse a sentence every locale already has through
+`NOTICE_ALIASES` (`src/lib/view/noticeText.ts`) instead of a `notices.<code>`
+key of its own.
 
 ### Analytics
 
@@ -1674,37 +1687,60 @@ source text rather than its behaviour — `sessionIdLifecycle.consistency`,
 exactly 43 `console.*` calls in it — and are replaced with behavioural tests
 against the runner in the same change.
 
-The other clients are **deleted**, and their descriptors with them. Each is
-recovered from git history when its turn comes, and read to learn the protocol
-rather than ported; a Stage 2 step writes the provider's definition, adapter and
-settings component together.
+**The old provider code stays until each port is live-tested** (owner,
+2026-09-26, reversing this section's first version). The clients, their
+descriptors, the old settings UI and the old store slices remain compiled but
+unreachable from the new session, as the protocol documentation each Stage 2
+step ports from. What lived only in the old MainPanel — the cross-leg
+orchestration — is read from history
+(`aecaae2b^:src/components/MainPanel/MainPanel.tsx`). A Stage 2 step writes the
+provider's definition, adapter and settings component together, and deletes
+that provider's old code after the owner has run it live.
 
-**Stage 2 — one provider per change.** Ordered by what each adds to the model's
-coverage, not by difficulty:
+**Stage 2 — one provider per change**, after a vendor-free foundation plan
+(`docs/superpowers/plans/2026-09-26-client-contract-stage2-foundation.md`).
+LocalInference, the precise extreme, landed in Stage 1. Provider ids are the
+old `Provider` enum's spellings, so stored selections, analytics and locale keys
+need no mapping; LocalInference keeps `localInference`, mapped since Stage 1.
+The order (the owner may overrule it):
 
-1. **LocalInference** — the precise extreme. Exact `range`, stated `origin`, and
-   the one client family that keeps segmentation (for translation-job
-   boundaries), so it proves L0 may still own a pipeline decision. Free to test,
-   no network variance.
-2. **Palabra** — the degenerate extreme. `audio` without `ref`, no `range`, no
-   timestamps, but the cleanest `origin`. Proving both extremes early is what
-   shows the model spans its range; discovering that `ref`-less audio does not
-   work after nine clients are written would be expensive.
-3. **Soniox** — the richest: `language`, provider timing, definite-split, its own
-   TTS over a second socket.
-4. **OpenAITranslateGA** — frame-level ranges, our own boundaries, inferred
-   origin.
-5. **OpenAILive** — span caps, the `end_ms` timeline.
-6. **Gemini** — turn-level origin, no ranges.
-7. **LocalNative** — LocalInference's sibling, nearly free after it.
-8. **OpenAI GA / legacy / WebRTC** — server-given boundaries, native capture,
-   the drift anchor moving into the adapter, manual-only turns over WebRTC
-   (D25).
-9. **OpenAITranslateWebRTC** — the same shape as its GA twin over native capture.
-10. **VolcengineAST2** — adds nothing new to the model.
+1. **Soniox** (`soniox`) — the richest: per-token language, provider timing,
+   definite-split, its own TTS over a second socket, `startBoth`.
+2. **Kizuna Soniox** (`kizunaai_soniox`) — the managed composition: the lease,
+   the budget, the voice claim, the balance floor. It may share a plan with
+   Soniox, in two task groups, each with its own live test.
+3. **Gemini** (`gemini`) — turn-level origin, no ranges, `boundaries:
+   'silence'`, reconnect.
+4. **Volcengine AST2** (`volcengine_ast2`) — the socket seam's first user,
+   inferred pairing.
+5. **OpenAI Translate** (`openai_translate`) — frame-level ranges, our own
+   boundaries, inferred origin.
+6. **OpenAI Realtime and OpenAI Compatible** (`openai`, `openai_compatible`) —
+   one settings component, server boundaries, the drift anchor, the typed-text
+   queue.
+7. **OpenAI Translate over WebRTC** — the processed track from the runner's
+   graph.
+8. **Palabra** (`palabraai`) — the degenerate extreme: `audio` without `ref`, no
+   `range`, the cleanest `origin`.
+9. **OpenAI Live** (`openai_live`) — span caps, the `end_ms` timeline.
+10. **Local Native** (`local_native`) — LocalInference's sibling on the sidecar.
+    Its `Engine` is a thin wrapper like LocalInference's: the shared
+    `EngineSurface` over the existing `useNativeEngineAdapter`, with the
+    existing `NativeModelManagementSection`, `NativeVoiceSection` and
+    `NativeDeviceControl` — reused, switched from the old `settingsStore` slice
+    to the provider's `settings` / `update` / `pair` (the override
+    `useWasmEngineAdapter` got for LocalInference).
 
-That is all twelve. Each step is its own implementation plan; this spec is the
-design for the whole, not the plan for any one stage.
+**The relay twins** (`kizunaai_openai_translate`, `kizunaai_volcengine_ast2`)
+are not ported onto the relay: the owner ruled on 2026-08-30 that the user's
+audio must not flow through Kizuna. Whether they return as direct connections is
+the owner's decision when their turn comes. If they do, each is
+`managed(base, …)` over its ported base with a direct-connect `K`.
+
+That is twelve providers: ten ported in ten steps — OpenAI Translate's WebRTC
+transport is a step of its own — and two relay twins held. Each step is its own
+implementation plan; this spec is the design for the whole, not the plan for any
+one stage.
 
 **Batch size is set by testing, not by code risk.** A provider client cannot be
 validated by unit tests alone; protocol behaviour, timing and real audio need a
@@ -1794,6 +1830,27 @@ compatibility burden.
 - **`origin` inference thresholds** — the overlap fraction that counts as a
   pair, the time window for proximity, and what breaks a tie between two
   candidates.
+
+### Stage 2 — open for the plans that meet them
+
+From the Stage 2 foundation survey's §3.4:
+
+- **D25 and OpenAI's participant leg** (item 1). `turns(s)` = manual-only
+  would refuse the participant leg for OpenAI over WebRTC, which today runs its
+  participant over WebSocket. The OpenAI plan decides: `turns(s)` for the
+  speaker leg, the adapter choosing the participant's transport.
+- **Participant speech against the managed lease** (item 3), which mints no
+  participant TTS role — the Kizuna Soniox plan.
+- **`minimumBalance`, `Resources.budget` and `RunState.running.budget`**
+  (item 5) are in this spec but not yet in the types — the Kizuna Soniox plan.
+- **Items 8 and 9 — resolved by the foundation plan** (the controller's
+  ruling), as the shape's note records:
+  - item 8 by F3: `credentials.read` may answer with a code, so a managed
+    provider signed out reads `sign_in_required`. `read` stays synchronous, so
+    a managed `K` carries `getToken` and calls it lazily. Kizuna Soniox uses it
+    first.
+  - item 9 by F5: `legacyKeys`, the credentials and `migratePair` reach a
+    migration. OpenAI and Palabra use it first.
 
 ## Risks
 
