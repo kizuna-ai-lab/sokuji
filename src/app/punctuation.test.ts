@@ -7,10 +7,14 @@ import { useSettingsStore } from '../stores/settingsStore';
 import useLogStore from '../stores/logStore';
 import { settleReports } from '../lib/diagnostics/report';
 
-// Same reason as useSegmentationRuntime.test.ts: settingsStore's static import
-// graph reaches ModernBrowserAudioService's worklet `?url` import via
-// ServiceFactory, which this sandboxed Vite test transform denies outright.
-// This module only ever reads the plain setting value, never persistence.
+// Kept from before the old audio service was deleted: ServiceFactory used to
+// import ModernBrowserAudioService -> ModernAudioRecorder -> a worklet
+// `?url` import that this sandboxed Vite test transform denied outright.
+// ServiceFactory no longer reaches ModernAudioRecorder at all, and this
+// module (punctuation.ts) never imports session.ts/appCapture either, so no
+// worklet `?url` import is reachable here any more. Not needed by the
+// current graph for that reason. This module only ever reads the plain
+// setting value, never persistence.
 vi.mock('../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({

@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Same reason as appShape.test.ts / punctuation.test.ts: settingsStore's static
-// import graph reaches ModernBrowserAudioService's worklet `?url` import via
-// ServiceFactory, which this sandboxed Vite test transform denies outright.
+// Kept from before the old audio service was deleted: ServiceFactory used to
+// import ModernBrowserAudioService -> ModernAudioRecorder -> a worklet
+// `?url` import that this sandboxed Vite test transform denied outright.
+// ServiceFactory no longer reaches ModernAudioRecorder at all, and this
+// module (telemetry.ts) never imports session.ts/appCapture either, so no
+// worklet `?url` import is reachable here any more. Not needed by the
+// current graph for that reason.
 vi.mock('../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({

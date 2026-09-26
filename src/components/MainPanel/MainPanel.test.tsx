@@ -1,9 +1,12 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render } from '@testing-library/react';
 
-// The mocks of SubtitleTakeover.test.tsx: settingsStore's static import graph
-// reaches ModernBrowserAudioService's worklet `?url` import via
-// ServiceFactory, which this sandboxed Vite test transform denies outright.
+// Kept from before the old audio service was deleted: ServiceFactory used to
+// import ModernBrowserAudioService -> ModernAudioRecorder -> a worklet
+// `?url` import that this sandboxed Vite test transform denied outright.
+// ServiceFactory no longer reaches ModernAudioRecorder; this test's subject,
+// session.ts, reaches it only via `appCapture`, which is mocked directly
+// below. Not needed by the current graph for that reason.
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({
