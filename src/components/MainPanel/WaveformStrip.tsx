@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import './WaveformStrip.scss';
 import { WavRenderer } from '../../utils/wav_renderer';
 
@@ -27,19 +27,24 @@ const DEFAULT_LABELS: Record<WaveformStripProps['kind'], string> = {
  * sizes the canvas from its offset size on first draw, clears, and draws
  * today's bars. `read` is threaded through a ref so a fresh closure every
  * render (a new `levels`/`meter` object, or a new `read` callback) never
- * restarts the `requestAnimationFrame` loop — only unmount does. The loop's
- * lifetime is the strip's own: mounting `WaveformStrip` starts it against
- * this canvas, unmounting stops it for good, so a strip that mounts again
- * later gets a brand-new canvas and a brand-new loop rather than inheriting
- * a stale context from the one that was removed.
+ * restarts the `requestAnimationFrame` loop — only unmount does. The ref is
+ * written after commit, never during render: a render React discards must
+ * not hand the running loop its callback. The loop's lifetime is the strip's
+ * own: mounting `WaveformStrip` starts it against this canvas, unmounting
+ * cancels its pending frame and stops it for good, so a strip that mounts
+ * again later gets a brand-new canvas and a brand-new loop rather than
+ * inheriting a stale context from the one that was removed.
  */
 function useWaveform(read: () => Float32Array | null, color: string): React.RefObject<HTMLCanvasElement | null> {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const readRef = useRef(read);
-  readRef.current = read;
+  useLayoutEffect(() => {
+    readRef.current = read;
+  }, [read]);
 
   useEffect(() => {
     let isLoaded = true;
+    let frame = 0;
     let ctx: CanvasRenderingContext2D | null = null;
     const draw = () => {
       if (!isLoaded) return;
@@ -55,10 +60,13 @@ function useWaveform(read: () => Float32Array | null, color: string): React.RefO
           WavRenderer.drawBars(canvas, ctx, readRef.current() ?? FLAT, color, 10, 0, 8);
         }
       }
-      requestAnimationFrame(draw);
+      frame = requestAnimationFrame(draw);
     };
     draw();
-    return () => { isLoaded = false; };
+    return () => {
+      isLoaded = false;
+      cancelAnimationFrame(frame);
+    };
   }, [color]);
 
   return canvasRef;

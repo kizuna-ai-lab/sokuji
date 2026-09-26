@@ -180,4 +180,27 @@ describe('OutputWaveform', () => {
     expect(meter.read).not.toHaveBeenCalled();
     expect(frameQueue.length).toBe(0);
   });
+
+  it('cancels its pending frame on unmount', () => {
+    const cancelled: number[] = [];
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => { cancelled.push(id); });
+    const { unmount } = render(<OutputWaveform meter={null} />);
+    runFrame();
+    const scheduled = rafId;
+
+    unmount();
+    expect(cancelled).toEqual([scheduled]);
+  });
+
+  it('reads the meter of the latest render', () => {
+    const first: BusMeter = { read: vi.fn(() => new Float32Array([0.1])) };
+    const second: BusMeter = { read: vi.fn(() => new Float32Array([0.9])) };
+    const { rerender } = render(<OutputWaveform meter={first} />);
+    rerender(<OutputWaveform meter={second} />);
+
+    (first.read as ReturnType<typeof vi.fn>).mockClear();
+    runFrame();
+    expect(second.read).toHaveBeenCalledTimes(1);
+    expect(first.read).not.toHaveBeenCalled();
+  });
 });
