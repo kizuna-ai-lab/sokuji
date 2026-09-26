@@ -240,6 +240,33 @@ describe('refreshReadiness — the models a ready answer found (F2; choice 3)', 
     expect(readiness()).toMatchObject({ state: 'not-ready' });
     expect(models()).toEqual([{ id: 'm1' }]);
   });
+
+  it('restores the models with a kept answer: the same key typed back reuses the answer, and its models', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true, models: [{ id: 'm1' }] }));
+    const p = probe('own-key', check);
+    await loadedWithKey(p, 'k1');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    store.useProviderStore.getState().setCredential(p, 'apiKey', '');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([]);
+    store.useProviderStore.getState().setCredential(p, 'apiKey', 'k1');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    // Asked once: the answer came from the kept one, so only its recording can have restored the list.
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(readiness()).toEqual({ state: 'ready', models: [{ id: 'm1' }] });
+    expect(models()).toEqual([{ id: 'm1' }]);
+  });
+
+  it('records one shared empty list for a ready answer that found no models', async () => {
+    const answers: CheckResult[] = [{ ok: true }, { ok: true, models: [] }];
+    const p = probe('local', async () => answers.shift()!);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toBe(store.NO_MODELS);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toBe(store.NO_MODELS);
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+  });
 });
 
 describe('refreshReadiness — a cancelled check', () => {

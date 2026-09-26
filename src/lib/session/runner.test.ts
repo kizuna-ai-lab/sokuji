@@ -163,6 +163,14 @@ describe('runner — starting', () => {
     const { runner } = setup({ shape: { provider: { ...fakeProvider, build } as AnyProvider }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
     await runner.start();
     expect(build.mock.calls[0][2].models).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+
+    // Both legs build from the one answer.
+    const both = vi.fn(fakeProvider.build);
+    const two = setup({ shape: { provider: { ...fakeProvider, build: both } as AnyProvider, legs: ['speaker', 'participant'] }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
+    await two.runner.start();
+    expect(both).toHaveBeenCalledTimes(2);
+    expect(both.mock.calls[0][2].models).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+    expect(both.mock.calls[1][2].models).toBe(both.mock.calls[0][2].models);
   });
 
   it('refuses the participant leg of an auto source before checking anything (D20)', async () => {

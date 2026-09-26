@@ -242,7 +242,8 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
         const result = await p.check(credentials, inputs.settings, { pair: inputs.pair, legs: inputs.legs, signal });
         if (signal?.aborted) return cancelled();
         answer = result.ok
-          ? { state: 'ready', models: result.models ?? [] }
+          // No models found: the one shared empty list, so a component's `models` keeps its identity across answers.
+          ? { state: 'ready', models: result.models?.length ? result.models : NO_MODELS }
           : { state: 'not-ready', reason: result.reason, ...(result.code ? { code: result.code } : {}), ...(result.params ? { params: result.params } : {}) };
         if (p.kind !== 'local' && result.ok) lastAnswer.set(p.id, { inputs: key, readiness: answer });
       } catch (error) {
