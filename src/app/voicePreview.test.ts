@@ -28,4 +28,40 @@ describe('appVoicePreview', () => {
     appVoicePreview.stop();
     expect(playback.stopPreview).toHaveBeenCalledTimes(1);
   });
+
+  // The first play builds the page's playback. A stop pressed meanwhile (a
+  // second click on the row, Settings closed) finds nothing loaded to stop:
+  // the play itself must see it once the build resolves, as the test tone's
+  // signal does for "a stop pressed during the first decode" (appAudio.ts).
+  it('a stop pressed while the first play builds the playback plays nothing once it is built', async () => {
+    vi.resetModules();
+    let built: (app: { playback: typeof playback }) => void = () => {};
+    getAppAudio.mockImplementationOnce(() => new Promise((resolve) => { built = resolve; }));
+    const { appVoicePreview } = await import('./voicePreview');
+    playback.preview.mockClear();
+    const clip: PreviewClip = { audio: new Float32Array(4), sampleRate: 24000 };
+    const playing = appVoicePreview.play(clip);
+    appVoicePreview.stop();
+    built({ playback });
+    await playing;
+    expect(playback.preview).not.toHaveBeenCalled();
+  });
+
+  it('a newer play while the playback is built supersedes the older one: only the newer clip plays', async () => {
+    vi.resetModules();
+    let built: (app: { playback: typeof playback }) => void = () => {};
+    // `getAppAudio` hands every caller the same build until it resolves.
+    const building = new Promise<{ playback: typeof playback }>((resolve) => { built = resolve; });
+    getAppAudio.mockReturnValueOnce(building).mockReturnValueOnce(building);
+    const { appVoicePreview } = await import('./voicePreview');
+    playback.preview.mockClear();
+    const older: PreviewClip = { audio: new Float32Array(4), sampleRate: 24000 };
+    const newer: PreviewClip = { audio: new Float32Array(8), sampleRate: 24000 };
+    const first = appVoicePreview.play(older);
+    const second = appVoicePreview.play(newer);
+    built({ playback });
+    await Promise.all([first, second]);
+    expect(playback.preview).toHaveBeenCalledTimes(1);
+    expect(playback.preview).toHaveBeenCalledWith(newer);
+  });
 });
