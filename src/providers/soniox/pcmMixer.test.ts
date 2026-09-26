@@ -137,4 +137,25 @@ describe('PcmMixer', () => {
     expect(frames).toHaveLength(601);
     expect(frames[600].every((s) => s === 0)).toBe(true);
   });
+
+  // A timer that fires a millisecond early (the renderer's monotonic timers
+  // against an integer `Date.now()`) must not tick its beat twice: the second
+  // tick would find the queue empty and send a silent frame mid-speech.
+  it('inserts no silent frame on a clock whose timers fire early: 600 full frames in 60 s', () => {
+    const v = createVirtualClock(0);
+    const clock: Clock = { now: v.now, setTimeout: (fn, ms) => v.setTimeout(fn, ms > 1 ? ms - 1 : ms) };
+    const frameSamples = 1600;
+    const frames: Int16Array[] = [];
+    const m = new PcmMixer({ clock, frameSamples, intervalMs: 100, maxBacklogSamples: 32_000, onFrame: (f) => frames.push(f) });
+    m.start();
+    const chunk = new Int16Array(frameSamples).fill(1000);
+    for (let t = 0; t < 600; t++) {
+      m.pushA(chunk);
+      m.pushB(chunk);
+      v.advance(100);
+    }
+    m.stop();
+    expect(frames).toHaveLength(600);
+    expect(frames.some((f) => f.every((s) => s === 0))).toBe(false);
+  });
 });

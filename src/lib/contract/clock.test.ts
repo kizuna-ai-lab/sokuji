@@ -119,20 +119,40 @@ describe('every', () => {
     expect(at).toEqual([100, 200, 550, 600, 700, 800]);
   });
 
-  it('a wall clock that jumps backwards arms the next tick within one interval', () => {
+  // In the renderer the timers run on a monotonic clock while `realClock.now()`
+  // is an integer `Date.now()`: a timer that fires on time can read a
+  // millisecond short of its grid point. That early fire is still its beat's
+  // tick — reading the phase from `now()` would arm a 1-ms timer and tick the
+  // same beat twice (a mostly silent extra frame from the mixer).
+  it('never doubles a tick when every timer fires a little early: 600 ticks in 60 s, one per beat', () => {
+    const v = createVirtualClock(0);
+    const clock: Clock = { now: v.now, setTimeout: (fn, ms) => v.setTimeout(fn, ms > 1 ? ms - 1 : ms) };
+    const at: number[] = [];
+    const cancel = every(clock, 100, () => at.push(v.now()));
+    v.advance(60_000);
+    cancel();
+    expect(at.length).toBeGreaterThanOrEqual(599);
+    expect(at.length).toBeLessThanOrEqual(601);
+    const gaps = at.slice(1).map((t, k) => t - at[k]);
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(99);
+  });
+
+  it('a wall clock that jumps backwards keeps ticking about every interval: no gap the size of the jump', () => {
     const v = createVirtualClock(0);
     let offset = 0;
     // `realClock.now()` is `Date.now()`, which a system clock change can move backwards.
     const clock: Clock = { now: () => v.now() + offset, setTimeout: v.setTimeout };
     const at: number[] = [];
     const cancel = every(clock, 100, () => at.push(v.now()));
-    v.advance(200);
-    offset = -1_050;
-    v.advance(200);
+    v.advance(2_000);
+    offset = -10_000;
+    v.advance(3_000);
     cancel();
-    // The tick at 300 reads the wall clock at -750: 50 ms before a grid point,
-    // so the next tick comes 50 ms later — never more than one interval.
-    expect(at).toEqual([100, 200, 300, 350]);
+    const after = at.filter((t) => t > 2_000);
+    expect(after.length).toBeGreaterThanOrEqual(29);
+    expect(after.length).toBeLessThanOrEqual(31);
+    const gaps = at.slice(1).map((t, k) => t - at[k]);
+    expect(Math.max(...gaps)).toBeLessThanOrEqual(200);
   });
 });
 

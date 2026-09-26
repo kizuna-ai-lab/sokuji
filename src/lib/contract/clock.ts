@@ -54,27 +54,44 @@ export function pinnedRealClock(): Clock {
  * before `fn` runs, so on the real clock a tick that throws does not stop
  * the interval.
  *
- * Drift-free, like the browser's `setInterval`: the ticks stay on the grid
- * of `ms` from the start, however late each timer fires, and a stall longer
- * than `ms` skips the beats it missed (one late tick, then the next grid
- * point) rather than firing a burst to catch up. Re-arming a fresh `ms`
- * from each late tick would add every tick's lateness to the next deadline
- * — a consumer that takes one frame per tick (`PcmMixer`) would fall behind
- * its real-time input.
+ * Drift-free, like the browser's repeating timer: it counts beats of `ms`
+ * from the start, one tick per beat, and arms each timer for the next
+ * beat's due time, so no tick's lateness is carried into the next deadline
+ * (re-arming a fresh `ms` from each late tick would: a consumer that takes
+ * one frame per tick, `PcmMixer`, would fall behind its real-time input).
+ * - A timer that fires a little early is still its beat's tick: the next
+ *   one is armed for the beat after, never a second tick of the same beat.
+ *   In the renderer the timers run on a monotonic clock while
+ *   `realClock.now()` is an integer `Date.now()`, so an on-time fire can
+ *   read a millisecond short of its beat.
+ * - A stall longer than `ms` skips the beats it missed: one late tick, then
+ *   the next beat on the grid, never a burst to catch up.
+ * - A wall clock that jumped backwards (`Date.now()` moved by the system)
+ *   rebases the count, so the next tick comes one interval later rather
+ *   than after the size of the jump.
  */
 export function every(clock: Pick<Clock, 'setTimeout' | 'now'>, ms: number, fn: () => void): () => void {
   // A virtual clock would spin forever on a zero interval.
   if (!(ms > 0)) throw new RangeError(`every() needs a positive interval, not ${ms}`);
-  const origin = clock.now();
+  let origin = clock.now();
+  /** The beat the armed timer is for: due at `origin + beat * ms`. */
+  let beat = 1;
   let stopped = false;
   let cancel: () => void = () => {};
   const tick = () => {
     if (stopped) return;
-    // The next grid point after now. The double modulo keeps the phase in
-    // [0, ms) even when the wall clock (`realClock.now()` is `Date.now()`)
-    // has jumped backwards, so the delay stays within 1..ms.
-    const phase = (((clock.now() - origin) % ms) + ms) % ms;
-    cancel = clock.setTimeout(tick, ms - phase);
+    const now = clock.now();
+    beat += 1;
+    // A stall past the next beat's due time: skip to the first beat still ahead.
+    if (origin + beat * ms <= now) beat = Math.floor((now - origin) / ms) + 1;
+    let delay = origin + beat * ms - now;
+    // Between `ms` and `2 * ms` this fire was early, and the delay is right.
+    // Past that the wall clock jumped backwards: rebase so the next beat is one interval away.
+    if (delay > 2 * ms) {
+      origin = now + ms - beat * ms;
+      delay = ms;
+    }
+    cancel = clock.setTimeout(tick, delay);
     fn();
   };
   cancel = clock.setTimeout(tick, ms);
