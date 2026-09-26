@@ -13,8 +13,8 @@ const auto: SessionContext = { direction: { source: 'ja', target: 'en' }, speech
 const play = (name: FakeScriptName) => driveAdapter(createFakeAdapter(), { context: auto, config: { script: fakeScript(name) }, credentials: {}, steps: [{ advance: 40_000 }] });
 
 describe('the fake\'s scripts', () => {
-  it("offers the nine scripts, and every one plays conformant through the kit's driver", async () => {
-    const ALL = ['exchange', 'cjk', 'rewrite', 'long', 'notices', 'refless-stream', 'framed', 'rangeless', 'reconnect'] as const;
+  it("offers the ten scripts, and every one plays conformant through the kit's driver", async () => {
+    const ALL = ['exchange', 'cjk', 'rewrite', 'long', 'notices', 'refless-stream', 'framed', 'rangeless', 'reconnect', 'late-ranges'] as const;
     expect(FAKE_SCRIPT_NAMES).toEqual(ALL);
     for (const name of ALL) {
       const result = await play(name);
@@ -132,6 +132,32 @@ describe('the fake\'s scripts', () => {
     const exchanges = entries.filter((e) => e.kind === 'exchange');
     expect(exchanges.length).toBeGreaterThan(0);
     for (const ex of exchanges) { if (ex.kind === 'exchange') expect(ex.pairing).toBe('stated'); }
+  });
+
+  it('late-ranges: rangeless audio on a closed translation, then its ranges filled in', async () => {
+    const clock = createVirtualClock();
+    const conv = new Conversation({ leg: 'speaker', session: 'late-ranges', languages: auto.direction, clock });
+    const events = eventsFrom((e) => conv.apply(e));
+    await createFakeAdapter().start(
+      { context: auto, config: { script: fakeScript('late-ranges') }, credentials: {}, clock, signal: new AbortController().signal },
+      events,
+    );
+    const translation = () => conv.snapshot().segments.find((s) => s.ref === 2);
+    clock.advance(1_200);
+    expect(translation()?.final).toBe(true);
+    expect(translation()?.speech.map((s) => s.range)).toEqual([undefined, undefined]);
+    clock.advance(200);
+    expect(translation()?.speech.map((s) => s.range)).toEqual([[0, 6], [6, 13]]);
+  });
+
+  it('late-ranges with speech off emits neither audio nor ranges', async () => {
+    const result = await driveAdapter(createFakeAdapter(), { context: { ...auto, speech: false }, config: { script: fakeScript('late-ranges') }, credentials: {}, steps: [{ advance: 40_000 }] });
+    expect(result.startError).toBeUndefined();
+    const kinds = result.log.map((e) => e.kind);
+    expect(kinds).toContain('segmentClosed'); // the script played its text
+    expect(kinds).not.toContain('audio');
+    expect(kinds).not.toContain('speechRanges');
+    expect(result.violations).toEqual([]);
   });
 
   it('reconnect: drops and comes back between two exchanges, refs never reused', async () => {

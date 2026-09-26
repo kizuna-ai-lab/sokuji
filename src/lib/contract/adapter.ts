@@ -78,6 +78,15 @@ export interface AdapterEvents {
   /** `ref` absent: attributable to no segment (plays, pairs with nothing).
    *  `range` absent: this segment's audio, which characters unknown. */
   audio(e: { pcm: Int16Array; ref?: Ref; range?: TextRange }): void;
+  /**
+   * Sets the ranges of speech this adapter already emitted for `ref`
+   * (Stage 2 Soniox, ruling 2): `index` is the entry's place among this
+   * ref's `audio` events, 0 first. Measured, like `audio.range`, against
+   * the text the adapter last sent for `ref`. The entries must exist, each
+   * range must lie within that text, and a ref's ranged entries must ascend
+   * without overlapping. The segment may already be closed.
+   */
+  speechRanges(e: { ref: Ref; ranges: ReadonlyArray<{ index: number; range: TextRange }> }): void;
   closed(e: { reason: string }): void;
   reconnecting(): void;
   reconnected(): void;

@@ -174,4 +174,44 @@ describe('checkConformance rules', () => {
     const v = checkConformance(log, auto).filter((x) => x.rule === 'text-input-answered');
     expect(v.map((x) => x.index)).toEqual([3]);
   });
+
+  describe('speechRanges (ranges filled in after the audio)', () => {
+    const ranges = (ref: number, list: Array<[number, [number, number]]>) => ({ kind: 'speechRanges' as const, payload: { ref, ranges: list.map(([index, range]) => ({ index, range })) } });
+
+    it("accepts ranges filled in on a closed segment's existing entries", () => {
+      const log: ConformanceLog = [opened(2, 'translation'), text(2, 'Hello, world.'), closed(2), audio(2, undefined), audio(2, undefined), ranges(2, [[0, [0, 7]], [1, [7, 13]]])];
+      expect(rules(log)).toEqual([]);
+    });
+
+    it('flags ranges for an entry the ref never emitted', () => {
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, undefined), ranges(2, [[1, [0, 3]]])])).toContain('ranges-entry');
+      expect(rules([ranges(5, [[0, [0, 1]]])])).toContain('ranges-entry');
+    });
+
+    it("flags a filled range beyond the ref's text, at close or at once when already closed", () => {
+      // Already closed: checked at once.
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), closed(2), audio(2, undefined), ranges(2, [[0, [0, 9]]])])).toContain('range-in-text');
+      // Still open: checked when the ref closes.
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, undefined), ranges(2, [[0, [0, 9]]]), closed(2)])).toContain('range-in-text');
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), closed(2), audio(2, undefined), ranges(2, [[0, [0, 3]]])])).toEqual([]);
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, undefined), ranges(2, [[0, [0, 3]]]), closed(2)])).toEqual([]);
+    });
+
+    it('flags ranges that overlap or run backwards in entry order', () => {
+      const two = (list: Array<[number, [number, number]]>): ConformanceLog => [opened(2, 'translation'), text(2, 'Hello, world.'), closed(2), audio(2, undefined), audio(2, undefined), ranges(2, list)];
+      expect(rules(two([[0, [0, 8]], [1, [5, 13]]]))).toContain('ranges-order');
+      expect(rules(two([[0, [7, 13]], [1, [0, 7]]]))).toContain('ranges-order');
+      expect(rules(two([[0, [0, 7]], [1, [7, 7]]]))).toEqual([]);
+    });
+
+    it('checks filled ranges against ranges the audio already carried', () => {
+      const log: ConformanceLog = [opened(2, 'translation'), text(2, 'Hello, world.'), audio(2, [0, 7]), audio(2, undefined), ranges(2, [[1, [3, 13]]])];
+      expect(rules(log)).toContain('ranges-order');
+    });
+
+    it('flags each out-of-text range of one speechRanges on its own', () => {
+      const log: ConformanceLog = [opened(2, 'translation'), text(2, 'Hi.'), closed(2), audio(2, undefined), audio(2, undefined), ranges(2, [[0, [0, 5]], [1, [5, 9]]])];
+      expect(rules(log).filter((r) => r === 'range-in-text')).toHaveLength(2);
+    });
+  });
 });

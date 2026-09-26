@@ -160,4 +160,61 @@ describe('createKaraoke', () => {
     clock.advance(KARAOKE_INTERVAL_MS * 5);
     expect(karaoke.get().lit.get('s:speaker:2')).toBe(0);
   });
+
+  it('lights a playing clip only once its range is filled in, from where playback is (ruling 2)', () => {
+    const { clock, queues, karaoke, setSegment } = setup(segment({ speech: [{ pcm: SECOND }, { pcm: SECOND }] }));
+    karaoke.subscribe(() => {});
+    queues.speaker.set({ key: 'speaker:2:0', t: 500, ms: 1000 }, 2);
+    expect(karaoke.get().lit.size).toBe(0);                    // (a): no range, not highlighted
+    setSegment(segment({ speech: [{ range: [0, 6], pcm: SECOND }, { range: [6, 13], pcm: SECOND }] }));
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(3);      // mid-clip: half of [0, 6]
+    queues.speaker.move(1000);
+    clock.advance(KARAOKE_INTERVAL_MS);
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(6);
+  });
+
+  it("keeps a lit sentence lit while the row's next, rangeless clip plays, and sweeps on once that clip's range is filled in (choice 18)", () => {
+    const { queues, karaoke, setSegment } = setup(segment({ speech: [{ range: [0, 6], pcm: SECOND }, { pcm: SECOND }] }));
+    karaoke.subscribe(() => {});
+    queues.speaker.set({ key: 'speaker:2:0', t: 1000, ms: 1000 }, 2);
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(6);      // sentence A spoken, lit
+    queues.speaker.set({ key: 'speaker:2:1', t: 0, ms: 1000 }, 1);
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(6);      // B plays rangeless: A stays lit
+    queues.speaker.move(500);
+    setSegment(segment({ speech: [{ range: [0, 6], pcm: SECOND }, { range: [6, 13], pcm: SECOND }] }));
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(10);     // B's fill-in: from mid-clip, 6 + round(7 × 0.5)
+  });
+
+  it('a fill-in that lands after the queue emptied lights nothing live; a replay lights it', () => {
+    const { queues, karaoke, setSegment } = setup(segment({ speech: [{ pcm: SECOND }] }));
+    karaoke.subscribe(() => {});
+    queues.speaker.set({ key: 'speaker:2:0', t: 0, ms: 1000 }, 1);
+    queues.speaker.set(null, 0);                               // played out before its range arrived
+    setSegment(segment({ speech: [{ range: [0, 13], pcm: SECOND }] }));
+    expect(karaoke.get().lit.size).toBe(0);                    // nothing plays, nothing was lit: nothing to hold
+    queues.replay.set({ key: 'speaker:2:0', t: 500, ms: 1000 }, 1);
+    expect(karaoke.get().lit.get('s:speaker:2')).toBe(7);      // replay reads the filled range: round(13 × 0.5)
+  });
+});
+
+describe('nextLit while a rangeless clip plays', () => {
+  const prev = { segmentId: 's:speaker:2', leg: 'speaker' as const, upTo: 6 };
+  const B: Playing<ClipKey> = { key: 'speaker:2:1', t: 0, ms: 1000 };
+
+  it("holds prev while a rangeless clip of prev's segment plays", () => {
+    expect(nextLit(prev, B, legs(segment({ speech: [{ range: [0, 6], pcm: SECOND }, { pcm: SECOND }] })))).toBe(prev);
+  });
+
+  it('lights nothing for a rangeless clip of another segment', () => {
+    const two: readonly Leg[] = [{
+      ...legs(segment())[0],
+      segments: [segment({ speech: [{ range: [0, 6], pcm: SECOND }, { pcm: SECOND }] }), segment({ id: 's:speaker:4', ref: 4, speech: [{ pcm: SECOND }] })],
+    }];
+    expect(nextLit(prev, { key: 'speaker:4:0', t: 0, ms: 1000 }, two)).toBeNull();
+  });
+
+  it('the hold keeps the gap rules: it ends when every range was dropped, and clamps to a shorter text', () => {
+    expect(nextLit(prev, B, legs(segment({ speech: [{ pcm: SECOND }, { pcm: SECOND }] })))).toBeNull();
+    expect(nextLit(prev, B, legs(segment({ text: 'あいう', final: false, speech: [{ range: [0, 1], pcm: SECOND }, { pcm: SECOND }] })))).toEqual({ ...prev, upTo: 3 });
+  });
 });

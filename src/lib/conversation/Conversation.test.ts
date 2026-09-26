@@ -287,6 +287,107 @@ describe('Conversation — re-anchoring and fill-in', () => {
   });
 });
 
+describe('Conversation — ranges filled in after the audio (speechRanges)', () => {
+  const ranges = (ref: number, list: Array<[number, [number, number]]>): AdapterEvent => ({ kind: 'speechRanges', payload: { ref, ranges: list.map(([index, range]) => ({ index, range })) } });
+  const speechOf = (conv: Conversation, k = 0) => conv.snapshot().segments[k].speech;
+
+  it('sets ranges on speech a closed segment already holds', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    apply(ranges(1, [[0, [0, 5]], [1, [6, 11]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 5], [6, 11]]);
+    expect(speechOf(conv).map((s) => s.pcm.length)).toEqual([10, 10]);
+  });
+
+  it("re-anchors ranges measured against the adapter's text onto punctuation fill-in's", async () => {
+    const { conv, apply } = make({ punctuate: async () => 'Hello, world.' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    expect(conv.snapshot().segments[0].text).toBe('Hello, world.');
+    apply(ranges(1, [[0, [0, 5]], [1, [5, 11]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 7], [7, 13]]);
+  });
+
+  it('a fill-in landing after the ranges re-anchors them as it re-anchors any range', async () => {
+    const { conv, apply } = make({ punctuate: () => new Promise((r) => setTimeout(() => r('Hello, world.'), 20)) });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    apply(ranges(1, [[0, [0, 5]], [1, [5, 11]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 5], [5, 11]]);
+    await conv.settled();
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 7], [7, 13]]);
+  });
+
+  it('a revision after fill-in measures later ranges against the revised text, not the pre-fill one', async () => {
+    const { conv, apply } = make({ punctuate: async () => 'Hello, world.' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    expect(conv.snapshot().segments[0].text).toBe('Hello, world.');
+    // Different letters on purpose: a revision that only grows re-anchors the same either way.
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'hello there' } });
+    apply(ranges(1, [[0, [0, 5]], [1, [6, 11]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[0, 5], [6, 11]]);
+  });
+
+  it('sets ranges on audio held before its segment opened', () => {
+    const { conv, apply } = make();
+    apply({ kind: 'audio', payload: { ref: 3, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 3, pcm: pcm(10) } });
+    apply(ranges(3, [[1, [2, 4]]]));
+    apply({ kind: 'segmentOpened', payload: { ref: 3, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 3, text: 'abcd' } });
+    expect(speechOf(conv).map((s) => s.range)).toEqual([undefined, [2, 4]]);
+  });
+
+  it('drops a range for an entry the segment does not hold, or an invalid range, with a diagnostic, and applies the rest', () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'Hello' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply(ranges(1, [[0, [0, 3]], [4, [0, 1]], [0, [5, 2]]]));
+    expect(speechOf(conv)[0].range).toEqual([0, 3]);
+    expect(diagnostics.map((d) => d.code).filter((c) => c === 'range_out_of_text')).toHaveLength(2);
+  });
+
+  it('ignores ranges for a ref it does not hold', () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'abc' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'segmentClosed', payload: { ref: 1 } });
+    conv.clear();
+    const before = conv.snapshot();
+    apply(ranges(1, [[0, [0, 3]]]));
+    expect(conv.snapshot()).toBe(before);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("counts a fill-in's entries from the adapter's first audio, across a clear", () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }); // the adapter's entries 0 and 1
+    conv.clear();
+    expect(conv.snapshot().segments.map((s) => [s.text, s.speech.length])).toEqual([['', 0]]);
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'hello world, bye' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }); // the adapter's entry 2
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    apply(ranges(1, [[0, [0, 5]], [1, [6, 11]], [2, [13, 16]]]));
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[13, 16]]);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("drops a filled range beyond a closed segment's text, keeping the pcm", () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'Hi.' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply(ranges(1, [[0, [0, 9]]]));
+    expect(speechOf(conv)[0]).toEqual({ range: undefined, pcm: pcm(10) });
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
+});
+
 describe('Conversation — retention and clear', () => {
   it('keeps the range but no pcm when keepPcm is off', () => {
     const { conv, apply } = make({ retention: { keepPcm: false, maxPcmBytes: 1 << 20 } });

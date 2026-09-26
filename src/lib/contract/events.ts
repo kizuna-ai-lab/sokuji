@@ -8,7 +8,7 @@ export type AdapterEvent = {
 }[keyof AdapterEvents];
 
 const KINDS = {
-  segmentOpened: true, segmentText: true, segmentClosed: true, audio: true,
+  segmentOpened: true, segmentText: true, segmentClosed: true, audio: true, speechRanges: true,
   closed: true, reconnecting: true, reconnected: true, failed: true, degraded: true,
   loading: true, busy: true, frame: true,
 } satisfies Record<keyof AdapterEvents, true>;

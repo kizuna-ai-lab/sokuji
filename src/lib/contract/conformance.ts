@@ -56,18 +56,35 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   // arrival — the text may still be a snapshot — but checked against the
   // text when its segment closes, and on every later revision (a
   // `segmentText` for an already-closed ref), mirroring L1's `clampRanges`.
-  const rangesByRef = new Map<number, Array<{ index: number; range: [number, number] }>>();
+  // `key` names one range — an `audio` event's own, or the k-th of a
+  // `speechRanges` — so two bad ranges in one event are two violations.
+  const rangesByRef = new Map<number, Array<{ index: number; key: string; range: [number, number] }>>();
   const closedRefs = new Set<number>();
-  const flaggedRange = new Set<number>();
+  const flaggedRange = new Set<string>();
   const checkRangesForRef = (ref: number) => {
     const entries = rangesByRef.get(ref);
     if (!entries) return;
     const len = (textOf.get(ref) ?? '').length;
     for (const e of entries) {
-      if (flaggedRange.has(e.index)) continue;
+      if (flaggedRange.has(e.key)) continue;
       if (e.range[1] > len) {
         flag('range-in-text', `range [${e.range[0]}, ${e.range[1]}] outside text of length ${len}`, e.index);
-        flaggedRange.add(e.index);
+        flaggedRange.add(e.key);
+      }
+    }
+  };
+
+  // Per ref, how many `audio` events it has had (a `speechRanges` index names
+  // one of them), and the range each entry holds, carried or filled in later.
+  const audioCount = new Map<number, number>();
+  const entryRanges = new Map<number, Map<number, [number, number]>>();
+  /** A ref's ranged entries, in entry order, must ascend without overlapping: the karaoke sweep reads them so. */
+  const checkOrder = (ref: number, index: number) => {
+    const ordered = [...(entryRanges.get(ref) ?? new Map<number, [number, number]>()).entries()].sort((a, b) => a[0] - b[0]);
+    for (let k = 1; k < ordered.length; k++) {
+      if (ordered[k][1][0] < ordered[k - 1][1][1]) {
+        flag('ranges-order', `ref ${ref}: entry ${ordered[k][0]}'s range starts before entry ${ordered[k - 1][0]}'s ends`, index);
+        return;
       }
     }
   };
@@ -117,17 +134,49 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         if (!context.speech) flag('no-audio-when-silent', 'audio with speech: false', index);
         if (!(pcm instanceof Int16Array)) flag('audio-int16', 'pcm is not an Int16Array', index);
         if (ref !== undefined && sideOf.get(ref) === 'source') flag('audio-on-source', `audio on source-side ref ${ref}`, index);
+        // This entry's place among the ref's audio: what a later `speechRanges` names it by.
+        const n = ref === undefined ? 0 : (audioCount.get(ref) ?? 0);
+        if (ref !== undefined) audioCount.set(ref, n + 1);
         if (range) {
           const [start, end] = range;
           if (start < 0 || start > end) {
             flag('range-in-text', `range [${start}, ${end}] is not a valid range`, index);
           } else if (ref !== undefined) {
+            const byIndex = entryRanges.get(ref) ?? new Map<number, [number, number]>();
+            byIndex.set(n, [start, end]);
+            entryRanges.set(ref, byIndex);
             const list = rangesByRef.get(ref) ?? [];
-            list.push({ index, range: [start, end] });
+            list.push({ index, key: String(index), range: [start, end] });
             rangesByRef.set(ref, list);
             if (closedRefs.has(ref)) checkRangesForRef(ref);
+            checkOrder(ref, index);
           }
         }
+        break;
+      }
+      case 'speechRanges': {
+        const { ref, ranges } = entry.payload;
+        const count = audioCount.get(ref) ?? 0;
+        const byIndex = entryRanges.get(ref) ?? new Map<number, [number, number]>();
+        entryRanges.set(ref, byIndex);
+        ranges.forEach(({ index: entryIndex, range }, k) => {
+          if (!Number.isInteger(entryIndex) || entryIndex < 0 || entryIndex >= count) {
+            flag('ranges-entry', `ranges name speech entry ${entryIndex} of ref ${ref}, which has ${count}`, index);
+            return;
+          }
+          const [start, end] = range;
+          if (start < 0 || start > end) {
+            flag('range-in-text', `range [${start}, ${end}] is not a valid range`, index);
+            return;
+          }
+          byIndex.set(entryIndex, [start, end]);
+          const list = rangesByRef.get(ref) ?? [];
+          // One key per range, not per log entry: two bad ranges in one event are two violations (M5).
+          list.push({ index, key: `${index}:${k}`, range: [start, end] });
+          rangesByRef.set(ref, list);
+        });
+        if (closedRefs.has(ref)) checkRangesForRef(ref);
+        checkOrder(ref, index);
         break;
       }
       case 'degraded':

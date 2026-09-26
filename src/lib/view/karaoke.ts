@@ -63,6 +63,18 @@ export function litFor(playing: Playing<ClipKey>, legs: readonly Leg[]): Lit | n
   return { segmentId: clip.segment.id, leg: clip.leg, upTo: a + Math.round((b - a) * f) };
 }
 
+/** What a held `prev` becomes now that nothing it names is being swept: the gap rules, clamp included. */
+function hold(prev: Lit, legs: readonly Leg[]): Lit | null {
+  const segment = legs.find((l) => l.leg === prev.leg)?.segments.find((s) => s.id === prev.segmentId);
+  if (!segment) return null;
+  if (segment.speech.length > 0 && segment.speech.every((s) => s.range === undefined)) return null;
+  const reached = segment.speech.reduce((end, s) => Math.max(end, s.range?.[1] ?? 0), 0);
+  const mayContinue = !segment.final || countSkeleton(segment.text.slice(reached)) > 0;
+  if (!mayContinue) return null;
+  const upTo = Math.min(prev.upTo, segment.text.length);
+  return upTo === prev.upTo ? prev : { ...prev, upTo };
+}
+
 /**
  * What a live queue's karaoke shows now, given what it showed. Playing: the
  * clip decides. In a gap — the clip queue has no seal, so `position()` is
@@ -75,19 +87,21 @@ export function litFor(playing: Playing<ClipKey>, legs: readonly Leg[]): Lit | n
  * old text. A held offset is always clamped to the segment's current text
  * length, however it got here. The queue-cleared terminating signal (Stop)
  * lives in `createKaraoke`, which is where the queue is reachable. Otherwise
- * the gap ends it. Decided from L1's data, never a timer.
+ * the gap ends it. Playing a clip with no range — its range is filled in
+ * later — of the segment already lit holds by the same rules: a row spoken
+ * as several TTS segments never un-highlights between them. Decided from
+ * L1's data, never a timer.
  */
 export function nextLit(prev: Lit | null, playing: Playing<ClipKey> | null, legs: readonly Leg[]): Lit | null {
-  if (playing) return litFor(playing, legs);
-  if (!prev) return null;
-  const segment = legs.find((l) => l.leg === prev.leg)?.segments.find((s) => s.id === prev.segmentId);
-  if (!segment) return null;
-  if (segment.speech.length > 0 && segment.speech.every((s) => s.range === undefined)) return null;
-  const reached = segment.speech.reduce((end, s) => Math.max(end, s.range?.[1] ?? 0), 0);
-  const mayContinue = !segment.final || countSkeleton(segment.text.slice(reached)) > 0;
-  if (!mayContinue) return null;
-  const upTo = Math.min(prev.upTo, segment.text.length);
-  return upTo === prev.upTo ? prev : { ...prev, upTo };
+  if (playing) {
+    const lit = litFor(playing, legs);
+    if (lit || !prev) return lit;
+    // A clip whose range is not filled in yet (a streaming TTS, Stage 2 Soniox) of the segment already lit:
+    // what is lit stays lit, and only this clip's own words wait for their range (option (a); choice 18).
+    const clip = clipOf(playing.key, legs);
+    return clip && clip.leg === prev.leg && clip.segment.id === prev.segmentId ? hold(prev, legs) : null;
+  }
+  return prev ? hold(prev, legs) : null;
 }
 
 function sameLit(a: ReadonlyMap<SegmentId, number>, b: ReadonlyMap<SegmentId, number>): boolean {

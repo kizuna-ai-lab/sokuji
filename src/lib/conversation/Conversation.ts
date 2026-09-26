@@ -55,6 +55,10 @@ export class Conversation {
   private readonly indexByRef = new Map<number, number>();
   /** Audio that arrived before its segment opened. */
   private readonly pending = new Map<number, Speech[]>();
+  /** A segment whose text fill-in replaced: the adapter's own text, which a late `speechRanges` is measured against. Deleted when the adapter sends text again. */
+  private readonly unfilled = new Map<number, string>();
+  /** Per ref, the speech entries `clear()` dropped: an adapter counts `speechRanges` indices from its first `audio`, L1 (and the clip keys, `playback.clear()`) from the clear (choice 1, M4). */
+  private readonly clearedEntries = new Map<number, number>();
   private counter = 0;
   private noticeCounter = 0;
   private version = 0;
@@ -82,6 +86,7 @@ export class Conversation {
       case 'segmentText': return this.text(event.payload.ref, event.payload.text, event.payload.timing, event.payload.language);
       case 'segmentClosed': return this.close(event.payload.ref, event.payload.origin);
       case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm);
+      case 'speechRanges': return this.ranges(event.payload.ref, event.payload.ranges);
       case 'failed': {
         this.addNotice({ severity: 'error', message: event.payload.message, code: event.payload.code ?? 'leg_failed' });
         this.finalizeAll();
@@ -150,12 +155,17 @@ export class Conversation {
   /** Drops every closed segment, every notice and all pcm; segments still open stay open with empty text. */
   clear(): void {
     this.batch(() => {
+      // Every entry dropped here, closed segments' too: a closed segment's speech can keep arriving after a clear, into `pending`.
+      const dropped = (ref: number, n: number) => { if (n > 0) this.clearedEntries.set(ref, (this.clearedEntries.get(ref) ?? 0) + n); };
+      for (const seg of this.segments) dropped(seg.ref, seg.speech.length);
+      for (const [ref, list] of this.pending) dropped(ref, list.length);
       const kept = this.segments.filter((s) => !s.final).map((s) => ({ ...s, text: '', marks: [], speech: [], timing: undefined }));
       this.segments = kept;
       this.notices = [];
       this.indexByRef.clear();
       kept.forEach((s, i) => this.indexByRef.set(s.ref, i));
       this.pending.clear();
+      this.unfilled.clear();
       this.pcmBytes = 0;
       this.trimCursor = 0;
       this.lastDegradedAt.clear();
@@ -205,6 +215,7 @@ export class Conversation {
   }
 
   private text(ref: number, text: string, timing?: SegmentTiming, language?: string): void {
+    this.unfilled.delete(ref);
     const i = this.indexByRef.get(ref);
     if (i === undefined) return this.violation(`text for ref ${ref} before it opened`);
     const seg = this.segments[i];
@@ -252,6 +263,37 @@ export class Conversation {
     this.afterAudio();
   }
 
+  /** Ranges an adapter sets on speech it already emitted: measured against the text it last sent, re-anchored onto the text as it stands (choice 1). */
+  private ranges(ref: number, all: ReadonlyArray<{ index: number; range: TextRange }>): void {
+    const valid = ([start, end]: TextRange) => start >= 0 && start <= end;
+    // The adapter counts from its first audio; L1 from the last clear. An entry the clear dropped is gone with its audio.
+    const offset = this.clearedEntries.get(ref) ?? 0;
+    const given = all.flatMap((g) => (g.index < offset ? [] : [{ index: g.index - offset, range: g.range }]));
+    const i = this.indexByRef.get(ref);
+    if (i === undefined) {
+      // Audio held in `pending` takes them — before its segment opened, or after a clear dropped its closed segment; it moves with its pcm at open.
+      const held = this.pending.get(ref);
+      if (!held) return; // a ref with neither a segment nor held audio
+      this.pending.set(ref, held.map((s, k) => {
+        const hit = given.find((g) => g.index === k && valid(g.range));
+        return hit ? { ...s, range: hit.range } : s;
+      }));
+      return;
+    }
+    const seg = this.segments[i];
+    const hits = given.filter((g) => {
+      const ok = Number.isInteger(g.index) && g.index >= 0 && g.index < seg.speech.length && valid(g.range);
+      if (!ok) this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `speech entry ${g.index} of ${seg.id} cannot take range [${g.range[0]}, ${g.range[1]}]` });
+      return ok;
+    });
+    if (hits.length === 0) return;
+    const anchored = reanchorRanges(this.unfilled.get(ref) ?? seg.text, seg.text, hits.map((h) => h.range));
+    const speech = [...seg.speech];
+    hits.forEach((h, k) => { speech[h.index] = { ...speech[h.index], range: anchored[k] }; });
+    this.replace(i, { ...seg, speech });
+    if (seg.final) this.clampRanges(i);
+  }
+
   private addNotice(input: NoticeInput): void {
     // Every notice is shown, exported and auto-saved: worker and provider text
     // is redacted here, once, for every provider (roadmap 1e-2).
@@ -287,6 +329,7 @@ export class Conversation {
     const job: Promise<void> = fillIn(lang, before, punctuate).then((filled) => {
       const j = this.indexByRef.get(seg.ref);
       if (j === undefined || filled === before || this.segments[j].text !== before) return;
+      this.unfilled.set(seg.ref, before);
       this.replaceText(j, filled, { mark: false });
       this.clampRanges(j);
     });

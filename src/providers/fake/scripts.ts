@@ -1,10 +1,11 @@
 import { framedScript, longScript, reflessStreamScript } from './generate';
 import { exchange, type FakeScript } from './script';
+import { msForText } from './synth';
 
-export type FakeScriptName = 'exchange' | 'cjk' | 'rewrite' | 'long' | 'notices' | 'refless-stream' | 'framed' | 'rangeless' | 'reconnect';
+export type FakeScriptName = 'exchange' | 'cjk' | 'rewrite' | 'long' | 'notices' | 'refless-stream' | 'framed' | 'rangeless' | 'reconnect' | 'late-ranges';
 
 /** In the order the fake's settings list them. */
-export const FAKE_SCRIPT_NAMES: readonly FakeScriptName[] = ['exchange', 'cjk', 'rewrite', 'long', 'notices', 'refless-stream', 'framed', 'rangeless', 'reconnect'];
+export const FAKE_SCRIPT_NAMES: readonly FakeScriptName[] = ['exchange', 'cjk', 'rewrite', 'long', 'notices', 'refless-stream', 'framed', 'rangeless', 'reconnect', 'late-ranges'];
 
 /** The scripts the fake can play (spec: "Testing" — script playback and the shape knobs). */
 export function fakeScript(name: FakeScriptName): FakeScript {
@@ -64,6 +65,26 @@ export function fakeScript(name: FakeScriptName): FakeScript {
           { startAt: 3000, steps: [{ at: 0, reconnecting: true }, { at: 1500, reconnected: true }] },
           exchange({ startAt: 5000, ref: 3, source: ['Still here?'], translation: 'まだいますか？', origin: 'c2', audioChunks: 1 }),
         ],
+      };
+    case 'late-ranges':
+      // Soniox's shape (Stage 2 Soniox, ruling 2): the translation closes at the
+      // endpoint, its speech streams as rangeless chunks, and the ranges are
+      // filled in once the speech segment has ended — no karaoke before, a sweep after.
+      return {
+        blocks: [{
+          startAt: 500,
+          steps: [
+            { at: 0, open: { ref: 1, side: 'source', origin: 'l1' } },
+            { at: 0, text: { ref: 1, text: 'Hello, how are you?' } },
+            { at: 200, close: { ref: 1, origin: 'l1' } },
+            { at: 400, open: { ref: 2, side: 'translation', origin: 'l1' } },
+            { at: 400, text: { ref: 2, text: 'こんにちは、お元気ですか？' } },
+            { at: 400, close: { ref: 2, origin: 'l1' } },
+            { at: 600, audio: { ref: 2, ms: msForText('こんにちは、') } },
+            { at: 600, audio: { ref: 2, ms: msForText('お元気ですか？') } },
+            { at: 800, ranges: { ref: 2, ranges: [{ index: 0, range: [0, 6] }, { index: 1, range: [6, 13] }] } },
+          ],
+        }],
       };
   }
 }

@@ -8,6 +8,7 @@ export type ScriptStep =
   | { at: number; text: { ref: number; text: string; timing?: SegmentTiming; language?: string } }
   | { at: number; close: { ref: number; origin?: string } }
   | { at: number; audio: { ref?: number; range?: TextRange; ms: number; /** The tone's phase: samples of this stream already played, so consecutive chunks join without a click (G3). */ from?: number } }
+  | { at: number; ranges: { ref: number; ranges: Array<{ index: number; range: TextRange }> } }
   | { at: number; degraded: { code: ClientDiagnosticCode; message: string } }
   | { at: number; reconnecting: true }
   | { at: number; reconnected: true }
