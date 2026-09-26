@@ -6,10 +6,10 @@ import type { EchoWatch } from '../../lib/audio/capture/echoWatch';
 const DIAGNOSTICS_KEY = 'sokuji.echoDiagnostics';
 
 /**
- * The narrow contract `useEchoNotice` needs (1e-3 ruling 18): the old
- * `IAudioService` already has both methods with these exact signatures, so it
- * satisfies this structurally without any change of its own; the new
- * capture's `EchoWatch` is adapted to it by `echoSource` below.
+ * The narrow contract `useEchoNotice` needs (1e-3 ruling 18): the old audio
+ * service already exposed both methods with these exact signatures, so this
+ * contract needed no change of its own when that service was retired; the
+ * new capture's `EchoWatch` is adapted to it by `echoSource` below.
  */
 export interface EchoSource {
   onEchoNotice(listener: ((state: EchoNoticeState | null) => void) | null): void;

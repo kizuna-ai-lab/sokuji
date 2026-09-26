@@ -533,12 +533,11 @@ const useAudioStore = create<AudioStore>()(
         
         // Note the virtual device if one is already present. The former
         // `else if (service.supportsVirtualDevices())` branch — which created
-        // devices and re-read the device list — was unreachable: the sole
-        // IAudioService implementation hard-returns false
-        // (ModernBrowserAudioService.ts:451-453), because the extension reaches
-        // its virtual microphone through messaging instead. Removed rather than
-        // migrated to report(): a diagnostic on a dead path reads as if the
-        // path is live.
+        // devices and re-read the device list — was unreachable: the old
+        // audio service's virtual-device support hard-returned false, because
+        // the extension reaches its virtual microphone through messaging
+        // instead. Removed rather than migrated to report(): a diagnostic on
+        // a dead path reads as if the path is live.
         if (devices.outputs.some(device => device.isVirtual)) {
           console.info('[Sokuji] [AudioStore] Virtual audio device detected');
         }

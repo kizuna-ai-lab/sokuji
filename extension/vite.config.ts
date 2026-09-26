@@ -81,10 +81,6 @@ export default defineConfig(({ mode }) => {
             dest: 'worklets',
           },
           {
-            src: '../src/lib/modern-audio/worklets/playback-ring-processor.js',
-            dest: 'worklets',
-          },
-          {
             src: '../src/lib/audio/worklets/pcm-tap-processor.js',
             dest: 'worklets',
           },

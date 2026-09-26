@@ -188,7 +188,6 @@ const LEDGER: Record<string, number> = {
   // rewrote the overlay page over the wire; its one failure (no #root) reports
   // through report.ts.
   // --- Later, under the ledger: src/lib (audio pipeline and helpers) ---
-  'src/lib/modern-audio/ModernBrowserAudioService.ts': 29,
   'src/lib/modern-audio/WebRTCAudioBridge.ts': 10,
   'src/lib/modern-audio/AppAudioRecorder.ts': 9,
   'src/lib/modern-audio/ModernAudioRecorder.ts': 8,
