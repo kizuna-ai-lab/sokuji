@@ -23,7 +23,7 @@ import { AUTO } from '../../lib/provider/languages';
 import { nativeSocket, type OpenSocket } from './socket';
 import { LegSpeech } from './speech';
 import { SonioxSttStream, type SonioxSttConfig, type SonioxSttMessage } from './sttStream';
-import { tokenFrames, Utterances } from './utterances';
+import { tokenFrames, Utterances, type SegmentEvent } from './utterances';
 import type { SonioxConfig } from './config';
 import type { SonioxCredentials } from './settings';
 
@@ -58,6 +58,15 @@ interface CoreLeg {
   noTtsKey: boolean;
 }
 
+/** One segment event to its leg, called on its own events object with its payload's own type. */
+function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
+  switch (event.kind) {
+    case 'segmentOpened': events.segmentOpened(event.payload); break;
+    case 'segmentText': events.segmentText(event.payload); break;
+    case 'segmentClosed': events.segmentClosed(event.payload); break;
+  }
+}
+
 function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents, openSocket: OpenSocket): CoreLeg {
   const tts = request.config.tts;
   const key = request.credentials.tts;
@@ -83,13 +92,12 @@ class SonioxCore {
   private resumeCycles = 0;
   private pendingResume: string | null = null;
   private pendingCutoff = false;
-  private readable = true;
 
   constructor(private readonly o: CoreOptions) {
     this.utterances = new Utterances({
       clock: o.primary.clock,
       sink: {
-        segment: (leg, event) => { if (!this.ended) (this.leg(leg).events[event.kind] as (payload: unknown) => void)(event.payload); },
+        segment: (leg, event) => { if (!this.ended) emitSegment(this.leg(leg).events, event); },
         speak: (leg, ref, text, span, language) => { if (!this.ended) this.leg(leg).speech?.speak(ref, text, span, language); },
         endSpeech: (leg) => { if (!this.ended) this.leg(leg).speech?.endUtterance(); },
       },
@@ -98,7 +106,14 @@ class SonioxCore {
     });
   }
 
-  /** Opens the STT socket and each speaking leg's TTS socket at once; rejects, opening nothing, when the STT socket cannot open or the signal aborts. */
+  /**
+   * Opens the STT socket and each speaking leg's TTS socket at once, and
+   * resolves when the STT socket is open; rejects, opening nothing, when it
+   * cannot open or the signal aborts. The TTS sockets are not awaited: every
+   * STT frame — a bad key's error, a 503 — then lands after the start
+   * resolved, so a failing start only ever rejects (the kit's rule; the
+   * review of Task 8).
+   */
   open(signal: AbortSignal): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (signal.aborted) {
@@ -117,8 +132,14 @@ class SonioxCore {
       signal.addEventListener('abort', onAbort, { once: true });
       const stt = this.newStt();
       this.stt = stt;
-      // A speech's open never rejects: a TTS socket that cannot open is retried on the first text (ruling 3).
-      Promise.all([stt.connect(this.sttConfig()), ...this.o.legs.map((leg) => leg.speech?.open())]).then(
+      const connecting = stt.connect(this.sttConfig());
+      // Opened here, before the STT socket can deliver a word, so no `speak()`
+      // comes first; never awaited. A speech's open never rejects (a TTS socket
+      // that cannot open is retried on the first text: ruling 3), text that
+      // arrives first waits for its socket, and `close()` reaches a socket
+      // still opening.
+      for (const leg of this.o.legs) void leg.speech?.open();
+      connecting.then(
         () => {
           if (settled) return;
           settled = true;
@@ -196,7 +217,10 @@ class SonioxCore {
   private opened(): void {
     const config = this.sttConfig();
     this.frame('out', 'session.opened', { region: config.region, translation: config.translation, speaking: this.o.legs.filter((l) => l.speech).map((l) => l.name) });
-    // Once the start has resolved: a start that failed owes no notice.
+    // Once the start can no longer fail — the STT socket is open and `open()`
+    // has settled — so a start that failed owes no notice. It lands just
+    // before the caller's `await` resumes; the runner applies an event that
+    // comes before the session (`run.ts` `onEvent`).
     queueMicrotask(() => {
       for (const leg of this.o.legs) {
         if (leg.noTtsKey && !this.ended) leg.events.degraded({ code: 'tts_degraded', message: 'No TTS key was issued for this leg: it runs text-only.' });
@@ -207,6 +231,8 @@ class SonioxCore {
   private newStt(): SonioxSttStream {
     const stream = new SonioxSttStream({ clock: this.o.primary.clock, openSocket: this.o.openSocket });
     let first = true;
+    // Per socket: a resumed socket starts readable, whatever episode the one before it was in.
+    let readable = true;
     // A socket this core has moved on from (a resume, a stop) is heard no more: its identity replaces the old generation counter.
     const current = () => !this.ended && stream === this.stt;
     stream.setHandlers({
@@ -216,15 +242,15 @@ class SonioxCore {
           first = false;
           this.o.primary.credentials.lease?.streamAccepted();
         }
-        this.readable = true;
+        readable = true;
         this.onMessage(message);
       },
       onError: (code, message) => { if (current()) this.onError(code, message); },
       onClose: (event) => { if (current()) this.onClose(event); },
       onUnreadable: (error) => {
         // The Logs only, on the ok → failing transition (choice 7): never a notice.
-        if (!current() || !this.readable) return;
-        this.readable = false;
+        if (!current() || !readable) return;
+        readable = false;
         this.frame('in', 'stt.unreadable', { message: describeCause(error) });
       },
     });
@@ -252,7 +278,7 @@ class SonioxCore {
       return;
     }
     if (RECOVERABLE.has(code)) {
-      this.fail('connection_lost', `The Soniox connection was lost (${code}${message ? `: ${message}` : ''}).`);
+      this.lost(code, message, `The Soniox connection was lost (${code}${message ? `: ${message}` : ''}).`);
       return;
     }
     this.fail(sttFailureCode(code), `[Soniox ${code}] ${message}`);
@@ -274,16 +300,21 @@ class SonioxCore {
       const original = this.pendingResume;
       this.pendingResume = null;
       this.stt = null;
-      void this.resume(original);
+      void this.resume(original, event);
       return;
     }
     // A close with nothing said before it: a network drop, or the server going away.
-    this.fail('connection_lost', event.reason || `The Soniox connection closed unexpectedly (${event.code ?? 'no code'}).`);
+    this.lost(
+      String(event.code ?? 'socket_closed'),
+      event.reason || 'The Soniox connection closed unexpectedly',
+      event.reason || `The Soniox connection closed unexpectedly (${event.code ?? 'no code'}).`,
+    );
   }
 
   /** The own-key 503 ladder (ruling 3): the utterance in flight closes as it stands; the TTS socket carries on. */
-  private async resume(original: string): Promise<void> {
-    this.frame('in', 'session.stt_resuming');
+  private async resume(original: string, close: { code?: number; reason?: string }): Promise<void> {
+    // The close that started it, as the old row carried it (choice 16; `SonioxClient.ts:604`).
+    this.frame('in', 'session.stt_resuming', { code: close.code, reason: close.reason });
     for (const leg of this.o.legs) leg.events.reconnecting();
     this.utterances.abandon();
     for (const delay of RESUME_DELAYS_MS) {
@@ -305,7 +336,7 @@ class SonioxCore {
       }
     }
     this.frame('in', 'session.stt_resume_failed', { message: original });
-    this.fail('connection_lost', `Soniox 503: ${original}`);
+    this.lost('503', original, `Soniox 503: ${original}`);
   }
 
   /** Resolves after `ms` on the clock, or at once when the core stops. */
@@ -323,9 +354,19 @@ class SonioxCore {
     });
   }
 
+  /**
+   * The recoverable outage (`surfaceRecoverableOutage`, `SonioxClient.ts:1422`):
+   * the Logs row keeps the wire's code and the server's own words, as the old
+   * one did (choice 16); the leg fails with `connection_lost` (choice 8).
+   */
+  private lost(wireCode: string, words: string, message: string): void {
+    if (this.ended) return;
+    this.frame('in', 'session.connection_lost', { code: wireCode, message: words });
+    this.fail('connection_lost', message);
+  }
+
   private fail(code: string, message: string): void {
     if (this.ended) return;
-    if (code === 'connection_lost') this.frame('in', 'session.connection_lost', { message });
     for (const leg of this.o.legs) {
       if (this.ended) break;
       leg.events.failed({ code, message });

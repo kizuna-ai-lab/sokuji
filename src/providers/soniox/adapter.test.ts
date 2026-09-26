@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, type SessionContext } from '../../lib/contract/adapter';
-import { createVirtualClock } from '../../lib/contract/clock';
+import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
@@ -34,9 +34,26 @@ const ERROR_503 = JSON.stringify({ error_code: 503, error_message: 'Service unav
 
 type Json = Record<string, unknown>;
 
+/** A virtual clock that counts its live timers: what a stop must leave at zero. */
+function trackedClock(): { clock: VirtualClock; timers: () => number } {
+  const inner = createVirtualClock(0);
+  const live = new Set<symbol>();
+  const clock: VirtualClock = {
+    now: () => inner.now(),
+    advance: (ms) => inner.advance(ms),
+    setTimeout(fn, ms) {
+      const id = Symbol('timer');
+      live.add(id);
+      const cancel = inner.setTimeout(() => { live.delete(id); fn(); }, ms);
+      return () => { live.delete(id); cancel(); };
+    },
+  };
+  return { clock, timers: () => live.size };
+}
+
 function started(o: { context?: SessionContext; settings?: Partial<SonioxSettings>; credentials?: SonioxCredentials } = {}) {
   const sockets = fakeSockets();
-  const clock = createVirtualClock(0);
+  const { clock, timers } = trackedClock();
   const { events, log } = recordEvents();
   const controller = new AbortController();
   const context = o.context ?? AUTO_CTX;
@@ -51,7 +68,7 @@ function started(o: { context?: SessionContext; settings?: Partial<SonioxSetting
   /** The frames of one type, in order. */
   const frames = (type: string) => of('frame').filter((e) => e.payload.type === type);
   const sttSockets = () => sockets.all.filter(isStt);
-  return { sockets, clock, log, controller, starting, stt, tts, openAll, of, frames, sttSockets };
+  return { sockets, clock, timers, log, controller, starting, stt, tts, openAll, of, frames, sttSockets };
 }
 
 async function live(o?: Parameters<typeof started>[0]) {
@@ -176,13 +193,14 @@ describe('the Soniox adapter: one leg', () => {
   });
 
   it('a 408, a socket error and a bare close each fail with connection_lost, once', async () => {
-    const acts: Array<(s: FakeSocket) => void> = [
-      (s) => s.receive(JSON.stringify({ error_code: 408, error_message: 'Request timeout' })),
-      (s) => s.drop(),
-      (s) => s.serverClose(1006),
+    // The Logs row keeps the old client's `{ code, message }`: the wire's code and the server's words (choice 16, `surfaceRecoverableOutage`).
+    const acts: Array<[(s: FakeSocket) => void, Json]> = [
+      [(s) => s.receive(JSON.stringify({ error_code: 408, error_message: 'Request timeout' })), { code: '408', message: 'Request timeout' }],
+      [(s) => s.drop(), { code: 'socket_error', message: expect.any(String) }],
+      [(s) => s.serverClose(1006), { code: '1006', message: 'The Soniox connection closed unexpectedly' }],
     ];
-    for (const act of acts) {
-      const { stt, of, log } = await live();
+    for (const [act, row] of acts) {
+      const { stt, of, log, frames } = await live();
       act(stt());
       await flush();
       const failed = of('failed');
@@ -191,6 +209,7 @@ describe('the Soniox adapter: one leg', () => {
       const lostAt = log.findIndex((e) => e.kind === 'frame' && e.payload.type === 'session.connection_lost');
       expect(lostAt).toBeGreaterThanOrEqual(0);
       expect(lostAt).toBeLessThan(log.indexOf(failed[0]));
+      expect(frames('session.connection_lost').map((e) => e.payload.payload)).toEqual([row]);
     }
   });
 
@@ -234,13 +253,14 @@ describe('the Soniox adapter: one leg', () => {
     expect(of('failed')).toEqual([]);
     expect(of('degraded')).toEqual([]);
     expect(frames('session.stt_503')).toHaveLength(1);
-    expect(frames('session.stt_resuming')).toHaveLength(1);
+    // The close that started the resume, as the old client's row carried it (choice 16).
+    expect(frames('session.stt_resuming').map((e) => e.payload.payload)).toEqual([{ code: 1011, reason: '' }]);
     expect(frames('session.stt_resume_attempt_failed')).toHaveLength(2);
     expect(frames('session.stt_resumed')).toHaveLength(1);
   });
 
   it("a resume whose three attempts fail ends with connection_lost and the 503's own words", async () => {
-    const { stt, clock, of } = await live();
+    const { stt, clock, of, frames } = await live();
     stt().receive(ERROR_503);
     stt().serverClose(1011);
     await flush();
@@ -257,6 +277,7 @@ describe('the Soniox adapter: one leg', () => {
     await flush();
     expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: 'connection_lost', message: 'Soniox 503: Service unavailable' } }]);
     expect(of('reconnected')).toEqual([]);
+    expect(frames('session.connection_lost').map((e) => e.payload.payload)).toEqual([{ code: '503', message: 'Service unavailable' }]);
   });
 
   it('past five resume cycles a 503 is an outage', async () => {
@@ -285,6 +306,47 @@ describe('the Soniox adapter: one leg', () => {
     expect(h.of('reconnected')).toHaveLength(1);
     h.stt().receive(msg(orig('Again.'), tr('また。'), END));
     expect(h.of('segmentOpened').map((e) => e.payload.ref)).toEqual([1, 2, 3, 4]);
+  });
+
+  it('a stop during a resume backoff leaves nothing behind: no attempt, no timer, no event', async () => {
+    const { session, stt, tts, sttSockets, clock, log, timers, frames } = await live();
+    stt().receive(ERROR_503);
+    stt().serverClose(1011);
+    await flush();
+    // The first attempt fails: the ladder now waits 1 s for the second.
+    stt().drop();
+    await flush();
+    expect(frames('session.stt_resume_attempt_failed')).toHaveLength(1);
+    const n = log.length;
+    const count = sttSockets().length;
+    await session.stop();
+    expect(tts().closedByClient).not.toBeNull();
+    await flush();
+    expect(timers()).toBe(0);
+    clock.advance(10_000);
+    await flush();
+    expect(sttSockets()).toHaveLength(count);
+    expect(log.length).toBe(n);
+  });
+
+  it("a stop while a resume attempt's connect is in flight closes that socket, and nothing follows", async () => {
+    const { session, stt, tts, sttSockets, clock, log, timers } = await live();
+    stt().receive(ERROR_503);
+    stt().serverClose(1011);
+    await flush();
+    const attempt = stt();
+    expect(attempt.readyState).toBe(FakeSocket.CONNECTING);
+    const n = log.length;
+    const stopping = session.stop();
+    expect(attempt.closedByClient).not.toBeNull();
+    expect(tts().closedByClient).not.toBeNull();
+    await stopping;
+    await flush();
+    expect(timers()).toBe(0);
+    clock.advance(10_000);
+    await flush();
+    expect(sttSockets()).toHaveLength(2);
+    expect(log.length).toBe(n);
   });
 
   it('endTurn sends finalize; <fin> closes the source at once and holds the translation for its late words (ruling 5)', async () => {
@@ -330,6 +392,17 @@ describe('the Soniox adapter: one leg', () => {
     expect(of('failed')).toEqual([]);
   });
 
+  it('a resumed STT socket starts its own unreadable episode', async () => {
+    const h = await live();
+    h.stt().receive('{bad');
+    expect(h.frames('stt.unreadable')).toHaveLength(1);
+    // The old socket's episode never ended; the resumed socket's first bad frame is a new one.
+    await resumeOnce(h);
+    expect(h.of('reconnected')).toHaveLength(1);
+    h.stt().receive('{bad');
+    expect(h.frames('stt.unreadable')).toHaveLength(2);
+  });
+
   it('speaks each final translation, streams its audio, and fills in its ranges', async () => {
     const { stt, tts, log, of } = await live();
     stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
@@ -350,13 +423,15 @@ describe('the Soniox adapter: one leg', () => {
   });
 
   it('stop closes both sockets before its first await, and nothing follows', async () => {
-    const { session, stt, tts, log, clock } = await live();
+    const { session, stt, tts, log, clock, timers } = await live();
     const n = log.length;
     const stopping = session.stop();
     expect(stt().closedByClient).not.toBeNull();
     expect(tts().closedByClient).not.toBeNull();
     // The end of the stream: an empty text frame.
     expect(stt().sent[stt().sent.length - 1]).toBe('');
+    // Both keepalives stopped with their sockets.
+    expect(timers()).toBe(0);
     await stopping;
     clock.advance(60_000);
     await flush();
@@ -382,6 +457,88 @@ describe('the Soniox adapter: one leg', () => {
     expect(tts().closedByClient).not.toBeNull();
     await flush();
     expect(log).toEqual([]);
+  });
+
+  describe('the start resolves on the STT socket alone (the review of Task 8, option B)', () => {
+    /** Opens the STT socket only; the TTS socket stays connecting. Resolves with where the log stood when the start resolved, or -1 when it still waits. */
+    async function sttOpened(h: ReturnType<typeof started>): Promise<number> {
+      let resolvedAt = -1;
+      void h.starting.then(() => { resolvedAt = h.log.length; }, () => {});
+      h.stt().open();
+      await flush();
+      return resolvedAt;
+    }
+
+    it("a bad key's error frame while the TTS socket still opens fails the leg after the start resolved, once", async () => {
+      const h = started();
+      const resolvedAt = await sttOpened(h);
+      expect(h.tts().readyState).toBe(FakeSocket.CONNECTING);
+      expect(resolvedAt).toBeGreaterThanOrEqual(0);
+      // Before the resolve: the start's own frame, and nothing else.
+      expect(h.log.slice(0, resolvedAt).map((e) => (e.kind === 'frame' ? e.payload.type : e.kind))).toEqual(['session.opened']);
+      h.stt().receive(JSON.stringify({ error_code: 401, error_message: 'Invalid API key' }));
+      h.stt().serverClose(1000);
+      await flush();
+      expect(h.of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 401] Invalid API key' } }]);
+      expect(h.log.indexOf(h.of('failed')[0])).toBeGreaterThanOrEqual(resolvedAt);
+      // The failure closed the TTS socket still opening, and left no timer running.
+      expect(h.tts().closedByClient).not.toBeNull();
+      expect(h.timers()).toBe(0);
+    });
+
+    it('a 503 while the TTS socket still opens resumes after the start resolved', async () => {
+      const h = started();
+      const resolvedAt = await sttOpened(h);
+      expect(resolvedAt).toBeGreaterThanOrEqual(0);
+      h.stt().receive(ERROR_503);
+      h.stt().serverClose(1011);
+      await flush();
+      expect(h.log.findIndex((e) => e.kind === 'reconnecting')).toBeGreaterThanOrEqual(resolvedAt);
+      h.openAll();
+      await flush();
+      expect(h.of('reconnected')).toHaveLength(1);
+      expect(h.of('failed')).toEqual([]);
+    });
+
+    it('text flows while the TTS socket still opens; its speech waits for the socket, then goes in order', async () => {
+      const h = started();
+      expect(await sttOpened(h)).toBeGreaterThanOrEqual(0);
+      h.stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
+      expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Hello.', 'こんにちは。']);
+      expect(h.of('segmentClosed').map((e) => e.payload.ref)).toEqual([1, 2]);
+      expect(h.tts().sent).toEqual([]);
+
+      h.tts().open();
+      await flush();
+      const sent = h.tts().sentJson<Json>();
+      expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', voice: 'Adrian', language: 'ja' });
+      expect(sent.slice(1)).toEqual([
+        { stream_id: 'utt-1-1', text: 'こんにちは。', text_end: false },
+        { stream_id: 'utt-1-1', text: '', text_end: true },
+      ]);
+      h.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+      h.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1200) }));
+      h.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+      expect(h.of('speechRanges')).toEqual([{ kind: 'speechRanges', payload: { ref: 2, ranges: [{ index: 0, range: [0, 4] }, { index: 1, range: [4, 6] }] } }]);
+      expect(h.frames('tts.connect_failed')).toEqual([]);
+    });
+
+    it('a stop while the TTS socket still opens closes it, and nothing follows', async () => {
+      const h = started();
+      expect(await sttOpened(h)).toBeGreaterThanOrEqual(0);
+      const session = await h.starting;
+      expect(h.tts().readyState).toBe(FakeSocket.CONNECTING);
+      const n = h.log.length;
+      const stopping = session.stop();
+      expect(h.stt().closedByClient).not.toBeNull();
+      expect(h.tts().closedByClient).not.toBeNull();
+      await stopping;
+      await flush();
+      expect(h.timers()).toBe(0);
+      h.clock.advance(20_000);
+      await flush();
+      expect(h.log.length).toBe(n);
+    });
   });
 
   it('opens with session.opened, and no frame carries the key', async () => {
