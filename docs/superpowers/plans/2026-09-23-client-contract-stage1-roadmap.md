@@ -1017,3 +1017,83 @@ iframe) is a follow-up only if the owner asks.
   `--ptt` holds a turn on a voiced WAV, `--shot <png>` saves the meeting page.
   Chromium 151 ships its own `background.js` component worker: the probe picks
   the worker whose manifest names `fullpage.html`.
+
+## Scheduled by plan 1e-3c
+
+Plan 1e-3c (the transitional deletion) landed as commits `aea17e74..f2aecd43`
+(plan `1bfdd362`): seven tasks, two of them with one review fix round each,
+**−13,957 / +802 lines across 113 files**, no behaviour change beyond the one
+recorded below. The owner narrowed it on 2026-09-26, after accepting the
+switched app on hardware:
+- **Every old provider stays** — clients, descriptors, the old per-provider
+  and generic settings UI, the `settingsStore` slices, the Provider enum, the
+  SetupWizard, the managed-Soniox MainPanel chips — as the source each Stage 2
+  port reads. This reverses the spec's D11 ("read from git history"); the
+  Stage 2 foundation plan amends the spec. Each provider's old code goes with
+  its port, after the owner's live test.
+- **The fake provider stays** (D24): the conformance suite and demo provider
+  every Stage 2 adapter uses.
+
+What went: the legacy subtitle window and its overlay mirror (`SubtitleApp`,
+`SubtitleStream`, `sessionPortMirror`, `types/subtitleWire`, `playbackStore`,
+`useSubtitleSessionBridge`); the legacy export adapter and its item helpers
+(its tests ported onto `ExportMenuButton`); the old session store's dead half
+and the old start gate (`sessionStartGate.ts`); the old MainPanel's
+orchestration helpers; the old audio service, its idle player and worklet
+(`ModernBrowserAudioService`, `ModernAudioPlayer`, `playback-ring-processor.js`,
+`IAudioService`, `ServiceFactory.getAudioService`) after device enumeration
+moved to `src/lib/audio/devices.ts`.
+
+Controller rulings: the old generic Settings surfaces (`ProviderSection`,
+`LanguageSection`, `PoweredBy`, `EngineStatusLine`) stay while Stage 2 still
+reads them; `sessionStore` is trimmed to `lockedMode` + `isInitializing`, the
+two fields kept UI reads; device enumeration moved to a new module rather than
+a slimmed service; the managed-Soniox chips stay; pre-existing orphans are out
+of scope.
+
+**Behaviour change, accepted:** on Electron's first run the microphone
+permission warm-up — and, when it fails, its hang and its toast — now happens
+once instead of up to three times (the old `initializeAudioService()` chain
+called `getDevices()` separately each time).
+
+Checked headlessly: the spine probes (subtitle in every form, surface, export,
+audio), `app-panel-probe --app` (plain, `--advanced`, `--ptt`, `--settings`),
+`extension-overlay-probe` on fresh builds (plain and `--ptt`), both release
+builds with no fake code, the extension's `worklets/` without the deleted
+worklet, and a fresh profile's Settings listing its devices.
+
+What it leaves:
+
+**The owner's Electron check (owed, not blocking)**
+- Device pickers populated; the first-run permission prompt (now once);
+  monitor and passthrough heard once; the virtual microphone receiving TTS in
+  a meeting app.
+
+**With the Stage 2 plans that edit these files**
+- Stale comments in kept code name deleted modules:
+  `geminiTranslateModel.ts:58` (`SubtitleApp`), `sonioxBothMode.ts:22` and
+  `sonioxManagedMinBalance.ts:5` (`sessionStartGate.ts`),
+  `ProviderDescriptor.ts:336` and `managedVoicePrep.ts:18` (`computeStartGate`),
+  `LocalInferenceClient.ts:691` (`ConversationRow`),
+  `localParticipantConfig.ts:17` (an import chain through the deleted audio
+  service), `LanguageSection.tsx:483` and `LanguageSection.sentence.test.tsx:412`
+  (`sessionStartGate`), `settingsStore.ts:1646` (`SubtitleApp`).
+- The old generic Settings surfaces and `sessionStore`'s remainder go when no
+  kept reader is left.
+- **Bundle size:** the old clients and descriptors still ship (734 KB
+  unminified in the app) and sit in the chunk the extension's overlay page
+  preloads, reached through `SubtitleBar` → `settingsStore` →
+  `ProviderConfigFactory`. They leave as the providers port.
+
+**Hygiene, optional**
+- The preview could publish from `currentSubtitleFeed()` instead of its own
+  entries adapter; four tests carry their own `box<T>()`; three MainPanel /
+  takeover tests copy one mock block.
+- Five `en` locale keys lost their last reader with the old start gate
+  (`mainPanel.{apiKeyRequired,modelsRequired,modelsLoading,insufficientBalance,localModelsRequired}`);
+  kept, as Stage 2 may need them.
+- Pre-existing orphans, not transitional: `Auth/AuthGuard.*`,
+  `Auth/SignInPage.scss`, `lib/auth/guards.tsx`, `ConnectionStatus/*`,
+  `UpdateSection.*`, `engine/resolutionNotes.ts`,
+  `supertonicSidReconciliation.ts`, `utils/clampToScreen.ts`, and
+  `NativeTtsProto`'s static import in `App.tsx` (5.7 KB in release).
