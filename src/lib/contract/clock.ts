@@ -53,15 +53,28 @@ export function pinnedRealClock(): Clock {
  * a virtual clock drives a keep-alive in tests. The next tick is armed
  * before `fn` runs, so on the real clock a tick that throws does not stop
  * the interval.
+ *
+ * Drift-free, like the browser's `setInterval`: the ticks stay on the grid
+ * of `ms` from the start, however late each timer fires, and a stall longer
+ * than `ms` skips the beats it missed (one late tick, then the next grid
+ * point) rather than firing a burst to catch up. Re-arming a fresh `ms`
+ * from each late tick would add every tick's lateness to the next deadline
+ * — a consumer that takes one frame per tick (`PcmMixer`) would fall behind
+ * its real-time input.
  */
-export function every(clock: Pick<Clock, 'setTimeout'>, ms: number, fn: () => void): () => void {
+export function every(clock: Pick<Clock, 'setTimeout' | 'now'>, ms: number, fn: () => void): () => void {
   // A virtual clock would spin forever on a zero interval.
   if (!(ms > 0)) throw new RangeError(`every() needs a positive interval, not ${ms}`);
+  const origin = clock.now();
   let stopped = false;
   let cancel: () => void = () => {};
   const tick = () => {
     if (stopped) return;
-    cancel = clock.setTimeout(tick, ms);
+    // The next grid point after now. The double modulo keeps the phase in
+    // [0, ms) even when the wall clock (`realClock.now()` is `Date.now()`)
+    // has jumped backwards, so the delay stays within 1..ms.
+    const phase = (((clock.now() - origin) % ms) + ms) % ms;
+    cancel = clock.setTimeout(tick, ms - phase);
     fn();
   };
   cancel = clock.setTimeout(tick, ms);

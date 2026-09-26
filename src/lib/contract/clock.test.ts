@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { createVirtualClock, every, pinnedRealClock } from './clock';
+import { createVirtualClock, every, pinnedRealClock, type Clock } from './clock';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -87,6 +87,53 @@ describe('every', () => {
     clock.advance(1000);
     expect(fn).toHaveBeenCalledTimes(10);
   });
+
+  // A browser fires every timer a little late (main-thread work, timer
+  // granularity). Re-arming a fresh `ms` from each late tick would add that
+  // lateness to every later deadline; `setInterval` does not drift, and
+  // neither may `every()`.
+  it('does not drift when every timer fires late: 600 ticks in 60 s, each on the 100-ms grid', () => {
+    const v = createVirtualClock(0);
+    const late = 2;
+    const clock: Clock = { now: v.now, setTimeout: (fn, ms) => v.setTimeout(fn, ms + late) };
+    const at: number[] = [];
+    const cancel = every(clock, 100, () => at.push(v.now()));
+    // The 600th tick is due at 60 000 ms and fires `late` after it.
+    v.advance(60_000 + late);
+    cancel();
+    expect(at).toHaveLength(600);
+    expect(at).toEqual(Array.from({ length: 600 }, (_, k) => (k + 1) * 100 + late));
+  });
+
+  it('skips the beats a stall longer than the interval missed: one tick, then back on the grid', () => {
+    const v = createVirtualClock(0);
+    let arms = 0;
+    // The third timer armed (the tick due at 300) stalls 250 ms past its due time.
+    const clock: Clock = { now: v.now, setTimeout: (fn, ms) => v.setTimeout(fn, ms + (++arms === 3 ? 250 : 0)) };
+    const at: number[] = [];
+    const cancel = every(clock, 100, () => at.push(v.now()));
+    v.advance(800);
+    cancel();
+    // 300, 400 and 500 were missed: no burst to catch up, one late tick at
+    // 550, and the next on the grid at 600.
+    expect(at).toEqual([100, 200, 550, 600, 700, 800]);
+  });
+
+  it('a wall clock that jumps backwards arms the next tick within one interval', () => {
+    const v = createVirtualClock(0);
+    let offset = 0;
+    // `realClock.now()` is `Date.now()`, which a system clock change can move backwards.
+    const clock: Clock = { now: () => v.now() + offset, setTimeout: v.setTimeout };
+    const at: number[] = [];
+    const cancel = every(clock, 100, () => at.push(v.now()));
+    v.advance(200);
+    offset = -1_050;
+    v.advance(200);
+    cancel();
+    // The tick at 300 reads the wall clock at -750: 50 ms before a grid point,
+    // so the next tick comes 50 ms later — never more than one interval.
+    expect(at).toEqual([100, 200, 300, 350]);
+  });
 });
 
 describe('pinnedRealClock', () => {
@@ -96,24 +143,28 @@ describe('pinnedRealClock', () => {
     const realSetTimeout = globalThis.setTimeout;
     const fn = vi.fn();
     const cancel = every(pinnedRealClock(), 20, fn);
-    vi.useFakeTimers();
-    // A real wait long enough for the already-pinned tick to fire, and to
-    // re-arm, while the fake clock is installed. Built on `realClock`
-    // instead, this is the exact moment the interval would hand its next
-    // re-arm to whichever `setTimeout` is global right then: the fake one.
-    await new Promise((resolve) => realSetTimeout(resolve, 80));
-    const callsDuringFake = fn.mock.calls.length;
-    expect(callsDuringFake).toBeGreaterThan(0);
+    // In a `finally`: a failed assertion must not leave a real 20-ms interval
+    // ticking for the rest of this file.
+    try {
+      vi.useFakeTimers();
+      // A real wait long enough for the already-pinned tick to fire, and to
+      // re-arm, while the fake clock is installed. Built on `realClock`
+      // instead, this is the exact moment the interval would hand its next
+      // re-arm to whichever `setTimeout` is global right then: the fake one.
+      await new Promise((resolve) => realSetTimeout(resolve, 80));
+      const callsDuringFake = fn.mock.calls.length;
+      expect(callsDuringFake).toBeGreaterThan(0);
 
-    // The fake clock never sees it: advancing it fires nothing further.
-    vi.advanceTimersByTime(10_000);
-    expect(fn.mock.calls.length).toBe(callsDuringFake);
+      // The fake clock never sees it: advancing it fires nothing further.
+      vi.advanceTimersByTime(10_000);
+      expect(fn.mock.calls.length).toBe(callsDuringFake);
 
-    vi.useRealTimers();
-    // Still alive: it keeps ticking on real time, unharmed by the excursion.
-    await new Promise((resolve) => realSetTimeout(resolve, 60));
-    expect(fn.mock.calls.length).toBeGreaterThan(callsDuringFake);
-
-    cancel();
+      vi.useRealTimers();
+      // Still alive: it keeps ticking on real time, unharmed by the excursion.
+      await new Promise((resolve) => realSetTimeout(resolve, 60));
+      expect(fn.mock.calls.length).toBeGreaterThan(callsDuringFake);
+    } finally {
+      cancel();
+    }
   });
 });

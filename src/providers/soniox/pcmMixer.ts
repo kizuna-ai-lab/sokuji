@@ -20,7 +20,7 @@ export interface PcmMixerOptions {
    *  side-attribution energy evidence (see SonioxSideTracker). */
   onFrame: (mixed: Int16Array, energyA: number, energyB: number) => void;
   /** The interval's clock; the real one by default (ruling 1). */
-  clock?: Pick<Clock, 'setTimeout'>;
+  clock?: Pick<Clock, 'setTimeout' | 'now'>;
 }
 
 export class PcmMixer {

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PcmMixer } from './pcmMixer';
+import { createVirtualClock, type Clock } from '../../lib/contract/clock';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -100,5 +101,40 @@ describe('PcmMixer', () => {
     vi.advanceTimersByTime(100);
     expect(got[0]).toEqual([100, 0]);
     m.stop();
+  });
+
+  // The capture delivers 100 ms of audio every 100 ms, but a browser fires
+  // every timer a little late. One frame per tick keeps up only if the ticks
+  // stay on the 100-ms grid (as `setInterval` did); otherwise the backlog
+  // grows to the cap and audio is dropped from then on.
+  it('keeps up with real-time input on a clock whose timers fire late: 600 frames in 60 s, no backlog growth', () => {
+    const v = createVirtualClock(0);
+    const late = 2;
+    const clock: Clock = { now: v.now, setTimeout: (fn, ms) => v.setTimeout(fn, ms + late) };
+    const frameSamples = 1600; // 100 ms at 16 kHz
+    const frames: Int16Array[] = [];
+    const m = new PcmMixer({
+      clock,
+      frameSamples,
+      intervalMs: 100,
+      maxBacklogSamples: 32_000,
+      onFrame: (f) => frames.push(f),
+    });
+    m.start();
+    const chunk = new Int16Array(frameSamples).fill(1000);
+    for (let t = 0; t < 600; t++) {
+      m.pushA(chunk);
+      m.pushB(chunk);
+      v.advance(100);
+    }
+    // The 600th frame is due at 60 000 ms and fires `late` after it.
+    v.advance(late);
+    expect(frames).toHaveLength(600);
+    expect(frames.every((f) => f.every((s) => s === 1000))).toBe(true);
+    // Nothing queued behind it: the next tick finds both channels empty.
+    v.advance(100);
+    m.stop();
+    expect(frames).toHaveLength(601);
+    expect(frames[600].every((s) => s === 0)).toBe(true);
   });
 });
