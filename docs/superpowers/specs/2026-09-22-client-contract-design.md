@@ -1135,14 +1135,15 @@ why. Without the limit, a request that never settles leaves the provider
 while the runner is idle — a change seen mid-run is checked once idle again. A
 local provider is checked 150 ms after any change, and whenever its own inputs
 change (`watchReadiness`: models downloading). An own-key or managed provider
-is checked at once when it is selected, when its entry loads, and when the
-sign-in or the account flips; after an edit to its settings, credentials or
-pair, 800 ms after the last one. A sign-in or account flip forgets every
-loaded managed provider's answer. A ready answer from a network check is kept
-per settings, credentials, pair and legs — and, for a managed provider, per
-sign-in and account — so asking again for inputs already answered costs no
-request. Nothing account-mutable, a balance above all, may live in a ready
-answer: a flip back to an account already answered is served from it.
+whose readiness is unknown is checked at once when it is selected or its entry
+loads; after an edit to its settings, credentials or pair, 800 ms after the
+last one. A sign-in or account flip forgets every loaded managed provider's
+readiness and checks the selected one at once; an own-key provider's answer
+does not depend on the sign-in. The last ready answer from a network check is
+kept with its settings, credentials, pair and legs — and, for a managed
+provider, its sign-in and account — so asking again for exactly those inputs
+costs no request. Nothing account-mutable, a balance above all, may live in a
+ready answer: signing out and back in to the same account is served from it.
 
 The store's model auto-select, a switch covering three providers, becomes a pure
 effective-model function inside each provider that offers a model choice: the
@@ -1274,10 +1275,12 @@ register/clear pair would, the moment the legs come up together.
 
 ### Persisted settings that move
 
-Storage keys stay, but four things change meaning. Each is migrated as it is
-read at load (`settings.migrate`, with `legacyKeys`, the credentials and
-`migratePair`); nothing is written back, so the stored values stay as they
-were and every load migrates them again:
+Storage keys stay, but four things change meaning. A provider's own values are
+migrated as they are read at load (`settings.migrate`, with `legacyKeys`, the
+credentials and `migratePair`); nothing is written back, so they stay as they
+were and every load migrates them again. The global turn mode is the
+exception: it is migrated once from the old slices and written to its own key,
+`settings.common.turnMode` (1e-3 ruling 3); later loads read that key.
 
 | Setting | Today | Becomes |
 |---|---|---|

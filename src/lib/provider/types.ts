@@ -231,11 +231,15 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     read(values: CredentialValues, auth: AuthContext): K | CredentialsMissing;
   };
   /**
-   * Can this provider start now: a network validation, model readiness, or a
-   * signed-in session. Throw when the check could not find out (offline);
-   * answer `ok: false` only when the provider said no. A ready answer is
-   * kept per settings, credentials, pair and legs — and, for a managed
-   * provider, per sign-in and account; a local provider is asked every time.
+   * Can this provider start now: a network validation, model readiness, or
+   * the service's answer for a managed provider (the sign-in itself is
+   * `credentials.read`'s to see). Throw when the check could not find out
+   * (offline), and bound your own request: throw when it has not answered
+   * within its limit, or the provider stays `checking` with Start off and no
+   * words. Answer `ok: false` only when the provider said no. The last ready
+   * answer is kept with its settings, credentials, pair and legs — and, for a
+   * managed provider, its sign-in and account; a local provider is asked
+   * every time.
    */
   check(k: K, s: S, ctx: CheckContext): Promise<CheckResult>;
   /**

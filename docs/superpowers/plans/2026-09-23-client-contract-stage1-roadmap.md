@@ -1175,12 +1175,13 @@ What landed, by task:
 - **The preview signs in** (`c377e0df`): `&signedin=1` hands the session a
   signed-in stand-in with no network; `&script=` scripts either fake.
 - **Readiness for every kind** (`b3a939cd`, `6cf67038`, `af425383`):
-  `driveReadiness` checks own-key and managed providers — asked at once on
-  selection, load and a sign-in or account flip, 800 ms after an edit; a flip
-  forgets every managed provider's answer; a managed provider's kept answer is
-  per account, so a flip back to an account already answered is served from it
-  with no request; Validate is own-key only and tracks `api_key_validated`
-  again (F1).
+  `driveReadiness` checks own-key and managed providers — at once on selection
+  and load while their readiness is unknown, 800 ms after an edit; a sign-in
+  or account flip forgets every managed provider's readiness and checks the
+  selected one at once; the last ready answer is kept with its inputs, and a
+  managed provider's with its account too, so signing out and back in to the
+  same account costs no request; Validate is own-key only and tracks
+  `api_key_validated` again (F1).
 - **Registry invariants and `i18nKey`** (`5e98695e`): every provider meets
   the old enum's ids and slice keys, en names, credential sentences, a
   managed provider's sign-in reading, identity migrations; the release order
@@ -1237,7 +1238,7 @@ run; and that a migration writes nothing back.
 **Stated departures from today:**
 - An own-key provider's readiness is checked on its own: at once when it is selected or loaded, and 800 ms after its settings or credentials last changed. Before, only Validate or a start checked it; the old app validated on every change with no delay.
   - One visible effect: with an empty key, the credential form shows "Enter your API key in Settings before starting." and Start is off with that reason as soon as the provider is selected, before anything is typed. The old app showed no verdict until a key was typed or Validate pressed.
-- A managed provider shows no Validate button, and is asked again at once when the user signs in or out, or switches account (served from the kept answer when that account was already answered — amended after the final review).
+- A managed provider shows no Validate button, and is asked again at once when the user signs in or out, or switches account (served from the kept answer when it is the account last answered ready — amended after the final review).
 - Start is off, with the reason, when the gate would refuse: the participant leg on the web page, a pair that does not reverse (D20), a turn mode the provider does not offer. Before, Start was offered and the start was refused.
 - The development build's picker offers a second fake, "the leased fake" (development only).
 - The preview's `&mode=`, `&signedin=1`, and `&script=` for either fake.
@@ -1276,7 +1277,9 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
 - Participant speech against the lease (spec open question, survey §3.4.3).
 - The sign-in auto-switch: a product decision, with `providerStore.select`'s phase guard.
 - The registry's final order (Task 16's roadmap item).
-- Nothing account-mutable — the balance above all — may live in its ready answer: a flip back to an account already answered is served from the kept answer with no request (final review M1). The balance goes through `minimumBalance` and the lease.
+- Nothing account-mutable — the balance above all — may live in its ready answer: signing out and back in to the same account is served from the kept answer with no request (final review M1). The balance goes through `minimumBalance` and the lease.
+- A check that threw or timed out leaves a managed provider `not-ready` with no way back but an edit, a change of legs or a sign-in flip: the driver re-checks only an unknown readiness, and a managed provider has no Validate (final re-review). A Kizuna Soniox launch while offline would keep Start off until the user changes something — give the not-ready surface a retry, or have the driver re-ask a thrown answer on selection.
+- After the fix wave the driver's timer skips a network provider whose readiness is already known, so `watchReadiness` re-checks only a local one; a managed provider that wants a re-check (a balance change) forgets its readiness first.
 - `AuthContext` has no pending state: at every launch a signed-in user sees "Sign in to use Kizuna AI's built-in translation service." with Start off while the session loads (final review M8). The old gate did the same; the managed account row is where a pending state belongs.
 
 **Gemini:** F13's `InstructionsField` (the global template / advanced editor, moved out of `ProviderSpecificSettings.tsx`), `VoiceField`, `ModelField` over `props.models` and `shared.models` (Task 10), and the sliders.
