@@ -69,6 +69,11 @@ function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
     case 'segmentOpened': events.segmentOpened(event.payload); break;
     case 'segmentText': events.segmentText(event.payload); break;
     case 'segmentClosed': events.segmentClosed(event.payload); break;
+    default: {
+      // A kind added to `SegmentEvent` must be routed here: unhandled, it would be dropped without a word.
+      const unhandled: never = event;
+      void unhandled;
+    }
   }
 }
 
@@ -137,8 +142,9 @@ class SonioxCore {
    * resolves when the STT socket is open; rejects, opening nothing, when it
    * cannot open or the signal aborts. The TTS sockets are not awaited: every
    * STT frame — a bad key's error, a 503 — then lands after the start
-   * resolved, so a failing start only ever rejects (the kit's rule; the
-   * review of Task 8).
+   * resolved, so a failing start only ever rejects (the kit's rule). Awaiting
+   * them would let an STT error that beats a TTS handshake say `failed`
+   * while the start is still pending.
    */
   open(signal: AbortSignal): Promise<void> {
     return new Promise<void>((resolve, reject) => {
@@ -212,6 +218,8 @@ class SonioxCore {
     const evidence = this.tracker.inferSide(token.speaker, token.start_ms, token.end_ms);
     if (evidence) return evidence.side;
     // The language, which never votes; the speaker's leg when nothing can tell.
+    // Latched at this first token: the diarization design's accepted limitation
+    // (docs/superpowers/specs/2026-07-30-soniox-diarization-attribution-design.md, "decided once per utterance").
     const source = this.o.primary.context.direction.source;
     if (token.translation_status !== 'translation' && token.language) return token.language === source ? 'speaker' : 'participant';
     if (token.translation_status === 'translation' && token.source_language) return token.source_language === source ? 'speaker' : 'participant';
@@ -449,18 +457,20 @@ export type SonioxAdapter = Adapter<SonioxConfig, SonioxCredentials> & {
 
 export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): SonioxAdapter {
   const openSocket = deps.openSocket ?? nativeSocket;
-  const start: SonioxAdapter['start'] = async (request, events) => {
+  /** One leg on its own core, named as the leg it is: what its Logs say (`session.opened`'s `speaking`). */
+  const startLeg = async (name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents): Promise<AdapterSession> => {
     if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
-    // One leg: the core's name for it is its own; the runner knows which leg these events are.
-    const core = new SonioxCore({ primary: request, legs: [coreLeg('speaker', request, events, openSocket)], openSocket });
+    const core = new SonioxCore({ primary: request, legs: [coreLeg(name, request, events, openSocket)], openSocket });
     await core.open(request.signal);
-    return core.session('speaker');
+    return core.session(name);
   };
+  // One leg: the core's name for it is its own; the runner knows which leg these events are.
+  const start: SonioxAdapter['start'] = (request, events) => startLeg('speaker', request, events);
 
   /** Split Both: two ordinary sessions; one that fails stops the other and is named (D22). */
   const startSplit: SonioxAdapter['startBoth'] = async (requests, events) => {
     const legs: LegName[] = ['speaker', 'participant'];
-    const settled = await Promise.allSettled(legs.map((leg) => start(requests[leg], events[leg])));
+    const settled = await Promise.allSettled(legs.map((leg) => startLeg(leg, requests[leg], events[leg])));
     const i = settled.findIndex((r) => r.status === 'rejected');
     if (i >= 0) {
       // Settled, so a stop that fails too never replaces the start's failure.

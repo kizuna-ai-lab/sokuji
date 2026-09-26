@@ -96,6 +96,33 @@ describe('Soniox startBoth: split', () => {
     expect(h.sttSockets()[1].closedByClient).toBeNull();
   });
 
+  it("split: each leg's session.opened names its own speaking leg, on its own log", async () => {
+    const h = await live({ sharedBoth: false, participantSpeaks: true });
+    const speaking = (leg: LegName) => h.of(leg, 'frame').filter((e) => e.payload.type === 'session.opened').map((e) => (e.payload.payload as Json).speaking);
+    expect(speaking('speaker')).toEqual([['speaker']]);
+    expect(speaking('participant')).toEqual([['participant']]);
+  });
+
+  it('split: a speaking participant has its own TTS socket on its own key (ruling 4)', async () => {
+    const h = await live({ sharedBoth: false, participantSpeaks: true });
+    // The speaker's STT and TTS, then the participant's.
+    expect(h.ttsSockets()).toHaveLength(2);
+    const [, participantStt] = h.sttSockets();
+    participantStt.receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
+    const [speakerTts, participantTts] = h.ttsSockets();
+    const sent = participantTts.sentJson<Json>();
+    expect(sent).toContainEqual(expect.objectContaining({ api_key: 'k-par-tts', language: 'en', model: expect.any(String) }));
+    expect(sent).toContainEqual(expect.objectContaining({ text: 'Good morning.', text_end: false }));
+    expect(speakerTts.sentJson()).toEqual([]);
+    const id = sent.find((m) => m.model !== undefined)!.stream_id as string;
+    participantTts.receive(JSON.stringify({ stream_id: id, audio: b64(2400) }));
+    expect(h.of('participant', 'audio')).toHaveLength(1);
+    expect(h.of('speaker', 'audio')).toEqual([]);
+
+    const quiet = await live({ sharedBoth: false });
+    expect(quiet.ttsSockets()).toHaveLength(1);
+  });
+
   it('split: a participant that cannot open stops the speaker and is named', async () => {
     const h = both({ sharedBoth: false });
     const participantStt = h.sttSockets()[1];
@@ -261,6 +288,31 @@ describe('Soniox startBoth: shared', () => {
     h.sttSockets()[1].receive(msg({ ...orig('Again.'), language: 'en', speaker: '2', start_ms: 0, end_ms: 500 }));
     expect(opened(h, 'speaker')).toEqual([3]);
     expect(opened(h, 'participant')).toEqual([1, 2]);
+  });
+
+  it("shared: the mixer sends and records nothing while the socket is down; the new socket's first frame is the side tracker's frame 0", async () => {
+    const h = await live();
+    const [first] = h.sttSockets();
+    first.receive(ERROR_503);
+    first.serverClose(1011);
+    await flush();
+    // Down: the resume's first attempt is still connecting. A second of the
+    // speaker's voice mixes into frames that nothing sends or records.
+    const resumed = h.sttSockets()[1];
+    expect(resumed.readyState).toBe(FakeSocket.CONNECTING);
+    speak(h, 'speaker', 10);
+    h.openAll();
+    await flush();
+    expect(h.kinds('speaker')).toContain('reconnected');
+    const frames = () => resumed.sent.filter((d): d is Int16Array => d instanceof Int16Array);
+    expect(frames()).toEqual([]);
+    speak(h, 'participant', 10);
+    expect(frames()).toHaveLength(10);
+    // No label, no language: only the energy of the new socket's frames 0–8 can tell, and it says participant.
+    const { language: _language, ...bare } = orig('Bonjour.');
+    resumed.receive(msg({ ...bare, start_ms: 0, end_ms: 900 }));
+    expect(opened(h, 'participant')).toEqual([1]);
+    expect(opened(h, 'speaker')).toEqual([]);
   });
 
   it("shared: only the speaker's endTurn finalizes, on the shared socket", async () => {

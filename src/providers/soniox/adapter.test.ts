@@ -141,7 +141,8 @@ describe('the Soniox adapter: one leg', () => {
     const { stt, of, log } = await live();
     stt().receive(JSON.stringify({ error_code: 401, error_message: 'Invalid API key' }));
     expect(of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 401] Invalid API key' } }]);
-    stt().serverClose(1000);
+    // The failure closed the socket itself; the close event that follows says nothing more.
+    expect(stt().closedByClient).not.toBeNull();
     await flush();
     expect(of('failed')).toHaveLength(1);
     expect(log[log.length - 1].kind).toBe('failed');
@@ -426,7 +427,7 @@ describe('the Soniox adapter: one leg', () => {
     expect(log).toEqual([]);
   });
 
-  describe('the start resolves on the STT socket alone (the review of Task 8, option B)', () => {
+  describe('the start resolves on the STT socket alone: a failing start only ever rejects', () => {
     /** Opens the STT socket only; the TTS socket stays connecting. Resolves with where the log stood when the start resolved, or -1 when it still waits. */
     async function sttOpened(h: ReturnType<typeof started>): Promise<number> {
       let resolvedAt = -1;
@@ -444,7 +445,8 @@ describe('the Soniox adapter: one leg', () => {
       // Before the resolve: the start's own frame, and nothing else.
       expect(h.log.slice(0, resolvedAt).map((e) => (e.kind === 'frame' ? e.payload.type : e.kind))).toEqual(['session.opened']);
       h.stt().receive(JSON.stringify({ error_code: 401, error_message: 'Invalid API key' }));
-      h.stt().serverClose(1000);
+      // The failure closed the STT socket itself; the close event that follows says nothing more.
+      expect(h.stt().closedByClient).not.toBeNull();
       await flush();
       expect(h.of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 401] Invalid API key' } }]);
       expect(h.log.indexOf(h.of('failed')[0])).toBeGreaterThanOrEqual(resolvedAt);
