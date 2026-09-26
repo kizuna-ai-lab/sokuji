@@ -1,5 +1,5 @@
 // src/components/Subtitle/SubtitleBar.tsx
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AArrowDown, AArrowUp, ChevronsDownUp, ChevronsUpDown,
@@ -11,10 +11,9 @@ import {
   autoUpdate, FloatingPortal,
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
-import ExportButton, { ExportMenuButton, type ExportMenuButtonProps } from '../MainPanel/ExportButton';
+import { ExportMenuButton, type ExportMenuButtonProps } from '../MainPanel/ExportButton';
 import { HoldToTalk } from './HoldToTalk';
 import {
-  useExitSubtitleMode,
   useSubtitleFullscreen,
   useSetSubtitleFullscreen,
 } from '../../stores/settingsStore';
@@ -32,7 +31,7 @@ import {
   FONT_SIZE_MAX,
 } from '../../stores/subtitleStore';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
-import type { SubtitleSurfaceKind } from './SubtitleApp';
+import type { SubtitleSurfaceKind } from './useSubtitleChrome';
 import { useOverlayDragResize } from './useOverlayDragResize';
 import { ChildWindowPopover, useChildPopoverToggle } from './ChildWindowPopover';
 import './SubtitleBar.scss';
@@ -44,17 +43,11 @@ interface Props {
   onClearConversation: () => void;
   speakerActive: boolean;
   participantActive: boolean;
-  // today's SubtitleApp: the export over its items
-  exportProps?: React.ComponentProps<typeof ExportButton>;
   /** The new subtitle view's export (plan 1d-3): the menu over its conversation's exporter. */
   exportMenu?: Omit<ExportMenuButtonProps, 'popoverHost'>;
   surface?: SubtitleSurfaceKind;
-  /**
-   * Routes the ✕ button through `SubtitleControls.exit` instead of the bar's
-   * own `requestExit`. Absent: today's `SubtitleApp` behaves exactly as
-   * before (the window event on the overlay, the settings store on Electron).
-   */
-  onExit?: () => void;
+  /** Routes the ✕ button through `SubtitleControls.exit`. */
+  onExit: () => void;
   /**
    * Session start/stop, Electron surface only. Absent on the extension
    * overlay, where the side panel owns session control.
@@ -94,7 +87,6 @@ const SubtitleBar: React.FC<Props> = ({
   onClearConversation,
   speakerActive,
   participantActive,
-  exportProps,
   exportMenu,
   surface = 'electron',
   sessionControl,
@@ -111,25 +103,14 @@ const SubtitleBar: React.FC<Props> = ({
   const participantMode = useParticipantDisplayMode();
   const setSpeakerMode = useSetSpeakerDisplayMode();
   const setParticipantMode = useSetParticipantDisplayMode();
-  const exitSubtitleMode = useExitSubtitleMode();
   const fullscreen = useSubtitleFullscreen();
   const setFullscreen = useSetSubtitleFullscreen();
   // Single source for both title + aria-label so they can't drift apart.
   const fullscreenLabel = fullscreen
     ? t('subtitle.bar.exitFullscreen', 'Exit fullscreen')
     : t('subtitle.bar.fullscreen', 'Fullscreen');
-  // See SubtitleApp.requestExit — in the extension-overlay surface we forward
-  // the exit intent to the side panel via a window event instead of calling
-  // the local (no-op) settings store action.
-  const requestExit = useCallback(() => {
-    if (surface === 'extension-overlay') {
-      window.dispatchEvent(new Event('sokuji:user-exit'));
-    } else {
-      void exitSubtitleMode();
-    }
-  }, [surface, exitSubtitleMode]);
   // SubtitleBar only needs the drag (move) handle — the 8 resize handles
-  // live on SubtitleApp's iframe-filling root so they sit at the iframe
+  // live on the surface's iframe-filling root so they sit at the iframe
   // edges, not the bar's 36px footprint.
   const { dragHandleProps } = useOverlayDragResize({ surface });
 
@@ -261,7 +242,6 @@ const SubtitleBar: React.FC<Props> = ({
             messages. The side panel holds the full conversation and is the
             export source of truth — only offer export on the Electron surface,
             where the overlay shares the full session store. */}
-        {surface === 'electron' && exportProps && <ExportButton {...exportProps} popoverHost="child-window" />}
         {surface === 'electron' && exportMenu && <ExportMenuButton {...exportMenu} popoverHost="child-window" />}
         <button
           type="button"
@@ -334,7 +314,7 @@ const SubtitleBar: React.FC<Props> = ({
         <button
           type="button"
           className="subtitle-bar__btn"
-          onClick={onExit ?? requestExit}
+          onClick={onExit}
           title={t('subtitle.bar.exit', 'Exit subtitle mode')}
           aria-label={t('subtitle.bar.exit', 'Exit subtitle mode')}
         >

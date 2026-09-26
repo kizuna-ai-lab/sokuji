@@ -10,11 +10,9 @@ vi.mock('react-i18next', () => ({
 // The fullscreen flag + setter come from settingsStore.
 const setSubtitleFullscreen = vi.fn(async () => {});
 let fullscreenValue = false;
-const exitSubtitleModeSpy = vi.hoisted(() => vi.fn());
 vi.mock('../../stores/settingsStore', () => ({
   __esModule: true,
   default: { getState: () => ({}) },
-  useExitSubtitleMode: () => exitSubtitleModeSpy,
   useSubtitleFullscreen: () => fullscreenValue,
   useSetSubtitleFullscreen: () => setSubtitleFullscreen,
 }));
@@ -45,7 +43,6 @@ vi.mock('./useOverlayDragResize', () => ({
 // don't pull conversationDisplayStore / ServiceFactory transitively.
 vi.mock('../MainPanel/DisplayModeButton', () => ({ default: () => null }));
 vi.mock('../MainPanel/ExportButton', () => ({
-  default: () => require('react').createElement('div', { 'data-testid': 'export-button' }),
   ExportMenuButton: (p: { popoverHost?: string }) =>
     require('react').createElement('div', { 'data-testid': 'export-menu-button', 'data-host': p.popoverHost }),
 }));
@@ -58,18 +55,12 @@ const baseProps = {
   onClearConversation: vi.fn(),
   speakerActive: false,
   participantActive: false,
-  exportProps: {} as any,
+  onExit: vi.fn(),
 };
-
-// window.dispatchEvent, used by SubtitleBar's own requestExit for the
-// extension-overlay surface — asserted NOT to fire when onExit is given.
-const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
 
 beforeEach(() => {
   cleanup();
   setSubtitleFullscreen.mockClear();
-  exitSubtitleModeSpy.mockClear();
-  dispatchEventSpy.mockClear();
   fullscreenValue = false;
 });
 
@@ -106,29 +97,12 @@ describe('SubtitleBar export button', () => {
   // In the extension overlay the forwarded items are windowed to the recent
   // tail, so export there would silently omit older messages. Export is only
   // offered on the Electron surface, where the overlay shares the full store.
-  it('renders the export button on the electron surface', () => {
-    render(<SubtitleBar {...baseProps} surface="electron" />);
-    expect(screen.getByTestId('export-button')).toBeInTheDocument();
-  });
-
-  it('does NOT render the export button on the extension-overlay surface', () => {
-    render(<SubtitleBar {...baseProps} surface="extension-overlay" />);
-    expect(screen.queryByTestId('export-button')).not.toBeInTheDocument();
-  });
-
-  it('renders no export button without exportProps', () => {
-    const { exportProps: _unused, ...withoutExport } = baseProps;
-    render(<SubtitleBar {...withoutExport} surface="electron" />);
-    expect(screen.queryByTestId('export-button')).not.toBeInTheDocument();
-  });
-
   it("renders the new view's export menu in its own window, on the electron surface only", () => {
-    const { exportProps: _unused, ...withoutExport } = baseProps;
     const exportMenu = { exporter: {} as any, speakerMode: 'both' as const, participantMode: 'both' as const };
-    render(<SubtitleBar {...withoutExport} exportMenu={exportMenu} surface="electron" />);
+    render(<SubtitleBar {...baseProps} exportMenu={exportMenu} surface="electron" />);
     expect(screen.getByTestId('export-menu-button').dataset.host).toBe('child-window');
     cleanup();
-    render(<SubtitleBar {...withoutExport} exportMenu={exportMenu} surface="extension-overlay" />);
+    render(<SubtitleBar {...baseProps} exportMenu={exportMenu} surface="extension-overlay" />);
     expect(screen.queryByTestId('export-menu-button')).not.toBeInTheDocument();
   });
 });
@@ -246,25 +220,17 @@ describe('SubtitleBar hold-to-talk control', () => {
 });
 
 describe('SubtitleBar exit button', () => {
-  it('routes the ✕ through onExit instead of the store exit, on the electron surface', () => {
+  it('✕ calls onExit, on the electron surface', () => {
     const onExit = vi.fn();
     render(<SubtitleBar {...baseProps} surface="electron" onExit={onExit} />);
     fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
     expect(onExit).toHaveBeenCalledTimes(1);
-    expect(exitSubtitleModeSpy).not.toHaveBeenCalled();
   });
 
-  it('routes the ✕ through onExit instead of the window event, on the extension-overlay surface', () => {
+  it('✕ calls onExit, on the extension-overlay surface', () => {
     const onExit = vi.fn();
     render(<SubtitleBar {...baseProps} surface="extension-overlay" onExit={onExit} />);
     fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
     expect(onExit).toHaveBeenCalledTimes(1);
-    expect(dispatchEventSpy).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'sokuji:user-exit' }));
-  });
-
-  it("falls back to the store's exit when onExit is absent (today's SubtitleApp, unaffected)", () => {
-    render(<SubtitleBar {...baseProps} surface="electron" />);
-    fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
-    expect(exitSubtitleModeSpy).toHaveBeenCalledTimes(1);
   });
 });

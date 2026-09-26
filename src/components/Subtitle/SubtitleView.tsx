@@ -64,8 +64,8 @@ const noop = () => {};
 /**
  * The subtitle surface over the new model (spec: "The two subtitle surfaces
  * are not the same thing"): the Electron takeover draws it from the runner in
- * its own window, the extension overlay from its wire. Today's `SubtitleApp`
- * layout, class for class.
+ * its own window, the extension overlay from its wire. The old subtitle
+ * window's layout, class for class.
  */
 export function SubtitleView({ surface, model, controls, exporter }: {
   surface: SubtitleSurfaceKind;
@@ -153,7 +153,6 @@ export function SubtitleView({ surface, model, controls, exporter }: {
         <SubtitleIdle
           state={idleState(session?.idle, t)}
           onStart={start ?? noop}
-          onFix={noop}
           onReturn={controls.exit}
           allowSessionControl={surface === 'electron'}
           canStart={session?.canStart ?? false}

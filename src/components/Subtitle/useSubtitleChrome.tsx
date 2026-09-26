@@ -1,10 +1,9 @@
 /**
- * The subtitle window's own handling, shared by today's `SubtitleApp` and the
- * new `SubtitleView`: the bar hides after a quiet spell, Escape leaves
+ * The subtitle window's own handling, shared by every subtitle surface
+ * (`SubtitleView`): the bar hides after a quiet spell, Escape leaves
  * fullscreen and then subtitle mode, the Electron window's fullscreen and
  * bounds are mirrored into the stores, and the overlay gets its resize
- * handles. None of it touches conversation data. Moved out of `SubtitleApp`
- * unchanged.
+ * handles. None of it touches conversation data.
  */
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MutableRefObject, type ReactNode } from 'react';
 import useSettingsStore, { useSetSubtitleFullscreen, useSubtitleFullscreen } from '../../stores/settingsStore';
@@ -81,7 +80,7 @@ export function useSubtitleChrome({ surface, onExit, forceVisible = false }: {
   const saveBounds = useSaveSubtitleWindowBounds();
 
   // Root ref — used to derive the owner document for keyboard listeners so
-  // ESC works correctly when SubtitleApp is mounted inside an iframe.
+  // ESC works correctly when the subtitle surface is mounted inside an iframe.
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-hide bar
@@ -211,12 +210,13 @@ export function useSubtitleChrome({ surface, onExit, forceVisible = false }: {
     '--bar-opacity': barVisible ? 1 : 0,
     '--bar-pointer-events': barVisible ? 'auto' : 'none',
     '--subtitle-highlight-overlay': getHighlightOverlayForBg(subtitle.bgColor),
-    // SubtitleApp.scss reads this for `.subtitle-app`'s inherited text
-    // colour. It had never been defined at the root, so that declaration
-    // always resolved to its #FFFFFF fallback. Every chrome element below
-    // (idle body, PTT hint, bar) sets its own colour and overrides this, so
-    // defining it changes nothing that is on screen today — it just makes
-    // the rule mean what it says for anything that inherits.
+    // The SubtitleApp.scss stylesheet reads this for `.subtitle-app`'s
+    // inherited text colour. It had never been defined at the root, so that
+    // declaration always resolved to its #FFFFFF fallback. Every chrome
+    // element below (idle body, PTT hint, bar) sets its own colour and
+    // overrides this, so defining it changes nothing that is on screen
+    // today — it just makes the rule mean what it says for anything that
+    // inherits.
     '--subtitle-source-color': subtitle.sourceTextColor,
   };
 

@@ -5,37 +5,33 @@
 // window can now be opened before a session exists (issue #324).
 //
 // Purely presentational: state in, callbacks out. All store access lives in
-// SubtitleApp.
+// SubtitleView.
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Play, RotateCcw, Loader, AlertTriangle } from 'lucide-react';
-import { reasonToI18n, reasonToSettingsTarget, type StartBlockReason, type DeviceScope } from '../MainPanel/sessionStartGate';
 import type { SubtitleIdleState } from './subtitleIdleState';
 
 interface Props {
   state: SubtitleIdleState;
   onStart: () => void;
-  onFix: (reason: StartBlockReason, deviceScope?: DeviceScope) => void;
   onReturn: () => void;
   // The extension-overlay surface doesn't mirror the start-gate fields or the
-  // start/stop request counters across the chrome.runtime port (see
-  // sessionPortMirror.ts), so start/retry/fix would be dead clicks there.
+  // start/stop request counters, so start/retry would be dead clicks there.
   // When false, this renders only what the pre-#324 SubtitleSessionEnded
   // component rendered: the ended message and a return button.
   allowSessionControl: boolean;
   // Whether the start gate is currently open. `state.kind === 'failed'` only
   // means a fresh start-failure item exists — the gate can independently be
   // closed again by then (e.g. the mic was unplugged after the failure, or
-  // the gate is closed with no reason while models are still loading; see
-  // subtitleIdleState's blocked-over-failed precedence). Retry must not be
-  // clickable in that case, since it would just re-express a start the gate
-  // already refuses.
+  // the gate is closed with no reason while models are still loading).
+  // Retry must not be clickable in that case, since it would just re-express
+  // a start the gate already refuses.
   canStart: boolean;
   /** The `unready` state's fix action, at its `target` (plan 1e-3b-1 ruling 13). */
   onOpenSettings?: (target: string) => void;
 }
 
-const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowSessionControl, canStart, onOpenSettings }) => {
+const SubtitleIdle: React.FC<Props> = ({ state, onStart, onReturn, allowSessionControl, canStart, onOpenSettings }) => {
   const { t } = useTranslation();
 
   if (!allowSessionControl) {
@@ -66,10 +62,9 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
   }
 
   if (state.kind === 'unready') {
-    // The `blocked` markup, with the provider's own reason as the label. The
-    // fix action's destination comes from the readiness code, not from a
-    // StartBlockReason (plan 1e-3b-1 ruling 13); no destination means the
-    // action is inert, as `blocked` is when it has none either.
+    // The provider's own reason as the label. The fix action's destination
+    // comes from the readiness code (plan 1e-3b-1 ruling 13); no destination
+    // means the action is inert.
     const label = state.message.replace(/[.。！!]+$/, '');
     return (
       <div className="subtitle-idle">
@@ -78,35 +73,6 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
           className="subtitle-idle__action subtitle-idle__action--fix"
           disabled={!state.target || !onOpenSettings}
           onClick={() => { if (state.target) onOpenSettings?.(state.target); }}
-        >
-          <AlertTriangle size={15} />
-          <span>{label}</span>
-        </button>
-        <button type="button" className="subtitle-idle__link" onClick={onReturn}>
-          {t('subtitle.backToMain', 'Return to main window')}
-        </button>
-      </div>
-    );
-  }
-
-  if (state.kind === 'blocked') {
-    const { key, defaultValue, values } = reasonToI18n(state.reason, state.balance);
-    const message = t(key, defaultValue, values);
-    // The reason strings are shared with the main window's Start tooltip,
-    // where they are full sentences. On a button the terminal punctuation is
-    // wrong, so strip it here rather than forking the string into a
-    // button-shaped copy that would need translating 30 times.
-    const label = message.replace(/[.。！!]+$/, '');
-    // No destination means there is nothing for the user to fix (the model
-    // list is still loading), so the action is inert rather than misleading.
-    const target = reasonToSettingsTarget(state.reason, state.deviceScope);
-    return (
-      <div className="subtitle-idle">
-        <button
-          type="button"
-          className="subtitle-idle__action subtitle-idle__action--fix"
-          disabled={target === null}
-          onClick={() => onFix(state.reason, state.deviceScope)}
         >
           <AlertTriangle size={15} />
           <span>{label}</span>
