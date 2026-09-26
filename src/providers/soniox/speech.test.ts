@@ -12,8 +12,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
-
-const b64 = (samples: number) => btoa(String.fromCharCode(...new Uint8Array(new Int16Array(samples).fill(9).buffer)));
+import { b64, type Json } from './testing';
 
 /** A LegSpeech whose socket is not opened yet: `opening` is its `open()`. */
 function create(options: Partial<LegSpeechOptions> = {}) {
@@ -36,7 +35,6 @@ async function setup(options: Partial<LegSpeechOptions> = {}) {
   return { ...made, tts };
 }
 
-type Json = Record<string, unknown>;
 const payloadOf = (frame: AdapterFrame) => frame.payload as Json;
 
 describe('tileSpan', () => {

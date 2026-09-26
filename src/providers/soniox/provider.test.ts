@@ -9,16 +9,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
 import type { SessionContext } from '../../lib/contract/adapter';
 import { recordEvents } from '../../lib/contract/events';
-import type { SharedSettings } from '../../lib/provider/types';
 import { gate } from '../../lib/session/shape';
 import { buildSoniox, describeSoniox } from './config';
 import { sonioxProvider } from './provider';
-import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages, type SonioxCredentials } from './settings';
+import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages } from './settings';
 import { SonioxSettingsView } from './SonioxSettings';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
-
-const SHARED: SharedSettings = { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
-const KEY: SonioxCredentials = { region: 'us', stt: 'test-key', tts: 'test-key' };
+import { KEY, SHARED } from './testing';
 
 describe('sonioxProvider', () => {
   it("is Soniox with the user's own key, on every platform, not flagged, under the old enum's id and slice", () => {

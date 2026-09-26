@@ -8,48 +8,17 @@
  */
 import { describe, it, expect } from 'vitest';
 import { AdapterStartError, LegStartError, type SessionContext, type StartRequest } from '../../lib/contract/adapter';
-import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
-import type { SharedSettings } from '../../lib/provider/types';
 import { createSonioxAdapter } from './adapter';
 import { buildSoniox, type SonioxConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
-import type { SonioxToken } from './sttStream';
-
-// Task 8's helpers (`adapter.test.ts`); `tr` also takes the languages.
-const SHARED: SharedSettings = { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
-const isStt = (s: FakeSocket) => s.url.endsWith('/transcribe-websocket');
-const b64 = (samples: number) => btoa(String.fromCharCode(...new Uint8Array(new Int16Array(samples).fill(9).buffer)));
-const msg = (...tokens: SonioxToken[]) => JSON.stringify({ tokens });
-const orig = (text: string, is_final = true): SonioxToken => ({ text, is_final, translation_status: 'original', language: 'en', start_ms: 0, end_ms: 500 });
-const tr = (text: string, language = 'ja', source_language = 'en'): SonioxToken => ({ text, is_final: true, translation_status: 'translation', language, source_language });
-const END: SonioxToken = { text: '<end>', is_final: true };
-const ERROR_503 = JSON.stringify({ error_code: 503, error_message: 'Service unavailable' });
-
-type Json = Record<string, unknown>;
+import { b64, END, ERROR_503, isStt, msg, orig, SHARED, tr, trackedClock, type Json } from './testing';
 
 const SPK: SonioxCredentials = { region: 'us', stt: 'k-spk', tts: 'k-spk' };
 const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
-
-/** A virtual clock that counts its live timers: what a stop must leave at zero (Task 8's). */
-function trackedClock(): { clock: VirtualClock; timers: () => number } {
-  const inner = createVirtualClock(0);
-  const live = new Set<symbol>();
-  const clock: VirtualClock = {
-    now: () => inner.now(),
-    advance: (ms) => inner.advance(ms),
-    setTimeout(fn, ms) {
-      const id = Symbol('timer');
-      live.add(id);
-      const cancel = inner.setTimeout(() => { live.delete(id); fn(); }, ms);
-      return () => { live.delete(id); cancel(); };
-    },
-  };
-  return { clock, timers: () => live.size };
-}
 
 function both(o: { sharedBoth?: boolean; participantSpeaks?: boolean; abortFirst?: boolean } = {}) {
   const sockets = fakeSockets();

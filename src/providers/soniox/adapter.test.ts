@@ -9,47 +9,14 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, type SessionContext } from '../../lib/contract/adapter';
-import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
 import { runScenario, scenarioNames, type AdapterHarness } from '../../lib/contract/testing/scenarios';
-import type { SharedSettings } from '../../lib/provider/types';
 import { createSonioxAdapter, MAX_RESUME_CYCLES, RESUME_DELAYS_MS, sttFailureCode } from './adapter';
 import { buildSoniox, type SonioxConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
-import type { SonioxToken } from './sttStream';
-
-const SHARED: SharedSettings = { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
-const KEY: SonioxCredentials = { region: 'us', stt: 'test-key', tts: 'test-key' };
-const AUTO_CTX: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
-const isStt = (s: FakeSocket) => s.url.endsWith('/transcribe-websocket');
-const b64 = (samples: number) => btoa(String.fromCharCode(...new Uint8Array(new Int16Array(samples).fill(9).buffer)));
-const msg = (...tokens: SonioxToken[]) => JSON.stringify({ tokens });
-const orig = (text: string, is_final = true): SonioxToken => ({ text, is_final, translation_status: 'original', language: 'en', start_ms: 0, end_ms: 500 });
-const tr = (text: string): SonioxToken => ({ text, is_final: true, translation_status: 'translation', language: 'ja', source_language: 'en' });
-const END: SonioxToken = { text: '<end>', is_final: true };
-const FIN: SonioxToken = { text: '<fin>', is_final: true };
-const ERROR_503 = JSON.stringify({ error_code: 503, error_message: 'Service unavailable' });
-
-type Json = Record<string, unknown>;
-
-/** A virtual clock that counts its live timers: what a stop must leave at zero. */
-function trackedClock(): { clock: VirtualClock; timers: () => number } {
-  const inner = createVirtualClock(0);
-  const live = new Set<symbol>();
-  const clock: VirtualClock = {
-    now: () => inner.now(),
-    advance: (ms) => inner.advance(ms),
-    setTimeout(fn, ms) {
-      const id = Symbol('timer');
-      live.add(id);
-      const cancel = inner.setTimeout(() => { live.delete(id); fn(); }, ms);
-      return () => { live.delete(id); cancel(); };
-    },
-  };
-  return { clock, timers: () => live.size };
-}
+import { AUTO_CTX, b64, END, ERROR_503, FIN, isStt, KEY, msg, orig, SHARED, tr, trackedClock, type Json } from './testing';
 
 function started(o: { context?: SessionContext; settings?: Partial<SonioxSettings>; credentials?: SonioxCredentials } = {}) {
   const sockets = fakeSockets();
