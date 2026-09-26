@@ -29,6 +29,11 @@ describe('synth', () => {
     expect(msForText('')).toBe(200);
     expect(msForText('こんにちは')).toBe(300);
   });
+  it('continues the tone from a given sample, so chunks join without a click', () => {
+    const whole = synthPcm(100);
+    const tail = synthPcm(50, 440, 8000, 1200);
+    expect(Array.from(tail)).toEqual(Array.from(whole.subarray(1200)));
+  });
 });
 
 describe('exchange', () => {

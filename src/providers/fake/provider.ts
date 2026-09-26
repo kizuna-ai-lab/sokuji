@@ -53,10 +53,11 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],
 
-  build: (_context, s) => (s.buildRefused
+  build: (context, s, shared) => (s.buildRefused
     ? { refused: 'The fake refuses to build (fault knob).', code: 'fake_build_refused', params: { knob: 'buildRefused' } }
     : {
-        script: fakeScript(s.script),
+        // the participant leg plays its own script when one is chosen (F10): a different shape per leg
+        script: fakeScript(shared.reversed(context.direction) && s.participantScript !== 'same' ? s.participantScript : s.script),
         faults: {
           startThrows: s.startThrows ? 'The fake failed to start (fault knob).' : undefined,
           startDelayMs: s.startDelayMs || undefined,

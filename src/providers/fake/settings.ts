@@ -3,6 +3,8 @@ import { FAKE_SCRIPT_NAMES, type FakeScriptName } from './scripts';
 /** The fake's settings: which script plays, and the fault knobs (spec: "Testing", D24). */
 export interface FakeSettings {
   script: FakeScriptName;
+  /** The participant leg's script; 'same' plays `script` on both legs. */
+  participantScript: FakeScriptName | 'same';
   /** Shows an API key field; `read` reports it missing until something is typed. */
   requireKey: boolean;
   /** `check` answers not ready. */
@@ -19,6 +21,7 @@ export interface FakeSettings {
 
 export const FAKE_DEFAULTS: FakeSettings = {
   script: 'exchange',
+  participantScript: 'same',
   requireKey: false,
   checkFails: false,
   buildRefused: false,
@@ -39,6 +42,7 @@ export function migrateFakeSettings(stored: Readonly<Record<string, unknown>>): 
   };
   return {
     script: FAKE_SCRIPT_NAMES.find((name) => name === stored.script) ?? FAKE_DEFAULTS.script,
+    participantScript: stored.participantScript === 'same' ? 'same' : FAKE_SCRIPT_NAMES.find((name) => name === stored.participantScript) ?? 'same',
     requireKey: flag('requireKey'),
     checkFails: flag('checkFails'),
     buildRefused: flag('buildRefused'),

@@ -11,6 +11,13 @@ describe('FakeSettingsView', () => {
     expect(update).toHaveBeenCalledWith({ script: 'long' });
   });
 
+  it("chooses the participant's script", () => {
+    const update = vi.fn();
+    render(<FakeSettingsView settings={FAKE_DEFAULTS} update={update} />);
+    fireEvent.change(screen.getByLabelText("Other's script"), { target: { value: 'cjk' } });
+    expect(update).toHaveBeenCalledWith({ participantScript: 'cjk' });
+  });
+
   it('flips each fault switch', () => {
     const update = vi.fn();
     render(<FakeSettingsView settings={{ ...FAKE_DEFAULTS, checkFails: true }} update={update} />);

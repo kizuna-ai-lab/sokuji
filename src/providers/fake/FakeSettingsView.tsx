@@ -38,6 +38,19 @@ export function FakeSettingsView({ settings, update, disabled }: SettingsProps<F
           {FAKE_SCRIPT_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
       </div>
+      <div className="setting-item">
+        <label className="setting-label" htmlFor="fake-participant-script"><span>Other's script</span></label>
+        <select
+          id="fake-participant-script"
+          className="select-dropdown"
+          value={settings.participantScript}
+          onChange={(e) => update({ participantScript: e.target.value as FakeSettings['participantScript'] })}
+          disabled={disabled}
+        >
+          <option value="same">same</option>
+          {FAKE_SCRIPT_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
+        </select>
+      </div>
       {FLAGS.map(({ key, label }) => (
         <div className="setting-item" key={key}>
           <ToggleSwitch
