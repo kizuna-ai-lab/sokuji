@@ -890,6 +890,10 @@ What it leaves:
   is initialized beside the new graph until 1e-3c).
 - Audio in the extension side panel by hand (the panel builds its audio
   context at mount; only the web page was checked with a trusted click).
+- Confirmed by the owner so far (2026-09-26): push-to-talk with Space works
+  on the machine's own keyboard. Held through a remote keyboard it seemed
+  not to respond — the remote keyboard's doing, not a defect; test holds on
+  a physical keyboard.
 
 **Before the first release**
 - Close the participant-speech route when an application capture falls back
