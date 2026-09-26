@@ -243,7 +243,13 @@ async function checkGeneralStatic(send, failures, prefix) {
 
   const providerName = await evaluate(send, `(() => {
     const el = document.querySelector('#provider-section select.provider-select');
-    return el ? el.options[el.selectedIndex]?.textContent : null;
+    const opt = el ? el.options[el.selectedIndex] : null;
+    if (!opt) return null;
+    // Rich options (base-select supported — the packaged Electron always is)
+    // hold the name in its own element alongside the description; read that
+    // element when present instead of the option's full text.
+    const nameEl = opt.querySelector('.provider-select__name');
+    return nameEl ? nameEl.textContent : opt.textContent;
   })()`);
   if (providerName !== 'Free') failures.push(`${prefix}: the provider select read ${JSON.stringify(providerName)}, expected "Free"`);
 

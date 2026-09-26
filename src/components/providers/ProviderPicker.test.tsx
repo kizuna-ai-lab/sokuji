@@ -31,6 +31,21 @@ vi.mock('../../stores/modelStore', () => ({
   useModelStatuses: () => ({}),
 }));
 
+// The port's rich/plain option split (ProviderSection.tsx's richSelect) reads
+// this same detector — stubbed per-test the way ProviderSection.select.test.tsx
+// does, so both branches are exercised deterministically regardless of what
+// jsdom's real CSS.supports reports.
+const baseSelectSupported = vi.hoisted(() => ({ value: false }));
+vi.mock('../../utils/supportsBaseSelect', () => ({
+  supportsBaseSelect: () => baseSelectSupported.value,
+}));
+
+// The vendor credit renders through <Trans>, which reads the real i18next
+// singleton directly (context or getI18n()) rather than the useTranslation()
+// hook mocked above — same setup PoweredBy.test.tsx uses to exercise the same
+// i18nKey ('providers.poweredBy').
+import '../../locales';
+
 import { fakeProvider } from '../../providers/fake/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import type { EngineSummaryProps } from '../../lib/provider/types';
@@ -46,6 +61,7 @@ beforeEach(() => {
   trackEvent.mockClear();
   useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
   localStorage.clear();
+  baseSelectSupported.value = false;
 });
 
 describe('ProviderPicker', () => {
@@ -167,6 +183,53 @@ describe('ProviderPicker', () => {
       await screen.findByRole('link', { name: /simpleSettings\.setupGuide/ });
       fireEvent.click(screen.getByTitle('common.dismiss'));
       expect(JSON.parse(localStorage.getItem('sokuji-dismissed-tutorials') ?? '[]')).toEqual(['local_inference']);
+    });
+  });
+
+  // Today's ProviderSection.tsx keeps its rich option markup (icon, name +
+  // engine credit, description) — plan 1e-3b-2 ruling 2's "plain <select>" was
+  // reversed by the owner (follow-up B). ProviderSection.select.test.tsx pins
+  // the same split on the port's original.
+  describe('rich provider options (base-select supported)', () => {
+    it('holds the icon, the name, the vendor credit (when the definition has one) and the description', async () => {
+      baseSelectSupported.value = true;
+      render(<ProviderPicker providers={[localInferenceProvider, fakeProvider]} auth={noAuth} />);
+      await screen.findByLabelText('simpleSettings.provider');
+
+      // LocalInference: icon + name + description, no engine credit — it has
+      // no `vendor` (no third-party engine to credit).
+      const localOption = document.querySelector('.provider-select option[value="localInference"]');
+      expect(localOption?.querySelector('.provider-select__icon')?.firstElementChild).not.toBeNull();
+      expect(localOption?.querySelector('.provider-select__name')?.textContent).toBe('providers.local_inference.name');
+      expect(localOption?.querySelector('.provider-select__description')?.textContent).toBe('providers.local_inference.description');
+      expect(localOption?.querySelector('.powered-by')).toBeNull();
+
+      // The fake provider declares vendor: 'Sokuji' — the credit renders
+      // beside its name.
+      const fakeOption = document.querySelector('.provider-select option[value="fake"]');
+      expect(fakeOption?.querySelector('.provider-select__icon')?.firstElementChild).not.toBeNull();
+      expect(fakeOption?.querySelector('.powered-by-vendor')?.textContent).toBe('Sokuji');
+
+      // The closed control mirrors the selected option (today's <selectedcontent>).
+      expect(document.querySelector('.provider-select selectedcontent')).not.toBeNull();
+    });
+  });
+
+  describe('plain provider options (base-select unsupported)', () => {
+    it('renders text-only options, no child elements — the extension floor (Chrome 116) flattens them', async () => {
+      baseSelectSupported.value = false;
+      render(<ProviderPicker providers={[localInferenceProvider, fakeProvider]} auth={noAuth} />);
+      await screen.findByLabelText('simpleSettings.provider');
+
+      const localOption = document.querySelector('.provider-select option[value="localInference"]');
+      expect(localOption?.querySelector('span')).toBeNull();
+      expect(localOption?.textContent).toBe('providers.local_inference.name');
+
+      const fakeOption = document.querySelector('.provider-select option[value="fake"]');
+      expect(fakeOption?.querySelector('span')).toBeNull();
+      expect(fakeOption?.textContent).toBe('providers.fake.name');
+
+      expect(document.querySelector('.provider-select selectedcontent')).toBeNull();
     });
   });
 });
