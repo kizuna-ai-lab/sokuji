@@ -43,7 +43,6 @@ beforeEach(() => {
 
 // Import after mocking
 const { default: useSettingsStore } = await import('./settingsStore');
-const { default: useSessionStore } = await import('./sessionStore');
 
 describe('settingsStore subtitle actions', () => {
   beforeEach(() => {
@@ -59,27 +58,23 @@ describe('settingsStore subtitle actions', () => {
   describe('per-surface entry gating (subtitleEnterGate)', () => {
     it('enters on Electron with no active session', async () => {
       isElectronFlag = true;
-      useSessionStore.setState({ isSessionActive: false } as any);
       await useSettingsStore.getState().enterSubtitleMode();
       expect(useSettingsStore.getState().subtitleModeActive).toBe(true);
     });
 
     it('stays a no-op on the extension with no active session', async () => {
       isElectronFlag = false;
-      useSessionStore.setState({ isSessionActive: false } as any);
       await useSettingsStore.getState().enterSubtitleMode();
       expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
     });
   });
 
   it('enterSubtitleMode sets the flag when session is active', async () => {
-    useSessionStore.setState({ isSessionActive: true } as any);
     await useSettingsStore.getState().enterSubtitleMode();
     expect(useSettingsStore.getState().subtitleModeActive).toBe(true);
   });
 
   it('enterSubtitleMode is idempotent', async () => {
-    useSessionStore.setState({ isSessionActive: true } as any);
     await useSettingsStore.getState().enterSubtitleMode();
     await useSettingsStore.getState().enterSubtitleMode();
     expect(useSettingsStore.getState().subtitleModeActive).toBe(true);
@@ -99,7 +94,6 @@ describe('settingsStore subtitle actions', () => {
     // second invocation captures the *already-shrunk* subtitle bounds —
     // exit would then restore the window to subtitle size. Same bug
     // class as the one fixed in 8f9aea85.
-    useSessionStore.setState({ isSessionActive: true } as any);
     const invokeMock = (window as any).electron.invoke;
     invokeMock.mockClear();
     const enter = useSettingsStore.getState().enterSubtitleMode;
@@ -125,7 +119,6 @@ describe('settingsStore subtitle actions', () => {
   });
 
   it('enterSubtitleMode rolls back the flag and re-throws if surface.enter() rejects', async () => {
-    useSessionStore.setState({ isSessionActive: true } as any);
     const invokeMock = (window as any).electron.invoke;
     invokeMock.mockImplementationOnce(async (channel: string) => {
       if (channel === 'subtitle:enter') throw new Error('boom');
@@ -154,7 +147,6 @@ describe('settingsStore subtitle actions', () => {
   });
 
   it('enterSubtitleMode resets subtitleFullscreen to false (always start windowed)', async () => {
-    useSessionStore.setState({ isSessionActive: true } as any);
     useSettingsStore.setState({ subtitleFullscreen: true });
     await useSettingsStore.getState().enterSubtitleMode();
     expect(useSettingsStore.getState().subtitleFullscreen).toBe(false);
