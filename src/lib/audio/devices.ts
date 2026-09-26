@@ -124,15 +124,15 @@ export async function listSystemAudioSources(): Promise<AudioDevice[]> {
  * devices, then release the stream immediately.
  *
  * Serialized via a shared in-flight promise: at startup listAudioDevices() is
- * called from several overlapping paths, each doubled by React StrictMode.
- * Without this guard they fire concurrent getUserMedia({ audio: true }) on
- * the same physical mic, and drivers that cannot open one device twice reject
- * the losers with "NotReadableError: Could not start audio source". Sharing
- * one warm-up collapses them into a single open. The stream is stopped right
- * away because enumerateDevices() only needs permission to have been
- * granted, not a live track (leaving it open would leak an audio source
- * that is only released on process teardown — abrupt on Windows and prone to
- * stranding the capture endpoint for the next launch).
+ * called from Home's mount effect, doubled by React StrictMode in dev.
+ * Without this guard the two calls fire concurrent getUserMedia({ audio:
+ * true }) on the same physical mic, and drivers that cannot open one device
+ * twice reject the losers with "NotReadableError: Could not start audio
+ * source". Sharing one warm-up collapses them into a single open. The stream
+ * is stopped right away because enumerateDevices() only needs permission to
+ * have been granted, not a live track (leaving it open would leak an audio
+ * source that is only released on process teardown — abrupt on Windows and
+ * prone to stranding the capture endpoint for the next launch).
  */
 function ensureMicrophonePermission(): Promise<void> {
   if (!permissionWarmupPromise) {

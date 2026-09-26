@@ -3,7 +3,7 @@ import { render, screen, fireEvent, act, renderHook } from '@testing-library/rea
 import EchoNotice from './EchoNotice';
 import { useEchoNotice } from './useEchoNotice';
 import type { EchoNoticeState } from '../../lib/modern-audio/EchoMonitor';
-import type { IAudioService } from '../../services/interfaces/IAudioService';
+import type { EchoSource } from './useEchoNotice';
 
 const state = (cause: EchoNoticeState['cause']): EchoNoticeState => ({ cause, lagMs: 120, rho: 0.8 });
 
@@ -35,10 +35,10 @@ describe('EchoNotice', () => {
 describe('useEchoNotice', () => {
   function fakeService() {
     let cb: ((s: EchoNoticeState | null) => void) | null = null;
-    const service = {
+    const service: EchoSource = {
       onEchoNotice: (c: typeof cb) => { cb = c; },
       setEchoDiagnostics: vi.fn(),
-    } as unknown as IAudioService;
+    };
     return { service, emit: (s: EchoNoticeState | null) => act(() => cb?.(s)) };
   }
 

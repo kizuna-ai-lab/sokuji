@@ -15,9 +15,9 @@ import { loadSessionStores } from '../app/loadStores';
 export function Home() {
   const loadSettings = useLoadSettings();
 
-  // Initialize audio service and settings when component mounts
+  // Refresh audio devices and load settings when component mounts
   useEffect(() => {
-    console.info('[Home] Initializing audio service');
+    console.info('[Home] Refreshing audio devices');
     useAudioStore.getState().refreshDevices();
 
     console.info('[Home] Loading settings');

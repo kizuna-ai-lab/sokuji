@@ -125,9 +125,13 @@ describe('listAudioDevices', () => {
     const getUserMedia = vi.fn(
       () => new Promise((resolve) => setTimeout(() => { const s = makeStream(); streams.push(s); resolve(s); }, 5))
     );
-    // First enumerate has no labels (forces warm-up); after warm-up, labels appear.
+    // The first enumerate of EACH concurrent call has no labels (forces
+    // warm-up on both); after the shared warm-up, labels appear. Answering
+    // UNLABELED only once would let call B's first enumerate (the second
+    // overall) already see labels and skip its own warm-up, which would pass
+    // even without the in-flight guard this test exists to cover.
     let calls = 0;
-    const enumerateDevices = vi.fn(async () => (++calls === 1 ? UNLABELED : LABELED));
+    const enumerateDevices = vi.fn(async () => (++calls <= 2 ? UNLABELED : LABELED));
     setMediaDevices(getUserMedia, enumerateDevices);
 
     await Promise.all([listAudioDevices(), listAudioDevices()]);
