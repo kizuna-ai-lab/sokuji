@@ -188,6 +188,8 @@ describe('a provider session side', () => {
     const soniox = sessionSide(REPO_ROOT, 'src/providers/soniox');
     expect(soniox).toEqual(expect.arrayContaining([
       'src/providers/soniox/adapter.ts',
+      'src/providers/soniox/pcmMixer.ts',
+      'src/providers/soniox/sideTracker.ts',
       'src/providers/soniox/socket.ts',
       'src/providers/soniox/speech.ts',
       'src/providers/soniox/sttStream.ts',

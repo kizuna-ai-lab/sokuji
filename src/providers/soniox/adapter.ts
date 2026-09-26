@@ -4,11 +4,14 @@
  * compiled for the managed twin) without its display bookkeeping: items,
  * ids, the punctuation lane and the notices are L1's and L2's now.
  * `SonioxCore` runs one STT socket; each speaking leg has its own
- * `LegSpeech`. Every timer reads the request's clock, and nothing is said
- * but through events (CLAUDE.md, "Inside an IClient session").
+ * `LegSpeech`. Both mode (`startBoth`, D23) is two single-leg cores, or one
+ * core whose socket carries both legs mixed. Every timer reads the
+ * request's clock, and nothing is said but through events (CLAUDE.md,
+ * "Inside an IClient session").
  */
 import {
   AdapterStartError,
+  LegStartError,
   SAMPLE_RATE,
   type Adapter,
   type AdapterEvents,
@@ -20,9 +23,11 @@ import { framePayload } from '../../lib/contract/framePayload';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { AUTO } from '../../lib/provider/languages';
+import { PcmMixer } from './pcmMixer';
+import { SonioxSideTracker } from './sideTracker';
 import { nativeSocket, type OpenSocket } from './socket';
 import { LegSpeech } from './speech';
-import { SonioxSttStream, type SonioxSttConfig, type SonioxSttMessage } from './sttStream';
+import { SonioxSttStream, type SonioxSttConfig, type SonioxSttMessage, type SonioxToken } from './sttStream';
 import { tokenFrames, Utterances, type SegmentEvent } from './utterances';
 import type { SonioxConfig } from './config';
 import type { SonioxCredentials } from './settings';
@@ -82,6 +87,8 @@ interface CoreOptions {
   /** The legs it serves, the socket's own first. */
   legs: readonly CoreLeg[];
   openSocket: OpenSocket;
+  /** Shared Both (D23): both legs' audio mixed onto this one socket, each utterance given to the leg the side tracker names. */
+  shared?: true;
 }
 
 class SonioxCore {
@@ -92,8 +99,27 @@ class SonioxCore {
   private resumeCycles = 0;
   private pendingResume: string | null = null;
   private pendingCutoff = false;
+  /** Shared Both only: which side an utterance is (`sideTracker.ts`), fed by the frames actually sent. */
+  private readonly tracker: SonioxSideTracker | null;
+  /** Shared Both only: the speaker as channel A, the participant as B, 100-ms frames at 0.5 gain (`SonioxClient.ts:400-417`). */
+  private readonly mixer: PcmMixer | null;
 
   constructor(private readonly o: CoreOptions) {
+    this.tracker = o.shared ? new SonioxSideTracker() : null;
+    this.mixer = o.shared
+      ? new PcmMixer({
+        clock: o.primary.clock,
+        frameSamples: SAMPLE_RATE / 10,
+        intervalMs: 100,
+        maxBacklogSamples: SAMPLE_RATE * 2,
+        // Energy only for frames actually sent: the tracker's frame index must match the server's `start_ms`.
+        onFrame: (mixed, energyA, energyB) => {
+          if (!this.stt?.isOpen()) return;
+          this.stt.sendAudio(mixed);
+          this.tracker?.recordFrame(energyA, energyB);
+        },
+      })
+      : null;
     this.utterances = new Utterances({
       clock: o.primary.clock,
       sink: {
@@ -179,13 +205,27 @@ class SonioxCore {
     return this.o.legs.find((l) => l.name === name) ?? this.o.legs[0];
   }
 
-  /** Which leg an utterance belongs to: one leg's core has one answer. */
-  private legFor(_token: unknown): LegName {
-    return this.o.legs[0].name;
+  /** Which leg an utterance belongs to, from its first token: one leg's core has one answer. */
+  private legFor(token: SonioxToken): LegName {
+    if (!this.tracker) return this.o.legs[0].name;
+    // An established speaker label, else the channels' energy over the token's window (`SonioxClient.ts:982-998`).
+    const evidence = this.tracker.inferSide(token.speaker, token.start_ms, token.end_ms);
+    if (evidence) return evidence.side;
+    // The language, which never votes; the speaker's leg when nothing can tell.
+    const source = this.o.primary.context.direction.source;
+    if (token.translation_status !== 'translation' && token.language) return token.language === source ? 'speaker' : 'participant';
+    if (token.translation_status === 'translation' && token.source_language) return token.source_language === source ? 'speaker' : 'participant';
+    return 'speaker';
   }
 
-  private appendAudio(_name: LegName, pcm: Int16Array): void {
-    if (!this.ended) this.stt?.sendAudio(pcm);
+  private appendAudio(name: LegName, pcm: Int16Array): void {
+    if (this.ended) return;
+    if (this.mixer) {
+      if (name === 'participant') this.mixer.pushB(pcm);
+      else this.mixer.pushA(pcm);
+      return;
+    }
+    this.stt?.sendAudio(pcm);
   }
 
   /** Manual turns end with `finalize` (ruling 5); the socket's own leg holds the key. */
@@ -204,8 +244,11 @@ class SonioxCore {
       region: credentials.region,
       model: config.stt.model,
       sampleRate: SAMPLE_RATE,
-      translation: { type: 'one_way', target_language: target },
-      ...(source !== AUTO ? { languageHints: [source] } : {}),
+      translation: this.o.shared ? { type: 'two_way', language_a: source, language_b: target } : { type: 'one_way', target_language: target },
+      // D20 keeps an auto source out of Both: the gate refuses the participant leg.
+      ...(this.o.shared
+        ? { languageHints: [source, target], enableSpeakerDiarization: true }
+        : source !== AUTO ? { languageHints: [source] } : {}),
       ...(config.stt.context ? { context: config.stt.context } : {}),
       endpointSensitivity: config.stt.endpointSensitivity,
       endpointLatencyAdjustmentLevel: config.stt.endpointLatencyAdjustmentLevel,
@@ -215,6 +258,7 @@ class SonioxCore {
   }
 
   private opened(): void {
+    this.mixer?.start();
     const config = this.sttConfig();
     this.frame('out', 'session.opened', { region: config.region, translation: config.translation, speaking: this.o.legs.filter((l) => l.speech).map((l) => l.name) });
     // Once the start can no longer fail — the STT socket is open and `open()`
@@ -317,6 +361,8 @@ class SonioxCore {
     this.frame('in', 'session.stt_resuming', { code: close.code, reason: close.reason });
     for (const leg of this.o.legs) leg.events.reconnecting();
     this.utterances.abandon();
+    // The new socket restarts the server's audio clock and mints its own speaker labels (`SonioxClient.ts:646-647`).
+    this.tracker?.reset();
     for (const delay of RESUME_DELAYS_MS) {
       if (delay > 0) await this.wait(delay);
       if (this.ended) return;
@@ -380,6 +426,7 @@ class SonioxCore {
     for (const cancel of this.cancels) cancel();
     this.cancels.clear();
     this.utterances.stop();
+    this.mixer?.stop();
     const stt = this.stt;
     this.stt = null;
     // The empty text frame ends the stream (`SonioxClient.ts:1540-1589`); its trailing tokens are not awaited.
@@ -393,15 +440,64 @@ class SonioxCore {
   }
 }
 
-export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Adapter<SonioxConfig, SonioxCredentials> {
+export type SonioxAdapter = Adapter<SonioxConfig, SonioxCredentials> & {
+  startBoth(
+    requests: Record<LegName, StartRequest<SonioxConfig, SonioxCredentials>>,
+    events: Record<LegName, AdapterEvents>,
+  ): Promise<Record<LegName, AdapterSession>>;
+};
+
+export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): SonioxAdapter {
   const openSocket = deps.openSocket ?? nativeSocket;
+  const start: SonioxAdapter['start'] = async (request, events) => {
+    if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
+    // One leg: the core's name for it is its own; the runner knows which leg these events are.
+    const core = new SonioxCore({ primary: request, legs: [coreLeg('speaker', request, events, openSocket)], openSocket });
+    await core.open(request.signal);
+    return core.session('speaker');
+  };
+
+  /** Split Both: two ordinary sessions; one that fails stops the other and is named (D22). */
+  const startSplit: SonioxAdapter['startBoth'] = async (requests, events) => {
+    const legs: LegName[] = ['speaker', 'participant'];
+    const settled = await Promise.allSettled(legs.map((leg) => start(requests[leg], events[leg])));
+    const i = settled.findIndex((r) => r.status === 'rejected');
+    if (i >= 0) {
+      // Settled, so a stop that fails too never replaces the start's failure.
+      await Promise.allSettled(settled.map((r) => (r.status === 'fulfilled' ? r.value.stop() : undefined)));
+      const reason = (settled[i] as PromiseRejectedResult).reason;
+      if (requests.speaker.signal.aborted) throw reason;
+      throw new LegStartError(legs[i], reason);
+    }
+    const [speaker, participant] = settled.map((r) => (r as PromiseFulfilledResult<AdapterSession>).value);
+    return { speaker, participant };
+  };
+
   return {
-    async start(request, events) {
-      if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
-      // One leg: the core's name for it is its own; the runner knows which leg these events are.
-      const core = new SonioxCore({ primary: request, legs: [coreLeg('speaker', request, events, openSocket)], openSocket });
-      await core.open(request.signal);
-      return core.session('speaker');
+    start,
+    async startBoth(requests, events) {
+      const signal = requests.speaker.signal;
+      if (signal.aborted) throw signal.reason ?? new Error('aborted');
+      if (!requests.speaker.config.sharedBoth) return startSplit(requests, events);
+      // Shared Both: one socket on the speaker's key; each leg speaks through its own TTS socket and key (ruling 4).
+      const core = new SonioxCore({
+        primary: requests.speaker,
+        legs: [
+          coreLeg('speaker', requests.speaker, events.speaker, openSocket),
+          coreLeg('participant', requests.participant, events.participant, openSocket),
+        ],
+        openSocket,
+        shared: true,
+      });
+      try {
+        await core.open(signal);
+      } catch (error) {
+        if (signal.aborted) throw error;
+        // The socket and its key are the speaker's; a participant's TTS that cannot open is only degraded speech.
+        throw new LegStartError('speaker', error);
+      }
+      // Both facades stop the one core: either leg ending ends both (D21).
+      return { speaker: core.session('speaker'), participant: core.session('participant') };
     },
   };
 }
