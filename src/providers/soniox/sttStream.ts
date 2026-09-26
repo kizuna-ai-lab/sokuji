@@ -20,7 +20,7 @@
  */
 
 import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
-import { every, realClock, type Clock } from '../../lib/contract/clock';
+import { every, realClock, pinnedRealClock, type Clock } from '../../lib/contract/clock';
 import { nativeSocket, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
 
 export interface SonioxToken {
@@ -99,11 +99,16 @@ export class SonioxSttStream {
   private ws: WebSocket | null = null;
   private handlers: SonioxSttStreamHandlers = {};
   private readonly clock: Clock;
+  /** The raw dependency, kept alongside the resolved `clock`: the keepalive
+   *  interval needs to know whether a clock was injected at all, so it can
+   *  pin the real timer functions itself when it starts (see startKeepalive). */
+  private readonly injectedClock: Clock | undefined;
   private readonly openSocket: OpenSocket;
   private stopKeepaliveTimer: (() => void) | null = null;
   private lastAudioAt = 0;
 
   constructor(deps: SonioxWireDeps = {}) {
+    this.injectedClock = deps.clock;
     this.clock = deps.clock ?? realClock;
     this.openSocket = deps.openSocket ?? nativeSocket;
   }
@@ -233,7 +238,11 @@ export class SonioxSttStream {
 
   private startKeepalive(): void {
     this.stopKeepalive();
-    this.stopKeepaliveTimer = every(this.clock, KEEPALIVE_CHECK_INTERVAL_MS, () => {
+    // No injected clock: pin the real timer functions AT START, not read
+    // them fresh on every re-arm — otherwise a stream left open past its own
+    // test hands its next re-arm to whichever `setTimeout` a later test's
+    // `vi.useFakeTimers()` installs.
+    this.stopKeepaliveTimer = every(this.injectedClock ?? pinnedRealClock(), KEEPALIVE_CHECK_INTERVAL_MS, () => {
       if (!this.isOpen()) return;
       if (this.clock.now() - this.lastAudioAt >= KEEPALIVE_AFTER_IDLE_MS) {
         this.ws!.send(JSON.stringify({ type: 'keepalive' }));

@@ -1,5 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
-import { createVirtualClock, every } from './clock';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { createVirtualClock, every, pinnedRealClock } from './clock';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('createVirtualClock', () => {
   it('starts at the given time and advances', () => {
@@ -82,5 +86,34 @@ describe('every', () => {
     // a timer a callback scheduled when it falls due within the advance.
     clock.advance(1000);
     expect(fn).toHaveBeenCalledTimes(10);
+  });
+});
+
+describe('pinnedRealClock', () => {
+  it("keeps an interval on the timers it started with: a fake clock installed afterwards can't reach it, and it keeps ticking on real time", async () => {
+    // Captured before any fake install, so this wait is genuinely real even
+    // once `vi.useFakeTimers()` swaps out the global `setTimeout`.
+    const realSetTimeout = globalThis.setTimeout;
+    const fn = vi.fn();
+    const cancel = every(pinnedRealClock(), 20, fn);
+    vi.useFakeTimers();
+    // A real wait long enough for the already-pinned tick to fire, and to
+    // re-arm, while the fake clock is installed. Built on `realClock`
+    // instead, this is the exact moment the interval would hand its next
+    // re-arm to whichever `setTimeout` is global right then: the fake one.
+    await new Promise((resolve) => realSetTimeout(resolve, 80));
+    const callsDuringFake = fn.mock.calls.length;
+    expect(callsDuringFake).toBeGreaterThan(0);
+
+    // The fake clock never sees it: advancing it fires nothing further.
+    vi.advanceTimersByTime(10_000);
+    expect(fn.mock.calls.length).toBe(callsDuringFake);
+
+    vi.useRealTimers();
+    // Still alive: it keeps ticking on real time, unharmed by the excursion.
+    await new Promise((resolve) => realSetTimeout(resolve, 60));
+    expect(fn.mock.calls.length).toBeGreaterThan(callsDuringFake);
+
+    cancel();
   });
 });

@@ -9,7 +9,7 @@
  * drift between the two recorders is immaterial — occasional zero-fill or drop
  * does not affect recognition.
  */
-import { every, realClock, type Clock } from '../../lib/contract/clock';
+import { every, pinnedRealClock, type Clock } from '../../lib/contract/clock';
 
 export interface PcmMixerOptions {
   frameSamples: number;
@@ -41,7 +41,11 @@ export class PcmMixer {
 
   start(): void {
     if (this.cancel) return;
-    this.cancel = every(this.options.clock ?? realClock, this.options.intervalMs, () => this.tick());
+    // No injected clock: pin the real timer functions AT START, not read them
+    // fresh on every re-arm — otherwise a mixer left running past its own
+    // test (a Both-mode connect nobody disconnects) hands its next re-arm to
+    // whichever `setTimeout` a later test's `vi.useFakeTimers()` installs.
+    this.cancel = every(this.options.clock ?? pinnedRealClock(), this.options.intervalMs, () => this.tick());
   }
 
   stop(): void {

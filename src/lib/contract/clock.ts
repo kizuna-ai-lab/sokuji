@@ -18,6 +18,36 @@ export const realClock: Clock = {
 };
 
 /**
+ * A real clock pinned to the timer functions installed AT THE MOMENT this is
+ * called, unlike `realClock`, which reads the global `setTimeout` /
+ * `clearTimeout` / `Date.now` again on every call. A recurring `every()`
+ * built from it keeps re-arming on the timers it started with even if a
+ * test installs `vi.useFakeTimers()` afterwards — exactly what a plain
+ * `setInterval` did, and what an `every(realClock, …)` interval left
+ * running past its own test does NOT do: its next re-arm reads whichever
+ * `setTimeout` is global at that moment, handing a leaked interval to the
+ * next test's fake clock (`clock.test.ts`'s "pinnedRealClock" case pins the
+ * difference).
+ *
+ * Reach for `realClock` for a one-shot timer or a wall-clock read — its
+ * call-time read is exactly what it always did. It is only a recurring
+ * interval, one a caller might forget to stop, that a later swap can
+ * otherwise reach.
+ */
+export function pinnedRealClock(): Clock {
+  const pinnedSetTimeout = setTimeout;
+  const pinnedClearTimeout = clearTimeout;
+  const pinnedNow = Date.now;
+  return {
+    now: () => pinnedNow(),
+    setTimeout(fn, ms) {
+      const id = pinnedSetTimeout(fn, ms);
+      return () => pinnedClearTimeout(id);
+    },
+  };
+}
+
+/**
  * Runs `fn` every `ms` on `clock` until the returned cancel is called: the
  * interval every protocol module uses in place of the global one (F9), so
  * a virtual clock drives a keep-alive in tests. The next tick is armed

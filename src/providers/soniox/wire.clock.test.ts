@@ -132,6 +132,7 @@ describe('SonioxTtsStream on the injected clock and socket', () => {
     expect(await isPending(p)).toBe(true);
     clock.advance(1);
     await expect(p).rejects.toThrow(/TTS connection timeout/);
+    expect(sockets.last().closedByClient).not.toBeNull();
   });
 
   it('sends the TTS keep_alive every 20 s on the clock', async () => {

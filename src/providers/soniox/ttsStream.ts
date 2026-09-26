@@ -44,7 +44,7 @@
  */
 import { SONIOX_REDUCE_SILENCE } from '../../lib/soniox/ttsCatalog';
 import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
-import { every, realClock, type Clock } from '../../lib/contract/clock';
+import { every, realClock, pinnedRealClock, type Clock } from '../../lib/contract/clock';
 import { nativeSocket, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
 
 export interface SonioxTtsOptions {
@@ -142,6 +142,10 @@ export class SonioxTtsStream {
   private ws: WebSocket | null = null;
   private handlers: SonioxTtsStreamHandlers = {};
   private readonly clock: Clock;
+  /** The raw dependency, kept alongside the resolved `clock`: the keepalive
+   *  interval needs to know whether a clock was injected at all, so it can
+   *  pin the real timer functions itself when it starts (see startKeepalive). */
+  private readonly injectedClock: Clock | undefined;
   private readonly openSocket: OpenSocket;
   private stopKeepaliveTimer: (() => void) | null = null;
 
@@ -161,6 +165,7 @@ export class SonioxTtsStream {
 
   constructor(options: SonioxTtsOptions, deps: SonioxWireDeps = {}) {
     this.options = options;
+    this.injectedClock = deps.clock;
     this.clock = deps.clock ?? realClock;
     this.openSocket = deps.openSocket ?? nativeSocket;
   }
@@ -461,7 +466,11 @@ export class SonioxTtsStream {
 
   private startKeepalive(): void {
     this.stopKeepalive();
-    this.stopKeepaliveTimer = every(this.clock, KEEPALIVE_INTERVAL_MS, () => {
+    // No injected clock: pin the real timer functions AT START, not read
+    // them fresh on every re-arm — otherwise a stream left open past its own
+    // test hands its next re-arm to whichever `setTimeout` a later test's
+    // `vi.useFakeTimers()` installs.
+    this.stopKeepaliveTimer = every(this.injectedClock ?? pinnedRealClock(), KEEPALIVE_INTERVAL_MS, () => {
       if (this.isOpen()) this.ws!.send(JSON.stringify({ keep_alive: true }));
     });
   }
