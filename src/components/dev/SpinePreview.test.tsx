@@ -237,7 +237,8 @@ describe('SpinePreview', () => {
     const prevAutoSave = useSettingsStore.getState().autoSaveOnStop;
     const prevTurnMode = useTurnModeStore.getState().turnMode;
     const prevMonitorMuted = useAudioStore.getState().isMonitorMuted;
-    window.history.replaceState(null, '', '/?preview=spine&script=cjk&autosave=1&turn=push-to-talk&monitor=1');
+    const prevMode = useAudioStore.getState().mode;
+    window.history.replaceState(null, '', '/?preview=spine&script=cjk&autosave=1&turn=push-to-talk&monitor=1&mode=both');
     runnerStart.mockClear();
     try {
       render(<SpinePreview />);
@@ -246,6 +247,7 @@ describe('SpinePreview', () => {
         expect(useSettingsStore.getState().autoSaveOnStop).toBe(true);
         expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
         expect(useAudioStore.getState().isMonitorMuted).toBe(false);
+        expect(useAudioStore.getState().mode).toBe('both');
       });
       // No `&autostart=1`: the settings apply, but nothing starts.
       expect(runnerStart).not.toHaveBeenCalled();
@@ -253,7 +255,7 @@ describe('SpinePreview', () => {
       window.history.replaceState(null, '', before);
       useSettingsStore.setState({ autoSaveOnStop: prevAutoSave });
       useTurnModeStore.setState({ turnMode: prevTurnMode });
-      useAudioStore.setState({ isMonitorMuted: prevMonitorMuted });
+      useAudioStore.setState({ isMonitorMuted: prevMonitorMuted, mode: prevMode });
     }
   });
 

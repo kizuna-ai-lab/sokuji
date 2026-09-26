@@ -70,6 +70,11 @@ describe('gate', () => {
     expect(gate(shape({ provider: manualOnly, turnMode: 'push-to-talk', legs: ['speaker', 'participant'] }), 'electron'))
       .toMatchObject({ code: 'turn_mode_unsupported', leg: 'participant' });
   });
+
+  it('gates the narrower input the stores give as well as a run\'s shape', () => {
+    expect(gate({ provider: fakeProvider, settings: FAKE_DEFAULTS, pair: { source: 'en', target: 'ja' }, legs: ['participant'], turnMode: 'auto' }, 'web'))
+      .toMatchObject({ code: 'participant_source_unavailable', leg: 'participant' });
+  });
 });
 
 describe('microphoneMissing (1e-3 ruling 5)', () => {

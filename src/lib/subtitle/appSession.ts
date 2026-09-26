@@ -1,11 +1,12 @@
 /**
  * The app's subtitle session, live from the runner, the conversation view and
  * three stores (the selected provider's readiness and pair, the turn mode,
- * and the audio store's mode and chosen microphone for the microphone gate).
+ * and the audio store's mode and chosen microphone for the microphone gate),
+ * and the start gate over them (F7).
  * The only module under `src/lib/subtitle` that reads a store.
  */
 import { describeCause, reportError } from '../diagnostics/report';
-import { legsFor } from '../session/appShape';
+import { legsFor, liveGate } from '../session/appShape';
 import type { Runner } from '../session/runner';
 import { microphoneMissing } from '../session/shape';
 import type { ConversationViewState, Readable } from '../view/conversationView';
@@ -39,6 +40,7 @@ export function appSubtitleSession(
       legs: (['speaker', 'participant'] as const).filter((leg) => intent.includes(leg) || shown.includes(leg)),
       microphoneMissing: (options.microphoneRequired?.() ?? false) && microphoneMissing(intent, audio.selectedInputDevice?.deviceId),
       providerLoaded: !!(id && providers.entries[id]),
+      refusal: liveGate(),
     });
   };
   let state = read();

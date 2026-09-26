@@ -273,8 +273,9 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * `&punctuation=1` downloads the punctuation pack before autostart, so the
  * session's punctuator is on disk for a `sentences` cut — a dry run of plan
  * 1e-3's own wiring. `&monitor=1` writes the stored monitor switch (the old
- * app reads the same key), so it outlives the page — as `&autosave=1` and
- * `&turn=` do. `&settings=simple|advanced` (plan 1e-3b-2 Task 3) draws the
+ * app reads the same key), so it outlives the page — as `&autosave=1`,
+ * `&turn=` and `&mode=` (the audio mode, for the live start gate, F7) do.
+ * `&settings=simple|advanced` (plan 1e-3b-2 Task 3) draws the
  * Settings blocks the app's two layouts show, in place of `ProviderPanel`:
  * `simple` is `SessionSettingsGeneral` in its Simple layout (a chip pushes
  * `SessionEnginePage`, with a back row, the way Simple mode's own list
@@ -392,6 +393,9 @@ export function SpinePreview() {
     // `&turn=push-to-talk|push-to-translate`: the stored turn mode this session runs under.
     const turn = params.get('turn');
     if (turn === 'push-to-talk' || turn === 'push-to-translate') useTurnModeStore.getState().setTurnMode(turn);
+    // `&mode=speaker|participant|both`: the stored audio mode, for the live gate's check (F7) — like `&turn=`, it outlives the page.
+    const mode = params.get('mode');
+    if (mode === 'speaker' || mode === 'participant' || mode === 'both') useAudioStore.getState().setMode(mode);
     // `&compact=1`: the subtitle surfaces' bands (not the panel's own compact mode).
     if (params.get('compact') === '1') void useSubtitleStore.getState().setCompactMode(true);
     // `&autosave=1`: the stored auto-save switch, on — the run's end saves the conversation.
