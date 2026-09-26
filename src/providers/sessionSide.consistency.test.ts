@@ -184,6 +184,19 @@ describe('a provider session side', () => {
     const fake = sessionSide(REPO_ROOT, 'src/providers/fake');
     expect(fake).toEqual(expect.arrayContaining(['src/providers/fake/adapter.ts', 'src/providers/fake/synth.ts']));
     expect(fake).not.toContain('src/providers/fake/script.ts');
+
+    const soniox = sessionSide(REPO_ROOT, 'src/providers/soniox');
+    expect(soniox).toEqual(expect.arrayContaining([
+      'src/providers/soniox/adapter.ts',
+      'src/providers/soniox/pcmMixer.ts',
+      'src/providers/soniox/sideTracker.ts',
+      'src/providers/soniox/socket.ts',
+      'src/providers/soniox/sttStream.ts',
+      'src/providers/soniox/ttsStream.ts',
+    ]));
+    // The settings side keeps its own timers: the adapter never reaches it.
+    expect(soniox).not.toContain('src/providers/soniox/ttsRest.ts');
+    expect(soniox).not.toContain('src/providers/soniox/voicesClient.ts');
   });
 
   it('reads imports the way the compiler does', () => {

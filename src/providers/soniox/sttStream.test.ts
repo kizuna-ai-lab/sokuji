@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SonioxSttStream, SonioxSttMessage } from './SonioxSttStream';
+import { SonioxSttStream, SonioxSttMessage } from './sttStream';
+import type { SonioxSttConfig } from './sttStream';
 import { SONIOX_REGIONS, sonioxHosts } from '../../lib/soniox/regions';
+
+const last = <T,>(xs: readonly T[]): T => xs[xs.length - 1];
 
 /** Minimal scripted WebSocket double. Instances register on MockWebSocket.instances. */
 class MockWebSocket {
@@ -32,12 +35,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const CONFIG = {
-  apiKey: 'k', model: 'stt-rt-v5', sampleRate: 24000, region: 'us' as const,
-  translation: { type: 'one_way' as const, target_language: 'en' },
+const CONFIG: SonioxSttConfig = {
+  apiKey: 'k', model: 'stt-rt-v5', sampleRate: 24000, region: 'us',
+  translation: { type: 'one_way', target_language: 'en' },
 };
 
-async function openStream(config = CONFIG) {
+async function openStream(config: SonioxSttConfig = CONFIG) {
   const s = new SonioxSttStream();
   const p = s.connect(config);
   MockWebSocket.instances[0].open();
@@ -213,7 +216,7 @@ describe('SonioxSttStream', () => {
     for (const enableSpeakerDiarization of [undefined, false]) {
       const s = new SonioxSttStream();
       const p = s.connect({ ...CONFIG, enableSpeakerDiarization });
-      const ws = MockWebSocket.instances.at(-1)!;
+      const ws = last(MockWebSocket.instances);
       ws.open();
       await p;
       const first = JSON.parse(ws.sent[0] as string);

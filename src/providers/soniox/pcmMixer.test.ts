@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PcmMixer } from './PcmMixer';
+import { PcmMixer } from './pcmMixer';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());

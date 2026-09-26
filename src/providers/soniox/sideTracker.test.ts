@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SonioxSideTracker } from './SonioxSideTracker';
+import { SonioxSideTracker } from './sideTracker';
 
 // Channel A = mic = 'speaker' side; channel B = far end = 'participant'.
 describe('SonioxSideTracker', () => {

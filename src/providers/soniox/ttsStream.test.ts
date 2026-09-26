@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SonioxTtsStream, classifyChunkEnd, TTS_SEGMENT_TIMING } from './SonioxTtsStream';
+import { SonioxTtsStream, classifyChunkEnd, TTS_SEGMENT_TIMING } from './ttsStream';
 import { SONIOX_REGIONS, sonioxHosts } from '../../lib/soniox/regions';
+
+const last = <T,>(xs: readonly T[]): T => xs[xs.length - 1];
 
 class MockWebSocket {
   static instances: MockWebSocket[] = [];
@@ -81,7 +83,7 @@ describe('SonioxTtsStream', () => {
     const { t, ws } = await openTts();
     t.sendText('Hi', 'en');
     t.endUtterance();
-    expect(ws.jsonSent().at(-1)).toEqual({ stream_id: 'utt-1-1', text: '', text_end: true });
+    expect(last(ws.jsonSent())).toEqual({ stream_id: 'utt-1-1', text: '', text_end: true });
   });
 
   it('endUtterance without any text is a no-op', async () => {
@@ -98,7 +100,7 @@ describe('SonioxTtsStream', () => {
     expect(opened(ws)).toEqual(['utt-1-1']);
     ws.message({ stream_id: 'utt-1-1', terminated: true });
     expect(opened(ws)).toEqual(['utt-1-1', 'utt-2-1']);
-    expect(ws.jsonSent().at(-1)).toEqual({ stream_id: 'utt-2-1', text: 'two', text_end: false });
+    expect(last(ws.jsonSent())).toEqual({ stream_id: 'utt-2-1', text: 'two', text_end: false });
   });
 
   it('decodes base64 audio chunks to Int16Array', async () => {
@@ -122,7 +124,7 @@ describe('SonioxTtsStream', () => {
   it('sends keep_alive every 20 s', async () => {
     const { ws } = await openTts();
     vi.advanceTimersByTime(20_000);
-    expect(ws.jsonSent().at(-1)).toEqual({ keep_alive: true });
+    expect(last(ws.jsonSent())).toEqual({ keep_alive: true });
   });
 
   it('processes terminated even when the same message also carries an error (queue must not wedge)', async () => {
@@ -193,9 +195,9 @@ describe('SonioxTtsStream', () => {
   it('includes speed in the stream config when not the default rate', async () => {
     const t = new SonioxTtsStream({ ...OPTS, speed: 0.8 });
     const p = t.connect();
-    MockWebSocket.instances.at(-1)!.open();
+    last(MockWebSocket.instances).open();
     await p;
-    const ws = MockWebSocket.instances.at(-1)!;
+    const ws = last(MockWebSocket.instances);
     t.sendText('Hi', 'en');
     expect(ws.jsonSent()[0]).toMatchObject({ stream_id: 'utt-1-1', speed: 0.8 });
   });
@@ -204,9 +206,9 @@ describe('SonioxTtsStream', () => {
     for (const speed of [undefined, 1.0]) {
       const t = new SonioxTtsStream({ ...OPTS, speed });
       const p = t.connect();
-      MockWebSocket.instances.at(-1)!.open();
+      last(MockWebSocket.instances).open();
       await p;
-      const ws = MockWebSocket.instances.at(-1)!;
+      const ws = last(MockWebSocket.instances);
       t.sendText('Hi', 'en');
       expect('speed' in ws.jsonSent()[0]).toBe(false);
     }
@@ -230,7 +232,7 @@ describe('SonioxTtsStream segmenting', () => {
     expect(opened(ws)).toEqual(['utt-1-1']); // queued behind the draining segment
     ws.message({ stream_id: 'utt-1-1', terminated: true });
     expect(opened(ws)).toEqual(['utt-1-1', 'utt-1-2']);
-    expect(ws.jsonSent().at(-1)).toEqual({ stream_id: 'utt-1-2', text: ' How are you', text_end: false });
+    expect(last(ws.jsonSent())).toEqual({ stream_id: 'utt-1-2', text: ' How are you', text_end: false });
   });
 
   it('keeps several sentences that arrive in one chunk in one segment', async () => {
@@ -331,7 +333,7 @@ describe('SonioxTtsStream segmenting', () => {
     expect(ended(ws)).toEqual([]);
     vi.advanceTimersByTime(300);
     t.sendText('5 percent', 'en');
-    expect(ws.jsonSent().at(-1)).toEqual({ stream_id: 'utt-1-1', text: '5 percent', text_end: false });
+    expect(last(ws.jsonSent())).toEqual({ stream_id: 'utt-1-1', text: '5 percent', text_end: false });
     t.sendText(' in 2025.', 'en');
     vi.advanceTimersByTime(1500);
     expect(ended(ws)).toEqual(['utt-1-1']);
@@ -343,7 +345,7 @@ describe('SonioxTtsStream segmenting', () => {
     t.sendText('你好', 'zh');
     expect(ended(ws)).toEqual(['utt-1-1']);
     ws.message({ stream_id: 'utt-1-1', terminated: true });
-    expect(ws.jsonSent().filter((m) => m.model).at(-1)).toMatchObject({ stream_id: 'utt-1-2', language: 'zh' });
+    expect(last(ws.jsonSent().filter((m) => m.model))).toMatchObject({ stream_id: 'utt-1-2', language: 'zh' });
   });
 
   it('ignores errors about a stream it already dropped (the 400 flood after a kill)', async () => {
@@ -359,7 +361,7 @@ describe('SonioxTtsStream segmenting', () => {
     ws.message({ stream_id: 'utt-1-1', error_code: 400, error_message: 'Stream utt-1-1 not found.' });
     expect(errors).toEqual(['408']);
     t.sendText(' more', 'en');
-    expect(ws.jsonSent().at(-1)).toEqual({ stream_id: 'utt-1-2', text: ' more', text_end: false });
+    expect(last(ws.jsonSent())).toEqual({ stream_id: 'utt-1-2', text: ' more', text_end: false });
   });
 
   it('only a 408 on a live stream loses one segment; any other error means speech is down', async () => {
@@ -429,9 +431,9 @@ describe('SonioxTtsStream regional endpoints', () => {
   it.each(SONIOX_REGIONS)('opens the %s tts socket', async (region) => {
     const t = new SonioxTtsStream({ ...OPTS, region });
     const p = t.connect();
-    MockWebSocket.instances.at(-1)!.open();
+    last(MockWebSocket.instances).open();
     await p;
-    expect(MockWebSocket.instances.at(-1)!.url)
+    expect(last(MockWebSocket.instances).url)
       .toBe(`wss://${sonioxHosts(region).ttsRt}/tts-websocket`);
   });
 });

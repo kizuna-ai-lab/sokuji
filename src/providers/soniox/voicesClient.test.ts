@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SonioxVoicesClient, encodeWavPcm16 } from './SonioxVoicesClient';
+import { SonioxVoicesClient, encodeWavPcm16 } from './voicesClient';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
 
 const fetchMock = vi.fn();

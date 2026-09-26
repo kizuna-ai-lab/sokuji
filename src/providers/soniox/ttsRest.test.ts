@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { synthesizeOnce } from './SonioxTtsRest';
+import { synthesizeOnce } from './ttsRest';
 
 const fetchMock = vi.fn();
 
