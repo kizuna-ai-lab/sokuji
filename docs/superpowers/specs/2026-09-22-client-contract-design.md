@@ -845,13 +845,17 @@ setting in `audioStore` (`setMonitorVolume`, `isMonitorMuted`); it is not a
 route and not a mix.
 
 **Voice preview bypasses the sink at two sites** — `VoiceLibrarySection`'s own
-`AudioContext`, which plays Soniox's previews and Local Native's
-(`NativeVoiceSection` renders it), and `SonioxCloneReviewStep`'s `<audio>`.
+`AudioContext`, which plays Soniox's previews, Local Native's
+(`NativeVoiceSection` renders it) and LocalInference's
+(`LocalInferenceVoiceSection` renders it; the released LocalInference view
+provides no `VoicePreviewContext`, so its previews still play on the default
+output), and `SonioxCloneReviewStep`'s `<audio>`.
 `VoiceCreateModal`'s `AudioContext` is its recorder, and `nativeVoiceStores`'
 decodes an imported clip and closes; neither is a player (the first version of
 this paragraph counted all four as preview sites). `VoiceLibrarySection` folds
 into the preview route through a port its host hands down (Soniox first,
-Stage 2; Local Native's host hands it one with Local Native);
+Stage 2; Local Native's and LocalInference's hosts hand it one in their own
+providers' plans);
 `SonioxCloneReviewStep` is a seekable review player that a play-once route
 cannot replace without losing seek, and stays on the default output (Stage 2
 Soniox, ruling 6).
