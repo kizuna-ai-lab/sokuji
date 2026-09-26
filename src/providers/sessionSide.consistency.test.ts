@@ -188,15 +188,16 @@ describe('a provider session side', () => {
     const soniox = sessionSide(REPO_ROOT, 'src/providers/soniox');
     expect(soniox).toEqual(expect.arrayContaining([
       'src/providers/soniox/adapter.ts',
-      'src/providers/soniox/pcmMixer.ts',
-      'src/providers/soniox/sideTracker.ts',
       'src/providers/soniox/socket.ts',
+      'src/providers/soniox/speech.ts',
       'src/providers/soniox/sttStream.ts',
       'src/providers/soniox/ttsStream.ts',
+      'src/providers/soniox/utterances.ts',
     ]));
-    // The settings side keeps its own timers: the adapter never reaches it.
-    expect(soniox).not.toContain('src/providers/soniox/ttsRest.ts');
-    expect(soniox).not.toContain('src/providers/soniox/voicesClient.ts');
+    // The builder, the check and the settings side are not the session's: the adapter imports them as types only.
+    for (const file of ['check.ts', 'config.ts', 'settings.ts', 'ttsRest.ts', 'voicesClient.ts']) {
+      expect(soniox).not.toContain(`src/providers/soniox/${file}`);
+    }
   });
 
   it('reads imports the way the compiler does', () => {
