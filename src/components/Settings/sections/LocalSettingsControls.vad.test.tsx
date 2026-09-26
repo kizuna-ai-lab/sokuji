@@ -45,3 +45,23 @@ describe('VadControl max speech duration', () => {
     expect(maxSpeech?.min).toBe('10');
   });
 });
+
+describe('VadControl heading', () => {
+  // Default unchanged: every caller that doesn't know about `hideHeading`
+  // (both inline blocks left in ProviderSpecificSettings.tsx) keeps showing it.
+  it('shows the "VAD Settings" heading by default', () => {
+    render(<VadControl values={BASE} onChange={() => {}} disabled={false} />);
+    expect(screen.getByText('VAD Settings')).toBeTruthy();
+  });
+
+  // LocalInference's disclosure row (Speech section) now carries the heading
+  // words and its tooltip itself — Controls would otherwise repeat both
+  // right under the row that already says them.
+  it('omits the heading when hideHeading is passed, while still showing the sliders', () => {
+    render(<VadControl values={BASE} onChange={() => {}} disabled={false} hideHeading />);
+    expect(screen.queryByText('VAD Settings')).toBeNull();
+    expect(screen.getByText('Speech Threshold')).toBeTruthy();
+    expect(screen.getByText('Min Silence Duration')).toBeTruthy();
+    expect(screen.getByText('Min Speech Duration')).toBeTruthy();
+  });
+});

@@ -50,17 +50,34 @@ describe('LocalInferenceTurnDetectionSummary', () => {
     const { container } = render(<LocalInferenceTurnDetectionSummary settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
     expect(container.innerHTML).toBe('');
   });
+
+  // The heading's own tooltip moved here (SpeechSection's disclosure row
+  // shows this Summary, collapsed or not) since `Controls` no longer draws
+  // the heading that used to carry it.
+  it('carries a help tooltip after the text, with the VAD settings tooltip content', () => {
+    const { container } = render(
+      <LocalInferenceTurnDetectionSummary settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />,
+    );
+    expect(container.querySelector('.tooltip-trigger')).toBeTruthy();
+  });
 });
 
 describe('LocalInferenceTurnDetectionControls', () => {
   it("renders VadControl's sliders over the settings, and a change goes through update", () => {
     const update = vi.fn();
     render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={update} pair={pair} />);
-    expect(screen.getByText('VAD Settings')).toBeTruthy();
     const minSilence = sliderFor('Min Silence Duration');
     expect(minSilence.value).toBe(String(LOCAL_INFERENCE_DEFAULTS.vadMinSilenceDuration));
     fireEvent.change(minSilence, { target: { value: '0.5' } });
     expect(update).toHaveBeenCalledWith({ vadMinSilenceDuration: 0.5 });
+  });
+
+  // The Speech section's disclosure row already says "VAD Settings" (the
+  // Summary, right above) — Controls repeating it right underneath was the
+  // stutter this fix removes.
+  it('omits the "VAD Settings" heading — the disclosure row above already says it', () => {
+    render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
+    expect(screen.queryByText('VAD Settings')).toBeNull();
   });
 
   it('renders nothing for a streaming ASR with no worker type', () => {

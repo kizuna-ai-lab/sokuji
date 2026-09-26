@@ -1,10 +1,19 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CircleHelp } from 'lucide-react';
 import { useModelStore, useModelStatuses } from '../../stores/modelStore';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { VadControl } from '../../components/Settings/sections/LocalSettingsControls';
+import Tooltip from '../../components/Tooltip/Tooltip';
 import type { LanguagePair, SettingsProps } from '../../lib/provider/types';
 import type { LocalInferenceSettings as S } from './settings';
+
+// Matches `LocalSettingsControls.tsx`'s own inline help icon — this is the
+// same tooltip trigger, moved from VadControl's now-hidden heading onto the
+// Summary line that stands in for it in the Speech section.
+const helpIcon = (
+  <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+);
 
 /**
  * Which VAD knobs the speaker direction's resolved ASR takes — the one rule
@@ -35,16 +44,31 @@ function useVadKnobs(settings: S, pair: LanguagePair | undefined): { showVad: bo
 
 /**
  * One line: `VadControl`'s own heading and min-silence label, with the value
- * formatted the way `VadControl` shows it — existing keys only.
+ * formatted the way `VadControl` shows it — existing keys only. Also carries
+ * the heading's help tooltip (same content, same `Tooltip`): `Controls`
+ * no longer draws that heading (`hideHeading`), since the Speech section's
+ * disclosure row always shows this Summary, collapsed or not.
  */
 export function LocalInferenceTurnDetectionSummary({ settings, pair }: SettingsProps<S>) {
   const { t } = useTranslation();
   const { showVad } = useVadKnobs(settings, pair);
   if (!showVad) return null;
-  return <>{`${t('settings.vadSettings', 'VAD Settings')} · ${t('settings.vadMinSilenceDuration', 'Min Silence Duration')}: ${settings.vadMinSilenceDuration.toFixed(2)}s`}</>;
+  return (
+    <>
+      {`${t('settings.vadSettings', 'VAD Settings')} · ${t('settings.vadMinSilenceDuration', 'Min Silence Duration')}: ${settings.vadMinSilenceDuration.toFixed(2)}s`}
+      <Tooltip content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')} position="top">
+        {helpIcon}
+      </Tooltip>
+    </>
+  );
 }
 
-/** The VAD knobs, moved here unchanged from LocalInference's own `Settings`. */
+/**
+ * The VAD knobs, moved here unchanged from LocalInference's own `Settings`
+ * — except the heading, which the Speech section's disclosure row already
+ * shows via `LocalInferenceTurnDetectionSummary` (`hideHeading`, so the two
+ * don't repeat the same words right on top of each other).
+ */
 export function LocalInferenceTurnDetectionControls({ settings, update, disabled = false, pair }: SettingsProps<S>) {
   const { showVad, vadIsWebWorker } = useVadKnobs(settings, pair);
   if (!showVad) return null;
@@ -62,6 +86,7 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
       }}
       onChange={(patch) => update(patch)}
       disabled={disabled}
+      hideHeading
     />
   );
 }

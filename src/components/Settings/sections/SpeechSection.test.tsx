@@ -156,6 +156,32 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     expect(sliders(container)).toHaveLength(0);
   });
 
+  // Regression for the heading stutter: VadControl's own "VAD Settings"
+  // heading used to repeat, verbatim, right under the disclosure row that
+  // already says those words. The disclosure carries the words (and, below,
+  // the tooltip that used to be the heading's); Controls shows none of it.
+  it('Advanced, expanded: the Controls hold no "VAD Settings" heading — the disclosure row still says the words', () => {
+    const { container } = render(<SpeechSection locked={false} layout="advanced" />);
+    const button = disclosure(container)!;
+    expect(button.textContent).toContain('VAD Settings');
+    fireEvent.click(button);
+    const controls = section(container).querySelector('#turn-detection-controls')!;
+    expect(controls).toBeTruthy();
+    expect(controls.querySelectorAll('h2')).toHaveLength(0);
+    expect(controls.textContent).not.toContain('VAD Settings');
+  });
+
+  // The heading's tooltip moved onto the row itself (both layouts show the
+  // Summary), so it must be reachable before the row is ever expanded — not
+  // buried inside Controls, which isn't even rendered yet here.
+  it.each(['simple', 'advanced'] as const)('the disclosure row carries the VAD settings tooltip, unexpanded (%s)', (layout) => {
+    const { container } = render(<SpeechSection locked={false} layout={layout} />);
+    expect(section(container).querySelector('#turn-detection-controls')).toBeNull();
+    expect(tooltipContents).toContain(
+      'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.',
+    );
+  });
+
   it("a change goes to the provider's settings, and the summary follows", () => {
     const { container } = render(<SpeechSection locked={false} layout="advanced" />);
     fireEvent.click(disclosure(container)!);

@@ -123,14 +123,24 @@ export const VadControl: React.FC<{
   values: VadValues;
   onChange: (patch: Partial<VadValues>) => void;
   disabled: boolean;
-}> = ({ values, onChange, disabled }) => {
+  /**
+   * Omit the "VAD Settings" heading and its tooltip — for a caller that
+   * already shows both itself right above (LocalInference's disclosure row
+   * in the Speech section: its Summary carries the words, moved out of here
+   * to stop them repeating right under it). Default false: every other
+   * caller is unchanged.
+   */
+  hideHeading?: boolean;
+}> = ({ values, onChange, disabled, hideHeading = false }) => {
   const { t } = useTranslation();
   return (
     <div className="settings-section">
-      <h2>
-        {t('settings.vadSettings', 'VAD Settings')}
-        <Tooltip content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')} position="top">{helpIcon}</Tooltip>
-      </h2>
+      {!hideHeading && (
+        <h2>
+          {t('settings.vadSettings', 'VAD Settings')}
+          <Tooltip content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')} position="top">{helpIcon}</Tooltip>
+        </h2>
+      )}
       <div className="setting-item">
         <div className="setting-label">
           <span>
