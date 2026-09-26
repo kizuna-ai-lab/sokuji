@@ -10,6 +10,11 @@
  * token after a boundary and before the next original token belongs to the
  * utterance that just ended (choice 3). The one timer is the `<fin>`
  * grace, on the request's clock.
+ *
+ * Invariant: `current` and `previous` are never both set. An utterance
+ * begins only once the ended one is let go (`endPrevious()` before
+ * `begin()`, or neither set), and a boundary clears `current` before it
+ * makes that utterance `previous`.
  */
 import type { AdapterEvents, AdapterFrame, Ref, TextRange } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
@@ -89,6 +94,10 @@ export class Utterances {
       }
       if (token.translation_status === 'translation') {
         const u = this.current ?? this.previous ?? this.begin(token);
+        // A late partial opens nothing: partials are shown only on the current
+        // utterance, so it would open an empty row the grace then closes with
+        // nothing spoken. The late final that follows opens it.
+        if (u === this.previous && !token.is_final && u.translation === 'none') continue;
         if (token.language) u.translationLanguage = token.language;
         this.openTranslation(u);
         if (token.is_final) {
@@ -109,7 +118,8 @@ export class Utterances {
         else sourcePartial += text;
       }
     }
-    // The ended utterance's late translation first: it was said first.
+    // At most one of the two is set (the invariant): the ended utterance, whose
+    // late translation this message may have added to, or the current one.
     if (this.previous) {
       this.speakFinals(this.previous);
       this.showTranslation(this.previous, '');
@@ -122,6 +132,7 @@ export class Utterances {
 
   /** A 503 swaps the socket (ruling 3): what is open closes as it stands — L1 keeps the last snapshot — and refs go on. */
   abandon(): void {
+    if (this.stopped) return;
     const u = this.current;
     this.current = null;
     if (u) {
@@ -175,7 +186,6 @@ export class Utterances {
       this.emit(u, { kind: 'segmentClosed', payload: { ref: u.sourceRef, origin: u.origin } });
     }
     this.current = null;
-    this.endPrevious();
     this.previous = u;
     if (kind === 'end') this.closeTranslation(u);
     else if (u.translation === 'open') this.armGrace(u);

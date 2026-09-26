@@ -153,7 +153,7 @@ describe('Utterances', () => {
   it('a translation held after <fin> closes after FIN_TRANSLATION_GRACE_MS', () => {
     const { clock, machine, calls } = setup();
     machine.message([orig('Hi.'), tr('や'), FIN]);
-    clock.advance(1_999);
+    clock.advance(FIN_TRANSLATION_GRACE_MS - 1);
     expect(calls.some(seg('segmentClosed', 2))).toBe(false);
     expect(calls.some(ended(2))).toBe(false);
     clock.advance(1);
@@ -251,6 +251,9 @@ describe('Utterances', () => {
     expect(calls).toHaveLength(before);
     machine.message([orig('x')]);
     expect(calls).toHaveLength(before);
+    // Not even an abandon: the translation held after <fin> ends no speech.
+    machine.abandon();
+    expect(calls).toHaveLength(before);
   });
 
   it('summarizes a message for the Logs: a delta for partials, a transcript and a translation for finals, an endpoint, a finalize', () => {
@@ -300,5 +303,66 @@ describe('Utterances', () => {
     expect(late).toContainEqual({ leg: 'speaker', endSpeech: 2 });
     expect(late.findIndex(said('。'))).toBeLessThan(late.findIndex(ended(2)));
     expect(calls.filter(seg('segmentClosed', 2))).toHaveLength(1);
+  });
+
+  it('a late partial translation opens nothing; the late final that follows opens the translation', () => {
+    const { clock, machine, calls, segments } = setup();
+    machine.message([orig('Hi.'), END]);
+    const before = calls.length;
+    machine.message([tr('やあ', false)]);
+    clock.advance(FIN_TRANSLATION_GRACE_MS);
+    // No empty row: nothing opened, shown, closed or ended for a translation.
+    expect(calls).toHaveLength(before);
+    machine.message([tr('やあ。')]);
+    expect(segments()).toContainEqual({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'u1' } });
+    expect(segments()).toContainEqual({ kind: 'segmentText', payload: { ref: 2, text: 'やあ。', language: 'ja' } });
+  });
+
+  it('a translation token after the grace closed its translation revises it, and is spoken', () => {
+    const { clock, machine, calls, spoken, textsOf, where } = setup();
+    machine.message([orig('Hi.'), tr('や'), FIN]);
+    clock.advance(FIN_TRANSLATION_GRACE_MS);
+    expect(calls.some(seg('segmentClosed', 2))).toBe(true);
+    machine.message([tr('あ。')]);
+    expect(lastWhere(calls, seg('segmentText', 2))).toBeGreaterThan(where(seg('segmentClosed', 2)));
+    const texts = textsOf(2);
+    expect(texts[texts.length - 1]).toEqual({ ref: 2, text: 'やあ。', language: 'ja' });
+    const chunks = spoken();
+    expect(chunks[chunks.length - 1]).toEqual([2, 'あ。', [1, 3], 'ja']);
+    const lastSpeak = lastWhere(calls, (c) => 'speak' in c);
+    expect(calls[lastSpeak + 1]).toEqual({ leg: 'speaker', endSpeech: 2 });
+    expect(calls.filter(seg('segmentClosed', 2))).toHaveLength(1);
+  });
+
+  it('abandon closes a translation held after <fin>, once, and the grace then does nothing', () => {
+    const { clock, machine, calls, segments } = setup();
+    machine.message([orig('Hi.'), tr('や'), FIN]);
+    const before = calls.length;
+    machine.abandon();
+    expect(calls.slice(before)).toEqual([
+      { leg: 'speaker', segment: { kind: 'segmentClosed', payload: { ref: 2, origin: 'u1' } } },
+      { leg: 'speaker', endSpeech: 2 },
+    ]);
+    const afterAbandon = calls.length;
+    clock.advance(FIN_TRANSLATION_GRACE_MS);
+    expect(calls).toHaveLength(afterAbandon);
+    machine.message([orig('Again')]);
+    expect(segments()).toContainEqual({ kind: 'segmentOpened', payload: { ref: 3, side: 'source', origin: 'u2' } });
+  });
+
+  it('a late token inside the grace does not restart it', () => {
+    const { clock, machine, calls, textsOf } = setup();
+    machine.message([orig('Hi.'), tr('や'), FIN]);
+    clock.advance(1_000);
+    machine.message([tr('あ')]);
+    expect(textsOf(2).map((p) => p.text)).toEqual(['や', 'やあ']);
+    // Still due FIN_TRANSLATION_GRACE_MS after <fin>, not after the late token.
+    clock.advance(FIN_TRANSLATION_GRACE_MS - 1_000 - 1);
+    expect(calls.some(seg('segmentClosed', 2))).toBe(false);
+    clock.advance(1);
+    expect(calls.slice(-2)).toEqual([
+      { leg: 'speaker', segment: { kind: 'segmentClosed', payload: { ref: 2, origin: 'u1' } } },
+      { leg: 'speaker', endSpeech: 2 },
+    ]);
   });
 });
