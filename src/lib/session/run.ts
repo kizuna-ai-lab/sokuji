@@ -180,6 +180,7 @@ export class Run {
     if (p.session?.acquire) {
       const resources = await p.session.acquire(shape, settings, {
         signal: this.signal,
+        clock: deps.clock,
         // `close()` sets `ending` before it aborts; an abort listener that
         // reacts by calling this must not re-end a run already ending.
         end: (notice) => {

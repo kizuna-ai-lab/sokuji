@@ -2,6 +2,7 @@
  * The runner's vocabulary (spec: "Session lifecycle"). Types only.
  */
 import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/adapter';
+import type { Clock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import type { AnyProvider, AuthContext, LanguagePair, ProviderRefusal, SharedSettings } from '../provider/types';
 
@@ -58,7 +59,12 @@ export interface SessionHooks<S, K, C> {
   /** Cross-leg checks over the configs actually built. */
   admit?(configs: Partial<Record<LegName, C>>): true | ProviderRefusal;
   /** `end` stops the run with a notice: budget exhausted, duration cutoff — the code says which. */
-  acquire?(shape: RunShape, s: S, ctx: { signal: AbortSignal; end(notice: RunNotice): void }): Promise<Resources<K>>;
+  acquire?(shape: RunShape, s: S, ctx: {
+    signal: AbortSignal;
+    /** The run's clock: a lease's timers read it. */
+    clock: Clock;
+    end(notice: RunNotice): void;
+  }): Promise<Resources<K>>;
   /** Both legs at once (D23): the provider decides between one mixed socket and two. */
   startBoth?(
     requests: Record<LegName, StartRequest<C, K>>,

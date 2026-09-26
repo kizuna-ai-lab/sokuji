@@ -12,8 +12,8 @@ const FLAGS: ReadonlyArray<{ key: Flag; label: string }> = [
   { key: 'startThrows', label: 'Fail to start' },
 ];
 
-/** Whole, non-negative milliseconds from an input's text; anything else is 0. */
-function toMs(text: string): number {
+/** Whole, non-negative milliseconds from an input's text; anything else is 0. Both fakes' views read their numbers with it. */
+export function toMs(text: string): number {
   const n = Math.round(Number(text));
   return Number.isFinite(n) && n > 0 ? n : 0;
 }

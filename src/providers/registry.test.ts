@@ -3,6 +3,7 @@ import { isPresent } from '../lib/provider/presence';
 import { AUTO } from '../lib/provider/languages';
 import type { AnyProvider } from '../lib/provider/types';
 import { isKizunaAIEnabled } from '../utils/environment';
+import { fakeLeasedProvider } from './fake/leased';
 import { fakeProvider } from './fake/provider';
 import { PROVIDERS, currentPresenceEnv, getProvider, presentProviders } from './registry';
 
@@ -58,8 +59,11 @@ describe('the registry', () => {
 
   it('includes the fake in development builds, on every platform', () => {
     expect(getProvider('fake')).toBe(fakeProvider);
+    expect(getProvider('fake_leased')).toBe(fakeLeasedProvider);
     for (const platform of ['electron', 'extension', 'web'] as const) {
-      expect(presentProviders({ platform, dev: true, enabled: new Set(), kizuna: true, switchOn: () => false }).map((p) => p.id)).toContain('fake');
+      const ids = presentProviders({ platform, dev: true, enabled: new Set(), kizuna: true, switchOn: () => false }).map((p) => p.id);
+      expect(ids).toContain('fake');
+      expect(ids).toContain('fake_leased');
     }
   });
 
@@ -68,6 +72,7 @@ describe('the registry', () => {
     vi.resetModules();
     const released = await import('./registry');
     expect(released.PROVIDERS.map((p) => p.id)).not.toContain('fake');
+    expect(released.PROVIDERS.map((p) => p.id)).not.toContain('fake_leased');
   });
 
   it("a release build offers no flagged provider and, without the umbrella, no managed one (D24 release check, F6)", () => {

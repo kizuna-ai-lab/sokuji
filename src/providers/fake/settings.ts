@@ -51,3 +51,30 @@ export function migrateFakeSettings(stored: Readonly<Record<string, unknown>>): 
     failAfterMs: ms('failAfterMs'),
   };
 }
+
+/** The leased fake's settings: the fake's, and its session hooks' knobs (choice 1). `requireKey` does nothing on it: a managed provider has no field. */
+export type FakeLeasedSettings = FakeSettings & {
+  /** `prepare` answers with a `voice_fallback` notice, as a managed voice claim that fell back. */
+  prepareFallback: boolean;
+  /** The lease ends the run this long after it is acquired, in ms (`budget_exhausted`); 0 = never. */
+  leaseEndsAfterMs: number;
+  /** Both legs on one shared session (`startBoth` ties them), as Soniox's shared Both; off, two. */
+  sharedBoth: boolean;
+};
+
+// Written out, not spread from FAKE_DEFAULTS: a module-scope spread of an import may be kept by the bundler (D24).
+export const FAKE_LEASED_DEFAULTS: FakeLeasedSettings = {
+  script: 'exchange', participantScript: 'same', requireKey: false, checkFails: false, buildRefused: false,
+  startThrows: false, startDelayMs: 0, failAfterMs: 0,
+  prepareFallback: false, leaseEndsAfterMs: 0, sharedBoth: true,
+};
+
+export function migrateFakeLeasedSettings(stored: Readonly<Record<string, unknown>>): FakeLeasedSettings {
+  const leaseEnds = stored.leaseEndsAfterMs;
+  return {
+    ...migrateFakeSettings(stored),
+    prepareFallback: typeof stored.prepareFallback === 'boolean' ? stored.prepareFallback : FAKE_LEASED_DEFAULTS.prepareFallback,
+    leaseEndsAfterMs: typeof leaseEnds === 'number' && Number.isFinite(leaseEnds) && leaseEnds >= 0 ? leaseEnds : FAKE_LEASED_DEFAULTS.leaseEndsAfterMs,
+    sharedBoth: typeof stored.sharedBoth === 'boolean' ? stored.sharedBoth : FAKE_LEASED_DEFAULTS.sharedBoth,
+  };
+}

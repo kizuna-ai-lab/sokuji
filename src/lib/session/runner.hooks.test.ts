@@ -171,6 +171,19 @@ describe('runner — acquire', () => {
     await flush();
     expect(release).toHaveBeenCalledTimes(1);
   });
+
+  it("hands acquire the run's clock", async () => {
+    let seen: unknown;
+    const provider = withHooks({
+      acquire: async (_s, _v, ctx) => {
+        seen = ctx.clock;
+        return { credentials: () => ({}), release: async () => {} };
+      },
+    });
+    const { runner, clock } = setup(provider);
+    await runner.start();
+    expect(seen).toBe(clock);
+  });
 });
 
 describe('runner — startBoth (D23)', () => {

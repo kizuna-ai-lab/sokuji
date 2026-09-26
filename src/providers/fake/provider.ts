@@ -1,7 +1,7 @@
 import { FlaskConical } from 'lucide-react';
-import type { Adapter } from '../../lib/contract/adapter';
+import type { Adapter, AdapterEvents, AdapterSession, SessionContext, StartRequest } from '../../lib/contract/adapter';
 import { AUTO } from '../../lib/provider/languages';
-import type { LanguageOption, Provider } from '../../lib/provider/types';
+import type { CheckResult, LanguageOption, Provider, ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { createFakeAdapter, type FakeConfig, type FakeCredentials } from './adapter';
 import { FakeSettingsView } from './FakeSettingsView';
 import { fakeScript } from './scripts';
@@ -18,6 +18,40 @@ const LANGUAGES: readonly LanguageOption[] = [
 // even once DEV-only tree-shaking (registry.ts) drops every reference to it —
 // against D24, "compiled into development builds only" (final review, M1).
 let adapter: Adapter<FakeConfig, FakeCredentials> | null = null;
+
+/** The fake's language lists: `AUTO` and three languages as sources, never a source as its own target. */
+export const FAKE_LANGUAGES: Provider<FakeSettings, FakeCredentials, FakeConfig>['languages'] = {
+  sources: () => [{ value: AUTO, name: 'Auto', englishName: 'Auto' }, ...LANGUAGES],
+  targets: (source) => LANGUAGES.filter((l) => l.value !== source),
+};
+
+/** Ready, unless `checkFails` is on. */
+export async function checkFake(_k: unknown, s: FakeSettings): Promise<CheckResult> {
+  return s.checkFails ? { ok: false, reason: 'The fake reports not ready (fault knob).' } : { ok: true };
+}
+
+/** One leg's config: its script and the fault knobs, or a refusal when `buildRefused` is on. */
+export function buildFake(context: SessionContext, s: FakeSettings, shared: SharedSettings): FakeConfig | ProviderRefusal {
+  return s.buildRefused
+    ? { refused: 'The fake refuses to build (fault knob).', code: 'fake_build_refused', params: { knob: 'buildRefused' } }
+    : {
+        // the participant leg plays its own script when one is chosen (F10): a different shape per leg
+        script: fakeScript(shared.reversed(context.direction) && s.participantScript !== 'same' ? s.participantScript : s.script),
+        faults: {
+          startThrows: s.startThrows ? 'The fake failed to start (fault knob).' : undefined,
+          startDelayMs: s.startDelayMs || undefined,
+          failAfterMs: s.failAfterMs || undefined,
+        },
+      };
+}
+
+/** The models a fake run reports. */
+export const describeFake = () => ({ asrModel: 'fake', translationModel: 'fake', ttsModel: 'fake' });
+
+/** The fake's adapter, built on the first start (never at module scope: D24). Generic, so the leased fake's wider config and credentials pass through. */
+export function startFake<C extends FakeConfig, K>(request: StartRequest<C, K>, events: AdapterEvents): Promise<AdapterSession> {
+  return (adapter ??= createFakeAdapter()).start(request as unknown as StartRequest<FakeConfig, FakeCredentials>, events);
+}
 
 /**
  * The fake provider (D24): a real definition, compiled into development builds
@@ -41,29 +75,16 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
     // `values` holds exactly the fields shown: nothing at all unless requireKey is on.
     read: (values): FakeCredentials | { missing: string } => (values.apiKey === '' ? { missing: 'Type any key: the fake accepts anything.' } : {}),
   },
-  check: async (_k, s, _ctx) => (s.checkFails ? { ok: false, reason: 'The fake reports not ready (fault knob).' } : { ok: true }),
+  check: checkFake,
 
-  languages: {
-    sources: () => [{ value: AUTO, name: 'Auto', englishName: 'Auto' }, ...LANGUAGES],
-    targets: (source) => LANGUAGES.filter((l) => l.value !== source),
-  },
+  languages: FAKE_LANGUAGES,
 
   speech: 'optional',
   textInput: true,
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],
 
-  build: (context, s, shared) => (s.buildRefused
-    ? { refused: 'The fake refuses to build (fault knob).', code: 'fake_build_refused', params: { knob: 'buildRefused' } }
-    : {
-        // the participant leg plays its own script when one is chosen (F10): a different shape per leg
-        script: fakeScript(shared.reversed(context.direction) && s.participantScript !== 'same' ? s.participantScript : s.script),
-        faults: {
-          startThrows: s.startThrows ? 'The fake failed to start (fault knob).' : undefined,
-          startDelayMs: s.startDelayMs || undefined,
-          failAfterMs: s.failAfterMs || undefined,
-        },
-      }),
-  describe: () => ({ asrModel: 'fake', translationModel: 'fake', ttsModel: 'fake' }),
-  start: (request, events) => (adapter ??= createFakeAdapter()).start(request, events),
+  build: buildFake,
+  describe: describeFake,
+  start: startFake,
 };
