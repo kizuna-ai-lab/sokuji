@@ -52,6 +52,13 @@ describe('buildSoniox — stt', () => {
     expect(hi.stt.endpointMaxDelayMs).toBe(3000);
     expect(hi.tts?.speed).toBe(1.3);
 
+    // The lower bounds (SonioxProviderConfig.test.ts:106-113).
+    const lo = build({ endpointSensitivity: -5, endpointLatencyAdjustmentLevel: -2, endpointMaxDelayMs: 100, ttsSpeed: 0.1 });
+    expect(lo.stt.endpointSensitivity).toBe(-1);
+    expect(lo.stt.endpointLatencyAdjustmentLevel).toBe(0);
+    expect(lo.stt.endpointMaxDelayMs).toBe(500);
+    expect(lo.tts?.speed).toBe(0.7);
+
     const bad = build({ endpointMaxDelayMs: Number.NaN, ttsSpeed: Number.POSITIVE_INFINITY });
     expect(bad.stt.endpointMaxDelayMs).toBe(2000);
     expect(bad.tts?.speed).toBe(1);
