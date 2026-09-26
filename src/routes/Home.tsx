@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import MainLayout from '../components/MainLayout/MainLayout';
 import { UserProfileProvider } from '../contexts/UserProfileContext';
 import { TourProvider } from '../components/Tour/TourProvider';
-import { useInitializeAudioService } from '../stores/audioStore';
+import useAudioStore from '../stores/audioStore';
 import { useLoadSettings } from '../stores/settingsStore';
 import { useSubtitleStore } from '../stores/subtitleStore';
 import { useConversationDisplayStore } from '../stores/conversationDisplayStore';
@@ -13,13 +13,12 @@ import { AppSessionRoot } from '../app/AppSessionRoot';
 import { loadSessionStores } from '../app/loadStores';
 
 export function Home() {
-  const initializeAudioService = useInitializeAudioService();
   const loadSettings = useLoadSettings();
 
   // Initialize audio service and settings when component mounts
   useEffect(() => {
     console.info('[Home] Initializing audio service');
-    initializeAudioService();
+    useAudioStore.getState().refreshDevices();
 
     console.info('[Home] Loading settings');
     // Hydrate settingsStore, subtitleStore, conversationDisplayStore, and setup in parallel from persisted storage.

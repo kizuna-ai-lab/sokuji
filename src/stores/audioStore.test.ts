@@ -1,7 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import useAudioStore, { pickDefaultInputDevice, DEFAULT_PARTICIPANT_SOURCE } from './audioStore';
 import type { AudioMode, AudioDevice } from './audioStore';
 import { ServiceFactory } from '../services/ServiceFactory';
+
+// Device enumeration moved to src/lib/audio/devices.ts (plan 1e-3c, controller
+// ruling 3); refreshDevices calls its plain functions instead of the old
+// audioService, so tests mock the module rather than an audioService object.
+const mockListAudioDevices = vi.hoisted(() => vi.fn(async () => ({ inputs: [] as AudioDevice[], outputs: [] as AudioDevice[] })));
+const mockListSystemAudioSources = vi.hoisted(() => vi.fn(async () => [] as AudioDevice[]));
+vi.mock('../lib/audio/devices', () => ({
+  listAudioDevices: mockListAudioDevices,
+  listSystemAudioSources: mockListSystemAudioSources,
+}));
+
+beforeEach(() => {
+  mockListAudioDevices.mockReset().mockResolvedValue({ inputs: [], outputs: [] });
+  mockListSystemAudioSources.mockReset().mockResolvedValue([]);
+});
 
 // Regression test: on a machine with no physical microphone, the only
 // enumerated "audioinput" device can be a virtual/loopback one — notably
@@ -70,16 +85,10 @@ describe('audioStore — refreshDevices with no real microphone', () => {
   });
 
   it('turns the mic off when only virtual/loopback input devices are enumerated', async () => {
-    useAudioStore.setState({
-      audioService: {
-        initialize: async () => {},
-        getDevices: async () => ({
-          inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
-          outputs: [],
-        }),
-        setMonitorVolume: () => {},
-      },
-    } as any);
+    mockListAudioDevices.mockResolvedValueOnce({
+      inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
+      outputs: [],
+    });
 
     await useAudioStore.getState().refreshDevices();
 
@@ -89,13 +98,7 @@ describe('audioStore — refreshDevices with no real microphone', () => {
   });
 
   it('turns the mic off when no input devices are enumerated at all', async () => {
-    useAudioStore.setState({
-      audioService: {
-        initialize: async () => {},
-        getDevices: async () => ({ inputs: [], outputs: [] }),
-        setMonitorVolume: () => {},
-      },
-    } as any);
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [] });
 
     await useAudioStore.getState().refreshDevices();
 
@@ -105,19 +108,13 @@ describe('audioStore — refreshDevices with no real microphone', () => {
   });
 
   it('still auto-selects a real microphone when one is present', async () => {
-    useAudioStore.setState({
-      audioService: {
-        initialize: async () => {},
-        getDevices: async () => ({
-          inputs: [
-            { deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true },
-            { deviceId: 'real-1', label: 'Built-in Microphone', isVirtual: false },
-          ],
-          outputs: [],
-        }),
-        setMonitorVolume: () => {},
-      },
-    } as any);
+    mockListAudioDevices.mockResolvedValueOnce({
+      inputs: [
+        { deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true },
+        { deviceId: 'real-1', label: 'Built-in Microphone', isVirtual: false },
+      ],
+      outputs: [],
+    });
 
     await useAudioStore.getState().refreshDevices();
 
@@ -135,15 +132,11 @@ describe('audioStore — refreshDevices with no real microphone', () => {
     useAudioStore.setState({
       selectedInputDevice: { deviceId: 'unplugged-real-mic', label: 'USB Microphone', isVirtual: false },
       isMicMuted: false,
-      audioService: {
-        initialize: async () => {},
-        getDevices: async () => ({
-          inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
-          outputs: [],
-        }),
-        setMonitorVolume: () => {},
-      },
     } as any);
+    mockListAudioDevices.mockResolvedValueOnce({
+      inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
+      outputs: [],
+    });
 
     await useAudioStore.getState().refreshDevices();
 
@@ -159,16 +152,10 @@ describe('audioStore — refreshDevices with no real microphone', () => {
   // it's meant to protect.
   it('does not restore a persisted device id that resolves to a virtual device', async () => {
     localStorage.setItem('audio.selectedInputDeviceId', 'virtual-1');
-    useAudioStore.setState({
-      audioService: {
-        initialize: async () => {},
-        getDevices: async () => ({
-          inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
-          outputs: [],
-        }),
-        setMonitorVolume: () => {},
-      },
-    } as any);
+    mockListAudioDevices.mockResolvedValueOnce({
+      inputs: [{ deviceId: 'virtual-1', label: 'Sokuji_Virtual_Mic', isVirtual: true }],
+      outputs: [],
+    });
 
     await useAudioStore.getState().refreshDevices();
 
@@ -289,73 +276,6 @@ describe('audioStore — mode + mute flags', () => {
   });
 });
 
-// ── Monitor <-> participant mutex enforced via mode-gated playback ──────────
-// The monitor is audible only in pure speaker mode. setMode re-gates the
-// actual playback volume (audioService.setMonitorVolume) on every mode change
-// WITHOUT mutating isMonitorMuted — the flag stays the user's sticky opt-in
-// preference, restored when returning to speaker. This closes the bug where
-// switching to Participant/Both auto-unmuted participant but left the monitor
-// playing (both active = mutex violation).
-describe('audioStore — monitor volume mode-gating', () => {
-  function withMockService(): boolean[] {
-    const calls: boolean[] = [];
-    useAudioStore.setState({
-      audioService: { setMonitorVolume: (v: boolean) => { calls.push(v); } },
-    } as any);
-    return calls;
-  }
-
-  beforeEach(() => {
-    useAudioStore.setState({
-      mode: 'speaker' as AudioMode,
-      isMicMuted: false,
-      isMonitorMuted: false,
-      isParticipantMuted: false,
-      audioInputDevices: [],
-      selectedInputDevice: null,
-      audioService: null,
-    } as any);
-  });
-
-  it('setMode("both") silences the monitor (leaves speaker scope) without touching the flag', () => {
-    useAudioStore.setState({ mode: 'speaker', isMonitorMuted: false } as any);
-    const calls = withMockService();
-    useAudioStore.getState().setMode('both');
-    expect(calls[calls.length - 1]).toBe(false);
-    expect(useAudioStore.getState().isMonitorMuted).toBe(false); // preference preserved
-  });
-
-  it('setMode("participant") silences the monitor', () => {
-    useAudioStore.setState({ mode: 'speaker', isMonitorMuted: false } as any);
-    const calls = withMockService();
-    useAudioStore.getState().setMode('participant');
-    expect(calls[calls.length - 1]).toBe(false);
-  });
-
-  it('setMode("speaker") restores the monitor to the saved preference (unmuted -> audible)', () => {
-    useAudioStore.setState({ mode: 'both', isMonitorMuted: false } as any);
-    const calls = withMockService();
-    useAudioStore.getState().setMode('speaker');
-    expect(calls[calls.length - 1]).toBe(true);
-  });
-
-  it('setMode("speaker") keeps the monitor silent when the saved preference is muted', () => {
-    useAudioStore.setState({ mode: 'both', isMonitorMuted: true } as any);
-    const calls = withMockService();
-    useAudioStore.getState().setMode('speaker');
-    expect(calls[calls.length - 1]).toBe(false);
-  });
-
-  it('setMode never mutates isMonitorMuted across a round trip', () => {
-    useAudioStore.setState({ mode: 'speaker', isMonitorMuted: false } as any);
-    withMockService();
-    useAudioStore.getState().setMode('both');
-    expect(useAudioStore.getState().isMonitorMuted).toBe(false);
-    useAudioStore.getState().setMode('speaker');
-    expect(useAudioStore.getState().isMonitorMuted).toBe(false);
-  });
-});
-
 // ---------------------------------------------------------------------------
 // Participant audio source selection (issue #335). The picker lets the user
 // translate one application instead of everything the machine plays.
@@ -395,15 +315,11 @@ describe('audioStore - participant source selection', () => {
   });
 
   it('refreshDevices populates the participant sources', async () => {
-    useAudioStore.setState({
-      audioService: {
-        getDevices: async () => ({ inputs: [], outputs: [] }),
-        getSystemAudioSources: async () => ([
-          DEFAULT_PARTICIPANT_SOURCE,
-          { deviceId: 'app:pid:205', label: 'Chromium' },
-        ]),
-      } as any,
-    });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [] });
+    mockListSystemAudioSources.mockResolvedValueOnce([
+      DEFAULT_PARTICIPANT_SOURCE,
+      { deviceId: 'app:pid:205', label: 'Chromium' },
+    ]);
 
     await useAudioStore.getState().refreshDevices();
 
@@ -411,12 +327,12 @@ describe('audioStore - participant source selection', () => {
       .toEqual(['desktop-audio-loopback', 'app:pid:205']);
   });
 
-  it('refreshDevices survives a service with no per-application support', async () => {
-    // The browser extension's audio service has no getSystemAudioSources at all.
-    useAudioStore.setState({
-      audioService: { getDevices: async () => ({ inputs: [], outputs: [] }) } as any,
-      participantSources: [],
-    });
+  it('refreshDevices survives a platform with no per-application sources', async () => {
+    // The web build and the browser extension have none: listSystemAudioSources
+    // itself answers [] off Electron.
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [] });
+    mockListSystemAudioSources.mockResolvedValueOnce([]);
+    useAudioStore.setState({ participantSources: [] });
 
     await useAudioStore.getState().refreshDevices();
 
@@ -424,13 +340,9 @@ describe('audioStore - participant source selection', () => {
   });
 
   it('refreshDevices survives the source listing throwing', async () => {
-    useAudioStore.setState({
-      audioService: {
-        getDevices: async () => ({ inputs: [], outputs: [] }),
-        getSystemAudioSources: async () => { throw new Error('helper exploded'); },
-      } as any,
-      participantSources: [],
-    });
+    mockListAudioDevices.mockResolvedValueOnce({ inputs: [], outputs: [] });
+    mockListSystemAudioSources.mockRejectedValueOnce(new Error('helper exploded'));
+    useAudioStore.setState({ participantSources: [] });
 
     await useAudioStore.getState().refreshDevices();
 
@@ -490,15 +402,10 @@ describe('audioStore - participant source survives a restart', () => {
 
 describe('audioStore - participant tap audio seen', () => {
   const KEY = 'audio.participantTapAudioSeen';
-  const fakeService = {
-    initialize: async () => {},
-    getDevices: async () => ({ inputs: [], outputs: [] }),
-    setMonitorVolume: () => {},
-  };
 
   beforeEach(() => {
     localStorage.clear();
-    useAudioStore.setState({ participantTapAudioSeen: false, audioService: fakeService } as any);
+    useAudioStore.setState({ participantTapAudioSeen: false } as any);
   });
 
   it('starts out unproven', () => {

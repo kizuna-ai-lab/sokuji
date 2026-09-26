@@ -17,16 +17,14 @@ vi.mock('../../services/ServiceFactory', () => ({
       getSetting: async (_key: string, def: unknown) => def,
       setSetting: async () => ({ success: true }),
     }),
-    // Fix round 1: the load effect now also calls `initializeAudioService()`
-    // (as `Home.tsx` does), which reaches this. A stub with no devices keeps
-    // that call harmless and deterministic — no real device enumeration.
-    getAudioService: () => ({
-      initialize: async () => {},
-      getDevices: async () => ({ inputs: [], outputs: [] }),
-      setMonitorVolume: () => {},
-      connectMonitoringDevice: async () => ({ success: true }),
-    }),
   },
+}));
+// Fix round 1: the load effect also calls `refreshDevices()` (as `Home.tsx`
+// does), which reaches this. A stub with no devices keeps that call harmless
+// and deterministic — no real device enumeration.
+vi.mock('../../lib/audio/devices', () => ({
+  listAudioDevices: async () => ({ inputs: [], outputs: [] }),
+  listSystemAudioSources: async () => [],
 }));
 vi.mock('../../lib/audio/appCapture', () => ({
   createAppCapture: () => ({

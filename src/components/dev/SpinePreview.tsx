@@ -347,13 +347,13 @@ export function SpinePreview() {
   // What a run reads, loaded the way the app loads it (Home.tsx): the turn
   // mode, the routing switches, the punctuation pack's phase — without which
   // the punctuator would see `unknown`, never `ready` — and the provider; and
-  // the audio store's devices (`initializeAudioService`, fire-and-forget as
-  // Home does it too) — without this no input device is ever selected, and
-  // the advanced footer's start gate reads "Configure devices for this mode
-  // to start.".
+  // the audio store's devices (`refreshDevices`, fire-and-forget as Home does
+  // it too) — without this no input device is ever selected, and the
+  // advanced footer's start gate reads "Configure devices for this mode to
+  // start.".
   useEffect(() => {
     void loadSessionStores().finally(() => setStoresLoaded(true));
-    void useAudioStore.getState().initializeAudioService();
+    void useAudioStore.getState().refreshDevices();
   }, []);
   // The page's wiring, as the app's will be (plan 1e-3b): pagehide → abandon,
   // the provider store's legs, a local provider checking itself.
