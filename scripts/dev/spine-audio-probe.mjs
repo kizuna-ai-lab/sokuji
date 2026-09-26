@@ -11,8 +11,10 @@
  *
  * Exits 1 when no clip played, the tap heard nothing, (with `&monitor=1`)
  * the real bus's meter never read a peak, or the gaps the tap heard exceed
- * `--max-gaps`; with `capture=device`, the fake microphone is captured too,
- * and it must deliver.
+ * `--max-gaps` — or the page shows no gap count to compare; with
+ * `capture=device`, the fake microphone is captured too, and it must deliver.
+ * `--max-gaps` refuses `capture=device` (exit 2): the capture's echo watch
+ * drains the same tts tap, so the page's gap count would miss the runs it took.
  */
 import { evaluate, sleep, withPage } from './headless.mjs';
 
@@ -26,6 +28,10 @@ if (maxAt >= 0 && !Number.isInteger(maxGaps)) {
 const positional = args.filter((_, i) => maxAt < 0 || (i !== maxAt && i !== maxAt + 1));
 const url = positional[0] ?? 'http://localhost:5199/?preview=spine&autostart=1&monitor=1';
 const seconds = Number(positional[1] ?? 12);
+if (maxGaps !== null && url.includes('capture=device')) {
+  console.log('--max-gaps cannot be checked with capture=device: the capture\'s echo watch drains the same tts tap');
+  process.exit(2);
+}
 
 process.exitCode = await withPage(url, async (send) => {
   await sleep(seconds * 1000);
@@ -47,6 +53,8 @@ process.exitCode = await withPage(url, async (send) => {
     const at = gapMatch && gapMatch[3] !== '-' ? gapMatch[3].split(',').map(Number) : [];
     console.log(`steady gaps: ${at.filter((s) => s < 15).length} · hiccup gaps: ${at.filter((s) => s >= 15).length}`);
   }
-  const gapsOk = maxGaps === null || gaps <= maxGaps;
+  // A page with no gap count (an older build) is a failed measurement, never zero gaps.
+  if (maxGaps !== null && !gapMatch) console.log('--max-gaps: the page shows no gap count');
+  const gapsOk = maxGaps === null || (gapMatch !== null && gaps <= maxGaps);
   return heard !== '-' && peak > 0 && captureOk && monitorOk && gapsOk ? 0 : 1;
 }, { flags: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });

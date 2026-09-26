@@ -24,8 +24,9 @@ interface SessionControlsProps {
  * cannot use requestAnimationFrame): every clip key heard, and the loudest
  * sample the tts tap heard, and the gaps inside the translated speech the
  * tap heard (G3). Reading the tap drains it: under `&capture=device` the app
- * capture's own echo watch also drains the tap, every 250 ms, so the peak
- * shown here is partial. When `capture` is given, also reports what it
+ * capture's own echo watch also drains the tap, every 250 ms, so the peak and
+ * the gaps shown here are partial — `spine-audio-probe.mjs` refuses
+ * `--max-gaps` there. When `capture` is given, also reports what it
  * delivered.
  */
 function usePlaybackProbe(
