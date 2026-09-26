@@ -96,7 +96,7 @@ const READ = `(() => {
     lit: inner ? inner.querySelectorAll('.karaoke-played').length : 0,
     litPage: document.querySelectorAll('.spine-subtitle .karaoke-played').length,
     hint: !!document.querySelector('.spine-subtitle .subtitle-ptt-hint'),
-    hold: !!(inner && inner.querySelector('.subtitle-hold__button')),
+    hold: !!(inner && inner.querySelector('.subtitle-bar__hold')),
     segmentsOk: { page: noAdjacentDuplicateSegments(document), overlay: noAdjacentDuplicateSegments(inner) },
     bg: { page: transparentBg(document), overlay: transparentBg(inner) },
   };
@@ -104,7 +104,7 @@ const READ = `(() => {
 
 const HOLD = (type) => `(() => {
   const inner = document.querySelector('iframe.spine-overlay-frame')?.contentDocument;
-  const button = inner && inner.querySelector('.subtitle-hold__button');
+  const button = inner && inner.querySelector('.subtitle-bar__hold');
   if (!button) return false;
   button.dispatchEvent(new PointerEvent('${type}', { bubbles: true }));
   return true;

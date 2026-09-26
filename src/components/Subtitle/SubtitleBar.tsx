@@ -12,6 +12,7 @@ import {
 } from '@floating-ui/react';
 import DisplayModeButton from '../MainPanel/DisplayModeButton';
 import ExportButton, { ExportMenuButton, type ExportMenuButtonProps } from '../MainPanel/ExportButton';
+import { HoldToTalk } from './HoldToTalk';
 import {
   useExitSubtitleMode,
   useSubtitleFullscreen,
@@ -65,6 +66,17 @@ interface Props {
     onStart: () => void;
     onStop: () => void;
   };
+  /**
+   * The overlay's push-to-talk control, in the bar (plan follow-up D — it
+   * used to sit under the bands). Extension-overlay surface only; SubtitleBar
+   * still gates on `surface` itself rather than trusting the caller alone.
+   */
+  holdToTalk?: {
+    onPress: () => void;
+    onRelease: () => void;
+    /** Told whenever the hold state flips, so the caller can keep the bar visible while it's held. */
+    onHeldChange?: (held: boolean) => void;
+  };
 }
 
 function formatElapsed(ms: number): string {
@@ -86,6 +98,7 @@ const SubtitleBar: React.FC<Props> = ({
   exportMenu,
   surface = 'electron',
   sessionControl,
+  holdToTalk,
   onExit,
 }) => {
   const { t } = useTranslation();
@@ -165,6 +178,9 @@ const SubtitleBar: React.FC<Props> = ({
       {...dragHandleProps}
     >
       <div className="subtitle-bar__left">
+        {surface === 'extension-overlay' && holdToTalk && (
+          <HoldToTalk onPress={holdToTalk.onPress} onRelease={holdToTalk.onRelease} onHeldChange={holdToTalk.onHeldChange} />
+        )}
         {surface === 'electron' && sessionControl && (
           <button
             type="button"

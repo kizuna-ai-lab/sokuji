@@ -13,11 +13,17 @@ vi.mock('react-i18next', () => ({
     },
   }),
 }));
+const useSubtitleChromeMock = vi.hoisted(() => vi.fn((_args: { surface: string; onExit: () => void; forceVisible?: boolean }) => ({
+  rootRef: { current: null },
+  rootProps: { className: 'subtitle-app', style: {}, onMouseEnter() {}, onMouseMove() {}, onMouseLeave() {} },
+  resizeHandles: null,
+})));
 vi.mock('./useSubtitleChrome', () => ({
-  useSubtitleChrome: () => ({ rootRef: { current: null }, rootProps: { className: 'subtitle-app', style: {}, onMouseEnter() {}, onMouseMove() {}, onMouseLeave() {} }, resizeHandles: null }),
+  useSubtitleChrome: useSubtitleChromeMock,
 }));
+type HoldToTalkProp = { onPress: () => void; onRelease: () => void; onHeldChange?: (held: boolean) => void };
 vi.mock('./SubtitleBar', () => ({
-  default: (p: { sessionControl?: unknown; speakerActive: boolean; participantActive: boolean; sourceLanguageCode: string; onExit?: () => void; sessionElapsedMs: number; exportMenu?: unknown }) =>
+  default: (p: { sessionControl?: unknown; speakerActive: boolean; participantActive: boolean; sourceLanguageCode: string; onExit?: () => void; sessionElapsedMs: number; exportMenu?: unknown; holdToTalk?: HoldToTalkProp }) =>
     require('react').createElement('div', {
       'data-testid': 'bar',
       'data-control': p.sessionControl ? 'yes' : 'no',
@@ -25,9 +31,18 @@ vi.mock('./SubtitleBar', () => ({
       'data-pair': p.sourceLanguageCode,
       'data-elapsed': String(p.sessionElapsedMs),
       'data-export': p.exportMenu ? 'yes' : 'no',
+      'data-hold': p.holdToTalk ? 'yes' : 'no',
       // Records what SubtitleView hands the bar for exit (I3): clicking the
       // stub calls whatever it was given.
       onClick: p.onExit,
+      // Stands in for the real HoldToTalk button's press/release and its
+      // onHeldChange callback (tested directly in HoldToTalk.test.tsx and
+      // SubtitleBar.test.tsx) — mouseDown/mouseUp press and release,
+      // focus/blur report a held-state flip.
+      onMouseDown: p.holdToTalk?.onPress,
+      onMouseUp: p.holdToTalk?.onRelease,
+      onFocus: () => p.holdToTalk?.onHeldChange?.(true),
+      onBlur: () => p.holdToTalk?.onHeldChange?.(false),
     }),
 }));
 vi.mock('../../stores/subtitleStore', () => ({
@@ -49,7 +64,10 @@ const session = (over: Partial<SubtitleSession> = {}): SubtitleSession => ({
 });
 const controls = () => ({ exit: vi.fn(), clear: vi.fn(), press: vi.fn(), release: vi.fn(), start: vi.fn(), stop: vi.fn(), openSettings: vi.fn() });
 
-beforeEach(() => cleanup());
+beforeEach(() => {
+  cleanup();
+  useSubtitleChromeMock.mockClear();
+});
 
 describe('SubtitleView', () => {
   it('never shows a negative elapsed time when the session arrives after mount', () => {
@@ -64,25 +82,45 @@ describe('SubtitleView', () => {
     expect(screen.getByTestId('bar').dataset).toMatchObject({ control: 'yes', legs: 'true/false', pair: 'EN' });
   });
 
-  it('shows the Space hint on the Electron takeover under manual turns before anything is said, and never on the overlay', () => {
+  it('shows the Space hint on the Electron takeover under manual turns before anything is said, and hands the hold control to the bar on the overlay instead', () => {
     const live = session({ holdToTalk: true });
     const { container, unmount } = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: live }} controls={controls()} />);
     expect(container.querySelector('.subtitle-ptt-hint')?.textContent).toBe('Press Space to speak');
-    expect(container.querySelector('.subtitle-hold')).toBeNull();
+    expect(screen.getByTestId('bar').dataset.hold).toBe('no');
     unmount();
     const acts = controls();
     const overlay = render(<SubtitleView surface="extension-overlay" model={{ entries: [], lit: new Map(), session: live }} controls={acts} />);
     expect(overlay.container.querySelector('.subtitle-ptt-hint')).toBeNull();
-    fireEvent.pointerDown(overlay.getByRole('button', { name: 'Hold' }));
-    fireEvent.pointerUp(overlay.getByRole('button', { name: 'Release' }));
+    expect(overlay.getByTestId('bar').dataset.hold).toBe('yes');
+    fireEvent.mouseDown(overlay.getByTestId('bar'));
+    fireEvent.mouseUp(overlay.getByTestId('bar'));
     expect(acts.press).toHaveBeenCalledTimes(1);
     expect(acts.release).toHaveBeenCalledTimes(1);
   });
 
-  it('offers no hold button under automatic turns, and no session control on the overlay', () => {
-    const { container } = render(<SubtitleView surface="extension-overlay" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} />);
-    expect(container.querySelector('.subtitle-hold')).toBeNull();
+  it('offers no hold control under automatic turns, and no session control on the overlay', () => {
+    render(<SubtitleView surface="extension-overlay" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} />);
+    expect(screen.getByTestId('bar').dataset.hold).toBe('no');
     expect(screen.getByTestId('bar').dataset.control).toBe('no');
+  });
+
+  it('offers no hold control on the Electron takeover, even under manual turns', () => {
+    render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ holdToTalk: true }) }} controls={controls()} />);
+    expect(screen.getByTestId('bar').dataset.hold).toBe('no');
+  });
+
+  // Follow-up D: the hold control moved into the bar, which auto-hides on
+  // inactivity — SubtitleView must force it visible for as long as a turn
+  // is held, and stop forcing it once released.
+  it('forces the bar visible while a turn is held, and stops once released', () => {
+    render(<SubtitleView surface="extension-overlay" model={{ entries: [], lit: new Map(), session: session({ holdToTalk: true }) }} controls={controls()} />);
+    // `.at(-1)` needs ES2022; this project targets ES2020 — index from the end instead.
+    const lastCall = () => useSubtitleChromeMock.mock.calls[useSubtitleChromeMock.mock.calls.length - 1]?.[0];
+    expect(lastCall()).toMatchObject({ forceVisible: false });
+    fireEvent.focus(screen.getByTestId('bar')); // the bar stub's stand-in for onHeldChange(true)
+    expect(lastCall()).toMatchObject({ forceVisible: true });
+    fireEvent.blur(screen.getByTestId('bar')); // onHeldChange(false)
+    expect(lastCall()).toMatchObject({ forceVisible: false });
   });
 
   it("shows the idle body when no run is live: a provider's reason, a failed start in words", () => {

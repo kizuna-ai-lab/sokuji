@@ -152,4 +152,51 @@ describe('HoldToTalk', () => {
     fireEvent.keyUp(button, { key: ' ' });
     expect(onRelease).toHaveBeenCalledTimes(1);
   });
+
+  // Plan follow-up D: the bar renders this as a toggle-shaped control, so
+  // assistive tech needs aria-pressed alongside the visible label.
+  it('carries aria-pressed, following the held state', () => {
+    render(<HoldToTalk onPress={() => {}} onRelease={() => {}} />);
+    const button = screen.getByRole('button');
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.pointerDown(button);
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.pointerUp(button);
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  // The bar's other buttons all carry both title and aria-label from the
+  // same words (simplePanel.holdToSpeak / simplePanel.release) — this control
+  // matches them, and needs the words even when the bar hides its text label
+  // at narrow widths (CSS, not asserted here).
+  it('sets title and aria-label from simplePanel.holdToSpeak / simplePanel.release, following the held state', () => {
+    render(<HoldToTalk onPress={() => {}} onRelease={() => {}} />);
+    const button = screen.getByRole('button');
+    expect(button.title).toBe('Hold');
+    expect(button.getAttribute('aria-label')).toBe('Hold');
+    fireEvent.pointerDown(button);
+    expect(button.title).toBe('Release');
+    expect(button.getAttribute('aria-label')).toBe('Release');
+  });
+
+  // onHeldChange lets a container (the bar) keep itself visible while a turn
+  // is held, whichever way the hold began or ended.
+  it('reports held changes through onHeldChange, on press/release, keyboard, blur and unmount', () => {
+    const onHeldChange = vi.fn();
+    const { unmount } = render(<HoldToTalk onPress={() => {}} onRelease={() => {}} onHeldChange={onHeldChange} />);
+    const button = screen.getByRole('button');
+    fireEvent.pointerDown(button);
+    expect(onHeldChange).toHaveBeenLastCalledWith(true);
+    fireEvent.pointerUp(button);
+    expect(onHeldChange).toHaveBeenLastCalledWith(false);
+    button.focus();
+    fireEvent.keyDown(button, { key: ' ' });
+    expect(onHeldChange).toHaveBeenLastCalledWith(true);
+    fireEvent.blur(button);
+    expect(onHeldChange).toHaveBeenLastCalledWith(false);
+    fireEvent.pointerDown(button);
+    expect(onHeldChange).toHaveBeenLastCalledWith(true);
+    unmount();
+    expect(onHeldChange).toHaveBeenLastCalledWith(false);
+  });
 });

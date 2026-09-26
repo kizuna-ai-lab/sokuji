@@ -13,7 +13,6 @@ import {
   useSubtitleSettings,
   useSubtitleSpeakerDisplayMode,
 } from '../../stores/subtitleStore';
-import { HoldToTalk } from './HoldToTalk';
 import SubtitleBar from './SubtitleBar';
 import { SubtitleBody } from './SubtitleBands';
 import SubtitleIdle from './SubtitleIdle';
@@ -76,7 +75,11 @@ export function SubtitleView({ surface, model, controls, exporter }: {
   exporter?: Exporter;
 }) {
   const { t } = useTranslation();
-  const chrome = useSubtitleChrome({ surface, onExit: controls.exit });
+  // The overlay's hold-to-talk control lives in the bar (follow-up D) and
+  // must keep the bar visible for as long as a turn is held, even past the
+  // bar's own idle auto-hide.
+  const [holdHeld, setHoldHeld] = useState(false);
+  const chrome = useSubtitleChrome({ surface, onExit: controls.exit, forceVisible: holdHeld });
   const subtitle = useSubtitleSettings();
   const speaker = useSubtitleSpeakerDisplayMode();
   const participant = useSubtitleParticipantDisplayMode();
@@ -101,6 +104,11 @@ export function SubtitleView({ surface, model, controls, exporter }: {
   const speakerActive = legs.includes('speaker') || entries.some((e) => e.leg === 'speaker');
   const participantActive = legs.includes('participant') || entries.some((e) => e.leg === 'participant');
   const { start, stop } = controls;
+  // The overlay's push-to-talk control, in the bar (follow-up D): a live run,
+  // under a manual turn mode with a speaker leg (session.holdToTalk), and
+  // only on the overlay surface — the Electron takeover shows the Space hint
+  // instead (below).
+  const showHoldToTalk = running && surface === 'extension-overlay' && session?.holdToTalk === true;
 
   return (
     <div ref={chrome.rootRef} {...chrome.rootProps}>
@@ -121,30 +129,26 @@ export function SubtitleView({ surface, model, controls, exporter }: {
           onStart: start,
           onStop: stop,
         } : undefined}
+        holdToTalk={showHoldToTalk ? { onPress: controls.press, onRelease: controls.release, onHeldChange: setHoldHeld } : undefined}
       />
       {running ? (
-        <>
-          {surface === 'electron' && session.holdToTalk && entries.length === 0 ? (
-            // The takeover is the same window, and the panel's Space key works in it; on the overlay Space is the meeting's.
-            <div className="subtitle-ptt-hint">
-              <p>{t('subtitle.pttHint', 'Press Space to speak')}</p>
-            </div>
-          ) : (
-            <SubtitleBody
-              entries={entries}
-              lit={lit}
-              compact={subtitle.compactMode}
-              fontSize={subtitle.fontSize}
-              filters={filters}
-              sourceTextColor={subtitle.sourceTextColor}
-              translationTextColor={subtitle.translationTextColor}
-              newItemHighlightEnabled={newItemHighlightEnabled}
-            />
-          )}
-          {surface === 'extension-overlay' && session.holdToTalk && (
-            <HoldToTalk onPress={controls.press} onRelease={controls.release} />
-          )}
-        </>
+        surface === 'electron' && session.holdToTalk && entries.length === 0 ? (
+          // The takeover is the same window, and the panel's Space key works in it; on the overlay Space is the meeting's.
+          <div className="subtitle-ptt-hint">
+            <p>{t('subtitle.pttHint', 'Press Space to speak')}</p>
+          </div>
+        ) : (
+          <SubtitleBody
+            entries={entries}
+            lit={lit}
+            compact={subtitle.compactMode}
+            fontSize={subtitle.fontSize}
+            filters={filters}
+            sourceTextColor={subtitle.sourceTextColor}
+            translationTextColor={subtitle.translationTextColor}
+            newItemHighlightEnabled={newItemHighlightEnabled}
+          />
+        )
       ) : (
         <SubtitleIdle
           state={idleState(session?.idle, t)}

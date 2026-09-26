@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { act, cleanup, fireEvent, render } from '@testing-library/react';
 
 const setFullscreen = vi.fn(async () => {});
 let fullscreen = false;
@@ -20,16 +20,19 @@ vi.mock('./useOverlayDragResize', () => ({ useOverlayDragResize: () => ({ resize
 
 const { useSubtitleChrome } = await import('./useSubtitleChrome');
 
-function Probe({ surface, onExit }: { surface: 'electron' | 'extension-overlay'; onExit: () => void }) {
-  const chrome = useSubtitleChrome({ surface, onExit });
+function Probe({ surface, onExit, forceVisible }: { surface: 'electron' | 'extension-overlay'; onExit: () => void; forceVisible?: boolean }) {
+  const chrome = useSubtitleChrome({ surface, onExit, forceVisible });
   return <div ref={chrome.rootRef} {...chrome.rootProps}>{chrome.resizeHandles}</div>;
 }
+
+const opacityOf = (root: HTMLElement) => root.style.getPropertyValue('--bar-opacity');
 
 beforeEach(() => {
   cleanup();
   fullscreen = false;
   locked = false;
   setFullscreen.mockClear();
+  vi.useRealTimers();
 });
 
 describe('useSubtitleChrome', () => {
@@ -65,5 +68,41 @@ describe('useSubtitleChrome', () => {
     expect(count('electron')).toBe(0);
     locked = true;
     expect(count('extension-overlay')).toBe(0);
+  });
+
+  // Follow-up D: the overlay's hold-to-talk control moved into the bar, which
+  // auto-hides on inactivity — a turn held with the mouse motionless over the
+  // button must not have its own bar vanish out from under it.
+  describe('forceVisible (the bar stays up while a turn is held)', () => {
+    beforeEach(() => vi.useFakeTimers());
+
+    it('keeps the bar visible past the idle timeout while forceVisible is true', () => {
+      const { container, rerender } = render(<Probe surface="extension-overlay" onExit={() => {}} forceVisible={false} />);
+      const root = container.firstElementChild as HTMLElement;
+      // Arm the auto-hide the way real mouse activity would.
+      act(() => { fireEvent.mouseMove(root); });
+      rerender(<Probe surface="extension-overlay" onExit={() => {}} forceVisible={true} />);
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(opacityOf(root)).toBe('1');
+    });
+
+    it('reveals the bar immediately when forceVisible turns on, even if it had already hidden', () => {
+      const { container, rerender } = render(<Probe surface="extension-overlay" onExit={() => {}} forceVisible={false} />);
+      const root = container.firstElementChild as HTMLElement;
+      act(() => { fireEvent.mouseMove(root); });
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(opacityOf(root)).toBe('0');
+      rerender(<Probe surface="extension-overlay" onExit={() => {}} forceVisible={true} />);
+      expect(opacityOf(root)).toBe('1');
+    });
+
+    it('resumes the idle countdown once forceVisible turns back off', () => {
+      const { container, rerender } = render(<Probe surface="extension-overlay" onExit={() => {}} forceVisible={true} />);
+      const root = container.firstElementChild as HTMLElement;
+      rerender(<Probe surface="extension-overlay" onExit={() => {}} forceVisible={false} />);
+      expect(opacityOf(root)).toBe('1');
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(opacityOf(root)).toBe('0');
+    });
   });
 });

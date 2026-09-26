@@ -207,6 +207,44 @@ describe('SubtitleBar session pill', () => {
   });
 });
 
+describe('SubtitleBar hold-to-talk control', () => {
+  const holdToTalk = () => ({ onPress: vi.fn(), onRelease: vi.fn(), onHeldChange: vi.fn() });
+
+  it('renders it on the extension-overlay surface when holdToTalk is given', () => {
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" holdToTalk={holdToTalk()} />);
+    expect(screen.getByRole('button', { name: 'Hold' })).toBeInTheDocument();
+  });
+
+  it('renders nothing without holdToTalk, on either surface', () => {
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" />);
+    expect(screen.queryByRole('button', { name: 'Hold' })).not.toBeInTheDocument();
+    cleanup();
+    render(<SubtitleBar {...baseProps} surface="electron" />);
+    expect(screen.queryByRole('button', { name: 'Hold' })).not.toBeInTheDocument();
+  });
+
+  // Defence in depth: SubtitleView only ever hands holdToTalk to the overlay
+  // surface, but the bar does not trust that alone.
+  it('does NOT render it on the electron surface even if holdToTalk is given', () => {
+    render(<SubtitleBar {...baseProps} surface="electron" holdToTalk={holdToTalk()} />);
+    expect(screen.queryByRole('button', { name: 'Hold' })).not.toBeInTheDocument();
+  });
+
+  it('presses and releases through the given callbacks, aria-pressed following the held state', () => {
+    const hold = holdToTalk();
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" holdToTalk={hold} />);
+    const button = screen.getByRole('button', { name: 'Hold' });
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.pointerDown(button);
+    expect(hold.onPress).toHaveBeenCalledTimes(1);
+    expect(hold.onHeldChange).toHaveBeenLastCalledWith(true);
+    expect(screen.getByRole('button', { name: 'Release' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.pointerUp(screen.getByRole('button', { name: 'Release' }));
+    expect(hold.onRelease).toHaveBeenCalledTimes(1);
+    expect(hold.onHeldChange).toHaveBeenLastCalledWith(false);
+  });
+});
+
 describe('SubtitleBar exit button', () => {
   it('routes the ✕ through onExit instead of the store exit, on the electron surface', () => {
     const onExit = vi.fn();

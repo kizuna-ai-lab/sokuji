@@ -64,7 +64,17 @@ export interface SubtitleChrome {
 }
 
 /** `onExit` should keep its identity across renders (a `useCallback`): the Escape listener re-attaches whenever it changes. */
-export function useSubtitleChrome({ surface, onExit }: { surface: SubtitleSurfaceKind; onExit: () => void }): SubtitleChrome {
+export function useSubtitleChrome({ surface, onExit, forceVisible = false }: {
+  surface: SubtitleSurfaceKind;
+  onExit: () => void;
+  /**
+   * Keeps the bar visible (and skips the idle auto-hide) for as long as this
+   * is true, regardless of mouse activity — the overlay's hold-to-talk
+   * control lives in the bar (follow-up D), and a turn held with the mouse
+   * motionless must not have its own bar hide out from under it.
+   */
+  forceVisible?: boolean;
+}): SubtitleChrome {
   const subtitle = useSubtitleSettings();
   const fullscreen = useSubtitleFullscreen();
   const setFullscreen = useSetSubtitleFullscreen();
@@ -77,6 +87,12 @@ export function useSubtitleChrome({ surface, onExit }: { surface: SubtitleSurfac
   // Auto-hide bar
   const [barVisible, setBarVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Read from the hide-timeout closures below, always the latest value —
+  // those closures are created once (inside a stable useCallback / a plain
+  // handler) and must not hide the bar while a hold is forcing it open, even
+  // if the timer was armed by mouse movement that happened during the hold.
+  const forceVisibleRef = useRef(forceVisible);
+  forceVisibleRef.current = forceVisible;
   // Reveal the bar and (re)arm an inactivity timer that hides it after
   // AUTO_HIDE_MS. Driven by mouse MOVEMENT, not just enter/leave: in
   // fullscreen the root fills the entire screen, so the pointer never
@@ -85,17 +101,46 @@ export function useSubtitleChrome({ surface, onExit }: { surface: SubtitleSurfac
   const revealBar = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     setBarVisible(true);
-    hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
+    hideTimer.current = setTimeout(() => {
+      if (forceVisibleRef.current) return;
+      setBarVisible(false);
+    }, AUTO_HIDE_MS);
   }, []);
   const onMouseLeave = () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => setBarVisible(false), AUTO_HIDE_MS);
+    hideTimer.current = setTimeout(() => {
+      if (forceVisibleRef.current) return;
+      setBarVisible(false);
+    }, AUTO_HIDE_MS);
   };
   // Clear the pending auto-hide timer on unmount so it can't fire after the
   // component is gone (movement-based revealBar arms one frequently).
   useEffect(() => () => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
   }, []);
+  // React to forceVisible's own transitions (not to mount): turning on
+  // reveals the bar right away and cancels any pending hide, whichever state
+  // it was in; turning off resumes the idle countdown, as if the user had
+  // just moved the mouse. Skipped on mount so a surface that never uses
+  // forceVisible (Electron, and the overlay outside a held turn) keeps
+  // today's behaviour exactly — the bar starts visible and stays that way
+  // until the first real mouse activity arms the very first hide timer.
+  const mountedForceVisible = useRef(false);
+  useEffect(() => {
+    if (!mountedForceVisible.current) {
+      mountedForceVisible.current = true;
+      return;
+    }
+    if (forceVisible) {
+      if (hideTimer.current) {
+        clearTimeout(hideTimer.current);
+        hideTimer.current = null;
+      }
+      setBarVisible(true);
+    } else {
+      revealBar();
+    }
+  }, [forceVisible, revealBar]);
 
   // ESC is layered: if we're in fullscreen, the first ESC drops back to the
   // windowed bar; otherwise (or on the next ESC) it exits subtitle mode.

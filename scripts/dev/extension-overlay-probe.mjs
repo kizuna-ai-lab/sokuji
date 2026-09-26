@@ -24,7 +24,9 @@
  *
  * Then the checks, in order: (--ptt) a trusted mouse hold on the overlay's
  * hold button, first, since under push-to-talk nothing plays before a held
- * turn ends; the overlay draws the run (a `long` text, and karaoke lit); the
+ * turn ends — the button lives in the overlay's bar, which hides on
+ * inactivity, so the probe hovers it first and waits for it to show before
+ * pressing; the overlay draws the run (a `long` text, and karaoke lit); the
  * virtual microphone's PCM reaches the meeting page; (--ptt) where Space and
  * Escape go after a hold — recorded, not failed; whether the overlay shares
  * the extension's storage (a sentinel written in the side panel only), and
@@ -414,22 +416,28 @@ async function main(cdp) {
     const owner = await meeting.send('DOM.getFrameOwner', { frameId: overlay.targetId });
     const box = owner.result ? await meeting.send('DOM.getBoxModel', { backendNodeId: owner.result.backendNodeId }) : owner;
     const button = await pollUntil(5000, 100, () => overlay.evaluate(`(() => {
-      const r = document.querySelector('.subtitle-hold__button')?.getBoundingClientRect();
+      const r = document.querySelector('.subtitle-bar__hold')?.getBoundingClientRect();
       return r && r.width > 0 ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
     })()`));
     if (!box.result) {
       miss(`the overlay iframe's box: ${JSON.stringify(box.error)}`);
     } else if (!button) {
-      miss('the overlay never drew .subtitle-hold__button');
+      miss('the overlay never drew .subtitle-bar__hold');
     } else {
       const [left, top] = box.result.model.content;
       const x = left + button.x;
       const y = top + button.y;
       await meeting.send('Page.bringToFront');
+      // The button lives in the overlay's bar (plan follow-up D), which
+      // hides itself on inactivity (pointer-events: none while hidden) — hover
+      // it first and wait for the reveal, or the press below could land on a
+      // bar still fading in.
       await meeting.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+      const barShown = await pollUntil(2000, 50, () => overlay.evaluate(`getComputedStyle(document.querySelector('.subtitle-bar')).opacity === '1'`));
+      if (!barShown) miss('the overlay bar never became visible after hovering the hold button');
       await meeting.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1 });
       const pressedAt = Date.now();
-      const held = await pollUntil(HOLD_MS - 200, 100, () => overlay.evaluate(`!!document.querySelector('.subtitle-hold__button.is-held')`));
+      const held = await pollUntil(HOLD_MS - 200, 100, () => overlay.evaluate(`!!document.querySelector('.subtitle-bar__hold.is-held')`));
       if (!held) miss('the hold button never carried .is-held while the mouse held it');
       const remaining = HOLD_MS - (Date.now() - pressedAt);
       if (remaining > 0) await sleep(remaining);
@@ -478,7 +486,7 @@ async function main(cdp) {
     const heldPolls = async (ms) => {
       let seen = false;
       for (let waited = 0; waited < ms; waited += 50) {
-        seen ||= await overlay.evaluate(`!!document.querySelector('.subtitle-hold__button.is-held')`);
+        seen ||= await overlay.evaluate(`!!document.querySelector('.subtitle-bar__hold.is-held')`);
         await sleep(50);
       }
       return seen;
