@@ -1,9 +1,19 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { registerSubtitleFeed } from '../../../app/subtitleFeed';
+import type { Entry } from '../../../lib/projection/types';
+import type { SubtitleSession } from '../../../lib/subtitle/session';
+import type { Readable } from '../../../lib/view/conversationView';
+import type { KaraokeState } from '../../../lib/view/karaoke';
+import useSettingsStore from '../../../stores/settingsStore';
 import { ExtensionContentScriptSubtitleSurface } from './ExtensionContentScriptSubtitleSurface';
-import { usePlaybackStore } from '../../../stores/playbackStore';
 
-// Mock SettingsService factory so settingsStore can be imported without
-// pulling audio worklet side-effects through ServiceFactory.
+// Kept from before the old audio service was deleted: settingsStore
+// statically imports ServiceFactory, which used to reach
+// ModernBrowserAudioService -> ModernAudioRecorder -> a worklet `?url` import
+// that this sandboxed Vite test transform denied outright. ServiceFactory no
+// longer reaches ModernAudioRecorder at all. Not needed by the current graph
+// for that reason. Mocked anyway so settingsStore's own persistence goes
+// through this mock instead of a real settings backend.
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({
@@ -13,16 +23,75 @@ vi.mock('../../../services/ServiceFactory', () => ({
   },
 }));
 
+// The side panel's interface language, fixed: it is the overlay's first message.
+vi.mock('../uiLanguage', () => ({ uiLanguage: { get: () => 'ja', subscribe: () => () => {} } }));
+
+const reportWarningSpy = vi.hoisted(() => vi.fn());
+vi.mock('../../../lib/diagnostics/report', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../lib/diagnostics/report')>()),
+  reportWarning: reportWarningSpy,
+}));
+
 declare const globalThis: any;
 
-// Items forwarding is trailing-throttled (ITEMS_THROTTLE_MS = 120ms in the
-// surface). After mutating sessionStore.items, wait past that window for the
-// coalesced 'items' message to be posted. state-init is NOT throttled.
-const waitThrottle = () => new Promise((r) => setTimeout(r, 160));
+function box<T>(initial: T): Readable<T> & { set(next: T): void } {
+  let value = initial;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => value,
+    subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    set(next) { value = next; listeners.forEach((listener) => listener()); },
+  };
+}
+
+const running: SubtitleSession = { phase: 'running', since: 5, legs: ['speaker'], pair: { source: 'en', target: 'ja' }, holdToTalk: true, canStart: false, idle: { kind: 'ended' } };
+
+function stubFeed() {
+  const session = box<SubtitleSession>(running);
+  const feed = {
+    sources: { entries: box<readonly Entry[]>([]), session, karaoke: box<KaraokeState>({ lit: new Map(), replaying: null }) },
+    clear: vi.fn(), press: vi.fn(), release: vi.fn(),
+  };
+  return { feed, session };
+}
+
+/**
+ * An overlay's port as `onConnect` hands it over; `null` is a sender with no
+ * tab (an `undefined` argument would take the default). `drop()` is Chrome
+ * firing this end's `onDisconnect`; `listening()` counts the listeners left on it.
+ */
+function makePort(tabId: number | null = 7, name = 'sokuji-subtitle') {
+  const messages = new Set<(m: unknown) => void>();
+  const gone = new Set<() => void>();
+  return {
+    name,
+    sender: tabId === null ? {} : { tab: { id: tabId } },
+    postMessage: vi.fn(),
+    onMessage: { addListener: (fn: (m: unknown) => void) => { messages.add(fn); }, removeListener: (fn: (m: unknown) => void) => { messages.delete(fn); } },
+    onDisconnect: { addListener: (fn: () => void) => { gone.add(fn); }, removeListener: (fn: () => void) => { gone.delete(fn); } },
+    disconnect: vi.fn(),
+    deliver: (m: unknown) => { [...messages].forEach((fn) => fn(m)); },
+    drop: () => { [...gone].forEach((fn) => fn()); },
+    listening: () => messages.size + gone.size,
+  };
+}
+const sentTypes = (port: ReturnType<typeof makePort>) => port.postMessage.mock.calls.map(([m]) => (m as { type: string }).type);
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+/** What an overlay gets when it connects, in order (plan 1e-4 ruling 5: the language first). */
+const FIRST_SENDS = ['subtitle:language', 'subtitle:session', 'subtitle:entries', 'subtitle:karaoke'];
 
 describe('ExtensionContentScriptSubtitleSurface', () => {
   let listeners: { onConnect: Function[]; onRemoved: Function[]; onUpdated: Function[]; onMessage: Function[] };
   let sendMessage: ReturnType<typeof vi.fn>;
+  let feed: ReturnType<typeof stubFeed>['feed'];
+  let session: ReturnType<typeof stubFeed>['session'];
+  let off: () => void;
+  let settingsBefore: ReturnType<typeof useSettingsStore.getState>;
+
+  beforeAll(() => {
+    settingsBefore = useSettingsStore.getState();
+  });
 
   beforeEach(() => {
     listeners = { onConnect: [], onRemoved: [], onUpdated: [], onMessage: [] };
@@ -30,6 +99,7 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     globalThis.chrome = {
       tabs: {
         query: vi.fn(async () => [{ id: 7, url: 'https://meet.google.com/abc' }]),
+        get: vi.fn(async (id: number) => ({ id, url: 'https://meet.google.com/abc' })),
         sendMessage,
         onRemoved: { addListener: (fn: Function) => listeners.onRemoved.push(fn), removeListener: vi.fn() },
         onUpdated: { addListener: (fn: Function) => listeners.onUpdated.push(fn), removeListener: vi.fn() },
@@ -38,7 +108,24 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
         onConnect: { addListener: (fn: Function) => listeners.onConnect.push(fn), removeListener: vi.fn() },
       },
     };
+    ({ feed, session } = stubFeed());
+    off = registerSubtitleFeed(feed);
+    reportWarningSpy.mockClear();
   });
+
+  afterEach(() => {
+    off();
+    useSettingsStore.setState(settingsBefore, true);
+  });
+
+  /** A surface that has entered subtitle mode on its tab. */
+  async function entered() {
+    const surface = new ExtensionContentScriptSubtitleSurface();
+    await surface.enter();
+    return surface;
+  }
+  /** An overlay connecting, as Chrome hands its port to the side panel. */
+  const connect = (port: ReturnType<typeof makePort>) => listeners.onConnect[0](port);
 
   it('enter() sends subtitle:enter to the active meeting tab', async () => {
     const surface = new ExtensionContentScriptSubtitleSurface();
@@ -80,6 +167,26 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     expect(removeOnConnect).toHaveBeenCalledTimes(1);
     expect(removeOnRemoved).toHaveBeenCalledTimes(1);
     expect(removeOnUpdated).toHaveBeenCalledTimes(1);
+    // A failed enter forgets its tab: an overlay that connects anyway is not
+    // this side panel's, so it is left alone…
+    const stray = makePort(7);
+    listeners.onConnect[0](stray);
+    expect(stray.disconnect).not.toHaveBeenCalled();
+    expect(stray.postMessage).not.toHaveBeenCalled();
+    expect(stray.listening()).toBe(0);
+    // …and the next enter() is not short-circuited by a tab it never reached.
+    sendMessage.mockClear();
+    await surface.enter();
+    expect(sendMessage.mock.calls.map(([, m]) => (m as { type: string }).type)).toEqual(['subtitle:exit', 'subtitle:enter']);
+    expect(sendMessage).toHaveBeenCalledWith(7, { type: 'subtitle:enter' });
+  });
+
+  it('enter() sends subtitle:exit before subtitle:enter, to this tab, so a stale host from an earlier session is cleared first (final-fix review Minor 1)', async () => {
+    const surface = new ExtensionContentScriptSubtitleSurface();
+    await surface.enter();
+    expect(sendMessage.mock.calls.map(([, m]) => (m as { type: string }).type)).toEqual(['subtitle:exit', 'subtitle:enter']);
+    expect(sendMessage).toHaveBeenNthCalledWith(1, 7, { type: 'subtitle:exit' });
+    expect(sendMessage).toHaveBeenNthCalledWith(2, 7, { type: 'subtitle:enter' });
   });
 
   it('exit() sends subtitle:exit to the captured tab', async () => {
@@ -99,396 +206,223 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     expect(useSettingsStore.getState().subtitleModeActive).toBe(false);
   });
 
-  it('port reconnect unsubscribes the prior generation of store subscriptions', async () => {
-    // Regression: meeting-tab reload destroys the iframe, which disconnects
-    // the port. The surface intentionally doesn't tearDown on disconnect
-    // (the content script re-mounts on subsequent subtitle:enter). But
-    // before, installStoreSubscriptions() overwrote `this.subscriptions`
-    // without unsubscribing the prior ones, leaving old listeners alive on
-    // the Zustand stores and accumulating on every reload.
-    //
-    // We assert the cleanup directly (not via message count): the items
-    // forwarding is now trailing-throttled at the instance level, so a leaked
-    // duplicate subscription would be coalesced and wouldn't change the number
-    // of posted messages — only the count of live store subscriptions.
-    const { default: useSessionStore } = await import('../../../stores/sessionStore');
-    useSessionStore.setState({ items: [], participantItems: [], isSessionActive: false } as any);
+  it("publishes the app session to its own tab's overlay: language, session, entries, karaoke, in that order", async () => {
+    await entered();
+    const port = makePort(7);
+    connect(port);
+    expect(sentTypes(port)).toEqual(FIRST_SENDS);
+    expect(port.postMessage.mock.calls[0][0]).toEqual({ type: 'subtitle:language', language: 'ja' });
+    expect((port.postMessage.mock.calls[1][0] as { session: unknown }).session).toEqual(running);
+  });
 
-    // Wrap each subscribe's returned unsubscribe in a spy to detect tear-down.
-    const realSubscribe = useSessionStore.subscribe.bind(useSessionStore);
-    const unsubSpies: ReturnType<typeof vi.fn>[] = [];
-    const subSpy = vi
-      .spyOn(useSessionStore, 'subscribe')
-      .mockImplementation((...args: any[]) => {
-        const realUnsub = (realSubscribe as any)(...args);
-        const spy = vi.fn(() => realUnsub());
-        unsubSpies.push(spy);
-        return spy as any;
-      });
+  // Chrome's "Port lifetime": a `disconnect()` on any one receiving port fires
+  // `onDisconnect` only at the sender — so a refusal by disconnect would close
+  // the other tab's live overlay, and its own side panel would never learn.
+  it('leaves a port from another tab, or from no tab, alone: never disconnected, never posted to, nothing listening', async () => {
+    await entered();
+    const otherTab = makePort(8);
+    connect(otherTab);
+    const noTab = makePort(null);
+    connect(noTab);
+    await flush();
+    for (const port of [otherTab, noTab]) {
+      expect(port.disconnect).not.toHaveBeenCalled();
+      expect(port.postMessage).not.toHaveBeenCalled();
+      expect(port.listening()).toBe(0);
+    }
+    const own = makePort(7);
+    connect(own);
+    expect(sentTypes(own)).toEqual(FIRST_SENDS);
+  });
 
+  it("keeps publishing to its own overlay when another tab's overlay connects after it", async () => {
+    await entered();
+    const own = makePort(7);
+    connect(own);
+    const foreign = makePort(8);
+    connect(foreign);
+    expect(own.disconnect).not.toHaveBeenCalled();
+    expect(foreign.disconnect).not.toHaveBeenCalled();
+    const ownPosts = own.postMessage.mock.calls.length;
+    session.set({ ...running, since: 9 });
+    expect(own.postMessage).toHaveBeenCalledTimes(ownPosts + 1);
+    expect(foreign.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('leaves a port of another name alone', async () => {
+    await entered();
+    const port = makePort(7, 'other');
+    connect(port);
+    await flush();
+    expect(port.disconnect).not.toHaveBeenCalled();
+    expect(port.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('leaves a foreign-tab port alone even when no feed is attached: the tab check runs before the feed check (review Minor 6)', async () => {
+    off();
+    await entered();
+    const port = makePort(8);
+    connect(port);
+    await flush();
+    expect(port.disconnect).not.toHaveBeenCalled();
+    expect(port.postMessage).not.toHaveBeenCalled();
+    expect(reportWarningSpy).not.toHaveBeenCalled();
+  });
+
+  it('closes the port, with one warning, when no session is attached', async () => {
+    off();
+    await entered();
+    const port = makePort(7);
+    connect(port);
+    await flush();
+    expect(port.disconnect).toHaveBeenCalledTimes(1);
+    expect(port.postMessage).not.toHaveBeenCalled();
+    expect(reportWarningSpy).toHaveBeenCalledTimes(1);
+    expect(reportWarningSpy).toHaveBeenCalledWith('SubtitleSurface', expect.any(String), expect.objectContaining({ dedupeKey: 'subtitle-surface:no-feed' }));
+  });
+
+  it("gives a tab reload's new overlay a fresh publisher", async () => {
+    await entered();
+    const p1 = makePort(7);
+    connect(p1);
+    p1.drop();
+    const p1Posts = p1.postMessage.mock.calls.length;
+    const p2 = makePort(7);
+    connect(p2);
+    expect(sentTypes(p2)).toEqual(FIRST_SENDS);
+    session.set({ ...running, since: 9 });
+    expect(sentTypes(p2)).toEqual([...FIRST_SENDS, 'subtitle:session']);
+    expect(p1.postMessage).toHaveBeenCalledTimes(p1Posts);
+    // It had gone by itself: nothing to close.
+    expect(p1.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('replaces the first overlay with a second while the first is still connected: the first is stopped, then disconnected', async () => {
+    await entered();
+    const p1 = makePort(7);
+    connect(p1);
+    const p2 = makePort(7);
+    connect(p2);
+    expect(p1.disconnect).toHaveBeenCalledTimes(1);
+    const p1Posts = p1.postMessage.mock.calls.length;
+    const p2Posts = p2.postMessage.mock.calls.length;
+    session.set({ ...running, since: 9 });
+    expect(p1.postMessage).toHaveBeenCalledTimes(p1Posts);
+    expect(p2.postMessage).toHaveBeenCalledTimes(p2Posts + 1);
+  });
+
+  it("carries the overlay's controls to the runner's, and its exit leaves subtitle mode", async () => {
+    const exitSpy = vi.fn(async () => {});
+    useSettingsStore.setState({ exitSubtitleMode: exitSpy });
+    await entered();
+    const p1 = makePort(7);
+    connect(p1);
+    p1.deliver({ type: 'subtitle:request-clear' });
+    p1.deliver({ type: 'subtitle:turn-press' });
+    p1.deliver({ type: 'subtitle:turn-release' });
+    p1.deliver({ type: 'subtitle:user-exit' });
+    expect(feed.clear).toHaveBeenCalledTimes(1);
+    expect(feed.press).toHaveBeenCalledTimes(1);
+    expect(feed.release).toHaveBeenCalledTimes(1);
+    expect(exitSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('exit() stops the publisher before disconnecting its port, releasing a held press', async () => {
+    const surface = await entered();
+    const p1 = makePort(7);
+    connect(p1);
+    p1.deliver({ type: 'subtitle:turn-press' });
+    const order: string[] = [];
+    feed.release.mockImplementation(() => { order.push('release'); });
+    p1.disconnect.mockImplementation(() => { order.push('disconnect'); });
+    await surface.exit();
+    expect(sendMessage).toHaveBeenLastCalledWith(7, { type: 'subtitle:exit' });
+    expect(order).toEqual(['release', 'disconnect']);
+    const p1Posts = p1.postMessage.mock.calls.length;
+    session.set({ ...running, since: 9 });
+    expect(p1.postMessage).toHaveBeenCalledTimes(p1Posts);
+    // Nothing is left listening on the closed port: the publisher's, nor the surface's own.
+    expect(p1.listening()).toBe(0);
+  });
+
+  it('tears the publisher down when the tab closes', async () => {
+    await entered();
+    const p1 = makePort(7);
+    connect(p1);
+    listeners.onRemoved[0](7);
+    expect(p1.disconnect).toHaveBeenCalledTimes(1);
+    const p1Posts = p1.postMessage.mock.calls.length;
+    session.set({ ...running, since: 9 });
+    await flush();
+    expect(p1.postMessage).toHaveBeenCalledTimes(p1Posts);
+  });
+
+  it('releases a held press when the overlay goes away', async () => {
+    await entered();
+    const p1 = makePort(7);
+    connect(p1);
+    p1.deliver({ type: 'subtitle:turn-press' });
+    p1.drop();
+    expect(feed.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('enter() targets the tab the side panel was opened for, not the active tab (ruling 4)', async () => {
+    window.history.replaceState(null, '', '/?tabId=42');
     try {
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-
-      const makePort = () => ({
-        name: 'sokuji-subtitle',
-        onMessage: { addListener: vi.fn() },
-        onDisconnect: { addListener: vi.fn() },
-        postMessage: vi.fn(),
-        disconnect: vi.fn(),
-      });
-      const handleConnect = listeners.onConnect[0];
-
-      // Gen 1 — installs the first generation of sessionStore subscriptions.
-      const port1 = makePort();
-      handleConnect(port1);
-      await new Promise((r) => setTimeout(r, 0));
-      const gen1Unsubs = unsubSpies.slice();
-      expect(gen1Unsubs.length).toBeGreaterThanOrEqual(2); // items + session
-
-      // Tab reload: port1 disconnects, port2 connects → gen2 installs, which
-      // must first unsubscribe gen1.
-      port1.onDisconnect.addListener.mock.calls[0][0]();
-      const port2 = makePort();
-      handleConnect(port2);
-      await new Promise((r) => setTimeout(r, 0));
-
-      for (const u of gen1Unsubs) expect(u).toHaveBeenCalled();
+      await entered();
+      expect(globalThis.chrome.tabs.get).toHaveBeenCalledWith(42);
+      expect(sendMessage).toHaveBeenCalledWith(42, { type: 'subtitle:enter' });
+      expect(globalThis.chrome.tabs.query).not.toHaveBeenCalled();
+      const own = makePort(42);
+      connect(own);
+      expect(sentTypes(own)).toEqual(FIRST_SENDS);
+      const active = makePort(7);
+      connect(active);
+      expect(active.disconnect).not.toHaveBeenCalled();
+      expect(active.postMessage).not.toHaveBeenCalled();
     } finally {
-      subSpy.mockRestore();
+      window.history.replaceState(null, '', '/');
     }
   });
 
-  describe('strips heavy replay fields from forwarded items (memory-leak guard)', () => {
-    const makePort = () => ({
-      name: 'sokuji-subtitle',
-      onMessage: { addListener: vi.fn() },
-      onDisconnect: { addListener: vi.fn() },
-      postMessage: vi.fn(),
-      disconnect: vi.fn(),
-    });
-
-    // An item as the provider clients build it: carries retained PCM audio
-    // (formatted.audio / content[].audio) AND a generated WAV blob
-    // (formatted.file) for the replay/download feature. The subtitle overlay
-    // never reads any of them, yet the surface used to forward them verbatim —
-    // formatted.audio grew until a single message blew past Chrome's 64MiB port
-    // limit and crashed the app; formatted.file (multi-MB) re-cloned per delta
-    // pegged the page. Both must be stripped on the wire.
-    const makeAudioItem = (id: string) => ({
-      id,
-      role: 'assistant',
-      type: 'message',
-      status: 'completed',
-      formatted: {
-        transcript: 'hello world',
-        audioSegments: [{ textEnd: 5, audioEnd: 1.2 }],
-        audioTextEnd: 5,
-        audio: new Int16Array(1024).fill(7),
-        file: { blob: 'x'.repeat(5000), mimeType: 'audio/wav' },
-      },
-      content: [{ type: 'audio', transcript: 'hello world', audio: new Int16Array(512) }],
-    });
-
-    const expectStripped = (item: any) => {
-      expect(item.formatted.audio).toBeUndefined();
-      expect(item.formatted.file).toBeUndefined();
-      expect(item.content?.[0]?.audio).toBeUndefined();
-      // Metadata the overlay actually uses must survive.
-      expect(item.formatted.transcript).toBe('hello world');
-      expect(item.formatted.audioSegments).toEqual([{ textEnd: 5, audioEnd: 1.2 }]);
-    };
-
-    it('state-init payload omits audio + file but keeps text + timing metadata', async () => {
-      const { default: useSessionStore } = await import('../../../stores/sessionStore');
-      useSessionStore.setState({
-        items: [makeAudioItem('a')],
-        participantItems: [makeAudioItem('p')],
-        isSessionActive: true,
-      } as any);
-
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-
-      const init = port.postMessage.mock.calls.find(
-        (call: any[]) => call[0]?.type === 'state-init',
-      );
-      expect(init).toBeDefined();
-      expectStripped(init![0].payload.items[0]);
-      expectStripped(init![0].payload.participantItems[0]);
-    });
-
-    it('items message omits audio + file but keeps text + timing metadata', async () => {
-      const { default: useSessionStore } = await import('../../../stores/sessionStore');
-      useSessionStore.setState({ items: [], participantItems: [], isSessionActive: true } as any);
-
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-      port.postMessage.mockClear();
-
-      useSessionStore.setState({ items: [makeAudioItem('b')] } as any);
-      await waitThrottle();
-
-      const msg = port.postMessage.mock.calls.find(
-        (call: any[]) => call[0]?.type === 'items',
-      );
-      expect(msg).toBeDefined();
-      expectStripped(msg![0].items[0]);
-    });
+  it('enter() refuses its tab when the tab has left the meeting, or is gone', async () => {
+    window.history.replaceState(null, '', '/?tabId=42');
+    try {
+      globalThis.chrome.tabs.get = vi.fn(async (id: number) => ({ id, url: 'https://example.com/' }));
+      await expect(new ExtensionContentScriptSubtitleSurface().enter()).rejects.toThrow(/not on supported site/);
+      globalThis.chrome.tabs.get = vi.fn(async () => { throw new Error('No tab with id: 42.'); });
+      await expect(new ExtensionContentScriptSubtitleSurface().enter()).rejects.toThrow(/not on supported site/);
+    } finally {
+      window.history.replaceState(null, '', '/');
+    }
   });
 
-  describe('windows forwarded items to the recent tail (perf cap)', () => {
-    const makePort = () => ({
-      name: 'sokuji-subtitle',
-      onMessage: { addListener: vi.fn() },
-      onDisconnect: { addListener: vi.fn() },
-      postMessage: vi.fn(),
-      disconnect: vi.fn(),
-    });
-
-    const makeItems = (n: number) =>
-      Array.from({ length: n }, (_, i) => ({
-        id: String(i),
-        role: 'user',
-        type: 'message',
-        status: 'completed',
-        formatted: { transcript: `t${i}` },
-      }));
-
-    it('state-init forwards only the last 15 items (newest tail)', async () => {
-      const { default: useSessionStore } = await import('../../../stores/sessionStore');
-      useSessionStore.setState({
-        items: makeItems(150),
-        participantItems: makeItems(130),
-        isSessionActive: true,
-      } as any);
-
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-
-      const init = port.postMessage.mock.calls.find(
-        (call: any[]) => call[0]?.type === 'state-init',
-      );
-      expect(init).toBeDefined();
-      expect(init![0].payload.items).toHaveLength(15);
-      expect(init![0].payload.items[0].id).toBe('135'); // 150 items → keep ids 135..149
-      expect(init![0].payload.items[14].id).toBe('149');
-      expect(init![0].payload.participantItems).toHaveLength(15);
-      expect(init![0].payload.participantItems[14].id).toBe('129');
-    });
-
-    it('items message forwards only the last 15 items (newest tail)', async () => {
-      const { default: useSessionStore } = await import('../../../stores/sessionStore');
-      useSessionStore.setState({ items: [], participantItems: [], isSessionActive: true } as any);
-
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-      port.postMessage.mockClear();
-
-      useSessionStore.setState({ items: makeItems(150) } as any);
-      await waitThrottle();
-
-      const msg = port.postMessage.mock.calls.find(
-        (call: any[]) => call[0]?.type === 'items',
-      );
-      expect(msg).toBeDefined();
-      expect(msg![0].items).toHaveLength(15);
-      expect(msg![0].items[14].id).toBe('149');
-    });
-
-    it('forwards the array unchanged when under the cap', async () => {
-      const { default: useSessionStore } = await import('../../../stores/sessionStore');
-      useSessionStore.setState({ items: makeItems(10), participantItems: [], isSessionActive: true } as any);
-
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-
-      const init = port.postMessage.mock.calls.find(
-        (call: any[]) => call[0]?.type === 'state-init',
-      );
-      expect(init![0].payload.items).toHaveLength(10);
-      expect(init![0].payload.items[0].id).toBe('0');
-    });
+  it("accepts its tab's overlay while subtitle:exit is still in flight", async () => {
+    let arrived!: () => void;
+    sendMessage.mockImplementationOnce(() => new Promise<void>((resolve) => { arrived = resolve; }));
+    const entering = new ExtensionContentScriptSubtitleSurface().enter();
+    await vi.waitFor(() => expect(listeners.onConnect).toHaveLength(1));
+    const port = makePort(7);
+    connect(port);
+    expect(sentTypes(port)).toEqual(FIRST_SENDS);
+    arrived();
+    await entering;
   });
 
-  describe('throttles items forwarding (coalesces bursts)', () => {
-    const makePort = () => ({
-      name: 'sokuji-subtitle',
-      onMessage: { addListener: vi.fn() },
-      onDisconnect: { addListener: vi.fn() },
-      postMessage: vi.fn(),
-      disconnect: vi.fn(),
-    });
-
-    it('collapses a burst of items updates into one trailing message with the latest items', async () => {
-      const { default: useSessionStore } = await import('../../../stores/sessionStore');
-      useSessionStore.setState({ items: [], participantItems: [], isSessionActive: true } as any);
-
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-      port.postMessage.mockClear();
-
-      // Three rapid updates inside the throttle window (mimics streaming deltas).
-      useSessionStore.setState({ items: [{ id: 'a' }] } as any);
-      useSessionStore.setState({ items: [{ id: 'a' }, { id: 'b' }] } as any);
-      useSessionStore.setState({ items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] } as any);
-
-      // Synchronously, before the window elapses: nothing posted yet.
-      expect(port.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === 'items')).toHaveLength(0);
-
-      await waitThrottle();
-
-      const itemsMsgs = port.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === 'items');
-      expect(itemsMsgs).toHaveLength(1); // coalesced
-      expect(itemsMsgs[0][0].items.map((i: any) => i.id)).toEqual(['a', 'b', 'c']); // latest snapshot
-    });
-
-    it('reconnect cancels a pending throttle timer (no stale post to the new port)', async () => {
-      // A throttle timer scheduled by the prior port's subscription must not
-      // fire after a reconnect and post a stale pendingItems snapshot to the
-      // new port. installStoreSubscriptions must reset the throttle state, the
-      // same way tearDown does.
-      const { default: useSessionStore } = await import('../../../stores/sessionStore');
-      useSessionStore.setState({ items: [], participantItems: [], isSessionActive: true } as any);
-
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const handleConnect = listeners.onConnect[0];
-
-      // Gen 1 connects.
-      const port1 = makePort();
-      handleConnect(port1);
-      await new Promise((r) => setTimeout(r, 0));
-
-      // Items change → schedules a throttle timer holding this snapshot. Do NOT
-      // wait for it to fire.
-      useSessionStore.setState({ items: [{ id: 'stale' }] } as any);
-
-      // Tab reload: port1 disconnects, port2 connects → gen2 installs.
-      port1.onDisconnect.addListener.mock.calls[0][0]();
-      const port2 = makePort();
-      handleConnect(port2);
-      await new Promise((r) => setTimeout(r, 0));
-      port2.postMessage.mockClear();
-
-      // Past the throttle window: the carried-over gen1 timer must not post.
-      await waitThrottle();
-      const itemsMsgs = port2.postMessage.mock.calls.filter((c: any[]) => c[0]?.type === 'items');
-      expect(itemsMsgs).toHaveLength(0);
-    });
-  });
-
-  describe('playback forwarding', () => {
-    beforeEach(() => {
-      usePlaybackStore.setState({
-        playingItemId: null,
-        currentTime: null,
-        progressRatio: 0,
-        _cumOffset: 0,
-        _lastBt: 0,
-        _lastCt: 0,
-        _maxProgress: 0,
-        _raw: null,
-      });
-    });
-
-    const makePort = () => ({
-      name: 'sokuji-subtitle',
-      onMessage: { addListener: vi.fn() },
-      onDisconnect: { addListener: vi.fn() },
-      postMessage: vi.fn(),
-      disconnect: vi.fn(),
-    });
-
-    it('state-init carries playback=null when nothing is playing', async () => {
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      // Drain the lazy import + initial state-init push.
-      await new Promise((r) => setTimeout(r, 0));
-
-      const init = port.postMessage.mock.calls.find(
-        (call: any[]) => call[0]?.type === 'state-init',
-      );
-      expect(init).toBeDefined();
-      expect(init![0].payload.playback).toBeNull();
-    });
-
-    it('state-init carries playback snapshot when item is playing', async () => {
-      usePlaybackStore.getState().setPlayingItem('item_a');
-      usePlaybackStore.getState().setProgress({ currentTime: 1.234, duration: 5, bufferedTime: 4 });
-
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-
-      const init = port.postMessage.mock.calls.find(
-        (call: any[]) => call[0]?.type === 'state-init',
-      );
-      expect(init![0].payload.playback).toEqual({ i: 'item_a', c: 1.234, d: 5, b: 4 });
-    });
-
-    it('forwards playback changes as typed messages', async () => {
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-      port.postMessage.mockClear();
-
-      usePlaybackStore.getState().setPlayingItem('item_a');
-      await new Promise((r) => setTimeout(r, 0));
-      expect(port.postMessage.mock.calls).toContainEqual([
-        { type: 'playback', i: 'item_a', c: null },
-      ]);
-
-      usePlaybackStore.getState().setProgress({ currentTime: 1.0, duration: 5.0, bufferedTime: 4.0 });
-      await new Promise((r) => setTimeout(r, 0));
-      expect(port.postMessage.mock.calls).toContainEqual([
-        { type: 'playback', i: 'item_a', c: 1, d: 5, b: 4 },
-      ]);
-    });
-
-    it('dedupes round-equal raw values', async () => {
-      const surface = new ExtensionContentScriptSubtitleSurface();
-      await surface.enter();
-      const port = makePort();
-      listeners.onConnect[0](port);
-      await new Promise((r) => setTimeout(r, 0));
-
-      usePlaybackStore.getState().setPlayingItem('item_a');
-      usePlaybackStore.getState().setProgress({ currentTime: 1.2345, duration: 5, bufferedTime: 4 });
-      await new Promise((r) => setTimeout(r, 0));
-      port.postMessage.mockClear();
-
-      usePlaybackStore.getState().setProgress({ currentTime: 1.2347, duration: 5, bufferedTime: 4 });
-      await new Promise((r) => setTimeout(r, 0));
-
-      const playbackMsgs = port.postMessage.mock.calls.filter(
-        (c: any[]) => c[0]?.type === 'playback',
-      );
-      expect(playbackMsgs.length).toBe(0);
-    });
+  it('closes the publisher an in-flight enter accepted when subtitle:exit then fails', async () => {
+    let refused!: (error: Error) => void;
+    sendMessage.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { refused = reject; }));
+    const entering = new ExtensionContentScriptSubtitleSurface().enter();
+    await vi.waitFor(() => expect(listeners.onConnect).toHaveLength(1));
+    const port = makePort(7);
+    connect(port);
+    port.deliver({ type: 'subtitle:turn-press' });
+    refused(new Error('Could not establish connection. Receiving end does not exist.'));
+    await expect(entering).rejects.toMatchObject({ code: 'CONTENT_SCRIPT_UNAVAILABLE' });
+    expect(feed.release).toHaveBeenCalledTimes(1);
+    expect(port.disconnect).toHaveBeenCalledTimes(1);
+    const posts = port.postMessage.mock.calls.length;
+    session.set({ ...running, since: 9 });
+    expect(port.postMessage).toHaveBeenCalledTimes(posts);
   });
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
+import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 
 // Partial mock (not a full replacement, unlike SlotRow.test.tsx): StoragePage
 // renders against the REAL settingsStore, which statically imports
@@ -20,14 +21,18 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-// StoragePage statically imports settingsStore (localInference/localNative)
-// and modelStore, which drag in the real ServiceFactory import chain —
-// audioStore -> ServiceFactory -> ModernBrowserAudioService -> ModernAudioRecorder
-// -> the @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
-// sandboxed Vite test transform denies outright. Mock ServiceFactory (same
-// fix modelStore.test.ts / settingsStore.test.ts / ensureSelectionReady.test.ts
-// / useWasmEngineAdapter.test.ts already use) so that chain never loads;
-// settingsStore's own persistence goes through this mock instead.
+// Kept from before the old audio service was deleted: StoragePage statically
+// imports settingsStore (localInference/localNative) and modelStore, which
+// used to drag in the real ServiceFactory import chain — audioStore ->
+// ServiceFactory, which imported ModernBrowserAudioService ->
+// ModernAudioRecorder -> the @sapphi-red/web-noise-suppressor worklet's
+// `?url` import, which this sandboxed Vite test transform denied outright.
+// ServiceFactory no longer imports ModernBrowserAudioService at all;
+// audioStore only calls its getSettingsService. Not needed by the current
+// graph for that reason. Mocked anyway (same fix modelStore.test.ts /
+// settingsStore.test.ts / ensureSelectionReady.test.ts /
+// useWasmEngineAdapter.test.ts already use) so settingsStore's own
+// persistence goes through this mock instead.
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: vi.fn(() => ({
@@ -209,6 +214,29 @@ describe('StoragePage (wasm)', () => {
     fireEvent.click(screen.getByTestId('storage-delete-opus-mt-es-fr'));
     const confirm = screen.getByTestId('storage-confirm');
     expect(confirm.textContent).toMatch(/Delete .*\?/);
+  });
+});
+
+describe('StoragePage (wasm, prop-driven — LocalInference Engine)', () => {
+  beforeEach(async () => {
+    // The store deliberately disagrees with the props passed below, so a
+    // pass that reads the store instead would fail this test.
+    await useSettingsStore.getState().updateLocalInference({
+      sourceLanguage: 'en', targetLanguage: 'en', selections: {},
+    });
+  });
+
+  it('resolves against the given `settings`/`pair`, not the store', () => {
+    useModelStore.setState({ modelStatuses: { [asrId()]: 'downloaded' }, webgpuAvailable: true });
+    render(
+      <StoragePage
+        provider="wasm"
+        settings={{ ...LOCAL_INFERENCE_DEFAULTS, selections: {} }}
+        pair={{ source: 'ja', target: 'en' }}
+      />,
+    );
+    const row = screen.getByTestId(`storage-row-${asrId()}`);
+    expect(row).toHaveTextContent('In use'); // resolved for ja→en, the given pair — not en→en, the store's
   });
 });
 

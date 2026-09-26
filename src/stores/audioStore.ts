@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { persistSetting } from '../services/persistSetting';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
-import { IAudioService, AudioOperationResult } from '../services/interfaces/IAudioService';
+import { listAudioDevices, listSystemAudioSources } from '../lib/audio/devices';
 import { isVirtualDevice } from '../components/Settings/shared/hooks';
 import { isLoopbackInput } from '../utils/audioDevices';
 
@@ -118,11 +118,7 @@ interface AudioStore {
    */
   participantTapAudioSeen: boolean;
 
-  // Audio service reference
-  audioService: IAudioService | null;
-
   // Actions
-  setAudioService: (service: IAudioService) => void;
   setInputDevices: (devices: AudioDevice[]) => void;
   setMonitorDevices: (devices: AudioDevice[]) => void;
   selectInputDevice: (device: AudioDevice) => void;
@@ -144,8 +140,6 @@ interface AudioStore {
 
   // Complex actions
   refreshDevices: () => Promise<{ defaultInputDevice: AudioDevice | null; defaultMonitorDevice: AudioDevice | null }>;
-  connectMonitorDevice: (deviceId: string, label: string) => Promise<AudioOperationResult>;
-  initializeAudioService: () => Promise<void>;
 }
 
 const useAudioStore = create<AudioStore>()(
@@ -170,10 +164,7 @@ const useAudioStore = create<AudioStore>()(
     isParticipantMuted: false, // default: participant unmuted
     participantTapAudioSeen: false,
 
-    audioService: null,
-
     // Basic setters
-    setAudioService: (service) => set({ audioService: service }),
     markParticipantTapAudioSeen: () => {
       if (get().participantTapAudioSeen) return;
       set({ participantTapAudioSeen: true });
@@ -235,22 +226,6 @@ const useAudioStore = create<AudioStore>()(
 
       // Persist the selected device ID
       void persistSetting(STORAGE_KEYS.SELECTED_MONITOR_DEVICE_ID, device.deviceId);
-
-      // Connect to the selected monitor device
-      const { audioService } = get();
-      if (audioService) {
-        audioService.connectMonitoringDevice(device.deviceId, device.label)
-          .then((result: AudioOperationResult) => {
-            if (result.success) {
-              console.info('[Sokuji] [AudioStore] Connected to monitor device:', device.label);
-            } else {
-              reportError('AudioStore', `Failed to connect to monitor device: ${result.error ?? 'unknown error'}`);
-            }
-          })
-          .catch(error => {
-            reportError('AudioStore', `Error connecting to monitor device: ${describeCause(error)}`, { cause: error });
-          });
-      }
     },
     setIsLoading: (loading) => set({ isLoading: loading }),
     
@@ -301,17 +276,12 @@ const useAudioStore = create<AudioStore>()(
         patch.isParticipantMuted = !nextParticipantInScope;
 
         // Monitor <-> participant mutex: the monitor is audible ONLY in pure
-        // speaker mode. isMonitorMuted is left untouched (it's the user's
-        // opt-in preference — the *flag* stays sticky and is restored when we
-        // return to speaker), but the actual playback volume is re-gated on
-        // mode here so leaving speaker silences the monitor. Mirrors how
-        // setMonitorMuted drives the service. Pre-session audioService is null
-        // → no-op, which is fine: the monitor only plays AI output during a
-        // live session, and initializeAudioService re-applies this same gate
-        // at session start.
-        if (state.audioService) {
-          state.audioService.setMonitorVolume(target === 'speaker' && !state.isMonitorMuted);
-        }
+        // speaker mode. isMonitorMuted is left untouched here (it's the
+        // user's sticky opt-in preference, restored when we return to
+        // speaker) — the actual playback volume is re-gated on mode by
+        // `appAudio.readRouting`, which reads `mode` and `isMonitorMuted`
+        // live, so nothing needs to happen in this action beyond the mode
+        // change itself.
 
         // Auto-pick first device for channels newly in scope without a selection.
         // Prefer non-virtual devices so we don't accidentally pick a Sokuji
@@ -354,11 +324,7 @@ const useAudioStore = create<AudioStore>()(
 
     setMonitorMuted: (muted) => {
       void persistSetting(STORAGE_KEYS.IS_MONITOR_MUTED, muted);
-      set((state) => {
-        const { audioService } = state;
-        if (audioService) audioService.setMonitorVolume(!muted);
-        return { isMonitorMuted: muted };
-      });
+      set({ isMonitorMuted: muted });
     },
 
     setParticipantMuted: (muted) => {
@@ -371,40 +337,27 @@ const useAudioStore = create<AudioStore>()(
       set({ isLoading: true });
 
       try {
-        const { audioService } = get();
-        if (!audioService) {
-          const service = ServiceFactory.getAudioService();
-          set({ audioService: service });
-        }
-
-        const service = get().audioService;
-        if (!service) {
-          throw new Error('Audio service not initialized');
-        }
-
-        const devices = await service.getDevices();
+        const devices = await listAudioDevices();
 
         set({
           audioInputDevices: devices.inputs,
           audioMonitorDevices: devices.outputs
         });
 
-        // Only the Electron audio service can enumerate per-application sources;
-        // the extension's cannot, and a per-app list is meaningless for tab capture.
-        const listSources = (service as { getSystemAudioSources?: () => Promise<AudioDevice[]> }).getSystemAudioSources;
-        if (typeof listSources === 'function') {
-          try {
-            // Load the saved app key first: setParticipantSources uses it to
-            // re-find the application, whose pid differs from last launch.
-            const savedAppKey = await ServiceFactory.getSettingsService()
-              .getSetting<string>(STORAGE_KEYS.SELECTED_PARTICIPANT_APP_KEY, '');
-            if (savedAppKey) {
-              set({ persistedParticipantAppKey: savedAppKey });
-            }
-            get().setParticipantSources(await listSources.call(service));
-          } catch (error) {
-            reportWarning('AudioStore', `Failed to list participant sources: ${describeCause(error)}`, { cause: error });
+        // Only Electron can enumerate per-application sources; the extension
+        // and the web build have none, and a per-app list is meaningless for
+        // tab capture — listSystemAudioSources answers [] there itself.
+        try {
+          // Load the saved app key first: setParticipantSources uses it to
+          // re-find the application, whose pid differs from last launch.
+          const savedAppKey = await ServiceFactory.getSettingsService()
+            .getSetting<string>(STORAGE_KEYS.SELECTED_PARTICIPANT_APP_KEY, '');
+          if (savedAppKey) {
+            set({ persistedParticipantAppKey: savedAppKey });
           }
+          get().setParticipantSources(await listSystemAudioSources());
+        } catch (error) {
+          reportWarning('AudioStore', `Failed to list participant sources: ${describeCause(error)}`, { cause: error });
         }
 
         // Load saved device preferences and on/off states
@@ -580,12 +533,11 @@ const useAudioStore = create<AudioStore>()(
         
         // Note the virtual device if one is already present. The former
         // `else if (service.supportsVirtualDevices())` branch — which created
-        // devices and re-read the device list — was unreachable: the sole
-        // IAudioService implementation hard-returns false
-        // (ModernBrowserAudioService.ts:451-453), because the extension reaches
-        // its virtual microphone through messaging instead. Removed rather than
-        // migrated to report(): a diagnostic on a dead path reads as if the
-        // path is live.
+        // devices and re-read the device list — was unreachable: the old
+        // audio service's virtual-device support hard-returned false, because
+        // the extension reaches its virtual microphone through messaging
+        // instead. Removed rather than migrated to report(): a diagnostic on
+        // a dead path reads as if the path is live.
         if (devices.outputs.some(device => device.isVirtual)) {
           console.info('[Sokuji] [AudioStore] Virtual audio device detected');
         }
@@ -596,59 +548,6 @@ const useAudioStore = create<AudioStore>()(
         return { defaultInputDevice: null, defaultMonitorDevice: null };
       } finally {
         set({ isLoading: false });
-      }
-    },
-    
-    connectMonitorDevice: async (deviceId: string, label: string) => {
-      const { audioService } = get();
-      if (!audioService) {
-        return { success: false, error: 'Audio service not initialized' };
-      }
-      
-      return audioService.connectMonitoringDevice(deviceId, label);
-    },
-    
-    initializeAudioService: async () => {
-      try {
-        let { audioService } = get();
-        if (!audioService) {
-          audioService = ServiceFactory.getAudioService();
-          set({ audioService });
-        }
-        
-        await audioService.initialize();
-
-        // Refresh devices FIRST — its migration block reads persisted
-        // isMonitorMuted and may overwrite the store's default. We must
-        // read the post-migration value before calling setMonitorVolume,
-        // otherwise the player's global volume stays at the pre-migration
-        // default and ignores the user's saved preference. Bug it fixes:
-        // monitor silent at session start for users with saved monitor-on
-        // state, fixed only by an off→on toggle.
-        const devices = await get().refreshDevices();
-
-        // Set initial monitor volume based on the (possibly migrated) state,
-        // gated on mode scope: the monitor is audible only in pure speaker
-        // mode (mutex with participant). isMonitorMuted is the user's opt-in
-        // preference within speaker mode; mode scope is the mutex.
-        const { isMonitorMuted, mode } = get();
-        const monitorAudible = mode === 'speaker' && !isMonitorMuted;
-        audioService.setMonitorVolume(monitorAudible);
-        console.info(`[Sokuji] [AudioStore] Set initial monitor volume: ${monitorAudible ? '1.0' : '0.0'} (mode=${mode}, muted=${isMonitorMuted})`);
-
-        // Connect monitor device only when it's in scope (pure speaker mode).
-        // In participant/both mode the monitor is silenced above, so binding a
-        // device here would be pointless.
-        const deviceToConnect = mode === 'speaker'
-          ? (get().selectedMonitorDevice || devices?.defaultMonitorDevice)
-          : null;
-        if (deviceToConnect) {
-          console.info('[Sokuji] [AudioStore] Initialization complete, connecting monitor device:', deviceToConnect.deviceId);
-          await get().connectMonitorDevice(deviceToConnect.deviceId, deviceToConnect.label);
-        }
-
-      } catch (error) {
-        reportError('AudioStore', `Failed to initialize the audio service: ${describeCause(error)}`, { cause: error });
       }
     },
   }))
@@ -682,7 +581,6 @@ export const useSelectParticipantSource = () => useAudioStore((state) => state.s
 export const useToggleRealVoicePassthrough = () => useAudioStore((state) => state.toggleRealVoicePassthrough);
 export const useSetRealVoicePassthroughVolume = () => useAudioStore((state) => state.setRealVoicePassthroughVolume);
 export const useRefreshDevices = () => useAudioStore((state) => state.refreshDevices);
-export const useInitializeAudioService = () => useAudioStore((state) => state.initializeAudioService);
 
 // Mode + per-channel mute flag selectors
 export const useMode = () => useAudioStore((state) => state.mode);
@@ -730,7 +628,6 @@ export const useAudioActions = () => {
   const setMode = useSetMode();
   // Globals
   const refreshDevices = useRefreshDevices();
-  const initializeAudioService = useInitializeAudioService();
 
   return useMemo(
     () => ({
@@ -745,7 +642,7 @@ export const useAudioActions = () => {
       // Mode
       setMode,
       // Globals
-      refreshDevices, initializeAudioService,
+      refreshDevices,
     }),
     [
       selectInputDevice, setMicMuted,
@@ -753,7 +650,7 @@ export const useAudioActions = () => {
       setParticipantMuted,
       toggleRealVoicePassthrough, setRealVoicePassthroughVolume, setNoiseSuppressionMode,
       setMode,
-      refreshDevices, initializeAudioService,
+      refreshDevices,
     ]
   );
 };

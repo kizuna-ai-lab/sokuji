@@ -5,35 +5,36 @@
 // window can now be opened before a session exists (issue #324).
 //
 // Purely presentational: state in, callbacks out. All store access lives in
-// SubtitleApp.
+// SubtitleView.
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Play, RotateCcw, Loader, AlertTriangle } from 'lucide-react';
-import { reasonToI18n, reasonToSettingsTarget, type StartBlockReason, type DeviceScope } from '../MainPanel/sessionStartGate';
 import type { SubtitleIdleState } from './subtitleIdleState';
 
 interface Props {
   state: SubtitleIdleState;
   onStart: () => void;
-  onFix: (reason: StartBlockReason, deviceScope?: DeviceScope) => void;
   onReturn: () => void;
-  // The extension-overlay surface doesn't mirror the start-gate fields or the
-  // start/stop request counters across the chrome.runtime port (see
-  // sessionPortMirror.ts), so start/retry/fix would be dead clicks there.
-  // When false, this renders only what the pre-#324 SubtitleSessionEnded
+  // The extension-overlay surface never drives the run itself — only the
+  // Electron takeover's `start`/`stop` are wired (SubtitleView's
+  // `SubtitleControls`) — so start/retry would be dead clicks there. When
+  // false, this renders only what the pre-#324 SubtitleSessionEnded
   // component rendered: the ended message and a return button.
   allowSessionControl: boolean;
-  // Whether the start gate is currently open. `state.kind === 'failed'` only
-  // means a fresh start-failure item exists — the gate can independently be
-  // closed again by then (e.g. the mic was unplugged after the failure, or
-  // the gate is closed with no reason while models are still loading; see
-  // subtitleIdleState's blocked-over-failed precedence). Retry must not be
-  // clickable in that case, since it would just re-express a start the gate
-  // already refuses.
+  // Whether `canStart` (session.ts's `subtitleSession`) currently allows a
+  // start: idle, with a chosen microphone, and the provider neither known to
+  // be unready nor still being checked. `state.kind === 'failed'` only means
+  // the run's last end was a refused or failed start — canStart can
+  // independently already be true again by then (e.g. the mic was
+  // reconnected, or the provider finished loading). Retry must not be
+  // clickable when canStart is false, since it would just re-express a
+  // start the run would refuse.
   canStart: boolean;
+  /** The `unready` state's fix action, at its `target` (plan 1e-3b-1 ruling 13). */
+  onOpenSettings?: (target: string) => void;
 }
 
-const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowSessionControl, canStart }) => {
+const SubtitleIdle: React.FC<Props> = ({ state, onStart, onReturn, allowSessionControl, canStart, onOpenSettings }) => {
   const { t } = useTranslation();
 
   if (!allowSessionControl) {
@@ -63,24 +64,18 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onFix, onReturn, allowS
     );
   }
 
-  if (state.kind === 'blocked') {
-    const { key, defaultValue, values } = reasonToI18n(state.reason, state.balance);
-    const message = t(key, defaultValue, values);
-    // The reason strings are shared with the main window's Start tooltip,
-    // where they are full sentences. On a button the terminal punctuation is
-    // wrong, so strip it here rather than forking the string into a
-    // button-shaped copy that would need translating 30 times.
-    const label = message.replace(/[.。！!]+$/, '');
-    // No destination means there is nothing for the user to fix (the model
-    // list is still loading), so the action is inert rather than misleading.
-    const target = reasonToSettingsTarget(state.reason, state.deviceScope);
+  if (state.kind === 'unready') {
+    // The provider's own reason as the label. The fix action's destination
+    // comes from the readiness code (plan 1e-3b-1 ruling 13); no destination
+    // means the action is inert.
+    const label = state.message.replace(/[.。！!]+$/, '');
     return (
       <div className="subtitle-idle">
         <button
           type="button"
           className="subtitle-idle__action subtitle-idle__action--fix"
-          disabled={target === null}
-          onClick={() => onFix(state.reason, state.deviceScope)}
+          disabled={!state.target || !onOpenSettings}
+          onClick={() => { if (state.target) onOpenSettings?.(state.target); }}
         >
           <AlertTriangle size={15} />
           <span>{label}</span>

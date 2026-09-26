@@ -21,12 +21,12 @@ import {
   MAX_SEGMENT_PAUSE_SECONDS,
 } from '../lib/segmentation/segmentationMode';
 import { useNativeModelStore } from './nativeModelStore';
-import useSessionStore from './sessionStore';
 import useAudioStore, { speakerChannelInScope } from './audioStore';
 import useLogStore from './logStore';
 import { effectiveTextOnly } from '../utils/effectiveTextOnly';
 import { getSubtitleSurface } from '../components/Subtitle/surfaces';
 import { canEnterSubtitleMode } from '../components/Subtitle/subtitleEnterGate';
+import { currentRunPhase } from '../app/runPhase';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType, isKizunaManagedProvider} from '../types/Provider';
 import {ClientOperations} from '../services/ClientOperations';
@@ -901,8 +901,10 @@ const useSettingsStore = create<SettingsStore>()(
       if (get().subtitleModeActive) return;
       // Mirrors SubtitleEnterButton's `canEnter` gating exactly (see
       // subtitleEnterGate.ts) so the button can never be enabled while this
-      // guard silently refuses the entry it triggers.
-      if (!canEnterSubtitleMode(useSessionStore.getState().isSessionActive)) {
+      // guard silently refuses the entry it triggers. Reads the page's run
+      // phase through the non-React leaf (src/app/runPhase.ts) rather than
+      // importing the root's stores back into this module.
+      if (!canEnterSubtitleMode(currentRunPhase() === 'running')) {
         reportWarning('SettingsStore', 'enterSubtitleMode ignored — no active session');
         return;
       }
@@ -1667,20 +1669,4 @@ export const useCurrentTurnDetectionMode = (): string => useSettingsStore((state
 export { useSettingsStore };
 export default useSettingsStore;
 
-// The local providers' readiness gate is mode-aware (the mandatory leg
-// follows the audio mode — see modelStore/nativeModelStore
-// ensureSelectionReady), so a mode change can flip validity in either
-// direction while nothing else re-runs validation. Revalidate on every mode
-// change while a local provider is active; other providers' validity does
-// not depend on the mode. Lives HERE (not in audioStore): this module
-// already imports audioStore statically, and the reverse import — even a
-// dynamic one — creates a type-level cycle.
-useAudioStore.subscribe(
-  (state) => state.mode,
-  () => {
-    const st = useSettingsStore.getState();
-    if (st.provider === Provider.LOCAL_INFERENCE || st.provider === Provider.LOCAL_NATIVE) {
-      void st.validateApiKey();
-    }
-  },
-);
+// The old path's mode-aware revalidation lived here; readiness is the app session's since plan 1e-3b-2 (it re-ran the old gate, whose prune wrote the old slice).

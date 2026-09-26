@@ -181,7 +181,8 @@ describe('report', () => {
       expect(describeCause('plain failure')).toBe('plain failure');
     });
 
-    // apiErrorProps.ts:36-38 — the shape every ClientEventHandlers.onError payload has.
+    // The shape every ClientEventHandlers.onError payload has (once
+    // documented in the old apiErrorProps.ts, deleted in plan 1e-3c).
     it('reads the client error shape', () => {
       expect(describeCause({ message: 'socket closed' })).toBe('socket closed');
       expect(describeCause({ error: 'auth_failed' })).toBe('auth_failed');

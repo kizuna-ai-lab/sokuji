@@ -48,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run diagnostics, log-surface and local-inference tests
+      - name: Run diagnostics, log-surface, local-inference and client-contract tests
         run: >-
           npx vitest run
           src/lib/diagnostics
@@ -57,6 +57,21 @@ jobs:
           src/stores/sanitizeEvent.test.ts
           src/components/LogsPanel
           src/lib/local-inference
+          src/lib/contract
+          src/lib/conversation
+          src/lib/projection
+          src/lib/export
+          src/lib/session
+          src/lib/audio
+          src/lib/provider
+          src/providers
+          src/stores/providerStore.test.ts
+          src/stores/providerStore.readiness.test.ts
+          src/stores/turnModeStore.test.ts
+          src/stores/routingStore.test.ts
+          src/components/providers
+          src/components/dev
+          src/utils/featureGateForwarding.consistency.test.ts
 
   # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
   # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
@@ -208,6 +223,7 @@ jobs:
           VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
           VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
           # Additional variables only for releases
           VITE_ENABLE_DEBUG: ${{ startsWith(github.ref, 'refs/tags/v') && 'false' || '' }}
           VITE_ENABLE_ANALYTICS: ${{ startsWith(github.ref, 'refs/tags/v') && 'true' || '' }}
@@ -261,6 +277,7 @@ jobs:
           VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
           VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
 
       # electron-builder bundles an x86_64-only `fpm` for building .deb packages.
       # On the arm64 runner, install `fpm` via Ruby gem and tell electron-builder
@@ -300,6 +317,7 @@ jobs:
           VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
           VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
 
       # electron-builder discovers signing identities with `security find-identity -v`,
       # and a self-signed certificate is reported CSSMERR_TP_NOT_TRUSTED, so it would
@@ -401,6 +419,7 @@ jobs:
           VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
           VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
 
       # electron-builder logs "skipped macOS code signing" and carries on when it
       # cannot find an identity, so an unsigned release would look like a success.
@@ -502,6 +521,7 @@ jobs:
           VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE: ${{ vars.VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE }}
           VITE_ENABLE_KIZUNA_VOLCENGINE_AST2: ${{ vars.VITE_ENABLE_KIZUNA_VOLCENGINE_AST2 }}
           VITE_ENABLE_LOCAL_NATIVE: ${{ vars.VITE_ENABLE_LOCAL_NATIVE }}
+          VITE_ENABLED_PROVIDERS: ${{ vars.VITE_ENABLED_PROVIDERS }}
 
       # Release-specific steps
       - name: Generate changelog

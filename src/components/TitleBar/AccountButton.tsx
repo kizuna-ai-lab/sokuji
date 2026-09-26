@@ -14,10 +14,11 @@ import { useUserProfile } from '../../contexts/UserProfileContext';
 import { isKizunaAIEnabled } from '../../utils/environment';
 import { isKizunaManagedProvider, Provider } from '../../types/Provider';
 import {
-  useProvider,
   useAccountPopoverRequested,
   useSetAccountPopoverRequested,
 } from '../../stores/settingsStore';
+import { useProviderStore } from '../../stores/providerStore';
+import { storedProviderValue } from '../../lib/session/storedSettings';
 import { sonioxManagedMinBalanceMicroUsd } from '../../services/providers/sonioxManagedMinBalance';
 import { compactBalanceLabel } from './compactBalance';
 import { useSessionRefreshOnReturn } from './useSessionRefreshOnReturn';
@@ -31,7 +32,12 @@ const AccountButton: React.FC = () => {
   const { user, refetch } = useUser();
   const { showToast } = useToast();
   const { quota } = useUserProfile();
-  const provider = useProvider();
+  // The old enum's spelling: the floor below compares it against
+  // Provider.KIZUNA_AI_SONIOX, and the branch's registry selects no managed
+  // provider anyway, so `storedProviderValue` passes the id through unchanged.
+  // Cast, not a stored value's guarantee: `storedProviderValue` returns a
+  // plain string (it also covers registry ids no `Provider` member names).
+  const provider = storedProviderValue(useProviderStore((s) => s.selected) ?? '') as Provider;
   const [open, setOpen] = useState(false);
   // The popover anchors to the button's own element, so the anchor never
   // travels between components. It is null on the first render and set by the
@@ -112,7 +118,7 @@ const AccountButton: React.FC = () => {
     // wallet funds nothing, so warning them would be noise. E-mail verification
     // is account-level and shows regardless.
     //
-    // The floor mirrors sessionStartGate: ONLY managed Soniox has a real one.
+    // The floor mirrors the old start gate's: ONLY managed Soniox has a real one.
     // Every other provider's floor is 1 — balances are integer micro-USD, so
     // that is exactly the "> 0" rule. Applying Soniox's floor to the Translate
     // and Volcengine twins lit a red "too low to start" dot beside a Start

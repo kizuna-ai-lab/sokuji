@@ -1,0 +1,136 @@
+/**
+ * The clip queue (spec: "Playback" → "The clip queue"). A clip is one speech
+ * entry — one `audio` event's pcm — so it is whole when it is enqueued: L0
+ * has no "this segment's audio is complete" event (`segmentClosed` marks the
+ * text final, and a local engine's speech for a closed segment arrives after
+ * it), so a clip spanning a segment could never be sealed. Clips play back to
+ * back in the order they were enqueued. The queue keeps no pcm: the timeline
+ * holds a clip until it ends, and L1's `speech[].pcm` is the durable copy.
+ */
+import { SAMPLE_RATE } from '../contract/adapter';
+import { describeCause, reportError } from '../diagnostics/report';
+
+/** The clock a queue schedules on: the graph's `AudioContext` in the app, a fake in tests. Seconds. */
+export interface AudioTimeline {
+  now(): number;
+  /**
+   * Plays 24 kHz mono pcm from `at`. `onEnded` fires once, when it has played
+   * out or been stopped; the returned function stops it.
+   */
+  play(pcm: Int16Array, at: number, onEnded: () => void): () => void;
+}
+
+/** What a queue is playing: which clip, and how far into it. */
+export interface Playing<K extends string = string> {
+  key: K;
+  /** Milliseconds into the clip, on the audio clock. */
+  t: number;
+  /** The clip's whole duration in milliseconds, on the audio clock — `(end - at) * 1000` of the scheduled clip, never the pcm's length (retention may have dropped it). */
+  ms: number;
+}
+
+/** A read-only view of a queue, for karaoke and the playing indicator. */
+export interface QueueView<K extends string = string> {
+  /** Exact, against the audio clock; null in a gap and when idle. */
+  position(): Playing<K> | null;
+  /** How many clips are scheduled or playing. */
+  readonly pending: number;
+  /** How many times `clear()` has run: a live queue's held karaoke ends when this moves — `clear()` is the explicit "stop speaking". */
+  readonly clears: number;
+  /** Called when a clip is enqueued, a clip ends, or the queue is cleared: time to read `position()` again. */
+  subscribe(listener: () => void): () => void;
+}
+
+/** How far ahead of the clock a clip is scheduled when the queue is idle: absorbs main-thread jitter. */
+export const LEAD_S = 0.05;
+
+/** Two render quanta (128 samples each, at SAMPLE_RATE): below this much buffer left at the tail, a new clip starts fresh instead of continuing there, which could otherwise land on the render thread late. */
+export const STARVED_S = (2 * 128) / SAMPLE_RATE;
+
+interface Scheduled<K> {
+  key: K;
+  at: number;
+  end: number;
+  stop: () => void;
+  done: boolean;
+}
+
+export class ClipQueue<K extends string = string> implements QueueView<K> {
+  private clips: Scheduled<K>[] = [];
+  /** When the last scheduled clip ends: the next one starts there, or one lead ahead of the clock if that has passed. */
+  private tail = 0;
+  /** How many times `clear()` has run. */
+  private clearCount = 0;
+  private readonly listeners = new Set<() => void>();
+
+  constructor(private readonly timeline: AudioTimeline, private readonly leadS = LEAD_S) {}
+
+  enqueue(key: K, pcm: Int16Array): void {
+    if (pcm.length === 0) return;
+    const now = this.timeline.now();
+    // Continue at the tail while at least two render quanta of it are still
+    // ahead of the clock; otherwise start fresh, one lead ahead. Streaming
+    // TTS usually leaves less than a full lead buffered, so gluing every
+    // clip to `tail` (the old rule) opened a gap of up to LEAD_S between
+    // back-to-back clips whenever less was buffered.
+    const at = this.tail > now + STARVED_S ? this.tail : now + this.leadS;
+    const clip: Scheduled<K> = { key, at, end: at + pcm.length / SAMPLE_RATE, stop: () => {}, done: false };
+    // Play before recording anything: if this throws, nothing is left
+    // behind (no stuck `pending`); if `onEnded` already fired inside `play`
+    // (`clip.done`), there is nothing to keep either.
+    clip.stop = this.timeline.play(pcm, at, () => this.finish(clip));
+    if (clip.done) return;
+    this.tail = clip.end;
+    this.clips.push(clip);
+    this.notify();
+  }
+
+  /** Stops what plays and drops what is queued. Counted every time, whether or not it held clips: a live queue's held karaoke ends here. */
+  clear(): void {
+    const clips = this.clips;
+    this.clips = [];
+    this.tail = 0;
+    this.clearCount += 1;
+    for (const clip of clips) {
+      clip.done = true;
+      clip.stop();
+    }
+    this.notify();
+  }
+
+  position(): Playing<K> | null {
+    const now = this.timeline.now();
+    const clip = this.clips.find((c) => c.at <= now && now < c.end);
+    return clip ? { key: clip.key, t: (now - clip.at) * 1000, ms: (clip.end - clip.at) * 1000 } : null;
+  }
+
+  get pending(): number {
+    return this.clips.length;
+  }
+
+  get clears(): number {
+    return this.clearCount;
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => { this.listeners.delete(listener); };
+  }
+
+  private finish(clip: Scheduled<K>): void {
+    if (clip.done) return;
+    clip.done = true;
+    this.clips = this.clips.filter((c) => c !== clip);
+    this.notify();
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (error) {
+        reportError('ClipQueue', `A queue subscriber threw: ${describeCause(error)}`, { cause: error, dedupeKey: 'clipQueue:subscriber' });
+      }
+    }
+  }
+}

@@ -130,11 +130,12 @@ export function sanitizeEvent(event: any): any {
     // Layer 4: credential redaction on the fields that carry provider text.
     //
     // Key-scoped and strings only, so per-frame transcript deltas never touch
-    // the regexes. These are the fields a failure travels in: participantTelemetry
-    // embeds the whole error event in a `session.error` row, and GeminiClient
-    // forwards `filename` and `error.toString()`. Panel events are
-    // clipboard-exportable, so a signed URL or Bearer header reaching one is a
-    // leak with a copy button next to it.
+    // the regexes. These are the fields a failure travels in: the old
+    // MainPanel's `participantTelemetry.ts` (deleted in plan 1e-3c) embedded
+    // the whole error event in a `session.error` row this way, and
+    // GeminiClient still forwards `filename` and `error.toString()` into it
+    // raw. Panel events are clipboard-exportable, so a signed URL or Bearer
+    // header reaching one is a leak with a copy button next to it.
     if (typeof value === 'string' && REDACTED_FIELD_NAMES.has(key)) {
       sanitized[key] = redact(value);
       continue;

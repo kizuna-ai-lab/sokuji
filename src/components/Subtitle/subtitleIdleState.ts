@@ -1,76 +1,10 @@
 // src/components/Subtitle/subtitleIdleState.ts
 //
-// Chooses what the subtitle window shows while no session is running. The
-// rules are a small precedence chain, kept out of the component so they can
-// be tested without rendering.
-import type { StartBlockReason, DeviceScope } from '../MainPanel/sessionStartGate';
-import type { ConversationItem } from '../../services/interfaces/IClient';
-
+// What the subtitle window shows while no session is running.
 export type SubtitleIdleState =
   | { kind: 'ready' }
   | { kind: 'ended' }
   | { kind: 'starting'; completed?: number; total?: number }
-  | { kind: 'blocked'; reason: StartBlockReason; balance?: number; deviceScope?: DeviceScope }
-  | { kind: 'failed'; message: string };
-
-export interface IdleStateInput {
-  isInitializing: boolean;
-  initProgress: { completed: number; total: number } | null;
-  startGate: {
-    canStart: boolean;
-    reason: StartBlockReason | null;
-    balance?: number;
-    deviceScope?: DeviceScope;
-  };
-  items: ConversationItem[];
-  /** True once a session has been active during this visit to subtitle mode. */
-  hasRunSession: boolean;
-  /**
-   * Timestamp of the last start requested from the subtitle window, or null.
-   * Used to tell "this session failed to start" apart from "an old session
-   * happened to end on an error item" — MainPanel appends init failures to
-   * items (MainPanel.tsx:1849), which is also where mid-session errors land.
-   */
-  startRequestedAt: number | null;
-}
-
-export function deriveSubtitleIdleState(input: IdleStateInput): SubtitleIdleState {
-  const { isInitializing, initProgress, startGate, items, hasRunSession, startRequestedAt } = input;
-
-  if (isInitializing) {
-    return initProgress
-      ? { kind: 'starting', completed: initProgress.completed, total: initProgress.total }
-      : { kind: 'starting' };
-  }
-
-  // A live blocker wins over a stale failure. Retry can't succeed while the
-  // gate is closed (e.g. the mic was unplugged, or the balance hit zero,
-  // after a start attempt already failed for a different reason), so
-  // reporting the current blocker is more actionable than replaying the old
-  // failure message for a Retry that would just be refused again.
-  if (!startGate.canStart && startGate.reason) {
-    return {
-      kind: 'blocked',
-      reason: startGate.reason,
-      balance: startGate.balance,
-      deviceScope: startGate.deviceScope,
-    };
-  }
-
-  // `severity: 'warning'` is a notice about a session that started and ran
-  // degraded (see ConversationItem.severity). It is typed `error` only so
-  // the bubble renderer draws it; stopping such a session before its first
-  // transcript leaves that notice trailing, and offering Retry for a start
-  // that succeeded would be wrong.
-  const last = items[items.length - 1];
-  const isFreshStartFailure =
-    startRequestedAt !== null &&
-    last?.type === 'error' &&
-    last.severity !== 'warning' &&
-    (last.createdAt ?? 0) >= startRequestedAt;
-  if (isFreshStartFailure) {
-    return { kind: 'failed', message: last.formatted?.text ?? '' };
-  }
-
-  return hasRunSession ? { kind: 'ended' } : { kind: 'ready' };
-}
+  | { kind: 'failed'; message: string }
+  /** The new runner's provider is not ready (plan 1d-2): its reason, in words the provider gave. */
+  | { kind: 'unready'; message: string; /** Where Settings fixes it (`settingsTargetForCode`); null or absent: nowhere. */ target?: string | null };

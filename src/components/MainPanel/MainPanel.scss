@@ -1,4 +1,5 @@
 @use '../../styles/tokens' as tk;
+@use '../Settings/shared/variables' as vars;
 
 // ═══════════════════════════════════════════════════
 // MainPanel — Unified layout for basic & advanced modes
@@ -188,6 +189,26 @@
     word-wrap: break-word;
     white-space: pre-wrap;
     position: relative;
+  }
+
+  // A notice's action (plan 1e-3b-1 ruling 13) — the link look of the nearest
+  // sibling control, `.language-model-warning__link` (Settings.scss).
+  .message-action {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: #ff6b6b;
+    text-decoration: underline;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 4px;
+    &:hover {
+      opacity: 0.8;
+    }
+    &:focus-visible {
+      @include vars.focus-ring;
+    }
   }
 }
 

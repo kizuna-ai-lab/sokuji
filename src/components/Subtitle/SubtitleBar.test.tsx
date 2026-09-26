@@ -13,7 +13,6 @@ let fullscreenValue = false;
 vi.mock('../../stores/settingsStore', () => ({
   __esModule: true,
   default: { getState: () => ({}) },
-  useExitSubtitleMode: () => vi.fn(),
   useSubtitleFullscreen: () => fullscreenValue,
   useSetSubtitleFullscreen: () => setSubtitleFullscreen,
 }));
@@ -44,7 +43,8 @@ vi.mock('./useOverlayDragResize', () => ({
 // don't pull conversationDisplayStore / ServiceFactory transitively.
 vi.mock('../MainPanel/DisplayModeButton', () => ({ default: () => null }));
 vi.mock('../MainPanel/ExportButton', () => ({
-  default: () => require('react').createElement('div', { 'data-testid': 'export-button' }),
+  ExportMenuButton: (p: { popoverHost?: string }) =>
+    require('react').createElement('div', { 'data-testid': 'export-menu-button', 'data-host': p.popoverHost }),
 }));
 vi.mock('../Display/DisplaySettingsPopover', () => ({ default: () => null }));
 
@@ -55,7 +55,7 @@ const baseProps = {
   onClearConversation: vi.fn(),
   speakerActive: false,
   participantActive: false,
-  exportProps: {} as any,
+  onExit: vi.fn(),
 };
 
 beforeEach(() => {
@@ -97,14 +97,13 @@ describe('SubtitleBar export button', () => {
   // In the extension overlay the forwarded items are windowed to the recent
   // tail, so export there would silently omit older messages. Export is only
   // offered on the Electron surface, where the overlay shares the full store.
-  it('renders the export button on the electron surface', () => {
-    render(<SubtitleBar {...baseProps} surface="electron" />);
-    expect(screen.getByTestId('export-button')).toBeInTheDocument();
-  });
-
-  it('does NOT render the export button on the extension-overlay surface', () => {
-    render(<SubtitleBar {...baseProps} surface="extension-overlay" />);
-    expect(screen.queryByTestId('export-button')).not.toBeInTheDocument();
+  it("renders the new view's export menu in its own window, on the electron surface only", () => {
+    const exportMenu = { exporter: {} as any, speakerMode: 'both' as const, participantMode: 'both' as const };
+    render(<SubtitleBar {...baseProps} exportMenu={exportMenu} surface="electron" />);
+    expect(screen.getByTestId('export-menu-button').dataset.host).toBe('child-window');
+    cleanup();
+    render(<SubtitleBar {...baseProps} exportMenu={exportMenu} surface="extension-overlay" />);
+    expect(screen.queryByTestId('export-menu-button')).not.toBeInTheDocument();
   });
 });
 
@@ -179,5 +178,59 @@ describe('SubtitleBar session pill', () => {
   it('renders nothing when no session control is supplied', () => {
     render(<SubtitleBar {...baseProps} surface="electron" />);
     expect(screen.queryByLabelText('Start session')).not.toBeInTheDocument();
+  });
+});
+
+describe('SubtitleBar hold-to-talk control', () => {
+  const holdToTalk = () => ({ onPress: vi.fn(), onRelease: vi.fn(), onHeldChange: vi.fn() });
+
+  it('renders it on the extension-overlay surface when holdToTalk is given', () => {
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" holdToTalk={holdToTalk()} />);
+    expect(screen.getByRole('button', { name: 'Hold' })).toBeInTheDocument();
+  });
+
+  it('renders nothing without holdToTalk, on either surface', () => {
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" />);
+    expect(screen.queryByRole('button', { name: 'Hold' })).not.toBeInTheDocument();
+    cleanup();
+    render(<SubtitleBar {...baseProps} surface="electron" />);
+    expect(screen.queryByRole('button', { name: 'Hold' })).not.toBeInTheDocument();
+  });
+
+  // Defence in depth: SubtitleView only ever hands holdToTalk to the overlay
+  // surface, but the bar does not trust that alone.
+  it('does NOT render it on the electron surface even if holdToTalk is given', () => {
+    render(<SubtitleBar {...baseProps} surface="electron" holdToTalk={holdToTalk()} />);
+    expect(screen.queryByRole('button', { name: 'Hold' })).not.toBeInTheDocument();
+  });
+
+  it('presses and releases through the given callbacks, aria-pressed following the held state', () => {
+    const hold = holdToTalk();
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" holdToTalk={hold} />);
+    const button = screen.getByRole('button', { name: 'Hold' });
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.pointerDown(button);
+    expect(hold.onPress).toHaveBeenCalledTimes(1);
+    expect(hold.onHeldChange).toHaveBeenLastCalledWith(true);
+    expect(screen.getByRole('button', { name: 'Release' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.pointerUp(screen.getByRole('button', { name: 'Release' }));
+    expect(hold.onRelease).toHaveBeenCalledTimes(1);
+    expect(hold.onHeldChange).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe('SubtitleBar exit button', () => {
+  it('✕ calls onExit, on the electron surface', () => {
+    const onExit = vi.fn();
+    render(<SubtitleBar {...baseProps} surface="electron" onExit={onExit} />);
+    fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('✕ calls onExit, on the extension-overlay surface', () => {
+    const onExit = vi.fn();
+    render(<SubtitleBar {...baseProps} surface="extension-overlay" onExit={onExit} />);
+    fireEvent.click(screen.getByLabelText('Exit subtitle mode'));
+    expect(onExit).toHaveBeenCalledTimes(1);
   });
 });

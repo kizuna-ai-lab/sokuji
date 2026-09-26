@@ -131,6 +131,16 @@ interface ModelStoreState {
 
 // ─── Store ───────────────────────────────────────────────────────────────────
 
+/**
+ * The one scan in flight, shared by every caller until it settles (then
+ * cleared). Without this, SettingsInitializer and check.ts's
+ * `raceInitialize` — both calling `initialize()` at startup, ~150ms apart —
+ * could each launch their own independent scan: the later one reads its own,
+ * later metadata snapshot and can flip a model a live download has since
+ * started back to `not_downloaded` in the UI (review Minor 1).
+ */
+let modelScan: Promise<void> | null = null;
+
 export const useModelStore = create<ModelStoreState>()(
   subscribeWithSelector((set, get) => ({
     modelStatuses: {},
@@ -147,61 +157,72 @@ export const useModelStore = create<ModelStoreState>()(
 
     initialize: async () => {
       if (get().initialized) return;
-      set({ initError: null });
+      // Share the scan already in flight rather than starting a second one
+      // (review Minor 1): `modelScan` is cleared once it settles, so a later,
+      // genuinely new call (after a failure, say) still starts its own.
+      if (modelScan) return modelScan;
+      modelScan = (async () => {
+        set({ initError: null });
 
+        try {
+        const manager = ModelManager.getInstance();
+
+        // Check WebGPU FIRST so getDeviceFeatures() cache is populated for isModelReady()
+        const [usedBytes, capabilities] = await Promise.all([
+          modelStorage.estimateStorageUsedBytes(),
+          checkWebGPU(),
+        ]);
+
+        // Now check each model in the manifest (device features are available)
+        const statuses: Record<string, ModelStatus> = {};
+        for (const entry of MODEL_MANIFEST) {
+          const metadata = await modelStorage.getMetadata(entry.id);
+          if (metadata?.status === 'downloaded') {
+            // Verify files are actually present
+            const ready = await manager.isModelReady(entry.id);
+            statuses[entry.id] = ready ? 'downloaded' : 'not_downloaded';
+          } else if (metadata?.status === 'downloading') {
+            // Was downloading when app closed — reset to not_downloaded
+            statuses[entry.id] = 'not_downloaded';
+          } else if (metadata?.status === 'error') {
+            statuses[entry.id] = 'error';
+          } else {
+            statuses[entry.id] = 'not_downloaded';
+          }
+        }
+
+        // Load variant keys from metadata
+        const modelVariants: Record<string, string> = {};
+        for (const entry of MODEL_MANIFEST) {
+          const metadata = await modelStorage.getMetadata(entry.id);
+          if (metadata?.variant) {
+            modelVariants[entry.id] = metadata.variant;
+          }
+        }
+
+        set({
+          modelStatuses: statuses,
+          storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
+          initialized: true,
+          webgpuAvailable: capabilities.available,
+          webgpuSoftwareOnly: capabilities.softwareOnly,
+          deviceFeatures: capabilities.features,
+          modelVariants,
+        });
+        } catch (err) {
+          // Never fail silently: the Models UI renders initError with a Retry
+          // button instead of an empty section. Every await above can reject
+          // (IndexedDB VersionError from a newer-schema profile, storage
+          // estimate failures, corrupt model metadata).
+          const message = err instanceof Error ? err.message : String(err);
+          reportError('ModelStore', `Failed to initialize the model library: ${message}`, { cause: err });
+          set({ initError: message });
+        }
+      })();
       try {
-      const manager = ModelManager.getInstance();
-
-      // Check WebGPU FIRST so getDeviceFeatures() cache is populated for isModelReady()
-      const [usedBytes, capabilities] = await Promise.all([
-        modelStorage.estimateStorageUsedBytes(),
-        checkWebGPU(),
-      ]);
-
-      // Now check each model in the manifest (device features are available)
-      const statuses: Record<string, ModelStatus> = {};
-      for (const entry of MODEL_MANIFEST) {
-        const metadata = await modelStorage.getMetadata(entry.id);
-        if (metadata?.status === 'downloaded') {
-          // Verify files are actually present
-          const ready = await manager.isModelReady(entry.id);
-          statuses[entry.id] = ready ? 'downloaded' : 'not_downloaded';
-        } else if (metadata?.status === 'downloading') {
-          // Was downloading when app closed — reset to not_downloaded
-          statuses[entry.id] = 'not_downloaded';
-        } else if (metadata?.status === 'error') {
-          statuses[entry.id] = 'error';
-        } else {
-          statuses[entry.id] = 'not_downloaded';
-        }
-      }
-
-      // Load variant keys from metadata
-      const modelVariants: Record<string, string> = {};
-      for (const entry of MODEL_MANIFEST) {
-        const metadata = await modelStorage.getMetadata(entry.id);
-        if (metadata?.variant) {
-          modelVariants[entry.id] = metadata.variant;
-        }
-      }
-
-      set({
-        modelStatuses: statuses,
-        storageUsedMb: Math.round(usedBytes / (1024 * 1024)),
-        initialized: true,
-        webgpuAvailable: capabilities.available,
-        webgpuSoftwareOnly: capabilities.softwareOnly,
-        deviceFeatures: capabilities.features,
-        modelVariants,
-      });
-      } catch (err) {
-        // Never fail silently: the Models UI renders initError with a Retry
-        // button instead of an empty section. Every await above can reject
-        // (IndexedDB VersionError from a newer-schema profile, storage
-        // estimate failures, corrupt model metadata).
-        const message = err instanceof Error ? err.message : String(err);
-        reportError('ModelStore', `Failed to initialize the model library: ${message}`, { cause: err });
-        set({ initError: message });
+        await modelScan;
+      } finally {
+        modelScan = null;
       }
     },
 

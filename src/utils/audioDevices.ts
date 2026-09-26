@@ -3,7 +3,7 @@
  *
  * Deliberately has no dependency on React or any UI layer — it's used both by
  * Settings device pickers (a React component tree) and by
- * ModernBrowserAudioService (a low-level service that should stay usable and
+ * `lib/audio/devices.ts` (a low-level module that should stay usable and
  * testable outside the React bundle).
  */
 

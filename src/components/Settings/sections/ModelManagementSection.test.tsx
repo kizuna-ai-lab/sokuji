@@ -5,6 +5,7 @@ import { getManifestByType, getManifestEntry, type ModelStatus } from '../../../
 import { resolveDirection } from '../../../lib/local-inference/selection/resolveStage';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { directionKey, type Selections } from '../../../lib/local-inference/selection/types';
+import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 
 const defaultSettings = {
   sourceLanguage: 'en', targetLanguage: 'en',
@@ -110,6 +111,37 @@ describe('ModelManagementSection (self-reads store)', () => {
     await waitFor(() =>
       expect(screen.getByText('ASR (Speech Recognition)')).toBeInTheDocument(),
     );
+  });
+});
+
+describe('ModelManagementSection (prop-driven, LocalInference Engine)', () => {
+  it("writes through the given `update`, not the store, and reads `selections` from the given `settings`, not the store's", () => {
+    // The store's own selections carry an unrelated direction — proof that a
+    // write built from the PROP's settings (empty) never resurrects it.
+    mockSettings.selections = {
+      'zh→fr': { asr: { modelId: 'ghost-model' }, translation: { modelId: '' }, tts: { modelId: '' } },
+    };
+    mockStatuses['moonshine-tiny-ja-quant'] = 'downloaded';
+    const propUpdate = vi.fn();
+
+    render(
+      <ModelManagementSection
+        isSessionActive={false}
+        stageFilter="asr"
+        direction="ja→en"
+        settings={LOCAL_INFERENCE_DEFAULTS}
+        update={propUpdate}
+        pair={{ source: 'en', target: 'ja' }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('model-card-moonshine-tiny-ja-quant'));
+
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(propUpdate).toHaveBeenCalled();
+    const written = propUpdate.mock.calls[propUpdate.mock.calls.length - 1][0].selections;
+    expect(written['ja→en'].asr.modelId).toBe('moonshine-tiny-ja-quant');
+    expect(written['zh→fr']).toBeUndefined();
   });
 });
 
@@ -413,5 +445,33 @@ describe('ModelManagementSection — edgeTtsVoice ownership (freeze bug)', () =>
       expect(voiceWrites.length).toBeGreaterThan(0);
       expect(voiceWrites[0][0].edgeTtsVoice).toBe('ja-JP-NanamiNeural');
     });
+  });
+
+  // Review fix round 1: `updateLocalInference` must keep one identity across
+  // renders, like the zustand action it replaces (`useUpdateLocalInference`)
+  // — an inline arrow literal would be a fresh function every render, which
+  // this effect's own dependency array would see as "a dep changed", re-
+  // running (and re-writing) on every unrelated re-render. `mockSettings`
+  // never actually gets mutated by the mocked `mockUpdate`, so the voice
+  // stays "invalid" across a re-render — the write must not repeat anyway.
+  it('does not write the auto-selected voice again on a re-render with unchanged inputs', async () => {
+    mockSettings.sourceLanguage = 'en';
+    mockSettings.targetLanguage = 'ja';
+    mockSettings.edgeTtsVoice = 'en-US-AriaNeural'; // wrong language for target ja
+
+    const { rerender } = render(<ModelManagementSection isSessionActive={false} />);
+
+    await waitFor(() => {
+      const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
+      expect(voiceWrites).toHaveLength(1);
+    });
+
+    // A re-render with unchanged props/inputs (e.g. a parent re-rendering
+    // for an unrelated reason) must not re-trigger the effect.
+    rerender(<ModelManagementSection isSessionActive={false} />);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const voiceWrites = mockUpdate.mock.calls.filter(([p]) => p && 'edgeTtsVoice' in p);
+    expect(voiceWrites).toHaveLength(1); // still just the one write, not two
   });
 });

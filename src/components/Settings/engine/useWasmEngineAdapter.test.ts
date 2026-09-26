@@ -1,14 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-// useWasmEngineAdapter statically imports settingsStore, which drags in its
-// real static import graph — including
-// audioStore -> ServiceFactory -> ModernBrowserAudioService -> ModernAudioRecorder
-// -> the @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
-// sandboxed Vite test transform denies outright. Mock ServiceFactory (same
-// fix modelStore.test.ts / settingsStore.test.ts / ensureSelectionReady.test.ts
-// already use) so that chain never loads; settingsStore's own persistence
-// goes through this mock instead of a real settings backend.
+// Kept from before the old audio service was deleted: useWasmEngineAdapter
+// statically imports settingsStore, which used to drag in its real static
+// import graph — including audioStore -> ServiceFactory, which imported
+// ModernBrowserAudioService -> ModernAudioRecorder -> the
+// @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
+// sandboxed Vite test transform denied outright. ServiceFactory no longer
+// imports ModernBrowserAudioService at all; audioStore only calls its
+// getSettingsService. Not needed by the current graph for that reason.
+// Mocked anyway (same fix modelStore.test.ts / settingsStore.test.ts /
+// ensureSelectionReady.test.ts already use) so settingsStore's own
+// persistence goes through this mock instead of a real settings backend.
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: vi.fn(() => ({
@@ -91,5 +94,30 @@ describe('useWasmEngineAdapter', () => {
     const { result } = renderHook(() => useWasmEngineAdapter());
     expect(result.current.stagesFor('en→ja', false)).toEqual(['asr', 'translation']);
     expect(result.current.stagesFor('ja→en', true)).toEqual(['asr', 'translation', 'tts']);
+  });
+});
+
+describe('useWasmEngineAdapter — LocalInference Engine override', () => {
+  it('reads directions from the override, not the store', () => {
+    const { result } = renderHook(() => useWasmEngineAdapter(false, {
+      settings: { selections: {} } as any,
+      update: vi.fn(),
+      pair: { source: 'zh', target: 'ko' },
+    }));
+    expect(result.current.directions.map(d => d.dir)).toEqual(['zh→ko', 'ko→zh']);
+  });
+
+  it('writes a pick through the override\'s update, and leaves the store untouched', async () => {
+    const update = vi.fn();
+    const { result } = renderHook(() => useWasmEngineAdapter(false, {
+      settings: { selections: {} } as any,
+      update,
+      pair: { source: 'ja', target: 'en' },
+    }));
+    await act(() => result.current.select({ dir: 'en→ja', stage: 'translation' }, 'some-model'));
+    expect(update).toHaveBeenCalledWith({
+      selections: { 'en→ja': { asr: { modelId: '' }, translation: { modelId: 'some-model' }, tts: { modelId: '' } } },
+    });
+    expect(useSettingsStore.getState().localInference.selections['en→ja']).toBeUndefined();
   });
 });

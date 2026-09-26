@@ -1,0 +1,202 @@
+/**
+ * The provider definition: one object per provider, and the only thing
+ * generic code knows about it (spec: "The provider definition"). Types only.
+ */
+import type { ComponentType } from 'react';
+import type { Adapter, SessionContext } from '../contract/adapter';
+import type { LegName } from '../conversation/types';
+import type { SessionHooks } from '../session/types';
+
+export type Platform = 'electron' | 'extension' | 'web';
+export type ProviderKind = 'own-key' | 'managed' | 'local';
+
+export interface LanguageOption { value: string; name: string; englishName: string }
+export interface LanguagePair { source: string; target: string }
+
+/**
+ * One credential input. `key` is the field its value persists under
+ * (`settings.<settings.key>.<key>`); `labelKey` and `placeholderKey` are i18n
+ * keys.
+ */
+export interface CredentialField { key: string; labelKey: string; secret: boolean; placeholderKey?: string }
+
+/** Credential values by field key; a field with nothing saved reads as ''. */
+export type CredentialValues = Readonly<Record<string, string>>;
+
+/** What `credentials.read` may consult besides the typed values: the sign-in session, for managed providers. */
+export interface AuthContext { signedIn: boolean; getToken(): Promise<string | null> }
+
+export interface ModelOption { id: string }
+
+/** `models`, when present, is newest first. A refusal's `code` (and `params`) put it into the user's words (`notices.<code>`); `reason` stays diagnostic English. */
+export type CheckResult =
+  | { ok: true; models?: readonly ModelOption[] }
+  | { ok: false; reason: string; code?: string; params?: Record<string, string | number> };
+
+/** What a readiness check may consult besides the credentials and settings. */
+export interface CheckContext {
+  /** The speaker's pair; the participant leg runs its reverse. A local engine's models are per direction. */
+  pair: LanguagePair;
+  /** The legs a run would open, speaker first: the participant leg runs the pair's reverse. */
+  legs: readonly LegName[];
+  /** Aborted when the start that asked is cancelled. */
+  signal?: AbortSignal;
+}
+
+/** Whether a provider can start now (spec: "Readiness is one check"). */
+export type Readiness =
+  | { state: 'unknown' }
+  | { state: 'checking' }
+  | { state: 'ready'; models: readonly ModelOption[] }
+  /** `code` / `params` as a refusal's: the provider's own code puts `reason` into the user's words. */
+  | { state: 'not-ready'; reason: string; code?: string; params?: Record<string, string | number> };
+
+/** What a builder may read beyond its own settings; a builder never reaches into a store. */
+export interface SharedSettings {
+  /** The system instructions for a direction: the user's for the speaker's direction, the participant prompt for the reverse. */
+  instructions(direction: SessionContext['direction']): string;
+  /** The segmentation pauses, in seconds, as stored. */
+  pauses: { sourceSeconds: number; translationSeconds: number };
+  /** This is the participant's direction: the pair's reverse. */
+  reversed(direction: SessionContext['direction']): boolean;
+  /** The display segmentation as stored: a provider that cuts its own jobs follows it (LocalInference). */
+  segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
+}
+
+export interface SettingsProps<S> {
+  settings: S;
+  update(patch: Partial<S>): void;
+  /** A run is not idle: the provider's settings are locked. */
+  disabled?: boolean;
+  /** The provider's language pair, for a `Settings`/`Engine` that needs it (LocalInference's model management is per direction). Set by `ProviderPanel`; absent elsewhere. */
+  pair?: LanguagePair;
+}
+
+/** One slot of a local engine's model management: a stage of one direction (`src→tgt`). */
+export interface EngineSlot { dir: string; stage: 'asr' | 'translation' | 'tts' }
+
+/** What an `Engine` is handed besides its settings. */
+export interface EngineProps<S> extends SettingsProps<S> {
+  /** The legs a start would open (the audio mode's): the directions it shows. */
+  legs: readonly LegName[];
+  /** Open this slot on mount — a chip's deep link; `onInitialSlotConsumed` says it was. */
+  initialSlot?: EngineSlot | null;
+  onInitialSlotConsumed?(): void;
+}
+
+/** A local engine's summary under the picker: its slot chips and memory estimate (Simple mode's way into the `Engine`). */
+export interface EngineSummaryProps<S> extends SettingsProps<S> {
+  legs: readonly LegName[];
+  openSlot(slot: EngineSlot): void;
+}
+
+/** A refusal to build or admit: diagnostic English, and a code a surface can put into words. */
+export interface ProviderRefusal {
+  refused: string;
+  /** Default: the runner's `build_refused` / `admit_refused`. */
+  code?: string;
+  params?: Record<string, string | number>;
+}
+
+export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object> {
+  // identity and presence
+  /** Persisted as the selected provider; never renamed. */
+  id: string;
+  kind: ProviderKind;
+  platforms: readonly Platform[];
+  /** Hidden in release builds unless `VITE_ENABLED_PROVIDERS` lists the id (D19). */
+  flagged?: true;
+  icon: ComponentType<{ size?: string | number }>;
+  docs?: string;
+  vendor?: string;
+  /** Where a user reads how to set this provider up; the picker links it, dismissibly. */
+  guideUrl?: string;
+
+  // settings — never secrets
+  settings: {
+    /** Storage prefix: every field persists at `settings.<key>.<field>`. */
+    key: string;
+    defaults: S;
+    /** Turns what was stored — every field of `defaults`, each read with its default — into this version's `S`. */
+    migrate?(stored: Readonly<Record<string, unknown>>): S;
+  };
+  Settings: ComponentType<SettingsProps<S>>;
+  /** Model management, the local engines only: pushed from the summary in Simple mode, inline on Advanced's Provider tab. */
+  Engine?: ComponentType<EngineProps<S>>;
+  /** The `Engine`'s summary under the picker: its slot chips and memory estimate — Simple mode's way in, and drawn before `Engine` on Advanced's Provider tab (ruling 15). */
+  EngineSummary?: ComponentType<EngineSummaryProps<S>>;
+  /**
+   * The provider's own tuning of automatic turn detection. The Summary is
+   * shown in the Speech section while the turn mode is Auto, in both layouts
+   * as a link to the Controls (from Simple it switches to Advanced first).
+   * The Controls live on Advanced's
+   * Provider tab, drawn by the host as their own block in every turn mode.
+   * Each renders nothing while there is nothing to tune: the section then
+   * shows no row at all, and the host's empty block is hidden.
+   */
+  TurnDetection?: {
+    /** Text only — no tooltip. The section places `Help` itself, as a sibling. */
+    Summary: ComponentType<SettingsProps<S>>;
+    Controls: ComponentType<SettingsProps<S>>;
+    /**
+     * An explanatory tooltip trigger for the row, rendered by the section as
+     * a sibling right after the Summary/link — never nested inside the link
+     * `<button>`, whose own click must not fire the trigger's.
+     * Optional: a provider with nothing to explain omits it. Follows
+     * `Summary`'s own rule — render nothing while there is nothing to tune.
+     */
+    Help?: ComponentType<SettingsProps<S>>;
+  };
+
+  // credentials — stored apart from settings
+  credentials: {
+    /** Every key `fields` can ever return, so all of them load at startup. */
+    keys: readonly string[];
+    fields(s: S): readonly CredentialField[];
+    /** Receives the values of exactly the fields `fields(s)` returns. `K` has no `missing` member — the type parameter's constraint enforces it. */
+    read(values: CredentialValues, auth: AuthContext): K | { missing: string };
+  };
+  /**
+   * Can this provider start now: a network validation, model readiness, or a
+   * signed-in session. Throw when the check could not find out (offline);
+   * answer `ok: false` only when the provider said no. Readiness is cached
+   * per settings, credentials, sign-in, pair and legs.
+   */
+  check(k: K, s: S, ctx: CheckContext): Promise<CheckResult>;
+  /**
+   * Calls back when something `check` reads besides the settings,
+   * credentials, pair and legs has changed — a local engine's models
+   * downloading. The app re-checks a local provider then (plan 1e-3a
+   * ruling 6). Returns the unsubscribe.
+   */
+  watchReadiness?(onChange: () => void): () => void;
+
+  languages: {
+    /** Includes `AUTO` when the provider detects the language. */
+    sources(s: S): readonly LanguageOption[];
+    /** Never includes `AUTO`. */
+    targets(source: string, s: S): readonly LanguageOption[];
+    /** The pair to start from when nothing is stored; normalized like any stored pair. Absent: the first source and its first target. */
+    initial?(s: S): Partial<LanguagePair>;
+  };
+
+  // the only capabilities generic code reads
+  speech: 'always' | 'optional' | 'never';
+  textInput: boolean;
+  boundaries(s: S): 'provider' | 'silence';
+  turns(s: S): ReadonlyArray<'auto' | 'manual'>;
+
+  // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
+  build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
+  describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
+  start: Adapter<C, K>['start'];
+
+  // across legs and time — optional
+  session?: SessionHooks<S, K, C>;
+}
+
+/**
+ * A provider whose `S`, `K` and `C` are not known here. The registry holds
+ * providers of different types, and generic code treats all three as opaque.
+ */
+export type AnyProvider = Provider<any, any, any>;

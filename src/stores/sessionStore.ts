@@ -1,237 +1,46 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { useMemo } from 'react';
-import type { ConversationItem } from '../services/interfaces/IClient';
-import type { StartGate } from '../components/MainPanel/sessionStartGate';
 
+// This store is a leftover of the pre-client-contract session path. Nothing
+// writes it any more — the new session lives under `src/app/`. It survives
+// only because kept old-provider UI still reads it: `ProviderSpecificSettings`
+// (useSessionIsInitializing, useLockedMode) and, through the same imports,
+// `ProviderSection` / `LanguageSection` (useLockedMode), which are unmounted
+// at run time but still type-checked. Each Stage 2 port that removes one of
+// those readers moves this store a step closer to deletion; once the last
+// reader is gone, delete the file.
 export type LockedFooterMode = 'speaker' | 'participant' | 'both';
 
 interface SessionStore {
-  // State
-  isSessionActive: boolean;
-  sessionId: string | null;
-  sessionStartTime: number | null;
-  translationCount: number;
-  isReconnecting: boolean;
-  items: ConversationItem[];
-  participantItems: ConversationItem[];
   // Footer mode snapshot captured at session start. While non-null the
   // mode picker (and any consumer of "effective mode") reads this so
   // mid-session mute toggles don't visually change the locked mode.
   // Settings panel uses it too to decide which channel sections are
   // editable during the session.
   lockedMode: LockedFooterMode | null;
-  // Monotonic counter — every call to requestClearConversation bumps it.
-  // MainPanel watches this version and runs its local clearConversation
-  // routine when it changes, so any consumer (subtitle bar, main toolbar)
-  // can trigger a clear without holding a direct reference to MainPanel.
-  clearConversationVersion: number;
-  // Mirror of MainPanel's start gate. MainPanel owns the computation; the
-  // subtitle window is a sibling React tree that cannot read MainPanel state,
-  // so the answer is published here. Same pattern as lockedMode above.
-  startGate: StartGate;
   isInitializing: boolean;
-  initProgress: { completed: number; total: number } | null;
-  // Monotonic counters — every requestSessionStart/Stop bumps one. MainPanel
-  // watches them and runs connectConversation/disconnectConversation, so any
-  // surface can drive the session without a reference to MainPanel. Same
-  // pattern as clearConversationVersion above.
-  startSessionVersion: number;
-  stopSessionVersion: number;
 
   // Actions
-  setIsSessionActive: (active: boolean) => void;
-  setSessionId: (id: string | null) => void;
-  setSessionStartTime: (time: number | null) => void;
-  setTranslationCount: (count: number) => void;
-  incrementTranslationCount: () => void;
-  setIsReconnecting: (reconnecting: boolean) => void;
-  setItems: (items: ConversationItem[]) => void;
-  setParticipantItems: (items: ConversationItem[]) => void;
   setLockedMode: (mode: LockedFooterMode | null) => void;
-  requestClearConversation: () => void;
-  setStartGate: (gate: SessionStore['startGate']) => void;
   setIsInitializing: (initializing: boolean) => void;
-  setInitProgress: (progress: { completed: number; total: number } | null) => void;
-  requestSessionStart: () => void;
-  requestSessionStop: () => void;
-
-  // Compound actions
-  startSession: (sessionId: string) => void;
-  endSession: () => void;
-  resetSession: () => void;
 }
 
 const useSessionStore = create<SessionStore>()(
   subscribeWithSelector((set) => ({
     // Initial state
-    isSessionActive: false,
-    sessionId: null,
-    sessionStartTime: null,
-    translationCount: 0,
-    isReconnecting: false,
-    items: [],
-    participantItems: [],
     lockedMode: null,
-    clearConversationVersion: 0,
-    startGate: { canStart: false, reason: null },
     isInitializing: false,
-    initProgress: null,
-    startSessionVersion: 0,
-    stopSessionVersion: 0,
 
-    // Basic setters
-    setIsSessionActive: (active) => set({ isSessionActive: active }),
-    setSessionId: (id) => set({ sessionId: id }),
-    setSessionStartTime: (time) => set({ sessionStartTime: time }),
-    setTranslationCount: (count) => set({ translationCount: count }),
-    setIsReconnecting: (reconnecting) => set({ isReconnecting: reconnecting }),
-    setItems: (items) => set({ items }),
-    setParticipantItems: (participantItems) => set({ participantItems }),
+    // Setters
     setLockedMode: (mode) => set({ lockedMode: mode }),
-    requestClearConversation: () => set((state) => ({
-      clearConversationVersion: state.clearConversationVersion + 1,
-    })),
-    setStartGate: (startGate) => set({ startGate }),
     setIsInitializing: (isInitializing) => set({ isInitializing }),
-    setInitProgress: (initProgress) => set({ initProgress }),
-    requestSessionStart: () => set((state) => ({
-      startSessionVersion: state.startSessionVersion + 1,
-    })),
-    requestSessionStop: () => set((state) => ({
-      stopSessionVersion: state.stopSessionVersion + 1,
-    })),
-
-    // Increment translation count
-    incrementTranslationCount: () => set((state) => ({ 
-      translationCount: state.translationCount + 1 
-    })),
-    
-    // Compound action to start a session
-    startSession: (sessionId) => set({
-      isSessionActive: true,
-      sessionId,
-      sessionStartTime: Date.now(),
-      translationCount: 0,
-    }),
-    
-    // Compound action to end a session
-    endSession: () => set({
-      isSessionActive: false,
-      sessionId: null,
-      sessionStartTime: null,
-      isReconnecting: false,
-      items: [],
-      participantItems: [],
-      lockedMode: null,
-      // Keep translation count for reference
-    }),
-
-    // Reset all session data
-    resetSession: () => set({
-      isSessionActive: false,
-      sessionId: null,
-      sessionStartTime: null,
-      translationCount: 0,
-      isReconnecting: false,
-      items: [],
-      participantItems: [],
-      lockedMode: null,
-    }),
   }))
 );
 
-// Export individual selectors for optimized subscriptions
-export const useIsSessionActive = () => useSessionStore((state) => state.isSessionActive);
-export const useSessionId = () => useSessionStore((state) => state.sessionId);
-export const useSessionStartTime = () => useSessionStore((state) => state.sessionStartTime);
-export const useTranslationCount = () => useSessionStore((state) => state.translationCount);
-
-// Export individual action selectors to avoid recreating objects
-export const useSetIsSessionActive = () => useSessionStore((state) => state.setIsSessionActive);
-export const useSetSessionId = () => useSessionStore((state) => state.setSessionId);
-export const useSetSessionStartTime = () => useSessionStore((state) => state.setSessionStartTime);
-export const useSetTranslationCount = () => useSessionStore((state) => state.setTranslationCount);
-export const useIncrementTranslationCount = () => useSessionStore((state) => state.incrementTranslationCount);
-export const useIsReconnecting = () => useSessionStore((state) => state.isReconnecting);
-export const useSetIsReconnecting = () => useSessionStore((state) => state.setIsReconnecting);
-export const useStartSession = () => useSessionStore((state) => state.startSession);
-export const useEndSession = () => useSessionStore((state) => state.endSession);
-export const useResetSession = () => useSessionStore((state) => state.resetSession);
-export const useItems = () => useSessionStore((state) => state.items);
-export const useParticipantItems = () => useSessionStore((state) => state.participantItems);
-export const useSetItems = () => useSessionStore((state) => state.setItems);
-export const useSetParticipantItems = () => useSessionStore((state) => state.setParticipantItems);
 export const useLockedMode = () => useSessionStore((state) => state.lockedMode);
-export const useSetLockedMode = () => useSessionStore((state) => state.setLockedMode);
-export const useClearConversationVersion = () => useSessionStore((state) => state.clearConversationVersion);
-export const useRequestClearConversation = () => useSessionStore((state) => state.requestClearConversation);
-export const useStartGate = () => useSessionStore((state) => state.startGate);
-// Named useSessionIsInitializing to avoid colliding with MainPanel's local
-// isInitializing state when both are in scope.
+// Named useSessionIsInitializing to avoid colliding with the old MainPanel's
+// local isInitializing state when both were in scope (that local state was
+// deleted in plan 1e-3c).
 export const useSessionIsInitializing = () => useSessionStore((state) => state.isInitializing);
-export const useInitProgress = () => useSessionStore((state) => state.initProgress);
-export const useRequestSessionStart = () => useSessionStore((state) => state.requestSessionStart);
-export const useRequestSessionStop = () => useSessionStore((state) => state.requestSessionStop);
-
-// Export actions - use individual hooks and memoize to prevent recreating objects
-export const useSessionActions = () => {
-  const setIsSessionActive = useSetIsSessionActive();
-  const setSessionId = useSetSessionId();
-  const setSessionStartTime = useSetSessionStartTime();
-  const setTranslationCount = useSetTranslationCount();
-  const incrementTranslationCount = useIncrementTranslationCount();
-  const setIsReconnecting = useSetIsReconnecting();
-  const startSession = useStartSession();
-  const endSession = useEndSession();
-  const resetSession = useResetSession();
-
-  return useMemo(
-    () => ({
-      setIsSessionActive,
-      setSessionId,
-      setSessionStartTime,
-      setTranslationCount,
-      incrementTranslationCount,
-      setIsReconnecting,
-      startSession,
-      endSession,
-      resetSession,
-    }),
-    [
-      setIsSessionActive,
-      setSessionId,
-      setSessionStartTime,
-      setTranslationCount,
-      incrementTranslationCount,
-      setIsReconnecting,
-      startSession,
-      endSession,
-      resetSession,
-    ]
-  );
-};
-
-// For backward compatibility with useSession hook
-export const useSession = () => {
-  const isSessionActive = useIsSessionActive();
-  const sessionId = useSessionId();
-  const sessionStartTime = useSessionStartTime();
-  const translationCount = useTranslationCount();
-  const isReconnecting = useIsReconnecting();
-  const actions = useSessionActions();
-
-  return useMemo(
-    () => ({
-      isSessionActive,
-      sessionId,
-      sessionStartTime,
-      translationCount,
-      isReconnecting,
-      ...actions,
-    }),
-    [isSessionActive, sessionId, sessionStartTime, translationCount, isReconnecting, actions]
-  );
-};
 
 export default useSessionStore;

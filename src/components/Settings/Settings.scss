@@ -33,6 +33,18 @@
     padding-bottom: 0;
   }
 
+  // The Provider tab ends with the provider's speech-detection block
+  // (`.turn-detection-tuning-block`, below). When its Controls render nothing
+  // (LocalInference on a streaming ASR with no worker type) the block is
+  // empty and hidden, and the section before it is the tab's last visible
+  // one without being `:last-child` — it would keep a stray divider at the
+  // bottom of the tab. The same resets.
+  &:has(+ .turn-detection-tuning-block:empty) {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
   &.translate-info-banner {
     .info-banner {
       display: flex;
@@ -116,6 +128,55 @@
     margin-top: -6px;
     margin-bottom: vars.$space-3;
     color: vars.$text-muted;
+  }
+
+  // The Speech section's provider tuning row (SpeechSection.tsx). A provider's
+  // Summary renders nothing while there is nothing to tune (LocalInference on
+  // a streaming ASR: endpoint detection replaces VAD), and the row goes with
+  // it — the section cannot see what the provider rendered, and a row left
+  // standing would be an empty link.
+  .turn-detection-tuning:has(.turn-detection-summary:empty) {
+    display: none;
+  }
+
+  // The row's `Help` tooltip trigger is a sibling of the link button (never
+  // nested inside it — see SpeechSection.tsx), so `.setting-label`'s usual
+  // space-between would fling it to the row's far edge. flex-start + a small
+  // gap keeps it right next to the link/summary instead. The row is also the
+  // section's last child, with no control under its label, so neither keeps
+  // a bottom margin: the section's own padding-bottom is the space above the
+  // next divider, as elsewhere. Two classes on the item, so these outrank
+  // `.setting-item` and `.setting-item .setting-label` further down.
+  .setting-item.turn-detection-tuning {
+    margin-bottom: 0;
+
+    .setting-label {
+      justify-content: flex-start;
+      gap: vars.$space-2;
+      margin-bottom: 0;
+    }
+  }
+
+  // The summary, in both layouts a link to the Provider tab's block: the
+  // in-settings deep-link look — `.models-link`'s colour and underline on
+  // `.language-model-warning__link`'s button reset. `font: inherit` keeps the
+  // label's size.
+  .turn-detection-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: vars.$color-primary;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &:focus-visible {
+      @include vars.focus-ring;
+    }
   }
 
   h3, h2 {
@@ -661,6 +722,23 @@
         color: vars.$color-info;
       }
     }
+  }
+}
+
+// The provider's speech-detection block on Advanced's Provider tab
+// (ProviderTurnDetectionControls), where the Speech section's summary links.
+// A plain wrapper, not a section, so `.settings-section.highlight` does not
+// reach it: it carries the sections' highlight itself. Empty when its
+// Controls have nothing to tune, and hidden then (the section before it
+// takes the `:last-child` resets, above).
+.turn-detection-tuning-block {
+  &.highlight {
+    animation: pulse-highlight 2s ease-out;
+    border-radius: vars.$radius-lg;
+  }
+
+  &:empty {
+    display: none;
   }
 }
 

@@ -23,8 +23,8 @@
   opacity: var(--bar-opacity, 1);
   transition: opacity 200ms ease-in-out;
   // When the bar is fading out / hidden, let clicks pass through to the
-  // subtitle area underneath. SubtitleApp toggles --bar-pointer-events
-  // alongside --bar-opacity.
+  // subtitle area underneath. useSubtitleChrome's rootStyle toggles
+  // --bar-pointer-events alongside --bar-opacity.
   pointer-events: var(--bar-pointer-events, auto);
 
   // -webkit-app-region only applies inside Electron's BrowserWindow chrome.
@@ -163,6 +163,54 @@
     }
   }
 
+  // The overlay's hold-to-talk control (plan follow-up D — it used to sit
+  // under the bands, in its own row: `.subtitle-hold`). Icon + label like
+  // DisplayModeButton's bar buttons, not the icon-only `.subtitle-bar__btn`
+  // family, since it needs room for "Hold"/"Release" beside the mic.
+  .subtitle-bar__hold {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: #c8c8c8;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 12px;
+    flex-shrink: 0;
+    -webkit-app-region: no-drag;
+    transition: background 120ms ease, color 120ms ease;
+
+    &:hover { background: rgba(255, 255, 255, 0.08); }
+
+    // A clearly visible held state — the app's accent for "active/on"
+    // (ExportButton.scss's checked scope boxes use the same hex), a solid
+    // fill rather than the bar's usual subtle `.active` tint, since a held
+    // turn is the one state on this bar the user must never lose track of.
+    &.is-held {
+      background: #10a37f;
+      color: #fff;
+
+      &:hover { background: #0d8c6d; }
+    }
+  }
+
+  .subtitle-bar__hold-label {
+    white-space: nowrap;
+  }
+
+  // The overlay can be resized down to 320px (MIN_W in
+  // subtitle-overlay-content.js); at the default width (min(70vw, 1200px))
+  // there is no risk of overflow, but drop the text label before the icon
+  // once the bar itself gets narrow.
+  @media (max-width: 480px) {
+    .subtitle-bar__hold-label {
+      display: none;
+    }
+  }
 }
 
 @keyframes subtitle-bar-spin {

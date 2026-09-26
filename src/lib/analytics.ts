@@ -62,7 +62,6 @@ export interface AnalyticsEvents {
   'translation_session_end': {
     session_id: string;
     duration: number;
-    translation_count: number;
     provider: string;
     error_count?: number;
     /** Seals by reason, per leg, e.g. { speaker_sentences: 12, speaker_length: 3 }. */
@@ -140,6 +139,13 @@ export interface AnalyticsEvents {
     from_mode: 'basic' | 'advanced';
     to_mode: 'basic' | 'advanced';
   };
+  // The Settings panel's Quick/Advanced toggle, and the Speech section's
+  // tuning link, which leaves Quick for Advanced's Provider tab.
+  'settings_mode_switched': {
+    from_mode: 'basic' | 'advanced';
+    to_mode: 'basic' | 'advanced';
+    during_session: boolean;
+  };
   // Setup wizard (spec §1.9)
   'setup_started': { variant: 'first-run' | 'rerun' };
   'setup_step_viewed': { step: number; step_id: string };
@@ -157,6 +163,11 @@ export interface AnalyticsEvents {
     hold_duration_ms: number;
     mode: 'push-to-talk' | 'push-to-translate';
   };
+  'text_input_sent': {
+    session_id: string;
+    provider: string;
+    text_length: number;
+  };
   'speech_mode_changed': {
     provider: string;
     from_mode: string;
@@ -164,7 +175,8 @@ export interface AnalyticsEvents {
   };
   'session_control_clicked': {
     action: 'start' | 'stop' | 'cancel';
-    method: 'button' | 'keyboard';
+    /** `window`: the Electron window closing, or an update installing, ended the run. */
+    method: 'button' | 'keyboard' | 'window';
   };
   'panel_viewed': {
     panel_name: 'main' | 'settings' | 'audio' | 'logs';
@@ -190,7 +202,10 @@ export interface AnalyticsEvents {
   'connection_status': {
     status: 'connected' | 'disconnected' | 'reconnecting';
     provider: string;
+    /** On `disconnected` only: the session's length. */
     duration_ms?: number;
+    /** The leg; absent in events from before the session runner. */
+    channel?: 'speaker' | 'participant';
   };
   
   // Error tracking

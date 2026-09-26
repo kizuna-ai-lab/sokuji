@@ -11,15 +11,14 @@ import { useAuth } from '../../lib/auth/hooks';
 import { useAnalytics } from '../../lib/analytics';
 import { useIsApiKeyValid, useAuthOverlay } from '../../stores/settingsStore';
 import { useSetupRecord, SetupPersistError } from '../../stores/setupStore';
-import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { getScenario } from '../../lib/setup/scenarios';
 import { buildTourCtx } from '../Tour/tourContext';
 import { useTour } from '../Tour/TourProvider';
 import { isElectron, isExtension, isLinux, isMacOS, isWindows } from '../../utils/environment';
-import type { ProviderType } from '../../types/Provider';
 import { initialDraft, draftFromRecord, setupReducer, canAdvance, LAST_STEP } from './setupDraft';
 import type { SetupDraft } from './setupDraft';
 import { useApplySetup } from './useApplySetup';
+import { offersRecord } from './providerPaths';
 import StepLanguage from './steps/StepLanguage';
 import StepScenario from './steps/StepScenario';
 import StepProviderPath from './steps/StepProviderPath';
@@ -47,7 +46,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
   const { start: startTour } = useTour();
 
   const [draft, dispatch] = useReducer(setupReducer, undefined, (): SetupDraft =>
-    variant === 'rerun' && record && record.provider && ProviderConfigFactory.isProviderSupported(record.provider as ProviderType)
+    variant === 'rerun' && record && offersRecord(record)
       ? draftFromRecord(record, { credentialsAlreadyValid: apiKeyValid === true })
       : initialDraft());
   const [finishing, setFinishing] = useState(false);

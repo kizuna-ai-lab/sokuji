@@ -12,8 +12,11 @@
  *
  * Follows `SimpleSettings.account.test.tsx`'s mount idiom (real stores,
  * ServiceFactory and analytics mocked, an interpolating `t()`) and, for the
- * same reason, does NOT stub the `../sections` barrel: marker `<div>`s would
- * carry none of the ids and class names this test reads the order from.
+ * same reason, does NOT stub the `../sections` barrel or the provider blocks:
+ * marker `<div>`s would carry none of the ids and class names this test reads
+ * the order from. It is the one test of the list's order, so the blocks the
+ * app session's Settings compose (plan 1e-3b-2) render for real, over
+ * LocalInference loaded and selected in the provider store.
  *
  * `HelpSection` is the one section still stubbed - it calls `useStartBasicsTour`
  * and throws outside a `TourProvider`. The stub reproduces the real
@@ -51,24 +54,34 @@ vi.mock('../../../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent: vi.fn() }),
 }));
 
+// The run's lock: no run here.
+vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => false }));
+
+// The chips' memory estimate - irrelevant to the order.
+vi.mock('../../../lib/local-inference/modelManifest', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../lib/local-inference/modelManifest')>()),
+  estimateModelMemoryByDevice: () => ({ vramMb: 0, ramMb: 0 }),
+}));
+
 vi.mock('../sections/HelpSection', () => ({
   default: () => <div className="config-section" id="help-section" />,
 }));
 
 // Heavy Library sections - never reached by this test, stubbed the way
-// SimpleSettings.engine.test.tsx stubs them.
+// SimpleSettings.engine.test.tsx used to stub them.
 vi.mock('../sections/ModelManagementSection', () => ({ ModelManagementSection: () => null }));
 vi.mock('../sections/NativeModelManagementSection', () => ({ NativeModelManagementSection: () => null }));
 
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
-const { default: useSessionStore } = await import('../../../stores/sessionStore');
-const { Provider } = await import('../../../types/Provider');
+const { useProviderStore } = await import('../../../stores/providerStore');
+const { localInferenceProvider } = await import('../../../providers/localInference/provider');
 const { MemoryRouter } = await import('react-router-dom');
 const { default: SimpleSettings } = await import('./SimpleSettings');
 
-beforeEach(() => {
-  useSessionStore.setState({ isSessionActive: false });
-  useSettingsStore.setState({ engineSlotTarget: null, provider: Provider.OPENAI });
+beforeEach(async () => {
+  useSettingsStore.setState({ engineSlotTarget: null });
+  await useProviderStore.getState().load(localInferenceProvider);
+  useProviderStore.getState().select('localInference');
 });
 
 const sectionIds = () => {
@@ -78,17 +91,18 @@ const sectionIds = () => {
 };
 
 describe('SimpleSettings - section order', () => {
-  it('leads with translation languages and ends with help', () => {
-    const ids = sectionIds();
-    const translation = ids.findIndex((x) => x.includes('languages-section'));
-    const help = ids.findIndex((x) => x.includes('help'));
-    expect(translation).toBeGreaterThanOrEqual(0);
-    expect(translation).toBeLessThan(help);
-    expect(help).toBe(ids.length - 1);
-    // Fix round: this test never referenced the new Sentence segmentation
-    // section, so nothing actually pinned it right after LanguageSection --
-    // a belief recorded earlier in this slice that turned out to be untested.
-    expect(ids[translation + 1]).toContain('sentence-segmentation-section');
+  it('leads with the pair, the speech and output blocks, segmentation and the provider, then the audio sections, and ends with help', () => {
+    expect(sectionIds()).toEqual([
+      'languages-section',
+      'turn-detection-section',
+      'output-section',
+      'sentence-segmentation-section',
+      'provider-section',
+      'microphone-section',
+      'speaker-section',
+      'participant-section',
+      'help-section',
+    ]);
   });
 
   // The move's whole point: interface language no longer occupies a section of

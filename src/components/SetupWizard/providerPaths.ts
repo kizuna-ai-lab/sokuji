@@ -4,7 +4,7 @@
 // to a provider. Reads the same registry and gates the rest of the app does, so
 // it can never offer a provider ProviderConfigFactory did not register.
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
-import { isKizunaManagedProvider } from '../../types/Provider';
+import { isKizunaManagedProvider, Provider } from '../../types/Provider';
 import type { ProviderType } from '../../types/Provider';
 import { OFFLINE_PROVIDERS } from '../../lib/setup/providerPath';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
@@ -20,12 +20,11 @@ export function managedProvider(): ProviderType | null {
   return ProviderConfigFactory.getDefaultManagedProvider();
 }
 
-/** The managed card is rendered only when a managed provider exists in this build. */
+/** The paths the wizard offers. The branch runs LocalInference only until
+ *  Stage 2 restores the managed and own-key providers (1e-3 rulings 1, 15),
+ *  so the offline path is the one card. */
 export function availablePaths(): ProviderPath[] {
-  const paths: ProviderPath[] = [];
-  if (managedProvider()) paths.push('managed');
-  paths.push('own-key', 'offline');
-  return paths;
+  return ['offline'];
 }
 
 export function providerFits(provider: ProviderType, scenario: ScenarioId): boolean {
@@ -62,7 +61,22 @@ export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {
     }));
 }
 
-/** WASM everywhere; Native only where its gate (Electron) registered it. */
+/** The in-app engine; LocalNative returns with Stage 2. */
 export function offlineOptions(): ProviderType[] {
-  return OFFLINE_PROVIDERS.filter((id) => ProviderConfigFactory.isProviderSupported(id));
+  return [Provider.LOCAL_INFERENCE];
+}
+
+/** Whether a stored setup's path and provider are still on offer, so a Help
+ *  re-run may pre-fill them (1e-3 ruling 15). A record whose card is gone —
+ *  managed or own-key until Stage 2 — starts the re-run blank: seeded, the
+ *  wizard would advance on the old provider and Finish into one this build
+ *  lacks. */
+export function offersRecord(record: { scenario: ScenarioId | null; providerPath: ProviderPath | null; provider: string }): boolean {
+  const { scenario, providerPath, provider } = record;
+  if (!scenario || !providerPath || !availablePaths().includes(providerPath)) return false;
+  switch (providerPath) {
+    case 'offline': return offlineOptions().includes(provider as ProviderType);
+    case 'managed': return managedProvider() === provider;
+    case 'own-key': return ownKeyOptions(scenario).some((option) => option.id === provider);
+  }
 }

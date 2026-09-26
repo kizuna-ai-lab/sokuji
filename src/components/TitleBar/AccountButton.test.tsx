@@ -2,9 +2,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import AccountButton from './AccountButton';
+import { useProviderStore } from '../../stores/providerStore';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (_k: string, d?: string) => d ?? _k }),
+}));
+
+// providerStore imports ServiceFactory at module scope, which chains into
+// SettingsService -> ClientOperations -> ProviderConfigFactory (a static
+// initializer that reads isKizunaAIEnabled at import time) and into i18n's
+// own setup. Stubbed, as every other test that pulls in the real
+// providerStore does, so this file stays scoped to AccountButton's wiring.
+vi.mock('../../services/ServiceFactory', () => ({
+  ServiceFactory: {
+    getSettingsService: () => ({
+      getSetting: async (_k: string, d: unknown) => d,
+      setSetting: async () => ({ success: true }),
+    }),
+  },
 }));
 
 let signedIn = false;
@@ -31,11 +46,16 @@ vi.mock('../../contexts/UserProfileContext', () => ({
   useUserProfile: () => ({ quota, refetchAll: vi.fn() }),
 }));
 
+// The registry id, fed straight into the real providerStore (AccountButton
+// reads `useProviderStore((s) => s.selected)` now, not a mocked useProvider).
 let providerId = 'openai';
+const setProviderId = (id: string) => {
+  providerId = id;
+  useProviderStore.setState({ selected: providerId });
+};
 let popoverRequested = false;
 const setPopoverRequested = vi.fn((next: boolean) => { popoverRequested = next; });
 vi.mock('../../stores/settingsStore', () => ({
-  useProvider: () => providerId,
   useTextOnly: () => false,
   useAccountPopoverRequested: () => popoverRequested,
   useSetAccountPopoverRequested: () => setPopoverRequested,
@@ -54,7 +74,7 @@ beforeEach(() => {
   signedIn = false;
   authUser = null;
   quota = null;
-  providerId = 'openai';
+  setProviderId('openai');
   popoverRequested = false;
   setPopoverRequested.mockClear();
   refetchSpy.mockClear();
@@ -125,7 +145,7 @@ describe('AccountButton status dot', () => {
   });
 
   it('shows a red dot for a low balance under a managed provider', () => {
-    providerId = 'kizunaai_soniox';
+    setProviderId('kizunaai_soniox');
     signIn();
     quota = { balance: 1 };
     render(<AccountButton />);
@@ -134,7 +154,7 @@ describe('AccountButton status dot', () => {
   });
 
   it('lets red outrank amber when both apply', () => {
-    providerId = 'kizunaai_soniox';
+    setProviderId('kizunaai_soniox');
     signIn({ emailVerified: false });
     quota = { balance: 1 };
     render(<AccountButton />);
@@ -143,7 +163,7 @@ describe('AccountButton status dot', () => {
   });
 
   it('shows no dot when verified and funded', () => {
-    providerId = 'kizunaai_soniox';
+    setProviderId('kizunaai_soniox');
     signIn();
     quota = { balance: 12_340_000 };
     render(<AccountButton />);
@@ -161,7 +181,7 @@ describe('AccountButton accessibility', () => {
   // the status dot is invisible to a screen reader: the button would just say
   // "Account" whether or not the session is about to be refused.
   it('names the low-balance state in the accessible label', () => {
-    providerId = 'kizunaai_soniox';
+    setProviderId('kizunaai_soniox');
     signIn();
     quota = { balance: 1 };
     render(<AccountButton />);
@@ -326,13 +346,13 @@ describe('AccountButton balance floor per provider', () => {
     authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
   };
 
-  // sessionStartGate applies the Soniox floor ONLY to managed Soniox; every
+  // The old start gate applied the Soniox floor ONLY to managed Soniox; every
   // other provider's floor is 1, i.e. the plain "> 0" rule. Using the Soniox
   // number for all of them lights a red "too low to start" dot next to a Start
   // button that is green and works — the false-positive direction this dot was
   // specifically designed to avoid.
   it('does not warn on a balance the Translate twin can actually start with', () => {
-    providerId = 'kizunaai_openai_translate';
+    setProviderId('kizunaai_openai_translate');
     signIn();
     quota = { balance: 10_000 };
     render(<AccountButton />);
@@ -340,7 +360,7 @@ describe('AccountButton balance floor per provider', () => {
   });
 
   it('does not warn on that balance for the Volcengine twin either', () => {
-    providerId = 'kizunaai_volcengine_ast2';
+    setProviderId('kizunaai_volcengine_ast2');
     signIn();
     quota = { balance: 10_000 };
     render(<AccountButton />);
@@ -348,7 +368,7 @@ describe('AccountButton balance floor per provider', () => {
   });
 
   it('still warns those twins at a balance of zero, where Start really is blocked', () => {
-    providerId = 'kizunaai_openai_translate';
+    setProviderId('kizunaai_openai_translate');
     signIn();
     quota = { balance: 0 };
     render(<AccountButton />);
@@ -357,11 +377,21 @@ describe('AccountButton balance floor per provider', () => {
   });
 
   it('keeps the real Soniox floor for managed Soniox', () => {
-    providerId = 'kizunaai_soniox';
+    setProviderId('kizunaai_soniox');
     signIn();
     quota = { balance: 10_000 };
     render(<AccountButton />);
     expect(document.querySelector('.account-button__dot')!.getAttribute('data-tone'))
       .toBe('low');
+  });
+
+  // Local Inference is never a managed provider — its wallet balance funds
+  // nothing there, so a low balance must never warn regardless of the number.
+  it('does not warn on Local Inference, however low the balance', () => {
+    setProviderId('localInference');
+    signIn();
+    quota = { balance: 0 };
+    render(<AccountButton />);
+    expect(document.querySelector('.account-button__dot')).toBeNull();
   });
 });

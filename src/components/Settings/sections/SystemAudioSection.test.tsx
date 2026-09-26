@@ -47,8 +47,13 @@ vi.mock('../../../stores/audioStore', () => ({
   useIsAudioLoading: () => false,
 }));
 
-vi.mock('../../../stores/settingsStore', () => ({
-  useProvider: () => 'openai',
+// A marker only: locked is the one prop this section wires through, and the
+// switch's own behaviour (the whole-system rule, the tooltip) is covered by
+// ParticipantSpeechSwitch.test.tsx.
+vi.mock('./ParticipantSpeechSwitch', () => ({
+  ParticipantSpeechSwitch: ({ locked }: { locked: boolean }) => (
+    <div data-testid="participant-speech-switch" data-locked={String(locked)} />
+  ),
 }));
 
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
@@ -118,8 +123,9 @@ describe('SystemAudioSection', () => {
   });
 
   it('switches source while the session is active', () => {
-    // Live switching is supported - MainPanel rebuilds the capture around the
-    // new source - so an active session must not block the picker.
+    // Live switching is supported - the open capture (capture/systemAudio.ts)
+    // watches audioStore and reopens itself around the new source - so an
+    // active session must not block the picker.
     mount({ isSessionActive: true });
     fireEvent.click(screen.getByText('Chromium'));
     expect(store.select).toHaveBeenCalled();
@@ -146,5 +152,18 @@ describe('SystemAudioSection', () => {
     const { container } = mount();
     expect(screen.queryByText('Chromium')).toBeNull();
     expect(container.querySelector('.toggle-switch-component')).not.toBeNull();
+  });
+
+  it('renders the participant-speech switch, locked with the run', () => {
+    const { rerender } = mount({ isSessionActive: false });
+    expect(screen.getByTestId('participant-speech-switch').dataset.locked).toBe('false');
+
+    rerender(<SystemAudioSection isSessionActive={true} />);
+    expect(screen.getByTestId('participant-speech-switch').dataset.locked).toBe('true');
+  });
+
+  it('shows no Gemini token warning any more; the section no longer reads the provider', () => {
+    mount();
+    expect(screen.queryByText(/Gemini generates audio responses/)).toBeNull();
   });
 });

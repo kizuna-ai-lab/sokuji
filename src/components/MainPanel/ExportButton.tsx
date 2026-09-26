@@ -16,53 +16,24 @@ import {
   FloatingFocusManager,
   FloatingPortal,
 } from '@floating-ui/react';
-import type { ConversationItem } from '../../services/interfaces/IClient';
 import type { DisplayMode } from '../../stores/settingsStore';
-import { shouldShowItem, modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
-import {
-  buildExportPayload,
-  buildTxtExport,
-  buildTxtI18n,
-  copyToClipboard,
-  downloadFile,
-  exportFilename,
-  formatAsJson,
-  formatAsTxt,
-  normalizeMessages,
-  type ExportInput,
-  type TxtI18n,
-} from '../../utils/conversationExport';
+import { modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
+import { copyToClipboard, downloadFile, exportFilename } from '../../utils/conversationExport';
 import { useToast } from '../Toast';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
 import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
+import type { Exporter } from '../../lib/export/exporter';
+import type { TranscriptScope } from '../../lib/export/transcript';
 import './ExportButton.scss';
 
-interface ExportButtonProps {
-  /**
-   * Already-merged-and-sorted items — the FULL list, unfiltered. Which of
-   * them reach the file is decided here, by the scope checkboxes, so that a
-   * caller cannot silently narrow an export by passing a shorter array.
-   */
-  combinedItems: Array<ConversationItem & {
-    source?: string;
-    sourceLanguage?: string;
-    targetLanguage?: string;
-  }>;
+export interface ExportMenuButtonProps {
+  /** What the menu exports (plan 1d-3). */
+  exporter: Exporter;
   /** Speaker-side toolbar filter. Seeds the scope checkboxes; never written back. */
   speakerMode: DisplayMode;
   /** Participant-side toolbar filter. Seeds the scope checkboxes; never written back. */
   participantMode: DisplayMode;
-  /** Current provider id from useProvider(). */
-  provider: string;
-  /** Snapshot of the current provider's settings (from getCurrentProviderSettings()). */
-  currentProviderSettings: any;
-  /** Local-inference settings sub-object (from useLocalInferenceSettings()), used only when provider === LOCAL_INFERENCE. */
-  localInferenceSettings: any;
-  /** Source language code from current provider settings. Used as a fallback when the conversation carries no per-item language snapshots (e.g. empty conversation). */
-  sourceLanguage: string;
-  /** Target language code from current provider settings. Used as a fallback when the conversation carries no per-item language snapshots (e.g. empty conversation). */
-  targetLanguage: string;
   /**
    * Where the menu renders. 'floating' (default) is the in-window floating-ui
    * menu. 'child-window' hosts it in its own frameless OS window — for the
@@ -71,17 +42,8 @@ interface ExportButtonProps {
   popoverHost?: 'floating' | 'child-window';
 }
 
-const ExportButton: React.FC<ExportButtonProps> = ({
-  combinedItems,
-  speakerMode,
-  participantMode,
-  provider,
-  currentProviderSettings,
-  localInferenceSettings,
-  sourceLanguage,
-  targetLanguage,
-  popoverHost = 'floating',
-}) => {
+/** The export menu: scope checkboxes, the three actions and the auto-save switch, over an `Exporter` (plan 1d-3). */
+export function ExportMenuButton({ exporter, speakerMode, participantMode, popoverHost = 'floating' }: ExportMenuButtonProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const childHosted = popoverHost === 'child-window';
@@ -110,28 +72,17 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   const [speaker, setSpeaker] = useState<ScopeToggles>(() => modeToToggles(speakerMode));
   const [participant, setParticipant] = useState<ScopeToggles>(() => modeToToggles(participantMode));
 
-  // Apply the scope with the same predicate the conversation view uses, so
-  // "what the file contains" and "what the screen shows" can never drift
-  // apart by having two filters to keep in step.
-  const scopedItems = useMemo(
-    () => combinedItems.filter(
-      (item) => shouldShowItem(item, togglesToMode(speaker), togglesToMode(participant)),
-    ),
-    [combinedItems, speaker, participant]
-  );
-
-  // Normalize once per scope change; this is the export payload.
-  const normalizedMessages = useMemo(
-    () => normalizeMessages(scopedItems),
-    [scopedItems]
+  const scope: TranscriptScope = useMemo(
+    () => ({ speaker: togglesToMode(speaker), participant: togglesToMode(participant) }),
+    [speaker, participant],
   );
 
   // Two different questions. The button asks "is there a conversation at all",
   // so a filter that currently selects nothing cannot lock the user out of the
   // menu that would let them widen it. The actions ask "does the current scope
   // select anything".
-  const hasContent = useMemo(() => normalizeMessages(combinedItems).length > 0, [combinedItems]);
-  const scopeHasContent = normalizedMessages.length > 0;
+  const hasContent = exporter.hasContent;
+  const scopeHasContent = useMemo(() => exporter.hasScopedContent(scope), [exporter, scope]);
 
   // Re-seed from the toolbar on every open, so "the default is what you are
   // looking at" keeps holding after the toolbar changes. Done on the opening
@@ -242,50 +193,32 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     click, dismiss, role, listNav,
   ]);
 
-  // Collect i18n strings once per render.
-  const txtI18n: TxtI18n = useMemo(() => buildTxtI18n((key, def) => t(key, def)), [t]);
-
   // Close whichever host is active; each call no-ops for the inactive one.
   const closeMenu = useCallback(() => {
     setIsOpen(false);
     childMenu.onClose('action');
   }, [childMenu]);
 
-  /** The export input for the current scope, computed at click time. */
-  const exportInput = useCallback((): ExportInput => ({
-    items: scopedItems,
-    provider,
-    providerSettings: currentProviderSettings,
-    localInferenceSettings,
-    fallbackLanguages: { sourceLanguage, targetLanguage },
-    // Recorded so the file says whether it is the whole conversation. A full
-    // scope is dropped inside buildSessionMetadata.
-    scope: { speaker: togglesToMode(speaker), participant: togglesToMode(participant) },
-  }), [scopedItems, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage, speaker, participant]);
-
   const handleCopy = useCallback(async () => {
     closeMenu();
-    const { messages, metadata } = buildExportPayload(exportInput());
-    const text = formatAsTxt(messages, metadata, txtI18n, { includeHeader: false });
-    const ok = await copyToClipboard(text);
+    // The text is taken before the await, so the copy is the scope as clicked.
+    const ok = await copyToClipboard(exporter.text(scope, false));
     if (ok) {
       showToast(t('mainPanel.export.copySuccess', 'Conversation copied to clipboard'), { variant: 'success' });
     } else {
       showToast(t('mainPanel.export.copyFailed', 'Failed to copy. Check browser permissions.'), { variant: 'error', durationMs: 4000 });
     }
-  }, [exportInput, showToast, t, txtI18n, closeMenu]);
+  }, [exporter, scope, showToast, t, closeMenu]);
 
   const handleDownloadTxt = useCallback(() => {
     closeMenu();
-    const { content, filename } = buildTxtExport(exportInput(), txtI18n);
-    downloadFile(content, filename, 'text/plain;charset=utf-8');
-  }, [exportInput, txtI18n, closeMenu]);
+    downloadFile(exporter.text(scope, true), exportFilename('txt'), 'text/plain;charset=utf-8');
+  }, [exporter, scope, closeMenu]);
 
   const handleDownloadJson = useCallback(() => {
     closeMenu();
-    const { messages, metadata } = buildExportPayload(exportInput());
-    downloadFile(formatAsJson(messages, metadata), exportFilename('json'), 'application/json');
-  }, [exportInput, closeMenu]);
+    downloadFile(exporter.json(scope), exportFilename('json'), 'application/json');
+  }, [exporter, scope, closeMenu]);
 
   const items = useMemo(() => ([
     { key: 'copy', label: t('mainPanel.export.copyToClipboard', 'Copy to clipboard'), Icon: Copy, onClick: handleCopy },
@@ -438,6 +371,4 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       )}
     </>
   );
-};
-
-export default ExportButton;
+}

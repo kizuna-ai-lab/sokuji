@@ -1,0 +1,63 @@
+import { CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { CredentialField, CredentialValues } from '../../lib/provider/types';
+import type { Readiness } from '../../stores/providerStore';
+import { noticeText } from '../../lib/view/noticeText';
+
+interface CredentialFormProps {
+  fields: readonly CredentialField[];
+  values: CredentialValues;
+  readiness: Readiness;
+  onChange(key: string, value: string): void;
+  /** Absent: no check button — a local provider checks itself. */
+  onCheck?(): void;
+  disabled?: boolean;
+}
+
+/**
+ * Any provider's credential inputs, drawn from its `credentials.fields`, with
+ * the readiness check beside the last one. The markup is ProviderSection's
+ * multi-field credential groups.
+ */
+export function CredentialForm({ fields, values, readiness, onChange, onCheck, disabled }: CredentialFormProps) {
+  const { t } = useTranslation();
+  const checking = readiness.state === 'checking';
+  const status = readiness.state === 'ready' ? 'valid' : readiness.state === 'not-ready' ? 'invalid' : '';
+  const check = onCheck && (
+    <button
+      type="button"
+      className="validate-button"
+      onClick={onCheck}
+      disabled={disabled || checking || fields.some((f) => !values[f.key])}
+      title={t('simpleSettings.validate')}
+    >
+      {checking ? <span className="spinner" /> : readiness.state === 'ready' ? <CheckCircle size={16} /> : t('simpleSettings.validate')}
+    </button>
+  );
+
+  return (
+    <>
+      {fields.length === 0 ? (
+        check && <div className="api-key-input-group">{check}</div>
+      ) : (
+        fields.map((f, i) => (
+          <div className="api-key-input-group" key={f.key}>
+            <input
+              type={f.secret ? 'password' : 'text'}
+              value={values[f.key] ?? ''}
+              onChange={(e) => onChange(f.key, e.target.value)}
+              placeholder={t(f.placeholderKey ?? f.labelKey, f.key)}
+              aria-label={t(f.labelKey, f.key)}
+              className={`api-key-input ${status}`.trim()}
+              disabled={disabled}
+            />
+            {i === fields.length - 1 && check}
+          </div>
+        ))
+      )}
+      {readiness.state === 'not-ready' && (
+        <div className="validation-message error">{noticeText(t, { code: readiness.code, params: readiness.params, message: readiness.reason })}</div>
+      )}
+    </>
+  );
+}

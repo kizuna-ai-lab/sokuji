@@ -11,29 +11,22 @@ import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_M
 import { useCloseLogsWhenDisabled } from './useCloseLogsWhenDisabled';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
-import { useProvider, useUIMode, useSetProvider, useSettingsNavigationTarget, useSubtitleModeActive, useDiagnosticLogs } from '../../stores/settingsStore';
+import { useSettingsNavigationTarget, useSubtitleModeActive, useDiagnosticLogs } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
 import { useShowSettings, useSetShowSettings, useSetupWizardOpen, useSetSetupWizardOpen } from '../../stores/layoutStore';
-import SubtitleApp from '../Subtitle/SubtitleApp';
+import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import { useSetupLoaded, useSetupComplete } from '../../stores/setupStore';
-import { useAuth } from '../../lib/auth/hooks';
-import { isKizunaManagedProvider } from '../../types/Provider';
-import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 
 type PanelName = 'settings' | 'logs' | 'main';
 
 const MainLayout: React.FC = () => {
   const { trackEvent } = useAnalytics();
-  const provider = useProvider();
-  const uiMode = useUIMode();
   const diagnosticLogs = useDiagnosticLogs();
-  const setProvider = useSetProvider();
   const settingsNavigationTarget = useSettingsNavigationTarget();
   const setupLoaded = useSetupLoaded();
   const setupComplete = useSetupComplete();
   const setupWizardOpen = useSetupWizardOpen();
   const setSetupWizardOpen = useSetSetupWizardOpen();
-  const { isSignedIn } = useAuth();
   const subtitleActive = useSubtitleModeActive();
   const [showLogs, setShowLogs] = useState(() => {
     return sessionStorage.getItem('panelState.showLogs') === 'true';
@@ -45,9 +38,6 @@ const MainLayout: React.FC = () => {
   // Track panel view times
   const panelOpenTimeRef = useRef<number | null>(null);
   const currentPanelRef = useRef<PanelName | null>(null);
-
-  // Track previous auth state to detect login
-  const prevIsSignedInRef = useRef(isSignedIn);
 
   // Helper function to track panel view events.
   // useCallback so it can be a dependency of the mode-change effect below
@@ -157,51 +147,6 @@ const MainLayout: React.FC = () => {
     }
   }, [settingsNavigationTarget, setShowSettings]);
 
-  // Auto-switch to KizunaAI when Basic Mode users log in
-  useEffect(() => {
-    // The user just logged in (was false, now true) — but not underneath the
-    // setup wizard. Signing in from its step 3 is part of a draft the user has
-    // not committed yet: Finish writes the provider itself on the managed path,
-    // and backing out must leave the provider exactly as it was (spec §1.1).
-    // The ref below still advances, so a switch skipped here does not fire late
-    // when the overlay closes.
-    //
-    // BOTH wizards, not just the rerun: `setupWizardOpen` is the rerun
-    // overlay's own flag, and the first-run wizard renders below on the
-    // strength of `!setupComplete` without ever setting it. Gating on the same
-    // condition that puts the wizard on screen is what makes "nothing is
-    // written until Finish" true for a first-time user too.
-    const wizardOnScreen = setupWizardOpen || !setupComplete;
-    if (!prevIsSignedInRef.current && isSignedIn && !wizardOnScreen) {
-      // User just logged in. The target is derived from what is REGISTERED, not
-      // from a feature flag: the managed providers are gated independently now,
-      // so isKizunaAIEnabled() no longer implies the Translate twin exists. In
-      // the shipping build (Kizuna on, relay twins off) selecting it would set
-      // a provider ProviderConfigFactory never registered, and the getDescriptor
-      // calls throughout MainPanel/ProviderSection throw on the next render —
-      // signing in would break the app outright.
-      const managedDefault = ProviderConfigFactory.getDefaultManagedProvider();
-      if (managedDefault && uiMode === 'basic' && !isKizunaManagedProvider(provider)) {
-        // User is in Basic Mode and not using a Kizuna-managed provider; switch
-        // to whichever managed provider this build actually offers.
-        setProvider(managedDefault);
-
-        // Track the auto-switch
-        trackEvent('settings_modified', {
-          setting_name: 'provider',
-          new_value: managedDefault,
-          old_value: provider,
-          category: 'api'
-        });
-
-        console.log('[MainLayout] Auto-switched to KizunaAI provider for Basic Mode user on login');
-      }
-    }
-
-    // Update the ref for next render
-    prevIsSignedInRef.current = isSignedIn;
-  }, [isSignedIn, uiMode, provider, setProvider, trackEvent, setupWizardOpen, setupComplete]);
-
   // Nothing until setup state is known: a migrated user must never see the
   // wizard flash. Then the wizard in place of the layout on a fresh install.
   if (!setupLoaded) return null;
@@ -209,8 +154,9 @@ const MainLayout: React.FC = () => {
 
   // In Electron subtitle mode the main process reshapes the BrowserWindow
   // into a tiny bar. Hide TitleBar and the main-layout tree (display:none
-  // keeps MainPanel mounted so the active session survives) and mount
-  // SubtitleApp in their place. Extension subtitle mode is handled inside
+  // keeps MainPanel mounted, so its Space key keeps holding turns) and mount
+  // the takeover in their place: the same app session's view and runner, so
+  // the run carries on untouched. Extension subtitle mode is handled inside
   // an injected iframe — sidepanel chrome stays visible.
   const electronSubtitleTakeover = subtitleActive && isElectron();
 
@@ -271,7 +217,7 @@ const MainLayout: React.FC = () => {
         takeover display:none) wherever it sat. During an Electron subtitle
         takeover the anchored UI is gone, so the tour does not render at all. */}
     {!electronSubtitleTakeover && <TourOverlay />}
-    {electronSubtitleTakeover && <SubtitleApp />}
+    {electronSubtitleTakeover && <SubtitleTakeover />}
     </>
   );
 };

@@ -17,7 +17,12 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 const declared = new Set<string>();
-for (const file of walk(join(process.cwd(), 'src/components'))) {
+// Walks src/providers too: LocalInferenceEngineSummary's engine-chips anchor
+// lives there (1e-3b-2 Task 2), not under src/components.
+for (const file of [
+  ...walk(join(process.cwd(), 'src/components')),
+  ...walk(join(process.cwd(), 'src/providers')),
+]) {
   for (const m of readFileSync(file, 'utf8').matchAll(/data-tour="([a-z-]+)"/g)) declared.add(m[1]);
 }
 
@@ -26,13 +31,7 @@ describe('tour anchors', () => {
     expect(declared.has(anchor)).toBe(true);
   });
 
-  it('main-action is declared in both footers (basic and advanced)', () => {
-    const src = readFileSync(join(process.cwd(), 'src/components/MainPanel/MainPanel.tsx'), 'utf8');
-    expect(src.match(/data-tour="main-action"/g)?.length).toBe(2);
-  });
-
-  it('engine-chips is declared once per local branch (native and wasm)', () => {
-    const src = readFileSync(join(process.cwd(), 'src/components/Settings/sections/ProviderSection.tsx'), 'utf8');
-    expect(src.match(/data-tour="engine-chips"/g)?.length).toBe(2);
-  });
+  // Where each anchor renders is a rendered test's now, not a count here:
+  // `main-action` in both footers (panel/PanelFooter.test.tsx), `engine-chips`
+  // in LocalInference's summary (LocalInferenceEngineSummary.test.tsx).
 });

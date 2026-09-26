@@ -13,7 +13,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 const handlers = () => ({
-  onStart: vi.fn(), onFix: vi.fn(), onReturn: vi.fn(), allowSessionControl: true, canStart: true,
+  onStart: vi.fn(), onReturn: vi.fn(), allowSessionControl: true, canStart: true,
 });
 
 beforeEach(cleanup);
@@ -57,82 +57,6 @@ describe('SubtitleIdle starting state', () => {
   });
 });
 
-describe('SubtitleIdle blocked state', () => {
-  // The primary action becomes the fix action: in a 200px-tall window a
-  // greyed-out Start plus a tiny reason line puts the only useful action in
-  // the smallest element on screen.
-  it('turns the primary action into the fix action and routes it', () => {
-    const h = handlers();
-    render(
-      <SubtitleIdle
-        state={{ kind: 'blocked', reason: 'missing-device', deviceScope: 'speaker' }}
-        {...h}
-      />,
-    );
-    const btn = screen.getByRole('button', { name: /configure devices/i });
-    expect(btn).toBeEnabled();
-    fireEvent.click(btn);
-    expect(h.onFix).toHaveBeenCalledWith('missing-device', 'speaker');
-    expect(h.onStart).not.toHaveBeenCalled();
-  });
-
-  // The reason strings are shared with the main window's Start tooltip, where
-  // they are full sentences. A button label should not carry the terminal
-  // punctuation that comes with them.
-  it('strips the sentence-ending period when the reason becomes a button label', () => {
-    render(
-      <SubtitleIdle
-        state={{ kind: 'blocked', reason: 'missing-device', deviceScope: 'speaker' }}
-        {...handlers()}
-      />,
-    );
-    expect(
-      screen.getByRole('button', { name: 'Configure devices for this mode to start' }),
-    ).toBeInTheDocument();
-  });
-
-  // The wallet is denominated in micro-USD and the product no longer speaks
-  // in "tokens", so the balance must arrive here already formatted as dollars
-  // — interpolating the raw value would put a 7-digit integer on the button.
-  it('interpolates the balance into the insufficient-balance message as USD', () => {
-    render(
-      <SubtitleIdle state={{ kind: 'blocked', reason: 'insufficient-balance', balance: 0 }} {...handlers()} />,
-    );
-    const button = screen.getByRole('button', { name: /\$0\.00/ });
-    expect(button).toBeInTheDocument();
-    expect(button.textContent).not.toMatch(/token/i);
-  });
-
-  it('renders a sub-floor micro-USD balance as dollars, not as a raw integer', () => {
-    render(
-      <SubtitleIdle state={{ kind: 'blocked', reason: 'insufficient-balance', balance: 9_999 }} {...handlers()} />,
-    );
-    // 9,999 µUSD is $0.009999 — under a cent, so it renders at full micro-USD
-    // precision and floored. This used to read "$0.01", rounding UP to a cent
-    // the wallet does not hold, in the one message whose whole job is to say
-    // the balance is short. See `formatUsdFloor`.
-    const button = screen.getByRole('button', { name: /\$0\.009999/ });
-    expect(button).toBeInTheDocument();
-    // The original guard here was `not.toMatch(/9999/)`, which no longer
-    // expresses the intent: at full precision the formatted amount CONTAINS
-    // the integer's own digits — "$0.009999" is 9,999 µUSD written correctly.
-    // What must never appear is those digits as a bare integer, so pin that
-    // instead: the run may only occur after a "$0." decimal point.
-    expect(button.textContent).toContain('$0.009999');
-    expect(button.textContent).not.toMatch(/(^|[^.\d])9999(\D|$)/);
-  });
-
-  // loading-models has no settings destination, so there is nothing to click.
-  it('disables the action for a transient block with no destination', () => {
-    const h = handlers();
-    render(<SubtitleIdle state={{ kind: 'blocked', reason: 'loading-models' }} {...h} />);
-    const btn = screen.getByRole('button', { name: /loading available models/i });
-    expect(btn).toBeDisabled();
-    fireEvent.click(btn);
-    expect(h.onFix).not.toHaveBeenCalled();
-  });
-});
-
 describe('SubtitleIdle failed state', () => {
   it('shows the error text on a single line and offers retry', () => {
     const h = handlers();
@@ -166,6 +90,34 @@ describe('SubtitleIdle failed state', () => {
   });
 });
 
+describe('SubtitleIdle unready state', () => {
+  it("shows a provider that is not ready by its reason, punctuation trimmed, with an inert action", () => {
+    const h = handlers();
+    render(<SubtitleIdle state={{ kind: 'unready', message: 'Download a model first.' }} {...h} />);
+    expect(screen.getByRole('button', { name: 'Download a model first' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /return to main window/i }));
+    expect(h.onReturn).toHaveBeenCalledTimes(1);
+  });
+
+  // The fix action's destination comes from the readiness code, not from a
+  // StartBlockReason (plan 1e-3b-1 ruling 13).
+  it('opens Settings at the given target when the fix action is clicked', () => {
+    const h = handlers();
+    const onOpenSettings = vi.fn();
+    render(
+      <SubtitleIdle
+        state={{ kind: 'unready', message: 'Configure devices for this mode to start.', target: 'microphone' }}
+        {...h}
+        onOpenSettings={onOpenSettings}
+      />,
+    );
+    const btn = screen.getByRole('button', { name: 'Configure devices for this mode to start' });
+    expect(btn).toBeEnabled();
+    fireEvent.click(btn);
+    expect(onOpenSettings).toHaveBeenCalledWith('microphone');
+  });
+});
+
 describe('SubtitleIdle return affordance', () => {
   it('is present in every non-starting state', () => {
     const h = handlers();
@@ -191,30 +143,12 @@ describe('SubtitleIdle with allowSessionControl=false', () => {
     expect(h.onReturn).toHaveBeenCalledTimes(1);
   });
 
-  it('offers no start, retry, or fix control, and never calls onStart/onFix', () => {
+  it('offers no start or retry control, and never calls onStart', () => {
     const h = handlers();
     render(<SubtitleIdle state={{ kind: 'ended' }} {...h} allowSessionControl={false} />);
     expect(screen.queryByRole('button', { name: /start translating/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /configure/i })).toBeNull();
     expect(h.onStart).not.toHaveBeenCalled();
-    expect(h.onFix).not.toHaveBeenCalled();
-  });
-
-  it('renders the static presentation instead of the fix action for an otherwise-interactive state', () => {
-    const h = handlers();
-    render(
-      <SubtitleIdle
-        state={{ kind: 'blocked', reason: 'api-key-invalid' }}
-        {...h}
-        allowSessionControl={false}
-      />,
-    );
-    expect(screen.getByText(/session ended/i)).toBeInTheDocument();
-    const buttons = screen.getAllByRole('button');
-    expect(buttons).toHaveLength(1);
-    fireEvent.click(buttons[0]);
-    expect(h.onReturn).toHaveBeenCalledTimes(1);
-    expect(h.onFix).not.toHaveBeenCalled();
   });
 });

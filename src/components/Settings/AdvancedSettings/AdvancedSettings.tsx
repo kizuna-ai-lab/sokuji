@@ -1,30 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useIsSessionActive, useLockedMode } from '../../../stores/sessionStore';
+import { useSessionLocked } from '../../../app/useRun';
+import type { EngineSlot } from '../../../lib/provider/types';
 import { useMode } from '../../../stores/audioStore';
-import {
-  useProvider,
-  useAvailableModels,
-  useLoadingModels,
-  useFetchAvailableModels,
-  useGetProcessedSystemInstructions,
-  useCurrentTurnDetectionMode,
-} from '../../../stores/settingsStore';
-import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { Provider } from '../../../types/Provider';
+import { useNavigateToSettings, useSetEngineSlotTarget } from '../../../stores/settingsStore';
+import { useTurnModeStore } from '../../../stores/turnModeStore';
 import WarningModal from '../shared/WarningModal';
 import { WarningType } from '../shared/hooks';
 import {
-  ProviderSection,
-  LanguageSection,
-  SentenceSegmentationSection,
   AudioDeviceSection,
   SystemAudioSection,
   VoicePassthroughSection,
   HelpSection
 } from '../sections';
-import ProviderSpecificSettings from '../sections/ProviderSpecificSettings';
+import { SessionSettingsGeneral, SessionSettingsProvider } from '../ProviderArea';
 import './AdvancedSettings.scss';
 
 interface AdvancedSettingsProps {
@@ -34,31 +24,29 @@ interface AdvancedSettingsProps {
 
 const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, activeTab }) => {
   const { t } = useTranslation();
-  const isSessionActive = useIsSessionActive();
-
-  // Provider settings
-  const provider = useProvider();
-  const availableModels = useAvailableModels();
-  const loadingModels = useLoadingModels();
-  const fetchAvailableModels = useFetchAvailableModels();
-  const getProcessedSystemInstructions = useGetProcessedSystemInstructions();
-
-  // Locked mode (sessionStore) — drives which audio channel sections are
-  // editable in-session. Pre-session: all 3 editable. In-session: the
-  // irrelevant channels are visible but disabled (greyed).
-  const lockedMode = useLockedMode();
+  const locked = useSessionLocked();
   const mode = useMode();
-  const lockMic = isSessionActive && lockedMode !== 'speaker' && lockedMode !== 'both';
-  // Participant toggle is disabled whenever participant is out of the effective
-  // mode scope, so the mode picker is the master control. Pre-session this means
-  // Speaker mode disables it; in-session the locked mode governs.
-  const effectiveMode = lockedMode ?? mode;
-  // Monitor is in scope ONLY in pure speaker mode (mutex with participant) —
-  // locked in Both/Participant pre- and in-session so it can't be enabled
-  // where it would violate the mutex. Its playback is mode-gated in audioStore
-  // (setMode / initializeAudioService).
-  const lockMonitor = effectiveMode !== 'speaker';
-  const lockParticipant = effectiveMode !== 'participant' && effectiveMode !== 'both';
+  // The global turn mode — used to disable VoicePassthroughSection when
+  // Push-to-Translate is in effect (mutual exclusion, 1e-3 ruling 4).
+  const turnMode = useTurnModeStore((s) => s.turnMode);
+  const setEngineSlotTarget = useSetEngineSlotTarget();
+  const navigateToSettings = useNavigateToSettings();
+
+  // A chip on the General tab opens its slot on the Provider tab (today's `openSlot`, ProviderSection.tsx:298-301).
+  const openSlot = useCallback((slot: EngineSlot) => {
+    setEngineSlotTarget(slot);
+    navigateToSettings('provider');
+  }, [setEngineSlotTarget, navigateToSettings]);
+
+  // Per-channel lock derivation: a section out of the mode's scope is visible
+  // but disabled (greyed), so the mode picker is the master control. The mode
+  // picker is locked while a run is not idle, so the audio mode is the run's
+  // (spec: "State"). Monitor is in scope ONLY in pure speaker mode (mutex
+  // with participant) — locked in Both/Participant before and during a run so
+  // it can't be enabled where it would violate the mutex.
+  const lockMic = locked && mode === 'participant';
+  const lockMonitor = mode !== 'speaker';
+  const lockParticipant = mode === 'speaker';
 
   // The monitor lock survives restarts (mode is persisted), so without a stated
   // reason the greyed section reads as broken rather than locked. Name the mode
@@ -66,22 +54,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
   // drift apart in a locale.
   const monitorLockedReason = t('audioPanel.monitorLockedByMode', { mode: t('modePicker.modeYou') });
 
-  // Current Speech Mode for active provider — used to disable VoicePassthroughSection
-  // when Push-to-Translate is in effect (mutual exclusion).
-  const currentTurnDetectionMode = useCurrentTurnDetectionMode();
-
-  // Get current provider configuration
-  const currentProviderConfig = React.useMemo(() => {
-    try {
-      return ProviderConfigFactory.getConfig(provider || Provider.OPENAI);
-    } catch (error) {
-      console.warn(`[AdvancedSettings] Unknown provider: ${provider}, falling back to OpenAI`);
-      return ProviderConfigFactory.getConfig(Provider.OPENAI);
-    }
-  }, [provider]);
-
   // State
-  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
   const [warningType, setWarningType] = useState<WarningType | null>(null);
 
   // Close the warning modal when the panel hides (<Activity> cleanup) so it
@@ -96,7 +69,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
         type={warningType}
       />
 
-      {isSessionActive && (
+      {locked && (
         <div className="session-active-notice">
           <AlertCircle size={16} />
           <span>{t('settings.sessionActiveNotice', 'Settings are locked while session is active. Please end the session to modify settings.')}</span>
@@ -112,22 +85,11 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
       >
         {activeTab === 'general' && (
           <>
-            {/* Translation Languages - same as Simple mode */}
-            <LanguageSection
-              isSessionActive={isSessionActive}
-              showTranslationLanguages={true}
-            />
-
-            {/* Subtitle segmentation */}
-            <SentenceSegmentationSection isSessionActive={isSessionActive} />
-
-            {/* Provider Selection */}
-            <ProviderSection
-              isSessionActive={isSessionActive}
-            />
+            {/* The pair, the turn mode, the output toggles, segmentation, the provider with its chips — same as Simple mode */}
+            <SessionSettingsGeneral locked={locked} layout="advanced" onOpenSlot={openSlot} />
 
             {/* Help & Updates */}
-            <HelpSection toggleSettings={toggleSettings} isSessionActive={isSessionActive} />
+            <HelpSection toggleSettings={toggleSettings} isSessionActive={locked} />
           </>
         )}
 
@@ -136,14 +98,14 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
             <h2>{t('audioPanel.title', 'Audio Settings')}</h2>
 
             <AudioDeviceSection
-              isSessionActive={isSessionActive}
+              isSessionActive={locked}
               isLocked={lockMic}
               showMicrophone={true}
               showSpeaker={false}
             />
 
             <AudioDeviceSection
-              isSessionActive={isSessionActive}
+              isSessionActive={locked}
               isLocked={lockMonitor}
               lockedReason={lockMonitor ? monitorLockedReason : undefined}
               showMicrophone={false}
@@ -151,36 +113,20 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
             />
 
             <SystemAudioSection
-              isSessionActive={isSessionActive}
+              isSessionActive={locked}
               isLocked={lockParticipant}
             />
 
             <VoicePassthroughSection
-              disabled={currentTurnDetectionMode === 'Push-to-Translate'}
+              disabled={turnMode === 'push-to-translate'}
               disabledReason={t('audioPanel.passthroughManagedByPushToTranslate')}
             />
           </div>
         )}
 
         {activeTab === 'provider' && (
-          <>
-            {/* Provider and API Key */}
-            <ProviderSection
-              isSessionActive={isSessionActive}
-            />
-
-            {/* Provider-specific settings (system instructions, model, turn detection, etc.) */}
-            <ProviderSpecificSettings
-              config={currentProviderConfig}
-              isSessionActive={isSessionActive}
-              isPreviewExpanded={isPreviewExpanded}
-              setIsPreviewExpanded={setIsPreviewExpanded}
-              getProcessedSystemInstructions={getProcessedSystemInstructions}
-              availableModels={availableModels}
-              loadingModels={loadingModels}
-              fetchAvailableModels={fetchAvailableModels}
-            />
-          </>
+          // The picker with its chips, then the engine, then the provider's own settings (plan 1e-3b-2 ruling 15).
+          <SessionSettingsProvider locked={locked} />
         )}
       </div>
     </div>

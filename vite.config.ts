@@ -163,6 +163,9 @@ export default defineConfig(({ command, mode }) => {
             'window-caption-menu': 'electron/window-caption-menu.js'
           },
           onstart(args) {
+            // SOKUJI_DEV_NO_ELECTRON=1 serves the renderer alone, for headless
+            // Chromium against `?preview=spine`, without opening a window.
+            if (process.env.SOKUJI_DEV_NO_ELECTRON) return
             // Override default [".", "--no-sandbox"] to fix DevTools crash on Linux
             args.startup(["."])
           },

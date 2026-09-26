@@ -45,3 +45,10 @@ describe('VadControl max speech duration', () => {
     expect(maxSpeech?.min).toBe('10');
   });
 });
+
+describe('VadControl heading', () => {
+  it('shows the "VAD Settings" heading', () => {
+    render(<VadControl values={BASE} onChange={() => {}} disabled={false} />);
+    expect(screen.getByText('VAD Settings')).toBeTruthy();
+  });
+});

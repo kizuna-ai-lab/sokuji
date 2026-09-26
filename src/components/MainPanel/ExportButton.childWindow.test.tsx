@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ExportButton from './ExportButton';
+import type { Exporter } from '../../lib/export/exporter';
+import { ExportMenuButton } from './ExportButton';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string, def?: string) => (typeof def === 'string' ? def : key) }),
@@ -19,16 +20,18 @@ vi.mock('../Subtitle/ChildWindowPopover', () => ({
   useChildPopoverToggle: () => ({ open: true, toggle: vi.fn(), onClose: vi.fn() }),
 }));
 
-describe('ExportButton in the subtitle bar child window', () => {
+const fakeExporter: Exporter = {
+  hasContent: true,
+  hasScopedContent: () => true,
+  text: () => 'TEXT',
+  json: () => '{}',
+};
+
+describe('ExportMenuButton in the subtitle bar child window', () => {
   it('carries the auto-save row, without the roving ring', () => {
     render(
-      <ExportButton
-        combinedItems={[]}
-        provider="openai"
-        currentProviderSettings={{}}
-        localInferenceSettings={{}}
-        sourceLanguage="EN"
-        targetLanguage="JA"
+      <ExportMenuButton
+        exporter={fakeExporter}
         speakerMode="both"
         participantMode="both"
         popoverHost="child-window"

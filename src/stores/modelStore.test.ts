@@ -347,6 +347,70 @@ describe('initialize resilience', () => {
   });
 });
 
+// Review Minor 1 (Task 5 Minor 1): SettingsInitializer and check.ts's
+// raceInitialize both call initialize() at startup, ~150ms apart. Without an
+// in-flight guard, a second call while the first is still scanning launches
+// its OWN independent scan — which can finish later, read a metadata
+// snapshot a live download has since changed, and flip it back to
+// 'not_downloaded' in the UI on its own schedule. One scan shared by every
+// caller while it is pending closes that window.
+describe('initialize concurrency', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useModelStore.setState({ initialized: false, initError: null, modelStatuses: {} });
+    mockGetMetadata.mockResolvedValue(undefined);
+  });
+
+  it('runs one scan for two calls made while the first is still pending, and both resolve', async () => {
+    let resolveEstimate!: (bytes: number) => void;
+    mockEstimateStorageUsedBytes.mockImplementation(
+      () => new Promise<number>((resolve) => { resolveEstimate = resolve; }),
+    );
+
+    const first = useModelStore.getState().initialize();
+    const second = useModelStore.getState().initialize();
+    // Both calls share the one scan already in flight: the scanning
+    // dependency has not run a second time just because a second caller asked.
+    expect(mockEstimateStorageUsedBytes).toHaveBeenCalledTimes(1);
+
+    resolveEstimate(0);
+    await Promise.all([first, second]);
+
+    expect(useModelStore.getState().initialized).toBe(true);
+    expect(mockEstimateStorageUsedBytes).toHaveBeenCalledTimes(1);
+  });
+
+  it('a second call arriving while the scan is pending never starts its own scan (there is none to race a live download)', async () => {
+    let resolveEstimate!: (bytes: number) => void;
+    mockEstimateStorageUsedBytes.mockImplementation(
+      () => new Promise<number>((resolve) => { resolveEstimate = resolve; }),
+    );
+
+    const first = useModelStore.getState().initialize();
+    // A download starting in the window between the two calls — exactly the
+    // race SettingsInitializer and check.ts's raceInitialize hit at startup.
+    useModelStore.setState((s) => ({ modelStatuses: { ...s.modelStatuses, 'voxtral-mini-4b-webgpu': 'downloading' } }));
+    const second = useModelStore.getState().initialize();
+
+    resolveEstimate(0);
+    await Promise.all([first, second]);
+
+    // Only the one scan ever ran, from start to finish: the second call never
+    // launched an independent scan that could read a later metadata snapshot
+    // and write modelStatuses out from under the live download.
+    expect(mockEstimateStorageUsedBytes).toHaveBeenCalledTimes(1);
+  });
+
+  it('a scan already finished (initialized) still returns at once, as today', async () => {
+    mockEstimateStorageUsedBytes.mockResolvedValue(0);
+    await useModelStore.getState().initialize();
+    expect(mockEstimateStorageUsedBytes).toHaveBeenCalledTimes(1);
+
+    await useModelStore.getState().initialize();
+    expect(mockEstimateStorageUsedBytes).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('modelStore.resolve', () => {
   beforeEach(async () => {
     vi.clearAllMocks();

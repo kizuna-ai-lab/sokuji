@@ -439,12 +439,14 @@ export function UserAccountInfo({
                 trackEvent('sign_out_failed', {error_code: error?.status});
               } finally {
                 // No reload. Every piece of state it used to clear now clears
-                // itself: authClient.signOut() ends the session, the profile
-                // context drops the quota when isSignedIn goes false, and
-                // SettingsInitializer re-validates and clears isApiKeyValid and
-                // availableModels for a managed provider. Reloading also took
-                // any running translation session with it, which is the whole
-                // reason this is being unwound.
+                // itself: authClient.signOut() ends the session, and the
+                // profile context drops the quota when isSignedIn goes false.
+                // (Before the switch, SettingsInitializer also re-validated
+                // and cleared isApiKeyValid/availableModels for a managed
+                // provider; the branch registers none, and SettingsInitializer
+                // no longer does either — 1e-3b-2 ruling 10.) Reloading also
+                // took any running translation session with it, which is the
+                // whole reason this is being unwound.
                 refetchSession?.();
                 // On success this component goes away with the session, so
                 // this matters only when signing out failed — and then the

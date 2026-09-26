@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getManifestByType } from '../lib/local-inference/modelManifest';
 
-// ensureSelectionReady() reaches settingsStore via a dynamic import, which
-// drags in its real static import graph — including
-// audioStore -> ServiceFactory -> ModernBrowserAudioService -> ModernAudioRecorder
-// -> the @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
-// sandboxed Vite test transform denies outright. Mock ServiceFactory (same
-// fix modelStore.test.ts and nativeModelStore.test.ts already use) so that
-// chain never loads; settingsStore's own persistence goes through this mock
+// Kept from before the old audio service was deleted: ensureSelectionReady()
+// reaches settingsStore via a dynamic import, which used to drag in its real
+// static import graph — including audioStore -> ServiceFactory, which
+// imported ModernBrowserAudioService -> ModernAudioRecorder -> the
+// @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
+// sandboxed Vite test transform denied outright. ServiceFactory no longer
+// imports ModernBrowserAudioService at all; audioStore only calls its
+// getSettingsService. Not needed by the current graph for that reason.
+// Mocked anyway (same fix modelStore.test.ts and nativeModelStore.test.ts
+// already use) so settingsStore's own persistence goes through this mock
 // instead of a real settings backend.
 vi.mock('../services/ServiceFactory', () => ({
   ServiceFactory: {
