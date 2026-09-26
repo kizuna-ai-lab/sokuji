@@ -51,9 +51,11 @@ function useWaveform(read: () => Float32Array | null, color: string): RefObject<
 /**
  * The advanced footer's mic + system strips (`MainPanel.tsx:4801-4822`):
  * mic while `mode` includes the speaker leg, system while it includes the
- * participant leg. Both draw loops run every render regardless of which
- * strip is visible (Rules of Hooks) — only their strips' visibility follows
- * `mode`, as today's condition did.
+ * participant leg. Each draws its leg's spectrum — the same frequency bars as
+ * the output strip, moving as smoothly: the meter emulates the output's
+ * analyser and moves its window with time between chunks. Both draw loops
+ * run every render regardless of which strip is visible (Rules of Hooks) —
+ * only their strips' visibility follows `mode`, as today's condition did.
  */
 export function InputWaveforms({ mode, levels }: { mode: AudioMode; levels: Readonly<Record<LegName, LevelMeter>> | null }) {
   const { t } = useTranslation();

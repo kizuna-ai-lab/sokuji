@@ -88,17 +88,21 @@ describe('createAppCapture — levels', () => {
     expect(capture.levels.participant).toBeDefined();
   });
 
+  // The meter runs on the real clock, which barely moves between the latest
+  // chunk landing and the read: the playhead sits at that chunk's start, so
+  // the window is the chunk before it. Two chunks, then, for a window of the
+  // fake source's tone.
   it("moves the leg's level meter as its source delivers chunks", async () => {
     const capture = createAppCapture(fakePlayback(), 'electron');
     await capture.openSource('speaker', live());
-    clock.advance(100);
+    clock.advance(200);
     expect([...capture.levels.speaker.read()].some((v) => v > 0)).toBe(true);
   });
 
   it('resets the level meter once the source stops', async () => {
     const capture = createAppCapture(fakePlayback(), 'electron');
     const source = await capture.openSource('speaker', live());
-    clock.advance(100);
+    clock.advance(200);
     expect([...capture.levels.speaker.read()].some((v) => v > 0)).toBe(true);
     await source.stop();
     expect([...capture.levels.speaker.read()]).toEqual(new Array(LEVEL_BARS).fill(0));
