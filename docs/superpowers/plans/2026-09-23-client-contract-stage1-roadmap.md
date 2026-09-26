@@ -1361,3 +1361,410 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
   (survey §2.4.1); the registry today puts LocalInference first (1e-3 ruling
   10). The owner decides the final order once, before Kizuna Soniox lands;
   Task 14's order case pins it.
+
+## Scheduled by the Stage 2 Soniox plan
+
+The Stage 2 Soniox plan
+(`docs/superpowers/plans/2026-09-26-client-contract-stage2-soniox.md`, plan
+commit `4df9057c`, whose code is `c91a3020`'s) landed as the sixteen commits
+after it, through `7ed66619` (**+7,318 / −1,485 lines across 121 files**,
+`4df9057c..7ed66619`), then this record with the spec's amendments. The final
+whole-plan review and its fix wave come after this record: the Minors the task
+reviews queued for that wave are not recorded here as done. It is Plan A of the
+survey's two — **Soniox with the user's own key** (`soniox`) on the new session:
+its definition, adapter and settings, the registry, and the wizard's own-key
+path. Kizuna Soniox is Plan B. The old client, both descriptors and the old
+settings UI stay compiled and unreachable from the new session (ruling 1) until
+Plan B's live test. Thirteen implementation tasks (Task 10 was split into 10a
+and 10b on the plan's review) ran in seven waves; Tasks 1, 8 and 12 took one
+review fix round each, and every other task was approved as its implementer
+committed it. Task 13 is this record.
+
+What landed, by task:
+- **`speechRanges`** (`d496f521`, Task 3): an adapter sets the ranges of speech
+  it already emitted for a ref (`AdapterEvents.speechRanges`). L1 measures them
+  against the text the adapter last sent (`unfilled`, so a fill-in cannot
+  shift them) and counts entries past a clear (`clearedEntries`); the kit gains
+  `ranges-entry` and `ranges-order`, the fake the `late-ranges` script; karaoke
+  holds what is lit while a rangeless clip of the same segment plays
+  (`karaoke.ts`, choice 18).
+- **The protocol modules' home** (`554a7143`, fix round `2064bd1c`, Task 1):
+  `SonioxSttStream`, `SonioxTtsStream`, `PcmMixer`, `SonioxSideTracker`,
+  `SonioxTtsRest` and `SonioxVoicesClient` moved with their tests into
+  `src/providers/soniox/` by `git mv` (F18), a one-line re-export stub at each
+  old path; their timers run on an injected clock and their sockets open
+  through `openSocket`. The fix round: an `every()` started with no injected
+  clock re-armed through whichever global `setTimeout` was current, so an
+  interval an earlier `SonioxClient.test.ts` test had leaked re-armed onto a
+  later test's fake clock ("Aborting after running 10000 timers") —
+  reproduced, not a flake. `pinnedRealClock()` snapshots the timers when the
+  interval starts (a ruling below).
+- **TTS span tags and segment ends** (`837d275c`, Task 2): `sendText(…, tag?)`
+  carries the ref and the span a chunk speaks; `onSegmentEnd` says how each
+  segment ended.
+- **`startBoth` names its leg** (`89f1b81f`, Task 4): `LegStartError(leg,
+  cause)`; the runner turns it into that leg's `LegOpenError`; the leased fake
+  names its failing leg; a test hands `startBoth` a distinct track per leg.
+- **Settings, languages, credentials, config, check** (`94041f52`, Task 5): `S`
+  and its migration, the 60 languages, one key field per region, `C` with
+  `build` and `describe`, and a key check bounded by `CHECK_TIMEOUT_MS` (15 s)
+  and the caller's signal.
+- **Tokens → segments** (`209f36ce`, Task 6): `utterances.ts`, one source and one
+  translation per utterance between `<end>` or `<fin>`; late translation tokens
+  revise the ended utterance's translation (choice 3); after `<fin>` it stays
+  open up to `FIN_TRANSLATION_GRACE_MS` (2,000 ms, ruling 5).
+- **One leg's speech** (`c151d9d8`, Task 7): `speech.ts`. Chunks play as
+  rangeless `audio` as they arrive; a segment that ends cleanly gets its
+  chunks' ranges (`speechRanges`, the span tiled by sample counts), a killed one
+  none; the old client's failure episodes become `tts_segment_lost` and
+  `tts_stopped`, two notice aliases; `framePayload` is shared with
+  LocalInference. The implementer's one deviation, accepted: the start and a
+  reconnect share one connect path (`open()` → `ensure(true)`), which removes a
+  double-socket race the brief's draft had, and the old client too (a ruling
+  below).
+- **The adapter, one leg** (`618efbff`, fix round `ad3463b3`, Task 8):
+  `SonioxCore` over the STT socket — failures coded `auth`, `rate_limit`,
+  `client`, `server` and `connection_lost`; the 503 resume ladder
+  (`RESUME_DELAYS_MS` 0 / 1 / 3 s, at most five cycles, none under a lease);
+  stop; frames under the old names; the lease's stubs for Plan B; the
+  conformance suite over its harness. The fix round: a start resolves on the
+  STT socket alone, with the speech's socket opening beside it (a ruling
+  below); Stop during a resume's backoff and during an attempt's connect is
+  pinned; the old frames' fields are back (`session.stt_resuming`'s close code
+  and reason, `session.connection_lost`'s code); events dispatch typed; the
+  unreadable-frame flag is per socket.
+- **`startBoth`** (`5f160e2f`, Task 9): shared Both on one mixed `two_way`
+  socket, each utterance's side from the side tracker, or split Both as two
+  sessions; a failing leg named; the participant voiced when its switch is on
+  (ruling 4).
+- **The voice-preview route** (`10f05eb6`, Task 10a): `PreviewPort`,
+  `SettingsProps.preview` and `legs`, `VoicePreviewContext`, and
+  `appVoicePreview` on the page's playback (`getAppAudio()`);
+  `VoiceLibrarySection` plays through the port when its host hands one down
+  (edited additively, the one stated exception to ruling 1).
+- **Soniox's settings components** (`0e5df25f`, Task 10b):
+  `createSonioxSettingsView`, the voice-field wrapper over the kept voice
+  library, `LinesField` for the vocabulary, the turn-detection summary and
+  controls.
+- **The registry and the Speech tooltip** (`bef09ca0`, Task 11):
+  `sonioxProvider`; `RELEASED = [localInferenceProvider, sonioxProvider]`;
+  the Speech mode's tooltip in provider-neutral words, two new keys in the 30
+  catalogs (ruling 8).
+- **The wizard's own-key path** (`1fb2a0d1`, fix round `7ed66619`, Task 12):
+  offered again, listing the registry's own-key providers; its credential step
+  reads the definition's fields and calls its `check` (choice 11). The fix
+  round: an `auto` source is named through `t('common.autoDetect')` in the
+  language-pair and finish steps, which showed the raw "Auto"; an edit during a
+  Validate aborts it (a ruling below); dead fixtures removed; the re-run
+  initializer's readiness cases added.
+
+**The spec's amendments** (this record's commit), the plan's ten, three of them
+adjusted to the code:
+1. L0: `speechRanges` among the emitted events, and a paragraph on a range known
+   only later — rangeless until its segment ends, karaoke from where playback
+   is, the hold across a row's segments, late ranges re-anchored past fill-in.
+   The hold is stated provider-neutrally, as Task 3's review asked:
+   LocalInference reaches it when L1 drops some but not all of a segment's
+   ranges.
+2. "What every adapter must honour": the rule for ranges filled in later.
+3. "Provider capability": Soniox's row, per TTS segment. The unit's list under
+   the table is the code's, wider than the plan's: a change of row and the
+   utterance's end also end a segment (`ttsStream.ts:347`, `:365-368`).
+4. "Turns": `<fin>` ends the utterance under manual turns; the grace after it.
+5. "The session request": `clientReferenceId` is sent, but billing follows the
+   key's binding; an own key sends none.
+6. "Playback — Routing": the voice-preview sites are **two**, not the plan's
+   three. `nativeVoiceStores`' `AudioContext` decodes an imported clip and
+   closes (`nativeVoiceStores.ts:161-169`); Local Native's previews play
+   through `VoiceLibrarySection` (`NativeVoiceSection.tsx:494`), so they fold
+   in when Local Native's host hands that section a port. "What it leaves"
+   below keeps the plan's wording ("`nativeVoiceStores` fold in with their
+   providers' plans"), which means that.
+7. "What adding a provider then touches": the manifest item is a no-op for
+   Soniox (its twelve origins are listed).
+8. "Session hooks": `startBoth` rejects with `LegStartError`; any other
+   rejection is the first leg's (`run.ts:241-246`).
+9. "The shape": this plan's amendments noted.
+10. "The clip queue": the hold covers a clip whose range is not filled in yet.
+
+**Checked — the controller's gates** (at `837d275c`, after Waves 1 and 2 and
+Tasks 10a and 10b): the suite 474 files passed / 1 skipped, 5,962 tests passed /
+2 skipped, 0 failed; the typecheck gate at its 18 baseline lines. Every
+implementer ran the same two gates on its own commit. Two runs that saw
+failures or extra gate lines caught another task's uncommitted work mid-wave
+(Task 5's tests during Task 6, Task 10a's RED window during Task 1's fix round)
+and were attributed to it; a third, in Task 1's first report, was the leaked
+interval its fix round removed. The suite grew from the plan's 5,843 (at
+`c91a3020`) to 6,059 at `7ed66619` (Task 12's fix round), 0 failed, the gate at
+its baseline.
+
+**Checked — group check A** (at `5f160e2f`: the adapter and the settings
+complete, not yet registered):
+1. the suite: 478 files, 6,043 tests passed, 0 failed; the gate at its 18
+   lines;
+2. the old Soniox and voice-library suites by name (`src/services`,
+   `src/components/Settings`): 1,831 passed;
+3. `npm run build` and the extension build; `npx vitest run extension` (7
+   files, 45 tests); both D24 greps empty;
+4. the full tree's typecheck: 259 error lines, exactly the bound (279 at
+   `c91a3020`, less the 20 Task 1 fixed);
+5. **`late-ranges` in the preview**
+   (`/?preview=spine&panel=1&script=late-ranges`): the translation row is drawn
+   at 2,713 ms, unlit; it lights part-way ("こんにち") at 3,149 ms, once the
+   fill-in lands mid-clip, advances to "こんにちは、お元気です", and clears when
+   the clip ends. The screenshots show the row drawn and unhighlighted, then
+   "こんにちは、" lit and advancing — ruling 2's karaoke, the owner's option (a).
+   Then the spine probes (surface, subtitle, audio, export, gate) and
+   `app-panel-probe` (preview, `--settings`): all exit 0.
+
+**Checked — group check B** (at `7ed66619`):
+1. both release builds and `npx vitest run extension` (7 / 45); both D24 greps
+   empty; `session.stt_resume_attempt_failed`, a frame only the new adapter
+   emits, is in `build/static/shared-*.js` and
+   `extension/dist/assets/shared-*.js` — Soniox's adapter ships in both
+   bundles, and neither fake does;
+2. every probe on a fresh vite: the spine probes (subtitle, surface, export,
+   audio, gate, local), `app-panel-probe` (preview, `--settings`, `--app`,
+   `--settings --app`), `extension-overlay-probe` (plain and `--ptt`) — all
+   pass;
+3. **Soniox's Provider tab, rendered.** Advanced: the picker shows Soniox with
+   its icon, name and description; one secret key field, "Enter your Soniox
+   API Key", Validate, "Enter your API key in Settings before starting.", the
+   setup-guide link; Region (us / eu / jp); the voice library (built-ins,
+   Adrian); TTS speed 0.7–1.3 in steps of 0.05; Terms, Preferred Translations
+   and Session Background; the shared-session pills disabled outside Both and
+   live once `audio.mode` is `both`; the Endpoint Detection Tuning block with
+   its three knobs; the Speech section's summary "Endpoint Detection Tuning ·
+   Max Pause Before Finalizing: 2000 ms" as a link. `spine-gate-probe` on
+   `&panel=1&provider=soniox` shows the main action off with that reason.
+   Switching the region to `eu` keeps one key field and stores `eu`. Simple:
+   no Soniox-specific settings (the owner's rule), the summary link, the key
+   field and the reason. The headless microphone toast is the environment's
+   (no fake-UI flags) and predates the plan.
+4. **The wizard** on a fresh profile, Validate never pressed: language →
+   scenario ("Be understood in a meeting") → the path step offers "I have my
+   own API key" and "Free, offline" → own key lists Soniox (and, in
+   development builds, the fake) → Soniox's credential step: one password
+   field, "Enter your Soniox API Key", "How to get this key" →
+   `docs/tutorials/soniox-setup`, Validate, Skip for now (step 4 of 6). Seen on
+   the way: the own-key path's description still names "OpenAI, Gemini, Doubao
+   (Volcengine) and others" (below, before any release).
+5. the two new keys' translations, handed to the owner (below).
+
+**Controller rulings**, each with what it costs if wrong (numbered here as "the
+controller's ruling N"; a bare "ruling N" in this entry is the plan's):
+1. **The six re-export stubs carry no comment line** (ruling 1 said one line;
+   the plan's open item). Cost: a reader of
+   `src/services/clients/SonioxSttStream.ts` sees a bare re-export with no
+   context, until Plan B deletes the stubs.
+2. **`FIN_TRANSLATION_GRACE_MS` = 2,000 ms stays a judgement**, settled by the
+   owner's live test (item 7). Cost: the last words' translation after a
+   push-to-talk release is revised in rather than shown with its row, or a row
+   stays open 2 s.
+3. **Implementers sign their commits with their own model name and the
+   session trailer.** Cost: none.
+4. **Task 1's leaked-interval re-arm is fixed with `pinnedRealClock()`** in
+   `src/lib/contract/clock.ts`: it snapshots `setTimeout` / `clearTimeout` when
+   called; the three `every()` sites (`pcmMixer.ts`, `sttStream.ts`,
+   `ttsStream.ts`) use it when no clock was injected; one-shot timers stay on
+   `realClock`; `clock.ts` and its test joined Task 1's files. Why: the old
+   read-only test cannot change, and the suite gate must not depend on load.
+   Cost: one more clock helper in the contract.
+5. **No global WebSocket guard in `setupTests`** — the old tests rely on jsdom's
+   or a stubbed `WebSocket`. Instead every Soniox session-side implementer
+   (Tasks 2, 7, 8, 9) injected `FakeSocket` / `openSocket` from its first RED
+   run and never exercised the default socket (a RED run before injection had
+   dialled Soniox once with a dummy key). Cost: one more accidental handshake
+   to Soniox with no key.
+6. **Task 7's `open()` → `ensure(true)` accepted**: the start and a reconnect
+   share one connect path; choice 6 (a start failure is Logs-only, waiting text
+   is retried at once, one `tts_stopped` per episode) is unchanged. The review
+   judged it sound and better than the draft. Cost: a path where the shared
+   connect changes an old behaviour — revert then.
+7. **TTS degradations no longer reach `api_error`** (Task 7's plan-mandated
+   Important): no code change in this plan; listed under the stated departures
+   and put to the owner below. Cost: degraded-TTS counts stay invisible in the
+   dashboards until the owner decides.
+8. **A start resolves on the STT socket alone** (Task 8's plan-mandated
+   Important, the review's option B): `await stt.connect(…)`, the speech's
+   socket opening beside it (`void leg.speech?.open()`). Safe because
+   `LegSpeech.open` never rejects, `speak()` queues while connecting and
+   `close()` reaches an opening socket; a case pins an STT 401 while the TTS
+   socket connects (the start resolved, then one `failed` `auth`). Why: it
+   matches the old client, whose TTS connect was separate and silent; it keeps
+   analytics deterministic (a bad key always records `api_error`); it removes a
+   coupling on the runner. Cost: a start "succeeds" a few ms before its TTS
+   socket exists, its speech queued, as the old client's was.
+9. **Task 12's stale Validate fixed in the task**: an edit aborts the in-flight
+   check (the existing `finally` clears `validating`), with a deferred-promise
+   test. Why: the wizard must never tell the user an unchecked key was
+   accepted — before the fix an edit during a Validate (up to 15 s) was answered
+   "Key accepted." for the key it no longer held (Start stayed locked, since
+   the store re-checks after Finish). Cost: none.
+
+**Stated departures from today:**
+- Soniox runs on the new session: its old client and settings UI stay compiled, unreachable from it, until Plan B.
+- **Karaoke on Soniox:** a sentence lights once its TTS segment has ended, from where playback is; before that, and for a segment Soniox killed, nothing lights. What is lit stays lit while the row's next sentence plays unlit (choice 18). A fill-in that lands after the clip played out lights only on replay. The old client had no karaoke at all.
+- **Push-to-talk and push-to-translate on Soniox** (D14): `finalize` on release, `<fin>` the boundary.
+- **The participant is voiced when its switch is on** (ruling 4), shared and split: a second TTS socket on the user's key. The old client kept the participant text-only.
+- **Late translation tokens** after a boundary revise the ended utterance's translation instead of starting an orphan row (choice 3), including when they share a message with the next utterance's first words; after `<fin>` the translation stays provisional for up to 2 s.
+- **Errors end the run through `failed`** with a code: `connection_lost` (the old sentence, through its alias), `auth`, `rate_limit`, `client`, `server` with the server's words as the detail.
+- **Analytics shift for the owner's dashboards** (choice 8, kept on the review; widened by Task 8): `api_error.error_code` carries the failure's code where the old client sent Soniox's status — `auth` for `401` (and `403`), `rate_limit` for `429`, `client` for another 4xx, `server` otherwise, and `connection_lost` with `error_type` `server` where it sent `503`, `408` or `socket_closed`. `error_type` follows the code. A dashboard grouping Soniox errors by code sees new values, and the three connection codes merged into one.
+- **TTS degradations no longer reach analytics** (Task 7; the controller's ruling 7 above): the old client sent a speech failure through `onError`, so `api_error` counted it (`error_code` `tts_<code>`: `tts_408`, `tts_socket_closed`, `tts_connect_failed`). On the new session a `degraded` is an L1 notice only, and the runner tracks `api_error` for `failed` alone (`run.ts:441-444`). An open question for the owner (below).
+- **A second speech failure within 5 s shows nothing** (Task 7): L1 drops a `degraded` of the same code within `DEGRADED_DEDUPE_MS` (`Conversation.ts:25`, 5 s), so a second `tts_segment_lost` or `tts_stopped` episode inside 5 s of the first raises no notice; the old client raised a bubble per episode.
+- **An unreadable Soniox frame is logged, not shown** (choice 7, reversed on the review): one `stt.unreadable` / `tts.unreadable` frame per episode in the Logs, where the old client dropped it silently. No notice, no locale text.
+- **A TTS connect failure at start and a failed resume attempt** reach only the Logs (as before: the old `diagnose` calls). The start failure is retried by the first translation, and a failed retry says "speech stopped" once, as before (choice 6).
+- **No "session ended" separator in the Logs for a Soniox run** (Task 8): the old client emitted `session.closed`, which LogsPanel draws that separator from (`LogsPanel.tsx:257-258`); the new adapter does not, and neither does LocalInference's. A run's end is the runner's to log, for every provider — not yet written.
+- **Frames go to the socket's first leg** (choice 16; the review's M16): in shared Both every socket-level and token frame appears in the speaker leg's Logs; the survey (§2.9) had routed them to each utterance's leg. A leg's TTS frames go to that leg.
+- **Soniox's key is checked on its own** (the foundation's readiness driver): at once when selected, 800 ms after an edit — a temporary key minted each time, also after a vocabulary or voice edit.
+- **Voice previews play on the selected output device** (the preview route), not the system default.
+- **The endpoint knobs** moved to the Provider tab's turn-detection block, with a summary in the Speech section; **the shared-session pills** as before, inert outside Both. On the Provider tab the shared-session section now sits above the endpoint tuning, because the host draws `TurnDetection.Controls` after the provider's `Settings` (D18); the old UI had them the other way round (Task 10b).
+- **The Speech mode's tooltip** is provider-neutral for every provider, LocalInference included.
+- **`translation_session_start`** reports `asr_model: 'stt-rt-v5'` and, when speaking, `tts_model: 'tts-rt-v2'` for Soniox.
+- **A stored `'soniox'` selection** now loads Soniox instead of falling back to LocalInference (`selectionFromStored`, Task 11).
+- **The wizard offers the own-key path again**, listing the registry's own-key providers (Soniox; and the fake in development builds).
+
+**Corrections to the foundation plan's Soniox list** (above):
+- The `sonioxServiceUnavailable` / `sonioxServiceBusy` aliases belong to Kizuna
+  Soniox: only the managed session-key path raises those sentences
+  (`ManagedSonioxSession.ts:734, 769-771`; survey §3.7.5). This plan added the
+  two TTS aliases — `tts_segment_lost` → `sonioxTtsSegmentLost` and
+  `tts_stopped` → `sonioxTtsFailed` (`noticeText.ts:92-94`) — and is the first
+  provider to emit the foundation's `connection_lost` (`:91`).
+- "The four voice-preview sites folded into `Playback.preview`": two sites
+  play, and one of them folds (spec amendment 6 above). `VoiceLibrarySection`
+  plays through the route wherever its host hands it a port — Soniox's does;
+  `SonioxCloneReviewStep` stays on the default output (ruling 6).
+
+**The locale spot check** (ruling 8), for a native speaker: the 29 non-`en`
+values of `settings.speechModeTooltip` and `settings.speechModeAppliesToAuto`,
+as Task 11's implementer derived them (`bef09ca0`). The English source:
+
+- `settings.speechModeTooltip`: `Auto: the provider detects when you have finished speaking. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.`
+- `settings.speechModeAppliesToAuto`: `Applies to your voice. Other's audio always uses the provider's automatic detection.`
+
+In every locale, `speechModeTooltip`'s Push-to-Talk and Push-to-Translate lines
+are, word for word, that locale's existing
+`settings.localInferenceTurnDetectionTooltip` lines; only the Auto line is new,
+so the table shows only that line (a trailing space in a cell is the one the
+locale keeps before `\n`). In `speechModeAppliesToAuto` only the second sentence
+is new: the first is the locale's existing `speechModeAppliesTo` sentence. Each
+locale's word for "provider" is its `settings.tabs.provider` label's.
+
+| Locale | `speechModeTooltip` — its first (Auto) line, as shipped | `speechModeAppliesToAuto` |
+|---|---|---|
+| `ar` | تلقائي: يكتشف المزود متى انتهيت من الكلام.  | ينطبق على صوتك. صوت الآخر يستخدم دائمًا الكشف التلقائي للمزود. |
+| `bn` | অটো: আপনার কথা বলা কখন শেষ হয়েছে তা প্রদানকারী শনাক্ত করে।  | আপনার কণ্ঠস্বরে প্রযোজ্য। অন্যের অডিও সবসময় প্রদানকারীর স্বয়ংক্রিয় শনাক্তকরণ ব্যবহার করে। |
+| `de` | Auto: Der Anbieter erkennt, wann Sie zu Ende gesprochen haben.  | Gilt für Ihre Stimme. Das Audio des Gegenübers verwendet immer die automatische Erkennung des Anbieters. |
+| `es` | Auto: el proveedor detecta cuándo ha terminado de hablar.  | Se aplica a tu voz. El audio del otro siempre usa la detección automática del proveedor. |
+| `fa` | خودکار: ارائه‌دهنده تشخیص می‌دهد چه زمانی صحبت شما تمام شده است.  | برای صدای شما اعمال می‌شود. صدای طرف مقابل همیشه از تشخیص خودکار ارائه‌دهنده استفاده می‌کند. |
+| `fi` | Auto: tarjoaja tunnistaa, milloin olet lopettanut puhumisen.  | Koskee omaa ääntäsi. Toisen ääni käyttää aina tarjoajan automaattista tunnistusta. |
+| `fil` | Auto: natutukoy ng provider kung kailan ka tapos nang magsalita.  | Naaangkop sa inyong boses. Ang audio ng kausap ay palaging gumagamit ng awtomatikong pagtukoy ng provider. |
+| `fr` | Auto: le fournisseur détecte quand vous avez fini de parler.  | S'applique à votre voix. L'audio de l'autre utilise toujours la détection automatique du fournisseur. |
+| `he` | אוטומטי: הספק מזהה מתי סיימת לדבר.  | חל על הקול שלך. שמע הצד השני תמיד משתמש בזיהוי האוטומטי של הספק. |
+| `hi` | ऑटो: प्रदाता पता लगाता है कि आपने बोलना कब समाप्त किया।  | आपकी आवाज़ पर लागू होता है। दूसरे का ऑडियो हमेशा प्रदाता की स्वचालित पहचान का उपयोग करता है। |
+| `id` | Otomatis: penyedia mendeteksi kapan Anda selesai berbicara.  | Berlaku untuk suara Anda. Audio lawan bicara selalu menggunakan deteksi otomatis dari penyedia. |
+| `it` | Auto: il fornitore rileva quando hai finito di parlare.  | Si applica alla tua voce. L'audio dell'altro usa sempre il rilevamento automatico del fornitore. |
+| `ja` | 自動：話し終わりをプロバイダーが自動的に検出します。 | あなたの声に適用されます。相手の音声は常にプロバイダーの自動検出を使用します。 |
+| `ko` | 자동: 말이 끝나는 시점을 제공자가 자동으로 감지합니다.  | 내 음성에 적용됩니다. 상대방 오디오는 항상 제공자의 자동 감지를 사용합니다. |
+| `ms` | Auto: penyedia mengesan apabila anda selesai bercakap.  | Digunakan untuk suara anda. Audio pihak lain sentiasa menggunakan pengesanan automatik penyedia. |
+| `nl` | Auto: de provider detecteert wanneer u klaar bent met spreken.  | Van toepassing op uw stem. Audio van de ander gebruikt altijd de automatische detectie van de provider. |
+| `pl` | Auto: dostawca wykrywa, kiedy kończysz mówić.  | Dotyczy Twojego głosu. Dźwięk rozmówcy zawsze używa automatycznego wykrywania dostawcy. |
+| `pt_BR` | Auto: o provedor detecta quando você termina de falar.  | Aplica-se à sua voz. O áudio do outro sempre usa a detecção automática do provedor. |
+| `pt_PT` | Auto: o fornecedor deteta quando terminou de falar.  | Aplica-se à sua voz. O áudio do outro usa sempre a deteção automática do fornecedor. |
+| `ru` | Авто: поставщик определяет, когда вы закончили говорить.  | Применяется к вашему голосу. Аудио собеседника всегда использует автоматическое определение поставщика. |
+| `sv` | Auto: leverantören känner av när du har talat klart.  | Gäller din röst. Den andras ljud använder alltid leverantörens automatiska detektering. |
+| `ta` | ஆட்டோ: நீங்கள் எப்போது பேசி முடித்தீர்கள் என்பதை வழங்குநர் கண்டறியும்.  | உங்கள் குரலுக்குப் பொருந்தும். மற்றவரின் ஆடியோ எப்போதும் வழங்குநரின் தானியங்கு கண்டறிதலைப் பயன்படுத்துகிறது. |
+| `te` | ఆటో: మీరు మాట్లాడటం ఎప్పుడు ముగించారో ప్రదాత గుర్తిస్తుంది.  | మీ స్వరానికి వర్తిస్తుంది. ఇతరుల ఆడియో ఎల్లప్పుడూ ప్రదాత యొక్క స్వయంచాలక గుర్తింపును ఉపయోగిస్తుంది. |
+| `th` | อัตโนมัติ: ผู้ให้บริการจะตรวจจับว่าคุณพูดจบเมื่อใด  | ใช้กับเสียงของคุณ เสียงอีกฝ่ายจะใช้การตรวจจับอัตโนมัติของผู้ให้บริการเสมอ |
+| `tr` | Otomatik: sağlayıcı, konuşmanızın ne zaman bittiğini algılar.  | Sizin sesinize uygulanır. Karşı tarafın sesi her zaman sağlayıcının otomatik algılamasını kullanır. |
+| `uk` | Авто: постачальник визначає, коли ви закінчили говорити.  | Застосовується до вашого голосу. Аудіо співрозмовника завжди використовує автоматичне виявлення постачальника. |
+| `vi` | Tự động: nhà cung cấp phát hiện khi bạn đã nói xong.  | Áp dụng cho giọng nói của bạn. Âm thanh đối phương luôn sử dụng tính năng phát hiện tự động của nhà cung cấp. |
+| `zh_CN` | 自动：由提供商自动检测您何时说完。 | 适用于您的语音。对方音频始终使用提供商的自动检测。 |
+| `zh_TW` | 自動：由提供商自動偵測您何時說完。 | 適用於您的語音。對方音訊始終使用提供商的自動偵測。 |
+
+What to look at, beyond the words:
+- **`es` and `pt_PT` leave the Auto line's subject unstated**, so it can read as
+  the provider finishing speaking. The final fix wave is to reword them — `es`
+  "…detecta cuándo usted ha terminado de hablar.", `pt_PT` "…deteta quando o
+  utilizador termina de falar." — so check the reworded lines, not the table's.
+- "Automatically" is not uniform: `ja` 自動的に, `zh_CN` 自动, `zh_TW` 自動 and
+  `ko` 자동으로 carry it, as the plan wrote them; the English and the other 25
+  do not. Both readings are accurate.
+- Register follows each key's existing sentences, which were already mixed: in
+  `es` the tooltip's push lines use *usted*, so the new Auto line does, while
+  `speechModeAppliesTo`'s kept first sentence uses *tú*. `pt_PT` is formal
+  throughout; `pl` uses a gender-neutral present; `ms` the formal "apabila".
+- `fr` keeps the catalog's own "Auto:" with no space before the colon, as its
+  push lines do, where French typography writes "Auto :".
+- `zh_CN` uses 提供商 (from `settings.tabs.provider` and the notices), not 服务
+  (`setup.summary.provider`).
+
+**The owner's live test** (survey §2.13, rewritten for ruling 2's karaoke, with
+the `<fin>` and first-audio checks; the additions the task reviews asked for are
+marked by their task):
+1. **Each region** (a US key, then EU, JP if held): the key field swaps with the region; Validate and the automatic check answer per region; the session dials that region (Logs `session.opened` with its region); a US key in the EU slot is refused with words.
+2. **A bad key:** the credential form says "The provider did not accept the credentials: …"; Start is off.
+3. **Languages:** a concrete pair (ja → en); an auto source, speaker only, with badges showing the detected language and fill-in on unpunctuated source text; auto with Both → Start off with the participant words.
+4. **Speech heard** on the monitor, and in the virtual microphone in a meeting app, once each. **First-audio latency** against the old build: the same (chunks play as they arrive).
+5. **Karaoke (ruling 2):** a sentence is not highlighted while its first chunks play; once its TTS segment ends the highlight starts from where playback is and sweeps to its end; it stays aligned after punctuation fill-in; a segment Soniox killed never lights. **A multi-sentence translation: the highlight never blinks off between sentences** — what is lit stays lit while the next sentence plays unlit, and that sentence lights from where playback is once its own segment ends (the hold, choice 18). Replay with "Keep audio for replay" on plays the utterance; off, no replay control.
+6. **Text only:** no TTS socket in Logs.
+7. **Push-to-talk:** a short press closes the rows on release, without the endpoint delay, and **the last words' translation arrives complete** — within the 2-s hold after `<fin>`, or landing on the closed row as a revision (never cut off); this settles `FIN_TRANSLATION_GRACE_MS`, a judgement (the controller's ruling 2 above). Once the hold has closed a translation, each later late message is spoken as its own TTS utterance: listen for it sounding chopped (Task 6). More than 20 s idle between presses → no 408, no connection-lost; a long hold with pauses; push-to-translate routes the raw voice while idle.
+8. **Shared Both:** one STT socket (Logs); sides right, including a same-language participant and overlapping speech — **a same-language pair** is where the side rests on the speaker label and the energy alone, latched at the utterance's first token (Task 9); the participant-speech switch off → the participant silent; on → heard on the real device (new, ruling 4: a second TTS socket on the key); push-to-talk in shared Both finalizes the far end too (acceptable?).
+9. **Split Both:** two STT sockets; either leg ending ends both; a denied loopback fails the start naming the participant.
+10. **Participant-only.**
+11. **The 408 case:** a long monologue with clauses and no full stop (> 8 s) — no "Part of the spoken translation could not be played" in normal speech; if it appears, the words say part was lost, not stopped.
+12. **Voice library:** built-ins listed; a preview plays on the **selected output device** (new: the preview route); record and upload a clone (3–120 s) → processing → ready → select → heard in a session → delete; switching region shows that region's clones; a bad key shows `sonioxVoiceListError`; the clone-review player still plays on the default output (ruling 6).
+13. **Vocabulary and background:** terms bias recognition; an oversized vocabulary is truncated, with a warning in Logs.
+14. **Endpoint knobs:** on the Provider tab's turn-detection block, and summarized in the Speech section; max pause 3 000 ms keeps paused sentences whole.
+15. **A network drop mid-session:** the connection-lost words, and the run ends. **A 503**, if Soniox has one while you test: the session resumes (Logs `session.stt_503`, then `session.stt_resuming` and `session.stt_resumed`). The resume starts at the socket's close; if the socket reports an error between the 503 and its close, the run fails with `connection_lost` instead (Logs `session.connection_lost` with `socket_error`) — note which Soniox does (Task 8).
+16. **Stop mid-utterance:** rows finalized, no audio after Stop, the auto-save file's content.
+17. **The extension:** the same core flows in the side panel.
+18. **The wizard:** the own-key path with a Soniox key.
+
+What it leaves, for the plans that meet it (the plan's own list, as written):
+
+**Kizuna Soniox** (`kizunaai_soniox`, Plan B) — the roadmap's list, plus what this plan reserved:
+- F11, whole: `managed(soniox, { id: 'kizunaai_soniox', settings key 'kizunaSoniox', vendor 'Soniox', … })`, `SessionHooks.minimumBalance`, `Resources.budget`, `RunState.running.budget`, the live gate's balance floor, `SessionCountdown`, `AccountButton`, the managed account row and "Recommended".
+- The lease behind **`SonioxLeasePort`** (Task 5; used by Task 8): `streamAccepted` → `session-started`, `atGrantEnd` / `cutoff` → the `segment_ended` end, and no 503 resume when a lease is present — the adapter's side is built and stub-tested; the lease module (from `ManagedSonioxSession`), its timers on `ctx.clock`, is Plan B's.
+- Per-leg `K` from the lease (`mix_*` shared on the speaker leg, `spk_*` / `par_stt` split): `startBoth` already reads each leg's own `credentials`; the lease must answer `credentials('participant')` without throwing in shared mode.
+- **`K.tts` absent** while speaking → text-only with `tts_degraded` (Task 8, case 24): participant speech against a lease that mints no participant TTS role is Plan B's decision (spec open question).
+- The voice claim in `prepare`, and the managed voice source through `createSonioxSettingsView({ managed: true, useVoiceSource })` (Task 10b's seam).
+- The `sonioxService*` and `sonioxVoice*` aliases, `insufficient_balance` and the other lease words; a Settings target for `sign_in_required`.
+- The wizard's managed path (`managedProvider`, `managedOption` still read the old factory); `selectionFromStored` for `'kizunaai'` and unported managed ids. `providerFits` now reads the registry, so it answers `false` for a managed id until Plan B registers one — `StepScenario.tsx:49` reads it, which matters once the managed path is offered again (Task 12, the review's M10).
+- The registry's final order and the release flags (roadmap, "Before any release from the branch").
+- **Deleting both providers' old code** after Plan B's paid live test: `SonioxClient` and its tests, both descriptors, `sonioxBothMode.ts`, `ManagedSonioxSession`, the old settings UI's Soniox branches in `ProviderSpecificSettings.tsx`, the settings-store slices' readers, the managed-Soniox MainPanel chips — and the six re-export stubs of Task 1 once nothing imports them.
+- **What that deletion must keep** (the review's M14) — the new provider uses these after this plan, so "the old settings UI's Soniox branches" does not cover them: `SonioxVoiceSection.tsx`, `voiceLibrarySource.ts`, `VoiceLibrarySection.tsx`, `VoicePicker.tsx`, `VoiceCreateModal.tsx`, `SonioxCloneReviewStep.tsx`, and the moved `src/providers/soniox/ttsRest.ts` and `voicesClient.ts` (with their tests). Deleting the stubs means first re-pointing the imports that still go through them — `voiceLibrarySource.ts` and `SonioxVoiceSection.tsx` import `SonioxVoicesClient` / `SonioxTtsRest` from `src/services/clients/` (`voiceLibrarySource.ts:15-18`, `SonioxVoiceSection.tsx:44`) — at `src/providers/soniox/`.
+
+**Found here, for the owner or a later plan:**
+- **Readiness re-probes on every Soniox settings edit** (survey §3.6): the kept answer is keyed on the whole `S`, so a vocabulary keystroke or a voice pick mints a temporary key 800 ms later. Harmless (free, per region), chatty; a provider-declared "check inputs" narrowing is a generic change, not a provider's.
+- **`timing` after a 503 resume** restarts at 0 (Soniox's clock restarts per socket); origins are stated, so L2 infers nothing from it. An offset is optional.
+- **`audio.range` after fill-in:** the late-measure hole `speechRanges` closes with `unfilled` exists for an `audio` range arriving after fill-in too; no adapter sends one (LocalInference closes after its last audio).
+- **The other voice-preview sites:** `LocalInferenceVoiceSection` (it renders `VoiceLibrarySection` with no preview route) and `nativeVoiceStores` fold in with their providers' plans; `SonioxCloneReviewStep` stays on the default output (ruling 6).
+- **The side decision is latched at an utterance's first token**, as before; a wrong latch now puts the utterance on the other leg's L1 (survey §3.6).
+- **Two TTS sockets per key** in shared Both with participant speech: Soniox's concurrency quota is unmeasured (the live test's item 8).
+
+**Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; the leased fake's refused hooks; `RunnerDeps.replayAudio`'s guard; the notice-code namespace.
+
+**Before any release from the branch**
+- **The release flags and the registry's final order** stand as the foundation's
+  entry above states them. This plan changes only the order case, which now pins
+  `['localInference', 'soniox']` (`registry.test.ts:204`; Soniox second by the
+  plan's ruling 7); the owner still decides the final order once, before Kizuna Soniox
+  lands.
+- **The owner's live test above**, before Plan B builds on the adapter and
+  before any release that carries it.
+- **The wizard's own-key description** (`setup.paths.own-key.desc`) names
+  "OpenAI, Gemini, Doubao (Volcengine) and others" (group check B, item 4). It
+  is true once those providers are ported; a release while Soniox is the only
+  own-key provider promises providers the path does not list.
+
+**Open questions for the owner**
+- **Analytics for `degraded`** (the controller's ruling 7): TTS degradations no
+  longer reach `api_error`, so degraded speech is invisible in the dashboards.
+  Accept that, or add a runner-level analytics event for `degraded` codes — a
+  cross-provider decision, LocalInference's `tts_degraded` included, not a
+  Soniox one.
+- **The two keys' native-speaker check** (the table above), including the `es`
+  / `pt_PT` subject the final fix wave is to reword.
+- **`FIN_TRANSLATION_GRACE_MS`** (2,000 ms): the live test's item 7 settles it.

@@ -211,6 +211,9 @@ audio({ pcm, ref?, range? })
 //   ref absent   — attributable to no segment (Palabra); plays, pairs with nothing
 //   range absent — this segment's audio, but which characters is unknown
 //                  → replay only, no karaoke
+speechRanges({ ref, ranges: [{ index, range }] })
+//   sets the range of speech this adapter already emitted for `ref`:
+//   `index` is the entry's place among that ref's `audio` events
 
 closed(reason) · reconnecting() · reconnected()
 failed(err)                      // the session is broken
@@ -244,6 +247,24 @@ from the previous chunk. Clients also stop maintaining cumulative audio duration
 — `audioCumSamples` / `cumulativeAudioDuration` is computed in four clients
 today, and each pcm block's duration follows from its own length.
 
+**A range known only later is filled in** (`speechRanges`, Stage 2 Soniox). A
+streaming TTS learns which characters a chunk speaks only once its segment has
+ended; the adapter then sets each emitted chunk's range, the segment's span
+divided by the chunks' sample counts. Until then the audio plays rangeless —
+replay only, no karaoke — and karaoke, which reads a clip's range at each
+sample, starts from where playback is. While a rangeless clip of the segment
+already lit plays, karaoke holds what is lit, by the same rules as a gap between
+clips: a row spoken as several TTS segments never un-highlights between them,
+and only the sentence still waiting for its ranges is unlit. Ranges that land
+after the queue has played the clip out light nothing live; replay lights them.
+The segment may already be closed: L1 measures the ranges against the text the
+adapter last sent (counting entries from the adapter's first `audio`, past any
+clear) and re-anchors them onto the text as it stands, punctuation fill-in
+included. The hold is karaoke's, not Soniox's: it applies to any rangeless clip
+of the segment already lit, whichever adapter produced it — LocalInference
+reaches it when L1 drops some but not all of a segment's ranges (a range that
+falls outside the text, or one a skeleton re-anchor cannot place).
+
 ### What every adapter must honour
 
 The conformance suite (D24) checks each rule below against every adapter.
@@ -255,6 +276,9 @@ The conformance suite (D24) checks each rule below against every adapter.
 - **`range` is in UTF-16 code units** of the text as it was when the audio was
   produced. A range that falls outside the text is dropped by L1 (the audio
   stays, replay-only) and reported once as a diagnostic.
+- **Ranges filled in later** name speech entries the adapter emitted for that
+  ref, lie within its text, and ascend with the ref's other ranges without
+  overlapping (the kit's `ranges-entry`, `range-in-text`, `ranges-order`).
 - **`audio` may precede any text for its `ref`.** L1 holds pcm against the ref
   until the segment opens; pcm for a ref that never opens is dropped when the
   session closes.
@@ -309,8 +333,10 @@ constant label nothing reads in five clients. Palabra ignores 7 of its 19 fields
 The doc comments have drifted with it: `keepReplayAudio` claims every client
 caches it (two never read it), the settings store claims every provider honours
 `textOnly` (four do not), OpenAI Translate's `sourceLanguage` claims to be a UI
-hint (it is the segmentation language), and Soniox's `clientReferenceId` claims
-to be inert on the wire (it is sent, and billing depends on it).
+hint (it is the segmentation language), and Soniox's `clientReferenceId` is
+sent although Soniox bills by the reference bound to the key when the backend
+mints it, not by the field on the wire (probed 2026-08-11); an own key sends
+none.
 
 So the request has three parts:
 
@@ -397,6 +423,11 @@ incapable; they differ only between immediate and after-silence.
 `SonioxSttStream.finalize()` (`:198`) — "Finalize pending tokens without ending the
 session" — has no caller anywhere. Soniox has no push-to-talk today not because
 its protocol lacks it but because it was never wired.
+
+Soniox's `finalize` is answered by a `<fin>` token, which the old client
+skipped. Under manual turns `<fin>` ends the utterance; endpoint detection stays
+on, so a long hold may still close at a pause, and the translation of the last
+words is held open briefly after `<fin>` (Stage 2 Soniox, ruling 5).
 
 ### The design
 
@@ -813,10 +844,17 @@ deleted; passthrough now has one purpose and one destination.
 setting in `audioStore` (`setMonitorVolume`, `isMonitorMuted`); it is not a
 route and not a mix.
 
-**Voice preview bypasses the sink at four sites today** — `VoiceLibrarySection`,
-`SonioxCloneReviewStep`, `VoiceCreateModal` and `nativeVoiceStores`, each with
-its own `AudioContext` or `<audio>` element that ignores the selected device.
-All four fold into the preview route.
+**Voice preview bypasses the sink at two sites** — `VoiceLibrarySection`'s own
+`AudioContext`, which plays Soniox's previews and Local Native's
+(`NativeVoiceSection` renders it), and `SonioxCloneReviewStep`'s `<audio>`.
+`VoiceCreateModal`'s `AudioContext` is its recorder, and `nativeVoiceStores`'
+decodes an imported clip and closes; neither is a player (the first version of
+this paragraph counted all four as preview sites). `VoiceLibrarySection` folds
+into the preview route through a port its host hands down (Soniox first,
+Stage 2; Local Native's host hands it one with Local Native);
+`SonioxCloneReviewStep` is a seekable review player that a play-once route
+cannot replace without losing seek, and stays on the default output (Stage 2
+Soniox, ruling 6).
 
 **The system has exactly one genuine volume: the passthrough percentage.**
 Only the virtual device carries a deliberate mix (translation with the original
@@ -863,8 +901,11 @@ closed segment arrives after it. A clip that is one speech entry is complete by
 construction. The cost moves to L3: `position()` is null in a gap between one
 segment's clips, so what karaoke and the playing indicator show in such a gap is
 a surface decision (plan 1d), made from the queue's positions and the segments'
-`final` — not from a guess inside the player. An adapter that knows when a
-segment's speech ends could one day say so in L0; none needs it yet.
+`final` — not from a guess inside the player. The same decision covers a clip
+whose range is not filled in yet: while one plays for the segment already lit,
+karaoke holds what is lit by the gap's rules (Stage 2 Soniox, choice 18). An
+adapter that knows when a segment's speech ends could one day say so in L0; none
+needs it yet.
 
 **Position is `{key, t}`, not a ratio.** Each clip is one unit whose start we
 enqueued, so `_cumOffset`, `_maxProgress`, `progressRatio`, `duration` and
@@ -908,7 +949,7 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 |---|---|---|---|
 | LocalInferenceClient | yes | per TTS sentence, **exists today** | one translate job — stated |
 | LocalNativeClient | yes | per TTS sentence, **exists today** | one translate job — stated |
-| SonioxClient | yes | per sentence — both quantities are in hand, never paired | same utterance — stated |
+| SonioxClient | yes | per TTS segment — filled in once the segment's speech has ended (`speechRanges`); unlit before; none for a segment the provider killed | same utterance — stated |
 | OpenAITranslateGAClient | yes | per audio frame, **exists today** | inferred (media time) |
 | OpenAILiveClient | yes | per audio frame, **exists today** | inferred (`end_ms` timeline) |
 | OpenAIGAClient | yes | per audio frame — `handleAudioDelta` already holds the item and the transcript accumulates on the same `item_id` | response ↔ committed input — stated, to be wired |
@@ -918,6 +959,11 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 | OpenAIWebRTCClient | yes | none | same as GA — to be wired |
 | OpenAITranslateWebRTCClient | yes | none | inferred |
 | PalabraAIClient | **no** — a continuous track, attributable to nothing | none | **`transcription_id`** — stated, already extracted and then discarded |
+
+Soniox's unit is the TTS **segment** — a sentence, a clause after 1.5 s with no
+new text, 3 s of idle, an 8-s cap, a change of language or of row, or the
+utterance's end (`ttsStream.ts`) — not the sentence the first version of this
+table named (Stage 2 Soniox survey §3.7.3).
 
 Two findings are worth stating plainly. Palabra is the only client that cannot
 replay, and it holds the cleanest pairing evidence in the codebase: the same
@@ -1026,6 +1072,9 @@ interface Provider<S, K, C> {
 `AuthContext.userId?`; `SettingsProps.models?` / `account?`;
 `SharedSettings.models`; and `SessionHooks.acquire`'s context carries the run's
 `clock`.
+
+**Amended by the Stage 2 Soniox plan:** `SettingsProps.preview?` (the
+voice-preview route) and `legs?`; `AdapterEvents.speechRanges`; `LegStartError`.
 
 `settings.key` is today's slice key, and values persist under
 `settings.<key>.<field>` exactly as now: no user's saved settings move.
@@ -1300,7 +1349,8 @@ not move.
 3. `providers.<id>.name` and `.description` in the 30 locale catalogs — or under
    the definition's `i18nKey` where the catalogs already spell it otherwise.
 4. The extension manifest, when the provider uses a new host — MV3 declares hosts
-   statically.
+   statically — none for Soniox, whose twelve origins the manifest already
+   lists.
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
 
 For OpenAI Live that is two code files outside its folder, plus the manifest,
@@ -1480,7 +1530,9 @@ interface Resources<K> {
   decides between one mixed socket and two, from its own settings. Its second
   returned `Session` replaces `createSecondaryPort()`, the inert port whose
   `getConversationItems()` returns `[]`. Each leg still has its own source; the
-  mixing is the provider's business.
+  mixing is the provider's business. It rejects with `LegStartError(leg, cause)`
+  to name the leg that failed (D22), so the start's notice names it; any other
+  rejection is the first leg's.
 - **`minimumBalance`** — managed providers' start floor, replacing the
   `KIZUNA_AI_SONIOX` special case in the start gate.
 
