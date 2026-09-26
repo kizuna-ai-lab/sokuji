@@ -1,5 +1,5 @@
 import { describeCause } from '../diagnostics/describeCause';
-import type { AuthContext, CredentialValues, Provider } from './types';
+import type { AuthContext, CredentialsMissing, CredentialValues, Provider } from './types';
 
 /**
  * A provider's credentials for these settings: `read` sees the values of
@@ -12,7 +12,7 @@ export function readCredentials<S, K extends { missing?: never } & object>(
   s: S,
   saved: CredentialValues,
   auth: AuthContext,
-): K | { missing: string } {
+): K | CredentialsMissing {
   const values: CredentialValues = Object.fromEntries(p.credentials.fields(s).map((f) => [f.key, saved[f.key] ?? '']));
   try {
     return p.credentials.read(values, auth);
@@ -22,6 +22,6 @@ export function readCredentials<S, K extends { missing?: never } & object>(
 }
 
 /** A `missing` answer, told from credentials by the constraint that `K` has no `missing` member. */
-export function isMissing(answer: unknown): answer is { missing: string } {
+export function isMissing(answer: unknown): answer is CredentialsMissing {
   return typeof (answer as { missing?: unknown } | null)?.missing === 'string';
 }

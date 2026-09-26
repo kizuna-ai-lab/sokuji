@@ -30,4 +30,17 @@ describe('readCredentials', () => {
     expect(isMissing({ key: 'k' })).toBe(false);
     expect(isMissing({})).toBe(false);
   });
+
+  it("passes a missing answer's code and params through", () => {
+    const p = {
+      credentials: {
+        keys: [],
+        fields: () => [],
+        read: () => ({ missing: 'Sign in first.', code: 'sign_in_required', params: { who: 'you' } }),
+      },
+    };
+    const answer = readCredentials(p, {}, {}, auth);
+    expect(answer).toEqual({ missing: 'Sign in first.', code: 'sign_in_required', params: { who: 'you' } });
+    expect(isMissing(answer)).toBe(true);
+  });
 });

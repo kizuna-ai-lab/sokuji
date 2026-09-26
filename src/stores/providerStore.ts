@@ -198,8 +198,13 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const seq = from ? (checkSeq.get(p.id) ?? 0) : supersede(p);
       const newest = () => (checkSeq.get(p.id) ?? 0) === seq;
       const credentials = readCredentials(p, inputs.settings, inputs.credentials, auth);
-      // The runner's own code for the same gap, `RunNoticeCode`.
-      if (isMissing(credentials)) return setReadiness(p, { state: 'not-ready', reason: credentials.missing, code: 'credentials_missing' });
+      // The provider's own code (a managed provider's `sign_in_required`), or the runner's own for the same gap.
+      if (isMissing(credentials)) {
+        return setReadiness(p, {
+          state: 'not-ready', reason: credentials.missing, code: credentials.code ?? 'credentials_missing',
+          ...(credentials.params ? { params: credentials.params } : {}),
+        });
+      }
       // The fields these settings show, for the cache key below.
       const values = Object.fromEntries(p.credentials.fields(inputs.settings).map((f) => [f.key, inputs.credentials[f.key] ?? '']));
       // A network check gives the same ready answer to the same inputs, so a

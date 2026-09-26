@@ -23,8 +23,24 @@ export interface CredentialField { key: string; labelKey: string; secret: boolea
 /** Credential values by field key; a field with nothing saved reads as ''. */
 export type CredentialValues = Readonly<Record<string, string>>;
 
-/** What `credentials.read` may consult besides the typed values: the sign-in session, for managed providers. */
-export interface AuthContext { signedIn: boolean; getToken(): Promise<string | null> }
+/**
+ * The sign-in session: what `credentials.read` may consult besides the
+ * typed values (a managed provider), and the account a provider's
+ * `prepare` or `Settings` acts for (F3).
+ */
+export interface AuthContext {
+  signedIn: boolean;
+  getToken(): Promise<string | null>;
+  /** The signed-in user's id; null signed out. Absent where no sign-in is wired: tests, the root's default. */
+  userId?: string | null;
+}
+
+/**
+ * Why `credentials.read` found no credentials. `code` (and `params`) put
+ * it into the user's words — `sign_in_required` for a managed provider
+ * signed out; absent, the runner's `credentials_missing`.
+ */
+export interface CredentialsMissing { missing: string; code?: string; params?: Record<string, string | number> }
 
 export interface ModelOption { id: string }
 
@@ -160,8 +176,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     /** Every key `fields` can ever return, so all of them load at startup. */
     keys: readonly string[];
     fields(s: S): readonly CredentialField[];
-    /** Receives the values of exactly the fields `fields(s)` returns. `K` has no `missing` member — the type parameter's constraint enforces it. */
-    read(values: CredentialValues, auth: AuthContext): K | { missing: string };
+    /**
+     * Receives the values of exactly the fields `fields(s)` returns. `K` has
+     * no `missing` member — the type parameter's constraint enforces it. A
+     * missing answer may carry a code (F3).
+     */
+    read(values: CredentialValues, auth: AuthContext): K | CredentialsMissing;
   };
   /**
    * Can this provider start now: a network validation, model readiness, or a

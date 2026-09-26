@@ -62,7 +62,7 @@ vi.mock('../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent }),
 }));
 vi.mock('../lib/auth/hooks', () => ({
-  useAuth: () => ({ isSignedIn: true, getToken: async () => 't' }),
+  useAuth: () => ({ isSignedIn: true, userId: 'u1', getToken: async () => 't' }),
 }));
 
 import { ToastProvider } from '../components/Toast';
@@ -111,6 +111,7 @@ describe('useAppSessionBridges', () => {
     const refetch = vi.fn(async () => {});
     const { result } = renderHook(() => useAppSessionBridges(refetch), { wrapper: ToastProvider });
     expect(result.current.signedIn).toBe(true);
+    expect(result.current.userId).toBe('u1');
     trackEvent.mockClear();
     await act(() => getAppSession().runner.start());
     expect(trackEvent).toHaveBeenCalledWith('translation_session_start', expect.objectContaining({ session_id: 'r1' }));

@@ -64,7 +64,22 @@ function runInputs(legs: CheckContext['legs'] = ['speaker']) {
 }
 
 describe('refreshReadiness', () => {
-  it('reports missing credentials without calling check', async () => {
+  it("words missing credentials by the provider's own code, and by credentials_missing when it gives none", async () => {
+    const signInCheck = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const signIn: AnyProvider = {
+      ...probe('own-key', signInCheck),
+      credentials: {
+        keys: ['apiKey'],
+        fields: () => [{ key: 'apiKey', labelKey: 'k', secret: true }],
+        read: () => ({ missing: 'Sign in first.', code: 'sign_in_required', params: { who: 'you' } }),
+      },
+    } as AnyProvider;
+    await store.useProviderStore.getState().load(signIn);
+    await expect(store.useProviderStore.getState().refreshReadiness(signIn, noAuth)).resolves.toEqual({
+      state: 'not-ready', reason: 'Sign in first.', code: 'sign_in_required', params: { who: 'you' },
+    });
+    expect(signInCheck).not.toHaveBeenCalled();
+
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('own-key', check);
     await store.useProviderStore.getState().load(p);

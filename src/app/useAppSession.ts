@@ -17,10 +17,10 @@ export { useRunState, useRunPhase } from './useRun';
 
 /** Hands the session the page's sign-in, analytics, toasts and balance refetch; returns the sign-in for the settings panel. */
 export function useAppSessionBridges(refetchQuota?: () => Promise<void>): AuthContext {
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn, userId, getToken } = useAuth();
   const { trackEvent } = useAnalytics();
   const { showToast } = useToast();
-  const auth = useMemo(() => ({ signedIn: isSignedIn, getToken }), [isSignedIn, getToken]);
+  const auth = useMemo(() => ({ signedIn: isSignedIn, userId: userId ?? null, getToken }), [isSignedIn, userId, getToken]);
   // Every render, as the preview's bridge did: the runner reads them when it needs them, never a stale closure.
   getAppSession().setBridges({ auth, track: trackEvent as AnalyticsPort['track'], notify: { showToast }, refetchQuota });
   return auth;

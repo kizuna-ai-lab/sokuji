@@ -182,6 +182,20 @@ describe('runner — starting', () => {
     expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'refused', notice: { code: 'credentials_missing' } } });
   });
 
+  it("refuses a start whose credentials are missing, by the provider's own code", async () => {
+    const provider = {
+      ...fakeProvider,
+      credentials: { keys: [], fields: () => [], read: () => ({ missing: 'Sign in first.', code: 'sign_in_required' }) },
+    } as unknown as AnyProvider;
+    const { runner, sources } = setup({ shape: { provider } });
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({
+      phase: 'idle',
+      lastEnd: { reason: 'refused', notice: { code: 'sign_in_required', message: 'Sign in first.' } },
+    });
+    expect(sources).toHaveLength(0);
+  });
+
   it("names the runner's own refusals in snake_case", async () => {
     const { runner } = setup({ ready: { state: 'not-ready', reason: 'model not downloaded' } });
     await runner.start();

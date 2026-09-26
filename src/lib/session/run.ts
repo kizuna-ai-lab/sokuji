@@ -118,7 +118,13 @@ export class Run {
 
     host.step('checking');
     const credentials = readCredentials(p, shape.settings, shape.credentials, shape.auth);
-    if (isMissing(credentials)) throw new RefusedError({ code: 'credentials_missing' satisfies RunNoticeCode, message: credentials.missing });
+    if (isMissing(credentials)) {
+      throw new RefusedError({
+        code: credentials.code ?? ('credentials_missing' satisfies RunNoticeCode),
+        message: credentials.missing,
+        ...(credentials.params ? { params: credentials.params } : {}),
+      });
+    }
     const readiness = await this.untilAborted(deps.ensureReady(shape, this.signal));
     this.throwIfAborted();
     if (readiness.state !== 'ready') {
