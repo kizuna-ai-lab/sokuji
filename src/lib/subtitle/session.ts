@@ -27,7 +27,7 @@ export interface SubtitleSession {
   pair: LanguagePair | null;
   /** A run is live under manual turns with a speaker leg to hold (plan 1e-4 ruling 8): the surface offers its hold control. */
   holdToTalk: boolean;
-  /** Start is offered: idle, and the provider neither known to be unready nor being checked. */
+  /** Start is offered: false while a run is not idle, no microphone is chosen, the provider's entry has not loaded, the start gate refuses (F7), or the provider is known to be unready or is being checked. */
   canStart: boolean;
   idle: SubtitleIdleModel;
 }
@@ -77,7 +77,7 @@ export function subtitleSession({ run, readiness, pair, turnMode, legs, micropho
     // A press opens a turn on the speaker leg only (`Run.press`, run.ts:275-281):
     // a participant-only run offers no hold — it would do nothing.
     holdToTalk: run.phase === 'running' && turnMode !== 'auto' && run.legs.speaker !== undefined,
-    // The runner checks readiness at start; only a known blocker or a check in flight keeps Start off.
+    // Off for a run under way, no microphone, an entry not yet loaded, the gate's refusal, or a provider known unready or being checked; an unknown readiness is the runner's to check at start.
     canStart: run.phase === 'idle' && !microphoneMissing && readiness?.state !== 'not-ready' && readiness?.state !== 'checking' && providerLoaded && !refusal,
     idle: idleOf(run, readiness, microphoneMissing, refusal),
   };

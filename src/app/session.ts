@@ -79,9 +79,11 @@ export interface AppSession {
   audio(): Promise<LoadedAudio>;
   /**
    * The one start every surface calls (ruling 11): resolves without starting
-   * unless `subtitle.get().canStart` — the provider's entry loaded, the
-   * microphone rule — neither of which the runner itself checks. Otherwise
-   * forwards to `runner.start(method)`.
+   * unless `subtitle.get().canStart`, and otherwise forwards to
+   * `runner.start(method)`. The runner re-checks at start what it can — the
+   * start gate's refusal, the provider's entry, its readiness — and ends a
+   * start it refuses with a notice; the microphone rule is the surfaces'
+   * alone.
    */
   start(method?: ControlMethod): Promise<void>;
   setBridges(next: Partial<AppBridges>): void;

@@ -169,7 +169,14 @@ describe('liveGate', () => {
   });
 
   it('is null until the chosen provider has loaded', () => {
+    // A shape the gate refuses once loaded (the participant leg on the web):
+    // only the missing entry can explain the null.
+    useAudioStore.setState({ mode: 'participant' });
+    environment.value = 'web';
+    useProviderStore.setState({ selected: 'fake', entries: {} });
     expect(liveGate()).toBeNull();
+    loadFake({ source: 'en', target: 'ja' });
+    expect(liveGate()?.code).toBe('participant_source_unavailable');
   });
 
   it('refuses the participant leg on the web, and lets it through on Electron', () => {
