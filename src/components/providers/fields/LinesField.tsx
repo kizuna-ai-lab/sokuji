@@ -4,18 +4,25 @@ import Tooltip from '../../Tooltip/Tooltip';
 /** A settings textarea's cap: the old Soniox fields' (`ProviderSpecificSettings.tsx:1841`). */
 export const LINES_FIELD_MAX = 4000;
 
-export interface LinesFieldProps {
+interface LinesFieldCommon {
   id: string;
   value: string;
   onChange(value: string): void;
   placeholder: string;
   disabled?: boolean;
-  /** The row's label; absent, the section heading names the field and `ariaLabel` does for assistive tech. */
-  label?: string;
-  tooltip?: string;
-  ariaLabel?: string;
   maxLength?: number;
 }
+
+/**
+ * The field always has an accessible name: its row's label, or — when the
+ * section heading names it and no label row is drawn — `ariaLabel`. Never
+ * both (the name read out would differ from the one shown), and a tooltip
+ * only beside a label: without a label row it has nowhere to sit.
+ */
+export type LinesFieldProps = LinesFieldCommon & (
+  | { label: string; tooltip?: string; ariaLabel?: never }
+  | { ariaLabel: string; label?: never; tooltip?: never }
+);
 
 /**
  * A multi-line text setting — one entry per line, or free text (F13): the

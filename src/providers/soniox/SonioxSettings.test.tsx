@@ -100,6 +100,14 @@ describe('createSonioxSettingsView', () => {
     }
   });
 
+  it('Terms and Preferred Translations each draw their own tooltip', () => {
+    render(<BYOK {...props()} />);
+    expect(tooltipContents).toContain('Improves recognition of uncommon words — names, jargon, product names.');
+    expect(tooltipContents).toContain(
+      "Biases how specific terms are translated — a preference, not a guaranteed replacement: names with an established rendering work best, while common words may keep the model's own wording. Entries are directional; the reverse direction only exists in Both mode, where you can add a reverse line."
+    );
+  });
+
   it('the shared-session pills write the choice, and are locked outside Both mode or while a run is on', () => {
     const update = vi.fn();
     const { rerender } = render(<BYOK {...props({ update })} />);
