@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { AnyProvider, CheckContext, LanguageOption } from '../lib/provider/types';
+import type { AnyProvider, CheckContext, LanguageOption, LanguagePair, MigrationInputs } from '../lib/provider/types';
 
 const { stored, getSetting, setSetting } = vi.hoisted(() => {
   const stored = new Map<string, unknown>();
@@ -100,6 +100,61 @@ describe('load', () => {
     useProviderStore.getState().updateSettings(probe, { count: 5 });
     await useProviderStore.getState().load(probe);
     expect(entry().settings).toMatchObject({ count: 5 });
+  });
+
+  it('reads each legacy key with no default — absent as undefined — and hands them and the credentials to migrate', async () => {
+    const migrate = vi.fn((stored: Record<string, unknown>) => stored);
+    const p = {
+      ...probe,
+      settings: { ...probe.settings, legacyKeys: ['turnDetectionMode', 'on'], migrate },
+    } as unknown as AnyProvider;
+    stored.set('settings.probe.turnDetectionMode', 'Semantic');
+    stored.set('settings.probe.apiKey', 'k1');
+    await useProviderStore.getState().load(p);
+    expect(getSetting).toHaveBeenCalledWith('settings.probe.turnDetectionMode', undefined);
+    expect(migrate).toHaveBeenCalledWith(
+      { region: 'us', count: 1, on: false },
+      { legacy: { turnDetectionMode: 'Semantic', on: undefined }, credentials: { apiKey: 'k1', apiKeyEu: '' } },
+    );
+  });
+
+  it('tells a field stored as its default from a field never stored', async () => {
+    const migrate = vi.fn((stored: Record<string, unknown>, _inputs: MigrationInputs) => stored);
+    const p = { ...probe, settings: { ...probe.settings, legacyKeys: ['on'], migrate } } as unknown as AnyProvider;
+    stored.set('settings.probe.on', false);
+    await useProviderStore.getState().load(p);
+    expect(migrate.mock.calls[0][1]).toMatchObject({ legacy: { on: false } });
+  });
+
+  it('rewrites the stored pair before it is normalized, so a renamed code lands on its new spelling', async () => {
+    const p = {
+      ...probe,
+      languages: { ...probe.languages, migratePair: (pair: LanguagePair) => ({ ...pair, source: pair.source === 'vn' ? 'fr' : pair.source }) },
+    } as unknown as AnyProvider;
+    stored.set('settings.probe.sourceLanguage', 'vn');
+    stored.set('settings.probe.targetLanguage', 'en');
+    await useProviderStore.getState().load(p);
+    expect(entry().pair).toEqual({ source: 'fr', target: 'en' });
+  });
+
+  it('falls back to the initial pair for a side migratePair empties', async () => {
+    const p = {
+      ...probe,
+      languages: {
+        ...probe.languages,
+        migratePair: () => ({ source: '', target: '' }),
+        initial: () => ({ source: 'ja', target: 'fr' }),
+      },
+    } as unknown as AnyProvider;
+    await useProviderStore.getState().load(p);
+    expect(entry().pair).toEqual({ source: 'ja', target: 'fr' });
+  });
+
+  it("hands migratePair '' for a side nothing stored, and the migrated settings", async () => {
+    const migratePair = vi.fn((pair: LanguagePair) => pair);
+    const p = { ...probe, languages: { ...probe.languages, migratePair } } as unknown as AnyProvider;
+    await useProviderStore.getState().load(p);
+    expect(migratePair).toHaveBeenCalledWith({ source: '', target: '' }, { region: 'us', count: 1, on: false });
   });
 
   describe('initial', () => {

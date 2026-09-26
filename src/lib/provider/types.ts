@@ -23,6 +23,20 @@ export interface CredentialField { key: string; labelKey: string; secret: boolea
 /** Credential values by field key; a field with nothing saved reads as ''. */
 export type CredentialValues = Readonly<Record<string, string>>;
 
+/** What `settings.migrate` may consult besides the stored fields (F5). */
+export interface MigrationInputs {
+  /**
+   * Every key in `settings.legacyKeys`, as `getSetting` returns it with no
+   * default: `undefined` where nothing was ever stored. Chrome storage keeps
+   * a value's type; localStorage JSON-parses what it can, so a stored
+   * `"123"` or `"true"` arrives as a number or a boolean — a migration
+   * compares defensively.
+   */
+  legacy: Readonly<Record<string, unknown>>;
+  /** The saved credential values: every key in `credentials.keys`, '' where nothing is saved. */
+  credentials: CredentialValues;
+}
+
 /**
  * The sign-in session: what `credentials.read` may consult besides the
  * typed values (a managed provider), and the account a provider's
@@ -140,8 +154,15 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     /** Storage prefix: every field persists at `settings.<key>.<field>`. */
     key: string;
     defaults: S;
+    /**
+     * Keys read with no default at load and handed to `migrate` (F5): a setting this
+     * version no longer has (OpenAI's `turnDetectionMode`), or a field whose
+     * absence must be told from its default (Palabra's `authMode`). May name
+     * a field of `defaults`. Nothing is written back.
+     */
+    legacyKeys?: readonly string[];
     /** Turns what was stored — every field of `defaults`, each read with its default — into this version's `S`. */
-    migrate?(stored: Readonly<Record<string, unknown>>): S;
+    migrate?(stored: Readonly<Record<string, unknown>>, inputs: MigrationInputs): S;
   };
   Settings: ComponentType<SettingsProps<S>>;
   /** Model management, the local engines only: pushed from the summary in Simple mode, inline on Advanced's Provider tab. */
@@ -205,6 +226,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     targets(source: string, s: S): readonly LanguageOption[];
     /** The pair to start from when nothing is stored; normalized like any stored pair. Absent: the first source and its first target. */
     initial?(s: S): Partial<LanguagePair>;
+    /**
+     * Rewrites the stored pair before it is normalized (F5): a code the
+     * provider renamed (Palabra's `vn` → `vi`). '' in a side means nothing
+     * is stored there; a side returned as '' falls back to `initial`.
+     */
+    migratePair?(stored: LanguagePair, s: S): LanguagePair;
   };
 
   // the only capabilities generic code reads

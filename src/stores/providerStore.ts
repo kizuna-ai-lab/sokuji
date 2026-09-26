@@ -141,12 +141,15 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const service = ServiceFactory.getSettingsService();
       const defaults = p.settings.defaults as Record<string, unknown>;
       const fields = Object.keys(defaults);
+      const legacyKeys = p.settings.legacyKeys ?? [];
       // Every value is read with a default of its own type: getSetting returns
       // a stored string untouched only when the default is a string, and
       // JSON-parses it otherwise — a key "123456" would come back a number.
-      const [values, secrets, source, target] = await Promise.all([
+      const [values, secrets, legacyValues, source, target] = await Promise.all([
         Promise.all(fields.map((f) => service.getSetting<unknown>(storageKey(p, f), defaults[f]))),
         Promise.all(p.credentials.keys.map((k) => service.getSetting(storageKey(p, k), ''))),
+        // No default: `undefined` tells "never stored" from "stored as the default" (F5).
+        Promise.all(legacyKeys.map((k) => service.getSetting<unknown>(storageKey(p, k), undefined))),
         service.getSetting(storageKey(p, SOURCE), ''),
         service.getSetting(storageKey(p, TARGET), ''),
       ]);
@@ -154,12 +157,15 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // edit made after the first one landed.
       if (get().entries[p.id]) return;
       const stored = Object.fromEntries(fields.map((f, i) => [f, values[i]]));
-      const settings = p.settings.migrate ? p.settings.migrate(stored) : stored;
+      const credentials: CredentialValues = Object.fromEntries(p.credentials.keys.map((k, i) => [k, secrets[i]]));
+      const legacy = Object.fromEntries(legacyKeys.map((k, i) => [k, legacyValues[i]]));
+      const settings = p.settings.migrate ? p.settings.migrate(stored, { legacy, credentials }) : stored;
       const initial = p.languages.initial?.(settings) ?? {};
+      const pair = p.languages.migratePair ? p.languages.migratePair({ source, target }, settings) : { source, target };
       put(p, {
         settings,
-        credentials: Object.fromEntries(p.credentials.keys.map((k, i) => [k, secrets[i]])),
-        pair: normalizePair(p, settings, { source: source || initial.source, target: target || initial.target }),
+        credentials,
+        pair: normalizePair(p, settings, { source: pair.source || initial.source, target: pair.target || initial.target }),
       });
     },
 
