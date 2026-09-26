@@ -146,7 +146,8 @@ describe('the invariants every provider meets (F17)', () => {
       if (f.placeholderKey !== undefined) expect(at(en, f.placeholderKey)).toEqual(expect.any(String));
     };
     for (const p of PROVIDERS) for (const f of p.credentials.fields(p.settings.defaults)) check(f);
-    // Positive control: the fake's own fields are empty at its defaults (requireKey off).
+    // Positive control: the fake shows no field at its defaults; the override
+    // (`requireKey: true`) is what makes its key field appear, so the check has something to read.
     for (const f of fakeProvider.credentials.fields({ ...FAKE_DEFAULTS, requireKey: true })) check(f);
   });
 
@@ -170,7 +171,8 @@ describe('the invariants every provider meets (F17)', () => {
       expect(p.credentials.read(empty, signedOut), p.id).toHaveProperty('missing');
     };
     for (const p of PROVIDERS.filter((p) => p.kind === 'own-key')) check(p, p.settings.defaults);
-    // Positive control: the fake's default settings show no field at all.
+    // Positive control: the fake shows no field at its defaults; the override
+    // (`requireKey: true`) is what makes its key field appear, so the check has an empty field to read.
     check(fakeProvider, { ...FAKE_DEFAULTS, requireKey: true });
   });
 
@@ -195,9 +197,9 @@ describe('the invariants every provider meets (F17)', () => {
   it("the release offers its providers in the owner's order", async () => {
     vi.stubEnv('DEV', false);
     vi.resetModules();
-    const released = await import('./registry');
+    const releaseBuild = await import('./registry');
     // each provider plan adds its id where the owner orders it (spec: "one line in the order test")
-    expect(released.PROVIDERS.map((p) => p.id)).toEqual(['localInference']);
+    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['localInference']);
   });
 
   it('a development build adds exactly the two fakes', () => {
