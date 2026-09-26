@@ -94,6 +94,12 @@ describe('ProviderPicker', () => {
     expect(await screen.findByRole('option', { name: 'providers.local_inference.name' })).toBeTruthy();
   });
 
+  it("reads a provider's name under its i18nKey when it has one", async () => {
+    const openaiCompatible = { ...fakeProvider, id: 'openai_compatible', i18nKey: 'openaiCompatible', settings: { ...fakeProvider.settings, key: 'openaiCompatible' } };
+    render(<ProviderPicker providers={[openaiCompatible]} auth={noAuth} />);
+    expect(await screen.findByRole('option', { name: 'providers.openaiCompatible.name' })).toBeTruthy();
+  });
+
   it('disables the select and the credential inputs', async () => {
     stored.set('settings.fake.requireKey', true);
     render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} disabled />);

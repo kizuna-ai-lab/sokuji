@@ -84,24 +84,25 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
 
   // One renderer for every provider option — ports ProviderSection.tsx's
   // renderProviderOption (~:551-586) over the new registry: name/description
-  // key off the old enum's spelling (storedProviderValue), same as the
-  // option's `value`; a provider whose keys are missing falls back to its id
-  // for the name (as today) and no description line at all. The icon and
-  // vendor come straight off the definition (`p.icon`, `p.vendor`) rather
-  // than a separate UI-layer lookup table.
+  // key comes straight off the definition (`i18nKey`, falling back to `id` —
+  // controller ruling 2), not off `storedProviderValue`, which only maps the
+  // id onto its stored spelling; a provider whose keys are missing falls back
+  // to its id for the name (as today) and no description line at all. The
+  // icon and vendor come straight off the definition (`p.icon`, `p.vendor`)
+  // rather than a separate UI-layer lookup table.
   //
   // No "Recommended" tag: no managed provider is offered on this branch
   // (Stage 2 brings it back with the managed step).
   const renderProviderOption = (p: AnyProvider) => {
-    const storedId = storedProviderValue(p.id);
-    const name = t(`providers.${storedId}.name`, p.id);
+    const localeKey = p.i18nKey ?? p.id;
+    const name = t(`providers.${localeKey}.name`, p.id);
     if (!richSelect) {
       // Chrome below 135 renders <option>{text}</option> and drops every
       // child element, so on the extension's floor (116) the option holds
       // text only.
       return <option key={p.id} value={p.id}>{name}</option>;
     }
-    const description = t(`providers.${storedId}.description`, '');
+    const description = t(`providers.${localeKey}.description`, '');
     const vendor = p.vendor;
     return (
       <option key={p.id} value={p.id}>

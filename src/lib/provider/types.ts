@@ -158,6 +158,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   icon: ComponentType<{ size?: string | number }>;
   docs?: string;
   vendor?: string;
+  /**
+   * The segment the provider's locale keys sit under, when the catalogs
+   * spell it otherwise than `id` (controller ruling 2): `providers.<i18nKey
+   * ?? id>.name` and `.description`. LocalInference's is `local_inference`,
+   * OpenAI Compatible's will be `openaiCompatible`.
+   */
+  i18nKey?: string;
   /** Where a user reads how to set this provider up; the picker links it, dismissibly. */
   guideUrl?: string;
   /**
