@@ -1175,10 +1175,12 @@ What landed, by task:
 - **The preview signs in** (`c377e0df`): `&signedin=1` hands the session a
   signed-in stand-in with no network; `&script=` scripts either fake.
 - **Readiness for every kind** (`b3a939cd`, `6cf67038`, `af425383`):
-  `driveReadiness` checks own-key and managed providers — at once on selection,
-  load and a sign-in or account flip, 800 ms after an edit; a flip forgets
-  every managed provider's answer; the kept answer is per account; Validate is
-  own-key only and tracks `api_key_validated` again (F1).
+  `driveReadiness` checks own-key and managed providers — asked at once on
+  selection, load and a sign-in or account flip, 800 ms after an edit; a flip
+  forgets every managed provider's answer; a managed provider's kept answer is
+  per account, so a flip back to an account already answered is served from it
+  with no request; Validate is own-key only and tracks `api_key_validated`
+  again (F1).
 - **Registry invariants and `i18nKey`** (`5e98695e`): every provider meets
   the old enum's ids and slice keys, en names, credential sentences, a
   managed provider's sign-in reading, identity migrations; the release order
@@ -1209,10 +1211,33 @@ alias's words end to end. The app at `/` logs nothing new: WebGPU's "No
 available adapters" (headless) and the backend's CORS refusal of
 `localhost:5199`.
 
+**Final review** (whole plan, `8902c5d1..f8c12c89`): ready with fixes — no
+Critical, one Important, eight Minor, every routing and ruling agreed. The
+Important was a contract gap, not a code defect: a check the driver starts has
+no time limit, and Start is off with no words while it runs; the spec now says
+`check` bounds its own request ("Readiness is one check"), and Soniox, the
+first real network check, inherits it. The fix wave (`c3a48452`, `c8373bb3`,
+`67bd96b4`, `a5c2fff4`, `29e188f8`, then this record) took the task reviews'
+queued Minors and the final review's code ones:
+- the driver's timer skips a network provider whose readiness is no longer
+  unknown when it fires (a Validate within 800 ms of an edit no longer runs a
+  second network check);
+- only a managed provider's kept answer is per sign-in and account, so an
+  own-key provider's answer outlives a sign-in flip;
+- the leased fake's `startBoth` throws the start failure, not a cleanup's;
+- `NO_MODELS` is frozen;
+- doc and test strengthening: `canStart` / `start()` docs, the live gate's
+  not-loaded case, a non-vacuous `migratePair` case, the lease's
+  release-once case, `migrateFakeLeasedSettings`, Validate's `checking` case,
+  the registry test's wording.
+
+The spec also says now that `read`, not `check`, sees the sign-in; when checks
+run; and that a migration writes nothing back.
+
 **Stated departures from today:**
 - An own-key provider's readiness is checked on its own: at once when it is selected or loaded, and 800 ms after its settings or credentials last changed. Before, only Validate or a start checked it; the old app validated on every change with no delay.
   - One visible effect: with an empty key, the credential form shows "Enter your API key in Settings before starting." and Start is off with that reason as soon as the provider is selected, before anything is typed. The old app showed no verdict until a key was typed or Validate pressed.
-- A managed provider shows no Validate button, and is checked again at once when the user signs in or out, or switches account.
+- A managed provider shows no Validate button, and is asked again at once when the user signs in or out, or switches account (served from the kept answer when that account was already answered — amended after the final review).
 - Start is off, with the reason, when the gate would refuse: the participant leg on the web page, a pair that does not reverse (D20), a turn mode the provider does not offer. Before, Start was offered and the start was refused.
 - The development build's picker offers a second fake, "the leased fake" (development only).
 - The preview's `&mode=`, `&signedin=1`, and `&script=` for either fake.
@@ -1231,6 +1256,7 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
 - The four voice-preview sites folded into `Playback.preview` (roadmap 1c-2 → Stage 2).
 - Soniox-named notice aliases (`sonioxServiceUnavailable`, `sonioxServiceBusy`, `sonioxTtsFailed`, `sonioxTtsSegmentLost`) — choice 9.
 - The conformance suite (`runScenario`) over its harness, `FakeSocket` for its two sockets.
+- `check` bounds its own request (spec, "Readiness is one check"; final review I1): Soniox's is the first real network check the readiness driver runs unasked, and one that never settles would leave Start off with no words.
 
 **Kizuna Soniox** (`kizunaai_soniox`):
 - F11, whole:
@@ -1250,6 +1276,8 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
 - Participant speech against the lease (spec open question, survey §3.4.3).
 - The sign-in auto-switch: a product decision, with `providerStore.select`'s phase guard.
 - The registry's final order (Task 16's roadmap item).
+- Nothing account-mutable — the balance above all — may live in its ready answer: a flip back to an account already answered is served from the kept answer with no request (final review M1). The balance goes through `minimumBalance` and the lease.
+- `AuthContext` has no pending state: at every launch a signed-in user sees "Sign in to use Kizuna AI's built-in translation service." with Start off while the session loads (final review M8). The old gate did the same; the managed account row is where a pending state belongs.
 
 **Gemini:** F13's `InstructionsField` (the global template / advanced editor, moved out of `ProviderSpecificSettings.tsx`), `VoiceField`, `ModelField` over `props.models` and `shared.models` (Task 10), and the sliders.
 
@@ -1313,6 +1341,10 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
   `&monitor=1` does (development only).
 - `SettingsInitializer.test.tsx` (read-only, controller ruling 1) still names
   `driveLocalReadiness` in three comments.
+- The missing-credentials rule (`code ?? 'credentials_missing'`, `params`
+  when present) is written in both `providerStore.ts` and `run.ts` (final
+  review M5). Kept inline, on the owner's rule against extracting small
+  predicates; tests pin both sides.
 
 **Before any release from the branch**
 - **The release flags.** Production enables Kizuna Soniox and Palabra through

@@ -1120,8 +1120,29 @@ thing to redact.
 `check(k, s, { pair, legs, signal })` answers "can this provider start now" for
 every kind: a network validation for own-key providers, model readiness for
 local ones (folding in the store's two short-circuits to `modelStore` and
-`nativeModelStore`), a signed-in session for managed ones. Its result goes to
-one generic per-provider readiness state.
+`nativeModelStore`), the service's answer for managed ones. The sign-in itself
+is `credentials.read`'s to see: a managed provider signed out answers
+`{ missing, code: 'sign_in_required' }` there, and `check` is never called. Its
+result goes to one generic per-provider readiness state.
+
+**`check` bounds its own request** (amended by the Stage 2 foundation plan's
+final review). A check that cannot find out within its provider's own limit
+throws, as it does offline; the store then answers not-ready, and Start says
+why. Without the limit, a request that never settles leaves the provider
+`checking` and Start off with no words.
+
+**When checks run** (the app's readiness driver, `src/app/readiness.ts`): only
+while the runner is idle — a change seen mid-run is checked once idle again. A
+local provider is checked 150 ms after any change, and whenever its own inputs
+change (`watchReadiness`: models downloading). An own-key or managed provider
+is checked at once when it is selected, when its entry loads, and when the
+sign-in or the account flips; after an edit to its settings, credentials or
+pair, 800 ms after the last one. A sign-in or account flip forgets every
+loaded managed provider's answer. A ready answer from a network check is kept
+per settings, credentials, pair and legs — and, for a managed provider, per
+sign-in and account — so asking again for inputs already answered costs no
+request. Nothing account-mutable, a balance above all, may live in a ready
+answer: a flip back to an account already answered is served from it.
 
 The store's model auto-select, a switch covering three providers, becomes a pure
 effective-model function inside each provider that offers a model choice: the
@@ -1253,8 +1274,10 @@ register/clear pair would, the moment the legs come up together.
 
 ### Persisted settings that move
 
-Storage keys stay, but four things change meaning, and each needs a one-time
-migration on load:
+Storage keys stay, but four things change meaning. Each is migrated as it is
+read at load (`settings.migrate`, with `legacyKeys`, the credentials and
+`migratePair`); nothing is written back, so the stored values stay as they
+were and every load migrates them again:
 
 | Setting | Today | Becomes |
 |---|---|---|
