@@ -1020,10 +1020,11 @@ iframe) is a follow-up only if the owner asks.
 
 ## Scheduled by plan 1e-3c
 
-Plan 1e-3c (the transitional deletion) landed as commits `aea17e74..f2aecd43`
-(plan `1bfdd362`): seven tasks, two of them with one review fix round each,
-**−13,957 / +802 lines across 113 files**, no behaviour change beyond the one
-recorded below. The owner narrowed it on 2026-09-26, after accepting the
+Plan 1e-3c (the transitional deletion) landed as the commits after its plan
+commit `1bfdd362`, through `f2aecd43`, then this record and a final-review fix
+wave (comments and test names only): seven tasks, two of them with one review
+fix round each, **−13,957 / +802 lines across 113 files** (`1bfdd362..f2aecd43`),
+no behaviour change beyond the two differences recorded below. The owner narrowed it on 2026-09-26, after accepting the
 switched app on hardware:
 - **Every old provider stays** — clients, descriptors, the old per-provider
   and generic settings UI, the `settingsStore` slices, the Provider enum, the
@@ -1051,35 +1052,67 @@ two fields kept UI reads; device enumeration moved to a new module rather than
 a slimmed service; the managed-Soniox chips stay; pre-existing orphans are out
 of scope.
 
-**Behaviour change, accepted:** on Electron's first run the microphone
-permission warm-up — and, when it fails, its hang and its toast — now happens
-once instead of up to three times (the old `initializeAudioService()` chain
-called `getDevices()` separately each time).
+**Two behaviour differences, both accepted:**
+- On Electron's first run the microphone permission warm-up — and, when it
+  fails, its hang and its toast — now happens once instead of up to three
+  times (the old `initializeAudioService()` chain called `getDevices()`
+  separately each time).
+- At launch the old service's idle players opened their own `AudioContext`s
+  and output elements playing silence — to the monitor device, and on
+  Electron to the virtual speaker too. Nothing opens an output at launch any
+  more: the new graph opens its outputs on first use (`src/app/session.ts`).
+  Whatever a meeting app or the OS showed for Sokuji before a first run is
+  gone until then — part of the owner's Electron check below.
 
 Checked headlessly: the spine probes (subtitle in every form, surface, export,
-audio), `app-panel-probe --app` (plain, `--advanced`, `--ptt`, `--settings`),
+audio), `app-panel-probe --app` (plain, `--advanced`, `--ptt`, `--settings`;
+its step 9 fails unless Stop writes the auto-save file),
 `extension-overlay-probe` on fresh builds (plain and `--ptt`), both release
 builds with no fake code, the extension's `worklets/` without the deleted
-worklet, and a fresh profile's Settings listing its devices.
+worklet, and a fresh profile's Settings listing its devices. The overlay
+page's JS (entry plus its eight preloads) went from 2,219 KB to 2,129 KB
+against a build of `1bfdd362`.
 
 What it leaves:
 
 **The owner's Electron check (owed, not blocking)**
 - Device pickers populated; the first-run permission prompt (now once);
   monitor and passthrough heard once; the virtual microphone receiving TTS in
-  a meeting app.
+  a meeting app, and what the meeting app shows for it before the first run
+  (no silent output is opened at launch any more).
+
+**Before the first release**
+- `src/lib/audio/devices.ts` keeps the old service's bare `chrome` reference
+  verbatim: where `chrome` is undefined (Firefox/Safari, jsdom, possibly
+  Electron — unverified) a `NotAllowedError` warm-up throws past the inner
+  catch and `listAudioDevices` returns empty lists, the failure its own
+  header says must never happen. Guard it with `typeof chrome` and add the
+  `NotAllowedError` test case. Pre-existing; not fixed here, where the move
+  was verbatim.
+- `CLAUDE.md` still describes the deleted audio layer ("Always use
+  ModernAudioPlayer/ModernAudioRecorder", the old pipeline diagram,
+  `ModernBrowserAudioService`, `switchRecordingDevice`). Stage 2 sessions load
+  it every time; the owner decides when it is rewritten.
 
 **With the Stage 2 plans that edit these files**
 - Stale comments in kept code name deleted modules:
   `geminiTranslateModel.ts:58` (`SubtitleApp`), `sonioxBothMode.ts:22` and
   `sonioxManagedMinBalance.ts:5` (`sessionStartGate.ts`),
   `ProviderDescriptor.ts:336` and `managedVoicePrep.ts:18` (`computeStartGate`),
+  `ProviderDescriptor.ts:78` (`useSegmentationRuntime`),
+  `descriptorRegistry.test.ts:582` (`segmentationForProvider`),
+  `IClient.ts:409`, `GeminiClient.ts:618`, `PalabraAIClient.ts:140` and
+  `VolcengineAST2Client.ts:107,411` (`participantTelemetry` / `apiErrorProps`
+  as present-tense consumers),
   `LocalInferenceClient.ts:691` (`ConversationRow`),
   `localParticipantConfig.ts:17` (an import chain through the deleted audio
   service), `LanguageSection.tsx:483` and `LanguageSection.sentence.test.tsx:412`
   (`sessionStartGate`), `settingsStore.ts:1646` (`SubtitleApp`).
 - The old generic Settings surfaces and `sessionStore`'s remainder go when no
   kept reader is left.
+- `src/services/providers/speechMode.ts` (`isPushGatedMode`) lost its last
+  importer with `SubtitleApp`; kept with the descriptors, whose
+  `pushGatedModes` a Stage 2 port may read.
 - **Bundle size:** the old clients and descriptors still ship (734 KB
   unminified in the app) and sit in the chunk the extension's overlay page
   preloads, reached through `SubtitleBar` → `settingsStore` →
@@ -1088,7 +1121,8 @@ What it leaves:
 **Hygiene, optional**
 - The preview could publish from `currentSubtitleFeed()` instead of its own
   entries adapter; four tests carry their own `box<T>()`; three MainPanel /
-  takeover tests copy one mock block.
+  takeover tests copy one mock block; `ExportButton.tsx` now hosts only
+  `ExportMenuButton`, tested by two files with two different fake exporters.
 - Five `en` locale keys lost their last reader with the old start gate
   (`mainPanel.{apiKeyRequired,modelsRequired,modelsLoading,insufficientBalance,localModelsRequired}`);
   kept, as Stage 2 may need them.
@@ -1096,4 +1130,6 @@ What it leaves:
   `Auth/SignInPage.scss`, `lib/auth/guards.tsx`, `ConnectionStatus/*`,
   `UpdateSection.*`, `engine/resolutionNotes.ts`,
   `supertonicSidReconciliation.ts`, `utils/clampToScreen.ts`, and
-  `NativeTtsProto`'s static import in `App.tsx` (5.7 KB in release).
+  `NativeTtsProto`'s static import in `App.tsx` (5.7 KB in release);
+  `resolveParticipantSourceId` in `lib/modern-audio/participantSource.ts` has
+  no caller outside its own test.
