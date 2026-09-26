@@ -6,6 +6,7 @@
  * speaks (range), and lifecycle. Identity, time, ordering, cutting and logging
  * vocabulary are not its business (spec: "L0 — the client contract").
  */
+import type { LegName } from '../conversation/types';
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
 import type { Clock } from './clock';
 
@@ -115,5 +116,21 @@ export class AdapterStartError extends Error {
   constructor(message: string, readonly code: string, readonly params?: Record<string, string | number>, options?: { cause?: unknown }) {
     super(message);
     this.cause = options?.cause;
+  }
+}
+
+/**
+ * A `startBoth` that failed on one leg says which (D22): the runner's
+ * notice names it. `cause` is that leg's own failure — an
+ * `AdapterStartError` keeps its code — and the message is the cause's.
+ * Set here, not passed to `super`: this project's lib (ES2020) has no
+ * `Error` options.
+ */
+export class LegStartError extends Error {
+  readonly cause: unknown;
+
+  constructor(readonly leg: LegName, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.cause = cause;
   }
 }

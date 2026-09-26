@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { AdapterEvents, SessionContext, StartRequest } from '../../lib/contract/adapter';
+import { LegStartError } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import type { LegName } from '../../lib/conversation/types';
@@ -151,6 +152,10 @@ describe('the leased fake', () => {
     await expect(session.startBoth!(requests, events)).rejects.toThrow('The fake failed to start (fault knob).');
     clock.advance(10_000);
     expect(logs.speaker).toEqual([]);
+    const fresh1 = bothLegs(s(), s({ startThrows: true }));
+    await expect(session.startBoth!(fresh1.requests, fresh1.events)).rejects.toBeInstanceOf(LegStartError);
+    const fresh2 = bothLegs(s(), s({ startThrows: true }));
+    await expect(session.startBoth!(fresh2.requests, fresh2.events)).rejects.toMatchObject({ leg: 'participant' });
   });
 
   it("startBoth throws the start failure even when stopping the leg that did start fails too", async () => {

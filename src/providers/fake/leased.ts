@@ -9,6 +9,7 @@
  */
 import { KeyRound } from 'lucide-react';
 import type { AdapterEvents, AdapterSession, StartRequest } from '../../lib/contract/adapter';
+import { LegStartError } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import type { CredentialsMissing, Provider, ProviderRefusal } from '../../lib/provider/types';
 import type { FakeConfig } from './adapter';
@@ -43,12 +44,12 @@ async function startBothLeased(
 ): Promise<Record<LegName, AdapterSession>> {
   const legs: LegName[] = ['speaker', 'participant'];
   const settled = await Promise.allSettled(legs.map((leg) => startFake(requests[leg], events[leg])));
-  const failed = settled.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-  if (failed) {
+  const i = settled.findIndex((r) => r.status === 'rejected');
+  if (i !== -1) {
     // Opens nothing on failure: a leg that did start is stopped before the
     // rejection. Settled, so a stop that fails too never replaces the start failure.
     await Promise.allSettled(settled.map((r) => (r.status === 'fulfilled' ? r.value.stop() : undefined)));
-    throw failed.reason;
+    throw new LegStartError(legs[i], (settled[i] as PromiseRejectedResult).reason);
   }
   const [speaker, participant] = settled.map((r) => (r as PromiseFulfilledResult<AdapterSession>).value);
   if (!requests.speaker.config.tieBoth) return { speaker, participant };

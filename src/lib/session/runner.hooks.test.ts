@@ -1,11 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
+import { AdapterStartError, LegStartError } from '../contract/adapter';
 import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
+import type { LegName } from '../conversation/types';
 import type { AnyProvider } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { createRunner } from './runner';
+import type { Source } from './source';
 import type { RunNotice, RunShape, SessionHooks } from './types';
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -14,7 +17,7 @@ function withHooks(session: SessionHooks<unknown, unknown, unknown>, patch: Part
   return { ...fakeProvider, ...patch, session } as AnyProvider;
 }
 
-function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker']) {
+function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], openSource?: (leg: LegName) => Source) {
   const clock = createVirtualClock(0);
   const sources: FakeSource[] = [];
   const persistIfUnchanged = vi.fn();
@@ -42,7 +45,7 @@ function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker']) {
     readShape: () => shape,
     ensureReady: async () => ({ state: 'ready', models: [] }),
     persistIfUnchanged,
-    openSource: async () => { const s = createFakeSource(clock); sources.push(s); return s; },
+    openSource: async (leg) => { const s = openSource ? openSource(leg) : createFakeSource(clock); sources.push(s as FakeSource); return s; },
     playback: { audio: () => {}, held: () => {}, clear: () => {}, live: () => {} },
     analytics: { track: () => {} },
     newSessionId: () => 'run1',
@@ -207,5 +210,50 @@ describe('runner — startBoth (D23)', () => {
     await runner.start();
     expect(startBoth).not.toHaveBeenCalled();
     expect(runner.state.getState().phase).toBe('running');
+  });
+
+  it("names the leg startBoth says failed, with that leg's own code", async () => {
+    const startBoth = vi.fn(async () => {
+      throw new LegStartError('participant', new AdapterStartError('no loopback', 'network', { detail: 'denied' }));
+    });
+    const { runner } = setup(withHooks({ startBoth }), ['speaker', 'participant']);
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({
+      phase: 'idle',
+      lastEnd: { reason: 'start-failed', notice: { code: 'network', leg: 'participant', params: { detail: 'denied' } } },
+    });
+  });
+
+  it("a startBoth failure that names no leg is the first leg's, as before", async () => {
+    const startBoth = vi.fn(async () => {
+      throw new Error('boom');
+    });
+    const { runner } = setup(withHooks({ startBoth }), ['speaker', 'participant']);
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({
+      phase: 'idle',
+      lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', leg: 'speaker' } },
+    });
+  });
+
+  it("hands startBoth each leg's own track", async () => {
+    const clock = createVirtualClock(0);
+    let requestsSeen!: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>;
+    const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => {
+      requestsSeen = requests;
+      return {
+        speaker: await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker),
+        participant: await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant),
+      };
+    });
+    const { runner } = setup(
+      withHooks({ startBoth }),
+      ['speaker', 'participant'],
+      (leg) => ({ ...createFakeSource(clock), track: { id: `${leg}-track` } as unknown as MediaStreamTrack }),
+    );
+    await runner.start();
+    expect(requestsSeen.speaker.input).toMatchObject({ id: 'speaker-track' });
+    expect(requestsSeen.participant.input).toMatchObject({ id: 'participant-track' });
+    expect(requestsSeen.speaker.input).not.toBe(requestsSeen.participant.input);
   });
 });

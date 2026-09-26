@@ -6,6 +6,7 @@
  */
 import type { AnalyticsEvents } from '../analytics';
 import type { AdapterEvents, AdapterSession, Punctuator, StartRequest } from '../contract/adapter';
+import { LegStartError } from '../contract/adapter';
 import { eventsFrom, type AdapterEvent } from '../contract/events';
 import { Conversation, DEFAULT_RETENTION, type Retention } from '../conversation/Conversation';
 import type { Leg, LegName } from '../conversation/types';
@@ -239,6 +240,8 @@ export class Run {
       try {
         sessions = await p.session.startBoth(requests, events);
       } catch (error) {
+        // A provider that knows which leg failed says so; otherwise the start is the first leg's.
+        if (error instanceof LegStartError) throw new LegOpenError(error.leg, error.cause);
         throw new LegOpenError(shape.legs[0], error);
       }
       for (const leg of shape.legs) this.stack.defer(`${leg} session`, () => sessions[leg].stop());

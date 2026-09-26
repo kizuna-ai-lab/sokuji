@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from './clock';
-import { AdapterStartError, SAMPLE_RATE, type Adapter, type AdapterEvents, type AdapterSession } from './adapter';
+import { AdapterStartError, LegStartError, SAMPLE_RATE, type Adapter, type AdapterEvents, type AdapterSession } from './adapter';
 
 /** A no-op adapter: proves the interface can be implemented as written. */
 const nullAdapter: Adapter<{ name: string }, { key: string }> = {
@@ -56,5 +56,14 @@ describe('contract', () => {
     expect(error.cause).toBe(original);
     expect(error.message).toBe('GPU out of memory');
     expect(new AdapterStartError('no cause', 'code').cause).toBeUndefined();
+  });
+
+  it("LegStartError names the leg and keeps that leg's failure as its cause and message", () => {
+    const cause = new AdapterStartError('no loopback', 'network');
+    const e = new LegStartError('participant', cause);
+    expect(e.leg).toBe('participant');
+    expect(e.cause).toBe(cause);
+    expect(e.message).toBe('no loopback');
+    expect(new LegStartError('speaker', 'plain').message).toBe('plain');
   });
 });
