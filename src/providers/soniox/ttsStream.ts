@@ -46,6 +46,7 @@ import { SONIOX_REDUCE_SILENCE } from '../../lib/soniox/ttsCatalog';
 import { sonioxHosts, type SonioxRegion } from '../../lib/soniox/regions';
 import { every, realClock, pinnedRealClock, type Clock } from '../../lib/contract/clock';
 import { nativeSocket, WS_OPEN, type OpenSocket, type SonioxWireDeps } from './socket';
+import type { TextRange } from '../../lib/contract/adapter';
 
 export interface SonioxTtsOptions {
   apiKey: string;
@@ -73,8 +74,33 @@ export interface SonioxTtsOptions {
  */
 export type SonioxTtsErrorScope = 'segment' | 'all';
 
+/** Which text a TTS chunk speaks: the caller's key for it (a translation
+ *  entry's ref) and the chunk's UTF-16 span within that entry's text. */
+export interface TextTag {
+  ref: number;
+  span: TextRange;
+}
+
+/** Which stream — and, if the caller tagged its text, which ref — a chunk of audio belongs to. */
+export interface SonioxTtsAudioInfo {
+  streamId: string;
+  ref?: number;
+}
+
+/** How a TTS segment ended: its ref and the union of its chunks' spans
+ *  (both undefined when the caller never tagged its text), and whether it
+ *  finished cleanly (its own `terminated`, no error before it) or was cut
+ *  short (a 408, a socket error, or a dropped connection). An intentional
+ *  `close()` reports no segment ends at all — it is not a failure. */
+export interface SonioxTtsSegmentEnd {
+  streamId: string;
+  ref?: number;
+  span?: TextRange;
+  clean: boolean;
+}
+
 export interface SonioxTtsStreamHandlers {
-  onAudio?: (audio: Int16Array) => void;
+  onAudio?: (audio: Int16Array, info: SonioxTtsAudioInfo) => void;
   // hadActiveStream: whether a stream carrying utterance text (active or still
   // draining its final audio) existed at the moment of this error/close, as
   // opposed to a socket that was genuinely idle. The caller
@@ -83,6 +109,8 @@ export interface SonioxTtsStreamHandlers {
   onError?: (code: string, message: string, hadActiveStream: boolean, scope: SonioxTtsErrorScope) => void;
   /** A frame that would not parse: the caller decides what an episode of them is worth (choice 7). */
   onUnreadable?: (error: unknown) => void;
+  /** A stream this component opened has ended — cleanly or not (choice 2, Task 7's fill-in). */
+  onSegmentEnd?: (end: SonioxTtsSegmentEnd) => void;
 }
 
 /** Segment timing, measured against tts-rt-v2's kill timers (see the header). */
@@ -132,6 +160,7 @@ interface QueuedItem {
   language?: string;
   /** When the text arrived — the segment's age counts from here even if it waited. */
   at?: number;
+  tag?: TextTag;
 }
 
 const CONNECTION_TIMEOUT_MS = 15000;
@@ -153,7 +182,11 @@ export class SonioxTtsStream {
   private activeStreamId: string | null = null;
   private activeLanguage: string | null = null;
   private activeHasAudio = false;       // has the server started speaking this segment?
+  private activeRef: number | undefined; // the ref of the text the active segment speaks
   private drainingStreamId: string | null = null; // ended segment, terminated pending
+  /** Per stream this component opened: the ref its text carries and the
+   *  union of its chunks' spans. Deleted at the stream's end. */
+  private readonly segments = new Map<string, { ref?: number; span?: TextRange }>();
   private queue: QueuedItem[] = [];
   private utteranceCounter = 0;
   private segmentCounter = 0;
@@ -220,12 +253,13 @@ export class SonioxTtsStream {
           }
         } else if (data.audio && isLive) {
           if (id === this.activeStreamId) this.activeHasAudio = true;
-          this.handlers.onAudio?.(this.base64ToInt16(data.audio));
+          this.handlers.onAudio?.(this.base64ToInt16(data.audio), { streamId: id!, ref: this.segments.get(id!)?.ref });
         }
         // terminated must always be processed, even when the same message also
         // carried an error — otherwise a combined error+terminated frame would
         // leave drainingStreamId set and wedge the queue forever.
         if (data.terminated && id === this.drainingStreamId) {
+          this.segmentEnded(id!, true);
           this.drainingStreamId = null;
           this.flushQueue();
         }
@@ -253,6 +287,8 @@ export class SonioxTtsStream {
         if (!this.intentionalClose) {
           // Snapshot BEFORE clearing — same seam as the error branch above.
           const hadActiveStream = this.hasLiveStream();
+          if (this.activeStreamId) this.segmentEnded(this.activeStreamId, false);
+          if (this.drainingStreamId) this.segmentEnded(this.drainingStreamId, false);
           this.resetStreams();
           this.handlers.onError?.('socket_closed', 'Soniox TTS socket closed unexpectedly', hadActiveStream, 'all');
         }
@@ -260,9 +296,9 @@ export class SonioxTtsStream {
     });
   }
 
-  sendText(text: string, language: string): void {
+  sendText(text: string, language: string, tag?: TextTag): void {
     if (!this.isOpen()) return;
-    const item: QueuedItem = { kind: 'text', text, language, at: this.clock.now() };
+    const item: QueuedItem = { kind: 'text', text, language, tag, at: this.clock.now() };
     if (this.drainingStreamId) {
       this.queue.push(item);
       return;
@@ -295,6 +331,8 @@ export class SonioxTtsStream {
       this.ws = null;
     }
     this.resetStreams();
+    // An intentional close ends nothing: whatever was live is simply forgotten.
+    this.segments.clear();
   }
 
   isOpen(): boolean {
@@ -306,15 +344,21 @@ export class SonioxTtsStream {
   }
 
   private doSendText(item: QueuedItem): void {
-    if (this.activeStreamId && this.activeLanguage !== item.language) {
-      // A stream speaks one language: finish this segment, speak the new text
-      // in the next. Put it back at the FRONT — flushQueue may hold later items.
+    if (this.activeStreamId && (this.activeLanguage !== item.language || (item.tag !== undefined && this.activeRef !== item.tag.ref))) {
+      // A stream speaks one language, and one ref's text: finish this segment,
+      // speak the new text in the next. Put it back at the FRONT — flushQueue
+      // may hold later items.
       this.endSegment();
       this.queue.unshift(item);
       return;
     }
-    if (!this.activeStreamId) this.openSegment(item.language!, item.at!);
+    if (!this.activeStreamId) this.openSegment(item.language!, item.at!, item.tag?.ref);
     this.ws!.send(JSON.stringify({ stream_id: this.activeStreamId, text: item.text, text_end: false }));
+    const record = this.segments.get(this.activeStreamId!);
+    if (record && item.tag) {
+      const [a, b] = item.tag.span;
+      record.span = record.span ? [Math.min(record.span[0], a), Math.max(record.span[1], b)] : [a, b];
+    }
     this.scheduleSegmentEnd(item.text!);
   }
 
@@ -345,7 +389,7 @@ export class SonioxTtsStream {
     }, TTS_SEGMENT_TIMING.idleMs);
   }
 
-  private openSegment(language: string, firstTextAt: number): void {
+  private openSegment(language: string, firstTextAt: number, ref?: number): void {
     if (!this.utteranceOpen) {
       this.utteranceCounter += 1;
       this.segmentCounter = 0;
@@ -372,6 +416,8 @@ export class SonioxTtsStream {
     this.activeStreamId = streamId;
     this.activeLanguage = language;
     this.activeHasAudio = false;
+    this.activeRef = ref;
+    this.segments.set(streamId, { ref });
     // Rule 4. Counted from ARRIVAL: text that waited behind a draining segment
     // has already spent part of its budget.
     const left = Math.max(0, firstTextAt + TTS_SEGMENT_TIMING.maxAgeMs - this.clock.now());
@@ -390,6 +436,16 @@ export class SonioxTtsStream {
     this.activeStreamId = null;
     this.activeLanguage = null;
     this.activeHasAudio = false;
+    this.activeRef = undefined;
+  }
+
+  /** A stream this component opened has ended: report its ref and the union
+   *  of its chunks' spans, then forget it — a stream reports at most once. */
+  private segmentEnded(streamId: string, clean: boolean): void {
+    const record = this.segments.get(streamId);
+    if (!record) return;
+    this.segments.delete(streamId);
+    this.handlers.onSegmentEnd?.({ streamId, ref: record.ref, span: record.span, clean });
   }
 
   /**
@@ -401,19 +457,24 @@ export class SonioxTtsStream {
   private handleStreamFailure(streamId?: string): void {
     if (streamId === undefined) {
       // Connection-level error: no specific stream named, clear everything.
+      if (this.activeStreamId) this.segmentEnded(this.activeStreamId, false);
+      if (this.drainingStreamId) this.segmentEnded(this.drainingStreamId, false);
       this.clearSegmentTimers();
       this.activeStreamId = null;
       this.activeLanguage = null;
       this.activeHasAudio = false;
+      this.activeRef = undefined;
       this.drainingStreamId = null;
       this.flushQueue();
       return;
     }
+    this.segmentEnded(streamId, false);
     if (streamId === this.activeStreamId) {
       this.clearSegmentTimers();
       this.activeStreamId = null;
       this.activeLanguage = null;
       this.activeHasAudio = false;
+      this.activeRef = undefined;
     }
     if (streamId === this.drainingStreamId) {
       this.drainingStreamId = null;
@@ -437,6 +498,7 @@ export class SonioxTtsStream {
     this.activeStreamId = null;
     this.activeLanguage = null;
     this.activeHasAudio = false;
+    this.activeRef = undefined;
     this.drainingStreamId = null;
     this.queue = [];
     this.utteranceOpen = false;
