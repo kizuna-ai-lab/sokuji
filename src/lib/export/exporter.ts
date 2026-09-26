@@ -1,8 +1,7 @@
 /**
  * An export menu's view of one conversation (plan 1d-3): the new writer,
  * with the file header and the metadata of the conversation's own run. The
- * menu draws over this seam; today's conversation builds its own
- * (`ExportButton`) until plan 1e deletes it.
+ * menu (`ExportMenuButton`) draws over this seam.
  */
 import { formatLocalDateTime, formatLocalTime } from '../../utils/conversationExport';
 import type { Leg } from '../conversation/types';

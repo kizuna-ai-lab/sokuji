@@ -1,14 +1,7 @@
-import useSettingsStore from '../../stores/settingsStore';
 import i18n from '../../locales';
 import { isElectron } from '../../utils/environment';
 import { reportError, describeCause } from '../diagnostics/report';
-import {
-  buildTxtExport,
-  buildTxtI18n,
-  downloadFile,
-  normalizeMessages,
-  type ExportItem,
-} from '../../utils/conversationExport';
+import { downloadFile } from '../../utils/conversationExport';
 
 /** The slice of the toast API this needs; `useToast().showToast` fits it. */
 export interface AutoSaveNotifier {
@@ -79,42 +72,4 @@ export async function saveTranscriptText(content: string, filename: string, noti
   } catch (error) {
     return saveFailed(error, notify);
   }
-}
-
-/**
- * Save a finished session's conversation, if the user turned that on.
- *
- * Called once per session end, after both legs are down, with the merged
- * final rows. Always the full conversation: the Export menu's scope boxes only
- * govern the manual export. Never rejects — a failure is reported and shown,
- * and the teardown awaiting this carries on.
- */
-export async function autoSaveTranscript(
-  items: ExportItem[],
-  notify: AutoSaveNotifier,
-): Promise<AutoSaveOutcome> {
-  let text: { content: string; filename: string };
-  try {
-    const settings = useSettingsStore.getState();
-    if (!settings.autoSaveOnStop) return 'disabled';
-    if (normalizeMessages(items).length === 0) return 'empty';
-
-    const providerSettings = settings.getCurrentProviderSettings();
-    text = buildTxtExport(
-      {
-        items,
-        provider: settings.provider,
-        providerSettings,
-        localInferenceSettings: settings.localInference,
-        fallbackLanguages: {
-          sourceLanguage: providerSettings.sourceLanguage ?? 'EN',
-          targetLanguage: providerSettings.targetLanguage ?? 'EN',
-        },
-      },
-      buildTxtI18n((key, defaultValue) => i18n.t(key, { defaultValue })),
-    );
-  } catch (error) {
-    return saveFailed(error, notify);
-  }
-  return saveTranscriptText(text.content, text.filename, notify);
 }

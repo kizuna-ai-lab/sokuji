@@ -16,21 +16,9 @@ import {
   FloatingFocusManager,
   FloatingPortal,
 } from '@floating-ui/react';
-import type { ConversationItem } from '../../services/interfaces/IClient';
 import type { DisplayMode } from '../../stores/settingsStore';
-import { shouldShowItem, modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
-import {
-  buildExportPayload,
-  buildTxtI18n,
-  copyToClipboard,
-  downloadFile,
-  exportFilename,
-  formatAsJson,
-  formatAsTxt,
-  normalizeMessages,
-  type ExportInput,
-  type TxtI18n,
-} from '../../utils/conversationExport';
+import { modeToToggles, togglesToMode, type ScopeToggles } from './conversationFilter';
+import { copyToClipboard, downloadFile, exportFilename } from '../../utils/conversationExport';
 import { useToast } from '../Toast';
 import { ChildWindowPopover, useChildPopoverToggle } from '../Subtitle/ChildWindowPopover';
 import { useAutoSaveOnStop, useSetAutoSaveOnStop } from '../../stores/settingsStore';
@@ -39,47 +27,18 @@ import type { Exporter } from '../../lib/export/exporter';
 import type { TranscriptScope } from '../../lib/export/transcript';
 import './ExportButton.scss';
 
-interface ExportButtonProps {
-  /**
-   * Already-merged-and-sorted items — the FULL list, unfiltered. Which of
-   * them reach the file is decided here, by the scope checkboxes, so that a
-   * caller cannot silently narrow an export by passing a shorter array.
-   */
-  combinedItems: Array<ConversationItem & {
-    source?: string;
-    sourceLanguage?: string;
-    targetLanguage?: string;
-  }>;
-  /** Speaker-side toolbar filter. Seeds the scope checkboxes; never written back. */
-  speakerMode: DisplayMode;
-  /** Participant-side toolbar filter. Seeds the scope checkboxes; never written back. */
-  participantMode: DisplayMode;
-  /** Current provider id from useProvider(). */
-  provider: string;
-  /** Snapshot of the current provider's settings (from getCurrentProviderSettings()). */
-  currentProviderSettings: any;
-  /** Local-inference settings sub-object (from useLocalInferenceSettings()), used only when provider === LOCAL_INFERENCE. */
-  localInferenceSettings: any;
-  /** Source language code from current provider settings. Used as a fallback when the conversation carries no per-item language snapshots (e.g. empty conversation). */
-  sourceLanguage: string;
-  /** Target language code from current provider settings. Used as a fallback when the conversation carries no per-item language snapshots (e.g. empty conversation). */
-  targetLanguage: string;
-  /**
-   * Where the menu renders. 'floating' (default) is the in-window floating-ui
-   * menu. 'child-window' hosts it in its own frameless OS window — for the
-   * Electron subtitle bar, whose 200px window cannot contain the menu.
-   */
-  popoverHost?: 'floating' | 'child-window';
-}
-
 export interface ExportMenuButtonProps {
-  /** What the menu exports: the new conversation's, or a legacy one built from today's items (below). */
+  /** What the menu exports (plan 1d-3). */
   exporter: Exporter;
   /** Speaker-side toolbar filter. Seeds the scope checkboxes; never written back. */
   speakerMode: DisplayMode;
   /** Participant-side toolbar filter. Seeds the scope checkboxes; never written back. */
   participantMode: DisplayMode;
-  /** See `ExportButtonProps.popoverHost`. */
+  /**
+   * Where the menu renders. 'floating' (default) is the in-window floating-ui
+   * menu. 'child-window' hosts it in its own frameless OS window — for the
+   * Electron subtitle bar, whose 200px window cannot contain the menu.
+   */
   popoverHost?: 'floating' | 'child-window';
 }
 
@@ -413,57 +372,3 @@ export function ExportMenuButton({ exporter, speakerMode, participantMode, popov
     </>
   );
 }
-
-/**
- * Today's export over today's conversation items: the menu above, over an
- * exporter that writes exactly what this component wrote before plan 1d-3.
- * `MainPanel` and `SubtitleApp` render this; plan 1e deletes it.
- */
-const ExportButton: React.FC<ExportButtonProps> = ({
-  combinedItems,
-  speakerMode,
-  participantMode,
-  provider,
-  currentProviderSettings,
-  localInferenceSettings,
-  sourceLanguage,
-  targetLanguage,
-  popoverHost = 'floating',
-}) => {
-  const { t } = useTranslation();
-  const txtI18n: TxtI18n = useMemo(() => buildTxtI18n((key, def) => t(key, def)), [t]);
-  const exporter: Exporter = useMemo(() => {
-    // The scope is applied with the same predicate the conversation view
-    // uses, so "what the file contains" and "what the screen shows" can never
-    // drift apart by having two filters to keep in step.
-    const scoped = (scope: TranscriptScope) =>
-      combinedItems.filter((item) => shouldShowItem(item, scope.speaker, scope.participant));
-    const input = (scope: TranscriptScope): ExportInput => ({
-      items: scoped(scope),
-      provider,
-      providerSettings: currentProviderSettings,
-      localInferenceSettings,
-      fallbackLanguages: { sourceLanguage, targetLanguage },
-      // Recorded so the file says whether it is the whole conversation. A full
-      // scope is dropped inside buildSessionMetadata.
-      scope: { speaker: scope.speaker, participant: scope.participant },
-    });
-    return {
-      hasContent: normalizeMessages(combinedItems).length > 0,
-      hasScopedContent: (scope) => normalizeMessages(scoped(scope)).length > 0,
-      text: (scope, withHeader) => {
-        const { messages, metadata } = buildExportPayload(input(scope));
-        return formatAsTxt(messages, metadata, txtI18n, { includeHeader: withHeader });
-      },
-      json: (scope) => {
-        const { messages, metadata } = buildExportPayload(input(scope));
-        return formatAsJson(messages, metadata);
-      },
-    };
-  }, [combinedItems, provider, currentProviderSettings, localInferenceSettings, sourceLanguage, targetLanguage, txtI18n]);
-  return (
-    <ExportMenuButton exporter={exporter} speakerMode={speakerMode} participantMode={participantMode} popoverHost={popoverHost} />
-  );
-};
-
-export default ExportButton;
