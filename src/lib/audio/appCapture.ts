@@ -21,7 +21,7 @@ export interface AppCapture {
   openSource: OpenSource;
   /** For the echo notice (plan 1d): `useEchoNotice`'s one-listener contract. */
   echo: EchoWatch;
-  /** Each leg's input spectrum for the footer's waveform: the output strip's frequency bars, over the chunks it delivers. */
+  /** Each leg's input spectrum for the footer's waveform: the output strip's frequency bars, over the chunks it delivers while `meterGate` lets them through. */
   levels: Readonly<Record<LegName, LevelMeter>>;
 }
 
@@ -74,7 +74,13 @@ function withCleanup(source: Source, cleanup: () => void): Source {
   };
 }
 
-export function createAppCapture(playback: Playback, platform: Platform = getEnvironment()): AppCapture {
+export interface AppCaptureOptions {
+  /** Checked per chunk: false, and the leg's meter reads flat. Absent: every chunk moves it. */
+  meterGate?(leg: LegName): boolean;
+}
+
+export function createAppCapture(playback: Playback, platform: Platform = getEnvironment(), options: AppCaptureOptions = {}): AppCapture {
+  const { meterGate } = options;
   const echo = createEchoWatch(playback.ttsTap);
   const levels: Record<LegName, LevelMeter> = { speaker: createLevelMeter(), participant: createLevelMeter() };
 
@@ -92,7 +98,18 @@ export function createAppCapture(playback: Playback, platform: Platform = getEnv
       const source = await open(leg, signal);
       // The processed microphone is the original voice under the translation.
       const offPassthrough = leg === 'speaker' ? source.onPcm((pcm) => playback.passthrough(pcm)) : () => {};
-      const offLevel = source.onPcm((pcm) => levels[leg].push(pcm));
+      // A gate that shuts flattens the meter at its next chunk, not a stale
+      // spell later: reset once on the way in, never per chunk.
+      let metering = true;
+      const offLevel = source.onPcm((pcm) => {
+        if (!meterGate || meterGate(leg)) {
+          metering = true;
+          levels[leg].push(pcm);
+        } else if (metering) {
+          metering = false;
+          levels[leg].reset();
+        }
+      });
       const detach = echo.attach(leg, source);
       return withCleanup(source, () => {
         offPassthrough();

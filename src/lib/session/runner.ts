@@ -28,6 +28,8 @@ export interface Runner {
   abandon(): void;
   press(): void;
   release(): void;
+  /** Whether the speaker's voice is fed into processing now — what the mic strip shows: while running, except under push-to-talk only while a turn is held. False when idle, starting or stopping. */
+  speakerAudioInUse(): boolean;
   sendText(text: string): void;
   /** Empties the conversation, and the queued audio with it. */
   clear(): void;
@@ -288,6 +290,8 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     },
     press: () => current?.press(),
     release: () => current?.release(),
+    // The phase too: `end()` says stopping before the run itself starts ending.
+    speakerAudioInUse: () => state.getState().phase === 'running' && (current?.speakerAudioInUse() ?? false),
     sendText: (text) => current?.sendText(text),
     clear: () => {
       conversation.clear();

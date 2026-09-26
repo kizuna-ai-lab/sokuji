@@ -181,7 +181,12 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   function audio(): Promise<LoadedAudio> {
     loading ??= getAppAudio().then(
       (app) => {
-        const capture = createAppCapture(app.playback);
+        const capture = createAppCapture(app.playback, getEnvironment(), {
+          // The mic strip shows whether the voice is fed into processing
+          // (the owner's rule, 2026-09-26): flat under push-to-talk until a
+          // turn is held; the participant's strip shows what it captures.
+          meterGate: (leg) => leg !== 'speaker' || runner.speakerAudioInUse(),
+        });
         playback = app.playback;
         openLeg = options.capture ? options.capture(capture.openSource) : capture.openSource;
         if (!karaokeReal) {

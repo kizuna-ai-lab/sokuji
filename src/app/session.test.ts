@@ -26,15 +26,22 @@ const { playback, getAppAudio } = vi.hoisted(() => {
 });
 vi.mock('../lib/audio/appAudio', () => ({ getAppAudio }));
 
-vi.mock('../lib/audio/appCapture', () => ({
-  createAppCapture: () => ({
-    openSource: async () => { throw new Error('no capture in tests'); },
-    echo: { attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} },
-    levels: {
-      speaker: { push() {}, read: () => new Float32Array(32), reset() {} },
-      participant: { push() {}, read: () => new Float32Array(32), reset() {} },
-    },
-  }),
+// The app's own capture, over stand-ins for the devices, as appCapture.test.ts
+// mocks them: a test that routes a leg through it (`capture: (app) => app`)
+// sets `devices.next`; every other test hands the run a fake source directly.
+const devices = vi.hoisted(() => ({
+  /** What the next device opens to; none, and it refuses. */
+  next: null as FakeSource | null,
+  async open(): Promise<FakeSource> {
+    if (!this.next) throw new Error('no device in tests');
+    return this.next;
+  },
+}));
+vi.mock('../lib/audio/capture/mic', () => ({ openMic: () => devices.open() }));
+vi.mock('../lib/audio/capture/systemAudio', () => ({ openSystemAudio: () => devices.open() }));
+vi.mock('../lib/audio/capture/tab', () => ({ openTab: () => devices.open() }));
+vi.mock('../lib/audio/capture/echoWatch', () => ({
+  createEchoWatch: () => ({ attach: () => () => {}, onNotice: () => {}, setDiagnostics: () => {} }),
 }));
 
 // As punctuation.test.ts mocks it: this file only needs the runtime's
@@ -109,6 +116,7 @@ const turnModeBefore = useTurnModeStore.getState();
 beforeEach(() => {
   useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'] });
   useAudioStore.setState({ mode: 'speaker', selectedInputDevice: null });
+  devices.next = null;
   vi.clearAllMocks();
 });
 
@@ -168,6 +176,30 @@ describe('createAppSession', () => {
     expect(session.runner.state.getState().phase).toBe('running');
     expect(getAppAudio).toHaveBeenCalledTimes(1);
     expect(playback.live).toHaveBeenCalledWith(true);
+    await session.runner.stop();
+  });
+
+  // The owner's rule (2026-09-26): the mic strip shows whether the voice is
+  // fed into processing. The meter runs on the real clock, which barely moves
+  // here: two chunks make a window of the tone, and flat at once on the
+  // release is the gate's reset, not the meter's own staleness.
+  it("keeps the speaker's meter flat under push-to-talk until a press, then follows the chunks until the release", async () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { session, clock } = await setup({ capture: (app) => app });
+    devices.next = createFakeSource(clock, { voiced: true });
+    const flat = (levels: Float32Array) => [...levels].every((v) => v === 0);
+    await session.runner.start();
+    const { levels } = (await session.audio()).capture;
+
+    clock.advance(300);
+    expect(flat(levels.speaker.read())).toBe(true);
+    session.runner.press();
+    clock.advance(200);
+    expect(flat(levels.speaker.read())).toBe(false);
+    session.runner.release();
+    clock.advance(100);
+    expect(flat(levels.speaker.read())).toBe(true);
+
     await session.runner.stop();
   });
 

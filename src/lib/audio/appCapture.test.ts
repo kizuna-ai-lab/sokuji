@@ -109,6 +109,44 @@ describe('createAppCapture — levels', () => {
   });
 });
 
+describe('createAppCapture — the meter gate', () => {
+  const flat = (levels: Float32Array) => [...levels].every((v) => v === 0);
+
+  it("keeps a leg's meter flat while its gate is shut, and the other leg's moving", async () => {
+    const capture = createAppCapture(fakePlayback(), 'electron', { meterGate: (leg) => leg !== 'speaker' });
+    await capture.openSource('speaker', live());
+    opened.sources.push(createFakeSource(clock, { voiced: true }));
+    await capture.openSource('participant', live());
+    clock.advance(200);
+    expect(flat(capture.levels.speaker.read())).toBe(true);
+    expect(flat(capture.levels.participant.read())).toBe(false);
+  });
+
+  // The meter's own staleness would keep the bars up for 300 ms of the real
+  // clock, which barely moves here: flat at once means the gate reset it.
+  it('flattens the meter at the first chunk after its gate shuts, and moves it again once the gate opens', async () => {
+    let open = true;
+    const capture = createAppCapture(fakePlayback(), 'electron', { meterGate: () => open });
+    await capture.openSource('speaker', live());
+    clock.advance(200);
+    expect(flat(capture.levels.speaker.read())).toBe(false);
+    open = false;
+    clock.advance(100);
+    expect(flat(capture.levels.speaker.read())).toBe(true);
+    open = true;
+    clock.advance(200);
+    expect(flat(capture.levels.speaker.read())).toBe(false);
+  });
+
+  it('still passes a gated chunk through to playback', async () => {
+    const playback = fakePlayback();
+    const capture = createAppCapture(playback, 'electron', { meterGate: () => false });
+    await capture.openSource('speaker', live());
+    clock.advance(100);
+    expect(playback.passthrough).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('the settings the sources follow', () => {
   it("reads the microphone's device, noise suppression and mute from the audio store, live", () => {
     const settings = micSettings();

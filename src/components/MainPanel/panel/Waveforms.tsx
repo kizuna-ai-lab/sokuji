@@ -53,7 +53,10 @@ function useWaveform(read: () => Float32Array | null, color: string): RefObject<
  * mic while `mode` includes the speaker leg, system while it includes the
  * participant leg. Each draws its leg's spectrum — the same frequency bars as
  * the output strip, moving as smoothly: the meter emulates the output's
- * analyser and moves its window with time between chunks. Both draw loops
+ * analyser and moves its window with time between chunks. The mic strip shows
+ * whether the voice is fed into processing, not whether the microphone hears
+ * sound: flat under push-to-talk until a turn is held (the session's
+ * `meterGate`, `src/app/session.ts`). Both draw loops
  * run every render regardless of which strip is visible (Rules of Hooks) —
  * only their strips' visibility follows `mode`, as today's condition did.
  */

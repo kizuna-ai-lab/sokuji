@@ -297,6 +297,16 @@ export class Run {
     });
   }
 
+  /**
+   * The speaker's voice is fed into processing: once live and until ending —
+   * push-to-translate sends the original voice out while the key is up — but
+   * under push-to-talk only while a turn is held (`send`).
+   */
+  speakerAudioInUse(): boolean {
+    if (this.ending || this.liveSince === null) return false;
+    return this.shape.turnMode !== 'push-to-talk' || this.turn?.isOpen === true;
+  }
+
   /** Each leg's conversation as it stands, speaker first (the shape's order): what auto-save reads once this run has ended. */
   legs(): readonly Leg[] {
     return [...this.conversations.values()].map((conversation) => conversation.snapshot());

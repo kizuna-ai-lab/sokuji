@@ -36,6 +36,7 @@ function fakeRunner(initial: RunState = { phase: 'idle' }) {
     abandon: vi.fn(),
     press: vi.fn(),
     release: vi.fn(),
+    speakerAudioInUse: vi.fn(() => false),
     sendText: vi.fn(),
     clear: vi.fn(),
   };

@@ -175,6 +175,63 @@ describe('runner — manual turns', () => {
   });
 });
 
+describe("runner — whether the speaker's audio is in use", () => {
+  it('is not while idle', () => {
+    const { runner } = setup({ turnMode: 'auto' });
+    expect(runner.speakerAudioInUse()).toBe(false);
+  });
+
+  it('is under automatic turns once live, and not while starting, while stopping, nor after', async () => {
+    const { runner } = setup({ turnMode: 'auto' });
+    const seen: Array<[string, boolean]> = [];
+    runner.state.subscribe((now) => { seen.push([now.phase, runner.speakerAudioInUse()]); });
+    await runner.start();
+    expect(runner.speakerAudioInUse()).toBe(true);
+    await runner.stop();
+    expect(runner.speakerAudioInUse()).toBe(false);
+    const inPhase = (phase: string) => [...new Set(seen.filter(([p]) => p === phase).map(([, inUse]) => inUse))];
+    expect(inPhase('starting')).toEqual([false]);
+    expect(inPhase('running')).toEqual([true]);
+    expect(inPhase('stopping')).toEqual([false]);
+    expect(inPhase('idle')).toEqual([false]);
+  });
+
+  it('is under push-to-translate once live, whether the key is held or not', async () => {
+    const { runner, clock } = setup({ turnMode: 'push-to-translate' });
+    await runner.start();
+    expect(runner.speakerAudioInUse()).toBe(true);
+    runner.press();
+    expect(runner.speakerAudioInUse()).toBe(true);
+    clock.advance(100);
+    runner.release();
+    expect(runner.speakerAudioInUse()).toBe(true);
+    await runner.stop();
+    expect(runner.speakerAudioInUse()).toBe(false);
+  });
+
+  it('is under push-to-talk only while a turn is held', async () => {
+    const { runner, clock } = setup({ turnMode: 'push-to-talk' });
+    await runner.start();
+    expect(runner.speakerAudioInUse()).toBe(false);
+    runner.press();
+    expect(runner.speakerAudioInUse()).toBe(true);
+    clock.advance(100);
+    runner.release();
+    expect(runner.speakerAudioInUse()).toBe(false);
+  });
+
+  it('is not once a stop lands during a push-to-talk hold', async () => {
+    const { runner } = setup({ turnMode: 'push-to-talk' });
+    await runner.start();
+    runner.press();
+    const stopping: boolean[] = [];
+    runner.state.subscribe((now) => { if (now.phase === 'stopping') stopping.push(runner.speakerAudioInUse()); });
+    await runner.stop();
+    expect(stopping).toEqual([false]);
+    expect(runner.speakerAudioInUse()).toBe(false);
+  });
+});
+
 describe('runner — typed text and clearing', () => {
   it('types into the speaker leg while running, and records it', async () => {
     const { runner, log, events } = setup({ turnMode: 'auto' });
