@@ -158,6 +158,13 @@ describe('runner — starting', () => {
     expect(events('error_occurred')).toEqual([]);
   });
 
+  it('hands build the models its own readiness check found (F2)', async () => {
+    const build = vi.fn(fakeProvider.build);
+    const { runner } = setup({ shape: { provider: { ...fakeProvider, build } as AnyProvider }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
+    await runner.start();
+    expect(build.mock.calls[0][2].models).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+  });
+
   it('refuses the participant leg of an auto source before checking anything (D20)', async () => {
     const { runner } = setup({ shape: { legs: ['speaker', 'participant'], pair: { source: 'auto', target: 'en' } } });
     await runner.start();

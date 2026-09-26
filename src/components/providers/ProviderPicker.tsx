@@ -9,7 +9,7 @@ import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useProviderStore } from '../../stores/providerStore';
 import Tooltip from '../Tooltip/Tooltip';
 import { CredentialForm } from './CredentialForm';
-import { useSelectedProvider } from './useSelectedProvider';
+import { ownProps, useSelectedProvider } from './useSelectedProvider';
 // The rich option markup below (icon, name-line, description) is styled by
 // the shared rules ProviderSection.tsx also relies on (`.provider-select__*`,
 // `.provider-name-line`, `.powered-by` — see Settings.scss's "Rich provider
@@ -69,7 +69,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   const [richSelect] = useState(() => supportsBaseSelect());
 
   if (!selection) return null;
-  const { provider, entry, readiness, update } = selection;
+  const { provider, entry, readiness } = selection;
   const { setCredential, refreshReadiness, select } = useProviderStore.getState();
 
   // Today's `ProviderSection.tsx` keys dismissal by the old enum's spelling
@@ -189,7 +189,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
         />
       )}
       {openSlot && provider.EngineSummary && entry && (
-        <provider.EngineSummary settings={entry.settings} update={update} disabled={disabled} pair={entry.pair} legs={legs} openSlot={openSlot} />
+        <provider.EngineSummary {...ownProps(selection, entry, disabled)} legs={legs} openSlot={openSlot} />
       )}
       {provider.guideUrl && !dismissedTutorials.has(storedProviderId) && (
         <div className="tutorial-link">

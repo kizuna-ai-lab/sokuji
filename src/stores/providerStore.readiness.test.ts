@@ -195,6 +195,53 @@ describe('refreshReadiness', () => {
   });
 });
 
+describe('refreshReadiness — the models a ready answer found (F2; choice 3)', () => {
+  const models = () => store.useProviderStore.getState().models.probe;
+
+  it('keeps the models of the latest ready answer through a re-check, and empties them on a refusal', async () => {
+    let answer: CheckResult = { ok: true, models: [{ id: 'm2' }, { id: 'm1' }] };
+    const p = probe('own-key', async () => answer);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+
+    store.useProviderStore.getState().updateSettings(p, { mode: 'b' });
+    expect(readiness()).toEqual({ state: 'unknown' });
+    expect(models()).toEqual([{ id: 'm2' }, { id: 'm1' }]);
+
+    answer = { ok: false, reason: 'no' };
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([]);
+  });
+
+  it('empties them for missing credentials, and keeps them through a check that threw', async () => {
+    const p = probe('own-key', async () => ({ ok: true, models: [{ id: 'm1' }] }));
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([{ id: 'm1' }]);
+    store.useProviderStore.getState().setCredential(p, 'apiKey', '');
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(models()).toEqual([]);
+
+    // A fresh module: nothing kept from the half above.
+    vi.resetModules();
+    store = await import('./providerStore');
+    let throws = false;
+    const q = probe('own-key', async () => {
+      if (throws) throw new Error('offline');
+      return { ok: true, models: [{ id: 'm1' }] };
+    });
+    await loadedWithKey(q);
+    await store.useProviderStore.getState().refreshReadiness(q, noAuth);
+    expect(models()).toEqual([{ id: 'm1' }]);
+    store.useProviderStore.getState().updateSettings(q, { mode: 'b' });
+    throws = true;
+    await store.useProviderStore.getState().refreshReadiness(q, noAuth);
+    expect(readiness()).toMatchObject({ state: 'not-ready' });
+    expect(models()).toEqual([{ id: 'm1' }]);
+  });
+});
+
 describe('refreshReadiness — a cancelled check', () => {
   it('is not a failure: a check that rejects once its signal aborts reports nothing and leaves readiness unknown', async () => {
     const p = probe('own-key', (_k, _s, ctx) => new Promise<CheckResult>((_resolve, reject) => {

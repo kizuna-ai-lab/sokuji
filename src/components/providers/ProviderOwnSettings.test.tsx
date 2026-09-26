@@ -35,10 +35,12 @@ import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } fr
 
 type TurnDetectionSlot = NonNullable<(typeof fakeProvider)['TurnDetection']>;
 
+const AUTH = { signedIn: true, userId: 'u1', getToken: async () => 't' };
+
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: 'fake', legs: ['speaker'] });
+  useProviderStore.setState({ entries: {}, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
 });
 
 describe('ProviderOwnSettings', () => {
@@ -46,17 +48,41 @@ describe('ProviderOwnSettings', () => {
     useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } } });
     const seen: SettingsProps<FakeSettings>[] = [];
     const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return <div data-testid="settings-marker" />; };
-    render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} disabled />);
+    render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} auth={AUTH} disabled />);
     expect(screen.getByTestId('settings-marker')).toBeTruthy();
     expect(seen[0].settings).toBe(FAKE_DEFAULTS);
     expect(seen[0].disabled).toBe(true);
     expect(seen[0].pair).toEqual({ source: 'auto', target: 'en' });
     expect(typeof seen[0].update).toBe('function');
+    expect(seen[0].models).toEqual([]);
   });
 
   it('renders nothing before the entry loads', () => {
-    const { container } = render(<ProviderOwnSettings providers={[fakeProvider]} />);
+    const { container } = render(<ProviderOwnSettings providers={[fakeProvider]} auth={AUTH} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('hands Settings the models and the account: the saved credentials and the sign-in', () => {
+    useProviderStore.setState({
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'auto', target: 'en' } } },
+      models: { fake: [{ id: 'm1' }] },
+    });
+    const seen: SettingsProps<FakeSettings>[] = [];
+    const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return null; };
+    render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} auth={AUTH} />);
+    expect(seen[0].models).toEqual([{ id: 'm1' }]);
+    expect(seen[0].account).toEqual({ credentials: { apiKey: 'k' }, auth: AUTH });
+  });
+
+  it("keeps the account's identity while the credentials and the sign-in stay the same", () => {
+    useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'auto', target: 'en' } } } });
+    const seen: SettingsProps<FakeSettings>[] = [];
+    const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return null; };
+    const providers = [{ ...fakeProvider, Settings }];
+    const { rerender } = render(<ProviderOwnSettings providers={providers} auth={AUTH} />);
+    expect(seen[0].account).toBeDefined();
+    rerender(<ProviderOwnSettings providers={providers} auth={AUTH} />);
+    expect(seen[1].account).toBe(seen[0].account);
   });
 });
 
@@ -140,5 +166,24 @@ describe('ProviderEngine', () => {
     const Engine = () => <div data-testid="engine-marker" />;
     const { container } = render(<ProviderEngine providers={[{ ...fakeProvider, Engine }]} />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('the models and the account beyond Settings (choice 4)', () => {
+  it('hands the TurnDetection Controls and the Engine the models, and no account', () => {
+    useProviderStore.setState({
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'auto', target: 'en' } } },
+      models: { fake: [{ id: 'm1' }] },
+    });
+    const controls: SettingsProps<FakeSettings>[] = [];
+    const engine: EngineProps<FakeSettings>[] = [];
+    const Controls = (props: SettingsProps<FakeSettings>) => { controls.push(props); return null; };
+    const Engine = (props: EngineProps<FakeSettings>) => { engine.push(props); return null; };
+    const providers = [{ ...fakeProvider, TurnDetection: { Summary: () => null, Controls }, Engine }];
+    render(<><ProviderTurnDetectionControls providers={providers} /><ProviderEngine providers={providers} /></>);
+    for (const seen of [controls, engine]) {
+      expect(seen[0].models).toEqual([{ id: 'm1' }]);
+      expect(seen[0].account).toBeUndefined();
+    }
   });
 });

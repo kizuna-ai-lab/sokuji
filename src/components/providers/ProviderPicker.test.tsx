@@ -120,6 +120,7 @@ describe('ProviderPicker', () => {
     const props = seen[seen.length - 1];
     expect(props?.legs).toEqual(['speaker', 'participant']);
     expect(props?.openSlot).toBe(openSlot);
+    expect(seen[0].models).toEqual([]);
   });
 
   it('shows no EngineSummary without openSlot', async () => {

@@ -12,6 +12,7 @@ import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import { isMissing, readCredentials } from '../provider/credentials';
+import type { SharedSettings } from '../provider/types';
 import type { RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
 import type { RunnerDeps } from './ports';
@@ -133,6 +134,8 @@ export class Run {
         ? { code: readiness.code ?? ('not_ready' satisfies RunNoticeCode), message: readiness.reason, ...(readiness.params ? { params: readiness.params } : {}) }
         : { code: 'not_ready' satisfies RunNoticeCode, message: `readiness is ${readiness.state}` });
     }
+    // The run's own answer (F2): a model-choosing builder reads the list its settings component was shown.
+    const shared: SharedSettings = { ...shape.shared, models: readiness.models };
 
     let settings = shape.settings;
     let prepared: Prepared<unknown> = {};
@@ -149,7 +152,7 @@ export class Run {
     const contexts = contextsFor(shape);
     const configs: Partial<Record<LegName, unknown>> = {};
     for (const leg of shape.legs) {
-      const built = p.build(contexts[leg]!, settings, shape.shared);
+      const built = p.build(contexts[leg]!, settings, shared);
       // `C` has no `refused` member (the provider type's constraint), so this tells a refusal from a config.
       if (typeof built?.refused === 'string') {
         throw new RefusedError({

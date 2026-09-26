@@ -25,7 +25,8 @@ export interface RunShape {
   /** The participant-TTS opt-in; off until plan 1c-2's routing adds the switch. */
   participantSpeech: boolean;
   keepReplayAudio: boolean;
-  shared: SharedSettings;
+  /** What every builder may read, less `models`, which the run adds from its own readiness answer (F2). */
+  shared: Omit<SharedSettings, 'models'>;
   auth: AuthContext;
 }
 

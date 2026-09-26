@@ -58,6 +58,14 @@ export interface CredentialsMissing { missing: string; code?: string; params?: R
 
 export interface ModelOption { id: string }
 
+/**
+ * What a provider's `Settings` may reach besides its settings (F3): the
+ * saved credential values — every key in `credentials.keys` — and the
+ * sign-in, for pieces that call the provider's API from Settings (Soniox's
+ * voice library, a managed provider's voice source).
+ */
+export interface ProviderAccount { credentials: CredentialValues; auth: AuthContext }
+
 /** `models`, when present, is newest first. A refusal's `code` (and `params`) put it into the user's words (`notices.<code>`); `reason` stays diagnostic English. */
 export type CheckResult =
   | { ok: true; models?: readonly ModelOption[] }
@@ -91,6 +99,8 @@ export interface SharedSettings {
   reversed(direction: SessionContext['direction']): boolean;
   /** The display segmentation as stored: a provider that cuts its own jobs follows it (LocalInference). */
   segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
+  /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
+  models: readonly ModelOption[];
 }
 
 export interface SettingsProps<S> {
@@ -100,6 +110,15 @@ export interface SettingsProps<S> {
   disabled?: boolean;
   /** The provider's language pair, for a `Settings`/`Engine` that needs it (LocalInference's model management is per direction). Set by `ProviderPanel`; absent elsewhere. */
   pair?: LanguagePair;
+  /**
+   * The models the provider's latest ready answer found (F2), newest
+   * first; empty until one has. A model-choosing provider hands them and
+   * its settings to its effective-model function, as its `build` does with
+   * `shared.models`. Set by every host; absent in a component's own tests.
+   */
+  models?: readonly ModelOption[];
+  /** The provider's account (F3). Set by `ProviderOwnSettings` for `Settings`; absent elsewhere. */
+  account?: ProviderAccount;
 }
 
 /** One slot of a local engine's model management: a stage of one direction (`src→tgt`). */

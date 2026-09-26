@@ -10,7 +10,7 @@ import type { LegName } from '../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../lib/diagnostics/report';
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
-import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, Readiness } from '../lib/provider/types';
+import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption, Readiness } from '../lib/provider/types';
 import { selectionToPersist } from '../lib/session/storedSettings';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
@@ -28,6 +28,8 @@ export type { Readiness } from '../lib/provider/types';
 
 export const UNKNOWN: Readiness = { state: 'unknown' };
 
+export const NO_MODELS: readonly ModelOption[] = [];
+
 /** What a readiness check reads: the live entry's by default, or a run's frozen shape. */
 export interface ReadinessInputs {
   settings: unknown;
@@ -42,6 +44,8 @@ export interface ProviderStore {
   entries: Readonly<Record<string, ProviderEntry>>;
   /** One readiness per provider, by id; absent means unknown. */
   readiness: Readonly<Record<string, Readiness>>;
+  /** The models the latest ready answer found, per provider (F2; choice 3): kept while a re-check runs and through a check that threw, so a model list does not empty on every edit or while offline; emptied when the provider said no or the credentials are missing. */
+  models: Readonly<Record<string, readonly ModelOption[]>>;
   load(p: AnyProvider): Promise<void>;
   updateSettings(p: AnyProvider, patch: Readonly<Record<string, unknown>>): void;
   setCredential(p: AnyProvider, key: string, value: string): void;
@@ -111,6 +115,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
   return {
     entries: {},
     readiness: {},
+    models: {},
     selected: null,
     select(id, how = 'load') {
       if (get().selectionLocked) {
@@ -203,10 +208,17 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // out of the store, but never replaces the answer the run gets back.
       const seq = from ? (checkSeq.get(p.id) ?? 0) : supersede(p);
       const newest = () => (checkSeq.get(p.id) ?? 0) === seq;
+      /** Records an answer: its readiness, and the models it found — none when the provider said no; unchanged when the check could not find out (choice 3). */
+      const answered = (readiness: Readiness, foundOut = true): Readiness => {
+        if (foundOut && (readiness.state === 'ready' || readiness.state === 'not-ready')) {
+          set((st) => ({ models: { ...st.models, [p.id]: readiness.state === 'ready' ? readiness.models : NO_MODELS } }));
+        }
+        return setReadiness(p, readiness);
+      };
       const credentials = readCredentials(p, inputs.settings, inputs.credentials, auth);
       // The provider's own code (a managed provider's `sign_in_required`), or the runner's own for the same gap.
       if (isMissing(credentials)) {
-        return setReadiness(p, {
+        return answered({
           state: 'not-ready', reason: credentials.missing, code: credentials.code ?? 'credentials_missing',
           ...(credentials.params ? { params: credentials.params } : {}),
         });
@@ -218,13 +230,14 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // readiness changes as models download.
       const key = JSON.stringify([inputs.settings, values, auth.signedIn, inputs.pair, inputs.legs]);
       const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
-      if (kept && kept.inputs === key) return setReadiness(p, kept.readiness);
+      if (kept && kept.inputs === key) return answered(kept.readiness);
 
       setReadiness(p, { state: 'checking' });
       // Cancelled (a Stop while checking): it found nothing out, whichever
       // way it settled — no report, nothing kept, and unknown again.
       const cancelled = (): Readiness => (newest() ? setReadiness(p, UNKNOWN) : UNKNOWN);
       let answer: Readiness;
+      let threw = false;
       try {
         const result = await p.check(credentials, inputs.settings, { pair: inputs.pair, legs: inputs.legs, signal });
         if (signal?.aborted) return cancelled();
@@ -234,6 +247,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
         if (p.kind !== 'local' && result.ok) lastAnswer.set(p.id, { inputs: key, readiness: answer });
       } catch (error) {
         if (signal?.aborted) return cancelled();
+        threw = true;
         // A check that threw did not find out; show it, never keep it.
         reportError('ProviderStore', `The readiness check for ${p.id} failed: ${describeCause(error)}`, {
           cause: error,
@@ -242,7 +256,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
         answer = { state: 'not-ready', reason: describeCause(error) };
       }
       if (!newest()) return from ? answer : get().readiness[p.id] ?? UNKNOWN;
-      return setReadiness(p, answer);
+      return answered(answer, !threw);
     },
   };
 });

@@ -22,7 +22,7 @@ export function buildSharedSettings<S>(
   instructions: InstructionSettings,
   pauses: SharedSettings['pauses'],
   segmentation: SharedSettings['segmentation'],
-): SharedSettings {
+): Omit<SharedSettings, 'models'> {
   const name = (code: string, options: readonly LanguageOption[]) => options.find((o) => o.value === code)?.englishName || code;
   return {
     pauses,

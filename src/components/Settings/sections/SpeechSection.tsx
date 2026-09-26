@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
-import { useSelectedProvider } from '../../providers/useSelectedProvider';
+import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
 import { useAnalytics } from '../../../lib/analytics';
 import { storedProviderValue } from '../../../lib/session/storedSettings';
 import type { TurnMode } from '../../../lib/session/types';
@@ -91,7 +91,7 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
   const tuning = selection.provider.TurnDetection;
   if (!tuning) return null;
   const { Summary, Help } = tuning;
-  const props = { settings: selection.entry.settings, update: selection.update, disabled: locked, pair: selection.entry.pair };
+  const props = ownProps(selection, selection.entry, locked);
 
   const openControls = () => {
     if (layout === 'simple') {

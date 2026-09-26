@@ -14,6 +14,7 @@ const shared: SharedSettings = {
   pauses: { sourceSeconds: 1, translationSeconds: 1 },
   reversed: () => false,
   segmentation: { mode: 'off', sentencesPerRow: 0 },
+  models: [],
 };
 const noAuth = { signedIn: false, getToken: async () => null };
 const settings = (patch: Partial<FakeSettings> = {}): FakeSettings => ({ ...FAKE_DEFAULTS, ...patch });
