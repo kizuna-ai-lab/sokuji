@@ -265,29 +265,41 @@ export class Conversation {
 
   /** Ranges an adapter sets on speech it already emitted: measured against the text it last sent, re-anchored onto the text as it stands (choice 1). */
   private ranges(ref: number, all: ReadonlyArray<{ index: number; range: TextRange }>): void {
-    const valid = ([start, end]: TextRange) => start >= 0 && start <= end;
-    // The adapter counts from its first audio; L1 from the last clear. An entry the clear dropped is gone with its audio.
-    const offset = this.clearedEntries.get(ref) ?? 0;
-    const given = all.flatMap((g) => (g.index < offset ? [] : [{ index: g.index - offset, range: g.range }]));
     const i = this.indexByRef.get(ref);
+    // Audio held in `pending` takes them — before its segment opened, or after a clear dropped its closed segment; it moves with its pcm at open.
+    const held = i === undefined ? this.pending.get(ref) : undefined;
+    if (i === undefined && !held) return; // a ref with neither a segment nor held audio
+    const entries = i === undefined ? held! : this.segments[i].speech;
+    const where = i === undefined ? `ref ${ref}'s held audio` : this.segments[i].id;
+    // The adapter counts from its first audio; L1 from the last clear. An entry the clear dropped is gone with its audio, silently;
+    // any other index L1 does not hold (negative, fractional, past the end) or an invalid range is the adapter's bug, and said.
+    const offset = this.clearedEntries.get(ref) ?? 0;
+    const hits = all.flatMap((g) => {
+      if (Number.isInteger(g.index) && g.index >= 0 && g.index < offset) return [];
+      const index = g.index - offset;
+      const [start, end] = g.range;
+      if (Number.isInteger(index) && index >= 0 && index < entries.length && start >= 0 && start <= end) return [{ index, range: g.range }];
+      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `speech entry ${g.index} of ${where} cannot take range [${start}, ${end}]` });
+      return [];
+    });
+    if (hits.length === 0) return;
+    // An entry named twice takes the last range, on both paths.
     if (i === undefined) {
-      // Audio held in `pending` takes them — before its segment opened, or after a clear dropped its closed segment; it moves with its pcm at open.
-      const held = this.pending.get(ref);
-      if (!held) return; // a ref with neither a segment nor held audio
-      this.pending.set(ref, held.map((s, k) => {
-        const hit = given.find((g) => g.index === k && valid(g.range));
-        return hit ? { ...s, range: hit.range } : s;
-      }));
+      const list = [...held!];
+      for (const h of hits) list[h.index] = { ...list[h.index], range: h.range };
+      this.pending.set(ref, list);
       return;
     }
     const seg = this.segments[i];
-    const hits = given.filter((g) => {
-      const ok = Number.isInteger(g.index) && g.index >= 0 && g.index < seg.speech.length && valid(g.range);
-      if (!ok) this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `speech entry ${g.index} of ${seg.id} cannot take range [${g.range[0]}, ${g.range[1]}]` });
-      return ok;
+    // After fill-in the skeleton re-anchoring leaves a range past the adapter's own text unmapped without a word:
+    // say so here, as `clampRanges` says so when no fill-in ran, and drop it either way.
+    const own = this.unfilled.get(ref);
+    const measured = hits.map(({ range }) => {
+      if (own === undefined || range[1] <= own.length) return range;
+      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] outside ${seg.id}'s text of length ${own.length}` });
+      return undefined;
     });
-    if (hits.length === 0) return;
-    const anchored = reanchorRanges(this.unfilled.get(ref) ?? seg.text, seg.text, hits.map((h) => h.range));
+    const anchored = reanchorRanges(own ?? seg.text, seg.text, measured);
     const speech = [...seg.speech];
     hits.forEach((h, k) => { speech[h.index] = { ...speech[h.index], range: anchored[k] }; });
     this.replace(i, { ...seg, speech });

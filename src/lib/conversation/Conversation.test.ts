@@ -386,6 +386,61 @@ describe('Conversation — ranges filled in after the audio (speechRanges)', () 
     expect(speechOf(conv)[0]).toEqual({ range: undefined, pcm: pcm(10) });
     expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
   });
+
+  it("after fill-in, drops a filled range beyond the adapter's own text with the same diagnostic as without it", async () => {
+    // Rewritten by fill-in: the skeleton re-anchoring leaves such a range unmapped.
+    const rewritten = make({ punctuate: async () => 'Hello, world.' });
+    rewritten.apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    rewritten.apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    rewritten.apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await rewritten.conv.settled();
+    expect(rewritten.conv.snapshot().segments[0].text).toBe('Hello, world.');
+    rewritten.apply(ranges(1, [[0, [0, 5]], [1, [5, 12]]])); // 12 is past 'hello world' (11), not past the filled text (13)
+    expect(speechOf(rewritten.conv).map((s) => s.range)).toEqual([[0, 7], undefined]);
+    expect(rewritten.diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+
+    // Only grown by fill-in: the range would otherwise stand, since it fits the filled text.
+    const grown = make({ punctuate: async (_l, t) => `${t}.` });
+    grown.apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    grown.apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }, { kind: 'segmentClosed', payload: { ref: 1 } });
+    await grown.conv.settled();
+    expect(grown.conv.snapshot().segments[0].text).toBe('hello world.');
+    grown.apply(ranges(1, [[0, [0, 12]]]));
+    expect(speechOf(grown.conv)[0]).toEqual({ range: undefined, pcm: pcm(10) });
+    expect(grown.diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
+
+  it('on held audio too, a bad entry is reported and an entry named twice takes the last range, as on a segment', () => {
+    const held = make();
+    held.apply({ kind: 'audio', payload: { ref: 3, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 3, pcm: pcm(10) } });
+    held.apply(ranges(3, [[1, [0, 2]], [1, [2, 4]], [5, [0, 1]], [0, [3, 1]]]));
+    expect(held.diagnostics.map((d) => d.code)).toEqual(['range_out_of_text', 'range_out_of_text']);
+    held.apply({ kind: 'segmentOpened', payload: { ref: 3, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 3, text: 'abcd' } });
+    expect(speechOf(held.conv).map((s) => s.range)).toEqual([undefined, [2, 4]]);
+
+    const open = make();
+    open.apply({ kind: 'segmentOpened', payload: { ref: 3, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 3, text: 'abcd' } });
+    open.apply({ kind: 'audio', payload: { ref: 3, pcm: pcm(10) } }, { kind: 'audio', payload: { ref: 3, pcm: pcm(10) } });
+    open.apply(ranges(3, [[1, [0, 2]], [1, [2, 4]], [5, [0, 1]], [0, [3, 1]]]));
+    expect(open.diagnostics.map((d) => d.code)).toEqual(['range_out_of_text', 'range_out_of_text']);
+    expect(speechOf(open.conv).map((s) => s.range)).toEqual([undefined, [2, 4]]);
+  });
+
+  it('reports a negative or fractional index; only an entry a clear dropped goes silently', () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } });
+    apply(ranges(1, [[-1, [0, 5]]]));
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+
+    conv.clear(); // the adapter's entry 0 is gone
+    apply({ kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'audio', payload: { ref: 1, pcm: pcm(10) } }); // the adapter's entry 1
+    diagnostics.length = 0;
+    apply(ranges(1, [[0, [0, 5]], [-1, [0, 5]], [0.5, [0, 5]], [1, [6, 11]]]));
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text', 'range_out_of_text']);
+    expect(speechOf(conv).map((s) => s.range)).toEqual([[6, 11]]);
+  });
 });
 
 describe('Conversation — retention and clear', () => {
