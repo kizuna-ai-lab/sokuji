@@ -10,7 +10,7 @@ import type { OpenSource } from '../../lib/session/source';
 import type { SubtitleSession } from '../../lib/subtitle/session';
 import { messagePortWire, publishSubtitles } from '../../lib/subtitle/wire';
 import type { Entry } from '../../lib/projection/types';
-import type { EngineSlot } from '../../lib/provider/types';
+import type { AuthContext, EngineSlot } from '../../lib/provider/types';
 import type { ConversationViewState, Readable } from '../../lib/view/conversationView';
 import { displayItems } from '../../lib/view/filter';
 import type { KaraokeState } from '../../lib/view/karaoke';
@@ -114,6 +114,9 @@ if (param('ui') === 'advanced') useSettingsStore.setState({ uiMode: 'advanced' }
 
 /** `&capture=device`: the session runs on the app's own capture (the microphone for the speaker leg) instead of the fake source. */
 const deviceCapture = () => param('capture') === 'device';
+
+/** The preview's stand-in for a signed-in account (`&signedin=1`): a managed provider reads it; nothing calls the backend. */
+const PREVIEW_SIGNED_IN: AuthContext = { signedIn: true, userId: 'preview', getToken: async () => 'preview-token' };
 
 // The page's session is the app's (plan 1e-3a): the same runner, view,
 // karaoke, subtitle session, punctuator, frames, analytics and auto-save the
@@ -288,10 +291,13 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * tab's other blocks beside it would double `#provider-section`.
  * `&wire=1` (with `&overlay=1`) tallies the overlay's wire per message type
  * as the JSON bytes the extension's port would carry, on `window.__sokujiWire`
- * (plan 1e-4).
+ * (plan 1e-4). `&signedin=1` (Stage 2 foundation Task 12) hands the session
+ * a signed-in stand-in with no network, so a managed provider (the leased
+ * fake) can start here; `&script=` applies to whichever fake is selected —
+ * `fake_leased` when it is picked (`&provider=fake_leased`), `fake` otherwise.
  */
 export function SpinePreview() {
-  const auth = useAppSessionBridges();
+  const auth = useAppSessionBridges(undefined, param('signedin') === '1' ? PREVIEW_SIGNED_IN : undefined);
   const providers = useMemo(() => presentProviders(), []);
   // This page's probes run on the fake unless a parameter asks for another
   // provider (plan 1e-2 ruling 10, `&provider=<id>`). ProviderPanel is a
@@ -377,9 +383,10 @@ export function SpinePreview() {
   useEffect(() => {
     if (urlApplied || !storesLoaded || !entry) return;
     const params = new URLSearchParams(window.location.search);
-    // `&script=<name>`: which script the fake plays (the headless checks pick theirs).
+    // `&script=<name>`: which script the selected fake plays (`fake` or `fake_leased`; `fake` otherwise).
     const script = params.get('script');
-    const fake = providers.find((p) => p.id === 'fake');
+    const selected = useProviderStore.getState().selected;
+    const fake = providers.find((p) => p.id === (selected === 'fake_leased' ? 'fake_leased' : 'fake'));
     if (fake && script && (FAKE_SCRIPT_NAMES as readonly string[]).includes(script)) {
       useProviderStore.getState().updateSettings(fake, { script });
     }

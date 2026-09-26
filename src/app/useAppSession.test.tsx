@@ -118,4 +118,10 @@ describe('useAppSessionBridges', () => {
     await act(() => getAppSession().runner.stop());
     expect(refetch).toHaveBeenCalledTimes(1);
   });
+
+  it('hands the session a stand-in sign-in when given one', async () => {
+    const standIn = { signedIn: true, userId: 'preview', getToken: async () => 'x' };
+    const { result } = renderHook(() => useAppSessionBridges(undefined, standIn), { wrapper: ToastProvider });
+    expect(result.current).toBe(standIn);
+  });
 });

@@ -79,6 +79,36 @@ describe('SpinePreview', () => {
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();
   });
 
+  // Task 12: `&signedin=1` hands the session a signed-in stand-in with no
+  // network, so a managed provider (the leased fake) can start in the
+  // preview without a real sign-in.
+  it('&signedin=1 hands the session a signed-in stand-in', async () => {
+    const before = window.location.href;
+    const spy = vi.spyOn(getAppSession(), 'setBridges');
+    window.history.replaceState(null, '', '/?preview=spine&signedin=1');
+    try {
+      render(<SpinePreview />);
+      await waitFor(() => expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ auth: expect.objectContaining({ signedIn: true, userId: 'preview' }) }),
+      ));
+    } finally {
+      spy.mockRestore();
+      window.history.replaceState(null, '', before);
+    }
+  });
+
+  // Task 12: `&script=` targets whichever fake is selected, not always `fake`.
+  it('&script= applies to the leased fake when it is the one selected', async () => {
+    const before = window.location.href;
+    window.history.replaceState(null, '', '/?preview=spine&provider=fake_leased&script=cjk');
+    try {
+      render(<SpinePreview />);
+      await waitFor(() => expect(useProviderStore.getState().entries.fake_leased?.settings).toMatchObject({ script: 'cjk' }));
+    } finally {
+      window.history.replaceState(null, '', before);
+    }
+  });
+
   it('shows no seals until the runner hands the preview a seal frame', async () => {
     const { container } = render(<SpinePreview />);
     await waitFor(() => expect(container.querySelector('[data-probe="seals"]')).not.toBeNull());
