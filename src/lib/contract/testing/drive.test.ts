@@ -15,19 +15,22 @@ describe('driveAdapter', () => {
   it('starts on a virtual clock, plays the steps, stops the session and checks the log', async () => {
     const r = await driveAdapter(createFakeAdapter(), { context: auto, config: { script }, credentials: {}, steps: [{ advance: 5000 }] });
     expect(r.violations).toEqual([]);
+    expect(r.startOutcome).toBe('resolved');
     expect(r.startError).toBeUndefined();
     expect(r.log.some((e) => e.kind === 'segmentOpened')).toBe(true);
     expect(r.log[r.log.length - 1]).toEqual({ kind: 'marker', payload: 'stop' });
   });
 
-  it('marks what the caller did, for the rules that read it', async () => {
+  it('marks what the caller did in the log: typed text, the ends of turns, and stop', async () => {
     const r = await driveAdapter(createFakeAdapter(), {
       context: { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'manual' },
       config: { script },
       credentials: {},
       steps: [{ text: 'hi' }, { turn: 'begin' }, { turn: 'end' }, { turn: 'cancel' }],
     });
-    // A `begin` marks nothing: no rule reads it.
+    // A `begin` marks nothing. Conformance reads only the `appendText` and
+    // `stop` markers; `endTurn` and `cancelTurn` are recorded for a reader of
+    // the log, and no rule checks what a turn did.
     expect(r.log.filter((e): e is Marker => e.kind === 'marker')).toEqual([
       { kind: 'marker', payload: 'appendText', text: 'hi' },
       { kind: 'marker', payload: 'endTurn' },
@@ -45,6 +48,7 @@ describe('driveAdapter', () => {
   it('reports a start that never settles instead of hanging', async () => {
     const r = await driveAdapter({ start: () => new Promise<AdapterSession>(() => {}) }, { context: auto, config: {}, credentials: {} });
     expect(r.session).toBeNull();
+    expect(r.startOutcome).toBe('hung');
     expect(r.startError).toBeInstanceOf(Error);
     expect((r.startError as Error).message).toBe('start neither resolved nor rejected after the opening steps');
   });
@@ -56,7 +60,18 @@ describe('driveAdapter', () => {
       { context: auto, config: {}, credentials: {}, steps: [{ run: spy }] },
     );
     expect(spy).not.toHaveBeenCalled();
+    expect(r.startOutcome).toBe('rejected');
     expect((r.startError as Error).message).toBe('nope');
+  });
+
+  it('turns a start that throws synchronously into its startError, instead of rejecting', async () => {
+    const r = await driveAdapter(
+      { start: () => { throw new Error('sync'); } },
+      { context: auto, config: {}, credentials: {} },
+    );
+    expect(r.startOutcome).toBe('rejected');
+    expect((r.startError as Error).message).toBe('sync');
+    expect(r.session).toBeNull();
   });
 
   it('hands a run step the session, the clock and the log', async () => {
@@ -78,7 +93,8 @@ describe('driveAdapter', () => {
       credentials: {},
       opening: [{ abort: true }, { flush: true }],
     });
-    expect(r.startError).toBeDefined();
+    expect(r.startOutcome).toBe('rejected');
+    expect((r.startError as Error).message).toBe('the scenario cancelled the start');
     expect(r.session).toBeNull();
   });
 });

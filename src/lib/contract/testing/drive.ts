@@ -6,6 +6,14 @@
  * the session, runs the clock on to catch anything that fires after the
  * end, and checks the log (`checkConformance`).
  *
+ * Real time is flushed, the virtual clock never moved, at two points: after
+ * the opening steps, until `start` settles; and after the last step, before
+ * the driver's own `stop()`, so an answer an adapter awaits (a Blob's text,
+ * a decoder: microtasks, then one macrotask) still lands before it. A step
+ * list needs no trailing `{ flush: true }`; one belongs only between two
+ * steps whose order matters — an answer that must land before the server
+ * close the next step sends.
+ *
  * The clock convention for adapters and the protocol modules they own:
  * every timer reads the request's `clock` — `clock.setTimeout`,
  * `every(clock, ms, fn)` for an interval, `clock.now()` for the time —
@@ -33,7 +41,7 @@ export type ScenarioStep =
   | { audio: number }
   /** `appendText`, marked for the typed-text rule. */
   | { text: string }
-  /** A turn's key: press; release with speech; release without (the last two marked). */
+  /** A turn's key: press; release with speech; release without (the last two marked, though no conformance rule reads those markers yet). */
   | { turn: 'begin' | 'end' | 'cancel' }
   /** Abort the request's signal: a cancel. */
   | { abort: true }
@@ -59,7 +67,9 @@ export interface DriveOptions<C, K> {
 export interface DriveResult {
   log: ConformanceLog;
   session: AdapterSession | null;
-  /** What `start` rejected with; undefined when it resolved. */
+  /** How `start` ended: resolved, rejected (or threw), or hung — neither, once the opening steps and the flushes after them had run. */
+  startOutcome: 'resolved' | 'rejected' | 'hung';
+  /** What `start` rejected or threw with; an Error saying so when it hung; undefined when it resolved. */
   startError: unknown;
   violations: Violation[];
   clock: VirtualClock;
@@ -77,6 +87,8 @@ export function voicedPcm(ms: number): Int16Array {
 
 /** How many flushes a start may take to settle once its opening steps have run. */
 const START_FLUSHES = 20;
+/** Flushes after the last step, before the driver's own stop: the second catches a macrotask queued after microtask hops. */
+const ANSWER_FLUSHES = 2;
 type Settled = { session: AdapterSession } | { error: unknown };
 
 export async function driveAdapter<C, K>(adapter: Pick<Adapter<C, K>, 'start'>, o: DriveOptions<C, K>): Promise<DriveResult> {
@@ -105,27 +117,35 @@ export async function driveAdapter<C, K>(adapter: Pick<Adapter<C, K>, 'start'>, 
     else if ('stop' in step) await stop();
     else await step.run(handles);
   };
-  const result = (startError: unknown): DriveResult =>
-    ({ log: recorder.log, session: handles.session, startError, violations: checkConformance(recorder.log, o.context), clock });
+  const result = (startOutcome: DriveResult['startOutcome'], startError: unknown): DriveResult =>
+    ({ log: recorder.log, session: handles.session, startOutcome, startError, violations: checkConformance(recorder.log, o.context), clock });
 
-  void adapter.start(
-    { context: o.context, config: o.config, credentials: o.credentials, clock, signal: controller.signal, input: o.input, punctuate: o.punctuate },
-    recorder.events,
-  ).then((session) => { box.settled = { session }; }, (error: unknown) => { box.settled = { error }; });
+  let started: Promise<AdapterSession>;
+  try {
+    started = adapter.start(
+      { context: o.context, config: o.config, credentials: o.credentials, clock, signal: controller.signal, input: o.input, punctuate: o.punctuate },
+      recorder.events,
+    );
+  } catch (error) {
+    // A start that throws breaks the contract; it is reported as the rejection it should have been.
+    started = Promise.reject(error);
+  }
+  void started.then((session) => { box.settled = { session }; }, (error: unknown) => { box.settled = { error }; });
   for (const step of o.opening ?? []) await play(step);
   for (let i = 0; i < START_FLUSHES && read() === null; i++) await flush();
   const settled = read();
-  if (settled === null) return result(new Error('start neither resolved nor rejected after the opening steps'));
+  if (settled === null) return result('hung', new Error('start neither resolved nor rejected after the opening steps'));
   if ('error' in settled) {
     // Anything an adapter emits after a rejected start is still caught (the abort scenario reads it).
     clock.advance(o.settleMs ?? 10_000);
     await flush();
-    return result(settled.error);
+    return result('rejected', settled.error);
   }
   handles.session = settled.session;
   for (const step of o.steps ?? []) await play(step);
+  for (let i = 0; i < ANSWER_FLUSHES; i++) await flush();
   await stop();
   clock.advance(o.settleMs ?? 10_000);
   await flush();
-  return result(undefined);
+  return result('resolved', undefined);
 }

@@ -4,8 +4,10 @@
  * opens it, feeds it the server's frames, and reads what the adapter sent.
  * The browser's order holds: nothing before `open`; a close — the
  * adapter's, the server's or a dropped connection's — fires `close` once,
- * on a microtask as a browser queues it, and nothing after it. Test-only:
- * nothing but a test imports `src/lib/contract/testing`.
+ * on a microtask as a browser queues it, and nothing after it; an adapter
+ * closing a socket that never opened fails it (`error`, then an unclean
+ * 1006); a binary frame arrives as `binaryType` asks. Test-only: nothing
+ * but a test imports `src/lib/contract/testing`.
  */
 export type SocketData = string | ArrayBufferLike | Blob | ArrayBufferView;
 
@@ -51,7 +53,9 @@ export class FakeSocket extends EventTarget {
   close(code?: number, reason?: string): void {
     if (this.readyState >= FakeSocket.CLOSING) return;
     this.closedByClient = { code, reason };
-    this.closing(code ?? 1005, reason ?? '', true);
+    // Before `open` a browser fails the connection: `error`, then an unclean 1006, whatever code was asked.
+    if (this.readyState === FakeSocket.CONNECTING) this.closing(1006, '', false, true);
+    else this.closing(code ?? 1005, reason ?? '', true);
   }
 
   /** The server accepts the upgrade: `open`, with the subprotocol it chose. */
@@ -62,10 +66,11 @@ export class FakeSocket extends EventTarget {
     this.fire(new Event('open'));
   }
 
-  /** A frame from the server. */
+  /** A frame from the server. A binary one arrives as `binaryType` asks: a Blob (the browser's default), or the ArrayBuffer. */
   receive(data: string | ArrayBuffer): void {
     if (this.readyState !== FakeSocket.OPEN) throw new Error(`receive() on a socket that is ${STATES[this.readyState]}`);
-    this.fire(new MessageEvent('message', { data }));
+    const delivered = typeof data === 'string' || this.binaryType === 'arraybuffer' ? data : new Blob([data]);
+    this.fire(new MessageEvent('message', { data: delivered }));
   }
 
   /** The server closes the connection: clean at 1000, unclean at any other code. */
@@ -86,10 +91,11 @@ export class FakeSocket extends EventTarget {
     return this.sent.filter((d): d is string => typeof d === 'string').map((d) => JSON.parse(d) as T);
   }
 
-  private closing(code: number, reason: string, wasClean: boolean): void {
+  private closing(code: number, reason: string, wasClean: boolean, failed = false): void {
     this.readyState = FakeSocket.CLOSING;
     queueMicrotask(() => {
       this.readyState = FakeSocket.CLOSED;
+      if (failed) this.fire(new Event('error'));
       this.fire(new CloseEvent('close', { code, reason, wasClean }));
     });
   }
