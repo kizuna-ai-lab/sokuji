@@ -230,7 +230,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // A network check gives the same ready answer to the same inputs, so a
       // ready answer is kept; a refusal is asked again, and a local engine's
       // readiness changes as models download.
-      const key = JSON.stringify([inputs.settings, values, auth.signedIn, inputs.pair, inputs.legs]);
+      const key = JSON.stringify([inputs.settings, values, auth.signedIn, auth.userId ?? null, inputs.pair, inputs.legs]);
       const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
       if (kept && kept.inputs === key) return answered(kept.readiness);
 

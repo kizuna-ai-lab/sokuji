@@ -243,6 +243,18 @@ describe('refreshReadiness — a managed provider and the sign-in (roadmap 1b)',
     await store.useProviderStore.getState().refreshReadiness(p, signedOut);
     expect(check).toHaveBeenCalledTimes(2);
   });
+
+  it('asks again when only the account changed', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = managed(check, () => ({}));
+    await store.useProviderStore.getState().load(p);
+    await store.useProviderStore.getState().refreshReadiness(p, { signedIn: true, userId: 'u1', getToken: async () => 't' });
+    await store.useProviderStore.getState().refreshReadiness(p, { signedIn: true, userId: 'u2', getToken: async () => 't' });
+    expect(check).toHaveBeenCalledTimes(2);
+    // The kept answer holds for the same account.
+    await store.useProviderStore.getState().refreshReadiness(p, { signedIn: true, userId: 'u2', getToken: async () => 't' });
+    expect(check).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('refreshReadiness — the models a ready answer found (F2; choice 3)', () => {
