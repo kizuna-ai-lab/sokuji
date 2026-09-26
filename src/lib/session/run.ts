@@ -386,7 +386,10 @@ export class Run {
     this.sessions.set(leg, session);
     if (leg === 'speaker' || this.transport === undefined) this.transport = session.info.transport;
     this.stack.defer(`${leg} capture`, source.onPcm((pcm) => this.send(leg, session, pcm)));
-    this.setLegState(leg, 'live');
+    // A leg that said `reconnecting` before its start settled (split Both: its
+    // socket opened before the other leg's did) is not live yet: its own
+    // `reconnected` says when it is.
+    if (this.legStates.get(leg) !== 'reconnecting') this.setLegState(leg, 'live');
     this.deps.analytics.track('connection_status', { status: 'connected', provider: this.shape.provider.id, channel: leg });
   }
 

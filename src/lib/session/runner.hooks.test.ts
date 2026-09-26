@@ -17,7 +17,7 @@ function withHooks(session: SessionHooks<unknown, unknown, unknown>, patch: Part
   return { ...fakeProvider, ...patch, session } as AnyProvider;
 }
 
-function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], openSource?: (leg: LegName) => Source) {
+function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], openSource?: (leg: LegName) => Source, track: (event: string, props?: unknown) => void = () => {}) {
   const clock = createVirtualClock(0);
   const sources: FakeSource[] = [];
   const persistIfUnchanged = vi.fn();
@@ -47,7 +47,7 @@ function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], open
     persistIfUnchanged,
     openSource: async (leg) => { const s = openSource ? openSource(leg) : createFakeSource(clock); sources.push(s as FakeSource); return s; },
     playback: { audio: () => {}, held: () => {}, clear: () => {}, live: () => {} },
-    analytics: { track: () => {} },
+    analytics: { track },
     newSessionId: () => 'run1',
     timeoutMs: 1000,
   });
@@ -255,5 +255,60 @@ describe('runner — startBoth (D23)', () => {
     expect(requestsSeen.speaker.input).toMatchObject({ id: 'speaker-track' });
     expect(requestsSeen.participant.input).toMatchObject({ id: 'participant-track' });
     expect(requestsSeen.speaker.input).not.toBe(requestsSeen.participant.input);
+  });
+
+  // Split Both opens two sockets; the faster one can hear the server before
+  // the slower one has opened. Its `reconnecting` must still stand once
+  // startBoth settles: the leg becomes live on its own `reconnected`.
+  it('a leg that reports reconnecting before startBoth settles is shown reconnecting, then live on its reconnected', async () => {
+    let fast!: AdapterEvents;
+    const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => {
+      const speaker = await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker);
+      fast = events.speaker;
+      fast.reconnecting();
+      const participant = await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant);
+      return { speaker, participant };
+    });
+    const { runner } = setup(withHooks({ startBoth }), ['speaker', 'participant']);
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', legs: { speaker: 'reconnecting', participant: 'live' } });
+    fast.reconnected();
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', legs: { speaker: 'live', participant: 'live' } });
+  });
+
+  it("a leg that fails before startBoth settles ends the run once: its own notice and api_error, no start failure", async () => {
+    const track = vi.fn();
+    const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => {
+      const speaker = await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker);
+      // The fast leg's server refuses the key while the slow leg still opens.
+      events.speaker.failed({ code: 'auth', message: '[Soniox 401] Invalid API key' });
+      const signal = requests.participant.signal;
+      try {
+        // The slow leg's open hears the run's abort and rejects with it, as Soniox's core does.
+        await new Promise<never>((_, reject) => {
+          if (signal.aborted) reject(signal.reason);
+          else signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+        });
+      } catch (error) {
+        // Split Both stops the leg that did start, and blames no leg for an abort.
+        await speaker.stop();
+        throw error;
+      }
+      throw new Error('unreachable');
+    });
+    const { runner } = setup(withHooks({ startBoth }), ['speaker', 'participant'], undefined, track);
+    await runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({
+      phase: 'idle',
+      lastEnd: { reason: 'leg-failed', notice: { code: 'auth', leg: 'speaker' } },
+    });
+    const [speakerLeg, participantLeg] = runner.conversation.snapshot();
+    expect(speakerLeg.notices).toEqual([expect.objectContaining({ severity: 'error', code: 'auth' })]);
+    expect(participantLeg.notices).toEqual([]);
+    const events = track.mock.calls.map(([event]) => event);
+    expect(events.filter((e) => e === 'api_error')).toHaveLength(1);
+    expect(track).toHaveBeenCalledWith('api_error', expect.objectContaining({ error_code: 'auth', channel: 'speaker' }));
+    expect(events).not.toContain('error_occurred');
   });
 });
