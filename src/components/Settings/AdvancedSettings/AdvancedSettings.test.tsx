@@ -29,10 +29,10 @@ vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => run.locked }));
 vi.mock('../shared/WarningModal', () => ({ default: () => null }));
 
 const blocks = vi.hoisted(() => ({
-  general: [] as Array<{ locked: boolean; onOpenSlot(slot: { dir: string; stage: string }): void }>,
+  general: [] as Array<{ locked: boolean; layout: string; onOpenSlot(slot: { dir: string; stage: string }): void }>,
 }));
 vi.mock('../ProviderArea', () => ({
-  SessionSettingsGeneral: (props: { locked: boolean; onOpenSlot(slot: { dir: string; stage: string }): void }) => {
+  SessionSettingsGeneral: (props: { locked: boolean; layout: string; onOpenSlot(slot: { dir: string; stage: string }): void }) => {
     blocks.general.push(props);
     return (
       <button type="button" onClick={() => props.onOpenSlot({ dir: 'ja→en', stage: 'asr' })}>
@@ -73,5 +73,11 @@ describe("AdvancedSettings — the General tab's chip deep-links to the Provider
     run.locked = true;
     render(<AdvancedSettings activeTab="general" />);
     expect(blocks.general[blocks.general.length - 1].locked).toBe(true);
+  });
+
+  // The Speech section's provider tuning opens onto its full controls here.
+  it('hands SessionSettingsGeneral the Advanced layout', () => {
+    render(<AdvancedSettings activeTab="general" />);
+    expect(blocks.general[blocks.general.length - 1].layout).toBe('advanced');
   });
 });

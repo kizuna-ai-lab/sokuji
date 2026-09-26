@@ -32,11 +32,21 @@ beforeEach(() => {
 });
 
 describe('LocalInferenceSettingsView', () => {
-  it('renders the speed, prompt and VAD controls', () => {
+  it('renders the speed and prompt controls', () => {
     render(<LocalInferenceSettingsView settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
     expect(screen.getByLabelText('Speech Speed')).toBeTruthy();
     expect(screen.getByText('Translation Prompt')).toBeTruthy();
-    expect(screen.getByText('VAD Settings')).toBeTruthy();
+  });
+
+  // The VAD knobs are the provider's `TurnDetection` now, drawn in the Speech
+  // section while the turn mode is Auto (LocalInferenceTurnDetection.test.tsx
+  // pins their rules) — never twice.
+  it('no longer draws the VAD knobs, even for an ASR that takes all five', () => {
+    const { container } = render(<LocalInferenceSettingsView settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
+    expect(screen.queryByText('VAD Settings')).toBeNull();
+    expect(screen.queryByText('Min Silence Duration')).toBeNull();
+    // The one slider left is the speech speed.
+    expect([...container.querySelectorAll('input[type="range"]')].map((el) => el.getAttribute('aria-label'))).toEqual(['Speech Speed']);
   });
 
   it('changing the speed calls update({ ttsSpeed })', () => {
@@ -49,21 +59,5 @@ describe('LocalInferenceSettingsView', () => {
   it('disables every control', () => {
     render(<LocalInferenceSettingsView settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} disabled pair={pair} />);
     expect(screen.getByLabelText('Speech Speed')).toBeDisabled();
-  });
-
-  // Today's rule (ProviderSpecificSettings.tsx): a streaming ASR that reports
-  // no worker type uses endpoint detection instead of VAD — the slider is
-  // useless there and hidden. A streaming ASR WITH a worker type (sherpa-onnx)
-  // still uses vad-web underneath and keeps the slider.
-  it('hides the VAD knobs for a streaming ASR with no worker type', () => {
-    mockAsrEntry = { type: 'asr-stream', asrWorkerType: undefined };
-    render(<LocalInferenceSettingsView settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
-    expect(screen.queryByText('VAD Settings')).toBeNull();
-  });
-
-  it('keeps the VAD knobs for a streaming ASR that does report a worker type', () => {
-    mockAsrEntry = { type: 'asr-stream', asrWorkerType: 'sherpa-onnx' };
-    render(<LocalInferenceSettingsView settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
-    expect(screen.getByText('VAD Settings')).toBeTruthy();
   });
 });

@@ -32,6 +32,7 @@ import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/setting
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useTurnModeStore } from '../../stores/turnModeStore';
 import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } from './ProviderArea';
 
 const entry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
@@ -48,7 +49,7 @@ beforeEach(() => {
 
 describe('SessionSettingsGeneral', () => {
   it('renders the blocks in order, with the engine chips inside the provider section, and the sentence labels', () => {
-    const { container } = render(<SessionSettingsGeneral locked={false} onOpenSlot={vi.fn()} />);
+    const { container } = render(<SessionSettingsGeneral locked={false} layout="simple" onOpenSlot={vi.fn()} />);
 
     const elements = SECTION_IDS.map((id) => container.querySelector(`#${id}`));
     elements.forEach((el, i) => expect(el, `#${SECTION_IDS[i]} is present`).toBeTruthy());
@@ -65,19 +66,41 @@ describe('SessionSettingsGeneral', () => {
 
   it('a chip calls onOpenSlot with its slot', () => {
     const onOpenSlot = vi.fn();
-    render(<SessionSettingsGeneral locked={false} onOpenSlot={onOpenSlot} />);
+    render(<SessionSettingsGeneral locked={false} layout="simple" onOpenSlot={onOpenSlot} />);
     const chip = screen.getByText('ASR');
     fireEvent.click(chip.closest('button')!);
     expect(onOpenSlot).toHaveBeenCalledWith({ dir: 'ja→en', stage: 'asr' });
   });
 
   it('locked disables the picker, the pair and the turn mode', () => {
-    render(<SessionSettingsGeneral locked={true} onOpenSlot={vi.fn()} />);
+    render(<SessionSettingsGeneral locked={true} layout="simple" onOpenSlot={vi.fn()} />);
     expect(screen.getByLabelText('simpleSettings.provider')).toBeDisabled();
     for (const select of screen.getAllByRole('combobox')) expect(select).toBeDisabled();
     for (const button of [...screen.getAllByRole('button')].filter((b) => b.className.includes('option-button'))) {
       expect(button).toBeDisabled();
     }
+  });
+
+  // The layout reaches the Speech section: LocalInference's speech-detection
+  // tuning, under Auto, is a summary line in Simple mode and a disclosure to
+  // the full controls on Advanced's General tab.
+  it("layout 'simple': the Speech section shows the tuning's summary line, with no disclosure", () => {
+    useTurnModeStore.setState({ turnMode: 'auto' });
+    const { container } = render(<SessionSettingsGeneral locked={false} layout="simple" onOpenSlot={vi.fn()} />);
+    const speech = container.querySelector('#turn-detection-section')!;
+    expect(speech.textContent).toContain('VAD Settings · Min Silence Duration: 1.40s');
+    expect(speech.querySelector('button[aria-expanded]')).toBeNull();
+  });
+
+  it("layout 'advanced': the Speech section shows the tuning as a disclosure that opens onto the sliders", () => {
+    useTurnModeStore.setState({ turnMode: 'auto' });
+    const { container } = render(<SessionSettingsGeneral locked={false} layout="advanced" onOpenSlot={vi.fn()} />);
+    const speech = container.querySelector('#turn-detection-section')!;
+    const button = speech.querySelector('button[aria-expanded]')!;
+    expect(button.textContent).toContain('VAD Settings · Min Silence Duration: 1.40s');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(button);
+    expect(speech.querySelectorAll('input[type="range"]').length).toBeGreaterThanOrEqual(3);
   });
 });
 

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useModelStore, useModelStatuses } from '../../stores/modelStore';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { TtsSpeedControl, TranslationPromptControl, VadControl } from '../../components/Settings/sections/LocalSettingsControls';
+import { TtsSpeedControl, TranslationPromptControl } from '../../components/Settings/sections/LocalSettingsControls';
 import type { SettingsProps } from '../../lib/provider/types';
 import type { LocalInferenceSettings as S } from './settings';
 
@@ -24,10 +24,12 @@ function translationWorkerType(modelId: string | null | undefined): string {
 }
 
 /**
- * LocalInference's `Settings` (ruling 9): TTS speed, the translation prompt,
- * and the VAD knobs — all from `LocalSettingsControls.tsx`. Its own model
- * management lives in `Engine`, and the turn-mode control is no longer a
- * provider setting (the global turn mode; plan 1e-3 places it).
+ * LocalInference's `Settings` (ruling 9): TTS speed and the translation
+ * prompt, both from `LocalSettingsControls.tsx`. Its own model management
+ * lives in `Engine`; the turn-mode control is no longer a provider setting
+ * (the global turn mode; plan 1e-3 places it), and the VAD knobs are its
+ * `TurnDetection`, drawn in the Speech section while that mode is Auto
+ * (`LocalInferenceTurnDetection.tsx`).
  *
  * Exported as `LocalInferenceSettingsView` (mirrors `FakeSettingsView`):
  * `LocalInferenceSettings` already names the settings type this component
@@ -56,13 +58,6 @@ export function LocalInferenceSettingsView({ settings, update, disabled = false,
     [source, target, settings.selections, modelStatuses],
   );
 
-  const selectedAsrEntry = getManifestEntry(speakerResolved.asr?.modelId ?? '');
-  // Today's rule: hidden only for a streaming ASR that reports no worker
-  // type (endpoint detection replaces VAD there). Turn mode no longer gates
-  // this — it is global now, not this provider's own setting.
-  const showVad = !(selectedAsrEntry?.type === 'asr-stream' && !selectedAsrEntry?.asrWorkerType);
-  const vadIsWebWorker = selectedAsrEntry?.asrWorkerType && selectedAsrEntry.asrWorkerType !== 'sherpa-onnx';
-
   const promptSupported = isQwenFamily(translationWorkerType(speakerResolved.translation?.modelId))
     || isQwenFamily(translationWorkerType(participantResolved.translation?.modelId));
 
@@ -83,23 +78,6 @@ export function LocalInferenceSettingsView({ settings, update, disabled = false,
         disabled={disabled}
         onChange={(patch) => update(patch)}
       />
-
-      {showVad && (
-        <VadControl
-          values={{
-            vadThreshold: settings.vadThreshold,
-            vadMinSilenceDuration: settings.vadMinSilenceDuration,
-            vadMinSpeechDuration: settings.vadMinSpeechDuration,
-            // vad-web workers only — the sherpa-onnx engine has its own
-            // hysteresis and cuts at a fixed length.
-            ...(vadIsWebWorker
-              ? { vadMaxSpeechDuration: settings.vadMaxSpeechDuration, vadNegativeThreshold: settings.vadNegativeThreshold }
-              : {}),
-          }}
-          onChange={(patch) => update(patch)}
-          disabled={disabled}
-        />
-      )}
     </>
   );
 }

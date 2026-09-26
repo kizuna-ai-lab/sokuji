@@ -38,11 +38,11 @@ vi.mock('../../../app/useRun', () => ({ useSessionLocked: () => run.locked }));
 
 // What each block was handed, by render.
 const blocks = vi.hoisted(() => ({
-  general: [] as Array<{ locked: boolean; onOpenSlot(slot: unknown): void }>,
+  general: [] as Array<{ locked: boolean; layout: string; onOpenSlot(slot: unknown): void }>,
   page: [] as Array<{ locked: boolean; slot: { dir: string; stage: string } }>,
 }));
 vi.mock('../ProviderArea', () => ({
-  SessionSettingsGeneral: (props: { locked: boolean; onOpenSlot(slot: unknown): void }) => {
+  SessionSettingsGeneral: (props: { locked: boolean; layout: string; onOpenSlot(slot: unknown): void }) => {
     blocks.general.push(props);
     return <div data-testid="session-settings-general" />;
   },
@@ -126,5 +126,12 @@ describe('SimpleSettings — engine host', () => {
     // Cleared rather than left stale — a later switch to a provider with an
     // Engine must not suddenly pop the engine page from this old target.
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
+  });
+
+  // Simple mode shows no provider-specific controls: the Speech section's
+  // provider tuning stays a summary line here.
+  it('hands SessionSettingsGeneral the Simple layout', () => {
+    render(<SimpleSettings />);
+    expect(blocks.general[blocks.general.length - 1].layout).toBe('simple');
   });
 });

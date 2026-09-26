@@ -1,5 +1,5 @@
-import { Mic } from 'lucide-react';
-import { useMemo } from 'react';
+import { ChevronDown, ChevronRight, Mic } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
@@ -52,12 +52,74 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
 }
 
 /**
+ * The selected provider's own tuning of automatic turn detection (its
+ * `TurnDetection`, D18: settings belong to the provider), under Auto only —
+ * push-to-talk and push-to-translate detect nothing. Simple mode shows no
+ * provider-specific controls, so there it is the Summary alone, one muted
+ * line; Advanced makes that line a disclosure onto the full Controls,
+ * collapsed until opened (the open state is this component's only). The
+ * disclosure is `TranslationPromptControl`'s preview toggle
+ * (`LocalSettingsControls.tsx`): a `.preview-toggle` button in a
+ * `.setting-label` row, `aria-expanded`/`aria-controls`, a 16px chevron. It
+ * stays usable during a run — it only shows what is set; the lock disables
+ * the Controls inside.
+ *
+ * A Summary that renders nothing (nothing to tune now — LocalInference on a
+ * streaming ASR, where endpoint detection replaces VAD) leaves its
+ * `.turn-detection-summary` empty, and Settings.scss hides the row then:
+ * the section cannot see what a provider's component rendered, and a row
+ * left standing would be a bare chevron in Advanced.
+ */
+function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
+  const turnMode = useTurnModeStore((s) => s.turnMode);
+  const providers = useMemo(() => presentProviders(), []);
+  const selection = useSelectedProvider(providers);
+  const [open, setOpen] = useState(false);
+
+  if (turnMode !== 'auto' || !selection?.entry) return null;
+  const tuning = selection.provider.TurnDetection;
+  if (!tuning) return null;
+  const { Summary, Controls } = tuning;
+  const props = { settings: selection.entry.settings, update: selection.update, disabled: locked, pair: selection.entry.pair };
+
+  if (layout === 'simple') {
+    return (
+      <div className="setting-item turn-detection-tuning">
+        <div className="setting-label">
+          <span className="setting-value turn-detection-summary"><Summary {...props} /></span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="setting-item turn-detection-tuning">
+      <div className="setting-label">
+        <button
+          type="button" className="preview-toggle"
+          aria-expanded={open} aria-controls="turn-detection-controls"
+          onClick={() => setOpen(!open)}
+        >
+          <span className="turn-detection-summary"><Summary {...props} /></span>
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </button>
+      </div>
+      {open && (
+        <div id="turn-detection-controls">
+          <Controls {...props} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * The global turn mode's own section (1e-3b-2 ruling 6): today's local-VAD
  * tooltip (`LocalSettingsControls.tsx`'s `SpeechModeControl` default),
  * accurate while LocalInference is the only provider — a provider-neutral
- * sentence needs new words and lands with Stage 2's second provider.
+ * sentence needs new words and lands with Stage 2's second provider. Below
+ * the turn modes, the provider's own tuning of Auto, drawn for `layout`.
  */
-export function SpeechSection({ locked }: { locked: boolean }) {
+export function SpeechSection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
   const { t } = useTranslation();
   const tooltip = `${t('settings.localInferenceTurnDetectionTooltip', 'Auto: local Voice Activity Detection automatically detects speech. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.')}\n\n${t('settings.speechModeAppliesTo', "Applies to your voice. Other's audio always uses semantic VAD.")}`;
   return (
@@ -68,6 +130,7 @@ export function SpeechSection({ locked }: { locked: boolean }) {
         <Tooltip content={tooltip} position="top" icon="help" />
       </h3>
       <TurnModeControl locked={locked} />
+      <ProviderTurnDetection locked={locked} layout={layout} />
     </div>
   );
 }

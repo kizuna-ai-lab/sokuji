@@ -118,6 +118,15 @@
     color: vars.$text-muted;
   }
 
+  // The Speech section's provider tuning row (SpeechSection.tsx). A provider's
+  // Summary renders nothing while there is nothing to tune (LocalInference on
+  // a streaming ASR: endpoint detection replaces VAD), and the row goes with
+  // it — the section cannot see what the provider rendered, and a row left
+  // standing would be Advanced's disclosure with a bare chevron.
+  .turn-detection-tuning:has(.turn-detection-summary:empty) {
+    display: none;
+  }
+
   h3, h2 {
     display: flex;
     align-items: center;

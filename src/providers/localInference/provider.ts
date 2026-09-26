@@ -6,6 +6,7 @@ import { admitLocalInference, buildLocalInference, describeLocalInference, type 
 import { LocalInferenceEngine } from './LocalInferenceEngine';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
 import { LocalInferenceSettingsView } from './LocalInferenceSettings';
+import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages, type LocalInferenceSettings } from './settings';
 
 const adapter = createLocalInferenceAdapter();
@@ -28,6 +29,8 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   Settings: LocalInferenceSettingsView,
   Engine: LocalInferenceEngine,
   EngineSummary: LocalInferenceEngineSummary,
+  // Its VAD knobs, in the Speech section while the turn mode is Auto.
+  TurnDetection: { Summary: LocalInferenceTurnDetectionSummary, Controls: LocalInferenceTurnDetectionControls },
 
   credentials: { keys: [], fields: () => [], read: () => ({}) },
   check: (_k, s, ctx) => checkLocalInference(s, ctx),

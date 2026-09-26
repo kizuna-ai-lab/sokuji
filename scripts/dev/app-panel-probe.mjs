@@ -24,15 +24,20 @@
  * 2). It checks the Settings blocks `ProviderArea.tsx` composes (the
  * language pair, the global turn mode, the headless Output block, sentence
  * segmentation, the provider picker with its chips), a chip's push-and-back
- * flow, and that a language pick writes through exactly one path.
+ * flow, that a language pick writes through exactly one path, and — under
+ * Auto — LocalInference's speech-detection tuning in #turn-detection-section:
+ * a summary line with no slider in Simple, a disclosure that expands onto
+ * the VAD sliders in Advanced.
  * `--preview` opens `&settings=simple` then `&settings=advanced`, both on
- * `&provider=localInference` (the chips are LocalInference's); `--app`
- * seeds LocalInference (not the fake — its chips), opens Settings, checks
- * Simple mode (the static blocks, the chip's push-and-back flow, the
- * one-writer check), switches to Advanced (waits for the switch to land,
- * then its General tab: the same static blocks and one-writer check, plus
- * ruling 3's own chip flow — a tab switch to Provider, no back row — then
- * its Provider tab).
+ * `&provider=localInference` (the chips are LocalInference's; the advanced
+ * page draws the Speech section's Advanced layout above the Provider tab);
+ * `--app` seeds LocalInference (not the fake — its chips) and Auto, opens
+ * Settings, checks Simple mode (the static blocks, the tuning's summary
+ * line, the chip's push-and-back flow, the one-writer check), switches to
+ * Advanced (waits for the switch to land, then its General tab: the same
+ * static blocks, the tuning's disclosure, the one-writer check, plus ruling
+ * 3's own chip flow — a tab switch to Provider, no back row — then its
+ * Provider tab).
  *
  *   SOKUJI_DEV_NO_ELECTRON=1 npx vite --port 5199 --strictPort    # another shell
  *   node scripts/dev/app-panel-probe.mjs [origin] [flags]
@@ -185,14 +190,16 @@ function settingsPreviewUrl(mode) {
   return `${origin}/?${params.toString()}`;
 }
 
-// `--app` only: LocalInference selected (not the fake — its chips), seeded
-// once per profile the same way SEED_SCRIPT is.
+// `--app` only: LocalInference selected (not the fake — its chips) and Auto
+// (its speech-detection tuning shows under Auto alone), seeded once per
+// profile the same way SEED_SCRIPT is.
 const SETTINGS_SEED_SCRIPT = `(() => {
   if (sessionStorage.getItem('app-panel-probe-settings-seeded')) return;
   sessionStorage.setItem('app-panel-probe-settings-seeded', '1');
   localStorage.setItem('settings.setup', ${JSON.stringify(setupJson)});
   localStorage.setItem('settings.common.provider', 'local_inference');
   localStorage.setItem('settings.common.uiMode', 'basic');
+  localStorage.setItem('settings.common.turnMode', 'auto');
 })();`;
 
 /**
@@ -300,6 +307,63 @@ async function checkOneWriter(send, failures, prefix) {
   if (after !== before) failures.push(`${prefix}: settings.common.provider changed from ${JSON.stringify(before)} to ${JSON.stringify(after)} — more than one path wrote`);
 }
 
+/**
+ * The provider's speech-detection tuning inside #turn-detection-section,
+ * under Auto (LocalInference's `TurnDetection`, SpeechSection.tsx): Simple
+ * shows its summary line and no slider and no disclosure; Advanced shows the
+ * summary as a collapsed disclosure that expands onto the VAD sliders.
+ * Selects Auto first if it is not the active turn mode — a fresh profile's
+ * default is Auto already. Assumes the speaker direction resolves to no
+ * streaming ASR without a worker type (a fresh profile has no model
+ * downloaded): there the row is hidden by design, and this check would say so.
+ */
+async function checkSpeechTuning(send, failures, prefix, layout) {
+  const autoActive = `document.querySelector('#turn-detection-section .option-button.active')?.textContent === 'Auto'`;
+  if (!(await evaluate(send, autoActive))) {
+    await click(send, byText('#turn-detection-section .option-button', 'Auto'));
+    if (!(await pollUntil(2000, 200, async () => evaluate(send, autoActive)))) {
+      failures.push(`${prefix}: never got Auto active in #turn-detection-section`);
+      return;
+    }
+  }
+  const SUMMARY = 'Min Silence Duration';
+  const shown = await pollUntil(4000, 250, async () => evaluate(send, `(() => {
+    const summary = document.querySelector('#turn-detection-section .turn-detection-summary');
+    return !!summary && summary.textContent.includes(${JSON.stringify(SUMMARY)});
+  })()`));
+  if (!shown) {
+    const text = await evaluate(send, `document.querySelector('#turn-detection-section')?.textContent ?? null`);
+    failures.push(`${prefix}: #turn-detection-section showed no tuning summary with "${SUMMARY}" under Auto (section text: ${JSON.stringify(text)})`);
+    return;
+  }
+  const state = () => evaluate(send, `({
+    sliders: document.querySelectorAll('#turn-detection-section input[type="range"]').length,
+    disclosure: document.querySelector('#turn-detection-section button[aria-expanded]')?.getAttribute('aria-expanded') ?? null,
+  })`);
+
+  if (layout === 'simple') {
+    const s = await state();
+    if (s?.sliders !== 0) failures.push(`${prefix}: #turn-detection-section had ${s?.sliders} sliders, expected none in Simple`);
+    if (s?.disclosure !== null) failures.push(`${prefix}: #turn-detection-section had a disclosure (aria-expanded=${s?.disclosure}), expected the summary line alone in Simple`);
+    return;
+  }
+
+  const before = await state();
+  if (before?.disclosure !== 'false' || before?.sliders !== 0) {
+    failures.push(`${prefix}: the tuning disclosure read aria-expanded=${before?.disclosure} with ${before?.sliders} sliders, expected "false" and none`);
+    return;
+  }
+  await click(send, `document.querySelector('#turn-detection-section button[aria-expanded]')`);
+  const opened = await pollUntil(3000, 200, async () => {
+    const s = await state();
+    return s?.disclosure === 'true' && s.sliders >= 3;
+  });
+  if (!opened) {
+    const s = await state();
+    failures.push(`${prefix}: the tuning disclosure never expanded onto the VAD sliders (aria-expanded=${s?.disclosure}, ${s?.sliders} sliders)`);
+  }
+}
+
 /** Advanced's Provider tab (the preview's &settings=advanced): one #provider-section, the engine inline, its own settings. */
 async function checkProviderTabOnly(send, failures, prefix) {
   const ready = await pollUntil(8000, 250, async () => evaluate(send, `
@@ -351,6 +415,7 @@ async function runSettingsProbe() {
         failures.push('never found [data-tour="settings-button"] to open Settings');
       } else {
         await checkGeneralStatic(send, failures, 'Simple mode');
+        await checkSpeechTuning(send, failures, 'Simple mode', 'simple');
         if (screenshot) await takeScreenshot(send);
         await checkChipFlow(send, failures, 'Simple mode');
         await checkOneWriter(send, failures, 'Simple mode');
@@ -373,6 +438,7 @@ async function runSettingsProbe() {
             // Ruling 3: the same static blocks and the same one-writer rule as
             // Simple mode; only the chip flow differs (a tab switch, no back row).
             await checkGeneralStatic(send, failures, "Advanced's General tab");
+            await checkSpeechTuning(send, failures, "Advanced's General tab", 'advanced');
             await checkOneWriter(send, failures, "Advanced's General tab");
             await checkAdvancedChipFlow(send, failures, "Advanced's General tab");
 
@@ -388,12 +454,14 @@ async function runSettingsProbe() {
     } else {
       await send('Page.navigate', { url: settingsPreviewUrl('simple') });
       await checkGeneralStatic(send, failures, 'settings=simple');
+      await checkSpeechTuning(send, failures, 'settings=simple', 'simple');
       if (screenshot) await takeScreenshot(send);
       await checkChipFlow(send, failures, 'settings=simple');
       await checkOneWriter(send, failures, 'settings=simple');
 
       await send('Page.navigate', { url: settingsPreviewUrl('advanced') });
       await checkProviderTabOnly(send, failures, 'settings=advanced');
+      await checkSpeechTuning(send, failures, 'settings=advanced', 'advanced');
     }
 
     if (failures.length > 0) {

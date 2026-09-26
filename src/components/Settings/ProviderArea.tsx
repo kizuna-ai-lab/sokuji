@@ -16,8 +16,11 @@ import { useEngineSlotTarget, useSetEngineSlotTarget, useTextOnly } from '../../
  * Advanced's Provider tab is `SessionSettingsProvider`; Simple mode pushes
  * `SessionEnginePage` in place of its list when a chip is clicked (1e-3
  * ruling 10). Every block reads `providerStore` and the run's lock.
+ * `layout` is the host's: the Speech section draws the provider's tuning of
+ * Auto as a summary line in Simple mode and a disclosure on Advanced's
+ * General tab.
  */
-export function SessionSettingsGeneral({ locked, onOpenSlot }: { locked: boolean; onOpenSlot(slot: EngineSlot): void }) {
+export function SessionSettingsGeneral({ locked, layout, onOpenSlot }: { locked: boolean; layout: 'simple' | 'advanced'; onOpenSlot(slot: EngineSlot): void }) {
   const providers = useMemo(() => presentProviders(), []);
   const auth = useAuthContext();
   const mode = useMode();
@@ -25,7 +28,7 @@ export function SessionSettingsGeneral({ locked, onOpenSlot }: { locked: boolean
   return (
     <>
       <ProviderLanguages providers={providers} disabled={locked} sentence={{ mode, textOnly }} />
-      <SpeechSection locked={locked} />
+      <SpeechSection locked={locked} layout={layout} />
       <OutputToggles locked={locked} />
       <SentenceSegmentationSection isSessionActive={locked} />
       <ProviderPicker providers={providers} auth={auth} disabled={locked} openSlot={onOpenSlot} />

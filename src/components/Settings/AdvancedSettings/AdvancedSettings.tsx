@@ -86,7 +86,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ toggleSettings, act
         {activeTab === 'general' && (
           <>
             {/* The pair, the turn mode, the output toggles, segmentation, the provider with its chips — same as Simple mode */}
-            <SessionSettingsGeneral locked={locked} onOpenSlot={openSlot} />
+            <SessionSettingsGeneral locked={locked} layout="advanced" onOpenSlot={openSlot} />
 
             {/* Help & Updates */}
             <HelpSection toggleSettings={toggleSettings} isSessionActive={locked} />

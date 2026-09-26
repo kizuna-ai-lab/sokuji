@@ -125,6 +125,17 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   Engine?: ComponentType<EngineProps<S>>;
   /** The `Engine`'s summary under the picker: its slot chips and memory estimate — Simple mode's way in, and drawn before `Engine` on Advanced's Provider tab (ruling 15). */
   EngineSummary?: ComponentType<EngineSummaryProps<S>>;
+  /**
+   * The provider's own tuning of automatic turn detection, shown in the
+   * Speech section while the turn mode is Auto: a one-line Summary (both
+   * layouts) and the full Controls (Advanced, expanded). Each renders
+   * nothing while there is nothing to tune, and the section then shows no
+   * row at all.
+   */
+  TurnDetection?: {
+    Summary: ComponentType<SettingsProps<S>>;
+    Controls: ComponentType<SettingsProps<S>>;
+  };
 
   // credentials — stored apart from settings
   credentials: {

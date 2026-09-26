@@ -164,7 +164,7 @@ const SimpleSettings: React.FC<SimpleSettingsProps> = ({ highlightSection }) => 
         {banner}
 
         {/* The pair, the turn mode, the output toggles, segmentation, the provider with its chips */}
-        <SessionSettingsGeneral locked={locked} onOpenSlot={setEngineSlotTarget} />
+        <SessionSettingsGeneral locked={locked} layout="simple" onOpenSlot={setEngineSlotTarget} />
 
         {/* Microphone */}
         <AudioDeviceSection

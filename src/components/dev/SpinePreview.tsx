@@ -34,6 +34,7 @@ import { ExportMenuButton } from '../MainPanel/ExportButton';
 import MainPanel from '../MainPanel/MainPanel';
 import { ProviderPanel } from '../providers/ProviderPanel';
 import { SessionEnginePage, SessionSettingsGeneral, SessionSettingsProvider } from '../Settings/ProviderArea';
+import { SpeechSection } from '../Settings/sections/SpeechSection';
 import { SubtitleTakeover } from '../Subtitle/SubtitleTakeover';
 import type { SubtitleControls } from '../Subtitle/SubtitleView';
 import { uiLanguage } from '../Subtitle/uiLanguage';
@@ -275,10 +276,12 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * app reads the same key), so it outlives the page — as `&autosave=1` and
  * `&turn=` do. `&settings=simple|advanced` (plan 1e-3b-2 Task 3) draws the
  * Settings blocks the app's two layouts show, in place of `ProviderPanel`:
- * `simple` is `SessionSettingsGeneral` (a chip pushes `SessionEnginePage`,
- * with a back row, the way Simple mode's own list does), `advanced` is
- * `SessionSettingsProvider` alone (Advanced's Provider tab — drawing the
- * General tab's blocks beside it would double `#provider-section`).
+ * `simple` is `SessionSettingsGeneral` in its Simple layout (a chip pushes
+ * `SessionEnginePage`, with a back row, the way Simple mode's own list
+ * does), `advanced` is `SessionSettingsProvider` (Advanced's Provider tab)
+ * under the General tab's Speech section in its Advanced layout — the
+ * provider tuning's disclosure; drawing the General tab's other blocks
+ * beside it would double `#provider-section`.
  * `&wire=1` (with `&overlay=1`) tallies the overlay's wire per message type
  * as the JSON bytes the extension's port would carry, on `window.__sokujiWire`
  * (plan 1e-4).
@@ -496,10 +499,13 @@ export function SpinePreview() {
               <SessionEnginePage locked={locked} slot={engineSlot} />
             </>
           ) : (
-            <SessionSettingsGeneral locked={locked} onOpenSlot={setEngineSlot} />
+            <SessionSettingsGeneral locked={locked} layout="simple" onOpenSlot={setEngineSlot} />
           )
         ) : settingsMode === 'advanced' ? (
-          <SessionSettingsProvider locked={locked} />
+          <>
+            <SpeechSection locked={locked} layout="advanced" />
+            <SessionSettingsProvider locked={locked} />
+          </>
         ) : (
           <ProviderPanel providers={providers} auth={auth} disabled={locked} />
         )}
