@@ -45,8 +45,9 @@ async function startBothLeased(
   const settled = await Promise.allSettled(legs.map((leg) => startFake(requests[leg], events[leg])));
   const failed = settled.find((r): r is PromiseRejectedResult => r.status === 'rejected');
   if (failed) {
-    // Opens nothing on failure: a leg that did start is stopped before the rejection.
-    await Promise.all(settled.map((r) => (r.status === 'fulfilled' ? r.value.stop() : undefined)));
+    // Opens nothing on failure: a leg that did start is stopped before the
+    // rejection. Settled, so a stop that fails too never replaces the start failure.
+    await Promise.allSettled(settled.map((r) => (r.status === 'fulfilled' ? r.value.stop() : undefined)));
     throw failed.reason;
   }
   const [speaker, participant] = settled.map((r) => (r as PromiseFulfilledResult<AdapterSession>).value);

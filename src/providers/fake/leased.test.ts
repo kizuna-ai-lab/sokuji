@@ -7,7 +7,7 @@ import type { AnyProvider, SharedSettings } from '../../lib/provider/types';
 import { createRunner } from '../../lib/session/runner';
 import type { RunShape } from '../../lib/session/types';
 import { fakeLeasedProvider, type FakeLeasedConfig, type FakeLeasedCredentials } from './leased';
-import { FAKE_LEASED_DEFAULTS, type FakeLeasedSettings } from './settings';
+import { FAKE_LEASED_DEFAULTS, migrateFakeLeasedSettings, type FakeLeasedSettings } from './settings';
 import { createFakeSource } from './source';
 
 const signedOut = { signedIn: false, getToken: async () => null };
@@ -86,11 +86,22 @@ describe('the leased fake', () => {
 
   it('acquire gives each leg its own credentials and releases once', async () => {
     const clock = createVirtualClock(0);
-    const lease = await session.acquire!(shapeFor(s()), s(), { signal: live(), clock, end: vi.fn() });
+    // Counts the lease timer's cancels: a second release that did its work again would cancel twice.
+    const cancelled = vi.fn();
+    const counting = {
+      now: () => clock.now(),
+      setTimeout: (fn: () => void, ms: number) => {
+        const cancel = clock.setTimeout(fn, ms);
+        return () => { cancelled(); cancel(); };
+      },
+    };
+    const lease = await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 1000 })), s({ leaseEndsAfterMs: 1000 }), { signal: live(), clock: counting, end: vi.fn() });
     expect(lease.credentials('speaker')).toEqual({ leg: 'speaker' });
     expect(lease.credentials('participant')).toEqual({ leg: 'participant' });
     await lease.release();
+    expect(cancelled).toHaveBeenCalledTimes(1);
     await expect(lease.release()).resolves.toBeUndefined();
+    expect(cancelled).toHaveBeenCalledTimes(1);
   });
 
   it("acquire ends the run on the run's clock with budget_exhausted, and not once released", async () => {
@@ -142,6 +153,20 @@ describe('the leased fake', () => {
     expect(logs.speaker).toEqual([]);
   });
 
+  it("startBoth throws the start failure even when stopping the leg that did start fails too", async () => {
+    const { clock, requests, events } = bothLegs(s(), s({ startThrows: true }));
+    // A clock whose timers cannot be cancelled: the speaker's session schedules
+    // its script on it, so its `stop()` rejects.
+    requests.speaker.clock = {
+      now: () => clock.now(),
+      setTimeout: (fn, ms) => {
+        clock.setTimeout(fn, ms);
+        return () => { throw new Error('The stop failed too.'); };
+      },
+    };
+    await expect(session.startBoth!(requests, events)).rejects.toThrow('The fake failed to start (fault knob).');
+  });
+
   it('runs end to end through the runner', async () => {
     const clock = createVirtualClock(0);
     const shape: RunShape = {
@@ -176,5 +201,18 @@ describe('the leased fake', () => {
     // The lease's `end` closes the run asynchronously.
     await flush();
     expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'budget_exhausted' } } });
+  });
+});
+
+describe('migrateFakeLeasedSettings', () => {
+  it("keeps valid stored knobs, and replaces each bad one with the leased fake's default", () => {
+    // A literal, not a `FakeLeasedSettings`: an interface type has no index signature, so it would not pass as a stored record.
+    // Every knob off its default, so a fallback shows.
+    const valid = { ...FAKE_LEASED_DEFAULTS, prepareFallback: true, leaseEndsAfterMs: 2500, sharedBoth: false };
+    expect(migrateFakeLeasedSettings(valid)).toEqual(valid);
+    const bad = [['leaseEndsAfterMs', -1], ['leaseEndsAfterMs', 'x'], ['sharedBoth', 'yes'], ['prepareFallback', 1]] as const;
+    for (const [key, value] of bad) {
+      expect(migrateFakeLeasedSettings({ ...valid, [key]: value }), `${key}: ${String(value)}`).toEqual({ ...valid, [key]: FAKE_LEASED_DEFAULTS[key] });
+    }
   });
 });
