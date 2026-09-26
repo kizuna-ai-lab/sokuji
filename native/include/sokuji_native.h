@@ -181,8 +181,8 @@ SK_API int32_t     sk_threads(void);   /* resolved n_threads after sk_init (see 
 SK_API int32_t     sk_devices(sk_device *out, int32_t capacity);        /* returns count written; 0 before sk_init */
 SK_API sk_status   sk_device_free_mem(int32_t index, uint64_t *bytes);  /* SK_ERR_NOT_INITIALISED before sk_init */
 SK_API int32_t     sk_abi_version(void);
-SK_API const char *sk_version(void);                                    /* "0.1.0" */
-SK_API const char *sk_engine_versions(void);                            /* "ggml=0.22.0;transcribe=0.2.2;..." */
+SK_API const char *sk_version(void);                                    /* "1.2.0" */
+SK_API const char *sk_engine_versions(void);                            /* "ggml=0.25.3;transcribe=0.2.4;llama=0.5.0;audiocpp=0.8.2;lane=..." */
 SK_API const char *sk_last_error(void);                                 /* thread-local, "" when none */
 SK_API void        sk_free(void *p);
 

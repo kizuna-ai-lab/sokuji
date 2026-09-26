@@ -1,5 +1,5 @@
 # stage: tts ; family: moss_tts_nano
-# engine: ggml=0.22.0;transcribe=0.2.3;llama=0.3.0;audiocpp=0.7.1;lane=cpu-vulkan
+# engine: ggml=0.25.3;transcribe=0.2.4;llama=0.5.0;audiocpp=0.8.2;lane=cpu-vulkan
 # source: moss-tts-nano-100m-q8_0.gguf
 # recorded-on: vulkan
 # dtypes-in-file: bf16 f16 f32 q8_0

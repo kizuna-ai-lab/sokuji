@@ -16,7 +16,7 @@ constexpr int32_t kAmdProprietary = 1, kAmdOpenSource = 2, kMesaRadv = 3, kNvidi
                   kIntelProprietaryWindows = 5, kIntelOpenSourceMesa = 6, kQualcommProprietary = 12,
                   kMoltenVk = 14, kMesaTurnip = 18, kMesaDozen = 23, kMesaNvk = 24;
 
-/* PINNED to ggml v0.22.0 ggml-vulkan.cpp ggml_vk_instance_init's driver priorities (~7515-7545):
+/* PINNED to ggml v0.25.3 ggml-vulkan.cpp ggml_vk_instance_init's driver priorities (~5151-5186):
  * lower is better. Re-check on every ggml pin bump (native/README.md).
  * ggml builds this table per duplicate pair, keyed on the OLD device's vendorID (only the
  * matching vendor's rows exist, plus Dozen); flattening it is equivalent here because a

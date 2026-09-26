@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.28)   # FetchContent_Declare(EXCLUDE_FROM_ALL)
 if(CMAKE_HOST_APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version" FORCE)
 endif()
-project(sokuji_native VERSION 1.1.0 LANGUAGES C CXX)
+project(sokuji_native VERSION 1.2.0 LANGUAGES C CXX)
 
 # The ABI number lives in three places nothing used to cross-check: SK_ABI_VERSION_NUM (stamped
 # into contract.json, set below), the header (what the library reports), and the binding's

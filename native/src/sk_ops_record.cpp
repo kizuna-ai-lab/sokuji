@@ -113,7 +113,9 @@ extern "C" ggml_backend_graph_plan_t sk_recording_graph_plan_create(ggml_backend
 }
 
 /* llama.cpp / transcribe.cpp path: a device that accepts everything and forwards to CPU.
- * Member orders below are ggml v0.22.0's ggml-backend-impl.h (GGML_BACKEND_API_VERSION 2):
+ * Member orders below are ggml v0.25.3's ggml-backend-impl.h (GGML_BACKEND_API_VERSION 2;
+ * graph_optimize gained a `ggml_backend_graph_optimize_params *` third parameter in 0.25 —
+ * our slot is nullptr, so only its type changed):
  *   ggml_backend_i (16): get_name, free, set_tensor_async, get_tensor_async, set_tensor_2d_async,
  *     get_tensor_2d_async, cpy_tensor_async, synchronize, graph_plan_create, graph_plan_free,
  *     graph_plan_update, graph_plan_compute, graph_compute, event_record, event_wait, graph_optimize

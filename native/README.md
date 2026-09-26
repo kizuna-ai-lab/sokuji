@@ -71,10 +71,15 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy, and
     keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the wheels target 11.0)
 - `src/audiocpp_compat.h` — the bridge between audio.cpp's forked ggml (base 0.12.0) and the
-  pristine upstream ggml we build on. Two kinds of difference, and the second is the dangerous
-  one; read the header comment before touching it.
-  - the **eight symbols the fork adds**, provided here. Two of them reproduce the fork's
-    graph node for node rather than aliasing a nearby upstream call.
+  pristine upstream ggml we build on (0.25.3 as of native-v1.2.0). Two kinds of difference, and
+  the second is the dangerous one; read the header comment before touching it.
+  - the **seven symbols the fork adds** at the 0.12→0.22 gap (ruling R11), provided here. Two
+    of them reproduce the fork's graph node for node rather than aliasing a nearby upstream
+    call. native-v1.2.0's audio.cpp bump (0.7.1 → 0.8.2-audio8-perf-hotfix) widened the fork's
+    own private surface to 28 functions and 7 enum types against ggml 0.25.3; section (D) shims
+    the ones our nine families and `engine_core` (`src/framework/**`) actually reach, and
+    section (E) stubs the rest just enough to link — reaching one is a bug, not a fallback, the
+    same rule the MiniMax-H3 stubs in (A) already used.
   - **four shared symbols whose behaviour upstream changed** (`ggml_conv_1d`,
     `ggml_conv_1d_dw`, `ggml_conv_2d`, `ggml_conv_3d`, ruling R11). Upstream materialises
     the conv's im2col buffer in F16 where the fork uses the kernel's dtype — same name, same
@@ -89,9 +94,22 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
     predicate refactors, training/quantization-time code, or zero-call-site ops.
     `ggml_conv_2d_dw` diverges the *other* way (upstream is equal-or-better) and is
     deliberately not shimmed; `ggml_clamp` became out-of-place upstream but every audio.cpp
-    call site clamps a throwaway temporary, so the values are unaffected.
+    call site clamps a throwaway temporary, so the values are unaffected. The native-v1.2.0
+    rescan against ggml 0.25.3 found 22 differing bodies (20 → 22); the two new ones are
+    harmless (`ggml_nbytes` adds bytes only for the fork's own I8_S/I2_S types, and
+    `ggml_permute` is upstream's `int` → `int64_t`/`size_t` widening), so section (B) itself is
+    unchanged.
 - `src/sokuji_native.map` / `src/sokuji_native.exports` — the exported-symbol lists
   (Linux / macOS) that keep everything but `sk_*` inside the library.
+- `ci/check_single_ggml.py` — run by `build.sh` on Linux and macOS, before `strip`, against the
+  UNSTRIPPED staged tree (a statically linked second copy of ggml vanishes from a stripped
+  `.so`'s dynamic symbol table): checks that `libsokuji_native` defines none of ggml's core
+  symbols itself and that every shared library in the stage is one we ship on purpose,
+  appearing exactly once — jiangzhuo's rule that no engine gets its own duplicated ggml.
+  Given the lane (`build.sh` passes it), it also requires the lane's runtime to be complete:
+  `libggml`, `libggml-base`, a CPU backend module, and the Vulkan/Metal module. Those backends
+  are dlopen'd, so no `DT_NEEDED` check sees them, and CI runners have no GPU — a missing GPU
+  module would otherwise ship green under a Vulkan/Metal wheel name. `build.ps1` is not gated.
 - `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built: every
   staged shared object may depend only on glibc/libstdc++/libgcc, the system Vulkan loader
   and its siblings, and may reference no glibc symbol newer than the wheel tag's floor.
@@ -260,7 +278,8 @@ binary and run the suite.
 ## GGUF array reads
 
 `ggml-gguf-bulk-array-read.json` is the one **always-on, every-lane** ggml patch. ggml
-0.22.0's GGUF reader fills an array KV one element at a time —
+0.25.3's GGUF reader still fills an array KV one element at a time (re-verified at the
+native-v1.2.0 bump) —
 `gguf_reader::read(std::vector<T> &, n)` loops `read(dst[i])`, and each of those is a
 `read_raw` through the reader callback, i.e. one *locked* `fread()` per element. audio.cpp
 stores a model's sidecar files as a single `audiocpp.embedded_files.data` UINT8 array KV
@@ -297,8 +316,9 @@ same `native/patches/*.json` mechanism the SME drops use, and only when
 `SOKUJI_GPU_RESOLVED` is `metal` (both specs touch `src/ggml-metal/`, which no other lane
 compiles):
 
-- **`ggml-metal-diag-mask-inf.json`** — ggml 0.22.0's Metal backend implements
-  `GGML_OP_DIAG_MASK_INF` *not at all*: no `supports_op` case, no kernel. ggml-cpu,
+- **`ggml-metal-diag-mask-inf.json`** — ggml 0.25.3's Metal backend still implements
+  `GGML_OP_DIAG_MASK_INF` *not at all* (re-verified at the native-v1.2.0 bump): no
+  `supports_op` case, no kernel. ggml-cpu,
   ggml-vulkan and ggml-cuda all have it; Metal is the only backend that dropped it, because
   llama.cpp itself moved to masked `soft_max_ext` and stopped needing it. audio.cpp did not:
   every attention block it reaches without an explicit mask builds the op — **16 call sites
@@ -307,9 +327,10 @@ compiles):
   and `qwen3_tts`'s `qwen_decoder`. The spec restores the kernel Metal used to carry — it is
   still in audio.cpp's own fork — so it puts back an op every other backend has rather than
   inventing one.
-- **`ggml-metal-pad-leading.json`** — ggml 0.22.0's Metal `GGML_OP_PAD` pads only at the END
-  of an axis (`supports_op` rejects any non-zero leading pad), while ggml-cpu and ggml-vulkan
-  implement the full lp/rp form `ggml_pad_ext` builds. `qwen3_tts`'s speech-tokenizer decoder
+- **`ggml-metal-pad-leading.json`** — ggml 0.25.3's Metal `GGML_OP_PAD` still pads only at the
+  END of an axis (re-verified at the native-v1.2.0 bump; `supports_op` rejects any non-zero
+  leading pad), while ggml-cpu and ggml-vulkan implement the full lp/rp form `ggml_pad_ext`
+  builds. `qwen3_tts`'s speech-tokenizer decoder
   pads *causally* (`left_pad = kernel_extent - stride`, `tokenizer_speech_decoder.cpp`'s
   `causal_conv1d`), so every one of its depthwise convs is a leading pad. The spec teaches
   `kernel_pad_impl` the leading pads with exactly ggml-cpu's non-circular semantics —
@@ -418,7 +439,10 @@ non-emptiness, never a transcript.
    `build/record-vk` with `-DSOKUJI_GPU=vulkan -DSOKUJI_RECORD_OPS=ON` (or `metal` on macOS)
    and run the gate there; a CPU-only runner prints `SKIPPED (no device)` for every tts family
    and gates **asr/translate drift only**, which is what CI's CPU lanes do. A tts .ops file
-   whose `# recorded-on:` says `cpu` is rejected by the gate.
+   whose `# recorded-on:` says `cpu` is rejected by the gate. The `# engine:` header line is
+   provenance only — the gate never compares it — so a recording that did not drift keeps its
+   original `# engine:` line across a pin bump; the asr/translate recordings in this tree still
+   name the 0.22.0-era engines for exactly that reason.
    All nine TTS families are cached under
    `~/.cache/sokuji-native-tests/tts/` — `ci/ops-env.sh` reads that path from
    `$SOKUJI_NATIVE_TEST_CACHE`, defaulting to `$HOME/.cache/sokuji-native-tests`, so set the
@@ -431,6 +455,13 @@ non-emptiness, never a transcript.
    build/record reconfigure to be picked up by the generator — CMakeLists.txt's `file(GLOB …)`
    for src/ops carries CONFIGURE_DEPENDS, so an ordinary `cmake --build build/record` re-checks
    the glob on its own; no manual `cmake -S ... -B build/record` re-run is required.
+6. Re-run `ci/check_single_ggml.py` (it runs on its own inside `build.sh`, before `strip`) and
+   compare the new wheels' file lists and sizes against the previous release — a second ggml
+   or an unexpectedly larger/smaller `.so` is a sign the reuse patch stopped applying. A pin
+   must also stay reachable: if the upstream re-points its release tag after you pin to it (as
+   transcribe.cpp did to v0.2.4 on 2026-09-25), pin the release **commit** instead of the tag
+   and drop `GIT_SHALLOW` for that one upstream, so a shallow fetch does not go looking for a
+   commit the tag no longer names.
 
 ## Release
 
@@ -451,6 +482,14 @@ incrementally, corrupting CJK output with U+FFFD — see `python/sokuji_native/_
 `Translator._make_cb`. `sidecar/requirements.txt` pinned straight to 1.0.1, so no sidecar
 bundle ever shipped with 1.0.0 inside. `native-v1.0.2` (2026-09-03) moved the engine pins
 to transcribe.cpp 0.2.3 and audio.cpp 0.7.1 and added four TTS families to the build set
-(voxcpm1, voxcpm2, irodori_tts, index_tts2), taking it to nine. Current native version is
-1.1.0 (ABI 2: device profile and op coverage — spec
-docs/superpowers/specs/2026-09-04-native-device-profile-design.md).
+(voxcpm1, voxcpm2, irodori_tts, index_tts2), taking it to nine. `native-v1.1.0` followed
+(ABI 2: device profile and op coverage — spec
+docs/superpowers/specs/2026-09-04-native-device-profile-design.md). `native-v1.2.0`
+(2026-09-25) moves ggml to 0.25.3, transcribe.cpp to 0.2.4, llama.cpp to v0.5.0 and
+audio.cpp to 0.8.2-audio8-perf-hotfix; `audiocpp_compat.h` gains sections (D)/(E).
+transcribe.cpp's v0.2.4 tag was re-pointed twice upstream on 2026-09-25 (CI/packaging-only
+commits), so that pin alone is the release commit `7d37cea2` fetched WITHOUT
+`GIT_SHALLOW`; the other three pins stay shallow. `sk_asr` leaves PnC/ITN at `DEFAULT`
+(unchanged); transcribe.cpp 0.2.4 turns `DEFAULT` on for sensevoice/canary (#157), so those
+two now output cased, punctuated text by default. Current native version is 1.2.0 (ABI
+unchanged at 2).

@@ -75,6 +75,25 @@ def test_qwen3_asr_row():
          "handy-computer/Qwen3-ASR-1.7B-gguf/Qwen3-ASR-1.7B-Q4_K_M.gguf")
 
 
+def test_granite_speech_5_turboctc_row():
+    # transcribe.cpp 0.2.4 (#159): Granite Speech 5.0 TurboCTC, Apache-2.0 (the -nc sibling
+    # is CC-BY-NC-SA and deliberately absent). WER 1.33 slots it between granite 4.1 2B
+    # (20, 1.29) and parakeet-tdt-1.1b (25, 1.38).
+    m = catalog.asr_model("granite-speech-5.0-470m-turboctc")
+    assert m is not None
+    assert m.name == "Granite Speech 5.0 TurboCTC (470M)"
+    assert m.languages == ("en",)
+    assert m.recommended is False
+    assert m.sort_order == 22
+    assert m.graph_family == "granite_speech5_ctc"     # GGUF general.architecture, not "granite5_ctc"
+    assert m.size_bytes == 505606496
+    d = m.deployments[0]
+    assert (d.backend, d.compute_type, d.artifact) == (
+        "native_asr", "q8_0",
+        "handy-computer/granite-speech-5.0-470m-turboctc-gguf/granite-speech-5.0-470m-turboctc-Q8_0.gguf")
+    assert catalog.asr_model("granite-speech-5.0-470m-turboctc-nc") is None
+
+
 def test_cohere_asr_row():
     m = catalog.asr_model("cohere-transcribe-03-2026")
     assert m is not None
@@ -98,7 +117,7 @@ def test_cohere_asr_row():
 def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
     assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
-    assert len(ids) == 66
+    assert len(ids) == 67
     orders = [m.sort_order for m in catalog.asr_models()]
     assert orders == sorted(orders)                        # rows stay rank-ordered
     assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
@@ -779,6 +798,8 @@ def test_translate_graph_family_matches_gguf_header():
     # not in the test cache, so its rows rest on the header rule alone.
     ("cohere-transcribe-03-2026-Q4_K_M.gguf", "cohere-transcribe-03-2026"),
     ("granite-speech-4.1-2b-nar-Q4_K_M.gguf", "granite-speech-4.1-2b-nar"),
+    # transcribe.cpp 0.2.4's granite5_ctc directory reports Arch::name granite_speech5_ctc.
+    ("granite-speech-5.0-470m-turboctc-Q8_0.gguf", "granite-speech-5.0-470m-turboctc"),
 ])
 def test_asr_graph_family_matches_native_arch(gguf, card_id):
     """sk_asr_caps.arch for the cached file equals the card's graph_family — the string the

@@ -24,10 +24,10 @@ int main(int argc, char **argv) {
     int requested_threads = argc > 2 ? std::atoi(argv[2]) : 3;
 
     assert(sk_abi_version() == SK_ABI_VERSION);
-    assert(std::string(sk_version()) == "1.1.0");
-    assert(std::strstr(sk_engine_versions(), "ggml=0.22.0") != nullptr);
-    assert(std::strstr(sk_engine_versions(), "transcribe=0.2.3") != nullptr);
-    assert(std::strstr(sk_engine_versions(), "llama=0.3.0;") != nullptr);   // normalised: no "v", no suffix
+    assert(std::string(sk_version()) == "1.2.0");
+    assert(std::strstr(sk_engine_versions(), "ggml=0.25.3") != nullptr);
+    assert(std::strstr(sk_engine_versions(), "transcribe=0.2.4") != nullptr);
+    assert(std::strstr(sk_engine_versions(), "llama=0.5.0;") != nullptr);   // normalised: no "v", no suffix
     assert(std::string(sk_last_error()).empty());
 
     sk_device before[8];
@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
     sk_free(buf);                                                     // must accept malloc'd memory
     sk_free(nullptr);                                                 // and null
 
-    assert(std::strstr(sk_engine_versions(), "audiocpp=0.7.1") != nullptr);
+    assert(std::strstr(sk_engine_versions(), "audiocpp=0.8.2") != nullptr);
     const char *fams[32];
     int nf = sk_audio_families(fams, 32);
     assert(nf >= 10);                                                 // may include companion families too
