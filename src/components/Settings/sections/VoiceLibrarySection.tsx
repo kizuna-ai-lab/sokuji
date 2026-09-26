@@ -145,7 +145,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   const port = useContext(VoicePreviewContext);
-  /** The row playing through the host's route, if any: `stopPreview` stops the route only for this section's own sample (M12). */
+  /** The row playing through the host's route, if any: `stopPreview` stops the route only for this section's own sample, never the test tone or another section's preview on that shared route. */
   const playingIdRef = useRef<string | null>(null);
 
   // Monotonic token: a toggle invalidates any earlier onPreview still in
