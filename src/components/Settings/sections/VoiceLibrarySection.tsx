@@ -2,7 +2,7 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import { useTranslation } from 'react-i18next';
 import './VoiceLibrarySection.scss';
 import type { VoiceLibraryCapability, VoiceFacets } from '../../../types/VoiceLibrary';
-import { describeCause, reportWarning } from '../../../lib/diagnostics/report';
+import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import { VoicePreviewContext } from '../../providers/VoicePreviewContext';
 import VoicePicker from './VoicePicker';
 import VoiceCreateModal, { type VoiceCreateReview } from './VoiceCreateModal';
@@ -240,7 +240,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
             playingIdRef.current = null;
             setPlayingId(null);
           }
-          reportWarning('VoiceLibrary', `The voice preview did not play: ${describeCause(error)}`, { cause: error });
+          reportError('VoiceLibrary', `The voice preview did not play: ${describeCause(error)}`, { cause: error });
         },
       );
       return payload;
