@@ -5,8 +5,9 @@ import { isLoopbackPlatform, isMacOS } from '../../utils/environment';
 export const SYSTEM_PARTICIPANT_SOURCE_ID = 'desktop-audio-loopback';
 
 /**
- * Resolve the participant source id to hand to
- * ModernBrowserAudioService.connectSystemAudioSource().
+ * Resolve the participant source id from a stored device selection, the way
+ * the old `ModernBrowserAudioService.connectSystemAudioSource()` did
+ * (deleted in plan 1e-3c).
  *
  * Falls back to whole-system capture rather than throwing, so a session still
  * starts when the previously selected application has quit.

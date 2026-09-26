@@ -38,8 +38,9 @@ const useSessionStore = create<SessionStore>()(
 );
 
 export const useLockedMode = () => useSessionStore((state) => state.lockedMode);
-// Named useSessionIsInitializing to avoid colliding with MainPanel's local
-// isInitializing state when both are in scope.
+// Named useSessionIsInitializing to avoid colliding with the old MainPanel's
+// local isInitializing state when both were in scope (that local state was
+// deleted in plan 1e-3c).
 export const useSessionIsInitializing = () => useSessionStore((state) => state.isInitializing);
 
 export default useSessionStore;

@@ -237,11 +237,12 @@ const SubtitleBar: React.FC<Props> = ({
         >
           {subtitle.compactMode ? <ChevronsUpDown size={14} /> : <ChevronsDownUp size={14} />}
         </button>
-        {/* In the extension overlay the wire is capped to the recent tail
-            (MAX_FORWARDED_ITEMS), so an export here would silently omit older
-            messages. The side panel holds the full conversation and is the
-            export source of truth — only offer export on the Electron surface,
-            where the overlay shares the full session store. */}
+        {/* In the extension overlay the wire caps entries to the newest
+            OVERLAY_ENTRIES (lib/subtitle/wire.ts), so an export here would
+            silently omit older messages. The side panel holds the full
+            conversation and is the export source of truth — only offer
+            export on the Electron surface, where SubtitleTakeover reads the
+            live entries directly, uncapped. */}
         {surface === 'electron' && exportMenu && <ExportMenuButton {...exportMenu} popoverHost="child-window" />}
         <button
           type="button"

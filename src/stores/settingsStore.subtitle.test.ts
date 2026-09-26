@@ -69,7 +69,7 @@ describe('settingsStore subtitle actions', () => {
     });
   });
 
-  it('enterSubtitleMode sets the flag when session is active', async () => {
+  it('enterSubtitleMode sets the flag', async () => {
     await useSettingsStore.getState().enterSubtitleMode();
     expect(useSettingsStore.getState().subtitleModeActive).toBe(true);
   });

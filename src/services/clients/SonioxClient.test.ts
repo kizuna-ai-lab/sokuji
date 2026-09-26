@@ -10,9 +10,10 @@ import { SonioxSideTracker } from './SonioxSideTracker';
  * Inlined from the deleted old MainPanel's `conversationMerge.ts` (plan
  * 1e-3c, Task 4): tag each side's rows with their side and language pair,
  * then merge them into one list ordered by createdAt (stable sort, so a
- * createdAt tie keeps the speaker row ahead of the participant row). Kept
- * here rather than hand-rolled so the ordering property below still tracks
- * the panel's real merge, not a copy of it that could silently drift.
+ * createdAt tie keeps the speaker row ahead of the participant row). This is
+ * a frozen copy of that old merge, not an import of a live one — the panel
+ * it once tracked is gone — kept only so the ordering property below still
+ * runs. The Stage 2 Soniox port replaces this copy with the real thing.
  */
 function mergeConversationItems(
   speaker: ConversationItem[],
@@ -1778,8 +1779,9 @@ describe('SonioxClient with the segmentation stage', () => {
       say('好'.repeat(60), 'b'.repeat(60));
       await new Promise((r) => setTimeout(r, 0));
 
-      // The panel's own merge-and-sort, imported rather than re-implemented.
-      // `languageOf` only tags rows; it cannot affect their order.
+      // A frozen copy of the old MainPanel's merge-and-sort (deleted in plan
+      // 1e-3c), not a live import — see the docstring above. `languageOf`
+      // only tags rows; it cannot affect their order.
       const rendered = mergeConversationItems(client.getConversationItems(), [], () => ({
         sourceLanguage: 'zh',
         targetLanguage: 'en',

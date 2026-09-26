@@ -200,8 +200,9 @@ describe('sanitizeEvent', () => {
 
 
 describe('sanitizeEvent — credential redaction', () => {
-  // participantTelemetry.ts:65-70 puts the whole client error event into a
-  // `session.error` row; GeminiClient forwards `filename` and `error.toString()`.
+  // The old MainPanel's participantTelemetry.ts (deleted in plan 1e-3c) put
+  // the whole client error event into a `session.error` row this way;
+  // GeminiClient still forwards `filename` and `error.toString()` raw.
   // LogsPanel exports events to the clipboard, so a credential landing in one
   // ships with a copy button next to it.
   it('redacts credentials in provider-text fields', () => {

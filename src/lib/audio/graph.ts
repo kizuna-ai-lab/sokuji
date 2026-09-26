@@ -2,8 +2,9 @@
  * One Web Audio graph for everything the app plays (spec: "Playback"): five
  * feeds, two buses, the route table applied as a diff of gain edges, and a
  * tap of the translated speech for the echo monitor. Output leaves through
- * `<audio>` elements, as `ModernAudioPlayer`'s does today, so the browser's
- * echo canceller sees it; the context runs at 24 kHz, the system rate. A
+ * `<audio>` elements, as the old `ModernAudioPlayer`'s did (deleted in plan
+ * 1e-3c), so the browser's echo canceller sees it; the context runs at
+ * 24 kHz, the system rate. A
  * context the renderer wedges is rebuilt on a fresh one (#246), behind the
  * same graph object.
  */

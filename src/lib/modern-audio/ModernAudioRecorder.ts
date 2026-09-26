@@ -44,9 +44,10 @@ export class ModernAudioRecorder extends BaseAudioRecorder {
    *
    * Every method here gates on it ("Session ended: please call .begin() first")
    * and pause() drives it, but the encoded chunks it produces have no consumer:
-   * all five `recorder.end()` call sites in ModernBrowserAudioService discard
-   * the returned blob. They used to be accumulated for the whole session -- see
-   * setupMediaRecorderEvents, and #531.
+   * the one `recorder.end()` call site left, in `capture/mic.ts`, discards the
+   * returned blob -- as all five of the old ModernBrowserAudioService's call
+   * sites did before it (deleted in plan 1e-3c). They used to be accumulated
+   * for the whole session -- see setupMediaRecorderEvents, and #531.
    */
   private mediaRecorder: MediaRecorder | null = null;
 

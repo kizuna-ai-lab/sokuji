@@ -21,14 +21,18 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-// StoragePage statically imports settingsStore (localInference/localNative)
-// and modelStore, which drag in the real ServiceFactory import chain —
-// audioStore -> ServiceFactory -> ModernBrowserAudioService -> ModernAudioRecorder
-// -> the @sapphi-red/web-noise-suppressor worklet's `?url` import, which this
-// sandboxed Vite test transform denies outright. Mock ServiceFactory (same
-// fix modelStore.test.ts / settingsStore.test.ts / ensureSelectionReady.test.ts
-// / useWasmEngineAdapter.test.ts already use) so that chain never loads;
-// settingsStore's own persistence goes through this mock instead.
+// Kept from before the old audio service was deleted: StoragePage statically
+// imports settingsStore (localInference/localNative) and modelStore, which
+// used to drag in the real ServiceFactory import chain — audioStore ->
+// ServiceFactory, which imported ModernBrowserAudioService ->
+// ModernAudioRecorder -> the @sapphi-red/web-noise-suppressor worklet's
+// `?url` import, which this sandboxed Vite test transform denied outright.
+// ServiceFactory no longer imports ModernBrowserAudioService at all;
+// audioStore only calls its getSettingsService. Not needed by the current
+// graph for that reason. Mocked anyway (same fix modelStore.test.ts /
+// settingsStore.test.ts / ensureSelectionReady.test.ts /
+// useWasmEngineAdapter.test.ts already use) so settingsStore's own
+// persistence goes through this mock instead.
 vi.mock('../../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: vi.fn(() => ({

@@ -3,9 +3,9 @@
  * chunks; each one becomes one `PCM_DATA` message in the format the page-side
  * microphone (`extension/content/virtual-microphone.js`) reads, sent to the
  * meeting tab the side panel was opened for, or to every web tab — the wire
- * format and routing of `ModernBrowserAudioService.sendPcmDataToTabs`. Today's
- * tabs path sends every chunk; this skips only chunks that are silent at 16
- * bits, which is what the bus carries when idle.
+ * format and routing the old `ModernBrowserAudioService.sendPcmDataToTabs`
+ * used (deleted in plan 1e-3c). That path sent every chunk; this skips only
+ * chunks that are silent at 16 bits, which is what the bus carries when idle.
  */
 import { SAMPLE_RATE } from '../contract/adapter';
 

@@ -19,7 +19,7 @@ export interface AudioDevice {
 
 // Re-exported for backward compatibility — the actual (React-free) predicates
 // now live in utils/audioDevices.ts so non-UI modules (e.g.
-// ModernBrowserAudioService) can use them without pulling in React.
+// lib/audio/devices.ts) can use them without pulling in React.
 export { isVirtualDevice, isVirtualMic, isVirtualSpeaker, isLoopbackInput };
 
 /**

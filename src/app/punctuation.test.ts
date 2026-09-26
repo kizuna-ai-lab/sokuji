@@ -24,11 +24,12 @@ vi.mock('../services/ServiceFactory', () => ({
   },
 }));
 
-// Exactly as useSegmentationRuntime.test.ts mocks it: the runtime's own state
-// machine (downloads, worker lifecycle, retries) is exercised end-to-end in
-// PunctuationRuntime.test.ts. This module's job is wiring -- isEnabled, the
-// three diagnostics callbacks, and the memo around punctuate() -- so the fake
-// lets these tests invoke the captured options directly.
+// Exactly as the old useSegmentationRuntime.test.ts mocked it (deleted in
+// plan 1e-3c): the runtime's own state machine (downloads, worker lifecycle,
+// retries) is exercised end-to-end in PunctuationRuntime.test.ts. This
+// module's job is wiring -- isEnabled, the three diagnostics callbacks, and
+// the memo around punctuate() -- so the fake lets these tests invoke the
+// captured options directly.
 vi.mock('../lib/segmentation/PunctuationRuntime', () => {
   class FakePunctuationRuntime {
     dispose = vi.fn();
@@ -224,8 +225,9 @@ describe('createAppPunctuation', () => {
   });
 });
 
-// Asserted the way useSegmentationRuntime.test.ts asserts the hook's own
-// wiring: settleReports(), then the log store, with diagnostic logs on.
+// Asserted the way the old useSegmentationRuntime.test.ts asserted the
+// hook's own wiring (deleted in plan 1e-3c): settleReports(), then the log
+// store, with diagnostic logs on.
 describe('punctuationDiagnostics', () => {
   it('reports each model load, with its backend and how long it took', async () => {
     const track = vi.fn();

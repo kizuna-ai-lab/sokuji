@@ -1,9 +1,10 @@
 /**
- * The app's one punctuation runtime (plan 1e-3a): today's
- * `useSegmentationRuntime` — its enabled rule and its diagnostics, word for
- * word — outside React, handed to the runner as `punctuate` /
- * `punctuationReady`. The memo answers one question once: L1's display
- * fill-in and LocalInference's job fill-in ask the same one per utterance.
+ * The app's one punctuation runtime (plan 1e-3a): the old
+ * `useSegmentationRuntime`'s enabled rule and its diagnostics, word for word
+ * (that hook was deleted in plan 1e-3c) — outside React, handed to the
+ * runner as `punctuate` / `punctuationReady`. The memo answers one question
+ * once: L1's display fill-in and LocalInference's job fill-in ask the same
+ * one per utterance.
  */
 import type { AnalyticsEvents } from '../lib/analytics';
 import type { Punctuator } from '../lib/contract/adapter';
@@ -19,7 +20,7 @@ export type TrackModelLoad = (event: 'segmentation_model_load', properties: Anal
 
 export const PUNCTUATION_MEMO_SIZE = 32;
 
-/** The runtime's three callbacks as `useSegmentationRuntime` wires them today. */
+/** The runtime's three callbacks as the old `useSegmentationRuntime` wired them (deleted in plan 1e-3c). */
 export function punctuationDiagnostics(
   track: () => TrackModelLoad | undefined,
 ): Required<Pick<PunctuationRuntimeOptions, 'onLoaded' | 'onInference' | 'onStatus'>> {
