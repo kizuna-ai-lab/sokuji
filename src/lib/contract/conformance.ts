@@ -58,14 +58,16 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   // `segmentText` for an already-closed ref), mirroring L1's `clampRanges`.
   // `key` names one range — an `audio` event's own, or the k-th of a
   // `speechRanges` — so two bad ranges in one event are two violations.
-  const rangesByRef = new Map<number, Array<{ index: number; key: string; range: [number, number] }>>();
+  // Held per speech entry: a range set again replaces the one it had, so a
+  // range the adapter corrected is not checked any more.
+  const rangesByRef = new Map<number, Map<number, { index: number; key: string; range: [number, number] }>>();
   const closedRefs = new Set<number>();
   const flaggedRange = new Set<string>();
   const checkRangesForRef = (ref: number) => {
     const entries = rangesByRef.get(ref);
     if (!entries) return;
     const len = (textOf.get(ref) ?? '').length;
-    for (const e of entries) {
+    for (const e of entries.values()) {
       if (flaggedRange.has(e.key)) continue;
       if (e.range[1] > len) {
         flag('range-in-text', `range [${e.range[0]}, ${e.range[1]}] outside text of length ${len}`, e.index);
@@ -78,14 +80,18 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   // one of them), and the range each entry holds, carried or filled in later.
   const audioCount = new Map<number, number>();
   const entryRanges = new Map<number, Map<number, [number, number]>>();
-  /** A ref's ranged entries, in entry order, must ascend without overlapping: the karaoke sweep reads them so. */
+  /** Offending pairs already flagged, by their entries and ranges: every later ranged event re-reads the whole ref. */
+  const flaggedOrder = new Set<string>();
+  /** A ref's ranged entries, in entry order, must ascend without overlapping: the karaoke sweep reads them so. Each offending pair is flagged once. */
   const checkOrder = (ref: number, index: number) => {
     const ordered = [...(entryRanges.get(ref) ?? new Map<number, [number, number]>()).entries()].sort((a, b) => a[0] - b[0]);
     for (let k = 1; k < ordered.length; k++) {
-      if (ordered[k][1][0] < ordered[k - 1][1][1]) {
-        flag('ranges-order', `ref ${ref}: entry ${ordered[k][0]}'s range starts before entry ${ordered[k - 1][0]}'s ends`, index);
-        return;
-      }
+      const [[a, ra], [b, rb]] = [ordered[k - 1], ordered[k]];
+      if (rb[0] >= ra[1]) continue;
+      const pair = `${ref}:${a}[${ra}]:${b}[${rb}]`;
+      if (flaggedOrder.has(pair)) continue;
+      flaggedOrder.add(pair);
+      flag('ranges-order', `ref ${ref}: entry ${b}'s range starts before entry ${a}'s ends`, index);
     }
   };
 
@@ -145,9 +151,9 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
             const byIndex = entryRanges.get(ref) ?? new Map<number, [number, number]>();
             byIndex.set(n, [start, end]);
             entryRanges.set(ref, byIndex);
-            const list = rangesByRef.get(ref) ?? [];
-            list.push({ index, key: String(index), range: [start, end] });
-            rangesByRef.set(ref, list);
+            const held = rangesByRef.get(ref) ?? new Map<number, { index: number; key: string; range: [number, number] }>();
+            held.set(n, { index, key: String(index), range: [start, end] });
+            rangesByRef.set(ref, held);
             if (closedRefs.has(ref)) checkRangesForRef(ref);
             checkOrder(ref, index);
           }
@@ -170,10 +176,10 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
             return;
           }
           byIndex.set(entryIndex, [start, end]);
-          const list = rangesByRef.get(ref) ?? [];
+          const held = rangesByRef.get(ref) ?? new Map<number, { index: number; key: string; range: [number, number] }>();
           // One key per range, not per log entry: two bad ranges in one event are two violations (M5).
-          list.push({ index, key: `${index}:${k}`, range: [start, end] });
-          rangesByRef.set(ref, list);
+          held.set(entryIndex, { index, key: `${index}:${k}`, range: [start, end] });
+          rangesByRef.set(ref, held);
         });
         if (closedRefs.has(ref)) checkRangesForRef(ref);
         checkOrder(ref, index);

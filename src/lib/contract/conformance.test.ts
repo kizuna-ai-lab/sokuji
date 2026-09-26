@@ -213,5 +213,30 @@ describe('checkConformance rules', () => {
       const log: ConformanceLog = [opened(2, 'translation'), text(2, 'Hi.'), closed(2), audio(2, undefined), audio(2, undefined), ranges(2, [[0, [0, 5]], [1, [5, 9]]])];
       expect(rules(log).filter((r) => r === 'range-in-text')).toHaveLength(2);
     });
+
+    it('flags each overlapping pair once, not again on every later ranged event of the ref', () => {
+      const log: ConformanceLog = [
+        opened(2, 'translation'), text(2, 'Hello, world and more.'), closed(2),
+        audio(2, undefined), audio(2, undefined), audio(2, undefined),
+        ranges(2, [[0, [0, 8]], [1, [5, 13]]]), // entries 0 and 1 overlap
+        ranges(2, [[2, [13, 22]]]),
+        audio(2, [22, 22]),
+      ];
+      expect(rules(log).filter((r) => r === 'ranges-order')).toHaveLength(1);
+      // Two different offending pairs are two violations.
+      const both: ConformanceLog = [
+        opened(2, 'translation'), text(2, 'Hello, world and more.'), closed(2),
+        audio(2, undefined), audio(2, undefined), audio(2, undefined),
+        ranges(2, [[0, [0, 8]], [1, [5, 13]], [2, [10, 22]]]),
+      ];
+      expect(rules(both).filter((r) => r === 'ranges-order')).toHaveLength(2);
+    });
+
+    it('a range set again replaces the one the entry had', () => {
+      // Corrected before the close: the first range is not checked against the text.
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, undefined), ranges(2, [[0, [0, 9]]]), ranges(2, [[0, [0, 3]]]), closed(2)])).toEqual([]);
+      // A range an audio carried, corrected by a fill-in, likewise.
+      expect(rules([opened(2, 'translation'), text(2, 'Hi.'), audio(2, [0, 9]), ranges(2, [[0, [0, 3]]]), closed(2)])).toEqual([]);
+    });
   });
 });
