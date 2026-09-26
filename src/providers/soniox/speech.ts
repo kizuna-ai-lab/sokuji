@@ -69,8 +69,13 @@ export class LegSpeech {
   private readonly counts = new Map<Ref, number>();
   /** Per live stream of the current socket: its chunks' entry indices and sample counts. A new socket restarts the ids. */
   private segments = new Map<string, Array<{ index: number; samples: number }>>();
-  /** Each ref's translation as fed: what a span indexes. */
-  private readonly texts = new Map<Ref, string>();
+  /**
+   * Per ref, the chunks fed whose TTS segment has not ended yet: what a
+   * segment's span indexes when its ranges are filled in (`tileSpan`'s
+   * surrogate snap). A chunk is let go once its segment's ranges are filled
+   * in or the segment is lost, so a session's translations do not pile up.
+   */
+  private texts = new Map<Ref, Array<{ span: TextRange; text: string }>>();
   /** What this utterance handed to speech, for the Logs' `tts.speak`. */
   private spoken = '';
   /** The failure episode already reported: cleared when audio flows again or a reconnect succeeds. */
@@ -86,9 +91,9 @@ export class LegSpeech {
 
   speak(ref: Ref, text: string, span: TextRange, language: string): void {
     if (this.closed) return;
-    this.texts.set(ref, (this.texts.get(ref) ?? '').slice(0, span[0]) + text);
-    this.spoken += text;
     const tag: TextTag = { ref, span };
+    this.hold(tag, text);
+    this.spoken += text;
     if (this.stream?.isOpen()) {
       this.stream.sendText(text, language, tag);
     } else {
@@ -112,6 +117,7 @@ export class LegSpeech {
     this.closed = true;
     this.pending = [];
     this.segments.clear();
+    this.texts.clear();
     this.stream?.close();
     this.stream = null;
     // A close while CONNECTING rejects its connect(); ensure()'s catch sees `closed` and says nothing.
@@ -144,6 +150,7 @@ export class LegSpeech {
     this.stream?.close();
     this.stream = null;
     this.segments = new Map();
+    this.holdOnlyPending();
     const stream = this.newStream();
     this.opening = stream;
     let retry = false;
@@ -156,6 +163,8 @@ export class LegSpeech {
       this.opening = null;
       this.stream = stream;
       this.reported = null;
+      // A new socket, a new unreadable-frame episode (choice 7).
+      this.readable = true;
       const pending = this.pending;
       this.pending = [];
       for (const op of pending) {
@@ -176,6 +185,8 @@ export class LegSpeech {
         // Trying to resume speech and failing is speech lost, whatever was active (the old client passed true).
         this.failure('connect_failed', describeCause(error), true, 'all');
       }
+      // What waited and was dropped here will never be spoken: its text goes too.
+      this.holdOnlyPending();
     } finally {
       this.connecting = false;
       if (this.opening === stream) this.opening = null;
@@ -200,9 +211,34 @@ export class LegSpeech {
   private onSegmentEnd(end: SonioxTtsSegmentEnd): void {
     const entries = this.segments.get(end.streamId);
     this.segments.delete(end.streamId);
+    // Filled in or lost, the segment's text is done with either way.
+    const text = end.ref !== undefined && end.span ? this.release(end.ref, end.span) : '';
     if (this.closed || !end.clean || !end.span || end.ref === undefined || !entries || entries.length === 0) return;
-    const ranges = tileSpan(end.span, entries.map((e) => e.samples), this.texts.get(end.ref) ?? '');
+    const [a, b] = end.span;
+    const ranges = tileSpan([0, b - a], entries.map((e) => e.samples), text).map(([s, e]): TextRange => [a + s, a + e]);
     this.o.events.speechRanges({ ref: end.ref, ranges: entries.map((e, k) => ({ index: e.index, range: ranges[k] })) });
+  }
+
+  private hold({ ref, span }: TextTag, text: string): void {
+    const chunks = this.texts.get(ref) ?? [];
+    chunks.push({ span, text });
+    this.texts.set(ref, chunks);
+  }
+
+  /** The text of `ref`'s segment spanning `span`, and every chunk of `ref` up to its end let go: those segments are over. */
+  private release(ref: Ref, [a, b]: TextRange): string {
+    const chunks = this.texts.get(ref) ?? [];
+    const text = chunks.filter((c) => c.span[0] >= a && c.span[1] <= b).map((c) => c.text).join('');
+    const left = chunks.filter((c) => c.span[1] > b);
+    if (left.length > 0) this.texts.set(ref, left);
+    else this.texts.delete(ref);
+    return text;
+  }
+
+  /** Only the text still waiting to be sent can end in a segment now: a socket that was let go took its live segments with it, unreported. */
+  private holdOnlyPending(): void {
+    this.texts = new Map();
+    for (const op of this.pending) if (op.kind === 'text') this.hold(op.tag, op.text);
   }
 
   private failure(code: string, message: string, hadActiveStream: boolean, scope: SonioxTtsErrorScope): void {
@@ -211,7 +247,8 @@ export class LegSpeech {
     const reported = this.reported;
     if (reported === 'all' || (reported === 'segment' && scope === 'segment')) return;
     this.reported = scope;
-    this.frame('in', 'tts.degraded', { code, message, scope });
+    // The client's own verdict on what it heard, not a server frame: out, as the old client logged it (`SonioxClient.ts:1472`).
+    this.frame('out', 'tts.degraded', { code, message, scope });
     this.o.events.degraded({ code: scope === 'segment' ? 'tts_segment_lost' : 'tts_stopped', message: `Soniox TTS ${code}: ${message}` });
   }
 

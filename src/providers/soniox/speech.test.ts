@@ -49,6 +49,12 @@ describe('tileSpan', () => {
   it('never ends a range inside a surrogate pair', () => {
     expect(tileSpan([0, 4], [1, 1], 'a😀b')).toEqual([[0, 3], [3, 4]]);
   });
+
+  it('a chunk whose share rounds to nothing gets an empty range: harmless, pinned', () => {
+    // Under half a code unit each: rounding gives some chunks [n, n]. The kit
+    // rejects only start > end, and karaoke holds at the boundary.
+    expect(tileSpan([0, 3], [1, 1, 1, 1, 1], 'abc')).toEqual([[0, 1], [1, 1], [1, 2], [2, 2], [2, 3]]);
+  });
 });
 
 describe('LegSpeech', () => {
@@ -85,6 +91,34 @@ describe('LegSpeech', () => {
     ]);
   });
 
+  it("snaps a filled-in boundary past a surrogate pair in the text it was fed", async () => {
+    const { speech, tts, kinds } = await setup();
+    speech.speak(2, 'a😀', [0, 3], 'en');
+    speech.speak(2, 'b', [3, 4], 'en');
+    speech.endUtterance();
+    // Equal chunks put the proportional boundary at 2, between the emoji's two halves.
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(kinds('speechRanges').map((e) => e.payload)).toEqual([
+      { ref: 2, ranges: [{ index: 0, range: [0, 3] }, { index: 1, range: [3, 4] }] },
+    ]);
+  });
+
+  it('keeps no text for a segment once its ranges are filled in or it is lost', async () => {
+    // Memory, not behaviour: a session's translations must not pile up here.
+    const { speech, tts } = await setup();
+    const held = () => (speech as unknown as { texts: Map<number, unknown> }).texts.size;
+    speech.speak(2, 'Hello.', [0, 6], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    expect(held()).toBe(1);
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(held()).toBe(0);
+    speech.speak(4, 'Lost.', [0, 5], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-2', error_code: 408, error_message: 'Request timeout' }));
+    expect(held()).toBe(0);
+  });
+
   it("counts a ref's entries across its segments", async () => {
     const { speech, tts, kinds } = await setup();
     speech.speak(2, 'One. ', [0, 5], 'en');
@@ -96,6 +130,44 @@ describe('LegSpeech', () => {
     expect(kinds('speechRanges').map((e) => e.payload)).toEqual([
       { ref: 2, ranges: [{ index: 0, range: [0, 5] }] },
       { ref: 2, ranges: [{ index: 1, range: [5, 9] }] },
+    ]);
+  });
+
+  it("interleaved refs count their own entries: a new ref starts at 0 while another goes on", async () => {
+    const { speech, tts, kinds } = await setup();
+    speech.speak(2, 'One. ', [0, 5], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    speech.speak(4, 'Uno.', [0, 4], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-2', audio: b64(2400) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-2', terminated: true }));
+    speech.speak(2, 'Two.', [5, 9], 'en');
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-3', audio: b64(2400) }));
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-3', terminated: true }));
+    expect(kinds('speechRanges').map((e) => e.payload)).toEqual([
+      { ref: 2, ranges: [{ index: 0, range: [0, 5] }] },
+      { ref: 4, ranges: [{ index: 0, range: [0, 4] }] },
+      { ref: 2, ranges: [{ index: 1, range: [5, 9] }] },
+    ]);
+  });
+
+  it("after a reconnect a ref's index goes on, and the new socket's utt-1-1 does not merge with the old one's", async () => {
+    const { speech, tts, sockets, kinds } = await setup();
+    speech.speak(2, 'One', [0, 3], 'en'); // no end: utt-1-1 stays live on the first socket
+    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    // The server closes; its close event has not arrived when the next text
+    // needs the socket, so the first socket's utt-1-1 never reports an end.
+    tts().serverClose();
+    speech.speak(2, ' two', [3, 7], 'en');
+    speech.endUtterance();
+    expect(sockets.all).toHaveLength(2);
+    sockets.last().open();
+    await flush();
+    sockets.last().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
+    sockets.last().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
+    expect(kinds('audio')).toHaveLength(2);
+    expect(kinds('speechRanges').map((e) => e.payload)).toEqual([
+      { ref: 2, ranges: [{ index: 1, range: [3, 7] }] },
     ]);
   });
 
@@ -131,6 +203,8 @@ describe('LegSpeech', () => {
       { code: '408', message: 'Request timeout', scope: 'segment' },
       { code: '400', message: 'Invalid voice', scope: 'all' },
     ]);
+    // The client's own verdict, as the old client logged it (`SonioxClient.ts:1472`): out, not in.
+    expect(frames('tts.degraded').map((f) => f.direction)).toEqual(['out', 'out']);
     tts().receive(JSON.stringify({ error_code: 400, error_message: 'Invalid voice' }));
     expect(degraded()).toEqual(['tts_segment_lost', 'tts_stopped']);
     // A new live stream failing alike, with no audio between: the same episode.
@@ -285,6 +359,20 @@ describe('LegSpeech', () => {
     expect(kinds('degraded')).toEqual([]);
   });
 
+  it('a new socket starts a new unreadable episode', async () => {
+    const { speech, tts, sockets, frames } = await setup();
+    tts().receive('{bad');
+    expect(frames('tts.unreadable')).toHaveLength(1);
+    tts().drop();
+    await flush();
+    speech.speak(2, 'Hi.', [0, 3], 'en');
+    sockets.last().open();
+    await flush();
+    // No audio between: the fresh socket's first bad frame is still logged.
+    sockets.last().receive('{bad');
+    expect(frames('tts.unreadable')).toHaveLength(2);
+  });
+
   it("logs the utterance's text at its end, never the audio", async () => {
     const { speech, tts, frames } = await setup();
     speech.speak(2, 'Hi', [0, 2], 'en');
@@ -335,6 +423,20 @@ describe('LegSpeech', () => {
     expect(config).not.toHaveProperty('client_reference_id');
     // Speed 1 is the server's default: not sent.
     expect(config).not.toHaveProperty('speed');
+  });
+
+  it("close during the start's own connect closes that socket, and says nothing — not even tts.connect_failed", async () => {
+    const { speech, sockets, opening, log, clock } = create();
+    const starting = sockets.last();
+    expect(starting.readyState).toBe(starting.CONNECTING);
+    speech.close();
+    expect(starting.closedByClient).not.toBeNull();
+    await opening;
+    await flush();
+    clock.advance(60_000);
+    await flush();
+    expect(log).toEqual([]);
+    expect(sockets.all).toHaveLength(1);
   });
 
   it('close while a reconnect is opening closes the new socket, and nothing follows', async () => {
