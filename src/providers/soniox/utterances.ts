@@ -212,7 +212,7 @@ export class Utterances {
    * The next original token: the ended utterance takes no more late tokens.
    * What it took in this very message is shown and spoken first — the flush
    * at the end of `message()` can no longer reach it once `previous` is
-   * cleared (the review's C1; cases 19–20). `speakFinals` ends the speech of
+   * cleared (cases 19–20). `speakFinals` ends the speech of
    * a translation already closed; `closeTranslation` that of an open one.
    */
   private endPrevious(): void {

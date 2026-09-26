@@ -61,7 +61,7 @@ export function tileSpan(span: TextRange, samples: readonly number[], text: stri
 export class LegSpeech {
   private stream: SonioxTtsStream | null = null;
   private connecting = false;
-  /** The socket `ensure()` is opening — at start or on demand — so `close()` reaches it before it opens (the `stop()` rule; the review's M8). */
+  /** The socket `ensure()` is opening — at start or on demand — so `close()` reaches it before it opens (the `stop()` rule): a stop during a connect must not leave a socket to open after it. */
   private opening: SonioxTtsStream | null = null;
   private closed = false;
   private pending: Pending[] = [];

@@ -3,8 +3,8 @@
  * machine over the STT socket's messages, on a virtual clock. `<end>` and
  * `<fin>` are the boundaries (ruling 5); a translation token after one and
  * before the next original token belongs to the utterance that just ended
- * (choice 3). Cases 19–20 pin the review's C1: late translation tokens and
- * the next utterance's first original in one message.
+ * (choice 3). Cases 19–20 pin late translation tokens and the next
+ * utterance's first original in one message.
  */
 import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
@@ -269,8 +269,8 @@ describe('Utterances', () => {
     expect(tokenFrames([])).toEqual([]);
   });
 
-  // The review's C1: late translation tokens and the next utterance's first
-  // original in ONE message, the layout continuous speech produces. Against
+  // Late translation tokens and the next utterance's first original in ONE
+  // message, the layout continuous speech produces. Against
   // an `endPrevious()` that only closes, 19 sees ref 2 opened and closed with
   // no text and nothing spoken, and 20 never shows or speaks '。'.
   it('a late translation in the same message as the next original is shown and spoken before it closes', () => {
