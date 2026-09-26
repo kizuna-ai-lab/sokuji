@@ -25,7 +25,7 @@ import { localInferenceProvider } from './provider';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { PROVIDERS } from '../registry';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
-import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
+import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 
 const noAuth = { signedIn: false, getToken: async () => null };
 
@@ -100,10 +100,11 @@ describe('localInferenceProvider', () => {
     expect(localInferenceProvider.EngineSummary).toBe(LocalInferenceEngineSummary);
   });
 
-  it("tunes automatic turn detection with its VAD: TurnDetection's Summary and Controls", () => {
+  it("tunes automatic turn detection with its VAD: TurnDetection's Summary, Controls and Help", () => {
     expect(localInferenceProvider.TurnDetection).toEqual({
       Summary: LocalInferenceTurnDetectionSummary,
       Controls: LocalInferenceTurnDetectionControls,
+      Help: LocalInferenceTurnDetectionHelp,
     });
   });
 

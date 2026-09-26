@@ -64,11 +64,18 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
  * stays usable during a run — it only shows what is set; the lock disables
  * the Controls inside.
  *
+ * `Help`, when the provider defines one, renders right after — a sibling of
+ * the disclosure button (or, in Simple, of the plain summary span), never a
+ * descendant: `Tooltip`'s trigger is its own hover/focus target, and a click
+ * on it must not also fire the button's `onClick` and toggle the disclosure.
+ *
  * A Summary that renders nothing (nothing to tune now — LocalInference on a
  * streaming ASR, where endpoint detection replaces VAD) leaves its
  * `.turn-detection-summary` empty, and Settings.scss hides the row then:
  * the section cannot see what a provider's component rendered, and a row
- * left standing would be a bare chevron in Advanced.
+ * left standing would be a bare chevron in Advanced. `Help` follows the same
+ * rule on its own (renders nothing then too), so no stray icon is left
+ * behind for `:has(.turn-detection-summary:empty)` to have missed.
  */
 function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
   const turnMode = useTurnModeStore((s) => s.turnMode);
@@ -79,7 +86,7 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
   if (turnMode !== 'auto' || !selection?.entry) return null;
   const tuning = selection.provider.TurnDetection;
   if (!tuning) return null;
-  const { Summary, Controls } = tuning;
+  const { Summary, Controls, Help } = tuning;
   const props = { settings: selection.entry.settings, update: selection.update, disabled: locked, pair: selection.entry.pair };
 
   if (layout === 'simple') {
@@ -87,6 +94,7 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
       <div className="setting-item turn-detection-tuning">
         <div className="setting-label">
           <span className="setting-value turn-detection-summary"><Summary {...props} /></span>
+          {Help && <Help {...props} />}
         </div>
       </div>
     );
@@ -102,6 +110,7 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
           <span className="turn-detection-summary"><Summary {...props} /></span>
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
+        {Help && <Help {...props} />}
       </div>
       {open && (
         <div id="turn-detection-controls">

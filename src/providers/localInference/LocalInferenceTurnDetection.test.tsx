@@ -16,7 +16,7 @@ vi.mock('../../lib/local-inference/modelManifest', () => ({
   getManifestEntry: (id: string) => (id === 'asr-model' ? mockAsrEntry : undefined),
 }));
 
-import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
+import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 
 const pair = { source: 'ja', target: 'en' };
@@ -51,14 +51,37 @@ describe('LocalInferenceTurnDetectionSummary', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  // The heading's own tooltip moved here (SpeechSection's disclosure row
-  // shows this Summary, collapsed or not) since `Controls` no longer draws
-  // the heading that used to carry it.
-  it('carries a help tooltip after the text, with the VAD settings tooltip content', () => {
+  // Text only — no tooltip trigger here. `LocalInferenceTurnDetectionHelp`
+  // carries it instead, so the section can place it as a sibling of the
+  // disclosure button rather than nested inside it.
+  it('is text only — no tooltip trigger', () => {
     const { container } = render(
       <LocalInferenceTurnDetectionSummary settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />,
     );
+    expect(container.querySelector('.tooltip-trigger')).toBeNull();
+  });
+});
+
+describe('LocalInferenceTurnDetectionHelp', () => {
+  // The heading's own tooltip, moved here from VadControl's now-hidden
+  // heading — same content, same `Tooltip`. The Speech section renders this
+  // as a sibling of its disclosure button, never nested inside it.
+  it('renders a tooltip trigger with the VAD settings tooltip content', () => {
+    const { container } = render(
+      <LocalInferenceTurnDetectionHelp settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />,
+    );
     expect(container.querySelector('.tooltip-trigger')).toBeTruthy();
+  });
+
+  // Nothing to tune (a streaming ASR with no worker type): the Summary shows
+  // nothing, and this must follow suit or the row would show a lone help
+  // icon over an empty summary.
+  it('renders nothing for a streaming ASR with no worker type', () => {
+    mockAsrEntry = { type: 'asr-stream', asrWorkerType: undefined };
+    const { container } = render(
+      <LocalInferenceTurnDetectionHelp settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />,
+    );
+    expect(container.innerHTML).toBe('');
   });
 });
 

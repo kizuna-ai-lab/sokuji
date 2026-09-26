@@ -127,6 +127,15 @@
     display: none;
   }
 
+  // The row's `Help` tooltip trigger is a sibling of the disclosure button
+  // (never nested inside it — see SpeechSection.tsx), so `.setting-label`'s
+  // usual space-between would fling it to the row's far edge. flex-start +
+  // a small gap keeps it right next to the button/summary instead.
+  .turn-detection-tuning .setting-label {
+    justify-content: flex-start;
+    gap: vars.$space-2;
+  }
+
   h3, h2 {
     display: flex;
     align-items: center;

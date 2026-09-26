@@ -9,8 +9,8 @@ import type { LanguagePair, SettingsProps } from '../../lib/provider/types';
 import type { LocalInferenceSettings as S } from './settings';
 
 // Matches `LocalSettingsControls.tsx`'s own inline help icon — this is the
-// same tooltip trigger, moved from VadControl's now-hidden heading onto the
-// Summary line that stands in for it in the Speech section.
+// same tooltip trigger, moved from VadControl's now-hidden heading onto
+// `LocalInferenceTurnDetectionHelp` below.
 const helpIcon = (
   <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
 );
@@ -44,22 +44,33 @@ function useVadKnobs(settings: S, pair: LanguagePair | undefined): { showVad: bo
 
 /**
  * One line: `VadControl`'s own heading and min-silence label, with the value
- * formatted the way `VadControl` shows it — existing keys only. Also carries
- * the heading's help tooltip (same content, same `Tooltip`): `Controls`
- * no longer draws that heading (`hideHeading`), since the Speech section's
- * disclosure row always shows this Summary, collapsed or not.
+ * formatted the way `VadControl` shows it — existing keys only. Text only:
+ * `LocalInferenceTurnDetectionHelp` carries the heading's old tooltip, so the
+ * Speech section can place it as a sibling of the disclosure button instead
+ * of nesting it inside — a click on the trigger must not also toggle the
+ * disclosure.
  */
 export function LocalInferenceTurnDetectionSummary({ settings, pair }: SettingsProps<S>) {
   const { t } = useTranslation();
   const { showVad } = useVadKnobs(settings, pair);
   if (!showVad) return null;
+  return <>{`${t('settings.vadSettings', 'VAD Settings')} · ${t('settings.vadMinSilenceDuration', 'Min Silence Duration')}: ${settings.vadMinSilenceDuration.toFixed(2)}s`}</>;
+}
+
+/**
+ * The heading's own help tooltip, moved here from `VadControl`'s now-hidden
+ * heading — same content, same `Tooltip`. Follows `Summary`'s own
+ * nothing-to-tune rule so the row never shows a help icon over an empty
+ * summary.
+ */
+export function LocalInferenceTurnDetectionHelp({ settings, pair }: SettingsProps<S>) {
+  const { t } = useTranslation();
+  const { showVad } = useVadKnobs(settings, pair);
+  if (!showVad) return null;
   return (
-    <>
-      {`${t('settings.vadSettings', 'VAD Settings')} · ${t('settings.vadMinSilenceDuration', 'Min Silence Duration')}: ${settings.vadMinSilenceDuration.toFixed(2)}s`}
-      <Tooltip content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')} position="top">
-        {helpIcon}
-      </Tooltip>
-    </>
+    <Tooltip content={t('settings.vadSettingsTooltip', 'Voice Activity Detection parameters. Controls how speech segments are detected and split. Changes take effect on next session start.')} position="top">
+      {helpIcon}
+    </Tooltip>
   );
 }
 

@@ -133,8 +133,17 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * row at all.
    */
   TurnDetection?: {
+    /** Text only — no tooltip. The section places `Help` itself, as a sibling. */
     Summary: ComponentType<SettingsProps<S>>;
     Controls: ComponentType<SettingsProps<S>>;
+    /**
+     * An explanatory tooltip trigger for the row, rendered by the section as
+     * a sibling right after the Summary/disclosure — never nested inside the
+     * disclosure `<button>`, whose own click must not fire the trigger's.
+     * Optional: a provider with nothing to explain omits it. Follows
+     * `Summary`'s own rule — render nothing while there is nothing to tune.
+     */
+    Help?: ComponentType<SettingsProps<S>>;
   };
 
   // credentials — stored apart from settings
