@@ -1,13 +1,15 @@
 /**
- * Finding 4: chip clicks (ProviderSection's openSlot) deep-link via
- * `navigateToSettings('provider')`, the SAME mechanism every other
- * settingsNavigationTarget uses to scroll/highlight its section. For every
- * OTHER target that's correct — but for 'provider' the element the lookup
- * finds (`id="provider-section"`) is the WHOLE ProviderSection, not the slot
- * the chip actually opened. That flash now belongs to EngineSurface's own
- * expanded SlotRow (see SlotRow.flash.test.tsx) — Settings.tsx must switch
- * tabs for 'provider' without scrolling/highlighting the section, and must
- * still clear the one-shot target so it can't linger.
+ * Finding 4: chip clicks (ProviderSection's openSlot, which no longer runs —
+ * unreachable at run time under controller ruling 1, kept only as source for
+ * Stage 2) deep-linked via `navigateToSettings('provider')`, the SAME
+ * mechanism every other settingsNavigationTarget uses to scroll/highlight its
+ * section. For every OTHER target that's correct — but for 'provider' the
+ * element the lookup finds (`id="provider-section"`) is the WHOLE
+ * ProviderSection, not the slot the chip actually opened. That flash now
+ * belongs to EngineSurface's own expanded SlotRow (see SlotRow.flash.test.tsx)
+ * — Settings.tsx must switch tabs for 'provider' without
+ * scrolling/highlighting the section, and must still clear the one-shot
+ * target so it can't linger.
  *
  * Follows Settings.test.tsx's mount idiom (AdvancedSettings/SimpleSettings
  * stubbed, i18n stubbed to its default string) but keeps

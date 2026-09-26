@@ -15,8 +15,9 @@ import { useSelectedProvider } from './useSelectedProvider';
 // `.provider-name-line`, `.powered-by` — see Settings.scss's "Rich provider
 // rows" block). They are plain global CSS, not scoped to Settings.tsx's own
 // tree, but this component owns the import too rather than depending on
-// always being mounted under a page that already loaded it (plan 1e-3c
-// deletes ProviderSection.tsx, the only other importer of this markup).
+// always being mounted under a page that already loaded it (ProviderSection.tsx,
+// the only other importer of this markup, stays until Stage 2 no longer needs
+// it — controller ruling 1).
 import '../Settings/Settings.scss';
 
 /** Today's link (`ProviderSection.tsx:599`) — a literal, never imported from `src/services`. */

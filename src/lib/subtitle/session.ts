@@ -46,9 +46,9 @@ export interface SubtitleSessionInput {
 
 /**
  * The idle body, first match wins: a start under way; no microphone chosen
- * (today's precedence, `computeStartGate`: a missing device before the
+ * (the precedence the old start gate had: a missing device before the
  * provider's own blocker); a provider that is not ready (a live blocker
- * outranks a stale failure, as today); a start that was refused or failed;
+ * outranks a stale failure, as before); a start that was refused or failed;
  * any other end — a run that failed mid-way ended, and its notice is in the
  * conversation; nothing yet.
  */

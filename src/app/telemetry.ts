@@ -151,8 +151,7 @@ export interface RunFacts {
 }
 
 /** PostHog property keys are queried by hand, so a space in one is a query
- *  the analyst cannot write — today's `segmentationTelemetry.ts` rule, word
- *  for word. */
+ *  the analyst cannot write. */
 function slug(value: string, fallback: string): string {
   const trimmed = value.trim();
   if (trimmed.length === 0) return fallback;

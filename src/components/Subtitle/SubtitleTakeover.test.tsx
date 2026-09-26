@@ -140,8 +140,8 @@ describe('SubtitleTakeover', () => {
   });
 
   // Ruling 11 (plan 1e-3b-1): a click before the selected provider's entry
-  // has loaded must not reach the runner at all — today's `SubtitleApp.tsx`
-  // has the same early return (`handleStart`, `if (!startGate.canStart) return;`).
+  // has loaded must not reach the runner at all — the old `SubtitleApp.tsx`
+  // had the same early return (`handleStart`, `if (!startGate.canStart) return;`).
   it("skips the start while the selected provider's entry has not loaded, then starts once it has (ruling 11)", async () => {
     render(<SubtitleTakeover />);
     useProviderStore.setState({ entries: {} });
@@ -181,8 +181,9 @@ describe('SubtitleTakeover', () => {
     expect(exit).toHaveBeenCalledTimes(1);
   });
 
-  // Today's `handleFix` (SubtitleApp.tsx:97-104): subtitle mode is left first
-  // so the main window is back before Settings scrolls to the section.
+  // The old `handleFix`'s rule, now `SubtitleTakeover.tsx`'s `openSettings`:
+  // subtitle mode is left first so the main window is back before Settings
+  // scrolls to the section.
   it('leaves subtitle mode before opening Settings, through controls.openSettings()', () => {
     render(<SubtitleTakeover />);
     act(() => { lastControls().openSettings!('provider'); });

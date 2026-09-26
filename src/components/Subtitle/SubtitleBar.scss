@@ -23,8 +23,8 @@
   opacity: var(--bar-opacity, 1);
   transition: opacity 200ms ease-in-out;
   // When the bar is fading out / hidden, let clicks pass through to the
-  // subtitle area underneath. SubtitleApp toggles --bar-pointer-events
-  // alongside --bar-opacity.
+  // subtitle area underneath. useSubtitleChrome's rootStyle toggles
+  // --bar-pointer-events alongside --bar-opacity.
   pointer-events: var(--bar-pointer-events, auto);
 
   // -webkit-app-region only applies inside Electron's BrowserWindow chrome.

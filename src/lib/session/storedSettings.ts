@@ -19,8 +19,8 @@ export function providerIdFromStored(stored: unknown): string | null {
 /**
  * What `settings.common.provider` holds for a provider: the old enum's
  * spelling where one exists — the value every install already has, and the
- * one the old settings store (still loaded until plan 1e-3c) reads as the
- * provider it is instead of falling back to OpenAI.
+ * one the old settings store (still loaded until Stage 2 retires it) reads as
+ * the provider it is instead of falling back to OpenAI.
  */
 export function storedProviderValue(id: string): string {
   for (const [legacy, current] of Object.entries(LEGACY_PROVIDER_IDS)) if (current === id) return legacy;

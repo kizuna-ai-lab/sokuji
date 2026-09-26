@@ -1,4 +1,4 @@
-// Regression test for the SubtitleApp staleness bug: the bar showed the
+// Regression test for a staleness bug in the old subtitle bar: it showed the
 // initial provider language pair forever, even after the user switched
 // sourceLanguage/targetLanguage. Root cause was a useMemo with deps that
 // never invalidated when `state[provider]` was replaced (same provider

@@ -195,9 +195,12 @@ export default function MainPanel() {
 
   const permission = usePermissionWarning(run, viewState.legs);
   const openWarning = permission.open;
-  // Stable for the panel's life (`t`, the store action and `open` are), so the list's per-notice cache holds (ruling 14).
-  // That cache is never pruned: one entry per notice drawn, for the panel's life — a page's worth. An id always names
-  // the same action: a leg's notice ids are unique per run, and an end's names its code (`lastEndItem`).
+  // The store action and `open` are stable for the panel's life; `t` is not — a language bundle
+  // arriving swaps it (`i18n`'s `bindI18nStore: 'added'`). ConversationList's per-notice cache keys
+  // off this callback's identity, so a bundle arriving mid-session invalidates and rebuilds it
+  // rather than serving stale text (ruling 14). That cache is never pruned: one entry per notice
+  // drawn, for the panel's life — a page's worth. An id always names the same action: a leg's
+  // notice ids are unique per run, and an end's names its code (`lastEndItem`).
   const noticeAction = useCallback((notice: NoticeEntry): NoticeAction | null => {
     if (notice.code === LOOPBACK_DENIED) return { label: t('audioPanel.openSystemSettings', 'Open System Settings'), run: () => openWarning('screen-recording-denied') };
     const target = settingsTargetForCode(notice.code);

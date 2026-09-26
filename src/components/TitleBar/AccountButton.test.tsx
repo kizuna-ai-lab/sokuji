@@ -346,7 +346,7 @@ describe('AccountButton balance floor per provider', () => {
     authUser = { name: 'J', email: 'you@example.com', emailVerified: true };
   };
 
-  // sessionStartGate applies the Soniox floor ONLY to managed Soniox; every
+  // The old start gate applied the Soniox floor ONLY to managed Soniox; every
   // other provider's floor is 1, i.e. the plain "> 0" rule. Using the Soniox
   // number for all of them lights a red "too low to start" dot next to a Start
   // button that is green and works — the false-positive direction this dot was

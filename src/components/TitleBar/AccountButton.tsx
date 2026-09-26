@@ -118,7 +118,7 @@ const AccountButton: React.FC = () => {
     // wallet funds nothing, so warning them would be noise. E-mail verification
     // is account-level and shows regardless.
     //
-    // The floor mirrors sessionStartGate: ONLY managed Soniox has a real one.
+    // The floor mirrors the old start gate's: ONLY managed Soniox has a real one.
     // Every other provider's floor is 1 — balances are integer micro-USD, so
     // that is exactly the "> 0" rule. Applying Soniox's floor to the Translate
     // and Volcengine twins lit a red "too low to start" dot beside a Start

@@ -62,8 +62,6 @@ export interface AnalyticsEvents {
   'translation_session_end': {
     session_id: string;
     duration: number;
-    /** No longer collected (D9); still sent by the old session path until plan 1e removes it. */
-    translation_count?: number;
     provider: string;
     error_count?: number;
     /** Seals by reason, per leg, e.g. { speaker_sentences: 12, speaker_length: 3 }. */

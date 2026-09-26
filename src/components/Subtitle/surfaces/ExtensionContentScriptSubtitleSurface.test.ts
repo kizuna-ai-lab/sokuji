@@ -392,7 +392,7 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     }
   });
 
-  it("accepts its tab's overlay while subtitle:enter is still in flight", async () => {
+  it("accepts its tab's overlay while subtitle:exit is still in flight", async () => {
     let arrived!: () => void;
     sendMessage.mockImplementationOnce(() => new Promise<void>((resolve) => { arrived = resolve; }));
     const entering = new ExtensionContentScriptSubtitleSurface().enter();
@@ -404,7 +404,7 @@ describe('ExtensionContentScriptSubtitleSurface', () => {
     await entering;
   });
 
-  it('closes the publisher an in-flight enter accepted when subtitle:enter then fails', async () => {
+  it('closes the publisher an in-flight enter accepted when subtitle:exit then fails', async () => {
     let refused!: (error: Error) => void;
     sendMessage.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { refused = reject; }));
     const entering = new ExtensionContentScriptSubtitleSurface().enter();

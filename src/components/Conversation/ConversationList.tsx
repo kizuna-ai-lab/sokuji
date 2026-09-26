@@ -169,7 +169,7 @@ const RowBubble = memo(function RowBubble({ item, upTo, replaySlot, canReplay, r
         {replaySlot && (
           // The slot's presence depends on the session-wide setting only, never on
           // whether this segment kept pcm, so no row reflows when its audio lands
-          // (today's `ConversationRow` rule). One replay plays at a time.
+          // (RowBubble's own rule). One replay plays at a time.
           <button
             type="button"
             className={`row-play-btn ${replayingThis ? 'playing' : ''}`}

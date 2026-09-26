@@ -123,8 +123,9 @@ describe('SystemAudioSection', () => {
   });
 
   it('switches source while the session is active', () => {
-    // Live switching is supported - MainPanel rebuilds the capture around the
-    // new source - so an active session must not block the picker.
+    // Live switching is supported - the open capture (capture/systemAudio.ts)
+    // watches audioStore and reopens itself around the new source - so an
+    // active session must not block the picker.
     mount({ isSessionActive: true });
     fireEvent.click(screen.getByText('Chromium'));
     expect(store.select).toHaveBeenCalled();
