@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
 import { useProviderStore } from '../../stores/providerStore';
+import { appVoicePreview } from '../../app/voicePreview';
 import { ownProps, useSelectedProvider } from './useSelectedProvider';
 
 interface ProviderOwnSettingsProps {
@@ -12,6 +13,7 @@ interface ProviderOwnSettingsProps {
 /** The selected provider's own `Settings` (D18), over its loaded entry, with its account (F3): the saved credentials and `auth`, the sign-in. Nothing before the entry loads. */
 export function ProviderOwnSettings({ providers, auth, disabled }: ProviderOwnSettingsProps & { auth: AuthContext }) {
   const selection = useSelectedProvider(providers);
+  const legs = useProviderStore((s) => s.legs);
   const credentials = selection?.entry?.credentials;
   // The hosts' `auth` is a new object on every render (`useAuth` makes
   // `getToken` inline), so the account never keys on it. Its `getToken`
@@ -33,7 +35,7 @@ export function ProviderOwnSettings({ providers, auth, disabled }: ProviderOwnSe
   );
   if (!selection?.entry) return null;
   const Settings = selection.provider.Settings;
-  return <Settings {...ownProps(selection, selection.entry, disabled)} account={account} />;
+  return <Settings {...ownProps(selection, selection.entry, disabled)} account={account} legs={legs} preview={appVoicePreview} />;
 }
 
 /**

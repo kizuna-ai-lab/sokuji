@@ -25,12 +25,14 @@ vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
 });
+vi.mock('../../app/voicePreview', () => ({ appVoicePreview: { play: vi.fn(), stop: vi.fn() } }));
 
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { AuthContext, EngineProps, SettingsProps } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { appVoicePreview } from '../../app/voicePreview';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from './ProviderOwnSettings';
 
 type TurnDetectionSlot = NonNullable<(typeof fakeProvider)['TurnDetection']>;
@@ -75,6 +77,18 @@ describe('ProviderOwnSettings', () => {
     expect(seen[0].models).toEqual([{ id: 'm1' }]);
     expect(seen[0].account).toMatchObject({ credentials: { apiKey: 'k' }, auth: { signedIn: true, userId: 'u1' } });
     await expect(seen[0].account!.auth.getToken()).resolves.toBe('t');
+  });
+
+  it("hands Settings the legs a start would open and the app's voice-preview route", () => {
+    useProviderStore.setState({
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
+      legs: ['speaker', 'participant'],
+    });
+    const seen: SettingsProps<FakeSettings>[] = [];
+    const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return null; };
+    render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} auth={AUTH} />);
+    expect(seen[0].legs).toEqual(['speaker', 'participant']);
+    expect(seen[0].preview).toBe(appVoicePreview);
   });
 
   describe("the account's identity", () => {

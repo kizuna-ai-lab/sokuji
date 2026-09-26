@@ -3,6 +3,7 @@
  * generic code knows about it (spec: "The provider definition"). Types only.
  */
 import type { ComponentType } from 'react';
+import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import type { SessionHooks } from '../session/types';
@@ -103,6 +104,12 @@ export interface SharedSettings {
   models: readonly ModelOption[];
 }
 
+/** The voice-preview route (spec, "Playback — Routing": voice preview, the real device, a fixed route): one clip at its own rate; `play` resolves when it ends or is stopped. */
+export interface PreviewPort {
+  play(clip: PreviewClip): Promise<void>;
+  stop(): void;
+}
+
 export interface SettingsProps<S> {
   settings: S;
   update(patch: Partial<S>): void;
@@ -119,6 +126,10 @@ export interface SettingsProps<S> {
   models?: readonly ModelOption[];
   /** The provider's account (F3). Set by `ProviderOwnSettings` for `Settings`; absent elsewhere. */
   account?: ProviderAccount;
+  /** The voice-preview route. Set by `ProviderOwnSettings` for `Settings`; absent elsewhere, where a voice library plays on its own. */
+  preview?: PreviewPort;
+  /** The legs a start would open (the audio mode's). Set by `ProviderOwnSettings` for `Settings`: Soniox locks its shared-session choice outside Both. */
+  legs?: readonly LegName[];
 }
 
 /** One slot of a local engine's model management: a stage of one direction (`src→tgt`). */
