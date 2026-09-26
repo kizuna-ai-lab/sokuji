@@ -13,29 +13,27 @@ vi.mock('../../utils/environment', async (orig) => ({
   getRelayWsUrl: () => 'wss://r.example/v1',
 }));
 import { Provider } from '../../types/Provider';
-import { availablePaths, managedProvider, ownKeyOptions, offlineOptions, providerFits, offersRecord } from './providerPaths';
+import {
+  availablePaths, managedProvider, ownKeyOptions, offlineOptions, providerFits, offersRecord,
+  textOnlyCapabilityOf, wizardProvider,
+} from './providerPaths';
 
 describe('providerPaths', () => {
-  it('offers the offline path only, whatever is registered', () => {
-    expect(availablePaths()).toEqual(['offline']);
+  it('offers the own-key path beside the offline one once an own-key provider is registered', () => {
+    expect(availablePaths()).toEqual(['own-key', 'offline']);
     expect(managedProvider()).toBe(Provider.KIZUNA_AI_SONIOX);
   });
 
-  it('own-key lists every user-managed provider in registration order, never managed or local ones', () => {
-    const ids = ownKeyOptions('understand-others').map((o) => o.id);
-    expect(ids).toEqual([
-      Provider.GEMINI, Provider.VOLCENGINE_AST2, Provider.OPENAI, Provider.OPENAI_TRANSLATE, Provider.OPENAI_LIVE,
-      Provider.SONIOX, Provider.OPENAI_COMPATIBLE, Provider.PALABRA_AI,
-    ]);
+  it("lists the registered own-key providers in registry order, in the old enum's spelling", () => {
+    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['soniox', 'fake']);
   });
 
-  it('marks providers that cannot serve the scenario instead of hiding them', () => {
-    const speak = Object.fromEntries(ownKeyOptions('be-heard').map((o) => [o.id, o.fit]));
-    expect(speak[Provider.OPENAI]).toEqual({ ok: true });
+  it("judges a provider's fit from its speech", () => {
+    expect(textOnlyCapabilityOf({ speech: 'always' })).toBe('never');
+    expect(textOnlyCapabilityOf({ speech: 'never' })).toBe('always');
+    expect(textOnlyCapabilityOf({ speech: 'optional' })).toBe('optional');
 
     const text = Object.fromEntries(ownKeyOptions('subtitle-myself').map((o) => [o.id, o.fit]));
-    expect(text[Provider.PALABRA_AI]).toEqual({ ok: false, reason: 'cannot-be-text-only' });
-    expect(text[Provider.OPENAI_TRANSLATE]).toEqual({ ok: false, reason: 'cannot-be-text-only' });
     expect(text[Provider.SONIOX]).toEqual({ ok: true });
   });
 
@@ -43,10 +41,10 @@ describe('providerPaths', () => {
     expect(offlineOptions()).toEqual([Provider.LOCAL_INFERENCE]);
   });
 
-  it('providerFits answers for any provider, including managed and local ones', () => {
-    expect(providerFits(Provider.KIZUNA_AI_SONIOX, 'subtitle-myself')).toBe(true);
-    expect(providerFits(Provider.KIZUNA_AI_OPENAI_TRANSLATE, 'subtitle-myself')).toBe(false);
-    expect(providerFits(Provider.LOCAL_NATIVE, 'two-way-voice')).toBe(true);
+  it('providerFits answers for a registered provider, and no for one this build lacks', () => {
+    expect(providerFits(Provider.SONIOX, 'subtitle-myself')).toBe(true);
+    expect(providerFits(Provider.LOCAL_INFERENCE, 'two-way-voice')).toBe(true);
+    expect(providerFits(Provider.OPENAI, 'be-heard')).toBe(false);
   });
 
   describe('offersRecord', () => {
@@ -62,7 +60,11 @@ describe('providerPaths', () => {
       expect(offersRecord({ scenario: 'be-heard', providerPath: 'managed', provider: Provider.KIZUNA_AI_SONIOX })).toBe(false);
     });
 
-    it('refuses an own-key record — no own-key card until Stage 2', () => {
+    it('offers an own-key record for Soniox', () => {
+      expect(offersRecord({ scenario: 'be-heard', providerPath: 'own-key', provider: Provider.SONIOX })).toBe(true);
+    });
+
+    it('refuses an own-key record for a provider this build does not register', () => {
       expect(offersRecord({ scenario: 'be-heard', providerPath: 'own-key', provider: Provider.OPENAI })).toBe(false);
     });
 
@@ -70,5 +72,12 @@ describe('providerPaths', () => {
       expect(offersRecord({ scenario: 'be-heard', providerPath: null, provider: Provider.LOCAL_INFERENCE })).toBe(false);
       expect(offersRecord({ scenario: null, providerPath: 'offline', provider: Provider.LOCAL_INFERENCE })).toBe(false);
     });
+  });
+
+  it("wizardProvider reads a draft's old spelling", () => {
+    expect(wizardProvider('local_inference')?.id).toBe('localInference');
+    expect(wizardProvider('soniox')?.id).toBe('soniox');
+    expect(wizardProvider('openai')).toBeUndefined();
+    expect(wizardProvider(null)).toBeUndefined();
   });
 });

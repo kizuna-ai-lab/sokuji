@@ -1,12 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExternalLink } from 'lucide-react';
-import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { TUTORIAL_URLS } from '../../../services/providers/tutorialUrls';
 import { openExternalUrl } from '../../../utils/openExternalUrl';
 import { useAuth, useUser } from '../../../lib/auth/hooks';
-import { useSetAuthOverlay, useSettingsStore } from '../../../stores/settingsStore';
-import type { SettingsStore } from '../../../stores/settingsStore';
+import { useSetAuthOverlay } from '../../../stores/settingsStore';
+import { useProviderStore } from '../../../stores/providerStore';
+import { useAuthContext } from '../../providers/useAuthContext';
+import { readCredentials, isMissing } from '../../../lib/provider/credentials';
+import { noticeText } from '../../../lib/view/noticeText';
+import { describeCause } from '../../../lib/diagnostics/describeCause';
+import { legsFor } from '../../../lib/session/appShape';
+import { getScenario } from '../../../lib/setup/scenarios';
+import { wizardProvider } from '../providerPaths';
 import Button from '../../Settings/shared/Button';
 import FormInput from '../../Settings/shared/FormInput';
 import StatusMessage from '../../Settings/shared/StatusMessage';
@@ -16,11 +21,9 @@ interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
 
 const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
   const { t } = useTranslation();
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn } = useAuth();
   const { user } = useUser();
   const setAuthOverlay = useSetAuthOverlay();
-  const [validating, setValidating] = useState(false);
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   // "Later" has to LEAVE the step. It reads as a button and sits beside one, so
   // a version that only set a flag looked broken — the warning it raised is on
@@ -75,57 +78,65 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
     );
   }
 
-  // own-key
-  const provider = draft.provider!;
-  const descriptor = ProviderConfigFactory.getDescriptor(provider);
-  // The live slice stands in for the provider's defaults (untouched on a fresh
-  // install) and decides which slot a field writes to — Soniox keeps one key
-  // per region. Read once per render rather than subscribed: nothing behind a
-  // wizard that covers the app can change it while this step is on screen.
-  const slice = useSettingsStore.getState()[descriptor.settingsSliceKey as keyof SettingsStore] as Record<string, unknown>;
-  const fields = descriptor.credentialFieldsFor(slice);
-  const tutorialUrl = TUTORIAL_URLS[provider];
-  // A re-run arrives already validated, and normally the prefill below fills
-  // the boxes to match. When it cannot — a provider whose validated credential
-  // is not among the fields this surface renders — an empty box painted green
-  // would claim a key that is not there. Say what is true instead. The slice is
-  // consulted too, so the notice does not flash for the one render between the
-  // re-run's first paint and the prefill landing.
-  const keyOnFile = draft.credentialsValidated
-    && fields.some((f) => !draft.credentials[f.key] && !slice?.[f.key]);
-  // Skipping is only harmless when settings already hold a credential this
-  // provider validated: then "later" changes nothing, and the summary must not
-  // report a key that is right there as missing.
-  const keptOnSkip = draft.credentialsValidated
-    && fields.length > 0
-    && fields.every((f) => typeof slice?.[f.key] === 'string' && slice[f.key] !== '');
+  return <OwnKeyCredentials draft={draft} dispatch={dispatch} skipButton={skipButton} />;
+};
+
+/** The own-key path (F12): the chosen provider's credential fields and its own check over the draft's values, written only at Finish (choice 11). */
+const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): React.ReactNode }> = ({ draft, dispatch, skipButton }) => {
+  const { t } = useTranslation();
+  const auth = useAuthContext();
+  const p = wizardProvider(draft.provider);
+  const entry = useProviderStore((s) => (p ? s.entries[p.id] : undefined));
+  const [validating, setValidating] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const inFlight = useRef<AbortController | null>(null);
+  useEffect(() => { if (p && !entry) void useProviderStore.getState().load(p); }, [p, entry]);
+  useEffect(() => () => inFlight.current?.abort(), []);
+  if (!p || !entry) return <section className="setup-step"><h2>{t('setup.steps.credentials.ownKeyTitle', 'Your API key')}</h2></section>;
+
+  const saved = entry.credentials;
+  const fields = p.credentials.fields(entry.settings);
+  // As before, over the saved values instead of the old slice (the re-run's rules, feedback 2026-08-25).
+  const keyOnFile = draft.credentialsValidated && fields.some((f) => !draft.credentials[f.key] && !saved[f.key]);
+  const keptOnSkip = draft.credentialsValidated && fields.length > 0 && fields.every((f) => !!saved[f.key]);
 
   const validate = async () => {
-    setValidating(true);
+    inFlight.current?.abort();
+    const mine = new AbortController();
+    inFlight.current = mine;
     setMessage(null);
+    // The draft overlays what is saved; nothing is written.
+    const credentials = readCredentials(p, entry.settings, { ...saved, ...draft.credentials }, auth);
+    if (isMissing(credentials)) {
+      setMessage({ ok: false, text: noticeText(t, { code: credentials.code ?? 'credentials_missing', params: credentials.params, message: credentials.missing }) });
+      return;
+    }
+    setValidating(true);
     try {
-      // The draft overlays the slice. Nothing is written.
-      const creds = await descriptor.extractCredentials({ ...slice, ...draft.credentials }, { getAuthToken: getToken });
-      if (!creds.ok) { setMessage({ ok: false, text: creds.missing }); return; }
-      const { validation } = await descriptor.validateAndFetchModels(creds);
-      if (validation.valid) {
+      const legs = legsFor(getScenario(draft.scenario!).mode);
+      const result = await p.check(credentials, entry.settings, { pair: entry.pair, legs, signal: mine.signal });
+      if (mine.signal.aborted) return;
+      if (result.ok) {
         dispatch({ type: 'credentialsValidated' });
         setMessage({ ok: true, text: t('setup.credentials.valid', 'Key accepted.') });
       } else {
-        setMessage({ ok: false, text: validation.message || t('setup.credentials.invalid', 'The key was rejected.') });
+        setMessage({ ok: false, text: noticeText(t, { code: result.code, params: result.params, message: result.reason }) });
       }
-    } catch (err) {
-      setMessage({ ok: false, text: err instanceof Error ? err.message : String(err) });
+    } catch (error) {
+      // It could not find out (offline, a timeout): say why, judge no key.
+      if (!mine.signal.aborted) setMessage({ ok: false, text: describeCause(error) });
     } finally {
-      setValidating(false);
+      if (inFlight.current === mine) setValidating(false);
     }
   };
 
+  const tutorialUrl = p.guideUrl;
+  // Today's markup (`StepCredentials.tsx:124-164`), with the saved values in place of the old slice and the definition's guide.
   return (
     <section className="setup-step">
       <h2>{t('setup.steps.credentials.ownKeyTitle', 'Your API key')}</h2>
       <p>{t('setup.credentials.ownKeyDesc', 'This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.')}</p>
-      <CredentialPrefill draft={draft} dispatch={dispatch} slice={slice} fieldKeys={fields.map((f) => f.key)} />
+      <CredentialPrefill draft={draft} dispatch={dispatch} slice={saved} fieldKeys={fields.map((f) => f.key)} />
       {fields.map((f) => (
         <label key={f.key} className="setup-field">
           <span>{t(f.labelKey, f.key)}</span>

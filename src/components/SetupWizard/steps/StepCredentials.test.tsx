@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
 vi.mock('../../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
@@ -16,38 +16,52 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }
 vi.mock('../../../locales', () => ({ default: { t: (k: string) => k }, changeLanguageWithLoad: vi.fn() }));
 let authState = { isSignedIn: false, emailVerified: false as boolean | null };
 vi.mock('../../../lib/auth/hooks', () => ({
-  useAuth: () => ({ isSignedIn: authState.isSignedIn, getToken: async () => null }),
+  useAuth: () => ({ isSignedIn: authState.isSignedIn, userId: authState.isSignedIn ? 'u1' : null, getToken: async () => null }),
   useUser: () => ({ isLoaded: true, user: authState.isSignedIn ? { emailVerified: authState.emailVerified } : null }),
 }));
-// The live slice the wizard reads to resolve the credential field and to stand
-// in for the provider's defaults during Validate. Mutable per test.
-let sliceState: Record<string, unknown> = {};
+// Own-key credentials no longer read the settings store: only the managed
+// branch still needs useSetAuthOverlay.
 vi.mock('../../../stores/settingsStore', () => ({
   useSetAuthOverlay: () => vi.fn(),
-  useSettingsStore: Object.assign((sel: (s: any) => unknown) => sel(sliceState), { getState: () => sliceState }),
 }));
 
 import StepCredentials from './StepCredentials';
 import { initialDraft } from '../setupDraft';
 import type { SetupDraft } from '../setupDraft';
 import { Provider } from '../../../types/Provider';
+import { useProviderStore } from '../../../stores/providerStore';
+import { sonioxProvider } from '../../../providers/soniox/provider';
+import { SONIOX_DEFAULTS } from '../../../providers/soniox/settings';
 
 const ownKeyDraft = (patch: Partial<SetupDraft> = {}): SetupDraft => ({
-  ...initialDraft(), step: 3, providerPath: 'own-key', provider: Provider.SONIOX, ...patch,
+  ...initialDraft(), step: 3, providerPath: 'own-key', provider: Provider.SONIOX, scenario: 'be-heard', ...patch,
 });
 const managedDraft = (patch: Partial<SetupDraft> = {}): SetupDraft => ({
   ...initialDraft(), step: 3, providerPath: 'managed', provider: Provider.KIZUNA_AI_SONIOX, ...patch,
 });
 
+/** Seeds the provider store's soniox entry the way a loaded install would hold
+ *  it, so the step never waits on a storage load. */
+const seedSoniox = (region: 'us' | 'eu' | 'jp', credentials: { apiKey: string; apiKeyEu: string; apiKeyJp: string }) => {
+  useProviderStore.setState({
+    entries: { soniox: { settings: { ...SONIOX_DEFAULTS, region }, credentials, pair: { source: 'ja', target: 'en' } } },
+    readiness: {},
+  });
+};
+
 beforeEach(() => {
   cleanup();
   authState = { isSignedIn: false, emailVerified: false };
-  sliceState = { soniox: { apiKey: '', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+  seedSoniox('us', { apiKey: '', apiKeyEu: '', apiKeyJp: '' });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('StepCredentials (own key)', () => {
   it("writes a typed Soniox key into the configured region's slot", () => {
-    sliceState = { soniox: { apiKey: '', apiKeyEu: '', apiKeyJp: '', region: 'jp' } };
+    seedSoniox('jp', { apiKey: '', apiKeyEu: '', apiKeyJp: '' });
     const dispatch = vi.fn();
     render(<StepCredentials draft={ownKeyDraft()} dispatch={dispatch} />);
 
@@ -66,7 +80,7 @@ describe('StepCredentials (own key)', () => {
   });
 
   it('prefills the key already in settings so a re-run shows what is saved', () => {
-    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    seedSoniox('us', { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '' });
     const dispatch = vi.fn();
     render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={dispatch} />);
 
@@ -74,7 +88,7 @@ describe('StepCredentials (own key)', () => {
   });
 
   it('does not prefill over a value the user is typing', () => {
-    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    seedSoniox('us', { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '' });
     const dispatch = vi.fn();
     render(<StepCredentials draft={ownKeyDraft({ credentials: { apiKey: 'sk-typing' } })} dispatch={dispatch} />);
 
@@ -91,9 +105,9 @@ describe('StepCredentials (own key)', () => {
   });
 
   it('does not flash the on-file notice while the prefill is landing', () => {
-    // The saved key is in the slice for the first render too; only a credential
-    // the wizard cannot show at all deserves the notice.
-    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    // The saved key is in the entry for the first render too; only a
+    // credential the wizard cannot show at all deserves the notice.
+    seedSoniox('us', { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '' });
     render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={vi.fn()} />);
 
     expect(screen.queryByText('setup.credentials.onFile')).not.toBeInTheDocument();
@@ -119,7 +133,7 @@ describe('StepCredentials (own key)', () => {
   });
 
   it('treats Skip as "leave it as it is" when the saved key already validates', () => {
-    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    seedSoniox('us', { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '' });
     const dispatch = vi.fn();
     render(<StepCredentials draft={ownKeyDraft({ credentialsValidated: true })} dispatch={dispatch} />);
 
@@ -131,7 +145,7 @@ describe('StepCredentials (own key)', () => {
   });
 
   it('does not call a saved-but-unvalidated key good enough to skip on', () => {
-    sliceState = { soniox: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '', region: 'us' } };
+    seedSoniox('us', { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '' });
     const dispatch = vi.fn();
     render(<StepCredentials draft={ownKeyDraft()} dispatch={dispatch} />);
 
@@ -146,6 +160,56 @@ describe('StepCredentials (own key)', () => {
 
     expect(screen.getByRole('link', { name: /setup.credentials.guide/ }))
       .toHaveAttribute('href', 'https://sokuji.kizuna.ai/docs/tutorials/soniox-setup');
+  });
+
+  it("Validate runs the provider's own check over the draft's key, and validates on a ready answer", async () => {
+    const checkSpy = vi.spyOn(sonioxProvider, 'check').mockResolvedValue({ ok: true });
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft({ credentials: { apiKey: 'sk-typed' } })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.credentials.validate' }));
+
+    await waitFor(() => expect(screen.getByText('setup.credentials.valid')).toBeInTheDocument());
+    expect(checkSpy).toHaveBeenCalledWith(
+      { region: 'us', stt: 'sk-typed', tts: 'sk-typed' },
+      useProviderStore.getState().entries.soniox.settings,
+      expect.objectContaining({ pair: { source: 'ja', target: 'en' }, legs: ['speaker'], signal: expect.any(AbortSignal) }),
+    );
+    expect(dispatch).toHaveBeenCalledWith({ type: 'credentialsValidated' });
+  });
+
+  it('a refusal shows the provider\'s words, and validates nothing', async () => {
+    vi.spyOn(sonioxProvider, 'check').mockResolvedValue({ ok: false, code: 'auth', reason: 'HTTP 401' });
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft({ credentials: { apiKey: 'sk-typed' } })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.credentials.validate' }));
+
+    await waitFor(() => expect(screen.getByText('notices.auth')).toBeInTheDocument());
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'credentialsValidated' });
+  });
+
+  it('a check that could not find out says why', async () => {
+    vi.spyOn(sonioxProvider, 'check').mockRejectedValue(new Error('Soniox did not answer the key check within 15 s.'));
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft({ credentials: { apiKey: 'sk-typed' } })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.credentials.validate' }));
+
+    await waitFor(() => expect(screen.getByText('Soniox did not answer the key check within 15 s.')).toBeInTheDocument());
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'credentialsValidated' });
+  });
+
+  it('writes nothing: the saved key and the provider\'s readiness are untouched', async () => {
+    vi.spyOn(sonioxProvider, 'check').mockResolvedValue({ ok: true });
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft({ credentials: { apiKey: 'sk-typed' } })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.credentials.validate' }));
+    await waitFor(() => expect(screen.getByText('setup.credentials.valid')).toBeInTheDocument());
+
+    expect(useProviderStore.getState().entries.soniox.credentials.apiKey).toBe('');
+    expect(useProviderStore.getState().readiness.soniox).toBeUndefined();
   });
 });
 

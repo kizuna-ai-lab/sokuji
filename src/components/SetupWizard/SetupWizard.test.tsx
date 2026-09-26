@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
 vi.mock('../../utils/environment', async (orig) => ({
@@ -94,6 +94,9 @@ import SetupWizard from './SetupWizard';
 import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
 import { matchLanguage } from './languageDefaults';
+import { useProviderStore } from '../../stores/providerStore';
+import { sonioxProvider } from '../../providers/soniox/provider';
+import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 
 beforeEach(() => {
   cleanup();
@@ -101,6 +104,11 @@ beforeEach(() => {
   apiKeyValid = null; setupRecord = null; authOverlayState = null;
   sliceState = { openai: { apiKey: '' }, soniox: { apiKey: '', region: 'us' } };
   setAuthOverlay.mockClear(); trackSpy.mockClear(); startTourSpy.mockClear();
+  useProviderStore.setState({ entries: {}, readiness: {} });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
@@ -310,7 +318,7 @@ describe('SetupWizard', () => {
     expect(applied[0]).toMatchObject({ provider: 'local_inference' });
   });
 
-  it('starts blank from an own-key record — the card is gone until Stage 2', async () => {
+  it('starts blank from an own-key record whose provider this build does not register', async () => {
     setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'openai', completedAt: 'x' };
     render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
     next();
@@ -323,6 +331,33 @@ describe('SetupWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(applied).toHaveLength(1));
     expect(applied[0]).toMatchObject({ provider: 'local_inference' });
+  });
+
+  it('walks the own-key path with Soniox to Finish', async () => {
+    vi.spyOn(sonioxProvider, 'check').mockResolvedValue({ ok: true });
+    useProviderStore.setState({
+      entries: { soniox: { settings: { ...SONIOX_DEFAULTS, region: 'us' }, credentials: { apiKey: '', apiKeyEu: '', apiKeyJp: '' }, pair: { source: 'ja', target: 'en' } } },
+      readiness: {},
+    });
+    render(<SetupWizard variant="first-run" />);
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));
+    next();
+    fireEvent.click(screen.getByRole('radio', { name: /I have my own API key/ }));
+    fireEvent.click(screen.getByRole('radio', { name: 'soniox' }));
+    next();
+
+    const keyField = await screen.findByLabelText('apiKey');
+    fireEvent.change(keyField, { target: { value: 'sk-test' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled());
+    next();                                           // language pair
+    next();                                           // finish
+    fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+    await waitFor(() => expect(applied).toHaveLength(1));
+    expect(applied[0]).toMatchObject({
+      providerPath: 'own-key', provider: 'soniox', credentials: { apiKey: 'sk-test' }, credentialsPending: false,
+    });
   });
 
   it('will not abandon setup while Finish is in flight', async () => {

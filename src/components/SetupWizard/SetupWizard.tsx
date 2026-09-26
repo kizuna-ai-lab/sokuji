@@ -9,7 +9,9 @@ import { useFloating, useDismiss, useRole, useInteractions, FloatingFocusManager
 import { X } from 'lucide-react';
 import { useAuth } from '../../lib/auth/hooks';
 import { useAnalytics } from '../../lib/analytics';
-import { useIsApiKeyValid, useAuthOverlay } from '../../stores/settingsStore';
+import { useAuthOverlay } from '../../stores/settingsStore';
+import { useProviderStore } from '../../stores/providerStore';
+import { providerIdFromStored } from '../../lib/session/storedSettings';
 import { useSetupRecord, SetupPersistError } from '../../stores/setupStore';
 import { getScenario } from '../../lib/setup/scenarios';
 import { buildTourCtx } from '../Tour/tourContext';
@@ -40,15 +42,17 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {
   const { isSignedIn } = useAuth();
   const { trackEvent } = useAnalytics();
   const record = useSetupRecord();
-  const apiKeyValid = useIsApiKeyValid();
   const authOverlay = useAuthOverlay();
   const apply = useApplySetup();
   const { start: startTour } = useTour();
 
-  const [draft, dispatch] = useReducer(setupReducer, undefined, (): SetupDraft =>
-    variant === 'rerun' && record && offersRecord(record)
-      ? draftFromRecord(record, { credentialsAlreadyValid: apiKeyValid === true })
-      : initialDraft());
+  const [draft, dispatch] = useReducer(setupReducer, undefined, (): SetupDraft => {
+    if (variant !== 'rerun' || !record || !offersRecord(record)) return initialDraft();
+    // A saved key counts as validated when the provider's last readiness answer was ready.
+    const id = providerIdFromStored(record.provider);
+    const ready = id !== null && useProviderStore.getState().readiness[id]?.state === 'ready';
+    return draftFromRecord(record, { credentialsAlreadyValid: ready });
+  });
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
 

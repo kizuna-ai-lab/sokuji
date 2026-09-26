@@ -1,13 +1,12 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExternalLink } from 'lucide-react';
-import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
 import { AI_PROVIDERS_DOCS_URL } from '../../../services/providers/tutorialUrls';
 import { openExternalUrl } from '../../../utils/openExternalUrl';
 import { Provider } from '../../../types/Provider';
 import type { ProviderType } from '../../../types/Provider';
 import type { ProviderPath } from '../../../lib/setup/types';
-import { availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions } from '../providerPaths';
+import { availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions, wizardProvider } from '../providerPaths';
 import type { SetupAction, SetupDraft } from '../setupDraft';
 
 interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
@@ -34,8 +33,9 @@ const StepProviderPath: React.FC<Props> = ({ draft, dispatch }) => {
   const { t } = useTranslation();
   const scenario = draft.scenario!;
   const nameOf = (id: ProviderType) => {
-    const key = ProviderConfigFactory.getDescriptor(id).i18nKey ?? id;
-    return t(`providers.${key}.name`, ProviderConfigFactory.getConfig(id).displayName);
+    const p = wizardProvider(id);
+    const key = p?.i18nKey ?? p?.id ?? id;
+    return t(`providers.${key}.name`, key);
   };
   const reasonOf = (reason: 'cannot-speak' | 'cannot-be-text-only') => reason === 'cannot-speak'
     ? t('setup.fit.cannotSpeak', 'This provider cannot produce spoken translation.')

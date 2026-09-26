@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ProviderConfigFactory } from '../../../services/providers/ProviderConfigFactory';
-import { providerIdFromStored } from '../../../lib/session/storedSettings';
 import { useProviderStore } from '../../../stores/providerStore';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { pairSentence } from '../languageSentence';
 import { defaultLanguagePair } from '../languageDefaults';
+import { textOnlyCapabilityOf, wizardProvider } from '../providerPaths';
 import type { SetupAction, SetupDraft } from '../setupDraft';
 
 interface Props { draft: SetupDraft; dispatch: React.Dispatch<SetupAction> }
@@ -15,9 +14,10 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   // the default pair should start from the language the user is reading.
   const { t, i18n } = useTranslation();
   const uiLanguage = i18n.language;
-  const descriptor = ProviderConfigFactory.getDescriptor(draft.provider!);
-  const sources = useMemo(() => descriptor.resolveSourceLanguages(), [descriptor]);
-  const targetsFor = (s: string) => descriptor.resolveTargetLanguages(s);
+  const p = wizardProvider(draft.provider)!;
+  const s = useProviderStore((st) => st.entries[p.id]?.settings) ?? p.settings.defaults;
+  const sources = useMemo(() => [...p.languages.sources(s)], [p, s]);
+  const targetsFor = (src: string) => [...p.languages.targets(src, s)];
 
   // Seed once from the provider's lists (spec §1.2 step 4); Back/Next keeps the
   // user's picks because the draft already holds them.
@@ -28,14 +28,13 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
     if (draft.sourceLanguage !== null && draft.targetLanguage !== null) return;
     // The provider store's entry, not the old slice: that is loaded once at
     // startup and no longer follows edits (plan 1e-3b-2's switch).
-    const id = providerIdFromStored(draft.provider);
-    const entry = id ? useProviderStore.getState().entries[id] : undefined;
+    const entry = useProviderStore.getState().entries[p.id];
     const pair = defaultLanguagePair({
       sources, targetsFor, uiLanguage,
       providerDefault: { source: entry?.pair.source ?? sources[0]?.value ?? 'en', target: entry?.pair.target ?? 'en' },
     });
     dispatch({ type: 'setLanguages', source: pair.source, target: pair.target });
-  }, [descriptor, sources, uiLanguage, draft.sourceLanguage, draft.targetLanguage, dispatch]);
+  }, [p, sources, uiLanguage, draft.sourceLanguage, draft.targetLanguage, dispatch]);
 
   const source = draft.sourceLanguage ?? '';
   const targets = source ? targetsFor(source) : [];
@@ -47,17 +46,17 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   const sentence = pairSentence({
     mode: preset.mode,
     textOnly: preset.textOnly,
-    capability: ProviderConfigFactory.getConfig(draft.provider!).capabilities.textOnlyCapability,
+    capability: textOnlyCapabilityOf(p),
     source, target: draft.targetLanguage,
   });
   const myLabel = t(sentence.my.key, sentence.my.fallback);
   const theirLabel = t(sentence.their.key, sentence.their.fallback);
   const nameOf = (list: { value: string; name: string }[], v: string) => list.find((o) => o.value === v)?.name ?? v;
 
-  const setSource = (s: string) => {
-    const nextTargets = targetsFor(s);
+  const setSource = (next: string) => {
+    const nextTargets = targetsFor(next);
     const keep = nextTargets.some((o) => o.value === draft.targetLanguage) ? draft.targetLanguage! : (nextTargets[0]?.value ?? '');
-    dispatch({ type: 'setLanguages', source: s, target: keep });
+    dispatch({ type: 'setLanguages', source: next, target: keep });
   };
 
   return (
