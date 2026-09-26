@@ -8,6 +8,7 @@ import type { TurnMode } from '../../lib/session/types';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { createGapCounter, type GapCount } from './gapCounter';
 
 interface SessionControlsProps {
   runner: Runner;
@@ -21,19 +22,21 @@ interface SessionControlsProps {
 /**
  * What the playback played, for a listener and for a headless check (which
  * cannot use requestAnimationFrame): every clip key heard, and the loudest
- * sample the tts tap heard. Reading the tap drains it: under `&capture=device`
- * the app capture's own echo watch also drains the tap, every 250 ms, so the
- * peak shown here is partial. When `capture` is given, also reports what it
+ * sample the tts tap heard, and the gaps inside the translated speech the
+ * tap heard (G3). Reading the tap drains it: under `&capture=device` the app
+ * capture's own echo watch also drains the tap, every 250 ms, so the peak
+ * shown here is partial. When `capture` is given, also reports what it
  * delivered.
  */
 function usePlaybackProbe(
   playback: Playback | undefined,
   capture?: () => { chunks: number; peak: number },
-): { heard: string[]; peak: number; busPeak: number; captured: { chunks: number; peak: number } | null } {
-  const [probe, setProbe] = useState<{ heard: string[]; peak: number; busPeak: number; captured: { chunks: number; peak: number } | null }>({
+): { heard: string[]; peak: number; busPeak: number; gaps: GapCount; captured: { chunks: number; peak: number } | null } {
+  const [probe, setProbe] = useState<{ heard: string[]; peak: number; busPeak: number; gaps: GapCount; captured: { chunks: number; peak: number } | null }>({
     heard: [],
     peak: 0,
     busPeak: 0,
+    gaps: { gaps: 0, gapMs: 0, at: [] },
     captured: capture ? { chunks: 0, peak: 0 } : null,
   });
   // A new arrow function on every render must not tear down the interval below
@@ -46,21 +49,26 @@ function usePlaybackProbe(
     let peak = 0;
     let busPeak = 0;
     let last = { chunks: 0, peak: 0 };
+    const gapCounter = createGapCounter();
     const id = setInterval(() => {
       const before = heard.size;
       const beforePeak = peak;
       const beforeBusPeak = busPeak;
+      const beforeGaps = gapCounter.read().gaps;
       for (const queue of Object.values(playback.queues)) {
         const playing = queue.position();
         if (playing) heard.add(playing.key);
       }
-      for (const sample of playback.ttsTap.read()) peak = Math.max(peak, Math.abs(sample));
+      const tapped = playback.ttsTap.read();
+      for (const sample of tapped) peak = Math.max(peak, Math.abs(sample));
+      gapCounter.push(tapped);
       for (const sample of playback.meter('real')?.read() ?? []) busPeak = Math.max(busPeak, sample);
       const seen = captureRef.current?.();
       const captureChanged = seen && (seen.chunks !== last.chunks || seen.peak !== last.peak);
-      if (heard.size !== before || peak !== beforePeak || busPeak !== beforeBusPeak || captureChanged) {
+      const gaps = gapCounter.read();
+      if (heard.size !== before || peak !== beforePeak || busPeak !== beforeBusPeak || captureChanged || gaps.gaps !== beforeGaps) {
         if (seen) last = seen;
-        setProbe({ heard: [...heard], peak, busPeak, captured: seen ?? null });
+        setProbe({ heard: [...heard], peak, busPeak, gaps, captured: seen ?? null });
       }
     }, 100);
     return () => clearInterval(id);
@@ -151,6 +159,7 @@ export function SessionControls({ runner, turnMode, audio, capture }: SessionCon
           </button>
           <p data-probe="playback">
             {`heard: ${probe.heard.join(',') || '-'} · tap peak: ${probe.peak.toFixed(3)} · bus peak: ${probe.busPeak.toFixed(3)}`
+              + ` · gaps: ${probe.gaps.gaps} (${Math.round(probe.gaps.gapMs)} ms) at ${probe.gaps.at.map((s) => s.toFixed(1)).join(',') || '-'}`
               + (probe.captured ? ` · captured: ${probe.captured.chunks} · mic peak: ${probe.captured.peak.toFixed(3)}` : '')}
           </p>
         </div>
