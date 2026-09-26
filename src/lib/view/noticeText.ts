@@ -89,6 +89,9 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // A provider ended the session under the user, and a new Start continues it.
   segment_ended: 'mainPanel.sonioxSegmentEnded',
   connection_lost: 'mainPanel.sonioxConnectionLost',
+  // A leg's speech failed (Stage 2 Soniox, choice 9): the sentences name no vendor.
+  tts_segment_lost: 'mainPanel.sonioxTtsSegmentLost',
+  tts_stopped: 'mainPanel.sonioxTtsFailed',
 };
 
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */

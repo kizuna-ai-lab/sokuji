@@ -7,10 +7,10 @@ import {
   type Ref,
   type StartRequest,
 } from '../../lib/contract/adapter';
+import { framePayload } from '../../lib/contract/framePayload';
 import { fillIn, type Punctuator } from '../../lib/conversation/fillIn';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
-import { redact } from '../../lib/diagnostics/redact';
 import type { TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
 import { countSkeleton } from '../../lib/segmentation/sealCursor';
 import { gateChars, type SealedChunk } from '../../lib/segmentation/SentenceStream';
@@ -85,22 +85,6 @@ function humanizeTranslationError(error: unknown): string {
     return match[2] ? `Bing Translator failed: ${match[2]}` : 'Bing Translator failed.';
   }
   return raw;
-}
-
-/** Below the contract's 2048-character bound on any frame string. */
-const FRAME_STRING_MAX = 2000;
-
-/** A frame payload fit for the Logs panel: every string redacted and cut below the bound. */
-function framePayload(value: unknown): unknown {
-  if (typeof value === 'string') {
-    const clean = redact(value);
-    return clean.length > FRAME_STRING_MAX ? `${clean.slice(0, FRAME_STRING_MAX)}…` : clean;
-  }
-  if (Array.isArray(value)) return value.map(framePayload);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, framePayload(v)]));
-  }
-  return value;
 }
 
 export function createLocalInferenceAdapter(engines: LocalEngines = defaultEngines): Adapter<LocalInferenceConfig, LocalCredentials> {

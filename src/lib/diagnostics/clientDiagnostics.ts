@@ -46,6 +46,10 @@ export const CLIENT_DIAGNOSTICS = {
   translation_failed: { severity: 'warning' },
   /** This direction has no translation model: its speech is transcribed only. */
   translation_unavailable: { severity: 'warning' },
+  /** One segment of spoken translation was lost (the provider killed it); the next one speaks. */
+  tts_segment_lost: { severity: 'warning' },
+  /** Spoken translation has stopped; transcription and text translation go on. */
+  tts_stopped: { severity: 'warning' },
 } satisfies Record<string, { severity: 'error' | 'warning' }>;
 
 export type ClientDiagnosticCode = keyof typeof CLIENT_DIAGNOSTICS;

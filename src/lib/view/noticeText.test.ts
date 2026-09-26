@@ -55,8 +55,17 @@ describe('noticeText', () => {
 
   it('has words for every code the runner, the capture and the adapters record', () => {
     for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION, LOOPBACK_DENIED, NO_MICROPHONE]) {
-      expect(NOTICE_WORDS[code], code).toBeDefined();
+      // An adapter's code may be worded by an alias instead (never both: see below).
+      expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined();
     }
+  });
+
+  it("words speech's two failures with the sentences every locale already has", () => {
+    expect(noticeText(t, { code: 'tts_segment_lost', message: 'x' })).toMatch(/^mainPanel\.sonioxTtsSegmentLost\|/);
+    expect(noticeText(t, { code: 'tts_stopped', message: 'x' })).toMatch(/^mainPanel\.sonioxTtsFailed\|/);
+    const enCatalog = en as unknown as Record<string, unknown>;
+    expect(at(enCatalog, NOTICE_ALIASES.tts_segment_lost)).toBe('Part of the spoken translation could not be played. Transcription and text translation are unaffected.');
+    expect(at(enCatalog, NOTICE_ALIASES.tts_stopped)).toBe('Spoken translation has stopped. Transcription and text translation are still running.');
   });
 
   it("puts the local engines' notices into words", () => {
