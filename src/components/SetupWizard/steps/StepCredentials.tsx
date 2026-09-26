@@ -144,7 +144,12 @@ const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): R
             type={f.secret ? 'password' : 'text'}
             value={draft.credentials[f.key] ?? ''}
             placeholder={f.placeholderKey ? t(f.placeholderKey, '') : ''}
-            onChange={(e) => dispatch({ type: 'setCredential', key: f.key, value: e.target.value })}
+            onChange={(e) => {
+              // An edit while a check is in flight must not let its answer
+              // land for a key it never checked (risk b): abort it first.
+              inFlight.current?.abort();
+              dispatch({ type: 'setCredential', key: f.key, value: e.target.value });
+            }}
             status={keyOnFile ? null : draft.credentialsValidated ? 'valid' : message && !message.ok ? 'invalid' : null}
           />
         </label>

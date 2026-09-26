@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProviderStore } from '../../../stores/providerStore';
+import { AUTO } from '../../../lib/provider/languages';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { pairSentence } from '../languageSentence';
 import { defaultLanguagePair } from '../languageDefaults';
@@ -51,7 +52,8 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   });
   const myLabel = t(sentence.my.key, sentence.my.fallback);
   const theirLabel = t(sentence.their.key, sentence.their.fallback);
-  const nameOf = (list: { value: string; name: string }[], v: string) => list.find((o) => o.value === v)?.name ?? v;
+  // A source list can start with AUTO (Soniox's does, `LanguagePairSection.tsx:38`'s rule): named by the catalogue key Settings uses, never the definition's raw "Auto".
+  const nameOf = (list: { value: string; name: string }[], v: string) => (v === AUTO ? t('common.autoDetect') : list.find((o) => o.value === v)?.name ?? v);
 
   const setSource = (next: string) => {
     const nextTargets = targetsFor(next);
@@ -66,7 +68,7 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
       <label className="setup-field">
         <span>{myLabel}</span>
         <select value={source} onChange={(e) => setSource(e.target.value)} aria-label={myLabel}>
-          {sources.map((o) => <option key={o.value} value={o.value}>{o.name}</option>)}
+          {sources.map((o) => <option key={o.value} value={o.value}>{nameOf(sources, o.value)}</option>)}
         </select>
       </label>
       <label className="setup-field">

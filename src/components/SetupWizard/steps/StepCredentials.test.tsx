@@ -189,6 +189,26 @@ describe('StepCredentials (own key)', () => {
     expect(dispatch).not.toHaveBeenCalledWith({ type: 'credentialsValidated' });
   });
 
+  it('an edit made mid-check aborts it, so its stale answer never validates the new key', async () => {
+    let resolveCheck!: (r: { ok: true }) => void;
+    const checkPromise = new Promise<{ ok: true }>((resolve) => { resolveCheck = resolve; });
+    vi.spyOn(sonioxProvider, 'check').mockReturnValue(checkPromise);
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ownKeyDraft({ credentials: { apiKey: 'sk-old' } })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.credentials.validate' }));
+    // The user keeps typing while the first check is still in flight.
+    fireEvent.change(screen.getByLabelText('setup.credentials.apiKey'), { target: { value: 'sk-new' } });
+    resolveCheck({ ok: true });
+    // The Validate button's own loading state always clears once the promise
+    // settles (the `finally` runs whether or not the answer was aborted) —
+    // a stable point to wait on without asserting on the bug itself.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'setup.credentials.validate' })).toBeEnabled());
+
+    expect(dispatch).not.toHaveBeenCalledWith({ type: 'credentialsValidated' });
+    expect(screen.queryByText('setup.credentials.valid')).not.toBeInTheDocument();
+  });
+
   it('a check that could not find out says why', async () => {
     vi.spyOn(sonioxProvider, 'check').mockRejectedValue(new Error('Soniox did not answer the key check within 15 s.'));
     const dispatch = vi.fn();

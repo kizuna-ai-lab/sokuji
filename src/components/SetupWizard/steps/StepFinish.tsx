@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProviderStore } from '../../../stores/providerStore';
+import { AUTO } from '../../../lib/provider/languages';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { pairSentence } from '../languageSentence';
 import StatusMessage from '../../Settings/shared/StatusMessage';
@@ -15,7 +16,8 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const p = wizardProvider(draft.provider)!;
   const providerName = t(`providers.${p.i18nKey ?? p.id}.name`, p.id);
   const s = useProviderStore((st) => st.entries[p.id]?.settings) ?? p.settings.defaults;
-  const nameOf = (list: { value: string; name: string }[], v: string | null) => list.find((o) => o.value === v)?.name ?? v ?? '';
+  // A source list can start with AUTO (Soniox's does): named by the catalogue key Settings uses, never the definition's raw "Auto".
+  const nameOf = (list: { value: string; name: string }[], v: string | null) => (v === AUTO ? t('common.autoDetect') : list.find((o) => o.value === v)?.name ?? v ?? '');
   const sourceName = nameOf([...p.languages.sources(s)], draft.sourceLanguage);
   const targetName = nameOf([...p.languages.targets(draft.sourceLanguage ?? '', s)], draft.targetLanguage);
   // The pair reads as the sentence the pair step and Settings both print,

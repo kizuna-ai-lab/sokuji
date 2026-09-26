@@ -55,10 +55,6 @@ vi.mock('./useApplySetup', () => ({
     applied.push(draft);
   },
 }));
-let apiKeyValid: boolean | null = null;
-// The provider slices the wizard reads: what a credential field is prefilled
-// from, and what "skip" is deciding whether to keep. Mutable per test.
-let sliceState: Record<string, unknown> = {};
 // Mutable so a test can simulate the sign-in overlay opening from step 3 and
 // claiming Escape before the wizard's own useDismiss does.
 let authOverlayState: 'sign-in' | 'sign-up' | 'forgot-password' | null = null;
@@ -68,8 +64,6 @@ vi.mock('../../stores/settingsStore', () => ({
   useSetAuthOverlay: () => setAuthOverlay,
   useAuthOverlay: () => authOverlayState,
   useProvider: () => 'openai',
-  useIsApiKeyValid: () => apiKeyValid,
-  useSettingsStore: Object.assign((sel: (s: any) => unknown) => sel(sliceState), { getState: () => sliceState }),
 }));
 // The record a Help re-run pre-fills from. Mutable: with it fixed at null the
 // isProviderSupported-guarded prefill branch never ran in any test.
@@ -101,8 +95,7 @@ import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 beforeEach(() => {
   cleanup();
   applied.length = 0; applyGate = null; applyError = null; signedIn = false; uiLanguage = 'en';
-  apiKeyValid = null; setupRecord = null; authOverlayState = null;
-  sliceState = { openai: { apiKey: '' }, soniox: { apiKey: '', region: 'us' } };
+  setupRecord = null; authOverlayState = null;
   setAuthOverlay.mockClear(); trackSpy.mockClear(); startTourSpy.mockClear();
   useProviderStore.setState({ entries: {}, readiness: {} });
 });
@@ -282,7 +275,6 @@ describe('SetupWizard', () => {
 
   it('pre-fills a re-run from the stored record', () => {
     setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'offline', provider: 'local_inference', completedAt: 'x' };
-    apiKeyValid = true;
     render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
     next();
     expect(screen.getByRole('radio', { name: /Be understood in a meeting/ })).toBeChecked();
@@ -295,7 +287,6 @@ describe('SetupWizard', () => {
 
   it('starts blank when the stored record names a provider this build does not have', () => {
     setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'not-a-provider', completedAt: 'x' };
-    apiKeyValid = true;
     render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
     next();
     expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
@@ -352,12 +343,45 @@ describe('SetupWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Validate' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled());
     next();                                           // language pair
+    // Soniox's source list is AUTO-first; the wizard names it through the
+    // catalogue key Settings uses, not the definition's raw "Auto".
+    expect(screen.getByRole('option', { name: 'common.autoDetect' })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('combobox', { name: 'I speak' }), { target: { value: 'auto' } });
     next();                                           // finish
+    expect(screen.getByText(/common\.autoDetect/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(applied).toHaveLength(1));
     expect(applied[0]).toMatchObject({
       providerPath: 'own-key', provider: 'soniox', credentials: { apiKey: 'sk-test' }, credentialsPending: false,
     });
+  });
+
+  it('a re-run seeded with the provider already ready starts validated', () => {
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'soniox', completedAt: 'x' };
+    useProviderStore.setState({
+      entries: { soniox: { settings: { ...SONIOX_DEFAULTS, region: 'us' }, credentials: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '' }, pair: { source: 'ja', target: 'en' } } },
+      readiness: { soniox: { state: 'ready', models: [] } },
+    });
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    expect(screen.getByRole('radio', { name: /Be understood in a meeting/ })).toBeChecked();
+    next();
+    expect(screen.getByRole('radio', { name: 'soniox' })).toBeChecked();
+    next();                                           // credentials
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+  });
+
+  it('a re-run seeded without a ready answer starts unvalidated, and Next stays locked', () => {
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'soniox', completedAt: 'x' };
+    useProviderStore.setState({
+      entries: { soniox: { settings: { ...SONIOX_DEFAULTS, region: 'us' }, credentials: { apiKey: 'sk-saved', apiKeyEu: '', apiKeyJp: '' }, pair: { source: 'ja', target: 'en' } } },
+      readiness: {},
+    });
+    render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
+    next();
+    next();
+    next();                                           // credentials
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
   });
 
   it('will not abandon setup while Finish is in flight', async () => {
