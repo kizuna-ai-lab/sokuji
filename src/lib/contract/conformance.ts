@@ -177,7 +177,7 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
           }
           byIndex.set(entryIndex, [start, end]);
           const held = rangesByRef.get(ref) ?? new Map<number, { index: number; key: string; range: [number, number] }>();
-          // One key per range, not per log entry: two bad ranges in one event are two violations (M5).
+          // One key per range, not per log entry: each bad range in one event is its own violation, not hidden behind the first.
           held.set(entryIndex, { index, key: `${index}:${k}`, range: [start, end] });
           rangesByRef.set(ref, held);
         });

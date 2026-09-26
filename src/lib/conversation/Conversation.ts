@@ -57,7 +57,7 @@ export class Conversation {
   private readonly pending = new Map<number, Speech[]>();
   /** A segment whose text fill-in replaced: the adapter's own text, which a late `speechRanges` is measured against. Deleted when the adapter sends text again. */
   private readonly unfilled = new Map<number, string>();
-  /** Per ref, the speech entries `clear()` dropped: an adapter counts `speechRanges` indices from its first `audio`, L1 (and the clip keys, `playback.clear()`) from the clear (choice 1, M4). */
+  /** Per ref, the speech entries `clear()` dropped: an adapter counts `speechRanges` indices from its first `audio`, L1 (and the clip keys, `playback.clear()`) from the clear (choice 1). */
   private readonly clearedEntries = new Map<number, number>();
   private counter = 0;
   private noticeCounter = 0;

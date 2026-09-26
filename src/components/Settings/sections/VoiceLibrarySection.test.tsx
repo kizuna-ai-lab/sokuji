@@ -405,10 +405,10 @@ describe('through the preview route', () => {
   });
 
   it('a toggle or an unmount with nothing of its own playing leaves the route alone', async () => {
-    // The review's M12: the draft's stopPreview called port?.stop()
-    // unconditionally, so a toggle or an unmount with nothing of this
-    // section's own playing would still cut the test tone or another
-    // section's preview through the shared route.
+    // The route is shared: the test tone and other sections' previews play
+    // through it too. A stopPreview that called port.stop() unconditionally
+    // would cut them on a toggle or an unmount with nothing of this
+    // section's own playing.
     const port = { play: vi.fn(), stop: vi.fn() };
     const onPreview = vi.fn().mockResolvedValue({ audio: new Float32Array(2048), sampleRate: 24000 });
     const voices = [
