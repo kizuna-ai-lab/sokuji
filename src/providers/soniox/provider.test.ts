@@ -16,6 +16,14 @@ import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLangua
 import { SonioxSettingsView } from './SonioxSettings';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
 import { KEY, SHARED } from './testing';
+import { SonioxIcon } from '../../components/Icons/ProviderIcons';
+
+// The definition's `check` wraps the module's: seen through a spy, not the network.
+const { checkSpy } = vi.hoisted(() => ({ checkSpy: vi.fn() }));
+vi.mock('./check', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./check')>()),
+  checkSoniox: checkSpy,
+}));
 
 describe('sonioxProvider', () => {
   it("is Soniox with the user's own key, on every platform, not flagged, under the old enum's id and slice", () => {
@@ -27,6 +35,9 @@ describe('sonioxProvider', () => {
     });
     expect(sonioxProvider.flagged).toBeUndefined();
     expect(sonioxProvider.i18nKey).toBeUndefined();
+    expect(sonioxProvider.icon).toBe(SonioxIcon);
+    // An own key names no vendor: that is a managed provider's (Kizuna Soniox, Plan B).
+    expect(sonioxProvider).not.toHaveProperty('vendor');
     expect(sonioxProvider.settings.key).toBe('soniox');
     expect(sonioxProvider.settings.defaults).toBe(SONIOX_DEFAULTS);
     expect(sonioxProvider.settings.migrate).toBe(migrateSonioxSettings);
@@ -39,7 +50,13 @@ describe('sonioxProvider', () => {
     expect(sonioxProvider.turns(SONIOX_DEFAULTS)).toEqual(['auto', 'manual']);
   });
 
-  it("its components, check, builder and adapter are Soniox's own", () => {
+  it("its components, check, builder and adapter are Soniox's own", async () => {
+    const answer = { ok: false as const, reason: 'The key was refused.', code: 'auth' };
+    checkSpy.mockResolvedValueOnce(answer);
+    const signal = new AbortController().signal;
+    const ctx = { pair: { source: 'en', target: 'ja' }, legs: ['speaker'] as const, signal };
+    await expect(sonioxProvider.check(KEY, SONIOX_DEFAULTS, ctx)).resolves.toBe(answer);
+    expect(checkSpy).toHaveBeenCalledWith(KEY, SONIOX_DEFAULTS, ctx);
     expect(sonioxProvider.Settings).toBe(SonioxSettingsView);
     expect(sonioxProvider.TurnDetection).toEqual({ Summary: SonioxTurnDetectionSummary, Controls: SonioxTurnDetectionControls });
     expect(sonioxProvider.TurnDetection).not.toHaveProperty('Help');

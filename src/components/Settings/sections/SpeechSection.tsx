@@ -117,8 +117,8 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
 /**
  * The global turn mode's own section (1e-3b-2 ruling 6). Its tooltip is
  * provider-neutral (Stage 2 Soniox, ruling 8): what ends an utterance under
- * Auto is each provider's own detection, summarized below. Below the turn
- * modes, the provider's own tuning of Auto, drawn for `layout`.
+ * Auto is each provider's own detection. The turn modes come first, then
+ * that detection's tuning — the provider's own, drawn for `layout`.
  */
 export function SpeechSection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
   const { t } = useTranslation();
