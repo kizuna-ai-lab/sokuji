@@ -142,11 +142,14 @@ describe('load', () => {
       ...probe,
       languages: {
         ...probe.languages,
-        migratePair: () => ({ source: '', target: '' }),
-        initial: () => ({ source: 'ja', target: 'fr' }),
+        migratePair: (pair: LanguagePair) => ({ ...pair, source: '' }),
+        initial: () => ({ source: 'ja', target: 'en' }),
       },
     } as unknown as AnyProvider;
+    stored.set('settings.probe.sourceLanguage', 'en');
+    stored.set('settings.probe.targetLanguage', 'fr');
     await useProviderStore.getState().load(p);
+    // The emptied source takes the initial one; the target keeps what was stored, not the initial en.
     expect(entry().pair).toEqual({ source: 'ja', target: 'fr' });
   });
 
