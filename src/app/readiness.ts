@@ -12,6 +12,8 @@
  *   settings, credentials or pair; other legs) after
  *   `NETWORK_READINESS_DELAY_MS`, so typing a key checks once per pause.
  * - A sign-in flip forgets every loaded managed provider's readiness.
+ * - A flip heard while a run is on forgets those answers at once; the
+ *   selected provider is re-checked once idle, after the edit delay.
  */
 import type { Clock } from '../lib/contract/clock';
 import type { AnyProvider, AuthContext } from '../lib/provider/types';
@@ -72,9 +74,16 @@ export function driveReadiness({ runner, providers, auth, clock, watchSignIn, de
       watched?.off();
       watched = p ? { id: p.id, off: p.watchReadiness?.(inputsChanged) ?? (() => {}) } : null;
     }
-    if (!p || !idle()) return;
+    if (!p) {
+      // Nothing loaded is selected: whichever provider comes next is just selected, even the last one.
+      seen = null;
+      return;
+    }
+    if (!idle()) return;
     const fresh = p.id !== seen;
     seen = p.id;
+    // A timer armed for the previous provider must not check this one.
+    if (fresh) { cancel?.(); cancel = null; pendingAtOnce = false; }
     const readiness = useProviderStore.getState().readiness[p.id];
     if (stale || !readiness || readiness.state === 'unknown') {
       stale = false;

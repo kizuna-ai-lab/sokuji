@@ -161,6 +161,37 @@ describe('ProviderPicker', () => {
     await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'fake', success: false }));
   });
 
+  // Their own ids, below: the store keeps a ready answer per provider id at
+  // module scope, and the fake's default settings already have one from the
+  // case above, which would answer these without calling their `check`.
+  it("Validate tracks a refusal's code as error_type", async () => {
+    const refusing = {
+      ...fakeProvider, id: 'refusing', settings: { ...fakeProvider.settings, key: 'refusing' },
+      check: async () => ({ ok: false as const, reason: 'x', code: 'invalid_key' }),
+    };
+    render(<ProviderPicker providers={[refusing]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'refusing', success: false, error_type: 'invalid_key' }));
+  });
+
+  it('Validate tracks nothing for a check that found nothing out: it was superseded', async () => {
+    let answer!: (result: { ok: true }) => void;
+    const superseded = {
+      ...fakeProvider, id: 'superseded', settings: { ...fakeProvider.settings, key: 'superseded' },
+      check: () => new Promise<{ ok: true }>((resolve) => { answer = resolve; }),
+    };
+    render(<ProviderPicker providers={[superseded]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(useProviderStore.getState().readiness.superseded).toEqual({ state: 'checking' }));
+    // An edit meanwhile: the answer this press gets back is unknown.
+    act(() => { useProviderStore.getState().forgetReadiness(superseded); });
+    await act(async () => {
+      answer({ ok: true });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(trackEvent).not.toHaveBeenCalledWith('api_key_validated', expect.anything());
+  });
+
   it('offers no Validate button for a managed provider: its readiness follows the sign-in', async () => {
     const managed = { ...fakeProvider, id: 'managed-probe', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedProbe' } };
     render(<ProviderPicker providers={[managed]} auth={noAuth} />);

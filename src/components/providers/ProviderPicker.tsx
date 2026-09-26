@@ -187,6 +187,8 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
           // A local provider checks itself, and a managed one follows the sign-in (F1): only an own-key provider offers Validate.
           onCheck={provider.kind === 'own-key' ? () => {
             void refreshReadiness(provider, auth).then((answer) => {
+              // Superseded (an edit meanwhile, or a newer check still running): this press found nothing out.
+              if (answer.state === 'unknown' || answer.state === 'checking') return;
               // Today's event (ProviderSection.tsx's handleValidateApiKey), for the button a person pressed.
               trackEvent('api_key_validated', {
                 provider: storedProviderValue(provider.id),

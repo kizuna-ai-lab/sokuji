@@ -213,7 +213,12 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       /** Records an answer: its readiness, and the models it found — none when the provider said no; unchanged when the check could not find out (choice 3). */
       const answered = (readiness: Readiness, foundOut = true): Readiness => {
         if (foundOut && (readiness.state === 'ready' || readiness.state === 'not-ready')) {
-          set((st) => ({ models: { ...st.models, [p.id]: readiness.state === 'ready' ? readiness.models : NO_MODELS } }));
+          // One write: a subscriber never sees the models land while readiness is still unknown (the readiness driver would ask again).
+          set((st) => ({
+            models: { ...st.models, [p.id]: readiness.state === 'ready' ? readiness.models : NO_MODELS },
+            readiness: { ...st.readiness, [p.id]: readiness },
+          }));
+          return readiness;
         }
         return setReadiness(p, readiness);
       };

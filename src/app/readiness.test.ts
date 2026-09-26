@@ -3,6 +3,7 @@ import { createStore, type StoreApi } from 'zustand/vanilla';
 import { createVirtualClock } from '../lib/contract/clock';
 import type { RunState } from '../lib/session/types';
 import { fakeProvider } from '../providers/fake/provider';
+import { FAKE_DEFAULTS } from '../providers/fake/settings';
 import { useProviderStore } from '../stores/providerStore';
 import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS } from './readiness';
 
@@ -193,6 +194,102 @@ describe('driveReadiness', () => {
     clock.advance(0);
     await flush();
     expect(calls('o2')).toBe(1);
+
+    detach();
+  });
+
+  it("a pending edit's check does not fire for the provider selected next", async () => {
+    const o1 = makeProbe('o1', 'own-key');
+    const o2 = makeProbe('o2', 'own-key');
+    setupStore(o1.provider, o2.provider);
+    const ready = { state: 'ready' as const, models: [] };
+    useProviderStore.setState({ readiness: { o2: ready } });
+    const { calls } = spyRefresh();
+    const runner = idleRunner();
+    const clock = createVirtualClock(0);
+    const detach = driveReadiness({ runner, providers: () => [o1.provider, o2.provider], auth: () => auth, clock });
+
+    clock.advance(0);
+    await flush();
+    expect(calls('o1')).toBe(1);
+
+    useProviderStore.setState({ readiness: { o1: { state: 'unknown' }, o2: ready } }); // an edit to o1: 800 ms armed
+    clock.advance(300);
+    useProviderStore.setState({ selected: 'o2' });
+    clock.advance(NETWORK_READINESS_DELAY_MS);
+    await flush();
+    expect(calls('o2')).toBe(0);
+    expect(calls('o1')).toBe(1);
+
+    detach();
+  });
+
+  it('a pending at-once check does not check a local provider early', async () => {
+    const n = makeProbe('n', 'own-key');
+    const l = makeProbe('l', 'local');
+    setupStore(n.provider, l.provider);
+    const { calls } = spyRefresh();
+    const runner = idleRunner();
+    const clock = createVirtualClock(0);
+    const detach = driveReadiness({ runner, providers: () => [n.provider, l.provider], auth: () => auth, clock });
+
+    useProviderStore.setState({ selected: 'l' }); // the same turn: n's at-once check is still pending
+    clock.advance(0);
+    await flush();
+    expect(calls('l')).toBe(0);
+
+    clock.advance(READINESS_DELAY_MS);
+    await flush();
+    expect(calls('l')).toBe(1);
+    expect(calls('n')).toBe(0);
+
+    detach();
+  });
+
+  it('an answer found without a check is not asked for again', async () => {
+    // The real refreshReadiness, counted: a missing key answers synchronously, with no check.
+    const refresh = vi.fn(realRefresh);
+    useProviderStore.setState({
+      entries: { fake: { settings: { ...FAKE_DEFAULTS, requireKey: true }, credentials: { apiKey: '' }, pair: { source: 'en', target: 'ja' } } },
+      readiness: {},
+      selected: 'fake',
+      refreshReadiness: refresh,
+    });
+    const runner = idleRunner();
+    const clock = createVirtualClock(0);
+    const detach = driveReadiness({ runner, providers: () => [fakeProvider], auth: () => auth, clock });
+
+    clock.advance(0);
+    await flush();
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(useProviderStore.getState().readiness.fake).toMatchObject({ state: 'not-ready', code: 'credentials_missing' });
+
+    clock.advance(NETWORK_READINESS_DELAY_MS * 3);
+    await flush();
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    detach();
+  });
+
+  it('coming back through a provider not yet loaded checks the first one at once again', async () => {
+    const y = makeProbe('y', 'own-key');
+    const x = makeProbe('x', 'own-key');
+    setupStore(y.provider); // x is never loaded
+    const { calls } = spyRefresh();
+    const runner = idleRunner();
+    const clock = createVirtualClock(0);
+    const detach = driveReadiness({ runner, providers: () => [y.provider, x.provider], auth: () => auth, clock });
+
+    clock.advance(0);
+    await flush();
+    expect(calls('y')).toBe(1);
+
+    useProviderStore.setState({ selected: 'x' });
+    useProviderStore.setState({ readiness: { y: { state: 'unknown' } } });
+    useProviderStore.setState({ selected: 'y' });
+    clock.advance(0);
+    await flush();
+    expect(calls('y')).toBe(2);
 
     detach();
   });
