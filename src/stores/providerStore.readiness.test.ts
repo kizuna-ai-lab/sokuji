@@ -26,8 +26,10 @@ beforeEach(async () => {
 
 const opt = (value: string): LanguageOption => ({ value, name: value, englishName: value });
 const noAuth = { signedIn: false, getToken: async () => null };
+const signedIn = { signedIn: true, getToken: async () => 't' };
+const signedOut = noAuth;
 
-function probe(kind: 'own-key' | 'local', check: (k: unknown, s: unknown, ctx: CheckContext) => Promise<CheckResult>): AnyProvider {
+function probe(kind: 'own-key' | 'local' | 'managed', check: (k: unknown, s: unknown, ctx: CheckContext) => Promise<CheckResult>): AnyProvider {
   return {
     id: 'probe',
     kind,
@@ -192,6 +194,54 @@ describe('refreshReadiness', () => {
     expect(readiness()).toEqual({ state: 'ready', models: [] });
     store.useProviderStore.getState().updateSettings(p, { mode: 'b' });
     expect(readiness()).toEqual({ state: 'unknown' });
+  });
+});
+
+describe('forgetReadiness', () => {
+  it('forgetReadiness makes readiness unknown and drops a check still running', async () => {
+    const answer = deferred<CheckResult>();
+    const p = probe('own-key', () => answer.promise);
+    await loadedWithKey(p);
+    const done = store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(readiness()).toEqual({ state: 'checking' });
+    store.useProviderStore.getState().forgetReadiness(p);
+    expect(readiness()).toEqual({ state: 'unknown' });
+    answer.resolve({ ok: true });
+    await done;
+    expect(readiness()).toEqual({ state: 'unknown' });
+  });
+});
+
+describe('refreshReadiness — a managed provider and the sign-in (roadmap 1b)', () => {
+  /** A managed probe: no fields of its own; `read` decides by the sign-in. */
+  function managed(check: () => Promise<CheckResult>, read: AnyProvider['credentials']['read']): AnyProvider {
+    return { ...probe('managed', check), credentials: { keys: [], fields: () => [], read } } as AnyProvider;
+  }
+
+  it("keeps a managed provider's answer per sign-in (roadmap 1b)", async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = managed(check, (_v, auth) => (auth.signedIn ? {} : { missing: 'Sign in first.', code: 'sign_in_required' }));
+    await store.useProviderStore.getState().load(p);
+    await store.useProviderStore.getState().refreshReadiness(p, signedIn);
+    await store.useProviderStore.getState().refreshReadiness(p, signedIn);
+    expect(check).toHaveBeenCalledTimes(1);
+
+    await expect(store.useProviderStore.getState().refreshReadiness(p, signedOut)).resolves.toMatchObject({ state: 'not-ready', code: 'sign_in_required' });
+    expect(readiness()).toMatchObject({ state: 'not-ready', code: 'sign_in_required' });
+    expect(check).toHaveBeenCalledTimes(1);
+
+    await expect(store.useProviderStore.getState().refreshReadiness(p, signedIn)).resolves.toEqual({ state: 'ready', models: [] });
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+    expect(check).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks again when only the sign-in changed', async () => {
+    const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
+    const p = managed(check, () => ({}));
+    await store.useProviderStore.getState().load(p);
+    await store.useProviderStore.getState().refreshReadiness(p, signedIn);
+    await store.useProviderStore.getState().refreshReadiness(p, signedOut);
+    expect(check).toHaveBeenCalledTimes(2);
   });
 });
 

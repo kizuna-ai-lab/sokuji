@@ -184,7 +184,17 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
           values={entry.credentials}
           readiness={readiness}
           onChange={(key, value) => setCredential(provider, key, value)}
-          onCheck={provider.kind === 'local' ? undefined : () => void refreshReadiness(provider, auth)}
+          // A local provider checks itself, and a managed one follows the sign-in (F1): only an own-key provider offers Validate.
+          onCheck={provider.kind === 'own-key' ? () => {
+            void refreshReadiness(provider, auth).then((answer) => {
+              // Today's event (ProviderSection.tsx's handleValidateApiKey), for the button a person pressed.
+              trackEvent('api_key_validated', {
+                provider: storedProviderValue(provider.id),
+                success: answer.state === 'ready',
+                ...(answer.state === 'not-ready' && answer.code ? { error_type: answer.code } : {}),
+              });
+            });
+          } : undefined}
           disabled={disabled}
         />
       )}

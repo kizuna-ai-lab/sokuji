@@ -1,11 +1,17 @@
 /**
- * The app's local-readiness driver (1e-3 ruling 16: a local provider's
- * readiness is checked automatically — no Validate button — and worded by
- * its code). Re-checks the selected `kind: 'local'` provider while its
- * readiness is unknown, and whenever its own inputs change
- * (`Provider.watchReadiness` — LocalInference's model downloads),
- * debounced, and only while the runner is idle: a change seen mid-run is
- * checked once idle again.
+ * The app's readiness driver (F1; 1e-3 ruling 16 for local providers; the
+ * controller's timing ruling). Checks the selected provider, of every
+ * kind, while its readiness is unknown, and only while the runner is idle:
+ * a change seen mid-run is checked once idle again.
+ * - A local provider: every check after `READINESS_DELAY_MS`, as before;
+ *   its own inputs changing (`watchReadiness`: LocalInference's
+ *   downloads) re-checks it too.
+ * - An own-key or managed provider: at once — on the clock's next turn,
+ *   never inside a store's notification — when it is selected, when its
+ *   entry loads, and on a sign-in flip; every other reset (an edit to its
+ *   settings, credentials or pair; other legs) after
+ *   `NETWORK_READINESS_DELAY_MS`, so typing a key checks once per pause.
+ * - A sign-in flip forgets every loaded managed provider's readiness.
  */
 import type { Clock } from '../lib/contract/clock';
 import type { AnyProvider, AuthContext } from '../lib/provider/types';
@@ -13,37 +19,51 @@ import type { Runner } from '../lib/session/runner';
 import { useProviderStore } from '../stores/providerStore';
 
 export const READINESS_DELAY_MS = 150;
+/** A judgement, not a measurement (choice 7): a pause in typing. */
+export const NETWORK_READINESS_DELAY_MS = 800;
 
 export interface ReadinessDriverDeps {
   runner: Pick<Runner, 'state'>;
   providers(): readonly AnyProvider[];
   auth(): AuthContext;
   clock: Pick<Clock, 'setTimeout'>;
+  /** Calls back on every sign-in flip; returns the unsubscribe. Absent: no sign-in is watched. */
+  watchSignIn?(onChange: () => void): () => void;
   delayMs?: number;
+  networkDelayMs?: number;
 }
 
-export function driveLocalReadiness({ runner, providers, auth, clock, delayMs = READINESS_DELAY_MS }: ReadinessDriverDeps): () => void {
+export function driveReadiness({ runner, providers, auth, clock, watchSignIn, delayMs = READINESS_DELAY_MS, networkDelayMs = NETWORK_READINESS_DELAY_MS }: ReadinessDriverDeps): () => void {
   let cancel: (() => void) | null = null;
+  /** The pending check was scheduled at once: a later reset reads the same live inputs when it runs, so it is not pushed out. */
+  let pendingAtOnce = false;
   let watched: { id: string; off: () => void } | null = null;
+  /** The selected provider whose loaded entry was last evaluated: any other one is just selected, or just loaded. */
+  let seen: string | null = null;
   /** Its inputs changed while a run was on: check once the runner is idle again. */
   let stale = false;
   const idle = () => runner.state.getState().phase === 'idle';
   const current = (): AnyProvider | undefined => {
     const { selected, entries } = useProviderStore.getState();
     const p = providers().find((candidate) => candidate.id === selected);
-    return p && p.kind === 'local' && entries[p.id] ? p : undefined;
+    return p && entries[p.id] ? p : undefined;
   };
   const check = () => {
     cancel = null;
+    pendingAtOnce = false;
     const p = current();
     if (p && idle()) void useProviderStore.getState().refreshReadiness(p, auth());
   };
-  const schedule = () => {
+  const schedule = (p: AnyProvider, atOnce: boolean) => {
+    if (pendingAtOnce) return;
     cancel?.();
-    cancel = clock.setTimeout(check, delayMs);
+    pendingAtOnce = atOnce && p.kind !== 'local';
+    cancel = clock.setTimeout(check, p.kind === 'local' ? delayMs : pendingAtOnce ? 0 : networkDelayMs);
   };
   const inputsChanged = () => {
-    if (idle()) schedule();
+    const p = current();
+    if (!p) return;
+    if (idle()) schedule(p, false);
     else stale = true;
   };
   const evaluate = () => {
@@ -53,21 +73,38 @@ export function driveLocalReadiness({ runner, providers, auth, clock, delayMs = 
       watched = p ? { id: p.id, off: p.watchReadiness?.(inputsChanged) ?? (() => {}) } : null;
     }
     if (!p || !idle()) return;
+    const fresh = p.id !== seen;
+    seen = p.id;
     const readiness = useProviderStore.getState().readiness[p.id];
     if (stale || !readiness || readiness.state === 'unknown') {
       stale = false;
-      schedule();
+      schedule(p, fresh);
+    }
+  };
+  const signInChanged = () => {
+    const { entries, forgetReadiness } = useProviderStore.getState();
+    for (const p of providers()) if (p.kind === 'managed' && entries[p.id]) forgetReadiness(p);
+    // Forgetting notified `evaluate`, which scheduled an edit's delay: a flip checks at once.
+    const p = current();
+    if (p?.kind === 'managed' && idle()) {
+      cancel?.();
+      cancel = null;
+      pendingAtOnce = false;
+      schedule(p, true);
     }
   };
   const offStore = useProviderStore.subscribe(evaluate);
   const offRun = runner.state.subscribe(evaluate);
+  const offSignIn = watchSignIn?.(signInChanged) ?? (() => {});
   evaluate();
   return () => {
     offStore();
     offRun();
+    offSignIn();
     watched?.off();
     watched = null;
     cancel?.();
     cancel = null;
+    pendingAtOnce = false;
   };
 }

@@ -58,6 +58,8 @@ export interface ProviderStore {
    * unknown and reports nothing.
    */
   refreshReadiness(p: AnyProvider, auth: AuthContext, from?: ReadinessInputs, signal?: AbortSignal): Promise<Readiness>;
+  /** Forgets what `check` answered for `p` — a sign-in flip, for a managed provider: readiness is unknown, and a check still running no longer counts. */
+  forgetReadiness(p: Pick<AnyProvider, 'id'>): void;
   /** The legs a start would open now, speaker first (appShape's `watchLegsFromStores` keeps them); the speaker alone until then. */
   legs: readonly LegName[];
   /** Other legs change what a check answers: every loaded provider's readiness is forgotten. The same legs change nothing. */
@@ -259,5 +261,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       if (!newest()) return from ? answer : get().readiness[p.id] ?? UNKNOWN;
       return answered(answer, !threw);
     },
+
+    forgetReadiness,
   };
 });

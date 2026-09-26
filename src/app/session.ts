@@ -28,7 +28,7 @@ import { useProviderStore } from '../stores/providerStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
-import { driveLocalReadiness } from './readiness';
+import { driveReadiness } from './readiness';
 import { registerRunPhase } from './runPhase';
 import { registerSubtitleFeed } from './subtitleFeed';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
@@ -85,7 +85,7 @@ export interface AppSession {
    */
   start(method?: ControlMethod): Promise<void>;
   setBridges(next: Partial<AppBridges>): void;
-  /** Wires the page's lifetime into the session: legs on the audio mode, local readiness, the provider held during a run, a source's end as an `audio_error`, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
+  /** Wires the page's lifetime into the session: legs on the audio mode, readiness for every kind, and the sign-in's flips, the provider held during a run, a source's end as an `audio_error`, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
   attach(): () => void;
 }
 
@@ -99,6 +99,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     track: () => {},
     notify: { showToast: () => {} },
   };
+  /** Heard when the sign-in or the account flips (F1): the readiness driver forgets managed providers' answers. */
+  const signInWatchers = new Set<() => void>();
   const frames = createFrameLog();
   const punctuation = createAppPunctuation({ track: () => bridges.track, onModelCall: () => frames.countModelCall() });
 
@@ -219,14 +221,20 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       // it `undefined`) must not erase what an earlier caller set (M2) — a
       // second `useAppSessionBridges()` bare of `refetchQuota` would
       // otherwise switch the balance refetch off.
+      const signedIn = bridges.auth.signedIn;
+      const userId = bridges.auth.userId ?? null;
       for (const key of Object.keys(next) as (keyof AppBridges)[]) {
         const value = next[key];
         if (value !== undefined) (bridges as Record<keyof AppBridges, unknown>)[key] = value;
       }
+      // A microtask later: `useAppSessionBridges` calls this while React renders, and a store write there would update other components mid-render.
+      if (bridges.auth.signedIn !== signedIn || (bridges.auth.userId ?? null) !== userId) {
+        queueMicrotask(() => { for (const watcher of [...signInWatchers]) watcher(); });
+      }
     },
     attach() {
       // One live attach at a time (final review M6): a second one while the
-      // first is still live would double the pagehide listener, the local
+      // first is still live would double the pagehide listener, the
       // readiness driver and the busy tracker. 1e-3b picks the owner; until
       // then this makes a wrong second caller visible instead of silent.
       if (attached) {
@@ -237,7 +245,10 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       const offs: Array<() => void> = [
         // The panel's readiness is about the legs a start would open: the audio mode's.
         watchLegsFromStores(),
-        driveLocalReadiness({ runner, providers: () => presentProviders(), auth: () => bridges.auth, clock }),
+        driveReadiness({
+          runner, providers: () => presentProviders(), auth: () => bridges.auth, clock,
+          watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
+        }),
       ];
       // The store's own guard on the provider (plan 1e-3b-1 ruling 7).
       const lock = () => useProviderStore.getState().setSelectionLocked(runner.state.getState().phase !== 'idle');

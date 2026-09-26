@@ -147,6 +147,27 @@ describe('ProviderPicker', () => {
     expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
   });
 
+  it("Validate tracks api_key_validated, with the provider's stored spelling and whether it passed", async () => {
+    const { unmount } = render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'fake', success: true }));
+    unmount();
+
+    trackEvent.mockClear();
+    useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+    stored.set('settings.fake.checkFails', true);
+    render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'fake', success: false }));
+  });
+
+  it('offers no Validate button for a managed provider: its readiness follows the sign-in', async () => {
+    const managed = { ...fakeProvider, id: 'managed-probe', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedProbe' } };
+    render(<ProviderPicker providers={[managed]} auth={noAuth} />);
+    await waitFor(() => expect(useProviderStore.getState().entries['managed-probe']).toBeDefined());
+    expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
+  });
+
   describe('the setup guide link (parity with ProviderSection.tsx)', () => {
     it('shows the link for a provider with guideUrl', async () => {
       const guided = { ...fakeProvider, guideUrl: 'https://example.com/guide' };
