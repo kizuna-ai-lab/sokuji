@@ -17,6 +17,26 @@ export function ProviderOwnSettings({ providers, disabled }: ProviderOwnSettings
   return <Settings settings={entry.settings} update={update} disabled={disabled} pair={entry.pair} />;
 }
 
+/**
+ * The selected provider's `TurnDetection` Controls, as their own block on
+ * Advanced's Provider tab in every turn mode. The Speech section's summary
+ * links here: `#turn-detection-tuning-section` is what Settings.tsx scrolls
+ * to and highlights for the `'turn-detection-tuning'` target. Nothing when
+ * the provider has no `TurnDetection`, or before its entry loads.
+ */
+export function ProviderTurnDetectionControls({ providers, disabled }: ProviderOwnSettingsProps) {
+  const selection = useSelectedProvider(providers);
+  if (!selection?.entry) return null;
+  const { provider, entry, update } = selection;
+  const Controls = provider.TurnDetection?.Controls;
+  if (!Controls) return null;
+  return (
+    <div className="turn-detection-tuning-block" id="turn-detection-tuning-section">
+      <Controls settings={entry.settings} update={update} disabled={disabled} pair={entry.pair} />
+    </div>
+  );
+}
+
 interface ProviderEngineProps {
   providers: readonly AnyProvider[];
   /** A run is not idle: the engine's settings are locked. */

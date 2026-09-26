@@ -53,7 +53,7 @@ describe('LocalInferenceTurnDetectionSummary', () => {
 
   // Text only — no tooltip trigger here. `LocalInferenceTurnDetectionHelp`
   // carries it instead, so the section can place it as a sibling of the
-  // disclosure button rather than nested inside it.
+  // link button rather than nested inside it.
   it('is text only — no tooltip trigger', () => {
     const { container } = render(
       <LocalInferenceTurnDetectionSummary settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />,
@@ -63,9 +63,9 @@ describe('LocalInferenceTurnDetectionSummary', () => {
 });
 
 describe('LocalInferenceTurnDetectionHelp', () => {
-  // The heading's own tooltip, moved here from VadControl's now-hidden
-  // heading — same content, same `Tooltip`. The Speech section renders this
-  // as a sibling of its disclosure button, never nested inside it.
+  // The same tooltip VadControl's heading carries — same content, same
+  // `Tooltip`. The Speech section renders this as a sibling of its summary
+  // (Simple) or link button (Advanced), never nested inside the button.
   it('renders a tooltip trigger with the VAD settings tooltip content', () => {
     const { container } = render(
       <LocalInferenceTurnDetectionHelp settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />,
@@ -95,12 +95,11 @@ describe('LocalInferenceTurnDetectionControls', () => {
     expect(update).toHaveBeenCalledWith({ vadMinSilenceDuration: 0.5 });
   });
 
-  // The Speech section's disclosure row already says "VAD Settings" (the
-  // Summary, right above) — Controls repeating it right underneath was the
-  // stutter this fix removes.
-  it('omits the "VAD Settings" heading — the disclosure row above already says it', () => {
-    render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
-    expect(screen.queryByText('VAD Settings')).toBeNull();
+  // A block of its own on the Provider tab, away from the Speech section's
+  // Summary: it names itself, with the heading's tooltip.
+  it('shows the "VAD Settings" heading', () => {
+    const { container } = render(<LocalInferenceTurnDetectionControls settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);
+    expect(container.querySelector('h2')?.textContent).toBe('VAD Settings');
   });
 
   it('renders nothing for a streaming ASR with no worker type', () => {

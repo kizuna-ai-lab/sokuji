@@ -8,9 +8,9 @@ import Tooltip from '../../components/Tooltip/Tooltip';
 import type { LanguagePair, SettingsProps } from '../../lib/provider/types';
 import type { LocalInferenceSettings as S } from './settings';
 
-// Matches `LocalSettingsControls.tsx`'s own inline help icon — this is the
-// same tooltip trigger, moved from VadControl's now-hidden heading onto
-// `LocalInferenceTurnDetectionHelp` below.
+// Matches `LocalSettingsControls.tsx`'s own inline help icon — the same
+// tooltip trigger VadControl's heading carries, repeated on the Speech
+// section's row by `LocalInferenceTurnDetectionHelp` below.
 const helpIcon = (
   <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
 );
@@ -45,10 +45,9 @@ function useVadKnobs(settings: S, pair: LanguagePair | undefined): { showVad: bo
 /**
  * One line: `VadControl`'s own heading and min-silence label, with the value
  * formatted the way `VadControl` shows it — existing keys only. Text only:
- * `LocalInferenceTurnDetectionHelp` carries the heading's old tooltip, so the
- * Speech section can place it as a sibling of the disclosure button instead
- * of nesting it inside — a click on the trigger must not also toggle the
- * disclosure.
+ * `LocalInferenceTurnDetectionHelp` carries the heading's tooltip, so the
+ * Speech section can place it as a sibling of its link button instead of
+ * nesting it inside — a click on the trigger must not also navigate.
  */
 export function LocalInferenceTurnDetectionSummary({ settings, pair }: SettingsProps<S>) {
   const { t } = useTranslation();
@@ -58,10 +57,9 @@ export function LocalInferenceTurnDetectionSummary({ settings, pair }: SettingsP
 }
 
 /**
- * The heading's own help tooltip, moved here from `VadControl`'s now-hidden
- * heading — same content, same `Tooltip`. Follows `Summary`'s own
- * nothing-to-tune rule so the row never shows a help icon over an empty
- * summary.
+ * `VadControl`'s heading tooltip, for the Speech section's row — same
+ * content, same `Tooltip`. Follows `Summary`'s own nothing-to-tune rule so
+ * the row never shows a help icon over an empty summary.
  */
 export function LocalInferenceTurnDetectionHelp({ settings, pair }: SettingsProps<S>) {
   const { t } = useTranslation();
@@ -75,10 +73,9 @@ export function LocalInferenceTurnDetectionHelp({ settings, pair }: SettingsProp
 }
 
 /**
- * The VAD knobs, moved here unchanged from LocalInference's own `Settings`
- * — except the heading, which the Speech section's disclosure row already
- * shows via `LocalInferenceTurnDetectionSummary` (`hideHeading`, so the two
- * don't repeat the same words right on top of each other).
+ * The VAD knobs, heading included, moved here unchanged from LocalInference's
+ * own `Settings`: the Provider tab draws them as their own block, where the
+ * Speech section's summary links.
  */
 export function LocalInferenceTurnDetectionControls({ settings, update, disabled = false, pair }: SettingsProps<S>) {
   const { showVad, vadIsWebWorker } = useVadKnobs(settings, pair);
@@ -97,7 +94,6 @@ export function LocalInferenceTurnDetectionControls({ settings, update, disabled
       }}
       onChange={(patch) => update(patch)}
       disabled={disabled}
-      hideHeading
     />
   );
 }

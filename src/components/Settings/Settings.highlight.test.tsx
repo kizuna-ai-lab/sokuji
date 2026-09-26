@@ -45,6 +45,7 @@ vi.mock('./AdvancedSettings/AdvancedSettings', () => ({
     <div data-testid="advanced-body" data-active-tab={activeTab}>
       <div id="provider-section" data-testid="provider-section-el" />
       <div id="microphone-section" data-testid="microphone-section-el" />
+      <div id="turn-detection-tuning-section" data-testid="turn-detection-tuning-el" />
     </div>
   ),
 }));
@@ -106,6 +107,17 @@ describe("Settings — the 'provider' navigation target switches tabs without fl
     const { getByTestId } = render(<Settings />);
 
     expect(getByTestId('advanced-body')).toHaveAttribute('data-active-tab', 'general');
+  });
+
+  // The Speech section's summary link (General tab) lands on the provider's
+  // VAD block, which the Provider tab draws after the provider's own settings.
+  it("target='turn-detection-tuning' switches to the Provider tab and highlights the VAD block", () => {
+    mockTarget = 'turn-detection-tuning';
+    const { getByTestId } = render(<Settings />);
+
+    expect(getByTestId('advanced-body')).toHaveAttribute('data-active-tab', 'provider');
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('turn-detection-tuning-el').classList.contains('highlight')).toBe(true);
   });
 
   // Review Minor 2: 'model-management' switches tabs (NAVIGATION_TAB_MAP)

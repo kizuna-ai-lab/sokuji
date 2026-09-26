@@ -38,8 +38,8 @@ describe('LocalInferenceSettingsView', () => {
     expect(screen.getByText('Translation Prompt')).toBeTruthy();
   });
 
-  // The VAD knobs are the provider's `TurnDetection` now, drawn in the Speech
-  // section while the turn mode is Auto (LocalInferenceTurnDetection.test.tsx
+  // The VAD knobs are the provider's `TurnDetection` now, drawn by the
+  // Provider tab as their own block (LocalInferenceTurnDetection.test.tsx
   // pins their rules) — never twice.
   it('no longer draws the VAD knobs, even for an ASR that takes all five', () => {
     const { container } = render(<LocalInferenceSettingsView settings={LOCAL_INFERENCE_DEFAULTS} update={() => {}} pair={pair} />);

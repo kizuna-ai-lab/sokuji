@@ -28,8 +28,9 @@ function translationWorkerType(modelId: string | null | undefined): string {
  * prompt, both from `LocalSettingsControls.tsx`. Its own model management
  * lives in `Engine`; the turn-mode control is no longer a provider setting
  * (the global turn mode; plan 1e-3 places it), and the VAD knobs are its
- * `TurnDetection`, drawn in the Speech section while that mode is Auto
- * (`LocalInferenceTurnDetection.tsx`).
+ * `TurnDetection` (`LocalInferenceTurnDetection.tsx`): the Provider tab
+ * draws them as their own block right after these, and the Speech section
+ * summarizes them while that mode is Auto.
  *
  * Exported as `LocalInferenceSettingsView` (mirrors `FakeSettingsView`):
  * `LocalInferenceSettings` already names the settings type this component

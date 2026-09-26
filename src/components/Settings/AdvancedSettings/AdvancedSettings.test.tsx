@@ -75,7 +75,7 @@ describe("AdvancedSettings — the General tab's chip deep-links to the Provider
     expect(blocks.general[blocks.general.length - 1].locked).toBe(true);
   });
 
-  // The Speech section's provider tuning opens onto its full controls here.
+  // The Speech section's provider tuning links to its full controls here.
   it('hands SessionSettingsGeneral the Advanced layout', () => {
     render(<AdvancedSettings activeTab="general" />);
     expect(blocks.general[blocks.general.length - 1].layout).toBe('advanced');

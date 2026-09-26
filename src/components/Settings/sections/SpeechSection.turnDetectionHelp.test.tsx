@@ -22,6 +22,7 @@ vi.mock('../../../lib/local-inference/modelManifest', async (importOriginal) => 
 import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 import { useModelStore } from '../../../stores/modelStore';
 import { useProviderStore } from '../../../stores/providerStore';
+import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { SpeechSection } from './SpeechSection';
 
@@ -30,6 +31,7 @@ const originalResolve = useModelStore.getState().resolve;
 
 beforeEach(() => {
   useProviderStore.setState({ selected: 'localInference', entries: { localInference: localEntry() }, readiness: {} });
+  useSettingsStore.setState({ settingsNavigationTarget: null });
   useTurnModeStore.setState({ turnMode: 'auto' });
   asr.entry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
   useModelStore.setState({ resolve: () => ({ asr: { modelId: 'asr-model' }, translation: null, tts: null }) } as unknown as Partial<ReturnType<typeof useModelStore.getState>>);
@@ -41,29 +43,28 @@ afterEach(() => {
 });
 
 describe("SpeechSection — the provider tuning row's help tooltip trigger", () => {
-  it('Advanced: sits beside the disclosure button, not inside it, and clicking it leaves the disclosure collapsed', () => {
+  it('Advanced: sits beside the link button, not inside it, and hovering or clicking it navigates nowhere', () => {
     const { container } = render(<SpeechSection locked={false} layout="advanced" />);
     const row = container.querySelector('.turn-detection-tuning')!;
-    const button = row.querySelector('button[aria-expanded]') as HTMLElement;
+    const button = row.querySelector('button.turn-detection-link') as HTMLElement;
     const trigger = row.querySelector('.tooltip-trigger') as HTMLElement;
     expect(button).toBeTruthy();
     expect(trigger).toBeTruthy();
 
-    // Not nested inside the disclosure button.
+    // Not nested inside the link button.
     expect(button.contains(trigger)).toBe(false);
-    // A sibling positioned after it, per the fix.
+    // A sibling positioned after it.
     // eslint-disable-next-line no-bitwise
     expect(button.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-    expect(button.getAttribute('aria-expanded')).toBe('false');
+    // The trigger is its own hover/click target: it must not also fire the
+    // link's navigation.
+    fireEvent.mouseEnter(trigger);
     fireEvent.click(trigger);
-    // Clicking the tooltip trigger must not toggle the disclosure.
-    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBeNull();
 
     fireEvent.click(button);
-    expect(button.getAttribute('aria-expanded')).toBe('true');
-    fireEvent.click(trigger);
-    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('turn-detection-tuning');
   });
 
   it('Simple: sits after the summary text, with no button anywhere in the row', () => {

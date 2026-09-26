@@ -29,7 +29,7 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   Settings: LocalInferenceSettingsView,
   Engine: LocalInferenceEngine,
   EngineSummary: LocalInferenceEngineSummary,
-  // Its VAD knobs, in the Speech section while the turn mode is Auto.
+  // Its VAD knobs: summarized in the Speech section under Auto, drawn on Advanced's Provider tab.
   TurnDetection: { Summary: LocalInferenceTurnDetectionSummary, Controls: LocalInferenceTurnDetectionControls, Help: LocalInferenceTurnDetectionHelp },
 
   credentials: { keys: [], fields: () => [], read: () => ({}) },

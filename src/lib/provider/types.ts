@@ -126,11 +126,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   /** The `Engine`'s summary under the picker: its slot chips and memory estimate — Simple mode's way in, and drawn before `Engine` on Advanced's Provider tab (ruling 15). */
   EngineSummary?: ComponentType<EngineSummaryProps<S>>;
   /**
-   * The provider's own tuning of automatic turn detection, shown in the
-   * Speech section while the turn mode is Auto: a one-line Summary (both
-   * layouts) and the full Controls (Advanced, expanded). Each renders
-   * nothing while there is nothing to tune, and the section then shows no
-   * row at all.
+   * The provider's own tuning of automatic turn detection. The Summary is
+   * shown in the Speech section while the turn mode is Auto (both layouts;
+   * in Advanced it links to the Controls). The Controls live on Advanced's
+   * Provider tab, drawn by the host as their own block in every turn mode.
+   * Each renders nothing while there is nothing to tune: the section then
+   * shows no row at all, and the host's empty block is hidden.
    */
   TurnDetection?: {
     /** Text only — no tooltip. The section places `Help` itself, as a sibling. */
@@ -138,8 +139,8 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     Controls: ComponentType<SettingsProps<S>>;
     /**
      * An explanatory tooltip trigger for the row, rendered by the section as
-     * a sibling right after the Summary/disclosure — never nested inside the
-     * disclosure `<button>`, whose own click must not fire the trigger's.
+     * a sibling right after the Summary/link — never nested inside the link
+     * `<button>`, whose own click must not fire the trigger's.
      * Optional: a provider with nothing to explain omits it. Follows
      * `Summary`'s own rule — render nothing while there is nothing to tune.
      */

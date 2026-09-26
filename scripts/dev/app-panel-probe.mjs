@@ -26,18 +26,20 @@
  * segmentation, the provider picker with its chips), a chip's push-and-back
  * flow, that a language pick writes through exactly one path, and — under
  * Auto — LocalInference's speech-detection tuning in #turn-detection-section:
- * a summary line with no slider in Simple, a disclosure that expands onto
- * the VAD sliders in Advanced.
+ * a summary line with no slider and no button in Simple; in Advanced a
+ * summary link, no slider, whose click lands on the Provider tab's VAD block
+ * (#turn-detection-tuning-section) with its sliders.
  * `--preview` opens `&settings=simple` then `&settings=advanced`, both on
  * `&provider=localInference` (the chips are LocalInference's; the advanced
- * page draws the Speech section's Advanced layout above the Provider tab);
+ * page draws the Speech section's Advanced layout above the Provider tab,
+ * VAD block included, with no tab bar to switch);
  * `--app` seeds LocalInference (not the fake — its chips) and Auto, opens
  * Settings, checks Simple mode (the static blocks, the tuning's summary
  * line, the chip's push-and-back flow, the one-writer check), switches to
  * Advanced (waits for the switch to land, then its General tab: the same
- * static blocks, the tuning's disclosure, the one-writer check, plus ruling
- * 3's own chip flow — a tab switch to Provider, no back row — then its
- * Provider tab).
+ * static blocks, the one-writer check, plus ruling 3's own chip flow — a tab
+ * switch to Provider, no back row — then its Provider tab, then back on
+ * General the tuning's link, which must switch to the Provider tab again).
  *
  *   SOKUJI_DEV_NO_ELECTRON=1 npx vite --port 5199 --strictPort    # another shell
  *   node scripts/dev/app-panel-probe.mjs [origin] [flags]
@@ -310,14 +312,18 @@ async function checkOneWriter(send, failures, prefix) {
 /**
  * The provider's speech-detection tuning inside #turn-detection-section,
  * under Auto (LocalInference's `TurnDetection`, SpeechSection.tsx): Simple
- * shows its summary line and no slider and no disclosure; Advanced shows the
- * summary as a collapsed disclosure that expands onto the VAD sliders.
+ * shows its summary line and no slider and no button; Advanced shows the
+ * summary as a link and no slider, and a click on it must land on the
+ * Provider tab's VAD block, #turn-detection-tuning-section, with its sliders.
+ * `tabs` (the app): the click must also make #tab-provider the selected tab.
+ * The preview has none — no tab bar, and no Settings.tsx to consume the
+ * link's navigation target — and draws the block on the same page already.
  * Selects Auto first if it is not the active turn mode — a fresh profile's
  * default is Auto already. Assumes the speaker direction resolves to no
  * streaming ASR without a worker type (a fresh profile has no model
  * downloaded): there the row is hidden by design, and this check would say so.
  */
-async function checkSpeechTuning(send, failures, prefix, layout) {
+async function checkSpeechTuning(send, failures, prefix, layout, tabs = false) {
   const autoActive = `document.querySelector('#turn-detection-section .option-button.active')?.textContent === 'Auto'`;
   if (!(await evaluate(send, autoActive))) {
     await click(send, byText('#turn-detection-section .option-button', 'Auto'));
@@ -338,29 +344,34 @@ async function checkSpeechTuning(send, failures, prefix, layout) {
   }
   const state = () => evaluate(send, `({
     sliders: document.querySelectorAll('#turn-detection-section input[type="range"]').length,
-    disclosure: document.querySelector('#turn-detection-section button[aria-expanded]')?.getAttribute('aria-expanded') ?? null,
+    buttons: document.querySelectorAll('#turn-detection-section .turn-detection-tuning button').length,
+    link: !!document.querySelector('#turn-detection-section .turn-detection-link'),
   })`);
 
   if (layout === 'simple') {
     const s = await state();
     if (s?.sliders !== 0) failures.push(`${prefix}: #turn-detection-section had ${s?.sliders} sliders, expected none in Simple`);
-    if (s?.disclosure !== null) failures.push(`${prefix}: #turn-detection-section had a disclosure (aria-expanded=${s?.disclosure}), expected the summary line alone in Simple`);
+    if (s?.buttons !== 0) failures.push(`${prefix}: the tuning row held ${s?.buttons} button(s), expected the summary line alone, as plain text, in Simple`);
     return;
   }
 
   const before = await state();
-  if (before?.disclosure !== 'false' || before?.sliders !== 0) {
-    failures.push(`${prefix}: the tuning disclosure read aria-expanded=${before?.disclosure} with ${before?.sliders} sliders, expected "false" and none`);
+  if (!before?.link || before.sliders !== 0) {
+    failures.push(`${prefix}: the tuning row read link=${before?.link} with ${before?.sliders} sliders, expected a .turn-detection-link and none`);
     return;
   }
-  await click(send, `document.querySelector('#turn-detection-section button[aria-expanded]')`);
-  const opened = await pollUntil(3000, 200, async () => {
-    const s = await state();
-    return s?.disclosure === 'true' && s.sliders >= 3;
+  await click(send, `document.querySelector('#turn-detection-section .turn-detection-link')`);
+  const block = () => evaluate(send, `({
+    providerTab: document.querySelector('#tab-provider')?.getAttribute('aria-selected') ?? null,
+    sliders: document.querySelectorAll('#turn-detection-tuning-section input[type="range"]').length,
+  })`);
+  const landed = await pollUntil(3000, 200, async () => {
+    const b = await block();
+    return (!tabs || b?.providerTab === 'true') && b?.sliders >= 3;
   });
-  if (!opened) {
-    const s = await state();
-    failures.push(`${prefix}: the tuning disclosure never expanded onto the VAD sliders (aria-expanded=${s?.disclosure}, ${s?.sliders} sliders)`);
+  if (!landed) {
+    const b = await block();
+    failures.push(`${prefix}: the tuning link never landed on #turn-detection-tuning-section with the VAD sliders (${tabs ? `#tab-provider aria-selected=${b?.providerTab}, ` : ''}${b?.sliders} sliders)`);
   }
 }
 
@@ -438,7 +449,6 @@ async function runSettingsProbe() {
             // Ruling 3: the same static blocks and the same one-writer rule as
             // Simple mode; only the chip flow differs (a tab switch, no back row).
             await checkGeneralStatic(send, failures, "Advanced's General tab");
-            await checkSpeechTuning(send, failures, "Advanced's General tab", 'advanced');
             await checkOneWriter(send, failures, "Advanced's General tab");
             await checkAdvancedChipFlow(send, failures, "Advanced's General tab");
 
@@ -447,6 +457,15 @@ async function runSettingsProbe() {
               failures.push('never found #tab-provider');
             } else {
               await checkProviderTabOnly(send, failures, "Advanced's Provider tab");
+            }
+
+            // Last: the tuning's link leaves the General tab for the Provider
+            // tab, so it runs after every check that needs General.
+            const backToGeneral = await pollUntil(4000, 250, async () => click(send, `document.querySelector('#tab-general')`));
+            if (!backToGeneral) {
+              failures.push('never found #tab-general to return to');
+            } else {
+              await checkSpeechTuning(send, failures, "Advanced's General tab", 'advanced', true);
             }
           }
         }

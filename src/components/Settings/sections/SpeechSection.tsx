@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronRight, Mic } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Mic } from 'lucide-react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
 import ToggleSwitch from '../shared/ToggleSwitch';
@@ -10,7 +10,7 @@ import type { TurnMode } from '../../../lib/session/types';
 import { presentProviders } from '../../../providers/registry';
 import { useMode } from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
-import { useKeepReplayAudio, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
+import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 
@@ -54,26 +54,26 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
 /**
  * The selected provider's own tuning of automatic turn detection (its
  * `TurnDetection`, D18: settings belong to the provider), under Auto only —
- * push-to-talk and push-to-translate detect nothing. Simple mode shows no
- * provider-specific controls, so there it is the Summary alone, one muted
- * line; Advanced makes that line a disclosure onto the full Controls,
- * collapsed until opened (the open state is this component's only). The
- * disclosure is `TranslationPromptControl`'s preview toggle
- * (`LocalSettingsControls.tsx`): a `.preview-toggle` button in a
- * `.setting-label` row, `aria-expanded`/`aria-controls`, a 16px chevron. It
- * stays usable during a run — it only shows what is set; the lock disables
- * the Controls inside.
+ * push-to-talk and push-to-translate detect nothing. Both layouts show the
+ * Summary, one line; the Controls are a block of their own on Advanced's
+ * Provider tab (`ProviderTurnDetectionControls`), never drawn here. Simple
+ * mode shows no provider-specific controls and nothing switches its UI mode,
+ * so there the Summary is plain muted text. Advanced makes it a link: the
+ * existing settings deep link (`navigateToSettings`), whose
+ * `'turn-detection-tuning'` target Settings.tsx maps to the Provider tab,
+ * then scrolls to and highlights the block. The link stays usable during a
+ * run — it only navigates; the lock disables the Controls it leads to.
  *
  * `Help`, when the provider defines one, renders right after — a sibling of
- * the disclosure button (or, in Simple, of the plain summary span), never a
+ * the link button (or, in Simple, of the plain summary span), never a
  * descendant: `Tooltip`'s trigger is its own hover/focus target, and a click
- * on it must not also fire the button's `onClick` and toggle the disclosure.
+ * on it must not also fire the button's `onClick` and navigate.
  *
  * A Summary that renders nothing (nothing to tune now — LocalInference on a
  * streaming ASR, where endpoint detection replaces VAD) leaves its
  * `.turn-detection-summary` empty, and Settings.scss hides the row then:
  * the section cannot see what a provider's component rendered, and a row
- * left standing would be a bare chevron in Advanced. `Help` follows the same
+ * left standing would be an empty link in Advanced. `Help` follows the same
  * rule on its own (renders nothing then too), so no stray icon is left
  * behind for `:has(.turn-detection-summary:empty)` to have missed.
  */
@@ -81,42 +81,26 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const providers = useMemo(() => presentProviders(), []);
   const selection = useSelectedProvider(providers);
-  const [open, setOpen] = useState(false);
+  const navigateToSettings = useNavigateToSettings();
 
   if (turnMode !== 'auto' || !selection?.entry) return null;
   const tuning = selection.provider.TurnDetection;
   if (!tuning) return null;
-  const { Summary, Controls, Help } = tuning;
+  const { Summary, Help } = tuning;
   const props = { settings: selection.entry.settings, update: selection.update, disabled: locked, pair: selection.entry.pair };
 
-  if (layout === 'simple') {
-    return (
-      <div className="setting-item turn-detection-tuning">
-        <div className="setting-label">
-          <span className="setting-value turn-detection-summary"><Summary {...props} /></span>
-          {Help && <Help {...props} />}
-        </div>
-      </div>
-    );
-  }
   return (
     <div className="setting-item turn-detection-tuning">
       <div className="setting-label">
-        <button
-          type="button" className="preview-toggle"
-          aria-expanded={open} aria-controls="turn-detection-controls"
-          onClick={() => setOpen(!open)}
-        >
-          <span className="turn-detection-summary"><Summary {...props} /></span>
-          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
+        {layout === 'simple' ? (
+          <span className="setting-value turn-detection-summary"><Summary {...props} /></span>
+        ) : (
+          <button type="button" className="turn-detection-summary turn-detection-link" onClick={() => navigateToSettings('turn-detection-tuning')}>
+            <Summary {...props} />
+          </button>
+        )}
         {Help && <Help {...props} />}
       </div>
-      {open && (
-        <div id="turn-detection-controls">
-          <Controls {...props} />
-        </div>
-      )}
     </div>
   );
 }

@@ -278,9 +278,11 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * Settings blocks the app's two layouts show, in place of `ProviderPanel`:
  * `simple` is `SessionSettingsGeneral` in its Simple layout (a chip pushes
  * `SessionEnginePage`, with a back row, the way Simple mode's own list
- * does), `advanced` is `SessionSettingsProvider` (Advanced's Provider tab)
- * under the General tab's Speech section in its Advanced layout — the
- * provider tuning's disclosure; drawing the General tab's other blocks
+ * does), `advanced` is `SessionSettingsProvider` (Advanced's Provider tab,
+ * with the provider tuning's own block) under the General tab's Speech
+ * section in its Advanced layout — the tuning's summary link, which sets the
+ * store's navigation target that nothing consumes here (there is no
+ * `Settings.tsx` on this page); drawing the General tab's other blocks
  * beside it would double `#provider-section`.
  * `&wire=1` (with `&overlay=1`) tallies the overlay's wire per message type
  * as the JSON bytes the extension's port would carry, on `window.__sokujiWire`

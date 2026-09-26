@@ -28,6 +28,7 @@ vi.mock('react-i18next', async (importOriginal) => {
   return { ...actual, useTranslation: () => ({ t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key) }) };
 });
 
+import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -45,6 +46,7 @@ beforeEach(() => {
   useProviderStore.setState({ selected: 'localInference', entries: { localInference: entry() }, readiness: {}, legs: ['speaker'] });
   useAudioStore.setState({ mode: 'speaker' } as Partial<ReturnType<typeof useAudioStore.getState>>);
   useSettingsStore.setState({ textOnly: false, engineSlotTarget: null } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+  useTurnModeStore.setState({ turnMode: 'auto' });
 });
 
 describe('SessionSettingsGeneral', () => {
@@ -82,25 +84,26 @@ describe('SessionSettingsGeneral', () => {
   });
 
   // The layout reaches the Speech section: LocalInference's speech-detection
-  // tuning, under Auto, is a summary line in Simple mode and a disclosure to
-  // the full controls on Advanced's General tab.
-  it("layout 'simple': the Speech section shows the tuning's summary line, with no disclosure", () => {
+  // tuning, under Auto, is a summary line in Simple mode and a link to the
+  // Provider tab's VAD block on Advanced's General tab.
+  it("layout 'simple': the Speech section shows the tuning's summary line, with no link", () => {
     useTurnModeStore.setState({ turnMode: 'auto' });
     const { container } = render(<SessionSettingsGeneral locked={false} layout="simple" onOpenSlot={vi.fn()} />);
     const speech = container.querySelector('#turn-detection-section')!;
     expect(speech.textContent).toContain('VAD Settings · Min Silence Duration: 1.40s');
-    expect(speech.querySelector('button[aria-expanded]')).toBeNull();
+    expect(speech.querySelector('.turn-detection-tuning button')).toBeNull();
   });
 
-  it("layout 'advanced': the Speech section shows the tuning as a disclosure that opens onto the sliders", () => {
+  it("layout 'advanced': the Speech section shows the tuning as a link to the Provider tab, with no sliders of its own", () => {
     useTurnModeStore.setState({ turnMode: 'auto' });
+    useSettingsStore.setState({ settingsNavigationTarget: null });
     const { container } = render(<SessionSettingsGeneral locked={false} layout="advanced" onOpenSlot={vi.fn()} />);
     const speech = container.querySelector('#turn-detection-section')!;
-    const button = speech.querySelector('button[aria-expanded]')!;
-    expect(button.textContent).toContain('VAD Settings · Min Silence Duration: 1.40s');
-    expect(button.getAttribute('aria-expanded')).toBe('false');
+    const button = speech.querySelector('button.turn-detection-link')!;
+    expect(button.textContent).toBe('VAD Settings · Min Silence Duration: 1.40s');
     fireEvent.click(button);
-    expect(speech.querySelectorAll('input[type="range"]').length).toBeGreaterThanOrEqual(3);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('turn-detection-tuning');
+    expect(speech.querySelectorAll('input[type="range"]')).toHaveLength(0);
   });
 });
 
@@ -116,6 +119,43 @@ describe('SessionSettingsProvider', () => {
     expect(select!.compareDocumentPosition(surface!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // eslint-disable-next-line no-bitwise
     expect(surface!.compareDocumentPosition(speed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  // The provider's speech-detection Controls (its `TurnDetection`) are a block
+  // of their own after its own settings — where LocalInference's VAD sat
+  // before the Speech section summarized it — and the Speech section's link
+  // lands on `#turn-detection-tuning-section`.
+  it("renders LocalInference's VAD block, heading and sliders, after its own settings", () => {
+    const { container } = render(<SessionSettingsProvider locked={false} />);
+    const block = container.querySelector<HTMLElement>('#turn-detection-tuning-section')!;
+    expect(block).toBeTruthy();
+    expect(block.querySelector('h2')?.textContent).toBe('VAD Settings');
+    expect(block.querySelectorAll('input[type="range"]').length).toBeGreaterThanOrEqual(3);
+    // eslint-disable-next-line no-bitwise
+    expect(screen.getByText('Speech Speed').compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  // Unlike the Speech section's summary, the block does not follow the turn
+  // mode: the knobs keep their values whatever mode is on.
+  it('renders the VAD block under push-to-talk too', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { container } = render(<SessionSettingsProvider locked={false} />);
+    expect(container.querySelector('#turn-detection-tuning-section input[type="range"]')).toBeTruthy();
+  });
+
+  it('locked disables the VAD sliders', () => {
+    const { container } = render(<SessionSettingsProvider locked={true} />);
+    const sliders = container.querySelectorAll('#turn-detection-tuning-section input[type="range"]');
+    expect(sliders.length).toBeGreaterThanOrEqual(3);
+    for (const slider of sliders) expect(slider).toBeDisabled();
+  });
+
+  it('a provider without TurnDetection renders no block', () => {
+    useProviderStore.setState({ selected: 'fake', entries: { fake: { settings: { ...FAKE_DEFAULTS }, credentials: {}, pair: { source: 'auto', target: 'en' } } } });
+    const { container } = render(<SessionSettingsProvider locked={false} />);
+    // The fake's own settings did render: this is the fake's tab, not an empty one.
+    expect(screen.getByText('Fake provider')).toBeTruthy();
+    expect(container.querySelector('#turn-detection-tuning-section')).toBeNull();
   });
 
   it('a set engineSlotTarget reaches the engine as its initialSlot and is cleared once consumed', () => {

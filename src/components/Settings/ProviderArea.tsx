@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { OutputToggles, SpeechSection } from './sections/SpeechSection';
 import SentenceSegmentationSection from './sections/SentenceSegmentationSection';
-import { ProviderEngine, ProviderOwnSettings } from '../providers/ProviderOwnSettings';
+import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
 import { ProviderLanguages } from '../providers/ProviderLanguages';
 import { ProviderPicker } from '../providers/ProviderPicker';
 import { useAuthContext } from '../providers/useAuthContext';
@@ -17,8 +17,8 @@ import { useEngineSlotTarget, useSetEngineSlotTarget, useTextOnly } from '../../
  * `SessionEnginePage` in place of its list when a chip is clicked (1e-3
  * ruling 10). Every block reads `providerStore` and the run's lock.
  * `layout` is the host's: the Speech section draws the provider's tuning of
- * Auto as a summary line in Simple mode and a disclosure on Advanced's
- * General tab.
+ * Auto as a summary line in Simple mode and, on Advanced's General tab, a
+ * link to that tuning's Controls on the Provider tab.
  */
 export function SessionSettingsGeneral({ locked, layout, onOpenSlot }: { locked: boolean; layout: 'simple' | 'advanced'; onOpenSlot(slot: EngineSlot): void }) {
   const providers = useMemo(() => presentProviders(), []);
@@ -46,6 +46,8 @@ export function SessionSettingsProvider({ locked }: { locked: boolean }) {
       <ProviderPicker providers={providers} auth={auth} disabled={locked} openSlot={setEngineSlotTarget} />
       <ProviderEngine providers={providers} disabled={locked} initialSlot={engineSlotTarget} onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
       <ProviderOwnSettings providers={providers} disabled={locked} />
+      {/* The provider's speech-detection Controls, where LocalInference's VAD sat before the Speech section summarized it. */}
+      <ProviderTurnDetectionControls providers={providers} disabled={locked} />
     </>
   );
 }
