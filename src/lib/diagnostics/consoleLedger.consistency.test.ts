@@ -165,7 +165,6 @@ const LEDGER: Record<string, number> = {
   // report.ts.
   'src/components/Tour/TourProvider.tsx': 3,
   'src/components/Auth/ForgotPasswordForm.tsx': 2,
-  'src/components/MainPanel/participantTelemetry.ts': 2,
   'src/components/Settings/sections/HelpSection.tsx': 2,
   'src/components/Settings/sections/ModelManagementSection.tsx': 2,
   'src/components/Settings/sections/ProviderSpecificSettings.tsx': 2,

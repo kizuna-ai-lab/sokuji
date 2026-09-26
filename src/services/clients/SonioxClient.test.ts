@@ -5,9 +5,29 @@ import { SonioxSessionConfig, ConversationItem } from '../interfaces/IClient';
 import { Provider } from '../../types/Provider';
 import type { SonioxSttMessage, SonioxSttStreamHandlers, SonioxSttConfig } from './SonioxSttStream';
 import { SonioxSideTracker } from './SonioxSideTracker';
-// The panel's own ordering, not a copy of it: a hand-rolled comparator here
-// would keep passing after MainPanel's changed.
-import { mergeConversationItems } from '../../components/MainPanel/conversationMerge';
+
+/**
+ * Inlined from the deleted old MainPanel's `conversationMerge.ts` (plan
+ * 1e-3c, Task 4): tag each side's rows with their side and language pair,
+ * then merge them into one list ordered by createdAt (stable sort, so a
+ * createdAt tie keeps the speaker row ahead of the participant row). Kept
+ * here rather than hand-rolled so the ordering property below still tracks
+ * the panel's real merge, not a copy of it that could silently drift.
+ */
+function mergeConversationItems(
+  speaker: ConversationItem[],
+  participant: ConversationItem[],
+  languageOf: (id: string) => { sourceLanguage: string; targetLanguage: string },
+): ConversationItem[] {
+  const tag = (item: ConversationItem, fallbackSource: 'speaker' | 'participant'): ConversationItem => {
+    const langs = languageOf(item.id);
+    return { ...item, source: item.source ?? fallbackSource, ...langs };
+  };
+  return [
+    ...speaker.map(item => tag(item, 'speaker')),
+    ...participant.map(item => tag(item, 'participant')),
+  ].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+}
 
 // --- Mock both wire components; capture instances for driving the client ---
 const sttInstances: MockStt[] = [];

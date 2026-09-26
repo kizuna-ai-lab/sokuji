@@ -34,7 +34,6 @@ vi.mock('./managedVoicePrep', async (importOriginal) => {
 
 import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
-import { expectationHolds } from '../../components/MainPanel/prepareEnvelope';
 import { defaultSonioxSettings, SonioxSettings } from './SonioxProviderConfig';
 import { SONIOX_DEFAULT_VOICE } from '../../lib/soniox/ttsCatalog';
 import type { PrepareOutcome } from './ProviderDescriptor';
@@ -112,6 +111,22 @@ describe('voice-prep notice vs. the post-init setItems overwrite', () => {
     });
   });
 });
+
+/**
+ * Inlined from the deleted old MainPanel's `prepareEnvelope.ts` (plan
+ * 1e-3c, Task 4): does the live slice still match a prepareToStart
+ * expectation? Every key in `expectation` must strictly equal the slice's
+ * current value. The two-phase stale-selection rule this file's guards 1/2
+ * implement runs on this.
+ */
+function expectationHolds(
+  expectation: Record<string, unknown> | undefined,
+  slice: unknown,
+): boolean {
+  if (!expectation) return true;
+  const s = (slice ?? {}) as Record<string, unknown>;
+  return Object.entries(expectation).every(([k, v]) => s[k] === v);
+}
 
 describe('the hook↔MainPanel envelope seam', () => {
   const descriptor = () => ProviderConfigFactory.getDescriptor(Provider.KIZUNA_AI_SONIOX);
