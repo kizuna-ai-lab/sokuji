@@ -5,7 +5,7 @@
  */
 import { isPresent, type PresenceEnv } from '../lib/provider/presence';
 import type { AnyProvider } from '../lib/provider/types';
-import { enabledProviderIds, getEnvironment, isDevelopmentMode } from '../utils/environment';
+import { debugSwitchOn, enabledProviderIds, getEnvironment, isDevelopmentMode, isKizunaAIEnabled } from '../utils/environment';
 import { fakeProvider } from './fake/provider';
 import { localInferenceProvider } from './localInference/provider';
 
@@ -21,7 +21,7 @@ export type ProviderId = (typeof RELEASED)[number]['id'] | (typeof DEV_ONLY)[num
 export const PROVIDERS: readonly AnyProvider[] = import.meta.env.DEV ? [...RELEASED, ...DEV_ONLY] : [...RELEASED];
 
 export function currentPresenceEnv(): PresenceEnv {
-  return { platform: getEnvironment(), dev: isDevelopmentMode(), enabled: enabledProviderIds() };
+  return { platform: getEnvironment(), dev: isDevelopmentMode(), enabled: enabledProviderIds(), kizuna: isKizunaAIEnabled(), switchOn: debugSwitchOn };
 }
 
 /** The providers offered here, in UI order. */

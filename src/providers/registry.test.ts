@@ -1,7 +1,10 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import { isPresent } from '../lib/provider/presence';
 import { AUTO } from '../lib/provider/languages';
+import type { AnyProvider } from '../lib/provider/types';
+import { isKizunaAIEnabled } from '../utils/environment';
 import { fakeProvider } from './fake/provider';
-import { PROVIDERS, getProvider, presentProviders } from './registry';
+import { PROVIDERS, currentPresenceEnv, getProvider, presentProviders } from './registry';
 
 /** The keys the language pair persists under, beside every provider's settings. */
 const PAIR_KEYS = ['sourceLanguage', 'targetLanguage'];
@@ -56,7 +59,7 @@ describe('the registry', () => {
   it('includes the fake in development builds, on every platform', () => {
     expect(getProvider('fake')).toBe(fakeProvider);
     for (const platform of ['electron', 'extension', 'web'] as const) {
-      expect(presentProviders({ platform, dev: true, enabled: new Set() }).map((p) => p.id)).toContain('fake');
+      expect(presentProviders({ platform, dev: true, enabled: new Set(), kizuna: true, switchOn: () => false }).map((p) => p.id)).toContain('fake');
     }
   });
 
@@ -65,5 +68,35 @@ describe('the registry', () => {
     vi.resetModules();
     const released = await import('./registry');
     expect(released.PROVIDERS.map((p) => p.id)).not.toContain('fake');
+  });
+
+  it("a release build offers no flagged provider and, without the umbrella, no managed one (D24 release check, F6)", () => {
+    for (const platform of ['electron', 'extension', 'web'] as const) {
+      for (const p of presentProviders({ platform, dev: false, enabled: new Set(), kizuna: false, switchOn: () => false })) {
+        expect(p.flagged, p.id).not.toBe(true);
+        expect(p.kind, p.id).not.toBe('managed');
+      }
+    }
+
+    // The control, so the case bites before any flagged or managed provider is registered.
+    const control: readonly AnyProvider[] = [fakeProvider, { ...fakeProvider, id: 'm', kind: 'managed' as const }, { ...fakeProvider, id: 'f', flagged: true as const }];
+    const env = { platform: 'electron' as const, dev: false, enabled: new Set<string>(), kizuna: false, switchOn: () => false };
+    expect(control.filter((p) => isPresent(p, env)).map((p) => p.id)).toEqual(['fake']);
+  });
+
+  it('a tester switch sits only on a flagged provider', () => {
+    const switchOffenders = (ps: readonly Pick<AnyProvider, 'id' | 'flagged' | 'testerSwitch'>[]) =>
+      ps.filter((p) => p.testerSwitch !== undefined && p.flagged !== true).map((p) => p.id);
+    expect(switchOffenders(PROVIDERS)).toEqual([]);
+    expect(switchOffenders([{ id: 'x', testerSwitch: 'debug:x' }, { id: 'y', flagged: true, testerSwitch: 'debug:y' }])).toEqual(['x']);
+  });
+
+  it("the app's presence reads the umbrella and this device's switches", () => {
+    const env = currentPresenceEnv();
+    expect(env.kizuna).toBe(isKizunaAIEnabled());
+    localStorage.setItem('debug:probe-switch', '1');
+    expect(env.switchOn('debug:probe-switch')).toBe(true);
+    expect(env.switchOn('debug:other')).toBe(false);
+    localStorage.removeItem('debug:probe-switch');
   });
 });

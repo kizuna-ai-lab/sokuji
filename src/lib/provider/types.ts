@@ -111,6 +111,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   vendor?: string;
   /** Where a user reads how to set this provider up; the picker links it, dismissibly. */
   guideUrl?: string;
+  /**
+   * A tester's run-time way in for a flagged provider in a release build:
+   * a `localStorage` key that, set to `'1'`, offers it here — Local
+   * Native's `debug:local-native` until it ships (F6). Only on a flagged
+   * provider (registry invariant).
+   */
+  testerSwitch?: string;
 
   // settings — never secrets
   settings: {
