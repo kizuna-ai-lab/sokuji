@@ -1070,7 +1070,7 @@ its step 9 fails unless Stop writes the auto-save file),
 `extension-overlay-probe` on fresh builds (plain and `--ptt`), both release
 builds with no fake code, the extension's `worklets/` without the deleted
 worklet, and a fresh profile's Settings listing its devices. The overlay
-page's JS (entry plus its eight preloads) went from 2,219 KB to 2,129 KB
+page's JS (its entry plus seven preloads, eight files) went from 2,219 KB to 2,129 KB
 against a build of `1bfdd362`.
 
 What it leaves:
