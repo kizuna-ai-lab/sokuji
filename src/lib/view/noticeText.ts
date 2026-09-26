@@ -1,7 +1,8 @@
 /**
  * A notice put into the user's words (spec: "Notices reach the user
  * localized"): `message` is diagnostic English; a surface looks the text up
- * by `code`, under `notices.<code>`. `{{detail}}` is the notice's own
+ * by `code`, under `notices.<code>` — or, for a code in `NOTICE_ALIASES`,
+ * under the existing key it names. `{{detail}}` is the notice's own
  * message — the provider's error text, which today's error bubbles show.
  */
 import type { TFunction } from 'i18next';
@@ -70,8 +71,31 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   translation_unavailable: 'No translation model for this direction: its speech is transcribed only.',
 };
 
+/**
+ * Codes worded by a sentence every locale already has (controller ruling
+ * 4): the notice reuses that key rather than a `notices.<code>` of its own,
+ * so no catalog changes. A code is here or in `NOTICE_WORDS`, never both. A
+ * plan whose provider emits a new code with an existing sentence adds its
+ * row; a sentence that names a vendor stays that vendor's (choice 9).
+ */
+export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
+  // A managed provider signed out: its `credentials.read` answers with this code (F3).
+  sign_in_required: 'auth.signedOut',
+  // A managed lease refused a start, or ended the run.
+  insufficient_balance: 'mainPanel.sonioxInsufficientBalance',
+  wallet_frozen: 'mainPanel.walletFrozen',
+  session_conflict: 'mainPanel.sonioxSessionConflict',
+  budget_exhausted: 'mainPanel.sonioxBudgetExhausted',
+  // A provider ended the session under the user, and a new Start continues it.
+  segment_ended: 'mainPanel.sonioxSegmentEnded',
+  connection_lost: 'mainPanel.sonioxConnectionLost',
+};
+
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */
 export function noticeText(t: TFunction, notice: NoticeWords): string {
+  const alias = notice.code === undefined ? undefined : NOTICE_ALIASES[notice.code];
+  // A catalog lacking the key shows the diagnostic English, as a code with no words does.
+  if (alias !== undefined) return t(alias, { defaultValue: notice.message, ...named(notice.params), detail: notice.message });
   const words = notice.code === undefined ? undefined : NOTICE_WORDS[notice.code];
   if (words === undefined) return notice.message;
   return t(`notices.${notice.code}`, { defaultValue: words, ...named(notice.params), detail: notice.message });

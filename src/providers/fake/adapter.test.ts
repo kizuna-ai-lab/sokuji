@@ -29,6 +29,14 @@ describe('synth', () => {
     expect(msForText('')).toBe(200);
     expect(msForText('こんにちは')).toBe(300);
   });
+  it('continues the tone from a given sample, so chunks join without a click', () => {
+    // 1000 samples is 18.33 cycles of a 440 Hz tone at 24 kHz: not a whole
+    // number of cycles, so this offset does not coincidentally match a tone
+    // restarted from phase 0 (unlike a whole-cycle offset would).
+    const whole = synthPcm(100);
+    const tail = synthPcm(50, 440, 8000, 1000);
+    expect(Array.from(tail)).toEqual(Array.from(whole.subarray(1000, 1000 + tail.length)));
+  });
 });
 
 describe('exchange', () => {

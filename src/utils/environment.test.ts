@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { enabledProviderIds, getRelayWsUrl, isLocalNativeEnabled, LOCAL_NATIVE_DEBUG_KEY } from "./environment";
+import { debugSwitchOn, enabledProviderIds, getRelayWsUrl, isLocalNativeEnabled, LOCAL_NATIVE_DEBUG_KEY } from "./environment";
 
 afterEach(() => { vi.unstubAllEnvs(); });
 
@@ -71,5 +71,24 @@ describe("enabledProviderIds", () => {
   it("is empty when nothing is listed", () => {
     vi.stubEnv('VITE_ENABLED_PROVIDERS', '');
     expect(enabledProviderIds().size).toBe(0);
+  });
+});
+
+describe("debugSwitchOn", () => {
+  afterEach(() => { localStorage.removeItem('debug:probe'); });
+
+  it("is true for the exact value '1', false for anything else or absent", () => {
+    localStorage.setItem('debug:probe', '1');
+    expect(debugSwitchOn('debug:probe')).toBe(true);
+    localStorage.setItem('debug:probe', 'true');
+    expect(debugSwitchOn('debug:probe')).toBe(false);
+    localStorage.removeItem('debug:probe');
+    expect(debugSwitchOn('debug:probe')).toBe(false);
+  });
+
+  it("is false where storage throws", () => {
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
+    expect(debugSwitchOn('debug:probe')).toBe(false);
+    spy.mockRestore();
   });
 });

@@ -48,7 +48,7 @@ import '../../locales';
 
 import { fakeProvider } from '../../providers/fake/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
-import type { EngineSummaryProps } from '../../lib/provider/types';
+import type { EngineSummaryProps, Readiness } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
 import { ProviderPicker } from './ProviderPicker';
@@ -94,6 +94,12 @@ describe('ProviderPicker', () => {
     expect(await screen.findByRole('option', { name: 'providers.local_inference.name' })).toBeTruthy();
   });
 
+  it("reads a provider's name under its i18nKey when it has one", async () => {
+    const openaiCompatible = { ...fakeProvider, id: 'openai_compatible', i18nKey: 'openaiCompatible', settings: { ...fakeProvider.settings, key: 'openaiCompatible' } };
+    render(<ProviderPicker providers={[openaiCompatible]} auth={noAuth} />);
+    expect(await screen.findByRole('option', { name: 'providers.openaiCompatible.name' })).toBeTruthy();
+  });
+
   it('disables the select and the credential inputs', async () => {
     stored.set('settings.fake.requireKey', true);
     render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} disabled />);
@@ -120,6 +126,7 @@ describe('ProviderPicker', () => {
     const props = seen[seen.length - 1];
     expect(props?.legs).toEqual(['speaker', 'participant']);
     expect(props?.openSlot).toBe(openSlot);
+    expect(seen[0].models).toEqual([]);
   });
 
   it('shows no EngineSummary without openSlot', async () => {
@@ -143,6 +150,90 @@ describe('ProviderPicker', () => {
       }));
     });
     expect(await screen.findByText('notices.local_models_missing')).toHaveClass('validation-message', 'error');
+    expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
+  });
+
+  it("Validate tracks api_key_validated, with the provider's stored spelling and whether it passed", async () => {
+    const { unmount } = render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'fake', success: true }));
+    unmount();
+
+    trackEvent.mockClear();
+    useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+    stored.set('settings.fake.checkFails', true);
+    render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'fake', success: false }));
+  });
+
+  // Their own ids, below: the store keeps a ready answer per provider id at
+  // module scope, and the fake's default settings already have one from the
+  // case above, which would answer these without calling their `check`.
+  it("Validate tracks a refusal's code as error_type", async () => {
+    const refusing = {
+      ...fakeProvider, id: 'refusing', settings: { ...fakeProvider.settings, key: 'refusing' },
+      check: async () => ({ ok: false as const, reason: 'x', code: 'invalid_key' }),
+    };
+    render(<ProviderPicker providers={[refusing]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('api_key_validated', { provider: 'refusing', success: false, error_type: 'invalid_key' }));
+  });
+
+  it('Validate tracks nothing for a check that found nothing out: it was superseded', async () => {
+    let answer!: (result: { ok: true }) => void;
+    const superseded = {
+      ...fakeProvider, id: 'superseded', settings: { ...fakeProvider.settings, key: 'superseded' },
+      check: () => new Promise<{ ok: true }>((resolve) => { answer = resolve; }),
+    };
+    render(<ProviderPicker providers={[superseded]} auth={noAuth} />);
+    fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+    await waitFor(() => expect(useProviderStore.getState().readiness.superseded).toEqual({ state: 'checking' }));
+    // An edit meanwhile: the answer this press gets back is unknown.
+    act(() => { useProviderStore.getState().forgetReadiness(superseded); });
+    await act(async () => {
+      answer({ ok: true });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(trackEvent).not.toHaveBeenCalledWith('api_key_validated', expect.anything());
+  });
+
+  it('Validate tracks nothing for a check a newer one superseded while that one still runs: the press answers checking', async () => {
+    const answers: Array<(result: { ok: true }) => void> = [];
+    const overtaken = {
+      ...fakeProvider, id: 'overtaken', settings: { ...fakeProvider.settings, key: 'overtaken' },
+      check: () => new Promise<{ ok: true }>((resolve) => { answers.push(resolve); }),
+    };
+    // The store's refreshReadiness, with the answer each call got back.
+    const realRefresh = useProviderStore.getState().refreshReadiness;
+    const got: Array<Promise<Readiness>> = [];
+    useProviderStore.setState({ refreshReadiness: (...args) => { const answer = realRefresh(...args); got.push(answer); return answer; } });
+    try {
+      render(<ProviderPicker providers={[overtaken]} auth={noAuth} />);
+      fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
+      await waitFor(() => expect(answers).toHaveLength(1));
+      // A newer check (the readiness driver's, or a start's) begins while the press's still runs.
+      act(() => { void useProviderStore.getState().refreshReadiness(overtaken, noAuth); });
+      expect(answers).toHaveLength(2);
+      await act(async () => {
+        answers[0]({ ok: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      await expect(got[0]).resolves.toEqual({ state: 'checking' });
+      expect(trackEvent).not.toHaveBeenCalledWith('api_key_validated', expect.anything());
+      await act(async () => {
+        answers[1]({ ok: true });
+        await got[1];
+      });
+    } finally {
+      useProviderStore.setState({ refreshReadiness: realRefresh });
+    }
+  });
+
+  it('offers no Validate button for a managed provider: its readiness follows the sign-in', async () => {
+    const managed = { ...fakeProvider, id: 'managed-probe', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedProbe' } };
+    render(<ProviderPicker providers={[managed]} auth={noAuth} />);
+    await waitFor(() => expect(useProviderStore.getState().entries['managed-probe']).toBeDefined());
     expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
   });
 

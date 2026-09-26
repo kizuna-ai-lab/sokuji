@@ -91,6 +91,61 @@ describe('InputWaveforms', () => {
       expect(Array.from(data)).toEqual([0]);
     }
   });
+
+  it('a strip that comes back draws on its own new canvas', () => {
+    getContextSpy.mockRestore();
+    const contextsByCanvas = new WeakMap<HTMLCanvasElement, CanvasRenderingContext2D>();
+    getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+      this: HTMLCanvasElement,
+    ) {
+      let ctx = contextsByCanvas.get(this);
+      if (!ctx) {
+        ctx = { clearRect: vi.fn(), fillRect: vi.fn() } as unknown as CanvasRenderingContext2D;
+        contextsByCanvas.set(this, ctx);
+      }
+      return ctx;
+    });
+
+    const speakerMeter = makeMeter(new Float32Array([0.5]));
+    const participantMeter = makeMeter(new Float32Array([0.25]));
+    const levels = { speaker: speakerMeter, participant: participantMeter };
+
+    const { container, rerender } = render(<InputWaveforms mode="speaker" levels={levels} />);
+    const firstCanvas = container.querySelector('.waveform-strip--mic canvas') as HTMLCanvasElement;
+    runFrame();
+
+    rerender(<InputWaveforms mode="participant" levels={levels} />);
+    runFrame();
+
+    rerender(<InputWaveforms mode="speaker" levels={levels} />);
+    const secondCanvas = container.querySelector('.waveform-strip--mic canvas') as HTMLCanvasElement;
+    expect(secondCanvas).not.toBe(firstCanvas);
+
+    drawBarsSpy.mockClear();
+    runFrame();
+
+    type DrawBarsCall = Parameters<typeof WavRenderer.drawBars>;
+    const micCalls = drawBarsSpy.mock.calls.filter((call: DrawBarsCall) => call[0] === secondCanvas);
+    expect(micCalls.length).toBeGreaterThan(0);
+    for (const call of micCalls) {
+      expect(call[0]).toBe(secondCanvas);
+      expect(call[1]).toBe(contextsByCanvas.get(secondCanvas));
+    }
+    const staleCalls = drawBarsSpy.mock.calls.filter((call: DrawBarsCall) => call[0] === firstCanvas);
+    expect(staleCalls.length).toBe(0);
+  });
+
+  it('a hidden strip reads nothing', () => {
+    const speakerMeter = makeMeter(new Float32Array([0.5]));
+    const participantMeter = makeMeter(new Float32Array([0.25]));
+    render(<InputWaveforms mode="speaker" levels={{ speaker: speakerMeter, participant: participantMeter }} />);
+
+    (participantMeter.read as ReturnType<typeof vi.fn>).mockClear();
+    runFrame();
+    runFrame();
+    runFrame();
+    expect(participantMeter.read).not.toHaveBeenCalled();
+  });
 });
 
 describe('OutputWaveform', () => {
@@ -124,5 +179,28 @@ describe('OutputWaveform', () => {
     pending(0);
     expect(meter.read).not.toHaveBeenCalled();
     expect(frameQueue.length).toBe(0);
+  });
+
+  it('cancels its pending frame on unmount', () => {
+    const cancelled: number[] = [];
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => { cancelled.push(id); });
+    const { unmount } = render(<OutputWaveform meter={null} />);
+    runFrame();
+    const scheduled = rafId;
+
+    unmount();
+    expect(cancelled).toEqual([scheduled]);
+  });
+
+  it('reads the meter of the latest render', () => {
+    const first: BusMeter = { read: vi.fn(() => new Float32Array([0.1])) };
+    const second: BusMeter = { read: vi.fn(() => new Float32Array([0.9])) };
+    const { rerender } = render(<OutputWaveform meter={first} />);
+    rerender(<OutputWaveform meter={second} />);
+
+    (first.read as ReturnType<typeof vi.fn>).mockClear();
+    runFrame();
+    expect(second.read).toHaveBeenCalledTimes(1);
+    expect(first.read).not.toHaveBeenCalled();
   });
 });

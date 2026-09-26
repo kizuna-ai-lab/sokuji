@@ -6,27 +6,35 @@
  */
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
-import type { AnyProvider, AuthContext, Readiness } from '../provider/types';
+import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import { presentProviders } from '../../providers/registry';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
-import { useProviderStore } from '../../stores/providerStore';
+import { useProviderStore, type ProviderEntry } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment } from '../../utils/environment';
 import { buildSharedSettings } from './shared';
+import { gate, type Refusal } from './shape';
 import type { RunShape } from './types';
 
 export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
   return mode === 'both' ? ['speaker', 'participant'] : [mode];
 }
 
-export function readShapeFromStores(auth: AuthContext): RunShape | null {
+/** The provider a start would run and its loaded entry, as `readShapeFromStores` finds them; null until the entry has loaded. */
+function selectedFromStores(): { provider: AnyProvider; entry: ProviderEntry } | null {
   const { selected, entries } = useProviderStore.getState();
   const providers = presentProviders();
   const provider = providers.find((p) => p.id === selected) ?? providers[0];
   const entry = provider ? entries[provider.id] : undefined;
-  if (!provider || !entry) return null;
+  return provider && entry ? { provider, entry } : null;
+}
+
+export function readShapeFromStores(auth: AuthContext): RunShape | null {
+  const selected = selectedFromStores();
+  if (!selected) return null;
+  const { provider, entry } = selected;
   const st = useSettingsStore.getState();
   return {
     provider,
@@ -58,6 +66,27 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     ),
     auth,
   };
+}
+
+/**
+ * The start gate over the stores as they stand (F7): what a start would be
+ * refused before anything is checked — no leg, a turn mode the provider
+ * does not offer, the participant leg on the web or for a pair that does
+ * not reverse (D20). The surfaces keep Start off and show why; the runner
+ * still gates the frozen shape at start. Null when nothing is refused, or
+ * before the provider's entry has loaded (`providerLoaded` keeps Start
+ * off then).
+ */
+export function liveGate(platform: Platform = getEnvironment()): Refusal | null {
+  const selected = selectedFromStores();
+  if (!selected) return null;
+  return gate({
+    provider: selected.provider,
+    settings: selected.entry.settings,
+    pair: selected.entry.pair,
+    legs: legsFor(useAudioStore.getState().mode),
+    turnMode: useTurnModeStore.getState().turnMode,
+  }, platform);
 }
 
 /** The runner's `ensureReady` in the app: the shape's own inputs, through the provider store's cache. */

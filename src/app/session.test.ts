@@ -95,6 +95,7 @@ import { settleReports } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { DEFAULT_CLOSE_TIMEOUT_MS } from '../lib/session/runner';
 import { fakeProvider } from '../providers/fake/provider';
+import { FAKE_LEASED_DEFAULTS } from '../providers/fake/settings';
 import { createFakeSource, type FakeSource } from '../providers/fake/source';
 import { localInferenceProvider } from '../providers/localInference/provider';
 import useAudioStore from '../stores/audioStore';
@@ -447,6 +448,33 @@ describe('attach', () => {
     await flush();
 
     expect(spy).toHaveBeenCalledWith(localInferenceProvider, { signedIn: false, getToken: expect.any(Function) });
+
+    detach();
+  });
+
+  it("forgets a managed provider's readiness when the sign-in or the account flips — after the render, not during it", async () => {
+    const { session } = await setup();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+      readiness: { fake_leased: { state: 'ready', models: [] } },
+    });
+    const detach = session.attach();
+    const readiness = () => useProviderStore.getState().readiness.fake_leased;
+
+    session.setBridges({ auth: { signedIn: true, userId: 'u1', getToken: async () => 't' } });
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'unknown' });
+
+    useProviderStore.setState({ readiness: { fake_leased: { state: 'ready', models: [] } } });
+    session.setBridges({ auth: { signedIn: true, userId: 'u1', getToken: async () => 't' } });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+
+    session.setBridges({ auth: { signedIn: true, userId: 'u2', getToken: async () => 't' } });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'unknown' });
 
     detach();
   });

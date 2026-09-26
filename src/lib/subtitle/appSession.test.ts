@@ -9,6 +9,15 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+// The live gate (Stage 2 foundation, F7) refuses the participant leg on the
+// web, jsdom's platform: the file runs as Electron, so a participant-only
+// start is refused only where a case asks for the web.
+const environment = vi.hoisted(() => ({ value: 'electron' as 'web' | 'electron' | 'extension' }));
+vi.mock('../../utils/environment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../utils/environment')>()),
+  getEnvironment: () => environment.value,
+}));
+
 import { createStore } from 'zustand/vanilla';
 import type { Leg } from '../conversation/types';
 import type { Runner } from '../session/runner';
@@ -29,6 +38,7 @@ afterEach(() => {
   useProviderStore.setState(providersBefore, true);
   useTurnModeStore.setState(turnBefore, true);
   useAudioStore.setState(audioBefore, true);
+  environment.value = 'electron';
 });
 
 function setup(options?: { microphoneRequired?(): boolean; provider?: boolean; view?: Readable<ConversationViewState> }) {
@@ -95,6 +105,20 @@ describe('appSubtitleSession — the microphone gate (1e-3 ruling 5)', () => {
     expect(setup().session.get().canStart).toBe(true);
     useAudioStore.setState({ mode: 'participant', selectedInputDevice: null });
     expect(setup({ microphoneRequired: () => true }).session.get().canStart).toBe(true);
+  });
+});
+
+describe('appSubtitleSession — the live start gate (Stage 2 foundation, F7)', () => {
+  it('keeps Start off while the live gate refuses, and turns it back on when the mode changes', () => {
+    environment.value = 'web';
+    useAudioStore.setState({ mode: 'participant', selectedInputDevice: null });
+    const { session } = setup();
+    expect(session.get()).toMatchObject({ canStart: false, idle: { kind: 'unready', code: 'participant_source_unavailable' } });
+    const listener = vi.fn();
+    session.subscribe(listener);
+    useAudioStore.setState({ mode: 'speaker' });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(session.get().canStart).toBe(true);
   });
 });
 

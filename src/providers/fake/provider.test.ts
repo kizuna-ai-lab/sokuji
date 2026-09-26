@@ -14,6 +14,7 @@ const shared: SharedSettings = {
   pauses: { sourceSeconds: 1, translationSeconds: 1 },
   reversed: () => false,
   segmentation: { mode: 'off', sentencesPerRow: 0 },
+  models: [],
 };
 const noAuth = { signedIn: false, getToken: async () => null };
 const settings = (patch: Partial<FakeSettings> = {}): FakeSettings => ({ ...FAKE_DEFAULTS, ...patch });
@@ -89,6 +90,14 @@ describe('the fake provider', () => {
     const steps = fakeScript('notices').blocks.flatMap((block) => block.steps);
     expect(steps.some((step) => 'degraded' in step)).toBe(true);
   });
+
+  it("plays the participant's own script on the reversed direction", () => {
+    const s = settings({ participantScript: 'cjk' });
+    expect(fakeProvider.build(context, s, { ...shared, reversed: () => true })).toMatchObject({ script: fakeScript('cjk') });
+    expect(fakeProvider.build(context, s, { ...shared, reversed: () => false })).toMatchObject({ script: fakeScript('exchange') });
+    expect(fakeProvider.build(context, settings({ participantScript: 'same' }), { ...shared, reversed: () => true }))
+      .toMatchObject({ script: fakeScript('exchange') });
+  });
 });
 
 describe('migrateFakeSettings', () => {
@@ -101,5 +110,10 @@ describe('migrateFakeSettings', () => {
   it('replaces an unknown script, a non-boolean flag and a bad number with their defaults', () => {
     expect(migrateFakeSettings({ ...FAKE_DEFAULTS, script: 'gone', requireKey: 'yes', failAfterMs: -1, startDelayMs: Number.NaN }))
       .toEqual(FAKE_DEFAULTS);
+  });
+
+  it('keeps a known participant script, and falls back to same', () => {
+    expect(migrateFakeSettings({ participantScript: 'rangeless' }).participantScript).toBe('rangeless');
+    expect(migrateFakeSettings({ participantScript: 'bogus' }).participantScript).toBe('same');
   });
 });

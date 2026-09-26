@@ -12,8 +12,8 @@ const FLAGS: ReadonlyArray<{ key: Flag; label: string }> = [
   { key: 'startThrows', label: 'Fail to start' },
 ];
 
-/** Whole, non-negative milliseconds from an input's text; anything else is 0. */
-function toMs(text: string): number {
+/** Whole, non-negative milliseconds from an input's text; anything else is 0. Both fakes' views read their numbers with it. */
+export function toMs(text: string): number {
   const n = Math.round(Number(text));
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
@@ -35,6 +35,19 @@ export function FakeSettingsView({ settings, update, disabled }: SettingsProps<F
           onChange={(e) => update({ script: e.target.value as FakeScriptName })}
           disabled={disabled}
         >
+          {FAKE_SCRIPT_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
+        </select>
+      </div>
+      <div className="setting-item">
+        <label className="setting-label" htmlFor="fake-participant-script"><span>Other's script</span></label>
+        <select
+          id="fake-participant-script"
+          className="select-dropdown"
+          value={settings.participantScript}
+          onChange={(e) => update({ participantScript: e.target.value as FakeSettings['participantScript'] })}
+          disabled={disabled}
+        >
+          <option value="same">same</option>
           {FAKE_SCRIPT_NAMES.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
       </div>

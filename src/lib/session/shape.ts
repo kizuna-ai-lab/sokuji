@@ -32,12 +32,17 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
   return contexts;
 }
 
+/** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. */
+export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'>;
+
 /**
- * The start gate over a frozen shape: what can be refused before anything is
- * checked, built or opened. Credentials, readiness, the build and `admit` are
- * refused by the run's later steps.
+ * The start gate: what can be refused before anything is checked, built
+ * or opened — over a run's frozen shape at start (`Run.open`), and over the
+ * stores as they stand while idle (`liveGate`, F7), so the surfaces keep
+ * Start off and say why before it is pressed. Credentials, readiness, the
+ * build and `admit` are refused by the run's later steps.
  */
-export function gate(shape: RunShape, platform: Platform): Refusal | null {
+export function gate(shape: GateInput, platform: Platform): Refusal | null {
   const { provider: p, settings: s, legs } = shape;
   if (legs.length === 0) return { code: 'no_legs' satisfies RunNoticeCode, message: 'The audio mode asks for no leg.' };
   const offered = p.turns(s);

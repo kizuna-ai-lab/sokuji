@@ -1133,3 +1133,231 @@ What it leaves:
   `NativeTtsProto`'s static import in `App.tsx` (5.7 KB in release);
   `resolveParticipantSourceId` in `lib/modern-audio/participantSource.ts` has
   no caller outside its own test.
+
+## Scheduled by the Stage 2 foundation plan
+
+The Stage 2 foundation plan
+(`docs/superpowers/plans/2026-09-26-client-contract-stage2-foundation.md`,
+plan commit `8902c5d1`) landed as the twenty commits after it, through
+`5e98695e` (**+3,812 / −217 lines across 80 files**), then this record, the
+spec's amendments and a final-review fix wave. It is vendor-free: it builds
+what every provider port leans on and ports no provider. Fourteen tasks were
+implemented; Task 15 (an adaptive lead for streaming audio) did not run,
+because group check A's G3 measurement came out as designed; Task 16 is this
+record and the spec's amendments. Fix rounds: Tasks 4, 8 and 10 one each;
+Task 13 two (a controller ruling before review, and one review round).
+
+What landed, by task:
+- **Presence** (`1727852a`): a managed provider needs the Kizuna umbrella; a
+  flagged provider's `testerSwitch` unlocks it in a release build (Local
+  Native's `debug:local-native`, F6).
+- **The live gate** (`e7cf101d`): Start is off, with the refusal's words,
+  whenever the runner's gate would refuse (F7).
+- **Notice aliases** (`2730ba48`): a provider's code may reuse a sentence
+  every locale already has (`NOTICE_ALIASES`, F8), `sign_in_required` among
+  them.
+- **The adapter test kit** (`79b6d52b`, `7899da42`): `FakeSocket`, the
+  scenario driver, `runScenario`'s conformance suite, `every()` (F9).
+- **Guards** (`c4cf549d`): a provider's session side imports no store, no
+  reporter and no global timer; the kit is test-only (F17).
+- **The preview's gap count** (`376124ba`, `248dbd70`): the instrument for G3.
+- **Credentials with a code, and the account** (`de454a79`): `read` may
+  answer `{ missing, code, params }`; `AuthContext.userId` (F3).
+- **The fake's other shapes** (`dadcee52`, `82ea301a`): the ref-less stream,
+  frames, no ranges, a reconnect; a script per leg (F10).
+- **Migration inputs** (`d91f479b`): `legacyKeys`, the credentials and
+  `migratePair` reach a migration (F5).
+- **Models and the account reach Settings** (`a1ca782e`, `3e5272d3`):
+  `SettingsProps.models` / `account`, `SharedSettings.models` (F2, F3).
+- **The leased fake** (`d87a854b`): a DEV-only managed fake whose `prepare`,
+  `acquire` and `startBoth` are its knobs; `acquire`'s context carries the
+  run's clock (F10, choice 1).
+- **The preview signs in** (`c377e0df`): `&signedin=1` hands the session a
+  signed-in stand-in with no network; `&script=` scripts either fake.
+- **Readiness for every kind** (`b3a939cd`, `6cf67038`, `af425383`):
+  `driveReadiness` checks own-key and managed providers — at once on selection
+  and load while their readiness is unknown, 800 ms after an edit; a sign-in
+  or account flip forgets every managed provider's readiness and checks the
+  selected one at once; the last ready answer is kept with its inputs, and a
+  managed provider's with its account too, so signing out and back in to the
+  same account costs no request; Validate is own-key only and tracks
+  `api_key_validated` again (F1).
+- **Registry invariants and `i18nKey`** (`5e98695e`): every provider meets
+  the old enum's ids and slice keys, en names, credential sentences, a
+  managed provider's sign-in reading, identity migrations; the release order
+  is pinned at `['localInference']` (F17, controller ruling 2).
+
+**Checked — group check A** (at `dadcee52`): both release builds, the
+extension suite, no fake code in either bundle; every spine probe and
+`app-panel-probe` (preview, `--settings`); the gate probe showing the refusal's
+words. The four new scripts rendered: `framed` its pairs, `reconnect` its four
+rows; `rangeless` and `refless-stream` with no karaoke, as their shapes
+predict (no ranges; no `ref`).
+**G3**, three runs of `refless-stream` over 36 s, steady / hiccup gaps:
+0 / 1 (109 ms at 16.2 s), 0 / 1 (99 ms at 16.2 s), 0 / 1 (109 ms at 16.2 s).
+The worst run is the prediction — no gap while the stream is steady, one
+dropout where the script stalls longer than the lead — so Task 15 did not run.
+A stall longer than the lead drops out once (~100 ms) and leaves ~100 ms of
+extra latency behind; Palabra's live test is where that is heard.
+
+**Checked — group check B** (at `5e98695e`): both release builds and the
+extension suite (7 files, 45 tests); neither fake's sentinel (`The fake
+degraded its speech`, `Lease ended by the leased fake`), nor `fake_leased`,
+nor the preview's `preview-token` in `build/` or `extension/dist/`; all eight
+probes; the leased fake **signed in** (`&provider=fake_leased&signedin=1`)
+playing its four rows through `prepare` and `acquire`; the leased fake
+**signed out**, Start off with "Sign in to use Kizuna AI's built-in
+translation service." — the driver, `read`'s `sign_in_required` and the
+alias's words end to end. The app at `/` logs nothing new: WebGPU's "No
+available adapters" (headless) and the backend's CORS refusal of
+`localhost:5199`.
+
+**Final review** (whole plan, `8902c5d1..f8c12c89`): ready with fixes — no
+Critical, one Important, eight Minor, every routing and ruling agreed. The
+Important was a contract gap, not a code defect: a check the driver starts has
+no time limit, and Start is off with no words while it runs; the spec now says
+`check` bounds its own request ("Readiness is one check"), and Soniox, the
+first real network check, inherits it. The fix wave (`c3a48452`, `c8373bb3`,
+`67bd96b4`, `a5c2fff4`, `29e188f8`, then this record) took the task reviews'
+queued Minors and the final review's code ones:
+- the driver's timer skips a network provider whose readiness is no longer
+  unknown when it fires (a Validate within 800 ms of an edit no longer runs a
+  second network check);
+- only a managed provider's kept answer is per sign-in and account, so an
+  own-key provider's answer outlives a sign-in flip;
+- the leased fake's `startBoth` throws the start failure, not a cleanup's;
+- `NO_MODELS` is frozen;
+- doc and test strengthening: `canStart` / `start()` docs, the live gate's
+  not-loaded case, a non-vacuous `migratePair` case, the lease's
+  release-once case, `migrateFakeLeasedSettings`, Validate's `checking` case,
+  the registry test's wording.
+
+The spec also says now that `read`, not `check`, sees the sign-in; when checks
+run; and that a migration writes nothing back.
+
+**Stated departures from today:**
+- An own-key provider's readiness is checked on its own: at once when it is selected or loaded, and 800 ms after its settings or credentials last changed. Before, only Validate or a start checked it; the old app validated on every change with no delay.
+  - One visible effect: with an empty key, the credential form shows "Enter your API key in Settings before starting." and Start is off with that reason as soon as the provider is selected, before anything is typed. The old app showed no verdict until a key was typed or Validate pressed.
+- A managed provider shows no Validate button, and is asked again at once when the user signs in or out, or switches account (served from the kept answer when it is the account last answered ready — amended after the final review).
+- Start is off, with the reason, when the gate would refuse: the participant leg on the web page, a pair that does not reverse (D20), a turn mode the provider does not offer. Before, Start was offered and the start was refused.
+- The development build's picker offers a second fake, "the leased fake" (development only).
+- The preview's `&mode=`, `&signedin=1`, and `&script=` for either fake.
+
+What it leaves, for the plans that meet it (the plan's own list, as written):
+
+Each item goes to the first provider plan that needs it (survey §3.1's "→X"); the order is controller ruling 3's.
+
+**Soniox** (`soniox`, BYOK):
+- F13's voice-library wrapper and `LinesField` (vocabulary), composed from the account (`props.account`, Task 10).
+- F18: the reusable protocol modules' home (`git mv` into `src/providers/soniox/`), their timers moved onto `request.clock` / `every()` (Task 4).
+- F12's own-key wizard path: the first own-key provider.
+- The provider-neutral Speech-section tooltip. LocalInference's text stays accurate until the first cloud provider lands (`SpeechSection.tsx`'s comment).
+- `startBoth` naming the leg that failed (roadmap 1c-1 → Stage 2): the runner wraps a rejection as `LegOpenError(legs[0])`. The leased fake's `startBoth` (Task 11) is where to test it first.
+- A test that hands `startBoth` a distinct track per leg (roadmap 1c-3 → Stage 2).
+- The four voice-preview sites folded into `Playback.preview` (roadmap 1c-2 → Stage 2).
+- Soniox-named notice aliases (`sonioxServiceUnavailable`, `sonioxServiceBusy`, `sonioxTtsFailed`, `sonioxTtsSegmentLost`) — choice 9.
+- The conformance suite (`runScenario`) over its harness, `FakeSocket` for its two sockets.
+- `check` bounds its own request (spec, "Readiness is one check"; final review I1): Soniox's is the first real network check the readiness driver runs unasked, and one that never settles would leave Start off with no words.
+
+**Kizuna Soniox** (`kizunaai_soniox`):
+- F11, whole:
+  - `managed(base, …)`;
+  - `SessionHooks.minimumBalance`, `Resources.budget`, `RunState.running.budget`, and the lease's budget on the leased fake;
+  - the live gate's balance floor, beside Task 2's refusal;
+  - `acquire`'s frame sink for `session.*`;
+  - the managed account row and "Recommended" in the picker;
+  - `SessionCountdown` mounted;
+  - `AccountButton` through `minimumBalance`.
+- F12's managed wizard path.
+- `selectionFromStored`: `'kizunaai'` and an unported managed id → the default managed provider (survey §2.1.9).
+- A Settings target for `sign_in_required` in `NOTICE_TARGETS` (the account popover); the managed-voice aliases (`sonioxVoice*`).
+- The preview's `&signedin=1` stand-in reaches the session and `ProviderPanel`, not the `&settings=` blocks, which read `useAuthContext()` (Task 12). Route it there before rendering the managed account row in those blocks.
+- The lease's timers read `ctx.clock` (choice 2). The session-side guard leaves hooks out on the spec's word (choice 11). If the owner wants the lease held to the clock convention by a test, extend `sessionSide.consistency.test.ts` to the lease's module.
+- `NETWORK_READINESS_DELAY_MS` (800 ms) is a judgement: revisit it if the managed account row or a network check feels slow in the live test.
+- Participant speech against the lease (spec open question, survey §3.4.3).
+- The sign-in auto-switch: a product decision, with `providerStore.select`'s phase guard.
+- The registry's final order (Task 16's roadmap item).
+- Nothing account-mutable — the balance above all — may live in its ready answer: signing out and back in to the same account is served from the kept answer with no request (final review M1). The balance goes through `minimumBalance` and the lease.
+- A check that threw or timed out leaves a managed provider `not-ready` with no way back but an edit, a change of legs or a sign-in flip: the driver re-checks only an unknown readiness, and a managed provider has no Validate (final re-review). A Kizuna Soniox launch while offline would keep Start off until the user changes something — give the not-ready surface a retry, or have the driver re-ask a thrown answer on selection.
+- After the fix wave the driver's timer skips a network provider whose readiness is already known, so `watchReadiness` re-checks only a local one; a managed provider that wants a re-check (a balance change) forgets its readiness first.
+- `AuthContext` has no pending state: at every launch a signed-in user sees "Sign in to use Kizuna AI's built-in translation service." with Start off while the session loads (final review M8). The old gate did the same; the managed account row is where a pending state belongs.
+
+**Gemini:** F13's `InstructionsField` (the global template / advanced editor, moved out of `ProviderSpecificSettings.tsx`), `VoiceField`, `ModelField` over `props.models` and `shared.models` (Task 10), and the sliders.
+
+**Volcengine AST2:** F14, the socket seam (`openSocket`; its fake implementation hands out `FakeSocket`s); F16, windowing the pairing inference (roadmap 1a → Stage 2).
+
+**OpenAI Translate:** F16 if AST2 did not land it; the transcript, noise and transport fields.
+
+**OpenAI + OpenAI Compatible:**
+- F15, the processed WebRTC track (roadmap 1c-3 → Stage 2), unless Translate-WebRTC comes first.
+- The D25 participant-leg fix (spec open question, survey §3.4.1).
+- `busy`'s reader (roadmap 1d-1 → Stage 2).
+- The drift anchor; OpenAI's model migration and `turnDetectionMode` → `autoDetection` through `legacyKeys` (Task 9).
+- Compatible's `i18nKey: 'openaiCompatible'` (Task 14).
+
+**Palabra:**
+- F4, the credential-adjacent control (the platform / app toggle).
+- `authMode` through `legacyKeys` + `credentials`, and the pair's `vn` → `vi` through `migratePair` (Task 9).
+- `deleteSession` with a timeout.
+- The G3 latency a stall leaves behind (group check A's record), checked in its live test.
+
+**OpenAI Live:** F14 (reused); the `connection_lost` alias (Task 3).
+
+**Local Native:**
+- `flagged: true, testerSwitch: LOCAL_NATIVE_DEBUG_KEY` (Task 1).
+- Its `Engine` reuses the existing native UI (`EngineSurface` + `useNativeEngineAdapter`, `NativeModelManagementSection`, `NativeVoiceSection`, `NativeDeviceControl`), wired to the provider's `settings` / `update` / `pair` instead of the old `settingsStore` slice — the same override LocalInference's `useWasmEngineAdapter` got. Not a rewrite (the survey's §3.4 item 7 overstated it; controller correction, confirmed by the owner 2026-09-26).
+- `watchReadiness` over `nativeModelStore`.
+- `SentenceCut` moved to a shared home (roadmap 1e-2b → Stage 2).
+
+**The relay twins:** held (controller ruling 3).
+
+**Stage 2 items from the roadmap this plan does not take:**
+- `RunnerDeps.replayAudio` is not guarded like the other ports (roadmap 1e-1).
+- The notice-code namespace: aliases give a provider's codes words, but the namespace is still flat (roadmap 1e-1).
+- The linear resampler's aliasing, and Edge TTS's decode-start handshake (roadmap 1e-2).
+- The `end` tail's job text, the re-decode guard's skeleton prefix, and the letterless seal (roadmap 1e-2b).
+
+**Parked from the task reviews**
+- The kit: an adapter that answers after an `await` needs `{ flush: true }` at
+  the end of its exchange steps. `FakeSocket` sets `wasClean` without looking
+  at the code and validates no close code; the virtual clock has no
+  `pending()` count to catch an interval that outlives `stop()`; the
+  manual-end scenario does not check that a real segment was produced.
+- The account (Soniox plan): choice 4 — `account` reaches `Settings` only — is
+  held by convention; a Settings-only props type would let the compiler hold
+  it. `account.auth.getToken` reads the host's function through a
+  layout-effect ref, so a child layout effect in the commit where the token
+  rotates still sees the previous one (`useInsertionEffect` closes that window
+  if a reader needs it). The root cause is `useAuth()`'s inline `getToken`: an
+  `AuthContext` changes identity on every render, so every reader keys on
+  `signedIn` / `userId`, never on the object.
+- The leased fake (Kizuna Soniox plan): no test refuses `prepare` or
+  `acquire`, so the runner's coded refusal of a hook (`runner.ts:213-229`) is
+  exercised nowhere — Kizuna Soniox's insufficient-balance test, or an
+  `acquireRefused` knob, should. No two-leg run of the leased fake goes through
+  the runner end to end. Its settings show the fake's inert "Require an API
+  key" toggle (development only).
+- Readiness: a sign-in flip heard while a run is on forgets the answers at
+  once, and the selected provider is re-checked after the edit delay once idle
+  — named in `readiness.ts`'s header; a sign-out during a session is rare.
+- `&mode=` in the preview races the fire-and-forget device restore, as
+  `&monitor=1` does (development only).
+- `SettingsInitializer.test.tsx` (read-only, controller ruling 1) still names
+  `driveLocalReadiness` in three comments.
+- The missing-credentials rule (`code ?? 'credentials_missing'`, `params`
+  when present) is written in both `providerStore.ts` and `run.ts` (final
+  review M5). Kept inline, on the owner's rule against extracting small
+  predicates; tests pin both sides.
+
+**Before any release from the branch**
+- **The release flags.** Production enables Kizuna Soniox and Palabra through
+  the old per-provider flags (`VITE_ENABLE_KIZUNA_SONIOX=true`,
+  `VITE_ENABLE_PALABRA_AI=true`), while `VITE_ENABLED_PROVIDERS` is unset.
+  When those providers move onto the registry, either they are unflagged, or
+  the repo variable lists them (`kizunaai_soniox,palabraai`). It must be
+  settled before any release from the branch.
+- **The registry's order.** The product decision of 2026-09-12 ran
+  Kizuna-managed, Free, Gemini, AST2, OpenAI ×3, Soniox, Compatible, Palabra
+  (survey §2.4.1); the registry today puts LocalInference first (1e-3 ruling
+  10). The owner decides the final order once, before Kizuna Soniox lands;
+  Task 14's order case pins it.

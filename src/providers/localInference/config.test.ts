@@ -72,6 +72,7 @@ function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['
     pauses: { sourceSeconds: 0, translationSeconds: 0 },
     reversed: () => overrides.reversed ?? false,
     segmentation: overrides.segmentation ?? { mode: 'off', sentencesPerRow: 0 },
+    models: [],
   };
 }
 

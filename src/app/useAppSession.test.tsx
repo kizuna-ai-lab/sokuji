@@ -62,7 +62,7 @@ vi.mock('../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent }),
 }));
 vi.mock('../lib/auth/hooks', () => ({
-  useAuth: () => ({ isSignedIn: true, getToken: async () => 't' }),
+  useAuth: () => ({ isSignedIn: true, userId: 'u1', getToken: async () => 't' }),
 }));
 
 import { ToastProvider } from '../components/Toast';
@@ -111,10 +111,17 @@ describe('useAppSessionBridges', () => {
     const refetch = vi.fn(async () => {});
     const { result } = renderHook(() => useAppSessionBridges(refetch), { wrapper: ToastProvider });
     expect(result.current.signedIn).toBe(true);
+    expect(result.current.userId).toBe('u1');
     trackEvent.mockClear();
     await act(() => getAppSession().runner.start());
     expect(trackEvent).toHaveBeenCalledWith('translation_session_start', expect.objectContaining({ session_id: 'r1' }));
     await act(() => getAppSession().runner.stop());
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands the session a stand-in sign-in when given one', async () => {
+    const standIn = { signedIn: true, userId: 'preview', getToken: async () => 'x' };
+    const { result } = renderHook(() => useAppSessionBridges(undefined, standIn), { wrapper: ToastProvider });
+    expect(result.current).toBe(standIn);
   });
 });

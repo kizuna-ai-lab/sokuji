@@ -5,7 +5,7 @@ import { APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMI
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
 import { RUN_NOTICE_CODES } from '../session/codes';
 import { NO_MICROPHONE } from '../session/shape';
-import { NOTICE_WORDS, noticeText } from './noticeText';
+import { NOTICE_ALIASES, NOTICE_WORDS, noticeText } from './noticeText';
 
 /** A stand-in for i18next: fills `{{name}}` from the options. */
 const t = ((key: string, options: Record<string, unknown>) =>
@@ -29,6 +29,10 @@ describe('noticeText', () => {
   it('shows the message itself for a code it has no words for, or no code', () => {
     expect(noticeText(t, { code: 'fake_build_refused', message: 'The fake refuses to build (fault knob).' })).toBe('The fake refuses to build (fault knob).');
     expect(noticeText(t, { message: 'plain' })).toBe('plain');
+  });
+
+  it("words an alias code with the sentence its key already has, the diagnostic message as the fallback", () => {
+    expect(noticeText(t, { code: 'sign_in_required', message: 'Signed out.' })).toBe('auth.signedOut|Signed out.');
   });
 
   it('names a source/target language param the way every language menu does, and leaves other params alone', () => {
@@ -89,4 +93,22 @@ it("en carries the four new sentences, word for word", () => {
   expect(at(enCatalog, 'audioPanel.participantSpeech')).toBe("Speak Other's translation");
   expect(at(enCatalog, 'audioPanel.participantSpeechDesc')).toBe("Reads what Other says aloud to you, in your language, on your speakers. It follows their voice with a delay.");
   expect(at(enCatalog, 'audioPanel.participantSpeechBlockedWholeSystem')).toBe("Off while Other's audio captures all system sound: their translation would be captured and translated again. Pick an application as Other's source.");
+});
+
+it('no code is both an alias and worded under notices', () => {
+  expect(Object.keys(NOTICE_ALIASES).filter((code) => code in NOTICE_WORDS)).toEqual([]);
+});
+
+it('every alias names a sentence in all 30 locales', () => {
+  expect(Object.keys(catalogs)).toHaveLength(30);
+  for (const [path, catalog] of Object.entries(catalogs)) {
+    for (const [code, key] of Object.entries(NOTICE_ALIASES)) {
+      expect(at(catalog, key), `${path}: ${code}`).toBeTypeOf('string');
+      expect(at(catalog, key), `${path}: ${code}`).not.toBe('');
+    }
+  }
+});
+
+it("a signed-out managed provider reads the sign-in sentence, word for word in en", () => {
+  expect(at(en as unknown as Record<string, unknown>, NOTICE_ALIASES.sign_in_required)).toBe("Sign in to use Kizuna AI's built-in translation service.");
 });

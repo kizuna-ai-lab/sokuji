@@ -145,7 +145,7 @@ class FakeSession implements AdapterSession {
     else if ('close' in step) this.emit('segmentClosed', step.close);
     else if ('audio' in step) {
       if (!this.context.speech) return;
-      this.emit('audio', { ref: step.audio.ref, range: step.audio.range, pcm: synthPcm(step.audio.ms) });
+      this.emit('audio', { ref: step.audio.ref, range: step.audio.range, pcm: synthPcm(step.audio.ms, undefined, undefined, step.audio.from) });
     } else if ('degraded' in step) this.emit('degraded', step.degraded);
     else if ('reconnecting' in step) this.emit('reconnecting', undefined);
     else if ('reconnected' in step) this.emit('reconnected', undefined);

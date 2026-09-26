@@ -5,14 +5,15 @@
  */
 import { isPresent, type PresenceEnv } from '../lib/provider/presence';
 import type { AnyProvider } from '../lib/provider/types';
-import { enabledProviderIds, getEnvironment, isDevelopmentMode } from '../utils/environment';
+import { debugSwitchOn, enabledProviderIds, getEnvironment, isDevelopmentMode, isKizunaAIEnabled } from '../utils/environment';
+import { fakeLeasedProvider } from './fake/leased';
 import { fakeProvider } from './fake/provider';
 import { localInferenceProvider } from './localInference/provider';
 
 /** Shipped providers, in UI order (ruling 10: LocalInference first). */
 const RELEASED = [localInferenceProvider] as const;
-/** Compiled into development builds only (D24). */
-const DEV_ONLY = [fakeProvider] as const;
+/** Compiled into development builds only (D24): the fake, and the leased fake that carries the session hooks (Stage 2 foundation, choice 1). */
+const DEV_ONLY = [fakeProvider, fakeLeasedProvider] as const;
 
 export type ProviderId = (typeof RELEASED)[number]['id'] | (typeof DEV_ONLY)[number]['id'];
 
@@ -21,7 +22,7 @@ export type ProviderId = (typeof RELEASED)[number]['id'] | (typeof DEV_ONLY)[num
 export const PROVIDERS: readonly AnyProvider[] = import.meta.env.DEV ? [...RELEASED, ...DEV_ONLY] : [...RELEASED];
 
 export function currentPresenceEnv(): PresenceEnv {
-  return { platform: getEnvironment(), dev: isDevelopmentMode(), enabled: enabledProviderIds() };
+  return { platform: getEnvironment(), dev: isDevelopmentMode(), enabled: enabledProviderIds(), kizuna: isKizunaAIEnabled(), switchOn: debugSwitchOn };
 }
 
 /** The providers offered here, in UI order. */

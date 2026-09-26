@@ -7,7 +7,7 @@ export type ScriptStep =
   | { at: number; open: { ref: number; side: Side; origin?: string } }
   | { at: number; text: { ref: number; text: string; timing?: SegmentTiming; language?: string } }
   | { at: number; close: { ref: number; origin?: string } }
-  | { at: number; audio: { ref?: number; range?: TextRange; ms: number } }
+  | { at: number; audio: { ref?: number; range?: TextRange; ms: number; /** The tone's phase: samples of this stream already played, so consecutive chunks join without a click (G3). */ from?: number } }
   | { at: number; degraded: { code: ClientDiagnosticCode; message: string } }
   | { at: number; reconnecting: true }
   | { at: number; reconnected: true }
@@ -47,6 +47,8 @@ export interface ExchangeOptions {
   /** Split the translation's audio into this many chunks with ranges. 0 = one chunk without a range. */
   audioChunks?: number;
   timing?: { source: SegmentTiming; translation: SegmentTiming };
+  /** false: the translation's audio chunks carry no range (replay only, no karaoke). Default true. */
+  ranged?: boolean;
 }
 
 /** Source partials → close → translation text → its audio → close. */
@@ -73,7 +75,7 @@ export function exchange(o: ExchangeOptions): ScriptBlock {
       const start = Math.floor((len * k) / chunks);
       const end = k === chunks - 1 ? len : Math.floor((len * (k + 1)) / chunks);
       const piece = o.translation.slice(start, end);
-      steps.push({ at, audio: { ref: tr, range: [start, end], ms: msForText(piece) } });
+      steps.push({ at, audio: { ref: tr, ...(o.ranged === false ? {} : { range: [start, end] as TextRange }), ms: msForText(piece) } });
       at += msForText(piece);
     }
   }

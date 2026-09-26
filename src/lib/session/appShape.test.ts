@@ -27,7 +27,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { ensureReadyFromStores, legsFor, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from './appShape';
+import { ensureReadyFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -157,5 +157,48 @@ describe('watchLegsFromStores', () => {
     unwatch();
     useAudioStore.setState({ mode: 'speaker' });
     expect(useProviderStore.getState().legs).toEqual(['speaker', 'participant']);
+  });
+});
+
+// Stage 2 foundation, F7: the runner's start gate over the stores as they
+// stand, so the surfaces keep Start off and say why before it is pressed.
+describe('liveGate', () => {
+  const loadFake = (pair: { source: string; target: string }) => useProviderStore.setState({
+    selected: 'fake',
+    entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair } },
+  });
+
+  it('is null until the chosen provider has loaded', () => {
+    // A shape the gate refuses once loaded (the participant leg on the web):
+    // only the missing entry can explain the null.
+    useAudioStore.setState({ mode: 'participant' });
+    environment.value = 'web';
+    useProviderStore.setState({ selected: 'fake', entries: {} });
+    expect(liveGate()).toBeNull();
+    loadFake({ source: 'en', target: 'ja' });
+    expect(liveGate()?.code).toBe('participant_source_unavailable');
+  });
+
+  it('refuses the participant leg on the web, and lets it through on Electron', () => {
+    loadFake({ source: 'en', target: 'ja' });
+    useAudioStore.setState({ mode: 'participant' });
+    environment.value = 'web';
+    expect(liveGate()?.code).toBe('participant_source_unavailable');
+    environment.value = 'electron';
+    expect(liveGate()).toBeNull();
+  });
+
+  it('refuses a pair that does not reverse, for the participant leg (D20)', () => {
+    loadFake({ source: 'auto', target: 'en' });
+    useAudioStore.setState({ mode: 'both' });
+    environment.value = 'electron';
+    expect(liveGate()?.code).toBe('participant_unsupported');
+  });
+
+  it('reads the speaker-only mode as nothing to refuse', () => {
+    loadFake({ source: 'en', target: 'ja' });
+    useAudioStore.setState({ mode: 'speaker' });
+    environment.value = 'web';
+    expect(liveGate()).toBeNull();
   });
 });

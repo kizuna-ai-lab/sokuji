@@ -17,6 +17,30 @@ export const realClock: Clock = {
   },
 };
 
+/**
+ * Runs `fn` every `ms` on `clock` until the returned cancel is called: the
+ * interval every protocol module uses in place of the global one (F9), so
+ * a virtual clock drives a keep-alive in tests. The next tick is armed
+ * before `fn` runs, so on the real clock a tick that throws does not stop
+ * the interval.
+ */
+export function every(clock: Pick<Clock, 'setTimeout'>, ms: number, fn: () => void): () => void {
+  // A virtual clock would spin forever on a zero interval.
+  if (!(ms > 0)) throw new RangeError(`every() needs a positive interval, not ${ms}`);
+  let stopped = false;
+  let cancel: () => void = () => {};
+  const tick = () => {
+    if (stopped) return;
+    cancel = clock.setTimeout(tick, ms);
+    fn();
+  };
+  cancel = clock.setTimeout(tick, ms);
+  return () => {
+    stopped = true;
+    cancel();
+  };
+}
+
 export interface VirtualClock extends Clock {
   /** Moves time forward, firing every due timer in order of due time, then
    *  insertion. A timer scheduled by a callback fires in the same advance

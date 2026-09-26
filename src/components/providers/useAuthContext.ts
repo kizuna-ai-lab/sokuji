@@ -10,6 +10,6 @@ import { useAuth } from '../../lib/auth/hooks';
 import type { AuthContext } from '../../lib/provider/types';
 
 export function useAuthContext(): AuthContext {
-  const { isSignedIn, getToken } = useAuth();
-  return useMemo(() => ({ signedIn: isSignedIn, getToken }), [isSignedIn, getToken]);
+  const { isSignedIn, userId, getToken } = useAuth();
+  return useMemo(() => ({ signedIn: isSignedIn, userId: userId ?? null, getToken }), [isSignedIn, userId, getToken]);
 }

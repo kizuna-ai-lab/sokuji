@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { resolve } from 'node:path';
 import { compile } from 'sass';
 
@@ -28,17 +28,21 @@ vi.mock('react-i18next', async (importOriginal) => {
 
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
-import type { EngineProps, SettingsProps } from '../../lib/provider/types';
+import type { AuthContext, EngineProps, SettingsProps } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from './ProviderOwnSettings';
 
 type TurnDetectionSlot = NonNullable<(typeof fakeProvider)['TurnDetection']>;
 
+const AUTH = { signedIn: true, userId: 'u1', getToken: async () => 't' };
+/** What the real hosts pass (`useAuthContext`, `useAppSessionBridges`): a new object on every render, since `useAuth` makes `getToken` inline. */
+const signIn = (userId: string | null = 'u1', signedIn = true, token = 't'): AuthContext => ({ signedIn, userId, getToken: async () => token });
+
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: 'fake', legs: ['speaker'] });
+  useProviderStore.setState({ entries: {}, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
 });
 
 describe('ProviderOwnSettings', () => {
@@ -46,17 +50,75 @@ describe('ProviderOwnSettings', () => {
     useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } } });
     const seen: SettingsProps<FakeSettings>[] = [];
     const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return <div data-testid="settings-marker" />; };
-    render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} disabled />);
+    render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} auth={AUTH} disabled />);
     expect(screen.getByTestId('settings-marker')).toBeTruthy();
     expect(seen[0].settings).toBe(FAKE_DEFAULTS);
     expect(seen[0].disabled).toBe(true);
     expect(seen[0].pair).toEqual({ source: 'auto', target: 'en' });
     expect(typeof seen[0].update).toBe('function');
+    expect(seen[0].models).toEqual([]);
   });
 
   it('renders nothing before the entry loads', () => {
-    const { container } = render(<ProviderOwnSettings providers={[fakeProvider]} />);
+    const { container } = render(<ProviderOwnSettings providers={[fakeProvider]} auth={AUTH} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('hands Settings the models and the account: the saved credentials and the sign-in', async () => {
+    useProviderStore.setState({
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'auto', target: 'en' } } },
+      models: { fake: [{ id: 'm1' }] },
+    });
+    const seen: SettingsProps<FakeSettings>[] = [];
+    const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return null; };
+    render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} auth={AUTH} />);
+    expect(seen[0].models).toEqual([{ id: 'm1' }]);
+    expect(seen[0].account).toMatchObject({ credentials: { apiKey: 'k' }, auth: { signedIn: true, userId: 'u1' } });
+    await expect(seen[0].account!.auth.getToken()).resolves.toBe('t');
+  });
+
+  describe("the account's identity", () => {
+    const loadedWith = (credentials: Record<string, string>) =>
+      useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials, pair: { source: 'auto', target: 'en' } } } });
+    const watched = () => {
+      const seen: SettingsProps<FakeSettings>[] = [];
+      const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return null; };
+      return { seen, providers: [{ ...fakeProvider, Settings }] };
+    };
+
+    it('is kept while the credentials and the sign-in stay the same, though the host passes a new auth object each render', () => {
+      loadedWith({ apiKey: 'k' });
+      const { seen, providers } = watched();
+      const { rerender } = render(<ProviderOwnSettings providers={providers} auth={signIn()} />);
+      expect(seen[0].account).toBeDefined();
+      rerender(<ProviderOwnSettings providers={providers} auth={signIn()} />);
+      expect(seen[1].account).toBe(seen[0].account);
+    });
+
+    it('is new when the user, the signed-in state or the credentials change', () => {
+      loadedWith({ apiKey: 'k' });
+      const { seen, providers } = watched();
+      const { rerender } = render(<ProviderOwnSettings providers={providers} auth={signIn('u1')} />);
+      rerender(<ProviderOwnSettings providers={providers} auth={signIn('u2')} />);
+      expect(seen[1].account).not.toBe(seen[0].account);
+      expect(seen[1].account?.auth).toMatchObject({ signedIn: true, userId: 'u2' });
+      rerender(<ProviderOwnSettings providers={providers} auth={signIn('u2', false)} />);
+      expect(seen[2].account).not.toBe(seen[1].account);
+      expect(seen[2].account?.auth.signedIn).toBe(false);
+      act(() => loadedWith({ apiKey: 'k2' }));
+      expect(seen[3].account).not.toBe(seen[2].account);
+      expect(seen[3].account?.credentials).toEqual({ apiKey: 'k2' });
+    });
+
+    it("calls the host's latest getToken, even through an account handed out before it changed", async () => {
+      loadedWith({ apiKey: 'k' });
+      const { seen, providers } = watched();
+      const { rerender } = render(<ProviderOwnSettings providers={providers} auth={signIn('u1', true, 'a')} />);
+      const first = seen[0].account!;
+      rerender(<ProviderOwnSettings providers={providers} auth={signIn('u1', true, 'b')} />);
+      await expect(first.auth.getToken()).resolves.toBe('b');
+      await expect(seen[1].account!.auth.getToken()).resolves.toBe('b');
+    });
   });
 });
 
@@ -140,5 +202,24 @@ describe('ProviderEngine', () => {
     const Engine = () => <div data-testid="engine-marker" />;
     const { container } = render(<ProviderEngine providers={[{ ...fakeProvider, Engine }]} />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('the models and the account beyond Settings (choice 4)', () => {
+  it('hands the TurnDetection Controls and the Engine the models, and no account', () => {
+    useProviderStore.setState({
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'auto', target: 'en' } } },
+      models: { fake: [{ id: 'm1' }] },
+    });
+    const controls: SettingsProps<FakeSettings>[] = [];
+    const engine: EngineProps<FakeSettings>[] = [];
+    const Controls = (props: SettingsProps<FakeSettings>) => { controls.push(props); return null; };
+    const Engine = (props: EngineProps<FakeSettings>) => { engine.push(props); return null; };
+    const providers = [{ ...fakeProvider, TurnDetection: { Summary: () => null, Controls }, Engine }];
+    render(<><ProviderTurnDetectionControls providers={providers} /><ProviderEngine providers={providers} /></>);
+    for (const seen of [controls, engine]) {
+      expect(seen[0].models).toEqual([{ id: 'm1' }]);
+      expect(seen[0].account).toBeUndefined();
+    }
   });
 });

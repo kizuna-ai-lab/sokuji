@@ -265,12 +265,17 @@ export function isPalabraAIEnabled(): boolean {
  */
 export const LOCAL_NATIVE_DEBUG_KEY = 'debug:local-native';
 
-function hasLocalNativeDebugSwitch(): boolean {
+/** Whether a tester switch — a `localStorage` key set to `'1'` — is on (F6). False where storage is unavailable. */
+export function debugSwitchOn(key: string): boolean {
   try {
-    return typeof localStorage !== 'undefined' && localStorage.getItem(LOCAL_NATIVE_DEBUG_KEY) === '1';
+    return typeof localStorage !== 'undefined' && localStorage.getItem(key) === '1';
   } catch {
     return false; // localStorage unavailable in restricted contexts
   }
+}
+
+function hasLocalNativeDebugSwitch(): boolean {
+  return debugSwitchOn(LOCAL_NATIVE_DEBUG_KEY);
 }
 
 /**

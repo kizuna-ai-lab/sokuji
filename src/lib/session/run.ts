@@ -12,6 +12,7 @@ import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import { isMissing, readCredentials } from '../provider/credentials';
+import type { SharedSettings } from '../provider/types';
 import type { RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
 import type { RunnerDeps } from './ports';
@@ -118,7 +119,13 @@ export class Run {
 
     host.step('checking');
     const credentials = readCredentials(p, shape.settings, shape.credentials, shape.auth);
-    if (isMissing(credentials)) throw new RefusedError({ code: 'credentials_missing' satisfies RunNoticeCode, message: credentials.missing });
+    if (isMissing(credentials)) {
+      throw new RefusedError({
+        code: credentials.code ?? ('credentials_missing' satisfies RunNoticeCode),
+        message: credentials.missing,
+        ...(credentials.params ? { params: credentials.params } : {}),
+      });
+    }
     const readiness = await this.untilAborted(deps.ensureReady(shape, this.signal));
     this.throwIfAborted();
     if (readiness.state !== 'ready') {
@@ -127,6 +134,8 @@ export class Run {
         ? { code: readiness.code ?? ('not_ready' satisfies RunNoticeCode), message: readiness.reason, ...(readiness.params ? { params: readiness.params } : {}) }
         : { code: 'not_ready' satisfies RunNoticeCode, message: `readiness is ${readiness.state}` });
     }
+    // The run's own answer (F2): a model-choosing builder reads the list its settings component was shown.
+    const shared: SharedSettings = { ...shape.shared, models: readiness.models };
 
     let settings = shape.settings;
     let prepared: Prepared<unknown> = {};
@@ -143,7 +152,7 @@ export class Run {
     const contexts = contextsFor(shape);
     const configs: Partial<Record<LegName, unknown>> = {};
     for (const leg of shape.legs) {
-      const built = p.build(contexts[leg]!, settings, shape.shared);
+      const built = p.build(contexts[leg]!, settings, shared);
       // `C` has no `refused` member (the provider type's constraint), so this tells a refusal from a config.
       if (typeof built?.refused === 'string') {
         throw new RefusedError({
@@ -171,6 +180,7 @@ export class Run {
     if (p.session?.acquire) {
       const resources = await p.session.acquire(shape, settings, {
         signal: this.signal,
+        clock: deps.clock,
         // `close()` sets `ending` before it aborts; an abort listener that
         // reacts by calling this must not re-end a run already ending.
         end: (notice) => {
