@@ -91,6 +91,26 @@ describe('SonioxTtsStream — span tags and segment ends', () => {
     expect(ends).toEqual([{ streamId: 'utt-1-1', ref: 2, span: [0, 6], clean: false }]);
   });
 
+  it('an error other than a 408 naming the stream ends its segment unclean too, once', async () => {
+    const { t, sockets, ends } = await openTts();
+    t.sendText('Hello and', 'en', { ref: 2, span: [0, 9] }); // mid-segment: no sentence end, still active
+    receive(sockets, { stream_id: 'utt-1-1', error_code: 400, error_message: 'Bad request' });
+    expect(ends).toEqual([{ streamId: 'utt-1-1', ref: 2, span: [0, 9], clean: false }]);
+    // The stream is gone: a terminated for it now reports nothing more.
+    receive(sockets, { stream_id: 'utt-1-1', terminated: true });
+    expect(ends).toHaveLength(1);
+  });
+
+  it('a socket that drops while a segment drains (text_end sent, terminated pending) ends it unclean', async () => {
+    const { t, sockets, ends } = await openTts();
+    t.sendText('Hello.', 'en', { ref: 2, span: [0, 6] });
+    expect(sockets.last().sentJson()).toContainEqual({ stream_id: 'utt-1-1', text: '', text_end: true });
+    expect(ends).toEqual([]);
+    sockets.last().drop();
+    await flush();
+    expect(ends).toEqual([{ streamId: 'utt-1-1', ref: 2, span: [0, 6], clean: false }]);
+  });
+
   it('a socket that drops ends its live segments unclean; close() ends none', async () => {
     const { t, sockets, ends } = await openTts();
     t.sendText('Hi', 'en', { ref: 1, span: [0, 2] }); // no sentence/clause end: stays active
