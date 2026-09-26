@@ -10,7 +10,7 @@ import type { TurnMode } from '../../../lib/session/types';
 import { presentProviders } from '../../../providers/registry';
 import { useMode } from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
-import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
+import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useSetUIMode, useTextOnly } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { effectiveTextOnly } from '../../../utils/effectiveTextOnly';
 
@@ -55,19 +55,21 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
  * The selected provider's own tuning of automatic turn detection (its
  * `TurnDetection`, D18: settings belong to the provider), under Auto only —
  * push-to-talk and push-to-translate detect nothing. Both layouts show the
- * Summary, one line; the Controls are a block of their own on Advanced's
- * Provider tab (`ProviderTurnDetectionControls`), never drawn here. Simple
- * mode shows no provider-specific controls and nothing switches its UI mode,
- * so there the Summary is plain muted text. Advanced makes it a link: the
- * existing settings deep link (`navigateToSettings`), whose
- * `'turn-detection-tuning'` target Settings.tsx maps to the Provider tab,
- * then scrolls to and highlights the block. The link stays usable during a
- * run — it only navigates; the lock disables the Controls it leads to.
+ * Summary, one line, as a link; the Controls are a block of their own on
+ * Advanced's Provider tab (`ProviderTurnDetectionControls`), never drawn
+ * here. The link is the existing settings deep link (`navigateToSettings`),
+ * whose `'turn-detection-tuning'` target Settings.tsx maps to the Provider
+ * tab, then scrolls to and highlights the block. The Provider tab is
+ * Advanced's, so from Simple the link first switches the UI mode, as the
+ * Settings panel's own mode toggle does (its `settings_mode_switched` event
+ * included); Settings.tsx follows the target once the mode reads Advanced.
+ * The link stays usable during a run — it only navigates; the lock disables
+ * the Controls it leads to.
  *
  * `Help`, when the provider defines one, renders right after — a sibling of
- * the link button (or, in Simple, of the plain summary span), never a
- * descendant: `Tooltip`'s trigger is its own hover/focus target, and a click
- * on it must not also fire the button's `onClick` and navigate.
+ * the link button, never a descendant: `Tooltip`'s trigger is its own
+ * hover/focus target, and a click on it must not also fire the button's
+ * `onClick` and navigate.
  *
  * A Summary that renders nothing (nothing to tune now — LocalInference on a
  * streaming ASR, where endpoint detection replaces VAD) leaves its
@@ -78,9 +80,11 @@ export function TurnModeControl({ locked }: { locked: boolean }) {
  * behind for `:has(.turn-detection-summary:empty)` to have missed.
  */
 function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 'simple' | 'advanced' }) {
+  const { trackEvent } = useAnalytics();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const providers = useMemo(() => presentProviders(), []);
   const selection = useSelectedProvider(providers);
+  const setUIMode = useSetUIMode();
   const navigateToSettings = useNavigateToSettings();
 
   if (turnMode !== 'auto' || !selection?.entry) return null;
@@ -89,16 +93,21 @@ function ProviderTurnDetection({ locked, layout }: { locked: boolean; layout: 's
   const { Summary, Help } = tuning;
   const props = { settings: selection.entry.settings, update: selection.update, disabled: locked, pair: selection.entry.pair };
 
+  const openControls = () => {
+    if (layout === 'simple') {
+      // The Settings panel's own mode toggle, analytics event included.
+      setUIMode('advanced');
+      trackEvent('settings_mode_switched', { from_mode: 'basic', to_mode: 'advanced', during_session: locked });
+    }
+    navigateToSettings('turn-detection-tuning');
+  };
+
   return (
     <div className="setting-item turn-detection-tuning">
       <div className="setting-label">
-        {layout === 'simple' ? (
-          <span className="setting-value turn-detection-summary"><Summary {...props} /></span>
-        ) : (
-          <button type="button" className="turn-detection-summary turn-detection-link" onClick={() => navigateToSettings('turn-detection-tuning')}>
-            <Summary {...props} />
-          </button>
-        )}
+        <button type="button" className="turn-detection-summary turn-detection-link" onClick={openControls}>
+          <Summary {...props} />
+        </button>
         {Help && <Help {...props} />}
       </div>
     </div>

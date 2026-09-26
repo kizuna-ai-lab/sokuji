@@ -57,6 +57,7 @@ import { OutputToggles, SpeechSection } from './SpeechSection';
 const entry = () => ({ settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } });
 const localEntry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
 const originalResolve = useModelStore.getState().resolve;
+const originalSetUIMode = useSettingsStore.getState().setUIMode;
 
 /** The switch labeled `label`, out of every switch on the page. */
 const switchByLabel = (label: string) => screen.getAllByRole('switch').find((el) => el.textContent?.includes(label))!;
@@ -65,7 +66,7 @@ beforeEach(() => {
   trackEvent.mockClear();
   tooltipContents.length = 0;
   useProviderStore.setState({ selected: 'localInference', entries: { localInference: localEntry() }, readiness: {} });
-  useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, settingsNavigationTarget: null } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+  useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, settingsNavigationTarget: null, uiMode: 'basic', setUIMode: originalSetUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
   useTurnModeStore.setState({ turnMode: 'auto' });
   useAudioStore.setState({ mode: 'speaker' } as Partial<ReturnType<typeof useAudioStore.getState>>);
   asr.entry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
@@ -115,7 +116,10 @@ describe('SpeechSection', () => {
         <OutputToggles locked={true} />
       </>,
     );
-    for (const button of screen.getAllByRole('button')) expect(button).toBeDisabled();
+    // The three turn modes — the tuning summary's link below them only
+    // navigates, and stays enabled (its own case below).
+    const modes = ['Auto', 'Push-to-Talk', 'Push-to-Translate'].map((label) => screen.getByRole('button', { name: label }));
+    for (const button of modes) expect(button).toBeDisabled();
     expect(switchByLabel('Text Only').getAttribute('aria-disabled')).toBe('true');
     expect(switchByLabel('Keep audio for replay').getAttribute('aria-disabled')).toBe('false');
   });
@@ -128,32 +132,46 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
   const link = (container: HTMLElement) => section(container).querySelector<HTMLButtonElement>('button.turn-detection-link');
   const target = () => useSettingsStore.getState().settingsNavigationTarget;
 
-  it('Simple, Auto: the summary line below the turn modes, with no link and no controls', () => {
-    const { container } = render(<SpeechSection locked={false} layout="simple" />);
-    const line = screen.getByText(SUMMARY);
-    expect(section(container).contains(line)).toBe(true);
-    // Below the three turn-mode buttons.
-    const turnModes = section(container).querySelector('.turn-detection-options')!;
-    // eslint-disable-next-line no-bitwise
-    expect(turnModes.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // Plain text: nothing in the app switches the UI mode for it.
-    expect(section(container).querySelector('.turn-detection-tuning button')).toBeNull();
-    expect(sliders(container)).toHaveLength(0);
-  });
-
-  // The Controls live on Advanced's Provider tab: the row links there
-  // instead of opening them in place.
-  it("Advanced, Auto: the summary is a link to the Provider tab's block — no disclosure, no controls here", () => {
-    const { container } = render(<SpeechSection locked={false} layout="advanced" />);
+  // The Controls live on Advanced's Provider tab: in both layouts the row
+  // links there instead of opening them in place.
+  it.each(['simple', 'advanced'] as const)("%s, Auto: the summary below the turn modes is a link to the Provider tab's block — no disclosure, no controls here", (layout) => {
+    const { container } = render(<SpeechSection locked={false} layout={layout} />);
     const button = link(container)!;
     expect(button).toBeTruthy();
     expect(button.textContent).toBe(SUMMARY);
+    // Below the three turn-mode buttons.
+    const turnModes = section(container).querySelector('.turn-detection-options')!;
+    // eslint-disable-next-line no-bitwise
+    expect(turnModes.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(section(container).querySelector('[aria-expanded]')).toBeNull();
     expect(sliders(container)).toHaveLength(0);
+  });
 
-    fireEvent.click(button);
+  it('Advanced: the link navigates and leaves the UI mode alone', () => {
+    const setUIMode = vi.fn();
+    useSettingsStore.setState({ uiMode: 'advanced', setUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+    const { container } = render(<SpeechSection locked={false} layout="advanced" />);
+    fireEvent.click(link(container)!);
     expect(target()).toBe('turn-detection-tuning');
+    expect(setUIMode).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalled();
     expect(sliders(container)).toHaveLength(0);
+  });
+
+  // The Provider tab is Advanced's: from Simple the link switches the UI mode
+  // first — the Settings panel's own mode toggle, analytics event included —
+  // then sets the target, which Settings.tsx follows once it is Advanced.
+  it('Simple: the link switches the UI mode to Advanced, tracked as the mode toggle is, then navigates', () => {
+    const calls: string[] = [];
+    const setUIMode = vi.fn(() => { calls.push(`mode:${useSettingsStore.getState().settingsNavigationTarget}`); });
+    useSettingsStore.setState({ uiMode: 'basic', setUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+    const { container } = render(<SpeechSection locked={false} layout="simple" />);
+    fireEvent.click(link(container)!);
+    expect(setUIMode).toHaveBeenCalledWith('advanced');
+    // The mode flips before the target is set.
+    expect(calls).toEqual(['mode:null']);
+    expect(target()).toBe('turn-detection-tuning');
+    expect(trackEvent).toHaveBeenCalledWith('settings_mode_switched', { from_mode: 'basic', to_mode: 'advanced', during_session: false });
   });
 
   // The heading's tooltip sits on the row itself, in both layouts.
@@ -208,6 +226,18 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     expect(button).not.toBeDisabled();
     fireEvent.click(button);
     expect(target()).toBe('turn-detection-tuning');
+  });
+
+  it('locked, Simple: the link still switches to Advanced and navigates, tracked as during the session', () => {
+    const setUIMode = vi.fn();
+    useSettingsStore.setState({ uiMode: 'basic', setUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+    const { container } = render(<SpeechSection locked={true} layout="simple" />);
+    const button = link(container)!;
+    expect(button).not.toBeDisabled();
+    fireEvent.click(button);
+    expect(setUIMode).toHaveBeenCalledWith('advanced');
+    expect(target()).toBe('turn-detection-tuning');
+    expect(trackEvent).toHaveBeenCalledWith('settings_mode_switched', { from_mode: 'basic', to_mode: 'advanced', during_session: true });
   });
 
   // Endpoint detection replaces VAD on a streaming ASR with no worker type:

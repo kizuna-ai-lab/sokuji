@@ -84,14 +84,25 @@ describe('SessionSettingsGeneral', () => {
   });
 
   // The layout reaches the Speech section: LocalInference's speech-detection
-  // tuning, under Auto, is a summary line in Simple mode and a link to the
-  // Provider tab's VAD block on Advanced's General tab.
-  it("layout 'simple': the Speech section shows the tuning's summary line, with no link", () => {
+  // tuning, under Auto, is a summary line linking to the Provider tab's VAD
+  // block — from Simple mode the link switches to Advanced first.
+  it("layout 'simple': the Speech section's tuning link switches to Advanced, then navigates", () => {
     useTurnModeStore.setState({ turnMode: 'auto' });
-    const { container } = render(<SessionSettingsGeneral locked={false} layout="simple" onOpenSlot={vi.fn()} />);
-    const speech = container.querySelector('#turn-detection-section')!;
-    expect(speech.textContent).toContain('VAD Settings · Min Silence Duration: 1.40s');
-    expect(speech.querySelector('.turn-detection-tuning button')).toBeNull();
+    const setUIMode = vi.fn();
+    const { setUIMode: originalSetUIMode } = useSettingsStore.getState();
+    useSettingsStore.setState({ settingsNavigationTarget: null, setUIMode } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+    try {
+      const { container } = render(<SessionSettingsGeneral locked={false} layout="simple" onOpenSlot={vi.fn()} />);
+      const speech = container.querySelector('#turn-detection-section')!;
+      const button = speech.querySelector('button.turn-detection-link')!;
+      expect(button.textContent).toBe('VAD Settings · Min Silence Duration: 1.40s');
+      fireEvent.click(button);
+      expect(setUIMode).toHaveBeenCalledWith('advanced');
+      expect(useSettingsStore.getState().settingsNavigationTarget).toBe('turn-detection-tuning');
+      expect(speech.querySelectorAll('input[type="range"]')).toHaveLength(0);
+    } finally {
+      useSettingsStore.setState({ setUIMode: originalSetUIMode });
+    }
   });
 
   it("layout 'advanced': the Speech section shows the tuning as a link to the Provider tab, with no sliders of its own", () => {

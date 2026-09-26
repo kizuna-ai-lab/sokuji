@@ -134,7 +134,7 @@
   // Summary renders nothing while there is nothing to tune (LocalInference on
   // a streaming ASR: endpoint detection replaces VAD), and the row goes with
   // it — the section cannot see what the provider rendered, and a row left
-  // standing would be an empty link in Advanced.
+  // standing would be an empty link.
   .turn-detection-tuning:has(.turn-detection-summary:empty) {
     display: none;
   }
@@ -157,10 +157,10 @@
     }
   }
 
-  // Advanced's summary, a link to the Provider tab's block: the in-settings
-  // deep-link look — `.models-link`'s colour and underline on
+  // The summary, in both layouts a link to the Provider tab's block: the
+  // in-settings deep-link look — `.models-link`'s colour and underline on
   // `.language-model-warning__link`'s button reset. `font: inherit` keeps the
-  // label's size, the same as Simple's plain summary.
+  // label's size.
   .turn-detection-link {
     background: none;
     border: none;

@@ -24,10 +24,11 @@ vi.mock('react-i18next', () => ({
 }));
 
 let mockTarget: string | null = null;
+let mockUIMode: 'basic' | 'advanced' = 'advanced';
 const navigateToSettings = vi.fn((target: string | null) => { mockTarget = target; });
 
 vi.mock('../../stores/settingsStore', () => ({
-  useUIMode: () => 'advanced',
+  useUIMode: () => mockUIMode,
   useSetUIMode: () => vi.fn(),
   useNavigateToSettings: () => navigateToSettings,
   useSettingsNavigationTarget: () => mockTarget,
@@ -57,6 +58,7 @@ describe("Settings — the 'provider' navigation target switches tabs without fl
   beforeEach(() => {
     sessionStorage.clear();
     mockTarget = null;
+    mockUIMode = 'advanced';
     navigateToSettings.mockClear();
     vi.useFakeTimers();
   });
@@ -115,6 +117,25 @@ describe("Settings — the 'provider' navigation target switches tabs without fl
     mockTarget = 'turn-detection-tuning';
     const { getByTestId } = render(<Settings />);
 
+    expect(getByTestId('advanced-body')).toHaveAttribute('data-active-tab', 'provider');
+    vi.advanceTimersByTime(200);
+    expect(getByTestId('turn-detection-tuning-el').classList.contains('highlight')).toBe(true);
+  });
+
+  // From Simple mode the same link switches the UI mode and sets the target
+  // in one click: the target is already set while Settings is still Simple
+  // (whose own effect never lands on a Provider-tab block), and must be
+  // followed the moment the mode reads Advanced.
+  it("a 'turn-detection-tuning' target set while still in Simple is followed once the mode is Advanced", () => {
+    mockUIMode = 'basic';
+    mockTarget = 'turn-detection-tuning';
+    const { getByTestId, queryByTestId, rerender } = render(<Settings />);
+    expect(queryByTestId('advanced-body')).toBeNull();
+    vi.advanceTimersByTime(200);
+    expect(navigateToSettings).not.toHaveBeenCalled();
+
+    mockUIMode = 'advanced';
+    rerender(<Settings />);
     expect(getByTestId('advanced-body')).toHaveAttribute('data-active-tab', 'provider');
     vi.advanceTimersByTime(200);
     expect(getByTestId('turn-detection-tuning-el').classList.contains('highlight')).toBe(true);

@@ -282,8 +282,9 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * with the provider tuning's own block) under the General tab's Speech
  * section in its Advanced layout — the tuning's summary link, which sets the
  * store's navigation target that nothing consumes here (there is no
- * `Settings.tsx` on this page); drawing the General tab's other blocks
- * beside it would double `#provider-section`.
+ * `Settings.tsx` on this page; on the `simple` page the same link also
+ * flips the stored UI mode to Advanced, as in the app); drawing the General
+ * tab's other blocks beside it would double `#provider-section`.
  * `&wire=1` (with `&overlay=1`) tallies the overlay's wire per message type
  * as the JSON bytes the extension's port would carry, on `window.__sokujiWire`
  * (plan 1e-4).

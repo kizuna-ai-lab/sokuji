@@ -127,8 +127,9 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   EngineSummary?: ComponentType<EngineSummaryProps<S>>;
   /**
    * The provider's own tuning of automatic turn detection. The Summary is
-   * shown in the Speech section while the turn mode is Auto (both layouts;
-   * in Advanced it links to the Controls). The Controls live on Advanced's
+   * shown in the Speech section while the turn mode is Auto, in both layouts
+   * as a link to the Controls (from Simple it switches to Advanced first).
+   * The Controls live on Advanced's
    * Provider tab, drawn by the host as their own block in every turn mode.
    * Each renders nothing while there is nothing to tune: the section then
    * shows no row at all, and the host's empty block is hidden.

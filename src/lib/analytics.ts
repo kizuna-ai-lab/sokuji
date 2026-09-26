@@ -141,6 +141,13 @@ export interface AnalyticsEvents {
     from_mode: 'basic' | 'advanced';
     to_mode: 'basic' | 'advanced';
   };
+  // The Settings panel's Quick/Advanced toggle, and the Speech section's
+  // tuning link, which leaves Quick for Advanced's Provider tab.
+  'settings_mode_switched': {
+    from_mode: 'basic' | 'advanced';
+    to_mode: 'basic' | 'advanced';
+    during_session: boolean;
+  };
   // Setup wizard (spec §1.9)
   'setup_started': { variant: 'first-run' | 'rerun' };
   'setup_step_viewed': { step: number; step_id: string };

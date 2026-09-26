@@ -26,9 +26,9 @@
  * segmentation, the provider picker with its chips), a chip's push-and-back
  * flow, that a language pick writes through exactly one path, and — under
  * Auto — LocalInference's speech-detection tuning in #turn-detection-section:
- * a summary line with no slider and no button in Simple; in Advanced a
- * summary link, no slider, whose click lands on the Provider tab's VAD block
- * (#turn-detection-tuning-section) with its sliders.
+ * in both layouts a summary link, no slider, whose click lands on the
+ * Provider tab's VAD block (#turn-detection-tuning-section) with its sliders
+ * — from Simple mode by way of a switch to Advanced (`--app` only).
  * `--preview` opens `&settings=simple` then `&settings=advanced`, both on
  * `&provider=localInference` (the chips are LocalInference's; the advanced
  * page draws the Speech section's Advanced layout above the Provider tab,
@@ -311,19 +311,21 @@ async function checkOneWriter(send, failures, prefix) {
 
 /**
  * The provider's speech-detection tuning inside #turn-detection-section,
- * under Auto (LocalInference's `TurnDetection`, SpeechSection.tsx): Simple
- * shows its summary line and no slider and no button; Advanced shows the
- * summary as a link and no slider, and a click on it must land on the
- * Provider tab's VAD block, #turn-detection-tuning-section, with its sliders.
- * `tabs` (the app): the click must also make #tab-provider the selected tab.
- * The preview has none — no tab bar, and no Settings.tsx to consume the
- * link's navigation target — and draws the block on the same page already.
+ * under Auto (LocalInference's `TurnDetection`, SpeechSection.tsx): both
+ * layouts show the summary as a link and no slider. `follow`: click it, and
+ * it must land on the Provider tab's VAD block, #turn-detection-tuning-section,
+ * with its sliders — from Simple mode by way of a switch to Advanced.
+ * `tabs` (the app): the click must also make #tab-provider the selected tab,
+ * which exists only once the mode is Advanced. The preview has none — no tab
+ * bar, and no Settings.tsx to consume the link's navigation target — and its
+ * advanced page draws the block on the same page already; its simple page
+ * has no block at all, so it is never followed there.
  * Selects Auto first if it is not the active turn mode — a fresh profile's
  * default is Auto already. Assumes the speaker direction resolves to no
  * streaming ASR without a worker type (a fresh profile has no model
  * downloaded): there the row is hidden by design, and this check would say so.
  */
-async function checkSpeechTuning(send, failures, prefix, layout, tabs = false) {
+async function checkSpeechTuning(send, failures, prefix, { follow = true, tabs = false } = {}) {
   const autoActive = `document.querySelector('#turn-detection-section .option-button.active')?.textContent === 'Auto'`;
   if (!(await evaluate(send, autoActive))) {
     await click(send, byText('#turn-detection-section .option-button', 'Auto'));
@@ -342,24 +344,15 @@ async function checkSpeechTuning(send, failures, prefix, layout, tabs = false) {
     failures.push(`${prefix}: #turn-detection-section showed no tuning summary with "${SUMMARY}" under Auto (section text: ${JSON.stringify(text)})`);
     return;
   }
-  const state = () => evaluate(send, `({
+  const before = await evaluate(send, `({
     sliders: document.querySelectorAll('#turn-detection-section input[type="range"]').length,
-    buttons: document.querySelectorAll('#turn-detection-section .turn-detection-tuning button').length,
     link: !!document.querySelector('#turn-detection-section .turn-detection-link'),
   })`);
-
-  if (layout === 'simple') {
-    const s = await state();
-    if (s?.sliders !== 0) failures.push(`${prefix}: #turn-detection-section had ${s?.sliders} sliders, expected none in Simple`);
-    if (s?.buttons !== 0) failures.push(`${prefix}: the tuning row held ${s?.buttons} button(s), expected the summary line alone, as plain text, in Simple`);
-    return;
-  }
-
-  const before = await state();
   if (!before?.link || before.sliders !== 0) {
     failures.push(`${prefix}: the tuning row read link=${before?.link} with ${before?.sliders} sliders, expected a .turn-detection-link and none`);
     return;
   }
+  if (!follow) return;
   await click(send, `document.querySelector('#turn-detection-section .turn-detection-link')`);
   const block = () => evaluate(send, `({
     providerTab: document.querySelector('#tab-provider')?.getAttribute('aria-selected') ?? null,
@@ -426,7 +419,8 @@ async function runSettingsProbe() {
         failures.push('never found [data-tour="settings-button"] to open Settings');
       } else {
         await checkGeneralStatic(send, failures, 'Simple mode');
-        await checkSpeechTuning(send, failures, 'Simple mode', 'simple');
+        // Not followed yet: the link leaves Simple mode, and the checks below need it.
+        await checkSpeechTuning(send, failures, 'Simple mode', { follow: false });
         if (screenshot) await takeScreenshot(send);
         await checkChipFlow(send, failures, 'Simple mode');
         await checkOneWriter(send, failures, 'Simple mode');
@@ -465,7 +459,16 @@ async function runSettingsProbe() {
             if (!backToGeneral) {
               failures.push('never found #tab-general to return to');
             } else {
-              await checkSpeechTuning(send, failures, "Advanced's General tab", 'advanced', true);
+              await checkSpeechTuning(send, failures, "Advanced's General tab", { tabs: true });
+            }
+
+            // And from Simple mode: the same link switches to Advanced, then lands on the Provider tab.
+            const switchedSimple = await click(send, `document.querySelectorAll('.mode-toggle .mode-button')[0]`);
+            const simpleActive = switchedSimple && await pollUntil(4000, 250, async () => evaluate(send, `!document.querySelector('#tab-general')`));
+            if (!simpleActive) {
+              failures.push('never switched back to Simple mode');
+            } else {
+              await checkSpeechTuning(send, failures, 'Simple mode (link)', { tabs: true });
             }
           }
         }
@@ -473,14 +476,15 @@ async function runSettingsProbe() {
     } else {
       await send('Page.navigate', { url: settingsPreviewUrl('simple') });
       await checkGeneralStatic(send, failures, 'settings=simple');
-      await checkSpeechTuning(send, failures, 'settings=simple', 'simple');
+      // Never followed here: this page draws no Provider-tab block to land on.
+      await checkSpeechTuning(send, failures, 'settings=simple', { follow: false });
       if (screenshot) await takeScreenshot(send);
       await checkChipFlow(send, failures, 'settings=simple');
       await checkOneWriter(send, failures, 'settings=simple');
 
       await send('Page.navigate', { url: settingsPreviewUrl('advanced') });
       await checkProviderTabOnly(send, failures, 'settings=advanced');
-      await checkSpeechTuning(send, failures, 'settings=advanced', 'advanced');
+      await checkSpeechTuning(send, failures, 'settings=advanced');
     }
 
     if (failures.length > 0) {

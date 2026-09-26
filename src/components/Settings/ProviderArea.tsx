@@ -17,8 +17,8 @@ import { useEngineSlotTarget, useSetEngineSlotTarget, useTextOnly } from '../../
  * `SessionEnginePage` in place of its list when a chip is clicked (1e-3
  * ruling 10). Every block reads `providerStore` and the run's lock.
  * `layout` is the host's: the Speech section draws the provider's tuning of
- * Auto as a summary line in Simple mode and, on Advanced's General tab, a
- * link to that tuning's Controls on the Provider tab.
+ * Auto as a summary line linking to that tuning's Controls on Advanced's
+ * Provider tab, and from Simple mode the link switches to Advanced first.
  */
 export function SessionSettingsGeneral({ locked, layout, onOpenSlot }: { locked: boolean; layout: 'simple' | 'advanced'; onOpenSlot(slot: EngineSlot): void }) {
   const providers = useMemo(() => presentProviders(), []);
