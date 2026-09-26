@@ -44,6 +44,8 @@
     "systemInstructions": "Instruções do sistema",
     "speechMode": "Modo de fala",
     "speechModeAppliesTo": "Aplica-se à sua voz. O áudio do outro sempre usa VAD semântico.",
+    "speechModeTooltip": "Auto: o provedor detecta quando você termina de falar. \nPressionar para falar: mantenha pressionada a barra de espaço ou o botão do microfone para enviar áudio manualmente. \nPressionar para traduzir: como Pressionar para falar, mas roteia seu microfone original para o microfone virtual quando ocioso, para que você possa falar diretamente sem tradução.",
+    "speechModeAppliesToAuto": "Aplica-se à sua voz. O áudio do outro sempre usa a detecção automática do provedor.",
     "userTranscriptModel": "Modelo de transcrição do usuário",
     "noiseReduction": "Redução de ruído",
     "noiseSuppression": "Supressão de Ruído",

@@ -44,6 +44,8 @@
     "systemInstructions": "Arahan sistem",
     "speechMode": "Mod Pertuturan",
     "speechModeAppliesTo": "Digunakan untuk suara anda. Audio pihak lain sentiasa menggunakan VAD semantik.",
+    "speechModeTooltip": "Auto: penyedia mengesan apabila anda selesai bercakap. \nTekan untuk Bercakap: tahan kekunci Space atau butang mikrofon untuk menghantar audio secara manual. \nTekan untuk Terjemah: seperti Tekan untuk Bercakap, tetapi menghalakan mikrofon mentah anda ke mikrofon maya apabila tidak aktif supaya anda boleh bercakap secara langsung tanpa terjemahan.",
+    "speechModeAppliesToAuto": "Digunakan untuk suara anda. Audio pihak lain sentiasa menggunakan pengesanan automatik penyedia.",
     "userTranscriptModel": "Model transkrip pengguna",
     "noiseReduction": "Pengurangan bunyi bising",
     "noiseSuppression": "Penindasan Bunyi Bising",

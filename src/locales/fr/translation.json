@@ -44,6 +44,8 @@
     "systemInstructions": "Instructions système",
     "speechMode": "Mode de parole",
     "speechModeAppliesTo": "S'applique à votre voix. L'audio de l'autre utilise toujours le VAD sémantique.",
+    "speechModeTooltip": "Auto: le fournisseur détecte quand vous avez fini de parler. \nAppuyer pour parler: maintenez la barre d'espace ou le bouton du microphone pour envoyer l'audio manuellement. \nAppuyer pour traduire: comme Appuyer pour parler, mais achemine votre micro brut vers le micro virtuel en veille pour que vous puissiez parler directement sans traduction.",
+    "speechModeAppliesToAuto": "S'applique à votre voix. L'audio de l'autre utilise toujours la détection automatique du fournisseur.",
     "userTranscriptModel": "Modèle de transcription utilisateur",
     "noiseReduction": "Réduction du bruit",
     "noiseSuppression": "Suppression du bruit",

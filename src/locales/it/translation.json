@@ -44,6 +44,8 @@
     "systemInstructions": "Istruzioni di sistema",
     "speechMode": "Modalità vocale",
     "speechModeAppliesTo": "Si applica alla tua voce. L'audio dell'altro usa sempre il VAD semantico.",
+    "speechModeTooltip": "Auto: il fornitore rileva quando hai finito di parlare. \nPremi per parlare: tieni premuto Spazio o il pulsante del microfono per inviare audio manualmente. \nPremi per tradurre: come Premi per parlare, ma instrada il microfono originale al microfono virtuale quando inattivo, così puoi parlare direttamente senza traduzione.",
+    "speechModeAppliesToAuto": "Si applica alla tua voce. L'audio dell'altro usa sempre il rilevamento automatico del fornitore.",
     "userTranscriptModel": "Modello di trascrizione utente",
     "noiseReduction": "Riduzione del rumore",
     "noiseSuppression": "Soppressione del rumore",

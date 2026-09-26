@@ -44,6 +44,8 @@
     "systemInstructions": "Instrukcje systemowe",
     "speechMode": "Tryb mowy",
     "speechModeAppliesTo": "Dotyczy Twojego głosu. Dźwięk rozmówcy zawsze używa semantycznego VAD.",
+    "speechModeTooltip": "Auto: dostawca wykrywa, kiedy kończysz mówić. \nNaciśnij i mów: przytrzymaj spację lub przycisk mikrofonu, aby ręcznie wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",
+    "speechModeAppliesToAuto": "Dotyczy Twojego głosu. Dźwięk rozmówcy zawsze używa automatycznego wykrywania dostawcy.",
     "userTranscriptModel": "Model transkrypcji użytkownika",
     "noiseReduction": "Redukcja szumów",
     "noiseSuppression": "Tłumienie szumów",

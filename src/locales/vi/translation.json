@@ -44,6 +44,8 @@
     "systemInstructions": "Hướng dẫn hệ thống",
     "speechMode": "Chế độ giọng nói",
     "speechModeAppliesTo": "Áp dụng cho giọng nói của bạn. Âm thanh đối phương luôn sử dụng VAD ngữ nghĩa.",
+    "speechModeTooltip": "Tự động: nhà cung cấp phát hiện khi bạn đã nói xong. \nNhấn để nói: giữ phím Space hoặc nút micrô để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micrô gốc của bạn đến micrô ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
+    "speechModeAppliesToAuto": "Áp dụng cho giọng nói của bạn. Âm thanh đối phương luôn sử dụng tính năng phát hiện tự động của nhà cung cấp.",
     "userTranscriptModel": "Mô hình phiên âm người dùng",
     "noiseReduction": "Giảm tiếng ồn",
     "noiseSuppression": "Khử tiếng ồn",

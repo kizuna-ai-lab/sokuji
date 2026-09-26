@@ -44,6 +44,8 @@
     "systemInstructions": "시스템 지시사항",
     "speechMode": "음성 모드",
     "speechModeAppliesTo": "내 음성에 적용됩니다. 상대방 오디오는 항상 의미론적 VAD를 사용합니다.",
+    "speechModeTooltip": "자동: 말이 끝나는 시점을 제공자가 자동으로 감지합니다. \n푸시 투 토크: 스페이스 또는 마이크 버튼을 눌러 오디오를 수동으로 전송합니다. \n푸시 투 트랜슬레이트: 푸시 투 토크와 비슷하지만, 유휴 상태일 때 원본 마이크 오디오를 가상 마이크로 패스스루하여 번역 없이 직접 말할 수 있습니다.",
+    "speechModeAppliesToAuto": "내 음성에 적용됩니다. 상대방 오디오는 항상 제공자의 자동 감지를 사용합니다.",
     "userTranscriptModel": "사용자 전사 모델",
     "noiseReduction": "노이즈 감소",
     "noiseSuppression": "노이즈 억제",

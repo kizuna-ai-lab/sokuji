@@ -44,6 +44,8 @@
     "systemInstructions": "Systemanweisungen",
     "speechMode": "Sprachmodus",
     "speechModeAppliesTo": "Gilt für Ihre Stimme. Das Audio des Gegenübers verwendet immer semantische VAD.",
+    "speechModeTooltip": "Auto: Der Anbieter erkennt, wann Sie zu Ende gesprochen haben. \nPush-to-Talk: Halten Sie die Leertaste oder die Mikrofontaste, um Audio manuell zu senden. \nPush-to-Translate: Wie Push-to-Talk, leitet aber Ihr Roh-Mikrofon im Leerlauf an das virtuelle Mikrofon weiter, sodass Sie ohne Übersetzung direkt sprechen können.",
+    "speechModeAppliesToAuto": "Gilt für Ihre Stimme. Das Audio des Gegenübers verwendet immer die automatische Erkennung des Anbieters.",
     "userTranscriptModel": "Benutzer-Transkriptionsmodell",
     "noiseReduction": "Rauschunterdrückung",
     "noiseSuppression": "Rauschunterdrückung",

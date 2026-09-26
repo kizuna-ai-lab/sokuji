@@ -44,6 +44,8 @@
     "systemInstructions": "Instrucciones del sistema",
     "speechMode": "Modo de habla",
     "speechModeAppliesTo": "Se aplica a tu voz. El audio del otro siempre usa VAD semántico.",
+    "speechModeTooltip": "Auto: el proveedor detecta cuándo ha terminado de hablar. \nPulsar para hablar: mantenga la barra espaciadora o el botón del micrófono para enviar audio manualmente. \nPulsar para traducir: como Pulsar para hablar, pero enruta su micrófono original al micrófono virtual cuando está inactivo para que pueda hablar directamente sin traducción.",
+    "speechModeAppliesToAuto": "Se aplica a tu voz. El audio del otro siempre usa la detección automática del proveedor.",
     "userTranscriptModel": "Modelo de transcripción del usuario",
     "noiseReduction": "Reducción de ruido",
     "noiseSuppression": "Supresión de ruido",

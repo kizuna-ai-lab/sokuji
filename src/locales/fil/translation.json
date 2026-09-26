@@ -44,6 +44,8 @@
     "systemInstructions": "Mga tagubilin ng sistema",
     "speechMode": "Mode ng Pagsasalita",
     "speechModeAppliesTo": "Naaangkop sa inyong boses. Ang audio ng kausap ay palaging gumagamit ng semantic VAD.",
+    "speechModeTooltip": "Auto: natutukoy ng provider kung kailan ka tapos nang magsalita. \nPush-to-Talk: pindutin nang matagal ang Space o ang microphone button para magpadala ng audio nang manual. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
+    "speechModeAppliesToAuto": "Naaangkop sa inyong boses. Ang audio ng kausap ay palaging gumagamit ng awtomatikong pagtukoy ng provider.",
     "userTranscriptModel": "Modelo ng transkripsyon ng gumagamit",
     "noiseReduction": "Pagbawas ng ingay",
     "noiseSuppression": "Pagpigil ng Ingay",

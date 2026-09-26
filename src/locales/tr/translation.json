@@ -44,6 +44,8 @@
     "systemInstructions": "Sistem talimatları",
     "speechMode": "Konuşma Modu",
     "speechModeAppliesTo": "Sizin sesinize uygulanır. Karşı tarafın sesi her zaman anlamsal VAD kullanır.",
+    "speechModeTooltip": "Otomatik: sağlayıcı, konuşmanızın ne zaman bittiğini algılar. \nBas-Konuş: ses göndermek için boşluk tuşunu veya mikrofon düğmesini basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
+    "speechModeAppliesToAuto": "Sizin sesinize uygulanır. Karşı tarafın sesi her zaman sağlayıcının otomatik algılamasını kullanır.",
     "userTranscriptModel": "Kullanıcı transkripsiyon modeli",
     "noiseReduction": "Gürültü azaltma",
     "noiseSuppression": "Gürültü Bastırma",

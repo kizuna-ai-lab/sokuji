@@ -44,6 +44,8 @@
     "systemInstructions": "系统指令",
     "speechMode": "语音模式",
     "speechModeAppliesTo": "适用于您的语音。对方音频始终使用语义 VAD。",
+    "speechModeTooltip": "自动：由提供商自动检测您何时说完。\n按住说话：按住空格键或麦克风按钮手动发送音频。\n按住翻译：与按住说话类似，但空闲时将原始麦克风音频直通到虚拟麦克风，您可以直接讲话而不进行翻译。",
+    "speechModeAppliesToAuto": "适用于您的语音。对方音频始终使用提供商的自动检测。",
     "userTranscriptModel": "用户转录模型",
     "noiseReduction": "降噪",
     "noiseSuppression": "噪声抑制",

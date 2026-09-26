@@ -102,6 +102,22 @@ describe('SpeechSection', () => {
     expect(localStorage.getItem('settings.common.turnMode')).toBe('push-to-talk');
   });
 
+  // Ruling 8: every provider ends an utterance under Auto by its own
+  // detection now (LocalInference's VAD, Soniox's endpoint model), so the
+  // heading's tooltip names none of them.
+  it("the Speech mode's tooltip names no mechanism: the provider's detection, for your voice and the other side's", () => {
+    render(<SpeechSection locked={false} layout="simple" />);
+    const texts = tooltipContents.filter((c): c is string => typeof c === 'string');
+    // The heading's: the one that explains the three modes.
+    const heading = texts.find((c) => c.includes('Push-to-Translate:'));
+    expect(heading).toContain('Auto: the provider detects when you have finished speaking.');
+    expect(heading).toContain("Other's audio always uses the provider's automatic detection.");
+    for (const c of texts) {
+      expect(c).not.toContain('semantic VAD');
+      expect(c).not.toContain('local Voice Activity Detection');
+    }
+  });
+
   it('clicking the active mode does nothing', () => {
     render(<SpeechSection locked={false} layout="simple" />);
     fireEvent.click(screen.getByText('Auto'));

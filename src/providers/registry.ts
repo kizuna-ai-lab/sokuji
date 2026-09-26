@@ -9,9 +9,10 @@ import { debugSwitchOn, enabledProviderIds, getEnvironment, isDevelopmentMode, i
 import { fakeLeasedProvider } from './fake/leased';
 import { fakeProvider } from './fake/provider';
 import { localInferenceProvider } from './localInference/provider';
+import { sonioxProvider } from './soniox/provider';
 
-/** Shipped providers, in UI order (ruling 10: LocalInference first). */
-const RELEASED = [localInferenceProvider] as const;
+/** Shipped providers, in UI order (ruling 10: LocalInference first), then Soniox (Stage 2 Soniox, ruling 7). */
+const RELEASED = [localInferenceProvider, sonioxProvider] as const;
 /** Compiled into development builds only (D24): the fake, and the leased fake that carries the session hooks (Stage 2 foundation, choice 1). */
 const DEV_ONLY = [fakeProvider, fakeLeasedProvider] as const;
 

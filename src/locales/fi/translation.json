@@ -44,6 +44,8 @@
     "systemInstructions": "Järjestelmäohjeet",
     "speechMode": "Puhetila",
     "speechModeAppliesTo": "Koskee omaa ääntäsi. Toisen ääni käyttää aina semanttista VAD:ia.",
+    "speechModeTooltip": "Auto: tarjoaja tunnistaa, milloin olet lopettanut puhumisen. \nPaina ja puhu: pidä välilyöntiä tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
+    "speechModeAppliesToAuto": "Koskee omaa ääntäsi. Toisen ääni käyttää aina tarjoajan automaattista tunnistusta.",
     "userTranscriptModel": "Käyttäjän litterointimalli",
     "noiseReduction": "Kohinanvaimennus",
     "noiseSuppression": "Kohinanvaimennus",

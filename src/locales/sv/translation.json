@@ -44,6 +44,8 @@
     "systemInstructions": "Systeminstruktioner",
     "speechMode": "Talläge",
     "speechModeAppliesTo": "Gäller din röst. Den andras ljud använder alltid semantisk VAD.",
+    "speechModeTooltip": "Auto: leverantören känner av när du har talat klart. \nPush-to-Talk: håll ned mellanslag eller mikrofonknappen för att skicka ljud manuellt. \nPush-to-Translate: som Push-to-Talk, men dirigerar din råa mikrofon till den virtuella mikrofonen när inaktiv så att du kan tala direkt utan översättning.",
+    "speechModeAppliesToAuto": "Gäller din röst. Den andras ljud använder alltid leverantörens automatiska detektering.",
     "userTranscriptModel": "Användartranskriptionsmodell",
     "noiseReduction": "Brusreducering",
     "noiseSuppression": "Brusreducering",

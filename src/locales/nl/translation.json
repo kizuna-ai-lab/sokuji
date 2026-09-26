@@ -44,6 +44,8 @@
     "systemInstructions": "Systeeminstructies",
     "speechMode": "Spraakmodus",
     "speechModeAppliesTo": "Van toepassing op uw stem. Audio van de ander gebruikt altijd semantische VAD.",
+    "speechModeTooltip": "Auto: de provider detecteert wanneer u klaar bent met spreken. \nPush-to-Talk: houd Spatie of de microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
+    "speechModeAppliesToAuto": "Van toepassing op uw stem. Audio van de ander gebruikt altijd de automatische detectie van de provider.",
     "userTranscriptModel": "Gebruiker transcript model",
     "noiseReduction": "Ruisonderdrukking",
     "noiseSuppression": "Ruisonderdrukking",

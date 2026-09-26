@@ -44,6 +44,8 @@
     "systemInstructions": "Instruksi sistem",
     "speechMode": "Mode Bicara",
     "speechModeAppliesTo": "Berlaku untuk suara Anda. Audio lawan bicara selalu menggunakan VAD semantik.",
+    "speechModeTooltip": "Otomatis: penyedia mendeteksi kapan Anda selesai berbicara. \nTekan untuk Bicara: tahan tombol Spasi atau tombol mikrofon untuk mengirim audio secara manual. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",
+    "speechModeAppliesToAuto": "Berlaku untuk suara Anda. Audio lawan bicara selalu menggunakan deteksi otomatis dari penyedia.",
     "userTranscriptModel": "Model transkripsi pengguna",
     "noiseReduction": "Pengurangan noise",
     "noiseSuppression": "Peredam Noise",

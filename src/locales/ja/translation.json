@@ -44,6 +44,8 @@
     "systemInstructions": "システム指示",
     "speechMode": "音声モード",
     "speechModeAppliesTo": "あなたの声に適用されます。相手の音声は常にセマンティックVADを使用します。",
+    "speechModeTooltip": "自動：話し終わりをプロバイダーが自動的に検出します。\nプッシュトゥトーク：スペースまたはマイクボタンを押して音声を手動で送信します。\nプッシュトゥトランスレート：プッシュトゥトークと同様ですが、アイドル時に生のマイク音声を仮想マイクへパススルーするので、翻訳せずに直接話せます。",
+    "speechModeAppliesToAuto": "あなたの声に適用されます。相手の音声は常にプロバイダーの自動検出を使用します。",
     "userTranscriptModel": "ユーザー転写モデル",
     "noiseReduction": "ノイズ低減",
     "noiseSuppression": "ノイズ抑制",

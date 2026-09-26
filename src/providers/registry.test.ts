@@ -198,8 +198,10 @@ describe('the invariants every provider meets (F17)', () => {
     vi.stubEnv('DEV', false);
     vi.resetModules();
     const releaseBuild = await import('./registry');
-    // each provider plan adds its id where the owner orders it (spec: "one line in the order test")
-    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['localInference']);
+    // each provider plan adds its id where the owner orders it (spec: "one line in the order test").
+    // Soniox follows LocalInference, not flagged (Stage 2 Soniox, ruling 7); the owner
+    // decides the final order before Kizuna Soniox joins.
+    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['localInference', 'soniox']);
   });
 
   it('a development build adds exactly the two fakes', () => {
