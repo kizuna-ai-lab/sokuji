@@ -22,6 +22,8 @@ vi.mock('../../utils/environment', async (importOriginal) => {
 import type { AnyProvider, CheckContext } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
+import { FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
+import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -37,6 +39,8 @@ beforeEach(() => {
   useTurnModeStore.setState({ turnMode: 'auto' });
   useRoutingStore.setState({ participantSpeech: false });
   useAudioStore.setState({ selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
+  useAccountStore.setState({ account: null });
+  useSettingsStore.setState({ textOnly: false });
   environment.value = 'web';
 });
 
@@ -75,6 +79,21 @@ describe('readShapeFromStores', () => {
       auth,
     });
     expect(shape.shared.instructions({ source: 'ja', target: 'en' })).toBe('mine');
+  });
+});
+
+describe("readShapeFromStores — the account's wallet (Stage 2 Kizuna Soniox, rulings 5, 6)", () => {
+  it("freezes the account's wallet", () => {
+    useProviderStore.setState({
+      selected: 'fake',
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 7, frozen: false } });
+    expect(readShapeFromStores(auth)?.account).toEqual({ status: 'known', balanceMicroUsd: 7, frozen: false });
+    useAccountStore.setState({ account: { status: 'unknown' } });
+    expect(readShapeFromStores(auth)?.account).toEqual({ status: 'unknown' });
+    useAccountStore.setState({ account: null });
+    expect(readShapeFromStores(auth)?.account).toBeNull();
   });
 });
 
@@ -218,6 +237,26 @@ describe('liveGate', () => {
     loadFake({ source: 'en', target: 'ja' });
     useAudioStore.setState({ mode: 'speaker' });
     environment.value = 'web';
+    expect(liveGate()).toBeNull();
+  });
+
+  it("refuses below the selected provider's floor, reading text only and the wallet from their stores", () => {
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useAudioStore.setState({ mode: 'speaker' });
+    environment.value = 'electron';
+    // The speaker speaks: floor is twice the knob.
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1500, frozen: false } });
+    expect(liveGate()?.code).toBe('balance_below_floor');
+    useSettingsStore.setState({ textOnly: true });
+    expect(liveGate()).toBeNull();
+    useAccountStore.setState({ account: { status: 'loading' } });
+    expect(liveGate()?.code).toBe('quota_pending');
+    useAccountStore.setState({ account: { status: 'unknown' } });
+    expect(liveGate()?.code).toBe('quota_unknown');
+    useAccountStore.setState({ account: null });
     expect(liveGate()).toBeNull();
   });
 });

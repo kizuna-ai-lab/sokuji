@@ -2,6 +2,7 @@ import type { SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import { reverseSupported } from '../provider/languages';
 import type { Platform } from '../provider/types';
+import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
 import type { RunNotice, RunShape } from './types';
 
@@ -35,15 +36,50 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
   return contexts;
 }
 
-/** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. */
-export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'>;
+/** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. `textOnly`, `participantSpeech` and `account` feed a managed provider's balance floor (Stage 2 Kizuna Soniox); absent, nothing is gated on a balance. */
+export type GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'account'>>;
+
+/** A start refused below a managed provider's floor: worded by the old gate's "Insufficient balance: {{balance}}" (ruling 6). */
+export const BALANCE_BELOW_FLOOR = 'balance_below_floor';
+/** The wallet's first fetch still in flight: "Checking...", no failure words at every launch (ruling 5). */
+export const QUOTA_PENDING = 'quota_pending';
+/** A fetch failed and no wallet is known: the old gate's "Unable to load quota information" (ruling 5; `oldGate:254-261`). */
+export const QUOTA_UNKNOWN = 'quota_unknown';
+
+/**
+ * A managed provider's balance check over the account as the client
+ * knows it (Stage 2 Kizuna Soniox, rulings 5 and 6): the wallet still
+ * loading, a wallet that failed to load, a frozen wallet, or a balance
+ * below the floor the provider names for this start (`minimumBalance`).
+ * Nothing without an account — signed out, where the sign-in check
+ * speaks, or none wired — or when the provider names no floor. The
+ * backend's 402 still words a balance that changed since the fetch.
+ */
+export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'account'>): Refusal | null {
+  const floorFor = input.provider.session?.minimumBalance;
+  const account = input.account;
+  if (!floorFor || !account) return null;
+  if (account.status === 'loading') return { code: QUOTA_PENDING, message: 'The wallet is still loading.' };
+  if (account.status === 'unknown') return { code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' };
+  if (account.frozen) return { code: 'wallet_frozen', message: 'The wallet is frozen.' };
+  const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false }, input.settings);
+  if (account.balanceMicroUsd >= floor) return null;
+  return {
+    code: BALANCE_BELOW_FLOOR,
+    message: `The balance (${account.balanceMicroUsd} µUSD) is below this start's floor (${floor} µUSD).`,
+    // Floored, as every balance is: this is the moment it is too low, the worst one to round up.
+    params: { balance: formatUsdFloor(account.balanceMicroUsd) },
+  };
+}
 
 /**
  * The start gate: what can be refused before anything is checked, built
  * or opened — over a run's frozen shape at start (`Run.open`), and over the
  * stores as they stand while idle (`liveGate`, F7), so the surfaces keep
  * Start off and say why before it is pressed. Credentials, readiness, the
- * build and `admit` are refused by the run's later steps.
+ * build and `admit` are refused by the run's later steps, and, last, a
+ * managed provider's balance check: the wallet loading or unknown, frozen,
+ * or below the floor.
  */
 export function gate(shape: GateInput, platform: Platform): Refusal | null {
   const { provider: p, settings: s, legs } = shape;
@@ -65,7 +101,7 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
       return { code: 'participant_unsupported' satisfies RunNoticeCode, message: `${p.id} does not translate ${shape.pair.target} into ${shape.pair.source}.`, leg: 'participant' };
     }
   }
-  return null;
+  return balanceRefusal(shape);
 }
 
 /** Why the app's surfaces keep Start off while no microphone is chosen. */

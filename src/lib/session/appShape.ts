@@ -8,6 +8,7 @@ import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import { presentProviders } from '../../providers/registry';
+import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
 import { useProviderStore, type ProviderEntry } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -75,6 +76,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
       { mode: st.segmentationMode, sentencesPerRow: st.sentenceSegmentationChunkSentences },
     ),
     auth,
+    account: useAccountStore.getState().account,
   };
 }
 
@@ -82,10 +84,11 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
  * The start gate over the stores as they stand (F7): what a start would be
  * refused before anything is checked — no leg, a turn mode the provider
  * does not offer, the participant leg on the web or for a pair that does
- * not reverse (D20). The surfaces keep Start off and show why; the runner
- * still gates the frozen shape at start. Null when nothing is refused, or
- * before the provider's entry has loaded (`providerLoaded` keeps Start
- * off then).
+ * not reverse (D20), and a managed provider's wallet still loading,
+ * unknown, frozen or below its floor. The surfaces keep Start off and show
+ * why; the runner still gates the frozen shape at start. Null when nothing
+ * is refused, or before the provider's entry has loaded (`providerLoaded`
+ * keeps Start off then).
  */
 export function liveGate(platform: Platform = getEnvironment()): Refusal | null {
   const selected = selectedFromStores();
@@ -96,6 +99,9 @@ export function liveGate(platform: Platform = getEnvironment()): Refusal | null 
     pair: selected.entry.pair,
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
+    textOnly: useSettingsStore.getState().textOnly,
+    participantSpeech: participantSpeechFromStores(selected.provider),
+    account: useAccountStore.getState().account,
   }, platform);
 }
 

@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { AUTO } from '../provider/languages';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
-import { contextsFor, gate, microphoneMissing } from './shape';
+import { formatUsdFloor } from '../../utils/formatters';
+import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, microphoneMissing, QUOTA_PENDING, QUOTA_UNKNOWN } from './shape';
+import type { BalanceShape } from './types';
 import type { RunShape } from './types';
 
 const shape = (patch: Partial<RunShape> = {}): RunShape => ({
@@ -94,5 +96,59 @@ describe('microphoneMissing (1e-3 ruling 5)', () => {
     expect(microphoneMissing(['speaker'], 'mic-1')).toBe(false);
     expect(microphoneMissing(['participant'], undefined)).toBe(false);
     expect(microphoneMissing(['speaker', 'participant'], undefined)).toBe(true);
+  });
+});
+
+describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', () => {
+  // A floor that rises with each speaking leg, as a lease's does.
+  const leased = { ...fakeProvider, session: { minimumBalance: (s: BalanceShape) => 100 + (s.textOnly ? 0 : 100) + (s.participantSpeech ? 100 : 0) } } as unknown as RunShape['provider'];
+  const known = (balanceMicroUsd: number, frozen = false) => ({ status: 'known' as const, balanceMicroUsd, frozen });
+  const input = (patch: Partial<RunShape> = {}) => ({ provider: leased, settings: FAKE_DEFAULTS, legs: ['speaker'] as const, textOnly: false, participantSpeech: false, account: known(150), ...patch });
+
+  it('gates nothing without an account (signed out, or none wired), or for a provider with no floor', () => {
+    expect(balanceRefusal(input({ account: null }))).toBeNull();
+    expect(balanceRefusal(input({ account: undefined }))).toBeNull();
+    expect(balanceRefusal(input({ provider: fakeProvider, account: known(-1, true) }))).toBeNull();
+    expect(balanceRefusal(input({ provider: fakeProvider, account: { status: 'unknown' } }))).toBeNull();
+  });
+
+  it('a wallet still loading answers quota_pending — "Checking...", no failure words', () => {
+    expect(balanceRefusal(input({ account: { status: 'loading' } }))).toEqual({ code: QUOTA_PENDING, message: 'The wallet is still loading.' });
+  });
+
+  it('a wallet that failed to load refuses: quota_unknown, as the old gate did', () => {
+    expect(balanceRefusal(input({ account: { status: 'unknown' } }))).toEqual({ code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' });
+  });
+
+  it('refuses a frozen wallet before the floor', () => {
+    expect(balanceRefusal(input({ account: known(10_000, true) }))).toEqual({ code: 'wallet_frozen', message: 'The wallet is frozen.' });
+  });
+
+  it('refuses a balance below the floor for these legs, with the balance floored in USD', () => {
+    expect(balanceRefusal(input())).toEqual({
+      code: BALANCE_BELOW_FLOOR,
+      message: "The balance (150 µUSD) is below this start's floor (200 µUSD).",
+      params: { balance: formatUsdFloor(150) },
+    });
+    expect(balanceRefusal(input({ textOnly: true }))).toBeNull();
+    expect(balanceRefusal(input({ account: known(200) }))).toBeNull();
+  });
+
+  it('reads textOnly and participantSpeech as false when the input leaves them out', () => {
+    expect(balanceRefusal({ ...input(), textOnly: undefined })?.code).toBe(BALANCE_BELOW_FLOOR);
+    expect(balanceRefusal({ ...input({ textOnly: true }), participantSpeech: undefined })).toBeNull();
+  });
+
+  it("prices the participant's speech when the input says it speaks", () => {
+    expect(balanceRefusal(input({ textOnly: true, participantSpeech: true }))?.code).toBe(BALANCE_BELOW_FLOOR);
+    expect(balanceRefusal(input({ textOnly: true, participantSpeech: false }))).toBeNull();
+  });
+
+  it("is the gate's last refusal: the participant's comes first", () => {
+    expect(gate(shape({ provider: leased, legs: ['participant'], pair: { source: AUTO, target: 'en' }, account: known(0) }), 'electron'))
+      .toMatchObject({ code: 'participant_unsupported' });
+    expect(gate(shape({ provider: leased, account: known(0) }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
+    expect(gate(shape({ provider: leased, account: { status: 'unknown' } }), 'electron')).toMatchObject({ code: QUOTA_UNKNOWN });
+    expect(gate(shape({ provider: leased }), 'electron')).toBeNull();
   });
 });

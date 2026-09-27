@@ -24,8 +24,11 @@ import type { Runner } from '../session/runner';
 import type { RunState } from '../session/types';
 import type { ConversationViewState, Readable } from '../view/conversationView';
 import { fakeProvider } from '../../providers/fake/provider';
+import { FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
+import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { appSubtitleSession } from './appSession';
 
@@ -34,10 +37,14 @@ const speakerLeg: Leg = { leg: 'speaker', session: 's', languages: { source: 'en
 const providersBefore = useProviderStore.getState();
 const turnBefore = useTurnModeStore.getState();
 const audioBefore = useAudioStore.getState();
+const accountBefore = useAccountStore.getState();
+const settingsBefore = useSettingsStore.getState();
 afterEach(() => {
   useProviderStore.setState(providersBefore, true);
   useTurnModeStore.setState(turnBefore, true);
   useAudioStore.setState(audioBefore, true);
+  useAccountStore.setState(accountBefore, true);
+  useSettingsStore.setState(settingsBefore, true);
   environment.value = 'electron';
 });
 
@@ -137,6 +144,35 @@ describe("appSubtitleSession — legs follow the audio mode's intent (1e-3b-1 ru
   it("offers only the mode's leg with nothing on screen", () => {
     useAudioStore.setState({ mode: 'speaker' });
     expect(setup().session.get().legs).toEqual(['speaker']);
+  });
+});
+
+describe('appSubtitleSession — the balance floor (Stage 2 Kizuna Soniox, rulings 5, 6)', () => {
+  it('keeps Start off below the floor, and turns it on when the balance arrives or text only lowers the floor', () => {
+    const { session } = setup();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+    });
+    useAudioStore.setState({ mode: 'speaker' });
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1500, frozen: false } });
+
+    const listener = vi.fn();
+    session.subscribe(listener);
+    expect(session.get()).toMatchObject({ canStart: false, idle: { kind: 'unready', code: 'balance_below_floor' } });
+
+    useSettingsStore.setState({ textOnly: true });
+    expect(listener).toHaveBeenCalled();
+    expect(session.get().canStart).toBe(true);
+
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 500, frozen: false } });
+    expect(session.get().canStart).toBe(false);
+
+    useAccountStore.setState({ account: { status: 'unknown' } });
+    expect(session.get()).toMatchObject({ idle: { kind: 'unready', code: 'quota_unknown' } });
+
+    useAccountStore.setState({ account: { status: 'loading' } });
+    expect(session.get()).toMatchObject({ idle: { kind: 'unready', code: 'quota_pending' } });
   });
 });
 
