@@ -99,8 +99,9 @@ describe("the Gemini adapter's resumption ladder", () => {
 
   it('resumes with the last handle the server issued while resumable', async () => {
     const h = await liveGemini();
-    h.socket().receive(SERVER.handle('h-0', false));
     h.socket().receive(SERVER.handle('h-1'));
+    // Issued while the model generates: not resumable, so not recorded, though it came last.
+    h.socket().receive(SERVER.handle('h-0', false));
     h.socket().receive(serverFrame({ sessionResumptionUpdate: { resumable: true } }));
     h.socket().serverClose(1011, 'Internal error');
     await flush();
@@ -209,14 +210,21 @@ describe("the Gemini adapter's resumption ladder", () => {
     await flush();
     h.socket().open();
     expect(h.sent()).toEqual([setupFrame(configFor(DIALOGUE), null)]);
-    // This time the new session issues a handle before the resume settles: it is kept.
     h.socket().receive(SERVER.setupComplete());
-    h.socket().receive(SERVER.handle('h-2'));
     await flush();
+    h.socket().receive(SERVER.handle('h-2'));
     h.socket().serverClose(1011, '');
     await flush();
     h.socket().open();
     expect(h.sent()).toEqual([setupFrame(configFor(DIALOGUE), 'h-2')]);
+    // This resume's new session issues a handle before the resume settles (in the setup answer's own tick): it is kept.
+    h.socket().receive(SERVER.setupComplete());
+    h.socket().receive(SERVER.handle('h-3'));
+    await flush();
+    h.socket().serverClose(1011, '');
+    await flush();
+    h.socket().open();
+    expect(h.sent()).toEqual([setupFrame(configFor(DIALOGUE), 'h-3')]);
   });
 
   it('an attempt that opens and never answers is bounded by the setup timeout, then the next attempt runs', async () => {
@@ -289,6 +297,31 @@ describe("the Gemini adapter's resumption ladder", () => {
     expect(h.sent().slice(1)).toEqual([{ realtimeInput: { activityStart: {} } }]);
     h.session.endTurn();
     expect(h.sent().slice(2)).toEqual([{ realtimeInput: { activityEnd: {} } }]);
+  });
+
+  it("a press released in the gap reached no server, so no answer is owed for it: a voiceless press after the reconnect still drops its own (ruling 8)", async () => {
+    const h = await liveGemini({ context: { ...AUTO_CTX, turns: 'manual' } });
+    h.session.beginTurn();
+    h.session.appendAudio(new Int16Array(480));
+    h.socket().serverClose(1011, '');
+    await flush();
+    h.session.endTurn();
+    await answer(h);
+    // The release went nowhere, and nothing is held to start again: the new connection has only its setup.
+    expect(h.sent()).toHaveLength(1);
+    h.session.beginTurn();
+    h.session.cancelTurn();
+    // Should the server answer the voiceless press anyway, that answer is the cancelled press's own.
+    h.socket().receive(SERVER.output('an answer to the cancelled press'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentOpened')).toEqual([]);
+    // The control: the next press's answer is shown.
+    h.session.beginTurn();
+    h.session.appendAudio(new Int16Array(480));
+    h.session.endTurn();
+    h.socket().receive(SERVER.output('the next answer'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['the next answer']);
   });
 
   it('a resumed connection starts readable: an audio part the old one could not decode silences nothing on the new one', async () => {

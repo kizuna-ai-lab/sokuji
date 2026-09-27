@@ -332,9 +332,10 @@ class GeminiSession {
   private endTurn(cancelled: boolean): void {
     if (this.ended || !this.request.config.activity.manual || !this.turnOpen) return;
     this.turnOpen = false;
-    if (cancelled) this.turns.cancelTurn();
-    else this.turns.endTurn();
     const ws = this.live();
+    if (cancelled) this.turns.cancelTurn();
+    // Owed only once `activityEnd` goes out: a release in a reconnect gap reaches no server, so nothing answers it.
+    else if (ws) this.turns.endTurn();
     if (!ws) return;
     ws.send(ACTIVITY_END);
     this.frame('out', 'realtime_input.activity_end', cancelled ? { cancelled: true } : undefined);
