@@ -21,6 +21,8 @@ import { AUTO_CTX, b64, configFor, DIALOGUE, KEY, liveGemini, SERVER, serverFram
 import { base64ToPcm, liveUrl, setupFrame } from './wire';
 
 const MANUAL = { ...AUTO_CTX, turns: 'manual' as const };
+/** A model audio part named pcm whose data is not base64: `atob` refuses it. */
+const BAD_AUDIO = () => serverFrame({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: 'audio/pcm;rate=24000', data: '%%not base64%%' } }] } } });
 
 /** The conformance harness for one model: its server scripted over the newest `FakeSocket`. */
 function harnessFor(model: string): AdapterHarness<GeminiConfig, GeminiCredentials> {
@@ -143,6 +145,21 @@ describe('the Gemini adapter: opening', () => {
     expect(h.timers()).toBe(0);
   });
 
+  it('before the setup is answered, nothing but its answer is heard: content that comes early neither settles the start nor reaches a segment', async () => {
+    const h = startGemini();
+    let settled = false;
+    void h.starting.then(() => { settled = true; }, () => { settled = true; });
+    h.socket().open();
+    h.socket().receive(SERVER.input('early'));
+    await flush();
+    expect(settled).toBe(false);
+    expect(h.frames('server.setup_complete')).toEqual([]);
+    expect(h.content()).toEqual([]);
+    h.socket().receive(SERVER.setupComplete());
+    await h.starting;
+    expect(h.content()).toEqual([]);
+  });
+
   it('a start whose signal already aborted opens no socket', async () => {
     const sockets = fakeSockets();
     const controller = new AbortController();
@@ -244,6 +261,22 @@ describe('the Gemini adapter: one session', () => {
     expect(h.of('audio')).toEqual([]);
     expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Bonjour']);
     expect(h.of('failed')).toEqual([]);
+  });
+
+  it('audio parts that will not decode are one Logs line however many messages carry them, not one per message (the hot-path rule)', async () => {
+    const h = await liveGemini();
+    for (let i = 0; i < 5; i++) h.socket().receive(BAD_AUDIO());
+    expect(h.frames('server_content.model_turn')).toHaveLength(5);
+    expect(h.frames('server.unreadable')).toHaveLength(1);
+  });
+
+  it('a part that decodes ends the episode: the next one that will not is said again', async () => {
+    const h = await liveGemini();
+    h.socket().receive(BAD_AUDIO());
+    h.socket().receive(SERVER.audio(480));
+    h.socket().receive(BAD_AUDIO());
+    expect(h.frames('server.unreadable')).toHaveLength(2);
+    expect(h.of('audio')).toHaveLength(1);
   });
 
   it("the model's text parts stand in for a transcript that never came; a thought part never does", async () => {
@@ -353,6 +386,30 @@ describe('the Gemini adapter: turns and typed text', () => {
     h.socket().receive(SERVER.turnComplete());
     expect(h.of('segmentOpened')).toHaveLength(1);
     expect(h.of('audio')).toHaveLength(1);
+  });
+
+  it("a cancelled press the server never answers: the next press ends the drop, and its answer is shown (choice 16)", async () => {
+    const h = await liveGemini({ context: MANUAL });
+    h.session.beginTurn();
+    h.session.cancelTurn();
+    h.session.beginTurn();
+    h.session.appendAudio(new Int16Array(480));
+    h.session.endTurn();
+    h.socket().receive(SERVER.output('the real answer'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['the real answer']);
+  });
+
+  it('under manual turns a release or a cancel with no press held sends nothing', async () => {
+    const h = await liveGemini({ context: MANUAL });
+    h.session.endTurn();
+    h.session.cancelTurn();
+    expect(h.sent()).toHaveLength(1);
+    expect(h.frames('realtime_input.activity_end')).toEqual([]);
+    // The control: a held press's release is sent.
+    h.session.beginTurn();
+    h.session.endTurn();
+    expect(h.frames('realtime_input.activity_end')).toEqual([undefined]);
   });
 
   it('under automatic detection the turn keys send nothing', async () => {

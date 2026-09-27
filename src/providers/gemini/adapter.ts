@@ -75,6 +75,12 @@ class GeminiSession {
   private turnOpen = false;
   /** The last frame parsed: `server.unreadable` is said on the ok → failing transition only (as Soniox's `stt.unreadable`). */
   private readable = true;
+  /**
+   * The last model audio part decoded: its own episode, since every frame that parses re-arms `readable`. The
+   * hot-path rule says a failure's ok → failing transition, never each occurrence, and audio parts come several
+   * times a second.
+   */
+  private partsReadable = true;
   /** A foreign output rate is said once per session (choice 18). */
   private rateWarned = false;
   /** Every pending connection attempt (and, with the ladder, every wait), so a stop ends them at once. */
@@ -247,10 +253,11 @@ class GeminiSession {
         try {
           pcm = base64ToPcm(inline.data);
         } catch (error) {
-          // Thrown inside the socket's callback it would escape it: said as an unreadable frame, the part skipped, the rest of the message still handled.
-          this.unreadable(error);
+          // Thrown inside the socket's callback it would escape it: said as unreadable, the part skipped, the rest of the message still handled.
+          this.undecodable(error);
           continue;
         }
+        this.partsReadable = true;
         audioBytes += pcm.byteLength;
         const rate = pcmRate(mimeType);
         if (rate === SAMPLE_RATE) playable.push(pcm);
@@ -276,10 +283,17 @@ class GeminiSession {
     });
   }
 
-  /** A frame, or a model audio part, that will not decode: a Logs line on the ok → failing transition, never a notice. */
+  /** A frame that will not parse: a Logs line on the ok → failing transition, never a notice. */
   private unreadable(error: unknown): void {
     if (!this.readable) return;
     this.readable = false;
+    this.frame('in', 'server.unreadable', { message: describeCause(error) });
+  }
+
+  /** A model audio part that will not decode: the same Logs line, on its own ok → failing transition, until a part decodes again. */
+  private undecodable(error: unknown): void {
+    if (!this.partsReadable) return;
+    this.partsReadable = false;
     this.frame('in', 'server.unreadable', { message: describeCause(error) });
   }
 
