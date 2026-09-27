@@ -290,7 +290,8 @@ The conformance suite (D24) checks each rule below against every adapter.
   included.
 - **`appendText` is answered by the adapter**, which emits the typed text as a
   source segment (opened, text, closed) and then its translation. L1 fabricates
-  no segment for it.
+  no segment for it. Gemini departs from this: text typed while its connection
+  is down is dropped, with no segment (Stage 2 Gemini, choice 17).
 - **An adapter that can no longer work says so**, with `failed` or an unexpected
   `closed`, and emits nothing after either. `closed` need not be preceded by
   closing every segment; L1 finalizes what is open.
@@ -444,7 +445,7 @@ mechanism:
 | | `beginTurn` | `endTurn` | `cancelTurn` |
 |---|---|---|---|
 | OpenAI | — (WebRTC: enable its own track) | commit + response | **`input_audio_buffer.clear`** |
-| Gemini | `activityStart` | `activityEnd` | `activityEnd`, and the cancelled press's own answer dropped — after the previous answer ends, when one still streams; on Live Translate `activityEnd` alone (no "end without generating" message exists; Stage 2 Gemini, ruling 8, choice 16) |
+| Gemini | `activityStart` | `activityEnd` | `activityEnd`, and the cancelled press's own answer dropped — after the previous answer ends, when one is still owed (a voiced release or typed text whose answer has not started streaming) or streaming; on Live Translate `activityEnd` alone (no "end without generating" message exists; Stage 2 Gemini, ruling 8, choice 16) |
 | Soniox | — | **`finalize`** | — |
 | Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
 | AST2, Palabra | — | — (the server closes on silence) | — |

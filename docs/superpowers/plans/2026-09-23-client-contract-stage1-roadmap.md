@@ -2518,9 +2518,10 @@ waves — Tasks 1–3; Tasks 4–6; Tasks 7 and 8; Tasks 9 and 10; Task 11; Task
 Task 13 — with group check A after the sixth and group check B after the
 seventh. Tasks 1, 2, 5, 7, 9, 10, 11 and 12 took one review fix round each;
 Tasks 3, 4, 6, 8 and 13 were approved as their implementers committed them.
-Task 14 is this record. Three items the task reviews parked for the plan's
-final fix wave are listed under "What it leaves"; they are not recorded here as
-done. The survey the plan was written from is named in its research notes.
+Task 14 is this record. After the whole-plan review (Ready to merge, six
+Minor items), the final fix wave took those six and the three items the task
+reviews had parked for it ("The final fix wave", below). The survey the plan
+was written from is named in its research notes.
 
 **The rulings.** Rulings 1–6 are the owner's (2026-09-28; the plan's header),
 each confirmed as the plan states it:
@@ -2698,6 +2699,42 @@ What landed, by task:
   (`providerPaths.test.ts`). An old profile's global prompt and Electron's
   string `maxTokens` load into Gemini's own settings without being written
   back.
+- **The final fix wave** (`97afa6ba`, and the docs commit that records it
+  here; the controller's rulings "final M1" through "final recommendations"
+  on the whole-plan review):
+  - **M1**: a transcription is framed whenever a message carries one,
+    `finished` or `languageCode` alone included; the turns hear only text.
+    Why: live item 8 reads from the Logs whether they arrive, and the
+    text-only guard would have had it record "never". One case: each alone
+    gives its frame and no segment event. An adapter mutant that feeds the
+    turns empty text is equivalent (`GeminiTurns.input` / `output` return on
+    empty text).
+  - **M2**: at the ladder's exhaustion, the leg fails as the last attempt's
+    refusal when it was `auth` or `rate_limit`, in the words a refused start
+    gives (`[Gemini <code>] <reason>`, choice 12); otherwise as
+    `connection_lost`, as before (ruling 3). Why: a key revoked or a quota
+    spent mid-session read as a lost connection, its cause only in the opt-in
+    Logs. Five cases: refused on the key, or on the quota, at every attempt →
+    `auth` / `rate_limit`; dropped at every attempt → `connection_lost`; and
+    the last attempt decides, both ways.
+  - **M3, M4**: the spec's `appendText` rule names Gemini's departure (text
+    typed while its connection is down is dropped, choice 17), and its
+    `cancelTurn` cell for Gemini adds the owed case.
+  - **M5**: live item 18 is softened: rows group per event type, so
+    interleaved transcript and audio messages alternate (parity with the old
+    names). No `logStore` change.
+  - **M6**, the three parked items:
+    - `pair.test.ts`'s retention case collects in Node's `gcUntil` shape — a
+      macrotask, a full collection, a look, up to five rounds — and still
+      fails against the old retaining cache; 10 of 10 clean runs on the real
+      one;
+    - Soniox's `check.test.ts` asserts that the abort has not fired at
+      14,999 ms: a 1 ms timer, which the case used to pass, now fails it;
+    - `soniox/testing.ts`'s header quotes the guard's current case title.
+  - **The review's five recommendations** join the open questions below.
+
+  The suite at `97afa6ba`: 510 files passed and 1 skipped, 6,538 tests passed
+  and 2 skipped, 0 failed; the gate at its baseline.
 
 **The spec's amendments** (this record's commit), the plan's sixteen, each at
 its anchor:
@@ -2869,8 +2906,8 @@ lives:
    control shows the kit's folder alone would miss it. Why: `testing.ts`'s
    header said only tests import it, and nothing held it — nor Soniox's — to
    that. Lives in `src/providers/sessionSide.consistency.test.ts` (`inKit`).
-   Soniox's `testing.ts` header still quotes the case's old title (to the final
-   fix wave, "What it leaves").
+   Soniox's `testing.ts` header quoted the case's old title until the final fix
+   wave (`97afa6ba`).
 7. **Both unreadable flags reset per socket** (Task 12; `e3757124`):
    `readable` and `partsReadable` reset when `connect()` makes each socket —
    Soniox's rule (`soniox/adapter.ts:286`) — not when the ladder adopts it. Why:
@@ -2916,14 +2953,14 @@ wrong):
 execution changed or added is marked):
 - the participant leg speaks when its switch is on (ruling 5; the old participant was text-only);
 - system instructions are Gemini's own, read from the global copy until edited (ruling 4);
-- a session with no resumption handle reconnects fresh instead of ending, every attempt is bounded, and exhaustion ends the run in words (ruling 3); a dialogue turn in flight closes at the drop instead of merging into the next turn (choice 14);
+- a session with no resumption handle reconnects fresh instead of ending, every attempt is bounded, and exhaustion ends the run in words (ruling 3) — **as landed**, a refusal's own words (`auth` / `rate_limit`) when the last attempt was refused on the key or the quota (the final fix wave, M2); a dialogue turn in flight closes at the drop instead of merging into the next turn (choice 14);
 - a press with no speech sends `activityEnd` and drops its own answer — at once when nothing streams, after the previous answer ends when one still streams (that answer is never cut) — and on Live Translate is `activityEnd` alone (ruling 8, choice 16; the old left the activity open). **As landed** (execution, "Found during execution" items 4 and 5): an answer owed — after a voiced release or typed text, before its first output — waits like one streaming; a release during the ladder sent no `activityEnd` and owes nothing;
 - typed text sent while a dialogue answer still streams (`NO_INTERRUPTION`) takes that turn's origin: it groups with the previous exchange as a stated pair, and its own answer arrives under the next turn's origin with no source beside it — a wrong stated pair (spec "Risks"), the same effect a voice press has there. Stated, not fixed here (choice 17);
 - a start rejects in words within 15 s instead of hanging (choice 12); a transient socket error is a Logs line, not an "Unknown error" bubble;
 - the default model is the newest native-audio dialogue model, not the old sort (ruling 2) — **as landed**, a family with no minor read as `.0` ("Found during execution", item 1); the check sends the key as a header and is bounded (ruling 9, choice 5);
 - content in a message that also ends the turn is kept (choice 15); `thought` parts never become text; audio at a foreign rate is skipped and said once (choice 18); the odd audio byte and the whole-buffer base64 are fixed (Task 9); `maxTokens` stored as a string on Electron is read as its number (ruling 10);
 - Live Translate's audio outside an open translation plays with no row, so no replay holds it (choice 8);
-- typed text is trimmed, and dropped while no connection is up (choice 17);
+- typed text is trimmed, and dropped while no connection is up (choice 17); the spec's `appendText` rule names the departure (the final fix wave, M3);
 - the subtitle bar shows "ZH" for Mandarin, not "CM" (choice 9);
 - `boundaries: 'silence'` lets L2 cut a dialogue turn into rows at pauses in pause mode (new, harmless);
 - a transcription's language is not forwarded to the segment (choice 19);
@@ -2952,17 +2989,17 @@ execution added is marked):
 5. **Push-to-talk, on a dialogue model and on Live Translate** (`turns()` offers manual turns for every model): a short press → a reply (on Live Translate, the held speech translated); minutes idle between presses → the session survives (resumed or fresh; the Logs say which); push-to-translate routes the raw voice while idle.
 6. **A press with no speech** (ruling 8, choice 16): no reply shown, and the next press not merged with it. **A voiceless press while the previous answer is still playing:** that answer plays and shows to its end, and nothing answers the voiceless press. Record whether the server answers a cancelled activity at all (a late `turnComplete` in the Logs), and whether a second `activityStart` is tolerated. On Live Translate a voiceless press cuts nothing: the translation streaming at that moment goes on. **Execution (Task 10's fix round):** a voiceless press made right after a voiced release, before its answer's first output, waits for that answer too. The owed answer is a flag, not a count: two presses with voice, then a voiceless one, all inside the latency window, drop the second's answer — record whether that happens in ordinary use.
 7. **Typed text:** in auto; under push-to-talk (the wrap in activity marks answers, choice 17); **on Live Translate** — answered or ignored? If ignored, the row stays unanswered: the open question below.
-8. **Live Translate:** continuous speech → source and translation segments cut by pause, each side on its own; inferred pairing plausible; the speaker's own voice reproduced; speaking the target language produces nothing; **listen for leading audio chunks before a sentence's first transcript** (live only, not in its replay — choice 8); the Logs show whether `finished`, `languageCode` and `turnComplete` ever arrive.
+8. **Live Translate:** continuous speech → source and translation segments cut by pause, each side on its own; inferred pairing plausible; the speaker's own voice reproduced; speaking the target language produces nothing; **listen for leading audio chunks before a sentence's first transcript** (live only, not in its replay — choice 8); the Logs show whether `finished`, `languageCode` and `turnComplete` ever arrive (a transcription is framed even with no text: the final fix wave, M1).
 9. **Live Translate past 10–15 minutes:** whether a resumable handle is ever issued (`server.session_resumption_update` with `hasHandle: true`), and whether a `goAway` or a drop resumes or opens fresh (`session.opened` with `resumed`) — ruling 3's fresh session keeps it running either way.
 10. **A long dialogue session (> 10 min):** `server.go_away` → `session.reconnecting` → a new `session.opened` (`resumed`) and `server.setup_complete`, and the leg's reconnecting state clears (there is no `session.reconnected` frame: the `reconnected` event is the record); rows continue with nothing duplicated; the resumed context remembers the conversation (a handle), or a fresh one does not. **Execution (Task 12's fix round):** under push-to-talk, a press held across the gap starts again with `activityStart` on the new connection, and a release during the ladder sends no `activityEnd`; a resumed session may still hold an activity whose `activityStart` went out before the drop — record what the server does with it, which is not knowable offline.
-11. **Start failures and drops:** a model the server rejects and an exhausted quota → words, no hang — record each close code and reason (choice 12's mapping); a network drop mid-session → three attempts in the Logs, then the connection-lost words, the run ended. **Execution (Task 12's fix round):** as in item 10, a drop under push-to-talk with a press in flight — record what a resumed session does with the activity opened before the drop.
+11. **Start failures and drops:** a model the server rejects and an exhausted quota → words, no hang — record each close code and reason (choice 12's mapping); a network drop mid-session → three attempts in the Logs, then the connection-lost words, the run ended. **The final fix wave (M2):** a key revoked or a quota spent mid-session → three refused attempts, then that refusal's words ("The provider did not accept the credentials: …" / "The provider is limiting requests …"), not the connection-lost words — record whether Google refuses a resume that way. **Execution (Task 12's fix round):** as in item 10, a drop under push-to-talk with a press in flight — record what a resumed session does with the activity opened before the drop.
 12. **Both, with participant speech (ruling 5):** two sockets; the participant translated in the reverse direction with its own prompt (Other's instructions in Advanced mode); the participant-speech switch on → Other's translation heard on the real device, off → silent; either leg ending ends both; a denied loopback names the participant; participant-only. Record whether two Live sessions on one key are allowed.
 13. **Text only:** no audio played.
 14. **Stop mid-turn:** rows finalized; no audio after Stop; the auto-save's content.
 15. **The extension side panel:** the core flows (the check's fetch, the socket under the CSP).
 16. **The instructions migration (ruling 4):** a profile whose global prompt was edited (Advanced mode, custom text, and a participant prompt) opens Gemini with that prompt and mode; editing it in Gemini's settings changes Gemini only, and the old global copy is left as it was. **An old profile** with Gemini selected, push-to-talk stored and max tokens 2048 on Electron: Gemini loads, the turn mode is push-to-talk, and max tokens is 2048, not unlimited (ruling 10).
 17. **The wizard's own-key path** lists Gemini; its credential step checks the key.
-18. **The Logs panel:** the frames grouped (no flood of `server_content.*` rows), no key and no handle visible anywhere.
+18. **The Logs panel:** record how an answer's rows group. Rows group per event type, so when the server interleaves its transcript and audio messages the rows alternate, as with the old names (the final fix wave, M5). Nothing leaks: no key and no handle visible anywhere.
 19. **Analytics:** `translation_session_start` with `provider: 'gemini'` and the model as the translation model (choice 6); a refused start → `api_error` with its code.
 
 **Open questions for the owner**
@@ -2978,6 +3015,11 @@ execution added is marked):
 - The orphan locale key `settings.geminiParticipantTokenWarning` (30 catalogs).
 - Analytics for `degraded` (Plan A's open question, unchanged): Gemini's foreign-rate `tts_degraded` is its first user.
 - **Name the leg in `SessionContext`** (execution: Task 7's review, m2) when a later provider with per-leg prompts (OpenAI, Compatible) needs it: today a same-language pair makes both legs read Other's prompt (the stated departure above), for Gemini and LocalInference alike.
+- **Turn boundaries under stated pairing** (live items 3 and 4b; the final review's recommendation 1): Gemini sends transcriptions independently of other content, so a dialogue model's input transcript for turn N that lands after N's `turnComplete` opens turn N+1's source, and every exchange after it can pair one-off — the old client's structure, now shown as wrong stated pairs rather than as separate bubbles. The live test watches the Logs for an `input_transcription` after a `turn_complete` with no new speech between them.
+- **Separate source and answer turns under push-to-talk** (recommendation 2): each activity gets one answer, so manual mode could count source turns apart from answer turns — the source side advancing at `beginTurn`, the translation at `turnComplete` — and a second voiced press, or typed text, made while an answer streams would no longer join the previous turn's source. A contained change to `GeminiTurns`, if item 4b shows users hit it.
+- **The readiness re-check on each instruction edit** (recommendation 3): every pause of 800 ms or more while typing a prompt forgets readiness — Start is off until the re-check answers — and re-lists the models. A provider declaring which of its settings the check reads is a generic change, best made before the next port that owns instructions (OpenAI); the inheritance table below records it as not taken.
+- **Defer a `goAway` reconnect past the answer in flight** (recommendation 4): `goAway` comes with time to spare (`timeLeft`), and breaking at once throws away the dialogue answer being spoken; waiting for its `turnComplete`, bounded by `timeLeft`, is the cheapest step toward the two resumption questions above.
+- **Promote `trackedClock` to the kit** (recommendation 5): the copies in `gemini/testing.ts` and `soniox/testing.ts` are byte-identical, and AST2 is the third user choice 21 anticipated — when G2 or AST2 lands ("What it leaves").
 
 **G2's inventory** (the deletion plan, after the live test; lines read at
 `3665711d`, and none of these files changed through `0c2f461b` but
@@ -3037,8 +3079,8 @@ the Kizuna Soniox plan's "Found here" (`:2494` above):
 
 **Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; `RunnerDeps.replayAudio`'s guard; the notice-code namespace; the release-flag cleanup at Stage 2's end.
 
-What it leaves, for the plans that meet it (the plan's own list, as written,
-and the three items the task reviews parked for its final fix wave):
+What it leaves, for the plans that meet it (the plan's own list, as written;
+the three items the task reviews parked are done, last below):
 - **G2**, the deletion of the old Gemini code, after the owner's live test (Task 14's inventory).
 - **`@google/genai`** stays in `package.json` until G2 decides its fate (open question).
 - **F14**: Gemini's `socket.ts` and Soniox's move to `src/lib/contract/` with AST2's header seam.
@@ -3047,6 +3089,4 @@ and the three items the task reviews parked for its final fix wave):
 - **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox.
 - **The instructions of later ports:** each provider that sends instructions spreads `InstructionsSettings` into its `S`, lists `INSTRUCTION_LEGACY_KEYS` in its `legacyKeys`, calls `migrateInstructions` in its `migrate` and `resolveInstructions` in its builder, and renders `InstructionsField` — LocalInference keeps its own prompt as it is.
 - **The owner's open questions** in Task 14's record, each with the live-test item that settles it.
-- **The retention test's single `gc()` call** (`src/lib/projection/pair.test.ts:300`) — to the final fix wave: loop `gc()` across a couple of macrotasks (Node's `gcUntil` shape). Accepted as it is for now (the controller's ruling: 58 of 58 clean runs; the flag it sets process-wide is harmless while no other test touches `WeakRef` or `--expose-gc`). Cost if wrong: one CI flake, visible and one line to fix.
-- **Soniox's `check.test.ts` timeout assertion twin** (`src/providers/soniox/check.test.ts:97-99`) — to the final fix wave: the same assertion Gemini's case gained (Task 5's fix round), that the abort has not fired one millisecond before `CHECK_TIMEOUT_MS`; as written, a 1 ms timer passes it.
-- **The stale case title quoted in `soniox/testing.ts`'s header** (`:4-6`, "only test-only modules import the adapter test kit") — to the final fix wave: the case is now "only test-only modules import the adapter test kit or a provider's fixtures" (Task 11's review, m3).
+- **The three items the task reviews parked** — the retention test's single `gc()` call (`src/lib/projection/pair.test.ts`), Soniox's `check.test.ts` timeout assertion twin, and the stale case title quoted in `soniox/testing.ts`'s header: done by the final fix wave (`97afa6ba`, "The final fix wave" above).
