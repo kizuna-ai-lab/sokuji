@@ -8,12 +8,13 @@ import type { AnyProvider } from '../lib/provider/types';
 import { debugSwitchOn, enabledProviderIds, getEnvironment, isDevelopmentMode, isKizunaAIEnabled } from '../utils/environment';
 import { fakeLeasedProvider } from './fake/leased';
 import { fakeProvider } from './fake/provider';
+import { geminiProvider } from './gemini/provider';
 import { localInferenceProvider } from './localInference/provider';
 import { kizunaSonioxProvider } from './soniox/kizuna';
 import { sonioxProvider } from './soniox/provider';
 
-/** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6): the managed Kizuna Soniox, the free LocalInference, then Soniox with your own key. */
-const RELEASED = [kizunaSonioxProvider, localInferenceProvider, sonioxProvider] as const;
+/** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6; Stage 2 Gemini, ruling 6): the managed Kizuna Soniox, the free LocalInference, then Gemini and Soniox with your own key. */
+const RELEASED = [kizunaSonioxProvider, localInferenceProvider, geminiProvider, sonioxProvider] as const;
 /** Compiled into development builds only (D24): the fake, and the leased fake that carries the session hooks (Stage 2 foundation, choice 1). */
 const DEV_ONLY = [fakeProvider, fakeLeasedProvider] as const;
 

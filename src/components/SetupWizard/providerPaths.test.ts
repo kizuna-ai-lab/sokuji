@@ -25,7 +25,7 @@ describe('providerPaths', () => {
   });
 
   it("lists the registered own-key providers in registry order, in the old enum's spelling", () => {
-    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['soniox', 'fake']);
+    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'soniox', 'fake']);
   });
 
   it("judges a provider's fit from its speech", () => {

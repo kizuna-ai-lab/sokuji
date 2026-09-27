@@ -211,8 +211,8 @@ describe('the invariants every provider meets (F17)', () => {
     const releaseBuild = await import('./registry');
     // each provider plan adds its id where the owner orders it (spec: "one line in the order test").
     // Kizuna Soniox first, unflagged (Stage 2 Kizuna Soniox, ruling 6): the owner's 2026-09-12
-    // product order put the managed provider first; then LocalInference, then Soniox with your own key.
-    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference', 'soniox']);
+    // product order put the managed provider first; then LocalInference, Gemini (Stage 2 Gemini, ruling 6), then Soniox with your own key.
+    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference', 'gemini', 'soniox']);
   });
 
   it('a development build adds exactly the two fakes', () => {
