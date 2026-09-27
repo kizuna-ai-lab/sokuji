@@ -300,7 +300,8 @@ The conformance suite (D24) checks each rule below against every adapter.
   sanitizes. The panel groups by `type` plus the item id it finds in the
   payload, marks severity by the `error` / `failed` / `warning` suffix, and draws
   its "session ended" separator from `closed` — three conventions the generic
-  event must keep.
+  event must keep. A provider's plan adds the `logStore` rows that group its
+  frames (Gemini's: `server_content.*`, `server.usage_metadata`).
 
 ### The session request
 
@@ -375,7 +376,9 @@ adapter.
 **`updateSession` is deleted.** It has no external caller, and "a running session
 does not react to a setting changing" is already the rule. Adapters that
 reconnect (Gemini, OpenAI Live, Soniox's 503 resume) reuse the original request
-internally.
+internally. Gemini's attempts are bounded — three, each within its setup
+timeout — and with no resumption handle it opens a fresh session rather than
+ending (Stage 2 Gemini, ruling 3).
 
 **What opacity costs.** Telemetry reads model names straight out of the config
 today (`sessionModelTelemetry(sessionConfig, …)`), and the export switches on the
@@ -441,7 +444,7 @@ mechanism:
 | | `beginTurn` | `endTurn` | `cancelTurn` |
 |---|---|---|---|
 | OpenAI | — (WebRTC: enable its own track) | commit + response | **`input_audio_buffer.clear`** |
-| Gemini | `activityStart` | `activityEnd` | end without generating |
+| Gemini | `activityStart` | `activityEnd` | `activityEnd`, and the cancelled press's own answer dropped — after the previous answer ends, when one still streams; on Live Translate `activityEnd` alone (no "end without generating" message exists; Stage 2 Gemini, ruling 8, choice 16) |
 | Soniox | — | **`finalize`** | — |
 | Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
 | AST2, Palabra | — | — (the server closes on silence) | — |
@@ -475,8 +478,9 @@ and OpenAI stops storing push-to-talk as `'Disabled'`.
 
 **The participant leg is always `turns: 'auto'`**, never gated, with no
 passthrough — a generic rule rather than Gemini's override. The settings copy
-"Other's audio always uses semantic VAD", false today for every provider but
-Gemini, becomes "always uses the provider's automatic detection", and true.
+"Other's audio always uses semantic VAD", false today for every provider —
+Gemini's participant used the user's own detection knobs — becomes "always uses
+the provider's automatic detection", and true.
 
 **The mode is one global setting.** Every provider supports all three, so whether
 to hold a key is the user's habit, not a property of a provider, and switching
@@ -712,8 +716,10 @@ row, and a pause cut applies to it as much as to a closed one — that is what
 "by pause" means while someone is still speaking.
 
 **The projection is incremental.** Only a leg whose segments changed is re-cut,
-pairing is re-evaluated only for the segments that changed, and entries that
-did not change keep their identity. A session runs for hours and a partial
+pairing is re-evaluated only when a pairing input changed — a segment opened, an
+origin, a timing — and then only inside each translation's proximity window
+(F16, Stage 2 Gemini choice 24), and entries that did not change keep their
+identity. A session runs for hours and a partial
 arrives twenty times a second; re-pairing thousands of segments on every one
 would put the cost where today's full `mergeConversationItems` already puts
 it, and the point of running once is to run less, not the same amount in one
@@ -959,7 +965,7 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 | OpenAILiveClient | yes | per audio frame, **exists today** | inferred (`end_ms` timeline) |
 | OpenAIGAClient | yes | per audio frame — `handleAudioDelta` already holds the item and the transcript accumulates on the same `item_id` | response ↔ committed input — stated, to be wired |
 | OpenAIClient (compatible) | yes | per audio frame — same shape | same — to be wired |
-| GeminiClient | yes | none — **no karaoke** | same turn — stated |
+| GeminiClient | yes | none — **no karaoke** | dialogue models: same turn — stated; Live Translate: inferred (no turns) |
 | VolcengineAST2Client | yes — today's quality is the bar to keep | none: the server's TTS sentence boundaries need not align with subtitle phases | inferred (`startTime`/`endTime`, **currently unread**) |
 | OpenAIWebRTCClient | yes | none | same as GA — to be wired |
 | OpenAITranslateWebRTCClient | yes | none | inferred |
@@ -969,6 +975,9 @@ Soniox's unit is the TTS **segment** — a sentence, a clause after 1.5 s with n
 new text, 3 s of idle, an 8-s cap, a change of language or of row, or the
 utterance's end (`ttsStream.ts`) — not the sentence the first version of this
 table named (Stage 2 Soniox survey §3.7.3).
+
+Gemini, not OpenAI Translate, is the first provider whose origins L2 infers
+(Live Translate).
 
 Two findings are worth stating plainly. Palabra is the only client that cannot
 replay, and it holds the cleanest pairing evidence in the codebase: the same
@@ -1089,14 +1098,23 @@ voice-preview route) and `legs?`; `AdapterEvents.speechRanges`; `LegStartError`.
 `acquire`'s context `{ signal, clock, end(notice, { expected? }), frame(frame) }`;
 `degraded`'s `reason?`; `RunShape.account?`; `RunState.running.budget?`.
 
+**Amended by the Stage 2 Gemini plan:** `SharedSettings.instructions` is
+removed — a provider that sends system instructions owns them in its `S`
+(`src/lib/provider/instructions.ts`: `InstructionsSettings`,
+`resolveInstructions`, `migrateInstructions`); `settings.legacyKeys` may name a
+whole storage key (`settings.common.…`), read at that key and never written.
+
 `settings.key` is today's slice key, and values persist under
 `settings.<key>.<field>` exactly as now: no user's saved settings move.
 
-`shared` is what a builder may read beyond its own settings — the system
-instructions resolved for a direction, and the segmentation pauses — so a builder
-never reaches into the settings store. A provider's own stores are its own
-business: the local builders read their model stores, which is where model
-resolution belongs (never in the adapter).
+`shared` is what a builder may read beyond its own settings — the segmentation
+pauses and display cut, which direction is the participant's, and the models
+the last check listed — so a builder never reaches into the settings store.
+System instructions are not shared: every model family has its own instruction
+style, so a provider that sends them owns them in its `S` and edits them in its
+own `Settings` through `InstructionsField` (Stage 2 Gemini, ruling 4). A
+provider's own stores are its own business: the local builders read their model
+stores, which is where model resolution belongs (never in the adapter).
 
 `start` owns the transport. OpenAI's choice between WebRTC and WebSocket, and the
 fallback from one to the other, become its business, so `supportsWebRTC` and
@@ -1217,8 +1235,14 @@ ready answer: signing out and back in to the same account is served from it.
 
 The store's model auto-select, a switch covering three providers, becomes a pure
 effective-model function inside each provider that offers a model choice: the
-saved model if the check found it, otherwise the newest. The provider's settings
-component and its builder call the same function, so nothing writes back.
+saved model if the check found it, otherwise the newest; while no check has
+listed any model, the saved one — none on a fresh profile, which the builder
+refuses (`models_required`), though a run builds only after a ready answer,
+whose list is never empty (Stage 2 Gemini, `effectiveGeminiModel`). Gemini's
+newest is the newest native-audio dialogue model — by family (`major.minor`),
+then the id's `-MM-YYYY` date, a dated id before an undated one (Stage 2 Gemini,
+ruling 2). The provider's settings component and its builder call the same
+function, so nothing writes back.
 
 The local engines' `prepareToStart`, which only re-validates, disappears: the
 lifecycle runs `check` at start for every provider, a ready answer cached for the network ones.
@@ -1241,9 +1265,11 @@ catalogue. The two show different target lists for the same provider.
 The pair stays stored per provider. Its default moves with it: `languages.initial`
 gives the pair a provider starts from when nothing is stored, which is how
 today's per-slice defaults (LocalInference ja→en, AST2 zh→en, …) survive the
-move. Codes differ between providers — Gemini's `en-US` and `cmn-CN`, Palabra's
-`en-us` and `zh-hant`, AST2's `zhen` — so one global pair would need a canonical
-code and a mapping per provider: a product change this design does not need.
+move. Codes differ between providers — Gemini's `en-US` and `cmn-CN` (shown as
+regional badges ("JA-JP", "CMN-CN"); the subtitle bar's two-letter code reads
+the base language ("ZH")), Palabra's `en-us` and `zh-hant`, AST2's `zhen` — so
+one global pair would need a canonical code and a mapping per provider: a
+product change this design does not need.
 
 **The participant rule (D20).** The participant leg opens when the reversed
 direction is supported: the speaker's target is among `sources`, and the
@@ -1255,15 +1281,18 @@ template mode its prompt asks for a translation into the raw string `auto`,
 because `auto` is in no language list (`settingsStore.ts:1437-1446`). Only an
 advanced-mode participant prompt that names its own language made the
 combination work; that use goes. The advanced-mode participant prompt itself
-stays, as the prompt for the reversed direction: `shared.instructions(direction)`
-returns it, and the builder still sees only a direction.
+stays, as the prompt for the reversed direction: the provider's own
+`participantSystemInstructions`, resolved by `resolveInstructions` for the
+participant's direction, and the builder still sees only a direction.
 
 ### Segmentation is one fact
 
 The offer's three booleans become `boundaries(s)`: who ends a segment. Where the
 provider does (`'provider'`), the user may keep its boundary — Auto. Where our
-own silence timers do (`'silence'`: OpenAI Translate, OpenAI Live, Gemini), the
-user tunes the pauses. Cutting into a number of sentences is available
+own silence timers do (`'silence'`: OpenAI Translate, OpenAI Live, Gemini) — for
+Gemini as parity with the old offer: its dialogue segments end at
+`turnComplete`, and only Live Translate's end on our timers — the user tunes the
+pauses. Cutting into a number of sentences is available
 everywhere: rows tile the segment's text and a `range` survives a cut, so the
 reason OpenAI's descriptor withheld it — splitting an item would strand its
 karaoke timing — no longer holds. It takes `S` because the answer can depend on
@@ -1354,9 +1383,11 @@ serialized in one place. Today the legs connect one after the other
 (`MainPanel.tsx:2463`, then `:2753`), so nothing collides yet; a per-host
 register/clear pair would, the moment the legs come up together.
 
+Gemini's key rides in the socket's query: it needs no header.
+
 ### Persisted settings that move
 
-Storage keys stay, but four things change meaning. A provider's own values are
+Storage keys stay, but five things change meaning. A provider's own values are
 migrated as they are read at load (`settings.migrate`, with `legacyKeys`, the
 credentials and `migratePair`); nothing is written back, so they stay as they
 were and every load migrates them again. The global turn mode is the
@@ -1369,6 +1400,7 @@ exception: it is migrated once from the old slices and written to its own key,
 | credentials | fields inside each slice (`apiKey`, `appId`, `accessToken`, `clientId`, `clientSecret`, region keys) | the same keys, read into the credential record instead of `S` |
 | `keepReplayAudio` | a client option every client is handed | L1's retention switch (D26) |
 | transport | `transportType` in the OpenAI slices, with `forceWebrtcTurnDetectionOff` rewriting the turn mode | stays in `S`; the rewrite becomes `turns(s)` (D25) |
+| system instructions | one global copy, `settings.common.useTemplateMode` / `systemInstructions` / `participantSystemInstructions` | each provider's own three fields, each read from the provider's key once written and otherwise from the global key (a `legacyKeys` entry naming the whole key); nothing moves, and the global copy stays for the providers not yet ported |
 
 `bothModeSharedSession`, the segmentation settings and the display settings do
 not move.
@@ -1382,7 +1414,7 @@ not move.
    the definition's `i18nKey` where the catalogs already spell it otherwise.
 4. The extension manifest, when the provider uses a new host — MV3 declares hosts
    statically — none for Soniox, whose twelve origins the manifest already
-   lists.
+   lists, or for Gemini, whose origin the manifest's CSP already lists.
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
 
 For OpenAI Live that is two code files outside its folder, plus the manifest,
@@ -1867,8 +1899,9 @@ The order (the owner may overrule it):
 2. **Kizuna Soniox** (`kizunaai_soniox`) — the managed composition: the lease,
    the budget, the voice claim, the balance floor. It may share a plan with
    Soniox, in two task groups, each with its own live test.
-3. **Gemini** (`gemini`) — turn-level origin, no ranges, `boundaries:
-   'silence'`, reconnect.
+3. **Gemini** (`gemini`) — turn-level origin for the dialogue models and
+   inferred for Live Translate, no ranges, `boundaries: 'silence'` (parity),
+   reconnect — ported by the Stage 2 Gemini plan.
 4. **Volcengine AST2** (`volcengine_ast2`) — the socket seam's first user,
    inferred pairing.
 5. **OpenAI Translate** (`openai_translate`) — frame-level ranges, our own
