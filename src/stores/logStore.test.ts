@@ -159,6 +159,39 @@ describe('logStore — per-client event grouping', () => {
       expect(speaker[speaker.length - 1].events, type).toHaveLength(2);
     }
   });
+
+  it("groups Doubao AST 2.0's renamed frames under the old client's keys (Stage 2 Volcengine AST2, choice 9)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    add('subtitle.source');
+    add('subtitle.source');
+    add('subtitle.source');
+    let speaker = entriesFor('speaker');
+    expect(speaker).toHaveLength(1);
+    expect(speaker[0].groupingKey).toBe('volcengine_source_subtitle');
+    expect(speaker[0].events).toHaveLength(3);
+
+    // A group holds one frame type (the merge compares `eventType` too): each
+    // name keeps its old client's key, but three of them share a key
+    // ('volcengine_tts') — adding each type twice and checking the group's own
+    // event count is what would catch a grouping that merged them regardless
+    // of type; checking only the newest entry's groupingKey would not.
+    const keys: Array<[string, string]> = [
+      ['subtitle.translation', 'volcengine_translation_subtitle'],
+      ['tts.sentence_start', 'volcengine_tts'],
+      ['tts.sentence_end', 'volcengine_tts'],
+      ['tts.ended', 'volcengine_tts'],
+      ['session.usage', 'volcengine_usage'],
+      ['session.audio_muted', 'volcengine_audio_mute'],
+    ];
+    for (const [type, key] of keys) {
+      add(type);
+      add(type);
+      speaker = entriesFor('speaker');
+      expect(speaker[speaker.length - 1].groupingKey, type).toBe(key);
+      expect(speaker[speaker.length - 1].events, type).toHaveLength(2);
+    }
+    expect(speaker).toHaveLength(7);
+  });
 });
 
 describe('logStore — channel filing', () => {

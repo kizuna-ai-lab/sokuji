@@ -59,6 +59,18 @@ describe('redact', () => {
     expect(out).toContain('X-Date=20260827T000000Z');
   });
 
+  // volcengine_ast2/wire.ts `ast2Url` — Doubao AST 2.0's credentials ride in
+  // its socket's query (Stage 2 Volcengine AST2, ruling 2): the legacy App ID
+  // and Access Token, or the new console's API key. The resource id is not a
+  // secret and stays readable.
+  it("redacts Doubao AST 2.0's query credentials, keeping each parameter's name", () => {
+    const legacy = 'wss://openspeech.bytedance.com/api/v4/ast/v2/translate?api_resource_id=volc.service_type.10053&api_app_key=1234567890&api_access_key=Abc-Def_ghi';
+    expect(redact(legacy)).toBe('wss://openspeech.bytedance.com/api/v4/ast/v2/translate?api_resource_id=volc.service_type.10053&api_app_key=[REDACTED]&api_access_key=[REDACTED]');
+    expect(redact('wss://openspeech.bytedance.com/api/v4/ast/v2/translate?api_resource_id=volc.service_type.10053&api_key=0a1b2c3d'))
+      .toBe('wss://openspeech.bytedance.com/api/v4/ast/v2/translate?api_resource_id=volc.service_type.10053&api_key=[REDACTED]');
+    expect(redact('?API_APP_KEY=a1&Api_Access_Key=b2')).toBe('?API_APP_KEY=[REDACTED]&Api_Access_Key=[REDACTED]');
+  });
+
   it('redacts Bearer tokens but keeps the scheme', () => {
     expect(redact('Authorization: Bearer sess_abcdef123456'))
       .toBe('Authorization: Bearer [REDACTED]');

@@ -463,20 +463,25 @@ const useLogStore = create<LogStore>(
         // Group PalabraAI current task response events together
         groupingKey = 'palabraai_current_task';
       }
-      // Volcengine AST2-specific grouping
-      else if (eventType === 'SourceSubtitleResponse' || eventType === 'SourceSubtitleStart' || eventType === 'SourceSubtitleEnd') {
+      // Volcengine AST2-specific grouping: the old client's names and the new
+      // adapter's `domain.event` frames (Stage 2 Volcengine AST2, choice 9);
+      // the old names go with the old client.
+      else if (eventType === 'SourceSubtitleResponse' || eventType === 'SourceSubtitleStart' || eventType === 'SourceSubtitleEnd'
+          || eventType === 'subtitle.source') {
         groupingKey = 'volcengine_source_subtitle';
       }
-      else if (eventType === 'TranslationSubtitleResponse' || eventType === 'TranslationSubtitleStart' || eventType === 'TranslationSubtitleEnd') {
+      else if (eventType === 'TranslationSubtitleResponse' || eventType === 'TranslationSubtitleStart' || eventType === 'TranslationSubtitleEnd'
+          || eventType === 'subtitle.translation') {
         groupingKey = 'volcengine_translation_subtitle';
       }
-      else if (eventType === 'TTSResponse' || eventType === 'TTSSentenceStart' || eventType === 'TTSSentenceEnd') {
+      else if (eventType === 'TTSResponse' || eventType === 'TTSSentenceStart' || eventType === 'TTSSentenceEnd'
+          || eventType === 'tts.sentence_start' || eventType === 'tts.sentence_end' || eventType === 'tts.ended') {
         groupingKey = 'volcengine_tts';
       }
-      else if (eventType === 'UsageResponse') {
+      else if (eventType === 'UsageResponse' || eventType === 'session.usage') {
         groupingKey = 'volcengine_usage';
       }
-      else if (eventType === 'AudioMuted' || eventType === 'AudioUnmuted') {
+      else if (eventType === 'AudioMuted' || eventType === 'AudioUnmuted' || eventType === 'session.audio_muted') {
         groupingKey = 'volcengine_audio_mute';
       }
       // For other events, extract item_id if it exists (OpenAI)

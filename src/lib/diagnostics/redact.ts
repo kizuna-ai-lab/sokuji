@@ -33,8 +33,13 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   // URL a user pastes into a bug report. They need naming explicitly: the rule is
   // anchored on `[?&]`, so a bare `signature` alternative does NOT match
   // `?X-Signature=` — the `X-` prefix sits between the delimiter and the name.
+  //
+  // `api_app_key`, `api_access_key` and `api_key`: Doubao AST 2.0 takes its
+  // credentials in the socket's query (`volcengine_ast2/wire.ts` `ast2Url`,
+  // Stage 2 Volcengine AST2 ruling 2). The URL is never put in a frame, an
+  // error or a notice; this is the net for one that reaches a sink anyway.
   [
-    /([?&](?:key|api_key|apikey|token|access_token|accessToken|secret|signature|x-credential|x-signature|x-security-token)=)[^&\s"']+/gi,
+    /([?&](?:key|api_key|api_app_key|api_access_key|apikey|token|access_token|accessToken|secret|signature|x-credential|x-signature|x-security-token)=)[^&\s"']+/gi,
     `$1${REDACTED}`,
   ],
   // `Authorization: Bearer <token>` on every provider fetch.
