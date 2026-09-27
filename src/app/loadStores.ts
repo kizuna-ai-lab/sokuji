@@ -21,7 +21,11 @@ export async function loadSelectedProvider(service: Pick<ISettingsService, 'getS
   const { selected } = useProviderStore.getState();
   const id = selected !== null && offered.some((p) => p.id === selected)
     ? selected
-    : selectionFromStored(await service.getSetting('settings.common.provider', ''), offered.map((p) => p.id))?.id;
+    : selectionFromStored(
+      await service.getSetting('settings.common.provider', ''),
+      offered.map((p) => p.id),
+      offered.find((p) => p.kind === 'managed')?.id ?? null,
+    )?.id;
   const provider = offered.find((p) => p.id === id);
   if (!provider) return;
   if (useProviderStore.getState().selected !== provider.id) useProviderStore.getState().select(provider.id, 'load');

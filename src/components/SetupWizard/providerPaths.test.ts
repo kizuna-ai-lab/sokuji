@@ -14,13 +14,13 @@ vi.mock('../../utils/environment', async (orig) => ({
 }));
 import { Provider } from '../../types/Provider';
 import {
-  availablePaths, managedProvider, ownKeyOptions, offlineOptions, providerFits, offersRecord,
+  availablePaths, managedProvider, managedOption, ownKeyOptions, offlineOptions, providerFits, offersRecord,
   textOnlyCapabilityOf, wizardProvider,
 } from './providerPaths';
 
 describe('providerPaths', () => {
-  it('offers the own-key path beside the offline one once an own-key provider is registered', () => {
-    expect(availablePaths()).toEqual(['own-key', 'offline']);
+  it('offers the managed path first, then own key and offline', () => {
+    expect(availablePaths()).toEqual(['managed', 'own-key', 'offline']);
     expect(managedProvider()).toBe(Provider.KIZUNA_AI_SONIOX);
   });
 
@@ -37,6 +37,10 @@ describe('providerPaths', () => {
     expect(text[Provider.SONIOX]).toEqual({ ok: true });
   });
 
+  it("judges the managed card's fit from the definition's speech", () => {
+    expect(managedOption('subtitle-myself')).toEqual({ id: Provider.KIZUNA_AI_SONIOX, fit: { ok: true } });
+  });
+
   it('offline offers only the in-app engine, on Electron too — LocalNative is not on the branch', () => {
     expect(offlineOptions()).toEqual([Provider.LOCAL_INFERENCE]);
   });
@@ -44,6 +48,7 @@ describe('providerPaths', () => {
   it('providerFits answers for a registered provider, and no for one this build lacks', () => {
     expect(providerFits(Provider.SONIOX, 'subtitle-myself')).toBe(true);
     expect(providerFits(Provider.LOCAL_INFERENCE, 'two-way-voice')).toBe(true);
+    expect(providerFits(Provider.KIZUNA_AI_SONIOX, 'subtitle-myself')).toBe(true);
     expect(providerFits(Provider.OPENAI, 'be-heard')).toBe(false);
   });
 
@@ -56,8 +61,12 @@ describe('providerPaths', () => {
       expect(offersRecord({ scenario: 'be-heard', providerPath: 'offline', provider: Provider.LOCAL_NATIVE })).toBe(false);
     });
 
-    it('refuses a managed record — no managed card until Stage 2', () => {
-      expect(offersRecord({ scenario: 'be-heard', providerPath: 'managed', provider: Provider.KIZUNA_AI_SONIOX })).toBe(false);
+    it('offers a managed record for Kizuna Soniox', () => {
+      expect(offersRecord({ scenario: 'be-heard', providerPath: 'managed', provider: Provider.KIZUNA_AI_SONIOX })).toBe(true);
+    });
+
+    it('refuses a managed record naming a provider this build does not register', () => {
+      expect(offersRecord({ scenario: 'be-heard', providerPath: 'managed', provider: Provider.KIZUNA_AI_OPENAI_TRANSLATE })).toBe(false);
     });
 
     it('offers an own-key record for Soniox', () => {
@@ -77,6 +86,7 @@ describe('providerPaths', () => {
   it("wizardProvider reads a draft's old spelling", () => {
     expect(wizardProvider('local_inference')?.id).toBe('localInference');
     expect(wizardProvider('soniox')?.id).toBe('soniox');
+    expect(wizardProvider('kizunaai_soniox')?.kind).toBe('managed');
     expect(wizardProvider('openai')).toBeUndefined();
     expect(wizardProvider(null)).toBeUndefined();
   });

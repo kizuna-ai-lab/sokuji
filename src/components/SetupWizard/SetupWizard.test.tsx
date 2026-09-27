@@ -292,21 +292,39 @@ describe('SetupWizard', () => {
     expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
   });
 
-  it('starts blank from a managed record — the card is gone until Stage 2', async () => {
+  it('pre-fills a re-run from a managed record', () => {
     setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'managed', provider: 'kizunaai_soniox', completedAt: 'x' };
+    signedIn = true;
     render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
     next();
-    expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);
+    expect(screen.getByRole('radio', { name: /Be understood in a meeting/ })).toBeChecked();
+    next();
+    expect(screen.getByRole('radio', { name: /Start right away/ })).toBeChecked();
+    next();
+    expect(screen.getByText('Signed in. You can continue.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+  });
 
-    // Walking the (only) offline card through Finish hands the offline
-    // provider, never the record's stale one.
+  it('walks the managed path to Finish, the card recommended', async () => {
+    signedIn = true;
+    useProviderStore.setState({
+      entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+      readiness: {},
+    });
+    render(<SetupWizard variant="first-run" />);
+    next();
     fireEvent.click(screen.getByRole('radio', { name: /Be understood in a meeting/ }));
     next();
-    fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
-    next(); next(); next();                           // credentials, language pair, finish
+
+    const managedRadio = screen.getByRole('radio', { name: /Start right away/ });
+    expect(managedRadio.closest('label')).toHaveTextContent('Recommended');
+    fireEvent.click(managedRadio);
+    next();                                           // the account step, signed in
+    next();                                           // the pair
+    next();                                           // the summary
     fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(applied).toHaveLength(1));
-    expect(applied[0]).toMatchObject({ provider: 'local_inference' });
+    expect(applied[0]).toMatchObject({ providerPath: 'managed', provider: 'kizunaai_soniox', credentialsPending: false });
   });
 
   it('starts blank from an own-key record whose provider this build does not register', async () => {

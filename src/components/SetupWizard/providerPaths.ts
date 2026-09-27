@@ -1,10 +1,8 @@
 // src/components/SetupWizard/providerPaths.ts
 //
 // The wizard asks "what do you have" (spec §1.2 step 2) and resolves the answer
-// to a provider. The own-key and offline lists read the registry (F12, Stage 2
-// Soniox); the managed one still reads the old factory, until Kizuna Soniox
-// (Plan B) replaces it too.
-import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
+// to a provider. Every list reads the registry: the managed path returned with
+// Kizuna Soniox, the own-key one with Soniox (Stage 2).
 import { Provider } from '../../types/Provider';
 import type { ProviderType } from '../../types/Provider';
 import type { AnyProvider } from '../../lib/provider/types';
@@ -19,8 +17,10 @@ export interface ProviderOption {
   fit: ProviderFit;
 }
 
+/** The registry's default managed provider — the first present, in its order — in the old enum's spelling; null in a build that offers none. */
 export function managedProvider(): ProviderType | null {
-  return ProviderConfigFactory.getDefaultManagedProvider();
+  const p = presentProviders().find((candidate) => candidate.kind === 'managed');
+  return p ? (storedProviderValue(p.id) as ProviderType) : null;
 }
 
 /** A definition's speech as the old descriptor's `textOnlyCapability`: the word the scenario fit and the pair sentence read. */
@@ -34,9 +34,14 @@ export function wizardProvider(id: string | null | undefined): AnyProvider | und
   return registryId === null ? undefined : presentProviders().find((p) => p.id === registryId);
 }
 
-/** The paths the wizard offers: own key once an own-key provider is registered (Soniox, Stage 2), and offline. Managed returns with Kizuna Soniox. */
+/** The paths the wizard offers: managed first when one is present (Kizuna Soniox), own key once an own-key provider is (Soniox), and offline. */
 export function availablePaths(): ProviderPath[] {
-  return presentProviders().some((p) => p.kind === 'own-key') ? ['own-key', 'offline'] : ['offline'];
+  const present = presentProviders();
+  const paths: ProviderPath[] = [];
+  if (present.some((p) => p.kind === 'managed')) paths.push('managed');
+  if (present.some((p) => p.kind === 'own-key')) paths.push('own-key');
+  paths.push('offline');
+  return paths;
 }
 
 export function providerFits(provider: ProviderType, scenario: ScenarioId): boolean {
@@ -52,21 +57,12 @@ export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {
     .map((p) => ({ id: storedProviderValue(p.id) as ProviderType, fit: providerFitForScenario(textOnlyCapabilityOf(p), preset) }));
 }
 
-/** The managed provider with its fit for the scenario, or null in a build that
- *  registers none. Judged the same way the own-key list judges its options: a
- *  build can ship a managed twin that cannot run subtitles-only, and offering
- *  "start right away" for a subtitles-only scenario would hand the user a
- *  session the app then refuses to start. */
+/** The managed provider with its fit for the scenario, or null in a build that registers none; judged as the own-key list judges its options. */
 export function managedOption(scenario: ScenarioId): ProviderOption | null {
   const id = managedProvider();
-  if (!id) return null;
-  return {
-    id,
-    fit: providerFitForScenario(
-      ProviderConfigFactory.getConfig(id).capabilities.textOnlyCapability,
-      getScenario(scenario),
-    ),
-  };
+  const p = wizardProvider(id);
+  if (!id || !p) return null;
+  return { id, fit: providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario)) };
 }
 
 /** The in-app engine; LocalNative returns with Stage 2. */
@@ -76,9 +72,9 @@ export function offlineOptions(): ProviderType[] {
 
 /** Whether a stored setup's path and provider are still on offer, so a Help
  *  re-run may pre-fill them (1e-3 ruling 15). A record whose card is gone —
- *  managed until Stage 2, or an own-key provider this build no longer
- *  registers — starts the re-run blank: seeded, the wizard would advance on
- *  the old provider and Finish into one this build lacks. */
+ *  a managed or own-key provider this build no longer registers — starts
+ *  the re-run blank: seeded, the wizard would advance on the old provider
+ *  and Finish into one this build lacks. */
 export function offersRecord(record: { scenario: ScenarioId | null; providerPath: ProviderPath | null; provider: string }): boolean {
   const { scenario, providerPath, provider } = record;
   if (!scenario || !providerPath || !availablePaths().includes(providerPath)) return false;

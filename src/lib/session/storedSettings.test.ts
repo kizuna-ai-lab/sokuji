@@ -71,6 +71,30 @@ describe('selectionFromStored', () => {
   it('returns null when nothing is offered', () => {
     expect(selectionFromStored('local_inference', [])).toBeNull();
   });
+
+  it('sends a stored managed id this build does not port to the default managed provider', () => {
+    // The managed default is NOT the first offered id, so a plain fallback to
+    // offered[0] would land on 'localInference' — only the legacy-managed
+    // branch reaches 'kizunaai_soniox' here.
+    const managedOffered = ['localInference', 'kizunaai_soniox'];
+    expect(selectionFromStored('kizunaai', managedOffered, 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: false });
+    expect(selectionFromStored('kizunaai_openai_translate', managedOffered, 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: false });
+    expect(selectionFromStored('kizunaai_volcengine_ast2', managedOffered, 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: false });
+  });
+
+  it('falls back to the first offered when no managed provider is offered', () => {
+    expect(selectionFromStored('kizunaai', ['localInference'], null)).toEqual({ id: 'localInference', fromStorage: false });
+  });
+
+  it('keeps a stored managed provider that is offered', () => {
+    expect(selectionFromStored('kizunaai_soniox', ['kizunaai_soniox', 'localInference'], 'kizunaai_soniox')).toEqual({ id: 'kizunaai_soniox', fromStorage: true });
+  });
+
+  it('an unrelated stored id still falls back to the first offered', () => {
+    // Same offered/managedDefault as the legacy-managed case above: an id
+    // outside MANAGED_LEGACY_IDS must not also ride the managed-default branch.
+    expect(selectionFromStored('openai', ['localInference', 'kizunaai_soniox'], 'kizunaai_soniox')).toEqual({ id: 'localInference', fromStorage: false });
+  });
 });
 
 describe('selectionToPersist', () => {

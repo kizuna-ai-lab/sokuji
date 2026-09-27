@@ -102,6 +102,26 @@ describe('loadSessionStores', () => {
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeUndefined();
   });
 
+  it("selects Kizuna Soniox for a stored 'kizunaai', and never writes it back", async () => {
+    stored.set('settings.common.provider', 'kizunaai');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+  });
+
+  it("selects Kizuna Soniox for a stored 'kizunaai_volcengine_ast2', and never writes it back", async () => {
+    stored.set('settings.common.provider', 'kizunaai_volcengine_ast2');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+  });
+
   it('selects the stored fake provider in a development build', async () => {
     stored.set('settings.common.provider', 'fake');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
