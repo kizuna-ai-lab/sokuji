@@ -2,14 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Standing of the rulings below.** Rulings 2 and 6 are **the owner's decisions** (2026-09-27, in conversation): ruling 2's participant speech built end to end and shipped off behind one flag, and ruling 6's registry order with Kizuna AI first and D19's release-flag model. The rest are the controller's rulings on the survey's §4, adopting its recommendations (ruling 9 with its reason corrected), **provisional** until the owner confirms; he may overturn any of them before execution.
+> **Standing of the rulings below.** Every ruling on the survey's §4 is **the owner's decision** (2026-09-27, in conversation): ruling 2 (participant speech built end to end, shipped off behind one flag), ruling 3 (a notice at the grant's end, worded by whether the cap was hit), ruling 4 (the sign-in auto-switch kept — the released app has it), ruling 5 (an unknown balance refuses Start, as the released app's gate does), ruling 6 (Kizuna AI first; D19's flag model), ruling 7 (one lease-end notice), ruling 8 (the lost `api_error` events restored), ruling 10 (`session-end` three attempts). Ruling 9 (the sources before the lease) is the owner's on a condition — "if it does not go against the architecture's philosophy and purpose" — which the controller checked against the spec's "A run": the three guarantees it rests on (every resource pushed with its release when acquired; the signal reaching every step; the lease released after the legs' sessions) all hold, and the runner stays generic (it orders by the hooks a provider has, as `startBoth` already opened both sources first). Rulings 1 and 11–14 are the plan's frame.
 
-> **Prerequisite:** the owner's BYOK live test of the Stage 2 Soniox plan (roadmap, "Scheduled by the Stage 2 Soniox plan" → "Before any release from the branch") passes before this plan's execution builds on its adapter (ruling 13).
+> **Prerequisite — met:** the owner ran the Stage 2 Soniox plan's BYOK live test (all 18 items, plus the shared-Both latency item) on 2026-09-27 with no problems (ruling 13). Task 13 records it in the roadmap.
 
 **Goal:** Kizuna AI's managed Soniox (`kizunaai_soniox`) on the new contract: `managed(soniox, …)` over Soniox's adapter, settings and languages, with its lease, its voice claim, its balance floor, its countdown, its account row and the wizard's managed path — so the managed twin runs on the new session and the owner can run it live, paid. Concretely:
 - the contract gains what a lease needs: a read type `R` (a managed `read` answers the sign-in, never a key), `minimumBalance`, `Resources.budget` and `RunState.running.budget`, a frame sink on `acquire`, a sign-in that says it is still loading, and a definition capability saying whether the participant may speak;
 - the runner opens every leg's source before it acquires a lease, so a source that fails mints no key and cannot 409-lock the next Start; and it records a lease's end once, on the first leg (rulings 7, 9);
-- the start gate reads the account's wallet from a small store and refuses below the provider's floor (ruling 5: never on an unknown balance);
+- the start gate reads the account's wallet from a small store and refuses below the provider's floor, and when it cannot know the balance (ruling 5): "Checking..." while the first fetch is in flight, "Unable to load quota information" once it failed — with a re-fetch when the network returns and on a short back-off, so an offline launch finds its way back;
+- the `api_error` events the old clients sent come back, generically in the runner (ruling 8): a start that fails, a lease end that is not the normal end of a segment, and every adapter degradation, with Soniox's TTS cause as the code;
 - the lease (`src/providers/soniox/lease.ts`) ported from `ManagedSonioxSession`: the session key and its 409 retry on the run's clock, per-leg keys, the grant's end in the words ruling 3 decides, `session-started` per role behind `SonioxLeasePort`, and a bounded `session-end` that a closing page still sends;
 - managed participant speech built end to end and shipped off behind the definition's one flag (ruling 2): the request's intent field, the `par_tts` key on the participant's leg in every mode, and floors counted from the roles — so that when the backend mints `par_tts`, the client change is a flag flip and a field-name check;
 - the voice claim in `prepare`, the managed voice library, and the modules they use moved or ported beside Soniox;
@@ -45,7 +46,7 @@ The plan ends with the controller's docs task: the spec's amendments and the roa
 
 - **Starting point.** HEAD `a63c366b` on `worktree-client-contract-stage2`. Every task anchors its edits by content, not by line: a line number cited here was read at `a63c366b`.
 - **What this plan touches:**
-  - `src/lib/provider/{types,credentials,managed}.ts` (+ `managed.test.ts`); `src/lib/session/{types,run,runner,shape,appShape,storedSettings}.ts` and their tests; `src/lib/subtitle/appSession.ts` and its test; `src/lib/view/{noticeText,noticeTargets}.ts` and their tests;
+  - `src/lib/provider/{types,credentials,managed}.ts` (+ `managed.test.ts`); `src/lib/contract/adapter.ts` (`degraded`'s optional `reason`, Task 1); `src/providers/soniox/speech.ts` and its test (Soniox's `reason`, Task 2); `src/lib/session/{types,run,runner,shape,appShape,storedSettings}.ts` and their tests; `src/lib/subtitle/appSession.ts` and its test; `src/lib/view/{noticeText,noticeTargets}.ts` and their tests;
   - `src/providers/soniox/{kizuna,leaseRequest,kizunaBudget,lease,voicePrep,voiceClaim,managedVoicesClient,managedVoicePolling,managedVoiceSource}.ts` (new or moved) and their tests, and `kizunaParticipantSpeech.test.tsx`; `src/providers/soniox/adapter.test.ts` (one case, Task 6); `src/providers/fake/{leased,settings}.ts`, `FakeLeasedSettingsView.tsx` and their tests; `src/providers/registry.ts` and its test; `src/providers/localInference/provider.test.ts` (its registry-order case, Task 8);
   - the two re-export stubs at the moved modules' old paths, `src/services/clients/{ManagedVoicesClient,managedVoicePolling}.ts` (Task 7) — the only files under `src/services` this plan writes;
   - `src/stores/accountStore.ts` (new) and its test; `src/contexts/UserProfileContext.tsx` and one new test file beside it;
@@ -59,7 +60,7 @@ The plan ends with the controller's docs task: the spec's amendments and the roa
   - A provider's session side — `adapter.ts` and every file of its folder it reaches by a value import — imports no store and no reporter and runs no global timer. The managed files are not on Soniox's session side (`adapter.ts` imports `settings.ts` for types only): `sessionSide.consistency.test.ts` stays as it is. The lease still runs every timer on the run's clock (`ctx.clock`), and the voice claim's sleeps default to the real clock with injection for tests (ruling 10; hooks are exempt from the session-side clock rule, foundation choice 11).
   - Both fakes reach a bundle only through the registry's `import.meta.env.DEV` literal (D24).
 - **Diagnostics** (CLAUDE.md, "Error Handling"): the lease and the voice claim never call `console.*`. The lease reports its wire traffic as frames (`session.*`) through `ctx.frame`, which the runner routes to the first leg's Logs; a start it refuses is an `AdapterStartError` with a notice code, worded by `noticeText`. The ported claim routine keeps its two `reportError` calls (a settings-side module, as `managedVoicePrep.ts` is today).
-- **Locales (rulings 2 and 11).** One new key, `audioPanel.participantSpeechNotYetAvailable` ("not available yet" in kind — no catalog sentence says that for this switch), in all 30 catalogs with a real translation (Task 4), listed for a native speaker's spot check. Every other sentence is an existing key: through `NOTICE_ALIASES` (the two Soniox service sentences, the four voice-claim sentences, the gate's balance sentence, and the loading sign-in's — choice 10) or read directly (`simpleSettings.autoAuthenticated`, `common.signInRequired`, `update.checking`, `simpleSettings.recommended` / `recommendedOption`, `simplePanel.preparingVoice` / `mainPanel.preparingVoice`).
+- **Locales (rulings 2 and 11).** One new key, `audioPanel.participantSpeechNotYetAvailable` ("not available yet" in kind — no catalog sentence says that for this switch), in all 30 catalogs with a real translation (Task 4), listed for a native speaker's spot check. Every other sentence is an existing key: through `NOTICE_ALIASES` (the two Soniox service sentences, the four voice-claim sentences, the gate's balance sentence, the loading sign-in's — choice 10 — and the wallet's two: loading, and failed to load — ruling 5) or read directly (`simpleSettings.autoAuthenticated`, `common.signInRequired`, `update.checking`, `simpleSettings.recommended` / `recommendedOption`, `simplePanel.preparingVoice` / `mainPanel.preparingVoice`).
 - **No network (ruling 12).** No test, probe or step calls Kizuna's backend or Soniox. The lease and the voice modules are tested over a stub `fetch` (injected, or `vi.stubGlobal`) and a virtual clock; the adapter over `FakeSocket`; the Provider tab rendered signed out, and signed in with the managed voice source replaced by the preview's stand-in (Task 9), which calls nothing. No group check presses Start with Kizuna Soniox selected: the preview's stand-in token would reach `/soniox/session-key`.
 - **Gates for every task:**
   - **The suite.** `npx vitest run src` shows 0 failed and no unhandled errors. Measured at `a63c366b` on 2026-09-27: **479 test files passed and 1 skipped (480); 6 094 tests passed and 2 skipped (6 096); no unhandled errors.**
@@ -117,7 +118,7 @@ The plan ends with the controller's docs task: the spec's amendments and the roa
 
 ## Rulings
 
-The rulings on survey §4 (cited as *ruling N*), each restated with where it lands. Rulings 2 and 6 are the owner's (2026-09-27); the rest are the controller's, provisional — the owner may overturn any before execution.
+The rulings on survey §4 (cited as *ruling N*), each restated with where it lands. Rulings 2–10 are the owner's decisions (2026-09-27; ruling 9 on the condition the header states, which holds); rulings 1 and 11–14 frame the plan.
 
 1. **Old code read-only** (as Plan A's ruling 1): `src/services/**`, the old settings UI, the `settingsStore` slices, `SettingsInitializer` and their tests are not edited, except that `ManagedVoicesClient` and `managedVoicePolling` move with their tests into `src/providers/soniox/` by `git mv`, each leaving a one-line re-export stub at its old path, so the old client, the old UI and their tests resolve unchanged; `managedVoicePrep` is **ported** (copied) to `src/providers/soniox/voicePrep.ts`, the old one kept until B2. New code imports nothing from `src/services/**`. `npx vitest run src/services` stays green. Lands in: Task 7; Global Constraints.
 2. **Participant speech — built end to end, shipped off (survey §4.1; the owner's decision, 2026-09-27: the backend does not mint `par_tts` today but likely will):** so that when the backend starts minting `par_tts`, the client change is a flag flip plus a field-name check.
@@ -129,16 +130,28 @@ The rulings on survey §4 (cited as *ruling N*), each restated with where it lan
    - Lands in: Task 1 (the capability's type), Task 4 (its readers and the key), Task 5 (the request, the roles, the keys, the floors), Task 8 (the flag, and the flag-on / flag-off end-to-end spec), Task 13 (the checklist).
 3. **The words at the grant's end (§4.2 c):** decided at acquire. When the granted duration reached the per-session cap — 3 600 s with a TTS stream, 18 000 s without, mirrored like the floors with a backend-parity test — the grant's end is `segment_ended` ("This segment has ended — tap Start Session to continue."); otherwise `budget_exhausted` ("Your session balance is used up. Top up your balance to keep translating."). The budget's own timer and a 403 at the grant's end give the same words. Lands in: Task 5 (the caps, the decision, the timer), Task 6 (the 403 path).
 4. **Sign-in auto-switch (§4.3):** restored for Basic mode only, outside the wizard, from a non-managed provider, through `select(id, 'pick')` with its lock, tracking `settings_modified` as before. Lands in: Task 12 (with choice 14's one refinement).
-5. **Unknown balance (§4.4 b):** no gate on an unknown quota; the backend's 402 is the authority and the lease words it (`insufficient_balance`). Lands in: Task 3 (`balanceRefusal` answers nothing without an account), Task 5 (the 402's code).
+5. **Unknown balance (§4.4 a):** an unknown balance refuses Start, as the old gate did (`quota-unknown` → `tokenUsage.unableToLoadQuota`, `oldGate:254-261`; survey §1.6): the client already refuses below the floor, so it refuses when it cannot know. By the account store's state (`AccountState`, Task 1):
+   - **signed out** (the store is null) — nothing: the sign-in check speaks;
+   - **loading** — signed in, the first wallet fetch in flight — the gate answers `quota_pending`, aliased to `update.checking` "Checking...": a pending state with no failure words, as `sign_in_pending` shows, so no failure flashes at every launch;
+   - **unknown** — a fetch failed and no wallet is known — `quota_unknown`, aliased to the existing `tokenUsage.unableToLoadQuota` "Unable to load quota information" (no new key);
+   - **known** — frozen, then the floor, as before.
+   - **The way back** lives in `UserProfileContext` (Task 3 edits it; the store only holds the state): while the wallet is unknown and the user is signed in, it re-fetches, silently, when the browser fires `online` and after 15 s, 30 s and 60 s (`WALLET_RETRY_DELAYS_MS`), then leaves it to the existing 5-minute poll. An offline launch: Start off with "Unable to load quota information", back on shortly after the network returns.
+   - The backend's 402 still words a balance that changed after the wallet was fetched (`insufficient_balance`).
+   - Lands in: Task 1 (`AccountState`), Task 3 (the states, the gate, the retry, their tests), Task 5 (the 402's code), Task 8 (the two aliases), Task 13 (live-test item 2).
 6. **Registry, flags, gate words (§4.5; the order and the flag model are the owner's decision, 2026-09-27):** `RELEASED` order `['kizunaai_soniox', 'localInference', 'soniox']` — Kizuna AI first; the registry order test pins it.
    - **Release flags keep D19's model:** a provider is offered by default, and only a definition marked `flagged: true` is hidden in release builds; `VITE_ENABLED_PROVIDERS` only un-hides flagged ids in a given build (`isPresent`, `src/lib/provider/presence.ts`). Kizuna Soniox ships **unflagged**, gated only by the Kizuna umbrella (`isKizunaAIEnabled()`, `VITE_ENABLE_KIZUNA_AI`) through `isPresent`'s managed rule. The new registry does not read the old `VITE_ENABLE_KIZUNA_SONIOX` (only `src/utils/environment.ts:219` does, for the old factory).
    - **The target state** (Task 13 records it under the roadmap's "Before any release"): managed keeps only Kizuna Soniox — the two relay-managed providers (`KizunaAIOpenAITranslateProviderConfig`, `KizunaAIVolcengineAST2ProviderConfig`) are deleted, not ported; every other provider is ported unflagged except Local Native, which gets `flagged: true` plus its tester switch; `VITE_ENABLED_PROVIDERS` stays unset; the old per-provider `VITE_ENABLE_*` variables retire as their providers move over, and Stage 2's cleanup removes them from `.github/workflows/build.yml` (the repo variables are the owner's to delete); the umbrella `VITE_ENABLE_KIZUNA_AI` stays, so a build without Kizuna's backend offers no managed provider.
    - No code in this plan for the flag model beyond Kizuna Soniox being unflagged. The gate's balance refusal is a gate-only code, `balance_below_floor`, aliased to the existing `mainPanel.insufficientBalance` "Insufficient balance: {{balance}}" (no new key). Lands in: Task 3 (the code), Task 8 (the order, the alias).
 7. **One lease-end notice (§4.6):** a lease end records its notice on the first leg only — a generic runner change and a spec refinement. Lands in: Task 2; Task 13 (the spec).
-8. **Analytics (§4.7):** the shifts are accepted as stated departures, pending the owner's cross-provider answer (the same question as Plan A's `degraded` analytics): a refused start reaches `error_occurred` only (the runner tracks `api_error` for `failed` alone, `run.ts:444-449`; `runner.ts:221-225`), and a budget exhaustion sends no `api_error`. No new event in this plan. Lands in: Task 2 (a test pins the refused start's events); the self-review; Task 13 (the open question).
+8. **Analytics (§4.7):** the `api_error` events the old clients sent are restored, generically in the runner, with the old codes and props as closely as the events carry them (`buildApiErrorProps` on `main`: `provider`, `error_message`, `error_code` when there is one, `channel`, `error_type`). Until now the runner tracked `api_error` for `failed` alone (`run.ts:444-449`).
+   - **A start that fails** tracks `api_error` beside its `error_occurred` (`runner.ts:222-225`), as the old `onConnectFailed` tracked every connect failure (`participantTelemetry.ts:104-123` on `main`): `error_code` is the failure's code when it has one — the lease's 401/402/403/409/502/503/timeout codes first among them — and absent otherwise, as the old one always was; `channel` is the leg that failed, else the first. A refusal before anything opened (the gate, a build, `admit`) is not a failure and tracks nothing, as the old gate's refusals did not.
+   - **A lease end** tracks `api_error` with its code — `budget_exhausted`, with the old stable message "Session budget exhausted" (`ManagedSonioxSession.ts:166-173`) — on the first leg. A lease marks the normal end of a managed segment `expected` (`LeaseContext.end(notice, { expected })`, Task 1), and that tracks none: `segment_ended`, which the old client deliberately never sent (`:158-161`).
+   - **Every adapter degradation** tracks `api_error`. The old Soniox client sent `error_code: tts_<cause>` (`tts_408`, `tts_socket_closed`, `tts_connect_failed`; `SonioxClient.ts:1472-1490` on `main`). The new `degraded` carries only the user-facing code (`tts_segment_lost` / `tts_stopped`) with the cause inside its message (`speech.ts:252`), so `degraded`'s payload gains one optional machine-readable field, `reason?: string` — a short token, never user text, never the `cause` (Task 1). Soniox's speech passes `tts_<cause>` (Task 2), and the runner's `error_code` is `reason ?? code`. LocalInference's degradations track with their own codes: `tts_degraded`, `transcription_failed`, `translation_failed`, `translation_unavailable`. The old LocalInference client sent an `api_error` with no code for a TTS engine that failed to load and for each ASR error (`LocalInferenceClient.ts:513-514`, `:367-371` on `main`), and none for a sentence that could not be spoken (`:1360`, a diagnostic only).
+   - **Deduplication:** L1 keeps its 5-s notice window (`DEGRADED_DEDUPE_MS`), and analytics applies the same window per leg and code: `api_error` counts what the user was told. Soniox already reports once per failure episode, so the window changes nothing there; it bounds LocalInference's per-sentence and per-utterance failures, which carry no episode of their own, to one event per 5 s per code.
+   - Lands in: Task 1 (`degraded`'s `reason`, `LeaseContext.end`'s `expected`), Task 2 (the runner's three events; Soniox's reason in `speech.ts`; the tests pinning each event and its props), Task 5 (the lease's stable message and `expected`), Task 13 (live-test item 14).
 9. **Acquire after the sources (§4.8):** the runner opens every leg's source, then runs `acquire`, then starts the adapters — a generic runner change, with the ordering case in `runner.hooks.test.ts` (a source that fails mints no lease). **Why: the never-started lease** (survey §1.2). A source that fails after `acquire` leaves a lease no stream ever started, which the backend's sweeps never reach and `session-end` cannot free, so the next Start is 409-locked until its initial expiry — 75 s, or 195 s with `par_stt`. Such failures are real: `LOOPBACK_DENIED` on macOS, the extension's side panel with no bound tab, the app-capture helper failing to start, a missing microphone. Opening the sources first makes them fail before any key is minted. (The survey's other reason does not hold here: research notes.) LocalInference and the fakes are unaffected: a provider with no lease and no `startBoth` opens each leg's source and adapter as before. **`prepare` stays before the sources:** it may override the settings the builder reads, `build` and `admit` must refuse before anything opens, and the voice claim can take up to 60 s, which must not hold a microphone open. The survey shows no reason to move it (the claim's 75-s pin is recorded under "Found here"). Lands in: Task 2.
 10. **Smaller choices (§4.9):** `session-end` — at most 3 attempts within 4 s, the token cached at acquire, cancelled by the next acquire; the voice claim's sleeps on the real clock, injection kept for tests; the `streams`-absent and `region`-absent fallbacks dropped, failing loudly as the old primary-role check did; the managed files in `src/providers/soniox/`; `managed()` a generic helper in `src/lib/provider/managed.ts`; the read type `R` with a type-level test. Lands in: Tasks 1, 5, 7.
-11. **Locales:** besides ruling 2's key, no new keys. Every sentence is an existing key reached through `NOTICE_ALIASES` — the two Soniox service sentences, the four voice-claim sentences, the gate's balance sentence (survey §2.9) — and `NOTICE_TARGETS.sign_in_required`, with `noticeTargets.test` widened to aliases. Lands in: Task 8.
+11. **Locales:** besides ruling 2's key, no new keys. Every sentence is an existing key reached through `NOTICE_ALIASES` — the two Soniox service sentences, the four voice-claim sentences, the gate's balance sentence (survey §2.9), and the wallet's two (`quota_pending` → `update.checking`, `quota_unknown` → `tokenUsage.unableToLoadQuota`, ruling 5) — and `NOTICE_TARGETS.sign_in_required`, with `noticeTargets.test` widened to aliases. Lands in: Task 8.
 12. **No network in tests:** see Global Constraints. Lands in: every task's tests; Task 9's preview stand-in; the group checks.
 13. **Prerequisite:** the owner's BYOK live test of Plan A before this plan's execution builds on the adapter. Lands in: the header.
 14. **The last task is the controller's docs task** (Task 13): the spec's amendments (survey §7, rulings 7 and 9, the capability of ruling 2, `managed()`, `R`) and the roadmap section "Scheduled by the Stage 2 Kizuna Soniox plan" — what landed, the owner's paid live test (survey §5.2's list, adjusted to the rulings), the stated departures, the open questions, and B2's pointer (survey §3, including the re-point it adds: `SonioxVoiceSection.tsx:47` → `clampNumber`).
@@ -154,7 +167,7 @@ Cited as *choice N*.
 5. **The session key** (Task 5): one attempt is bounded at `SESSION_KEY_TIMEOUT_MS` = 15 000 ms on the run's clock, **its JSON body read inside the bound**; the 409's one retry waits the body's `retryAfterMs` (3 000 ms when absent) on the clock, abortable, and gets its own full bound. Codes: 401 `sign_in_required`, 402 `insufficient_balance`, 403 `wallet_frozen`, 409 after the retry `session_conflict`, 502 or a timeout `soniox_service_unavailable`, 503 `soniox_service_busy` (all three of the backend's 503 bodies, as the old client worded them: parity, survey §1.12.3), a transport failure `network`, any other status a plain `Error` carrying the server's words (the runner's `start_failed`). A 402's `requiredMicroUsd` / `balanceMicroUsd` go into the diagnostic message only: the aliased sentence has no placeholder.
 6. **`session-end`** (Task 5; ruling 10): `release` stops the budget's timer, frames `session.end`, and POSTs `{ leaseId }` with `keepalive: true` and the token cached at acquire — the first attempt starts synchronously, so `pagehide`'s `abandon()` sends it. An attempt that fails in transport or answers 5xx is retried after 500 ms, then 1 000 ms; no attempt begins after `SESSION_END_BUDGET_MS` = 4 000 ms, and each is aborted at that deadline. A 4xx is final (framed `session.notify_failed`). Giving up frames `session.notify_failed`. `release` resolves when the attempts are done — at most 4 s, within the stack's 5-s release bound. The next `acquire` cancels a previous release's pending attempts: the backend scopes `session-end` by account (survey §1.2), and a late one would end — and unpin the voice of — the next lease.
 7. **The grant** (Task 5): `Resources.budget = { totalMs: maxSessionDurationSeconds × 1000, endsAt: clock.now() + totalMs }` — the countdown is the granted duration (survey §1.5, §7.2), measured from acquire as before. The budget's timer fires `end` at `totalMs` once, with ruling 3's words; `release` cancels it. A contract break in a 200 answer — no `leaseId`, no `clientReferenceId`, no known `region`, no granted duration, no `streams`, a malformed stream, or no key for a role a requested leg runs on — fails the start with a plain `Error` (ruling 10). The backend frees such a never-started lease at its start window's end; `session-end` cannot free it (survey §1.2), so none is sent.
-8. **The balance gate** (Task 3): a small store, `useAccountStore`, holds `{ balanceMicroUsd, frozen } | null`, written by `UserProfileProvider` from its quota (null while unknown). `RunShape.account?` freezes it at start; `GateInput` gains optional `textOnly` and `account`. `gate()` ends with `balanceRefusal()`: nothing without an account or without the provider's `minimumBalance`; a frozen wallet → `wallet_frozen`; a balance below the floor → `balance_below_floor` with `params.balance` floored in USD (`formatUsdFloor`, as the old gate did). Checked after the gate's other refusals (turns, the participant's source and pair). `appSubtitleSession` subscribes to the account store and to `settingsStore`'s `textOnly`, so Start follows both.
+8. **The balance gate** (Task 3): a small store, `useAccountStore`, holds an `AccountState | null` — null signed out, `loading` until the first fetch lands, `unknown` once a fetch failed with no wallet known, else `known` with `{ balanceMicroUsd, frozen }` — written by `UserProfileProvider` from its quota and a `walletFailed` flag. `RunShape.account?` freezes it at start; `GateInput` gains optional `textOnly`, `participantSpeech` and `account`. `gate()` ends with `balanceRefusal()`: nothing without an account or without the provider's `minimumBalance`; `loading` → `quota_pending`; `unknown` → `quota_unknown`; a frozen wallet → `wallet_frozen`; a balance below the floor → `balance_below_floor` with `params.balance` floored in USD (`formatUsdFloor`, as the old gate did). Checked after the gate's other refusals (turns, the participant's source and pair). `appSubtitleSession` subscribes to the account store and to `settingsStore`'s `textOnly`, so Start follows both.
 9. **The account button reads the gate** (Task 10) through `useBalanceShortfall()` — the gate's `balance_below_floor` for the selected provider over the same stores as Start — so the dot and Start never disagree (`AccountButton.tsx:130-132`'s own rule). A frozen wallet is not a low balance: no dot for it — a stated departure (the old dot lit for a frozen wallet whose balance was below the floor, `AccountButton.tsx:133-138`).
 10. **The sign-in may still be loading** (Tasks 1, 8, 9): `AuthContext.loaded?: boolean` (absent reads as loaded). A managed `read` answers `{ missing, code: 'sign_in_pending' }` while it is false, and the account row shows a spinner with "Checking..." — `sign_in_pending` is aliased to `update.checking` ("Checking...", in all 30 catalogs; a generic word, not the updater's). The session's bridges and `useAuthContext` pass `isLoaded`; a flip of `loaded` forgets managed readiness as a sign-in flip does. So a signed-in user no longer sees "Sign in to use Kizuna AI's built-in translation service." at every launch (roadmap `:1283`).
 11. **The flag is `participantSpeech?: boolean`** on the definition (Task 1): `false` — the participant never speaks, whatever its switch says; absent or `true` — it speaks when its switch is on. Read in three places (Task 4): `contextsFor` gives the participant no speech, `readShapeFromStores` (through `participantSpeechFromStores(provider)`, which the live gate and the account button's floor share) freezes `participantSpeech: false`, and the switch shows off and disabled with the "not yet" tooltip. The provider precedes the whole-system rule in the switch: it is absolute. **Kizuna Soniox is built by a factory**, `createKizunaSonioxProvider({ participantSpeech })` (Task 8), which hands the one boolean to the definition's capability, its lease (`createKizunaLease({ participantSpeech })`: the request's field and the `par_tts` mapping) and its floor — so the shipped definition's `KIZUNA_PARTICIPANT_SPEECH = false` is the only line to flip, and the tests build a flag-on twin from the same factory.
@@ -171,9 +184,9 @@ Cited as *choice N*.
 
 | File | Task | Change |
 |---|---|---|
-| `src/lib/provider/types.ts`, `credentials.ts`, `managed.ts` (+ `managed.test.ts`), `src/lib/session/types.ts`, `src/lib/session/run.ts` (one line), `src/providers/fake/leased.test.ts` | 1 | `R`, `participantSpeech?`, `AuthContext.loaded?`; `managed()`; `AccountBalance`, `RunShape.account?`, `BalanceShape`, `Budget`, `LeaseContext`, `minimumBalance?`, `Resources.budget?`, `RunState.running.budget?` |
-| `src/lib/session/{run,runner}.ts`, `runner.test.ts`, `runner.hooks.test.ts`, `src/providers/fake/{leased,settings}.ts`, `FakeLeasedSettingsView.tsx` (+ tests) | 2 | sources → lease → hand-over → adapters; one lease-end notice; the frame sink; the budget in the state; the leased fake's knobs |
-| `src/stores/accountStore.ts` (+ test), `src/contexts/UserProfileContext.tsx` (+ `UserProfileContext.accountStore.test.tsx`), `src/lib/session/{shape,appShape}.ts` (+ tests), `src/lib/subtitle/appSession.ts` (+ test) | 3 | the account store; `balanceRefusal`; the live gate's floor |
+| `src/lib/provider/types.ts`, `credentials.ts`, `managed.ts` (+ `managed.test.ts`), `src/lib/session/types.ts`, `src/lib/contract/adapter.ts`, `src/lib/session/run.ts` (one line), `src/providers/fake/leased.test.ts` | 1 | `R`, `participantSpeech?`, `AuthContext.loaded?`; `managed()`; `AccountState`, `RunShape.account?`, `BalanceShape`, `Budget`, `LeaseContext` (with `end`'s `expected`), `minimumBalance?`, `Resources.budget?`, `RunState.running.budget?`; `degraded`'s `reason?` |
+| `src/lib/session/{run,runner}.ts`, `runner.test.ts`, `runner.hooks.test.ts`, `src/providers/fake/{leased,settings}.ts`, `FakeLeasedSettingsView.tsx` (+ tests), `src/providers/soniox/speech.ts` (+ test) | 2 | sources → lease → hand-over → adapters; one lease-end notice; the frame sink; the budget in the state; the leased fake's knobs; `api_error` restored for start failures, lease ends and degradations, with Soniox's TTS cause as the code |
+| `src/stores/accountStore.ts` (+ test), `src/contexts/UserProfileContext.tsx` (+ `UserProfileContext.accountStore.test.tsx`), `src/lib/session/{shape,appShape}.ts` (+ tests), `src/lib/subtitle/appSession.ts` (+ test) | 3 | the account store (loading, unknown, known); `balanceRefusal`; the live gate's floor; the unknown wallet's re-fetch |
 | `src/lib/session/{shape,appShape}.ts` (+ tests), `src/components/Settings/sections/ParticipantSpeechSwitch.tsx` (+ test), 30 × `src/locales/<code>/translation.json` | 4 | the participant-speech flag's readers (`participantSpeechFromStores`); one key |
 | `src/providers/soniox/{leaseRequest,kizunaBudget,lease}.ts` (+ tests) | 5 | the request and the roles it asks for (the participant-speech field behind the flag); the floors from the roles, and the caps; the lease's session key, keys (`par_tts` behind the flag), grant and release |
 | `src/providers/soniox/lease.ts` (+ test), `src/providers/soniox/adapter.test.ts` | 6 | `SonioxLeasePort`: `session-started`, the grant's end, the cutoff |
@@ -187,7 +200,7 @@ Cited as *choice N*.
 
 **Order and parallelism.**
 - **Wave 1:** Task 1 — every later task reads its types.
-- **Wave 2:** Task 2 (runner, leased fake), Task 4 (the participant-speech flag's readers), Task 5 (lease I), Task 7 (voice). Disjoint files: Task 4 edits `shape.ts`, `appShape.ts`, their tests, the switch and the catalogs; Task 2 the runner and the leased fake; Task 5 and Task 7 only their own new files (and Task 7 `startLabel.ts`).
+- **Wave 2:** Task 2 (runner, leased fake), Task 4 (the participant-speech flag's readers), Task 5 (lease I), Task 7 (voice). Disjoint files: Task 4 edits `shape.ts`, `appShape.ts`, their tests, the switch and the catalogs; Task 2 the runner, the leased fake and Soniox's `speech.ts`; Task 5 and Task 7 only their own new files (and Task 7 `startLabel.ts`).
 - **Wave 3:** Task 3 (needs Task 2: the leased fake's floor knob, for its store-level tests; and Task 4: `participantSpeechFromStores` and the edited `shape.ts` / `appShape.ts`), Task 6 (needs Task 5: `lease.ts`). Disjoint files.
 - **Group check A** (controller) after Wave 3: the runner, the gate, the flag's readers, the lease and the voice are in; nothing is registered.
 - **Wave 4:** Task 8 (needs Tasks 4, 5, 6, 7: its end-to-end spec renders the switch and runs the lease into the adapter). Alone.
@@ -200,7 +213,7 @@ Cited as *choice N*.
 ### Task 1: Types, the read type, and `managed()` (rulings 2, 10; choices 1, 2, 10)
 
 **Files:**
-- Modify: `src/lib/provider/types.ts`, `src/lib/provider/credentials.ts`, `src/lib/session/types.ts`, `src/providers/fake/leased.test.ts`, `src/lib/session/run.ts` (one line: the `frame` sink, Step 4).
+- Modify: `src/lib/provider/types.ts`, `src/lib/provider/credentials.ts`, `src/lib/session/types.ts`, `src/lib/contract/adapter.ts` (`degraded`'s `reason`), `src/providers/fake/leased.test.ts`, `src/lib/session/run.ts` (one line: the `frame` sink, Step 4).
 - Create: `src/lib/provider/managed.ts`, `src/lib/provider/managed.test.ts`.
 
 **Interfaces:**
@@ -210,14 +223,15 @@ Cited as *choice N*.
   - `type AnyProvider = Provider<any, any, any, any>`.
 - **Produces** (`src/lib/provider/credentials.ts`): `readCredentials<S, R extends { missing?: never } & object>(p: Pick<Provider<S, never, never, R>, 'credentials'>, s: S, saved: CredentialValues, auth: AuthContext): R | CredentialsMissing`.
 - **Produces** (`src/lib/session/types.ts`):
-  - `interface AccountBalance { balanceMicroUsd: number; frozen: boolean }`; `RunShape.account?: AccountBalance | null`;
+  - `type AccountState = { status: 'loading' } | { status: 'unknown' } | { status: 'known'; balanceMicroUsd: number; frozen: boolean }`; `RunShape.account?: AccountState | null`;
   - `type BalanceShape = Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'>`;
   - `interface Budget { totalMs: number; endsAt: number }`; `Resources<K>.budget?: Budget`;
-  - `interface LeaseContext { signal: AbortSignal; clock: Clock; end(notice: RunNotice): void; frame(frame: AdapterFrame): void }`; `SessionHooks.acquire?(shape: RunShape, s: S, ctx: LeaseContext): Promise<Resources<K>>`;
+  - `interface LeaseContext { signal: AbortSignal; clock: Clock; end(notice: RunNotice, o?: { expected?: boolean }): void; frame(frame: AdapterFrame): void }`; `SessionHooks.acquire?(shape: RunShape, s: S, ctx: LeaseContext): Promise<Resources<K>>`;
   - `SessionHooks.minimumBalance?(shape: BalanceShape, s: S): number`;
   - `RunState`'s running member gains `budget?: Budget`.
+- **Produces** (`src/lib/contract/adapter.ts`): `AdapterEvents.degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string })`.
 - **Produces** (`src/lib/provider/managed.ts`): `interface ManagedSignIn { readonly signedIn: true }`; `readSignIn(auth: AuthContext, signedOut: string): ManagedSignIn | CredentialsMissing`; `interface ManagedOverrides<S, K, C, Id extends string>`; `managed<S, K, C, Id extends string>(base: Provider<S, K, C>, o: ManagedOverrides<S, K, C, Id>): Provider<S, K, C, ManagedSignIn> & { id: Id }`.
-- **Consumed by:** Task 2 (`LeaseContext`, `Budget`, `RunState`), Task 3 (`AccountBalance`, `RunShape.account`, `BalanceShape`, `minimumBalance`), Task 4 (`participantSpeech`), Tasks 5–6 (`LeaseContext`, `Resources`), Task 8 (`managed`), Task 9 (`AuthContext.loaded`, `sign_in_pending`), Task 10 (`Budget`).
+- **Consumed by:** Task 2 (`LeaseContext` with `expected`, `Budget`, `RunState`, `degraded`'s `reason`), Task 3 (`AccountState`, `RunShape.account`, `BalanceShape`, `minimumBalance`), Task 4 (`participantSpeech`), Tasks 5–6 (`LeaseContext`, `Resources`), Task 8 (`managed`), Task 9 (`AuthContext.loaded`, `sign_in_pending`), Task 10 (`Budget`).
 
 - [ ] **Step 1: Write the failing tests** — `src/lib/provider/managed.test.ts`:
 
@@ -376,19 +390,23 @@ Cited as *choice N*.
     - before `RunShape`:
 
       ```ts
-      /** The signed-in account's wallet as last fetched (Stage 2 Kizuna Soniox, choice 8). */
-      export interface AccountBalance {
-        /** Micro-USD; negative after a post-paid overrun. */
-        balanceMicroUsd: number;
-        frozen: boolean;
-      }
+      /**
+       * The signed-in account's wallet as the client knows it (Stage 2 Kizuna
+       * Soniox, ruling 5; choice 8): the first fetch still in flight, a fetch
+       * failed with no wallet known, or the wallet as last fetched
+       * (`balanceMicroUsd` in micro-USD, negative after a post-paid overrun).
+       */
+      export type AccountState =
+        | { status: 'loading' }
+        | { status: 'unknown' }
+        | { status: 'known'; balanceMicroUsd: number; frozen: boolean };
       ```
 
     - `RunShape` gains, after `auth`:
 
       ```ts
-      /** The account's wallet at start, for a managed provider's floor; null or absent while unknown, and then nothing is gated on it (ruling 5). */
-      account?: AccountBalance | null;
+      /** The account's wallet at start, for a managed provider's floor (ruling 5). Null or absent when signed out, or where no account is wired (tests, the preview): then the sign-in check speaks, not the gate. */
+      account?: AccountState | null;
       ```
 
     - after `Prepared`:
@@ -413,8 +431,13 @@ Cited as *choice N*.
         signal: AbortSignal;
         /** The run's clock: a lease's timers read it. */
         clock: Clock;
-        /** Ends the run with a notice — the grant used up, the longest segment reached: the code says which. */
-        end(notice: RunNotice): void;
+        /**
+         * Ends the run with a notice — the grant used up, the longest segment
+         * reached: the code says which. The runner tracks it as `api_error`
+         * (ruling 8) unless `expected` says it is the normal end of a managed
+         * segment, which the old client deliberately never tracked.
+         */
+        end(notice: RunNotice, o?: { expected?: boolean }): void;
         /** The lease's wire traffic (`session.*`), for the Logs: the runner files it under the first leg. */
         frame(frame: AdapterFrame): void;
       }
@@ -428,6 +451,19 @@ Cited as *choice N*.
       ```
 
     - `RunState`'s running member: `| { phase: 'running'; since: number; legs: Partial<Record<LegName, LegState>>; budget?: Budget }`.
+  - `src/lib/contract/adapter.ts`, `AdapterEvents.degraded` (`:96-97`):
+
+    ```ts
+    /**
+     * Running, degraded. `reason`: a short machine-readable token for
+     * analytics only (`tts_408`, `tts_connect_failed`) — never user text,
+     * never the cause; absent, the runner's `api_error` reads `code`
+     * (Stage 2 Kizuna Soniox, ruling 8).
+     */
+    degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string }): void;
+    ```
+
+    `AdapterEvent`'s payload is derived from this signature (`contract/events.ts:3-8`), so L1, the fakes' scripts and every emitter compile unchanged.
   - `src/lib/provider/managed.ts`, in full:
 
     ```ts
@@ -512,19 +548,21 @@ Cited as *choice N*.
 - [ ] **Step 5: Commit.**
 
   ```bash
-  git add src/lib/provider/types.ts src/lib/provider/credentials.ts src/lib/provider/managed.ts src/lib/provider/managed.test.ts src/lib/session/types.ts src/lib/session/run.ts src/providers/fake/leased.test.ts
+  git add src/lib/provider/types.ts src/lib/provider/credentials.ts src/lib/provider/managed.ts src/lib/provider/managed.test.ts src/lib/session/types.ts src/lib/contract/adapter.ts src/lib/session/run.ts src/providers/fake/leased.test.ts
   ```
 
   ```bash
-  git commit -q -F - -- src/lib/provider/types.ts src/lib/provider/credentials.ts src/lib/provider/managed.ts src/lib/provider/managed.test.ts src/lib/session/types.ts src/lib/session/run.ts src/providers/fake/leased.test.ts <<'EOF'
+  git commit -q -F - -- src/lib/provider/types.ts src/lib/provider/credentials.ts src/lib/provider/managed.ts src/lib/provider/managed.test.ts src/lib/session/types.ts src/lib/contract/adapter.ts src/lib/session/run.ts src/providers/fake/leased.test.ts <<'EOF'
   feat(contract): a managed twin's read type, its lease's budget and frames
 
   A provider may read one type and start with another: a managed twin's
   read answers the sign-in, and its lease mints the per-leg keys. managed()
   composes a twin from its base. The session vocabulary gains the
-  account's wallet, a start floor, a lease's budget in the running state,
-  and a frame sink for the lease's wire traffic; the sign-in can say it is
-  still loading, and a provider can say whether the participant may speak.
+  account's wallet (loading, unknown or known), a start floor, a lease's
+  budget in the running state, a frame sink for the lease's wire traffic,
+  a lease end that says it was expected, and a degradation's analytics
+  reason; the sign-in can say it is still loading, and a provider can say
+  whether the participant may speak.
 
   Co-Authored-By: <implementing model> <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01Q5eVcuCVVhSpoUCA5C7bDe
@@ -537,14 +575,15 @@ Cited as *choice N*.
 
 **Files:**
 - Modify: `src/lib/session/run.ts`, `src/lib/session/runner.ts`, `src/lib/session/runner.test.ts`, `src/lib/session/runner.hooks.test.ts`, `src/providers/fake/leased.ts`, `src/providers/fake/settings.ts`, `src/providers/fake/leased.test.ts`, `src/providers/fake/FakeLeasedSettingsView.tsx`, `src/providers/fake/FakeLeasedSettingsView.test.tsx`.
+- Modify (ruling 8's analytics): `src/providers/soniox/speech.ts`, `src/providers/soniox/speech.test.ts` — Plan A's files, one line and one case.
 
 **Interfaces:**
-- **Consumes:** Task 1's `LeaseContext`, `Budget`, `RunState.running.budget`, `Resources.budget`, `SessionHooks.minimumBalance`.
-- **Produces:** `Run.budget: Budget | null`; the running state's `budget`; `FakeLeasedSettings.acquireRefused: boolean` and `.minimumBalanceMicroUsd: number`; `fakeLeasedProvider.session.minimumBalance`.
+- **Consumes:** Task 1's `LeaseContext`, `Budget`, `RunState.running.budget`, `Resources.budget`, `SessionHooks.minimumBalance`; `LeaseContext.end`'s `expected` and `degraded`'s `reason` (ruling 8); `DEGRADED_DEDUPE_MS` (`conversation/Conversation.ts:25`).
+- **Produces:** `Run.budget: Budget | null`; the running state's `budget`; `apiErrorType(code?: string): AnalyticsEvents['api_error']['error_type']` exported from `run.ts`; `api_error` for a start that fails, a lease end not `expected`, and every adapter degradation (ruling 8); `FakeLeasedSettings.acquireRefused: boolean` and `.minimumBalanceMicroUsd: number`; `fakeLeasedProvider.session.minimumBalance`.
 - **Consumed by:** Task 3 (the leased fake's floor, in its store-level tests); Task 10 (the countdown reads the running state's `budget`); the group checks (the leased fake in the preview).
 
 - [ ] **Step 1: Write the failing tests.**
-  - `runner.hooks.test.ts`: `setup` gains a fifth parameter `frames?: FramePort` (import the type from `./ports`), passed to `createRunner` as `frames`. New imports: `AdapterStartError` is already imported; add `import type { FramePort } from './ports';`. A new describe:
+  - `runner.hooks.test.ts`: `setup` gains a fifth parameter `frames?: FramePort` (import the type from `./ports`), passed to `createRunner` as `frames`. New imports: `AdapterStartError` is already imported; add `import type { FramePort } from './ports';` and `import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';`. A new describe:
 
     ```ts
     describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7, 8, 9)', () => {
@@ -568,15 +607,19 @@ Cited as *choice N*.
         expect(order).toEqual(['source speaker', 'source participant', 'acquire', 'start', 'start']);
       });
 
-      it('a source that fails mints no lease: the start fails naming its leg', async () => {
+      it('a source that fails mints no lease: the start fails naming its leg, and reaches api_error on that leg with no code', async () => {
         const acquire = vi.fn(async () => lease());
+        const track = vi.fn();
         const { runner } = setup(withHooks({ acquire }), ['speaker', 'participant'], (leg) => {
           if (leg === 'participant') throw new Error('LOOPBACK_DENIED');
           return createFakeSource(createVirtualClock(0));
-        });
+        }, track);
         await runner.start();
         expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', leg: 'participant' } } });
         expect(acquire).not.toHaveBeenCalled();
+        const apiErrors = track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
+        expect(apiErrors).toEqual([expect.objectContaining({ provider: 'fake', error_type: 'server', channel: 'participant' })]);
+        expect(apiErrors[0]).not.toHaveProperty('error_code');
       });
 
       it('a refused lease fails the start with its code, starts no adapter, and leaves the last conversation on screen', async () => {
@@ -601,10 +644,9 @@ Cited as *choice N*.
         expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'insufficient_balance', message: 'no balance' } } });
         expect(start).not.toHaveBeenCalled();
         expect(runner.conversation.snapshot()).toEqual(before);
-        // Ruling 8: a refused start reaches error_occurred, and no api_error.
-        const events = track.mock.calls.map(([event]) => event);
-        expect(events).toContain('error_occurred');
-        expect(events).not.toContain('api_error');
+        // Ruling 8: a refused lease reaches api_error beside error_occurred, as the old onConnectFailed tracked every connect failure.
+        expect(track).toHaveBeenCalledWith('error_occurred', expect.objectContaining({ error_type: 'session_start', provider: 'fake' }));
+        expect(track).toHaveBeenCalledWith('api_error', { provider: 'fake', error_message: 'no balance', error_code: 'insufficient_balance', error_type: 'server', channel: 'speaker' });
       });
 
       it("files a lease's frames under the first leg", async () => {
@@ -640,17 +682,59 @@ Cited as *choice N*.
         expect(runner.state.getState()).not.toHaveProperty('budget');
       });
 
-      it("records a lease's end once, on the first leg, when both legs run (ruling 7)", async () => {
-        let endLease!: (notice: RunNotice) => void;
+      it("records a lease's end once, on the first leg, when both legs run (ruling 7), and tracks it once as api_error (ruling 8)", async () => {
+        let endLease!: (notice: RunNotice, o?: { expected?: boolean }) => void;
         const provider = withHooks({ acquire: async (_shape, _s, ctx) => { endLease = ctx.end; return lease(); } });
-        const { runner } = setup(provider, ['speaker', 'participant']);
+        const track = vi.fn();
+        const { runner } = setup(provider, ['speaker', 'participant'], undefined, track);
         await runner.start();
-        endLease({ code: 'budget_exhausted', message: 'used up' });
+        endLease({ code: 'budget_exhausted', message: 'Session budget exhausted' });
         await flush();
         const [speaker, participant] = runner.conversation.snapshot();
         expect(speaker.notices).toEqual([expect.objectContaining({ severity: 'error', code: 'budget_exhausted' })]);
         expect(participant.notices).toEqual([]);
         expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'budget_exhausted' } } });
+        // The old client's props (`ManagedSonioxSession.ts:166-173`): the code, a stable English message, the leg that announced it.
+        expect(track.mock.calls.filter(([event]) => event === 'api_error')).toEqual([
+          ['api_error', { provider: 'fake', error_message: 'Session budget exhausted', error_code: 'budget_exhausted', error_type: 'server', channel: 'speaker' }],
+        ]);
+      });
+
+      it('an expected lease end — the normal end of a managed segment — tracks no api_error', async () => {
+        let endLease!: (notice: RunNotice, o?: { expected?: boolean }) => void;
+        const provider = withHooks({ acquire: async (_shape, _s, ctx) => { endLease = ctx.end; return lease(); } });
+        const track = vi.fn();
+        const { runner } = setup(provider, ['speaker'], undefined, track);
+        await runner.start();
+        endLease({ code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, { expected: true });
+        await flush();
+        expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'segment_ended' } } });
+        expect(track.mock.calls.map(([event]) => event)).not.toContain('api_error');
+      });
+
+      it("tracks every adapter degradation as api_error — its reason as the code, else its code — once per leg and code in L1's window (ruling 8)", async () => {
+        let events!: AdapterEvents;
+        const provider = withHooks({}, {
+          async start(request: StartRequest<unknown, unknown>, e: AdapterEvents) {
+            events = e;
+            return fakeProvider.start(request as StartRequest<never, never>, e);
+          },
+        });
+        const track = vi.fn();
+        const { runner, clock } = setup(provider, ['speaker'], undefined, track);
+        await runner.start();
+        const apiErrors = () => track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
+        events.degraded({ code: 'tts_stopped', message: 'Soniox TTS 408: Request timeout', reason: 'tts_408' });
+        expect(apiErrors()).toEqual([{ provider: 'fake', error_message: 'Soniox TTS 408: Request timeout', error_code: 'tts_408', error_type: 'server', channel: 'speaker' }]);
+        // The same code inside L1's window is the same episode to the user: not tracked again.
+        events.degraded({ code: 'tts_stopped', message: 'Soniox TTS 400: Invalid voice', reason: 'tts_400' });
+        expect(apiErrors()).toHaveLength(1);
+        clock.advance(DEGRADED_DEDUPE_MS);
+        events.degraded({ code: 'tts_stopped', message: 'Soniox TTS 400: Invalid voice', reason: 'tts_400' });
+        expect(apiErrors()).toHaveLength(2);
+        // No reason: the code is the analytics code (LocalInference's, the adapter's own `tts_degraded`).
+        events.degraded({ code: 'tts_degraded', message: 'No TTS key was issued for this leg: it runs text-only.' });
+        expect(apiErrors()[2]).toEqual({ provider: 'fake', error_message: 'No TTS key was issued for this leg: it runs text-only.', error_code: 'tts_degraded', error_type: 'server', channel: 'speaker' });
       });
 
       // Choice 3: only a lease or `startBoth` moves the hand-over after the
@@ -725,6 +809,9 @@ Cited as *choice N*.
     Its other two lease cases stay as they are: "a lease that ends the run from its abort listener does not end it twice" (`:554`) and "a leg still opening when Stop lands is closed before the lease is released…" (`:1130`) — the stack's order is unchanged (sources and sessions still unwind before the lease). (`sources` is the setup's `FakeSource[]`; `FakeSource.stopped` is `src/providers/fake/source.ts:13`.)
 
     The existing cases stay and stay green: "releases a lease that arrives after the start was cancelled" (the stop now lands after the source opened, while `acquire` waits: `close()` still waits for it, and the lease is released once it arrives), "gives each leg its own credentials…" (the lease still unwinds after both sessions), "ends the run when the lease ends it…" (one leg: one notice).
+  - `src/providers/soniox/speech.test.ts` (ruling 8: the old client tracked `error_code: tts_<cause>`, `SonioxClient.ts:1472-1490` on `main`): the harness's `setup` returns `reasons`, the same as its `degraded` helper (`:26`) mapped to `e.payload.reason`; and two existing cases gain one assertion each:
+    - "a failure of all speech says tts_stopped, even after a lost segment" (`:192`): after its second `degraded()` check, `expect(reasons()).toEqual(['tts_408', 'tts_400'])`;
+    - "a reconnect that fails says tts_stopped" (`:248`): `expect(reasons()).toEqual(['tts_connect_failed'])`.
   - `leased.test.ts`, new cases in `describe('the leased fake')`:
     1. **"acquire refuses with insufficient_balance when asked (the parked coded refusal)"** — `session.acquire!(shapeFor(s({ acquireRefused: true })), s({ acquireRefused: true }), { signal: live(), clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn() })` rejects with an `AdapterStartError` whose `code` is `'insufficient_balance'` and message `'The leased fake refused the lease (knob).'`.
     2. **"its lease carries a budget when it ends, and none when it never does"** — at clock 500, `leaseEndsAfterMs: 3000` → `lease.budget` is `{ totalMs: 3000, endsAt: 3500 }`; `leaseEndsAfterMs: 0` → `budget` is `undefined`.
@@ -734,7 +821,7 @@ Cited as *choice N*.
     6. **"a refused lease fails its start through the runner, with the words' code"** — the same runner, one leg, `s({ acquireRefused: true })` → idle, `lastEnd: { reason: 'start-failed', notice: { code: 'insufficient_balance' } }`.
   - `describe('migrateFakeLeasedSettings')`: `valid` gains `acquireRefused: true, minimumBalanceMicroUsd: 1234`; `bad` gains `['acquireRefused', 'yes']`, `['minimumBalanceMicroUsd', -5]`, `['minimumBalanceMicroUsd', 'x']`.
   - `FakeLeasedSettingsView.test.tsx`: the one case becomes "draws the fake's own controls and the hook knobs", also clicking `screen.getByRole('switch', { name: 'Acquire refuses (insufficient balance)' })` and changing `screen.getByLabelText('Minimum balance, text only (µUSD; speech doubles it)')` to `'18334'`, and `update.mock.calls` ends `[{ acquireRefused: true }], [{ minimumBalanceMicroUsd: 18334 }]`.
-- [ ] **Step 2: Run** `npx vitest run src/lib/session/runner.hooks.test.ts src/lib/session/runner.test.ts src/providers/fake` — FAIL (the order is source–acquire–start only by accident today for one leg; with two legs acquire runs first; no budget in the state; two notices; no knobs).
+- [ ] **Step 2: Run** `npx vitest run src/lib/session/runner.hooks.test.ts src/lib/session/runner.test.ts src/providers/fake src/providers/soniox/speech.test.ts` — FAIL (the order is source–acquire–start only by accident today for one leg; with two legs acquire runs first; no budget in the state; two notices; no knobs).
 - [ ] **Step 3: Implement.**
   - `run.ts`:
     - imports: add `Budget` to the `./types` type import;
@@ -773,12 +860,22 @@ Cited as *choice N*.
           clock: deps.clock,
           // `close()` sets `ending` before it aborts; an abort listener that
           // reacts by calling this must not re-end a run already ending.
-          end: (notice) => {
+          end: (notice, o) => {
             if (this.ending) return;
             // One notice for the lease, on the first leg (Stage 2 Kizuna Soniox,
             // ruling 7): it covers every leg, and the same sentence twice in Both
             // says nothing more.
             this.conversations.get(shape.legs[0])?.notice({ severity: 'error', ...notice });
+            // Ruling 8: a lease end is an error to analytics, as the old
+            // client's budget exhaustion was (`ManagedSonioxSession.ts:166-173`),
+            // unless the lease calls it the normal end of a segment — which the
+            // old client deliberately never tracked (`:158-161`).
+            if (!o?.expected) {
+              deps.analytics.track('api_error', {
+                provider: shape.provider.id, error_message: redact(notice.message), error_code: notice.code,
+                error_type: apiErrorType(notice.code), channel: shape.legs[0],
+              });
+            }
             host.end({ reason: 'lease-ended', notice });
           },
           // The lease's wire traffic (`session.*`), in the first leg's Logs — its
@@ -849,7 +946,64 @@ Cited as *choice N*.
 
     - `openLeg` takes an already-opened source: `private async openLeg(leg: LegName, request: StartRequest<unknown, unknown>, opened?: Source): Promise<void>`, its first line `const source = opened ?? await this.openSource(leg);`; the rest unchanged.
     - `openSource`'s comment "The conversations already exist — `openSource` runs after `host.step('opening')`." stays true (they are created before any source opens).
+    - `API_ERROR_TYPES` (`run.ts:27-28`) gains a helper both runner files use, and the `failed` case (`:446`) calls it:
+
+      ```ts
+      /** The `api_error` type a code names, else 'server' (the old default, `apiErrorProps.ts` on `main`). */
+      export function apiErrorType(code?: string): ApiErrorType {
+        return API_ERROR_TYPES.find((t) => t === code) ?? 'server';
+      }
+      ```
+
+    - `import { Conversation, DEFAULT_RETENTION, DEGRADED_DEDUPE_MS, type Retention } from '../conversation/Conversation';`; a field after `budget`: `/** When each leg's degradation code last reached analytics: L1's window, applied to \`api_error\` too (ruling 8). */ private readonly degradedTrackedAt = new Map<string, number>();`; and `onEvent`'s switch gains, before `closed`:
+
+      ```ts
+      case 'degraded': {
+        // Ruling 8: every adapter degradation reaches `api_error`, as the old
+        // Soniox client's TTS failures did (`error_code: tts_<cause>`), counted
+        // as the user is told: L1's window per leg and code
+        // (`DEGRADED_DEDUPE_MS`). Soniox reports once per failure episode
+        // already, so the window changes nothing there; LocalInference's
+        // per-sentence and per-utterance failures would otherwise send one
+        // event each. A source's degradation is not an adapter's: it tracks
+        // nothing, as before.
+        const { code, message, reason } = event.payload;
+        const key = `${leg}:${code}`;
+        const now = this.deps.clock.now();
+        const last = this.degradedTrackedAt.get(key);
+        if (last !== undefined && now - last < DEGRADED_DEDUPE_MS) return;
+        this.degradedTrackedAt.set(key, now);
+        analytics.track('api_error', { provider, error_message: redact(message), error_code: reason ?? code, error_type: 'server', channel: leg });
+        return;
+      }
+      ```
+
+  - `runner.ts`, in `start`'s catch, right after its `error_occurred` (`:222-225`) — ruling 8; imports `redact` (`'../diagnostics/redact'`) and `apiErrorType` (`'./run'`):
+
+    ```ts
+    // A start that fails reaches `api_error` too, as the old `onConnectFailed`
+    // tracked every connect failure (`participantTelemetry.ts:104-123` on
+    // `main`, through `buildApiErrorProps`): its words, redacted, the leg that
+    // failed (the first when none is named), and its code when it has one —
+    // the lease's 401/402/403/409/502/503/timeout codes among them. A refusal
+    // before anything opened (`RefusedError`) is not a failure: nothing.
+    const code = adapterError?.code;
+    deps.analytics.track('api_error', {
+      provider: shape.provider.id,
+      error_message: redact(message),
+      ...(code ? { error_code: code } : {}),
+      error_type: apiErrorType(code),
+      channel: leg ?? shape.legs[0],
+    });
+    ```
+
   - `runner.ts`, in `start`, the running state: `set({ phase: 'running', since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}) });`. `hostFor`'s `legState` spreads the state it replaces, so a budget survives a leg's change.
+  - `src/providers/soniox/speech.ts:252` — the degradation carries its analytics reason (ruling 8), the old client's `tts_<cause>` (`SonioxClient.ts:1476-1489` on `main`):
+
+    ```ts
+    this.o.events.degraded({ code: scope === 'segment' ? 'tts_segment_lost' : 'tts_stopped', message: `Soniox TTS ${code}: ${message}`, reason: `tts_${code}` });
+    ```
+
   - `settings.ts` (the leased fake):
     - `FakeLeasedSettings` gains
 
@@ -919,16 +1073,17 @@ Cited as *choice N*.
     and the doc comment says "the knobs of its session hooks".
 - [ ] **Step 4: Run** `npx vitest run src/lib/session src/providers src/app src/components/dev`, then the full suite and the gate. What else the reorder reaches, and why it stays green:
   - `runner.test.ts` carries three lease cases: `:554` and `:1130` stay green (the stack order is unchanged), and `:1201` is rewritten in Step 1. Its other cases, `runner.turns.test.ts`, `spine.e2e.test.ts`, and LocalInference's and Soniox's runner-level tests have no lease and (but for own-key Soniox's `startBoth`) no `startBoth`, so their path is the old one — the failing-restart cases above pin that; Soniox's `startBoth` tests call the adapter directly, not through `Run`;
+  - analytics: `runner.test.ts:860-861` (`api_error` for a `failed` leg) is unchanged, `apiErrorType` gives it the same `error_type`; `runner.hooks.test.ts:279-311` ("a leg that fails before startBoth settles… no start failure") still counts one `api_error`, since that run does not end as a start failure; no test asserts that a start failure or a degradation sends no `api_error` (checked);
   - `app/session.test.ts` and `SpinePreview.test.tsx` run the fake; `useAppSession.test.tsx` runs the fake;
   - the registry invariant "migrate turns the defaults, stored as they are, into the defaults" covers the leased fake's two new knobs.
 - [ ] **Step 5: Commit.**
 
   ```bash
-  git add src/lib/session/run.ts src/lib/session/runner.ts src/lib/session/runner.test.ts src/lib/session/runner.hooks.test.ts src/providers/fake/leased.ts src/providers/fake/settings.ts src/providers/fake/leased.test.ts src/providers/fake/FakeLeasedSettingsView.tsx src/providers/fake/FakeLeasedSettingsView.test.tsx
+  git add src/lib/session/run.ts src/lib/session/runner.ts src/lib/session/runner.test.ts src/lib/session/runner.hooks.test.ts src/providers/soniox/speech.ts src/providers/soniox/speech.test.ts src/providers/fake/leased.ts src/providers/fake/settings.ts src/providers/fake/leased.test.ts src/providers/fake/FakeLeasedSettingsView.tsx src/providers/fake/FakeLeasedSettingsView.test.tsx
   ```
 
   ```bash
-  git commit -q -F - -- src/lib/session/run.ts src/lib/session/runner.ts src/lib/session/runner.test.ts src/lib/session/runner.hooks.test.ts src/providers/fake/leased.ts src/providers/fake/settings.ts src/providers/fake/leased.test.ts src/providers/fake/FakeLeasedSettingsView.tsx src/providers/fake/FakeLeasedSettingsView.test.tsx <<'EOF'
+  git commit -q -F - -- src/lib/session/run.ts src/lib/session/runner.ts src/lib/session/runner.test.ts src/lib/session/runner.hooks.test.ts src/providers/soniox/speech.ts src/providers/soniox/speech.test.ts src/providers/fake/leased.ts src/providers/fake/settings.ts src/providers/fake/leased.test.ts src/providers/fake/FakeLeasedSettingsView.tsx src/providers/fake/FakeLeasedSettingsView.test.tsx <<'EOF'
   feat(session): sources before a lease, one lease-end notice, the budget in the running state
 
   A run opens every leg's source before it mints a lease, so a source
@@ -940,6 +1095,11 @@ Cited as *choice N*.
   running state. The leased fake can refuse its lease, name a start floor,
   and carries its budget.
 
+  The api_error events the old clients sent come back, generically: a
+  start that fails, a lease end that is not the normal end of a segment,
+  and every adapter degradation, counted in L1's five-second window;
+  Soniox's speech gives its cause as the analytics code.
+
   Co-Authored-By: <implementing model> <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01Q5eVcuCVVhSpoUCA5C7bDe
   EOF
@@ -947,40 +1107,53 @@ Cited as *choice N*.
 
 ---
 
-### Task 3: The account's wallet and the start gate's floor (rulings 5, 6; choice 8)
+### Task 3: The account's wallet, its way back, and the start gate's floor (rulings 5, 6; choice 8)
 
 **Files:**
 - Create: `src/stores/accountStore.ts`, `src/stores/accountStore.test.ts`, `src/contexts/UserProfileContext.accountStore.test.tsx`.
 - Modify: `src/contexts/UserProfileContext.tsx`, `src/lib/session/shape.ts`, `src/lib/session/shape.test.ts`, `src/lib/session/appShape.ts`, `src/lib/session/appShape.test.ts`, `src/lib/subtitle/appSession.ts`, `src/lib/subtitle/appSession.test.ts`.
 
 **Interfaces:**
-- **Consumes:** Task 1's `AccountBalance`, `RunShape.account`, `BalanceShape`, `SessionHooks.minimumBalance`; Task 2's `FakeLeasedSettings.minimumBalanceMicroUsd` (store-level tests only); Task 4's `participantSpeechFromStores(provider)` (`appShape.ts`).
-- **Produces:** `useAccountStore` (`{ account: AccountBalance | null; setAccount(account: AccountBalance | null): void }`); `GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'account'>>`; `BALANCE_BELOW_FLOOR = 'balance_below_floor'`; `balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'account'>): Refusal | null`; `readShapeFromStores` fills `account`; `liveGate` reads `textOnly` and `account`.
-- **Consumed by:** Task 8 (`balance_below_floor`'s alias), Task 10 (`balanceRefusal`, `useAccountStore`), the runner (its gate at start reads the frozen shape's `account`).
+- **Consumes:** Task 1's `AccountState`, `RunShape.account`, `BalanceShape`, `SessionHooks.minimumBalance`; Task 2's `FakeLeasedSettings.minimumBalanceMicroUsd` (store-level tests only); Task 4's `participantSpeechFromStores(provider)` (`appShape.ts`).
+- **Produces:** `useAccountStore` (`{ account: AccountState | null; setAccount(account: AccountState | null): void }`); `WALLET_RETRY_DELAYS_MS` (`UserProfileContext.tsx`); `QUOTA_PENDING = 'quota_pending'` and `QUOTA_UNKNOWN = 'quota_unknown'` (`shape.ts`); `GateInput = Pick<RunShape, 'provider' | 'settings' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'account'>>`; `BALANCE_BELOW_FLOOR = 'balance_below_floor'`; `balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'account'>): Refusal | null`; `readShapeFromStores` fills `account`; `liveGate` reads `textOnly` and `account`.
+- **Consumed by:** Task 8 (the `balance_below_floor`, `quota_pending` and `quota_unknown` aliases), Task 10 (`balanceRefusal`, `useAccountStore`), the runner (its gate at start reads the frozen shape's `account`).
 
 - [ ] **Step 1: Write the failing tests.**
-  - `accountStore.test.ts`: **"holds nothing until told, then the account, and nothing again"** — `useAccountStore.getState().account` is `null`; `setAccount({ balanceMicroUsd: 5, frozen: false })` → that object; `setAccount(null)` → `null`.
+  - `accountStore.test.ts`: **"holds nothing until told, then the account, and nothing again"** — `useAccountStore.getState().account` is `null`; `setAccount({ status: 'known', balanceMicroUsd: 5, frozen: false })` → that object; `setAccount({ status: 'loading' })` → that; `setAccount(null)` → `null`.
   - `UserProfileContext.accountStore.test.tsx` — the preamble of `UserProfileContext.signOut.test.tsx:8-64` copied as it is (its auth, environment, analytics and `useRun` mocks, `walletBody`, the `fetch` stub and `load()`), then:
-    1. **"mirrors the fetched wallet into the account store, and clears it on sign-out"** — render `useUserProfile()` in the provider; `waitFor` → `useAccountStore.getState().account` equals `{ balanceMicroUsd: 12_340_000, frozen: false }`; `signedIn = false; userId = undefined; rerender()` → `waitFor` it is `null`.
-    2. **"leaves it unknown when the fetch fails"** — `fetch` rejects (`vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }))`) → after the fetch settles (`waitFor(() => expect(result.current.error).not.toBeNull())`) the store's account is `null`.
-    3. **"clears it when the provider unmounts"** — after case 1's first `waitFor`, `unmount()` → `null`.
+    1. **"is loading while the first fetch is in flight, known once it lands, and nothing on sign-out"** — `let answer!: () => void; vi.stubGlobal('fetch', vi.fn(() => new Promise((resolve) => { answer = () => resolve({ ok: true, status: 200, json: async () => walletBody }); })))`; render `useUserProfile()` in the provider → `waitFor` → `useAccountStore.getState().account` equals `{ status: 'loading' }`; `answer()` → `waitFor` `{ status: 'known', balanceMicroUsd: 12_340_000, frozen: false }`; `signedIn = false; userId = undefined; rerender()` → `waitFor` `null`.
+    2. **"is unknown when the fetch fails and no wallet is known"** — `fetch` rejects (`vi.fn(async () => { throw new Error('offline'); })`) → `waitFor` `{ status: 'unknown' }`; the same for an answer that is not ok (`{ ok: false, status: 503, statusText: 'Service Unavailable', json: async () => ({}) }`).
+    3. **"re-fetches when the browser comes back online"** — a `fetch` that rejects once, then answers `walletBody`; `waitFor` `{ status: 'unknown' }`; `act(() => { window.dispatchEvent(new Event('online')); })` → `waitFor` `{ status: 'known', balanceMicroUsd: 12_340_000, frozen: false }`; `fetch` was called twice.
+    4. **"re-fetches an unknown wallet after 15, 30 and 60 s, then leaves it to the 5-minute poll"** — `vi.useFakeTimers()` (the file's `afterEach` restores real timers), a `fetch` that always rejects; render; `await vi.advanceTimersByTimeAsync(0)` → one call, the account `{ status: 'unknown' }`; `advanceTimersByTimeAsync(14_999)` → one; `(1)` → two; `(30_000)` → three; `(60_000)` → four; `(100_000)`, at 205 s → still four; `(95_000)`, at 300 s → five (the 5-minute poll's first tick, `:256-269`). `WALLET_RETRY_DELAYS_MS` equals `[15_000, 30_000, 60_000]`.
+    5. **"stops retrying once the wallet is known, and on sign-out"** — fake timers; a `fetch` that rejects once, then answers; `advanceTimersByTimeAsync(0)` → unknown; `(15_000)` → two calls, known; `(90_000)` → still two. Then with a fresh render that fails, `signedIn = false; userId = undefined; rerender()` → `null`, and `(105_000)` adds no call.
+    6. **"clears it when the provider unmounts"** — after case 1's known `waitFor`, `unmount()` → `null`.
     - `beforeEach` also resets `useAccountStore.setState({ account: null })`.
-  - `shape.test.ts`, a new describe (import `balanceRefusal`, `BALANCE_BELOW_FLOOR` from `./shape`, the type `BalanceShape` from `./types` and `formatUsdFloor` from `../../utils/formatters`):
+  - `shape.test.ts`, a new describe (import `balanceRefusal`, `BALANCE_BELOW_FLOOR`, `QUOTA_PENDING`, `QUOTA_UNKNOWN` from `./shape`, the type `BalanceShape` from `./types` and `formatUsdFloor` from `../../utils/formatters`):
 
     ```ts
     describe('balanceRefusal and the gate (Stage 2 Kizuna Soniox, rulings 5, 6)', () => {
       // A floor that rises with each speaking leg, as a lease's does.
       const leased = { ...fakeProvider, session: { minimumBalance: (s: BalanceShape) => 100 + (s.textOnly ? 0 : 100) + (s.participantSpeech ? 100 : 0) } } as unknown as RunShape['provider'];
-      const input = (patch: Partial<RunShape> = {}) => ({ provider: leased, settings: FAKE_DEFAULTS, legs: ['speaker'] as const, textOnly: false, participantSpeech: false, account: { balanceMicroUsd: 150, frozen: false }, ...patch });
+      const known = (balanceMicroUsd: number, frozen = false) => ({ status: 'known' as const, balanceMicroUsd, frozen });
+      const input = (patch: Partial<RunShape> = {}) => ({ provider: leased, settings: FAKE_DEFAULTS, legs: ['speaker'] as const, textOnly: false, participantSpeech: false, account: known(150), ...patch });
 
-      it('gates nothing on an unknown account, or for a provider with no floor', () => {
+      it('gates nothing without an account (signed out, or none wired), or for a provider with no floor', () => {
         expect(balanceRefusal(input({ account: null }))).toBeNull();
         expect(balanceRefusal(input({ account: undefined }))).toBeNull();
-        expect(balanceRefusal(input({ provider: fakeProvider, account: { balanceMicroUsd: -1, frozen: true } }))).toBeNull();
+        expect(balanceRefusal(input({ provider: fakeProvider, account: known(-1, true) }))).toBeNull();
+        expect(balanceRefusal(input({ provider: fakeProvider, account: { status: 'unknown' } }))).toBeNull();
+      });
+
+      it('a wallet still loading answers quota_pending — "Checking...", no failure words', () => {
+        expect(balanceRefusal(input({ account: { status: 'loading' } }))).toEqual({ code: QUOTA_PENDING, message: 'The wallet is still loading.' });
+      });
+
+      it('a wallet that failed to load refuses: quota_unknown, as the old gate did', () => {
+        expect(balanceRefusal(input({ account: { status: 'unknown' } }))).toEqual({ code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' });
       });
 
       it('refuses a frozen wallet before the floor', () => {
-        expect(balanceRefusal(input({ account: { balanceMicroUsd: 10_000, frozen: true } }))).toEqual({ code: 'wallet_frozen', message: 'The wallet is frozen.' });
+        expect(balanceRefusal(input({ account: known(10_000, true) }))).toEqual({ code: 'wallet_frozen', message: 'The wallet is frozen.' });
       });
 
       it('refuses a balance below the floor for these legs, with the balance floored in USD', () => {
@@ -990,7 +1163,7 @@ Cited as *choice N*.
           params: { balance: formatUsdFloor(150) },
         });
         expect(balanceRefusal(input({ textOnly: true }))).toBeNull();
-        expect(balanceRefusal(input({ account: { balanceMicroUsd: 200, frozen: false } }))).toBeNull();
+        expect(balanceRefusal(input({ account: known(200) }))).toBeNull();
       });
 
       it('reads textOnly and participantSpeech as false when the input leaves them out', () => {
@@ -1004,19 +1177,20 @@ Cited as *choice N*.
       });
 
       it("is the gate's last refusal: the participant's comes first", () => {
-        expect(gate(shape({ provider: leased, legs: ['participant'], pair: { source: AUTO, target: 'en' }, account: { balanceMicroUsd: 0, frozen: false } }), 'electron'))
+        expect(gate(shape({ provider: leased, legs: ['participant'], pair: { source: AUTO, target: 'en' }, account: known(0) }), 'electron'))
           .toMatchObject({ code: 'participant_unsupported' });
-        expect(gate(shape({ provider: leased, account: { balanceMicroUsd: 0, frozen: false } }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
+        expect(gate(shape({ provider: leased, account: known(0) }), 'electron')).toMatchObject({ code: BALANCE_BELOW_FLOOR });
+        expect(gate(shape({ provider: leased, account: { status: 'unknown' } }), 'electron')).toMatchObject({ code: QUOTA_UNKNOWN });
         expect(gate(shape({ provider: leased }), 'electron')).toBeNull();
       });
     });
     ```
 
   - `appShape.test.ts` (import `useAccountStore` and `FAKE_LEASED_DEFAULTS`; `beforeEach` adds `useAccountStore.setState({ account: null }); useSettingsStore.setState({ textOnly: false });`):
-    1. **"freezes the account's wallet"** — `selected: 'fake'` with its entry; `useAccountStore.setState({ account: { balanceMicroUsd: 7, frozen: false } })` → `readShapeFromStores(auth)?.account` equals it; with `null` → `null`.
-    2. **"refuses below the selected provider's floor, reading text only and the wallet from their stores"** (the participant's speech is read through `participantSpeechFromStores`, off in this setup) — `selected: 'fake_leased'`, entry `{ settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } }`, `useAudioStore.setState({ mode: 'speaker' })`, `environment.value = 'electron'`, account `{ balanceMicroUsd: 1500, frozen: false }` → `liveGate()?.code` is `'balance_below_floor'` (the speaker speaks: floor 2000); `useSettingsStore.setState({ textOnly: true })` → `null` (floor 1000); account `null` → `null`.
+    1. **"freezes the account's wallet"** — `selected: 'fake'` with its entry; `useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 7, frozen: false } })` → `readShapeFromStores(auth)?.account` equals it; `{ status: 'unknown' }` → that; `null` → `null`.
+    2. **"refuses below the selected provider's floor, reading text only and the wallet from their stores"** (the participant's speech is read through `participantSpeechFromStores`, off in this setup) — `selected: 'fake_leased'`, entry `{ settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } }`, `useAudioStore.setState({ mode: 'speaker' })`, `environment.value = 'electron'`, account `{ status: 'known', balanceMicroUsd: 1500, frozen: false }` → `liveGate()?.code` is `'balance_below_floor'` (the speaker speaks: floor 2000); `useSettingsStore.setState({ textOnly: true })` → `null` (floor 1000); `{ status: 'loading' }` → `'quota_pending'`; `{ status: 'unknown' }` → `'quota_unknown'`; `null` (signed out) → `null`.
   - `appSession.test.ts` (imports `useAccountStore`, `useSettingsStore`, `FAKE_LEASED_DEFAULTS`; `afterEach` restores both stores' prior state as the file does for the others):
-    - **"keeps Start off below the floor, and turns it on when the balance arrives or text only lowers the floor"** — `setup()`, then `useProviderStore.setState({ selected: 'fake_leased', entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } } })`, `useAudioStore.setState({ mode: 'speaker' })`, `useAccountStore.setState({ account: { balanceMicroUsd: 1500, frozen: false } })`; a listener `vi.fn()` subscribed → `session.get()` has `canStart: false` and `idle: { kind: 'unready', code: 'balance_below_floor' }`; `useSettingsStore.setState({ textOnly: true })` → the listener was called and `canStart` is `true`; `useAccountStore.setState({ account: { balanceMicroUsd: 500, frozen: false } })` → `canStart` is `false` again.
+    - **"keeps Start off below the floor, and turns it on when the balance arrives or text only lowers the floor"** — `setup()`, then `useProviderStore.setState({ selected: 'fake_leased', entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } } })`, `useAudioStore.setState({ mode: 'speaker' })`, `useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1500, frozen: false } })`; a listener `vi.fn()` subscribed → `session.get()` has `canStart: false` and `idle: { kind: 'unready', code: 'balance_below_floor' }`; `useSettingsStore.setState({ textOnly: true })` → the listener was called and `canStart` is `true`; `useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 500, frozen: false } })` → `canStart` is `false` again; `{ status: 'unknown' }` → `idle: { kind: 'unready', code: 'quota_unknown' }`, and `{ status: 'loading' }` → `code: 'quota_pending'`.
 - [ ] **Step 2: Run** `npx vitest run src/stores/accountStore.test.ts src/contexts src/lib/session src/lib/subtitle` — FAIL.
 - [ ] **Step 3: Implement.**
   - `src/stores/accountStore.ts`, in full:
@@ -1024,17 +1198,17 @@ Cited as *choice N*.
     ```ts
     /**
      * The signed-in account's wallet as last fetched, for code outside React:
-     * the start gate's balance floor (Stage 2 Kizuna Soniox, choice 8).
-     * `UserProfileProvider` writes it from its quota. Null while unknown —
-     * signed out, not fetched yet, a failed fetch — and then nothing is gated
-     * on it: the backend's 402 is the authority (ruling 5).
+     * the start gate's balance floor (Stage 2 Kizuna Soniox, ruling 5;
+     * choice 8). `UserProfileProvider` writes it: null while signed out;
+     * `loading` until the first fetch lands; `unknown` once a fetch failed
+     * with no wallet known; else the wallet as last fetched.
      */
     import { create } from 'zustand';
-    import type { AccountBalance } from '../lib/session/types';
+    import type { AccountState } from '../lib/session/types';
 
     interface AccountStore {
-      account: AccountBalance | null;
-      setAccount(account: AccountBalance | null): void;
+      account: AccountState | null;
+      setAccount(account: AccountState | null): void;
     }
 
     export const useAccountStore = create<AccountStore>()((set) => ({
@@ -1043,18 +1217,59 @@ Cited as *choice N*.
     }));
     ```
 
-  - `UserProfileContext.tsx`: import `useAccountStore` from `'../stores/accountStore'`; after the polling effect (`:256-269`):
+  - `UserProfileContext.tsx` — the store's writer and the way back (ruling 5):
+    - import `useAccountStore` from `'../stores/accountStore'`; beside the `QuotaData` export (`:13`):
 
-    ```ts
-    // The start gate reads the wallet outside React (Stage 2 Kizuna Soniox):
-    // mirrored as the quota changes, null whenever the quota is unknown.
-    useEffect(() => {
-      const balance = quota?.balance;
-      useAccountStore.getState().setAccount(typeof balance === 'number' ? { balanceMicroUsd: balance, frozen: quota?.frozen === true } : null);
-    }, [quota]);
-    useEffect(() => () => useAccountStore.getState().setAccount(null), []);
-    ```
+      ```ts
+      /** The waits between re-fetches of a wallet that failed to load (Stage 2 Kizuna Soniox, ruling 5): 15 s, 30 s, 60 s, then the 5-minute poll. */
+      export const WALLET_RETRY_DELAYS_MS: readonly number[] = [15_000, 30_000, 60_000];
+      ```
 
+    - a state beside `error`: `const [walletFailed, setWalletFailed] = useState(false);` — a fetch failed and no wallet has landed since;
+    - `fetchQuota`: `setWalletFailed(true)` in its not-ok branch (after `reportError`) and in its `catch` (after `setQuota(null)`), both already past their `stale()` checks; `setWalletFailed(false)` beside its success's `setError(null)`;
+    - `fetchQuotaSilently`: `setWalletFailed(false)` beside its success's `setError(null)`;
+    - the sign-in effect (`:234-253`): `setWalletFailed(false)` where it clears `pollFailingRef` — a new account starts `loading`;
+    - after the polling effect (`:256-269`):
+
+      ```ts
+      // The start gate reads the wallet outside React (Stage 2 Kizuna Soniox,
+      // ruling 5): null signed out, loading until the first fetch lands,
+      // unknown once one failed with no wallet known.
+      useEffect(() => {
+        const balance = quota?.balance;
+        useAccountStore.getState().setAccount(
+          !isSignedIn || !userId ? null
+            : typeof balance === 'number' ? { status: 'known', balanceMicroUsd: balance, frozen: quota?.frozen === true }
+            : walletFailed ? { status: 'unknown' }
+            : { status: 'loading' },
+        );
+      }, [isSignedIn, userId, quota, walletFailed]);
+      useEffect(() => () => useAccountStore.getState().setAccount(null), []);
+
+      // The way back from an offline launch (ruling 5): while signed in with
+      // no wallet after a failed fetch, re-fetch when the network returns and
+      // on a short back-off, instead of leaving Start refused until the
+      // 5-minute poll. Silent, so the balance display does not flicker; a
+      // success clears `walletFailed` and so ends this effect.
+      useEffect(() => {
+        if (!isSignedIn || !userId || !walletFailed || quota) return;
+        const retry = () => { void fetchQuotaSilently(); };
+        window.addEventListener('online', retry);
+        const timers: Array<ReturnType<typeof setTimeout>> = [];
+        let at = 0;
+        for (const delay of WALLET_RETRY_DELAYS_MS) {
+          at += delay;
+          timers.push(setTimeout(retry, at));
+        }
+        return () => {
+          window.removeEventListener('online', retry);
+          timers.forEach(clearTimeout);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [isSignedIn, userId, walletFailed, quota]); // Stable values, as the effects above
+      ```
+
+    A failed refresh with a wallet known keeps it (`fetchQuota`'s not-ok branch keeps the quota, as the silent poll does); a transport failure clears it (`catch` → `setQuota(null)`), so the state becomes `unknown` — as the old gate read a null quota.
   - `shape.ts`:
     - import `import { formatUsdFloor } from '../../utils/formatters';`;
     - `GateInput` and its comment become
@@ -1065,19 +1280,26 @@ Cited as *choice N*.
 
       /** A start refused below a managed provider's floor: worded by the old gate's "Insufficient balance: {{balance}}" (ruling 6). */
       export const BALANCE_BELOW_FLOOR = 'balance_below_floor';
+      /** The wallet's first fetch still in flight: "Checking...", no failure words at every launch (ruling 5). */
+      export const QUOTA_PENDING = 'quota_pending';
+      /** A fetch failed and no wallet is known: the old gate's "Unable to load quota information" (ruling 5; `oldGate:254-261`). */
+      export const QUOTA_UNKNOWN = 'quota_unknown';
 
       /**
-       * A managed provider's balance check over the account as last fetched
-       * (Stage 2 Kizuna Soniox, rulings 5 and 6): a frozen wallet, or a balance
+       * A managed provider's balance check over the account as the client
+       * knows it (Stage 2 Kizuna Soniox, rulings 5 and 6): the wallet still
+       * loading, a wallet that failed to load, a frozen wallet, or a balance
        * below the floor the provider names for this start (`minimumBalance`).
-       * Nothing while the account is unknown — signed out, not fetched, a failed
-       * fetch — or the provider names no floor: the backend's 402 is the
-       * authority, and the lease words it.
+       * Nothing without an account — signed out, where the sign-in check
+       * speaks, or none wired — or when the provider names no floor. The
+       * backend's 402 still words a balance that changed since the fetch.
        */
       export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 'legs' | 'textOnly' | 'participantSpeech' | 'account'>): Refusal | null {
         const floorFor = input.provider.session?.minimumBalance;
         const account = input.account;
         if (!floorFor || !account) return null;
+        if (account.status === 'loading') return { code: QUOTA_PENDING, message: 'The wallet is still loading.' };
+        if (account.status === 'unknown') return { code: QUOTA_UNKNOWN, message: 'The wallet could not be loaded.' };
         if (account.frozen) return { code: 'wallet_frozen', message: 'The wallet is frozen.' };
         const floor = floorFor({ legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false }, input.settings);
         if (account.balanceMicroUsd >= floor) return null;
@@ -1090,14 +1312,15 @@ Cited as *choice N*.
       }
       ```
 
-    - `gate`'s last line `return null;` becomes `return balanceRefusal(shape);`, and its doc comment adds "and, last, a managed provider's balance floor over the account as last fetched".
-  - `appShape.ts`: import `useAccountStore` from `'../../stores/accountStore'`; `readShapeFromStores` adds `account: useAccountStore.getState().account,` after `auth`; `liveGate`'s input adds `textOnly: useSettingsStore.getState().textOnly,`, `participantSpeech: participantSpeechFromStores(selected.provider),` (Task 4's helper, the one `readShapeFromStores` uses, so the live floor and the run's floor price the same legs) and `account: useAccountStore.getState().account,`; its doc comment's list adds "a known balance below a managed provider's floor".
+    - `gate`'s last line `return null;` becomes `return balanceRefusal(shape);`, and its doc comment adds "and, last, a managed provider's balance check: the wallet loading or unknown, frozen, or below the floor".
+  - `appShape.ts`: import `useAccountStore` from `'../../stores/accountStore'`; `readShapeFromStores` adds `account: useAccountStore.getState().account,` after `auth`; `liveGate`'s input adds `textOnly: useSettingsStore.getState().textOnly,`, `participantSpeech: participantSpeechFromStores(selected.provider),` (Task 4's helper, the one `readShapeFromStores` uses, so the live floor and the run's floor price the same legs) and `account: useAccountStore.getState().account,`; its doc comment's list adds "a managed provider's wallet still loading, unknown, frozen or below its floor".
   - `appSession.ts`: import `useAccountStore`, `useSettingsStore` and `useRoutingStore`; `offs` gains `useAccountStore.subscribe(update)`, `useSettingsStore.subscribe((s) => s.textOnly, update)` (the settings store has `subscribeWithSelector`) and `useRoutingStore.subscribe(update)` (the participant-speech switch; a plain store, so it fires on every change of it, and `update` compares before it notifies); the header's store list adds "the account's wallet, the text-only switch and the participant-speech switch, for the balance floor".
 - [ ] **Step 4: Run** `npx vitest run src/stores src/contexts src/lib src/app src/components`, then the full suite and the gate. What else this reaches, and why it stays green:
   - every existing `gate()` caller: the new fields are optional; a provider with no `minimumBalance` is never refused on a balance (Soniox's `provider.test.ts` case 4 calls `gate` without them);
   - `runner.test.ts` / `runner.hooks.test.ts` build shapes with no `account`: nothing is gated;
+  - the preview (`SpinePreview`, the group checks): its real sign-in is signed out, so the account store is null and nothing is gated on a balance — Kizuna Soniox's Start there follows the sign-in check alone;
   - `appShape.test.ts`'s existing `readShapeFromStores` case uses `toMatchObject`, which ignores the new `account`;
-  - the two existing `UserProfileContext.*.test.tsx` files: the new effects write a store no test of theirs reads.
+  - the two existing `UserProfileContext.*.test.tsx` files: the new effects write a store no test of theirs reads, and their fetches answer, so no retry timer is left behind (the poll-interval test counts `fetch` calls: its fetch succeeds, so `walletFailed` never turns true and the back-off never schedules).
 - [ ] **Step 5: Commit.**
 
   ```bash
@@ -1108,10 +1331,13 @@ Cited as *choice N*.
   git commit -q -F - -- src/stores/accountStore.ts src/stores/accountStore.test.ts src/contexts/UserProfileContext.tsx src/contexts/UserProfileContext.accountStore.test.tsx src/lib/session/shape.ts src/lib/session/shape.test.ts src/lib/session/appShape.ts src/lib/session/appShape.test.ts src/lib/subtitle/appSession.ts src/lib/subtitle/appSession.test.ts <<'EOF'
   feat(session): the start gate refuses below a managed provider's floor
 
-  The account's wallet reaches code outside React through a small store,
-  written from the quota and null while it is unknown. A run freezes it;
-  the gate refuses a frozen wallet and a known balance below the floor the
-  provider names for these legs, and gates nothing on an unknown balance.
+  The account's wallet reaches code outside React through a small store:
+  loading until the first fetch lands, unknown once a fetch failed, else
+  the wallet. A run freezes it; the gate answers "Checking..." while it
+  loads, refuses an unknown wallet as the old gate did, and refuses a
+  frozen wallet and a balance below the floor the provider names for these
+  legs. An unknown wallet is fetched again when the network returns and
+  after 15, 30 and 60 seconds, so an offline launch finds its way back.
   Start follows the wallet and the text-only switch as they change.
 
   Co-Authored-By: <implementing model> <noreply@anthropic.com>
@@ -1491,8 +1717,8 @@ Cited as *choice N*.
     10. **"refuses a signed-out start before any request"** — `acquiring(['speaker'], { token: null })` → rejects, code `'sign_in_required'`; `fetch` never called.
     11. **"its budget is the granted time, from acquire"** (§1.5; choice 7) — at `clock.advance(5_000)` before answering, respond `grant([...], { maxSessionDurationSeconds: 600 })` → `lease.budget` equals `{ totalMs: 600_000, endsAt: 605_000 }`.
     12. **"ends the run once at the grant's end, in the words decided at acquire"** (ruling 3):
-        - speaking, 600 s (below the 3 600-s cap) → `clock.advance(600_000)` → `end` called once with `{ code: 'budget_exhausted', message: 'The session used the 600 s its balance was granted.' }`; a frame `session.lease_ended` `{ code: 'budget_exhausted' }`; `clock.advance(600_000)` → still once;
-        - speaking, `maxSessionDurationSeconds: 3600` (roles `['spk_stt', 'spk_tts']`) → `{ code: 'segment_ended', message: 'The session reached its longest segment (3600 s).' }`;
+        - speaking, 600 s (below the 3 600-s cap) → `clock.advance(600_000)` → `end` called once, with `({ code: 'budget_exhausted', message: 'Session budget exhausted' }, { expected: false })` — the old client's stable English for analytics (`ManagedSonioxSession.ts:166-173`), since the runner tracks this end as `api_error` (ruling 8); a frame `session.lease_ended` `{ code: 'budget_exhausted', maxSessionDurationSeconds: 600 }`; `clock.advance(600_000)` → still once;
+        - speaking, `maxSessionDurationSeconds: 3600` (roles `['spk_stt', 'spk_tts']`) → `({ code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, { expected: true })` — the normal end of a segment, no `api_error`;
         - text only, 3600 s (roles `['spk_stt']`: the cap is 18 000 s) → `budget_exhausted`; text only, 18 000 s → `segment_ended`;
         - after `release()`, the timer ends nothing.
     13. **"release tells the backend at once, with the token cached at acquire and keepalive"** (choice 6) — after a granted lease: `shape.auth.getToken` called once (at acquire); `const releasing = lease.release();` and, **before awaiting**, `to('/soniox/session-end')` has one call: `POST`, `keepalive: true`, headers `{ Authorization: 'Bearer tok', 'Content-Type': 'application/json' }`, body `{ leaseId: 'lease-1' }`; `getToken` still called once; frame `{ direction: 'out', type: 'session.end', payload: { leaseId: 'lease-1' } }`; respond `200` → `releasing` resolves; a second `release()` sends nothing.
@@ -1900,19 +2126,23 @@ Cited as *choice N*.
         // ending — the balance covers more, and a new Start continues;
         // otherwise the balance is what ran out.
         const capped = grant.maxSessionDurationSeconds >= sonioxSessionCapSeconds(speaks);
-        const grantEnd: RunNotice = capped
-          ? { code: 'segment_ended', message: `The session reached its longest segment (${grant.maxSessionDurationSeconds} s).` }
-          : { code: 'budget_exhausted', message: `The session used the ${grant.maxSessionDurationSeconds} s its balance was granted.` };
+        // Stable English messages: the runner tracks a budget exhaustion as
+        // `api_error` (ruling 8), and a message that carried the seconds could
+        // not be grouped; the seconds go to the Logs' frame instead. The end
+        // at the cap is the normal end of a segment: `expected`, untracked.
+        const grantEnd: { notice: RunNotice; expected: boolean } = capped
+          ? { notice: { code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, expected: true }
+          : { notice: { code: 'budget_exhausted', message: 'Session budget exhausted' }, expected: false };
 
         let ended = false;
         let released = false;
         let cancelBudget = () => {};
-        const endOnce = (notice: RunNotice): void => {
+        const endOnce = ({ notice, expected }: { notice: RunNotice; expected: boolean }): void => {
           if (ended || released) return;
           ended = true;
           cancelBudget();
-          ctx.frame({ direction: 'in', type: 'session.lease_ended', payload: { code: notice.code } });
-          ctx.end(notice);
+          ctx.frame({ direction: 'in', type: 'session.lease_ended', payload: { code: notice.code, maxSessionDurationSeconds: grant.maxSessionDurationSeconds } });
+          ctx.end(notice, { expected });
         };
         cancelBudget = ctx.clock.setTimeout(() => endOnce(grantEnd), totalMs);
         ctx.frame({
@@ -2005,7 +2235,7 @@ Cited as *choice N*.
     3. **"puts a transport failure in the Logs"** — `fail()` → frame `{ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: 'Failed to fetch' } }`.
     4. **"posts nothing once released: a late first frame cannot start a lease the account ended"** — `release()` (answered 200), then `streamAccepted()` → no `session-started` call.
     5. **"tells a 403 near the grant's end from an early one"** (`ManagedSonioxSession.outcome.test.ts`) — granted at clock 0 with 600 s: `atGrantEnd(0)` false; `atGrantEnd(600_000 - GRANT_END_MARGIN_MS - 1)` false; `atGrantEnd(600_000 - GRANT_END_MARGIN_MS)` true; `atGrantEnd(700_000)` true.
-    6. **"ends the run at the cutoff, at once and once, in the grant's words"** — speaking, 600 s: `lease.cutoff()` → `end` called **synchronously** (before any `await`) with `{ code: 'budget_exhausted', … }`; a second `cutoff()` and `clock.advance(600_000)` add nothing; at the cap (3 600 s speaking) → `segment_ended`. After `release()`, `cutoff()` ends nothing.
+    6. **"ends the run at the cutoff, at once and once, in the grant's words"** — speaking, 600 s: `lease.cutoff()` → `end` called **synchronously** (before any `await`) with `({ code: 'budget_exhausted', message: 'Session budget exhausted' }, { expected: false })`; a second `cutoff()` and `clock.advance(600_000)` add nothing; at the cap (3 600 s speaking) → `segment_ended`. After `release()`, `cutoff()` ends nothing.
     7. **"shared Both: the speaker's socket reports for the mixed stream; the participant has no port"** — granted `['mix_stt', 'mix_tts']`: `credentials('speaker').lease` defined, its `streamAccepted()` posts `role: 'mix_stt'`; `credentials('participant')` has no `lease`.
     8. **"the adapter's first frame reaches session-started"** — an integration case over `FakeSocket`: import `createSonioxAdapter` (`./adapter`), `buildSoniox` (`./config`), `fakeSockets`, `FakeSocket` (`../../lib/contract/testing/fakeSocket`), `recordEvents` (`../../lib/contract/events`), and `AUTO_CTX`, `SHARED`, `msg`, `orig`, `isStt` (`./testing`); grant a speaker-only lease; `const sockets = fakeSockets(); const starting = createSonioxAdapter({ openSocket: sockets.create }).start({ context: AUTO_CTX, config: buildSoniox(AUTO_CTX, SONIOX_DEFAULTS, SHARED), credentials: lease.credentials('speaker'), clock, signal: new AbortController().signal }, recordEvents().events);` open every connecting socket, `await starting`; `sockets.all.filter(isStt)[0].receive(msg(orig('Hi', false)))` → `to('/soniox/session-started')` has one call with `role: 'spk_stt'`; the STT socket's config frame carries `api_key: 'k-spk_stt'` and `client_reference_id: 'ref-spk_stt'`, never `'tok'`.
   - `lease.test.ts`, **Task 5's case-3 comparisons**: from this task on, every leg with its own STT role carries the port. Each of those `toEqual` expectations gains `lease: expect.objectContaining({ streamAccepted: expect.any(Function), atGrantEnd: expect.any(Function), cutoff: expect.any(Function) })` — the speaker's in every mode, the participant's in split Both and participant-only, flag on or off. Shared Both's participant stays exact and without `lease`, which also pins that the mixed socket reports only through the speaker. Keep `toEqual` (never `toMatchObject`), so the flag-off cases' "no `tts`" still bites.
@@ -2370,7 +2600,7 @@ After Wave 3 (Tasks 1–7). The runner's order, the gate's floor, the participan
 5. **The leased fake in the preview**, on a fresh vite, through `scripts/dev/headless.mjs`, screenshots under `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/`: `/?preview=spine&panel=1&provider=fake_leased&signedin=1&settings=advanced`.
    - "Prepare answers with a fallback" on → Start → the button reads "Preparing your voice…" for a moment (Task 7), then the session runs with the fallback notice.
    - "Acquire refuses (insufficient balance)" on → Start → the idle line reads "Insufficient balance to start a session. Please top up your balance and try again." (`insufficient_balance`, already aliased) and the previous conversation stays on screen (choice 3).
-   - "Minimum balance" 1000 with no wallet (the preview has none) → Start stays on (ruling 5: an unknown balance gates nothing).
+   - "Minimum balance" 1000 → Start stays on: the preview's real sign-in is signed out, so the account store is null and nothing is gated on a balance (ruling 5 gates a signed-in account's loading or unknown wallet; `UserProfileContext.accountStore.test.tsx` pins those).
    - Every existing spine probe and `app-panel-probe` (preview, `--settings`) — green: the fake has no lease and no `startBoth`, so its order is the old one.
 
 ---
@@ -2383,7 +2613,7 @@ After Wave 3 (Tasks 1–7). The runner's order, the gate's floor, the participan
 
 **Interfaces:**
 - **Consumes:** `managed` (Task 1); `contextsFor` and `ParticipantSpeechSwitch` as Task 4 left them; `createKizunaLease`, `kizunaSonioxMinimumBalance`, `PARTICIPANT_SPEECH_FIELD` (Tasks 5–6); `createKizunaVoiceClaim`, `useManagedVoiceSource` (Task 7); `sonioxProvider`, `createSonioxSettingsView`, `createSonioxAdapter` and the Soniox test kit (`./testing`) (Plan A); `kizunaHostedIcon`, `SonioxIcon` (`src/components/Icons/ProviderIcons`).
-- **Produces:** `KIZUNA_PARTICIPANT_SPEECH = false` (ruling 2's one flag); `createKizunaSonioxProvider({ participantSpeech }: { participantSpeech: boolean })`; `kizunaSonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxConfig, ManagedSignIn> & { id: 'kizunaai_soniox' }`, built with the flag; `KizunaSonioxSettingsView`; `ProviderId` gains `'kizunaai_soniox'`; `RELEASED` = `[kizunaSonioxProvider, localInferenceProvider, sonioxProvider]`; eight `NOTICE_ALIASES` rows; `NOTICE_TARGETS.sign_in_required`.
+- **Produces:** `KIZUNA_PARTICIPANT_SPEECH = false` (ruling 2's one flag); `createKizunaSonioxProvider({ participantSpeech }: { participantSpeech: boolean })`; `kizunaSonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxConfig, ManagedSignIn> & { id: 'kizunaai_soniox' }`, built with the flag; `KizunaSonioxSettingsView`; `ProviderId` gains `'kizunaai_soniox'`; `RELEASED` = `[kizunaSonioxProvider, localInferenceProvider, sonioxProvider]`; ten `NOTICE_ALIASES` rows; `NOTICE_TARGETS.sign_in_required`.
 - **Consumed by:** Tasks 9–12 (the registered provider), the app's picker, Settings, readiness driver and runner — generic code that now offers it.
 
 - [ ] **Step 1: Write the failing tests.**
@@ -2610,8 +2840,8 @@ After Wave 3 (Tasks 1–7). The runner's order, the gate's floor, the participan
 
   - `registry.test.ts`, "the release offers its providers in the owner's order": `toEqual(['kizunaai_soniox', 'localInference', 'soniox'])`, its comment naming ruling 6 (Kizuna Soniox first, unflagged; the owner's 2026-09-12 product order put the managed provider first). Every invariant in "the invariants every provider meets (F17)" now runs over Kizuna Soniox too: the old enum's id and slice (`kizunaai_soniox` → `kizunaSoniox`), the `en` name and description (`providers.kizunaai_soniox`), "a managed provider has no credential field and reads from the sign-in", `migrate(defaults) = defaults`, the initial pair offered. "a release build offers no flagged provider and, without the umbrella, no managed one" holds: Kizuna Soniox is managed.
   - `localInference/provider.test.ts`: its case "is first in the registry, in UI order" (`:95-97`, `expect(PROVIDERS[0]).toBe(localInferenceProvider)`) becomes the order pin ruling 6 decided — **"follows Kizuna Soniox in the registry (Stage 2 Kizuna Soniox, ruling 6)"**: `expect(PROVIDERS.slice(0, 2).map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference'])`.
-  - `noticeText.test.ts`: **"words Kizuna Soniox's codes with the sentences every locale already has"** — for each of the eight new aliases, `at(enCatalog, NOTICE_ALIASES[code])` is the `en` sentence: `soniox_service_unavailable` "Soniox is temporarily unavailable. Please try again in a moment.", `soniox_service_busy` "Soniox is at capacity right now. Please try again shortly.", the four `voice_*` codes their four sentences (`mainPanel.sonioxVoiceClipMissing`, `…VoicePoolBusy`, `…VoiceBuildFailed`, `…VoiceUnavailable`, copied word for word from `en`), `balance_below_floor` "Insufficient balance: {{balance}}", `sign_in_pending` "Checking..."; and `noticeText(t, { code: 'balance_below_floor', params: { balance: '$0.01' }, message: 'x' })` passes `balance: '$0.01'` (with this file's `t`, the output contains `mainPanel.insufficientBalance` and `$0.01`). The existing "every alias names a sentence in all 30 locales" covers the eight in every catalog.
-  - `noticeTargets.test.ts`: the last case becomes "has words for every code it targets …", reading `expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined()` (import `NOTICE_ALIASES`); a new case **"sends a signed-out managed provider to the provider section, where its account row's sign-in link is"** — `settingsTargetForCode('sign_in_required')` is `'provider'`; `settingsTargetForCode('sign_in_pending')` and `('balance_below_floor')` are `null`.
+  - `noticeText.test.ts`: **"words Kizuna Soniox's codes with the sentences every locale already has"** — for each of the ten new aliases, `at(enCatalog, NOTICE_ALIASES[code])` is the `en` sentence: `soniox_service_unavailable` "Soniox is temporarily unavailable. Please try again in a moment.", `soniox_service_busy` "Soniox is at capacity right now. Please try again shortly.", the four `voice_*` codes their four sentences (`mainPanel.sonioxVoiceClipMissing`, `…VoicePoolBusy`, `…VoiceBuildFailed`, `…VoiceUnavailable`, copied word for word from `en`), `balance_below_floor` "Insufficient balance: {{balance}}", `sign_in_pending` "Checking...", `quota_pending` "Checking...", `quota_unknown` "Unable to load quota information"; and `noticeText(t, { code: 'balance_below_floor', params: { balance: '$0.01' }, message: 'x' })` passes `balance: '$0.01'` (with this file's `t`, the output contains `mainPanel.insufficientBalance` and `$0.01`). The existing "every alias names a sentence in all 30 locales" covers the ten in every catalog (`tokenUsage.unableToLoadQuota` is in all 30, checked).
+  - `noticeTargets.test.ts`: the last case becomes "has words for every code it targets …", reading `expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined()` (import `NOTICE_ALIASES`); a new case **"sends a signed-out managed provider to the provider section, where its account row's sign-in link is"** — `settingsTargetForCode('sign_in_required')` is `'provider'`; `settingsTargetForCode('sign_in_pending')`, `('balance_below_floor')`, `('quota_pending')` and `('quota_unknown')` are `null` (the old gate's `quota-unknown` had no target either, survey §1.6).
   - `loadStores.test.ts` — the first offered provider is now Kizuna Soniox (ruling 6): in "loads the turn mode, … and selects the first offered provider in memory", `entries.localInference` → `entries.kizunaai_soniox` and `selected` → `'kizunaai_soniox'`; in "falls back to the first offered provider when the stored one is not offered here", `selected` → `'kizunaai_soniox'`; in "loads the selected provider's entry instead of the first offered", `entries.localInference` → `entries.kizunaai_soniox` (undefined); in "reports a rejected turn-mode load once …", `entries.localInference` → `entries.kizunaai_soniox`. Each changed line carries the comment `// The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).`.
 - [ ] **Step 2: Run** `npx vitest run src/providers src/lib/view src/app/loadStores.test.ts` — FAIL (no `./kizuna`).
 - [ ] **Step 3: Implement.**
@@ -2686,6 +2916,9 @@ After Wave 3 (Tasks 1–7). The runner's order, the gate's floor, the participan
     balance_below_floor: 'mainPanel.insufficientBalance',
     // A managed provider while the sign-in still loads at launch (choice 10): a generic word every locale has.
     sign_in_pending: 'update.checking',
+    // The wallet (ruling 5): still loading at launch, no failure words; failed to load, the old gate's sentence (`oldGate:254-261`).
+    quota_pending: 'update.checking',
+    quota_unknown: 'tokenUsage.unableToLoadQuota',
     ```
 
   - `noticeTargets.ts`: `NOTICE_TARGETS` gains `sign_in_required: 'provider',` with the comment "A managed provider signed out: the provider section's account row carries the sign-in link (Stage 2 Kizuna Soniox)."
@@ -2892,10 +3125,10 @@ After Wave 3 (Tasks 1–7). The runner's order, the gate's floor, the participan
     6. **"stops ticking on unmount"** — a `now` spy's call count stops growing after `unmount()` and 5 s of timers.
   - `PanelFooter.test.tsx`, a new describe "PanelFooter — the lease's countdown": `it.each(SITES)` **"%s: shows the countdown beside the duration while a leased run runs"** — `run: { phase: 'running', since: 0, legs: { speaker: 'live' }, budget: { totalMs: 60_000, endsAt: Date.now() + 30_000 } }`, `duration: '00:30'` → one `.session-remaining-time` in `.footer-metadata`; `it.each(SITES)` **"%s: none without a budget, or while idle"** — the same run without `budget`, and `idleRun` → none.
   - `useBalanceShortfall.test.tsx` (mock `ServiceFactory` as `appShape.test.ts` does; real stores and registry):
-    1. **"is short below the selected provider's floor for these legs"** — `useProviderStore.setState({ selected: 'kizunaai_soniox', entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } })`, `useAudioStore.setState({ mode: 'speaker' })`, `useSettingsStore.setState({ textOnly: false })`, account `{ balanceMicroUsd: 41_666, frozen: false }` → `renderHook(() => useBalanceShortfall()).result.current` is `true`; `act(() => useAccountStore.setState({ account: { balanceMicroUsd: 41_667, frozen: false } }))` → `false`.
-    2. **"follows text only and the mode"** — balance 20 000: speaking → `true`; `textOnly: true` → `false` (floor 18 334); mode `both` with `bothModeSharedSession: false`, text only → `true` (floor 36 667).
-    3. **"is never short for an unknown account, an own-key provider, or a frozen wallet"** — account `null` → `false`; `selected: 'soniox'` (own key) with its entry (`SONIOX_DEFAULTS`) and balance 0 → `false`; frozen with balance 0 → `false` (a frozen wallet has its own words at Start, and no dot — a stated departure).
-    4. **"finds the provider as the live gate does: before the load selects one, the first present"** — `useProviderStore.setState({ selected: null, entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } })`, mode `speaker`, speaking, account `{ balanceMicroUsd: 1_000, frozen: false }` → the hook answers `true` and `liveGate()?.code` is `'balance_below_floor'` (import `liveGate` from `appShape.ts`): the dot and Start agree. With no entry loaded at all (`entries: {}`) both answer nothing — `false` and `null`.
+    1. **"is short below the selected provider's floor for these legs"** — `useProviderStore.setState({ selected: 'kizunaai_soniox', entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } })`, `useAudioStore.setState({ mode: 'speaker' })`, `useSettingsStore.setState({ textOnly: false })`, account `{ status: 'known', balanceMicroUsd: 41_666, frozen: false }` → `renderHook(() => useBalanceShortfall()).result.current` is `true`; `act(() => useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 41_667, frozen: false } }))` → `false`.
+    2. **"follows text only and the mode"** — a known balance of 20 000: speaking → `true`; `textOnly: true` → `false` (floor 18 334); mode `both` with `bothModeSharedSession: false`, text only → `true` (floor 36 667).
+    3. **"is never short signed out, for a wallet loading or unknown, an own-key provider, or a frozen wallet"** — account `null` → `false`; `{ status: 'loading' }` and `{ status: 'unknown' }` → `false` (Start's own words say those, ruling 5; the dot is the balance's); `selected: 'soniox'` (own key) with its entry (`SONIOX_DEFAULTS`) and a known balance 0 → `false`; frozen with balance 0 → `false` (a frozen wallet has its own words at Start, and no dot — a stated departure).
+    4. **"finds the provider as the live gate does: before the load selects one, the first present"** — `useProviderStore.setState({ selected: null, entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } })`, mode `speaker`, speaking, account `{ status: 'known', balanceMicroUsd: 1_000, frozen: false }` → the hook answers `true` and `liveGate()?.code` is `'balance_below_floor'` (import `liveGate` from `appShape.ts`): the dot and Start agree. With no entry loaded at all (`entries: {}`) both answer nothing — `false` and `null`.
   - `AccountButton.test.tsx`:
     - add `const shortfall = vi.hoisted(() => ({ value: false })); vi.mock('./useBalanceShortfall', () => ({ useBalanceShortfall: () => shortfall.value }));` and reset `shortfall.value = false` in `beforeEach`;
     - the cases that drove the old floor through a provider id and a balance drive `shortfall.value` instead, their names and assertions kept: "shows a red dot for a low balance under a managed provider" (`shortfall.value = true`), "lets red outrank amber when both apply", "shows no dot when verified and funded" (`false`), "names the low-balance state in the accessible label"; "does NOT warn about a low balance under a BYOK provider" is removed — over the mocked hook it would pass vacuously — and folded into the replacement case below;
@@ -3260,9 +3493,9 @@ After Wave 5 (Tasks 8–12).
 **Files:** Modify `docs/superpowers/specs/2026-09-22-client-contract-design.md` and `docs/superpowers/plans/2026-09-23-client-contract-stage1-roadmap.md`.
 
 - [ ] **Step 1: The spec.**
-  1. **"The shape"**, the code block: `interface Provider<S, K, C, R = K>`; `read(values, ctx): R | { missing: string; code?; params? }`; `check(r: R, s: S, { pair, legs, signal })`; after `turns(s)`: `participantSpeech?: boolean              // false: the participant never speaks (a flag, off for Kizuna Soniox until par_tts)`. After the Soniox plan's note: "**Amended by the Stage 2 Kizuna Soniox plan:** the read type `R` (a managed `read` answers the sign-in; `managed.ts`'s `ManagedSignIn`); `participantSpeech?: boolean`; `AuthContext.loaded?`; `SessionHooks.minimumBalance`; `Resources.budget` as `{ totalMs, endsAt }`; `acquire`'s context `{ signal, clock, end(notice), frame(frame) }`; `RunShape.account?`; `RunState.running.budget?`."
+  1. **"The shape"**, the code block: `interface Provider<S, K, C, R = K>`; `read(values, ctx): R | { missing: string; code?; params? }`; `check(r: R, s: S, { pair, legs, signal })`; after `turns(s)`: `participantSpeech?: boolean              // false: the participant never speaks (a flag, off for Kizuna Soniox until par_tts)`. After the Soniox plan's note: "**Amended by the Stage 2 Kizuna Soniox plan:** the read type `R` (a managed `read` answers the sign-in; `managed.ts`'s `ManagedSignIn`); `participantSpeech?: boolean`; `AuthContext.loaded?`; `SessionHooks.minimumBalance`; `Resources.budget` as `{ totalMs, endsAt }`; `acquire`'s context `{ signal, clock, end(notice, { expected? }), frame(frame) }`; `degraded`'s `reason?`; `RunShape.account?`; `RunState.running.budget?`."
   2. **"Managed twins are composition"**, a paragraph after the first: "`managed(base, overrides)` lives in `src/lib/provider/managed.ts` and names what a twin takes from its base — languages, capabilities, builder, adapter, `startBoth`, turn detection, the settings' defaults and migration — and what is its own: id, kind, vendor, icon, storage key, `Settings`, a sign-in `read`, a static `check`, and its hooks, `acquire` required. A twin's `read` answers the sign-in, a type of its own (`R`); its `start` receives the keys its lease mints (`K`). It inherits neither the base's guide, locale key nor presence knobs."
-  3. **"Readiness is one check"**, after "…and `check` is never called.": "While the sign-in is still loading at launch, `read` answers `sign_in_pending` (`AuthContext.loaded`), so a signed-in user is never told to sign in. A managed `check` is static: the balance is the start gate's input (`RunShape.account`, from the account's wallet as last fetched), never readiness — an unknown balance gates nothing, and the lease's 402 words a refusal."
+  3. **"Readiness is one check"**, after "…and `check` is never called.": "While the sign-in is still loading at launch, `read` answers `sign_in_pending` (`AuthContext.loaded`), so a signed-in user is never told to sign in. A managed `check` is static: the balance is the start gate's input (`RunShape.account`, the account's wallet as the client knows it), never readiness. While signed in, a wallet still loading answers "Checking..." and one that failed to load refuses Start, as the old gate did; the account side re-fetches it when the network returns and on a short back-off. The lease's 402 still words a balance that changed after the fetch."
   4. **"A run"**, the numbered steps become
 
      ```
@@ -3284,7 +3517,7 @@ After Wave 5 (Tasks 8–12).
 
      and "**Order removes the lease race.**" becomes: "**Order removes the lease race.** The lease is minted after every source has opened — a source that fails (a denied loopback, no bound tab, a capture helper that will not start, a missing microphone) mints no key, and so leaves no never-started lease that the backend's sweeps never reach and that 409-locks the next Start until its initial expiry — and pushed before the legs' sessions, so it is released after they have closed. With the signal reaching every step, no leg opens after `session-end`, and the lease drops any `session-started` a closing socket would still report. A refused lease leaves the last conversation on screen: the legs become the conversation only once it is held. `prepare` stays before the sources: its override feeds the builds, which must refuse before anything opens (Stage 2 Kizuna Soniox, ruling 9)."
   5. **"Legs rise and fall together"**, "The leg records why as a Notice on its L1." becomes "The leg records why as a Notice on its L1 — a lease's end once, on the first leg: it covers every leg, and the same sentence twice in Both says nothing more (Stage 2 Kizuna Soniox, ruling 7)."
-  6. **"Session hooks on the provider definition"**, the code block: `prepare?(shape, s: S, signal: AbortSignal): Promise<{ override?; persist?; notice? }>`, `acquire?(shape, s: S, ctx: { signal; clock; end(notice); frame(frame) }): Promise<Resources<K>>`, `minimumBalance?(shape: { legs; textOnly; participantSpeech }, s: S): number`; `Resources<K>`'s `budget?: { totalMs: number; endsAt: number }   // the grant: static, measured from acquire`. The `acquire` bullet: "`release` sends `session-end` with `keepalive` and the token cached at acquire, so `pagehide`'s synchronous release still reaches the backend; it retries a transport failure or a 5xx, three attempts at most within 4 s, and the next acquire cancels a release still retrying — `session-end` is scoped by account, and a late one would end the next lease. `session-end` is a hint: a lease that never started (no stream accepted) is freed only at its start window's end, which is why the sources open first. `end(notice)` stops the run when the grant ends; Kizuna Soniox words it at acquire — `segment_ended` when the grant reached the per-session cap, `budget_exhausted` otherwise — and its budget timer and a 403 at the grant's end give the same words." The `minimumBalance` bullet: "managed providers' start floor, read by the start gate over the account's wallet as last fetched; nothing is gated on an unknown balance. Kizuna Soniox prices the roles its lease would ask for (`ceil((n_stt × 1.1 + n_tts × 1.4) × 10⁶ × 60 / 3600)` µUSD), so a participant speech stream counts once its flag is on."
+  6. **"Session hooks on the provider definition"**, the code block: `prepare?(shape, s: S, signal: AbortSignal): Promise<{ override?; persist?; notice? }>`, `acquire?(shape, s: S, ctx: { signal; clock; end(notice, o?: { expected? }); frame(frame) }): Promise<Resources<K>>`, `minimumBalance?(shape: { legs; textOnly; participantSpeech }, s: S): number`; `Resources<K>`'s `budget?: { totalMs: number; endsAt: number }   // the grant: static, measured from acquire`. The `acquire` bullet: "`release` sends `session-end` with `keepalive` and the token cached at acquire, so `pagehide`'s synchronous release still reaches the backend; it retries a transport failure or a 5xx, three attempts at most within 4 s, and the next acquire cancels a release still retrying — `session-end` is scoped by account, and a late one would end the next lease. `session-end` is a hint: a lease that never started (no stream accepted) is freed only at its start window's end, which is why the sources open first. `end(notice)` stops the run when the grant ends, and the runner tracks it as `api_error` unless the lease marks it `expected` (the normal end of a segment); Kizuna Soniox words it at acquire — `segment_ended` when the grant reached the per-session cap, `budget_exhausted` otherwise — and its budget timer and a 403 at the grant's end give the same words." The `minimumBalance` bullet: "managed providers' start floor, read by the start gate over the account's wallet as the client knows it (ruling 5): a wallet still loading answers "Checking…", and one that failed to load refuses Start, as the old gate did; the lease's 402 still words a balance that changed since the fetch. Kizuna Soniox prices the roles its lease would ask for (`ceil((n_stt × 1.1 + n_tts × 1.4) × 10⁶ × 60 / 3600)` µUSD), so a participant speech stream counts once its flag is on."
   7. **"The runner"**, `RunState`: `| { phase: 'starting'; step: 'checking' | 'preparing' | 'opening'; loading? }` and `| { phase: 'running'; since: number; legs: Record<Leg, LegState>; budget?: { totalMs; endsAt } }`.
   8. **"Stopping, and closing the window"**, the `pagehide` bullet adds "with the token cached when the lease was acquired: there is no time for an await".
   9. **"Parameters and deferred decisions"**, "Release timeouts and the lease's retry policy" becomes "decided by the Stage 2 Kizuna Soniox plan: each release bounded at 5 s; `session-end` three attempts within 4 s".
@@ -3306,7 +3539,7 @@ After Wave 5 (Tasks 8–12).
   - **The roadmap's inheritance:** this plan's table "The roadmap's inheritance, item by item", as landed.
   - **The owner's paid live test** (survey §5.2's list, adjusted to the rulings):
     1. **Signed out, loading, signing in:** at launch a signed-in account shows the spinner "Checking..." then "Automatically authenticated via your account", never "Sign in…"; signed out, Start is off with "Sign in to use Kizuna AI's built-in translation service." and the row's link opens the account popover; signing in enables Start at once.
-    2. **Floors:** a balance below the text-only floor ($0.018334); between the text-only and speech floors, where Text only flips Start; the split floor in Both with the shared session off ($0.06 speaking); a frozen wallet ("Wallet is frozen. Please contact support."); an unknown balance (offline at launch) leaves Start on and the backend's 402 words it. The account button's dot matches Start each time.
+    2. **Floors:** a balance below the text-only floor ($0.018334); between the text-only and speech floors, where Text only flips Start; the split floor in Both with the shared session off ($0.06 speaking); a frozen wallet ("Wallet is frozen. Please contact support."). The account button's dot matches Start each time. **An unknown balance (ruling 5):** a signed-in launch shows "Checking..." briefly, never the failure words; an offline launch leaves Start off with "Unable to load quota information", and back on shortly after the network returns (the `online` re-fetch; failing that, the 15/30/60-s back-off).
     3. **Each mode** (speaker speaking and text only; participant only; shared Both; split Both): the Logs show `session.lease_acquired` with its roles and one `session.started` per role, no `session.started_refused` (no 400 `role_required`); one STT socket in shared Both, two in split.
     4. **The countdown** in both footers, low under 20 %. **The grant's end (ruling 3):** a small balance → "Your session balance is used up. Top up your balance to keep translating."; a speaking session held to the one-hour cap (a balance above about $2.50) → "This segment has ended — tap Start Session to continue."; a Both session shows the notice once (ruling 7).
     5. **A second device:** 409, one retry after about 3 s (Logs `session.retry`), then "Another session is already running on your account…".
@@ -3318,9 +3551,9 @@ After Wave 5 (Tasks 8–12).
     11. **The wizard:** the managed path (Recommended), the sign-in at the account step, Finish, the subtitles-only fit.
     12. **Participant speech, shipped off (ruling 2):** under Kizuna Soniox the switch is off and disabled with the "not available yet" tooltip, the participant never voiced, and the session-key body carries no participant field (the Logs' request); switching to own-key Soniox shows the stored choice again.
     13. **The extension side panel:** the core flows.
-    14. **Analytics (ruling 8):** `translation_session_start` with `provider: 'kizunaai_soniox'` and its models; a refused start reaches `error_occurred` only; a budget exhaustion sends no `api_error`.
+    14. **Analytics (ruling 8):** `translation_session_start` with `provider: 'kizunaai_soniox'` and its models; and the three `api_error` events, with their props: a refused start (a balance below the backend's floor) → `error_occurred` and `api_error { error_code: 'insufficient_balance', channel: 'speaker' }`; a budget exhaustion → `api_error { error_code: 'budget_exhausted', error_message: 'Session budget exhausted' }`, and a segment ended at the one-hour cap → none; a TTS degradation (a lost segment) → `api_error { error_code: 'tts_408' }` (or its cause), once per episode.
     15. **The sign-in auto-switch (ruling 4):** Basic mode on LocalInference, sign in → Kizuna Soniox selected, `settings_modified` tracked; not in Advanced mode; not under the wizard; not at a launch with a stored session.
-  - **Open questions for the owner:** the rulings, as confirmed; analytics for a refused start and a budget exhaustion (ruling 8), with Plan A's `degraded` — one cross-provider decision; the loading sign-in's "Checking..." (choice 10); the 503's three causes in one sentence (parity); fencing `session-end` by `leaseId` on the backend (survey §1.2); the backend minting `par_tts` and the participant's voice (the "turning it on" checklist); whether the lease's module joins the session-side clock guard (`sessionSide.consistency.test.ts`, roadmap `:1275`).
+  - **Open questions for the owner:** the rulings, as confirmed; whether `translation_unavailable` (LocalInference's once-per-session capability notice, not a failure) should stay out of `api_error` — ruling 8 tracks every degradation, and one line would exclude it; the loading sign-in's "Checking..." (choice 10); the 503's three causes in one sentence (parity); fencing `session-end` by `leaseId` on the backend (survey §1.2); the backend minting `par_tts` and the participant's voice (the "turning it on" checklist); whether the lease's module joins the session-side clock guard (`sessionSide.consistency.test.ts`, roadmap `:1275`).
   - **Plan B2's inventory:** survey §3 — §3.1's files and their fates, §3.2's keep-list and re-points **including `SonioxVoiceSection.tsx:47`'s `clampNumber` → `src/providers/soniox/config.ts`** (missing from the Soniox plan's list), §3.3's order, §3.4's typecheck effect (about 114 full-tree lines after); plus what this plan adds to it: the two stubs `src/services/clients/{ManagedVoicesClient,managedVoicePolling}.ts` (re-point `voiceLibrarySource.ts:16, 23` and the tests that import them first), and the old `src/services/providers/managedVoicePrep.ts` with its test, whose port is `voicePrep.ts`.
   - **What it leaves:** "What this plan leaves" below, verbatim.
 - [ ] **Step 3: Commit.**
@@ -3372,7 +3605,7 @@ Survey §2.12, carried: taken (and where), deferred (and why), or already done.
 | The sign-in auto-switch | ruling 4 — Task 12 |
 | The registry's final order | ruling 6 — Task 8 |
 | Nothing account-mutable in a ready answer | done by design: the `check` is static, the balance is the gate's input |
-| A check that threw leaves a managed provider not-ready | moot: a static check never throws. The analogous stuck state (the quota fetch offline) gates nothing (ruling 5) |
+| A check that threw leaves a managed provider not-ready (roadmap `:1281`: an offline managed launch keeps Start off with no way back) | moot for the check: a static check never throws. The analogous stuck state is the quota fetch offline (survey §2.12, §4.4), now refused by ruling 5 — and answered by its way back: `UserProfileContext` re-fetches an unknown wallet on `online` and after 15, 30 and 60 s (Task 3) |
 | A managed provider wanting a re-check on a balance change | moot: the balance is the gate's input, live through the account store (Task 3) |
 | `AuthContext` pending state | taken — Task 1 (`loaded`), Task 9 (the bridges, the row), Task 8 (`sign_in_pending`'s alias) |
 
@@ -3404,7 +3637,7 @@ Survey §2.12, carried: taken (and where), deferred (and why), or already done.
 - Plan A's live test comes before this plan's execution (ruling 13, the header).
 - The release flags and the order: ruling 6 (unflagged, Kizuna Soniox first).
 - `setup.paths.own-key.desc`: Plan A's (or the release's), not Kizuna's.
-- Analytics for `degraded`, the locale check and `FIN_TRANSLATION_GRACE_MS`: Plan A's open questions, unchanged; this plan adds its own analytics question (ruling 8).
+- Analytics for `degraded`: Plan A's open question, answered here (ruling 8). The locale check and `FIN_TRANSLATION_GRACE_MS`: Plan A's open questions, unchanged.
 - Plan A's "Found here" items are Soniox's, untouched here.
 
 ## What this plan leaves — for the plans that meet it
@@ -3438,7 +3671,7 @@ Survey §2.12, carried: taken (and where), deferred (and why), or already done.
 | §5.2.8 the wizard and selection, the auto-switch | Task 11, Task 12 |
 | §5.2.9 the group checks | Group checks A and B |
 | §5.2.10 the docs task and the paid live test | Task 13 |
-| Rulings 1–14 | 1: Global Constraints, Task 7. 2: Tasks 1, 4, 5, 8, Task 13's checklist. 3: Tasks 5, 6. 4: Task 12. 5: Tasks 3, 5. 6: Tasks 3, 8. 7: Task 2, Task 13. 8: Task 2 (the pinned events), the departures, Task 13. 9: Task 2, Task 13. 10: Tasks 1, 5, 7. 11: Task 8 (and Task 4's key). 12: every test; Task 9; the group checks. 13: the header. 14: Task 13 |
+| Rulings 1–14 | 1: Global Constraints, Task 7. 2: Tasks 1, 4, 5, 8, Task 13's checklist. 3: Tasks 5, 6. 4: Task 12. 5: Tasks 1, 3, 5, 8, Task 13. 6: Tasks 3, 8. 7: Task 2, Task 13. 8: Tasks 1, 2, 5, Task 13. 9: Task 2, Task 13. 10: Tasks 1, 5, 7. 11: Task 8 (and Task 4's key). 12: every test; Task 9; the group checks. 13: the header. 14: Task 13 |
 | Survey §7 spec corrections | Task 13, items 1 (§7.1), 6 (§7.2, §7.3), 4 (§7.4, §7.10), 7 (§7.5), 5 (§7.6), 3 (§7.7, §7.9), 10 (§7.8), 11 (§7.11) |
 
 **The old tests ported as behaviour specs** (survey §1.13):
@@ -3482,7 +3715,10 @@ Survey §2.12, carried: taken (and where), deferred (and why), or already done.
 | `Provider<S, K, C, R>`, `participantSpeech?`, `AuthContext.loaded?`, `AnyProvider` (Task 1) | every definition; Tasks 4, 8, 9 |
 | `readCredentials<S, R>` (Task 1) | `run.ts`, `providerStore.ts`, `StepCredentials.tsx` (as before) |
 | `ManagedSignIn`, `readSignIn`, `ManagedOverrides`, `managed` (Task 1) | Task 8 |
-| `AccountBalance`, `RunShape.account?`, `BalanceShape` (Task 1) | Tasks 3, 5, 10 |
+| `AccountState`, `RunShape.account?`, `BalanceShape` (Task 1) | Tasks 3, 5, 10 |
+| `LeaseContext.end(notice, { expected? })`, `degraded`'s `reason?` (Task 1) | Task 2 (the runner's `api_error`), Task 5 (the lease's grant end), Task 2's `speech.ts` |
+| `apiErrorType(code?)` (Task 2, `run.ts`) | `run.ts`'s `failed` and lease-end tracking; `runner.ts`'s start failure |
+| `QUOTA_PENDING`, `QUOTA_UNKNOWN` (Task 3, `shape.ts`); `WALLET_RETRY_DELAYS_MS` (Task 3, `UserProfileContext.tsx`) | Task 8's aliases; Task 3's tests |
 | `Budget`, `Resources.budget?`, `RunState.running.budget?` (Task 1) | Tasks 2, 5, 10 |
 | `LeaseContext`, `SessionHooks.acquire(…, ctx: LeaseContext)`, `SessionHooks.minimumBalance?` (Task 1) | Tasks 2, 3, 5, 6, 8 |
 | `Run.budget`; `FakeLeasedSettings.acquireRefused` / `.minimumBalanceMicroUsd` (Task 2) | the runner; Task 3's tests; the group checks |
@@ -3506,9 +3742,9 @@ Survey §2.12, carried: taken (and where), deferred (and why), or already done.
 - **Sources before the lease** (ruling 9): a source that fails mints no key, so it no longer leaves a never-started lease that 409-locks the next Start for 75 s (195 s with `par_stt`). A refused lease, or a source failing before it, leaves the last conversation on screen; **own-key Soniox in Both mode** now hands its legs over after both sources opened too, so a failing participant source no longer clears the last conversation (choice 3).
 - **A lease's end is recorded once, on the first leg** (ruling 7), where every leg recorded it.
 - **The grant's end is worded at acquire** (ruling 3): "segment ended" at the per-session cap, "balance used up" otherwise; the old client said "balance used up" at the cap too.
-- **Analytics** (ruling 8): a refused start reaches `error_occurred` only, where the old client also sent `api_error`; a budget exhaustion sends no `api_error{code: budget_exhausted}`.
+- **Analytics** (ruling 8) mirror the old events with two differences: a start failure's `api_error` now carries the failure's code when it has one (the old one never did), and LocalInference's degradations — a sentence that could not be spoken, a failed translation — now reach `api_error`, one per 5 s per code, where the old client sent none for them.
 - **The managed participant is never voiced** (ruling 2), as before — its speech is built but shipped off — and now the switch says so: off and disabled with a "not available yet" tooltip. With the flag off the session-key body is byte for byte today's.
-- **An unknown balance gates nothing** (ruling 5), where the old gate refused with "Unable to load quota information".
+- **An unknown balance** refuses as before (ruling 5), with two changes: a signed-in launch shows "Checking..." while the first fetch is in flight, not the failure words, and an unknown wallet is fetched again when the network returns and after 15, 30 and 60 s, where the old app waited for the 5-minute poll.
 - **The gate's balance words** are the old gate's ("Insufficient balance: $x"); a frozen wallet's are "Wallet is frozen. Please contact support.", now also refused at the gate, before a request.
 - **A 401 from the session service** is worded "Sign in to use Kizuna AI's built-in translation service." (the old client showed an English string); a transport failure "The connection to the provider failed: …".
 - **A contract break in the session key's answer fails the start** (ruling 10): no flat-field or region fallback.
@@ -3545,9 +3781,11 @@ Survey §2.12, carried: taken (and where), deferred (and why), or already done.
 - for ruling 9: no participant source shows a dialog at Start — `electron/main.js:586` (the loopback handler), `src/lib/audio/capture/systemAudio.ts:164-166` (`LOOPBACK_DENIED` at once);
 - the tests the reorder and the registry order reach outside their owners' first drafts: `runner.test.ts`'s three lease cases (`:554`, `:1130`, `:1201`; `FakeSource.stopped` at `providers/fake/source.ts:13`; `openLeg` names its leg on any failure, `run.ts:353-366`) and `localInference/provider.test.ts:95-97`;
 - the auto-switch's entry: `providerStore.select` loads nothing (`:122-131`); Settings sits in a hidden `<Activity>` when closed (`MainLayout.tsx:206`); `providerLoaded` (`lib/subtitle/appSession.ts:42`); `useApplySetup.ts:30` loads before it selects;
-- `selectedFromStores` (`appShape.ts:26-32`), the old dot's floor (`AccountButton.tsx:133-138`), and the backend's cap over the minted roles (`BE:src/routes/soniox.ts:84`).
+- `selectedFromStores` (`appShape.ts:26-32`), the old dot's floor (`AccountButton.tsx:133-138`), and the backend's cap over the minted roles (`BE:src/routes/soniox.ts:84`);
+- for ruling 5 (at `4bc56808`): the old gate's `quota-unknown` (`6babf7a0^:src/components/MainPanel/sessionStartGate.ts:254-261`); `tokenUsage.unableToLoadQuota` present in all 30 catalogs; `UserProfileContext.tsx` — `QuotaData` exported at `:13`, `fetchQuota`'s not-ok branch keeps the quota and its `catch` clears it (`:135-163`), the sign-in effect (`:234-253`), the 5-minute poll (`:256-269`); the sign-out test's fake-timer pattern (`UserProfileContext.signOut.test.tsx:86-120`);
+- for ruling 8 (at `4bc56808`, and `main` for the old code): the runner's `error_occurred` (`runner.ts:222-225`) and `failed` → `api_error` (`run.ts:27-28, 444-449`); `degraded`'s signature (`contract/adapter.ts:96-97`) and the payload derived from it (`contract/events.ts:3-8`); L1's window (`conversation/Conversation.ts:25, 105-111`); Soniox's `failure` (`speech.ts:244-253`) and its tests (`speech.test.ts:26, 192, 248`); on `main`: `buildApiErrorProps` (`src/lib/apiErrorProps.ts`), `onConnectFailed` (`participantTelemetry.ts:104-123`), the TTS `onError` with `tts_${code}` (`SonioxClient.ts:1472-1490`), LocalInference's ASR errors (`LocalInferenceClient.ts:367-371`), its TTS load failure (`:513-514`) and its sentence failure (`:1360`); the old budget-exhaustion props (`ManagedSonioxSession.ts:158-173`); that no test asserts the absence of `api_error` for a start failure or a degradation.
 
 **Not decided here (for the controller or the owner):**
-- The rulings other than 2 and 6 (provisional; 2 and 6 are the owner's).
+- Nothing among the rulings: all are the owner's decisions (header).
 - "Checking..." for the loading sign-in (choice 10) — a generic word borrowed from the updater's catalogue key.
 - Whether the lease module joins the session-side clock guard.
