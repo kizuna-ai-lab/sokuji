@@ -8,7 +8,6 @@ const AUTO_CTX: SessionContext = { direction: { source: 'ja', target: 'en' }, sp
 
 // leased.test.ts:36-43's literal.
 const SHARED: SharedSettings = {
-  instructions: () => '',
   pauses: { sourceSeconds: 1, translationSeconds: 1 },
   reversed: (direction) => direction.source === 'ja',
   segmentation: { mode: 'off', sentencesPerRow: 0 },

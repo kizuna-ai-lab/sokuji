@@ -100,10 +100,8 @@ export type Readiness =
   /** `code` / `params` as a refusal's: the provider's own code puts `reason` into the user's words. */
   | { state: 'not-ready'; reason: string; code?: string; params?: Record<string, string | number> };
 
-/** What a builder may read beyond its own settings; a builder never reaches into a store. */
+/** What a builder may read beyond its own settings; a builder never reaches into a store. The system instructions are each provider's own setting (`instructions.ts`; Stage 2 Gemini, ruling 4). */
 export interface SharedSettings {
-  /** The system instructions for a direction: the user's for the speaker's direction, the participant prompt for the reverse. */
-  instructions(direction: SessionContext['direction']): string;
   /** The segmentation pauses, in seconds, as stored. */
   pauses: { sourceSeconds: number; translationSeconds: number };
   /** This is the participant's direction: the pair's reverse. */

@@ -9,7 +9,7 @@ import type { prepareManagedVoice } from './voicePrep';
 const shapeFor = (legs: LegName[], textOnly = false): RunShape => ({
   provider: {} as RunShape['provider'], settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
   turnMode: 'auto', textOnly, participantSpeech: false, keepReplayAudio: true,
-  shared: { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
+  shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
   auth: { signedIn: true, userId: 'u1', getToken: vi.fn(async () => 'tok') },
 });
 const live = () => new AbortController().signal;

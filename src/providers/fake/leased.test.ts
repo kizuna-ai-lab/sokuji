@@ -30,13 +30,12 @@ const shapeFor = (settings: FakeLeasedSettings): RunShape => ({
   textOnly: false,
   participantSpeech: false,
   keepReplayAudio: true,
-  shared: { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
+  shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
   auth: signedIn,
 });
 
 // fake/provider.test.ts's literal; the participant's direction (ja → en) is the reversed one.
 const shared: SharedSettings = {
-  instructions: () => '',
   pauses: { sourceSeconds: 1, translationSeconds: 1 },
   reversed: (direction) => direction.source === 'ja',
   segmentation: { mode: 'off', sentencesPerRow: 0 },
@@ -230,7 +229,7 @@ describe('the leased fake', () => {
       textOnly: false,
       participantSpeech: false,
       keepReplayAudio: true,
-      shared: { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
+      shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
       auth: signedIn,
     };
     const runner = createRunner({

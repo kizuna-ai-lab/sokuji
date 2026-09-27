@@ -14,7 +14,7 @@ import type { SonioxToken } from './sttStream';
 
 export type Json = Record<string, unknown>;
 
-export const SHARED: SharedSettings = { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
+export const SHARED: SharedSettings = { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
 /** An own key: the STT key speaks too. */
 export const KEY: SonioxCredentials = { region: 'us', stt: 'test-key', tts: 'test-key' };
 export const AUTO_CTX: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };

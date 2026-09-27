@@ -63,7 +63,7 @@ describe('readShapeFromStores', () => {
     });
     useAudioStore.setState({ mode: 'both' });
     useTurnModeStore.setState({ turnMode: 'push-to-talk' });
-    useSettingsStore.setState({ textOnly: true, keepReplayAudio: false, useTemplateMode: false, systemInstructions: 'mine', participantSystemInstructions: '' });
+    useSettingsStore.setState({ textOnly: true, keepReplayAudio: false });
     const shape = readShapeFromStores(auth)!;
     expect(shape).toMatchObject({
       provider: fakeProvider,
@@ -77,7 +77,9 @@ describe('readShapeFromStores', () => {
       keepReplayAudio: false,
       auth,
     });
-    expect(shape.shared.instructions({ source: 'ja', target: 'en' })).toBe('mine');
+    // The participant's direction is the pair's reverse; instructions are no longer the shape's (Stage 2 Gemini, ruling 4).
+    expect(shape.shared.reversed({ source: 'ja', target: 'en' })).toBe(true);
+    expect(shape.shared).not.toHaveProperty('instructions');
   });
 });
 

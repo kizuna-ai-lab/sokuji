@@ -63,15 +63,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     participantSpeech: participantSpeechFromStores(provider),
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
-      provider,
-      entry.settings,
       entry.pair,
-      {
-        useTemplateMode: st.useTemplateMode,
-        templateSystemInstructions: st.templateSystemInstructions,
-        systemInstructions: st.systemInstructions,
-        participantSystemInstructions: st.participantSystemInstructions,
-      },
       { sourceSeconds: st.segmentationSourcePause, translationSeconds: st.segmentationTranslationPause },
       { mode: st.segmentationMode, sentencesPerRow: st.sentenceSegmentationChunkSentences },
     ),

@@ -10,7 +10,6 @@ import { FAKE_DEFAULTS, migrateFakeSettings, type FakeSettings } from './setting
 
 const context: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 const shared: SharedSettings = {
-  instructions: () => '',
   pauses: { sourceSeconds: 1, translationSeconds: 1 },
   reversed: () => false,
   segmentation: { mode: 'off', sentencesPerRow: 0 },

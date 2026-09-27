@@ -98,7 +98,7 @@ describe('kizunaSonioxProvider', () => {
       textOnly: false,
       participantSpeech: false,
       keepReplayAudio: true,
-      shared: { instructions: () => '', pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
+      shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
       auth: signedIn,
     };
     const frames = { frame: vi.fn() };

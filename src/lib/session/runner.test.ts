@@ -85,7 +85,6 @@ function setup(o: Options = {}) {
     participantSpeech: false,
     keepReplayAudio: true,
     shared: {
-      instructions: () => '',
       pauses: { sourceSeconds: 1, translationSeconds: 1 },
       reversed: () => false,
       segmentation: { mode: 'off', sentencesPerRow: 0 },

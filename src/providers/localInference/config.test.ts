@@ -68,7 +68,6 @@ function settings(overrides: Partial<LocalInferenceSettings> = {}): LocalInferen
 
 function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['segmentation'] } = {}): SharedSettings {
   return {
-    instructions: () => '',
     pauses: { sourceSeconds: 0, translationSeconds: 0 },
     reversed: () => overrides.reversed ?? false,
     segmentation: overrides.segmentation ?? { mode: 'off', sentencesPerRow: 0 },
