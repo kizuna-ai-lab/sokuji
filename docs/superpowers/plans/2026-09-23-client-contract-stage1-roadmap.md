@@ -1782,8 +1782,9 @@ plan commit `4bc56808`, revised `d9d9c38c` with the owner's rulings, both over
 `a63c366b`'s code) landed as the sixteen commits after it, `e93f6082` through
 `0a7b903e` (**+5,741 / −946 lines across 123 files**, `d9d9c38c..0a7b903e`),
 then this record with the spec's amendments. The final whole-plan review and
-its fix wave come after this record: the Minors the task reviews queued for
-that wave are listed below, not done. It is Plan B1 of the survey's two (§5.1)
+its fix wave came after this record (`62ee4003..` the fix wave's head): what
+the wave did, commit by commit, is recorded below under "The final fix wave".
+It is Plan B1 of the survey's two (§5.1)
 — **Kizuna AI's managed Soniox** (`kizunaai_soniox`) on the new session, as
 `managed(soniox, …)` with its lease, voice claim, balance floor, countdown,
 account row and the wizard's managed path. Plan B2 deletes both Soniox
@@ -2075,24 +2076,80 @@ is the plan's):
    touch list, in the final fix wave: a one-line doc comment this plan made
    false. Cost: none. Its M2 → "Found here", below.
 
-**Queued for the final fix wave** (not done in this record):
-- Task 2: a test for `abandon()` (`pagehide`) meeting a late `acquire` — the
-  same mechanism as the Stop race, traced correct, untested.
-- Task 6: widen the port guard to `ended || released || accepted.has(role)`
-  (`lease.ts:318`), with a case (`cutoff()`, then `streamAccepted()` posts
-  nothing); the comment at `lease.ts:355-360`, whose "That key" has no clear
-  antecedent; `SonioxLeasePort.cutoff`'s doc (`settings.ts:100`) names only
-  `segment_ended`, where ruling 3 gives `segment_ended` or `budget_exhausted`.
-- Task 8: `kizuna.test.ts:2` cites a task number; `loadStores.test.ts:63, 65`
-  repeat one comment on two adjacent assertions (one comment above both);
-  `registry.test.ts` to pin Kizuna Soniox first and unflagged, umbrella only,
-  per platform.
-- Task 9: the task number in the comment at `SpinePreview.test.tsx:326`.
-- Task 10 (optional): the "a grant of zero is never low" case no longer tells
-  the `totalMs > 0` guard apart (the clamp makes it vacuous).
-- Task 11: a `loadStores` case where the managed provider is not first
-  offered, and one where an own-key stored id wins over a non-null managed
-  default.
+**The final fix wave** (after this record, `62ee4003..` the wave's last
+commit, this entry's update). The final whole-plan review (`d9d9c38c..62ee4003`)
+judged the plan ready to merge with fixes: no Critical, two Important, five
+Minor. One wave took those and the task reviews' queued Minors, in one round
+plus a fix round. Every item is done; none is left pending. By commit:
+1. `b1d03be5` — **a start the service refuses on the wallet refetches it**
+   (the review's Important 1). A start that ends `start-failed` with
+   `insufficient_balance` (402) or `wallet_frozen` (403) calls the balance
+   refetch from `attach()`, as the old app's failed-start teardown did; other
+   refusals refetch nothing. Before, Start and the account button's dot stayed
+   on the stale balance until the 5-minute poll.
+2. `04ae4944` — **an offline launch says "Checking...", not the sign-in
+   words** (the controller's ruling on Task 13's finding). Both auth bridges
+   (`useAuthContext.ts`, `useAppSession.ts`) read a signed-out answer that
+   carries an error as not loaded, as the auto-switch already did: Better Auth
+   reports a failed session fetch that way. Live item 2 and "Found here" say
+   so; the open question is closed.
+3. `8f44dc32` — **the session-key request in the Logs** (Important 2, item
+   12's part) and **the lease port's guard** (Task 6's queued Minors). Each
+   session-key attempt frames `session.key_requested` with the request's body
+   (`mode`, `textOnly`, `bothSplit`, `region`, and the participant field only
+   while the flag sends it), never the token, just before the POST. The port's
+   `session-started` guard is now `ended || released || accepted.has(role)`,
+   with the case (`cutoff()`, then `streamAccepted()` posts nothing). The
+   comment on shared Both's participant key reads in order, and
+   `SonioxLeasePort.cutoff`'s doc names both grant-end words.
+4. `e7e01fda` — **`managed()` keeps its base's participant-speech flag**
+   (Minor 2): the twin's own when given, else the base's. The spec's "Managed
+   twins are composition" says so since commit 10 (amendment 2 above counted
+   the flag among the twin's own).
+5. `5f843d97` — **the participant-speech switch finds the provider as the run
+   does** (Minor 1): `selectedFromStores()` — the selected one if present,
+   else the first present — where it read `getProvider(selected)`.
+   `kizunaParticipantSpeech.test.tsx` stands its flag-on twin in through
+   `presentProviders` since.
+6. `c2ba3d76` — **`abandon()` pinned** (Minor 3 and Task 2's queued item): a
+   running lease run's release starts before `abandon()` returns, and a lease
+   acquired after `abandon()` is released exactly once. Both are pins over
+   correct code, each shown to fail against a break made in a scratch copy.
+7. `1667f530` — **the smaller pins and comments** (the queued Minors of Tasks
+   8–11):
+   - `registry.test.ts` pins Kizuna Soniox first and unflagged on every
+     platform, gated by the umbrella alone;
+   - `loadStores.test.ts` gains a stored `'kizunaai'` offered where the
+     managed provider is not first, which tells the managed branch from the
+     first-offered fallback, and a stored own-key id winning over a managed
+     default;
+   - `SessionCountdown`'s case now tells the `totalMs > 0` guard apart with a
+     negative total. A zero grant never needed it: `0 / 0` is `NaN`, never low;
+   - no task numbers in `kizuna.test.ts:2` and `SpinePreview.test.tsx:326`,
+     and one comment above `loadStores.test.ts`'s two assertions.
+8. `459846fe` — **the paid live test as the wave leaves it** (Important 2,
+   Minor 5):
+   - item 2 as in commit 2;
+   - item 6: a Stop after the key is minted may meet the 409 for up to 75 s,
+     the backend's limit, with an open question on freeing a never-started
+     lease on `session-end`;
+   - item 12 reads the new frame;
+   - item 14: the gate refuses a low balance first; the reliable coded
+     refusal is a second device's `session_conflict`;
+   - items 16 and 17: the upgrade path.
+9. `418498f2` — **the subtitle surface draws "Checking..." as progress**
+   (Minor 4). The idle body's `unready` state now carries its code
+   (`subtitleIdleState.ts`, passed by `SubtitleView.tsx`, which dropped it).
+   `SubtitleIdle` draws `quota_pending` and `sign_in_pending` as the starting
+   state draws progress: a disabled action, the spinner, the words whole.
+   Before, they showed as a fix with a warning icon and the "..." stripped.
+10. `761d9390` — the spec's managed-twin sentence (commit 4).
+11. This entry.
+
+The wave's gates: the suite, 494 files passed and 1 skipped, 6,314 tests
+passed and 2 skipped, 0 failed, no unhandled errors; the typecheck gate at its
+18 baseline lines throughout; `npm run build` and `npm run extension:build`
+pass at its last code commit.
 
 **Stated departures from today** (the plan's list, and three execution added;
 old-code line numbers at `a63c366b`):
