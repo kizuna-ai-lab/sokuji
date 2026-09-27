@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
-import { useProviderStore } from '../../stores/providerStore';
 import MainLayout from './MainLayout';
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
@@ -16,9 +15,11 @@ vi.mock('../TitleBar/TitleBar', () => ({
 }));
 vi.mock('../SetupWizard/SetupWizard', () => ({ default: ({ variant }: { variant: string }) => <div data-testid={`wizard-${variant}`} /> }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
-let signedIn = false;
-vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: signedIn }) }));
-vi.mock('./useSignInProviderSwitch', () => ({ useSignInProviderSwitch: () => {} }));
+vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) }));
+// The switch itself lives in its own hook (useSignInProviderSwitch.test.tsx);
+// a spy here pins only what MainLayout passes it — the wizard wiring below.
+const switchSpy = vi.hoisted(() => vi.fn());
+vi.mock('./useSignInProviderSwitch', () => ({ useSignInProviderSwitch: switchSpy }));
 // Both halves of the tour's render gate are mutable: only Electron reshapes
 // its window for subtitle mode, so the takeover needs the pair to be true.
 // vi.hoisted: the mocks' factories below read it.
@@ -27,7 +28,10 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isElectron: () => flags.electron, isKizunaAIEnabled: () => false,
 }));
-// Only what MainLayout reads: no provider, no UI mode, no provider setter.
+// Only what MainLayout itself reads: no provider, no UI mode, no provider
+// setter. The sign-in switch reads uiMode too, but it lives in its own hook
+// (useSignInProviderSwitch, mocked above as a spy), so this file mocks
+// settingsStore whole rather than growing this list to cover it.
 vi.mock('../../stores/settingsStore', () => ({
   useSettingsNavigationTarget: () => null, useSubtitleModeActive: () => flags.subtitleActive,
   useDiagnosticLogs: () => flags.diagnosticLogs,
@@ -41,8 +45,9 @@ vi.mock('../../stores/layoutStore', () => ({
 
 beforeEach(() => {
   cleanup();
-  loaded = true; complete = true; wizardOpen = false; signedIn = false;
+  loaded = true; complete = true; wizardOpen = false;
   flags.electron = false; flags.subtitleActive = false; flags.diagnosticLogs = false;
+  switchSpy.mockClear();
 });
 
 describe('MainLayout first-run gating (spec §1.1)', () => {
@@ -91,21 +96,27 @@ describe('MainLayout first-run gating (spec §1.1)', () => {
   });
 });
 
-describe('signing in switches no provider', () => {
-  // The old auto-switch (spec history, #444) picked a managed provider for a
-  // Basic-mode user on sign-in; the branch registers no managed provider at
-  // all, and Stage 2's managed step decides what, if anything, replaces it
-  // (1e-3 ruling 12).
-  it('switches no provider when a user signs in, wizard closed, Basic mode', () => {
-    const selectSpy = vi.fn();
-    useProviderStore.setState({ select: selectSpy });
-    const { rerender } = render(<MainLayout />);
-    signedIn = true;
-    rerender(<MainLayout />);
-    // The settings store's mock offers no provider setter at all: a switch
-    // that reached for one would throw on this render.
-    expect(screen.getByTestId('title-bar')).toBeInTheDocument();
-    expect(selectSpy).not.toHaveBeenCalled();
+// The sign-in switch itself lives in useSignInProviderSwitch, mocked above as
+// a spy: what matters here is only the one boolean MainLayout computes and
+// hands it — the #444 bug (Codex P2, CodeRabbit major) was dropping the
+// `|| !setupComplete` half of this expression, which nothing here pinned
+// once the switch moved into its own hook and the mock swallowed the call.
+describe('wires the sign-in switch to both wizards (spec history, #444)', () => {
+  it('passes true while the first-run wizard is on screen', () => {
+    complete = false;
+    render(<MainLayout />);
+    expect(switchSpy).toHaveBeenLastCalledWith(true);
+  });
+
+  it('passes true while the rerun wizard is open', () => {
+    wizardOpen = true;
+    render(<MainLayout />);
+    expect(switchSpy).toHaveBeenLastCalledWith(true);
+  });
+
+  it('passes false once setup is complete and neither wizard is open', () => {
+    render(<MainLayout />);
+    expect(switchSpy).toHaveBeenLastCalledWith(false);
   });
 });
 

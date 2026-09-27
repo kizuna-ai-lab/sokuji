@@ -56,8 +56,10 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   isElectron: () => false,
   isKizunaAIEnabled: () => false,
 }));
-// MainLayout no longer reads a provider or a UI mode setter (ruling 12: the
-// sign-in auto-switch is gone) — only the three exports it still uses.
+// MainLayout itself no longer reads a provider or a UI mode setter — only
+// the three exports it still uses. The sign-in switch reads uiMode too, but
+// it lives in its own hook (useSignInProviderSwitch, mocked above), so this
+// file mocks settingsStore whole rather than growing this list to cover it.
 vi.mock('../../stores/settingsStore', () => ({
   useSettingsNavigationTarget: () => null,
   useSubtitleModeActive: () => false,

@@ -22,7 +22,13 @@ vi.mock('../../services/ServiceFactory', () => ({
 }));
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
 
-let auth: { isLoaded: boolean; isSignedIn: boolean } = { isLoaded: true, isSignedIn: false };
+const reportWarning = vi.hoisted(() => vi.fn());
+vi.mock('../../lib/diagnostics/report', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/diagnostics/report')>();
+  return { ...actual, reportWarning };
+});
+
+let auth: { isLoaded: boolean; isSignedIn: boolean; error?: unknown } = { isLoaded: true, isSignedIn: false };
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => auth }));
 
 import { presentProviders } from '../../providers/registry';
@@ -40,6 +46,7 @@ beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
   trackEvent.mockClear();
+  reportWarning.mockClear();
   auth = { isLoaded: true, isSignedIn: false };
   useProviderStore.setState({ selected: 'localInference', selectionLocked: false, entries: {} });
   useSettingsStore.setState({ uiMode: 'basic' });
@@ -104,16 +111,61 @@ describe('useSignInProviderSwitch', () => {
     expect(trackEvent).not.toHaveBeenCalled();
   });
 
-  it('refused during a run: nothing changes, nothing is tracked', () => {
-    useProviderStore.setState({ selectionLocked: true });
+  it('an offline or failed-fetch launch is not a sign-in either, even once it resolves', () => {
+    // Better Auth answers a failed session fetch as loaded, signed out (its
+    // own session-refresh manager quietly retries on `online`/focus); a
+    // signed-out answer that carries an error has not really told us the
+    // restored session is signed out, so it must not arm the "next sign-in
+    // switches" flip the way a genuine 200-with-null-body answer does.
+    auth = { isLoaded: true, isSignedIn: false, error: new Error('offline') };
     const { rerender } = renderSwitch(false);
     auth = { isLoaded: true, isSignedIn: true };
     rerender({ wizard: false });
 
     expect(useProviderStore.getState().selected).toBe('localInference');
     expect(trackEvent).not.toHaveBeenCalled();
-    // Refused at the store: no entry is loaded for a switch that never took.
-    expect(useProviderStore.getState().entries.kizunaai_soniox).toBeUndefined();
+  });
+
+  it('a plain signed-out answer, with no error, still arms a real sign-in', () => {
+    auth = { isLoaded: true, isSignedIn: false };
+    const { rerender } = renderSwitch(false);
+    auth = { isLoaded: true, isSignedIn: true };
+    rerender({ wizard: false });
+
+    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('refused during a run: nothing changes, nothing is tracked', () => {
+    useProviderStore.setState({ selectionLocked: true });
+    // A bare `entries.kizunaai_soniox` check can't fail here: `load` only
+    // settles after several microtasks (its own `Promise.all` over the
+    // mocked async `getSetting`), so entries would still read empty at this
+    // point even if `load` had been called. Spying on `load` itself is the
+    // check that can actually catch a call that should never happen.
+    const realLoad = useProviderStore.getState().load;
+    const loadSpy = vi.fn();
+    useProviderStore.setState({ load: loadSpy });
+    const { rerender } = renderSwitch(false);
+    auth = { isLoaded: true, isSignedIn: true };
+    rerender({ wizard: false });
+
+    expect(useProviderStore.getState().selected).toBe('localInference');
+    expect(trackEvent).not.toHaveBeenCalled();
+    expect(loadSpy).not.toHaveBeenCalled();
+    useProviderStore.setState({ load: realLoad });
+  });
+
+  it('refused during a run: no warning is reported for a change the user never asked for', () => {
+    useProviderStore.setState({ selectionLocked: true });
+    const { rerender } = renderSwitch(false);
+    auth = { isLoaded: true, isSignedIn: true };
+    rerender({ wizard: false });
+
+    // The hook checks the lock itself before ever calling `select`, so the
+    // store's own "cannot change during a session" warning — meant for a
+    // person's own blocked pick — never fires for a switch nobody asked for.
+    expect(reportWarning).not.toHaveBeenCalled();
   });
 
   it("loads the managed provider's entry, so Start follows at once with Settings closed", async () => {
