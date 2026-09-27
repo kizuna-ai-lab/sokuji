@@ -6,6 +6,7 @@ const auth = vi.hoisted(() => ({
   isSignedIn: false,
   userId: undefined as string | undefined,
   getToken: async () => null,
+  error: null as Error | null,
 }));
 vi.mock('../../lib/auth/hooks', () => ({
   useAuth: () => auth,
@@ -21,6 +22,30 @@ describe('useAuthContext', () => {
     auth.userId = undefined;
     const { result } = renderHook(() => useAuthContext());
     expect(result.current).toEqual({ signedIn: false, loaded: false, userId: null, getToken: auth.getToken });
+  });
+
+  it('has not loaded while the answer is a signed-out one that carries an error — a session fetch that failed — and has once a plain one comes', () => {
+    auth.isLoaded = true;
+    auth.userId = undefined;
+    try {
+      // Better Auth reports a failed session fetch (offline, a backend stall) as loaded and signed out, with an error.
+      auth.isSignedIn = false;
+      auth.error = new Error('Failed to fetch');
+      expect(renderHook(() => useAuthContext()).result.current).toMatchObject({ signedIn: false, loaded: false });
+
+      auth.error = null;
+      expect(renderHook(() => useAuthContext()).result.current).toMatchObject({ signedIn: false, loaded: true });
+
+      // A signed-in answer is an answer, error or not.
+      auth.isSignedIn = true;
+      auth.userId = 'u1';
+      auth.error = new Error('Failed to fetch');
+      expect(renderHook(() => useAuthContext()).result.current).toMatchObject({ signedIn: true, loaded: true });
+    } finally {
+      auth.isSignedIn = false;
+      auth.userId = undefined;
+      auth.error = null;
+    }
   });
 
   it('answers the stand-in when one is provided', () => {
