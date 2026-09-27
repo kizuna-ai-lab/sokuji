@@ -187,12 +187,19 @@ describe('Kizuna Soniox lease: a refused or broken answer', () => {
   it('fails the start loudly on a contract break', async () => {
     const splitBoth: AcquireOptions = { settings: { bothModeSharedSession: false } };
     const cases: Array<[LegName[], AcquireOptions, Record<string, unknown>, RegExp]> = [
+      [['speaker'], {}, grant(['spk_stt'], { leaseId: undefined }), /leaseId/],
       [['speaker'], {}, grant(['spk_stt'], { clientReferenceId: undefined }), /clientReferenceId/],
       [['speaker'], {}, grant(['spk_stt'], { region: undefined }), /region/],
       [['speaker'], {}, grant(['spk_stt'], { region: 'xx' }), /region/],
       [['speaker'], {}, grant(['spk_stt'], { streams: undefined }), /streams/],
       [['speaker'], {}, grant(['spk_stt'], { streams: [] }), /streams/],
       [['speaker'], {}, grant(['spk_stt'], { streams: [{ role: 'spk_stt', clientReferenceId: 'ref-spk_stt', expiresAt: 'x' }] }), /malformed stream/],
+      [['speaker'], {}, grant(['spk_stt'], { streams: [{ role: 'spk_stt', apiKey: 'k-spk_stt', expiresAt: 'x' }] }), /malformed stream/],
+      // A role the lease does not know (the backend's preview role), beside the one this start needs.
+      [['speaker'], {}, grant(['spk_stt'], { streams: [stream('spk_stt'), { role: 'preview_tts', apiKey: 'k', clientReferenceId: 'r', expiresAt: 'x' }] }), /malformed stream/],
+      // No granted duration: a timer of NaN or 0 would end the run at once.
+      [['speaker'], {}, grant(['spk_stt'], { maxSessionDurationSeconds: undefined }), /granted duration/],
+      [['speaker'], {}, grant(['spk_stt'], { maxSessionDurationSeconds: 0 }), /granted duration/],
       [['speaker', 'participant'], splitBoth, grant(['spk_stt']), /par_stt/],
     ];
     for (const [legs, o, body, message] of cases) {
@@ -206,6 +213,15 @@ describe('Kizuna Soniox lease: a refused or broken answer', () => {
       expect((error as Error).message).not.toContain('tok');
       expect((error as Error).message).not.toMatch(KEY);
     }
+
+    // A non-finite duration: JSON spells none, but `1e999` parses to Infinity, so this body reaches the lease as one.
+    const text = JSON.stringify(grant(['spk_stt'])).replace('"maxSessionDurationSeconds":600', '"maxSessionDurationSeconds":1e999');
+    expect(JSON.parse(text).maxSessionDurationSeconds).toBe(Infinity);
+    const endless = createKizunaLease({ fetch: async () => new Response(text, { status: 200 }), apiUrl: () => API });
+    const ctx: LeaseContext = { signal: new AbortController().signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn() };
+    const error = await rejection(endless(shapeFor(['speaker']), SONIOX_DEFAULTS, ctx));
+    expect(error).not.toBeInstanceOf(AdapterStartError);
+    expect((error as Error).message).toMatch(/granted duration/);
   });
 
   it('words every refusal by its code', async () => {
@@ -221,10 +237,7 @@ describe('Kizuna Soniox lease: a refused or broken answer', () => {
     };
 
     expect(code(await answer(401))).toBe('sign_in_required');
-    const poor = await answer(402, { error: 'Insufficient balance', requiredMicroUsd: 41_667, balanceMicroUsd: 1_000 });
-    expect(code(poor)).toBe('insufficient_balance');
-    expect((poor as Error).message).toContain('41667');
-    expect((poor as Error).message).toContain('1000');
+    expect(code(await answer(402, { error: 'Insufficient balance', requiredMicroUsd: 41_667, balanceMicroUsd: 1_234 }))).toBe('insufficient_balance');
     expect(code(await answer(403))).toBe('wallet_frozen');
     expect(code(await answer(502))).toBe('soniox_service_unavailable');
     // All three of the backend's 503 bodies, as the old client worded them.
@@ -245,6 +258,29 @@ describe('Kizuna Soniox lease: a refused or broken answer', () => {
     const unreachable = await rejection(a.pending);
     expect(code(unreachable)).toBe('network');
     expect((unreachable as Error).message).toMatch(/Failed to reach the Soniox session service: Failed to fetch/);
+  });
+
+  it("keeps a 402's wallet figures out of the thrown message and puts them in the Logs' frame", async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.last().respond(402, { error: 'Insufficient balance', requiredMicroUsd: 41_667, balanceMicroUsd: 1_234 });
+    const error = await rejection(a.pending);
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect((error as AdapterStartError).code).toBe('insufficient_balance');
+    // A failed start's message reaches analytics as `error_message`: no figure of the user's wallet may be in it.
+    expect((error as Error).message).not.toMatch(/41[,.\s]?667|1[,.\s]?234/);
+    expect(a.frame).toHaveBeenCalledWith({
+      direction: 'in',
+      type: 'session.refused',
+      payload: { status: 402, error: 'Insufficient balance', requiredMicroUsd: 41_667, balanceMicroUsd: 1_234 },
+    });
+
+    // Every refusal is framed with its status and the server's words.
+    const busy = acquiring(['speaker']);
+    await flush();
+    busy.last().respond(503, { error: 'Wallet unavailable' });
+    await rejection(busy.pending);
+    expect(busy.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.refused', payload: { status: 503, error: 'Wallet unavailable' } });
   });
 });
 
@@ -320,6 +356,21 @@ describe("Kizuna Soniox lease: the session key's bound and its 409 retry", () =>
     await flush();
     expect(inWait.fetch).toHaveBeenCalledTimes(1);
   });
+
+  it('a cancel that lands as the 409 wait ends stops the retry before it is sent', async () => {
+    const a = acquiring(['speaker']);
+    await flush();
+    a.last().respond(409, { error: 'x', retryAfterMs: 1200 });
+    await flush();
+    // The wait's timer fires inside `advance`; the cancel comes before the retry's continuation runs.
+    a.clock.advance(1200);
+    const stop = new Error('stop');
+    a.controller.abort(stop);
+    await flush();
+    expect(await isPending(a.pending)).toBe(false);
+    expect(await rejection(a.pending)).toBe(stop);
+    expect(a.fetch).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("Kizuna Soniox lease: the grant's time and its end", () => {
@@ -355,6 +406,17 @@ describe("Kizuna Soniox lease: the grant's time and its end", () => {
     const textCapped = await granted(['speaker'], ['spk_stt'], { textOnly: true }, { maxSessionDurationSeconds: 18_000 });
     textCapped.clock.advance(18_000_000);
     expect(textCapped.end).toHaveBeenCalledWith({ code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, { expected: true });
+
+    // The words follow the set the backend minted, not the one the flag leaves: with the flag off a
+    // `par_tts` is no leg's key, yet minting it held the grant to the hour's cap.
+    const parCapped = await granted(['participant'], ['par_stt', 'par_tts'], {}, { maxSessionDurationSeconds: 3_600 });
+    expect(parCapped.resources.credentials('participant')).not.toHaveProperty('tts');
+    parCapped.clock.advance(3_600_000);
+    expect(parCapped.end).toHaveBeenCalledTimes(1);
+    expect(parCapped.end).toHaveBeenCalledWith({ code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, { expected: true });
+    const parShort = await granted(['participant'], ['par_stt', 'par_tts'], {}, { maxSessionDurationSeconds: 600 });
+    parShort.clock.advance(600_000);
+    expect(parShort.end).toHaveBeenCalledWith({ code: 'budget_exhausted', message: 'Session budget exhausted' }, { expected: false });
 
     // Released: the timer ends nothing.
     const released = await granted(['speaker'], ['spk_stt', 'spk_tts'], {}, { maxSessionDurationSeconds: 600 });
@@ -410,6 +472,43 @@ describe('Kizuna Soniox lease: session-end', () => {
     a.clock.advance(10_000);
     await flush();
     expect(ends()).toHaveLength(3);
+  });
+
+  it('drops keepalive once an attempt fails in transport, and keeps it through a 5xx', async () => {
+    // A runtime that refuses a keepalive request needing a CORS preflight fails it in transport:
+    // the retries go out as plain requests, which a normal Stop still delivers.
+    const refused = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const ends = () => refused.to('/soniox/session-end');
+    const releasing = refused.resources.release();
+    expect(ends()[0].init.keepalive).toBe(true);
+    ends()[0].fail();
+    await flush();
+    refused.clock.advance(500);
+    await flush();
+    expect(ends()).toHaveLength(2);
+    expect(ends()[1].init).not.toHaveProperty('keepalive');
+    // Still plain after a 5xx: the runtime that refused it has not changed.
+    ends()[1].respond(503);
+    await flush();
+    refused.clock.advance(1_000);
+    await flush();
+    expect(ends()).toHaveLength(3);
+    expect(ends()[2].init).not.toHaveProperty('keepalive');
+    ends()[2].respond(200);
+    await expect(releasing).resolves.toBeUndefined();
+
+    // A 5xx is the backend's answer, not the runtime's refusal: the retry keeps keepalive.
+    const busy = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const busyEnds = () => busy.to('/soniox/session-end');
+    const releasingBusy = busy.resources.release();
+    busyEnds()[0].respond(503);
+    await flush();
+    busy.clock.advance(500);
+    await flush();
+    expect(busyEnds()).toHaveLength(2);
+    expect(busyEnds()[1].init.keepalive).toBe(true);
+    busyEnds()[1].respond(200);
+    await expect(releasingBusy).resolves.toBeUndefined();
   });
 
   it('never begins an attempt after the budget: a hung one is aborted at the deadline', async () => {

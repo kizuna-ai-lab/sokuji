@@ -69,14 +69,20 @@ function parseGrant(body: unknown): Grant {
   return { leaseId: b.leaseId, region: b.region as SonioxRegion, maxSessionDurationSeconds: seconds, streams };
 }
 
-/** A refused session key in the user's words (choice 5): the code picks the sentence, the message keeps the server's. */
+/**
+ * A refused session key in the user's words (choice 5): the code picks the
+ * sentence, the message keeps the server's. No wallet figure goes in it:
+ * the runner sends a failed start's message to analytics as
+ * `error_message`, so a 402's amounts go to the Logs' frame instead
+ * (`refusalFrame`).
+ */
 function refusal(status: number, body: unknown): Error {
-  const b = (body ?? {}) as { error?: unknown; requiredMicroUsd?: unknown; balanceMicroUsd?: unknown };
+  const b = (body ?? {}) as { error?: unknown };
   const server = typeof b.error === 'string' ? b.error : '';
   const detail = server ? `: ${server}` : '';
   switch (status) {
     case 401: return new AdapterStartError(`The session service did not accept the sign-in (HTTP 401${detail}).`, 'sign_in_required');
-    case 402: return new AdapterStartError(`The balance is below this session's floor (HTTP 402${detail}; needs ${String(b.requiredMicroUsd)} µUSD, has ${String(b.balanceMicroUsd)}).`, 'insufficient_balance');
+    case 402: return new AdapterStartError(`The session service refused the start: insufficient balance (HTTP 402${detail}).`, 'insufficient_balance');
     case 403: return new AdapterStartError(`The wallet is frozen (HTTP 403${detail}).`, 'wallet_frozen');
     case 409: return new AdapterStartError(`Another session holds the account's lease (HTTP 409${detail}).`, 'session_conflict');
     case 502: return new AdapterStartError(`Soniox did not mint the session's keys (HTTP 502${detail}).`, 'soniox_service_unavailable');
@@ -84,6 +90,21 @@ function refusal(status: number, body: unknown): Error {
     case 503: return new AdapterStartError(`The Soniox session service is unavailable (HTTP 503${detail}).`, 'soniox_service_busy');
     default: return new Error(server || `Failed to start a managed Soniox session (HTTP ${status})`);
   }
+}
+
+/** A refusal as the Logs show it: its status, the server's words, and a 402's figures, which only diagnostics may carry. */
+function refusalFrame(status: number, body: unknown): AdapterFrame {
+  const b = (body ?? {}) as { error?: unknown; requiredMicroUsd?: unknown; balanceMicroUsd?: unknown };
+  return {
+    direction: 'in',
+    type: 'session.refused',
+    payload: {
+      status,
+      ...(typeof b.error === 'string' ? { error: b.error } : {}),
+      ...(typeof b.requiredMicroUsd === 'number' ? { requiredMicroUsd: b.requiredMicroUsd } : {}),
+      ...(typeof b.balanceMicroUsd === 'number' ? { balanceMicroUsd: b.balanceMicroUsd } : {}),
+    },
+  };
 }
 
 /** `ms` on the clock, or the abort's reason. */
@@ -112,17 +133,21 @@ interface Ending {
 
 /**
  * Tells the backend the session is over (choice 6): a hint that lets its
- * sweep settle the lease before expiry (`routes/soniox.ts:820-864`). With
- * `keepalive`, so it outlives a closing page, and the token cached at
- * acquire, so `pagehide`'s synchronous release sends it before any await.
- * A transport failure or a 5xx is retried, three attempts at most within
- * `SESSION_END_BUDGET_MS`; a 4xx is final.
+ * sweep settle the lease before expiry (`routes/soniox.ts:820-864`). The
+ * first attempt goes with `keepalive`, so it outlives a closing page, and
+ * the token cached at acquire, so `pagehide`'s synchronous release sends it
+ * before any await. A transport failure or a 5xx is retried, three attempts
+ * at most within `SESSION_END_BUDGET_MS`; a 4xx is final.
  */
 function signalEnd(
   doFetch: NonNullable<KizunaLeaseDeps['fetch']>, url: string, token: string, leaseId: string, clock: Clock, frame: (f: AdapterFrame) => void,
 ): Ending {
   let cancelled = false;
   let inFlight: AbortController | null = null;
+  // Dropped for good once an attempt fails in transport: a runtime that refuses a keepalive request needing a
+  // CORS preflight fails it that way, and a plain request still reaches the backend on a normal Stop, as the
+  // old client's did. A 5xx is the backend's answer, so it keeps the flag.
+  let keepalive = true;
   const deadline = clock.now() + SESSION_END_BUDGET_MS;
   const attempt = async (): Promise<boolean> => {
     const controller = new AbortController();
@@ -131,7 +156,7 @@ function signalEnd(
     try {
       const res = await doFetch(url, {
         method: 'POST',
-        keepalive: true,
+        ...(keepalive ? { keepalive: true } : {}),
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ leaseId }),
         signal: controller.signal,
@@ -140,6 +165,7 @@ function signalEnd(
       if (!res.ok) frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-end', message: `HTTP ${res.status}` } });
       return true;
     } catch {
+      keepalive = false;
       return false;
     } finally {
       cancelTimer();
@@ -183,6 +209,8 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
     const request = leaseRequest(shape, s, participantSpeech);
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {
+      // An abort that landed after the 409 wait resolved, before this attempt: its listener below would never fire.
+      if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
       const controller = new AbortController();
       let timedOut = false;
       const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
@@ -222,7 +250,10 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
       await wait(ctx.clock, retryAfterMs, ctx.signal);
       answer = await attempt();
     }
-    if (answer.status < 200 || answer.status >= 300) throw refusal(answer.status, answer.body);
+    if (answer.status < 200 || answer.status >= 300) {
+      ctx.frame(refusalFrame(answer.status, answer.body));
+      throw refusal(answer.status, answer.body);
+    }
     // A contract break past here leaves a never-started lease, which the
     // backend frees at its start window's end; `session-end` cannot (survey §1.2).
     const grant = parseGrant(answer.body);
