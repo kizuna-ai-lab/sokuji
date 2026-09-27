@@ -28,7 +28,10 @@ export type CredentialValues = Readonly<Record<string, string>>;
 export interface MigrationInputs {
   /**
    * Every key in `settings.legacyKeys`, as `getSetting` returns it with no
-   * default: `undefined` where nothing was ever stored. Chrome storage keeps
+   * default: `undefined` where nothing was ever stored. A key that starts
+   * with `settings.` names a whole storage key — a global the provider owns
+   * a copy of, as Gemini's instructions (Stage 2 Gemini, choice 1); any
+   * other names a field under the provider's prefix. Chrome storage keeps
    * a value's type; localStorage JSON-parses what it can, so a stored
    * `"123"` or `"true"` arrives as a number or a boolean — a migration
    * compares defensively.
@@ -208,7 +211,9 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
      * Keys read with no default at load and handed to `migrate` (F5): a setting this
      * version no longer has (OpenAI's `turnDetectionMode`), or a field whose
      * absence must be told from its default (Palabra's `authMode`). May name
-     * a field of `defaults`. Nothing is written back.
+     * a field of `defaults`. May name a whole storage key
+     * (`settings.common.systemInstructions`), read there, never written.
+     * Nothing is written back.
      */
     legacyKeys?: readonly string[];
     /** Turns what was stored — every field of `defaults`, each read with its default — into this version's `S`. */

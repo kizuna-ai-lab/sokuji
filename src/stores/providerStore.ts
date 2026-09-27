@@ -81,6 +81,11 @@ function storageKey(p: AnyProvider, field: string): string {
   return `settings.${p.settings.key}.${field}`;
 }
 
+/** A legacy key: a field under the provider's prefix, or — starting with `settings.` — a whole storage key, a global the provider now owns a copy of (Stage 2 Gemini, choice 1). */
+function legacyStorageKey(p: AnyProvider, key: string): string {
+  return key.startsWith('settings.') ? key : storageKey(p, key);
+}
+
 /** The latest check per provider: a check that finishes after a newer one began, or after its inputs changed, stays out of the store (a run's own check still gets its answer back). */
 const checkSeq = new Map<string, number>();
 /** The last answer per network provider, with the inputs it answered. */
@@ -156,7 +161,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
         Promise.all(fields.map((f) => service.getSetting<unknown>(storageKey(p, f), defaults[f]))),
         Promise.all(p.credentials.keys.map((k) => service.getSetting(storageKey(p, k), ''))),
         // No default: `undefined` tells "never stored" from "stored as the default" (F5).
-        Promise.all(legacyKeys.map((k) => service.getSetting<unknown>(storageKey(p, k), undefined))),
+        Promise.all(legacyKeys.map((k) => service.getSetting<unknown>(legacyStorageKey(p, k), undefined))),
         service.getSetting(storageKey(p, SOURCE), ''),
         service.getSetting(storageKey(p, TARGET), ''),
       ]);

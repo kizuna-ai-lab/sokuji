@@ -126,6 +126,18 @@ describe('load', () => {
     expect(migrate.mock.calls[0][1]).toMatchObject({ legacy: { on: false } });
   });
 
+  it('reads a legacy key that names a whole storage key at that key, under that name (Stage 2 Gemini, choice 1)', async () => {
+    const migrate = vi.fn((s: Record<string, unknown>, _inputs: MigrationInputs) => s);
+    const p = { ...probe, settings: { ...probe.settings, legacyKeys: ['settings.common.systemInstructions', 'on'], migrate } } as unknown as AnyProvider;
+    stored.set('settings.common.systemInstructions', 'global');
+    await useProviderStore.getState().load(p);
+    expect(getSetting).toHaveBeenCalledWith('settings.common.systemInstructions', undefined);
+    expect(getSetting).not.toHaveBeenCalledWith('settings.probe.settings.common.systemInstructions', undefined);
+    expect(migrate.mock.calls[0][1]).toMatchObject({ legacy: { 'settings.common.systemInstructions': 'global', on: undefined } });
+    // Read, never written: the global stays where it was.
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.systemInstructions', expect.anything());
+  });
+
   it('rewrites the stored pair before it is normalized, so a renamed code lands on its new spelling', async () => {
     const p = {
       ...probe,
