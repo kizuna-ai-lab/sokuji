@@ -155,6 +155,128 @@ describe('a dialogue model: one turn, one origin, stated', () => {
     expect(opened()).toEqual([{ ref: 1, side: 'translation', origin: 't1' }, { ref: 2, side: 'translation', origin: 't2' }]);
   });
 
+  it("a cancel after a voiced release, before its answer's first output, keeps that answer and drops only its own", () => {
+    const { t, of, texts, closed } = turns();
+    t.beginTurn();
+    t.input('Hello');
+    t.endTurn();
+    t.beginTurn();
+    t.cancelTurn();
+    expect(closed()).toEqual([]);
+    t.output('Bonjour');
+    t.audio(pcm());
+    t.turnComplete();
+    expect(texts(2)).toEqual(['Bonjour']);
+    expect(of('audio').map((e) => e.payload.ref)).toEqual([2]);
+    expect(closed()).toEqual([{ ref: 1, origin: 't1' }, { ref: 2, origin: 't1' }]);
+    // The cancelled press's own answer.
+    t.output('an answer to the cancelled press');
+    t.turnComplete();
+    t.output('the next answer');
+    expect(texts(3)).toEqual(['the next answer']);
+  });
+
+  it("a cancel after typed text, before its answer's first output, keeps that answer and drops only its own", () => {
+    const { t, texts } = turns();
+    t.typed('hi');
+    t.beginTurn();
+    t.cancelTurn();
+    t.output('salut');
+    t.turnComplete();
+    expect(texts(2)).toEqual(['salut']);
+    t.output('an answer to the cancelled press');
+    t.turnComplete();
+    t.output('the next answer');
+    expect(texts(3)).toEqual(['the next answer']);
+  });
+
+  it.each([
+    ['turnComplete', (t: GeminiTurns) => t.turnComplete()],
+    ['interrupted', (t: GeminiTurns) => t.interrupted()],
+    ['connectionLost', (t: GeminiTurns) => t.connectionLost()],
+  ])('an owed answer is no longer owed after %s: a later voiceless press drops its own answer at once', (_, end) => {
+    const { t, texts, closed } = turns();
+    t.input('Hello');
+    t.endTurn();
+    end(t);
+    t.beginTurn();
+    t.cancelTurn();
+    t.output('an answer to the cancelled press');
+    expect(closed()).toEqual([{ ref: 1, origin: 't1' }]);
+    expect(texts(2)).toEqual([]);
+  });
+
+  it("the model's audio marks its answer streaming, on a leg that does not speak too: a cancel then waits for it", () => {
+    const { t, texts, closed } = turns({ speech: false });
+    t.input('Hello');
+    t.audio(pcm());
+    t.cancelTurn();
+    expect(closed()).toEqual([]);
+    t.turnComplete();
+    t.output('an answer to the cancelled press');
+    expect(texts(2)).toEqual([]);
+  });
+
+  it("the model's text parts mark its answer streaming: a cancel then waits for it", () => {
+    const { t, texts, closed } = turns();
+    t.input('Hello');
+    t.modelText('Bonjour');
+    t.cancelTurn();
+    expect(closed()).toEqual([]);
+    t.turnComplete();
+    expect(texts(2)).toEqual(['Bonjour']);
+    t.output('an answer to the cancelled press');
+    expect(texts(3)).toEqual([]);
+  });
+
+  it('a reconnect ends an active drop: the next answer is kept', () => {
+    const { t, texts } = turns();
+    t.input('uh');
+    t.cancelTurn();
+    t.connectionLost();
+    t.output('kept');
+    expect(texts(2)).toEqual(['kept']);
+  });
+
+  it('a reconnect ends a pending drop: the answer after it is kept', () => {
+    const { t, texts } = turns();
+    t.output('A');
+    t.cancelTurn();
+    t.connectionLost();
+    t.output('B');
+    t.turnComplete();
+    t.output('C');
+    expect([texts(1), texts(2), texts(3)]).toEqual([['A'], ['B'], ['C']]);
+  });
+
+  it('typed text ends a pending drop: the answer after the streaming one is kept', () => {
+    const { t, texts } = turns();
+    t.output('A');
+    t.cancelTurn();
+    t.typed('x');
+    t.turnComplete();
+    t.output('B');
+    expect(texts(3)).toEqual(['B']);
+  });
+
+  it('interrupted ends an active drop, as turnComplete does: the next answer is kept', () => {
+    const { t, texts } = turns();
+    t.input('uh');
+    t.cancelTurn();
+    t.interrupted();
+    t.output('kept');
+    expect(texts(2)).toEqual(['kept']);
+  });
+
+  it('interrupted starts a pending drop, as turnComplete does: the answer after it is dropped', () => {
+    const { t, texts } = turns();
+    t.output('A');
+    t.cancelTurn();
+    t.interrupted();
+    t.output('B');
+    expect(texts(2)).toEqual([]);
+  });
+
   it('a reconnect closes a turn in flight as it stands; the next content opens new refs (choice 14)', () => {
     const { t, opened, closed } = turns();
     t.input('Hel');
@@ -209,6 +331,7 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
     clock.advance(1500);
     t.input('second utterance');
     expect(opened().map((o) => o.ref)).toEqual([1, 2]);
+    expect(texts(2)).toEqual(['second utterance']);
   });
 
   it('times the two sides independently (`:864`)', () => {
@@ -272,6 +395,18 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
     expect(timers()).toBe(0);
   });
 
+  it("under sentence mode each segment starts its own deferral: the next one's repeated mid-sentence tail still gets its extra window", () => {
+    const { t, clock, closed } = translate({ sourceMs: 1000, translationMs: 1000, deferMidSentence: true });
+    t.input('He said that');
+    clock.advance(2000);
+    expect(closed()).toEqual([{ ref: 1 }]);
+    t.input('He said that');
+    clock.advance(1000);
+    expect(closed()).toHaveLength(1);
+    clock.advance(1000);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+  });
+
   it('without sentence mode a mid-sentence pause closes at once', () => {
     const { t, clock, closed } = translate({ sourceMs: 1000, translationMs: 1000, deferMidSentence: false });
     t.input('He said that');
@@ -284,6 +419,13 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
     t.typed('typed words');
     expect(opened()).toEqual([{ ref: 1, side: 'source' }]);
     expect(timers()).toBe(0);
+  });
+
+  it("ignores the model's text parts: its translation is the output transcript alone", () => {
+    const { t, log } = translate();
+    t.modelText('a text part');
+    t.turnComplete();
+    expect(log).toEqual([]);
   });
 
   it('a cancel closes nothing and drops nothing: its output belongs to no press (choice 16)', () => {

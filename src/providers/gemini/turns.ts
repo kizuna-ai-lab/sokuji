@@ -57,9 +57,14 @@ export class GeminiTurns {
   private fallbackText = '';
   /** A dialogue model's answer is streaming: its output transcript, audio or text arrived since the last `turnComplete` / `interrupted` (choice 16). */
   private answering = false;
+  /**
+   * A dialogue answer is owed: a press with voice was released, or text was typed, and that answer has not ended.
+   * A flag, not a count: after two voiced releases, a voiceless press before either answer streams drops the second's answer, not its own.
+   */
+  private owed = false;
   /** The cancelled press's own answer is being dropped, until it ends (ruling 8). */
   private suppressing = false;
-  /** A cancel came while the previous press's answer streamed: the drop starts when that answer ends (choice 16). */
+  /** A cancel came while the previous press's answer was owed or streaming: the drop starts when that answer ends (choice 16). */
   private suppressAfterAnswer = false;
   private stopped = false;
 
@@ -138,6 +143,7 @@ export class GeminiTurns {
     // Typed text starts an answer of its own: a cancel's drop, active or pending, ends here, as at the next press.
     this.suppressing = false;
     this.suppressAfterAnswer = false;
+    if (this.dialogue) this.owed = true;
     const ref = ++this.refs;
     const origin = this.origin();
     this.o.sink.segmentOpened({ ref, side: 'source', ...(origin ? { origin } : {}) });
@@ -151,12 +157,22 @@ export class GeminiTurns {
     this.suppressAfterAnswer = false;
   }
 
+  /**
+   * A press with voice was released (`activityEnd`, not a cancel): its answer is owed from here, before its first
+   * output streams, so a voiceless press made in that gap drops only its own answer (choice 16).
+   */
+  endTurn(): void {
+    if (this.stopped || !this.dialogue) return;
+    this.owed = true;
+  }
+
   /** A press released without voice (ruling 8, choice 16): drop that press's own answer, never the one before it. */
   cancelTurn(): void {
     // Live Translate: its output belongs to no press, so the cancel is `activityEnd` alone.
     if (this.stopped || !this.dialogue) return;
-    if (this.answering) {
-      // The previous press's answer still streams (`NO_INTERRUPTION`): it finishes in its own segments, and the drop waits for its end.
+    // An answer is owed from the release that asked for it, before its first output; once streaming it keeps going
+    // (`NO_INTERRUPTION`). Either way it finishes in its own segments, and the drop waits for its end.
+    if (this.answering || this.owed) {
       this.suppressAfterAnswer = true;
       return;
     }
@@ -194,6 +210,7 @@ export class GeminiTurns {
     this.close('translation', origin);
     this.fallbackText = '';
     this.answering = false;
+    this.owed = false;
     if (this.dialogue) this.turn += 1;
   }
 
