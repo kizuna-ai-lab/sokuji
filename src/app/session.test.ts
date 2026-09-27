@@ -90,10 +90,12 @@ vi.mock('../lib/view/karaoke', () => ({
   }),
 }));
 
+import { AdapterStartError } from '../lib/contract/adapter';
 import { createVirtualClock } from '../lib/contract/clock';
 import { settleReports } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { DEFAULT_CLOSE_TIMEOUT_MS } from '../lib/session/runner';
+import { fakeLeasedProvider } from '../providers/fake/leased';
 import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_LEASED_DEFAULTS } from '../providers/fake/settings';
 import { createFakeSource, type FakeSource } from '../providers/fake/source';
@@ -685,6 +687,34 @@ describe('attach', () => {
     });
     expect(track.mock.calls.filter(([event]) => event === 'audio_error')).toHaveLength(1);
 
+    detach();
+  });
+
+  /** A signed-in session on the leased fake whose lease the service refuses with `code`, attached, with its balance refetch spied on. */
+  async function refusedLease(code: string) {
+    const { session } = await setup();
+    await useProviderStore.getState().load(fakeLeasedProvider);
+    useProviderStore.getState().select('fake_leased');
+    const refetchQuota = vi.fn(async () => {});
+    session.setBridges({ refetchQuota, auth: { signedIn: true, userId: 'u1', getToken: async () => 't' } });
+    const acquire = vi.spyOn(fakeLeasedProvider.session!, 'acquire').mockRejectedValueOnce(new AdapterStartError('The service refused the lease.', code));
+    const detach = session.attach();
+    await session.runner.start();
+    await session.runner.settled();
+    acquire.mockRestore();
+    expect(session.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code } } });
+    return { refetchQuota, detach };
+  }
+
+  it.each(['insufficient_balance', 'wallet_frozen'])('refetches the balance once the service refuses a start with %s: the wallet it answered for has changed', async (code) => {
+    const { refetchQuota, detach } = await refusedLease(code);
+    expect(refetchQuota).toHaveBeenCalledTimes(1);
+    detach();
+  });
+
+  it('refetches nothing for a start refused for another reason', async () => {
+    const { refetchQuota, detach } = await refusedLease('session_conflict');
+    expect(refetchQuota).not.toHaveBeenCalled();
     detach();
   });
 

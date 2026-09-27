@@ -38,7 +38,7 @@ export interface AppBridges {
   auth: AuthContext;
   track: AnalyticsPort['track'];
   notify: AutoSaveNotifier;
-  /** The account's balance, refetched after a run; absent where there is none (the preview). */
+  /** The account's balance, refetched after a run and after a start the service refused on the wallet; absent where there is none (the preview). */
   refetchQuota?(): Promise<void>;
 }
 
@@ -87,7 +87,7 @@ export interface AppSession {
    */
   start(method?: ControlMethod): Promise<void>;
   setBridges(next: Partial<AppBridges>): void;
-  /** Wires the page's lifetime into the session: legs on the audio mode, readiness for every kind, and the sign-in's flips (loading finished included), the provider held during a run, a source's end as an `audio_error`, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
+  /** Wires the page's lifetime into the session: legs on the audio mode, readiness for every kind, and the sign-in's flips (loading finished included), the provider held during a run, a source's end as an `audio_error`, a start the service refused on the wallet as a balance refetch, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
   attach(): () => void;
 }
 
@@ -270,6 +270,17 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       offs.push(runner.state.subscribe((now, before) => {
         if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'source-ended' || !now.lastEnd.notice) return;
         bridges.track('audio_error', { error_type: 'device_access', error_message: redact(now.lastEnd.notice.message), device_info: now.lastEnd.notice.leg });
+      }));
+      // A start the service refused on the wallet (a balance spent elsewhere,
+      // a wallet frozen since the last fetch): the wallet the gate and the
+      // account button read is stale, so fetch it now — as the old app's
+      // failed-start teardown did — rather than let every press meet the same
+      // refusal until the idle poll. A run that went live refetches in
+      // `onRunEnded` instead.
+      offs.push(runner.state.subscribe((now, before) => {
+        if (now.phase !== 'idle' || before.phase === 'idle' || now.lastEnd?.reason !== 'start-failed') return;
+        const code = now.lastEnd.notice?.code;
+        if (code === 'insufficient_balance' || code === 'wallet_frozen') refetchQuota();
       }));
       // A reload, the window or side panel closing, a page frozen into the
       // back/forward cache: close every leg and capture now; nothing is saved
