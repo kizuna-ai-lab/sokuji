@@ -1789,8 +1789,10 @@
   }
 }
 
-// PalabraAI credentials group (Client ID + Client Secret)
-.palabraai-credentials-group {
+// PalabraAI credentials group (Client ID + Client Secret), and any provider's
+// credential choice (F4; `CredentialForm`), which reuses it.
+.palabraai-credentials-group,
+.credential-choice-group {
   display: flex;
   flex-direction: column;
   gap: 8px;

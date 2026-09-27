@@ -100,6 +100,30 @@ describe('ProviderPicker', () => {
     expect(await screen.findByRole('option', { name: 'providers.openaiCompatible.name' })).toBeTruthy();
   });
 
+  it("draws a provider's credential choice and writes it as a setting: the other option's fields show (F4)", async () => {
+    const choosy = {
+      ...fakeProvider,
+      id: 'choosy',
+      settings: { key: 'choosy', defaults: { ...fakeProvider.settings.defaults, mode: 'key' } },
+      credentials: {
+        keys: ['apiKey', 'appId'],
+        fields: (s: { mode: string }) => (s.mode === 'app' ? [{ key: 'appId', labelKey: 'setup.credentials.appId', secret: false }] : [{ key: 'apiKey', labelKey: 'setup.credentials.apiKey', secret: true }]),
+        read: () => ({}),
+        choice: { setting: 'mode', options: [{ value: 'key', labelKey: 'choice.key' }, { value: 'app', labelKey: 'choice.app' }] },
+      },
+    } as unknown as typeof fakeProvider;
+    render(<ProviderPicker providers={[choosy]} auth={noAuth} />);
+    await screen.findByLabelText('setup.credentials.apiKey');
+    expect(screen.getByRole('button', { name: 'choice.key' }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'choice.app' }));
+
+    expect((useProviderStore.getState().entries.choosy?.settings as { mode: string }).mode).toBe('app');
+    expect(await screen.findByLabelText('setup.credentials.appId')).toBeInTheDocument();
+    expect(screen.queryByLabelText('setup.credentials.apiKey')).toBeNull();
+    await waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.choosy.mode', 'app'));
+  });
+
   it('disables the select and the credential inputs', async () => {
     stored.set('settings.fake.requireKey', true);
     render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} disabled />);

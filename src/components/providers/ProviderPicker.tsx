@@ -71,7 +71,8 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
 
   if (!selection) return null;
   const { provider, entry, readiness } = selection;
-  const { setCredential, refreshReadiness, select } = useProviderStore.getState();
+  const { setCredential, refreshReadiness, select, updateSettings } = useProviderStore.getState();
+  const credentialChoice = provider.credentials.choice;
   // The first managed provider offered, as the wizard's managed card recommends it (today's ProviderSection.tsx:553-580).
   const recommendedId = providers.find((p) => p.kind === 'managed')?.id;
   const recommendedLabel = t('simpleSettings.recommended', 'Recommended');
@@ -194,6 +195,12 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
           values={entry.credentials}
           readiness={readiness}
           onChange={(key, value) => setCredential(provider, key, value)}
+          // F4: which fields show is a setting, written as any settings edit is (the readiness driver re-checks the other fields).
+          choice={credentialChoice && {
+            options: credentialChoice.options,
+            value: String((entry.settings as Record<string, unknown>)[credentialChoice.setting] ?? ''),
+            onChange: (value) => updateSettings(provider, { [credentialChoice.setting]: value }),
+          }}
           // A local provider checks itself, and a managed one follows the sign-in (F1): only an own-key provider offers Validate.
           onCheck={provider.kind === 'own-key' ? () => {
             void refreshReadiness(provider, auth).then((answer) => {

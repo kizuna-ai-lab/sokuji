@@ -162,6 +162,29 @@ describe('the invariants every provider meets (F17)', () => {
     for (const f of fakeProvider.credentials.fields({ ...FAKE_DEFAULTS, requireKey: true })) check(f);
   });
 
+  it('a credential choice (F4) names a setting whose default it offers, has two options or more, each worded in en, each showing fields among its keys, labelled in en', () => {
+    const offenders = (ps: readonly AnyProvider[]) => ps.flatMap((p) => {
+      const choice = p.credentials.choice;
+      if (!choice) return [];
+      const defaults = p.settings.defaults as Record<string, unknown>;
+      const out: string[] = [];
+      if (!choice.options.some((o) => o.value === defaults[choice.setting])) out.push(`${p.id}: default ${String(defaults[choice.setting])}`);
+      if (choice.options.length < 2) out.push(`${p.id}: one option`);
+      for (const o of choice.options) {
+        if (typeof at(en, o.labelKey) !== 'string') out.push(`${p.id}: ${o.labelKey}`);
+        for (const f of p.credentials.fields({ ...defaults, [choice.setting]: o.value })) {
+          if (!p.credentials.keys.includes(f.key)) out.push(`${p.id}: ${o.value} shows ${f.key}`);
+          if (typeof at(en, f.labelKey) !== 'string') out.push(`${p.id}: ${f.labelKey}`);
+        }
+      }
+      return out;
+    });
+    expect(offenders(PROVIDERS)).toEqual([]);
+    // The control, so the case bites before a registered provider has a choice.
+    const bad = { ...fakeProvider, id: 'bad', credentials: { ...fakeProvider.credentials, choice: { setting: 'script', options: [{ value: 'nope', labelKey: 'no.such.key' }] } } } as AnyProvider;
+    expect(offenders([bad])).toEqual(['bad: default exchange', 'bad: one option', 'bad: no.such.key']);
+  });
+
   it('a managed provider has no credential field and reads from the sign-in', () => {
     const managed = PROVIDERS.filter((p) => p.kind === 'managed');
     // The leased fake makes this non-vacuous.
