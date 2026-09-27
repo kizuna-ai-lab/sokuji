@@ -6,7 +6,7 @@
  * its URL `liveUrl`. The SDK's browser build opens a global `WebSocket`,
  * stubbed here with `FakeSocket`: it connects nowhere (ruling 14). The one
  * value import of `@google/genai` outside the old client; the deletion
- * plan decides its fate (Task 14's inventory).
+ * plan decides its fate.
  */
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { ActivityHandling, EndSensitivity, GoogleGenAI, Modality, StartSensitivity, type LiveConnectConfig } from '@google/genai/web';
@@ -14,7 +14,7 @@ import { flush } from '../../lib/contract/testing/drive';
 import { FakeSocket } from '../../lib/contract/testing/fakeSocket';
 import type { GeminiConfig } from './config';
 import { AUTO_CTX, configFor, DIALOGUE, KEY, TRANSLATE } from './testing';
-import { liveUrl, setupFrame } from './wire';
+import { ACTIVITY_END, ACTIVITY_START, audioFrame, INPUT_MIME, liveUrl, pcmToBase64, setupFrame, textFrame } from './wire';
 
 /** The old client's `LiveConnectConfig` for this `C`, enums and all (`GeminiClient.ts:490-574`). */
 function oldLiveConfig(c: GeminiConfig, handle: string | null): LiveConnectConfig {
@@ -84,5 +84,31 @@ describe("the wire against the SDK's own converter", () => {
     expect(sdk.frame).toEqual(setupFrame(c, handle));
     // The SDK doubles the slash before `ws/` (its base URL keeps its own, `index.mjs:13793-13797, 14884`); the endpoint is the same (choice 11).
     expect(sdk.url.replace('.com//ws/', '.com/ws/')).toBe(liveUrl(KEY.apiKey));
+  });
+
+  it('sends the SDK its own realtime-input frames unchanged: audio, activity markers and typed text', async () => {
+    const opened: FakeSocket[] = [];
+    vi.stubGlobal('WebSocket', class extends FakeSocket {
+      constructor(url: string) {
+        super(url, undefined);
+        opened.push(this);
+      }
+    });
+    const c = configFor(DIALOGUE);
+    const connecting = new GoogleGenAI({ apiKey: KEY.apiKey }).live.connect({ model: c.model, config: oldLiveConfig(c, null), callbacks: { onmessage: () => {} } });
+    await flush();
+    const socket = opened[0];
+    socket.open();
+    await flush();
+    socket.receive(JSON.stringify({ setupComplete: {} }));
+    const session = await connecting;
+    const pcm = new Int16Array([1, 2, 3, 4]);
+    session.sendRealtimeInput({ audio: { mimeType: INPUT_MIME, data: pcmToBase64(pcm) } });
+    session.sendRealtimeInput({ activityStart: {} });
+    session.sendRealtimeInput({ activityEnd: {} });
+    session.sendRealtimeInput({ text: 'hello' });
+    session.close();
+    // socket.sent[0] is the setup frame; the four realtime-input sends follow it, in order.
+    expect(socket.sent.slice(1)).toEqual([audioFrame(pcm), ACTIVITY_START, ACTIVITY_END, textFrame('hello')]);
   });
 });

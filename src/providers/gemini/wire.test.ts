@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { AUTO_CTX, configFor, DIALOGUE, KEY, serverFrame, TRANSLATE } from './testing';
 import {
-  ACTIVITY_END, ACTIVITY_START, audioFrame, base64ToPcm, closeFailureCode, decodeServerMessage, INPUT_MIME, liveUrl, pcmRate, setupFrame, textFrame,
+  ACTIVITY_END, ACTIVITY_START, audioFrame, base64ToPcm, closeFailureCode, decodeServerMessage, INPUT_MIME, liveUrl, pcmRate, pcmToBase64, setupFrame, textFrame,
 } from './wire';
 
 const PARTICIPANT = { direction: { source: 'ja-JP', target: 'en-US' }, speech: true, turns: 'auto' as const };
@@ -55,6 +55,12 @@ describe("Gemini's wire", () => {
     expect(Array.from(base64ToPcm(frame.realtimeInput.audio.data))).toEqual([2, 3]);
   });
 
+  it('round-trips a view past one chunk of the base64 loop (over 0x8000 bytes)', () => {
+    const original = new Int16Array(20_000);
+    for (let i = 0; i < original.length; i++) original[i] = (i % 4001) - 2000;
+    expect(Array.from(base64ToPcm(pcmToBase64(original)))).toEqual(Array.from(original));
+  });
+
   it('marks activity and sends typed text as the realtime input they are', () => {
     expect(JSON.parse(ACTIVITY_START)).toEqual({ realtimeInput: { activityStart: {} } });
     expect(JSON.parse(ACTIVITY_END)).toEqual({ realtimeInput: { activityEnd: {} } });
@@ -67,6 +73,7 @@ describe("Gemini's wire", () => {
     expect(() => decodeServerMessage('{bad')).toThrow();
     expect(() => decodeServerMessage('[1]')).toThrow(/not a JSON object/);
     expect(() => decodeServerMessage('3')).toThrow(/not a JSON object/);
+    expect(() => decodeServerMessage('null')).toThrow(/not a JSON object/);
     expect(() => decodeServerMessage(new Blob(['{}']))).toThrow(/unexpected kind/);
   });
 
@@ -81,6 +88,7 @@ describe("Gemini's wire", () => {
     expect(closeFailureCode(1008, 'API key not valid. Please pass a valid API key.')).toBe('auth');
     expect(closeFailureCode(1011, 'You exceeded your current quota.')).toBe('rate_limit');
     expect(closeFailureCode(1011, 'RESOURCE_EXHAUSTED')).toBe('rate_limit');
+    expect(closeFailureCode(1011, 'Rate limit exceeded')).toBe('rate_limit');
     expect(closeFailureCode(1008, 'models/x is not found for API version v1beta')).toBe('client');
     expect(closeFailureCode(1007, 'Request contains an invalid argument.')).toBe('client');
     expect(closeFailureCode(1011, 'Internal error')).toBe('server');

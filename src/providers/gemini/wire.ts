@@ -22,7 +22,7 @@ export function liveUrl(apiKey: string): string {
 }
 
 /** The contract's audio (24 kHz mono Int16) as the Live API names it; the server resamples (`GeminiClient.ts:1627-1632`). */
-export const INPUT_MIME = 'audio/pcm;rate=24000';
+export const INPUT_MIME = `audio/pcm;rate=${SAMPLE_RATE}`;
 
 type Sensitivity<P extends 'START' | 'END'> = `${P}_SENSITIVITY_HIGH` | `${P}_SENSITIVITY_LOW`;
 
@@ -145,10 +145,13 @@ export function base64ToPcm(data: string): Int16Array {
   return new Int16Array(bytes.buffer);
 }
 
+/** Gemini's own documented Live output rate — independent of the contract's `SAMPLE_RATE`, which describes the input the client sends. */
+const GEMINI_OUTPUT_RATE = 24000;
+
 /** The rate a pcm mime type names; the Live API's documented 24 000 when it names none (choice 18). */
 export function pcmRate(mimeType: string | undefined): number {
   const m = /rate=(\d+)/.exec(mimeType ?? '');
-  return m ? Number(m[1]) : SAMPLE_RATE;
+  return m ? Number(m[1]) : GEMINI_OUTPUT_RATE;
 }
 
 export type StartFailureCode = 'auth' | 'rate_limit' | 'client' | 'server' | 'network';
