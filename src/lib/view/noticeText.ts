@@ -89,6 +89,21 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // A provider ended the session under the user, and a new Start continues it.
   segment_ended: 'mainPanel.sonioxSegmentEnded',
   connection_lost: 'mainPanel.sonioxConnectionLost',
+  // Kizuna Soniox's lease refused a start (Stage 2 Kizuna Soniox, ruling 11): the sentences name Soniox, so the codes keep it.
+  soniox_service_unavailable: 'mainPanel.sonioxServiceUnavailable',
+  soniox_service_busy: 'mainPanel.sonioxServiceBusy',
+  // Its voice claim fell back to a built-in voice (choice 17): the sentences name no vendor.
+  voice_clip_missing: 'mainPanel.sonioxVoiceClipMissing',
+  voice_pool_busy: 'mainPanel.sonioxVoicePoolBusy',
+  voice_build_failed: 'mainPanel.sonioxVoiceBuildFailed',
+  voice_unavailable: 'mainPanel.sonioxVoiceUnavailable',
+  // The start gate's balance floor (ruling 6): the old gate's sentence, with the balance.
+  balance_below_floor: 'mainPanel.insufficientBalance',
+  // A managed provider while the sign-in still loads at launch (choice 10): a generic word every locale has.
+  sign_in_pending: 'update.checking',
+  // The wallet (ruling 5): still loading at launch, no failure words; failed to load, the old gate's sentence (`oldGate:254-261`).
+  quota_pending: 'update.checking',
+  quota_unknown: 'tokenUsage.unableToLoadQuota',
   // A leg's speech failed (Stage 2 Soniox, choice 9): the sentences name no vendor.
   tts_segment_lost: 'mainPanel.sonioxTtsSegmentLost',
   tts_stopped: 'mainPanel.sonioxTtsFailed',

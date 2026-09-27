@@ -61,8 +61,10 @@ describe('loadSessionStores', () => {
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
     expect(useRoutingStore.getState().meeting).toBe(false);
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(useProviderStore.getState().entries.localInference).toBeDefined();
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
+    expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
+    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
+    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
     expect(setSetting).not.toHaveBeenCalled();
   });
 
@@ -83,7 +85,8 @@ describe('loadSessionStores', () => {
 
     await loadSessionStores();
 
-    expect(useProviderStore.getState().selected).toBe('localInference');
+    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
+    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
   });
 
@@ -95,7 +98,8 @@ describe('loadSessionStores', () => {
 
     expect(useProviderStore.getState().selected).toBe('fake');
     expect(useProviderStore.getState().entries.fake).toBeDefined();
-    expect(useProviderStore.getState().entries.localInference).toBeUndefined();
+    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
+    expect(useProviderStore.getState().entries.kizunaai_soniox).toBeUndefined();
   });
 
   it('selects the stored fake provider in a development build', async () => {
@@ -162,6 +166,7 @@ describe('loadSessionStores', () => {
     expect(warnings[0].type).toBe('warning');
     expect(useRoutingStore.getState().meeting).toBe(true);
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(useProviderStore.getState().entries.localInference).toBeDefined();
+    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
+    expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
   });
 });

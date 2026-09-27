@@ -8,6 +8,8 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   no_microphone: 'microphone',
   no_provider: 'provider',
   credentials_missing: 'provider',
+  // A managed provider signed out: the provider section's account row carries the sign-in link (Stage 2 Kizuna Soniox).
+  sign_in_required: 'provider',
   // Ruling 5's fix: the missing-models gap is shown as amber "None" chips
   // under the picker, each a link to its slot — the same target the
   // engine-chip flash flow uses, not `model-management` (a pushed page's

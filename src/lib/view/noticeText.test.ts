@@ -68,6 +68,31 @@ describe('noticeText', () => {
     expect(at(enCatalog, NOTICE_ALIASES.tts_stopped)).toBe('Spoken translation has stopped. Transcription and text translation are still running.');
   });
 
+  it("words Kizuna Soniox's codes with the sentences every locale already has", () => {
+    const enCatalog = en as unknown as Record<string, unknown>;
+    const sentences: Record<string, string> = {
+      soniox_service_unavailable: 'Soniox is temporarily unavailable. Please try again in a moment.',
+      soniox_service_busy: 'Soniox is at capacity right now. Please try again shortly.',
+      voice_clip_missing: 'This device has no voice recording, so this session uses a built-in voice. Record one in Settings to speak in your own voice here.',
+      voice_pool_busy: 'All custom voice slots are in use right now, so this session uses a built-in voice. Your own voice will be used again next time.',
+      voice_build_failed: 'Your custom voice could not be built, so this session uses a built-in voice. Try recording a clearer clip in Settings.',
+      voice_unavailable: 'Your custom voice is unavailable right now, so this session uses a built-in voice.',
+      balance_below_floor: 'Insufficient balance: {{balance}}',
+      sign_in_pending: 'Checking...',
+      quota_pending: 'Checking...',
+      quota_unknown: 'Unable to load quota information',
+    };
+    for (const [code, sentence] of Object.entries(sentences)) {
+      expect(NOTICE_ALIASES[code], code).toBeDefined();
+      expect(at(enCatalog, NOTICE_ALIASES[code]), code).toBe(sentence);
+    }
+    // The gate's balance reaches the sentence's `{{balance}}`: seen through a `t` that shows the param it was handed.
+    const balance = ((key: string, options: Record<string, unknown>) => `${key}:${String(options.balance)}`) as unknown as TFunction;
+    const words = noticeText(balance, { code: 'balance_below_floor', params: { balance: '$0.01' }, message: 'x' });
+    expect(words).toContain('mainPanel.insufficientBalance');
+    expect(words).toContain('$0.01');
+  });
+
   it("puts the local engines' notices into words", () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
       expect(NOTICE_WORDS[code]).toBeDefined();

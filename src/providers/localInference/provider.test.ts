@@ -92,8 +92,8 @@ describe('localInferenceProvider', () => {
     expect(result).toEqual({ ok: true });
   });
 
-  it('is first in the registry, in UI order', () => {
-    expect(PROVIDERS[0]).toBe(localInferenceProvider);
+  it('follows Kizuna Soniox in the registry (Stage 2 Kizuna Soniox, ruling 6)', () => {
+    expect(PROVIDERS.slice(0, 2).map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference']);
   });
 
   it('shows its EngineSummary under the picker', () => {

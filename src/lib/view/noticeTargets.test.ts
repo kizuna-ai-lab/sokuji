@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { NOTICE_TARGETS, settingsTargetForCode } from './noticeTargets';
-import { NOTICE_WORDS } from './noticeText';
+import { NOTICE_ALIASES, NOTICE_WORDS } from './noticeText';
 
 describe('settingsTargetForCode', () => {
   it('sends a missing microphone to the microphone section', () => {
@@ -27,9 +27,17 @@ describe('settingsTargetForCode', () => {
     expect(settingsTargetForCode(undefined)).toBeNull();
   });
 
-  it('has words for every code it targets — an action never sits beside an unworded notice', () => {
+  it("sends a signed-out managed provider to the provider section, where its account row's sign-in link is", () => {
+    expect(settingsTargetForCode('sign_in_required')).toBe('provider');
+    // Waiting, or the balance: nothing in Settings fixes them (the old gate's quota-unknown had no target either).
+    for (const code of ['sign_in_pending', 'balance_below_floor', 'quota_pending', 'quota_unknown']) {
+      expect(settingsTargetForCode(code), code).toBeNull();
+    }
+  });
+
+  it('has words for every code it targets, its own or an alias — an action never sits beside an unworded notice', () => {
     for (const code of Object.keys(NOTICE_TARGETS)) {
-      expect(NOTICE_WORDS[code], code).toBeDefined();
+      expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined();
     }
   });
 });
