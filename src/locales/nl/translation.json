@@ -374,6 +374,7 @@
     "participantSpeech": "Vertaling van de ander hardop voorlezen",
     "participantSpeechDesc": "Leest u hardop voor wat de ander zegt, in uw taal, via uw luidsprekers. Het volgt hun stem met een vertraging.",
     "participantSpeechBlockedWholeSystem": "Uitgeschakeld zolang de audio van de ander alle systeemaudio vastlegt: hun vertaling zou opnieuw worden vastgelegd en vertaald. Kies een applicatie als bron van de ander.",
+    "participantSpeechNotYetAvailable": "Nog niet beschikbaar bij deze provider: de vertaling van de ander wordt alleen als tekst getoond.",
     "audioCaptureUnprovenNotice": "Nog niets vastgelegd",
     "audioCaptureUnprovenTitle": "Er is nog geen audio van de geselecteerde bron binnengekomen",
     "audioCaptureUnprovenText1": "Speelt de bron af en wordt er niets vertaald, dan levert macOS waarschijnlijk stilte: het vastleggen van een app vereist de toestemming 'Alleen systeemaudio-opname', en zonder die toestemming is er geen fout, alleen stilte.",

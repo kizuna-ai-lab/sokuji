@@ -374,6 +374,7 @@
     "participantSpeech": "상대방 번역 소리 내어 읽기",
     "participantSpeechDesc": "상대방이 말하는 내용을 당신의 언어로, 당신의 스피커를 통해 소리 내어 읽어줍니다. 약간의 지연을 두고 상대방의 목소리를 따라갑니다.",
     "participantSpeechBlockedWholeSystem": "상대방 오디오가 시스템 오디오 전체를 캡처하는 동안에는 꺼집니다. 상대방의 번역이 다시 캡처되어 번역되기 때문입니다. 애플리케이션을 상대방 소스로 선택하세요.",
+    "participantSpeechNotYetAvailable": "이 제공자에서는 아직 사용할 수 없습니다. 상대방 번역은 텍스트로만 표시됩니다.",
     "audioCaptureUnprovenNotice": "아직 캡처된 오디오가 없습니다",
     "audioCaptureUnprovenTitle": "선택한 소스에서 아직 오디오가 들어오지 않았습니다",
     "audioCaptureUnprovenText1": "소스가 재생 중인데도 번역되지 않는다면 macOS가 무음을 전달하고 있을 가능성이 큽니다. 앱의 오디오를 캡처하려면 \"시스템 오디오 녹음만\" 권한이 필요하며, 이 권한이 없으면 오류 없이 무음만 전달됩니다.",

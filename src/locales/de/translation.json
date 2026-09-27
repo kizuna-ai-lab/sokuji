@@ -374,6 +374,7 @@
     "participantSpeech": "Übersetzung des Gegenübers vorlesen",
     "participantSpeechDesc": "Liest Ihnen laut vor, was das Gegenüber sagt, in Ihrer Sprache, über Ihre Lautsprecher. Es folgt der Stimme mit einer Verzögerung.",
     "participantSpeechBlockedWholeSystem": "Deaktiviert, solange das Audio des Gegenübers das gesamte Systemaudio erfasst: Die Übersetzung würde erneut erfasst und übersetzt. Wählen Sie eine Anwendung als Quelle des Gegenübers.",
+    "participantSpeechNotYetAvailable": "Bei diesem Anbieter noch nicht verfügbar: Die Übersetzung des Gegenübers wird nur als Text angezeigt.",
     "audioCaptureUnprovenNotice": "Noch nichts erfasst",
     "audioCaptureUnprovenTitle": "Von der ausgewählten Quelle ist noch kein Audio angekommen",
     "audioCaptureUnprovenText1": "Wenn die Quelle abspielt und nichts übersetzt wird, liefert macOS wahrscheinlich Stille: Das Erfassen einer App erfordert die Berechtigung „Nur Systemaudioaufnahme“, und ohne sie gibt es keinen Fehler, nur Stille.",

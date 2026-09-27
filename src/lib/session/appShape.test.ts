@@ -27,7 +27,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { ensureReadyFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from './appShape';
+import { ensureReadyFromStores, legsFor, liveGate, participantSpeechFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -129,6 +129,25 @@ describe("readShapeFromStores — participant speech follows the whole-system ru
     environment.value = 'web';
     useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
     expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
+  });
+
+  it("is off while the provider's flag is off, and follows the switch once it is on", () => {
+    environment.value = 'web';
+    try {
+      Object.assign(fakeProvider, { participantSpeech: false });
+      expect(readShapeFromStores(auth)?.participantSpeech).toBe(false);
+      Object.assign(fakeProvider, { participantSpeech: true });
+      expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
+    } finally {
+      delete (fakeProvider as { participantSpeech?: boolean }).participantSpeech;
+    }
+  });
+
+  it('participantSpeechFromStores is the shape\'s own answer', () => {
+    expect(participantSpeechFromStores({ participantSpeech: false })).toBe(false);
+    expect(participantSpeechFromStores({})).toBe(readShapeFromStores(auth)?.participantSpeech);
+    useRoutingStore.setState({ participantSpeech: false });
+    expect(participantSpeechFromStores({})).toBe(readShapeFromStores(auth)?.participantSpeech);
   });
 });
 

@@ -374,6 +374,7 @@
     "participantSpeech": "Ucapkan terjemahan lawan bicara",
     "participantSpeechDesc": "Membacakan dengan suara keras apa yang dikatakan lawan bicara, dalam bahasa Anda, melalui speaker Anda. Ini mengikuti suara mereka dengan sedikit jeda.",
     "participantSpeechBlockedWholeSystem": "Dimatikan selama audio lawan bicara menangkap seluruh audio sistem: terjemahannya akan ditangkap dan diterjemahkan lagi. Pilih aplikasi sebagai sumber lawan bicara.",
+    "participantSpeechNotYetAvailable": "Belum tersedia dengan penyedia ini: terjemahan lawan bicara hanya ditampilkan sebagai teks.",
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio yang masuk dari sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, macOS kemungkinan mengirimkan keheningan: menangkap sebuah aplikasi memerlukan izin \"System Audio Recording Only\", dan tanpa izin itu tidak ada kesalahan, hanya keheningan.",

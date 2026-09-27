@@ -374,6 +374,7 @@
     "participantSpeech": "Lue toisen käännös ääneen",
     "participantSpeechDesc": "Lukee ääneen, mitä toinen sanoo, sinun kielelläsi, kaiuttimistasi. Se seuraa heidän ääntään viiveellä.",
     "participantSpeechBlockedWholeSystem": "Pois päältä, kun toisen ääni kaappaa koko järjestelmän äänen: heidän käännöksensä kaapattaisiin ja käännettäisiin uudelleen. Valitse sovellus toisen äänilähteeksi.",
+    "participantSpeechNotYetAvailable": "Ei vielä käytettävissä tällä tarjoajalla: toisen käännös näytetään vain tekstinä.",
     "audioCaptureUnprovenNotice": "Mitään ei ole vielä kaapattu",
     "audioCaptureUnprovenTitle": "Valitusta lähteestä ei ole vielä tullut ääntä",
     "audioCaptureUnprovenText1": "Jos lähde toistaa eikä mitään käännetä, macOS toimittaa todennäköisesti hiljaisuutta: sovelluksen kaappaaminen vaatii käyttöoikeuden \"Vain järjestelmän äänen tallennus\", ja ilman sitä ei tule virhettä, vain hiljaisuutta.",

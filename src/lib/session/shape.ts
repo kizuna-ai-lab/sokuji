@@ -25,7 +25,10 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
   if (shape.legs.includes('participant')) {
     contexts.participant = {
       direction: { source: pair.target, target: pair.source },
-      speech: speaks(shape.participantSpeech),
+      // While its provider's participant-speech flag is off (Kizuna Soniox
+      // until the backend mints a participant speech key, Stage 2 ruling 2)
+      // the participant stays text-only whatever the switch says.
+      speech: p.participantSpeech === false ? false : speaks(shape.participantSpeech),
       turns: 'auto',
     };
   }

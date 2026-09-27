@@ -374,6 +374,7 @@
     "participantSpeech": "Sebutkan terjemahan pihak lain",
     "participantSpeechDesc": "Membacakan dengan kuat apa yang pihak lain katakan, dalam bahasa anda, melalui pembesar suara anda. Ia mengikuti suara mereka dengan sedikit kelewatan.",
     "participantSpeechBlockedWholeSystem": "Dimatikan semasa audio pihak lain menangkap semua audio sistem: terjemahan mereka akan ditangkap dan diterjemah semula. Pilih aplikasi sebagai sumber pihak lain.",
+    "participantSpeechNotYetAvailable": "Belum tersedia dengan penyedia ini: terjemahan pihak lain dipaparkan sebagai teks sahaja.",
     "audioCaptureUnprovenNotice": "Belum ada yang ditangkap",
     "audioCaptureUnprovenTitle": "Belum ada audio diterima daripada sumber yang dipilih",
     "audioCaptureUnprovenText1": "Jika sumber sedang dimainkan tetapi tiada apa yang diterjemahkan, macOS berkemungkinan menghantar kesenyapan: menangkap sesebuah aplikasi memerlukan kebenaran \"System Audio Recording Only\", dan tanpanya tiada ralat, hanya kesenyapan.",

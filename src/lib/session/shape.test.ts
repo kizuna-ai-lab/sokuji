@@ -44,6 +44,16 @@ describe('contextsFor', () => {
     expect(contextsFor(shape({ provider: { ...fakeProvider, speech: 'always' }, textOnly: true })).speaker?.speech).toBe(true);
     expect(contextsFor(shape({ provider: { ...fakeProvider, speech: 'never' } })).speaker?.speech).toBe(false);
   });
+
+  it("gives the participant no speech while its provider's flag is off, whatever the opt-in; speech again once it is on", () => {
+    const off = contextsFor(shape({ provider: { ...fakeProvider, participantSpeech: false }, legs: ['speaker', 'participant'], participantSpeech: true }));
+    expect(off.participant?.speech).toBe(false);
+    expect(off.speaker?.speech).toBe(true);
+    const on = contextsFor(shape({ provider: { ...fakeProvider, participantSpeech: true }, legs: ['speaker', 'participant'], participantSpeech: true }));
+    expect(on.participant?.speech).toBe(true);
+    const flagOnSwitchOff = contextsFor(shape({ provider: { ...fakeProvider, participantSpeech: true }, legs: ['speaker', 'participant'], participantSpeech: false }));
+    expect(flagOnSwitchOff.participant?.speech).toBe(false);
+  });
 });
 
 describe('gate', () => {

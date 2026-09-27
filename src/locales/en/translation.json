@@ -368,6 +368,7 @@
     "participantSpeech": "Speak Other's translation",
     "participantSpeechDesc": "Reads what Other says aloud to you, in your language, on your speakers. It follows their voice with a delay.",
     "participantSpeechBlockedWholeSystem": "Off while Other's audio captures all system sound: their translation would be captured and translated again. Pick an application as Other's source.",
+    "participantSpeechNotYetAvailable": "Not available yet with this provider: Other's translation is shown as text only.",
     "audioCaptureUnprovenNotice": "Nothing captured yet",
     "audioCaptureUnprovenTitle": "No audio has come through from the selected source yet",
     "audioCaptureUnprovenText1": "If the source is playing and nothing is translated, macOS is probably delivering silence: capturing an application needs the \"System Audio Recording Only\" permission, and without it there is no error, only silence.",

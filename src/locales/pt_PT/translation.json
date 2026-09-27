@@ -374,6 +374,7 @@
     "participantSpeech": "Ler a tradução do outro em voz alta",
     "participantSpeechDesc": "Lê-lhe em voz alta o que o outro diz, no seu idioma, pelos seus altifalantes. Acompanha a voz dele com um atraso.",
     "participantSpeechBlockedWholeSystem": "Desativado enquanto o áudio do outro capta todo o áudio do sistema: a tradução dele seria captada e traduzida novamente. Escolha uma aplicação como fonte do outro.",
+    "participantSpeechNotYetAvailable": "Ainda indisponível com este fornecedor: a tradução do outro é apresentada apenas como texto.",
     "audioCaptureUnprovenNotice": "Ainda nada capturado",
     "audioCaptureUnprovenTitle": "Ainda não chegou áudio da fonte selecionada",
     "audioCaptureUnprovenText1": "Se a fonte estiver a reproduzir e nada for traduzido, o macOS está provavelmente a entregar silêncio: capturar uma aplicação exige a permissão \"Apenas gravação de áudio do sistema\" e, sem ela, não há erro, apenas silêncio.",

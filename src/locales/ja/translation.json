@@ -374,6 +374,7 @@
     "participantSpeech": "相手の翻訳を読み上げる",
     "participantSpeechDesc": "相手が話した内容を、あなたの言語で、あなたのスピーカーから読み上げます。相手の声に少し遅れて続きます。",
     "participantSpeechBlockedWholeSystem": "相手の音声がシステム音声全体をキャプチャしている間はオフになります。相手の翻訳が再びキャプチャされ、翻訳されてしまうためです。アプリケーションを相手のソースとして選んでください。",
+    "participantSpeechNotYetAvailable": "このプロバイダーではまだ利用できません。相手の翻訳はテキストのみで表示されます。",
     "audioCaptureUnprovenNotice": "まだ音声を取得できていません",
     "audioCaptureUnprovenTitle": "選択したソースからまだ音声が届いていません",
     "audioCaptureUnprovenText1": "ソースが再生中なのに翻訳されない場合、macOS が無音を返している可能性があります。アプリの音声を取得するには「システムオーディオ録音のみ」の権限が必要で、権限がないとエラーは出ず、無音になるだけです。",

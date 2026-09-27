@@ -374,6 +374,7 @@
     "participantSpeech": "Odczytaj na głos tłumaczenie rozmówcy",
     "participantSpeechDesc": "Czyta na głos to, co mówi rozmówca, w twoim języku, przez twoje głośniki. Podąża za jego głosem z opóźnieniem.",
     "participantSpeechBlockedWholeSystem": "Wyłączone, gdy dźwięk rozmówcy przechwytuje cały dźwięk systemowy: jego tłumaczenie zostałoby ponownie przechwycone i przetłumaczone. Wybierz aplikację jako źródło rozmówcy.",
+    "participantSpeechNotYetAvailable": "Jeszcze niedostępne u tego dostawcy: tłumaczenie rozmówcy jest wyświetlane tylko jako tekst.",
     "audioCaptureUnprovenNotice": "Nic jeszcze nie przechwycono",
     "audioCaptureUnprovenTitle": "Z wybranego źródła nie dotarł jeszcze żaden dźwięk",
     "audioCaptureUnprovenText1": "Jeśli źródło odtwarza, a nic nie jest tłumaczone, macOS prawdopodobnie dostarcza ciszę: przechwytywanie aplikacji wymaga uprawnienia „Tylko nagrywanie dźwięku systemowego”, a bez niego nie ma błędu, tylko cisza.",

@@ -17,8 +17,10 @@ vi.mock('../../Tooltip/Tooltip', () => ({
     return null;
   },
 }));
+vi.mock('../../../providers/registry', () => ({ getProvider: (id: string) => (id === 'not-yet' ? { participantSpeech: false } : id === 'speaking' ? { participantSpeech: true } : {}) }));
 
 import useAudioStore from '../../../stores/audioStore';
+import { useProviderStore } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
 import { ParticipantSpeechSwitch } from './ParticipantSpeechSwitch';
 
@@ -27,6 +29,7 @@ beforeEach(() => {
   tooltipContents.length = 0;
   useRoutingStore.setState({ participantSpeech: false });
   useAudioStore.setState({ selectedParticipantSource: null } as Partial<ReturnType<typeof useAudioStore.getState>>);
+  useProviderStore.setState({ selected: null });
 });
 
 describe('ParticipantSpeechSwitch', () => {
@@ -81,5 +84,42 @@ describe('ParticipantSpeechSwitch', () => {
     const sw = screen.getByRole('switch');
     expect(sw.getAttribute('aria-checked')).toBe('true');
     expect(sw.getAttribute('aria-disabled')).toBe('false');
+  });
+
+  it("shows it off and disabled while the provider's flag is off, keeping the stored value", () => {
+    useRoutingStore.setState({ participantSpeech: true });
+    useProviderStore.setState({ selected: 'not-yet' });
+    render(<ParticipantSpeechSwitch locked={false} />);
+    const sw = screen.getByRole('switch');
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    expect(sw.getAttribute('aria-disabled')).toBe('true');
+    expect(tooltipContents).toContain('audioPanel.participantSpeechNotYetAvailable');
+    expect(useRoutingStore.getState().participantSpeech).toBe(true);
+  });
+
+  it('names the provider before the whole-system rule', () => {
+    electron.value = true;
+    useRoutingStore.setState({ participantSpeech: true });
+    useAudioStore.setState({
+      selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' },
+    } as Partial<ReturnType<typeof useAudioStore.getState>>);
+    useProviderStore.setState({ selected: 'not-yet' });
+    render(<ParticipantSpeechSwitch locked={false} />);
+    expect(tooltipContents).toContain('audioPanel.participantSpeechNotYetAvailable');
+    expect(tooltipContents).not.toContain('audioPanel.participantSpeechBlockedWholeSystem');
+  });
+
+  it('a provider whose flag is on, or that has none, leaves the switch as before', () => {
+    for (const id of ['speaking', 'plain']) {
+      tooltipContents.length = 0;
+      useRoutingStore.setState({ participantSpeech: true });
+      useProviderStore.setState({ selected: id });
+      const { unmount } = render(<ParticipantSpeechSwitch locked={false} />);
+      const sw = screen.getByRole('switch');
+      expect(sw.getAttribute('aria-checked')).toBe('true');
+      expect(sw.getAttribute('aria-disabled')).toBe('false');
+      expect(tooltipContents).toContain('audioPanel.participantSpeechDesc');
+      unmount();
+    }
   });
 });

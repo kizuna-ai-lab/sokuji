@@ -31,6 +31,21 @@ function selectedFromStores(): { provider: AnyProvider; entry: ProviderEntry } |
   return provider && entry ? { provider, entry } : null;
 }
 
+/**
+ * Whether the participant leg would speak, as the stores stand: its
+ * provider's flag on (Stage 2 Kizuna Soniox, ruling 2), its switch on,
+ * and — 1e-3b-2 ruling 7, completed — its source not a whole-system
+ * capture on Electron that would recapture it and translate it again as
+ * Other: the same predicate `readRouting` and the switch itself use. The
+ * run's shape, the live gate's floor and the account button's floor all
+ * read it, so they price the same legs.
+ */
+export function participantSpeechFromStores(provider: Pick<AnyProvider, 'participantSpeech'>): boolean {
+  return provider.participantSpeech !== false
+    && useRoutingStore.getState().participantSpeech
+    && participantSpeechHeard(getEnvironment(), useAudioStore.getState().selectedParticipantSource?.deviceId);
+}
+
 export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const selected = selectedFromStores();
   if (!selected) return null;
@@ -44,12 +59,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: st.textOnly,
-    // 1e-3b-2 ruling 7, completed: the run must not ask the participant leg to
-    // speak when the switch shows it off (a whole-system participant capture
-    // on Electron would recapture it and translate it again as Other) — the
-    // same predicate `readRouting` and the switch itself use.
-    participantSpeech: useRoutingStore.getState().participantSpeech
-      && participantSpeechHeard(getEnvironment(), useAudioStore.getState().selectedParticipantSource?.deviceId),
+    participantSpeech: participantSpeechFromStores(provider),
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
       provider,
