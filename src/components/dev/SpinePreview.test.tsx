@@ -323,12 +323,51 @@ describe('SpinePreview', () => {
     }
   });
 
+  // Task 9: `&signedin=1` also reaches the `&settings=` blocks through
+  // `AuthStandIn`, so Kizuna Soniox's Settings show as signed in there too —
+  // and its voice library, which would otherwise call the backend for the
+  // account's cached voice, runs on the stand-in `setManagedVoiceStandIn`
+  // installs (choice 15): no network at all.
+  it('&signedin=1 reaches the Settings blocks, and the managed voice library calls no backend', async () => {
+    const before = window.location.href;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => { void input; return new Response('{}'); });
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=kizunaai_soniox&signedin=1');
+    try {
+      render(<SpinePreview />);
+      await screen.findByText('simpleSettings.autoAuthenticated');
+      for (const call of fetchMock.mock.calls) {
+        expect(String(call[0])).not.toContain('/soniox/');
+      }
+    } finally {
+      window.history.replaceState(null, '', before);
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("signed out, Kizuna Soniox's Settings offer the sign-in", async () => {
+    const before = window.location.href;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => { void input; return new Response('{}'); });
+    vi.stubGlobal('fetch', fetchMock);
+    window.history.replaceState(null, '', '/?preview=spine&settings=advanced&provider=kizunaai_soniox');
+    try {
+      const { container } = render(<SpinePreview />);
+      await waitFor(() => expect(container.querySelector('.sign-in-link')).not.toBeNull());
+      for (const call of fetchMock.mock.calls) {
+        expect(String(call[0])).not.toContain('/soniox/');
+      }
+    } finally {
+      window.history.replaceState(null, '', before);
+      vi.unstubAllGlobals();
+    }
+  });
+
   // Task 5, plan 1e-2b ruling 12: `&punctuation=1` downloads the punctuation
   // pack before autostart so a `sentences` cut gets a real punctuator instead
-  // of racing a background load. Last in the file: the previous test also
+  // of racing a background load. Last in the file: an earlier test also
   // started the app's (module-singleton) runner, but stopped it and awaited
-  // `settled()` first, so it is idle again here; nothing after this depends
-  // on it staying idle.
+  // `settled()` first, so it is idle again here — the two Task 9 tests above
+  // never touch it; nothing after this depends on it staying idle.
   it('with &punctuation=1, downloads the punctuation pack before autostart when it is not ready', async () => {
     const before = window.location.href;
     window.history.replaceState(null, '', '/?preview=spine&autostart=1&punctuation=1');

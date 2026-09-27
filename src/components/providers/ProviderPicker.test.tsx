@@ -237,6 +237,55 @@ describe('ProviderPicker', () => {
     expect(screen.queryByTitle('simpleSettings.validate')).toBeNull();
   });
 
+  it("draws a managed provider's account row, not a credential form", async () => {
+    const managed = { ...fakeProvider, id: 'managed-probe', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedProbe' } };
+    const { unmount } = render(<ProviderPicker providers={[managed]} auth={noAuth} />);
+    await waitFor(() => expect(useProviderStore.getState().entries['managed-probe']).toBeDefined());
+    expect(document.querySelector('.api-key-warning')).not.toBeNull();
+    expect(screen.queryByLabelText('setup.credentials.apiKey')).toBeNull();
+    unmount();
+
+    useProviderStore.setState({ entries: {}, readiness: {}, selected: null });
+    render(<ProviderPicker providers={[managed]} auth={{ ...noAuth, signedIn: true }} />);
+    expect(await screen.findByText('simpleSettings.autoAuthenticated')).toBeInTheDocument();
+  });
+
+  describe('the recommended provider', () => {
+    it('recommends the first managed provider — rich option', async () => {
+      baseSelectSupported.value = true;
+      const managedA = { ...fakeProvider, id: 'managed-a', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedA' } };
+      const managedB = { ...fakeProvider, id: 'managed-b', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedB' } };
+      render(<ProviderPicker providers={[fakeProvider, managedA, managedB]} auth={noAuth} />);
+      await screen.findByLabelText('simpleSettings.provider');
+
+      expect(document.querySelectorAll('.provider-select em.provider-recommended')).toHaveLength(1);
+      const managedAOption = document.querySelector('.provider-select option[value="managed-a"]');
+      const tag = managedAOption?.querySelector('em.provider-recommended');
+      expect(tag).not.toBeNull();
+      expect(tag?.textContent).toBe('simpleSettings.recommended');
+    });
+
+    it('recommends it in text on the extension floor', async () => {
+      baseSelectSupported.value = false;
+      const managedA = { ...fakeProvider, id: 'managed-a', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedA' } };
+      const managedB = { ...fakeProvider, id: 'managed-b', kind: 'managed' as const, settings: { ...fakeProvider.settings, key: 'managedB' } };
+      render(<ProviderPicker providers={[fakeProvider, managedA, managedB]} auth={noAuth} />);
+      await screen.findByLabelText('simpleSettings.provider');
+
+      expect(document.querySelector('.provider-select option[value="managed-a"]')?.textContent).toBe('simpleSettings.recommendedOption');
+      expect(document.querySelector('.provider-select option[value="fake"]')?.textContent).toBe('providers.fake.name');
+      expect(document.querySelector('.provider-select option[value="managed-b"]')?.textContent).toBe('providers.managed-b.name');
+    });
+
+    it('recommends nothing when no managed provider is offered', async () => {
+      render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
+      await screen.findByLabelText('simpleSettings.provider');
+
+      expect(document.querySelectorAll('.provider-select .provider-recommended')).toHaveLength(0);
+      expect(document.querySelector('.provider-select option[value="fake"]')?.textContent).toBe('providers.fake.name');
+    });
+  });
+
   describe('the setup guide link (parity with ProviderSection.tsx)', () => {
     it('shows the link for a provider with guideUrl', async () => {
       const guided = { ...fakeProvider, guideUrl: 'https://example.com/guide' };

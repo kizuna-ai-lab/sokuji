@@ -87,7 +87,7 @@ export interface AppSession {
    */
   start(method?: ControlMethod): Promise<void>;
   setBridges(next: Partial<AppBridges>): void;
-  /** Wires the page's lifetime into the session: legs on the audio mode, readiness for every kind, and the sign-in's flips, the provider held during a run, a source's end as an `audio_error`, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
+  /** Wires the page's lifetime into the session: legs on the audio mode, readiness for every kind, and the sign-in's flips (loading finished included), the provider held during a run, a source's end as an `audio_error`, `pagehide`, the subtitle feed the extension overlay's publisher reads, and Electron's busy flag and close request. Returns the detach. */
   attach(): () => void;
 }
 
@@ -225,12 +225,13 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       // otherwise switch the balance refetch off.
       const signedIn = bridges.auth.signedIn;
       const userId = bridges.auth.userId ?? null;
+      const loaded = bridges.auth.loaded !== false;
       for (const key of Object.keys(next) as (keyof AppBridges)[]) {
         const value = next[key];
         if (value !== undefined) (bridges as Record<keyof AppBridges, unknown>)[key] = value;
       }
       // A microtask later: `useAppSessionBridges` calls this while React renders, and a store write there would update other components mid-render.
-      if (bridges.auth.signedIn !== signedIn || (bridges.auth.userId ?? null) !== userId) {
+      if (bridges.auth.signedIn !== signedIn || (bridges.auth.userId ?? null) !== userId || (bridges.auth.loaded !== false) !== loaded) {
         queueMicrotask(() => { for (const watcher of [...signInWatchers]) watcher(); });
       }
     },

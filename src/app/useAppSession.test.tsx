@@ -61,8 +61,10 @@ const trackEvent = vi.hoisted(() => vi.fn());
 vi.mock('../lib/analytics', () => ({
   useAnalytics: () => ({ trackEvent }),
 }));
+// Mutable so the loading-sign-in test can flip it: read fresh on every call.
+const authState = vi.hoisted(() => ({ isLoaded: true }));
 vi.mock('../lib/auth/hooks', () => ({
-  useAuth: () => ({ isSignedIn: true, userId: 'u1', getToken: async () => 't' }),
+  useAuth: () => ({ isLoaded: authState.isLoaded, isSignedIn: true, userId: 'u1', getToken: async () => 't' }),
 }));
 
 import { ToastProvider } from '../components/Toast';
@@ -123,5 +125,15 @@ describe('useAppSessionBridges', () => {
     const standIn = { signedIn: true, userId: 'preview', getToken: async () => 'x' };
     const { result } = renderHook(() => useAppSessionBridges(undefined, standIn), { wrapper: ToastProvider });
     expect(result.current).toBe(standIn);
+  });
+
+  it('tells the session whether the sign-in has loaded', async () => {
+    authState.isLoaded = false;
+    try {
+      const { result } = renderHook(() => useAppSessionBridges(), { wrapper: ToastProvider });
+      expect(result.current.loaded).toBe(false);
+    } finally {
+      authState.isLoaded = true;
+    }
   });
 });

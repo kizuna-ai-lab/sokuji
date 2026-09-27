@@ -479,6 +479,33 @@ describe('attach', () => {
     detach();
   });
 
+  it('forgets it too when the sign-in finishes loading', async () => {
+    const { session } = await setup();
+    useProviderStore.setState({
+      selected: 'fake_leased',
+      entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+      readiness: { fake_leased: { state: 'ready', models: [] } },
+    });
+    const detach = session.attach();
+    const readiness = () => useProviderStore.getState().readiness.fake_leased;
+    const getToken = async () => 't';
+
+    session.setBridges({ auth: { signedIn: false, loaded: false, getToken } });
+    await Promise.resolve();
+    useProviderStore.setState({ readiness: { fake_leased: { state: 'ready', models: [] } } });
+
+    session.setBridges({ auth: { signedIn: false, loaded: true, getToken } });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'unknown' });
+
+    useProviderStore.setState({ readiness: { fake_leased: { state: 'ready', models: [] } } });
+    session.setBridges({ auth: { signedIn: false, loaded: true, getToken } });
+    await Promise.resolve();
+    expect(readiness()).toEqual({ state: 'ready', models: [] });
+
+    detach();
+  });
+
   it('tells Electron it is busy through a run', async () => {
     const invoke = vi.fn(async () => undefined);
     const { session } = await setup({ ipc: { invoke } });
