@@ -1,3 +1,5 @@
+import { setFlagsFromString } from 'node:v8';
+import { runInNewContext } from 'node:vm';
 import { describe, it, expect, vi } from 'vitest';
 import type { Segment } from '../conversation/types';
 import type { Leg, SegmentId } from '../conversation/types';
@@ -248,5 +250,61 @@ describe('createPairCache — re-pairs only when what pairing reads changed (F16
     pairsOf({ leg: 'participant', session: 's1', segments }, DEFAULT_PAIRING);
     pairsOf({ leg: 'speaker', session: 's1', segments }, DEFAULT_PAIRING);
     expect(infer).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('createPairCache — compares what pairing read, and holds no segment (F16)', () => {
+  const leg = (segments: readonly Segment[]): Pick<Leg, 'leg' | 'session' | 'segments'> => ({ leg: 'speaker', session: 's1', segments });
+
+  it('re-pairs an array changed in place: it compares what it read, never the array', () => {
+    const infer = vi.fn(inferPairs);
+    const pairsOf = createPairCache(infer);
+    const s1 = seg({ side: 'source', openedAt: 0 });
+    const t = seg({ side: 'translation', openedAt: 500 });
+    const segments = [s1, t];
+    expect(pairsOf(leg(segments), DEFAULT_PAIRING)).toEqual(new Map([[t.id, s1.id]]));
+    segments[1] = { ...t, origin: 'u1' };
+    expect(pairsOf(leg(segments), DEFAULT_PAIRING).size).toBe(0);
+    expect(infer).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps neither the segments array, a segment nor its pcm alive once the leg lets them go', async () => {
+    // A full collection on demand. The suite runs without `--expose-gc`, so the
+    // flag is set here and a fresh context, which reads it, hands out `gc`; a
+    // Node without it throws here rather than letting the case pass unchecked.
+    setFlagsFromString('--expose-gc');
+    const gc = runInNewContext('gc') as () => void;
+    // ES2021's `WeakRef`: Node has it, the project's ES2020 `lib` does not declare it.
+    const WeakRef = (globalThis as unknown as { WeakRef: new <T extends object>(target: T) => { deref(): T | undefined } }).WeakRef;
+    // A leg name no later run projects: its last array must not outlive the leg.
+    const pairsOf = createPairCache();
+    const feed = () => {
+      const segments = [
+        seg({ side: 'source', openedAt: 0, speech: [{ pcm: new Int16Array(1 << 20) }] }),
+        seg({ side: 'translation', openedAt: 10 }),
+      ];
+      const map = pairsOf({ leg: 'participant', session: 's1', segments }, DEFAULT_PAIRING);
+      return { ids: segments.map((s) => s.id), map, array: new WeakRef(segments), segment: new WeakRef(segments[0]), pcm: new WeakRef(segments[0].speech[0].pcm) };
+    };
+    const fed = feed();
+    // Controls: an array a holder keeps survives the collection, and one nothing keeps does not.
+    const holder = new Map<string, Segment[]>();
+    const kept = (() => {
+      const segments = [seg({ side: 'source' })];
+      holder.set('kept', segments);
+      return new WeakRef(segments);
+    })();
+    const loose = new WeakRef([seg({ side: 'source' })]);
+    // A WeakRef keeps its target alive until the current job ends.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    gc();
+    expect(kept.deref()).toBe(holder.get('kept'));
+    expect(loose.deref()).toBeUndefined();
+    expect(fed.array.deref()).toBeUndefined();
+    expect(fed.segment.deref()).toBeUndefined();
+    expect(fed.pcm.deref()).toBeUndefined();
+    // The cache is still alive, and still answers from the inputs it kept.
+    const again = [seg({ id: fed.ids[0], side: 'source', openedAt: 0 }), seg({ id: fed.ids[1], side: 'translation', openedAt: 10 })];
+    expect(pairsOf({ leg: 'participant', session: 's1', segments: again }, DEFAULT_PAIRING)).toBe(fed.map);
   });
 });

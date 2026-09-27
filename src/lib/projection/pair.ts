@@ -17,8 +17,9 @@ export const DEFAULT_PAIRING: PairingThresholds = { minOverlap: 0.5, proximityMs
  * `proximityMs` before it (a binary search, then a walk up to its own
  * opening) and, when it carries timing, at every source that does. A wall
  * clock set back mid-session breaks the order: a source out of place may
- * then be missed and its translation shows unpaired — the safe failure (a
- * wrong pair is worse than none, spec "Risks").
+ * then be missed, and its translation shows unpaired or pairs with another
+ * source its window still holds — which that source then no longer offers
+ * to a later translation.
  */
 export function inferPairs(segments: readonly Segment[], t: PairingThresholds): Map<SegmentId, SegmentId> {
   const sources = segments.filter((s) => s.side === 'source' && s.origin === undefined);
@@ -95,7 +96,7 @@ const pairInput = (s: Segment): PairInput => ({ id: s.id, side: s.side, origin: 
 const sameInput = (a: PairInput, s: Segment): boolean =>
   a.id === s.id && a.side === s.side && a.origin === s.origin && a.openedAt === s.openedAt && a.startMs === s.timing?.startMs && a.endMs === s.timing?.endMs;
 
-interface Cached { session: string; t: PairingThresholds; segments: readonly Segment[]; inputs: PairInput[]; map: Map<SegmentId, SegmentId> }
+interface Cached { session: string; t: PairingThresholds; inputs: PairInput[]; map: Map<SegmentId, SegmentId> }
 
 /**
  * Pairing re-evaluated only when what it reads changed (F16; spec: "The
@@ -103,20 +104,24 @@ interface Cached { session: string; t: PairingThresholds; segments: readonly Seg
  * changed. A partial — twenty a second, for hours — changes none of them,
  * so it costs one comparison per segment instead of a re-pairing. One
  * answer per leg name; a new session replaces it. `infer` is the test's seam.
+ *
+ * It keeps what pairing read, never the segments: the cache lives as long as
+ * the app's one view, and a leg name no later run projects would otherwise
+ * hold its last array — every segment's replay pcm with it — for good. So
+ * every call compares the inputs, the same array included, which also
+ * catches an array changed in place. The map is the one answer every hit
+ * returns: callers read it, never change it.
  */
 export function createPairCache(infer: typeof inferPairs = inferPairs): (leg: Pick<Leg, 'leg' | 'session' | 'segments'>, t: PairingThresholds) => Map<SegmentId, SegmentId> {
   const byLeg = new Map<LegName, Cached>();
   return (leg, t) => {
     const hit = byLeg.get(leg.leg);
-    if (hit && hit.session === leg.session && hit.t === t) {
-      if (hit.segments === leg.segments) return hit.map;
-      if (hit.inputs.length === leg.segments.length && leg.segments.every((s, i) => sameInput(hit.inputs[i], s))) {
-        hit.segments = leg.segments;
-        return hit.map;
-      }
+    if (hit && hit.session === leg.session && hit.t === t
+      && hit.inputs.length === leg.segments.length && leg.segments.every((s, i) => sameInput(hit.inputs[i], s))) {
+      return hit.map;
     }
     const map = infer(leg.segments, t);
-    byLeg.set(leg.leg, { session: leg.session, t, segments: leg.segments, inputs: leg.segments.map(pairInput), map });
+    byLeg.set(leg.leg, { session: leg.session, t, inputs: leg.segments.map(pairInput), map });
     return map;
   };
 }
