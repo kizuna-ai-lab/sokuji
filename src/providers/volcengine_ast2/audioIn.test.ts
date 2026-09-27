@@ -45,6 +45,17 @@ describe('the input pacer', () => {
     expect(PACKET_SAMPLES).toBe(1_280);
   });
 
+  it('sends the resampled stream itself, whole and in order, however the capture is cut', () => {
+    // 4 000 samples at 24 kHz are 2 666 at 16 kHz: one push completes two packets.
+    for (const cut of [[2_048, 2_048, 2_048], [4_000, 7, 2_137], [1, 1, 1, 3_838, 2_303]]) {
+      const pacer = new InputPacer();
+      let from = 0;
+      const packets = cut.flatMap((n) => { const p = pacer.push(ramp(n, from)); from += n; return p; });
+      expect(packets.every((p) => p.length === PACKET_SAMPLES)).toBe(true);
+      expect(concat([...packets, ...pacer.drain()])).toEqual(new Resampler().push(ramp(from)));
+    }
+  });
+
   it("a release sends what waits, then 500 ms of silence as six 80 ms packets and a 20 ms one (ruling 6)", () => {
     const pacer = new InputPacer();
     pacer.push(ramp(600));
@@ -62,6 +73,13 @@ describe('the input pacer', () => {
     pacer.push(new Int16Array(601).fill(500));
     expect(pacer.drain().map((p) => [p.length, p.every((s) => s === 500)])).toEqual([[400, true]]);
     expect(pacer.drain()).toEqual([]);
+    expect(pacer.push(new Int16Array(1_920).fill(700)).map((p) => [p.length, p.every((s) => s === 700)])).toEqual([[1_280, true]]);
+  });
+
+  it('a release drops the carry too, so the next turn starts clean (choice 11)', () => {
+    const pacer = new InputPacer();
+    pacer.push(new Int16Array(601).fill(500));
+    pacer.tail();
     expect(pacer.push(new Int16Array(1_920).fill(700)).map((p) => [p.length, p.every((s) => s === 700)])).toEqual([[1_280, true]]);
   });
 
