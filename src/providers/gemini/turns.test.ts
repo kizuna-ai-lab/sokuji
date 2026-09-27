@@ -1,23 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import type { GeminiConfig } from './config';
+import { trackedClock } from './testing';
 import { GeminiTurns, normalizeCjkSpaces } from './turns';
 
 function turns(o: { kind?: GeminiConfig['kind']; speech?: boolean; silence?: GeminiConfig['silence'] } = {}) {
-  const inner = createVirtualClock(0);
-  // Every timer the turns started that has neither fired nor been cancelled: the clock rule's proof that none outlives what should end it.
-  const live = new Set<symbol>();
-  const clock: VirtualClock = {
-    now: () => inner.now(),
-    advance: (ms) => inner.advance(ms),
-    setTimeout(fn, ms) {
-      const id = Symbol('timer');
-      live.add(id);
-      const cancel = inner.setTimeout(() => { live.delete(id); fn(); }, ms);
-      return () => { live.delete(id); cancel(); };
-    },
-  };
+  // `timers()` counts what has neither fired nor been cancelled: the clock rule's proof that no timer outlives what should end it.
+  const { clock, timers } = trackedClock();
   const { events, log } = recordEvents();
   const kind = o.kind ?? 'dialogue';
   const silence = kind === 'translate' ? o.silence ?? { sourceMs: 1500, translationMs: 1500, deferMidSentence: false } : undefined;
@@ -26,7 +15,7 @@ function turns(o: { kind?: GeminiConfig['kind']; speech?: boolean; silence?: Gem
   const texts = (ref: number) => of('segmentText').filter((e) => e.payload.ref === ref).map((e) => e.payload.text);
   const opened = () => of('segmentOpened').map((e) => e.payload);
   const closed = () => of('segmentClosed').map((e) => e.payload);
-  return { t, clock, timers: () => live.size, log, of, texts, opened, closed };
+  return { t, clock, timers, log, of, texts, opened, closed };
 }
 const pcm = (n = 160) => new Int16Array(n).fill(3);
 
