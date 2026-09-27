@@ -2,10 +2,10 @@ import { framedScript, longScript, reflessStreamScript } from './generate';
 import { exchange, type FakeScript } from './script';
 import { msForText } from './synth';
 
-export type FakeScriptName = 'exchange' | 'cjk' | 'rewrite' | 'long' | 'notices' | 'refless-stream' | 'framed' | 'rangeless' | 'reconnect' | 'late-ranges';
+export type FakeScriptName = 'exchange' | 'cjk' | 'rewrite' | 'long' | 'notices' | 'refless-stream' | 'framed' | 'rangeless' | 'reconnect' | 'late-ranges' | 'proximity';
 
 /** In the order the fake's settings list them. */
-export const FAKE_SCRIPT_NAMES: readonly FakeScriptName[] = ['exchange', 'cjk', 'rewrite', 'long', 'notices', 'refless-stream', 'framed', 'rangeless', 'reconnect', 'late-ranges'];
+export const FAKE_SCRIPT_NAMES: readonly FakeScriptName[] = ['exchange', 'cjk', 'rewrite', 'long', 'notices', 'refless-stream', 'framed', 'rangeless', 'reconnect', 'late-ranges', 'proximity'];
 
 /** The scripts the fake can play (spec: "Testing" — script playback and the shape knobs). */
 export function fakeScript(name: FakeScriptName): FakeScript {
@@ -85,6 +85,43 @@ export function fakeScript(name: FakeScriptName): FakeScript {
             { at: 800, ranges: { ref: 2, ranges: [{ index: 0, range: [0, 6] }, { index: 1, range: [6, 13] }] } },
           ],
         }],
+      };
+    case 'proximity':
+      // Doubao AST 2.0's shape (Stage 2 Volcengine AST2): no stated origin
+      // and no timing, so the projection pairs by how soon each translation
+      // opened after its source (F16's proximity window); each spoken
+      // sentence is one rangeless clip after its translation closes —
+      // replay, no karaoke. The second exchange's translation opens 1.5 s
+      // after its source, still inside the 4 s window.
+      return {
+        blocks: [
+          {
+            startAt: 500,
+            steps: [
+              { at: 0, open: { ref: 1, side: 'source' } },
+              { at: 0, text: { ref: 1, text: '你好' } },
+              { at: 300, text: { ref: 1, text: '你好，今天怎么样？' } },
+              { at: 600, close: { ref: 1 } },
+              { at: 700, open: { ref: 2, side: 'translation' } },
+              { at: 700, text: { ref: 2, text: 'Hello, how are you today?' } },
+              { at: 900, close: { ref: 2 } },
+              { at: 1_100, audio: { ref: 2, ms: msForText('Hello, how are you today?') } },
+            ],
+          },
+          {
+            startAt: 5_000,
+            steps: [
+              { at: 0, open: { ref: 3, side: 'source' } },
+              { at: 0, text: { ref: 3, text: '我很好。谢谢。' } },
+              { at: 800, close: { ref: 3 } },
+              { at: 1_500, open: { ref: 4, side: 'translation' } },
+              { at: 1_500, text: { ref: 4, text: 'I am fine. Thank you.' } },
+              { at: 1_700, close: { ref: 4 } },
+              { at: 1_900, audio: { ref: 4, ms: msForText('I am fine.') } },
+              { at: 1_900, audio: { ref: 4, ms: msForText('Thank you.') } },
+            ],
+          },
+        ],
       };
   }
 }

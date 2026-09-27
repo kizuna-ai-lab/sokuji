@@ -13,8 +13,8 @@ const auto: SessionContext = { direction: { source: 'ja', target: 'en' }, speech
 const play = (name: FakeScriptName) => driveAdapter(createFakeAdapter(), { context: auto, config: { script: fakeScript(name) }, credentials: {}, steps: [{ advance: 40_000 }] });
 
 describe('the fake\'s scripts', () => {
-  it("offers the ten scripts, and every one plays conformant through the kit's driver", async () => {
-    const ALL = ['exchange', 'cjk', 'rewrite', 'long', 'notices', 'refless-stream', 'framed', 'rangeless', 'reconnect', 'late-ranges'] as const;
+  it("offers the eleven scripts, and every one plays conformant through the kit's driver", async () => {
+    const ALL = ['exchange', 'cjk', 'rewrite', 'long', 'notices', 'refless-stream', 'framed', 'rangeless', 'reconnect', 'late-ranges', 'proximity'] as const;
     expect(FAKE_SCRIPT_NAMES).toEqual(ALL);
     for (const name of ALL) {
       const result = await play(name);
@@ -158,6 +158,36 @@ describe('the fake\'s scripts', () => {
     expect(kinds).not.toContain('audio');
     expect(kinds).not.toContain('speechRanges');
     expect(result.violations).toEqual([]);
+  });
+
+  it('proximity: no origin, no timing, one rangeless clip per spoken sentence after its translation closed, and the projection pairs by proximity', async () => {
+    const clock = createVirtualClock();
+    const conv = new Conversation({ leg: 'speaker', session: 'proximity', languages: auto.direction, clock });
+    const log: AdapterEvent[] = [];
+    const events = eventsFrom((e) => { log.push(e); conv.apply(e); });
+    await createFakeAdapter().start(
+      { context: auto, config: { script: fakeScript('proximity') }, credentials: {}, clock, signal: new AbortController().signal },
+      events,
+    );
+    clock.advance(20_000);
+
+    for (const e of log) {
+      if (e.kind === 'segmentOpened' || e.kind === 'segmentClosed') expect(e.payload.origin).toBeUndefined();
+      if (e.kind === 'segmentText') expect(e.payload.timing).toBeUndefined();
+      if (e.kind === 'audio') {
+        expect(e.payload.ref).toBeDefined();
+        expect(e.payload.range).toBeUndefined();
+      }
+    }
+    // Every clip lands after its translation closed.
+    const closedAt = new Map<number, number>();
+    log.forEach((e, i) => { if (e.kind === 'segmentClosed') closedAt.set(e.payload.ref, i); });
+    log.forEach((e, i) => { if (e.kind === 'audio') expect(i).toBeGreaterThan(closedAt.get(e.payload.ref!)!); });
+
+    const entries = createProjector().project([conv.snapshot()], { ...DEFAULT_PROJECTION, mode: 'off', sentencesPerRow: 0 });
+    const exchanges = entries.filter((e) => e.kind === 'exchange');
+    expect(exchanges.length).toBe(2);
+    for (const ex of exchanges) { if (ex.kind === 'exchange') expect(ex.pairing).toBe('inferred'); }
   });
 
   it('reconnect: drops and comes back between two exchanges, refs never reused', async () => {
