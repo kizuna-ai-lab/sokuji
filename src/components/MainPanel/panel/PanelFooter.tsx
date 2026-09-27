@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Zap, Mic, Loader, Wrench } from 'lucide-react';
 import ModePicker from '../ModePicker';
+import SessionCountdown from '../SessionCountdown';
 import { startLabel } from './startLabel';
 import type { RunState } from '../../../lib/session/types';
 import type { AudioMode } from '../../../stores/audioStore';
@@ -41,7 +42,8 @@ export interface PanelFooterProps {
  * 16): a `stopping` run shows the same Stop variant as `running`, disabled,
  * never a disabled Start. The push-to-talk "Release" state, the mode
  * popover and the language-pair navigation are the caller's (Task 12) —
- * this component only renders what it is handed.
+ * this component only renders what it is handed. And a leased run's
+ * countdown beside the session clock (Stage 2 Kizuna Soniox).
  */
 export function PanelFooter(props: PanelFooterProps) {
   const { t } = useTranslation();
@@ -148,6 +150,7 @@ export function PanelFooter(props: PanelFooterProps) {
           {isRunning && duration && (
             <span className="session-duration">{duration}</span>
           )}
+          {run.phase === 'running' && run.budget && <SessionCountdown budget={run.budget} />}
         </div>
       </div>
     );
@@ -237,6 +240,7 @@ export function PanelFooter(props: PanelFooterProps) {
         {isRunning && duration && (
           <span className="session-duration">{duration}</span>
         )}
+        {run.phase === 'running' && run.budget && <SessionCountdown budget={run.budget} />}
       </div>
     </div>
   );

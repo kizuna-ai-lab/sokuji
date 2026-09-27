@@ -24,7 +24,7 @@ export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
 }
 
 /** The provider a start would run and its loaded entry, as `readShapeFromStores` finds them; null until the entry has loaded. */
-function selectedFromStores(): { provider: AnyProvider; entry: ProviderEntry } | null {
+export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEntry } | null {
   const { selected, entries } = useProviderStore.getState();
   const providers = presentProviders();
   const provider = providers.find((p) => p.id === selected) ?? providers[0];

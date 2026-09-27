@@ -223,6 +223,30 @@ describe('PanelFooter — test tone', () => {
   });
 });
 
+describe("PanelFooter — the lease's countdown", () => {
+  it.each(SITES)('%s: shows the countdown beside the duration while a leased run runs', (site) => {
+    const run: RunState = {
+      phase: 'running',
+      since: 0,
+      legs: { speaker: 'live' },
+      budget: { totalMs: 60_000, endsAt: Date.now() + 30_000 },
+    };
+    const { container } = render(<PanelFooter {...baseProps(site, { run, duration: '00:30' })} />);
+    const metadata = container.querySelector('.footer-metadata');
+    expect(metadata?.querySelectorAll('.session-remaining-time').length).toBe(1);
+  });
+
+  it.each(SITES)('%s: none without a budget, or while idle', (site) => {
+    const runWithoutBudget: RunState = { phase: 'running', since: 0, legs: { speaker: 'live' } };
+    const { container } = render(<PanelFooter {...baseProps(site, { run: runWithoutBudget, duration: '00:30' })} />);
+    expect(container.querySelector('.session-remaining-time')).toBeNull();
+
+    cleanup();
+    const { container: idleContainer } = render(<PanelFooter {...baseProps(site, { run: idleRun })} />);
+    expect(idleContainer.querySelector('.session-remaining-time')).toBeNull();
+  });
+});
+
 describe('PanelFooter — waveforms', () => {
   it('advanced renders waveforms.input and .output; basic renders neither', () => {
     const waveforms = {

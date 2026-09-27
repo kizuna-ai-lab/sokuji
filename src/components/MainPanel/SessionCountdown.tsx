@@ -1,46 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import type { BudgetSnapshot } from '../../services/providers/ProviderDescriptor';
+import type { Budget } from '../../lib/session/types';
 import { formatRemainingTime } from '../../utils/formatters';
 import './SessionCountdown.scss';
 
 interface SessionCountdownProps {
-  /** Poll while true (the session is active); renders nothing while false. */
-  active: boolean;
-  /** One snapshot of the session's metered budget, or null when the session
-   *  has none (BYOK, non-metered providers) or it is not yet known. Called
-   *  once a second while active — hand in a stable callback. */
-  getSnapshot: () => BudgetSnapshot | null;
+  /** The lease's granted time (`RunState.running.budget`). */
+  budget: Budget;
+  /** The wall clock; `Date.now` — the app's run clock is the real one, so `endsAt` reads on it (choice 18). Tests inject one. */
+  now?: () => number;
 }
 
 /**
- * The metered-session countdown, extracted from MainPanel's footers so it is
- * testable — MainPanel has no React harness in this repo, so inline JSX there
- * is untestable by construction. Owns the 1s poll, the <20% low-budget
- * emphasis, and the remaining-time formatting. Renders nothing when the
- * session has no budget, or when `active` is false: a data condition, not a
- * provider condition. The `!active` half of the guard matters on the very
- * render where `active` flips to false — `countdown` state is only cleared
- * by the effect below, which runs AFTER that render, so without it this
- * component would render one stale frame of the old countdown first.
+ * A leased session's countdown, in the footers beside the session clock
+ * (Stage 2 Kizuna Soniox): what is left of the grant, ticking once a
+ * second, with the warning emphasis under 20 % of it. Mounted only while
+ * a leased run runs, so it needs no `active` guard of its own.
  */
-const SessionCountdown: React.FC<SessionCountdownProps> = ({ active, getSnapshot }) => {
-  const [countdown, setCountdown] = useState<BudgetSnapshot | null>(null);
+const SessionCountdown: React.FC<SessionCountdownProps> = ({ budget, now = Date.now }) => {
+  const [, retick] = useState(0);
   useEffect(() => {
-    if (!active) {
-      setCountdown(null);
-      return;
-    }
-    const update = () => setCountdown(getSnapshot());
-    update();
-    const interval = setInterval(update, 1000);
+    const interval = setInterval(() => retick((n) => n + 1), 1000);
     return () => clearInterval(interval);
-  }, [active, getSnapshot]);
-  if (!active || !countdown) return null;
-  // Below 20% of the granted budget, switch to the warning emphasis.
-  const low = countdown.totalMs > 0 && countdown.remainingMs / countdown.totalMs < 0.2;
+  }, []);
+  const remainingMs = Math.max(0, budget.endsAt - now());
+  const low = budget.totalMs > 0 && remainingMs / budget.totalMs < 0.2;
   return (
     <span className={`session-remaining-time${low ? ' low' : ''}`}>
-      {formatRemainingTime(countdown.remainingMs)}
+      {formatRemainingTime(remainingMs)}
     </span>
   );
 };
