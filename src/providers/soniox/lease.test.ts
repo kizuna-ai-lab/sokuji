@@ -1,11 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
+import { recordEvents } from '../../lib/contract/events';
+import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
-import { createKizunaLease, DEFAULT_CONFLICT_RETRY_MS, SESSION_END_BUDGET_MS, SESSION_KEY_TIMEOUT_MS } from './lease';
+import { createSonioxAdapter } from './adapter';
+import { buildSoniox } from './config';
+import { createKizunaLease, DEFAULT_CONFLICT_RETRY_MS, GRANT_END_MARGIN_MS, SESSION_END_BUDGET_MS, SESSION_KEY_TIMEOUT_MS } from './lease';
 import { PARTICIPANT_SPEECH_FIELD } from './leaseRequest';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
+import { AUTO_CTX, isStt, msg, orig, SHARED } from './testing';
 
 const API = 'https://api.test';
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -79,6 +84,8 @@ async function rejection(p: Promise<unknown>): Promise<unknown> {
 }
 
 const KEY = /k-(spk|par|mix)_(stt|tts)/;
+/** The lease's port (`SonioxLeasePort`), on every leg with an STT role of its own. */
+const PORT = expect.objectContaining({ streamAccepted: expect.any(Function), atGrantEnd: expect.any(Function), cutoff: expect.any(Function) });
 
 describe('Kizuna Soniox lease: the session-key request', () => {
   it("sends today's body byte for byte with the flag off, whatever the participant wants", async () => {
@@ -117,23 +124,23 @@ describe("Kizuna Soniox lease: each leg's keys", () => {
   it("hands each leg its own keys, the TTS key of the same side, and the response's region", async () => {
     // Speaking: the response's region, never the request's.
     const speaking = await granted(['speaker'], ['spk_stt', 'spk_tts'], {}, { region: 'jp' });
-    expect(speaking.resources.credentials('speaker')).toEqual({ region: 'jp', stt: 'k-spk_stt', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_stt' });
+    expect(speaking.resources.credentials('speaker')).toEqual({ region: 'jp', stt: 'k-spk_stt', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_stt', lease: PORT });
     expect(() => speaking.resources.credentials('participant')).toThrow(/not requested/);
 
     const textOnly = await granted(['speaker'], ['spk_stt'], { textOnly: true });
     expect(textOnly.resources.credentials('speaker')).not.toHaveProperty('tts');
 
     const participant = await granted(['participant'], ['par_stt']);
-    expect(participant.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', clientReferenceId: 'ref-par_stt' });
+    expect(participant.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', clientReferenceId: 'ref-par_stt', lease: PORT });
 
     // Split Both: the speaker's TTS key stays on the speaker's side.
     const split = await granted(['speaker', 'participant'], ['spk_stt', 'spk_tts', 'par_stt'], { settings: { bothModeSharedSession: false } });
-    expect(split.resources.credentials('speaker')).toEqual({ region: 'us', stt: 'k-spk_stt', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_stt' });
-    expect(split.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', clientReferenceId: 'ref-par_stt' });
+    expect(split.resources.credentials('speaker')).toEqual({ region: 'us', stt: 'k-spk_stt', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_stt', lease: PORT });
+    expect(split.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', clientReferenceId: 'ref-par_stt', lease: PORT });
 
-    // Shared Both: the participant rides the mixed socket, with no key to speak.
+    // Shared Both: the participant rides the mixed socket, with no key to speak and no port.
     const shared = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts']);
-    expect(shared.resources.credentials('speaker')).toEqual({ region: 'us', stt: 'k-mix_stt', tts: 'k-mix_tts', clientReferenceId: 'ref-mix_stt' });
+    expect(shared.resources.credentials('speaker')).toEqual({ region: 'us', stt: 'k-mix_stt', tts: 'k-mix_tts', clientReferenceId: 'ref-mix_stt', lease: PORT });
     expect(shared.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-mix_stt', clientReferenceId: 'ref-mix_stt' });
   });
 
@@ -153,15 +160,15 @@ describe("Kizuna Soniox lease: each leg's keys", () => {
   it("makes par_tts the participant's TTS key in every mode while the flag is on", async () => {
     const on = { flag: true, participantSpeech: true };
     const split = await granted(['speaker', 'participant'], ['spk_stt', 'spk_tts', 'par_stt', 'par_tts'], { ...on, settings: { bothModeSharedSession: false } });
-    expect(split.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', tts: 'k-par_tts', clientReferenceId: 'ref-par_stt' });
+    expect(split.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', tts: 'k-par_tts', clientReferenceId: 'ref-par_stt', lease: PORT });
     expect(split.resources.credentials('speaker')).toMatchObject({ tts: 'k-spk_tts' });
 
     const participant = await granted(['participant'], ['par_stt', 'par_tts'], on);
-    expect(participant.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', tts: 'k-par_tts', clientReferenceId: 'ref-par_stt' });
+    expect(participant.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-par_stt', tts: 'k-par_tts', clientReferenceId: 'ref-par_stt', lease: PORT });
 
     // Shared Both: the `mix_*` bundle stays on the speaker; the participant's one socket is its TTS one, on its own key and reference.
     const shared = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts', 'par_tts'], on);
-    expect(shared.resources.credentials('speaker')).toEqual({ region: 'us', stt: 'k-mix_stt', tts: 'k-mix_tts', clientReferenceId: 'ref-mix_stt' });
+    expect(shared.resources.credentials('speaker')).toEqual({ region: 'us', stt: 'k-mix_stt', tts: 'k-mix_tts', clientReferenceId: 'ref-mix_stt', lease: PORT });
     expect(shared.resources.credentials('participant')).toEqual({ region: 'us', stt: 'k-mix_stt', tts: 'k-par_tts', clientReferenceId: 'ref-par_tts' });
   });
 
@@ -552,5 +559,134 @@ describe('Kizuna Soniox lease: session-end', () => {
     await flush();
     expect(a.to('/soniox/session-end')).toHaveLength(1);
     await expect(releasing).resolves.toBeUndefined();
+  });
+});
+
+describe("the lease's port (SonioxLeasePort)", () => {
+  const splitBoth: AcquireOptions = { settings: { bothModeSharedSession: false } };
+  const startedBody = (call: { init: RequestInit }) => JSON.parse(call.init.body as string);
+
+  it('reports the first accepted frame once per role, with the cached token', async () => {
+    const a = await granted(['speaker', 'participant'], ['spk_stt', 'spk_tts', 'par_stt'], splitBoth);
+    a.resources.credentials('speaker').lease!.streamAccepted();
+    a.resources.credentials('speaker').lease!.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(1);
+    const call = a.to('/soniox/session-started')[0];
+    expect(call.init.method).toBe('POST');
+    expect(call.init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
+    expect(startedBody(call)).toEqual({ leaseId: 'lease-1', role: 'spk_stt' });
+    expect(call.init).not.toHaveProperty('keepalive');
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'out', type: 'session.started', payload: { role: 'spk_stt' } });
+
+    a.resources.credentials('participant').lease!.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(2);
+    expect(startedBody(a.to('/soniox/session-started')[1])).toEqual({ leaseId: 'lease-1', role: 'par_stt' });
+    expect(a.shape.auth.getToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('puts a refusal in the Logs with its reason, and says nothing for a stale 200', async () => {
+    // The port posts once per role: two roles here, a second lease for the third answer.
+    const split = await granted(['speaker', 'participant'], ['spk_stt', 'spk_tts', 'par_stt'], splitBoth);
+    split.resources.credentials('speaker').lease!.streamAccepted();
+    split.to('/soniox/session-started')[0].respond(400, { error: 'x', reason: 'role_required' });
+    await flush();
+    expect(split.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.started_refused', payload: { status: 400, reason: 'role_required', role: 'spk_stt' } });
+
+    split.resources.credentials('participant').lease!.streamAccepted();
+    // No body: `json()` fails, and the status alone says the lease was not extended.
+    split.to('/soniox/session-started')[1].respond(500);
+    await flush();
+    expect(split.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.started_refused', payload: { status: 500, reason: null, role: 'par_stt' } });
+
+    // `no_live_lease` is a 200 by design: routine, and nothing the client can act on.
+    const stale = await granted(['speaker'], ['spk_stt']);
+    stale.resources.credentials('speaker').lease!.streamAccepted();
+    stale.to('/soniox/session-started')[0].respond(200, { ok: true, reason: 'no_live_lease' });
+    await flush();
+    expect(stale.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.started_refused' }));
+  });
+
+  it('puts a transport failure in the Logs', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    a.resources.credentials('speaker').lease!.streamAccepted();
+    a.to('/soniox/session-started')[0].fail();
+    await flush();
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: 'Failed to fetch' } });
+  });
+
+  it('posts nothing once released: a late first frame cannot start a lease the account ended', async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    const releasing = a.resources.release();
+    a.to('/soniox/session-end')[0].respond(200);
+    await releasing;
+    port.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(0);
+    expect(a.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.started' }));
+  });
+
+  it("tells a 403 near the grant's end from an early one", async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts'], {}, { maxSessionDurationSeconds: 600 });
+    const port = a.resources.credentials('speaker').lease!;
+    expect(port.atGrantEnd(0)).toBe(false);
+    expect(port.atGrantEnd(600_000 - GRANT_END_MARGIN_MS - 1)).toBe(false);
+    expect(port.atGrantEnd(600_000 - GRANT_END_MARGIN_MS)).toBe(true);
+    expect(port.atGrantEnd(700_000)).toBe(true);
+  });
+
+  it("ends the run at the cutoff, at once and once, in the grant's words", async () => {
+    const speaking = await granted(['speaker'], ['spk_stt', 'spk_tts'], {}, { maxSessionDurationSeconds: 600 });
+    const port = speaking.resources.credentials('speaker').lease!;
+    port.cutoff();
+    // Synchronously: the adapter's `closed` follows at once and must find the run already ending.
+    expect(speaking.end).toHaveBeenCalledTimes(1);
+    expect(speaking.end).toHaveBeenCalledWith({ code: 'budget_exhausted', message: 'Session budget exhausted' }, { expected: false });
+    expect(speaking.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.lease_ended', payload: { code: 'budget_exhausted', maxSessionDurationSeconds: 600 } });
+    port.cutoff();
+    speaking.clock.advance(600_000);
+    expect(speaking.end).toHaveBeenCalledTimes(1);
+
+    // At the cap: the normal end of a segment.
+    const capped = await granted(['speaker'], ['spk_stt', 'spk_tts'], {}, { maxSessionDurationSeconds: 3_600 });
+    capped.resources.credentials('speaker').lease!.cutoff();
+    expect(capped.end).toHaveBeenCalledTimes(1);
+    expect(capped.end).toHaveBeenCalledWith({ code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, { expected: true });
+
+    // Released: the cutoff ends nothing.
+    const released = await granted(['speaker'], ['spk_stt', 'spk_tts'], {}, { maxSessionDurationSeconds: 600 });
+    const releasing = released.resources.release();
+    released.to('/soniox/session-end')[0].respond(200);
+    await releasing;
+    released.resources.credentials('speaker').lease!.cutoff();
+    expect(released.end).not.toHaveBeenCalled();
+  });
+
+  it("shared Both: the speaker's socket reports for the mixed stream; the participant has no port", async () => {
+    const a = await granted(['speaker', 'participant'], ['mix_stt', 'mix_tts']);
+    const port = a.resources.credentials('speaker').lease;
+    expect(port).toBeDefined();
+    port!.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(1);
+    expect(startedBody(a.to('/soniox/session-started')[0])).toEqual({ leaseId: 'lease-1', role: 'mix_stt' });
+    expect(a.resources.credentials('participant')).not.toHaveProperty('lease');
+  });
+
+  it("the adapter's first frame reaches session-started", async () => {
+    const lease = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const sockets = fakeSockets();
+    const starting = createSonioxAdapter({ openSocket: sockets.create }).start(
+      { context: AUTO_CTX, config: buildSoniox(AUTO_CTX, SONIOX_DEFAULTS, SHARED), credentials: lease.resources.credentials('speaker'), clock: lease.clock, signal: new AbortController().signal },
+      recordEvents().events,
+    );
+    for (const s of sockets.all) if (s.readyState === FakeSocket.CONNECTING) s.open();
+    await starting;
+    const stt = sockets.all.filter(isStt)[0];
+    expect(lease.to('/soniox/session-started')).toHaveLength(0);
+    stt.receive(msg(orig('Hi', false)));
+    expect(lease.to('/soniox/session-started')).toHaveLength(1);
+    expect(startedBody(lease.to('/soniox/session-started')[0])).toEqual({ leaseId: 'lease-1', role: 'spk_stt' });
+    // The socket carries the minted key and its reference; the sign-in token never reaches Soniox.
+    expect(stt.sentJson<Record<string, unknown>>()[0]).toMatchObject({ api_key: 'k-spk_stt', client_reference_id: 'ref-spk_stt' });
+    expect(JSON.stringify(sockets.all.map((s) => s.sentJson()))).not.toContain('"tok"');
   });
 });

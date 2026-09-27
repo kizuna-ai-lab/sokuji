@@ -9,7 +9,10 @@
  * read-only until Plan B2), with every timer on the run's clock and every
  * wait abortable. Not Soniox's session side: `adapter.ts` never reaches
  * this module. The participant's speech key is mapped only while the
- * participant-speech flag is on (ruling 2).
+ * participant-speech flag is on (ruling 2). Each STT role's
+ * `SonioxLeasePort` (Plan A's seam, `settings.ts:95-102`) reports the first
+ * accepted frame as `session-started` and tells a grant-end 403 from an
+ * early one.
  */
 import { AdapterStartError, type AdapterFrame } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
@@ -20,12 +23,14 @@ import { SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { getApiUrl } from '../../utils/environment';
 import { sonioxSessionCapSeconds } from './kizunaBudget';
 import { isSttRole, leaseRequest, requestBody, roleFor, sideOf, STREAM_ROLES, type SttRole, type StreamRole } from './leaseRequest';
-import type { SonioxCredentials, SonioxSettings } from './settings';
+import type { SonioxCredentials, SonioxLeasePort, SonioxSettings } from './settings';
 
 /** One session-key attempt's bound, its body included (choice 5): a request that never answers must not hold Start. A 409's retry gets its own. */
 export const SESSION_KEY_TIMEOUT_MS = 15_000;
 /** The wait before a 409's one retry when the body names none (the backend's own is 3 000 ms). */
 export const DEFAULT_CONFLICT_RETRY_MS = 3_000;
+/** How close to the grant's end a bare 403 must come to be the grant ending, not a revoked key or a frozen wallet (the old `CUTOFF_MARGIN_MS`). The budget's own timer ends the run first unless timers were throttled. */
+export const GRANT_END_MARGIN_MS = 90_000;
 /** `session-end`'s attempts share this budget (ruling 10): none begins after it, and one in flight is aborted at it. */
 export const SESSION_END_BUDGET_MS = 4_000;
 /** The waits between `session-end`'s attempts: three attempts at most. */
@@ -305,14 +310,52 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
       payload: { leaseId: grant.leaseId, region: grant.region, roles: grant.streams.map((st) => st.role), maxSessionDurationSeconds: grant.maxSessionDurationSeconds },
     });
 
+    const accepted = new Set<SttRole>();
+    const reportStarted = (role: SttRole): void => {
+      // Once per role, and never once released: a late first frame from a
+      // socket still closing must not start a lease the account already ended
+      // (spec: no `session-started` after `session-end`).
+      if (released || accepted.has(role)) return;
+      accepted.add(role);
+      ctx.frame({ direction: 'out', type: 'session.started', payload: { role } });
+      // Not awaited, never failing the session: a refusal means the lease was
+      // not extended, which the Logs must name (`ManagedSonioxSession.ts:490-549`).
+      void doFetch(`${apiUrl()}/soniox/session-started`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaseId: grant.leaseId, role }),
+      })
+        .then(async (res) => {
+          if (res.ok) return;
+          let reason: string | null = null;
+          try {
+            const b = (await res.json()) as { reason?: unknown } | null;
+            if (typeof b?.reason === 'string') reason = b.reason;
+          } catch {
+            // Not JSON: the status says the lease was not extended.
+          }
+          ctx.frame({ direction: 'in', type: 'session.started_refused', payload: { status: res.status, reason, role } });
+        })
+        .catch((error: unknown) => ctx.frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-started', message: describeCause(error) } }));
+    };
+    const ports = new Map<SttRole, SonioxLeasePort>([...bundles.keys()].map((role) => [role, {
+      streamAccepted: () => reportStarted(role),
+      atGrantEnd: (now: number) => now >= startedAt + totalMs - GRANT_END_MARGIN_MS,
+      // Synchronously: the adapter's `closed` follows at once and must find the
+      // run already ending (`run.ts` `onEvent`), or the run would end
+      // `leg-closed` with "The provider ended the session."
+      cutoff: () => endOnce(grantEnd),
+    }]));
+
     return {
       credentials(leg: LegName): SonioxCredentials {
         if (!shape.legs.includes(leg)) throw new Error(`The ${leg} leg was not requested of this lease.`);
         const role = roleFor(request, leg);
-        if (role) return { ...bundles.get(role)! };
+        if (role) return { ...bundles.get(role)!, lease: ports.get(role)! };
         // Shared Both's participant rides the speaker's mixed socket: the
         // adapter reads only its region, its reference and its TTS key,
-        // for its own TTS socket (`adapter.ts:80-86`). That key is
+        // for its own TTS socket (`adapter.ts:80-86`), and reports nothing:
+        // the speaker's port serves the mixed socket. That key is
         // `par_tts`, with its own reference, while the flag is on and the
         // answer carries one; otherwise it has none and speaks nothing.
         const mix = bundles.get('mix_stt')!;

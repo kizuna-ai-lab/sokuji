@@ -543,6 +543,15 @@ describe("the Soniox adapter: Plan B's session seams", () => {
     expect(of('reconnecting')).toEqual([]);
   });
 
+  it('an error frame first never tells the lease a stream was accepted', async () => {
+    const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn() };
+    const { stt, of } = await live({ credentials: { ...KEY, lease } });
+    stt().receive(JSON.stringify({ error_code: 401, error_message: 'Invalid API key' }));
+    expect(lease.streamAccepted).not.toHaveBeenCalled();
+    expect(of('failed')).toHaveLength(1);
+    expect(of('failed')[0].payload.code).toBe('auth');
+  });
+
   it("a 403 at the grant's end closes the leg without a failure, after the lease's cutoff", async () => {
     let closedAtCutoff = -1;
     const lease = { streamAccepted: vi.fn(), atGrantEnd: vi.fn(() => true), cutoff: vi.fn(() => { closedAtCutoff = h.of('closed').length; }) };
