@@ -107,6 +107,9 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // A leg's speech failed (Stage 2 Soniox, choice 9): the sentences name no vendor.
   tts_segment_lost: 'mainPanel.sonioxTtsSegmentLost',
   tts_stopped: 'mainPanel.sonioxTtsFailed',
+  // Gemini (Stage 2 Gemini, ruling 13): a key that lists no Live model, and a start with no model to run — the old client's sentences, which name no vendor.
+  no_realtime_model: 'settings.realtimeModelNotAvailable',
+  models_required: 'mainPanel.modelsRequired',
 };
 
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */

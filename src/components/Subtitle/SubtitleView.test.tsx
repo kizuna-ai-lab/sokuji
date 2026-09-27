@@ -189,6 +189,14 @@ describe('SubtitleView', () => {
     expect(overlayActs.exit).toHaveBeenCalledTimes(1);
   });
 
+  it("shows a regional code by its base language — Mandarin's cmn-CN as ZH, not CM (Stage 2 Gemini, choice 9)", () => {
+    render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ pair: { source: 'cmn-CN', target: 'ja-JP' } }) }} controls={controls()} />);
+    expect(screen.getByTestId('bar').dataset.pair).toBe('ZH');
+    cleanup();
+    render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ pair: { source: 'en-US', target: 'ja-JP' } }) }} controls={controls()} />);
+    expect(screen.getByTestId('bar').dataset.pair).toBe('EN');
+  });
+
   it('hands the bar an export menu over the exporter it was given, and none without one', () => {
     const exporter = { hasContent: true, hasScopedContent: () => true, text: () => '', json: () => '' };
     render(<SubtitleView surface="electron" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} exporter={exporter} />);

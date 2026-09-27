@@ -122,6 +122,43 @@ describe('logStore — per-client event grouping', () => {
     // the original group.
     expect(entriesFor('speaker')).toHaveLength(3);
   });
+
+  it("groups each of Gemini's renamed frames: consecutive frames of one type in one entry (Stage 2 Gemini, ruling 12)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    add('server_content.model_turn');
+    add('server_content.model_turn');
+    add('server_content.model_turn');
+    let speaker = entriesFor('speaker');
+    expect(speaker).toHaveLength(1);
+    expect(speaker[0].groupingKey).toBe('gemini_model_turn');
+    expect(speaker[0].events).toHaveLength(3);
+
+    // Another type starts its own entry: the store merges only consecutive events of the same type (`logStore.ts:525-531`).
+    add('server_content.output_transcription');
+    add('server_content.output_transcription');
+    add('server_content.model_turn');
+    speaker = entriesFor('speaker');
+    expect(speaker.map((e) => [e.groupingKey, e.events?.length])).toEqual([
+      ['gemini_model_turn', 3],
+      ['gemini_output_transcription', 2],
+      ['gemini_model_turn', 1],
+    ]);
+
+    const keys: Array<[string, string]> = [
+      ['server_content.input_transcription', 'gemini_input_transcription'],
+      ['server_content.turn_complete', 'gemini_turn_complete'],
+      ['server_content.generation_complete', 'gemini_generation_complete'],
+      ['server_content.interrupted', 'gemini_interrupted'],
+      ['server.usage_metadata', 'gemini_usage_metadata'],
+    ];
+    for (const [type, key] of keys) {
+      add(type);
+      add(type);
+      speaker = entriesFor('speaker');
+      expect(speaker[speaker.length - 1].groupingKey, type).toBe(key);
+      expect(speaker[speaker.length - 1].events, type).toHaveLength(2);
+    }
+  });
 });
 
 describe('logStore — channel filing', () => {

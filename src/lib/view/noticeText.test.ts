@@ -93,6 +93,14 @@ describe('noticeText', () => {
     expect(words).toContain('$0.01');
   });
 
+  it("words Gemini's two model codes with the old client's sentences, which every locale already has", () => {
+    const enCatalog = en as unknown as Record<string, unknown>;
+    expect(noticeText(t, { code: 'no_realtime_model', message: 'x' })).toMatch(/^settings\.realtimeModelNotAvailable\|/);
+    expect(noticeText(t, { code: 'models_required', message: 'x' })).toMatch(/^mainPanel\.modelsRequired\|/);
+    expect(at(enCatalog, NOTICE_ALIASES.no_realtime_model)).toBe('Realtime model is not available');
+    expect(at(enCatalog, NOTICE_ALIASES.models_required)).toBe('Models are required. Please validate your API key first to load available models.');
+  });
+
   it("puts the local engines' notices into words", () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
       expect(NOTICE_WORDS[code]).toBeDefined();

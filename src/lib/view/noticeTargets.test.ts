@@ -35,6 +35,11 @@ describe('settingsTargetForCode', () => {
     }
   });
 
+  it("sends Gemini's model codes to the provider section, where its key and its model are", () => {
+    expect(settingsTargetForCode('no_realtime_model')).toBe('provider');
+    expect(settingsTargetForCode('models_required')).toBe('provider');
+  });
+
   it('has words for every code it targets, its own or an alias — an action never sits beside an unworded notice', () => {
     for (const code of Object.keys(NOTICE_TARGETS)) {
       expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined();

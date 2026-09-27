@@ -21,6 +21,9 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   gpu_out_of_memory: 'provider',
   turn_mode_unsupported: 'turn-detection',
   participant_unsupported: 'languages',
+  // Gemini's model codes (Stage 2 Gemini): the key and the model are the provider section's.
+  no_realtime_model: 'provider',
+  models_required: 'provider',
 };
 
 export function settingsTargetForCode(code: string | undefined): string | null {
