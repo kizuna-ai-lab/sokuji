@@ -82,13 +82,20 @@ describe('the instructions a provider owns (Stage 2 Gemini, ruling 4)', () => {
         .toMatchObject({ systemInstructions: 'edited' });
     });
 
-    it('reads back what localStorage parsed as the text it was, and anything else as the default', () => {
+    it('reads back what localStorage parsed as the text it was — a prompt that was JSON as that JSON — and a blanked key as never written', () => {
       const legacy = {
         'settings.common.systemInstructions': 123,
         'settings.common.participantSystemInstructions': { x: 1 },
         'settings.common.useTemplateMode': 'false',
       };
-      expect(migrateInstructions(stored(), legacy)).toEqual({ useTemplateMode: false, systemInstructions: '123', participantSystemInstructions: '' });
+      expect(migrateInstructions(stored(), legacy)).toEqual({ useTemplateMode: false, systemInstructions: '123', participantSystemInstructions: '{"x":1}' });
+      // A prompt that was a JSON array reads back as its JSON; a key blanked with `null`, as this codebase retires one (`audioStore.ts:427-429`), is the default.
+      const blanked = {
+        'settings.common.systemInstructions': ['a', 1],
+        'settings.common.participantSystemInstructions': null,
+        'settings.common.useTemplateMode': null,
+      };
+      expect(migrateInstructions(stored(), blanked)).toEqual({ ...INSTRUCTIONS_DEFAULTS, systemInstructions: '["a",1]' });
     });
   });
 });

@@ -134,8 +134,9 @@ describe('load', () => {
     expect(getSetting).toHaveBeenCalledWith('settings.common.systemInstructions', undefined);
     expect(getSetting).not.toHaveBeenCalledWith('settings.probe.settings.common.systemInstructions', undefined);
     expect(migrate.mock.calls[0][1]).toMatchObject({ legacy: { 'settings.common.systemInstructions': 'global', on: undefined } });
-    // Read, never written: the global stays where it was.
-    expect(setSetting).not.toHaveBeenCalledWith('settings.common.systemInstructions', expect.anything());
+    // Read, never written, moved or blanked: load writes nothing, and the global stays where it was.
+    expect(setSetting).not.toHaveBeenCalled();
+    expect(stored.get('settings.common.systemInstructions')).toBe('global');
   });
 
   it('rewrites the stored pair before it is normalized, so a renamed code lands on its new spelling', async () => {

@@ -100,8 +100,19 @@ const FIELDS = Object.keys(COMMON_INSTRUCTION_KEYS) as Field[];
  */
 export const INSTRUCTION_LEGACY_KEYS: readonly string[] = [...FIELDS, ...FIELDS.map((f) => COMMON_INSTRUCTION_KEYS[f])];
 
-/** Text as it was stored: localStorage hands back a prompt that parses as a number or a boolean as one (`MigrationInputs.legacy`). */
-const asText = (v: unknown): string | undefined => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : undefined);
+/**
+ * Text as it was stored. A legacy key is read with no default, so
+ * localStorage JSON-parses what it can (`MigrationInputs.legacy`): a prompt
+ * that parsed as a number or a boolean reads back as its text, one that
+ * parsed as an object or an array as its JSON — the user's own prompt,
+ * minus the whitespace it was typed with, rather than the default in its
+ * place. `null` is a blanked key, not a prompt.
+ */
+const asText = (v: unknown): string | undefined =>
+  typeof v === 'string' ? v
+    : typeof v === 'number' || typeof v === 'boolean' ? String(v)
+      : typeof v === 'object' && v !== null ? JSON.stringify(v)
+        : undefined;
 const asFlag = (v: unknown): boolean | undefined => (typeof v === 'boolean' ? v : v === 'true' ? true : v === 'false' ? false : undefined);
 
 /**
