@@ -54,6 +54,9 @@ beforeEach(() => {
     status: 200,
     json: async () => walletBody,
   })));
+  // Also resets the account store (brief step 1): a prior test's wallet must
+  // not leak into the next one.
+  useAccountStore.setState({ account: null });
 });
 
 afterEach(() => { vi.useRealTimers(); });
@@ -62,10 +65,6 @@ const load = async () => {
   const mod = await import('./UserProfileContext');
   return mod;
 };
-
-beforeEach(() => {
-  useAccountStore.setState({ account: null });
-});
 
 const wrap = (UserProfileProvider: React.ComponentType<{ children: React.ReactNode }>) =>
   ({ children }: { children: React.ReactNode }) => React.createElement(UserProfileProvider, null, children);
@@ -161,7 +160,7 @@ describe('UserProfileContext writes the account store (Stage 2 Kizuna Soniox, ru
       .mockResolvedValue({ ok: true, status: 200, json: async () => walletBody });
     vi.stubGlobal('fetch', fetchMock);
     const { UserProfileProvider, useUserProfile } = await load();
-    const { rerender } = renderHook(() => useUserProfile(), { wrapper: wrap(UserProfileProvider) });
+    renderHook(() => useUserProfile(), { wrapper: wrap(UserProfileProvider) });
 
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(useAccountStore.getState().account).toEqual({ status: 'unknown' });
@@ -173,13 +172,27 @@ describe('UserProfileContext writes the account store (Stage 2 Kizuna Soniox, ru
     await act(async () => { await vi.advanceTimersByTimeAsync(90_000); });
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
+    // The sign-out half needs its own render, whose first fetch fails, so a
+    // back-off is actually pending (15 s, 45 s and 105 s timers armed) when
+    // it signs out — the render above is already `known`, with no timer left
+    // to interrupt, so reusing it would prove nothing (review Important 1).
+    const failingFetch = vi.fn(async () => { throw new Error('offline'); });
+    vi.stubGlobal('fetch', failingFetch);
+    const { rerender } = renderHook(() => useUserProfile(), { wrapper: wrap(UserProfileProvider) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(useAccountStore.getState().account).toEqual({ status: 'unknown' });
+    expect(failingFetch).toHaveBeenCalledTimes(1);
+
     signedIn = false;
     userId = undefined;
     await act(async () => { rerender(); await vi.advanceTimersByTimeAsync(0); });
     expect(useAccountStore.getState().account).toBeNull();
 
     await act(async () => { await vi.advanceTimersByTimeAsync(105_000); });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(failingFetch).toHaveBeenCalledTimes(1);
+
+    await act(async () => { window.dispatchEvent(new Event('online')); await vi.advanceTimersByTimeAsync(0); });
+    expect(failingFetch).toHaveBeenCalledTimes(1);
   });
 
   it('clears it when the provider unmounts', async () => {
@@ -190,5 +203,24 @@ describe('UserProfileContext writes the account store (Stage 2 Kizuna Soniox, ru
 
     unmount();
     expect(useAccountStore.getState().account).toBeNull();
+  });
+
+  it('unmounting during the back-off also clears its timers and its online listener', async () => {
+    vi.useFakeTimers();
+    const failingFetch = vi.fn(async () => { throw new Error('offline'); });
+    vi.stubGlobal('fetch', failingFetch);
+    const { UserProfileProvider, useUserProfile } = await load();
+    const { unmount } = renderHook(() => useUserProfile(), { wrapper: wrap(UserProfileProvider) });
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(failingFetch).toHaveBeenCalledTimes(1);
+
+    unmount();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(105_000); });
+    expect(failingFetch).toHaveBeenCalledTimes(1);
+
+    await act(async () => { window.dispatchEvent(new Event('online')); await vi.advanceTimersByTimeAsync(0); });
+    expect(failingFetch).toHaveBeenCalledTimes(1);
   });
 });

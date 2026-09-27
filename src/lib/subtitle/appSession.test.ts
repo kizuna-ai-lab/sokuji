@@ -24,10 +24,12 @@ import type { Runner } from '../session/runner';
 import type { RunState } from '../session/types';
 import type { ConversationViewState, Readable } from '../view/conversationView';
 import { fakeProvider } from '../../providers/fake/provider';
+import { fakeLeasedProvider } from '../../providers/fake/leased';
 import { FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { appSubtitleSession } from './appSession';
@@ -39,12 +41,14 @@ const turnBefore = useTurnModeStore.getState();
 const audioBefore = useAudioStore.getState();
 const accountBefore = useAccountStore.getState();
 const settingsBefore = useSettingsStore.getState();
+const routingBefore = useRoutingStore.getState();
 afterEach(() => {
   useProviderStore.setState(providersBefore, true);
   useTurnModeStore.setState(turnBefore, true);
   useAudioStore.setState(audioBefore, true);
   useAccountStore.setState(accountBefore, true);
   useSettingsStore.setState(settingsBefore, true);
+  useRoutingStore.setState(routingBefore, true);
   environment.value = 'electron';
 });
 
@@ -173,6 +177,39 @@ describe('appSubtitleSession — the balance floor (Stage 2 Kizuna Soniox, rulin
 
     useAccountStore.setState({ account: { status: 'loading' } });
     expect(session.get()).toMatchObject({ idle: { kind: 'unready', code: 'quota_pending' } });
+  });
+});
+
+describe('appSubtitleSession — the participant-speech switch feeds the balance floor (Stage 2 Kizuna Soniox, choice 8)', () => {
+  it('re-evaluates the gate when the participant-speech switch flips, under an application source on Electron', () => {
+    environment.value = 'electron';
+    // A stub floor that prices the participant's speech directly (review
+    // Minor 2): the leased fake's own floor does not, so it cannot show
+    // that `useRoutingStore.subscribe(update)` in appSession.ts feeds the
+    // recompute. Restored in `finally`.
+    const original = fakeLeasedProvider.session!.minimumBalance!;
+    fakeLeasedProvider.session!.minimumBalance = (shape) => (shape.participantSpeech ? 2000 : 500);
+    try {
+      useProviderStore.setState({
+        selected: 'fake_leased',
+        entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+      });
+      useAudioStore.setState({ mode: 'speaker', selectedParticipantSource: { deviceId: 'app:1', label: 'App' } });
+      useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1000, frozen: false } });
+      useRoutingStore.setState({ participantSpeech: false });
+
+      const { session } = setup({ provider: false });
+      expect(session.get().canStart).toBe(true);
+
+      const listener = vi.fn();
+      session.subscribe(listener);
+      useRoutingStore.setState({ participantSpeech: true });
+
+      expect(listener).toHaveBeenCalled();
+      expect(session.get()).toMatchObject({ canStart: false, idle: { kind: 'unready', code: 'balance_below_floor' } });
+    } finally {
+      fakeLeasedProvider.session!.minimumBalance = original;
+    }
   });
 });
 

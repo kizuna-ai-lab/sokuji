@@ -77,9 +77,9 @@ export function balanceRefusal(input: Pick<GateInput, 'provider' | 'settings' | 
  * or opened — over a run's frozen shape at start (`Run.open`), and over the
  * stores as they stand while idle (`liveGate`, F7), so the surfaces keep
  * Start off and say why before it is pressed. Credentials, readiness, the
- * build and `admit` are refused by the run's later steps, and, last, a
- * managed provider's balance check: the wallet loading or unknown, frozen,
- * or below the floor.
+ * build and `admit` are refused by the run's later steps. The gate's own
+ * last check is a managed provider's balance: the wallet loading or
+ * unknown, frozen, or below the floor.
  */
 export function gate(shape: GateInput, platform: Platform): Refusal | null {
   const { provider: p, settings: s, legs } = shape;

@@ -4,8 +4,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { formatUsdFloor } from '../../utils/formatters';
 import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, microphoneMissing, QUOTA_PENDING, QUOTA_UNKNOWN } from './shape';
-import type { BalanceShape } from './types';
-import type { RunShape } from './types';
+import type { BalanceShape, RunShape } from './types';
 
 const shape = (patch: Partial<RunShape> = {}): RunShape => ({
   provider: fakeProvider,

@@ -21,8 +21,7 @@ vi.mock('../../utils/environment', async (importOriginal) => {
 
 import type { AnyProvider, CheckContext } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
-import { FAKE_DEFAULTS } from '../../providers/fake/settings';
-import { FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
+import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
