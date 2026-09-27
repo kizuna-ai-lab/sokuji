@@ -66,13 +66,20 @@ describe("Gemini's builder", () => {
     expect(build({ maxTokens: 99_999 }).maxOutputTokens).toBe(8192);
     expect(build({ maxTokens: 0 }).maxOutputTokens).toBe(1);
     expect(build({ maxTokens: 2048.4 }).maxOutputTokens).toBe(2048);
+    // A non-finite maxTokens reads as 'inf' (unlimited): every knob falls back
+    // to its default, and the default here omits the field (fix round 1).
+    expect(build({ maxTokens: Number.NaN })).not.toHaveProperty('maxOutputTokens');
     expect(build({ vadSilenceDurationMs: 10, vadPrefixPaddingMs: -5 }).activity).toMatchObject({ silenceMs: 50, prefixMs: 0 });
     expect(build({ vadSilenceDurationMs: 99_999, vadPrefixPaddingMs: 5000 }).activity).toMatchObject({ silenceMs: 3000, prefixMs: 2000 });
+    expect(build({ vadSilenceDurationMs: 512.6, vadPrefixPaddingMs: 249.5 }).activity).toMatchObject({ silenceMs: 513, prefixMs: 250 });
+    expect(build({ vadSilenceDurationMs: Number.NaN, vadPrefixPaddingMs: Number.NaN }).activity).toMatchObject({ silenceMs: 500, prefixMs: 300 });
   });
 
   it("defers a mid-sentence close while the display cuts by sentences, and clamps the pauses to the timers' range (choice 7)", () => {
     const c = build({ model: TRANSLATE }, SPEAKER, shared({ segmentation: { mode: 'sentences', sentencesPerRow: 2 }, pauses: { sourceSeconds: 0.05, translationSeconds: 10 } }));
     expect(c.silence).toEqual({ sourceMs: 100, translationMs: 3000, deferMidSentence: true });
+    // Off never defers: the old sentence stage that fed the deferral never ran under it (`GeminiClient.ts:803, 827`).
+    expect(build({ model: TRANSLATE }, SPEAKER, shared({ segmentation: { mode: 'off', sentencesPerRow: 0 } })).silence).toMatchObject({ deferMidSentence: false });
   });
 
   it('refuses with models_required when there is no model at all, and runs a saved model while nothing is listed', () => {

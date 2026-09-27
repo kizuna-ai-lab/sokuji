@@ -65,7 +65,10 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
     // Live Translate reproduces the speaker's own voice and ignores a voice (`geminiTranslateModel.ts:25-27`); neither kind is voiced for a leg that does not speak.
     ...(dialogue && context.speech ? { voice: s.voice || GEMINI_DEFAULT_VOICE } : {}),
     ...(dialogue ? { temperature: clamp(s.temperature, GEMINI_TEMPERATURE_RANGE.min, GEMINI_TEMPERATURE_RANGE.max, GEMINI_DEFAULTS.temperature) } : {}),
-    ...(dialogue && s.maxTokens !== 'inf'
+    // Every knob falls back to its default on a non-finite value; the
+    // default here is 'inf' (unlimited), so a non-finite maxTokens omits
+    // the field rather than sending some clamped number (fix round 1).
+    ...(dialogue && s.maxTokens !== 'inf' && Number.isFinite(s.maxTokens)
       ? { maxOutputTokens: Math.round(clamp(s.maxTokens, GEMINI_MAX_TOKENS_RANGE.min, GEMINI_MAX_TOKENS_RANGE.max, GEMINI_MAX_TOKENS_RANGE.max)) }
       : {}),
     ...(dialogue ? {} : {
