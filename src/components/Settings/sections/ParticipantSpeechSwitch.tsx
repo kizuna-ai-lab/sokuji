@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import ToggleSwitch from '../shared/ToggleSwitch';
 import { participantSpeechHeard } from '../../../lib/modern-audio/participantSource';
-import { getProvider } from '../../../providers/registry';
+import { selectedFromStores } from '../../../lib/session/appShape';
 import useAudioStore from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
@@ -33,9 +33,12 @@ export function ParticipantSpeechSwitch({ locked }: { locked: boolean }) {
   const { t } = useTranslation();
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const selectedParticipantSource = useAudioStore((s) => s.selectedParticipantSource);
-  const selected = useProviderStore((s) => s.selected);
+  // Subscribed to what the provider lookup reads, so the switch follows a selection or a load.
+  useProviderStore((s) => s.selected);
+  useProviderStore((s) => s.entries);
   // The provider's participant-speech flag (ruling 2) — Kizuna Soniox's is off until the backend mints a participant speech key. Absolute, so named first.
-  const offered = (selected ? getProvider(selected) : undefined)?.participantSpeech !== false;
+  // The provider exactly as the run and the live gate find it (`selectedFromStores`: the selected one if present, else the first present), so the switch never offers speech a run would not voice.
+  const offered = selectedFromStores()?.provider.participantSpeech !== false;
   const heard = participantSpeechHeard(isElectron() ? 'electron' : 'other', selectedParticipantSource?.deviceId);
   return (
     <ToggleSwitch

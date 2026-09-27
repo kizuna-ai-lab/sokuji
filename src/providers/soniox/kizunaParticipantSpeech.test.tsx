@@ -27,11 +27,12 @@ vi.mock('../../components/Tooltip/Tooltip', () => ({
     return null;
   },
 }));
-// The switch finds the selected provider in the registry: a test can stand the flag-on twin in for the shipped one.
+// The switch finds the provider among the present ones, as a run does: a test can stand the flag-on twin in for the shipped one.
 const standIn = vi.hoisted(() => ({ provider: null as unknown }));
 vi.mock('../registry', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../registry')>();
-  return { ...actual, getProvider: (id: string) => (id === 'kizunaai_soniox' && standIn.provider ? standIn.provider : actual.getProvider(id)) };
+  const swap = (p: AnyProvider): AnyProvider => (p.id === 'kizunaai_soniox' && standIn.provider ? (standIn.provider as AnyProvider) : p);
+  return { ...actual, presentProviders: (...args: Parameters<typeof actual.presentProviders>) => actual.presentProviders(...args).map(swap) };
 });
 
 import { ParticipantSpeechSwitch } from '../../components/Settings/sections/ParticipantSpeechSwitch';
@@ -123,9 +124,15 @@ const sentWithKey = (r: Ran, key: string) => r.tts.flatMap((x) => x.sentJson<Jso
 const degraded = (r: Ran) => r.rec.participant.log.filter((e) => e.kind === 'degraded');
 
 describe('the switch', () => {
+  /** Kizuna Soniox selected, its entry loaded: the provider a run would start. */
+  const selectKizuna = () => useProviderStore.setState({
+    selected: 'kizunaai_soniox',
+    entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
+  });
+
   it('shipped, the flag off: off and disabled with the "not yet" tooltip, the stored choice kept', () => {
     useRoutingStore.setState({ participantSpeech: true });
-    useProviderStore.setState({ selected: 'kizunaai_soniox' });
+    selectKizuna();
     render(<ParticipantSpeechSwitch locked={false} />);
     const sw = screen.getByRole('switch');
     expect(sw.getAttribute('aria-checked')).toBe('false');
@@ -137,7 +144,7 @@ describe('the switch', () => {
   it('the flag on: enabled, following the stored choice', () => {
     standIn.provider = speaking;
     useRoutingStore.setState({ participantSpeech: true });
-    useProviderStore.setState({ selected: 'kizunaai_soniox' });
+    selectKizuna();
     render(<ParticipantSpeechSwitch locked={false} />);
     const sw = screen.getByRole('switch');
     expect(sw.getAttribute('aria-checked')).toBe('true');

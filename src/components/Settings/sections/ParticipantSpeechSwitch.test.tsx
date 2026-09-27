@@ -17,19 +17,28 @@ vi.mock('../../Tooltip/Tooltip', () => ({
     return null;
   },
 }));
-vi.mock('../../../providers/registry', () => ({ getProvider: (id: string) => (id === 'not-yet' ? { participantSpeech: false } : id === 'speaking' ? { participantSpeech: true } : {}) }));
+// The present providers, first one first as the registry offers them: like
+// Kizuna Soniox today, the first has its participant-speech flag off.
+const PROVIDERS = vi.hoisted(() => [{ id: 'not-yet', participantSpeech: false }, { id: 'speaking', participantSpeech: true }, { id: 'plain' }]);
+vi.mock('../../../providers/registry', () => ({ presentProviders: () => PROVIDERS }));
 
 import useAudioStore from '../../../stores/audioStore';
-import { useProviderStore } from '../../../stores/providerStore';
+import { useProviderStore, type ProviderEntry } from '../../../stores/providerStore';
 import { useRoutingStore } from '../../../stores/routingStore';
 import { ParticipantSpeechSwitch } from './ParticipantSpeechSwitch';
+
+/** Every present provider's entry loaded, `id` selected. */
+function select(id: string): void {
+  const entry: ProviderEntry = { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } };
+  useProviderStore.setState({ selected: id, entries: Object.fromEntries(PROVIDERS.map((p) => [p.id, entry])) });
+}
 
 beforeEach(() => {
   electron.value = false;
   tooltipContents.length = 0;
   useRoutingStore.setState({ participantSpeech: false });
   useAudioStore.setState({ selectedParticipantSource: null } as Partial<ReturnType<typeof useAudioStore.getState>>);
-  useProviderStore.setState({ selected: null });
+  select('plain');
 });
 
 describe('ParticipantSpeechSwitch', () => {
@@ -88,7 +97,7 @@ describe('ParticipantSpeechSwitch', () => {
 
   it("shows it off and disabled while the provider's flag is off, keeping the stored value", () => {
     useRoutingStore.setState({ participantSpeech: true });
-    useProviderStore.setState({ selected: 'not-yet' });
+    select('not-yet');
     render(<ParticipantSpeechSwitch locked={false} />);
     const sw = screen.getByRole('switch');
     expect(sw.getAttribute('aria-checked')).toBe('false');
@@ -103,17 +112,28 @@ describe('ParticipantSpeechSwitch', () => {
     useAudioStore.setState({
       selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' },
     } as Partial<ReturnType<typeof useAudioStore.getState>>);
-    useProviderStore.setState({ selected: 'not-yet' });
+    select('not-yet');
     render(<ParticipantSpeechSwitch locked={false} />);
     expect(tooltipContents).toContain('audioPanel.participantSpeechNotYetAvailable');
     expect(tooltipContents).not.toContain('audioPanel.participantSpeechBlockedWholeSystem');
+  });
+
+  it('reads the provider a run would start: a stored id that is not present follows the first present one', () => {
+    useRoutingStore.setState({ participantSpeech: true });
+    select('gone');
+    render(<ParticipantSpeechSwitch locked={false} />);
+    const sw = screen.getByRole('switch');
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    expect(sw.getAttribute('aria-disabled')).toBe('true');
+    expect(tooltipContents).toContain('audioPanel.participantSpeechNotYetAvailable');
+    expect(useRoutingStore.getState().participantSpeech).toBe(true);
   });
 
   it('a provider whose flag is on, or that has none, leaves the switch as before', () => {
     for (const id of ['speaking', 'plain']) {
       tooltipContents.length = 0;
       useRoutingStore.setState({ participantSpeech: true });
-      useProviderStore.setState({ selected: id });
+      select(id);
       const { unmount } = render(<ParticipantSpeechSwitch locked={false} />);
       const sw = screen.getByRole('switch');
       expect(sw.getAttribute('aria-checked')).toBe('true');
