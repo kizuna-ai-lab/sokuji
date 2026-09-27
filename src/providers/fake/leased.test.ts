@@ -96,7 +96,7 @@ describe('the leased fake', () => {
         return () => { cancelled(); cancel(); };
       },
     };
-    const lease = await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 1000 })), s({ leaseEndsAfterMs: 1000 }), { signal: live(), clock: counting, end: vi.fn() });
+    const lease = await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 1000 })), s({ leaseEndsAfterMs: 1000 }), { signal: live(), clock: counting, end: vi.fn(), frame: vi.fn() });
     expect(lease.credentials('speaker')).toEqual({ leg: 'speaker' });
     expect(lease.credentials('participant')).toEqual({ leg: 'participant' });
     await lease.release();
@@ -108,7 +108,7 @@ describe('the leased fake', () => {
   it("acquire ends the run on the run's clock with budget_exhausted, and not once released", async () => {
     const clock = createVirtualClock(0);
     const end = vi.fn();
-    await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 1000 })), s({ leaseEndsAfterMs: 1000 }), { signal: live(), clock, end });
+    await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 1000 })), s({ leaseEndsAfterMs: 1000 }), { signal: live(), clock, end, frame: vi.fn() });
     clock.advance(999);
     expect(end).not.toHaveBeenCalled();
     clock.advance(1);
@@ -116,7 +116,7 @@ describe('the leased fake', () => {
     expect(end).toHaveBeenCalledWith({ code: 'budget_exhausted', message: 'Lease ended by the leased fake (knob).' });
 
     const released = vi.fn();
-    const second = await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 1000 })), s({ leaseEndsAfterMs: 1000 }), { signal: live(), clock, end: released });
+    const second = await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 1000 })), s({ leaseEndsAfterMs: 1000 }), { signal: live(), clock, end: released, frame: vi.fn() });
     await second.release();
     clock.advance(2000);
     expect(released).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('the leased fake', () => {
   it('acquire refuses a cancelled start', async () => {
     const controller = new AbortController();
     controller.abort(new Error('cancelled'));
-    await expect(session.acquire!(shapeFor(s()), s(), { signal: controller.signal, clock: createVirtualClock(0), end: vi.fn() })).rejects.toThrow('cancelled');
+    await expect(session.acquire!(shapeFor(s()), s(), { signal: controller.signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn() })).rejects.toThrow('cancelled');
   });
 
   it('startBoth, shared: stopping either leg stops both', async () => {

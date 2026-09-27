@@ -190,6 +190,7 @@ export class Run {
           for (const conversation of this.conversations.values()) conversation.notice({ severity: 'error', ...notice });
           host.end({ reason: 'lease-ended', notice });
         },
+        frame: (frame) => deps.frames?.frame(shape.legs[0], frame),
       });
       this.stack.defer('lease', () => resources.release());
       this.throwIfAborted();

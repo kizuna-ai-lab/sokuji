@@ -7,12 +7,12 @@ import type { AuthContext, CredentialsMissing, CredentialValues, Provider } from
  * `read` that throws is a provider bug, answered as missing rather than
  * thrown, so no caller has to guard it.
  */
-export function readCredentials<S, K extends { missing?: never } & object>(
-  p: Pick<Provider<S, K, never>, 'credentials'>,
+export function readCredentials<S, R extends { missing?: never } & object>(
+  p: Pick<Provider<S, never, never, R>, 'credentials'>,
   s: S,
   saved: CredentialValues,
   auth: AuthContext,
-): K | CredentialsMissing {
+): R | CredentialsMissing {
   const values: CredentialValues = Object.fromEntries(p.credentials.fields(s).map((f) => [f.key, saved[f.key] ?? '']));
   try {
     return p.credentials.read(values, auth);

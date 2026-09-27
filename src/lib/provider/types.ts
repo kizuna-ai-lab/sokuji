@@ -48,6 +48,13 @@ export interface AuthContext {
   getToken(): Promise<string | null>;
   /** The signed-in user's id; null signed out. Absent where no sign-in is wired: tests, the root's default. */
   userId?: string | null;
+  /**
+   * False while the sign-in is still loading at launch: a managed
+   * provider's `read` then answers `sign_in_pending`, not "sign in" (Stage 2
+   * Kizuna Soniox, choice 10). Absent where no sign-in is wired — tests, the
+   * root's default — and read as loaded.
+   */
+  loaded?: boolean;
 }
 
 /**
@@ -158,7 +165,13 @@ export interface ProviderRefusal {
   params?: Record<string, string | number>;
 }
 
-export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object> {
+/**
+ * `R` is what `credentials.read` answers and `check` takes; it is `K`
+ * unless the provider mints `K` in `session.acquire` — a managed twin's `R`
+ * is the sign-in (`managed.ts`), its `K` the lease's per-leg keys (Stage 2
+ * Kizuna Soniox, choice 1).
+ */
+export interface Provider<S, K extends { missing?: never } & object, C extends { refused?: never } & object, R extends { missing?: never } & object = K> {
   // identity and presence
   /** Persisted as the selected provider; never renamed. */
   id: string;
@@ -235,11 +248,11 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     keys: readonly string[];
     fields(s: S): readonly CredentialField[];
     /**
-     * Receives the values of exactly the fields `fields(s)` returns. `K` has
+     * Receives the values of exactly the fields `fields(s)` returns. `R` has
      * no `missing` member — the type parameter's constraint enforces it. A
      * missing answer may carry a code (F3).
      */
-    read(values: CredentialValues, auth: AuthContext): K | CredentialsMissing;
+    read(values: CredentialValues, auth: AuthContext): R | CredentialsMissing;
   };
   /**
    * Can this provider start now: a network validation, model readiness, or
@@ -252,7 +265,7 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * managed provider, its sign-in and account; a local provider is asked
    * every time.
    */
-  check(k: K, s: S, ctx: CheckContext): Promise<CheckResult>;
+  check(r: R, s: S, ctx: CheckContext): Promise<CheckResult>;
   /**
    * Calls back when something `check` reads besides the settings,
    * credentials, pair and legs has changed — a local engine's models
@@ -281,6 +294,15 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   textInput: boolean;
   boundaries(s: S): 'provider' | 'silence';
   turns(s: S): ReadonlyArray<'auto' | 'manual'>;
+  /**
+   * Whether the participant leg may speak. `false`: never, whatever its
+   * switch says — Kizuna Soniox ships so until the backend mints a
+   * participant speech key (Stage 2 Kizuna Soniox, ruling 2); the switch
+   * then shows off and disabled with a "not available yet" tooltip,
+   * keeping the stored choice. Absent or `true`: the participant speaks
+   * when its switch is on.
+   */
+  participantSpeech?: boolean;
 
   // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
@@ -292,7 +314,8 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
 }
 
 /**
- * A provider whose `S`, `K` and `C` are not known here. The registry holds
- * providers of different types, and generic code treats all three as opaque.
+ * A provider whose `S`, `K`, `C` and `R` are not known here. The registry
+ * holds providers of different types, and generic code treats all four as
+ * opaque.
  */
-export type AnyProvider = Provider<any, any, any>;
+export type AnyProvider = Provider<any, any, any, any>;
