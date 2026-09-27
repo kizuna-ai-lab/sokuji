@@ -1239,7 +1239,8 @@ saved model if the check found it, otherwise the newest; while no check has
 listed any model, the saved one — none on a fresh profile, which the builder
 refuses (`models_required`), though a run builds only after a ready answer,
 whose list is never empty (Stage 2 Gemini, `effectiveGeminiModel`). Gemini's
-newest is the newest native-audio dialogue model — by family (`major.minor`),
+newest is the newest native-audio dialogue model — by family (`major.minor`,
+a missing minor read as 0: Google spells some ids `gemini-3-…`),
 then the id's `-MM-YYYY` date, a dated id before an undated one (Stage 2 Gemini,
 ruling 2). The provider's settings component and its builder call the same
 function, so nothing writes back.
