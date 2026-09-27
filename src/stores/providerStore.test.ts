@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { AnyProvider, CheckContext, LanguageOption, LanguagePair, MigrationInputs } from '../lib/provider/types';
+import type { AnyProvider, CheckContext, LanguageContext, LanguageOption, LanguagePair, MigrationInputs } from '../lib/provider/types';
 
 const { stored, getSetting, setSetting } = vi.hoisted(() => {
   const stored = new Map<string, unknown>();
@@ -302,6 +302,104 @@ describe('writes', () => {
     useProviderStore.getState().setSelectionLocked(true);
     expect(listener).toHaveBeenCalledTimes(1);
     off();
+  });
+});
+
+describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
+  /** Speaking offers en and ja; text also ko — Doubao AST 2.0's shape. */
+  const offered = (context?: LanguageContext) => [opt('en'), opt('ja'), ...(context?.speech ? [] : [opt('ko')])];
+  const moody = {
+    ...probe,
+    id: 'moody',
+    speech: 'optional',
+    settings: { key: 'moody', defaults: probe.settings.defaults },
+    languages: {
+      sources: (_s: ProbeSettings, context?: LanguageContext) => offered(context),
+      targets: (source: string, _s: ProbeSettings, context?: LanguageContext) => offered(context).filter((o) => o.value !== source),
+    },
+  } as unknown as AnyProvider;
+  const moodyEntry = () => useProviderStore.getState().entries.moody;
+  const speaking = { textOnly: false, participantSpeech: false };
+  const textOnly = { textOnly: true, participantSpeech: false };
+  const pairWrites = () => setSetting.mock.calls.filter(([key]) => /Language$/.test(String(key)));
+
+  beforeEach(() => {
+    useProviderStore.setState({ legs: ['speaker'], speech: speaking, readiness: {} });
+    stored.set('settings.moody.sourceLanguage', 'ko');
+    stored.set('settings.moody.targetLanguage', 'en');
+  });
+
+  it("derives the pair a speaking run can start from a text-only one, keeping the user's as stored, writing nothing", async () => {
+    await useProviderStore.getState().load(moody);
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'en' });
+    expect(pairWrites()).toEqual([]);
+  });
+
+  it("brings the stored pair back when the run stops speaking, and drops it from the entry: it is the pair again", async () => {
+    await useProviderStore.getState().load(moody);
+    useProviderStore.getState().setSpeech(textOnly);
+    expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
+    expect(moodyEntry()).not.toHaveProperty('stored');
+    useProviderStore.getState().setSpeech(speaking);
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+    expect(pairWrites()).toEqual([]);
+  });
+
+  it('reads the legs as part of the context: a participant-only run with its switch off does not speak', async () => {
+    await useProviderStore.getState().load(moody);
+    useProviderStore.getState().setLegs(['participant']);
+    expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
+    useProviderStore.getState().setSpeech({ textOnly: false, participantSpeech: true });
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+  });
+
+  it('derives the same pair whichever lands first, the load or the inputs', async () => {
+    useProviderStore.getState().setSpeech(textOnly);
+    await useProviderStore.getState().load(moody);
+    expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
+    useProviderStore.setState({ entries: {} });
+    useProviderStore.getState().setSpeech(speaking);
+    await useProviderStore.getState().load(moody);
+    useProviderStore.getState().setSpeech(textOnly);
+    expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
+  });
+
+  it('keeps a pick as picked — one the context cannot run stays stored for the one that can — and persists it', async () => {
+    stored.clear();
+    await useProviderStore.getState().load(moody);
+    useProviderStore.getState().setPair(moody, { source: 'ko', target: 'ja' });
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'ja' });
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.moody.sourceLanguage', 'ko'));
+    // A pick the context runs is the pair, and nothing is kept beside it.
+    useProviderStore.getState().setPair(moody, { source: 'ja', target: 'en' });
+    expect(moodyEntry().pair).toEqual({ source: 'ja', target: 'en' });
+    expect(moodyEntry()).not.toHaveProperty('stored');
+  });
+
+  it("keeps the stored pair across a settings edit, writing only the settings", async () => {
+    await useProviderStore.getState().load(moody);
+    useProviderStore.getState().updateSettings(moody, { count: 2 });
+    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'en' });
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.moody.count', 2));
+    expect(pairWrites()).toEqual([]);
+  });
+
+  it("forgets the readiness of a provider whose pair moved, and only that one's; the same inputs change nothing", async () => {
+    await useProviderStore.getState().load(moody);
+    await useProviderStore.getState().load(probe);
+    const ready = { state: 'ready' as const, models: [] };
+    useProviderStore.setState({ readiness: { moody: ready, probe: ready } });
+    const entries = useProviderStore.getState().entries;
+    useProviderStore.getState().setSpeech(speaking);
+    expect(useProviderStore.getState().entries).toBe(entries);
+    useProviderStore.getState().setSpeech(textOnly);
+    expect(useProviderStore.getState().readiness.moody).toEqual({ state: 'unknown' });
+    expect(useProviderStore.getState().readiness.probe).toBe(ready);
+    // A provider whose languages ignore the context never carries a stored pair.
+    expect(entry()).not.toHaveProperty('stored');
   });
 });
 

@@ -435,6 +435,19 @@ describe('attach', () => {
     detach();
   });
 
+  it("keeps the provider store's speech inputs on the text-only switch, only while attached (Stage 2 Volcengine AST2, choice 1)", async () => {
+    const { session } = await setup();
+    useSettingsStore.setState({ textOnly: false });
+    const detach = session.attach();
+
+    useSettingsStore.setState({ textOnly: true });
+    expect(useProviderStore.getState().speech.textOnly).toBe(true);
+
+    detach();
+    useSettingsStore.setState({ textOnly: false });
+    expect(useProviderStore.getState().speech.textOnly).toBe(true);
+  });
+
   it('checks a local provider by itself', async () => {
     const { session, clock } = await setup();
     const spy = vi.fn(async () => ({ state: 'unknown' as const }));

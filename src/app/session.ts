@@ -13,7 +13,7 @@ import { redact } from '../lib/diagnostics/redact';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import { autoSaveConversation } from '../lib/export/appAutoSave';
 import type { AuthContext } from '../lib/provider/types';
-import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from '../lib/session/appShape';
+import { appReplayAudio, ensureReadyFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -248,6 +248,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       const offs: Array<() => void> = [
         // The panel's readiness is about the legs a start would open: the audio mode's.
         watchLegsFromStores(),
+        // The languages on offer follow whether a start would speak (Stage 2 Volcengine AST2, choice 1).
+        watchSpeechFromStores(),
         driveReadiness({
           runner, providers: () => presentProviders(), auth: () => bridges.auth, clock,
           watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },

@@ -16,7 +16,7 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment } from '../../utils/environment';
 import { buildSharedSettings } from './shared';
-import { gate, type Refusal } from './shape';
+import { gate, type Refusal, type SpeechInputs } from './shape';
 import type { RunShape } from './types';
 
 export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
@@ -42,9 +42,32 @@ export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEn
  * read it, so they price the same legs.
  */
 export function participantSpeechFromStores(provider: Pick<AnyProvider, 'participantSpeech'>): boolean {
-  return provider.participantSpeech !== false
-    && useRoutingStore.getState().participantSpeech
+  return provider.participantSpeech !== false && participantSpeechSwitchFromStores();
+}
+
+/** The participant's speech before its provider's flag: its switch on, and a source that will not recapture it. */
+export function participantSpeechSwitchFromStores(): boolean {
+  return useRoutingStore.getState().participantSpeech
     && participantSpeechHeard(getEnvironment(), useAudioStore.getState().selectedParticipantSource?.deviceId);
+}
+
+/**
+ * Whether a run would speak, besides its legs and its provider, as the
+ * stores stand: the text-only switch and the participant's speech (the
+ * provider's own flag is `languageContext`'s to apply). The provider store
+ * keeps it for the language offer (Stage 2 Volcengine AST2, choice 1).
+ */
+export function speechInputsFromStores(): SpeechInputs {
+  return { textOnly: useSettingsStore.getState().textOnly, participantSpeech: participantSpeechSwitchFromStores() };
+}
+
+/** Keeps the provider store's speech inputs on the stores', now and on every change, so each provider's pair is one its run could start. Returns the unsubscribe. */
+export function watchSpeechFromStores(): () => void {
+  const apply = () => useProviderStore.getState().setSpeech(speechInputsFromStores());
+  apply();
+  // Whole-store listeners: `setSpeech` ignores inputs that did not change.
+  const offs = [useSettingsStore.subscribe(apply), useRoutingStore.subscribe(apply), useAudioStore.subscribe(apply)];
+  return () => { for (const off of offs) off(); };
 }
 
 export function readShapeFromStores(auth: AuthContext): RunShape | null {

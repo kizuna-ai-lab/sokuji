@@ -28,13 +28,13 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { ensureReadyFromStores, legsFor, liveGate, participantSpeechFromStores, persistIfUnchanged, readShapeFromStores, watchLegsFromStores } from './appShape';
+import { ensureReadyFromStores, legsFor, liveGate, participantSpeechFromStores, participantSpeechSwitchFromStores, persistIfUnchanged, readShapeFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'] });
+  useProviderStore.setState({ entries: {}, readiness: {}, selected: null, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
   useTurnModeStore.setState({ turnMode: 'auto' });
   useRoutingStore.setState({ participantSpeech: false });
   useAudioStore.setState({ selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
@@ -196,6 +196,32 @@ describe('watchLegsFromStores', () => {
     unwatch();
     useAudioStore.setState({ mode: 'speaker' });
     expect(useProviderStore.getState().legs).toEqual(['speaker', 'participant']);
+  });
+});
+
+describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine AST2, choice 1)', () => {
+  it("reads the text-only switch and the participant's speech: its switch, and a source that will not recapture it", () => {
+    expect(speechInputsFromStores()).toEqual({ textOnly: false, participantSpeech: false });
+    expect(participantSpeechSwitchFromStores()).toBe(false);
+    useSettingsStore.setState({ textOnly: true });
+    useRoutingStore.setState({ participantSpeech: true });
+    expect(speechInputsFromStores()).toEqual({ textOnly: true, participantSpeech: true });
+    environment.value = 'electron';
+    useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
+    expect(speechInputsFromStores().participantSpeech).toBe(false);
+    expect(participantSpeechSwitchFromStores()).toBe(false);
+  });
+
+  it("keeps the provider store's speech inputs on the stores', now and on every change, until unsubscribed", () => {
+    useSettingsStore.setState({ textOnly: true });
+    const unwatch = watchSpeechFromStores();
+    expect(useProviderStore.getState().speech).toEqual({ textOnly: true, participantSpeech: false });
+    useSettingsStore.setState({ textOnly: false });
+    useRoutingStore.setState({ participantSpeech: true });
+    expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: true });
+    unwatch();
+    useSettingsStore.setState({ textOnly: true });
+    expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: true });
   });
 });
 

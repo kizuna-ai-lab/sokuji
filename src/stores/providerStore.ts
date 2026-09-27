@@ -11,6 +11,7 @@ import { describeCause, reportError, reportWarning } from '../lib/diagnostics/re
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption, Readiness } from '../lib/provider/types';
+import { languageContext, type SpeechInputs } from '../lib/session/shape';
 import { selectionToPersist } from '../lib/session/storedSettings';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
@@ -21,7 +22,16 @@ export interface ProviderEntry {
   settings: unknown;
   /** Every key in `credentials.keys`; '' where nothing is saved. */
   credentials: CredentialValues;
+  /** The pair the surfaces show and a run starts: the stored pair, within what the store's language context offers. */
   pair: LanguagePair;
+  /**
+   * The pair as the user left it, while the language context narrows it
+   * away (Stage 2 Volcengine AST2, choice 1): Doubao's text-only Korean
+   * while a run would speak. Absent when it is `pair` — for every provider
+   * whose languages ignore the context. It is what persists: a context
+   * change derives `pair` from it again, and writes nothing.
+   */
+  stored?: LanguagePair;
 }
 
 export type { Readiness } from '../lib/provider/types';
@@ -62,8 +72,12 @@ export interface ProviderStore {
   forgetReadiness(p: Pick<AnyProvider, 'id'>): void;
   /** The legs a start would open now, speaker first (appShape's `watchLegsFromStores` keeps them); the speaker alone until then. */
   legs: readonly LegName[];
-  /** Other legs change what a check answers: every loaded provider's readiness is forgotten. The same legs change nothing. */
+  /** Other legs change what a check answers: every loaded provider's readiness is forgotten, and each pair derived again for the new language context. The same legs change nothing. */
   setLegs(legs: readonly LegName[]): void;
+  /** Whether a run would speak besides its legs (appShape's `watchSpeechFromStores` keeps it): with the legs, each provider's language context (Stage 2 Volcengine AST2, choice 1). Nothing speaks until it is kept. */
+  speech: SpeechInputs;
+  /** Every loaded entry's pair is derived again from its stored pair, nothing written; a provider whose pair moved forgets its readiness. The same inputs change nothing. */
+  setSpeech(inputs: SpeechInputs): void;
   /** The provider the panel shows and a run starts. A person's pick persists (old enum spelling, `storedSettings.ts`); a load never writes (1e-3 ruling 2). */
   selected: string | null;
   /** Refused, with a warning, while `selectionLocked`. */
@@ -90,6 +104,8 @@ function legacyStorageKey(p: AnyProvider, key: string): string {
 const checkSeq = new Map<string, number>();
 /** The last answer per network provider, with the inputs it answered. */
 const lastAnswer = new Map<string, { inputs: string; readiness: Readiness }>();
+/** The definition each entry was loaded from: what a language context change derives its pair with. */
+const loadedProviders = new Map<string, AnyProvider>();
 
 export const useProviderStore = create<ProviderStore>()((set, get) => {
   /** Writing to a provider before `load` resolves is a bug in the caller. */
@@ -117,6 +133,27 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
   const forgetReadiness = (p: Pick<AnyProvider, 'id'>) => {
     supersede(p);
     setReadiness(p, UNKNOWN);
+  };
+  /**
+   * An entry's pair from the pair the user left: within the languages the
+   * store's context offers (Stage 2 Volcengine AST2, choice 1); `stored`
+   * kept only where the two differ.
+   */
+  const derive = (p: AnyProvider, settings: unknown, stored: LanguagePair): Pick<ProviderEntry, 'pair' | 'stored'> => {
+    const pair = normalizePair(p, settings, stored, languageContext(p, get().legs, get().speech));
+    return pair.source === stored.source && pair.target === stored.target ? { pair } : { pair, stored };
+  };
+  /** The context moved: every loaded entry's pair derived again, nothing written. */
+  const rederive = () => {
+    for (const [id, entry] of Object.entries(get().entries)) {
+      const p = loadedProviders.get(id);
+      if (!p) continue;
+      const next = derive(p, entry.settings, entry.stored ?? entry.pair);
+      if (next.pair.source === entry.pair.source && next.pair.target === entry.pair.target) continue;
+      put(p, { settings: entry.settings, credentials: entry.credentials, ...next });
+      // The check reads the pair: its answer was about the other one.
+      forgetReadiness(p);
+    }
   };
 
   return {
@@ -147,6 +184,14 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       if (legs.length === now.length && legs.every((leg, i) => leg === now[i])) return;
       set({ legs });
       for (const id of Object.keys(get().entries)) forgetReadiness({ id });
+      rederive();
+    },
+    speech: { textOnly: false, participantSpeech: false },
+    setSpeech(inputs) {
+      const now = get().speech;
+      if (now.textOnly === inputs.textOnly && now.participantSpeech === inputs.participantSpeech) return;
+      set({ speech: { textOnly: inputs.textOnly, participantSpeech: inputs.participantSpeech } });
+      rederive();
     },
 
     async load(p) {
@@ -174,21 +219,21 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const settings = p.settings.migrate ? p.settings.migrate(stored, { legacy, credentials }) : stored;
       const initial = p.languages.initial?.(settings) ?? {};
       const pair = p.languages.migratePair ? p.languages.migratePair({ source, target }, settings) : { source, target };
-      put(p, {
-        settings,
-        credentials,
-        pair: normalizePair(p, settings, { source: pair.source || initial.source, target: pair.target || initial.target }),
-      });
+      // Kept within the widest offer; what a run starts is derived from it for the context (choice 1). Nothing is written.
+      const kept = normalizePair(p, settings, { source: pair.source || initial.source, target: pair.target || initial.target });
+      loadedProviders.set(p.id, p);
+      put(p, { settings, credentials, ...derive(p, settings, kept) });
     },
 
     updateSettings(p, patch) {
       const entry = loaded(p);
       const settings = { ...(entry.settings as Record<string, unknown>), ...patch };
-      // New settings can change the languages on offer; the pair follows.
-      const pair = normalizePair(p, settings, entry.pair);
-      put(p, { ...entry, settings, pair });
+      // New settings can change the languages on offer; the pair the user left follows them, and the run's pair is derived from it.
+      const before = entry.stored ?? entry.pair;
+      const kept = normalizePair(p, settings, before);
+      put(p, { settings, credentials: entry.credentials, ...derive(p, settings, kept) });
       for (const [field, value] of Object.entries(patch)) void persistSetting(storageKey(p, field), value);
-      persistPair(p, entry.pair, pair);
+      persistPair(p, before, kept);
       forgetReadiness(p);
     },
 
@@ -202,9 +247,11 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
 
     setPair(p, pair) {
       const entry = loaded(p);
-      const next = normalizePair(p, entry.settings, pair);
-      put(p, { ...entry, pair: next });
-      persistPair(p, entry.pair, next);
+      const before = entry.stored ?? entry.pair;
+      // A pick is kept as picked, within the widest offer: one the context cannot run stays stored for the context that can (the wizard's text-only pick while a run would speak).
+      const kept = normalizePair(p, entry.settings, pair);
+      put(p, { settings: entry.settings, credentials: entry.credentials, ...derive(p, entry.settings, kept) });
+      persistPair(p, before, kept);
       forgetReadiness(p);
     },
 
