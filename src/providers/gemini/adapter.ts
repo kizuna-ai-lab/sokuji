@@ -3,11 +3,12 @@
  * from `GeminiClient` (`src/services/clients/GeminiClient.ts`, still
  * compiled and unreachable) without its SDK session, its items or its
  * display bookkeeping: one leg, one Live connection over `wire.ts`, the
- * server's content through `GeminiTurns` to segments. A start resolves
- * once the server answers the setup, so a refused key or model rejects it
- * in words and within a bound (choice 12). Every timer reads the request's
- * clock, and nothing is said but through events (CLAUDE.md, "Inside an
- * IClient session").
+ * server's content through `GeminiTurns` to segments. A lost connection is
+ * resumed with the server's handle, or opened fresh when it issued none
+ * (ruling 3). A start resolves once the server answers the setup, so a
+ * refused key or model rejects it in words and within a bound (choice 12).
+ * Every timer reads the request's clock, and nothing is said but through
+ * events (CLAUDE.md, "Inside an IClient session").
  */
 import type { Part } from '@google/genai';
 import {
@@ -40,6 +41,8 @@ import {
 
 /** A connection whose setup is not answered within this is refused: the old connects could hang (survey §1.16.1). */
 export const SETUP_TIMEOUT_MS = 15_000;
+/** The old ladder (`GeminiClient.ts:1458-1583`): at once, after 2 s, after 3 s. */
+export const RECONNECT_DELAYS_MS: readonly number[] = [0, 2_000, 3_000];
 
 export interface GeminiAdapterDeps {
   /** `new WebSocket(url)` in the app; a `FakeSocket` factory in tests. */
@@ -69,7 +72,7 @@ function transcriptionFrame(t: Transcription): Record<string, unknown> {
 
 class GeminiSession {
   private ended = false;
-  /** The connection in use: set up, and heard. Null before the setup is answered. */
+  /** The connection in use: set up, and heard. Null before the setup is answered, and while a reconnect is under way. */
   private socket: WebSocket | null = null;
   /** Manual turns: a press is held. */
   private turnOpen = false;
@@ -83,7 +86,11 @@ class GeminiSession {
   private partsReadable = true;
   /** A foreign output rate is said once per session (choice 18). */
   private rateWarned = false;
-  /** Every pending connection attempt (and, with the ladder, every wait), so a stop ends them at once. */
+  /** The last resumable handle the server issued: single-use (ruling 3). */
+  private handle: string | null = null;
+  /** A reconnect is under way: a second cause is the same reconnect. */
+  private reconnecting = false;
+  /** Every pending connection attempt and every backoff of the ladder, so a stop ends them at once. */
   private readonly cancels = new Set<() => void>();
   private readonly turns: GeminiTurns;
 
@@ -131,6 +138,9 @@ class GeminiSession {
   private connect(handle: string | null, signal: AbortSignal | null): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const { config, context, credentials, clock } = this.request;
+      // Per socket: a new connection starts readable, whatever episode the one before it was in (as Soniox's resumed socket).
+      this.readable = true;
+      this.partsReadable = true;
       const ws = this.openSocket(liveUrl(credentials.apiKey));
       // Binary frames as ArrayBuffers, decoded at once and in order (survey §1.16.4).
       ws.binaryType = 'arraybuffer';
@@ -209,9 +219,16 @@ class GeminiSession {
     if (m.toolCall) this.frame('in', 'server.tool_call');
     if (m.toolCallCancellation) this.frame('in', 'server.tool_call_cancellation');
     const update = m.sessionResumptionUpdate;
-    if (update) this.frame('in', 'server.session_resumption_update', { resumable: update.resumable === true, hasHandle: Boolean(update.newHandle) });
+    if (update) {
+      // Only a resumable update carries a handle worth keeping; `resumable` is false while the model generates.
+      if (update.resumable && update.newHandle) this.handle = update.newHandle;
+      this.frame('in', 'server.session_resumption_update', { resumable: update.resumable === true, hasHandle: Boolean(update.newHandle) });
+    }
     if (m.serverContent) this.onContent(m.serverContent);
-    if (m.goAway) this.frame('in', 'server.go_away', m.goAway.timeLeft ? { timeLeft: m.goAway.timeLeft } : {});
+    if (m.goAway) {
+      this.frame('in', 'server.go_away', m.goAway.timeLeft ? { timeLeft: m.goAway.timeLeft } : {});
+      this.reconnect({ cause: 'go_away' });
+    }
   }
 
   /** The content first, then its closure: a `turnComplete` may ride with its turn's last content (choice 15). */
@@ -342,10 +359,83 @@ class GeminiSession {
     }
   }
 
-  /** An unexpected close after the setup: the leg fails, once (the resumption ladder is still to come). */
+  /** An unexpected close after the setup: every one tries the ladder (ruling 3, parity). */
   private lost(code: number, reason: string): void {
-    this.frame('in', 'session.connection_lost', { code, reason });
-    this.fail('connection_lost', `The Gemini connection closed (${code}${reason ? `: ${reason}` : ''}).`);
+    this.reconnect({ cause: 'close', code, reason });
+  }
+
+  /**
+   * Break before make (parity, `GeminiClient.ts:1489-1495`): the old socket
+   * closes, what a dialogue turn opened closes as it stands, then the
+   * attempts. Audio sent in the gap is dropped (`appendAudio` needs a
+   * connection).
+   */
+  private reconnect(why: { cause: 'close' | 'go_away'; code?: number; reason?: string }): void {
+    if (this.ended || this.reconnecting) return;
+    this.reconnecting = true;
+    const old = this.socket;
+    this.socket = null;
+    if (old) {
+      detach(old);
+      old.close(1000);
+    }
+    this.frame('in', 'session.reconnecting', {
+      cause: why.cause,
+      ...(why.code !== undefined ? { code: why.code } : {}),
+      ...(why.reason ? { reason: why.reason } : {}),
+      hasHandle: this.handle !== null,
+    });
+    this.turns.connectionLost();
+    this.events.reconnecting();
+    void this.ladder();
+  }
+
+  /** Three attempts, each bounded by `SETUP_TIMEOUT_MS`: the handle when one is held, else a fresh session (ruling 3). */
+  private async ladder(): Promise<void> {
+    for (let attempt = 1; attempt <= RECONNECT_DELAYS_MS.length; attempt++) {
+      const delay = RECONNECT_DELAYS_MS[attempt - 1];
+      // At once is at once: no zero timer, which a virtual clock fires only when advanced.
+      if (delay > 0) await this.wait(delay);
+      if (this.ended) return;
+      const handle = this.handle;
+      try {
+        await this.connect(handle, null);
+      } catch (error) {
+        if (this.ended) return;
+        // A failed resume keeps its handle for the next attempt (parity).
+        this.frame('in', 'session.reconnect_failed', { attempt, maxRetries: RECONNECT_DELAYS_MS.length, message: describeCause(error) });
+        continue;
+      }
+      if (this.ended) return;
+      // Single-use: dropped, unless the new session has already issued another.
+      if (handle !== null && this.handle === handle) this.handle = null;
+      this.reconnecting = false;
+      // A press held across the gap starts again on the new connection (choice 14).
+      const ws = this.live();
+      if (this.turnOpen && ws) {
+        ws.send(ACTIVITY_START);
+        this.frame('out', 'realtime_input.activity_start');
+      }
+      this.events.reconnected();
+      return;
+    }
+    this.frame('in', 'session.connection_lost', { attempts: RECONNECT_DELAYS_MS.length });
+    this.fail('connection_lost', 'The Gemini connection was lost and could not be restored.');
+  }
+
+  /** Resolves after `ms` on the request's clock, or at once when the session ends. */
+  private wait(ms: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const cancelTimer = this.request.clock.setTimeout(() => {
+        this.cancels.delete(onStop);
+        resolve();
+      }, ms);
+      const onStop = () => {
+        cancelTimer();
+        resolve();
+      };
+      this.cancels.add(onStop);
+    });
   }
 
   private fail(code: string, message: string): void {

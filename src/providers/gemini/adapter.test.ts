@@ -29,7 +29,7 @@ function harnessFor(model: string): AdapterHarness<GeminiConfig, GeminiCredentia
   let sockets = fakeSockets();
   const last = () => sockets.last();
   const reply = (frame: () => ArrayBuffer): ScenarioStep => ({ run: () => last().receive(frame()) });
-  /** The ladder's next attempt, refused as it opens; nothing when no attempt is waiting — without the ladder, the first close already failed the leg. */
+  /** The ladder's next attempt, dropped before it opens; a socket that is not connecting is left alone. */
   const failAttempt: ScenarioStep = { run: () => { if (last().readyState === FakeSocket.CONNECTING) last().drop(); } };
   const translate = model === TRANSLATE;
   return {
@@ -50,14 +50,22 @@ function harnessFor(model: string): AdapterHarness<GeminiConfig, GeminiCredentia
     answerText: translate
       ? [reply(() => SERVER.output('入力された言葉')), { advance: 1_500 }]
       : [reply(() => SERVER.output('入力された言葉')), reply(SERVER.turnComplete)],
+    reconnect: [
+      reply(() => SERVER.handle('handle-1')),
+      { run: () => last().serverClose(1011, 'Internal error') },
+      { flush: true },
+      { run: () => last().open() },
+      reply(SERVER.setupComplete),
+      { flush: true },
+    ],
   };
 }
 
 describe.each([['a dialogue model', DIALOGUE], ['Live Translate', TRANSLATE]] as const)('the Gemini adapter: conformance, %s', (_name, model) => {
   const harness = harnessFor(model);
 
-  it('runs every scenario but reconnecting, which the resumption ladder adds', () => {
-    expect(scenarioNames(harness)).toEqual(['open-stop', 'speech-off', 'abort-while-opening', 'refused-while-opening', 'manual-end', 'manual-cancel', 'text', 'server-close']);
+  it('runs every scenario', () => {
+    expect(scenarioNames(harness)).toEqual(['open-stop', 'speech-off', 'abort-while-opening', 'refused-while-opening', 'manual-end', 'manual-cancel', 'text', 'server-close', 'reconnect']);
   });
 
   it.each(scenarioNames(harness))('%s', async (name) => {
@@ -279,6 +287,18 @@ describe('the Gemini adapter: one session', () => {
     expect(h.of('audio')).toHaveLength(1);
   });
 
+  it('an audio part and a whole frame are two episodes: one failing never silences the other, in either order', async () => {
+    const part = await liveGemini();
+    part.socket().receive(BAD_AUDIO());
+    part.socket().receive('{bad');
+    expect(part.frames('server.unreadable')).toHaveLength(2);
+
+    const whole = await liveGemini();
+    whole.socket().receive('{bad');
+    whole.socket().receive(BAD_AUDIO());
+    expect(whole.frames('server.unreadable')).toHaveLength(2);
+  });
+
   it("the model's text parts stand in for a transcript that never came; a thought part never does", async () => {
     const h = await liveGemini();
     h.socket().receive(serverFrame({ serverContent: { modelTurn: { parts: [{ text: 'Let me think.', thought: true }, { text: 'Bonjour' }] } } }));
@@ -333,15 +353,6 @@ describe('the Gemini adapter: one session', () => {
     h.socket().onerror?.call(h.socket(), new Event('error'));
     expect(h.frames('session.error')).toHaveLength(1);
     expect(h.of('failed')).toEqual([]);
-  });
-
-  it('an unexpected close after the setup fails the leg with connection_lost, once (until the resumption ladder takes it over)', async () => {
-    const h = await liveGemini();
-    h.socket().serverClose(1011, 'Internal error');
-    await flush();
-    expect(h.frames('session.connection_lost')).toEqual([{ code: 1011, reason: 'Internal error' }]);
-    expect(h.of('failed').map((e) => e.payload.code)).toEqual(['connection_lost']);
-    expect(h.timers()).toBe(0);
   });
 });
 
