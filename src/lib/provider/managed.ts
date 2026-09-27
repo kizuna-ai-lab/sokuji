@@ -31,7 +31,7 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   Settings: ComponentType<SettingsProps<S>>;
   /** Diagnostic English for a signed-out `read`; the user reads `sign_in_required`'s words. */
   signedOut: string;
-  /** The participant-speech flag (ruling 2); absent, the base's capability is not narrowed. */
+  /** The participant-speech flag (ruling 2); absent, the twin carries the base's own flag, if it has one. */
   participantSpeech?: boolean;
   /** Added to the base's hooks. `acquire` is required: a twin's `R` is not its `K`. */
   session: SessionHooks<S, K, C> & Required<Pick<SessionHooks<S, K, C>, 'acquire'>>;
@@ -41,6 +41,8 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
   base: Provider<S, K, C>,
   o: ManagedOverrides<S, K, C, Id>,
 ): Provider<S, K, C, ManagedSignIn> & { id: Id } {
+  // The twin's own flag when it gives one; else the base's, so a base that cannot voice the participant never yields a twin that does.
+  const participantSpeech = o.participantSpeech ?? base.participantSpeech;
   return {
     id: o.id,
     kind: 'managed',
@@ -59,7 +61,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     textInput: base.textInput,
     boundaries: base.boundaries,
     turns: base.turns,
-    ...(o.participantSpeech === undefined ? {} : { participantSpeech: o.participantSpeech }),
+    ...(participantSpeech === undefined ? {} : { participantSpeech }),
     build: base.build,
     describe: base.describe,
     start: base.start,

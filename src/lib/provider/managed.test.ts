@@ -89,6 +89,14 @@ describe('managed', () => {
     expect(managed(fakeProvider, { ...OVERRIDES, participantSpeech: true }).participantSpeech).toBe(true);
   });
 
+  it("keeps the base's own participant-speech flag when the twin gives none: a twin never speaks where its base cannot", () => {
+    const silentBase = { ...fakeProvider, participantSpeech: false };
+    expect(managed(silentBase, OVERRIDES).participantSpeech).toBe(false);
+    // The twin's own flag, when given, is the one it carries.
+    expect(managed(silentBase, { ...OVERRIDES, participantSpeech: true }).participantSpeech).toBe(true);
+    expect(managed({ ...fakeProvider, participantSpeech: true }, { ...OVERRIDES, participantSpeech: false }).participantSpeech).toBe(false);
+  });
+
   // Compile-time (choice 1): the typecheck gate enforces every `@ts-expect-error` here.
   it('types what read answers as R — the sign-in, never a key its lease mints', () => {
     const twin = managed(fakeProvider, OVERRIDES);
