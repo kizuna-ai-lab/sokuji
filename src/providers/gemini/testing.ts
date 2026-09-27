@@ -1,13 +1,18 @@
 /**
  * The Gemini suites' fixtures: the models, a key, the settings the adapter
  * suites build from, the server's frames as the binary frames the Live
- * API sends, and a clock that counts its live timers. Test-only: nothing
- * but a test imports it (the session-side guard's kit rule holds it to
- * that), and the adapter's session walk never reaches it.
+ * API sends, a clock that counts its live timers, and the harness that
+ * starts a leg over `FakeSocket`s. Test-only: nothing but a test imports
+ * it (the session-side guard's kit rule counts every provider's
+ * `testing.ts` as kit and holds it to that), and the adapter's session
+ * walk never reaches it.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
+import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
+import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { SharedSettings } from '../../lib/provider/types';
+import { createGeminiAdapter } from './adapter';
 import { buildGemini, type GeminiConfig } from './config';
 import { GEMINI_DEFAULTS, type GeminiCredentials, type GeminiSettings } from './settings';
 
@@ -68,4 +73,33 @@ export function trackedClock(): { clock: VirtualClock; timers: () => number } {
     },
   };
   return { clock, timers: () => live.size };
+}
+
+/** A Gemini leg started over `FakeSocket`s on a tracked virtual clock; its socket not yet opened. */
+export function startGemini(o: { model?: string; context?: SessionContext; patch?: Partial<GeminiSettings> } = {}) {
+  const sockets = fakeSockets();
+  const { clock, timers } = trackedClock();
+  const { events, log } = recordEvents();
+  const controller = new AbortController();
+  const context = o.context ?? AUTO_CTX;
+  const config = configFor(o.model ?? DIALOGUE, context, o.patch);
+  const starting = createGeminiAdapter({ openSocket: sockets.create }).start({ context, config, credentials: KEY, clock, signal: controller.signal }, events);
+  const socket = () => sockets.last();
+  const of = <K extends AdapterEvent['kind']>(kind: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);
+  /** The payloads of the frames of one type, in order. */
+  const frames = (type: string) => of('frame').filter((e) => e.payload.type === type).map((e) => e.payload.payload);
+  /** What the adapter sent on the newest socket, parsed. */
+  const sent = () => socket().sentJson<Record<string, unknown>>();
+  /** The log without its frames: what L1 folds. */
+  const content = () => log.filter((e) => e.kind !== 'frame');
+  return { sockets, clock, timers, log, controller, config, starting, socket, of, frames, sent, content };
+}
+
+/** Started, opened and set up: the start resolved. */
+export async function liveGemini(o?: Parameters<typeof startGemini>[0]) {
+  const h = startGemini(o);
+  h.socket().open();
+  h.socket().receive(SERVER.setupComplete());
+  const session = await h.starting;
+  return { ...h, session };
 }

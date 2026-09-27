@@ -20,10 +20,11 @@
  * The limit: a module outside the provider's folder (`src/lib/**`) is not
  * followed — the spine's modules are held by their own rules.
  *
- * Also: only test-only modules import the adapter test kit (case 6).
+ * Also: only test-only modules import the adapter test kit or a
+ * provider's fixtures (cases 6 and 7).
  */
 import { describe, it, expect } from 'vitest';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import ts from 'typescript';
@@ -118,11 +119,11 @@ const providerDirs = () => readdirSync(join(REPO_ROOT, 'src/providers'))
 
 /**
  * Test-only modules (Stage 2 foundation, choice 10 and the kit rule): a
- * test file; a module of the kit itself; or a test-only helper — a module
- * with at least one importer, all of whose importers are test-only (as
- * `src/providers/localInference/fakeEngines.ts` is). A module nothing
- * imports is not a helper. An import cycle outside the tests is not
- * test-only.
+ * test file; a module of the kit itself, or a provider's fixtures; or a
+ * test-only helper — a module with at least one importer, all of whose
+ * importers are test-only (as `src/providers/localInference/fakeEngines.ts`
+ * is). A module nothing imports is not a helper. An import cycle outside
+ * the tests is not test-only.
  */
 function testOnlyModules(files: readonly string[], importers: ReadonlyMap<string, ReadonlySet<string>>, isTest: (f: string) => boolean, inKit: (f: string) => boolean): Set<string> {
   const memo = new Map<string, boolean>();
@@ -143,7 +144,8 @@ function testOnlyModules(files: readonly string[], importers: ReadonlyMap<string
 }
 
 const isTest = (f: string) => /\.test\.tsx?$/.test(f);
-const inKit = (f: string) => f.startsWith('src/lib/contract/testing/');
+/** The kit, and each provider's fixtures (`src/providers/<name>/testing.ts`): whatever imports either must itself be test-only. */
+const inKit = (f: string) => f.startsWith('src/lib/contract/testing/') || /^src\/providers\/[^/]+\/testing\.ts$/.test(f);
 
 /** Every `.ts` / `.tsx` under `src` (no `.d.ts`), the files each imports by value (resolved), and who imports each. */
 function importGraph(root: string): { files: string[]; importers: Map<string, Set<string>>; targets: Map<string, string[]> } {
@@ -200,6 +202,18 @@ describe('a provider session side', () => {
     for (const file of ['check.ts', 'config.ts', 'settings.ts', 'ttsRest.ts', 'voicesClient.ts']) {
       expect(soniox).not.toContain(`src/providers/soniox/${file}`);
     }
+
+    const gemini = sessionSide(REPO_ROOT, 'src/providers/gemini');
+    expect(gemini).toEqual(expect.arrayContaining([
+      'src/providers/gemini/adapter.ts',
+      'src/providers/gemini/socket.ts',
+      'src/providers/gemini/turns.ts',
+      'src/providers/gemini/wire.ts',
+    ]));
+    // The builder, the check, the settings, the definition and the fixtures are not the session's: reached as types only, or not at all.
+    for (const file of ['check.ts', 'config.ts', 'settings.ts', 'provider.ts', 'testing.ts']) {
+      expect(gemini).not.toContain(`src/providers/gemini/${file}`);
+    }
   });
 
   it('reads imports the way the compiler does', () => {
@@ -233,7 +247,7 @@ describe('a provider session side', () => {
     expect(providerDirs().flatMap((dir) => timerOffenders(REPO_ROOT, dir))).toEqual([]);
   });
 
-  it('only test-only modules import the adapter test kit', () => {
+  it("only test-only modules import the adapter test kit or a provider's fixtures", () => {
     const { files, importers, targets } = importGraph(REPO_ROOT);
     const testOnly = testOnlyModules(files, importers, isTest, inKit);
     const offenders = files.filter((f) => (targets.get(f) ?? []).some(inKit) && !testOnly.has(f));
@@ -256,6 +270,31 @@ describe('a provider session side', () => {
     const synInKit = () => false;
     const synTestOnly = testOnlyModules(synFiles, synImporters, synIsTest, synInKit);
     expect([...synTestOnly].sort()).toEqual(['a.test.ts', 'deep.ts', 'helper.ts']);
+  });
+
+  it("the kit rule holds a provider's fixtures to tests (a fixture tree, never the real one)", () => {
+    const root = mkdtempSync(join(tmpdir(), 'sokuji-kit-rule-'));
+    try {
+      mkdirSync(join(root, 'src/providers/gemini'), { recursive: true });
+      // The real fixtures, copied alone: their own imports resolve to nothing here, so they import no kit module.
+      writeFileSync(join(root, 'src/providers/gemini/testing.ts'), readFileSync(join(REPO_ROOT, 'src/providers/gemini/testing.ts'), 'utf-8'));
+      // A scratch copy of a real non-test module, reaching for the fixtures; and a test that may.
+      writeFileSync(join(root, 'src/providers/gemini/leak.ts'), `import { KEY } from './testing';\n${readFileSync(join(REPO_ROOT, 'src/providers/gemini/socket.ts'), 'utf-8')}\nexport const leaked = KEY;\n`);
+      writeFileSync(join(root, 'src/providers/gemini/leak.test.ts'), "import { KEY } from './testing';\nexport const allowed = KEY;\n");
+      const offenders = (kit: (f: string) => boolean) => {
+        const { files, importers, targets } = importGraph(root);
+        const testOnly = testOnlyModules(files, importers, isTest, kit);
+        return files.filter((f) => (targets.get(f) ?? []).some(kit) && !testOnly.has(f));
+      };
+      expect(offenders(inKit)).toEqual(['src/providers/gemini/leak.ts']);
+      // The control: the kit's own folder alone sees nothing here — the fixtures are held because they count as kit.
+      expect(offenders((f) => f.startsWith('src/lib/contract/testing/'))).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+    // A provider's `testing.ts`, one folder deep; nothing else of that name.
+    expect(['src/providers/soniox/testing.ts', 'src/providers/gemini/testing.ts'].every(inKit)).toBe(true);
+    expect(['src/providers/testing.ts', 'src/providers/gemini/sub/testing.ts', 'src/providers/gemini/testing.tsx', 'src/lib/testing.ts'].some(inKit)).toBe(false);
   });
 
   it('the rules catch a violating provider (a fixture tree, never the real one)', () => {
