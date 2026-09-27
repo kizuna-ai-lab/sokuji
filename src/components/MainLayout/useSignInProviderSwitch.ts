@@ -1,0 +1,55 @@
+/**
+ * A sign-in moves a Basic-mode user onto the managed provider (Stage 2
+ * Kizuna Soniox, ruling 4; the old `MainLayout.tsx:160-199`, removed in
+ * `8044e074`): Basic mode only; never under the setup wizard, whose Finish
+ * writes the provider (backing out must leave it as it was); from a
+ * provider that is not managed already; as a person's pick, through the
+ * store's lock (refused during a run), its entry loaded (Settings may be
+ * closed); tracked as `settings_modified`. One
+ * refinement (choice 14): a session restored at launch is not a sign-in —
+ * the flip counts only once the sign-in has loaded signed out.
+ */
+import { useEffect, useRef } from 'react';
+import { useAnalytics } from '../../lib/analytics';
+import { useAuth } from '../../lib/auth/hooks';
+import type { AnyProvider } from '../../lib/provider/types';
+import { storedProviderValue } from '../../lib/session/storedSettings';
+import { presentProviders } from '../../providers/registry';
+import { useProviderStore } from '../../stores/providerStore';
+import { useUIMode } from '../../stores/settingsStore';
+
+/** The provider a sign-in switches to: the first managed one offered, unless the selected one is managed already. */
+export function signInSwitchTarget(offered: readonly AnyProvider[], selected: string | null): AnyProvider | null {
+  if (offered.find((p) => p.id === selected)?.kind === 'managed') return null;
+  return offered.find((p) => p.kind === 'managed') ?? null;
+}
+
+export function useSignInProviderSwitch(wizardOnScreen: boolean): void {
+  const { isLoaded, isSignedIn } = useAuth();
+  const uiMode = useUIMode();
+  const { trackEvent } = useAnalytics();
+  /** The sign-in as last seen once loaded; null before it has loaded. */
+  const seen = useRef<boolean | null>(null);
+  useEffect(() => {
+    // `isLoaded` absent (a stub) reads as loaded.
+    if (isLoaded === false) return;
+    const before = seen.current;
+    seen.current = isSignedIn;
+    if (before !== false || !isSignedIn || wizardOnScreen || uiMode !== 'basic') return;
+    const from = useProviderStore.getState().selected;
+    const target = signInSwitchTarget(presentProviders(), from);
+    if (!target) return;
+    useProviderStore.getState().select(target.id, 'pick');
+    // Refused while a run is on (the store's lock): nothing changed, nothing to track.
+    if (useProviderStore.getState().selected !== target.id) return;
+    // `select()` loads nothing, and a closed Settings runs no loader: load
+    // the entry here, as `useApplySetup` does, so Start follows at once.
+    if (!useProviderStore.getState().entries[target.id]) void useProviderStore.getState().load(target);
+    trackEvent('settings_modified', {
+      setting_name: 'provider',
+      new_value: storedProviderValue(target.id),
+      old_value: from === null ? undefined : storedProviderValue(from),
+      category: 'api',
+    });
+  }, [isLoaded, isSignedIn, uiMode, wizardOnScreen, trackEvent]);
+}

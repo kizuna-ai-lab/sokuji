@@ -18,6 +18,7 @@ vi.mock('../SetupWizard/SetupWizard', () => ({ default: ({ variant }: { variant:
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 let signedIn = false;
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: signedIn }) }));
+vi.mock('./useSignInProviderSwitch', () => ({ useSignInProviderSwitch: () => {} }));
 // Both halves of the tour's render gate are mutable: only Electron reshapes
 // its window for subtitle mode, so the takeover needs the pair to be true.
 // vi.hoisted: the mocks' factories below read it.

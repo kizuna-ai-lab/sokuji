@@ -41,6 +41,7 @@ vi.mock('../TitleBar/TitleBar', () => ({
 
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn() }) }));
 vi.mock('../../lib/auth/hooks', () => ({ useAuth: () => ({ isSignedIn: false }) }));
+vi.mock('./useSignInProviderSwitch', () => ({ useSignInProviderSwitch: () => {} }));
 vi.mock('../../stores/setupStore', () => ({ useSetupLoaded: () => true, useSetupComplete: () => true }));
 vi.mock('../../stores/layoutStore', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../stores/layoutStore')>()),

@@ -9,6 +9,7 @@ import TitleBar from '../TitleBar/TitleBar';
 import PanelResizer from './PanelResizer';
 import { clampPanelWidth, maxPanelWidth, readPanelWidth, savePanelWidth, PANEL_MIN_WIDTH } from './panelWidth';
 import { useCloseLogsWhenDisabled } from './useCloseLogsWhenDisabled';
+import { useSignInProviderSwitch } from './useSignInProviderSwitch';
 import './MainLayout.scss';
 import { useAnalytics } from '../../lib/analytics';
 import { useSettingsNavigationTarget, useSubtitleModeActive, useDiagnosticLogs } from '../../stores/settingsStore';
@@ -27,6 +28,8 @@ const MainLayout: React.FC = () => {
   const setupComplete = useSetupComplete();
   const setupWizardOpen = useSetupWizardOpen();
   const setSetupWizardOpen = useSetSetupWizardOpen();
+  // A sign-in in Basic mode moves the user onto the managed provider — never under either wizard (ruling 4).
+  useSignInProviderSwitch(setupWizardOpen || !setupComplete);
   const subtitleActive = useSubtitleModeActive();
   const [showLogs, setShowLogs] = useState(() => {
     return sessionStorage.getItem('panelState.showLogs') === 'true';
