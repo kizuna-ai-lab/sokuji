@@ -34,6 +34,9 @@ interface Props {
   onOpenSettings?: (target: string) => void;
 }
 
+/** The start gate's pending codes: a managed provider's sign-in, or its wallet, still loading (`update.checking`, "Checking..."). */
+const PENDING_CODES: ReadonlySet<string> = new Set(['sign_in_pending', 'quota_pending']);
+
 const SubtitleIdle: React.FC<Props> = ({ state, onStart, onReturn, allowSessionControl, canStart, onOpenSettings }) => {
   const { t } = useTranslation();
 
@@ -59,6 +62,23 @@ const SubtitleIdle: React.FC<Props> = ({ state, onStart, onReturn, allowSessionC
         <button type="button" className="subtitle-idle__action" disabled>
           <Loader size={16} className="spinning" />
           <span>{label}</span>
+        </button>
+      </div>
+    );
+  }
+
+  if (state.kind === 'unready' && state.code !== undefined && PENDING_CODES.has(state.code)) {
+    // A managed sign-in or wallet still loading is progress, not a failure:
+    // drawn as the starting state draws it, the words ("Checking...") whole
+    // and nothing to fix.
+    return (
+      <div className="subtitle-idle">
+        <button type="button" className="subtitle-idle__action" disabled>
+          <Loader size={16} className="spinning" />
+          <span>{state.message}</span>
+        </button>
+        <button type="button" className="subtitle-idle__link" onClick={onReturn}>
+          {t('subtitle.backToMain', 'Return to main window')}
         </button>
       </div>
     );

@@ -145,6 +145,15 @@ describe('SubtitleView', () => {
     expect(acts.openSettings).toHaveBeenCalledWith('microphone');
   });
 
+  it("hands the idle body the readiness code: a sign-in still loading shows as progress, not a fix", () => {
+    // The `t` stub answers a catalog key with the notice's own words, so the message stands in for "Checking...".
+    const { container } = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'unready', message: 'Checking...', code: 'sign_in_pending' } }) }} controls={controls()} />);
+    expect(container.querySelector('.subtitle-idle__action--fix')).toBeNull();
+    const btn = screen.getByRole('button', { name: 'Checking...' });
+    expect(btn).toBeDisabled();
+    expect(btn.querySelector('.spinning')).not.toBeNull();
+  });
+
   it('disables the fix action when the readiness code maps to no Settings section', () => {
     const { container } = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ phase: 'idle', since: null, idle: { kind: 'unready', message: 'm', code: 'start_failed' } }) }} controls={controls()} />);
     expect(container.querySelector('.subtitle-idle__action--fix')).toBeDisabled();
