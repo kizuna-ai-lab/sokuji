@@ -1198,7 +1198,7 @@ describe('runner — cancel at each starting step (F5)', () => {
     expect(events('translation_session_start')).toEqual([]);
   });
 
-  it('a stop during acquire (a slow lease) cancels the start and still releases the lease', async () => {
+  it('a stop during acquire (a slow lease) cancels the start, stops the source it opened, and still releases the lease', async () => {
     let land!: () => void;
     const gate = new Promise<void>((resolve) => { land = resolve; });
     let released = false;
@@ -1209,16 +1209,16 @@ describe('runner — cancel at each starting step (F5)', () => {
     const { runner, sources, events } = setup({ shape: { provider } });
     const starting = runner.start();
     await flush();
-    // No distinct 'acquire' step exists on `RunState`; the visible step is
-    // still whatever ran last ('checking', since this provider has no `prepare`).
-    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'checking' });
+    // The lease runs after `opening` began and the sources opened (Stage 2 Kizuna Soniox, ruling 9).
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'opening' });
+    expect(sources).toHaveLength(1);
     const stopping = runner.stop();
     land();
     await stopping;
     await starting;
     await flush();
     expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
-    expect(sources).toHaveLength(0);
+    expect(sources[0].stopped).toBe(true);
     expect(events('translation_session_start')).toEqual([]);
     expect(released).toBe(true);
   });

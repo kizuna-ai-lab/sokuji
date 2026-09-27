@@ -5,11 +5,12 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { AdapterStartError } from '../contract/adapter';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
+import { redact } from '../diagnostics/redact';
 import type { LegName } from '../conversation/types';
 import type { RunNoticeCode } from './codes';
 import { ConversationSet, type ConversationInfo } from './conversationSet';
 import { guardPorts, type ControlMethod, type RunnerDeps } from './ports';
-import { LegOpenError, RefusedError, retentionFor, Run, type RunHost } from './run';
+import { apiErrorType, LegOpenError, RefusedError, retentionFor, Run, type RunHost } from './run';
 import type { LegState, RunEnd, RunState } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -223,6 +224,20 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
         error_type: 'session_start', error_message: message, component: 'session-runner',
         severity: 'high', provider: shape.provider.id, recoverable: true,
       });
+      // A start that fails reaches `api_error` too, as the old `onConnectFailed`
+      // tracked every connect failure (`participantTelemetry.ts:104-123` on
+      // `main`, through `buildApiErrorProps`): its words, redacted, the leg that
+      // failed (the first when none is named), and its code when it has one —
+      // the lease's 401/402/403/409/502/503/timeout codes among them. A refusal
+      // before anything opened (`RefusedError`) is not a failure: nothing.
+      const code = adapterError?.code;
+      deps.analytics.track('api_error', {
+        provider: shape.provider.id,
+        error_message: redact(message),
+        ...(code ? { error_code: code } : {}),
+        error_type: apiErrorType(code),
+        channel: leg ?? shape.legs[0],
+      });
       await end(run, {
         reason: 'start-failed',
         notice: {
@@ -238,7 +253,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     // Before the state says running: a subscriber that stops the run at once
     // must leave playback not live, not live again after its stop.
     deps.playback.live(true);
-    set({ phase: 'running', since: run.liveSince!, legs: legs(run) });
+    set({ phase: 'running', since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}) });
     deps.analytics.track('translation_session_start', {
       session_id: run.id,
       provider: shape.provider.id,

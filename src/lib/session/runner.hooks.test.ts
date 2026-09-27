@@ -7,6 +7,8 @@ import type { AnyProvider } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
+import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';
+import type { FramePort } from './ports';
 import { createRunner } from './runner';
 import type { Source } from './source';
 import type { RunNotice, RunShape, SessionHooks } from './types';
@@ -17,7 +19,7 @@ function withHooks(session: SessionHooks<unknown, unknown, unknown>, patch: Part
   return { ...fakeProvider, ...patch, session } as AnyProvider;
 }
 
-function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], openSource?: (leg: LegName) => Source, track: (event: string, props?: unknown) => void = () => {}) {
+function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], openSource?: (leg: LegName) => Source, track: (event: string, props?: unknown) => void = () => {}, frames?: FramePort) {
   const clock = createVirtualClock(0);
   const sources: FakeSource[] = [];
   const persistIfUnchanged = vi.fn();
@@ -48,6 +50,7 @@ function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], open
     openSource: async (leg) => { const s = openSource ? openSource(leg) : createFakeSource(clock); sources.push(s as FakeSource); return s; },
     playback: { audio: () => {}, held: () => {}, clear: () => {}, live: () => {} },
     analytics: { track },
+    frames,
     newSessionId: () => 'run1',
     timeoutMs: 1000,
   });
@@ -310,5 +313,199 @@ describe('runner — startBoth (D23)', () => {
     expect(events.filter((e) => e === 'api_error')).toHaveLength(1);
     expect(track).toHaveBeenCalledWith('api_error', expect.objectContaining({ error_code: 'auth', channel: 'speaker' }));
     expect(events).not.toContain('error_occurred');
+  });
+});
+
+describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7, 8, 9)', () => {
+  const lease = () => ({ credentials: () => ({}), release: async () => {} });
+
+  it('opens every source, then acquires the lease, then starts the adapters', async () => {
+    const order: string[] = [];
+    const clock = createVirtualClock(0);
+    const provider = withHooks(
+      { acquire: async () => { order.push('acquire'); return lease(); } },
+      {
+        async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
+          order.push('start');
+          return fakeProvider.start(request as StartRequest<never, never>, events);
+        },
+      },
+    );
+    const { runner } = setup(provider, ['speaker', 'participant'], (leg) => { order.push(`source ${leg}`); return createFakeSource(clock); });
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('running');
+    expect(order).toEqual(['source speaker', 'source participant', 'acquire', 'start', 'start']);
+  });
+
+  it('a source that fails mints no lease: the start fails naming its leg, and reaches api_error on that leg with no code', async () => {
+    const acquire = vi.fn(async () => lease());
+    const track = vi.fn();
+    const { runner } = setup(withHooks({ acquire }), ['speaker', 'participant'], (leg) => {
+      if (leg === 'participant') throw new Error('LOOPBACK_DENIED');
+      return createFakeSource(createVirtualClock(0));
+    }, track);
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'start_failed', leg: 'participant' } } });
+    expect(acquire).not.toHaveBeenCalled();
+    const apiErrors = track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
+    expect(apiErrors).toEqual([expect.objectContaining({ provider: 'fake', error_type: 'server', channel: 'participant' })]);
+    expect(apiErrors[0]).not.toHaveProperty('error_code');
+  });
+
+  it('a refused lease fails the start with its code, starts no adapter, and leaves the last conversation on screen', async () => {
+    let refuse = false;
+    const start = vi.fn((request: StartRequest<unknown, unknown>, events: AdapterEvents) => fakeProvider.start(request as StartRequest<never, never>, events));
+    const provider = withHooks(
+      { acquire: async () => { if (refuse) throw new AdapterStartError('no balance', 'insufficient_balance'); return lease(); } },
+      { start },
+    );
+    const track = vi.fn();
+    const { runner, clock } = setup(provider, ['speaker'], undefined, track);
+    await runner.start();
+    clock.advance(600);
+    await runner.stop();
+    const before = runner.conversation.snapshot();
+    expect(before[0].segments.length).toBeGreaterThan(0);
+
+    refuse = true;
+    start.mockClear();
+    track.mockClear();
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'insufficient_balance', message: 'no balance' } } });
+    expect(start).not.toHaveBeenCalled();
+    expect(runner.conversation.snapshot()).toEqual(before);
+    // Ruling 8: a refused lease reaches api_error beside error_occurred, as the old onConnectFailed tracked every connect failure.
+    expect(track).toHaveBeenCalledWith('error_occurred', expect.objectContaining({ error_type: 'session_start', provider: 'fake' }));
+    expect(track).toHaveBeenCalledWith('api_error', { provider: 'fake', error_message: 'no balance', error_code: 'insufficient_balance', error_type: 'server', channel: 'speaker' });
+  });
+
+  it("files a lease's frames under the first leg", async () => {
+    const frames: FramePort = { frame: vi.fn() };
+    const frame = { direction: 'in' as const, type: 'session.lease_acquired', payload: { roles: ['mix_stt'] } };
+    const provider = withHooks({ acquire: async (_shape, _s, ctx) => { ctx.frame(frame); return lease(); } });
+    const { runner } = setup(provider, ['speaker', 'participant'], undefined, undefined, frames);
+    await runner.start();
+    expect(frames.frame).toHaveBeenCalledWith('speaker', frame);
+  });
+
+  it("puts a lease's budget in the running state, and keeps it through a leg's change", async () => {
+    let events!: AdapterEvents;
+    const provider = withHooks(
+      { acquire: async () => ({ ...lease(), budget: { totalMs: 60_000, endsAt: 60_000 } }) },
+      {
+        async start(request: StartRequest<unknown, unknown>, e: AdapterEvents) {
+          events = e;
+          return fakeProvider.start(request as StartRequest<never, never>, e);
+        },
+      },
+    );
+    const { runner } = setup(provider);
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', budget: { totalMs: 60_000, endsAt: 60_000 } });
+    events.reconnecting();
+    expect(runner.state.getState()).toMatchObject({ legs: { speaker: 'reconnecting' }, budget: { totalMs: 60_000, endsAt: 60_000 } });
+  });
+
+  it('a run with no lease has no budget', async () => {
+    const { runner } = setup(fakeProvider);
+    await runner.start();
+    expect(runner.state.getState()).not.toHaveProperty('budget');
+  });
+
+  it("records a lease's end once, on the first leg, when both legs run (ruling 7), and tracks it once as api_error (ruling 8)", async () => {
+    let endLease!: (notice: RunNotice, o?: { expected?: boolean }) => void;
+    const provider = withHooks({ acquire: async (_shape, _s, ctx) => { endLease = ctx.end; return lease(); } });
+    const track = vi.fn();
+    const { runner } = setup(provider, ['speaker', 'participant'], undefined, track);
+    await runner.start();
+    endLease({ code: 'budget_exhausted', message: 'Session budget exhausted' });
+    await flush();
+    const [speaker, participant] = runner.conversation.snapshot();
+    expect(speaker.notices).toEqual([expect.objectContaining({ severity: 'error', code: 'budget_exhausted' })]);
+    expect(participant.notices).toEqual([]);
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'budget_exhausted' } } });
+    // The old client's props (`ManagedSonioxSession.ts:166-173`): the code, a stable English message, the leg that announced it.
+    expect(track.mock.calls.filter(([event]) => event === 'api_error')).toEqual([
+      ['api_error', { provider: 'fake', error_message: 'Session budget exhausted', error_code: 'budget_exhausted', error_type: 'server', channel: 'speaker' }],
+    ]);
+  });
+
+  it('an expected lease end — the normal end of a managed segment — tracks no api_error', async () => {
+    let endLease!: (notice: RunNotice, o?: { expected?: boolean }) => void;
+    const provider = withHooks({ acquire: async (_shape, _s, ctx) => { endLease = ctx.end; return lease(); } });
+    const track = vi.fn();
+    const { runner } = setup(provider, ['speaker'], undefined, track);
+    await runner.start();
+    endLease({ code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, { expected: true });
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'segment_ended' } } });
+    expect(track.mock.calls.map(([event]) => event)).not.toContain('api_error');
+  });
+
+  it("tracks every adapter degradation as api_error — its reason as the code, else its code — once per leg and code in L1's window (ruling 8)", async () => {
+    let events!: AdapterEvents;
+    const provider = withHooks({}, {
+      async start(request: StartRequest<unknown, unknown>, e: AdapterEvents) {
+        events = e;
+        return fakeProvider.start(request as StartRequest<never, never>, e);
+      },
+    });
+    const track = vi.fn();
+    const { runner, clock } = setup(provider, ['speaker'], undefined, track);
+    await runner.start();
+    const apiErrors = () => track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
+    events.degraded({ code: 'tts_stopped', message: 'Soniox TTS 408: Request timeout', reason: 'tts_408' });
+    expect(apiErrors()).toEqual([{ provider: 'fake', error_message: 'Soniox TTS 408: Request timeout', error_code: 'tts_408', error_type: 'server', channel: 'speaker' }]);
+    // The same code inside L1's window is the same episode to the user: not tracked again.
+    events.degraded({ code: 'tts_stopped', message: 'Soniox TTS 400: Invalid voice', reason: 'tts_400' });
+    expect(apiErrors()).toHaveLength(1);
+    clock.advance(DEGRADED_DEDUPE_MS);
+    events.degraded({ code: 'tts_stopped', message: 'Soniox TTS 400: Invalid voice', reason: 'tts_400' });
+    expect(apiErrors()).toHaveLength(2);
+    // No reason: the code is the analytics code (LocalInference's, the adapter's own `tts_degraded`).
+    events.degraded({ code: 'tts_degraded', message: 'No TTS key was issued for this leg: it runs text-only.' });
+    expect(apiErrors()[2]).toEqual({ provider: 'fake', error_message: 'No TTS key was issued for this leg: it runs text-only.', error_code: 'tts_degraded', error_type: 'server', channel: 'speaker' });
+  });
+
+  // Choice 3: only a lease or `startBoth` moves the hand-over after the
+  // sources. These pin both sides of that line by the one thing it
+  // changes a user can see — whether a failing source clears the screen.
+  /** Runs both legs once and stops, then starts again with the participant's source failing; answers the conversation before and after. */
+  async function failingRestart(provider: AnyProvider) {
+    let failing = false;
+    let runClock!: ReturnType<typeof createVirtualClock>;
+    const { runner, clock } = setup(provider, ['speaker', 'participant'], (leg) => {
+      if (failing && leg === 'participant') throw new Error('LOOPBACK_DENIED');
+      return createFakeSource(runClock);
+    });
+    runClock = clock;
+    await runner.start();
+    clock.advance(600);
+    await runner.stop();
+    const before = runner.conversation.snapshot();
+    expect(before[0].segments.length).toBeGreaterThan(0);
+    failing = true;
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { leg: 'participant' } } });
+    return { before, after: runner.conversation.snapshot() };
+  }
+
+  it.each([
+    ['the fake (no hooks)', fakeProvider],
+    ["an admit-only provider (LocalInference's hooks)", withHooks({ admit: () => true })],
+  ])('%s hands its legs over before its sources, as before: a failing source replaces the last conversation', async (_name, provider) => {
+    const { after } = await failingRestart(provider);
+    expect(after[0].segments).toEqual([]);
+  });
+
+  it("a startBoth provider keeps the last conversation when a source fails (choice 3's stated departure)", async () => {
+    const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => ({
+      speaker: await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker),
+      participant: await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant),
+    }));
+    const { before, after } = await failingRestart(withHooks({ startBoth }));
+    expect(after).toEqual(before);
+    // The first run's call only: the restart's failing source stopped it before `startBoth`.
+    expect(startBoth).toHaveBeenCalledTimes(1);
   });
 });

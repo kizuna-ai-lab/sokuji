@@ -249,7 +249,7 @@ export class LegSpeech {
     this.reported = scope;
     // The client's own verdict on what it heard, not a server frame: out, as the old client logged it (`SonioxClient.ts:1472`).
     this.frame('out', 'tts.degraded', { code, message, scope });
-    this.o.events.degraded({ code: scope === 'segment' ? 'tts_segment_lost' : 'tts_stopped', message: `Soniox TTS ${code}: ${message}` });
+    this.o.events.degraded({ code: scope === 'segment' ? 'tts_segment_lost' : 'tts_stopped', message: `Soniox TTS ${code}: ${message}`, reason: `tts_${code}` });
   }
 
   /** The Logs only, on the ok → failing transition (choice 7): the old client dropped such a frame silently, and it costs the user nothing to act on. */

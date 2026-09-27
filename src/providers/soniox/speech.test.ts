@@ -24,7 +24,8 @@ function create(options: Partial<LegSpeechOptions> = {}) {
   const kinds = (k: AdapterEvent['kind']) => log.filter((e) => e.kind === k);
   const frames = (type: string): AdapterFrame[] => log.flatMap((e) => (e.kind === 'frame' && e.payload.type === type ? [e.payload] : []));
   const degraded = () => log.flatMap((e) => (e.kind === 'degraded' ? [e.payload.code] : []));
-  return { clock, sockets, log, speech, opening, kinds, frames, degraded };
+  const reasons = () => log.flatMap((e) => (e.kind === 'degraded' ? [e.payload.reason] : []));
+  return { clock, sockets, log, speech, opening, kinds, frames, degraded, reasons };
 }
 
 async function setup(options: Partial<LegSpeechOptions> = {}) {
@@ -190,13 +191,14 @@ describe('LegSpeech', () => {
   });
 
   it('a failure of all speech says tts_stopped, even after a lost segment', async () => {
-    const { speech, tts, degraded, frames } = await setup();
+    const { speech, tts, degraded, reasons, frames } = await setup();
     speech.speak(2, 'Hi.', [0, 3], 'en');
     tts().receive(JSON.stringify({ stream_id: 'utt-1-1', error_code: 408, error_message: 'Request timeout' }));
     expect(degraded()).toEqual(['tts_segment_lost']);
     speech.speak(4, 'Yo', [0, 2], 'en');
     tts().receive(JSON.stringify({ error_code: 400, error_message: 'Invalid voice' }));
     expect(degraded()).toEqual(['tts_segment_lost', 'tts_stopped']);
+    expect(reasons()).toEqual(['tts_408', 'tts_400']);
     expect(frames('tts.degraded').map(payloadOf)).toEqual([
       { code: '408', message: 'Request timeout', scope: 'segment' },
       { code: '400', message: 'Invalid voice', scope: 'all' },
@@ -246,13 +248,14 @@ describe('LegSpeech', () => {
   });
 
   it('a reconnect that fails says tts_stopped', async () => {
-    const { speech, tts, sockets, degraded, frames } = await setup();
+    const { speech, tts, sockets, degraded, reasons, frames } = await setup();
     tts().drop();
     await flush();
     speech.speak(4, 'Again.', [0, 6], 'en');
     sockets.last().drop();
     await flush();
     expect(degraded()).toEqual(['tts_stopped']);
+    expect(reasons()).toEqual(['tts_connect_failed']);
     expect(frames('tts.degraded').map(payloadOf)).toEqual([expect.objectContaining({ code: 'connect_failed', scope: 'all' })]);
   });
 

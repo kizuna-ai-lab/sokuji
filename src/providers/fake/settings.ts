@@ -60,21 +60,28 @@ export type FakeLeasedSettings = FakeSettings & {
   leaseEndsAfterMs: number;
   /** Both legs on one shared session (`startBoth` ties them), as Soniox's shared Both; off, two. */
   sharedBoth: boolean;
+  /** `acquire` refuses with `insufficient_balance`, as a lease the backend turns down (402). */
+  acquireRefused: boolean;
+  /** Its start floor in µUSD for a text-only start; twice it when the speaker speaks, as a lease's floor rises with speech (Stage 2 Kizuna Soniox, choice 12). 0: a zero floor — a frozen or negative wallet still refuses. */
+  minimumBalanceMicroUsd: number;
 };
 
 // Written out, not spread from FAKE_DEFAULTS: a module-scope spread of an import may be kept by the bundler (D24).
 export const FAKE_LEASED_DEFAULTS: FakeLeasedSettings = {
   script: 'exchange', participantScript: 'same', requireKey: false, checkFails: false, buildRefused: false,
   startThrows: false, startDelayMs: 0, failAfterMs: 0,
-  prepareFallback: false, leaseEndsAfterMs: 0, sharedBoth: true,
+  prepareFallback: false, leaseEndsAfterMs: 0, sharedBoth: true, acquireRefused: false, minimumBalanceMicroUsd: 0,
 };
 
 export function migrateFakeLeasedSettings(stored: Readonly<Record<string, unknown>>): FakeLeasedSettings {
   const leaseEnds = stored.leaseEndsAfterMs;
+  const floor = stored.minimumBalanceMicroUsd;
   return {
     ...migrateFakeSettings(stored),
     prepareFallback: typeof stored.prepareFallback === 'boolean' ? stored.prepareFallback : FAKE_LEASED_DEFAULTS.prepareFallback,
     leaseEndsAfterMs: typeof leaseEnds === 'number' && Number.isFinite(leaseEnds) && leaseEnds >= 0 ? leaseEnds : FAKE_LEASED_DEFAULTS.leaseEndsAfterMs,
     sharedBoth: typeof stored.sharedBoth === 'boolean' ? stored.sharedBoth : FAKE_LEASED_DEFAULTS.sharedBoth,
+    acquireRefused: typeof stored.acquireRefused === 'boolean' ? stored.acquireRefused : FAKE_LEASED_DEFAULTS.acquireRefused,
+    minimumBalanceMicroUsd: typeof floor === 'number' && Number.isFinite(floor) && floor >= 0 ? floor : FAKE_LEASED_DEFAULTS.minimumBalanceMicroUsd,
   };
 }

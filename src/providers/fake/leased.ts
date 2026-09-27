@@ -1,15 +1,15 @@
 /**
  * The leased fake (D24; choice 1): the fake's scripts and faults behind the
- * three session hooks a managed provider has — `prepare` (a voice claim
- * that may fall back), `acquire` (a lease: a key per leg, an end on the
- * run's clock) and `startBoth` (shared or split Both) — so the runner's
- * hook paths, a managed provider's readiness, presence and words run
- * without a vendor. Development builds only, like the fake; nothing here
- * runs at module scope.
+ * session hooks a managed provider has — `prepare` (a voice claim that may
+ * fall back), `acquire` (a lease: a key per leg, a budget and an end on the
+ * run's clock, a refusal on a knob), `startBoth` (shared or split Both) and
+ * `minimumBalance` (a start floor on a knob) — so the runner's hook paths,
+ * a managed provider's readiness, presence and words run without a vendor.
+ * Development builds only, like the fake; nothing here runs at module scope.
  */
 import { KeyRound } from 'lucide-react';
 import type { AdapterEvents, AdapterSession, StartRequest } from '../../lib/contract/adapter';
-import { LegStartError } from '../../lib/contract/adapter';
+import { AdapterStartError, LegStartError } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import type { CredentialsMissing, Provider, ProviderRefusal } from '../../lib/provider/types';
 import type { FakeConfig } from './adapter';
@@ -91,14 +91,17 @@ export const fakeLeasedProvider: Provider<FakeLeasedSettings, FakeLeasedCredenti
       if (signal.aborted) throw signal.reason ?? new Error('aborted');
       return s.prepareFallback ? { notice: { code: 'voice_fallback', message: 'The leased fake used its fallback voice (knob).' } } : {};
     },
-    async acquire(_shape, s, { signal, clock, end }) {
+    async acquire(_shape, s, { signal, clock, end, frame }) {
       if (signal.aborted) throw signal.reason ?? new Error('aborted');
+      if (s.acquireRefused) throw new AdapterStartError('The leased fake refused the lease (knob).', 'insufficient_balance');
       const cancel = s.leaseEndsAfterMs > 0
         ? clock.setTimeout(() => end({ code: 'budget_exhausted', message: 'Lease ended by the leased fake (knob).' }), s.leaseEndsAfterMs)
         : () => {};
+      frame({ direction: 'in', type: 'lease.acquired', payload: { endsAfterMs: s.leaseEndsAfterMs } });
       let released = false;
       return {
         credentials: (leg) => ({ leg }),
+        ...(s.leaseEndsAfterMs > 0 ? { budget: { totalMs: s.leaseEndsAfterMs, endsAt: clock.now() + s.leaseEndsAfterMs } } : {}),
         async release() {
           if (released) return;
           released = true;
@@ -107,5 +110,6 @@ export const fakeLeasedProvider: Provider<FakeLeasedSettings, FakeLeasedCredenti
       };
     },
     startBoth: startBothLeased,
+    minimumBalance: (shape, s) => (shape.legs.includes('speaker') && !shape.textOnly ? 2 : 1) * s.minimumBalanceMicroUsd,
   },
 };

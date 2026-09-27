@@ -5,7 +5,7 @@ import type { FakeLeasedSettings } from './settings';
 
 /**
  * The leased fake's settings: the fake's own controls, then the knobs of its
- * three session hooks (choice 1). Development builds only, so this copy is
+ * session hooks (choice 1). Development builds only, so this copy is
  * not localized, as `FakeSettingsView`'s.
  */
 export function FakeLeasedSettingsView(props: SettingsProps<FakeLeasedSettings>) {
@@ -41,6 +41,28 @@ export function FakeLeasedSettingsView(props: SettingsProps<FakeLeasedSettings>)
             step={1000}
             value={settings.leaseEndsAfterMs}
             onChange={(e) => update({ leaseEndsAfterMs: toMs(e.target.value) })}
+            disabled={disabled}
+          />
+        </div>
+        <div className="setting-item">
+          <ToggleSwitch
+            checked={settings.acquireRefused}
+            onChange={() => update({ acquireRefused: !settings.acquireRefused })}
+            label="Acquire refuses (insufficient balance)"
+            disabled={disabled}
+          />
+        </div>
+        <div className="setting-item">
+          <label className="setting-label" htmlFor="fake-min-balance"><span>Minimum balance, text only (µUSD; speech doubles it)</span></label>
+          {/* `toMs` parses any non-negative integer, µUSD as well as ms. */}
+          <input
+            id="fake-min-balance"
+            className="settings-input"
+            type="number"
+            min={0}
+            step={1000}
+            value={settings.minimumBalanceMicroUsd}
+            onChange={(e) => update({ minimumBalanceMicroUsd: toMs(e.target.value) })}
             disabled={disabled}
           />
         </div>

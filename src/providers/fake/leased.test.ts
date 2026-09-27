@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { AdapterEvents, SessionContext, StartRequest } from '../../lib/contract/adapter';
-import { LegStartError } from '../../lib/contract/adapter';
+import { AdapterStartError, LegStartError } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import type { LegName } from '../../lib/conversation/types';
@@ -66,6 +66,23 @@ function bothLegs(speakerSettings: FakeLeasedSettings, participantSettings: Fake
   };
 }
 
+/** The end-to-end case's runner over the leased fake, on these legs and settings. */
+function leasedRunner(settings: FakeLeasedSettings, legs: RunShape['legs']) {
+  const clock = createVirtualClock(0);
+  const shape: RunShape = { ...shapeFor(settings), legs };
+  const runner = createRunner({
+    clock, platform: 'electron', readShape: () => shape,
+    ensureReady: async () => ({ state: 'ready', models: [] }),
+    persistIfUnchanged: () => {},
+    openSource: async () => createFakeSource(clock),
+    playback: { audio: () => {}, held: () => {}, clear: () => {}, live: () => {} },
+    analytics: { track: () => {} },
+    newSessionId: () => 'run1',
+    timeoutMs: 1000,
+  });
+  return { clock, runner };
+}
+
 describe('the leased fake', () => {
   it('is managed, with no credential field', () => {
     expect(fakeLeasedProvider.kind).toBe('managed');
@@ -126,6 +143,35 @@ describe('the leased fake', () => {
     const controller = new AbortController();
     controller.abort(new Error('cancelled'));
     await expect(session.acquire!(shapeFor(s()), s(), { signal: controller.signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn() })).rejects.toThrow('cancelled');
+  });
+
+  it('acquire refuses with insufficient_balance when asked (the parked coded refusal)', async () => {
+    const refusing = session.acquire!(shapeFor(s({ acquireRefused: true })), s({ acquireRefused: true }), { signal: live(), clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn() });
+    await expect(refusing).rejects.toBeInstanceOf(AdapterStartError);
+    await expect(refusing).rejects.toMatchObject({ code: 'insufficient_balance', message: 'The leased fake refused the lease (knob).' });
+  });
+
+  it('its lease carries a budget when it ends, and none when it never does', async () => {
+    const clock = createVirtualClock(500);
+    const ending = await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 3000 })), s({ leaseEndsAfterMs: 3000 }), { signal: live(), clock, end: vi.fn(), frame: vi.fn() });
+    expect(ending.budget).toEqual({ totalMs: 3000, endsAt: 3500 });
+    const endless = await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 0 })), s({ leaseEndsAfterMs: 0 }), { signal: live(), clock, end: vi.fn(), frame: vi.fn() });
+    expect(endless.budget).toBeUndefined();
+  });
+
+  it('acquire says so in the Logs', async () => {
+    const frame = vi.fn();
+    await session.acquire!(shapeFor(s({ leaseEndsAfterMs: 3000 })), s({ leaseEndsAfterMs: 3000 }), { signal: live(), clock: createVirtualClock(0), end: vi.fn(), frame });
+    expect(frame).toHaveBeenCalledTimes(1);
+    expect(frame).toHaveBeenCalledWith({ direction: 'in', type: 'lease.acquired', payload: { endsAfterMs: 3000 } });
+  });
+
+  it('its floor is the knob for a text-only start, twice it when the speaker speaks', () => {
+    const knob = s({ minimumBalanceMicroUsd: 1000 });
+    expect(session.minimumBalance!({ legs: ['speaker'], textOnly: true, participantSpeech: false }, knob)).toBe(1000);
+    expect(session.minimumBalance!({ legs: ['speaker'], textOnly: false, participantSpeech: false }, knob)).toBe(2000);
+    expect(session.minimumBalance!({ legs: ['participant'], textOnly: false, participantSpeech: false }, knob)).toBe(1000);
+    expect(session.minimumBalance!({ legs: ['speaker'], textOnly: false, participantSpeech: false }, s({ minimumBalanceMicroUsd: 0 }))).toBe(0);
   });
 
   it('startBoth, shared: stopping either leg stops both', async () => {
@@ -207,15 +253,36 @@ describe('the leased fake', () => {
     await flush();
     expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'budget_exhausted' } } });
   });
+
+  it("runs both legs end to end through the runner: the lease's end is recorded once, on the speaker's leg", async () => {
+    const { clock, runner } = leasedRunner(s({ leaseEndsAfterMs: 3000, sharedBoth: true }), ['speaker', 'participant']);
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', budget: { totalMs: 3000, endsAt: 3000 } });
+    clock.advance(3000);
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'budget_exhausted' } } });
+    const [speaker, participant] = runner.conversation.snapshot();
+    expect(speaker.notices.filter((n) => n.code === 'budget_exhausted')).toHaveLength(1);
+    expect(participant.notices.filter((n) => n.code === 'budget_exhausted')).toEqual([]);
+  });
+
+  it("a refused lease fails its start through the runner, with the words' code", async () => {
+    const { runner } = leasedRunner(s({ acquireRefused: true }), ['speaker']);
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'insufficient_balance' } } });
+  });
 });
 
 describe('migrateFakeLeasedSettings', () => {
   it("keeps valid stored knobs, and replaces each bad one with the leased fake's default", () => {
     // A literal, not a `FakeLeasedSettings`: an interface type has no index signature, so it would not pass as a stored record.
     // Every knob off its default, so a fallback shows.
-    const valid = { ...FAKE_LEASED_DEFAULTS, prepareFallback: true, leaseEndsAfterMs: 2500, sharedBoth: false };
+    const valid = { ...FAKE_LEASED_DEFAULTS, prepareFallback: true, leaseEndsAfterMs: 2500, sharedBoth: false, acquireRefused: true, minimumBalanceMicroUsd: 1234 };
     expect(migrateFakeLeasedSettings(valid)).toEqual(valid);
-    const bad = [['leaseEndsAfterMs', -1], ['leaseEndsAfterMs', 'x'], ['sharedBoth', 'yes'], ['prepareFallback', 1]] as const;
+    const bad = [
+      ['leaseEndsAfterMs', -1], ['leaseEndsAfterMs', 'x'], ['sharedBoth', 'yes'], ['prepareFallback', 1],
+      ['acquireRefused', 'yes'], ['minimumBalanceMicroUsd', -5], ['minimumBalanceMicroUsd', 'x'],
+    ] as const;
     for (const [key, value] of bad) {
       expect(migrateFakeLeasedSettings({ ...valid, [key]: value }), `${key}: ${String(value)}`).toEqual({ ...valid, [key]: FAKE_LEASED_DEFAULTS[key] });
     }
