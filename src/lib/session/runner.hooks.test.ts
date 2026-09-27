@@ -178,6 +178,36 @@ describe('runner — acquire', () => {
     expect(release).toHaveBeenCalledTimes(1);
   });
 
+  it('releases once a lease that arrives after pagehide abandoned the start', async () => {
+    let grant!: () => void;
+    const release = vi.fn(async () => {});
+    const provider = withHooks({
+      acquire: () => new Promise((resolve) => { grant = () => resolve({ credentials: () => ({}), release }); }),
+    });
+    const { runner } = setup(provider);
+    const starting = runner.start();
+    await flush();
+    runner.abandon();
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(release).not.toHaveBeenCalled();
+    grant();
+    await starting;
+    await flush();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts a live lease's release before abandon() returns: pagehide's session-end goes out before the page can go", async () => {
+    const release = vi.fn(async () => {});
+    const provider = withHooks({ acquire: async () => ({ credentials: () => ({}), release }) });
+    const { runner } = setup(provider);
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('running');
+    runner.abandon();
+    expect(release).toHaveBeenCalledTimes(1);
+    await flush();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
   it("hands acquire the run's clock", async () => {
     let seen: unknown;
     const provider = withHooks({
