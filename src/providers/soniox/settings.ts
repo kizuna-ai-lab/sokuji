@@ -97,7 +97,7 @@ export interface SonioxLeasePort {
   streamAccepted(): void;
   /** Whether a 403 now is the granted duration ending rather than an error. */
   atGrantEnd(now: number): boolean;
-  /** The granted duration ended: the lease ends the run with its own words (`segment_ended`). */
+  /** The granted duration ended: the lease ends the run with the grant's words, decided at acquire — `segment_ended` at the per-session cap, else `budget_exhausted`. */
   cutoff(): void;
 }
 

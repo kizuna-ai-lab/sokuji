@@ -212,10 +212,15 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
     if (!token) throw new AdapterStartError('Sign in is required to start a managed Soniox session.', 'sign_in_required');
     const request = leaseRequest(shape, s, participantSpeech);
+    const sent = requestBody(request);
 
     const attempt = async (): Promise<{ status: number; body: unknown }> => {
       // An abort that landed after the 409 wait resolved, before this attempt: its listener below would never fire.
       if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
+      // The request as the Logs show it: its body — what the start asked
+      // for, the participant's field included when the flag sends one —
+      // never the token. Before the POST, so one that never answers shows.
+      ctx.frame({ direction: 'out', type: 'session.key_requested', payload: sent });
       const controller = new AbortController();
       let timedOut = false;
       const cancelTimer = ctx.clock.setTimeout(() => { timedOut = true; controller.abort(); }, SESSION_KEY_TIMEOUT_MS);
@@ -225,7 +230,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
         const res = await doFetch(`${apiUrl()}/soniox/session-key`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody(request)),
+          body: JSON.stringify(sent),
           signal: controller.signal,
         });
         let body: unknown = null;
@@ -312,10 +317,12 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
 
     const accepted = new Set<SttRole>();
     const reportStarted = (role: SttRole): void => {
-      // Once per role, and never once released: a late first frame from a
-      // socket still closing must not start a lease the account already ended
-      // (spec: no `session-started` after `session-end`).
-      if (released || accepted.has(role)) return;
+      // Once per role, and never once the grant has ended the run or the
+      // lease is released: a late first frame from a socket still closing
+      // must not start a lease the account already ended (spec: no
+      // `session-started` after `session-end`) — nor one whose run is
+      // already on its way to `session-end`.
+      if (ended || released || accepted.has(role)) return;
       accepted.add(role);
       ctx.frame({ direction: 'out', type: 'session.started', payload: { role } });
       // Not awaited, never failing the session: a refusal means the lease was
@@ -354,10 +361,10 @@ export function createKizunaLease(deps: KizunaLeaseDeps = {}) {
         if (role) return { ...bundles.get(role)!, lease: ports.get(role)! };
         // Shared Both's participant rides the speaker's mixed socket: the
         // adapter reads only its region, its reference and its TTS key,
-        // for its own TTS socket (`adapter.ts:80-86`), and reports nothing:
-        // the speaker's port serves the mixed socket. That key is
+        // for its own TTS socket (`adapter.ts:80-86`). That key is
         // `par_tts`, with its own reference, while the flag is on and the
         // answer carries one; otherwise it has none and speaks nothing.
+        // It reports nothing: the speaker's port serves the mixed socket.
         const mix = bundles.get('mix_stt')!;
         const tts = streams.find((st) => st.role === 'par_tts');
         return tts

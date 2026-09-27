@@ -111,6 +111,34 @@ describe('Kizuna Soniox lease: the session-key request', () => {
     await expect(a.pending).resolves.toBeDefined();
   });
 
+  it("puts each session-key request's body in the Logs before it goes out, never the token — the participant field only while the flag is on", async () => {
+    const off = acquiring(['speaker', 'participant'], { participantSpeech: true, settings: { bothModeSharedSession: false } });
+    await flush();
+    expect(off.frame).toHaveBeenCalledWith({ direction: 'out', type: 'session.key_requested', payload: { mode: 'both', textOnly: false, bothSplit: true, region: 'us' } });
+    const at = off.frame.mock.calls.findIndex(([f]) => f.type === 'session.key_requested');
+    expect(off.frame.mock.calls[at][0].payload).not.toHaveProperty(PARTICIPANT_SPEECH_FIELD);
+    // Framed before the POST: a request that never answers still shows in the Logs.
+    expect(off.frame.mock.invocationCallOrder[at]).toBeLessThan(off.fetch.mock.invocationCallOrder[0]);
+    expect(JSON.stringify(off.frame.mock.calls)).not.toContain('tok');
+
+    const on = acquiring(['speaker', 'participant'], { participantSpeech: true, flag: true, settings: { bothModeSharedSession: false } });
+    await flush();
+    expect(on.frame).toHaveBeenCalledWith({
+      direction: 'out', type: 'session.key_requested',
+      payload: { mode: 'both', textOnly: false, bothSplit: true, region: 'us', [PARTICIPANT_SPEECH_FIELD]: true },
+    });
+
+    // A 409's retry is a request of its own.
+    const retried = acquiring(['speaker']);
+    await flush();
+    retried.last().respond(409, { retryAfterMs: 1200 });
+    await flush();
+    retried.clock.advance(1200);
+    await flush();
+    expect(retried.fetch).toHaveBeenCalledTimes(2);
+    expect(retried.frame.mock.calls.filter(([f]) => f.type === 'session.key_requested')).toHaveLength(2);
+  });
+
   it('refuses a signed-out start before any request', async () => {
     const a = acquiring(['speaker'], { token: null });
     const error = await rejection(a.pending);
@@ -620,6 +648,16 @@ describe("the lease's port (SonioxLeasePort)", () => {
     const releasing = a.resources.release();
     a.to('/soniox/session-end')[0].respond(200);
     await releasing;
+    port.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(0);
+    expect(a.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.started' }));
+  });
+
+  it("posts nothing once the grant has ended the run, before release: a first frame after the cutoff cannot start the lease again", async () => {
+    const a = await granted(['speaker'], ['spk_stt', 'spk_tts']);
+    const port = a.resources.credentials('speaker').lease!;
+    port.cutoff();
+    expect(a.end).toHaveBeenCalledTimes(1);
     port.streamAccepted();
     expect(a.to('/soniox/session-started')).toHaveLength(0);
     expect(a.frame).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'session.started' }));
