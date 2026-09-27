@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ManagedVoicesClient } from './ManagedVoicesClient';
-import { SonioxVoicesError } from './SonioxVoicesClient';
+import { ManagedVoicesClient } from './managedVoicesClient';
+import { SonioxVoicesError } from './voicesClient';
 
 const TOKEN = 'sess_abc';
 const make = () => new ManagedVoicesClient(async () => TOKEN);
