@@ -181,10 +181,16 @@ export function isGeminiLiveModel(id: string): boolean {
   return !lower.includes('transcribe') && (lower.includes('audio') || lower.includes('live'));
 }
 
-/** The family: an id's first `major.minor` (`gemini-2.5-…`, `gemini-live-2.5-…`), as one comparable number; none reads 0. */
+/**
+ * The family: an id's first `major[.minor]` right after `gemini-` (or
+ * `gemini-live-`) — `gemini-2.5-…`, `gemini-live-2.5-…` — as one comparable
+ * number. A missing minor reads as 0 (Google spells some Gemini 3 ids with
+ * no minor at all, e.g. `gemini-3-pro-preview`); an id with no leading
+ * version reads 0.
+ */
 function familyOf(id: string): number {
-  const m = /(\d+)\.(\d+)/.exec(id);
-  return m ? Number(m[1]) * 1000 + Number(m[2]) : 0;
+  const m = /^gemini-(?:live-)?(\d+)(?:\.(\d+))?(?=-|$)/.exec(id);
+  return m ? Number(m[1]) * 1000 + Number(m[2] ?? 0) : 0;
 }
 
 /** The release date an id ends with, `-MM-YYYY` (`…-preview-12-2025`), as YYYYMM; an undated id reads 0. */

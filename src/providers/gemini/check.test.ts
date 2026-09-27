@@ -94,6 +94,7 @@ describe("Gemini's key check", () => {
     const settled = vi.fn();
     answer.then(settled, settled);
     advance(CHECK_TIMEOUT_MS - 1);
+    expect(aborted()).toBe(false);
     await Promise.resolve();
     expect(settled).not.toHaveBeenCalled();
     advance(1);

@@ -139,6 +139,16 @@ describe("Gemini's models", () => {
     expect(compareGeminiModels('gemini-3.5-flash-native-audio', 'gemini-2.5-flash-native-audio-preview-12-2025')).toBeLessThan(0);
   });
 
+  it('read a family with no minor as its major.0, not as an undated id (Fix round 1)', () => {
+    // Google spells some Gemini 3 ids without a minor, e.g. `gemini-3-pro-preview`.
+    const majorOnly = 'gemini-3-flash-native-audio-preview-01-2026';
+    for (const id of LIVE_NEWEST_FIRST.filter((existing) => !existing.startsWith('gemini-3'))) {
+      expect(compareGeminiModels(majorOnly, id)).toBeLessThan(0);
+    }
+    expect(defaultGeminiModel(ids([majorOnly, 'gemini-2.5-flash-native-audio-preview-12-2025']))).toBe(majorOnly);
+    expect(sortGeminiModels(LIVE_NEWEST_FIRST)).toEqual(LIVE_NEWEST_FIRST);
+  });
+
   it('default a fresh profile to the newest native-audio dialogue model, whatever order the list came in (ruling 2)', () => {
     const live = LISTED.filter(isGeminiLiveModel);
     expect(defaultGeminiModel(ids(live))).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
