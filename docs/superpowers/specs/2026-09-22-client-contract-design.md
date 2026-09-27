@@ -217,7 +217,8 @@ speechRanges({ ref, ranges: [{ index, range }] })
 
 closed(reason) · reconnecting() · reconnected()
 failed(err)                      // the session is broken
-degraded(diagnostic)             // running, degraded
+degraded(diagnostic)             // running, degraded; its reason?: a cause
+                                 //   token for analytics only, never shown
 loading({ stage, done, total })  // local engines' model load
 busy(boolean)                    // the model is producing
 frame({ direction: 'in' | 'out', type, payload? })
@@ -1026,7 +1027,7 @@ and placeholder.
 ### The shape
 
 ```ts
-interface Provider<S, K, C> {
+interface Provider<S, K, C, R = K> {
   // identity and presence
   id: string                                // persisted; ProviderId is derived from the registry
   kind: 'own-key' | 'managed' | 'local'
@@ -1043,9 +1044,9 @@ interface Provider<S, K, C> {
   credentials: {
     keys: string[]                            // every key fields() can return; all load at startup
     fields(s: S): CredentialField[]
-    read(values: CredentialValues, ctx: AuthContext): K | { missing: string }   // values: exactly fields(s)
+    read(values: CredentialValues, ctx: AuthContext): R | { missing: string; code?; params? }   // values: exactly fields(s)
   }
-  check(k: K, s: S, { pair, legs, signal }): Promise<{ ok: true; models?: ModelOption[] } | { ok: false; reason: string }>   // legs: those a run would open; signal: aborts with its start
+  check(r: R, s: S, { pair, legs, signal }): Promise<{ ok: true; models?: ModelOption[] } | { ok: false; reason: string }>   // legs: those a run would open; signal: aborts with its start
 
   // languages
   languages: {
@@ -1059,6 +1060,7 @@ interface Provider<S, K, C> {
   textInput: boolean
   boundaries(s: S): 'provider' | 'silence'
   turns(s: S): Array<'auto' | 'manual'>    // both for everyone; OpenAI over WebRTC: manual only (D25)
+  participantSpeech?: boolean              // false: the participant never speaks (a flag, off for Kizuna Soniox until par_tts)
 
   // one leg's session
   build(context: SessionContext, s: S, shared: SharedSettings): C | { refused: string }
@@ -1079,6 +1081,13 @@ interface Provider<S, K, C> {
 
 **Amended by the Stage 2 Soniox plan:** `SettingsProps.preview?` (the
 voice-preview route) and `legs?`; `AdapterEvents.speechRanges`; `LegStartError`.
+
+**Amended by the Stage 2 Kizuna Soniox plan:** the read type `R` (a managed
+`read` answers the sign-in; `managed.ts`'s `ManagedSignIn`);
+`participantSpeech?: boolean`; `AuthContext.loaded?`;
+`SessionHooks.minimumBalance`; `Resources.budget` as `{ totalMs, endsAt }`;
+`acquire`'s context `{ signal, clock, end(notice, { expected? }), frame(frame) }`;
+`degraded`'s `reason?`; `RunShape.account?`; `RunState.running.budget?`.
 
 `settings.key` is today's slice key, and values persist under
 `settings.<key>.<field>` exactly as now: no user's saved settings move.
@@ -1170,13 +1179,21 @@ thing to redact.
 
 ### Readiness is one check
 
-`check(k, s, { pair, legs, signal })` answers "can this provider start now" for
+`check(r, s, { pair, legs, signal })` answers "can this provider start now" for
 every kind: a network validation for own-key providers, model readiness for
 local ones (folding in the store's two short-circuits to `modelStore` and
-`nativeModelStore`), the service's answer for managed ones. The sign-in itself
+`nativeModelStore`), a static yes for managed ones (below). The sign-in itself
 is `credentials.read`'s to see: a managed provider signed out answers
-`{ missing, code: 'sign_in_required' }` there, and `check` is never called. Its
-result goes to one generic per-provider readiness state.
+`{ missing, code: 'sign_in_required' }` there, and `check` is never called.
+While the sign-in is still loading at launch, `read` answers `sign_in_pending`
+(`AuthContext.loaded`), so a signed-in user is never told to sign in. A managed
+`check` is static: the balance is the start gate's input (`RunShape.account`,
+the account's wallet as the client knows it), never readiness. While signed
+in, a wallet still loading answers "Checking..." and one that failed to load
+refuses Start, as the old gate did; the account side re-fetches it when the
+network returns and on a short back-off. The lease's 402 still words a balance
+that changed after the fetch. `check`'s result goes to one generic
+per-provider readiness state.
 
 **`check` bounds its own request** (amended by the Stage 2 foundation plan's
 final review). A check that cannot find out within its provider's own limit
@@ -1190,12 +1207,12 @@ local provider is checked 150 ms after any change, and whenever its own inputs
 change (`watchReadiness`: models downloading). An own-key or managed provider
 whose readiness is unknown is checked at once when it is selected or its entry
 loads; after an edit to its settings, credentials or pair, 800 ms after the
-last one. A sign-in or account flip forgets every loaded managed provider's
-readiness and checks the selected one at once; an own-key provider's answer
-does not depend on the sign-in. The last ready answer from a network check is
-kept with its settings, credentials, pair and legs — and, for a managed
-provider, its sign-in and account — so asking again for exactly those inputs
-costs no request. Nothing account-mutable, a balance above all, may live in a
+last one. A sign-in or account flip — the sign-in finishing loading included —
+forgets every loaded managed provider's readiness and checks the selected one
+at once; an own-key provider's answer does not depend on the sign-in. The last
+ready answer from a network check is kept with its settings, credentials, pair
+and legs — and, for a managed provider, its sign-in and account — so asking
+again for exactly those inputs costs no request. Nothing account-mutable, a balance above all, may live in a
 ready answer: signing out and back in to the same account is served from it.
 
 The store's model auto-select, a switch covering three providers, becomes a pure
@@ -1265,6 +1282,15 @@ settings UI's active-slice ternaries reduce to `kind` and registry order. Only
 Kizuna Soniox is built this way: the backend mints its keys per role, and the
 audio goes from the device to Soniox directly. The relay twins, whose `K` was a
 relay endpoint, are not ported (see Migration).
+
+`managed(base, overrides)` lives in `src/lib/provider/managed.ts` and names
+what a twin takes from its base — languages, capabilities, builder, adapter,
+`startBoth`, turn detection, the settings' defaults and migration — and what is
+its own: id, kind, vendor, icon, storage key, `Settings`, a sign-in `read`, a
+static `check`, its participant-speech flag, and its hooks, `acquire` required.
+A twin's `read` answers the sign-in, a type of its own (`R`); its `start`
+receives the keys its lease mints (`K`). It inherits neither the base's guide,
+locale key nor presence knobs.
 
 ### The registry is a list (D19)
 
@@ -1411,8 +1437,8 @@ sessions.state                           // one store; the UI reads only this
 
 type RunState =
   | { phase: 'idle'; lastEnd?: { reason: EndReason; notice?: Notice } }   // what the idle surfaces show
-  | { phase: 'starting'; step: 'checking' | 'preparing-voice' | 'loading' | … }
-  | { phase: 'running'; since: number; legs: Record<Leg, LegState>; budget? }
+  | { phase: 'starting'; step: 'checking' | 'preparing' | 'opening'; loading? }
+  | { phase: 'running'; since: number; legs: Record<Leg, LegState>; budget?: { totalMs; endsAt } }
   | { phase: 'stopping' }
 
 type LegState = 'opening' | 'live' | 'reconnecting'
@@ -1433,17 +1459,21 @@ step reads the shape, never the live stores. Today the mode alone is read from
 three different snapshots during one start.
 
 ```
-1. gate(shape)                        the same computeStartGate, re-checked here
+1. gate(shape)                        stores' refusals, the balance floor last
 2. provider.check                     readiness; the local engines' re-validation
-3. session.prepare?(shape)            managed voice claim → a run-only override
+3. session.prepare?(shape, s, signal) managed voice claim → a run-only override
 4. provider.build(context, S) per leg a refused leg fails the start (D22)
 5. session.admit?(configs)            cross-leg: local memory, Local Native's single leg
-6. session.acquire?(shape)            managed lease → one K per leg        defer(release)
-7. every leg, in parallel:
-     openSource(leg)                  mic / system audio / tab             defer(stop)
-     provider.start(request)          (or session.startBoth, below)        defer(session.stop)
-     wire: source → turn gate → appendAudio; events → L1; audio → ClipQueue
-8. every leg live → running. Any leg failing → unwind, the start fails (D22)
+6. the lease's release slot           when a lease follows                 defer(release)
+7. every leg's source, when a lease   mic / system audio / tab             defer(stop)
+   follows or startBoth takes both
+8. session.acquire?(shape)            managed lease → one K per leg        into step 6's slot
+9. the legs become the conversation
+10. every leg, in parallel:
+      openSource(leg), if not yet     (a provider with neither)            defer(stop)
+      provider.start(request)         (or session.startBoth, below)        defer(session.stop)
+      wire: source → turn gate → appendAudio; events → L1; audio → ClipQueue
+11. every leg live → running. Any leg failing → unwind, the start fails (D22)
 ```
 
 **Each resource is pushed with its release the moment it is acquired.** Stop,
@@ -1454,9 +1484,20 @@ one.
 **The signal reaches every step**, `acquire` and the local engines' check
 included, so nothing opens after a cancel.
 
-**Order removes the lease race.** The lease is pushed before the legs, so it is
-released after they have closed; with the signal reaching every step, no leg
-opens after `session-end`.
+**Order removes the lease race.** The lease is minted after every source has
+opened — a source that fails (a denied loopback, no bound tab, a capture helper
+that will not start, a missing microphone) mints no key, and so leaves no
+never-started lease that the backend's sweeps never reach and that 409-locks
+the next Start until its initial expiry — and its release slot is reserved
+beneath the sources, so a run unwinds its sessions, then its sources, then the
+lease: capture has closed before `session-end` goes out. An `acquire` that
+returns after a stop's bounded wait finds its slot already run and is released
+at once. With the signal reaching every step, no leg opens after
+`session-end`, and the lease drops any `session-started` a closing socket
+would still report. A refused lease leaves the last conversation on screen:
+the legs become the conversation only once it is held. `prepare` stays before
+the sources: its override feeds the builds, which must refuse before anything
+opens (Stage 2 Kizuna Soniox, ruling 9).
 
 **Legs start in parallel**, roughly halving startup time. Two legs dialling the
 same host are serialized by the socket seam in the provider definition.
@@ -1479,7 +1520,13 @@ start now fails.
 **A running session ends when any leg ends.** A leg ends when its adapter emits
 `failed` or an unexpected `closed`, when its source ends (a microphone unplugged,
 a tab closed, the app-capture helper died), or when a managed lease ends it
-(budget exhausted, duration cutoff). The leg records why as a Notice on its L1.
+(budget exhausted, duration cutoff). The leg records why as a Notice on its L1
+— a lease's end once, on the first leg: it covers every leg, and the same
+sentence twice in Both says nothing more (Stage 2 Kizuna Soniox, ruling 7). A
+notice recorded while `acquire`, or the other leg's source, is still opening —
+a source that ends or degrades — lands on a conversation that is handed over
+only if the start goes on to succeed; when it fails, the idle surface still
+shows why, through `lastEnd`.
 
 There is therefore no one-way state. `noChannelCameUp`, the pre-activation bail,
 `splitDegraded` and its "One-way only" chip, and `speakerStreamEndedRef` /
@@ -1495,17 +1542,17 @@ engines break it today.
 
 ```ts
 interface SessionHooks<S, K, C> {
-  prepare?(shape, s: S, ctx): Promise<{ override?: Partial<S>; persist?: Partial<S>; notice? }>
+  prepare?(shape, s: S, signal: AbortSignal): Promise<{ override?: Partial<S>; persist?: Partial<S>; notice? }>
   admit?(configs: { speaker?: C; participant?: C }): true | { refused: string }
-  acquire?(shape, s: S, ctx: { signal; end(reason, message) }): Promise<Resources<K>>
+  acquire?(shape, s: S, ctx: { signal; clock; end(notice, o?: { expected? }); frame(frame) }): Promise<Resources<K>>
   startBoth?(requests: { speaker; participant }, events: { speaker; participant })
     : Promise<{ speaker: Session; participant: Session }>
-  minimumBalance?(shape, s: S): number
+  minimumBalance?(shape: { legs; textOnly; participantSpeech }, s: S): number
 }
 
 interface Resources<K> {
   credentials(leg): K                   // per leg: minted key, role, billing reporter
-  budget?(): { remainingMs: number; totalMs: number }
+  budget?: { totalMs: number; endsAt: number }   // the grant: static, measured from acquire
   release(): Promise<void>
 }
 ```
@@ -1526,9 +1573,29 @@ interface Resources<K> {
 - **`acquire`** — the managed lease. It returns **one `K` per leg**, carrying the
   minted key, the role and the collaborator the adapter reports billing events
   to, so `legClientOptions` and the Soniox-named `sonioxManaged` key leave
-  generic code. It takes the run's signal. `release` retries with `keepalive`;
-  today a failed `session-end` is never retried. `end(reason, message)` is how
-  budget exhaustion and the duration cutoff stop the run with a notice.
+  generic code. It takes the run's signal and clock. `release` sends
+  `session-end` with `keepalive` and the token cached at acquire, so
+  `pagehide`'s synchronous release still reaches the backend; it retries a
+  transport failure or a 5xx, three attempts at most within 4 s, and the next
+  acquire cancels a release still retrying — `session-end` is scoped by
+  account, and a late one would end the next lease. After a transport failure
+  the rest of that release goes without `keepalive`: a runtime that refuses a
+  keepalive request needing a CORS preflight fails it that way, and a plain
+  request still reaches the backend on a normal Stop. `session-end` is a hint:
+  a lease that never started (no stream accepted) is freed only at its start
+  window's end, which is why the sources open first. `end(notice)` stops the
+  run when the grant ends, and the runner tracks it as `api_error` unless the
+  lease marks it `expected` (the normal end of a segment); Kizuna Soniox words
+  it at acquire — `segment_ended` when the grant reached the per-session cap,
+  `budget_exhausted` otherwise — and its budget timer and a 403 at the grant's
+  end give the same words. `frame` files the lease's wire traffic (`session.*`)
+  in the first leg's Logs, its release's outcome included; a refusal's wallet
+  figures go there only, never into the start's message, which analytics
+  carry.
+
+  The session key's refusals are 401, 402, 403, 409 (retried once), 502 and
+  503 — no 423 — and the backend's 503 has three causes (region, wallet,
+  capacity) that Kizuna Soniox still words as one, as the old client did.
 - **`startBoth`** (D23) — Soniox only. When both legs are requested and the
   provider defines it, the runner hands it both requests, and the provider
   decides between one mixed socket and two, from its own settings. Its second
@@ -1538,7 +1605,13 @@ interface Resources<K> {
   to name the leg that failed (D22), so the start's notice names it; any other
   rejection is the first leg's.
 - **`minimumBalance`** — managed providers' start floor, replacing the
-  `KIZUNA_AI_SONIOX` special case in the start gate.
+  `KIZUNA_AI_SONIOX` special case in the start gate. The gate reads it over
+  the account's wallet as the client knows it (Stage 2 Kizuna Soniox, ruling
+  5): a wallet still loading answers "Checking...", and one that failed to load
+  refuses Start, as the old gate did; the lease's 402 still words a balance
+  that changed since the fetch. Kizuna Soniox prices the roles its lease would
+  ask for (`ceil((n_stt × 1.1 + n_tts × 1.4) × 10⁶ × 60 / 3600)` µUSD), so a
+  participant speech stream counts once its flag is on.
 
 ### Capture belongs to the runner
 
@@ -1587,8 +1660,9 @@ session.
   Electron close awaits — resolves once no ending is in flight or lingering.
 - **`pagehide`** — the extension side panel closing, a reload, the web build —
   closes sockets and captures synchronously and releases a managed lease with a
-  `keepalive` request. Auto-save cannot run there, as today; the lease no longer
-  leaks until expiry.
+  `keepalive` request, with the token cached when the lease was acquired: there
+  is no time for an await. Auto-save cannot run there, as today; the lease no
+  longer leaks until expiry.
 - **`pagehide` calls `abandon()`**: every release on the run's stack starts
   synchronously, none awaited, and nothing is auto-saved.
 
@@ -1660,7 +1734,7 @@ source:
 | `push_to_talk_used` | the turn object |
 | `text_input_sent` | the runner (today it is not even declared in `AnalyticsEvents`) |
 | `connection_status` | the runner, per leg, on connect and close — today only the speaker's connect is reported |
-| `api_error`, `error_occurred` | the runner, from `failed` / `degraded` and from a start that fails |
+| `api_error`, `error_occurred` | the runner: both for a start that fails, `api_error` with its code when it has one (a refusal before anything opened tracks neither); `api_error` for `failed`, for a lease's end the lease does not mark `expected`, and for every `degraded` — `error_code` its `reason` when it has one, else its code — once per leg and code within L1's 5-s notice window |
 | `audio_error`, `audio_device_changed` | the sources |
 | `echo_detected` | the echo monitor |
 | `segmentation_model_load` | the punctuation runtime |
@@ -1898,8 +1972,9 @@ compatibility burden.
 
 ### Parameters and deferred decisions
 
-- **Release timeouts and the lease's retry policy** — how long the stack waits on
-  each release before moving on, and how many times `session-end` is retried.
+- **Release timeouts and the lease's retry policy** — decided by the Stage 2
+  Kizuna Soniox plan: each release bounded at 5 s; `session-end` three
+  attempts within 4 s.
 - **Local Native with two legs** — refused by `admit` until the sidecar keeps one
   engine per connection. That is a native and sidecar change with its own
   release, outside this design.
@@ -1921,16 +1996,20 @@ From the Stage 2 foundation survey's §3.4:
   would refuse the participant leg for OpenAI over WebRTC, which today runs its
   participant over WebSocket. The OpenAI plan decides: `turns(s)` for the
   speaker leg, the adapter choosing the participant's transport.
-- **Participant speech against the managed lease** (item 3), which mints no
-  participant TTS role — the Kizuna Soniox plan.
+- **Participant speech against the managed lease** (item 3) — decided by the
+  Kizuna Soniox plan (ruling 2): built end to end — the request's intent
+  field, the participant's `par_tts` key in every Both mode and
+  participant-only, floors counted from the roles — and shipped off behind the
+  definition's `participantSpeech` flag until the backend mints `par_tts` (the
+  roadmap's "turning it on" checklist).
 - **`minimumBalance`, `Resources.budget` and `RunState.running.budget`**
-  (item 5) are in this spec but not yet in the types — the Kizuna Soniox plan.
+  (item 5) — in the types since the Kizuna Soniox plan.
 - **Items 8 and 9 — resolved by the foundation plan** (the controller's
   ruling), as the shape's note records:
   - item 8 by F3: `credentials.read` may answer with a code, so a managed
     provider signed out reads `sign_in_required`. `read` stays synchronous, so
-    a managed `K` carries `getToken` and calls it lazily. Kizuna Soniox uses it
-    first.
+    a managed `read` answers the sign-in (`R`), and the lease reads the token
+    from the run's `auth` when it mints `K`. Kizuna Soniox uses it first.
   - item 9 by F5: `legacyKeys`, the credentials and `migratePair` reach a
     migration. OpenAI and Palabra use it first.
 

@@ -1753,9 +1753,12 @@ What it leaves, for the plans that meet it (the plan's own list, as written):
   entry above states them. This plan changes only the order case, which now pins
   `['localInference', 'soniox']` (`registry.test.ts:204`; Soniox second by the
   plan's ruling 7); the owner still decides the final order once, before Kizuna Soniox
-  lands.
+  lands. — Decided by the Kizuna Soniox plan's ruling 6 (its entry below).
 - **The owner's live test above**, before Plan B builds on the adapter and
-  before any release that carries it.
+  before any release that carries it. — **Passed** (owner, 2026-09-27): all
+  eighteen items, item 8's ten-minute shared-Both latency check included, with
+  no problems. Item 7 passing settles `FIN_TRANSLATION_GRACE_MS` at 2,000 ms.
+  Plan B1 (the Kizuna Soniox plan below) built on the adapter after it.
 - **The wizard's own-key description** (`setup.paths.own-key.desc`) names
   "OpenAI, Gemini, Doubao (Volcengine) and others" (group check B, item 4). It
   is true once those providers are ported; a release while Soniox is the only
@@ -1770,3 +1773,663 @@ What it leaves, for the plans that meet it (the plan's own list, as written):
 - **The two keys' native-speaker check** (the table above), including the `es`
   / `pt_PT` subject the final fix wave is to reword.
 - **`FIN_TRANSLATION_GRACE_MS`** (2,000 ms): the live test's item 7 settles it.
+
+## Scheduled by the Stage 2 Kizuna Soniox plan
+
+The Stage 2 Kizuna Soniox plan
+(`docs/superpowers/plans/2026-09-27-client-contract-stage2-kizuna-soniox.md`,
+plan commit `4bc56808`, revised `d9d9c38c` with the owner's rulings, both over
+`a63c366b`'s code) landed as the sixteen commits after it, `e93f6082` through
+`0a7b903e` (**+5,741 / −946 lines across 123 files**, `d9d9c38c..0a7b903e`),
+then this record with the spec's amendments. The final whole-plan review and
+its fix wave come after this record: the Minors the task reviews queued for
+that wave are listed below, not done. It is Plan B1 of the survey's two (§5.1)
+— **Kizuna AI's managed Soniox** (`kizunaai_soniox`) on the new session, as
+`managed(soniox, …)` with its lease, voice claim, balance floor, countdown,
+account row and the wizard's managed path. Plan B2 deletes both Soniox
+providers' old code after the owner's paid live test below; until then the old
+managed code stays compiled and unreachable (ruling 1). Its prerequisite, Plan
+A's live test, passed on 2026-09-27 (the Soniox entry's "Before any release",
+above). Twelve implementation tasks ran in five waves — Task 1; Tasks 2, 4, 5
+and 7; Tasks 3 and 6; Task 8; Tasks 9–12 — with group check A after the third
+and group check B after the fifth. Tasks 2, 3, 5 and 12 took one review fix
+round each; every other task was approved as its implementer committed it.
+Task 13 is this record. The survey the plan was written from is named in its
+research notes.
+
+**The rulings — every one the owner's** (2026-09-27; the plan's header):
+- **Decided before the draft:** ruling 2 (participant speech built end to end
+  and shipped off behind one flag) and ruling 6 (Kizuna AI first in the
+  registry; D19's flag model).
+- **Confirmed as drafted:** ruling 3 (the grant's end worded by whether the cap
+  was hit), ruling 4 (the sign-in auto-switch kept, Basic mode only), ruling 7
+  (one lease-end notice) and ruling 10 (`session-end` three attempts within
+  4 s, and the smaller choices).
+- **Confirmed on a condition:** ruling 9 (the sources before the lease), "if it
+  does not go against the architecture's philosophy and purpose". Before
+  execution the controller checked the three guarantees the spec's "A run"
+  rests on — every resource pushed with its release when acquired; the signal
+  reaching every step; the lease released after the legs' sessions — and that
+  the runner stays generic. Task 2's review then found the third held for the
+  legs' sessions but not their sources: a lease run unwound session → lease →
+  source, the microphone still open through `session-end`. Its fix round
+  reserved the lease's release slot beneath the sources (the controller's
+  ruling 3 below), and the spec now states that order.
+- **Overturned in the revision `d9d9c38c`:** ruling 5 — the draft let an
+  unknown balance start, the backend's 402 the authority; an unknown balance
+  now refuses Start, as the released app's gate does, with "Checking..." while
+  the first fetch is in flight and a re-fetch when the network returns.
+  Ruling 8 — the draft accepted the lost `api_error` events as stated
+  departures; they are restored, generically in the runner.
+- Rulings 1 and 11–14 are the plan's frame.
+
+What landed, by task:
+- **Types, the read type and `managed()`** (`e93f6082`, Task 1):
+  `Provider<S, K, C, R = K>` — `read` answers `R`, `check` takes it, `start`
+  keeps `K`; `managed.ts`'s `ManagedSignIn`, `readSignIn` (`sign_in_pending`
+  while the sign-in loads) and `managed(base, overrides)`, member by member;
+  `AuthContext.loaded?`; `participantSpeech?`; `AccountState`,
+  `RunShape.account?`, `BalanceShape`, `Budget`, `Resources.budget?`,
+  `LeaseContext` (`signal`, `clock`, `end(notice, { expected? })`, `frame`),
+  `SessionHooks.minimumBalance?`, `RunState.running.budget?`; `degraded`'s
+  `reason?`. Four `@ts-expect-error` cases in `managed.test.ts`, which the
+  typecheck gate enforces.
+- **The runner** (`a3e239f3`, fix round `29f7d950`, Task 2): a run with a lease
+  or `startBoth` opens every leg's source before `acquire` (ruling 9) and hands
+  its legs over only after it (choice 3); a lease's end is one notice, on the
+  first leg (ruling 7); `api_error` again for a start that fails, a lease end
+  not marked `expected`, and every `degraded` — `reason ?? code`, once per leg
+  and code in 5 s (ruling 8, `apiErrorType`); the lease's frames go to the
+  first leg's Logs; the running state carries the budget; Soniox's speech
+  passes `reason: tts_<cause>`; the leased fake gains `acquireRefused`,
+  `minimumBalanceMicroUsd`, a budget and a `lease.acquired` frame. The fix
+  round: the lease's release slot is reserved beneath the sources
+  (`run.ts:205-217`), so a run unwinds sessions → sources → lease, and an
+  `acquire` that returns after the stop's bounded wait is released at once
+  (`:256-258`); seven tests — the per-leg dedupe key, Stop while a source opens
+  (no `acquire`), the release order on Stop of one leg, of both, of `startBoth`
+  and on a failure after `acquire`, and the late-lease guard; two stale
+  comments.
+- **The participant-speech flag's readers** (`49c7ad8d`, Task 4): `contextsFor`
+  gives the participant no speech while the provider's flag is off;
+  `participantSpeechFromStores` feeds the shape, the live gate and the account
+  button's floor; `ParticipantSpeechSwitch` shows off and disabled with the
+  "not available yet" tooltip, keeping the stored choice, the provider's rule
+  before the whole-system one; one new key,
+  `audioPanel.participantSpeechNotYetAvailable`, in the 30 catalogs.
+- **The lease I** (`c613caec`, fix round `b9fe32b4`, Task 5): `leaseRequest.ts`
+  (the request and its roles; `PARTICIPANT_SPEECH_FIELD` sent only while the
+  flag is on), `kizunaBudget.ts` (the rates, floors and caps mirrored from the
+  backend at `7b2259c`, with parity tests) and `lease.ts` — the session key
+  bounded at 15 s on the run's clock, its body included; a 409 retried once
+  after `retryAfterMs` (3 s when absent); its codes (401 `sign_in_required`,
+  402 `insufficient_balance`, 403 `wallet_frozen`, 409 `session_conflict`, 502
+  or a timeout `soniox_service_unavailable`, 503 `soniox_service_busy`, a
+  transport failure `network`); a contract break failing the start; per-leg
+  keys, `par_tts` mapped only while the flag is on; the grant as `budget`, its
+  end worded at acquire (ruling 3); `session-end` with `keepalive` and the
+  cached token, three attempts within 4 s, cancelled by the next acquire. The
+  fix round: a case pins the grant-end words over the minted role set, a
+  `par_tts` grant included; an abort between the 409 wait and the retry now
+  stops it; `parseGrant`'s contract checks are pinned, a `1e999` duration
+  among them; `keepalive` is dropped for the rest of a release after a
+  transport failure; a 402's wallet figures leave the thrown message for a
+  `session.refused` frame.
+- **The managed voice** (`aa3d7b18`, Task 7): `ManagedVoicesClient` and
+  `managedVoicePolling` moved by `git mv` into `src/providers/soniox/`, their
+  history kept, with a one-line stub at each old path; `managedVoicePrep`
+  ported to `voicePrep.ts`, answering codes (`voicePrepCode`), the old copy
+  kept for B2; `voiceClaim.ts`, Kizuna Soniox's `prepare`;
+  `managedVoiceSource.ts` (`useManagedVoiceSource`, `setManagedVoiceStandIn`);
+  `startLabel` names the `preparing` step "Preparing your voice…".
+- **The lease II** (`487625f1`, Task 6): one `SonioxLeasePort` per STT role —
+  `streamAccepted` posts one `session-started` per role, never once released;
+  `atGrantEnd` with `GRANT_END_MARGIN_MS` (90 s, the old cutoff margin);
+  `cutoff` ends the run in the grant's words. Shared Both's participant carries
+  no port.
+- **The account's wallet and the gate's floor** (`0e4280f0`, fix round
+  `06d58302`, Task 3): `useAccountStore`, written by `UserProfileContext`,
+  which re-fetches an unknown wallet on `online` and after 15, 30 and 60 s
+  (`WALLET_RETRY_DELAYS_MS`); `balanceRefusal` last in `gate()` —
+  `quota_pending`, `quota_unknown`, `wallet_frozen`, `balance_below_floor`;
+  `RunShape.account`; the live gate and `appSubtitleSession` follow the wallet,
+  text-only and the participant switch. The fix round: case 5 signs out a fresh
+  failed render mid back-off; the routing subscription is pinned; an unmount
+  during the back-off clears its timers and listener; a doc comment; test
+  tidying.
+- **Kizuna Soniox** (`4a5d3293`, Task 8): `kizuna.ts` —
+  `createKizunaSonioxProvider({ participantSpeech })` over
+  `managed(sonioxProvider, …)`, the one flag reaching its capability, its lease
+  and its floor, shipped as `KIZUNA_PARTICIPANT_SPEECH = false`;
+  `RELEASED = [kizunaSonioxProvider, localInferenceProvider, sonioxProvider]`
+  (ruling 6); ten `NOTICE_ALIASES` rows (the lease's two Soniox service
+  sentences, the four voice-claim sentences, the gate's balance sentence,
+  `sign_in_pending`, and the wallet's two);
+  `NOTICE_TARGETS.sign_in_required: 'provider'`;
+  `kizunaParticipantSpeech.test.tsx`, flag off and flag on, end to end.
+- **The account row** (`47c1e269`, Task 9): `ManagedAccountRow` — "Checking..."
+  with a spinner while the sign-in loads, "Automatically authenticated via your
+  account", or the sign-in sentence whose link opens the account popover;
+  "Recommended" on the picker's first managed provider; `loaded` through
+  `useAuthContext` and the session's bridges, a flip of it forgetting managed
+  readiness; the preview's `AuthStandIn` and its managed voice stand-in.
+- **The countdown and the dot** (`634e3bcb`, Task 10):
+  `SessionCountdown({ budget, now? })` in both footers while a run has a
+  budget, low under 20 %; `useBalanceShortfall` — the account button's dot is
+  the gate's own `balance_below_floor` for the selected provider;
+  `selectedFromStores` exported.
+- **The wizard's managed path and the stored-selection fallback** (`f75586a4`,
+  Task 11): `managedProvider`, `availablePaths` and `managedOption` read the
+  registry; a stored `'kizunaai'` or relay-twin id selects the default managed
+  provider on load (`MANAGED_LEGACY_IDS`), never written back.
+- **The sign-in auto-switch** (`a34a5b18`, fix round `0a7b903e`, Task 12):
+  `useSignInProviderSwitch` — Basic mode, outside the wizard, from a
+  non-managed provider, through `select(id, 'pick')`, loading the entry and
+  tracking `settings_modified`; a session restored at launch is not a sign-in
+  (choice 14). The fix round: three wiring cases pin `MainLayout`'s call; a
+  signed-out answer carrying an error counts as not loaded (a failed session
+  fetch reads loaded and signed out, so the refetch when the network returned
+  would have switched and rewritten the stored provider); the lock is checked
+  before `select`, so a sign-in during a run logs no refusal; a spy on `load`;
+  two comments.
+
+**The spec's amendments** (this record's commit), the plan's eleven and what
+execution added:
+1. "The shape": `Provider<S, K, C, R = K>`, `read` answering `R` or a coded
+   missing, `check(r: R, …)`, `participantSpeech?`, and the plan's note.
+2. "Managed twins are composition": what `managed()` takes from the base and
+   what is the twin's own — its participant-speech flag added to the plan's
+   list (`managed.ts:62`).
+3. "Readiness is one check": the loading sign-in, the static managed `check`,
+   the wallet as the gate's input. The paragraph's "the service's answer for
+   managed ones" now reads "a static yes", and "When checks run" counts the
+   sign-in finishing loading as a flip.
+4. "A run": the steps in the code's order, the lease's release slot a step of
+   its own beneath the sources (Task 2's fix round), and "Order removes the
+   lease race" rewritten around it.
+5. "Legs rise and fall together": one lease-end notice; and a notice recorded
+   while the lease or the other source is still opening lands only if the
+   start succeeds (Task 2's review, M5).
+6. "Session hooks": the signatures; `release`'s policy, with `keepalive` dropped
+   after a transport failure and a refusal's wallet figures kept to the Logs'
+   frame (Task 5's fix round); the grant-end words; `frame`; `minimumBalance`
+   over the wallet, its formula.
+7. "The runner": `RunState`.
+8. "Stopping, and closing the window": the token cached at acquire.
+9. "Parameters and deferred decisions": the release bound and `session-end`'s
+   retries.
+10. "Stage 2 — open for the plans that meet them": participant speech, the
+    types, item 8's token.
+11. "Session hooks": the session key's refusals, with 502 added to the plan's
+    list — the backend answers it when Soniox mints no key
+    (`BE:routes/soniox.ts:577` at `7b2259c`), and the lease words it
+    `soniox_service_unavailable`.
+And from execution (ruling 8): "Analytics"' `api_error` row as the runner
+tracks it, and L0's `degraded` naming its `reason`.
+
+**Checked — the gates.** Every implementer ran the suite and the typecheck gate
+on its own commit. In the parallel waves a failure or an extra gate line in
+another task's uncommitted files was named and left to it (Task 7's two
+`voiceClaim.test.ts` lines during Wave 2; Task 9's files during Wave 5), and
+5-s timeouts under the wave's load were re-run alone and passed. The
+controller's gates after Wave 2 (at `aa3d7b18`): 486 files passed and 1
+skipped, 6,202 tests passed and 2 skipped, 0 failed, no unhandled errors; the
+gate at its 18 baseline lines. The suite grew from 6,094 tests at `a63c366b`
+to 6,299 at `0a7b903e`, 0 failed, the gate at its baseline throughout.
+
+**Checked — group check A** (after Wave 3, at `0e4280f0`; the suite re-run at
+`06d58302` after Task 3's round):
+1. the suite at `06d58302`: 488 files + 1 skipped, 6,241 tests + 2 skipped, 0
+   failed, no unhandled errors; the gate at its 18 lines;
+2. `src/services` and `src/components/Settings`: 112 files, 1,801 tests passed;
+3. `npm run build` and the extension build; `npx vitest run extension` (7
+   files, 45 tests); the three D24 greps empty;
+4. the full tree's typecheck: 259 lines, the bound;
+5. **the leased fake in the preview** (a fresh vite, headless): "Prepare
+   answers with a fallback" → the button read ▶ Start, Connecting...,
+   Preparing your voice…, ■ Stop (caught by a `MutationObserver`: the fake's
+   `prepare` resolves at once), then the warning "The chosen voice was
+   unavailable, so another voice is used."; "Acquire refuses" → the last
+   conversation stayed on screen ("Hello, how are you?") under "Insufficient
+   balance to start a session. Please top up your balance and try again.",
+   Start back on; "Minimum balance" 1000 with no account wired (the preview has
+   no wallet) → Start stayed on, since the floor needs a known account. The
+   spine probes (gate, surface, subtitle, export, audio, local) and
+   `app-panel-probe` (preview, `--settings`) exit 0.
+
+**Checked — group check B** (after Wave 5, at `0a7b903e`):
+1. the suite (495 files, 6,299 tests, 0 failed) and the gate at its baseline;
+   both release builds; `npx vitest run extension` (7 / 45); the three D24
+   greps empty; `session.lease_acquired`, a frame only the new lease emits, in
+   `build/static/index-*.js` and `extension/dist/fullpage.js` (the extension's
+   main page, where own-key Soniox's code now sits too) — the lease ships in
+   both bundles, neither fake does;
+2. the full tree's typecheck: 259 lines, the bound;
+3. every probe on a fresh vite: the spine probes (gate, surface, subtitle,
+   export, audio, local), `app-panel-probe` (preview, `--settings`, `--app`,
+   `--settings --app`), `extension-overlay-probe` (plain and `--ptt`) — all
+   exit 0;
+4. **Kizuna Soniox's Provider tab, rendered**, fetch / XHR / WebSocket logged
+   from before load, Start never pressed. Signed out (advanced and simple): the
+   picker's "KizunaAI · Powered by Soniox" with its icon and "Recommended"; the
+   row "Sign in or sign up to use Kizuna AI — no API key needed."
+   (`.api-key-warning`); Start off with "Sign in to use Kizuna AI's built-in
+   translation service."; region, the voice library (built-in Adrian), TTS
+   speed, vocabulary, preferred translations, background, the shared-session
+   pills with the managed cost note, the turn-detection block. Signed in
+   (advanced and simple): "Automatically authenticated via your account"
+   (`.api-key-info`), Start on. No request to `/soniox/` in any case;
+5. **the leased fake, lease 30 s:** the basic and advanced footers showed 00:28
+   at 2.5 s and 00:05, low, at 25.5 s, and nothing once it ended; "Your session
+   balance is used up. Top up your balance to keep translating." once. Both
+   mode cannot start in the web preview ("Translating other participants isn't
+   available here."), so the one notice in Both rests on Task 2's runner tests
+   and the paid live test's item 4;
+6. **the participant switch** renders in the system-audio section, Electron
+   only, so the preview cannot show it: Task 4's switch tests and Task 8's
+   `kizunaParticipantSpeech.test.tsx` pin it, and the paid live test's item 12
+   sees it;
+7. **the wizard** on a fresh profile: the path step offers "Start right away"
+   (Recommended), "I have my own API key" and "Free, offline"; the first
+   reaches "Your Kizuna AI account" with Sign in, Create account and Skip for
+   now — none pressed;
+8. the one key's spot-check list (below).
+
+**Controller rulings** during execution, each with what it costs if wrong
+(numbered here as "the controller's ruling N"; a bare "ruling N" in this entry
+is the plan's):
+1. **Task 2's `startBoth` case amended:** the brief's `vi.fn()` `startBoth`
+   returned `undefined`, so the first run crashed; the implementer gave it a
+   working `startBoth` and asserts one call, the load-bearing check (the
+   conversation after equals the one before) unchanged. Cost: none.
+2. **Task 5's review fixed in the task** (the grant-end words over the role
+   set, the abort after the 409 wait, `parseGrant`'s checks), and **its
+   `keepalive` question answered by keeping `keepalive` on the first attempt
+   only and dropping it after a transport failure**: a runtime that refuses a
+   keepalive request needing a CORS preflight would otherwise lose every
+   `session-end`, which the old client delivered without `keepalive`. Cost: one
+   extra plain request after a transport failure. The paid live test's item 9
+   checks it.
+3. **Task 2's I1 (plan-mandated): the lease's release slot reserved beneath the
+   sources**, so a run unwinds session → sources → lease. Why: ruling 9 was the
+   owner's on the condition that the architecture's guarantees hold, and "the
+   lease released after the legs have closed" includes their sources. Cost:
+   none. Its M2 (the analytics shifts) → the stated departures and the live
+   test's item 14; M3 (a 402's figures in `error_message`) → Task 5's round,
+   the figures into a `session.refused` frame (choice 5 keeps account figures
+   in diagnostics); M4 (test gaps) → the round; M5 → the spec's note.
+4. **Task 3's review fixed whole in the task** (one Important, four Minors).
+   Cost: none.
+5. **Task 8's `noticeText.test.ts` departure accepted:** the brief's `t` filled
+   from the notice's message and could never show `$0.01`; the implementer's
+   `t` shows the `balance` param, as the file's "passes the params through"
+   case does. Cost: none.
+6. **Task 12's I2 (plan-mandated): a signed-out answer carrying an error is
+   "not loaded"** for the auto-switch. Why: a false switch rewrites a user's
+   stored provider. Cost: a sign-in whose first answer was an error does not
+   switch — one missed switch after an offline launch (a stated departure).
+7. **Task 11's I1 and M2 → the final fix wave:** the unit tests pin the rule
+   and the registry order is pinned, so the gap is test discrimination only.
+   Cost: none.
+8. **Task 6's M4 edits `src/providers/soniox/settings.ts`**, outside the plan's
+   touch list, in the final fix wave: a one-line doc comment this plan made
+   false. Cost: none. Its M2 → "Found here", below.
+
+**Queued for the final fix wave** (not done in this record):
+- Task 2: a test for `abandon()` (`pagehide`) meeting a late `acquire` — the
+  same mechanism as the Stop race, traced correct, untested.
+- Task 6: widen the port guard to `ended || released || accepted.has(role)`
+  (`lease.ts:318`), with a case (`cutoff()`, then `streamAccepted()` posts
+  nothing); the comment at `lease.ts:355-360`, whose "That key" has no clear
+  antecedent; `SonioxLeasePort.cutoff`'s doc (`settings.ts:100`) names only
+  `segment_ended`, where ruling 3 gives `segment_ended` or `budget_exhausted`.
+- Task 8: `kizuna.test.ts:2` cites a task number; `loadStores.test.ts:63, 65`
+  repeat one comment on two adjacent assertions (one comment above both);
+  `registry.test.ts` to pin Kizuna Soniox first and unflagged, umbrella only,
+  per platform.
+- Task 9: the task number in the comment at `SpinePreview.test.tsx:326`.
+- Task 10 (optional): the "a grant of zero is never low" case no longer tells
+  the `totalMs > 0` guard apart (the clamp makes it vacuous).
+- Task 11: a `loadStores` case where the managed provider is not first
+  offered, and one where an own-key stored id wins over a non-null managed
+  default.
+
+**Stated departures from today** (the plan's list, and three execution added;
+old-code line numbers at `a63c366b`):
+- Kizuna Soniox runs on the new session; its old client, descriptor, helpers, settings UI and store slices stay compiled and unreachable until Plan B2.
+- **The registry offers Kizuna Soniox first** (ruling 6): a fresh install outside the wizard lands on it, signed out, Start off with the sign-in words. It is unflagged, present wherever the Kizuna umbrella is on.
+- **Sources before the lease** (ruling 9): a source that fails mints no key, so it no longer leaves a never-started lease that 409-locks the next Start for 75 s (195 s with `par_stt`). A refused lease, or a source failing before it, leaves the last conversation on screen; **own-key Soniox in Both mode** now hands its legs over after both sources opened too, so a failing participant source no longer clears the last conversation (choice 3).
+- **A lease's end is recorded once, on the first leg** (ruling 7), where every leg recorded it.
+- **The grant's end is worded at acquire** (ruling 3): "segment ended" at the per-session cap, "balance used up" otherwise; the old client said "balance used up" at the cap too.
+- **Analytics** (ruling 8) mirror the old events with two differences: a start failure's `api_error` now carries the failure's code when it has one (the old one never did), and LocalInference's degradations — a sentence that could not be spoken, a failed translation — now reach `api_error`, one per 5 s per code, where the old client sent none for them.
+- **A Soniox TTS degradation's `api_error.error_message`** reads the event's own message (`Soniox TTS 408: Request timeout`), where the old client sent the server's raw words (`Request timeout`); `error_code` is unchanged (execution: Task 2's review, M2a).
+- **A lease's `network` refusal** reports `error_type: 'network'`, where the old path was always `'server'` (execution: Task 2's review, M2b; the runner's `failed` case already did since Plan A).
+- **The managed participant is never voiced** (ruling 2), as before — its speech is built but shipped off — and now the switch says so: off and disabled with a "not available yet" tooltip. With the flag off the session-key body is byte for byte today's.
+- **An unknown balance** refuses as before (ruling 5), with two changes: a signed-in launch shows "Checking..." while the first fetch is in flight, not the failure words, and an unknown wallet is fetched again when the network returns and after 15, 30 and 60 s, where the old app waited for the 5-minute poll.
+- **The gate's balance words** are the old gate's ("Insufficient balance: $x"); a frozen wallet's are "Wallet is frozen. Please contact support.", now also refused at the gate, before a request.
+- **A 401 from the session service** is worded "Sign in to use Kizuna AI's built-in translation service." (the old client showed an English string); a transport failure "The connection to the provider failed: …".
+- **A contract break in the session key's answer fails the start** (ruling 10): no flat-field or region fallback.
+- **`session-end`** is sent with `keepalive`, from a closing page too, retried within 4 s and cancelled by the next lease; the old client sent it once, never from a closing page. After a transport failure the rest of that release goes without `keepalive` (the controller's ruling 2).
+- **"Preparing your voice…"** shows briefly on every Kizuna start (choice 16), where the old app showed it only while a clone was claimed.
+- **The loading sign-in** shows "Checking..." with a spinner, not the sign-in words (choice 10).
+- **The account button's dot** is the start gate's own answer for the selected provider and legs (choice 9), where it used the lowest floor. A frozen wallet lights no dot, where the old one lit for a frozen wallet whose balance was below the floor (`AccountButton.tsx:133-138`): the gate refuses it with its own words instead.
+- **"Recommended"** returns to the picker's first managed provider; **the wizard's managed path** returns.
+- **A stored `'kizunaai'` or relay-twin id** selects Kizuna Soniox on load (choice 13), without writing it back.
+- **The sign-in auto-switch** returns for Basic mode, and no longer fires at a launch with a stored session (choice 14) — **nor after a launch whose session fetch failed**: Better Auth reports that as loaded and signed out, with an error, so a sign-in whose first answer was an error does not switch (execution: Task 12's fix round, the conservative side).
+- **`translation_session_start`** reports `provider: 'kizunaai_soniox'` with Soniox's models.
+
+**The roadmap's inheritance, item by item** (the plan's tables, survey §2.12,
+as landed): taken (and where), deferred (and why), or already done.
+
+From the foundation plan's Kizuna Soniox list (`:1262-1283` above):
+
+| Item | Disposition |
+|---|---|
+| `managed(base, …)` | taken — Task 1 (`managed.ts`), Task 8 |
+| `minimumBalance`, `Resources.budget`, `RunState.running.budget`, the leased fake's budget | taken — Task 1 (types), Task 2 (the running state, the leased fake), Task 5 (Kizuna's) |
+| The live gate's balance floor | taken — Task 3 (the account store, `balanceRefusal`) |
+| `acquire`'s frame sink for `session.*` | taken — Task 1 (type), Task 2 (routing), Tasks 5–6 (frames) |
+| The managed account row and "Recommended" | taken — Task 9 |
+| `SessionCountdown` mounted | taken — Task 10 |
+| `AccountButton` through `minimumBalance` | taken — through the gate itself (choice 9), Task 10 |
+| F12's managed wizard path | taken — Task 11 |
+| `selectionFromStored` for `'kizunaai'` and unported managed ids | taken — Task 11 (choice 13) |
+| `NOTICE_TARGETS.sign_in_required` (the foundation's list: "the account popover"); the `sonioxVoice*` aliases | taken — Task 8, with the target `'provider'`, not the popover: a Settings target names a Settings section and the popover is none; the provider section's account row carries the sign-in link, which opens the popover |
+| `&signedin=1` reaches the `&settings=` blocks | taken — Task 9 (`AuthStandIn`), with the voice source's stand-in so no preview calls `/soniox/voices` |
+| The lease's timers on `ctx.clock`; extend the session-side guard? | timers taken (Tasks 5–6); the guard **deferred**: an owner option (the lease is not reached by `adapter.ts`, and the spec exempts hooks); an open question below |
+| `NETWORK_READINESS_DELAY_MS` (800 ms) | moot for Kizuna Soniox (its `check` is static); stays a live-test observation |
+| Participant speech against the lease | ruling 2 — built end to end, shipped off behind one flag: Tasks 1, 4, 5, 8; turning it on is the checklist below |
+| The sign-in auto-switch | ruling 4 — Task 12 |
+| The registry's final order | ruling 6 — Task 8 |
+| Nothing account-mutable in a ready answer | done by design: the `check` is static, the balance is the gate's input |
+| A check that threw leaves a managed provider not-ready (`:1281`: an offline managed launch keeps Start off with no way back) | moot for the check: a static check never throws. The analogous stuck state is the quota fetch offline (survey §2.12, §4.4), now refused by ruling 5 — and answered by its way back: `UserProfileContext` re-fetches an unknown wallet on `online` and after 15, 30 and 60 s (Task 3). But see "Found here": an offline launch may read signed out first |
+| A managed provider wanting a re-check on a balance change | moot: the balance is the gate's input, live through the account store (Task 3) |
+| `AuthContext` pending state | taken — Task 1 (`loaded`), Task 9 (the bridges, the row), Task 8 (`sign_in_pending`'s alias) |
+
+Parked from the task reviews (`:1320-1350` above):
+
+| Item | Disposition |
+|---|---|
+| The leased fake: no refused `prepare` / `acquire`; no two-leg run through the runner | `acquire`'s refusal and the two-leg run taken (Task 2); a refused `prepare` deferred: `prepare` has no refusal path (it answers a notice and never throws, as Kizuna's claim does) |
+| Its inert "Require an API key" toggle | deferred: not Kizuna's |
+| The account's compile-time narrowing | deferred: Plan A left it, and nothing here needs it |
+| Readiness during a run | unchanged |
+
+From Plan A's "What it leaves → Kizuna Soniox" (`:1728-1738` above):
+
+| Item | Disposition |
+|---|---|
+| F11, whole | taken — Tasks 1–3, 8–10 |
+| The lease behind `SonioxLeasePort` | taken — Task 6 |
+| Per-leg `K` (`mix_*` / `spk_*` / `par_stt`), `credentials('participant')` not throwing in shared Both | taken — Task 5 |
+| `K.tts` absent while speaking | taken — with the flag on and no `par_tts` in the answer, the participant's leg runs text-only through Plan A's `tts_degraded` (Task 5's keys, Task 8's spec); with the flag off its context asks for no speech, so nothing is said (Task 4) |
+| The voice claim and the managed voice source | taken — Task 7 (and Task 8's view) |
+| The `sonioxService*` / `sonioxVoice*` aliases, `insufficient_balance` and the other lease words, `sign_in_required`'s target | taken — Task 8 (the lease words were aliased by the foundation plan) |
+| The wizard's managed path; `providerFits` for a managed id | taken — Task 11 (`providerFits` answers once Kizuna Soniox is registered, Task 8) |
+| The registry's order and the release flags | ruling 6 — Task 8; "Before any release" below |
+| Deleting both providers' old code | Plan B2, after the paid live test (D11 as amended) |
+| The keep-list and its re-points | Plan B2's inventory (below), with the re-point the list missed (`SonioxVoiceSection.tsx:47`) |
+
+Plan A's "Found here", "Before any release" and open questions (`:1740-1775`
+above):
+- Plan A's live test came before this plan's execution (ruling 13) — met: it
+  passed on 2026-09-27.
+- The release flags and the order: ruling 6 (unflagged, Kizuna Soniox first).
+- `setup.paths.own-key.desc`: Plan A's (or the release's), not Kizuna's.
+- Analytics for `degraded`: Plan A's open question, answered here (ruling 8).
+  `FIN_TRANSLATION_GRACE_MS`: settled by Plan A's live test (item 7 passed).
+  The locale check: Plan A's open question, unchanged.
+- Plan A's "Found here" items are Soniox's, untouched here.
+
+**The locale spot check**, for a native speaker: the 29 non-`en` values of
+`audioPanel.participantSpeechNotYetAvailable`, the switch's tooltip while a
+provider's participant speech is shipped off (ruling 2), as Task 4 wrote them
+(`49c7ad8d`) and as the catalogs carry them at `0a7b903e`. The English source:
+"Not available yet with this provider: Other's translation is shown as text
+only."
+
+| Locale | `audioPanel.participantSpeechNotYetAvailable` |
+|---|---|
+| `ar` | غير متاح بعد مع هذا المزود: تُعرض ترجمة الآخر كنص فقط. |
+| `bn` | এই প্রদানকারীর সাথে এখনও উপলব্ধ নয়: অন্যের অনুবাদ শুধু লেখা হিসেবে দেখানো হয়। |
+| `de` | Bei diesem Anbieter noch nicht verfügbar: Die Übersetzung des Gegenübers wird nur als Text angezeigt. |
+| `es` | Aún no disponible con este proveedor: la traducción del otro se muestra solo como texto. |
+| `fa` | هنوز با این ارائه‌دهنده در دسترس نیست: ترجمهٔ طرف مقابل فقط به صورت متن نمایش داده می‌شود. |
+| `fi` | Ei vielä käytettävissä tällä tarjoajalla: toisen käännös näytetään vain tekstinä. |
+| `fil` | Hindi pa available sa provider na ito: ipinapakita lang bilang teksto ang salin ng kausap. |
+| `fr` | Pas encore disponible avec ce fournisseur : la traduction de l'autre s'affiche uniquement en texte. |
+| `he` | עדיין לא זמין עם ספק זה: תרגום הצד השני מוצג כטקסט בלבד. |
+| `hi` | इस प्रदाता के साथ अभी उपलब्ध नहीं: दूसरे का अनुवाद केवल टेक्स्ट के रूप में दिखाया जाता है। |
+| `id` | Belum tersedia dengan penyedia ini: terjemahan lawan bicara hanya ditampilkan sebagai teks. |
+| `it` | Non ancora disponibile con questo fornitore: la traduzione dell'altro viene mostrata solo come testo. |
+| `ja` | このプロバイダーではまだ利用できません。相手の翻訳はテキストのみで表示されます。 |
+| `ko` | 이 제공자에서는 아직 사용할 수 없습니다. 상대방 번역은 텍스트로만 표시됩니다. |
+| `ms` | Belum tersedia dengan penyedia ini: terjemahan pihak lain dipaparkan sebagai teks sahaja. |
+| `nl` | Nog niet beschikbaar bij deze provider: de vertaling van de ander wordt alleen als tekst getoond. |
+| `pl` | Jeszcze niedostępne u tego dostawcy: tłumaczenie rozmówcy jest wyświetlane tylko jako tekst. |
+| `pt_BR` | Ainda indisponível com este provedor: a tradução do outro é exibida apenas como texto. |
+| `pt_PT` | Ainda indisponível com este fornecedor: a tradução do outro é apresentada apenas como texto. |
+| `ru` | Пока недоступно у этого поставщика: перевод собеседника показывается только текстом. |
+| `sv` | Inte tillgängligt än med den här leverantören: den andras översättning visas endast som text. |
+| `ta` | இந்த வழங்குநருடன் இன்னும் கிடைக்கவில்லை: மற்றவரின் மொழிபெயர்ப்பு உரையாக மட்டுமே காட்டப்படும். |
+| `te` | ఈ ప్రదాతతో ఇంకా అందుబాటులో లేదు: ఇతరుల అనువాదం టెక్స్ట్‌గా మాత్రమే చూపబడుతుంది. |
+| `th` | ยังไม่พร้อมใช้งานกับผู้ให้บริการนี้ คำแปลของอีกฝ่ายจะแสดงเป็นข้อความเท่านั้น |
+| `tr` | Bu sağlayıcıda henüz kullanılamıyor: karşı tarafın çevirisi yalnızca metin olarak gösterilir. |
+| `uk` | Поки недоступно в цього постачальника: переклад співрозмовника показується лише текстом. |
+| `vi` | Chưa khả dụng với nhà cung cấp này: bản dịch của đối phương chỉ hiển thị dưới dạng văn bản. |
+| `zh_CN` | 该提供商暂不支持：对方的译文仅以文字显示。 |
+| `zh_TW` | 此提供商暫不支援：對方的譯文僅以文字顯示。 |
+
+What to look at, beyond the words:
+- "Other" is each locale's word for the other party in the switch's own label
+  (`audioPanel.participantSpeech`): `de` Gegenübers, `ja` 相手, `ko` 상대방,
+  `zh_CN` 对方, `pl` rozmówcy, `ru` собеседника, `th` อีกฝ่าย.
+- `ja`, `ko` and `th` write two sentences where the English has a colon; `fr`
+  keeps French typography (" :"), as its sibling
+  `participantSpeechBlockedWholeSystem` does.
+- `zh_CN` / `zh_TW` use 提供商, as Plan A's two keys do.
+
+**Managed participant speech — turning it on** (ruling 2; survey §4.1's option
+c), in order:
+1. The backend mints `par_tts` for split Both and participant-only, and a
+   second shared TTS stream for shared Both, with start floors and TTS
+   concurrency for them — the role expansion (`expandStreamRoles`,
+   `BE:config/soniox.ts:372-393`) and `computeSessionBudget`
+   (`BE:routes/soniox.ts:46-92`), both at `7b2259c`. The client assumes the
+   role is `par_tts` in every mode; confirm it.
+2. Confirm the request field's name, and change `PARTICIPANT_SPEECH_FIELD`
+   (`src/providers/soniox/leaseRequest.ts:24`, today `'participantSpeech'`) if
+   the backend chose another.
+3. Flip the flag: `KIZUNA_PARTICIPANT_SPEECH = true`
+   (`src/providers/soniox/kizuna.ts:21`).
+4. Update the floor-parity constants and cases (`kizunaBudget.test.ts:63`,
+   "prices the participant's speech stream once the flag is on…") to the
+   backend's own floors for the new role.
+5. Decide the participant's voice: Soniox's builder gives both legs the
+   region's voice field (`src/providers/soniox/config.ts:152-154`), so the other
+   party would speak in the user's clone — and the voice claim claims it only
+   for a speaking speaker (`voiceClaim.ts:38`), so a speaking participant on a
+   clone the pool evicted would go unclaimed. A built-in voice for the
+   participant may be wanted instead.
+6. Run the participant-speech live items: the switch enabled under Kizuna
+   Soniox; in split Both, shared Both and participant-only, Other's translation
+   spoken on the real device through its own TTS socket (`par_tts` in the Logs'
+   `session.lease_acquired` roles); the floors in Start and the account
+   button's dot counting the extra stream; a missing `par_tts` saying
+   `tts_degraded` once.
+
+**Before any release from the branch**
+- **The release flags and the registry's order — decided** (ruling 6, the
+  owner's decision). This settles the open item of the foundation's entry
+  (`:1352-1363` above) and of the Soniox entry (`:1752-1756` above):
+  - the order `['kizunaai_soniox', 'localInference', 'soniox']`
+    (`src/providers/registry.ts:16`, pinned at `registry.test.ts:204`);
+  - D19's model kept: a provider is offered by default, only a definition
+    marked `flagged: true` is hidden in release builds, and
+    `VITE_ENABLED_PROVIDERS` only un-hides flagged ids — it stays unset. Kizuna
+    Soniox ships unflagged, gated only by the Kizuna umbrella
+    (`VITE_ENABLE_KIZUNA_AI`) through `isPresent`'s managed rule
+    (`src/lib/provider/presence.ts`); the new registry never reads
+    `VITE_ENABLE_KIZUNA_SONIOX` (only `src/utils/environment.ts:219` does, for
+    the old factory);
+  - the target state: managed keeps only Kizuna Soniox — the two relay-managed
+    providers (`KizunaAIOpenAITranslateProviderConfig`,
+    `KizunaAIVolcengineAST2ProviderConfig`) are deleted, not ported; Local
+    Native is `flagged: true` with its tester switch; every other provider is
+    ported unflagged;
+  - the cleanup at Stage 2's end: the per-provider `VITE_ENABLE_*` lines out of
+    `.github/workflows/build.yml` (five env blocks today), the matching repo
+    variables deleted by the owner; `VITE_ENABLE_KIZUNA_AI` stays, so a build
+    without Kizuna's backend offers no managed provider.
+- **The owner's paid live test below**, before Plan B2 deletes the old code and
+  before any release that carries Kizuna Soniox.
+- **The one key's native-speaker check** (the table above), with Plan A's two.
+
+**The owner's paid live test** (survey §5.2's list, adjusted to the rulings;
+what execution added is marked):
+1. **Signed out, loading, signing in:** at launch a signed-in account shows the spinner "Checking..." then "Automatically authenticated via your account", never "Sign in…"; signed out, Start is off with "Sign in to use Kizuna AI's built-in translation service." and the row's link opens the account popover; signing in enables Start at once.
+2. **Floors:** a balance below the text-only floor ($0.018334); between the text-only and speech floors, where Text only flips Start; the split floor in Both with the shared session off ($0.06 speaking); a frozen wallet ("Wallet is frozen. Please contact support."). The account button's dot matches Start each time. **An unknown balance (ruling 5):** a signed-in launch shows "Checking..." briefly, never the failure words. **An offline launch** (network off, then on; execution): ruling 5 expects the loading state, then "Unable to load quota information", and Start back on shortly after the network returns (the `online` re-fetch; failing that, the 15/30/60-s back-off) — but Better Auth reports a session fetch that failed as loaded and signed out, so the app may show the sign-in words instead until its session refresh re-fetches (see "Found here"); note which. Either way the refetched session does not switch the stored provider (Task 12's fix round).
+3. **Each mode** (speaker speaking and text only; participant only; shared Both; split Both): the Logs show `session.lease_acquired` with its roles and one `session.started` per role, no `session.started_refused` (no 400 `role_required`); one STT socket in shared Both, two in split.
+4. **The countdown** in both footers, low under 20 %. **The grant's end (ruling 3):** a small balance → "Your session balance is used up. Top up your balance to keep translating."; a speaking session held to the one-hour cap (a balance above about $2.50) → "This segment has ended — tap Start Session to continue."; a Both session shows the notice once (ruling 7) — only here: the web preview cannot start Both (group check B, item 5).
+5. **A second device:** 409, one retry after about 3 s (Logs `session.retry`), then "Another session is already running on your account…".
+6. **Stop while starting** (during the session key): no `session.started` after `session.end`; Start again at once: no 409. **A failing source, then Start again at once** (ruling 9): in Both, with a participant source that fails — Screen Recording denied on macOS (`LOOPBACK_DENIED`), or the extension's side panel with no bound tab — the start fails naming the participant, no `session.lease_acquired` in the Logs; press Start again at once and expect no 409.
+7. **The voice claim:** "Preparing your voice…" on the button; a warm clone; an evicted clone rebuilt from this device's clip; another device with no clip → the built-in voice and "This device has no voice recording…"; a busy pool. The managed preview: its 402 and 409 words, played on the selected output device.
+8. **EU and JP accounts:** the claim and the session in that region (Logs `session.lease_acquired` region).
+9. **Close the side panel, or the app, mid-session:** `session-end` reaches the backend (its lease shows `end_signalled`), and the next Start is not locked. This settles the `keepalive` + CORS preflight question per embedding (web, extension, Electron). **After Stop on Electron and on the extension** (execution, the controller's ruling 2): the first leg's Logs show `session.end` and no `session.notify_failed`.
+10. **A network drop:** the connection-lost words; a managed 503 is not resumed.
+11. **The wizard:** the managed path (Recommended), the sign-in at the account step, Finish, the subtitles-only fit.
+12. **Participant speech, shipped off (ruling 2):** under Kizuna Soniox the switch is off and disabled with the "not available yet" tooltip, the participant never voiced, and the session-key body carries no participant field (the Logs' request); switching to own-key Soniox shows the stored choice again — only here: the switch renders in Electron's system-audio section, which the preview cannot show (group check B, item 6).
+13. **The extension side panel:** the core flows.
+14. **Analytics (ruling 8):** `translation_session_start` with `provider: 'kizunaai_soniox'` and its models; and the three `api_error` events, with their props: a refused start (a balance below the backend's floor) → `error_occurred` and `api_error { error_code: 'insufficient_balance', channel: 'speaker' }`; a budget exhaustion → `api_error { error_code: 'budget_exhausted', error_message: 'Session budget exhausted' }`, and a segment ended at the one-hour cap → none; a TTS degradation (a lost segment) → `api_error { error_code: 'tts_408' }` (or its cause), once per episode.
+15. **The sign-in auto-switch (ruling 4):** Basic mode on LocalInference, sign in → Kizuna Soniox selected, `settings_modified` tracked; not in Advanced mode; not under the wizard; not at a launch with a stored session.
+
+**Open questions for the owner**
+- **The rulings:** none open — every one is his, as listed above.
+- **`translation_unavailable` in `api_error`:** LocalInference's once-per-session
+  capability notice is not a failure, but ruling 8 tracks every degradation;
+  one line would leave it out.
+- **"Checking..." for the loading sign-in** (choice 10): a generic word
+  borrowed from the updater's catalogue key.
+- **The backend's three 503 causes in one sentence** (region, wallet,
+  capacity), as the old client worded them — parity.
+- **Fencing `session-end` by `leaseId` on the backend** (survey §1.2): it is
+  scoped by account today, which is why the next acquire cancels a release
+  still retrying.
+- **The backend minting `par_tts`, and the participant's voice** (the "turning
+  it on" checklist above).
+- **Whether the lease's module joins the session-side clock guard**
+  (`src/providers/sessionSide.consistency.test.ts`; the foundation's item at
+  `:1275` above).
+- **What an offline launch should say** under a managed provider ("Found
+  here"): the sign-in words, as today, or "Checking..." until the session
+  fetch answers.
+
+**Plan B2's inventory** — survey §3, read at `a63c366b`, with what this plan
+changed in it; the lines cited here are re-read at `0a7b903e`:
+- **Delete** (§3.1): `SonioxClient.ts` and its two tests; `ManagedSonioxSession.ts`
+  and its two tests (once `ProviderDescriptor.ClientOptions.sonioxManaged`
+  goes); `SonioxSessionOutcome.ts` and `SonioxCostMeter.ts` with their tests;
+  `SonioxProviderConfig.ts` (and test), `KizunaAISonioxProviderConfig.ts`,
+  `managedSonioxSplit.ts` (and test), `sonioxManagedMinBalance.ts` (and test —
+  this plan re-pointed `AccountButton`, so only `SonioxProviderConfig.ts:178`'s
+  re-export still imports it), `sonioxBothMode.ts` (and test) and
+  `sonioxSharedBothSession.test.ts`; the old `managedVoicePrep.ts` and its test,
+  ported as `voicePrep.ts`; `acquireSessionResources.kizunaSoniox.test.ts`,
+  `prepareToStart.kizunaSoniox.test.ts`, `voicePrepWiring.test.ts` and
+  `sessionResourcesWiring.test.ts`; `ProviderSpecificSettings.soniox.test.tsx`,
+  `LanguageSection.soniox.test.tsx` and `ProviderSection.soniox.test.tsx`;
+  MainPanel's `splitDegraded.ts`, `SplitDegradedChip.tsx` and `.scss` with
+  their three tests, and `participantErrorOrdering.test.ts`; and last the
+  **eight** re-export stubs under `src/services/clients/` — Plan A's six
+  (`SonioxSttStream`, `SonioxTtsStream`, `PcmMixer`, `SonioxSideTracker`,
+  `SonioxTtsRest`, `SonioxVoicesClient`) and this plan's two
+  (`ManagedVoicesClient`, `managedVoicePolling`).
+- **Edit, not delete** (§3.1): `ProviderDescriptor.ts` (drop
+  `ClientOptions.sonioxManaged` and its import; the relay twins keep
+  compiling), `ProviderConfigFactory.ts` (the two registrations and imports,
+  and `KIZUNA_AI_SONIOX` in `getDefaultManagedProvider`), `settingsStore.ts`
+  (both slices, their hooks and imports, and `migrateLegacyKizunaProvider`'s
+  last fallback), the old settings UI's Soniox branches
+  (`ProviderSpecificSettings.tsx`'s `renderSonioxSettings` and voice-source
+  memo, `ProviderSection.tsx`'s branch, `LanguageSection.tsx`'s two and the
+  `useUpdate*Soniox` hooks), optionally `IClient.ts`. The `Provider` enum
+  values stay: ids read as data.
+- **Kept**, used by the new provider (§3.2): `SonioxVoiceSection.tsx`,
+  `voiceLibrarySource.ts`, `VoiceLibrarySection.tsx`, `VoicePicker.tsx`,
+  `VoiceCreateModal.tsx`, `SonioxCloneReviewStep.tsx`, `VoiceDeleteModal.tsx`;
+  `src/providers/soniox/{ttsRest,voicesClient,managedVoicesClient,managedVoicePolling}.ts`
+  with their tests; `src/lib/soniox/**` (`voiceClipStorage.ts` included);
+  `src/utils/effectiveTextOnly.ts`; and `SessionCountdown.tsx`, now mounted.
+- **Re-points first** (§3.2, and this plan's stubs), from the stub or old path:
+
+  | File | Lines | To |
+  |---|---|---|
+  | `voiceLibrarySource.ts` | `:15`, `:17` (`SonioxVoicesClient`, `SonioxVoicesError`) | `src/providers/soniox/voicesClient` |
+  | | `:18` (`synthesizeOnce`) | `src/providers/soniox/ttsRest` |
+  | | `:16` (`ManagedVoicesClient`, a type) — this plan's stub | `src/providers/soniox/managedVoicesClient` |
+  | | `:23` (`managedVoicePollDelayMs`) — this plan's stub | `src/providers/soniox/managedVoicePolling` |
+  | `voiceLibrarySource.test.ts` | `:4`, `:6`, `:7` | the same |
+  | `SonioxVoiceSection.tsx` | `:40-44` (the import from `SonioxVoicesClient`) | `src/providers/soniox/voicesClient` |
+  | | **`:47` (`clampNumber`, from the own-key descriptor — missing from the Soniox plan's list)** | `src/providers/soniox/config` (`:62`) |
+  | `SonioxVoiceSection.test.tsx` | `:8`, `:10`, `:117`, and `vi.mock('../../../services/clients/SonioxTtsRest')` at `:100` | the new paths — the mock with them: once `voiceLibrarySource.ts` re-points, the old mock path intercepts nothing |
+  | `lib/tts/previewSample.test.ts` | `:3`, `:6` (`new SonioxProviderConfig().getConfig().languages`) | `SONIOX_LANGUAGES` (`src/providers/soniox/settings.ts:131`) |
+
+  Done by this plan: `AccountButton.tsx` and `SessionCountdown.tsx` (Task 10),
+  and the moved `managedVoicesClient.ts`, which imports `SonioxVoicesError`
+  from `./voicesClient` (Task 7). The stubs' other importers go with the
+  deleted code: `ProviderSpecificSettings.tsx:81` (its branch goes),
+  `KizunaAISonioxProviderConfig.ts:16`, the old `managedVoicePrep.ts:23-25` and
+  its test's `:4`, `prepareToStart.kizunaSoniox.test.ts:41`.
+- **Order** (§3.3), the tree compiling and the suite passing after each step:
+  (B1, done) the three managed voice modules moved or ported, with stubs, and
+  `AccountButton` / `SessionCountdown` re-pointed; B2.1 re-point the kept
+  importers — nothing deleted yet; B2.2 unregister (`ProviderConfigFactory`,
+  `settingsStore`, the old settings UI's branches, `ClientOptions.sonioxManaged`,
+  optionally `IClient`), then fix the shared old tests that expect Soniox
+  registered or sliced — the survey's candidates by grep:
+  `descriptorRegistry.test.ts`, `providerOrder.test.ts`,
+  `participantConfig.test.ts`, `speechMode.test.ts`,
+  `kizunaProviderGating.test.ts` (keeping the relay-twin cases),
+  `localNativeGating.test.ts`, `ClientFactory.test.ts`, the `settingsStore`
+  tests, `kizunaProviders.test.ts`, `setupStore.test.ts`, the `ProviderSection.*`
+  tests, `LanguageSection.sentence.test.tsx`,
+  `ProviderSpecificSettings.engine.test.tsx`, `PoweredBy.test.tsx`,
+  `ProviderIcons.test.tsx`, the Tour tests and the wizard tests seeding
+  `kizunaai_soniox` (only a run tells which depend on it); B2.3 delete the old
+  clients, descriptors, helpers and their tests in one commit
+  (`KizunaAISonioxProviderConfig` extends `SonioxProviderConfig`, and both build
+  `SonioxClient`); B2.4 delete the MainPanel split chips and
+  `participantErrorOrdering.test.ts`; B2.5 delete the eight stubs, a grep
+  proving no importer is left; B2.6 gates, builds, a bundle grep for a string
+  only the old client carried, then its docs task.
+- **The typecheck** (§3.4): none of the gate's 18 baseline lines sits in a file
+  B2 deletes (the two in `ProviderSpecificSettings.tsx` are not Soniox's); the
+  gate's old-client alternatives — this plan's widening among them — match
+  nothing after B2 and can be trimmed. The full tree is 259 lines at
+  `0a7b903e`, as at `a63c366b`; B2's deletions remove about 145 of them
+  (`SonioxClient.test.ts` 66, `SonioxClient.managed.test.ts` 40,
+  `managedSonioxSplit.test.ts` 21, `ManagedSonioxSession.test.ts` 14, one each
+  in `ManagedSonioxSession.outcome.test.ts`,
+  `ProviderSpecificSettings.soniox.test.tsx`, `LanguageSection.soniox.test.tsx`
+  and `descriptorRegistry.test.ts`), leaving about 114.
+  `SonioxVoiceSection.test.tsx` keeps its 7 (stale props and an unused
+  `React`), which the re-point could fix.
+
+What it leaves, for the plans that meet it (the plan's own list, as written,
+with what execution and this record found added to "Found here"):
+
+**Plan B2 — deleting both Soniox providers' old code**, written after this plan lands and the owner's paid live test passes: survey §3 is its inventory (Task 13 records it, with this plan's two stubs and the old `managedVoicePrep.ts`). Its order (survey §3.3): re-point the kept importers, unregister, delete the clients, descriptors, helpers and their tests in one commit, delete the MainPanel split chips and `participantErrorOrdering.test.ts`, delete the stubs; gates, builds, a bundle grep for a string only the old client carried.
+
+**Found here, for the owner or a later plan:**
+- **The voice pin's 75 s** (`BE:config/soniox.ts:685`): the claim runs before the sources (ruling 9), so the one prompt that can wait at Start — a first-time microphone prompt, the speaker's leg in every mode — left unanswered for more than about a minute can let the pin lapse before `session-started` extends it. Eviction happens only under pool pressure; the live test's item 7 watches for it.
+- **A start that fails after the lease is minted** (a socket that will not open) still leaves a never-started lease, freed only at its start window's end (75 s, or 195 s with `par_stt`); ruling 9 removes only the source-side cause.
+- **A silent session never extends its lease** (parity, `ManagedSonioxSession.ts:463-471`): a muted microphone sends no frames, so no `session-started`, and the lease dies at its start window while the socket streams. Push-to-talk (new for Soniox) makes long silences likelier.
+- **The backend's comments disagree with the client** (survey §1.12.1–2): `session-end`'s body is ignored (it cannot be fenced to a lease), and `session-started`'s comment says no client sends the role.
+- **Throttled timers:** a background tab may delay the budget's timer; the 403 path then ends the run, with the same words (Tasks 5–6).
+- **MainPanel's participant replay slot** follows the routing switch, not the flag: under Kizuna Soniox, while the flag is off, it is offered for a leg that never has speech, and so never shows a replay button.
+- **The participant's voice, once the flag is on:** Soniox's builder gives both legs the region's voice field (`config.ts:152-154`), so the other party would speak in the user's claimed clone — the "turning it on" checklist's item 5.
+- **A late `session-started` may re-pin the voice** (execution: Task 6's review): one sent before release can land after `session-end` and pin the voice again until the reconciler releases the lease. Accepted. Do not "fix" it with an `end_signalled_at` check in the backend's `markStarted`: a Stop right after the first frame would then leave a never-started lease, and bring back the 409 lock.
+- **The wizard's own-key description** (`setup.paths.own-key.desc`) still names "OpenAI, Gemini, Doubao (Volcengine) and others" (from Plan A; true once those providers are ported) — still the Soniox entry's before-release item.
+- **An offline launch reads signed out, not "quota unknown"** (found while writing this record, from Task 12's review, I2): Better Auth answers a session fetch that failed with no session and `isPending: false`, so `useAuth()` reports loaded and signed out. The bridges pass only that (`useAuthContext.ts:19`, `useAppSession.ts:23`), so a managed `read` answers `sign_in_required`, the account row offers the sign-in link, and no wallet is fetched. Ruling 5's "Unable to load quota information" then shows only where the session is known and the wallet fetch fails. Start comes back once Better Auth's session refresh re-fetches (on `online` or focus). Treating a signed-out answer carrying an error as loading there too, as the auto-switch now does (`useSignInProviderSwitch.ts:41`), would show "Checking..." instead — an open question above; the live test's item 2 records which the app shows.
+
+**Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; `RunnerDeps.replayAudio`'s guard; the notice-code namespace.
