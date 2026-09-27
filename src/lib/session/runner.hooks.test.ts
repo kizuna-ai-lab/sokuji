@@ -467,6 +467,107 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     expect(apiErrors()[2]).toEqual({ provider: 'fake', error_message: 'No TTS key was issued for this leg: it runs text-only.', error_code: 'tts_degraded', error_type: 'server', channel: 'speaker' });
   });
 
+  it("keys the degradation window per leg, as L1's is: the same code on the other leg is its own episode", async () => {
+    const events: Partial<Record<LegName, AdapterEvents>> = {};
+    const provider = withHooks({}, {
+      async start(request: StartRequest<unknown, unknown>, e: AdapterEvents) {
+        events[request.context.direction.source === 'en' ? 'speaker' : 'participant'] = e;
+        return fakeProvider.start(request as StartRequest<never, never>, e);
+      },
+    });
+    const track = vi.fn();
+    const { runner } = setup(provider, ['speaker', 'participant'], undefined, track);
+    await runner.start();
+    const apiErrors = () => track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
+    events.speaker!.degraded({ code: 'tts_stopped', message: 'Soniox TTS 408: Request timeout', reason: 'tts_408' });
+    events.participant!.degraded({ code: 'tts_stopped', message: 'Soniox TTS 408: Request timeout', reason: 'tts_408' });
+    expect(apiErrors()).toEqual([
+      expect.objectContaining({ error_code: 'tts_408', channel: 'speaker' }),
+      expect.objectContaining({ error_code: 'tts_408', channel: 'participant' }),
+    ]);
+    events.participant!.degraded({ code: 'tts_stopped', message: 'Soniox TTS 400: Invalid voice', reason: 'tts_400' });
+    expect(apiErrors()).toHaveLength(2);
+  });
+
+  // The lease's release slot is reserved beneath the sources, so a lease run
+  // unwinds its sessions, then its sources — the microphone, the system audio,
+  // the tab — and only then the lease (spec: "released after they have
+  // closed"): no capture stays open while `session-end` goes out.
+  /** A lease run whose sessions, sources and lease record their release, in order; `failing` names a leg whose adapter refuses to start. */
+  function recordingUnwind(legs: RunShape['legs'], o: { together?: boolean; failing?: LegName } = {}) {
+    const order: string[] = [];
+    const start = async (request: StartRequest<unknown, unknown>, events: AdapterEvents): Promise<AdapterSession> => {
+      const leg: LegName = request.context.direction.source === 'en' ? 'speaker' : 'participant';
+      if (leg === o.failing) throw new Error(`The ${leg} adapter refused to start.`);
+      const inner = await fakeProvider.start(request as StartRequest<never, never>, events);
+      return {
+        info: inner.info, appendAudio: () => {}, appendText: () => {}, beginTurn: () => {}, endTurn: () => {}, cancelTurn: () => {},
+        stop: async () => { order.push(`${leg} session`); await inner.stop(); },
+      };
+    };
+    const provider = withHooks(
+      {
+        acquire: async () => ({ credentials: () => ({}), release: async () => { order.push('lease'); } }),
+        ...(o.together ? {
+          startBoth: async (requests: Record<LegName, StartRequest<unknown, unknown>>, events: Record<LegName, AdapterEvents>) => ({
+            speaker: await start(requests.speaker, events.speaker),
+            participant: await start(requests.participant, events.participant),
+          }),
+        } : {}),
+      },
+      { start },
+    );
+    const { runner } = setup(provider, legs, (leg) => {
+      const source = createFakeSource(createVirtualClock(0));
+      return { ...source, stop: async () => { order.push(`${leg} source`); await source.stop(); } };
+    });
+    /** Each release's kind, in order: `session`, `source` or `lease`. */
+    const kinds = () => order.map((entry) => entry.split(' ').pop());
+    return { runner, order, kinds };
+  }
+
+  it.each([
+    ['one leg', ['speaker'] as const, false, ['session', 'source', 'lease']],
+    ['both legs, each opened alone', ['speaker', 'participant'] as const, false, ['session', 'session', 'source', 'source', 'lease']],
+    ['both legs through startBoth', ['speaker', 'participant'] as const, true, ['session', 'session', 'source', 'source', 'lease']],
+  ])('on Stop, a lease run (%s) closes its sessions, then its sources, then releases the lease', async (_name, legs, together, expected) => {
+    const { runner, kinds } = recordingUnwind(legs, { together });
+    await runner.start();
+    expect(runner.state.getState().phase).toBe('running');
+    await runner.stop();
+    expect(kinds()).toEqual(expected);
+  });
+
+  it('a start that fails after acquire unwinds the same way: the session that opened, then the sources, then the lease', async () => {
+    const { runner, order, kinds } = recordingUnwind(['speaker', 'participant'], { failing: 'participant' });
+    await runner.start();
+    expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { leg: 'participant' } } });
+    expect(order[0]).toBe('speaker session');
+    expect(kinds()).toEqual(['session', 'source', 'source', 'lease']);
+  });
+
+  it("releases at once a lease granted after the run unwound past open's bound", async () => {
+    let grant!: () => void;
+    const release = vi.fn(async () => {});
+    const provider = withHooks({
+      acquire: () => new Promise((resolve) => { grant = () => resolve({ credentials: () => ({}), release }); }),
+    });
+    const { runner, clock } = setup(provider);
+    const starting = runner.start();
+    await flush();
+    const stopping = runner.stop();
+    await flush();
+    // `close()` waits for `open()` only up to `timeoutMs`, then unwinds without the lease.
+    clock.advance(1000);
+    await stopping;
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(release).not.toHaveBeenCalled();
+    grant();
+    await starting;
+    await flush();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
   // Choice 3: only a lease or `startBoth` moves the hand-over after the
   // sources. These pin both sides of that line by the one thing it
   // changes a user can see — whether a failing source clears the screen.

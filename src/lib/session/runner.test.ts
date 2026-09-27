@@ -1223,6 +1223,36 @@ describe('runner — cancel at each starting step (F5)', () => {
     expect(released).toBe(true);
   });
 
+  it("a stop while a lease run's source is opening mints no lease, and stops the source once it opens", async () => {
+    let land!: () => void;
+    const gate = new Promise<void>((resolve) => { land = resolve; });
+    const acquire = vi.fn(async () => ({ credentials: () => ({}), release: async () => {} }));
+    const provider = { ...fakeProvider, session: { acquire } } as unknown as AnyProvider;
+    const opened: FakeSource[] = [];
+    const { runner, events } = setup({
+      shape: { provider },
+      openSource: async () => {
+        await gate;
+        const source = createFakeSource(createVirtualClock(0));
+        opened.push(source);
+        return source;
+      },
+    });
+    const starting = runner.start();
+    await flush();
+    expect(runner.state.getState()).toMatchObject({ phase: 'starting', step: 'opening' });
+    const stopping = runner.stop();
+    land();
+    await stopping;
+    await starting;
+    await flush();
+    expect(acquire).not.toHaveBeenCalled();
+    expect(opened).toHaveLength(1);
+    expect(opened[0].stopped).toBe(true);
+    expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'user' } });
+    expect(events('translation_session_start')).toEqual([]);
+  });
+
   // The 'opening' step is already covered by "a stop during a slow start
   // cancels it" above (runner — stopping); not duplicated here.
 

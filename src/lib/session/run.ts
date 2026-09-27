@@ -21,7 +21,7 @@ import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
 import { ResourceStack } from './stack';
 import { Turn } from './turn';
-import type { Budget, LegState, LoadingProgress, Prepared, RunEnd, RunNotice, RunShape } from './types';
+import type { Budget, LegState, LoadingProgress, Prepared, Resources, RunEnd, RunNotice, RunShape } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const API_ERROR_TYPES = ['auth', 'rate_limit', 'network', 'server', 'client'] as const;
@@ -202,6 +202,19 @@ export class Run {
     if (prepared.notice) this.conversations.get(shape.legs[0])!.notice({ severity: 'warning', ...prepared.notice });
 
     const together = shape.legs.length === 2 && !!p.session?.startBoth;
+    // The lease's release slot, reserved beneath the sources it follows: the
+    // stack unwinds last in first out, so the legs' sessions and then their
+    // sources — the microphone, the system audio, the tab — close before the
+    // lease's release goes out (spec: "released after they have closed"). A
+    // lease never acquired releases nothing.
+    let lease: Resources<unknown> | undefined;
+    let leaseSlotRan = false;
+    if (p.session?.acquire) {
+      this.stack.defer('lease', () => {
+        leaseSlotRan = true;
+        return lease?.release();
+      });
+    }
     // Every leg's source before a lease is minted (Stage 2 Kizuna Soniox,
     // ruling 9): a source that fails after `acquire` would leave a lease no
     // stream ever started, which the backend's sweeps never reach — the next
@@ -239,7 +252,10 @@ export class Run {
         // release's outcome too, while the run unwinds (choice 4).
         frame: (frame) => deps.frames?.frame(shape.legs[0], frame),
       });
-      this.stack.defer('lease', () => resources.release());
+      lease = resources;
+      // An `acquire` that outlived `close()`'s bounded wait finds its slot
+      // already run: a `defer` on an unwound stack releases it at once.
+      if (leaseSlotRan) this.stack.defer('lease', () => resources.release());
       this.throwIfAborted();
       credentialsFor = (leg) => resources.credentials(leg);
       this.budget = resources.budget ?? null;
@@ -260,7 +276,7 @@ export class Run {
     }])) as Record<LegName, StartRequest<unknown, unknown>>;
 
     if (together) {
-      // Built before the sources opened; a source with a track hands it to the adapter (WebRTC).
+      // Built without a track; a source with a track hands it to the adapter (WebRTC).
       shape.legs.forEach((leg, i) => {
         const track = sources![i].track;
         if (track) requests[leg] = { ...requests[leg], input: track };
@@ -396,7 +412,7 @@ export class Run {
     try {
       const source = opened ?? await this.openSource(leg);
       this.setLegState(leg, 'opening');
-      // Built before the source opened; a source with a track hands it to the adapter (WebRTC).
+      // Built without a track; a source with a track hands it to the adapter (WebRTC).
       const withInput = source.track ? { ...request, input: source.track } : request;
       const session = await this.shape.provider.start(withInput, this.eventsFor(leg));
       this.stack.defer(`${leg} session`, () => session.stop());
