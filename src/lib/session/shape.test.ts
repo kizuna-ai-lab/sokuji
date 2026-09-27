@@ -3,7 +3,9 @@ import { AUTO } from '../provider/languages';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { formatUsdFloor } from '../../utils/formatters';
-import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, microphoneMissing, QUOTA_PENDING, QUOTA_UNKNOWN } from './shape';
+import type { LegName } from '../conversation/types';
+import type { LanguageContext } from '../provider/types';
+import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, QUOTA_PENDING, QUOTA_UNKNOWN } from './shape';
 import type { BalanceShape, RunShape } from './types';
 
 const shape = (patch: Partial<RunShape> = {}): RunShape => ({
@@ -56,6 +58,35 @@ describe('contextsFor', () => {
   });
 });
 
+describe('languageContext (Stage 2 Volcengine AST2, choice 1)', () => {
+  const off = { textOnly: false, participantSpeech: false };
+
+  it("speaks when any leg it opens speaks, by contextsFor's own rule", () => {
+    expect(languageContext(fakeProvider, ['speaker'], off)).toEqual({ speech: true });
+    expect(languageContext(fakeProvider, ['speaker'], { ...off, textOnly: true })).toEqual({ speech: false });
+    expect(languageContext(fakeProvider, ['participant'], off)).toEqual({ speech: false });
+    expect(languageContext(fakeProvider, ['participant'], { ...off, participantSpeech: true })).toEqual({ speech: true });
+    expect(languageContext(fakeProvider, ['speaker', 'participant'], { textOnly: true, participantSpeech: true })).toEqual({ speech: true });
+    expect(languageContext(fakeProvider, [], off)).toEqual({ speech: false });
+  });
+
+  it("follows the provider's speech and its participant flag", () => {
+    expect(languageContext({ speech: 'always' }, ['speaker'], { ...off, textOnly: true })).toEqual({ speech: true });
+    expect(languageContext({ speech: 'never' }, ['speaker'], off)).toEqual({ speech: false });
+    expect(languageContext({ speech: 'optional', participantSpeech: false }, ['participant'], { ...off, participantSpeech: true })).toEqual({ speech: false });
+  });
+
+  it('agrees with contextsFor on every leg', () => {
+    for (const textOnly of [false, true]) {
+      for (const participantSpeech of [false, true]) {
+        const contexts = contextsFor(shape({ legs: ['speaker', 'participant'], textOnly, participantSpeech }));
+        expect(languageContext(fakeProvider, ['speaker'], { textOnly, participantSpeech }).speech).toBe(contexts.speaker?.speech);
+        expect(languageContext(fakeProvider, ['participant'], { textOnly, participantSpeech }).speech).toBe(contexts.participant?.speech);
+      }
+    }
+  });
+});
+
 describe('gate', () => {
   it('lets a supported shape through', () => {
     expect(gate(shape({ legs: ['speaker', 'participant'] }), 'electron')).toBeNull();
@@ -79,6 +110,16 @@ describe('gate', () => {
     expect(gate(shape({ provider: manualOnly }), 'electron')).toMatchObject({ code: 'turn_mode_unsupported', leg: 'speaker' });
     expect(gate(shape({ provider: manualOnly, turnMode: 'push-to-talk', legs: ['speaker', 'participant'] }), 'electron'))
       .toMatchObject({ code: 'turn_mode_unsupported', leg: 'participant' });
+  });
+
+  it("refuses the participant leg a pair whose reverse its own speech does not offer (Stage 2 Volcengine AST2, choice 1)", () => {
+    const opt = (value: string) => ({ value, name: value, englishName: value });
+    // Speaking offers en and ja; text also ko — Doubao AST 2.0's shape.
+    const spoken = (context?: LanguageContext) => [opt('en'), opt('ja'), ...(context?.speech ? [] : [opt('ko')])];
+    const narrow = { ...fakeProvider, languages: { sources: (_s: unknown, context?: LanguageContext) => spoken(context), targets: (source: string, _s: unknown, context?: LanguageContext) => spoken(context).filter((o) => o.value !== source) } };
+    const both = { provider: narrow, legs: ['speaker', 'participant'] as LegName[], pair: { source: 'en', target: 'ko' }, textOnly: true };
+    expect(gate(shape({ ...both, participantSpeech: true }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
+    expect(gate(shape({ ...both, participantSpeech: false }), 'electron')).toBeNull();
   });
 
   it('gates the narrower input the stores give as well as a run\'s shape', () => {

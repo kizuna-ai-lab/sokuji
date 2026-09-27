@@ -205,6 +205,34 @@ describe('the invariants every provider meets (F17)', () => {
     }
   });
 
+  it('offers, in each language context, a target for every source and only languages of its widest offer (Stage 2 Volcengine AST2, choice 1)', () => {
+    /** Where an offer under a context leaves the widest one, or runs dry: the stored pair is kept within the widest (`providerStore`). */
+    const outside = (ps: readonly AnyProvider[]) => ps.flatMap((p) => {
+      const s = p.settings.defaults;
+      const widest = new Set(p.languages.sources(s).map((o) => o.value));
+      return [true, false].flatMap((speech) => {
+        const sources = p.languages.sources(s, { speech });
+        return [
+          ...(sources.length > 0 ? [] : [`${p.id}: no source (speech ${speech})`]),
+          ...sources.flatMap((source) => {
+            const wide = new Set(p.languages.targets(source.value, s).map((o) => o.value));
+            const targets = p.languages.targets(source.value, s, { speech });
+            return [
+              ...(widest.has(source.value) ? [] : [`${p.id}: source ${source.value} (speech ${speech})`]),
+              ...(targets.length > 0 ? [] : [`${p.id}: no target for ${source.value} (speech ${speech})`]),
+              ...targets.filter((t) => t.value === AUTO || !wide.has(t.value)).map((t) => `${p.id}: ${source.value} → ${t.value} (speech ${speech})`),
+            ];
+          }),
+        ];
+      });
+    });
+    expect(outside(PROVIDERS)).toEqual([]);
+    // The control: an offer that grows under a context is caught.
+    const opt = (value: string) => ({ value, name: value, englishName: value });
+    const growing = { ...fakeProvider, id: 'growing', languages: { sources: (_s: unknown, context?: { speech: boolean }) => [opt('en'), ...(context?.speech ? [opt('xx')] : [])], targets: () => [opt('ja')] } } as unknown as AnyProvider;
+    expect(outside([growing])).toEqual(['growing: source xx (speech true)']);
+  });
+
   it("the release offers its providers in the owner's order", async () => {
     vi.stubEnv('DEV', false);
     vi.resetModules();

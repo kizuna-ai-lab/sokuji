@@ -1,7 +1,7 @@
 import type { SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import { reverseSupported } from '../provider/languages';
-import type { Platform } from '../provider/types';
+import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
 import type { RunNotice, RunShape } from './types';
@@ -11,25 +11,47 @@ export interface Refusal extends RunNotice {
   leg?: LegName;
 }
 
+/**
+ * What decides whether a run would speak besides its legs and its provider:
+ * the text-only switch, and the participant's speech — its switch, and a
+ * source that will not recapture it (`appShape`'s `speechInputsFromStores`).
+ * A run's shape holds both; so does the provider store, for the language
+ * offer (Stage 2 Volcengine AST2, choice 1).
+ */
+export interface SpeechInputs { textOnly: boolean; participantSpeech: boolean }
+
+type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech'>;
+
+/** Whether a leg speaks: the one rule `contextsFor`, the gate and the language offer read. */
+function legSpeaks(p: Speaking, leg: LegName, inputs: SpeechInputs): boolean {
+  const speaks = (wanted: boolean) => p.speech === 'always' || (p.speech === 'optional' && wanted);
+  if (leg === 'speaker') return speaks(!inputs.textOnly);
+  // While its provider's participant-speech flag is off (Kizuna Soniox
+  // until the backend mints a participant speech key, Stage 2 ruling 2)
+  // the participant stays text-only whatever the switch says.
+  return p.participantSpeech === false ? false : speaks(inputs.participantSpeech);
+}
+
+/** The language context of a run over these legs (Stage 2 Volcengine AST2, choice 1): it speaks when any leg it opens does. */
+export function languageContext(p: Speaking, legs: readonly LegName[], inputs: SpeechInputs): LanguageContext {
+  return { speech: legs.some((leg) => legSpeaks(p, leg, inputs)) };
+}
+
 /** What each leg's adapter is told (spec: "The session request"). The participant leg runs the reverse, always with automatic turns. */
 export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionContext>> {
   const { provider: p, pair } = shape;
-  const speaks = (wanted: boolean) => p.speech === 'always' || (p.speech === 'optional' && wanted);
   const contexts: Partial<Record<LegName, SessionContext>> = {};
   if (shape.legs.includes('speaker')) {
     contexts.speaker = {
       direction: { source: pair.source, target: pair.target },
-      speech: speaks(!shape.textOnly),
+      speech: legSpeaks(p, 'speaker', shape),
       turns: shape.turnMode === 'auto' ? 'auto' : 'manual',
     };
   }
   if (shape.legs.includes('participant')) {
     contexts.participant = {
       direction: { source: pair.target, target: pair.source },
-      // While its provider's participant-speech flag is off (Kizuna Soniox
-      // until the backend mints a participant speech key, Stage 2 ruling 2)
-      // the participant stays text-only whatever the switch says.
-      speech: p.participantSpeech === false ? false : speaks(shape.participantSpeech),
+      speech: legSpeaks(p, 'participant', shape),
       turns: 'auto',
     };
   }
@@ -96,8 +118,9 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
     if (platform === 'web') {
       return { code: 'participant_source_unavailable' satisfies RunNoticeCode, message: 'This build has no participant source.', leg: 'participant' };
     }
-    // D20: the participant leg runs the reversed pair; an auto source never reverses.
-    if (!reverseSupported(p, s, shape.pair)) {
+    // D20: the participant leg runs the reversed pair, in the languages its own speech offers (Stage 2 Volcengine AST2, choice 1); an auto source never reverses.
+    const participant = { speech: legSpeaks(p, 'participant', { textOnly: shape.textOnly ?? false, participantSpeech: shape.participantSpeech ?? false }) };
+    if (!reverseSupported(p, s, shape.pair, participant)) {
       return { code: 'participant_unsupported' satisfies RunNoticeCode, message: `${p.id} does not translate ${shape.pair.target} into ${shape.pair.source}.`, leg: 'participant' };
     }
   }

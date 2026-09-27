@@ -15,6 +15,29 @@ export interface LanguageOption { value: string; name: string; englishName: stri
 export interface LanguagePair { source: string; target: string }
 
 /**
+ * What the languages on offer may depend on besides the settings (Stage 2
+ * Volcengine AST2, choice 1): whether the run would speak — any leg it
+ * opens producing translated audio. Doubao AST 2.0 speaks eight languages
+ * and transcribes twenty and two dialects. A language function called
+ * without it answers its widest offer, every language any mode takes: the
+ * offer the stored pair is kept within (`providerStore`).
+ */
+export interface LanguageContext { speech: boolean }
+
+/**
+ * A setting that decides which credential fields show (F4; Stage 2
+ * Volcengine AST2, ruling 1; Palabra's platform/app toggle next): the
+ * credential form draws its options as a segmented control above the
+ * fields and writes the choice as a settings patch. Switching clears no
+ * credential — every key in `credentials.keys` stays stored.
+ */
+export interface CredentialChoice {
+  /** A field of `settings.defaults`, holding one option's `value`. */
+  setting: string;
+  options: ReadonlyArray<{ value: string; labelKey: string }>;
+}
+
+/**
  * One credential input. `key` is the field its value persists under
  * (`settings.<settings.key>.<key>`); `labelKey` and `placeholderKey` are i18n
  * keys.
@@ -256,6 +279,8 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
      * missing answer may carry a code (F3).
      */
     read(values: CredentialValues, auth: AuthContext): R | CredentialsMissing;
+    /** A setting that picks which fields show, drawn by the credential form above them (F4). */
+    choice?: CredentialChoice;
   };
   /**
    * Can this provider start now: a network validation, model readiness, or
@@ -278,10 +303,10 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   watchReadiness?(onChange: () => void): () => void;
 
   languages: {
-    /** Includes `AUTO` when the provider detects the language. */
-    sources(s: S): readonly LanguageOption[];
-    /** Never includes `AUTO`. */
-    targets(source: string, s: S): readonly LanguageOption[];
+    /** Includes `AUTO` when the provider detects the language. Without a `context`: the widest offer. */
+    sources(s: S, context?: LanguageContext): readonly LanguageOption[];
+    /** Never includes `AUTO`. Without a `context`: the widest offer. */
+    targets(source: string, s: S, context?: LanguageContext): readonly LanguageOption[];
     /** The pair to start from when nothing is stored; normalized like any stored pair. Absent: the first source and its first target. */
     initial?(s: S): Partial<LanguagePair>;
     /**
