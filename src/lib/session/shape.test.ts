@@ -120,6 +120,9 @@ describe('gate', () => {
     const both = { provider: narrow, legs: ['speaker', 'participant'] as LegName[], pair: { source: 'en', target: 'ko' }, textOnly: true };
     expect(gate(shape({ ...both, participantSpeech: true }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
     expect(gate(shape({ ...both, participantSpeech: false }), 'electron')).toBeNull();
+    // The speaker speaks and the participant does not: the participant's own text offer holds ko,
+    // though the run's, speaking because a leg does, would not.
+    expect(gate(shape({ ...both, textOnly: false, participantSpeech: false }), 'electron')).toBeNull();
   });
 
   it('gates the narrower input the stores give as well as a run\'s shape', () => {

@@ -205,32 +205,59 @@ describe('the invariants every provider meets (F17)', () => {
     }
   });
 
-  it('offers, in each language context, a target for every source and only languages of its widest offer (Stage 2 Volcengine AST2, choice 1)', () => {
-    /** Where an offer under a context leaves the widest one, or runs dry: the stored pair is kept within the widest (`providerStore`). */
+  it('offers, in each language context, a target for every source and only languages of its widest offer, and when speaking only what it offers as text (Stage 2 Volcengine AST2, choice 1)', () => {
+    /**
+     * Where an offer under a context leaves the widest one, or runs dry: the stored pair is kept within the widest (`providerStore`).
+     * Where the speaking offer leaves the text one: a run speaks when any leg does, so a text-only speaker
+     * in a speaking run takes its pair from the speaking offer — sound only while text offers it too.
+     */
     const outside = (ps: readonly AnyProvider[]) => ps.flatMap((p) => {
       const s = p.settings.defaults;
       const widest = new Set(p.languages.sources(s).map((o) => o.value));
+      const textSources = new Set(p.languages.sources(s, { speech: false }).map((o) => o.value));
       return [true, false].flatMap((speech) => {
         const sources = p.languages.sources(s, { speech });
         return [
           ...(sources.length > 0 ? [] : [`${p.id}: no source (speech ${speech})`]),
           ...sources.flatMap((source) => {
             const wide = new Set(p.languages.targets(source.value, s).map((o) => o.value));
+            const textTargets = new Set(p.languages.targets(source.value, s, { speech: false }).map((o) => o.value));
             const targets = p.languages.targets(source.value, s, { speech });
             return [
               ...(widest.has(source.value) ? [] : [`${p.id}: source ${source.value} (speech ${speech})`]),
+              ...(!speech || textSources.has(source.value) ? [] : [`${p.id}: source ${source.value} (speech true, not speech false)`]),
               ...(targets.length > 0 ? [] : [`${p.id}: no target for ${source.value} (speech ${speech})`]),
               ...targets.filter((t) => t.value === AUTO || !wide.has(t.value)).map((t) => `${p.id}: ${source.value} → ${t.value} (speech ${speech})`),
+              ...(!speech ? [] : targets.filter((t) => !textTargets.has(t.value)).map((t) => `${p.id}: ${source.value} → ${t.value} (speech true, not speech false)`)),
             ];
           }),
         ];
       });
     });
     expect(outside(PROVIDERS)).toEqual([]);
-    // The control: an offer that grows under a context is caught.
+    // The control, one call every arm is needed for: `growing` grows a source and a target under
+    // speech, past its widest offer and its text one; `wider` speaks a source and a target its
+    // widest offer holds and its text offer does not; `dry` runs out of targets under speech and
+    // of sources under text, so its spoken `en` is not a text source either.
     const opt = (value: string) => ({ value, name: value, englishName: value });
-    const growing = { ...fakeProvider, id: 'growing', languages: { sources: (_s: unknown, context?: { speech: boolean }) => [opt('en'), ...(context?.speech ? [opt('xx')] : [])], targets: () => [opt('ja')] } } as unknown as AnyProvider;
-    expect(outside([growing])).toEqual(['growing: source xx (speech true)']);
+    const growing = { ...fakeProvider, id: 'growing', languages: {
+      sources: (_s: unknown, context?: { speech: boolean }) => [opt('en'), ...(context?.speech ? [opt('xx')] : [])],
+      targets: (source: string, _s: unknown, context?: { speech: boolean }) => [opt('ja'), ...(context?.speech && source === 'en' ? [opt('yy')] : [])],
+    } } as unknown as AnyProvider;
+    const wider = { ...fakeProvider, id: 'wider', languages: {
+      sources: (_s: unknown, context?: { speech: boolean }) => [opt('en'), ...(context?.speech === false ? [] : [opt('ko')])],
+      targets: (source: string, _s: unknown, context?: { speech: boolean }) => [opt('ja'), ...(context?.speech === false || source !== 'en' ? [] : [opt('ko')])],
+    } } as unknown as AnyProvider;
+    const dry = { ...fakeProvider, id: 'dry', languages: {
+      sources: (_s: unknown, context?: { speech: boolean }) => (context?.speech === false ? [] : [opt('en')]),
+      targets: (_source: string, _s: unknown, context?: { speech: boolean }) => (context?.speech ? [] : [opt('ja')]),
+    } } as unknown as AnyProvider;
+    expect(outside([growing, wider, dry])).toEqual([
+      'growing: en → yy (speech true)', 'growing: en → yy (speech true, not speech false)',
+      'growing: source xx (speech true)', 'growing: source xx (speech true, not speech false)',
+      'wider: en → ko (speech true, not speech false)', 'wider: source ko (speech true, not speech false)',
+      'dry: source en (speech true, not speech false)', 'dry: no target for en (speech true)', 'dry: no source (speech false)',
+    ]);
   });
 
   it("the release offers its providers in the owner's order", async () => {
