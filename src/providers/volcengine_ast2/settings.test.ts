@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readCredentials } from '../../lib/provider/credentials';
 import { normalizePair, reverseSupported, swapped } from '../../lib/provider/languages';
 import type { AuthContext, LanguageContext } from '../../lib/provider/types';
 import { LANGUAGE_OPTIONS } from '../../utils/languages';
@@ -55,6 +56,12 @@ describe("Doubao AST 2.0's credentials (ruling 1)", () => {
     expect(ast2Credentials.read({ apiKey: ' k-1 ' }, signedOut)).toEqual({ kind: 'apiKey', apiKey: 'k-1' });
   });
 
+  it("read the chosen mode through the real caller, the other mode's saved values never leaking into it", () => {
+    const saved = { appId: 'a', accessToken: 't', apiKey: 'k' };
+    expect(readCredentials({ credentials: ast2Credentials }, AST2_DEFAULTS, saved, signedOut)).toEqual({ kind: 'app', appKey: 'a', accessKey: 't' });
+    expect(readCredentials({ credentials: ast2Credentials }, { ...AST2_DEFAULTS, authMode: 'apiKey' }, saved, signedOut)).toEqual({ kind: 'apiKey', apiKey: 'k' });
+  });
+
   it('read an empty field as missing, in either mode', () => {
     expect(ast2Credentials.read({ appId: 'a', accessToken: '' }, signedOut)).toEqual({ missing: 'Enter the App ID and the Access Token of your Doubao AST 2.0 app.' });
     expect(ast2Credentials.read({ appId: '  ', accessToken: 't' }, signedOut)).toHaveProperty('missing');
@@ -84,10 +91,14 @@ describe("Doubao AST 2.0's languages (ruling 3; choice 1)", () => {
     }
   });
 
-  it("name the twelve more and Cantonese as the shared registry does (choice 17)", () => {
+  it("name the eight, the twelve more and Cantonese as the shared registry does, and the three it lacks as the list's own (choice 17)", () => {
     const named = new Map(ast2Languages.sources(AST2_DEFAULTS, TEXT).map((o) => [o.value, o.name]));
-    for (const code of TEXT_ONLY.filter((c) => c !== 'ms')) expect(named.get(code), code).toBe(LANGUAGE_OPTIONS[code].name);
+    // The registry's names for the eight are the old list's (`VolcengineAST2ProviderConfig.ts:112-121`).
+    for (const code of [...SPOKEN, ...TEXT_ONLY.filter((c) => c !== 'ms')]) expect(named.get(code), code).toBe(LANGUAGE_OPTIONS[code].name);
     expect(named.get('yue-CN')).toBe(LANGUAGE_OPTIONS.cantonese.name);
+    expect(named.get('ms')).toBe('Bahasa Melayu');
+    expect(named.get('sh-CN')).toBe('上海话 (Shanghainese)');
+    expect(named.get(ZHEN)).toBe('中英双语 (zh↔en)');
   });
 
   it('pair zhen only with itself', () => {

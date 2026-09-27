@@ -42,6 +42,7 @@ describe("Doubao AST 2.0's builder", () => {
   it("refuses a direction its mode does not run — Korean speaks nowhere, but translates to text — as a guard", () => {
     const korean: SessionContext = { direction: { source: 'ko', target: 'zh' }, speech: true, turns: 'auto' };
     expect(buildAst2(korean, AST2_DEFAULTS, SHARED)).toEqual({ refused: 'Doubao AST 2.0 does not speak ko → zh.' });
+    expect(buildAst2({ direction: { source: 'ja', target: 'de' }, speech: false, turns: 'auto' }, AST2_DEFAULTS, SHARED)).toEqual({ refused: 'Doubao AST 2.0 does not translate ja → de.' });
     expect(build({}, { ...korean, speech: false })).toEqual({ mode: 's2t', sourceLanguage: 'ko', targetLanguage: 'zh' });
     expect(build({}, { direction: { source: 'yue-CN', target: 'en' }, speech: false, turns: 'auto' })).toMatchObject({ mode: 's2t', sourceLanguage: 'yue-CN' });
     expect(build({}, { direction: { source: 'zhen', target: 'zhen' }, speech: true, turns: 'manual' })).toMatchObject({ mode: 's2s', sourceLanguage: 'zhen', targetLanguage: 'zhen' });
