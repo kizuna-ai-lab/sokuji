@@ -513,7 +513,8 @@
       "name": "Doubao AST 2.0",
       "description": "Dịch đồng thời Doubao",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "App ID + Access Token"
     },
     "local_inference": {
       "name": "Miễn phí",

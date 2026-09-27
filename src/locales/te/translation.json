@@ -513,7 +513,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao సైమల్టేనియస్ ట్రాన్స్‌లేషన్",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "యాప్ ID + యాక్సెస్ టోకెన్"
     },
     "local_inference": {
       "name": "ఉచిత",

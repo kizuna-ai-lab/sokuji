@@ -513,7 +513,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao सिमल्टेनियस ट्रांसलेशन",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "ऐप ID + एक्सेस टोकन"
     },
     "local_inference": {
       "name": "मुफ़्त",

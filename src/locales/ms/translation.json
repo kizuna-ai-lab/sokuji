@@ -513,7 +513,8 @@
       "name": "Doubao AST 2.0",
       "description": "Terjemahan serentak Doubao",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "APP ID + Access Token"
     },
     "local_inference": {
       "name": "Percuma",

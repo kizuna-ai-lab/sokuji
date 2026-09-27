@@ -513,7 +513,8 @@
       "name": "豆包同声传译 2.0",
       "description": "豆包语音同声传译",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "应用 ID + 访问令牌"
     },
     "local_inference": {
       "name": "免费",

@@ -513,7 +513,8 @@
       "name": "Doubao AST 2.0",
       "description": "Doubao 同時通訳",
       "appIdPlaceholder": "APP ID",
-      "accessTokenPlaceholder": "Access Token"
+      "accessTokenPlaceholder": "Access Token",
+      "authModeApp": "アプリ ID + アクセストークン"
     },
     "local_inference": {
       "name": "無料",
