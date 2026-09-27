@@ -295,9 +295,15 @@ describe('createPairCache — compares what pairing read, and holds no segment (
       return new WeakRef(segments);
     })();
     const loose = new WeakRef([seg({ side: 'source' })]);
-    // A WeakRef keeps its target alive until the current job ends.
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    gc();
+    // Node's own `gcUntil` (`test/common/gc.js`): a macrotask, a full collection, a look — a few rounds, since one
+    // collection need not clear every target. The macrotask comes first each round: a WeakRef keeps its target
+    // alive until the current job ends, and so does each `deref()`.
+    const gone = () => [loose, fed.array, fed.segment, fed.pcm].every((ref) => ref.deref() === undefined);
+    for (let round = 0; round < 5; round++) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      gc();
+      if (gone()) break;
+    }
     expect(kept.deref()).toBe(holder.get('kept'));
     expect(loose.deref()).toBeUndefined();
     expect(fed.array.deref()).toBeUndefined();

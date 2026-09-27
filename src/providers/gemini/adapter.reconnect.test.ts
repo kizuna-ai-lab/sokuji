@@ -17,6 +17,10 @@ import { AUTO_CTX, configFor, DIALOGUE, KEY, liveGemini, SERVER, serverFrame, SH
 import { setupFrame } from './wire';
 
 type Live = Awaited<ReturnType<typeof liveGemini>>;
+/** The words Google closes with when it refuses a key, and when a quota is spent (as `adapter.test.ts`'s start refusals). */
+const BAD_KEY = 'API key not valid. Please pass a valid API key.';
+const QUOTA = 'You exceeded your current quota.';
+const LOST = 'The Gemini connection was lost and could not be restored.';
 /** A model audio part named pcm whose data is not base64: `atob` refuses it. */
 const BAD_AUDIO = () => serverFrame({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: 'audio/pcm;rate=24000', data: '%%not base64%%' } }] } } });
 
@@ -147,6 +151,34 @@ describe("the Gemini adapter's resumption ladder", () => {
     await refuse();
     expect(h.frames('session.reconnect_failed').map((p) => (p as { message: string }).message)).toEqual(Array(3).fill('[Gemini 1008] Policy violation'));
     expect(h.of('failed').map((e) => e.payload.code)).toEqual(['connection_lost']);
+  });
+
+  it.each([
+    ['refused on the key each time', ['key', 'key', 'key'], 'auth', `[Gemini 1008] ${BAD_KEY}`],
+    ['refused on the quota each time', ['quota', 'quota', 'quota'], 'rate_limit', `[Gemini 1011] ${QUOTA}`],
+    ['dropped each time', ['drop', 'drop', 'drop'], 'connection_lost', LOST],
+    ['refused on the key, then dropped at the last', ['key', 'key', 'drop'], 'connection_lost', LOST],
+    ['dropped, then refused on the key at the last', ['drop', 'drop', 'key'], 'auth', `[Gemini 1008] ${BAD_KEY}`],
+  ] as const)('the attempts %s: the leg fails as the last attempt says, in the start\'s own words', async (_how, attempts, code, message) => {
+    const h = await liveGemini();
+    h.socket().serverClose(1011, 'Internal error');
+    await flush();
+    for (const [i, how] of attempts.entries()) {
+      if (i > 0) {
+        h.clock.advance(RECONNECT_DELAYS_MS[i]);
+        await flush();
+      }
+      if (how === 'drop') h.socket().drop();
+      else {
+        h.socket().open();
+        h.socket().serverClose(how === 'key' ? 1008 : 1011, how === 'key' ? BAD_KEY : QUOTA);
+      }
+      await flush();
+    }
+    expect(h.sockets.all).toHaveLength(4);
+    expect(h.frames('session.connection_lost')).toEqual([{ attempts: 3 }]);
+    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code, message }]);
+    expect(h.timers()).toBe(0);
   });
 
   it('goAway breaks before it makes: the old socket closes first, audio in the gap is dropped, and the new setup carries the handle', async () => {

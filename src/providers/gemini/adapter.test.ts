@@ -336,6 +336,15 @@ describe('the Gemini adapter: one session', () => {
     expect(everything).not.toContain(KEY.apiKey);
   });
 
+  it('a transcription with no text still reaches the Logs, and opens no segment (choice 19)', async () => {
+    const h = await liveGemini();
+    h.socket().receive(serverFrame({ serverContent: { inputTranscription: { finished: true } } }));
+    h.socket().receive(serverFrame({ serverContent: { outputTranscription: { languageCode: 'ja-JP' } } }));
+    expect(h.frames('server_content.input_transcription')).toEqual([{ finished: true }]);
+    expect(h.frames('server_content.output_transcription')).toEqual([{ languageCode: 'ja-JP' }]);
+    expect(h.content()).toEqual([]);
+  });
+
   it('a frame that will not parse is a Logs line once per episode, and the stream goes on', async () => {
     const h = await liveGemini();
     h.socket().receive('{bad');

@@ -95,6 +95,8 @@ describe('createSonioxCheck', () => {
     answer.then(settled, settled);
 
     advance(14_999);
+    // Read before the rejection could land: a bound shorter than 15 s has already aborted by now.
+    expect(aborted()).toBe(false);
     await Promise.resolve();
     expect(settled).not.toHaveBeenCalled();
 

@@ -2,8 +2,9 @@
  * The Soniox suites' shared fixtures: the wire's messages, a clock that
  * counts its live timers, the settings and key the adapter suites start
  * from. Test-only: nothing but a test imports it (the session-side
- * consistency test's "only test-only modules import the adapter test kit"
- * holds it to that), and the adapter's session walk never reaches it.
+ * consistency test's "only test-only modules import the adapter test kit
+ * or a provider's fixtures" holds it to that), and the adapter's session
+ * walk never reaches it.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';

@@ -43,6 +43,8 @@ import {
 export const SETUP_TIMEOUT_MS = 15_000;
 /** The old ladder (`GeminiClient.ts:1458-1583`): at once, after 2 s, after 3 s. */
 export const RECONNECT_DELAYS_MS: readonly number[] = [0, 2_000, 3_000];
+/** Refusals the user can act on: when the ladder's last attempt was refused so, the leg fails as it, not as a lost connection. */
+const ACTIONABLE_REFUSALS = new Set(['auth', 'rate_limit']);
 
 export interface GeminiAdapterDeps {
   /** `new WebSocket(url)` in the app; a `FakeSocket` factory in tests. */
@@ -64,7 +66,7 @@ function detach(ws: WebSocket): void {
 /** A transcription as the Logs show it; its language is framed, never forwarded (choice 19). */
 function transcriptionFrame(t: Transcription): Record<string, unknown> {
   return {
-    text: t.text,
+    ...(t.text !== undefined ? { text: t.text } : {}),
     ...(t.finished !== undefined ? { finished: t.finished } : {}),
     ...(t.languageCode ? { languageCode: t.languageCode } : {}),
   };
@@ -234,15 +236,16 @@ class GeminiSession {
   /** The content first, then its closure: a `turnComplete` may ride with its turn's last content (choice 15). */
   private onContent(c: ServerContent): void {
     if (c.groundingMetadata) this.frame('in', 'server_content.grounding_metadata');
+    // Framed whenever present, text or not: `finished` or `languageCode` may come alone, and the Logs are where they show.
     const input = c.inputTranscription;
-    if (input?.text) {
+    if (input) {
       this.frame('in', 'server_content.input_transcription', transcriptionFrame(input));
-      this.turns.input(input.text);
+      if (input.text) this.turns.input(input.text);
     }
     const output = c.outputTranscription;
-    if (output?.text) {
+    if (output) {
       this.frame('in', 'server_content.output_transcription', transcriptionFrame(output));
-      this.turns.output(output.text);
+      if (output.text) this.turns.output(output.text);
     }
     if (c.modelTurn?.parts) this.onModelTurn(c.modelTurn.parts);
     if (c.generationComplete) this.frame('in', 'server_content.generation_complete');
@@ -393,6 +396,7 @@ class GeminiSession {
 
   /** Three attempts, each bounded by `SETUP_TIMEOUT_MS`: the handle when one is held, else a fresh session (ruling 3). */
   private async ladder(): Promise<void> {
+    let refusal: unknown = null;
     for (let attempt = 1; attempt <= RECONNECT_DELAYS_MS.length; attempt++) {
       const delay = RECONNECT_DELAYS_MS[attempt - 1];
       // At once is at once: no zero timer, which a virtual clock fires only when advanced.
@@ -403,6 +407,7 @@ class GeminiSession {
         await this.connect(handle, null);
       } catch (error) {
         if (this.ended) return;
+        refusal = error;
         // A failed resume keeps its handle for the next attempt (parity).
         this.frame('in', 'session.reconnect_failed', { attempt, maxRetries: RECONNECT_DELAYS_MS.length, message: describeCause(error) });
         continue;
@@ -421,7 +426,10 @@ class GeminiSession {
       return;
     }
     this.frame('in', 'session.connection_lost', { attempts: RECONNECT_DELAYS_MS.length });
-    this.fail('connection_lost', 'The Gemini connection was lost and could not be restored.');
+    // A key revoked or a quota spent mid-session reads as its cause, in the words a refused start gives (choice 12);
+    // only the last attempt counts, since an earlier refusal may have passed.
+    if (refusal instanceof AdapterStartError && ACTIONABLE_REFUSALS.has(refusal.code)) this.fail(refusal.code, refusal.message);
+    else this.fail('connection_lost', 'The Gemini connection was lost and could not be restored.');
   }
 
   /** Resolves after `ms` on the request's clock, or at once when the session ends. */
