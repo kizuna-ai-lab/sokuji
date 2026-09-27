@@ -22,13 +22,16 @@ vi.mock('../services/ServiceFactory', () => ({
 }));
 
 import { settleReports } from '../lib/diagnostics/report';
+import { localInferenceProvider } from '../providers/localInference/provider';
+import { kizunaSonioxProvider } from '../providers/soniox/kizuna';
+import { sonioxProvider } from '../providers/soniox/provider';
 import { ServiceFactory } from '../services/ServiceFactory';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { useRoutingStore } from '../stores/routingStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
-import { loadSessionStores } from './loadStores';
+import { loadSelectedProvider, loadSessionStores } from './loadStores';
 
 const providersBefore = useProviderStore.getState();
 const routingBefore = useRoutingStore.getState();
@@ -61,9 +64,8 @@ describe('loadSessionStores', () => {
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
     expect(useRoutingStore.getState().meeting).toBe(false);
     expect(refresh).toHaveBeenCalledTimes(1);
-    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
+    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6), loaded and selected.
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
-    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
     expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
     expect(setSetting).not.toHaveBeenCalled();
   });
@@ -188,5 +190,25 @@ describe('loadSessionStores', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
     // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
+  });
+});
+
+describe('loadSelectedProvider', () => {
+  it("selects the default managed provider for a stored 'kizunaai' even where it is not offered first, and never writes it back", async () => {
+    stored.set('settings.common.provider', 'kizunaai');
+    // Not the registry's order: here the first offered is not the managed default, so landing on the first offered would not pass.
+    await loadSelectedProvider(ServiceFactory.getSettingsService(), [localInferenceProvider, sonioxProvider, kizunaSonioxProvider]);
+
+    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
+    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+  });
+
+  it('keeps a stored own-key provider that is offered, though a managed default is offered too', async () => {
+    stored.set('settings.common.provider', 'soniox');
+    await loadSelectedProvider(ServiceFactory.getSettingsService(), [kizunaSonioxProvider, localInferenceProvider, sonioxProvider]);
+
+    expect(useProviderStore.getState().selected).toBe('soniox');
+    expect(useProviderStore.getState().entries.soniox).toBeDefined();
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Kizuna AI's managed Soniox (Stage 2 Kizuna Soniox, Task 8): the
+ * Kizuna AI's managed Soniox (Stage 2 Kizuna Soniox, rulings 2 and 6): the
  * definition `managed(soniox)` composes — Soniox's languages, builder and
  * adapter under the old enum's id and slice, the sign-in for a key, the
  * voice claim, the lease and the floor — and one run through the runner

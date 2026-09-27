@@ -60,10 +60,16 @@ describe('SessionCountdown', () => {
     expect(container.querySelector('.session-remaining-time')?.textContent).toBe(formatRemainingTime(0));
   });
 
-  it('a grant of zero is never low', () => {
-    const budget: Budget = { totalMs: 0, endsAt: 0 };
-    const { container } = render(<SessionCountdown budget={budget} now={clock} />);
-    expect(container.querySelector('.session-remaining-time')?.classList.contains('low')).toBe(false);
+  it('a grant that is not positive is never low', () => {
+    // Zero needs no guard: the clamp leaves nothing left, and 0 / 0 is NaN,
+    // never under a fifth. A negative total is the case only the
+    // `totalMs > 0` guard keeps from reading low (1 000 / -1 is under a fifth).
+    const budgets: Budget[] = [{ totalMs: 0, endsAt: 0 }, { totalMs: -1, endsAt: 1_000 }];
+    for (const budget of budgets) {
+      const { container, unmount } = render(<SessionCountdown budget={budget} now={clock} />);
+      expect(container.querySelector('.session-remaining-time')?.classList.contains('low'), JSON.stringify(budget)).toBe(false);
+      unmount();
+    }
   });
 
   it('stops ticking on unmount', async () => {

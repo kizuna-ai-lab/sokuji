@@ -92,6 +92,17 @@ describe('the registry', () => {
     expect(control.filter((p) => isPresent(p, env)).map((p) => p.id)).toEqual(['fake']);
   });
 
+  it('a release build offers Kizuna Soniox first on every platform, unflagged: the Kizuna umbrella alone decides it (ruling 6)', () => {
+    for (const platform of ['electron', 'extension', 'web'] as const) {
+      // No provider enabled by name and no tester switch on: nothing but the umbrella can bring it in.
+      const offered = presentProviders({ platform, dev: false, enabled: new Set(), kizuna: true, switchOn: () => false });
+      expect(offered[0].id, platform).toBe('kizunaai_soniox');
+      expect(offered[0].flagged, platform).not.toBe(true);
+      const withoutUmbrella = presentProviders({ platform, dev: false, enabled: new Set(), kizuna: false, switchOn: () => false });
+      expect(withoutUmbrella.map((p) => p.id), platform).not.toContain('kizunaai_soniox');
+    }
+  });
+
   it('a tester switch sits only on a flagged provider', () => {
     const switchOffenders = (ps: readonly Pick<AnyProvider, 'id' | 'flagged' | 'testerSwitch'>[]) =>
       ps.filter((p) => p.testerSwitch !== undefined && p.flagged !== true).map((p) => p.id);

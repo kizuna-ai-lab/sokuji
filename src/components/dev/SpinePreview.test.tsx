@@ -323,7 +323,7 @@ describe('SpinePreview', () => {
     }
   });
 
-  // Task 9: `&signedin=1` also reaches the `&settings=` blocks through
+  // `&signedin=1` also reaches the `&settings=` blocks through
   // `AuthStandIn`, so Kizuna Soniox's Settings show as signed in there too —
   // and its voice library, which would otherwise call the backend for the
   // account's cached voice, runs on the stand-in `setManagedVoiceStandIn`
