@@ -1287,7 +1287,9 @@ relay endpoint, are not ported (see Migration).
 what a twin takes from its base — languages, capabilities, builder, adapter,
 `startBoth`, turn detection, the settings' defaults and migration — and what is
 its own: id, kind, vendor, icon, storage key, `Settings`, a sign-in `read`, a
-static `check`, its participant-speech flag, and its hooks, `acquire` required.
+static `check`, and its hooks, `acquire` required. The participant-speech flag
+is the twin's own when it gives one, and otherwise the base's, so a base that
+cannot voice the participant never yields a twin that does.
 A twin's `read` answers the sign-in, a type of its own (`R`); its `start`
 receives the keys its lease mints (`K`). It inherits neither the base's guide,
 locale key nor presence knobs.
