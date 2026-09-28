@@ -191,6 +191,23 @@ describe("OpenAI Translate's segments: sentence mode, the .done events, stop", (
     expect(timers()).toBe(0);
   });
 
+  it("forgets a closed segment's deferred tail, so the next segment on that side gets its own first deferral even with the same tail", () => {
+    const { s, clock, closed } = segments({ sourceMs: 1000, translationMs: 1000, deferMidSentence: true });
+    s.input('So,');
+    clock.advance(1000);
+    // Mid-sentence at the first expiry: defers.
+    expect(closed()).toEqual([]);
+    clock.advance(1000);
+    // The tail did not grow since the last expiry: the speaker stopped, closes.
+    expect(closed()).toEqual([{ ref: 1 }]);
+    s.input('So,');
+    clock.advance(1000);
+    // A new segment, the same tail: it still gets its own first deferral, not read as unchanged from the last one's.
+    expect(closed()).toEqual([{ ref: 1 }]);
+    clock.advance(1000);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+  });
+
   it('stop cancels every timer, a deferred one included, and emits nothing after it', () => {
     const { s, clock, timers, log } = segments({ sourceMs: 1000, translationMs: 1000, deferMidSentence: true });
     s.input('He said that');
@@ -198,6 +215,9 @@ describe("OpenAI Translate's segments: sentence mode, the .done events, stop", (
     clock.advance(1000);
     // The deferral re-armed the source's countdown; the translation, at a sentence end, closed.
     expect(timers()).toBe(1);
+    // Content audio reopens the translation and arms its own timer again, so stop has both sides live to cancel.
+    s.audio(pcm(), true);
+    expect(timers()).toBe(2);
     const n = log.length;
     s.stop();
     expect(timers()).toBe(0);
