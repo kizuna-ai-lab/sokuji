@@ -244,6 +244,15 @@ describe('a provider session side', () => {
     for (const file of ['TranslateSettings.tsx', 'check.ts', 'config.ts', 'provider.ts', 'settings.ts', 'testing.ts']) {
       expect(translate).not.toContain(`src/providers/openai_translate/${file}`);
     }
+
+    const realtime = sessionSide(REPO_ROOT, 'src/providers/openai');
+    expect(realtime).toEqual([
+      'src/providers/openai/adapter.ts',
+      'src/providers/openai/items.ts',
+      'src/providers/openai/queue.ts',
+      'src/providers/openai/socket.ts',
+      'src/providers/openai/wire.ts',
+    ]);
   });
 
   it('reads imports the way the compiler does', () => {

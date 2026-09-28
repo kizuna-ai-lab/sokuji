@@ -1,13 +1,19 @@
 /**
  * The OpenAI Realtime suites' fixtures: a key, the settings the suites build
  * from, the server's events as the JSON text frames the GA endpoint sends,
- * and a browser that refuses the socket. Test-only: nothing but a test
+ * a browser that refuses the socket, and the harness that starts a leg over
+ * `FakeSocket`s. Test-only: nothing but a test
  * imports it (the session-side guard's kit rule counts every provider's
  * `testing.ts` as kit and holds it to that), and the adapter's session walk
  * never reaches it.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
+import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
+import { base64ToPcm } from '../../lib/contract/pcm64';
+import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
+import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { SharedSettings } from '../../lib/provider/types';
+import { createRealtimeAdapter } from './adapter';
 import { buildRealtime, type RealtimeConfig } from './config';
 import { REALTIME_DEFAULTS, type RealtimeCredentials, type RealtimeSettings } from './settings';
 
@@ -119,4 +125,39 @@ export function exchange(n: number, o: { source?: string; translation?: string; 
     SERVER.outputItemDone(resp, out),
     SERVER.responseDone(resp),
   ];
+}
+
+/** An OpenAI Realtime leg started over `FakeSocket`s on a tracked virtual clock; its socket not yet opened. */
+export function startRealtime(o: { context?: SessionContext; patch?: Partial<RealtimeSettings>; credentials?: RealtimeCredentials } = {}) {
+  const sockets = fakeSockets();
+  const { clock, timers } = trackedClock();
+  const { events, log } = recordEvents();
+  const controller = new AbortController();
+  const context = o.context ?? AUTO_CTX;
+  const config = configFor(context, o.patch);
+  const starting = createRealtimeAdapter({ openSocket: sockets.create }).start({ context, config, credentials: o.credentials ?? KEY, clock, signal: controller.signal }, events);
+  const socket = () => sockets.last();
+  const of = <K extends AdapterEvent['kind']>(kind: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);
+  /** The payloads of the frames of one type, in order. */
+  const frames = (type: string) => of('frame').filter((e) => e.payload.type === type).map((e) => e.payload.payload);
+  /** What the client sent on the leg's socket, parsed. */
+  const sent = () => socket().sentJson<Record<string, unknown>>();
+  /** What was sent, appends aside: the frames that are not audio. */
+  const said = () => sent().filter((m) => m.type !== 'input_audio_buffer.append');
+  /** The pcm of every append sent, in order. */
+  const appended = () => sent().filter((m) => m.type === 'input_audio_buffer.append').map((m) => base64ToPcm(m.audio as string));
+  /** The log without its frames: what L1 folds. */
+  const content = () => log.filter((e) => e.kind !== 'frame');
+  /** The server says each of these, in order. */
+  const receive = (...messages: string[]) => { for (const m of messages) socket().receive(m); };
+  return { sockets, clock, timers, log, controller, config, starting, socket, of, frames, sent, said, appended, content, receive };
+}
+
+/** Started, opened, created and configured: the start resolved, the first anchor sent. */
+export async function liveRealtime(o?: Parameters<typeof startRealtime>[0]) {
+  const h = startRealtime(o);
+  h.socket().open('realtime');
+  h.receive(SERVER.created(), SERVER.updated());
+  const session = await h.starting;
+  return { ...h, session };
 }
