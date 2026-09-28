@@ -306,8 +306,9 @@ The conformance suite (D24) checks each rule below against every adapter.
   2.0's rows group `subtitle.*`, `tts.*`, `session.usage` and
   `session.audio_muted` under the old client's keys; a group holds one frame
   type. OpenAI Translate's need no row: its three `.delta` frames group by
-  their own type, `session.error` reads as an error by its suffix, and its
-  `session.closed` — the server ending the session — draws the separator.
+  their own type when consecutive (the Logs' rule for every provider),
+  `session.error` reads as an error by its suffix, and its `session.closed`
+  — the server ending the session — draws the separator.
 
 ### The session request
 
@@ -740,10 +741,10 @@ place.
 
 The window holds for untimed pairs. A translation with `timing` still scans
 every source with timing (`pair.ts`), and a timing that changes on every delta
-re-pairs on every delta, so the first provider to emit `timing` sets it once,
-at segment close, and extends F16 to a timed window first — OpenAI Translate's
-follow-up, should its `elapsed_ms` prove one timeline (Stage 2 OpenAI
-Translate, ruling 6).
+re-pairs on every delta, so the first provider whose origins L2 infers to
+emit `timing` sets it once, at segment close, and extends F16 to a timed
+window first — OpenAI Translate's follow-up, should its `elapsed_ms` prove
+one timeline (Stage 2 OpenAI Translate, ruling 6).
 
 Filtering, band packing and styling are **not** L2's. They depend on each
 surface's own settings — the extension overlay carries display modes, a font
