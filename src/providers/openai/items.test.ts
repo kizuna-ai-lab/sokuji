@@ -47,6 +47,19 @@ describe("OpenAI Realtime's items: the sources", () => {
     expect(m.of('segmentClosed')).toEqual([{ ref: 1 }, { ref: 2 }]);
   });
 
+  it('keeps the streamed text when the completed transcript arrives empty, as `outputDone` treats an empty final text as none; with no deltas, the source closes with no text at all', () => {
+    const m = machine();
+    m.items.committed('item_a');
+    m.items.inputDelta('item_a', 'Hal');
+    m.items.inputDone('item_a', '');
+    expect(m.of('segmentText')).toEqual([{ ref: 1, text: 'Hal' }]);
+    expect(m.of('segmentClosed')).toEqual([{ ref: 1 }]);
+    m.items.committed('item_b');
+    m.items.inputDone('item_b', '');
+    expect(m.of('segmentText')).toEqual([{ ref: 1, text: 'Hal' }]);
+    expect(m.of('segmentClosed')).toEqual([{ ref: 1 }, { ref: 2 }]);
+  });
+
   it("opens, writes and closes typed text at once, under the adapter's own item id", () => {
     const m = machine();
     m.items.typed('sokuji_text_1', 'Hello there');
@@ -76,7 +89,16 @@ describe("OpenAI Realtime's items: translations, paired exactly (choice 8)", () 
     ]);
   });
 
-  it('falls back, when the item names no input of this leg, to the newest input the server held unanswered when the response began', () => {
+  it('takes the fallback origin as the response was created, not later when its translation opens: an utterance committed afterward is not it', () => {
+    const m = machine();
+    m.items.committed('item_a');
+    m.items.responseCreated('resp_1', false);
+    m.items.committed('item_b');
+    m.items.assistantAdded('item_x', null);
+    expect(m.of('segmentOpened').filter((e) => e.side === 'translation')).toEqual([{ ref: 3, side: 'translation', origin: 'item_a' }]);
+  });
+
+  it('falls back, when the item names no input of this leg, to the newest known input if it is still unanswered — never an older unanswered one behind it (choice 8)', () => {
     const m = machine();
     m.items.committed('item_a');
     m.items.committed('item_b');
@@ -90,8 +112,8 @@ describe("OpenAI Realtime's items: translations, paired exactly (choice 8)", () 
     m.items.assistantAdded('item_z', 'item_unknown');
     expect(m.of('segmentOpened').filter((e) => e.side === 'translation')).toEqual([
       { ref: 3, side: 'translation', origin: 'item_b' },
-      { ref: 4, side: 'translation', origin: 'item_a' },
-      // Nothing left unanswered: no origin.
+      // item_b, the newest known input, is already answered; item_a behind it is not taken: no origin.
+      { ref: 4, side: 'translation' },
       { ref: 5, side: 'translation' },
     ]);
   });
@@ -142,6 +164,10 @@ describe("OpenAI Realtime's items: translations, paired exactly (choice 8)", () 
     m.items.responseCreated('resp_2', false);
     m.items.assistantAdded('item_y', 'item_c');
     expect(m.of('segmentOpened').filter((e) => e.side === 'translation').map((e) => e.origin)).toEqual(['item_a', 'item_c']);
+    // item_b stays its own source row: opened, written, closed, never a translation's origin.
+    expect(m.of('segmentOpened')).toContainEqual({ ref: 3, side: 'source', origin: 'item_b' });
+    expect(m.of('segmentText')).toContainEqual({ ref: 3, text: 'unanswered words' });
+    expect(m.of('segmentClosed')).toContainEqual({ ref: 3 });
   });
 
   it("makes no segment of an out-of-band response: the drift anchor's (ruling 2)", () => {

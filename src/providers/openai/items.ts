@@ -10,12 +10,12 @@
  *   opened, written and closed at once, under the adapter's own item id.
  * - **Translations, paired exactly** (choice 8): a response's assistant item
  *   is a translation segment whose origin is the input its
- *   `previous_item_id` names, when this leg opened that input; else the
- *   newest input the server holds that no translation has named yet, as it
- *   stood when the response was created; else none. An input no response
- *   ever answers — an utterance spoken over a playing translation, which
- *   the server may leave unanswered under `interrupt_response: false` —
- *   stays a source row of its own.
+ *   `previous_item_id` names, when this leg opened that input; else, taken
+ *   as the response was created, the newest input the server holds if it is
+ *   still unanswered — never an older, still-unanswered one behind it —
+ *   else none. An input no response ever answers — an utterance spoken over
+ *   a playing translation, which the server may leave unanswered under
+ *   `interrupt_response: false` — stays a source row of its own.
  * - **Karaoke by arrival** (ruling 3): a played frame carries
  *   `[the previous played frame's end, the translation's length when the
  *   frame arrived]`, OpenAI Translate's alignment (its choice 6). When the
@@ -48,9 +48,9 @@ interface Output {
   closed: boolean;
 }
 
-interface Response {
+interface ResponseState {
   outOfBand: boolean;
-  /** The newest known input no translation had named when the response was created: the origin when its item names none (choice 8). */
+  /** The newest known input, taken when the response was created, if it was still unanswered then: the origin when its item names none (choice 8). */
   fallback?: string;
 }
 
@@ -59,7 +59,7 @@ export class RealtimeItems {
   /** By item id, in the order they opened. */
   private readonly inputs = new Map<string, Input>();
   private readonly outputs = new Map<string, Output>();
-  private readonly responses = new Map<string, Response>();
+  private readonly responses = new Map<string, ResponseState>();
   /** An assistant item's response, from `response.output_item.added`. */
   private readonly owners = new Map<string, string>();
   private stopped = false;
@@ -95,11 +95,11 @@ export class RealtimeItems {
     this.sink.segmentText({ ref: input.ref, text: input.text });
   }
 
-  /** The input's transcript, completed: it settles the text and closes the source. */
+  /** The input's transcript, completed: it settles the text and closes the source. An empty completion is no answer — the same rule `outputDone` keeps — so streamed text survives it; with none streamed, the source closes with none. */
   inputDone(itemId: string, transcript: string): void {
     const input = this.input(itemId);
     if (!input) return;
-    if (transcript !== input.text) {
+    if (transcript && transcript !== input.text) {
       input.text = transcript;
       this.sink.segmentText({ ref: input.ref, text: transcript });
     }
@@ -256,9 +256,10 @@ export class RealtimeItems {
     return origin;
   }
 
+  /** The newest known input — never an older, still-unanswered one behind it — if that newest one is itself unanswered; else none (choice 8). */
   private newestUnanswered(): string | undefined {
     let newest: string | undefined;
-    for (const [itemId, input] of this.inputs) if (input.known && !input.answered) newest = itemId;
-    return newest;
+    for (const [itemId, input] of this.inputs) if (input.known) newest = itemId;
+    return newest !== undefined && !this.inputs.get(newest)!.answered ? newest : undefined;
   }
 }
