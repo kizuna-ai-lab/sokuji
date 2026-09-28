@@ -5,7 +5,9 @@
  * `turnComplete`, so its source and translation share the turn's origin,
  * stated (`t<n>`). Live Translate has no turns (`GeminiClient.ts:74-94`):
  * each side is its own segment, closed by its own silence timer, and its
- * origin is L2's to infer (F16).
+ * origin is L2's to infer (F16). The audio a translation plays carries the
+ * stretch of its text that had arrived with it — karaoke by arrival
+ * (Gemini/AST2 follow-up, ruling 2; choice 7).
  */
 import type { AdapterEvents, Ref } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
@@ -45,6 +47,8 @@ interface OpenSide {
   ref: Ref;
   /** What the server sent, accumulated; the source's is shown normalized. */
   text: string;
+  /** Translation only: where the last played chunk's range ended (Gemini/AST2 follow-up, ruling 2). */
+  spoken: number;
 }
 
 export class GeminiTurns {
@@ -96,6 +100,14 @@ export class GeminiTurns {
     this.arm('translation');
   }
 
+  /**
+   * The model's audio. Played, it carries its translation's text as it
+   * stood when the chunk arrived — `[the previous played chunk's end, the
+   * text's length]`, `[0, 0]` before any text — an alignment by arrival,
+   * not a known correspondence: the honesty rule's third stated exception
+   * (Gemini/AST2 follow-up, ruling 2; choice 7). The text only grows, so no
+   * range ever needs stating again.
+   */
   audio(pcm: Int16Array): void {
     if (this.stopped || this.suppressing || pcm.length === 0) return;
     // Streaming, whether or not this leg plays it.
@@ -106,7 +118,10 @@ export class GeminiTurns {
       this.o.sink.audio({ pcm });
       return;
     }
-    this.o.sink.audio({ pcm, ref: this.ensure('translation').ref });
+    const side = this.ensure('translation');
+    const end = side.text.length;
+    this.o.sink.audio({ pcm, ref: side.ref, range: [side.spoken, end] });
+    side.spoken = end;
   }
 
   modelText(text: string): void {
@@ -220,7 +235,7 @@ export class GeminiTurns {
     const ref = ++this.refs;
     const origin = this.origin();
     this.o.sink.segmentOpened({ ref, side, ...(origin ? { origin } : {}) });
-    const fresh: OpenSide = { ref, text: '' };
+    const fresh: OpenSide = { ref, text: '', spoken: 0 };
     this.sides[side] = fresh;
     return fresh;
   }

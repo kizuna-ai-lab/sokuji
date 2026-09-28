@@ -56,6 +56,33 @@ describe('a dialogue model: one turn, one origin, stated', () => {
     expect(silent.log).toEqual([]);
   });
 
+  it("ranges each played chunk by arrival: from the previous chunk's end to the text as it stood, [0, 0] before any text (Gemini/AST2 follow-up, ruling 2)", () => {
+    const { t, of } = turns();
+    t.audio(pcm());
+    t.output('Welcome');
+    t.audio(pcm());
+    t.audio(pcm());
+    t.output(' to real-time translation.');
+    t.audio(pcm());
+    t.turnComplete();
+    // The next turn's translation counts from its own start.
+    t.output('Next');
+    t.audio(pcm());
+    expect(of('audio').map((e) => [e.payload.ref, e.payload.range])).toEqual([
+      [1, [0, 0]], [1, [0, 7]], [1, [7, 7]], [1, [7, 33]], [2, [0, 4]],
+    ]);
+  });
+
+  it('keeps [0, 0] on the chunks of a turn whose transcript never came: its text parts are shown only at the turn\'s end', () => {
+    const { t, of, texts } = turns();
+    t.modelText('Bonjour');
+    t.audio(pcm());
+    t.audio(pcm());
+    t.turnComplete();
+    expect(texts(1)).toEqual(['Bonjour']);
+    expect(of('audio').map((e) => e.payload.range)).toEqual([[0, 0], [0, 0]]);
+  });
+
   it("the model's text parts stand in for a transcript that never came (`GeminiClient.ts:1094-1105`), and only then", () => {
     const bare = turns();
     bare.t.modelText('Bonjour');
@@ -365,6 +392,26 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
     t.audio(pcm());
     expect(of('audio').map((e) => e.payload.ref)).toEqual([undefined, 1, undefined]);
     expect(timers()).toBe(0);
+  });
+
+  it('ranges the audio inside an open translation by arrival — a chunk with no new text is zero-width — and audio outside one carries neither ref nor range (Gemini/AST2 follow-up, ruling 2; choice 7)', () => {
+    const { t, clock, of } = translate();
+    // The probe's Live Translate stream: a 250 ms chunk every 250 ms, silence included; its text 0–0.3 s ahead.
+    t.audio(pcm());
+    t.output('Real-time Funky');
+    t.audio(pcm());
+    t.audio(pcm());
+    t.output(' it is, so');
+    t.audio(pcm());
+    clock.advance(1500);
+    t.audio(pcm());
+    expect(of('audio').map((e) => e.payload)).toEqual([
+      { pcm: pcm() },
+      { pcm: pcm(), ref: 1, range: [0, 15] },
+      { pcm: pcm(), ref: 1, range: [15, 15] },
+      { pcm: pcm(), ref: 1, range: [15, 25] },
+      { pcm: pcm() },
+    ]);
   });
 
   it('keeps its open segments across a reconnect, closing them on their own timers (`:914`; choice 14)', () => {
