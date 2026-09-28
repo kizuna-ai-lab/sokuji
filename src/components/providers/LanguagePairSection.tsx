@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip/Tooltip';
 import { pairSentence } from '../SetupWizard/languageSentence';
 import { AUTO, normalizePair, swapped } from '../../lib/provider/languages';
-import type { AnyProvider, LanguageOption, LanguagePair } from '../../lib/provider/types';
+import type { AnyProvider, LanguageContext, LanguageOption, LanguagePair } from '../../lib/provider/types';
 import type { AudioMode } from '../../stores/audioStore';
 import { effectiveTextOnly } from '../../utils/effectiveTextOnly';
 
@@ -20,6 +20,8 @@ interface LanguagePairSectionProps {
    * plain `settings.sourceLanguage` / `settings.targetLanguage` labels.
    */
   sentence?: { mode: AudioMode; textOnly: boolean };
+  /** Whether a run would speak (Stage 2 Volcengine AST2, choice 1): the lists are the offer for it. Absent: the provider's widest offer. */
+  context?: LanguageContext;
 }
 
 /**
@@ -28,12 +30,12 @@ interface LanguagePairSectionProps {
  * allowed whenever the provider supports the reversed pair. Markup is
  * LanguageSection's translation-languages block.
  */
-export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence }: LanguagePairSectionProps) {
+export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context }: LanguagePairSectionProps) {
   const { t } = useTranslation();
   const id = useId();
-  const sources = provider.languages.sources(settings);
-  const targets = provider.languages.targets(pair.source, settings);
-  const reversed = swapped(provider, settings, pair);
+  const sources = provider.languages.sources(settings, context);
+  const targets = provider.languages.targets(pair.source, settings, context);
+  const reversed = swapped(provider, settings, pair, context);
   const option = (o: LanguageOption) => (
     <option key={o.value} value={o.value}>{o.value === AUTO ? t('common.autoDetect') : o.name}</option>
   );
@@ -71,7 +73,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
             id={`${id}-source`}
             className="language-select"
             value={pair.source}
-            onChange={(e) => onChange(normalizePair(provider, settings, { source: e.target.value, target: pair.target }))}
+            onChange={(e) => onChange(normalizePair(provider, settings, { source: e.target.value, target: pair.target }, context))}
             disabled={disabled}
           >
             {sources.map(option)}

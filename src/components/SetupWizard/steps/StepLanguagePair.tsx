@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProviderStore } from '../../../stores/providerStore';
-import { AUTO } from '../../../lib/provider/languages';
+import { AUTO, normalizePair } from '../../../lib/provider/languages';
+import { legsFor, participantSpeechSwitchFromStores } from '../../../lib/session/appShape';
+import { languageContext } from '../../../lib/session/shape';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { pairSentence } from '../languageSentence';
 import { defaultLanguagePair } from '../languageDefaults';
@@ -17,8 +19,11 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   const uiLanguage = i18n.language;
   const p = wizardProvider(draft.provider)!;
   const s = useProviderStore((st) => st.entries[p.id]?.settings) ?? p.settings.defaults;
-  const sources = useMemo(() => [...p.languages.sources(s)], [p, s]);
-  const targetsFor = (src: string) => [...p.languages.targets(src, s)];
+  // The scenario's legs and text-only answer whether the run would speak, so the lists are the offer for it (Stage 2 Volcengine AST2, choice 1); the participant's own switch is the stores'.
+  const preset = getScenario(draft.scenario!);
+  const speech = languageContext(p, legsFor(preset.mode), { textOnly: preset.textOnly, participantSpeech: participantSpeechSwitchFromStores() }).speech;
+  const sources = useMemo(() => [...p.languages.sources(s, { speech })], [p, s, speech]);
+  const targetsFor = (src: string) => [...p.languages.targets(src, s, { speech })];
 
   // Seed once from the provider's lists (spec §1.2 step 4); Back/Next keeps the
   // user's picks because the draft already holds them.
@@ -37,13 +42,23 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
     dispatch({ type: 'setLanguages', source: pair.source, target: pair.target });
   }, [p, sources, uiLanguage, draft.sourceLanguage, draft.targetLanguage, dispatch]);
 
+  // A scenario changed on Back keeps the draft's pair (`setScenario` with
+  // `keepProvider`); one its lists do not hold is normalized into them, by
+  // the rule the provider store keeps (Stage 2 Volcengine AST2, choice 1).
+  useEffect(() => {
+    if (draft.sourceLanguage === null || draft.targetLanguage === null) return;
+    const next = normalizePair(p, s, { source: draft.sourceLanguage, target: draft.targetLanguage }, { speech });
+    if (next.source !== draft.sourceLanguage || next.target !== draft.targetLanguage) {
+      dispatch({ type: 'setLanguages', source: next.source, target: next.target });
+    }
+  }, [p, s, speech, draft.sourceLanguage, draft.targetLanguage, dispatch]);
+
   const source = draft.sourceLanguage ?? '';
   const targets = source ? targetsFor(source) : [];
 
   // The same sentence Settings' language pair prints, over the same two fields:
   // whichever way round a provider runs the legs, the user should meet one
   // vocabulary for them.
-  const preset = getScenario(draft.scenario!);
   const sentence = pairSentence({
     mode: preset.mode,
     textOnly: preset.textOnly,
