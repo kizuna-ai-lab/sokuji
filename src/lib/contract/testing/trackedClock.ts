@@ -1,8 +1,9 @@
 /**
  * A virtual clock that counts its live timers — what an adapter's stop must
  * leave at zero. Soniox's and Gemini's suites each kept a copy; the third
- * adapter that needed one (Doubao AST 2.0) moved it here (Stage 2 Gemini,
- * choice 21). Test-only, like the rest of the kit.
+ * adapter that needed one (Doubao AST 2.0) moved it here (Stage 2
+ * Volcengine AST2, choice 14, as Stage 2 Gemini's choice 21 named).
+ * Test-only, like the rest of the kit.
  */
 import { createVirtualClock, type VirtualClock } from '../clock';
 

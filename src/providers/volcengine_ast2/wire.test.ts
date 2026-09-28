@@ -44,7 +44,7 @@ describe("Doubao AST 2.0's wire", () => {
     expect(ast2Url({ kind: 'apiKey', apiKey: 'a&b=c d' })).toContain('api_key=a%26b%3Dc+d');
   });
 
-  it('meets the Access Token and the API key in the URL builder alone, and the URL, wherever it lands, is masked (ruling 2)', () => {
+  it('meets the Access Token and the API key, in `wire.ts`, in the URL builder alone; the URL, wherever it lands, is masked by its query names (ruling 2)', () => {
     expect(secretReaders(readFileSync(resolve(__dirname, 'wire.ts'), 'utf-8'))).toEqual(['ast2Url']);
     // The scan's control: a read in any other function, nested or not, or at the top level, is named; an import is not.
     expect(secretReaders([
@@ -53,9 +53,11 @@ describe("Doubao AST 2.0's wire", () => {
       'export const frame = (k: { accessKey: string }) => [k].map((c) => c.accessKey);',
       "const leaked = { apiKey: 'x' };",
     ].join('\n'))).toEqual(['<module>', 'frame', 'url']);
-    // The shared list masks every credential the builder puts in the query, by the names it uses.
-    expect(redact(ast2Url(APP_KEY))).toBe(`${AST2_ENDPOINT}?api_resource_id=volc.service_type.10053&api_app_key=[REDACTED]&api_access_key=[REDACTED]`);
-    expect(redact(ast2Url(API_KEY))).toBe(`${AST2_ENDPOINT}?api_resource_id=volc.service_type.10053&api_key=[REDACTED]`);
+    // The shared list masks every credential the builder puts in the query, by the names it uses. Values of no
+    // key shape (the fixtures' `sk-…` / `key-…` would be masked by the bare-shape rule whatever the query rule named).
+    expect(redact(ast2Url({ kind: 'app', appKey: '1234567890', accessKey: 'Abc-Def_ghi' })))
+      .toBe(`${AST2_ENDPOINT}?api_resource_id=volc.service_type.10053&api_app_key=[REDACTED]&api_access_key=[REDACTED]`);
+    expect(redact(ast2Url({ kind: 'apiKey', apiKey: '0a1b2c3d' }))).toBe(`${AST2_ENDPOINT}?api_resource_id=volc.service_type.10053&api_key=[REDACTED]`);
   });
 
   it('words a socket that failed before it opened, once for the check and the start: online the credentials, offline the device', () => {
