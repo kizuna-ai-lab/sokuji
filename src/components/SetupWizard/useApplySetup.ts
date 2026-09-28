@@ -22,12 +22,17 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
       setTextOnly: s.setTextOnly,
       setSpeakerDisplayMode: s.setSpeakerDisplayMode,
       setParticipantDisplayMode: s.setParticipantDisplayMode,
-      applyProvider: async (provider, pair, credentials) => {
+      applyProvider: async (provider, pair, credentials, settings) => {
         const id = providerIdFromStored(provider);
         const p = presentProviders().find((candidate) => candidate.id === id);
         if (!p) throw new Error(`This build does not offer "${provider}".`);
         const store = useProviderStore.getState();
         await store.load(p);
+        // The credential choice first (F4): the credentials below are the
+        // fields it shows. Only the provider's own choice is a setting the
+        // wizard writes (Stage 2 Volcengine AST2, I2).
+        const choice = p.credentials.choice?.setting;
+        if (choice !== undefined && settings[choice] !== undefined) store.updateSettings(p, { [choice]: settings[choice] });
         for (const [key, value] of Object.entries(credentials)) {
           if (p.credentials.keys.includes(key)) store.setCredential(p, key, value);
         }

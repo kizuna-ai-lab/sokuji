@@ -12,6 +12,7 @@ import { describeCause } from '../../../lib/diagnostics/describeCause';
 import { legsFor } from '../../../lib/session/appShape';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { wizardProvider } from '../providerPaths';
+import { CredentialChoiceControl } from '../../providers/CredentialChoiceControl';
 import Button from '../../Settings/shared/Button';
 import FormInput from '../../Settings/shared/FormInput';
 import StatusMessage from '../../Settings/shared/StatusMessage';
@@ -95,7 +96,15 @@ const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): R
   if (!p || !entry) return <section className="setup-step"><h2>{t('setup.steps.credentials.ownKeyTitle', 'Your API key')}</h2></section>;
 
   const saved = entry.credentials;
-  const fields = p.credentials.fields(entry.settings);
+  // The credential choice (F4): the one the user picked here, else the saved
+  // one. Its fields show, and the check reads them, as Settings' form does;
+  // nothing is written before Finish (Stage 2 Volcengine AST2, I2).
+  const choice = p.credentials.choice;
+  const chosen = choice
+    ? (draft.credentialChoice?.setting === choice.setting ? draft.credentialChoice.value : String((entry.settings as Record<string, unknown>)[choice.setting] ?? ''))
+    : undefined;
+  const settings = choice ? { ...(entry.settings as Record<string, unknown>), [choice.setting]: chosen } : entry.settings;
+  const fields = p.credentials.fields(settings);
   // As before, over the saved values instead of the old slice (the re-run's rules, feedback 2026-08-25).
   const keyOnFile = draft.credentialsValidated && fields.some((f) => !draft.credentials[f.key] && !saved[f.key]);
   const keptOnSkip = draft.credentialsValidated && fields.length > 0 && fields.every((f) => !!saved[f.key]);
@@ -106,7 +115,7 @@ const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): R
     inFlight.current = mine;
     setMessage(null);
     // The draft overlays what is saved; nothing is written.
-    const credentials = readCredentials(p, entry.settings, { ...saved, ...draft.credentials }, auth);
+    const credentials = readCredentials(p, settings, { ...saved, ...draft.credentials }, auth);
     if (isMissing(credentials)) {
       setMessage({ ok: false, text: noticeText(t, { code: credentials.code ?? 'credentials_missing', params: credentials.params, message: credentials.missing }) });
       return;
@@ -114,7 +123,7 @@ const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): R
     setValidating(true);
     try {
       const legs = legsFor(getScenario(draft.scenario!).mode);
-      const result = await p.check(credentials, entry.settings, { pair: entry.pair, legs, signal: mine.signal });
+      const result = await p.check(credentials, settings, { pair: entry.pair, legs, signal: mine.signal });
       if (mine.signal.aborted) return;
       if (result.ok) {
         dispatch({ type: 'credentialsValidated' });
@@ -137,6 +146,21 @@ const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): R
       <h2>{t('setup.steps.credentials.ownKeyTitle', 'Your API key')}</h2>
       <p>{t('setup.credentials.ownKeyDesc', 'This key is stored on this device only, and the app calls the provider straight from here — it never reaches Kizuna AI. You pay the provider for what you use.')}</p>
       <CredentialPrefill draft={draft} dispatch={dispatch} slice={saved} fieldKeys={fields.map((f) => f.key)} />
+      {choice && chosen !== undefined && (
+        <div className="credential-choice-group">
+          <CredentialChoiceControl
+            options={choice.options}
+            value={chosen}
+            onChange={(value) => {
+              // A check in flight was about the other fields.
+              inFlight.current?.abort();
+              setMessage(null);
+              dispatch({ type: 'setCredentialChoice', setting: choice.setting, value });
+            }}
+            disabled={validating}
+          />
+        </div>
+      )}
       {fields.map((f) => (
         <label key={f.key} className="setup-field">
           <span>{t(f.labelKey, f.key)}</span>

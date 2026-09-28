@@ -32,6 +32,8 @@ import { Provider } from '../../../types/Provider';
 import { useProviderStore } from '../../../stores/providerStore';
 import { sonioxProvider } from '../../../providers/soniox/provider';
 import { SONIOX_DEFAULTS } from '../../../providers/soniox/settings';
+import { volcengineAst2Provider } from '../../../providers/volcengine_ast2/provider';
+import { AST2_DEFAULTS, type Ast2AuthMode } from '../../../providers/volcengine_ast2/settings';
 
 const ownKeyDraft = (patch: Partial<SetupDraft> = {}): SetupDraft => ({
   ...initialDraft(), step: 3, providerPath: 'own-key', provider: Provider.SONIOX, scenario: 'be-heard', ...patch,
@@ -230,6 +232,60 @@ describe('StepCredentials (own key)', () => {
 
     expect(useProviderStore.getState().entries.soniox.credentials.apiKey).toBe('');
     expect(useProviderStore.getState().readiness.soniox).toBeUndefined();
+  });
+});
+
+describe('StepCredentials — a credential choice (Stage 2 Volcengine AST2, I2)', () => {
+  const ast2Draft = (patch: Partial<SetupDraft> = {}) => ownKeyDraft({ provider: Provider.VOLCENGINE_AST2, ...patch });
+  const seedAst2 = (authMode: Ast2AuthMode) => useProviderStore.setState({
+    entries: { volcengine_ast2: { settings: { ...AST2_DEFAULTS, authMode }, credentials: { appId: '', accessToken: '', apiKey: '' }, pair: { source: 'zh', target: 'en' } } },
+    readiness: {},
+  });
+
+  it("draws the choice above the saved mode's fields, that mode pressed", () => {
+    seedAst2('app');
+    const { container } = render(<StepCredentials draft={ast2Draft()} dispatch={vi.fn()} />);
+
+    const buttons = [...container.querySelectorAll('.credential-choice-group .segmented-control .segmented-option')];
+    expect(buttons.map((b) => [b.textContent, b.getAttribute('aria-pressed')])).toEqual([
+      ['providers.volcengine_ast2.authModeApp', 'true'],
+      ['setup.credentials.apiKey', 'false'],
+    ]);
+    expect(screen.getByLabelText('setup.credentials.appId')).toBeInTheDocument();
+    expect(screen.getByLabelText('setup.credentials.accessToken')).toBeInTheDocument();
+    expect(screen.queryByLabelText('setup.credentials.apiKey')).toBeNull();
+  });
+
+  it("switches modes in the draft, and the draft's mode shows its own fields", () => {
+    seedAst2('app');
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ast2Draft()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.credentials.apiKey' }));
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setCredentialChoice', setting: 'authMode', value: 'apiKey' });
+    cleanup();
+    render(<StepCredentials draft={ast2Draft({ credentialChoice: { setting: 'authMode', value: 'apiKey' } })} dispatch={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'setup.credentials.apiKey' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByLabelText('setup.credentials.apiKey')).toBeInTheDocument();
+    expect(screen.queryByLabelText('setup.credentials.appId')).toBeNull();
+  });
+
+  it('sets up with an API key only: Validate checks it in the chosen mode, and writes nothing before Finish', async () => {
+    seedAst2('app');
+    const checkSpy = vi.spyOn(volcengineAst2Provider, 'check').mockResolvedValue({ ok: true });
+    const dispatch = vi.fn();
+    render(<StepCredentials draft={ast2Draft({ credentialChoice: { setting: 'authMode', value: 'apiKey' }, credentials: { apiKey: 'key-1' } })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup.credentials.validate' }));
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith({ type: 'credentialsValidated' }));
+    expect(checkSpy).toHaveBeenCalledWith(
+      { kind: 'apiKey', apiKey: 'key-1' },
+      expect.objectContaining({ authMode: 'apiKey' }),
+      expect.objectContaining({ pair: { source: 'zh', target: 'en' }, legs: ['speaker'] }),
+    );
+    expect((useProviderStore.getState().entries.volcengine_ast2.settings as { authMode: string }).authMode).toBe('app');
   });
 });
 

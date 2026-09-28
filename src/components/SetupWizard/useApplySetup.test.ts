@@ -25,6 +25,8 @@ vi.mock('../../services/ServiceFactory', () => ({
 }));
 
 import { Provider } from '../../types/Provider';
+import { readCredentials } from '../../lib/provider/credentials';
+import { volcengineAst2Provider } from '../../providers/volcengine_ast2/provider';
 import { useProviderStore } from '../../stores/providerStore';
 import { useApplySetup } from './useApplySetup';
 import { initialDraft } from './setupDraft';
@@ -66,6 +68,30 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
 
     expect(useProviderStore.getState().entries.localInference?.credentials).toEqual({});
     expect(setSetting).not.toHaveBeenCalledWith('settings.localInference.apiKey', expect.anything());
+  });
+
+  it('Finish on Doubao AST 2.0 with only an API key writes the chosen mode, so the key is the credential read (Stage 2 Volcengine AST2, I2)', async () => {
+    const { result } = renderHook(() => useApplySetup());
+
+    await result.current(draft({
+      providerPath: 'own-key', provider: Provider.VOLCENGINE_AST2,
+      credentials: { apiKey: 'key-1' }, credentialChoice: { setting: 'authMode', value: 'apiKey' },
+    }));
+
+    const entry = useProviderStore.getState().entries.volcengine_ast2!;
+    expect((entry.settings as { authMode: string }).authMode).toBe('apiKey');
+    expect(readCredentials(volcengineAst2Provider, entry.settings, entry.credentials, { signedIn: false, getToken: async () => null }))
+      .toEqual({ kind: 'apiKey', apiKey: 'key-1' });
+    expect(setSetting).toHaveBeenCalledWith('settings.volcengineAST2.authMode', 'apiKey');
+    expect(setSetting).toHaveBeenCalledWith('settings.volcengineAST2.apiKey', 'key-1');
+  });
+
+  it('writes no setting a provider has no credential choice over', async () => {
+    const { result } = renderHook(() => useApplySetup());
+
+    await result.current(draft({ providerPath: 'own-key', credentialChoice: { setting: 'authMode', value: 'apiKey' } }));
+
+    expect(setSetting).not.toHaveBeenCalledWith('settings.localInference.authMode', expect.anything());
   });
 
   it('throws before any write when the draft names a provider this build does not offer', async () => {
