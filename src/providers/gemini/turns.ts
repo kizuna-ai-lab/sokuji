@@ -186,7 +186,8 @@ export class GeminiTurns {
     // Live Translate: its output belongs to no press, so the cancel is `activityEnd` alone.
     if (this.stopped || !this.dialogue) return;
     // An answer is owed from the release that asked for it, before its first output; once streaming it keeps going
-    // (`NO_INTERRUPTION`). Either way it finishes in its own segments, and the drop waits for its end.
+    // under `NO_INTERRUPTION`, or, on a model that barges in, ends at the server's `interrupted` (Gemini/AST2
+    // follow-up, ruling 5). Either way it finishes in its own segments, and the drop waits for its end.
     if (this.answering || this.owed) {
       this.suppressAfterAnswer = true;
       return;

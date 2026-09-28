@@ -45,7 +45,7 @@ export interface GeminiSetup {
     inputAudioTranscription: Record<string, never>;
     outputAudioTranscription: Record<string, never>;
     realtimeInputConfig: {
-      activityHandling: 'NO_INTERRUPTION';
+      activityHandling: GeminiConfig['activityHandling'];
       automaticActivityDetection:
         | { disabled: true }
         | { disabled: false; startOfSpeechSensitivity: Sensitivity<'START'>; endOfSpeechSensitivity: Sensitivity<'END'>; silenceDurationMs: number; prefixPaddingMs: number };
@@ -74,8 +74,8 @@ export function setupFrame(c: GeminiConfig, handle: string | null): GeminiSetup 
       inputAudioTranscription: {},
       outputAudioTranscription: {},
       realtimeInputConfig: {
-        // Hard-coded, as the old client did (`GeminiClient.ts:496`): speaking again does not cut the model off.
-        activityHandling: 'NO_INTERRUPTION',
+        // Per model family (Gemini/AST2 follow-up, ruling 5), where the old client hard-coded `NO_INTERRUPTION` (`GeminiClient.ts:496`).
+        activityHandling: c.activityHandling,
         automaticActivityDetection: a.manual
           ? { disabled: true }
           : {

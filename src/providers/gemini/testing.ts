@@ -18,6 +18,8 @@ import { GEMINI_DEFAULTS, type GeminiCredentials, type GeminiSettings } from './
 
 export const DIALOGUE = 'gemini-2.5-flash-native-audio-preview-12-2025';
 export const TRANSLATE = 'gemini-3.5-live-translate-preview';
+/** A 3.x dialogue model: it barges in (Gemini/AST2 follow-up, ruling 5). */
+export const BARGE_IN = 'gemini-3.8-live';
 /** Shaped as a real key (`AIza…`), which `redact()` masks: a frame that carried it fails the kit's `frame-secret` rule. */
 export const KEY: GeminiCredentials = { apiKey: 'AIzaTestKey0123456789' };
 
@@ -32,7 +34,7 @@ export const SHARED: SharedSettings = {
   pauses: { sourceSeconds: 1.5, translationSeconds: 1.5 },
   reversed: (d) => d.source === 'ja-JP' && d.target === 'en-US',
   segmentation: { mode: 'pause', sentencesPerRow: 0 },
-  models: [{ id: TRANSLATE }, { id: DIALOGUE }],
+  models: [{ id: BARGE_IN }, { id: TRANSLATE }, { id: DIALOGUE }],
 };
 export const AUTO_CTX: SessionContext = { direction: { source: 'en-US', target: 'ja-JP' }, speech: true, turns: 'auto' };
 

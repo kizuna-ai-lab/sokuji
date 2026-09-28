@@ -13,10 +13,10 @@ import { ActivityHandling, EndSensitivity, GoogleGenAI, Modality, StartSensitivi
 import { flush } from '../../lib/contract/testing/drive';
 import { FakeSocket } from '../../lib/contract/testing/fakeSocket';
 import type { GeminiConfig } from './config';
-import { AUTO_CTX, configFor, DIALOGUE, KEY, TRANSLATE } from './testing';
+import { AUTO_CTX, BARGE_IN, configFor, DIALOGUE, KEY, TRANSLATE } from './testing';
 import { ACTIVITY_END, ACTIVITY_START, audioFrame, INPUT_MIME, liveUrl, pcmToBase64, setupFrame, textFrame } from './wire';
 
-/** The old client's `LiveConnectConfig` for this `C`, enums and all (`GeminiClient.ts:490-574`). */
+/** The old client's `LiveConnectConfig` for this `C`, enums and all (`GeminiClient.ts:490-574`), its activity handling now the config's (Gemini/AST2 follow-up, ruling 5). */
 function oldLiveConfig(c: GeminiConfig, handle: string | null): LiveConnectConfig {
   const a = c.activity;
   return {
@@ -29,7 +29,7 @@ function oldLiveConfig(c: GeminiConfig, handle: string | null): LiveConnectConfi
     inputAudioTranscription: {},
     outputAudioTranscription: {},
     realtimeInputConfig: {
-      activityHandling: ActivityHandling.NO_INTERRUPTION,
+      activityHandling: c.activityHandling === 'START_OF_ACTIVITY_INTERRUPTS' ? ActivityHandling.START_OF_ACTIVITY_INTERRUPTS : ActivityHandling.NO_INTERRUPTION,
       automaticActivityDetection: a.manual
         ? { disabled: true }
         : {
@@ -74,6 +74,8 @@ describe("the wire against the SDK's own converter", () => {
     ['a dialogue model with max tokens, resuming', () => configFor(DIALOGUE, AUTO_CTX, { maxTokens: 2048 }), 'handle-1'],
     ['a dialogue model, manual, silent, high sensitivities', () => configFor(DIALOGUE, { ...AUTO_CTX, speech: false, turns: 'manual' }, { vadStartSensitivity: 'high' }), null],
     ['a dialogue model, auto, high sensitivities', () => configFor(DIALOGUE, AUTO_CTX, { vadStartSensitivity: 'high', vadEndSensitivity: 'low', vadSilenceDurationMs: 900 }), null],
+    ['a 3.x dialogue model, barging in', () => configFor(BARGE_IN), null],
+    ['a 3.x dialogue model, manual, barging in', () => configFor(BARGE_IN, { ...AUTO_CTX, turns: 'manual' }), null],
     ['Live Translate', () => configFor(TRANSLATE), null],
     ["Live Translate for the participant, with no prompt", () => configFor(TRANSLATE, { direction: { source: 'ja-JP', target: 'en-US' }, speech: true, turns: 'auto' }, { useTemplateMode: false, systemInstructions: ' ' }), null],
   ];

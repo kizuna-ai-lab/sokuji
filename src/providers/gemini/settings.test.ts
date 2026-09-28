@@ -3,7 +3,7 @@ import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS } from '../../lib/provid
 import { AUTO, reverseSupported } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
 import {
-  compareGeminiModels, defaultGeminiModel, effectiveGeminiModel, GEMINI_DEFAULTS, GEMINI_LANGUAGES, GEMINI_LEGACY_KEYS, GEMINI_VOICES,
+  compareGeminiModels, defaultGeminiModel, effectiveGeminiModel, geminiActivityHandling, GEMINI_DEFAULTS, GEMINI_LANGUAGES, GEMINI_LEGACY_KEYS, GEMINI_VOICES,
   geminiCredentials, geminiLanguageName, geminiLanguages, isGeminiLiveModel, isGeminiTranslateModel, migrateGeminiSettings,
   sortGeminiModels, toTranslationLanguageCode,
 } from './settings';
@@ -163,6 +163,18 @@ describe("Gemini's models", () => {
     expect(defaultGeminiModel(ids(dialogue))).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
     expect(defaultGeminiModel(ids(['gemini-2.0-flash-live-001', 'gemini-3.1-flash-live-preview']))).toBe('gemini-3.1-flash-live-preview');
     expect(defaultGeminiModel([])).toBe('');
+  });
+
+  it('barge in on a dialogue model of family 3.0 or later; keep NO_INTERRUPTION on 2.5 and below, an unversioned id and Live Translate (Gemini/AST2 follow-up, ruling 5)', () => {
+    for (const id of ['gemini-3.8-live', 'gemini-3.8-live-extended-thinking', 'gemini-3.1-flash-live-preview', 'gemini-3-flash-native-audio-preview-01-2026', 'gemini-4.0-live']) {
+      expect(geminiActivityHandling(id), id).toBe('START_OF_ACTIVITY_INTERRUPTS');
+    }
+    for (const id of [
+      'gemini-2.5-flash-native-audio-preview-12-2025', 'gemini-2.5-flash-native-audio-latest', 'gemini-live-2.5-flash-preview', 'gemini-2.0-flash-live-001',
+      'gemini-live-latest', 'gemini-3.5-live-translate-preview',
+    ]) {
+      expect(geminiActivityHandling(id), id).toBe('NO_INTERRUPTION');
+    }
   });
 
   it('keep a saved model the check listed — a dialogue model too: nothing is migrated — replace one it no longer lists, and keep it while nothing is listed', () => {

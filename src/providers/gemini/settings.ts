@@ -193,6 +193,24 @@ function familyOf(id: string): number {
   return m ? Number(m[1]) * 1000 + Number(m[2] ?? 0) : 0;
 }
 
+/** What the user's speech does to a response still playing: nothing, or cut it off (barge-in). The Live API's own two values. */
+export type GeminiActivityHandling = 'NO_INTERRUPTION' | 'START_OF_ACTIVITY_INTERRUPTS';
+
+/**
+ * A model's activity handling, by its family (Gemini/AST2 follow-up, ruling
+ * 5; choice 9). The owner's overlap probe: `gemini-3.8-live` under
+ * `NO_INTERRUPTION` dropped the input that arrived while it answered, and
+ * barge-in kept both utterances whole; the 2.5 native-audio models are the
+ * opposite, barge-in truncating the answer they were still speaking. So a
+ * dialogue model of family 3.0 or later barges in; 2.5 and below, and an id
+ * with no version, keep today's `NO_INTERRUPTION`; Live Translate keeps it
+ * too — its guide never mentions activity handling.
+ */
+export function geminiActivityHandling(model: string): GeminiActivityHandling {
+  if (isGeminiTranslateModel(model)) return 'NO_INTERRUPTION';
+  return familyOf(model) >= 3000 ? 'START_OF_ACTIVITY_INTERRUPTS' : 'NO_INTERRUPTION';
+}
+
 /** The release date an id ends with, `-MM-YYYY` (`…-preview-12-2025`), as YYYYMM; an undated id reads 0. */
 function dateOf(id: string): number {
   const m = /-(\d{2})-(\d{4})$/.exec(id);

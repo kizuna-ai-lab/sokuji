@@ -186,7 +186,9 @@ class GeminiSession {
 
       ws.onopen = () => {
         opened = true;
-        this.frame('out', 'session.opened', { model: config.model, kind: config.kind, speaking: context.speech, manual: config.activity.manual, resumed: handle !== null });
+        this.frame('out', 'session.opened', {
+          model: config.model, kind: config.kind, speaking: context.speech, manual: config.activity.manual, activityHandling: config.activityHandling, resumed: handle !== null,
+        });
         ws.send(JSON.stringify(setupFrame(config, handle)));
       };
       ws.onmessage = (event: MessageEvent) => {

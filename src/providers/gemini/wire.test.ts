@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AUTO_CTX, configFor, DIALOGUE, KEY, serverFrame, TRANSLATE } from './testing';
+import { AUTO_CTX, BARGE_IN, configFor, DIALOGUE, KEY, serverFrame, TRANSLATE } from './testing';
 import {
   ACTIVITY_END, ACTIVITY_START, audioFrame, base64ToPcm, closeFailureCode, decodeServerMessage, INPUT_MIME, liveUrl, pcmRate, pcmToBase64, setupFrame, textFrame,
 } from './wire';
@@ -28,6 +28,11 @@ describe("Gemini's wire", () => {
         contextWindowCompression: { slidingWindow: {} },
       },
     });
+  });
+
+  it("writes the config's activity handling: barge-in for a 3.x dialogue model, none for Live Translate (Gemini/AST2 follow-up, ruling 5)", () => {
+    expect(setupFrame(configFor(BARGE_IN), null).setup.realtimeInputConfig.activityHandling).toBe('START_OF_ACTIVITY_INTERRUPTS');
+    expect(setupFrame(configFor(TRANSLATE), null).setup.realtimeInputConfig.activityHandling).toBe('NO_INTERRUPTION');
   });
 
   it('sets up Live Translate: its target under generationConfig, echo off, the prompt kept, no sampling, no voice', () => {

@@ -58,6 +58,15 @@ describe("Gemini's builder", () => {
     expect(build({ voice: '' }).voice).toBe('Aoede');
   });
 
+  it("sets each model family's activity handling: 2.5 no interruption, 3.x barge-in, Live Translate no interruption (Gemini/AST2 follow-up, ruling 5)", () => {
+    expect(build().activityHandling).toBe('NO_INTERRUPTION');
+    expect(build({ model: 'gemini-3.8-live' }, SPEAKER, shared({ models: [{ id: 'gemini-3.8-live' }] })).activityHandling).toBe('START_OF_ACTIVITY_INTERRUPTS');
+    expect(build({ model: TRANSLATE }).activityHandling).toBe('NO_INTERRUPTION');
+    // The participant and manual turns alike: it follows the model alone.
+    expect(build({ model: 'gemini-3.8-live' }, { ...PARTICIPANT, turns: 'auto' }, shared({ models: [{ id: 'gemini-3.8-live' }] })).activityHandling).toBe('START_OF_ACTIVITY_INTERRUPTS');
+    expect(build({}, { ...SPEAKER, turns: 'manual' }).activityHandling).toBe('NO_INTERRUPTION');
+  });
+
   it('marks activity itself under manual turns', () => {
     expect(build({}, { ...SPEAKER, turns: 'manual' }).activity).toEqual({ manual: true });
   });

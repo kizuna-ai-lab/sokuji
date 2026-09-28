@@ -17,7 +17,7 @@ import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/projec
 import { createGeminiAdapter, SETUP_TIMEOUT_MS } from './adapter';
 import type { GeminiConfig } from './config';
 import type { GeminiCredentials } from './settings';
-import { AUTO_CTX, b64, configFor, DIALOGUE, KEY, liveGemini, RefusingWebSocket, SERVER, serverFrame, startGemini, trackedClock, TRANSLATE } from './testing';
+import { AUTO_CTX, b64, BARGE_IN, configFor, DIALOGUE, KEY, liveGemini, RefusingWebSocket, SERVER, serverFrame, startGemini, trackedClock, TRANSLATE } from './testing';
 import { base64ToPcm, liveUrl, setupFrame } from './wire';
 
 const MANUAL = { ...AUTO_CTX, turns: 'manual' as const };
@@ -82,7 +82,7 @@ describe('the Gemini adapter: opening', () => {
     expect(h.socket().binaryType).toBe('arraybuffer');
     h.socket().open();
     expect(h.sent()).toEqual([setupFrame(h.config, null)]);
-    expect(h.frames('session.opened')).toEqual([{ model: DIALOGUE, kind: 'dialogue', speaking: true, manual: false, resumed: false }]);
+    expect(h.frames('session.opened')).toEqual([{ model: DIALOGUE, kind: 'dialogue', speaking: true, manual: false, activityHandling: 'NO_INTERRUPTION', resumed: false }]);
   });
 
   it('resolves only once the server answers the setup, emitting nothing but its frames, over a websocket', async () => {
@@ -221,6 +221,32 @@ describe('the Gemini adapter: one session', () => {
     expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([{ ref: 1, side: 'source', origin: 't1' }, { ref: 2, side: 'translation', origin: 't1' }]);
     expect(h.of('audio')[0].payload.ref).toBe(2);
     expect(h.of('audio')[0].payload.pcm).toHaveLength(2400);
+  });
+
+  it("a 3.x model barges in: the setup says so, and the server's interrupted then turnComplete end the answer with every chunk it played kept (Gemini/AST2 follow-up, ruling 5)", async () => {
+    const h = await liveGemini({ model: BARGE_IN });
+    expect((h.sent()[0] as { setup: { realtimeInputConfig: { activityHandling: string } } }).setup.realtimeInputConfig.activityHandling).toBe('START_OF_ACTIVITY_INTERRUPTS');
+    expect(h.frames('session.opened')).toEqual([{ model: BARGE_IN, kind: 'dialogue', speaking: true, manual: false, activityHandling: 'START_OF_ACTIVITY_INTERRUPTS', resumed: false }]);
+    // The owner's overlap probe on gemini-3.8-live: the second utterance starts while the first's answer still plays.
+    h.socket().receive(SERVER.input('Lyrical Time の番組へようこそ。自然な会話をお手伝いします。'));
+    h.socket().receive(SERVER.output('Welcome to the '));
+    h.socket().receive(SERVER.audio(2400));
+    h.socket().receive(SERVER.output('Lyrical Time show.'));
+    h.socket().receive(SERVER.audio(2400));
+    h.socket().receive(serverFrame({ serverContent: { generationComplete: true } }));
+    h.socket().receive(SERVER.interrupted());
+    h.socket().receive(SERVER.turnComplete());
+    h.socket().receive(SERVER.input('Real Time翻訳機へようこそ。'));
+    h.socket().receive(SERVER.output('Welcome to the Real Time translator.'));
+    h.socket().receive(SERVER.turnComplete());
+    // Each utterance pairs with its own answer: interrupted and turnComplete each end a turn, so the origins differ, whatever their numbers.
+    const [source1, translation1, source2, translation2] = h.of('segmentOpened').map((e) => e.payload);
+    expect([source1.side, translation1.side, source2.side, translation2.side]).toEqual(['source', 'translation', 'source', 'translation']);
+    expect(translation1.origin).toBe(source1.origin);
+    expect(translation2.origin).toBe(source2.origin);
+    expect(source2.origin).not.toBe(source1.origin);
+    expect(h.of('audio').map((e) => [e.payload.ref, e.payload.pcm.length])).toEqual([[2, 2400], [2, 2400]]);
+    expect(h.of('segmentClosed').map((e) => e.payload.ref)).toEqual([1, 2, 3, 4]);
   });
 
   it("folds a message's content before its turnComplete (choice 15)", async () => {

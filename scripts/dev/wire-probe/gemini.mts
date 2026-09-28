@@ -22,7 +22,7 @@ import WebSocket from 'ws';
 import { checkGemini } from '../../../src/providers/gemini/check';
 import type { GeminiConfig } from '../../../src/providers/gemini/config';
 import {
-  GEMINI_DEFAULT_VOICE, GEMINI_DEFAULTS, defaultGeminiModel, geminiLanguageName, isGeminiTranslateModel, toTranslationLanguageCode,
+  GEMINI_DEFAULT_VOICE, GEMINI_DEFAULTS, defaultGeminiModel, geminiActivityHandling, geminiLanguageName, isGeminiTranslateModel, toTranslationLanguageCode,
 } from '../../../src/providers/gemini/settings';
 import { ACTIVITY_END, ACTIVITY_START, audioFrame, base64ToPcm, decodeServerMessage, liveUrl, pcmRate, setupFrame } from '../../../src/providers/gemini/wire';
 import { resolveInstructions } from '../../../src/lib/provider/instructions';
@@ -119,6 +119,8 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
     activity: manual
       ? { manual: true }
       : { manual: false, start: GEMINI_DEFAULTS.vadStartSensitivity, end: GEMINI_DEFAULTS.vadEndSensitivity, silenceMs: GEMINI_DEFAULTS.vadSilenceDurationMs, prefixMs: GEMINI_DEFAULTS.vadPrefixPaddingMs },
+    // The app's own rule; `--activity-handling` still overrides it below.
+    activityHandling: geminiActivityHandling(model),
   };
   const setup = setupFrame(config, null);
   const ric = setup.setup.realtimeInputConfig as Record<string, unknown>;
