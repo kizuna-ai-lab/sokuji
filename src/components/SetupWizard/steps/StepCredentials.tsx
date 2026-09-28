@@ -98,7 +98,7 @@ const OwnKeyCredentials: React.FC<Props & { skipButton(keepExisting: boolean): R
   const saved = entry.credentials;
   // The credential choice (F4): the one the user picked here, else the saved
   // one. Its fields show, and the check reads them, as Settings' form does;
-  // nothing is written before Finish (Stage 2 Volcengine AST2, I2).
+  // nothing is written before Finish (Stage 2 Volcengine AST2, ruling 1).
   const choice = p.credentials.choice;
   const chosen = choice
     ? (draft.credentialChoice?.setting === choice.setting ? draft.credentialChoice.value : String((entry.settings as Record<string, unknown>)[choice.setting] ?? ''))

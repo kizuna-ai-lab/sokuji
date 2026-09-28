@@ -110,7 +110,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   let playback: Playback | null = null;
   let openLeg: OpenSource | null = null;
   let loading: Promise<LoadedAudio> | null = null;
-  /** One live `attach()` at a time (final review M6). */
+  /** One live `attach()` at a time. */
   let attached = false;
 
   const refetchQuota = () => {
@@ -157,7 +157,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
 
   // Karaoke over the playback's queues, behind one identity: nothing lit until
   // the playback loads. The root bridges into the real karaoke only while the
-  // proxy itself has at least one listener (final review, parked item 8):
+  // proxy itself has at least one listener:
   // `createKaraoke` only samples at its interval while *something* is
   // subscribed to it, so an unconditional bridging subscription here would
   // keep it sampling at 10 Hz even with nobody watching the proxy.
@@ -220,7 +220,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     },
     setBridges(next) {
       // Never `Object.assign`: a caller that omits a key (rather than naming
-      // it `undefined`) must not erase what an earlier caller set (M2) — a
+      // it `undefined`) must not erase what an earlier caller set — a
       // second `useAppSessionBridges()` bare of `refetchQuota` would
       // otherwise switch the balance refetch off.
       const signedIn = bridges.auth.signedIn;
@@ -236,7 +236,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
       }
     },
     attach() {
-      // One live attach at a time (final review M6): a second one while the
+      // One live attach at a time: a second one while the
       // first is still live would double the pagehide listener, the
       // readiness driver and the busy tracker. 1e-3b picks the owner; until
       // then this makes a wrong second caller visible instead of silent.

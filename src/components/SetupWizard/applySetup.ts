@@ -43,7 +43,7 @@ export async function applySetupDraft(draft: SetupDraft, deps: ApplySetupDeps): 
   const credentials = providerPath === 'own-key' && !draft.credentialsPending ? draft.credentials : {};
   // The credential choice the step showed is written even when the key was
   // skipped: Settings then shows the fields the user chose (Stage 2
-  // Volcengine AST2, I2).
+  // Volcengine AST2, ruling 1).
   const choice = providerPath === 'own-key' ? draft.credentialChoice : null;
   const settings = choice ? { [choice.setting]: choice.value } : {};
   // Awaited: a rejected write has to reach Finish's error path rather than

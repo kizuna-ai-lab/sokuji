@@ -20,7 +20,7 @@ export interface SetupDraft {
   credentials: Record<string, string>;
   /**
    * own-key only: the credential choice the step shows (F4; Stage 2
-   * Volcengine AST2, I2) — the provider's `credentials.choice.setting` and
+   * Volcengine AST2, ruling 1) — the provider's `credentials.choice.setting` and
    * the option picked. Null until one is picked: the saved setting stands.
    * Written at Finish, and cleared when path or provider changes.
    */

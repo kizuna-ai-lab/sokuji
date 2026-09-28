@@ -30,7 +30,7 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
         await store.load(p);
         // The credential choice first (F4): the credentials below are the
         // fields it shows. Only the provider's own choice is a setting the
-        // wizard writes (Stage 2 Volcengine AST2, I2).
+        // wizard writes (Stage 2 Volcengine AST2, ruling 1).
         const choice = p.credentials.choice?.setting;
         if (choice !== undefined && settings[choice] !== undefined) store.updateSettings(p, { [choice]: settings[choice] });
         for (const [key, value] of Object.entries(credentials)) {
