@@ -262,6 +262,31 @@ describe('refreshReadiness — a provider that declares what its check reads (St
     store.useProviderStore.getState().setCredential(p, 'apiKey', 'k2');
     expect(readiness()).toEqual({ state: 'unknown' });
   });
+
+  it('lets a refusal, or a check that threw, stand through an edit it does not read too, and asks again on the next check', async () => {
+    const refusal = vi.fn(async (): Promise<CheckResult> => ({ ok: false, reason: 'no' }));
+    const p = narrowed(refusal, []);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'no' });
+    store.useProviderStore.getState().updateSettings(p, { slider: 3 });
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'no' });
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(refusal).toHaveBeenCalledTimes(2);
+
+    // A fresh module: nothing kept from the half above.
+    vi.resetModules();
+    store = await import('./providerStore');
+    const thrown = vi.fn(async (): Promise<CheckResult> => { throw new Error('offline'); });
+    const q = narrowed(thrown, []);
+    await loadedWithKey(q);
+    await store.useProviderStore.getState().refreshReadiness(q, noAuth);
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'offline' });
+    store.useProviderStore.getState().updateSettings(q, { slider: 3 });
+    expect(readiness()).toEqual({ state: 'not-ready', reason: 'offline' });
+    await store.useProviderStore.getState().refreshReadiness(q, noAuth);
+    expect(thrown).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('forgetReadiness', () => {

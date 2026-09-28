@@ -288,17 +288,19 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * (offline), and bound your own request: throw when it has not answered
    * within its limit, or the provider stays `checking` with Start off and no
    * words. Answer `ok: false` only when the provider said no. The last ready
-   * answer is kept with its settings, credentials, pair and legs — and, for a
+   * answer is kept with its settings, credentials, pair and legs — or, when
+   * `checkReads` is declared, with the fields it lists — and, for a
    * managed provider, its sign-in and account; a local provider is asked
    * every time.
    */
   check(r: R, s: S, ctx: CheckContext): Promise<CheckResult>;
   /**
    * The settings fields `check` reads (Stage 2 OpenAI Realtime, ruling 9):
-   * an edit to any other field keeps the readiness answer — Start stays on,
-   * nothing is checked again — and the kept answer is keyed on these alone.
-   * Every field `check` reads must be listed, and every field that decides
-   * the credential fields. Absent: every field, as before. OpenAI Realtime's
+   * an edit to any other field keeps the readiness answer — ready or not,
+   * Start stays as it was, and nothing is checked again — unless the edit
+   * moved the run's pair; the kept answer is keyed on these alone. Every
+   * field `check` reads must be listed, and every field that decides the
+   * credential fields. Absent: every field, as before. OpenAI Realtime's
    * model list reads none (`[]`).
    */
   checkReads?: readonly (keyof S & string)[];

@@ -236,9 +236,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       for (const [field, value] of Object.entries(patch)) void persistSetting(storageKey(p, field), value);
       persistPair(p, before, kept);
       // The answer holds while the check would read the same inputs (ruling 9): no field it reads was edited, and the run's pair did not move.
-      const read = p.checkReads === undefined || Object.keys(patch).some((field) => p.checkReads!.includes(field));
+      const touched = p.checkReads === undefined || Object.keys(patch).some((field) => p.checkReads!.includes(field));
       const moved = next.pair.source !== entry.pair.source || next.pair.target !== entry.pair.target;
-      if (read || moved) forgetReadiness(p);
+      if (touched || moved) forgetReadiness(p);
     },
 
     setCredential(p, key, value) {
