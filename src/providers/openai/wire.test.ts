@@ -4,6 +4,9 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { base64ToPcm } from '../../lib/contract/pcm64';
 import { redact } from '../../lib/diagnostics/redact';
+import type { SharedSettings } from '../../lib/provider/types';
+import { buildRealtime } from './config';
+import { migrateRealtimeSettings, REALTIME_DEFAULTS } from './settings';
 import { AUTO_CTX, configFor, KEY, MANUAL_CTX, SERVER } from './testing';
 import {
   anchorResponse, appendFrame, CLEAR, COMMIT, decodeServerEvent, errorCode, errorWords, isOutOfBand, REALTIME_WS_URL, realtimeProtocols,
@@ -35,6 +38,18 @@ function secretReaders(source: string): string[] {
   visit(ts.createSourceFile('scan.ts', source, ts.ScriptTarget.Latest, true));
   return [...readers].sort();
 }
+
+/** `buildRealtime` with `model` the only one on offer, so `effectiveRealtimeModel` picks it outright — `configFor`'s fixed fixture (`testing.ts`'s `SHARED`) never lists a non-2.x model. */
+const withModel = (model: string) => {
+  const c = buildRealtime(AUTO_CTX, { ...REALTIME_DEFAULTS, model }, {
+    pauses: { sourceSeconds: 1.5, translationSeconds: 1.5 },
+    reversed: () => false,
+    segmentation: { mode: 'pause', sentencesPerRow: 0 },
+    models: [{ id: model }],
+  } satisfies SharedSettings);
+  if ('refused' in c) throw new Error(c.refused);
+  return c;
+};
 
 describe("OpenAI Realtime's wire: the socket", () => {
   it('dials the GA endpoint with the model in its query, and authenticates with two subprotocols — never the beta tag (choice 7)', () => {
@@ -88,7 +103,11 @@ describe("OpenAI Realtime's wire: session.update", () => {
   });
 
   it('sends no temperature, whatever was stored (ruling 6), and no model: the socket names it', () => {
-    const session = sessionUpdate(configFor(AUTO_CTX, { maxTokens: 2048 })).session;
+    // `migrate` never reads a stored `temperature` (ruling 5): it cannot reach `RealtimeSettings`,
+    // so `session.update` cannot carry it either — proven through the real migration, not just
+    // the wire's own types (which would omit it whatever `migrate` did).
+    const migrated = migrateRealtimeSettings({ temperature: 0.7 }, { legacy: {}, credentials: {} });
+    const session = sessionUpdate(configFor(AUTO_CTX, { ...migrated, maxTokens: 2048 })).session;
     expect(session).not.toHaveProperty('temperature');
     expect(session).not.toHaveProperty('model');
     expect(session.max_output_tokens).toBe(2048);
@@ -107,7 +126,12 @@ describe("OpenAI Realtime's wire: session.update", () => {
     const update = sessionUpdate(configFor(AUTO_CTX, { noiseReduction: 'Far field', transcriptModel: 'gpt-live-transcribe', transcriptKeywords: 'Sokuji, Kizuna AI' }));
     expect(update.session.audio.input.noise_reduction).toEqual({ type: 'far_field' });
     expect(update.session.audio.input.transcription).toEqual({ model: 'gpt-live-transcribe', languages: ['ja'], keywords: ['Sokuji', 'Kizuna AI'] });
-    expect(sessionUpdate({ ...configFor(), model: 'gpt-realtime-mini', reasoningEffort: undefined }).session).not.toHaveProperty('reasoning');
+    // Through `takesReasoning` itself (`settings.ts`), not a hand-built config: a plain mini and
+    // a dated 1.0 snapshot (whose year starts with the same digit as the 2.x family) take none;
+    // a 2.x model does.
+    expect(sessionUpdate(withModel('gpt-realtime-mini')).session).not.toHaveProperty('reasoning');
+    expect(sessionUpdate(withModel('gpt-realtime-2025-08-28')).session).not.toHaveProperty('reasoning');
+    expect(sessionUpdate(withModel('gpt-realtime-2.1')).session).toHaveProperty('reasoning');
   });
 });
 

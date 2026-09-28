@@ -43,9 +43,24 @@ describe("OpenAI Realtime's socket seam", () => {
     const own = thrownBy(() => new RefusingWebSocket(realtimeUrl(configFor()), protocols));
     for (const secret of secrets) expect(own.message).toContain(secret);
 
-    vi.stubGlobal('WebSocket', RefusingWebSocket);
+    // The instance `nativeSocket`'s own `new WebSocket(...)` throws, captured by wrapping
+    // `super()` in try/catch: proves the seam wraps it in a fresh `Error` rather than
+    // rethrowing it whole (`own` above is a separate throw and could never fail this check).
+    let caught: unknown;
+    class CapturingRefusingWebSocket extends RefusingWebSocket {
+      constructor(url: string, protocols?: string | string[]) {
+        try {
+          super(url, protocols);
+        } catch (e) {
+          caught = e;
+          throw e;
+        }
+      }
+    }
+    vi.stubGlobal('WebSocket', CapturingRefusingWebSocket);
     const error = thrownBy(() => nativeSocket(realtimeUrl(configFor()), protocols));
-    expect(error).not.toBe(own);
+    expect(caught).toBeInstanceOf(DOMException);
+    expect(error).not.toBe(caught);
     expect(error).toMatchObject({ name: 'SyntaxError', message: 'The browser would not open the socket (SyntaxError).' });
     expect((error as { cause?: unknown }).cause).toBeUndefined();
     for (const text of [error.message, String(error), error.stack ?? '']) {
