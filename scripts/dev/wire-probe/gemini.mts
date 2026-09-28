@@ -10,6 +10,9 @@
  *
  *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts [dialogue|translate|both] [--model <id>] [--src ja-JP --dst en-US] [--gap <ms>]
  *     [--activity-handling NO_INTERRUPTION|START_OF_ACTIVITY_INTERRUPTS] [--turn-coverage TURN_INCLUDES_ONLY_ACTIVITY|TURN_INCLUDES_ALL_INPUT]
+ *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts translate --manual
+ *     Push-to-talk, as the app sends it: detection off, activityStart / the utterance / activityEnd,
+ *     and no audio between presses.
  *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts overlap [--models a,b] [--gap 1500]
  *     The overlap matrix: the second utterance starts while the model still speaks the first's
  *     translation, under each activity handling × turn coverage; counts whether both utterances
@@ -21,7 +24,7 @@ import type { GeminiConfig } from '../../../src/providers/gemini/config';
 import {
   GEMINI_DEFAULT_VOICE, GEMINI_DEFAULTS, defaultGeminiModel, geminiLanguageName, isGeminiTranslateModel, toTranslationLanguageCode,
 } from '../../../src/providers/gemini/settings';
-import { audioFrame, base64ToPcm, decodeServerMessage, liveUrl, pcmRate, setupFrame } from '../../../src/providers/gemini/wire';
+import { ACTIVITY_END, ACTIVITY_START, audioFrame, base64ToPcm, decodeServerMessage, liveUrl, pcmRate, setupFrame } from '../../../src/providers/gemini/wire';
 import { resolveInstructions } from '../../../src/lib/provider/instructions';
 import { CLIPS, args, concat, pace, readWav, secret, silence, sleep, startRun, writeWav, type Run } from './common.mts';
 
@@ -38,6 +41,7 @@ if (!key) {
 const { step, opt } = args();
 const kinds = step === 'dialogue' || step === 'translate' ? [step] : ['dialogue', 'translate'];
 const gapMs = Number(opt('gap') ?? (step === 'overlap' ? 1500 : 2500));
+const manual = process.argv.includes('--manual');
 const src = opt('src') ?? 'ja-JP';
 const dst = opt('dst') ?? 'en-US';
 
@@ -112,7 +116,9 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
     kind,
     instructions: resolveInstructions(GEMINI_DEFAULTS, { participant: false, source: geminiLanguageName(src), target: geminiLanguageName(dst) }),
     ...(dialogue ? { voice: GEMINI_DEFAULT_VOICE, temperature: GEMINI_DEFAULTS.temperature } : { translationTargetCode: toTranslationLanguageCode(dst) }),
-    activity: { manual: false, start: GEMINI_DEFAULTS.vadStartSensitivity, end: GEMINI_DEFAULTS.vadEndSensitivity, silenceMs: GEMINI_DEFAULTS.vadSilenceDurationMs, prefixMs: GEMINI_DEFAULTS.vadPrefixPaddingMs },
+    activity: manual
+      ? { manual: true }
+      : { manual: false, start: GEMINI_DEFAULTS.vadStartSensitivity, end: GEMINI_DEFAULTS.vadEndSensitivity, silenceMs: GEMINI_DEFAULTS.vadSilenceDurationMs, prefixMs: GEMINI_DEFAULTS.vadPrefixPaddingMs },
   };
   const setup = setupFrame(config, null);
   const ric = setup.setup.realtimeInputConfig as Record<string, unknown>;
@@ -204,7 +210,20 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
   const clip = readWav(CLIPS.ja, INPUT_RATE);
   const pcm = concat(clip, silence(gapMs, INPUT_RATE), clip, silence(10000, INPUT_RATE));
   run.log('note', 'stream.begin', { seconds: pcm.length / INPUT_RATE, chunkMs: CHUNK_MS, gapMs, realtimeInputConfig: ric });
-  const sent = await pace(pcm, INPUT_RATE, CHUNK_MS, (chunk) => ws.send(audioFrame(chunk)), () => closed !== null);
+  let sent = 0;
+  if (manual) {
+    // Push-to-talk: each utterance between its activity marks; nothing is sent while the key is up.
+    for (let k = 0; k < 2 && !closed; k++) {
+      ws.send(ACTIVITY_START);
+      run.log('out', 'activityStart');
+      sent += await pace(clip, INPUT_RATE, CHUNK_MS, (chunk) => ws.send(audioFrame(chunk)), () => closed !== null);
+      ws.send(ACTIVITY_END);
+      run.log('out', 'activityEnd');
+      await sleep(k === 0 ? gapMs : 10000);
+    }
+  } else {
+    sent = await pace(pcm, INPUT_RATE, CHUNK_MS, (chunk) => ws.send(audioFrame(chunk)), () => closed !== null);
+  }
   run.log('note', 'stream.done', { chunks: sent });
   for (let i = 0; i < 80 && turn && !closed; i++) await sleep(100);
   if (turn) (turn as Turn).end ??= 'open at the end';
