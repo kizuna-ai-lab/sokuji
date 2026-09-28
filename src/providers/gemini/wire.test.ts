@@ -4,7 +4,7 @@ import {
   ACTIVITY_END, ACTIVITY_START, audioFrame, base64ToPcm, closeFailureCode, decodeServerMessage, INPUT_MIME, liveUrl, pcmRate, pcmToBase64, setupFrame, textFrame,
 } from './wire';
 
-const PARTICIPANT = { direction: { source: 'ja-JP', target: 'en-US' }, speech: true, turns: 'auto' as const };
+const PARTICIPANT = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' as const };
 
 describe("Gemini's wire", () => {
   it('dials the documented Live endpoint, v1beta, the key in the query (choice 11)', () => {
@@ -17,7 +17,7 @@ describe("Gemini's wire", () => {
       setup: {
         model: `models/${DIALOGUE}`,
         generationConfig: { responseModalities: ['AUDIO'], temperature: 0.8, speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } } } },
-        systemInstruction: { parts: [{ text: expect.stringContaining('translate English (United States) → Japanese (Japan).') }] },
+        systemInstruction: { parts: [{ text: expect.stringContaining('translate English → Japanese.') }] },
         inputAudioTranscription: {},
         outputAudioTranscription: {},
         realtimeInputConfig: {

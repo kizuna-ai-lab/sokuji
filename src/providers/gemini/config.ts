@@ -12,7 +12,7 @@ import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { clampSegmentPauseMs, segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import {
   effectiveGeminiModel, geminiActivityHandling, geminiLanguageName, GEMINI_DEFAULTS, GEMINI_DEFAULT_VOICE, GEMINI_MAX_TOKENS_RANGE,
-  GEMINI_TEMPERATURE_RANGE, GEMINI_VAD_PREFIX_RANGE, GEMINI_VAD_SILENCE_RANGE, isGeminiTranslateModel, toTranslationLanguageCode,
+  GEMINI_TEMPERATURE_RANGE, GEMINI_TRANSLATE_TARGETS, GEMINI_VAD_PREFIX_RANGE, GEMINI_VAD_SILENCE_RANGE, isGeminiTranslateModel,
   type GeminiActivityHandling, type GeminiSettings,
 } from './settings';
 
@@ -29,7 +29,7 @@ export interface GeminiConfig {
   temperature?: number;
   /** Dialogue only, when not unlimited: 1..8192. */
   maxOutputTokens?: number;
-  /** Live Translate only: the target's short code, which pins its output language (`geminiTranslateModel.ts:12-18`). */
+  /** Live Translate only: the target, one of its own 78 codes as the pair holds it, which pins its output language (Gemini/AST2 follow-up, ruling 6). */
   translationTargetCode?: string;
   /** Manual turns: the client marks activity. Auto: the server detects it, with the user's knobs — the participant too (survey §1.9). */
   activity:
@@ -50,6 +50,11 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
   const kind = isGeminiTranslateModel(model) ? 'translate' : 'dialogue';
   const dialogue = kind === 'dialogue';
   const { source, target } = context.direction;
+  // The offer follows the saved model; a saved dialogue model the check no longer lists runs as the default, Live Translate,
+  // whose targets are fewer: such a target is refused in words, never sent (Gemini/AST2 follow-up, choice 18).
+  if (!dialogue && !GEMINI_TRANSLATE_TARGETS.some((o) => o.value === target)) {
+    return { refused: `Live Translate does not translate into ${geminiLanguageName(target)}: choose another language, or a dialogue model.` };
+  }
   // The participant's direction reads Other's prompt, as LocalInference's builder does (`localInference/config.ts:47-56`).
   const instructions = resolveInstructions(s, { participant: shared.reversed(context.direction), source: geminiLanguageName(source), target: geminiLanguageName(target) });
   const activity: GeminiConfig['activity'] = context.turns === 'manual'
@@ -75,7 +80,7 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
       ? { maxOutputTokens: Math.round(clamp(s.maxTokens, GEMINI_MAX_TOKENS_RANGE.min, GEMINI_MAX_TOKENS_RANGE.max, GEMINI_MAX_TOKENS_RANGE.max)) }
       : {}),
     ...(dialogue ? {} : {
-      translationTargetCode: toTranslationLanguageCode(target),
+      translationTargetCode: target,
       silence: {
         sourceMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.sourceSeconds)),
         translationMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.translationSeconds)),

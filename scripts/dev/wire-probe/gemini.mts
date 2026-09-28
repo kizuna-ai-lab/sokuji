@@ -8,7 +8,7 @@
  * audio's, and how far would an arrival alignment (OpenAI's) or an even
  * interpolation be from each other.
  *
- *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts [dialogue|translate|both] [--model <id>] [--src ja-JP --dst en-US] [--gap <ms>]
+ *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts [dialogue|translate|both] [--model <id>] [--src ja --dst en] [--gap <ms>]
  *     [--activity-handling NO_INTERRUPTION|START_OF_ACTIVITY_INTERRUPTS] [--turn-coverage TURN_INCLUDES_ONLY_ACTIVITY|TURN_INCLUDES_ALL_INPUT]
  *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts translate --manual
  *     Push-to-talk, as the app sends it: detection off, activityStart / the utterance / activityEnd,
@@ -22,7 +22,7 @@ import WebSocket from 'ws';
 import { checkGemini } from '../../../src/providers/gemini/check';
 import type { GeminiConfig } from '../../../src/providers/gemini/config';
 import {
-  GEMINI_DEFAULT_VOICE, GEMINI_DEFAULTS, defaultGeminiModel, geminiActivityHandling, geminiLanguageName, isGeminiTranslateModel, toTranslationLanguageCode,
+  GEMINI_DEFAULT_VOICE, GEMINI_DEFAULTS, defaultGeminiModel, geminiActivityHandling, geminiLanguageName, isGeminiTranslateModel,
 } from '../../../src/providers/gemini/settings';
 import { ACTIVITY_END, ACTIVITY_START, audioFrame, base64ToPcm, decodeServerMessage, liveUrl, pcmRate, setupFrame } from '../../../src/providers/gemini/wire';
 import { resolveInstructions } from '../../../src/lib/provider/instructions';
@@ -42,8 +42,9 @@ const { step, opt } = args();
 const kinds = step === 'dialogue' || step === 'translate' ? [step] : ['dialogue', 'translate'];
 const gapMs = Number(opt('gap') ?? (step === 'overlap' ? 1500 : 2500));
 const manual = process.argv.includes('--manual');
-const src = opt('src') ?? 'ja-JP';
-const dst = opt('dst') ?? 'en-US';
+// The app's own codes (Gemini/AST2 follow-up, ruling 6): Google's, which Live Translate takes as they are.
+const src = opt('src') ?? 'ja';
+const dst = opt('dst') ?? 'en';
 
 interface Arrival { t: number; kind: 'audio' | 'text'; samples?: number; rate?: number; chars?: number }
 interface Turn { index: number; events: Arrival[]; text: string; input: string; audio: Int16Array[]; rate: number; end?: string }
@@ -115,7 +116,7 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
     model,
     kind,
     instructions: resolveInstructions(GEMINI_DEFAULTS, { participant: false, source: geminiLanguageName(src), target: geminiLanguageName(dst) }),
-    ...(dialogue ? { voice: GEMINI_DEFAULT_VOICE, temperature: GEMINI_DEFAULTS.temperature } : { translationTargetCode: toTranslationLanguageCode(dst) }),
+    ...(dialogue ? { voice: GEMINI_DEFAULT_VOICE, temperature: GEMINI_DEFAULTS.temperature } : { translationTargetCode: dst }),
     activity: manual
       ? { manual: true }
       : { manual: false, start: GEMINI_DEFAULTS.vadStartSensitivity, end: GEMINI_DEFAULTS.vadEndSensitivity, silenceMs: GEMINI_DEFAULTS.vadSilenceDurationMs, prefixMs: GEMINI_DEFAULTS.vadPrefixPaddingMs },

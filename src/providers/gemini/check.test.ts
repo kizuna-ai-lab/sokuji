@@ -5,7 +5,7 @@ import { CHECK_TIMEOUT_MS, createGeminiCheck, GEMINI_MODELS_URL, MAX_MODEL_PAGES
 import { GEMINI_DEFAULTS } from './settings';
 
 const K = { apiKey: 'AIzaTestKey0123456789' };
-const ctx = (signal?: AbortSignal): CheckContext => ({ pair: { source: 'en-US', target: 'ja-JP' }, legs: ['speaker'], signal });
+const ctx = (signal?: AbortSignal): CheckContext => ({ pair: { source: 'en', target: 'ja' }, legs: ['speaker'], signal });
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const named = (...names: string[]) => names.map((name) => ({ name: `models/${name}` }));
 

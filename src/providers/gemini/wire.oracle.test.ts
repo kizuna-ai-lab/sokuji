@@ -77,7 +77,7 @@ describe("the wire against the SDK's own converter", () => {
     ['a 3.x dialogue model, barging in', () => configFor(BARGE_IN), null],
     ['a 3.x dialogue model, manual, barging in', () => configFor(BARGE_IN, { ...AUTO_CTX, turns: 'manual' }), null],
     ['Live Translate', () => configFor(TRANSLATE), null],
-    ["Live Translate for the participant, with no prompt", () => configFor(TRANSLATE, { direction: { source: 'ja-JP', target: 'en-US' }, speech: true, turns: 'auto' }, { useTemplateMode: false, systemInstructions: ' ' }), null],
+    ["Live Translate for the participant, with no prompt", () => configFor(TRANSLATE, { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' }, { useTemplateMode: false, systemInstructions: ' ' }), null],
   ];
 
   it.each(cases)('%s', async (_name, make, handle) => {

@@ -32,11 +32,11 @@ export class RefusingWebSocket {
 
 export const SHARED: SharedSettings = {
   pauses: { sourceSeconds: 1.5, translationSeconds: 1.5 },
-  reversed: (d) => d.source === 'ja-JP' && d.target === 'en-US',
+  reversed: (d) => d.source === 'ja' && d.target === 'en',
   segmentation: { mode: 'pause', sentencesPerRow: 0 },
   models: [{ id: BARGE_IN }, { id: TRANSLATE }, { id: DIALOGUE }],
 };
-export const AUTO_CTX: SessionContext = { direction: { source: 'en-US', target: 'ja-JP' }, speech: true, turns: 'auto' };
+export const AUTO_CTX: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 
 /** A leg's config: Gemini's defaults with `model` saved. */
 export function configFor(model: string, context: SessionContext = AUTO_CTX, patch: Partial<GeminiSettings> = {}): GeminiConfig {

@@ -95,54 +95,171 @@ export const GEMINI_VOICES: readonly { value: string; name: string }[] = [
   'Pulcherrima', 'Rasalgethi', 'Sadachbia', 'Sadaltager', 'Schedar', 'Sulafat', 'Umbriel', 'Vindemiatrix', 'Zubenelgenubi', 'Achernar',
 ].map((voice) => ({ value: voice, name: voice }));
 
-/** The 34 regional values the Live API takes (`GeminiProviderConfig.ts:139-174`). */
-export const GEMINI_LANGUAGES: readonly LanguageOption[] = [
-  { name: 'English (United States)', value: 'en-US', englishName: 'English (United States)' },
-  { name: 'English (Australia)', value: 'en-AU', englishName: 'English (Australia)' },
-  { name: 'English (United Kingdom)', value: 'en-GB', englishName: 'English (United Kingdom)' },
-  { name: 'English (India)', value: 'en-IN', englishName: 'English (India)' },
-  { name: 'Español (Estados Unidos)', value: 'es-US', englishName: 'Spanish (United States)' },
-  { name: 'Deutsch (Deutschland)', value: 'de-DE', englishName: 'German (Germany)' },
-  { name: 'Français (France)', value: 'fr-FR', englishName: 'French (France)' },
-  { name: 'हिन्दी (भारत)', value: 'hi-IN', englishName: 'Hindi (India)' },
-  { name: 'Português (Brasil)', value: 'pt-BR', englishName: 'Portuguese (Brazil)' },
-  { name: 'العربية (عام)', value: 'ar-XA', englishName: 'Arabic (Standard)' },
-  { name: 'Español (España)', value: 'es-ES', englishName: 'Spanish (Spain)' },
-  { name: 'Français (Canada)', value: 'fr-CA', englishName: 'French (Canada)' },
-  { name: 'Bahasa Indonesia (Indonesia)', value: 'id-ID', englishName: 'Indonesian (Indonesia)' },
-  { name: 'Italiano (Italia)', value: 'it-IT', englishName: 'Italian (Italy)' },
-  { name: '日本語 (日本)', value: 'ja-JP', englishName: 'Japanese (Japan)' },
-  { name: 'Türkçe (Türkiye)', value: 'tr-TR', englishName: 'Turkish (Turkey)' },
-  { name: 'Tiếng Việt (Việt Nam)', value: 'vi-VN', englishName: 'Vietnamese (Vietnam)' },
-  { name: 'বাংলা (ভারত)', value: 'bn-IN', englishName: 'Bengali (India)' },
-  { name: 'ગુજરાતી (ભારત)', value: 'gu-IN', englishName: 'Gujarati (India)' },
-  { name: 'ಕನ್ನಡ (ಭಾರತ)', value: 'kn-IN', englishName: 'Kannada (India)' },
-  { name: 'മലയാളം (ഇന്ത്യ)', value: 'ml-IN', englishName: 'Malayalam (India)' },
-  { name: 'मराठी (भारत)', value: 'mr-IN', englishName: 'Marathi (India)' },
-  { name: 'தமிழ் (இந்தியா)', value: 'ta-IN', englishName: 'Tamil (India)' },
-  { name: 'తెలుగు (భారతదేశం)', value: 'te-IN', englishName: 'Telugu (India)' },
-  { name: 'Nederlands (België)', value: 'nl-BE', englishName: 'Dutch (Belgium)' },
-  { name: 'Nederlands (Nederland)', value: 'nl-NL', englishName: 'Dutch (Netherlands)' },
-  { name: '한국어 (대한민국)', value: 'ko-KR', englishName: 'Korean (South Korea)' },
-  { name: '普通话 (中国)', value: 'cmn-CN', englishName: 'Mandarin Chinese (China)' },
-  { name: 'Polski (Polska)', value: 'pl-PL', englishName: 'Polish (Poland)' },
-  { name: 'Русский (Россия)', value: 'ru-RU', englishName: 'Russian (Russia)' },
-  { name: 'Kiswahili (Kenya)', value: 'sw-KE', englishName: 'Swahili (Kenya)' },
-  { name: 'ไทย (ประเทศไทย)', value: 'th-TH', englishName: 'Thai (Thailand)' },
-  { name: 'اردو (ہندوستان)', value: 'ur-IN', englishName: 'Urdu (India)' },
-  { name: 'Українська (Україна)', value: 'uk-UA', englishName: 'Ukrainian (Ukraine)' },
+/** Where Google documents a language (Gemini/AST2 follow-up, ruling 6): in both tables below, the Live API's alone, or Live Translate's alone. */
+type Documented = 'both' | 'dialogue' | 'translate';
+
+/**
+ * Google's two language tables, as documented on 2026-09-29, in one list:
+ * English first, then Google's own order, by English name (Gemini/AST2
+ * follow-up, ruling 6; choice 14):
+ * - the Live API capabilities guide's 99: what the dialogue models hear and
+ *   speak, with no language code on the wire — only the instructions name the
+ *   pair, by the English names here;
+ * - Live Translate's 78, its `targetLanguageCode` values. It takes no source
+ *   language: it detects it.
+ * Each code is Google's own — bare but for Portuguese's and Chinese's two
+ * variants each; Norwegian's row names `no` and `nb`, and `no` is offered.
+ * The names are each language's own, written here (Gemini/AST2 follow-up,
+ * choice 15).
+ */
+const GEMINI_LANGUAGE_TABLE: ReadonlyArray<readonly [value: string, name: string, englishName: string, documented: Documented]> = [
+  // First, as in the old list. A side a model switch takes out of the offer falls here by the generic rule (`normalizePair`
+  // takes the first entry), English → English included; a stored one takes `initial`'s (Gemini/AST2 follow-up, choice 17).
+  ['en', 'English', 'English', 'both'],
+  ['af', 'Afrikaans', 'Afrikaans', 'both'],
+  ['ak', 'Akan', 'Akan', 'both'],
+  ['sq', 'Shqip', 'Albanian', 'both'],
+  ['am', 'አማርኛ', 'Amharic', 'both'],
+  ['ar', 'العربية', 'Arabic', 'both'],
+  ['hy', 'Հայերեն', 'Armenian', 'both'],
+  ['as', 'অসমীয়া', 'Assamese', 'dialogue'],
+  ['az', 'Azərbaycan', 'Azerbaijani', 'both'],
+  ['eu', 'Euskara', 'Basque', 'both'],
+  ['be', 'Беларуская', 'Belarusian', 'both'],
+  ['bn', 'বাংলা', 'Bengali', 'both'],
+  ['bs', 'Bosanski', 'Bosnian', 'dialogue'],
+  ['bg', 'Български', 'Bulgarian', 'both'],
+  ['my', 'မြန်မာ', 'Burmese', 'both'],
+  ['ca', 'Català', 'Catalan', 'both'],
+  ['ceb', 'Cebuano', 'Cebuano', 'dialogue'],
+  ['zh-Hans', '中文 (简体)', 'Chinese (Simplified)', 'both'],
+  ['zh-Hant', '中文 (繁體)', 'Chinese (Traditional)', 'both'],
+  ['hr', 'Hrvatski', 'Croatian', 'both'],
+  ['cs', 'Čeština', 'Czech', 'both'],
+  ['da', 'Dansk', 'Danish', 'both'],
+  ['nl', 'Nederlands', 'Dutch', 'both'],
+  ['et', 'Eesti', 'Estonian', 'both'],
+  ['fo', 'Føroyskt', 'Faroese', 'dialogue'],
+  ['fil', 'Filipino', 'Filipino', 'both'],
+  ['fi', 'Suomi', 'Finnish', 'both'],
+  ['fr', 'Français', 'French', 'both'],
+  ['gl', 'Galego', 'Galician', 'both'],
+  ['ka', 'ქართული', 'Georgian', 'both'],
+  ['de', 'Deutsch', 'German', 'both'],
+  ['el', 'Ελληνικά', 'Greek', 'both'],
+  ['gu', 'ગુજરાતી', 'Gujarati', 'both'],
+  ['ha', 'Hausa', 'Hausa', 'both'],
+  ['he', 'עברית', 'Hebrew', 'both'],
+  ['hi', 'हिन्दी', 'Hindi', 'both'],
+  ['hu', 'Magyar', 'Hungarian', 'both'],
+  ['is', 'Íslenska', 'Icelandic', 'both'],
+  ['id', 'Bahasa Indonesia', 'Indonesian', 'both'],
+  ['ga', 'Gaeilge', 'Irish', 'dialogue'],
+  ['it', 'Italiano', 'Italian', 'both'],
+  ['ja', '日本語', 'Japanese', 'both'],
+  ['jv', 'Basa Jawa', 'Javanese', 'translate'],
+  ['kn', 'ಕನ್ನಡ', 'Kannada', 'both'],
+  ['kk', 'Қазақ тілі', 'Kazakh', 'both'],
+  ['km', 'ខ្មែរ', 'Khmer', 'both'],
+  ['rw', 'Ikinyarwanda', 'Kinyarwanda', 'both'],
+  ['ko', '한국어', 'Korean', 'both'],
+  ['ku', 'Kurdî', 'Kurdish', 'dialogue'],
+  ['ky', 'Кыргызча', 'Kyrgyz', 'dialogue'],
+  ['lo', 'ລາວ', 'Lao', 'both'],
+  ['lv', 'Latviešu', 'Latvian', 'both'],
+  ['lt', 'Lietuvių', 'Lithuanian', 'both'],
+  ['mk', 'Македонски', 'Macedonian', 'both'],
+  ['ms', 'Bahasa Melayu', 'Malay', 'both'],
+  ['ml', 'മലയാളം', 'Malayalam', 'both'],
+  ['mt', 'Malti', 'Maltese', 'dialogue'],
+  ['mi', 'Māori', 'Maori', 'dialogue'],
+  ['mr', 'मराठी', 'Marathi', 'both'],
+  ['mn', 'Монгол', 'Mongolian', 'both'],
+  ['ne', 'नेपाली', 'Nepali', 'both'],
+  ['no', 'Norsk', 'Norwegian', 'both'],
+  ['or', 'ଓଡ଼ିଆ', 'Odia', 'dialogue'],
+  ['om', 'Oromoo', 'Oromo', 'dialogue'],
+  ['ps', 'پښتو', 'Pashto', 'dialogue'],
+  ['fa', 'فارسی', 'Persian', 'both'],
+  ['pl', 'Polski', 'Polish', 'both'],
+  ['pt-BR', 'Português (Brasil)', 'Portuguese (Brazil)', 'both'],
+  ['pt-PT', 'Português (Portugal)', 'Portuguese (Portugal)', 'both'],
+  ['pa', 'ਪੰਜਾਬੀ', 'Punjabi', 'both'],
+  ['qu', 'Runasimi', 'Quechua', 'dialogue'],
+  ['ro', 'Română', 'Romanian', 'both'],
+  ['rm', 'Rumantsch', 'Romansh', 'dialogue'],
+  ['ru', 'Русский', 'Russian', 'both'],
+  ['sr', 'Српски', 'Serbian', 'both'],
+  ['sd', 'سنڌي', 'Sindhi', 'both'],
+  ['si', 'සිංහල', 'Sinhala', 'both'],
+  ['sk', 'Slovenčina', 'Slovak', 'both'],
+  ['sl', 'Slovenščina', 'Slovenian', 'both'],
+  ['so', 'Soomaali', 'Somali', 'dialogue'],
+  ['st', 'Sesotho', 'Southern Sotho', 'dialogue'],
+  ['es', 'Español', 'Spanish', 'both'],
+  ['su', 'Basa Sunda', 'Sundanese', 'translate'],
+  ['sw', 'Kiswahili', 'Swahili', 'both'],
+  ['sv', 'Svenska', 'Swedish', 'both'],
+  ['tg', 'Тоҷикӣ', 'Tajik', 'dialogue'],
+  ['ta', 'தமிழ்', 'Tamil', 'both'],
+  ['te', 'తెలుగు', 'Telugu', 'both'],
+  ['th', 'ไทย', 'Thai', 'both'],
+  ['tn', 'Setswana', 'Tswana', 'dialogue'],
+  ['tr', 'Türkçe', 'Turkish', 'both'],
+  ['tk', 'Türkmen dili', 'Turkmen', 'dialogue'],
+  ['uk', 'Українська', 'Ukrainian', 'both'],
+  ['ur', 'اردو', 'Urdu', 'both'],
+  ['uz', 'Oʻzbek', 'Uzbek', 'both'],
+  ['vi', 'Tiếng Việt', 'Vietnamese', 'both'],
+  ['cy', 'Cymraeg', 'Welsh', 'dialogue'],
+  ['fy', 'Frysk', 'Western Frisian', 'dialogue'],
+  ['wo', 'Wolof', 'Wolof', 'dialogue'],
+  ['yo', 'Èdè Yorùbá', 'Yoruba', 'dialogue'],
+  ['zu', 'isiZulu', 'Zulu', 'both'],
 ];
 
-/** Every value is a source and a target (the old `resolveTargetLanguages` returned the same list); no `auto`, so the participant leg always reverses (D20). */
+const offered = (documented: readonly Documented[]): readonly LanguageOption[] =>
+  GEMINI_LANGUAGE_TABLE.filter((row) => documented.includes(row[3])).map(([value, name, englishName]) => ({ value, name, englishName }));
+
+/** A dialogue model's sources and targets alike: the Live API's 99. */
+export const GEMINI_DIALOGUE_LANGUAGES = offered(['both', 'dialogue']);
+/** Live Translate's targets: its 78. */
+export const GEMINI_TRANSLATE_TARGETS = offered(['both', 'translate']);
+/** Live Translate's sources: every language Google documents either model hearing — the 99, and its own two besides (Gemini/AST2 follow-up, choice 16). */
+export const GEMINI_TRANSLATE_SOURCES = offered(['both', 'dialogue', 'translate']);
+
+/**
+ * The saved model's family decides the offer (Gemini/AST2 follow-up, choice
+ * 16): Live Translate's, or a dialogue model's. No model chosen ('') reads as
+ * Live Translate, the default a key that lists it runs (Gemini/AST2
+ * follow-up, ruling 3). A key that lists none runs a dialogue model on the
+ * Live Translate offer until a model is picked: narrower targets, each one a
+ * dialogue model takes too but Javanese and Sundanese, which only its
+ * instructions name.
+ */
+function offersTranslate(s: Pick<GeminiSettings, 'model'>): boolean {
+  return s.model === '' || isGeminiTranslateModel(s.model);
+}
+
+const lists = (options: readonly LanguageOption[], value: string) => options.some((o) => o.value === value);
+
+/** No `auto`: Live Translate detects the source, but the source still decides Both's reversal and the rows' labels (D20). */
 export const geminiLanguages: Provider<GeminiSettings, never, never>['languages'] = {
-  sources: () => GEMINI_LANGUAGES,
-  targets: () => GEMINI_LANGUAGES,
-  initial: () => ({ source: 'en-US', target: 'ja-JP' }),
+  sources: (s) => (offersTranslate(s) ? GEMINI_TRANSLATE_SOURCES : GEMINI_DIALOGUE_LANGUAGES),
+  targets: (_source, s) => (offersTranslate(s) ? GEMINI_TRANSLATE_TARGETS : GEMINI_DIALOGUE_LANGUAGES),
+  initial: () => ({ source: 'en', target: 'ja' }),
+  // A stored side the offer does not hold — every code saved before the rebuild but `pt-BR` (`en-US`, `cmn-CN`), or a language Google
+  // drops later — reads as nothing stored, so it takes `initial`'s, not the list's first. Nothing is converted and nothing written:
+  // it falls again at each load until the user picks (Gemini/AST2 follow-up, choice 17).
+  migratePair: (stored, s) => ({
+    source: lists(geminiLanguages.sources(s), stored.source) ? stored.source : '',
+    target: lists(geminiLanguages.targets(stored.source, s), stored.target) ? stored.target : '',
+  }),
 };
 
-/** A code's English name, for the instructions' template (the old rule: the code when unnamed, `settingsStore.ts:1443-1444`). */
+/** A code's English name — Google's — for the instructions' template (the old rule: the code when unnamed, `settingsStore.ts:1443-1444`). */
 export function geminiLanguageName(code: string): string {
-  return GEMINI_LANGUAGES.find((o) => o.value === code)?.englishName || code;
+  return GEMINI_TRANSLATE_SOURCES.find((o) => o.value === code)?.englishName || code;
 }
 
 export interface GeminiCredentials {
@@ -164,15 +281,6 @@ const TRANSLATE_MODEL_MARKER = 'live-translate';
 
 export function isGeminiTranslateModel(id: string | null | undefined): boolean {
   return typeof id === 'string' && id.includes(TRANSLATE_MODEL_MARKER);
-}
-
-/** `zh` came back Simplified, `cmn` Traditional (measured 2026-08-10, `geminiTranslateModel.ts:39-50`). */
-const EXPLICIT_TRANSLATION_CODES: Readonly<Record<string, string>> = { 'cmn-CN': 'zh' };
-
-/** A regional value as Live Translate's `targetLanguageCode` takes it (`ja-JP` → `ja`, `cmn-CN` → `zh`). */
-export function toTranslationLanguageCode(code: string): string {
-  if (!code) return '';
-  return EXPLICIT_TRANSLATION_CODES[code] ?? code.split('-')[0];
 }
 
 /** A Live (bidirectional) model by the old rule (`GeminiClient.ts:238-251`): the id names `audio` or `live`, and not `transcribe` — the STT-only Live models translate nothing. */

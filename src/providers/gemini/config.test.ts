@@ -6,7 +6,7 @@ import { GEMINI_DEFAULTS, type GeminiSettings } from './settings';
 
 const DIALOGUE = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const TRANSLATE = 'gemini-3.5-live-translate-preview';
-const PAIR = { source: 'en-US', target: 'ja-JP' };
+const PAIR = { source: 'en', target: 'ja' };
 const shared = (patch: Partial<SharedSettings> = {}): SharedSettings => ({
   pauses: { sourceSeconds: 1.5, translationSeconds: 2 },
   reversed: (d) => d.source === PAIR.target && d.target === PAIR.source,
@@ -14,8 +14,8 @@ const shared = (patch: Partial<SharedSettings> = {}): SharedSettings => ({
   models: [{ id: TRANSLATE }, { id: DIALOGUE }],
   ...patch,
 });
-const SPEAKER: SessionContext = { direction: { source: 'en-US', target: 'ja-JP' }, speech: true, turns: 'auto' };
-const PARTICIPANT: SessionContext = { direction: { source: 'ja-JP', target: 'en-US' }, speech: true, turns: 'auto' };
+const SPEAKER: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
+const PARTICIPANT: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };
 /** A leg's config: Gemini's defaults with the dialogue model saved, unless the patch saves another (or none). */
 const build = (patch: Partial<GeminiSettings> = {}, context = SPEAKER, sh = shared()) => buildGemini(context, { ...GEMINI_DEFAULTS, model: DIALOGUE, ...patch }, sh) as GeminiConfig;
 
@@ -29,18 +29,19 @@ describe("Gemini's builder", () => {
   it('runs a saved dialogue model, speaking, with the Quick prompt for its direction (rulings 2, 4)', () => {
     const c = build();
     expect(c).toMatchObject({ model: DIALOGUE, kind: 'dialogue', voice: 'Aoede', temperature: 0.8 });
-    expect(c.instructions).toContain('translate English (United States) → Japanese (Japan).');
+    expect(c.instructions).toContain('translate English → Japanese.');
     expect(c.activity).toEqual({ manual: false, start: 'low', end: 'high', silenceMs: 500, prefixMs: 300 });
     for (const absent of ['maxOutputTokens', 'translationTargetCode', 'silence'] as const) expect(c, absent).not.toHaveProperty(absent);
   });
 
-  it("builds Live Translate: its target's short code, no voice or sampling, its silence timers from the pauses (ruling 1)", () => {
+  it("builds Live Translate: its target as the pair holds it — one of its own codes (Gemini/AST2 follow-up, ruling 6) — no voice or sampling, its silence timers from the pauses (ruling 1)", () => {
     const c = build({ model: TRANSLATE, maxTokens: 2048 });
     expect(c).toMatchObject({ model: TRANSLATE, kind: 'translate', translationTargetCode: 'ja', silence: { sourceMs: 1500, translationMs: 2000, deferMidSentence: false } });
     for (const absent of ['voice', 'temperature', 'maxOutputTokens'] as const) expect(c, absent).not.toHaveProperty(absent);
     // The instruction is still sent: it corrects terminology (`geminiTranslateModel.ts:19-24`).
     expect(c.instructions).toBeTruthy();
-    expect(build({ model: TRANSLATE }, { ...SPEAKER, direction: { source: 'en-US', target: 'cmn-CN' } }).translationTargetCode).toBe('zh');
+    expect(build({ model: TRANSLATE }, { ...SPEAKER, direction: { source: 'en', target: 'zh-Hant' } }).translationTargetCode).toBe('zh-Hant');
+    expect(build({ model: TRANSLATE }, { ...SPEAKER, direction: { source: 'en', target: 'pt-PT' } }).translationTargetCode).toBe('pt-PT');
   });
 
   it("builds the participant as the same call on the reversed direction: Other's prompt, the reversed names, the reversed target", () => {
@@ -48,7 +49,7 @@ describe("Gemini's builder", () => {
     expect(build(advanced).instructions).toBe('mine');
     expect(build(advanced, PARTICIPANT).instructions).toBe('theirs');
     expect(build({ ...advanced, participantSystemInstructions: '  ' }, PARTICIPANT).instructions).toBe('mine');
-    expect(build({}, PARTICIPANT).instructions).toContain('translate Japanese (Japan) → English (United States).');
+    expect(build({}, PARTICIPANT).instructions).toContain('translate Japanese → English.');
     expect(build({ model: TRANSLATE }, PARTICIPANT).translationTargetCode).toBe('en');
   });
 
@@ -65,6 +66,13 @@ describe("Gemini's builder", () => {
     // The participant and manual turns alike: it follows the model alone.
     expect(build({ model: 'gemini-3.8-live' }, { ...PARTICIPANT, turns: 'auto' }, shared({ models: [{ id: 'gemini-3.8-live' }] })).activityHandling).toBe('START_OF_ACTIVITY_INTERRUPTS');
     expect(build({}, { ...SPEAKER, turns: 'manual' }).activityHandling).toBe('NO_INTERRUPTION');
+  });
+
+  it("refuses in words a Live Translate target outside its 78 — a saved dialogue model no longer listed runs as Live Translate — and sends nothing (Gemini/AST2 follow-up, choice 18)", () => {
+    const retired = build({ model: 'gemini-2.0-flash-live-001' }, { ...SPEAKER, direction: { source: 'en', target: 'fo' } });
+    expect(retired).toEqual({ refused: 'Live Translate does not translate into Faroese: choose another language, or a dialogue model.' });
+    // A dialogue model takes Faroese.
+    expect(build({}, { ...SPEAKER, direction: { source: 'en', target: 'fo' } })).toMatchObject({ kind: 'dialogue', model: DIALOGUE });
   });
 
   it('marks activity itself under manual turns', () => {

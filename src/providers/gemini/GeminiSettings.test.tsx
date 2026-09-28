@@ -23,7 +23,7 @@ const TRANSLATE = 'gemini-3.5-live-translate-preview';
 const props = (patch: Partial<SettingsProps<GeminiSettings>> = {}): SettingsProps<GeminiSettings> => ({
   settings: { ...GEMINI_DEFAULTS, model: DIALOGUE },
   update: vi.fn(),
-  pair: { source: 'en-US', target: 'ja-JP' },
+  pair: { source: 'en', target: 'ja' },
   models: [{ id: TRANSLATE }, { id: DIALOGUE }],
   ...patch,
 });
@@ -35,7 +35,7 @@ describe('GeminiSettingsView', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'settings.preview' }));
     expect(container.querySelector('.preview-content')?.textContent).toContain(
-      'translate English (United States) → Japanese (Japan).'
+      'translate English → Japanese.'
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'settings.advanced' }));

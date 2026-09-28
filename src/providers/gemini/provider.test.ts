@@ -73,9 +73,9 @@ describe('the Gemini definition', () => {
 
   it("lets the participant speak when its switch is on, voiced with Gemini's own voice (ruling 5)", () => {
     expect(geminiProvider.participantSpeech).toBeUndefined();
-    const shape = { provider: geminiProvider, pair: { source: 'en-US', target: 'ja-JP' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
+    const shape = { provider: geminiProvider, pair: { source: 'en', target: 'ja' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
     const participant = contextsFor(shape).participant!;
-    expect(participant).toEqual({ direction: { source: 'ja-JP', target: 'en-US' }, speech: true, turns: 'auto' });
+    expect(participant).toEqual({ direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' });
     expect(contextsFor({ ...shape, participantSpeech: false }).participant!.speech).toBe(false);
     // A dialogue model's voice: Live Translate, the default when listed, speaks in the speaker's own (Gemini/AST2 follow-up, ruling 3).
     expect((geminiProvider.build(participant, { ...GEMINI_DEFAULTS, model: DIALOGUE }, SHARED) as GeminiConfig).voice).toBe('Aoede');
@@ -109,5 +109,18 @@ describe('the Gemini definition', () => {
     useProviderStore.setState({ entries: {} });
     await useProviderStore.getState().load(geminiProvider);
     expect((useProviderStore.getState().entries.gemini.settings as GeminiSettings).systemInstructions).toBe('Mine.');
+  });
+
+  it("loads an old profile's pair, saved in the old regional codes, as the default pair — English → Japanese — writing nothing (Gemini/AST2 follow-up, ruling 6; choice 17)", async () => {
+    stored.set('settings.gemini.sourceLanguage', 'en-US');
+    stored.set('settings.gemini.targetLanguage', 'cmn-CN');
+    await useProviderStore.getState().load(geminiProvider);
+    expect(useProviderStore.getState().entries.gemini.pair).toEqual({ source: 'en', target: 'ja' });
+    expect(setSetting).not.toHaveBeenCalled();
+    // One side still offered stays.
+    stored.set('settings.gemini.sourceLanguage', 'pt-BR');
+    useProviderStore.setState({ entries: {} });
+    await useProviderStore.getState().load(geminiProvider);
+    expect(useProviderStore.getState().entries.gemini.pair).toEqual({ source: 'pt-BR', target: 'ja' });
   });
 });

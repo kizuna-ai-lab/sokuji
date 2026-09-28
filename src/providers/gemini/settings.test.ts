@@ -3,14 +3,34 @@ import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS } from '../../lib/provid
 import { AUTO, reverseSupported } from '../../lib/provider/languages';
 import type { AuthContext } from '../../lib/provider/types';
 import {
-  compareGeminiModels, defaultGeminiModel, effectiveGeminiModel, geminiActivityHandling, GEMINI_DEFAULTS, GEMINI_LANGUAGES, GEMINI_LEGACY_KEYS, GEMINI_VOICES,
-  geminiCredentials, geminiLanguageName, geminiLanguages, isGeminiLiveModel, isGeminiTranslateModel, migrateGeminiSettings,
-  sortGeminiModels, toTranslationLanguageCode,
+  compareGeminiModels, defaultGeminiModel, effectiveGeminiModel, geminiActivityHandling, GEMINI_DEFAULTS, GEMINI_DIALOGUE_LANGUAGES, GEMINI_LEGACY_KEYS,
+  GEMINI_TRANSLATE_SOURCES, GEMINI_TRANSLATE_TARGETS, GEMINI_VOICES, geminiCredentials, geminiLanguageName, geminiLanguages, isGeminiLiveModel,
+  isGeminiTranslateModel, migrateGeminiSettings, sortGeminiModels,
 } from './settings';
 
 const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
 const migrate = (stored: Record<string, unknown>, legacy: Record<string, unknown> = {}) => migrateGeminiSettings(stored, { legacy, credentials: { apiKey: '' } });
 const ids = (list: readonly string[]) => list.map((id) => ({ id }));
+const values = (options: readonly { value: string }[]) => options.map((o) => o.value);
+const sorted = (codes: readonly string[]) => [...codes].sort();
+
+/** The Live API capabilities guide's 99 languages, as Google documented them on 2026-09-29 (Norwegian's row names `no, nb`; `no` is offered). */
+const DOCUMENTED_LIVE = [
+  'af', 'ak', 'sq', 'am', 'ar', 'hy', 'as', 'az', 'eu', 'be', 'bn', 'bs', 'bg', 'my', 'ca', 'ceb', 'zh-Hans', 'zh-Hant', 'hr', 'cs', 'da', 'nl',
+  'en', 'et', 'fo', 'fil', 'fi', 'fr', 'gl', 'ka', 'de', 'el', 'gu', 'ha', 'he', 'hi', 'hu', 'is', 'id', 'ga', 'it', 'ja', 'kn', 'kk', 'km', 'rw',
+  'ko', 'ku', 'ky', 'lo', 'lv', 'lt', 'mk', 'ms', 'ml', 'mt', 'mi', 'mr', 'mn', 'ne', 'no', 'or', 'om', 'ps', 'fa', 'pl', 'pt-BR', 'pt-PT', 'pa',
+  'qu', 'ro', 'rm', 'ru', 'sr', 'sd', 'si', 'sk', 'sl', 'so', 'st', 'es', 'sw', 'sv', 'tg', 'ta', 'te', 'th', 'tn', 'tr', 'tk', 'uk', 'ur', 'uz',
+  'vi', 'cy', 'fy', 'wo', 'yo', 'zu',
+];
+/** Live Translate's 78 `targetLanguageCode` values, as documented on 2026-09-29. */
+const DOCUMENTED_TRANSLATE = [
+  'af', 'ak', 'sq', 'am', 'ar', 'hy', 'az', 'eu', 'be', 'bn', 'bg', 'my', 'ca', 'zh-Hans', 'zh-Hant', 'hr', 'cs', 'da', 'nl', 'en', 'et', 'fil',
+  'fi', 'fr', 'gl', 'ka', 'de', 'el', 'gu', 'ha', 'he', 'hi', 'hu', 'is', 'id', 'it', 'ja', 'jv', 'kn', 'kk', 'km', 'rw', 'ko', 'lo', 'lv', 'lt',
+  'mk', 'ms', 'ml', 'mr', 'mn', 'ne', 'no', 'fa', 'pl', 'pt-BR', 'pt-PT', 'pa', 'ro', 'ru', 'sr', 'sd', 'si', 'sk', 'sl', 'es', 'su', 'sw', 'sv',
+  'ta', 'te', 'th', 'tr', 'uk', 'ur', 'uz', 'vi', 'zu',
+];
+const DIALOGUE_MODEL = { ...GEMINI_DEFAULTS, model: 'gemini-2.5-flash-native-audio-preview-12-2025' };
+const TRANSLATE_MODEL = { ...GEMINI_DEFAULTS, model: 'gemini-3.5-live-translate-preview' };
 
 /** A realistic Developer API listing (2026-09): the Live ids the repo's tests and benchmark docs name, the dated native-audio previews, and the ids the Live filter drops. */
 const LISTED = [
@@ -87,20 +107,63 @@ describe("Gemini's credentials and languages", () => {
     expect(geminiCredentials.read({ apiKey: 'k' }, signedOut)).toEqual({ apiKey: 'k' });
   });
 
-  it("offer the old 34 regional values as sources and as every source's targets, never auto, and start en-US → ja-JP", () => {
-    expect(GEMINI_LANGUAGES).toHaveLength(34);
-    expect(geminiLanguages.sources(GEMINI_DEFAULTS)).toBe(GEMINI_LANGUAGES);
-    expect(geminiLanguages.targets('ja-JP', GEMINI_DEFAULTS)).toBe(GEMINI_LANGUAGES);
-    expect(GEMINI_LANGUAGES.map((o) => o.value)).not.toContain(AUTO);
-    expect(GEMINI_LANGUAGES.map((o) => o.value)).toEqual(expect.arrayContaining(['en-US', 'ja-JP', 'cmn-CN', 'ar-XA', 'uk-UA']));
-    expect(geminiLanguages.initial?.(GEMINI_DEFAULTS)).toEqual({ source: 'en-US', target: 'ja-JP' });
-    expect(reverseSupported({ languages: geminiLanguages }, GEMINI_DEFAULTS, { source: 'en-US', target: 'ja-JP' })).toBe(true);
+  it("hold Google's documented codes exactly: the Live API's 99 for a dialogue model, Live Translate's 78 as its targets, their union as its sources (Gemini/AST2 follow-up, ruling 6)", () => {
+    expect(sorted(values(GEMINI_DIALOGUE_LANGUAGES))).toEqual(sorted(DOCUMENTED_LIVE));
+    expect(sorted(values(GEMINI_TRANSLATE_TARGETS))).toEqual(sorted(DOCUMENTED_TRANSLATE));
+    expect(sorted(values(GEMINI_TRANSLATE_SOURCES))).toEqual(sorted([...new Set([...DOCUMENTED_LIVE, ...DOCUMENTED_TRANSLATE])]));
+    expect([GEMINI_DIALOGUE_LANGUAGES.length, GEMINI_TRANSLATE_TARGETS.length, GEMINI_TRANSLATE_SOURCES.length]).toEqual([99, 78, 101]);
+    // Live Translate translates into two languages the Live API's table lacks.
+    expect(DOCUMENTED_TRANSLATE.filter((code) => !DOCUMENTED_LIVE.includes(code))).toEqual(['jv', 'su']);
+    for (const list of [GEMINI_DIALOGUE_LANGUAGES, GEMINI_TRANSLATE_TARGETS, GEMINI_TRANSLATE_SOURCES]) {
+      expect(values(list)).not.toContain(AUTO);
+      expect(new Set(values(list)).size).toBe(list.length);
+      // English first, then Google's order, by English name (Gemini/AST2 follow-up, choice 14).
+      expect(list[0].value).toBe('en');
+      const rest = list.slice(1).map((o) => o.englishName);
+      expect(rest).toEqual([...rest].sort((a, b) => a.localeCompare(b, 'en')));
+      for (const o of list) expect(o.name.trim(), o.value).not.toBe('');
+    }
+    // No region variant but the two Google documents; none of the old codes.
+    expect(values(GEMINI_TRANSLATE_SOURCES).filter((code) => code.includes('-'))).toEqual(['zh-Hans', 'zh-Hant', 'pt-BR', 'pt-PT']);
+    for (const old of ['en-US', 'ja-JP', 'cmn-CN', 'ar-XA', 'nl-BE']) expect(values(GEMINI_TRANSLATE_SOURCES)).not.toContain(old);
   });
 
-  it("name a code in English for the instructions' template, and fall back to the code", () => {
-    expect(geminiLanguageName('ja-JP')).toBe('Japanese (Japan)');
-    expect(geminiLanguageName('cmn-CN')).toBe('Mandarin Chinese (China)');
-    expect(geminiLanguageName('xx-YY')).toBe('xx-YY');
+  it("offer by the saved model's family: a dialogue model the 99 both ways; Live Translate — and no model chosen, its default — its sources and its 78 targets (Gemini/AST2 follow-up, choice 16)", () => {
+    expect(geminiLanguages.sources(DIALOGUE_MODEL)).toBe(GEMINI_DIALOGUE_LANGUAGES);
+    expect(geminiLanguages.targets('en', DIALOGUE_MODEL)).toBe(GEMINI_DIALOGUE_LANGUAGES);
+    for (const s of [TRANSLATE_MODEL, GEMINI_DEFAULTS]) {
+      expect(geminiLanguages.sources(s)).toBe(GEMINI_TRANSLATE_SOURCES);
+      expect(geminiLanguages.targets('en', s)).toBe(GEMINI_TRANSLATE_TARGETS);
+    }
+    expect(geminiLanguages.initial?.(GEMINI_DEFAULTS)).toEqual({ source: 'en', target: 'ja' });
+    const reverses = (s: typeof GEMINI_DEFAULTS, source: string, target: string) => reverseSupported({ languages: geminiLanguages }, s, { source, target });
+    expect(reverses(DIALOGUE_MODEL, 'en', 'ja')).toBe(true);
+    expect(reverses(TRANSLATE_MODEL, 'en', 'ja')).toBe(true);
+    // Live Translate: a source outside its 78 cannot be the participant's target, so Both is refused (D20).
+    expect(reverses(TRANSLATE_MODEL, 'as', 'en')).toBe(false);
+    expect(reverses(DIALOGUE_MODEL, 'as', 'en')).toBe(true);
+    // Javanese, Live Translate's own: a source and a target of it, none of a dialogue model.
+    expect(reverses(TRANSLATE_MODEL, 'en', 'jv')).toBe(true);
+    expect(values(GEMINI_DIALOGUE_LANGUAGES)).not.toContain('jv');
+  });
+
+  it("let a stored side the offer does not hold take initial's — any pair saved before the rebuild — and keep one it holds; nothing converted (Gemini/AST2 follow-up, choice 17)", () => {
+    const migrate = (s: typeof GEMINI_DEFAULTS, source: string, target: string) => geminiLanguages.migratePair!({ source, target }, s);
+    expect(migrate(GEMINI_DEFAULTS, 'en-US', 'ja-JP')).toEqual({ source: '', target: '' });
+    expect(migrate(GEMINI_DEFAULTS, 'pt-BR', 'cmn-CN')).toEqual({ source: 'pt-BR', target: '' });
+    expect(migrate(GEMINI_DEFAULTS, 'zh-Hant', 'pt-PT')).toEqual({ source: 'zh-Hant', target: 'pt-PT' });
+    // Faroese: a dialogue model's target, not Live Translate's.
+    expect(migrate(DIALOGUE_MODEL, 'en', 'fo')).toEqual({ source: 'en', target: 'fo' });
+    expect(migrate(TRANSLATE_MODEL, 'en', 'fo')).toEqual({ source: 'en', target: '' });
+    expect(migrate(GEMINI_DEFAULTS, '', '')).toEqual({ source: '', target: '' });
+  });
+
+  it("name a code in English — Google's name — for the instructions' template, and fall back to the code", () => {
+    expect(geminiLanguageName('ja')).toBe('Japanese');
+    expect(geminiLanguageName('zh-Hant')).toBe('Chinese (Traditional)');
+    expect(geminiLanguageName('pt-PT')).toBe('Portuguese (Portugal)');
+    expect(geminiLanguageName('jv')).toBe('Javanese');
+    expect(geminiLanguageName('xx')).toBe('xx');
   });
 
   it('offer the old 30 prebuilt voices, Aoede first', () => {
@@ -117,14 +180,6 @@ describe("Gemini's models", () => {
     expect(isGeminiTranslateModel('gemini-2.5-flash-native-audio-latest')).toBe(false);
     expect(isGeminiTranslateModel('gemini-translate-text-preview')).toBe(false);
     expect(isGeminiTranslateModel('')).toBe(false);
-  });
-
-  it("reduce a target to Live Translate's short code, Mandarin to zh (`geminiTranslateModel.test.ts:47-70`)", () => {
-    expect(toTranslationLanguageCode('ja-JP')).toBe('ja');
-    expect(toTranslationLanguageCode('en-US')).toBe('en');
-    expect(toTranslationLanguageCode('pt-BR')).toBe('pt');
-    expect(toTranslationLanguageCode('ar-XA')).toBe('ar');
-    expect(toTranslationLanguageCode('cmn-CN')).toBe('zh');
   });
 
   it('keep the Live models by the old rule: audio or live in the id, never transcribe (`GeminiClient.test.ts:963-993`)', () => {
