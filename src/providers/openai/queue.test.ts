@@ -66,14 +66,18 @@ describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
   });
 
   it("puts a request refused because a response was active back at the head: the server's detection answered first", () => {
-    const { q, sent } = queue();
+    const { q, clock, sent } = queue();
     q.push(text(1));
     // The server's own response was created before ours arrived; ours is refused, naming it.
     q.created('resp_vad', undefined);
     q.push(text(2));
+    clock.advance(700);
     q.refused('sokuji_1', ACTIVE_RESPONSE);
     expect(sent).toHaveLength(1);
+    clock.advance(300);
     q.done('resp_vad');
+    // The re-ask's waitedMs counts from the first push, not reset when it went back to the head.
+    expect(sent[1]).toEqual({ request: text(1), eventId: 'sokuji_2', waitedMs: 1_000 });
     expect(sent.map((e) => [e.request, e.eventId])).toEqual([[text(1), 'sokuji_1'], [text(1), 'sokuji_2']]);
     q.created('resp_1', 'sokuji_2');
     q.done('resp_1');
@@ -103,11 +107,13 @@ describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
     expect(sent.map((e) => e.request)).toEqual([TURN, text(1)]);
   });
 
-  it('sends nothing after stop', () => {
+  it('sends nothing after stop, including a refusal of the request asked before it that arrives late', () => {
     const { q, sent } = queue();
     q.push(TURN);
     q.push(text(1));
     q.stop();
+    // A refusal that would normally put the request back at the head must not reach `send` after stop.
+    q.refused('sokuji_1', ACTIVE_RESPONSE);
     q.done('resp_1');
     q.push(text(2));
     expect(sent).toHaveLength(1);
@@ -175,7 +181,11 @@ describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
       for (let step = 0; step < 80; step++) {
         const r = random();
         if (r < 0.25) {
-          const request = random() < 0.5 ? TURN : text(step);
+          // A fresh object each time (not the shared TURN): two turns are
+          // otherwise indistinguishable by value, so a mutant that answers
+          // the wrong one — losing one turn while duplicating another —
+          // would still pass a value comparison.
+          const request: Request = random() < 0.5 ? { kind: 'turn' } : text(step);
           pushed.push(request);
           q.push(request);
         } else if (r < 0.4) detect();
@@ -188,7 +198,10 @@ describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
         while (outbox.length > 0) outbox.shift()!();
         end();
       }
-      expect(answered, `seed ${seed}`).toEqual(pushed);
+      // By identity, not just by value: a lost turn papered over by a
+      // duplicated one elsewhere must not read as "the same sequence".
+      expect(answered.length, `seed ${seed}`).toBe(pushed.length);
+      expect(answered.every((a, i) => a === pushed[i]), `seed ${seed}`).toBe(true);
       expect(q.busy, `seed ${seed}`).toBe(false);
     }
   });

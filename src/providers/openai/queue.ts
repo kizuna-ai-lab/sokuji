@@ -16,7 +16,15 @@
  *   response ends; any other refusal naming it, or one naming nothing,
  *   drops it: it could not go up. The end of an in-band response clears it
  *   too: the server answers a `response.create` at once, so by then it was
- *   created or refused.
+ *   created or refused — assuming a `response.create` reaches the server
+ *   before the in-band response already in progress ends (ruling 8; choice
+ *   10). Outside that assumption — two server-started responses beginning
+ *   and ending within one round trip of ours, improbable with
+ *   `interrupt_response: false` — a request can be lost: refused for the
+ *   first, but its refusal arrives only after the second's `done` already
+ *   cleared `asked`. Clearing on `done` unconditionally is kept anyway: it
+ *   self-heals a request that would otherwise wait forever for an answer
+ *   that already came and went.
  * - `active`: the in-band response in progress — the adapter's, or one the
  *   server's own detection created (`create_response: true`).
  */
