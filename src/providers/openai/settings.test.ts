@@ -121,7 +121,11 @@ describe("OpenAI Realtime's settings", () => {
   it('sends reasoning to a gpt-realtime-2* model only', () => {
     expect(takesReasoning('gpt-realtime-2.1-mini')).toBe(true);
     expect(takesReasoning('gpt-realtime-2')).toBe(true);
+    expect(takesReasoning('gpt-realtime-2.1')).toBe(true);
     expect(takesReasoning('gpt-realtime-mini')).toBe(false);
     expect(takesReasoning('gpt-realtime-1.5')).toBe(false);
+    expect(takesReasoning('gpt-realtime')).toBe(false);
+    // A dated 1.0 snapshot: the four-digit year is not a 2.x minor version.
+    expect(takesReasoning('gpt-realtime-2025-08-28')).toBe(false);
   });
 });

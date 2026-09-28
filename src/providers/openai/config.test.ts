@@ -45,6 +45,8 @@ describe("OpenAI Realtime's builder", () => {
       turnDetection: { type: 'semantic_vad', eagerness: 'low' },
     });
     expect(participant).not.toHaveProperty('voice');
+    // The mechanism and knobs are the user's own setting, not forced by the leg: the default (Normal/server VAD) reaches the participant untouched.
+    expect(build({}, PARTICIPANT).turnDetection).toEqual({ type: 'server_vad', threshold: 0.49, prefixPaddingMs: 500, silenceDurationMs: 500 });
     expect(build(s).instructions).toBe('Mine.');
     // Its switch on: it speaks, in the same voice (ruling 15).
     expect(build(s, { ...PARTICIPANT, speech: true })).toMatchObject({ modalities: ['audio'], voice: 'alloy' });

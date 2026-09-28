@@ -74,7 +74,7 @@ export function buildRealtime(context: SessionContext, s: RealtimeSettings, shar
     instructions,
     modalities: context.speech ? ['audio'] : ['text'],
     ...(context.speech ? { voice: s.voice || REALTIME_DEFAULT_VOICE } : {}),
-    // A non-finite count reads as unlimited, the default (Stage 2 Gemini's fix round 1).
+    // Every knob falls back to its default on a value that is not a finite number; maxTokens' default is 'inf' (unlimited).
     maxTokens: s.maxTokens === 'inf' || !Number.isFinite(s.maxTokens) ? 'inf' : Math.round(clamp(s.maxTokens, REALTIME_MAX_TOKENS_RANGE, REALTIME_MAX_TOKENS_RANGE.max)),
     turnDetection,
     transcription: buildTranscriptionHint(s.transcriptModel, source, s.transcriptKeywords),

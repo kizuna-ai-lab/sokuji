@@ -276,7 +276,16 @@ export function effectiveRealtimeModel(s: Pick<RealtimeSettings, 'model'>, model
   return models[0]?.id ?? s.model;
 }
 
-/** Only `gpt-realtime-2*` takes `reasoning.effort`; older models refuse it (`openAIRealtimeSession.ts:106-108`). */
+/**
+ * Only `gpt-realtime-2*` takes `reasoning.effort`; older models refuse it
+ * (`openAIRealtimeSession.ts:106-108`). A dated 1.0 snapshot such as
+ * `gpt-realtime-2025-08-28` is not itself a 2.x model — its next segment is
+ * a four-digit year, not a minor version — so the leading number must read
+ * as a plausible major version, not a year.
+ */
 export function takesReasoning(model: string): boolean {
-  return model.startsWith('gpt-realtime-2');
+  const match = /^gpt-realtime-(\d+)(?:\.\d+)?(?:-|$)/.exec(model);
+  if (!match) return false;
+  const major = Number(match[1]);
+  return major >= 2 && major < 1000;
 }
