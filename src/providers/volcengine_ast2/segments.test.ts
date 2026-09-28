@@ -196,6 +196,14 @@ describe("Doubao's spoken sentences, named by their server times (Gemini/AST2 fo
     expect(emitted().filter((e) => e.kind === 'speechRanges')).toEqual([]);
   });
 
+  it('requires the times to match exactly: one millisecond off names no translation, and the sentence falls back to the lock (review M1)', () => {
+    const { segments } = setup();
+    segments.subtitle('translation', 'start', '', T2);
+    segments.subtitle('translation', 'end', TEXT, T2);
+    const nearMiss = segments.sentence({ startTime: 1_940, endTime: 4_501 });
+    expect(segments.clipFor(nearMiss)).toEqual({ ref: 1, matched: false });
+  });
+
   it('a clip emitted before its subtitle is final plays rangeless, and takes its range by speechRanges at the close (Gemini/AST2 follow-up, choice 4)', () => {
     const { segments, emitted } = setup();
     segments.subtitle('translation', 'start', '', T2);

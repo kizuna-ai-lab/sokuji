@@ -6,8 +6,9 @@
  * translation and range are asked for when the clip is emitted, after its
  * decode (Gemini/AST2 follow-up, choices 2, 4): the translation its times
  * name, else the lock's; the whole translation's range when the times named
- * it and its text is final, else none — replay only. Decodes run one after
- * another, so clips arrive in order; the old client's two races are not
+ * it and its text is final, else none now — ranged at the close when
+ * matched, else replay only. Decodes run one after another, so clips
+ * arrive in order; the old client's two races are not
  * ported: it read its lock after the decode's `await`, and let decodes
  * overtake (survey §1.18.2). The lock is read at the start here; only the
  * times, which name one subtitle whatever opened since, wait for the
