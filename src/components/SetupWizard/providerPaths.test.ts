@@ -25,7 +25,7 @@ describe('providerPaths', () => {
   });
 
   it("lists the registered own-key providers in registry order, in the old enum's spelling", () => {
-    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'volcengine_ast2', 'soniox', 'fake']);
+    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'volcengine_ast2', 'openai_translate', 'soniox', 'fake']);
   });
 
   it("judges a provider's fit from its speech", () => {
@@ -35,6 +35,8 @@ describe('providerPaths', () => {
 
     const text = Object.fromEntries(ownKeyOptions('subtitle-myself').map((o) => [o.id, o.fit]));
     expect(text[Provider.SONIOX]).toEqual({ ok: true });
+    // OpenAI Translate offers Text only now (Stage 2 OpenAI Translate, ruling 4): the subtitles-only scenario no longer greys it.
+    expect(text[Provider.OPENAI_TRANSLATE]).toEqual({ ok: true });
   });
 
   it("judges the managed card's fit from the definition's speech", () => {

@@ -64,10 +64,9 @@ describe('the Doubao AST 2.0 definition', () => {
     expect(volcengineAst2Provider.turns(AST2_DEFAULTS)).toEqual(['auto', 'manual']);
   });
 
-  it('sits after Gemini and before Soniox (ruling 5)', () => {
+  it('sits after Gemini (ruling 5)', () => {
     const ids = PROVIDERS.map((p) => p.id);
     expect(ids.indexOf('volcengine_ast2')).toBe(ids.indexOf('gemini') + 1);
-    expect(ids.indexOf('volcengine_ast2')).toBe(ids.indexOf('soniox') - 1);
   });
 
   it('lets the participant speak when its switch is on, speech to speech on the reversed pair (ruling 4)', () => {
