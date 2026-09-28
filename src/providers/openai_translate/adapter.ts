@@ -321,10 +321,20 @@ class TranslateLeg implements AdapterSession {
     if (this.phase === 'live') this.events.degraded({ code: 'parse_error', message: `A message from OpenAI could not be read: ${describeCause(error)}`, cause: error });
   }
 
-  /** The last mid-session error, when the close follows it within `ERROR_WORDS_MS` (ruling 3). */
+  /**
+   * The last mid-session error, when the close follows it within
+   * `ERROR_WORDS_MS` (ruling 3; choice 9). A negative age — the wall clock
+   * stepped backwards after the error — is not recent either: it must not
+   * revive a stale error's words for a close it never caused (the same
+   * `Date.now()` failure class the tail's beat counting was amended to
+   * remove; "Found during execution", item 1).
+   */
   private recentError(): { code: string; message: string } | null {
     const last = this.lastError;
-    if (!last || this.request.clock.now() - last.at > ERROR_WORDS_MS) return null;
+    if (!last) return null;
+    const now = this.request.clock.now();
+    const age = now - last.at;
+    if (age < 0 || age > ERROR_WORDS_MS) return null;
     return { code: last.code, message: last.message };
   }
 

@@ -477,6 +477,18 @@ describe('the OpenAI Translate adapter: failures and stop', () => {
     expect(quota.of('closed')).toEqual([]);
   });
 
+  it('a wall clock stepped backwards after a mid-session error does not revive its words for a later close (ruling 3; choice 9)', async () => {
+    const h = await liveTranslate();
+    h.socket().receive(SERVER.error({ code: 'invalid_api_key', message: 'Incorrect API key provided.' }));
+    // The system clock jumps back an hour: a raw `now() - at` reads negative,
+    // which must not make this hour-old error word a close it never caused.
+    const realNow = h.clock.now;
+    h.clock.now = () => realNow() - 3_600_000;
+    h.socket().serverClose(1006, '');
+    await flush();
+    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: 'The connection to OpenAI closed (1006).' }]);
+  });
+
   it('an unexpected close fails with connection_lost, once; a socket error alone is a Logs line (ruling 13)', async () => {
     const h = await liveTranslate();
     h.socket().onerror?.call(h.socket(), new Event('error'));
