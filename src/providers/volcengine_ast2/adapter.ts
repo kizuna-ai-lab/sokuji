@@ -4,10 +4,12 @@
  * compiled until the deletion plan) without its display bookkeeping: items,
  * ids and the punctuation lane are L1's and L2's now. One protobuf socket
  * per leg, its credentials in the URL's query (ruling 2); subtitles become
- * segments (`segments.ts`), spoken sentences rangeless audio (`speech.ts`),
- * and what goes up is resampled and paced (`audioIn.ts`). Every timer reads
- * the request's clock, and nothing is said but through events (CLAUDE.md,
- * "Inside an IClient session").
+ * segments (`segments.ts`), spoken sentences audio (`speech.ts`) — each
+ * clip ranged over the whole translation its server times name, once that
+ * text is final (Gemini/AST2 follow-up, ruling 1) — and what goes up is
+ * resampled and paced (`audioIn.ts`). Every timer reads the request's
+ * clock, and nothing is said but through events (CLAUDE.md, "Inside an
+ * IClient session").
  */
 import {
   AdapterStartError,
@@ -23,7 +25,7 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import { IDLE_MS, InputPacer, KEEPALIVE_MS, PACKET_SAMPLES, TAIL_MS } from './audioIn';
 import type { Ast2Config } from './config';
 import { decodeOggOpus } from './decode';
-import { Ast2Segments, type SubtitlePhase } from './segments';
+import { Ast2Segments, type Clip, type Sentence, type SubtitlePhase } from './segments';
 import type { Ast2Credentials } from './settings';
 import { nativeSocket, WS_OPEN, type OpenSocket } from './socket';
 import { Ast2Speech, type OggDecoder } from './speech';
@@ -105,7 +107,7 @@ class Ast2Leg implements AdapterSession {
   ) {
     this.ids = { session: deps.newId(), connection: deps.newId() };
     this.segments = new Ast2Segments(events);
-    this.speech = request.config.mode === 's2s' ? new Ast2Speech(deps.decode, events) : null;
+    this.speech = request.config.mode === 's2s' ? new Ast2Speech(deps.decode, events, (sentence) => this.clip(sentence)) : null;
     this.socket = deps.openSocket(ast2Url(request.credentials));
     this.socket.binaryType = 'arraybuffer';
     this.opening = new Promise<AdapterSession>((resolve, reject) => {
@@ -250,7 +252,7 @@ class Ast2Leg implements AdapterSession {
 
   /** One subtitle, with what pairing may need later framed beside it (ruling 11): the Sequence and both times. */
   private subtitle(side: Side, phase: SubtitlePhase, r: Ast2Response, sequence: number): void {
-    const ref = this.phase === 'live' ? this.segments.subtitle(side, phase, r.text) : null;
+    const ref = this.phase === 'live' ? this.segments.subtitle(side, phase, r.text, { startTime: r.startTime, endTime: r.endTime }) : null;
     this.frame('in', `subtitle.${side}`, { phase, ref, text: r.text, startTime: r.startTime, endTime: r.endTime, sequence, spkChg: r.spkChg });
   }
 
@@ -260,10 +262,11 @@ class Ast2Leg implements AdapterSession {
     if (r.event === EventType.TTSResponse) {
       speech.chunk(r.data);
     } else if (r.event === EventType.TTSSentenceStart) {
-      const ref = this.segments.speechRef();
-      speech.sentenceStart(ref);
-      // The locked ref, shown or not: the live test reads here whether the sentence's translation was ever shown.
-      this.frame('in', 'tts.sentence_start', { ref: ref ?? null, sequence });
+      const sentence = this.segments.sentence({ startTime: r.startTime, endTime: r.endTime });
+      speech.sentenceStart(sentence);
+      // The locked ref, shown or not, and the sentence's times: the live test reads here whether the sentence's
+      // translation was ever shown, and which translation's times it carries (Gemini/AST2 follow-up, choice 5).
+      this.frame('in', 'tts.sentence_start', { ref: sentence.lock ?? null, startTime: r.startTime, endTime: r.endTime, sequence });
     } else {
       this.frame('in', r.event === EventType.TTSSentenceEnd ? 'tts.sentence_end' : 'tts.ended', { ...speech.flush(), sequence });
     }
@@ -359,6 +362,13 @@ class Ast2Leg implements AdapterSession {
     socket.onerror = null;
     socket.onclose = null;
     if (socket.readyState <= WS_OPEN) socket.close(1000);
+  }
+
+  /** A decoded clip's translation and range, resolved as it goes to L1, and framed: the live test reads how often the times named the translation, and which row each clip took (Gemini/AST2 follow-up, choices 2, 5). */
+  private clip(sentence: Sentence): Clip | undefined {
+    const clip = this.segments.clipFor(sentence);
+    this.frame('in', 'tts.clip', { ref: clip?.ref ?? null, matched: clip?.matched ?? false, range: clip?.range ?? null });
+    return clip;
   }
 
   private frame(direction: 'in' | 'out', type: string, payload?: Record<string, unknown>): void {

@@ -58,6 +58,8 @@ export function serverFrame(r: proto.speech.ast.ITranslateResponse): ArrayBuffer
 }
 
 type Meta = { session?: string; sequence?: number; status?: number; message?: string };
+/** A frame's server times, as a subtitle's `Start` and `End` and a TTS sentence's `Start` and `End` carry them (the owner's probe, 2026-09-28). */
+type Times = { startTime?: number; endTime?: number };
 const meta = (m: Meta = {}) => ({ SessionID: m.session ?? SESSION_ID, Sequence: m.sequence ?? 0, StatusCode: m.status ?? OK_STATUS, ...(m.message ? { Message: m.message } : {}) });
 const SUBTITLE = {
   source: { start: EventType.SourceSubtitleStart, response: EventType.SourceSubtitleResponse, end: EventType.SourceSubtitleEnd },
@@ -67,11 +69,11 @@ const SUBTITLE = {
 /** The server frames the suites send, by name. */
 export const SERVER = {
   started: (m?: Meta) => serverFrame({ responseMeta: meta(m), event: EventType.SessionStarted }),
-  subtitle: (side: 'source' | 'translation', phase: 'start' | 'response' | 'end', text = '', m?: Meta & { startTime?: number; endTime?: number }) =>
+  subtitle: (side: 'source' | 'translation', phase: 'start' | 'response' | 'end', text = '', m?: Meta & Times) =>
     serverFrame({ responseMeta: meta(m), event: SUBTITLE[side][phase], text, startTime: m?.startTime ?? 0, endTime: m?.endTime ?? 0 }),
-  ttsStart: (m?: Meta) => serverFrame({ responseMeta: meta(m), event: EventType.TTSSentenceStart }),
+  ttsStart: (m?: Meta & Times) => serverFrame({ responseMeta: meta(m), event: EventType.TTSSentenceStart, startTime: m?.startTime ?? 0, endTime: m?.endTime ?? 0 }),
   ttsChunk: (bytes = 64, fill = 7, m?: Meta) => serverFrame({ responseMeta: meta(m), event: EventType.TTSResponse, data: new Uint8Array(bytes).fill(fill) }),
-  ttsEnd: (m?: Meta) => serverFrame({ responseMeta: meta(m), event: EventType.TTSSentenceEnd }),
+  ttsEnd: (m?: Meta & Times) => serverFrame({ responseMeta: meta(m), event: EventType.TTSSentenceEnd, startTime: m?.startTime ?? 0, endTime: m?.endTime ?? 0 }),
   ttsEnded: (m?: Meta) => serverFrame({ responseMeta: meta(m), event: EventType.TTSEnded }),
   /** A refusal: a status other than OK, on any event. */
   status: (status: number, message: string, event = EventType.None) => serverFrame({ responseMeta: meta({ status, message }), event }),

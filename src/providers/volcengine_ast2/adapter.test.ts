@@ -42,10 +42,11 @@ function harness(): AdapterHarness<Ast2Config, Ast2Credentials> {
       reply(() => SERVER.subtitle('source', 'start')),
       reply(() => SERVER.subtitle('source', 'response', '你好')),
       reply(() => SERVER.subtitle('source', 'end', '你好。')),
-      reply(() => SERVER.subtitle('translation', 'start')),
+      // The translation's times on its Start and End, and its spoken sentence carrying them: the clip is ranged, so the kit checks the range (Gemini/AST2 follow-up, ruling 1).
+      reply(() => SERVER.subtitle('translation', 'start', '', { startTime: 20, endTime: 1_460 })),
       reply(() => SERVER.subtitle('translation', 'response', 'Hello')),
-      reply(() => SERVER.subtitle('translation', 'end', 'Hello.')),
-      reply(() => SERVER.ttsStart()),
+      reply(() => SERVER.subtitle('translation', 'end', 'Hello.', { startTime: 20, endTime: 1_460 })),
+      reply(() => SERVER.ttsStart({ startTime: 20, endTime: 1_460 })),
       reply(() => SERVER.ttsChunk(96)),
       reply(() => SERVER.ttsEnd()),
     ],
@@ -361,11 +362,13 @@ describe('the Doubao AST 2.0 adapter: what comes down', () => {
     h.socket().receive(SERVER.ttsEnd({ sequence: 5 }));
     await flush();
     expect(h.of('audio').map((e) => e.payload)).toEqual([{ pcm: new Int16Array(64), ref: 1 }]);
-    expect(h.frames('tts.sentence_start')).toEqual([{ ref: 1, sequence: 5 }]);
+    // No times in these frames: the lock gives the ref, and the clip stays rangeless (Gemini/AST2 follow-up, choice 2).
+    expect(h.frames('tts.sentence_start')).toEqual([{ ref: 1, startTime: 0, endTime: 0, sequence: 5 }]);
     expect(h.frames('tts.sentence_end')).toEqual([{ chunks: 2, bytes: 64, sequence: 5 }]);
-    // The hot-path rule: no frame per TTSResponse chunk, and none for a frame with no event.
+    expect(h.frames('tts.clip')).toEqual([{ ref: 1, matched: false, range: null }]);
+    // The hot-path rule: no frame per TTSResponse chunk, and none for a frame with no event; one per clip, as it goes to L1.
     expect(h.of('frame').filter((f) => f.payload.direction === 'in').map((f) => f.payload.type)).toEqual([
-      'session.started', 'subtitle.translation', 'tts.sentence_start', 'subtitle.translation', 'subtitle.translation', 'tts.sentence_end',
+      'session.started', 'subtitle.translation', 'tts.sentence_start', 'subtitle.translation', 'subtitle.translation', 'tts.sentence_end', 'tts.clip',
     ]);
   });
 
@@ -385,7 +388,7 @@ describe('the Doubao AST 2.0 adapter: what comes down', () => {
     h.socket().receive(SERVER.ttsEnd());
     await flush();
     fold();
-    expect(h.frames('tts.sentence_start')).toEqual([{ ref: 2, sequence: 0 }]);
+    expect(h.frames('tts.sentence_start')).toEqual([{ ref: 2, startTime: 0, endTime: 0, sequence: 0 }]);
     expect(h.of('audio').map((e) => e.payload.ref)).toEqual([2]);
     // L1 holds the clip until the segment opens.
     h.socket().receive(SERVER.subtitle('translation', 'response', 'How are you?'));
@@ -394,6 +397,99 @@ describe('the Doubao AST 2.0 adapter: what comes down', () => {
     const translations = conv.snapshot().segments.filter((s) => s.side === 'translation');
     expect(translations.map((s) => [s.text, s.speech.length])).toEqual([['Hello.', 0], ['How are you?', 1]]);
     expect(translations[1].speech[0].pcm).toHaveLength(64);
+  });
+
+  it("voices each translation by the server times its sentence carries: the clip spans the whole final subtitle, stated (Gemini/AST2 follow-up, ruling 1)", async () => {
+    const waiting: Array<() => void> = [];
+    const decode: OggDecoder = (ogg) => new Promise((resolve) => { waiting.push(() => resolve(new Int16Array(ogg.length))); });
+    const h = await liveAst2({ decode });
+    const conv = new Conversation({ leg: 'speaker', session: 'ast2', languages: AUTO_CTX.direction, clock: h.clock });
+    let folded = 0;
+    const fold = () => {
+      for (const e of h.log.slice(folded)) if (e.kind !== 'frame') conv.apply(e);
+      folded = h.log.length;
+    };
+    // The owner's probe, zh → en: T1 ends before S1 starts.
+    const T1 = { startTime: 20, endTime: 1_460 };
+    h.socket().receive(SERVER.subtitle('translation', 'start', '', T1));
+    for (const piece of ['W', 'ing', ' uses', ' real', '-time', ' translation', ' ']) h.socket().receive(SERVER.subtitle('translation', 'response', piece));
+    h.socket().receive(SERVER.subtitle('translation', 'end', 'Wing uses real-time translation ', T1));
+    h.socket().receive(SERVER.ttsStart(T1));
+    h.socket().receive(SERVER.ttsChunk(40));
+    h.socket().receive(SERVER.ttsEnd(T1));
+    // S2 starts, and here its clip decodes, before T2 ends (the probe: S2 at 8.72 s, T2's End at 8.86 s).
+    const T2 = { startTime: 1_940, endTime: 4_500 };
+    h.socket().receive(SERVER.subtitle('translation', 'start', '', T2));
+    for (const piece of ['to', ' help', ' you', ' speak', ' more', ' flu', 'ently']) h.socket().receive(SERVER.subtitle('translation', 'response', piece));
+    h.socket().receive(SERVER.ttsStart(T2));
+    h.socket().receive(SERVER.ttsChunk(24));
+    h.socket().receive(SERVER.ttsEnd(T2));
+    await flush();
+    waiting[0]();
+    await flush();
+    waiting[1]();
+    await flush();
+    fold();
+    expect(h.of('audio').map((e) => e.payload)).toEqual([
+      { pcm: new Int16Array(40), ref: 1, range: [0, 32] },
+      // Its text is not final yet: rangeless for now.
+      { pcm: new Int16Array(24), ref: 2 },
+    ]);
+    expect(h.of('speechRanges')).toEqual([]);
+    h.socket().receive(SERVER.subtitle('translation', 'response', '.'));
+    h.socket().receive(SERVER.subtitle('translation', 'response', ' '));
+    h.socket().receive(SERVER.subtitle('translation', 'end', 'to help you speak more fluently. ', T2));
+    fold();
+    expect(h.of('speechRanges').map((e) => e.payload)).toEqual([{ ref: 2, ranges: [{ index: 0, range: [0, 33] }] }]);
+    // The lock at each start, and the times the clip was matched by as it went to L1.
+    expect(h.frames('tts.sentence_start')).toEqual([
+      { ref: 1, ...T1, sequence: 0 },
+      { ref: 2, ...T2, sequence: 0 },
+    ]);
+    expect(h.frames('tts.clip')).toEqual([
+      { ref: 1, matched: true, range: [0, 32] },
+      { ref: 2, matched: true, range: null },
+    ]);
+    // L1 holds both ranges against the texts it shows.
+    const translations = conv.snapshot().segments.filter((s) => s.side === 'translation');
+    expect(translations.map((s) => [s.text, s.speech.map((x) => x.range)])).toEqual([
+      ['Wing uses real-time translation ', [[0, 32]]],
+      ['to help you speak more fluently. ', [[0, 33]]],
+    ]);
+  });
+
+  it('a sentence whose times name no recent translation plays rangeless on the lock, as before', async () => {
+    const h = await liveAst2();
+    h.socket().receive(SERVER.subtitle('translation', 'start', '', { startTime: 20, endTime: 1_460 }));
+    h.socket().receive(SERVER.subtitle('translation', 'end', 'Hello.', { startTime: 20, endTime: 1_460 }));
+    h.socket().receive(SERVER.ttsStart({ startTime: 9_192, endTime: 11_912 }));
+    h.socket().receive(SERVER.ttsChunk(16));
+    h.socket().receive(SERVER.ttsEnd({ startTime: 9_192, endTime: 11_912 }));
+    await flush();
+    expect(h.of('audio').map((e) => e.payload)).toEqual([{ pcm: new Int16Array(16), ref: 1 }]);
+    expect(h.frames('tts.sentence_start')).toEqual([{ ref: 1, startTime: 9_192, endTime: 11_912, sequence: 0 }]);
+    expect(h.frames('tts.clip')).toEqual([{ ref: 1, matched: false, range: null }]);
+    expect(h.of('speechRanges')).toEqual([]);
+  });
+
+  it("matches a sentence's times as its clip goes to L1: a sentence that started before its translation's Start voices that translation, not the lock's (Gemini/AST2 follow-up, choice 2)", async () => {
+    const waiting: Array<() => void> = [];
+    const decode: OggDecoder = (ogg) => new Promise((resolve) => { waiting.push(() => resolve(new Int16Array(ogg.length))); });
+    const h = await liveAst2({ decode });
+    h.socket().receive(SERVER.subtitle('translation', 'start', '', { startTime: 20, endTime: 1_460 }));
+    h.socket().receive(SERVER.subtitle('translation', 'end', 'Hello.', { startTime: 20, endTime: 1_460 }));
+    const T2 = { startTime: 1_940, endTime: 4_500 };
+    h.socket().receive(SERVER.ttsStart(T2));
+    h.socket().receive(SERVER.ttsChunk(24));
+    h.socket().receive(SERVER.ttsEnd(T2));
+    // Its translation starts, and ends, while the clip decodes.
+    h.socket().receive(SERVER.subtitle('translation', 'start', '', T2));
+    h.socket().receive(SERVER.subtitle('translation', 'end', 'How are you?', T2));
+    await flush();
+    waiting[0]();
+    await flush();
+    expect(h.frames('tts.sentence_start')).toEqual([{ ref: 1, ...T2, sequence: 0 }]);
+    expect(h.of('audio').map((e) => e.payload)).toEqual([{ pcm: new Int16Array(24), ref: 2, range: [0, 12] }]);
   });
 
   it('keeps the order and the refs of two sentences whose decodes overlap, and flushes what TTSEnded leaves', async () => {
