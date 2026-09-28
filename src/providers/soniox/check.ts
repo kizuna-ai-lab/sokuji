@@ -6,6 +6,7 @@
  * clock by default.
  */
 import { realClock, type Clock } from '../../lib/contract/clock';
+import { boundedFetch } from '../../lib/provider/boundedFetch';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import { sonioxHosts } from '../../lib/soniox/regions';
 import type { SonioxCredentials, SonioxSettings } from './settings';
@@ -20,21 +21,16 @@ export interface SonioxCheckDeps {
 
 export function createSonioxCheck(deps: SonioxCheckDeps = {}) {
   const clock = deps.clock ?? realClock;
-  return async (k: SonioxCredentials, _s: SonioxSettings, ctx: CheckContext): Promise<CheckResult> => {
-    if (ctx.signal?.aborted) throw ctx.signal.reason ?? new Error('aborted');
+  return (k: SonioxCredentials, _s: SonioxSettings, ctx: CheckContext): Promise<CheckResult> => {
     // Read at call time, so a test's stubbed global is seen.
     const doFetch = deps.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
-    const controller = new AbortController();
-    let timedOut = false;
-    const cancel = clock.setTimeout(() => { timedOut = true; controller.abort(); }, CHECK_TIMEOUT_MS);
-    const onAbort = () => controller.abort(ctx.signal?.reason);
-    ctx.signal?.addEventListener('abort', onAbort, { once: true });
-    try {
+    const late = `Soniox did not answer the key check within ${CHECK_TIMEOUT_MS / 1000} s.`;
+    return boundedFetch({ clock, ms: CHECK_TIMEOUT_MS, signal: ctx.signal, late }, async (signal): Promise<CheckResult> => {
       const response = await doFetch(`https://${sonioxHosts(k.region).api}/v1/auth/temporary-api-key`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${k.stt}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ usage_type: 'transcribe_websocket', expires_in_seconds: 60 }),
-        signal: controller.signal,
+        signal,
       });
       if (response.status === 200 || response.status === 201) return { ok: true };
       if (response.status === 401 || response.status === 403) {
@@ -42,13 +38,7 @@ export function createSonioxCheck(deps: SonioxCheckDeps = {}) {
         return { ok: false, code: 'auth', reason: `HTTP ${response.status}: Soniox did not accept this key for the ${k.region.toUpperCase()} region` };
       }
       throw new Error(`Soniox answered the key check with HTTP ${response.status}.`);
-    } catch (error) {
-      if (timedOut) throw new Error(`Soniox did not answer the key check within ${CHECK_TIMEOUT_MS / 1000} s.`);
-      throw error;
-    } finally {
-      cancel();
-      ctx.signal?.removeEventListener('abort', onAbort);
-    }
+    });
   };
 }
 

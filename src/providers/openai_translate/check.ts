@@ -10,6 +10,7 @@
  * by the adapter, so it may use the real clock by default.
  */
 import { realClock, type Clock } from '../../lib/contract/clock';
+import { boundedFetch } from '../../lib/provider/boundedFetch';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import { isTranslateModelId, type TranslateCredentials, type TranslateSettings } from './settings';
 
@@ -27,17 +28,12 @@ export interface TranslateCheckDeps {
 
 export function createTranslateCheck(deps: TranslateCheckDeps = {}) {
   const clock = deps.clock ?? realClock;
-  return async (k: TranslateCredentials, _s: TranslateSettings, ctx: CheckContext): Promise<CheckResult> => {
-    if (ctx.signal?.aborted) throw ctx.signal.reason ?? new Error('aborted');
+  return (k: TranslateCredentials, _s: TranslateSettings, ctx: CheckContext): Promise<CheckResult> => {
     // Read at call time, so a test's stubbed global is seen.
     const doFetch = deps.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
-    const controller = new AbortController();
-    let timedOut = false;
-    const cancel = clock.setTimeout(() => { timedOut = true; controller.abort(); }, CHECK_TIMEOUT_MS);
-    const onAbort = () => controller.abort(ctx.signal?.reason);
-    ctx.signal?.addEventListener('abort', onAbort, { once: true });
-    try {
-      const response = await doFetch(OPENAI_MODELS_URL, { method: 'GET', headers: { Authorization: `Bearer ${k.apiKey}` }, signal: controller.signal });
+    const late = `OpenAI did not answer the model list within ${CHECK_TIMEOUT_MS / 1000} s.`;
+    return boundedFetch({ clock, ms: CHECK_TIMEOUT_MS, signal: ctx.signal, late }, async (signal): Promise<CheckResult> => {
+      const response = await doFetch(OPENAI_MODELS_URL, { method: 'GET', headers: { Authorization: `Bearer ${k.apiKey}` }, signal });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as ErrorBody;
         const said = typeof body.error?.message === 'string' && body.error.message ? body.error.message : 'OpenAI did not accept this key.';
@@ -57,13 +53,7 @@ export function createTranslateCheck(deps: TranslateCheckDeps = {}) {
       const ids = [...new Set(models.map((m) => m.id))];
       if (ids.length === 0) return { ok: false, code: 'no_translate_model', reason: 'This key lists no gpt-realtime-translate model.' };
       return { ok: true, models: ids.map((id) => ({ id })) };
-    } catch (error) {
-      if (timedOut) throw new Error(`OpenAI did not answer the model list within ${CHECK_TIMEOUT_MS / 1000} s.`);
-      throw error;
-    } finally {
-      cancel();
-      ctx.signal?.removeEventListener('abort', onAbort);
-    }
+    });
   };
 }
 

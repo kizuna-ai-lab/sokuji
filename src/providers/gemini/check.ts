@@ -8,6 +8,7 @@
  * reached by the adapter, so it may use the real clock by default.
  */
 import { realClock, type Clock } from '../../lib/contract/clock';
+import { boundedFetch } from '../../lib/provider/boundedFetch';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import { isGeminiLiveModel, sortGeminiModels, type GeminiCredentials, type GeminiSettings } from './settings';
 
@@ -26,21 +27,16 @@ export interface GeminiCheckDeps {
 
 export function createGeminiCheck(deps: GeminiCheckDeps = {}) {
   const clock = deps.clock ?? realClock;
-  return async (k: GeminiCredentials, _s: GeminiSettings, ctx: CheckContext): Promise<CheckResult> => {
-    if (ctx.signal?.aborted) throw ctx.signal.reason ?? new Error('aborted');
+  return (k: GeminiCredentials, _s: GeminiSettings, ctx: CheckContext): Promise<CheckResult> => {
     // Read at call time, so a test's stubbed global is seen.
     const doFetch = deps.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
-    const controller = new AbortController();
-    let timedOut = false;
-    const cancel = clock.setTimeout(() => { timedOut = true; controller.abort(); }, CHECK_TIMEOUT_MS);
-    const onAbort = () => controller.abort(ctx.signal?.reason);
-    ctx.signal?.addEventListener('abort', onAbort, { once: true });
-    try {
+    const late = `Gemini did not answer the model list within ${CHECK_TIMEOUT_MS / 1000} s.`;
+    return boundedFetch({ clock, ms: CHECK_TIMEOUT_MS, signal: ctx.signal, late }, async (signal): Promise<CheckResult> => {
       const names: string[] = [];
       let token: string | undefined;
       for (let page = 0; page < MAX_MODEL_PAGES; page++) {
         const url = token ? `${GEMINI_MODELS_URL}?pageToken=${encodeURIComponent(token)}` : GEMINI_MODELS_URL;
-        const response = await doFetch(url, { method: 'GET', headers: { 'x-goog-api-key': k.apiKey }, signal: controller.signal });
+        const response = await doFetch(url, { method: 'GET', headers: { 'x-goog-api-key': k.apiKey }, signal });
         if (response.status === 400 || response.status === 401 || response.status === 403) {
           // Google answers a bad key with 400 INVALID_ARGUMENT and its own sentence, which `notices.auth` shows as the detail.
           const body = (await response.json().catch(() => ({}))) as { error?: { message?: unknown } };
@@ -57,13 +53,7 @@ export function createGeminiCheck(deps: GeminiCheckDeps = {}) {
       const live = sortGeminiModels([...new Set(names)].filter(isGeminiLiveModel));
       if (live.length === 0) return { ok: false, code: 'no_realtime_model', reason: 'This key lists no Gemini Live model.' };
       return { ok: true, models: live.map((id) => ({ id })) };
-    } catch (error) {
-      if (timedOut) throw new Error(`Gemini did not answer the model list within ${CHECK_TIMEOUT_MS / 1000} s.`);
-      throw error;
-    } finally {
-      cancel();
-      ctx.signal?.removeEventListener('abort', onAbort);
-    }
+    });
   };
 }
 
