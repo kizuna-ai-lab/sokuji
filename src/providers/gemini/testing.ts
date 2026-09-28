@@ -20,6 +20,14 @@ export const DIALOGUE = 'gemini-2.5-flash-native-audio-preview-12-2025';
 export const TRANSLATE = 'gemini-3.5-live-translate-preview';
 /** Shaped as a real key (`AIza…`), which `redact()` masks: a frame that carried it fails the kit's `frame-secret` rule. */
 export const KEY: GeminiCredentials = { apiKey: 'AIzaTestKey0123456789' };
+
+/** A browser that will not open the socket, as Chromium refuses one: a DOMException named SyntaxError, the URL with its key in the message. Stubbed as the global `WebSocket`. */
+export class RefusingWebSocket {
+  constructor(url: string) {
+    throw new DOMException(`Failed to construct 'WebSocket': The URL '${url}' is invalid.`, 'SyntaxError');
+  }
+}
+
 export const SHARED: SharedSettings = {
   pauses: { sourceSeconds: 1.5, translationSeconds: 1.5 },
   reversed: (d) => d.source === 'ja-JP' && d.target === 'en-US',

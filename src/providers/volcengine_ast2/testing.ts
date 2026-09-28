@@ -23,6 +23,13 @@ export const APP_KEY: Ast2Credentials = { kind: 'app', appKey: '1234567890', acc
 /** The new console's, shaped as `redact()`'s `key-…`. */
 export const API_KEY: Ast2Credentials = { kind: 'apiKey', apiKey: 'key-ast2api0123456789' };
 
+/** A browser that will not open the socket, as Chromium refuses one: a DOMException named SyntaxError, the URL with its credentials in the message. Stubbed as the global `WebSocket`. */
+export class RefusingWebSocket {
+  constructor(url: string) {
+    throw new DOMException(`Failed to construct 'WebSocket': The URL '${url}' is invalid.`, 'SyntaxError');
+  }
+}
+
 /** Ids in the order a start asks for them: its session's, then its connection's. */
 export function counterIds(): () => string {
   let n = 0;

@@ -18,7 +18,7 @@ import { IDLE_MS, KEEPALIVE_MS } from './audioIn';
 import type { Ast2Config } from './config';
 import type { Ast2Credentials } from './settings';
 import type { OggDecoder } from './speech';
-import { API_KEY, APP_KEY, AUTO_CTX, configFor, counterIds, liveAst2, pcmOf, SERVER, startAst2 } from './testing';
+import { API_KEY, APP_KEY, AUTO_CTX, configFor, counterIds, liveAst2, pcmOf, RefusingWebSocket, SERVER, startAst2 } from './testing';
 import { ast2Url, EventType, OFFLINE, REFUSED_UPGRADE } from './wire';
 
 const MANUAL = { ...AUTO_CTX, turns: 'manual' as const };
@@ -224,6 +224,25 @@ describe('the Doubao AST 2.0 adapter: opening', () => {
       expect((error as Error).message).not.toContain(secret);
     }
     expect(log).toEqual([]);
+  });
+
+  it("through the app's own socket, a browser's refusal still reads as the browser's error name, and nothing is opened or said", async () => {
+    vi.stubGlobal('WebSocket', RefusingWebSocket);
+    try {
+      const { events, log } = recordEvents();
+      // No opener injected: the seam the app uses, reading the stubbed global.
+      const starting = createAst2Adapter({ decode: async (ogg) => new Int16Array(ogg.length), newId: counterIds(), online: () => true }).start(
+        { context: AUTO_CTX, config: configFor(), credentials: API_KEY, clock: createVirtualClock(0), signal: new AbortController().signal },
+        events,
+      );
+      const error = await starting.then(() => null, (e: unknown) => e);
+      expect(error).toBeInstanceOf(AdapterStartError);
+      expect(error).toMatchObject({ code: 'network', message: 'The browser would not open the socket (SyntaxError).' });
+      expect((error as AdapterStartError).cause).toBeUndefined();
+      expect(log).toEqual([]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

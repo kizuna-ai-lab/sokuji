@@ -1,8 +1,8 @@
 /**
  * Doubao AST 2.0's readiness (spec: "Readiness is one check"; ruling 9):
  * one real handshake — the socket with the credentials in its query, a
- * text-only `StartSession` for the pair, and on `SessionStarted` a
- * `FinishSession` and the close. No audio is sent. Bounded by
+ * text-only `StartSession` for the pair, and on its own session's
+ * `SessionStarted` a `FinishSession` and the close. No audio is sent. Bounded by
  * `CHECK_TIMEOUT_MS` and the caller's signal; the socket is closed on every
  * path. A browser cannot see the upgrade's 401: a socket that fails before
  * it opens is read as refused credentials, unless the device is offline
@@ -71,8 +71,12 @@ export function createAst2Check(deps: Ast2CheckDeps = {}) {
           return;
         }
         const status = r.responseMeta?.StatusCode ?? 0;
+        const sessionId = r.responseMeta?.SessionID;
         if (!isOk(status)) {
           finish({ result: { ok: false, code: statusFailureCode(status), reason: statusText(status, r.responseMeta?.Message) } });
+        } else if (sessionId && sessionId !== ids.session) {
+          // Another session's answer, dropped as the start drops it (`adapter.ts`): a ✓ here is then a session a start would also see begin.
+          return;
         } else if (r.event === EventType.SessionFailed) {
           finish({ result: { ok: false, code: 'server', reason: statusText(status, r.responseMeta?.Message) } });
         } else if (r.event === EventType.SessionStarted) {

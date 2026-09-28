@@ -5,7 +5,7 @@
  * unreadable frames and stop. On `FakeSocket` and a virtual clock — no
  * network, no fake timers.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { eventsFrom, recordEvents } from '../../lib/contract/events';
@@ -17,7 +17,7 @@ import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/projec
 import { createGeminiAdapter, SETUP_TIMEOUT_MS } from './adapter';
 import type { GeminiConfig } from './config';
 import type { GeminiCredentials } from './settings';
-import { AUTO_CTX, b64, configFor, DIALOGUE, KEY, liveGemini, SERVER, serverFrame, startGemini, TRANSLATE } from './testing';
+import { AUTO_CTX, b64, configFor, DIALOGUE, KEY, liveGemini, RefusingWebSocket, SERVER, serverFrame, startGemini, trackedClock, TRANSLATE } from './testing';
 import { base64ToPcm, liveUrl, setupFrame } from './wire';
 
 const MANUAL = { ...AUTO_CTX, turns: 'manual' as const };
@@ -179,6 +179,25 @@ describe('the Gemini adapter: opening', () => {
     );
     await expect(starting).rejects.toBe(reason);
     expect(sockets.all).toEqual([]);
+  });
+
+  it("through the app's own socket, a browser that will not open it rejects the start in fixed words, never its own, which quote the key", async () => {
+    vi.stubGlobal('WebSocket', RefusingWebSocket);
+    try {
+      const { clock, timers } = trackedClock();
+      const { events, log } = recordEvents();
+      // No opener injected: the seam the app uses, reading the stubbed global.
+      const error = await createGeminiAdapter().start(
+        { context: AUTO_CTX, config: configFor(DIALOGUE), credentials: KEY, clock, signal: new AbortController().signal },
+        events,
+      ).then(() => null, (e: unknown) => e);
+      expect(error).toMatchObject({ message: 'The browser would not open the socket (SyntaxError).' });
+      for (const needle of [liveUrl(KEY.apiKey), KEY.apiKey, 'generativelanguage.googleapis.com']) expect(String(error)).not.toContain(needle);
+      expect(log).toEqual([]);
+      expect(timers()).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

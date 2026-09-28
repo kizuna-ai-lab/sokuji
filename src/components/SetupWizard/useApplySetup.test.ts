@@ -86,6 +86,27 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
     expect(setSetting).toHaveBeenCalledWith('settings.volcengineAST2.apiKey', 'key-1');
   });
 
+  it('Finish writes the credential choice before the credentials, which are the fields it shows', async () => {
+    const { updateSettings, setCredential } = useProviderStore.getState();
+    const spies = { updateSettings: vi.fn(updateSettings), setCredential: vi.fn(setCredential) };
+    useProviderStore.setState(spies);
+    try {
+      const { result } = renderHook(() => useApplySetup());
+
+      await result.current(draft({
+        providerPath: 'own-key', provider: Provider.VOLCENGINE_AST2,
+        credentials: { apiKey: 'key-1' }, credentialChoice: { setting: 'authMode', value: 'apiKey' },
+      }));
+
+      const choiceAt = spies.updateSettings.mock.calls.findIndex(([p, patch]) => p.id === 'volcengine_ast2' && 'authMode' in patch);
+      expect(choiceAt).toBeGreaterThanOrEqual(0);
+      expect(spies.setCredential).toHaveBeenCalledWith(expect.objectContaining({ id: 'volcengine_ast2' }), 'apiKey', 'key-1');
+      expect(spies.updateSettings.mock.invocationCallOrder[choiceAt]).toBeLessThan(Math.min(...spies.setCredential.mock.invocationCallOrder));
+    } finally {
+      useProviderStore.setState({ updateSettings, setCredential });
+    }
+  });
+
   it('writes no setting a provider has no credential choice over', async () => {
     const { result } = renderHook(() => useApplySetup());
 
