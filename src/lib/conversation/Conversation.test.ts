@@ -128,6 +128,28 @@ describe('Conversation — audio', () => {
     expect(conv.snapshot().segments[0].speech[0].range).toBeUndefined();
     expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
   });
+
+  it("after fill-in, re-anchors a range measured against the adapter's own text onto the filled text (Gemini/AST2 follow-up, choice 19)", async () => {
+    const { conv, diagnostics, apply } = make({ languages: { source: 'ja', target: 'zh' }, punctuate: async () => '我来帮你，翻译。' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: '我来帮你翻译' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    expect(conv.snapshot().segments[0].text).toBe('我来帮你，翻译。');
+    // The whole of the adapter's text, [0, 6]: the whole of the filled one.
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 6], pcm: pcm(240) } });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 8], pcm: pcm(240) }]);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("after fill-in, drops a range past the adapter's own text with a diagnostic, keeping the pcm", async () => {
+    const { conv, diagnostics, apply } = make({ punctuate: async () => 'Hello, world.' });
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    await conv.settled();
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 12], pcm: pcm(240) } }); // 12 is past 'hello world' (11), not past the filled text (13)
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: undefined, pcm: pcm(240) }]);
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
 });
 
 describe('Conversation — notices and closing', () => {
@@ -476,12 +498,22 @@ describe('Conversation — retention and clear', () => {
     expect(conv.snapshot().segments[0].text).toBe('still live');
   });
 
-  it('trims pcm held for refs that have not opened when it pushes the leg over the ceiling', () => {
+  it('trims pcm held for refs that have not opened when it pushes the leg over the ceiling, keeping their entries (Gemini/AST2 follow-up, choice 6)', () => {
     const { conv, apply } = make({ retention: { keepPcm: true, maxPcmBytes: 1000 } });
     apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(300) } });   // 600 bytes, pending
-    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(300) } });  // 1200 total: ref 9 is dropped
+    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(300) } });  // 1200 total: ref 9's pcm is dropped
     apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } }, { kind: 'segmentOpened', payload: { ref: 10, side: 'translation' } });
-    expect(conv.snapshot().segments.map((s) => s.speech.length)).toEqual([0, 1]);
+    expect(conv.snapshot().segments.map((s) => s.speech.map((x) => x.pcm.length))).toEqual([[0], [300]]);
+  });
+
+  it('a range stated after the ceiling dropped a held clip\'s pcm still lands on its entry, unsaid', () => {
+    const { conv, apply, diagnostics } = make({ retention: { keepPcm: true, maxPcmBytes: 1000 } });
+    apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(300) } });
+    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(300) } });
+    apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 9, text: 'Hello.' } }, { kind: 'segmentClosed', payload: { ref: 9 } });
+    apply({ kind: 'speechRanges', payload: { ref: 9, ranges: [{ index: 0, range: [0, 6] }] } });
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 6], pcm: new Int16Array(0) }]);
+    expect(diagnostics).toEqual([]);
   });
 
   it('drops pcm held for a ref that never opened when the leg closes', () => {

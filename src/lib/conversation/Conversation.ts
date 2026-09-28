@@ -55,7 +55,7 @@ export class Conversation {
   private readonly indexByRef = new Map<number, number>();
   /** Audio that arrived before its segment opened. */
   private readonly pending = new Map<number, Speech[]>();
-  /** A segment whose text fill-in replaced: the adapter's own text, which a late `speechRanges` is measured against. Deleted when the adapter sends text again. */
+  /** A segment whose text fill-in replaced: the adapter's own text, which a late `speechRanges` or `audio` range is measured against. Deleted when the adapter sends text again. */
   private readonly unfilled = new Map<number, string>();
   /** Per ref, the speech entries `clear()` dropped: an adapter counts `speechRanges` indices from its first `audio`, L1 (and the clip keys, `playback.clear()`) from the clear (choice 1). */
   private readonly clearedEntries = new Map<number, number>();
@@ -255,6 +255,18 @@ export class Conversation {
       this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] is not a valid range` });
       kept = undefined;
     }
+    // After fill-in the adapter still measures against the text it sent: the range is re-anchored from that text onto
+    // the filled one, as `ranges` does, and one past that text is dropped, said (a clip ranged after its subtitle
+    // closed, Doubao's: Gemini/AST2 follow-up, choice 19).
+    const own = this.unfilled.get(ref);
+    if (kept && own !== undefined) {
+      if (kept[1] <= own.length) {
+        kept = reanchorRanges(own, seg.text, [kept])[0];
+      } else {
+        this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${kept[0]}, ${kept[1]}] outside ${seg.id}'s text of length ${own.length}` });
+        kept = undefined;
+      }
+    }
     this.replace(i, { ...seg, speech: [...seg.speech, { range: kept, pcm: this.retain(pcm) }] });
     // Local speech can still arrive after close, so a segment already
     // retired by the trim cursor (final and drained) is not done for good:
@@ -404,11 +416,14 @@ export class Conversation {
       if (seg.final && i === this.trimCursor) this.trimCursor++;
       i++;
     }
-    // Still over: audio held for refs that have not opened yet, oldest first.
+    // Still over: audio held for refs that have not opened yet, oldest first — its pcm dropped and its entries kept, as
+    // a segment's are, so a later `speechRanges` still names them and the clip keys still line up (Doubao states its
+    // ranges after its audio: Gemini/AST2 follow-up, choice 6).
     for (const [ref, list] of this.pending) {
       if (this.pcmBytes <= max) break;
+      if (!list.some((s) => s.pcm.length > 0)) continue;
       for (const s of list) this.pcmBytes -= s.pcm.byteLength;
-      this.pending.delete(ref);
+      this.pending.set(ref, list.map((s) => ({ ...s, pcm: EMPTY_PCM })));
     }
   }
 
