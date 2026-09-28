@@ -100,7 +100,7 @@ workload untouched does not count.
 | D22 | A leg fails to start | Every requested leg must come up, or the start fails with the reason. A session never starts on a subset of the legs it was asked for. |
 | D23 | Soniox shared Both | Kept, as an optional `startBoth` on the provider definition that only Soniox implements. In the 90 days to 2026-09-23, 193 of 387 managed Soniox users and 44 of 70 BYOK Soniox users ran a two-leg session (PostHog `translation_session_start.channels`; shared and split are not told apart there, and shared is the default). One shared stream halves the transcription cost. |
 | D24 | Stage 1's first provider | A **fake provider** — a real registry entry, dev builds only — carries the spine first. It plays scripted L0 events with synthetic audio and injected faults, and is also the contract conformance suite every adapter passes and the demo provider for rendering work. LocalInference follows it. |
-| D25 | Turns over WebRTC | OpenAI Realtime over WebRTC offers manual turns only, as today (`forceWebrtcTurnDetectionOff`: server VAD would cut the translation being played). Turn capability may depend on settings — `turns(s)` — and this is its only use. |
+| D25 | Turns over WebRTC | OpenAI Realtime over WebRTC offers manual turns only, as today (`forceWebrtcTurnDetectionOff`: server VAD would cut the translation being played). Turn capability may depend on settings — `turns(s)` — and this is its only use. **Closed 2026-09-29 (owner):** the WebRTC transport of OpenAI Realtime and OpenAI Translate is abandoned, neither migrated nor reimplemented, so no provider offers manual turns only; `turns(s)` stays in the shape and answers both everywhere. |
 | D26 | `keepReplayAudio` | Stays as a user switch. On, L1 keeps pcm up to the retention ceiling; off, pcm is dropped on arrival and the row has no replay control. |
 
 ### Deleted with no behaviour change
@@ -183,7 +183,9 @@ the audio stored elsewhere) splits one fact across two places.
 // how a session starts — one call, no construct-then-connect
 adapter.start({ context, config, credentials, input, clock, signal }, events): Promise<Session>
 //   input: a MediaStreamTrack from the runner's capture graph, for adapters
-//   that send a native track (WebRTC); every other adapter uses appendAudio
+//   that send a native track (WebRTC); every other adapter uses appendAudio.
+//   None does since the owner abandoned OpenAI's WebRTC (2026-09-29):
+//   Palabra builds its LiveKit track from appended pcm
 //   clock: every timer the adapter runs; the runner's, a virtual one in tests
 //   signal: the run's; an adapter still opening rejects when it aborts
 
@@ -294,7 +296,12 @@ The conformance suite (D24) checks each rule below against every adapter.
   is down is dropped, with no segment (Stage 2 Gemini, choice 17). OpenAI
   Realtime shows typed text at once and holds its request, first in first out,
   while a response is in progress; the adapter owns that queue, so `busy` has
-  no reader (Stage 2 OpenAI Realtime, ruling 8).
+  no reader (Stage 2 OpenAI Realtime, ruling 8). A release's request waits
+  there too, and the releases still waiting when any request goes up leave
+  with it, counted as its `merged`: their commits are in the conversation
+  already, and a `response.create` answers the conversation as it stands —
+  one response per batch of waiting releases (ruling 8's aim; its letter,
+  one response per release, amended by the plan's final review).
 - **An adapter that can no longer work says so**, with `failed` or an unexpected
   `closed`, and emits nothing after either. `closed` need not be preceded by
   closing every segment; L1 finalizes what is open.
@@ -393,7 +400,8 @@ participant leg and ran the speaker alone (Stage 2 OpenAI Translate).
 immediately and used for exactly one session, so the two are one moment. The
 WebRTC-to-WebSocket fallback, which today builds its client without the leg's
 options (`MainPanel.tsx:2486`), becomes the same request handed to another
-adapter.
+adapter — moot since the owner abandoned OpenAI's WebRTC (2026-09-29): its
+two providers run over WebSocket alone, with no fallback to make.
 
 **`updateSession` is deleted.** It has no external caller, and "a running session
 does not react to a setting changing" is already the rule. Adapters that
@@ -469,7 +477,7 @@ mechanism:
 
 | | `beginTurn` | `endTurn` | `cancelTurn` |
 |---|---|---|---|
-| OpenAI | — (WebRTC: enable its own track) | commit at once; its `response.create` waits behind a response in progress (Stage 2 OpenAI Realtime, ruling 8) | **`input_audio_buffer.clear`** (Stage 2 OpenAI Realtime, choice 12) |
+| OpenAI | — (WebRTC, which enabled its own track, abandoned by the owner, 2026-09-29) | commit at once; its `response.create` waits behind a response in progress, and releases still waiting when a request goes up are answered by that request's response (Stage 2 OpenAI Realtime, ruling 8, its letter amended at the final review) | **`input_audio_buffer.clear`** (Stage 2 OpenAI Realtime, choice 12) |
 | Gemini | `activityStart` | `activityEnd` | `activityEnd`, and the cancelled press's own answer dropped — after the previous answer ends, when one is still owed (a voiced release or typed text whose answer has not started streaming) or streaming; on Live Translate `activityEnd` alone (no "end without generating" message exists; Stage 2 Gemini, ruling 8, choice 16) |
 | Soniox | — | **`finalize`** | — |
 | Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
@@ -480,7 +488,8 @@ mechanism:
 
 `beginTurn` exists for two reasons: Gemini sends `activityStart` today on a
 heuristic ("before the first audio chunk"), and the two WebRTC adapters own their
-microphone as a native track that only they can gate.
+microphone as a native track that only they can gate. The second went with
+OpenAI's WebRTC transport, which the owner abandoned (2026-09-29).
 
 `input_audio_buffer.clear` is never sent anywhere today. When the voice gate
 decides a press held no speech, OpenAI's clients neither commit nor clear, so
@@ -559,7 +568,8 @@ takeover keeps its hint, where it is true.
   (Stage 2 OpenAI Realtime, choice 12).
 - On OpenAI over WebRTC the key does not gate audio at all: the native track is
   always live and the key only counts voiced chunks — the adapter now gates its
-  own track.
+  own track. Removed instead with the transport: the owner abandoned OpenAI's
+  WebRTC (2026-09-29), and over WebSocket the runner's gate holds.
 - Push-to-talk idle suppresses passthrough even with the toggle on —
   passthrough is a route, independent of the recorder.
 - A passthrough volume of 0 plays at 30% (`passthroughVolume || 0.3`) — it is a
@@ -579,10 +589,14 @@ being played whenever the user speaks, which is why
 `forceWebrtcTurnDetectionOff` exists. The definition states it through
 `turns(s)`, and the settings UI hides the automatic mode there. OpenAI
 Realtime's first port is WebSocket only and offers both modes (Stage 2 OpenAI
-Realtime, ruling 12). D25, `turns(s)` and the participant's transport meet the
-WebRTC step, with OpenAI Translate's, which also decides whether "manual only"
-includes push-to-translate — the old UI disabled it under WebRTC too
-(`ProviderSpecificSettings.tsx:589-590`; survey §3.7.7).
+Realtime, ruling 12). D25, `turns(s)` and the participant's transport were to
+meet a WebRTC step, with OpenAI Translate's, which would also have decided
+whether "manual only" includes push-to-translate — the old UI disabled it
+under WebRTC too (`ProviderSpecificSettings.tsx:589-590`; survey §3.7.7).
+**Amended 2026-09-29 (owner):** the WebRTC transport of both OpenAI providers
+is abandoned, neither migrated nor reimplemented, so the exception is gone:
+both offer both modes over WebSocket, D25 is closed, and the participant's
+transport is the speaker's.
 
 ---
 
@@ -1018,12 +1032,12 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 | SonioxClient | yes | per TTS segment — filled in once the segment's speech has ended (`speechRanges`); unlit before; none for a segment the provider killed | same utterance — stated |
 | OpenAITranslateGAClient | yes | per audio frame, **by arrival**: each content frame carries the translation's text from the previous frame's end to its length when the frame arrived — the old client's alignment (#216), kept by the owner's ruling, not a known correspondence (Stage 2 OpenAI Translate, ruling 6) | inferred by proximity: no `timing` is emitted; every delta frame carries `elapsed_ms`, for the live test to settle whether it puts both sides on one timeline (ruling 6) |
 | OpenAILiveClient | yes | per audio frame, **exists today** | inferred (`end_ms` timeline) |
-| OpenAIGAClient | yes | per audio frame, **by arrival**, as OpenAI Translate's: each played frame carries the translation's text from the previous frame's end to its length when the frame arrived, restated within the final text when that settles shorter (`speechRanges`). This table's first "per audio frame" for this client and the compatible one was never true: neither produced a range, and their karaoke was the interpolation D4 deletes (survey §3.7.1). So this is the second stated exception to the honesty rule (Stage 2 OpenAI Realtime, ruling 3; choice 9) | input item ↔ response — **stated**: the assistant item's `previous_item_id` when it names one of the leg's inputs; else, taken when the response began, the newest input the server holds if it is still unanswered — never an older one behind it; else none, and the translation shows unpaired (Stage 2 OpenAI Realtime, ruling 23; choice 8) |
+| OpenAIGAClient | yes | per audio frame, **by arrival**, as OpenAI Translate's: each played frame carries the translation's text from the previous frame's end to its length when the frame arrived, restated within the final text when that settles shorter (`speechRanges`). This table's first "per audio frame" for this client and the compatible one was never true: neither produced a range, and their karaoke was the interpolation D4 deletes (survey §3.7.1). So this is the second stated exception to the honesty rule (Stage 2 OpenAI Realtime, ruling 3; choice 9) | input item ↔ response — **stated**: the assistant item's `previous_item_id` when it names one of the leg's inputs; else, taken when the response began, the newest input the server holds — by when it came to hold it, not when the leg opened it — if it is still unanswered, never an older one behind it; else none, and the translation shows unpaired (Stage 2 OpenAI Realtime, ruling 23; choice 8; the server's order since its final review) |
 | OpenAIClient (compatible) | retired, not ported (Stage 2 OpenAI Realtime, ruling 1) | — | — |
 | GeminiClient | yes | none — **no karaoke** | dialogue models: same turn — stated; Live Translate: inferred (no turns) |
 | VolcengineAST2Client | yes — today's quality is the bar to keep | none: the server's TTS sentence boundaries need not align with subtitle phases | inferred by proximity: neither origin nor timing is emitted; each subtitle frame carries `responseMeta.Sequence` and the times, for the live test to settle whether either states the pair (Stage 2 Volcengine AST2, ruling 11) |
-| OpenAIWebRTCClient | yes | the WebRTC step | the WebRTC step (Stage 2 OpenAI Realtime, ruling 12) |
-| OpenAITranslateWebRTCClient | yes | none | inferred |
+| OpenAIWebRTCClient | abandoned, not ported (owner, 2026-09-29) | — | — |
+| OpenAITranslateWebRTCClient | abandoned, not ported (owner, 2026-09-29) | — | — |
 | PalabraAIClient | **no** — a continuous track, attributable to nothing | none | **`transcription_id`** — stated, already extracted and then discarded |
 
 Soniox's unit is the TTS **segment** — a sentence, a clause after 1.5 s with no
@@ -1044,7 +1058,12 @@ under `interrupt_response: false` — stays a source row of its own. A
 translation left with no origin shows unpaired rather than inferred: L2
 infers only between segments that state no origin (`pair.ts:25-26`), and
 every source of this provider states one (Stage 2 OpenAI Realtime, ruling 23;
-choice 8).
+choice 8). One response answers a batch of releases that waited behind a
+running one (ruling 8's aim), and its item names the last input it answers:
+an earlier input of the batch shows as a source with no translation beside
+it, its words in the translation under the later one — a typed text's
+translation likewise holds the words of releases waiting with it, whose
+commits went up before its item.
 
 Two findings are worth stating plainly. Palabra is the only client that cannot
 replay, and it holds the cleanest pairing evidence in the codebase: the same
@@ -1141,7 +1160,7 @@ interface Provider<S, K, C, R = K> {
   speech: 'always' | 'optional' | 'never'
   textInput: boolean
   boundaries(s: S): 'provider' | 'silence'
-  turns(s: S): Array<'auto' | 'manual'>    // both for everyone; OpenAI over WebRTC: manual only (D25)
+  turns(s: S): Array<'auto' | 'manual'>    // both for everyone (D25, OpenAI over WebRTC manual only, closed 2026-09-29)
   participantSpeech?: boolean              // false: the participant never speaks (a flag, off for Kizuna Soniox until par_tts)
 
   // one leg's session
@@ -1206,12 +1225,15 @@ stores, which is where model resolution belongs (never in the adapter).
 
 `start` owns the transport. OpenAI's choice between WebRTC and WebSocket, and the
 fallback from one to the other, become its business, so `supportsWebRTC` and
-`forcedTransport` leave the contract. OpenAI Translate's first port is WebSocket
-only: its `transportType` stays in `S`, read and not shown, and its
-`C.transport` is `'websocket'` until its WebRTC step widens both (Stage 2 OpenAI
-Translate, ruling 1). OpenAI Realtime's port is WebSocket only too; a stored
-`webrtc` runs over WebSocket (Stage 2 OpenAI Realtime, ruling 12; its
-`C.transport` is `'websocket'`, choice 18). Palabra's `forcedTransport:
+`forcedTransport` leave the contract. OpenAI Translate and OpenAI Realtime are
+WebSocket only: the owner abandoned their WebRTC transport (2026-09-29),
+neither migrated nor reimplemented, so neither `S` has a `transportType` — a
+stored one is not read, and a profile that chose WebRTC runs over WebSocket,
+as it already did — and each `C.transport` is the literal `'websocket'`, which
+`info.transport` reports to analytics (Stage 2 OpenAI Translate, ruling 1,
+choice 15; Stage 2 OpenAI Realtime, ruling 12, choice 18). Both ports first
+kept `transportType` in `S`, read and not shown, as a WebRTC step's
+attachment point; it went with the decision. Palabra's `forcedTransport:
 'webrtc'` exists only to steer MainPanel's transport switch; its adapter
 always uses LiveKit.
 
@@ -1435,9 +1457,10 @@ pauses. Cutting into a number of sentences is available
 everywhere: rows tile the segment's text and a `range` survives a cut, so the
 reason OpenAI's descriptor withheld it — splitting an item would strand its
 karaoke timing — no longer holds. It takes `S` because the answer can depend on
-a setting. OpenAI Translate's is `'silence'`, and its WebRTC step is to feed the
-same segment machine the WebSocket port built, so both transports keep both
-pauses (Stage 2 OpenAI Translate, choice 4; survey §3.6.5).
+a setting. OpenAI Translate's is `'silence'`, through the segment machine its
+WebSocket port built — its one transport since the owner abandoned WebRTC
+(2026-09-29), where a WebRTC step was first to feed the same machine
+(Stage 2 OpenAI Translate, choice 4; survey §3.6.5).
 
 ### Managed twins are composition
 
@@ -1492,7 +1515,9 @@ call is not the definition's. These go to session lifecycle:
 - the managed Soniox lease and voice claim (`acquireSessionResources`,
   `prepareToStart`);
 - the devices a WebRTC adapter captures from and plays to (`webrtcOptions`
-  carries the input device and, for echo cancellation, the output device).
+  carries the input device and, for echo cancellation, the output device) —
+  no adapter's since the owner abandoned OpenAI's two WebRTC clients, its
+  only users (2026-09-29).
 
 ### Sockets that need upgrade headers
 
@@ -1570,7 +1595,7 @@ exception: it is migrated once from the old slices and written to its own key,
 | turn mode | `turnDetectionMode` in six slices, with the values `Normal`, `Semantic`, `Disabled`, `Push-to-Talk`, `Push-to-Translate`, `Auto` (D15) | one global mode — `Push-to-Talk` / `Push-to-Translate` map to themselves, everything else to auto — and OpenAI's `Normal` / `Semantic` stay its `turnDetectionMode` (Stage 2 OpenAI Realtime, ruling 5) |
 | credentials | fields inside each slice (`apiKey`, `appId`, `accessToken`, `clientId`, `clientSecret`, region keys) | the same keys, read into the credential record instead of `S` |
 | `keepReplayAudio` | a client option every client is handed | L1's retention switch (D26) |
-| transport | `transportType` in the OpenAI slices, with `forceWebrtcTurnDetectionOff` rewriting the turn mode | stays in `S`; the rewrite becomes `turns(s)` (D25). OpenAI Realtime's is read and not shown until the WebRTC step (Stage 2 OpenAI Realtime, ruling 12) |
+| transport | `transportType` in the OpenAI slices, with `forceWebrtcTurnDetectionOff` rewriting the turn mode | not read: the owner abandoned OpenAI's WebRTC (2026-09-29), so neither `S` has the field and the rewrite has nothing to do (D25 closed); every session runs over WebSocket, as a stored `webrtc` already did (Stage 2 OpenAI Translate, ruling 1; Stage 2 OpenAI Realtime, ruling 12). The first design kept it in `S` and made the rewrite `turns(s)` |
 | system instructions | one global copy, `settings.common.useTemplateMode` / `systemInstructions` / `participantSystemInstructions` | each provider's own three fields, each read from the provider's key once written and otherwise from the global key (a `legacyKeys` entry naming the whole key); nothing moves, and the global copy stays for the providers not yet ported |
 
 `bothModeSharedSession`, the segmentation settings and the display settings do
@@ -1845,7 +1870,11 @@ not a device id. Device switching and mute happen upstream of the track, so
 at start still captures the default device over WebRTC, and a mute during the
 session never reaches the track. The output device passed today is applied to
 an audio element that is itself muted; the Stage 2 rewrite of the WebRTC
-adapters confirms whether it does anything.
+adapters confirms whether it does anything. **Amended 2026-09-29:** no
+adapter takes the runner's track now — the owner abandoned OpenAI's two
+WebRTC clients, and Palabra builds its LiveKit track from appended pcm
+(`PalabraAIClient.ts:409-455, 553-570`) — so this waits for an adapter that
+would; the two defects go with the deleted clients.
 
 **Passthrough is a route** tapping the microphone source (Playback), not a
 property of the recorder.
@@ -1966,7 +1995,7 @@ Gone, per D9: `translation_completed`, `latency_measurement` (whose
 | no ending contract | Compatible WS, local engines, unplugged microphone, side panel close | the adapter rule, source `ended`, `pagehide` |
 | leg bookkeeping | participant `onClose` not checking which client closed, error rows wiped by `setItems`, participant rows never written | L1 per leg; runs discard events from a finished run |
 | turns | stuck `isRecording`, release before the recorder opened, press during the previous release | the turn object and continuous capture |
-| WebRTC capture | mute ignored, push-to-talk not gating | the runner's track; the adapter gates its sender (D14) |
+| WebRTC capture | mute ignored, push-to-talk not gating | the runner's track; the adapter gates its sender (D14). Gone instead with OpenAI's WebRTC clients, abandoned by the owner (2026-09-29): its sessions run over WebSocket from the runner's gated source |
 | telemetry | start event rebuilt from settings, preferred transport reported instead of the one used | reported from the run's actual configs and sessions |
 | cross-leg engines | Local Native's shared sidecar engine, LocalInference's over-count | `admit` |
 
@@ -2066,14 +2095,19 @@ orchestration — is read from history
 (`aecaae2b^:src/components/MainPanel/MainPanel.tsx`). A Stage 2 step writes the
 provider's definition, adapter and settings component together, and deletes
 that provider's old code after the owner has run it live. OpenAI Translate's
-own-key old code waits for its WebRTC step's live test: the WebRTC client
-imports the GA client (Stage 2 OpenAI Translate, ruling 14). OpenAI
+own-key old code first waited for a WebRTC step's live test, since the WebRTC
+client imports the GA client (Stage 2 OpenAI Translate, ruling 14), and OpenAI
 Realtime's and OpenAI Compatible's old code, and the `openai-realtime-api`
-dependency, wait with it for the same live test, as one deletion (OpenAI
-Translate's plan T3, merged): OpenAI Realtime's old WebRTC client imports the
-old session builder and the ephemeral-token service, and OpenAI Translate's GA
-client imports statics of the compatible one (Stage 2 OpenAI Realtime, ruling
-20).
+dependency, with it, as one deletion (OpenAI Translate's plan T3, merged;
+Stage 2 OpenAI Realtime, ruling 20): OpenAI Realtime's old WebRTC client
+imports the old session builder and the ephemeral-token service, and OpenAI
+Translate's GA client imports statics of the compatible one. **Amended
+2026-09-29 (owner):** the WebRTC transport of both is abandoned, neither
+migrated nor reimplemented, so the merged deletion waits only for the two
+WebSocket live tests, OpenAI Translate's and OpenAI Realtime's. It takes both
+WebSocket and both WebRTC old clients, `OpenAIClient`'s statics,
+`openAIRealtimeSession`, `EphemeralTokenService` (only the two WebRTC clients
+use it), the Compatible code and the `openai-realtime-api` fork.
 
 **Stage 2 — one provider per change**, after a vendor-free foundation plan
 (`docs/superpowers/plans/2026-09-26-client-contract-stage2-foundation.md`).
@@ -2097,17 +2131,20 @@ The order (the owner may overrule it):
 5. **OpenAI Translate** (`openai_translate`) — frame-level ranges by arrival,
    our own boundaries, inferred origin, a push-to-talk release tail, Text only
    as a playback control — ported over WebSocket by the Stage 2 OpenAI
-   Translate plan; its WebRTC transport is item 7. Its relay twin
+   Translate plan; its WebRTC transport abandoned (item 7). Its relay twin
    (`kizunaai_openai_translate`) is deleted, not ported.
 6. **OpenAI Realtime** (`openai`) — server boundaries, stated pairing, the
    drift anchor, the typed-text queue — ported over WebSocket by the Stage 2
-   OpenAI Realtime plan; its WebRTC transport joins item 7. **OpenAI
+   OpenAI Realtime plan; its WebRTC transport abandoned (item 7). **OpenAI
    Compatible** (`openai_compatible`) is retired, not ported (Stage 2 OpenAI
    Realtime, ruling 1): a stored selection falls to the first provider
    offered.
-7. **OpenAI Translate over WebRTC** — the processed track from the runner's
-   graph — with OpenAI Realtime's WebRTC transport, D25's `turns(s)` and the
-   participant's transport (Stage 2 OpenAI Realtime, ruling 12).
+7. **Removed (owner, 2026-09-29): OpenAI Translate over WebRTC**, which was to
+   carry the processed track from the runner's graph, OpenAI Realtime's WebRTC
+   transport, D25's `turns(s)` and the participant's transport (Stage 2 OpenAI
+   Realtime, ruling 12). WebRTC users are few, so the WebRTC transport of both
+   OpenAI providers is neither migrated nor reimplemented. The list keeps its
+   numbers; after item 6 the order runs Palabra, OpenAI Live, Local Native.
 8. **Palabra** (`palabraai`) — the degenerate extreme: `audio` without `ref`, no
    `range`, the cleanest `origin`.
 9. **OpenAI Live** (`openai_live`) — span caps, the `end_ms` timeline.
@@ -2131,9 +2168,9 @@ Translate's turn.
 **Amended by the Stage 2 OpenAI Translate plan:** the owner has decided that one
 too: it is deleted, not ported, after the own-key port's live test (plan T2).
 
-That is twelve providers: nine ported in ten steps — OpenAI Translate's WebRTC
-transport, with OpenAI Realtime's, a step of its own — one retired, and two
-relay twins, both deleted.
+That is twelve providers: nine ported in nine steps — the tenth, OpenAI
+Translate's WebRTC transport with OpenAI Realtime's, removed when the owner
+abandoned them (2026-09-29) — one retired, and two relay twins, both deleted.
 Each step is its own implementation plan; this spec is the design for the
 whole, not the plan for any one stage.
 
@@ -2240,7 +2277,11 @@ From the Stage 2 foundation survey's §3.4:
   D25, `turns(s)` and the participant's transport meet the WebRTC step with
   OpenAI Translate's, which also decides whether "manual only" includes
   push-to-translate — the old UI disabled it under WebRTC too
-  (`ProviderSpecificSettings.tsx:589-590`; survey §3.7.7).
+  (`ProviderSpecificSettings.tsx:589-590`; survey §3.7.7). **Closed
+  2026-09-29 (owner):** the WebRTC transport of both OpenAI providers is
+  abandoned, so no provider offers manual turns only, the participant's
+  transport is WebSocket like the speaker's, and push-to-translate under
+  WebRTC is no one's question.
 - **Participant speech against the managed lease** (item 3) — decided by the
   Kizuna Soniox plan (ruling 2): built end to end — the request's intent
   field, the participant's `par_tts` key in every Both mode and

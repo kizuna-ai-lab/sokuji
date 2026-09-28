@@ -206,7 +206,7 @@ later plans.
 **1c-3 — capture**
 - `Source` has no `track`, and each `StartRequest` is built before its source
   opens, so `input` is always empty: add `Source.track?` and build a leg's
-  request after `openSource`, for the WebRTC adapters.
+  request after `openSource`, for the WebRTC adapters. (2026-09-29: none is left to take it — the owner abandoned OpenAI's two WebRTC clients, and Palabra builds its LiveKit track from appended pcm; it waits for an adapter that would.)
 - A source's degradation reaches L1 through `Conversation.notice()`, which
   skips the per-code throttle `degraded` events get; route it through the
   throttle.
@@ -402,7 +402,7 @@ a target tab; notice listeners guarded). Its reviews leave these.
 - `Source.track` is the raw device track: mute and device switches happen
   downstream of it. Nothing reads it before the WebRTC adapters; before one
   does, give them a processed track (a `MediaStreamAudioDestinationNode`
-  stream) that mute and switches reach.
+  stream) that mute and switches reach. (2026-09-29: no adapter reads it — the owner abandoned OpenAI's WebRTC, and Palabra's track is built from appended pcm — so this waits for one that would.)
 - No test hands `startBoth` a distinct track per leg (correct by inspection):
   add one with Soniox's `startBoth`.
 
@@ -1289,8 +1289,8 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
 **OpenAI Translate:** F16 if AST2 did not land it; the transcript, noise and transport fields.
 
 **OpenAI + OpenAI Compatible:**
-- F15, the processed WebRTC track (roadmap 1c-3 → Stage 2), unless Translate-WebRTC comes first.
-- The D25 participant-leg fix (spec open question, survey §3.4.1).
+- F15, the processed WebRTC track (roadmap 1c-3 → Stage 2), unless Translate-WebRTC comes first. **Closed 2026-09-29:** the owner abandoned OpenAI's WebRTC; no adapter takes the runner's track (the Stage 2 OpenAI Realtime record, "The owner's WebRTC decision").
+- The D25 participant-leg fix (spec open question, survey §3.4.1). **Closed 2026-09-29** with the WebRTC transport: both legs run over WebSocket.
 - `busy`'s reader (roadmap 1d-1 → Stage 2).
 - The drift anchor; OpenAI's model migration and `turnDetectionMode` → `autoDetection` through `legacyKeys` (Task 9).
 - Compatible's `i18nKey: 'openaiCompatible'` (Task 14).
@@ -3847,7 +3847,7 @@ Translate, `gpt-realtime-translate` speech to speech, with the user's own key**
 settings, credentials, a bounded model-list check, builder, adapter with a
 push-to-talk release tail, and settings view, and the pieces it built for the
 ports after it (`NoiseReductionField`, two notice aliases, the subprotocol's
-redaction). The WebRTC transport is a later Stage 2 step (ruling 1). Deleting
+redaction). The WebRTC transport is a later Stage 2 step (ruling 1) — **abandoned 2026-09-29 (owner)**, neither migrated nor reimplemented: `S.transportType` is removed, and T3 waits only for the WebSocket live tests (the Stage 2 OpenAI Realtime record, "The owner's WebRTC decision"). Deleting
 the relay twin `kizunaai_openai_translate` — which the owner ruled is deleted,
 not ported — is a later plan, T2, after the owner's live test below; deleting
 the own-key old code of both transports is T3, after the WebRTC step's live
@@ -3878,7 +3878,7 @@ since (`4592115f` adds only the plan), and no ruling was needed before Wave 1.
 each confirmed as the plan states it:
 1. WebSocket only: a stored `webrtc` choice runs over WebSocket until the
    WebRTC step, and no transport control shows (`S.transportType` kept,
-   `C.transport` `'websocket'`; choice 15).
+   `C.transport` `'websocket'`; choice 15). **2026-09-29:** the WebRTC step abandoned (owner); `S.transportType` removed, a stored one unread, `C.transport` still `'websocket'`.
 2. Push-to-talk's release tail: the held remainder padded to the next 200 ms
    frame, then silence in real time until the translation has been quiet 1 s,
    at most 3 s after the release; a press ends it; no idle keepalive until the
@@ -3903,7 +3903,7 @@ each confirmed as the plan states it:
     (`src/providers/registry.ts:19`, pinned at `registry.test.ts:293`).
 12. The OpenAI setup guide (the same key).
 13. An expiry or a drop ends the run in words; no reconnect.
-14. T2 after this port's live test; T3 after the WebRTC step's.
+14. T2 after this port's live test; T3 after the WebRTC step's. **2026-09-29:** T3, merged with OpenAI Realtime's deletion, now after the two WebSocket live tests — the WebRTC step is abandoned (owner).
 15. Same-language pairs stay offered; `auto` stays out of the sources.
 
 Rulings 16–23 are the controller's technical rulings in the plan, applied as
@@ -4357,10 +4357,10 @@ changed through `426251e1`):
 **T3's inventory** — the own-key old code of both transports, **after the
 WebRTC step's live test**, since the WebRTC client imports the GA client
 (`OpenAITranslateWebRTCClient.ts:38`, for its `buildSessionUpdate` and
-`computeRms`; ruling 14):
+`computeRms`; ruling 14). **2026-09-29:** after the WebSocket live tests instead — the owner abandoned the WebRTC step, and both clients go together:
 - `OpenAITranslateGAClient.ts` (+ test), `OpenAITranslateWebRTCClient.ts` (+ test), `OpenAITranslateProviderConfig.ts`;
 - `IClient.ts:117-139, 333-335` (`TranslateTargetLanguage`, `OpenAITranslateSessionConfig`, its guard);
-- `EphemeralTokenService.ts:115-218` (the translation mint), unless the WebRTC step has moved it into its own folder — not `getToken`, which OpenAI Realtime's old WebRTC client uses;
+- `EphemeralTokenService.ts:115-218` (the translation mint), unless the WebRTC step has moved it into its own folder — not `getToken`, which OpenAI Realtime's old WebRTC client uses (2026-09-29: no WebRTC step; the whole file goes with the merged deletion);
 - the `openaiTranslate` slice of `settingsStore.ts` (`:41-43, 289, 419, 548-554, 655, 704, 753-773, 971, 1192-1196, 1349-1352, 1539, 1553-1557, 1623`) — the storage keys stay;
 - the old UI's Translate branches: `ProviderSpecificSettings.tsx:129-184, 384-467, 722-954, 2173-2187, 2274-2280`; `LanguageSection.tsx:99, 154-160, 249-254, 331-364, 587, 673-678`; `ProviderSection.tsx:73, 478-479`;
 - `ProviderConfigFactory.ts:6, 63`; `OpenAIClient.isTranslateRealtimeModel` once the OpenAI port has replaced `OpenAIClient`; `openaiModelMigration.test.ts:50-74`;
@@ -4377,8 +4377,8 @@ above):
 | OpenAI Translate: F16 if AST2 did not land it | done by the Gemini plan (its Task 2); consumed through `createProjector` (Task 9's projection case) |
 | OpenAI Translate: the noise field | built here: `NoiseReductionField` (Task 2); OpenAI Realtime and Compatible reuse it |
 | OpenAI Translate: the transcript field | not built: the transcript model is a constant (ruling 8); OpenAI Realtime's port builds one if its models need it |
-| OpenAI Translate: the transport field | deferred to the WebRTC step (ruling 1): `S.transportType` kept, `C.transport` its attachment point (choice 15); a shared `TransportField`, perhaps OpenAI Realtime's first |
-| OpenAI + Compatible: F15, "unless Translate-WebRTC comes first" | not here: this port is WebSocket; the WebRTC step meets it |
+| OpenAI Translate: the transport field | deferred to the WebRTC step (ruling 1): `S.transportType` kept, `C.transport` its attachment point (choice 15); a shared `TransportField`, perhaps OpenAI Realtime's first. **Closed 2026-09-29:** no transport to choose (the owner abandoned WebRTC); `S.transportType` removed |
+| OpenAI + Compatible: F15, "unless Translate-WebRTC comes first" | not here: this port is WebSocket; the WebRTC step meets it. **Closed 2026-09-29** with the WebRTC step |
 | OpenAI Live: F14 (reused) | unchanged: Translate needs no header (ruling 16); the seam's per-host Electron rule should scope by path (the spec's amendment 10) |
 
 From the Soniox plan's "Found here" (`:1740-1747` above):
@@ -4429,8 +4429,8 @@ What it leaves, for the plans that meet it (the plan's own list, as written,
 its references to Task 11's record read as this record; then the one item a
 task review routed to it, last below):
 - **T2**, the relay twin's deletion, after this port's live test (this record's inventory).
-- **T3**, the own-key old code's deletion — both transports' clients, the descriptor, the translation mint, the slice's readers, the old UI's branches — after the WebRTC step's live test (this record's inventory). **Merged** by the Stage 2 OpenAI Realtime plan with OpenAI Realtime's and OpenAI Compatible's deletion (its ruling 20; its record's inventory, below).
-- **The WebRTC step:** a transport and a dispatch in `start`, its fallback the same request handed to the WebSocket adapter (spec "The session request"), `C.transport` widened from `S.transportType`, the transport control; `segments.ts`, `tail.ts`'s grid and `wire.ts`' session update stay as they are. **The final fix wave (Recommendation 3):** a kit-level seeded lifecycle scenario, in `src/lib/contract/testing/`, modelled on the final review's fuzz of this adapter — driving random lifecycles over `FakeSocket` on a tracked virtual clock the way `run.ts` drives an adapter (presses and releases under manual turns, streamed audio under automatic turns; every opening path — success, a drop, the 30 s bound, an abort, an `error`, `session.closed`, a close; live steps mixing chunk sizes, input/output/audio deltas, heartbeats, bad base64, `.done` and unknown types, unparsable frames, mid-session errors and clock advances) — and asserting across every run: every `turn.tail` on the 4,800-sample grid; `turn.tail_end` timed to `silenceMs + 200` ms; `silenceMs` never past 3,000; append-only text with none on a closed ref; audio ranges starting at the previous end; at most one `failed` or `closed`, nothing after it; no timer or socket handler left after any ending; and no key or subprotocol in any payload. It would pin the WebRTC transport to the same cross-module guarantees this port's own adapter suite pins one at a time, and a mutant with `this.tail.cancel()` dropped from `shutDown` shows it bites at once.
+- **T3**, the own-key old code's deletion — both transports' clients, the descriptor, the translation mint, the slice's readers, the old UI's branches — after the WebRTC step's live test (this record's inventory). **Merged** by the Stage 2 OpenAI Realtime plan with OpenAI Realtime's and OpenAI Compatible's deletion (its ruling 20; its record's inventory, below). **2026-09-29:** after the two WebSocket live tests, the WebRTC step abandoned (owner).
+- **The WebRTC step** — **abandoned 2026-09-29 (owner)**: none of what follows is built; the kit-level scenario is reassigned (the Stage 2 OpenAI Realtime record, "The owner's WebRTC decision"). As planned: a transport and a dispatch in `start`, its fallback the same request handed to the WebSocket adapter (spec "The session request"), `C.transport` widened from `S.transportType`, the transport control; `segments.ts`, `tail.ts`'s grid and `wire.ts`' session update stay as they are. **The final fix wave (Recommendation 3):** a kit-level seeded lifecycle scenario, in `src/lib/contract/testing/`, modelled on the final review's fuzz of this adapter — driving random lifecycles over `FakeSocket` on a tracked virtual clock the way `run.ts` drives an adapter (presses and releases under manual turns, streamed audio under automatic turns; every opening path — success, a drop, the 30 s bound, an abort, an `error`, `session.closed`, a close; live steps mixing chunk sizes, input/output/audio deltas, heartbeats, bad base64, `.done` and unknown types, unparsable frames, mid-session errors and clock advances) — and asserting across every run: every `turn.tail` on the 4,800-sample grid; `turn.tail_end` timed to `silenceMs + 200` ms; `silenceMs` never past 3,000; append-only text with none on a closed ref; audio ranges starting at the previous end; at most one `failed` or `closed`, nothing after it; no timer or socket handler left after any ending; and no key or subprotocol in any payload. It would pin the WebRTC transport to the same cross-module guarantees this port's own adapter suite pins one at a time, and a mutant with `this.tail.cancel()` dropped from `shutDown` shows it bites at once.
 - **The timing follow-up** (ruling 6): if the live log shows one aligned timeline, set `timing` once, at segment close, and extend F16's window to timed pairs (by `startMs`), and consider karaoke by `elapsed_ms`; if the values are emission-time, first let L2 fall back to proximity when no timed candidate clears `minOverlap` (research Q3).
 - **The tail's constants** tuned from the live test, and **a keepalive** only if it shows a dropped session or a stuck tail (ruling 2).
 - **A fresh session or a reconnect at expiry**, if the long session shows a fixed length (ruling 13).
@@ -4456,13 +4456,17 @@ view; and three generic pieces — the pcm base64 helpers lifted to
 `src/lib/provider/boundedFetch.ts`, and `Provider.checkReads`, a readiness check
 that says what it reads. **OpenAI Compatible is retired, not ported** (ruling
 1): nothing is registered for it, and a stored selection of it falls to the
-first provider offered. The WebRTC transport joins OpenAI Translate's later
-WebRTC step (ruling 12). Deleting the old OpenAI and Compatible code and the
-`openai-realtime-api` dependency is one later plan, merged with OpenAI
-Translate's T3, after the WebRTC step's live test (ruling 20; this record's
-inventory); until then the old clients, both descriptors, the old settings UI's
-OpenAI and Compatible branches, the two store slices and
-`EphemeralTokenService.getToken` stay compiled and unreachable. Twelve
+first provider offered. The WebRTC transport was to join OpenAI Translate's
+later WebRTC step (ruling 12); the owner abandoned both on 2026-09-29 ("The
+owner's WebRTC decision", below). Deleting the old OpenAI and Compatible code
+and the `openai-realtime-api` dependency is one later plan, merged with OpenAI
+Translate's T3, after the two WebSocket live tests (ruling 20, as that
+decision amends it; this record's inventory); until then the old clients, both
+descriptors, the old settings UI's OpenAI and Compatible branches, the two
+store slices and `EphemeralTokenService` stay compiled and unreachable. The
+final review and its fix wave followed this record (`3c7284d9`, `538e9ea5`,
+`eaaf8ead`, and this update): "Found during execution", items 9 and 10, and
+the owner's decision. Twelve
 implementation tasks ran in the plan's four waves — Tasks 1–5; Tasks 6–10;
 Task 11; Task 12 — with group check A after the third and group check B after
 the fourth. Wave 2 started while the reviews of Tasks 1, 2, 3 and 5 ran, Task 11
@@ -4503,11 +4507,17 @@ each confirmed as the plan states it:
 7. "Auto-detect" stays a source: "the spoken language" in the template, no
    transcription hint, Both refused (D20).
 8. Typed text and a release's `response.create` wait first in first out while a
-   response is in progress; the adapter owns the queue.
+   response is in progress; the adapter owns the queue. **Its letter amended at
+   the final review, its aim kept:** releases still waiting when any request
+   goes up are answered by that request's response and leave with it — one
+   response per batch of waiting releases, no release unanswered ("Found
+   during execution", item 9).
 9. Readiness narrowed to what a check reads.
 10. Moot: OpenAI Compatible is retired.
 11. The source transcript streams.
-12. WebSocket only; a stored `webrtc` runs over WebSocket.
+12. WebSocket only; a stored `webrtc` runs over WebSocket. **2026-09-29:** the
+    owner abandoned WebRTC for both OpenAI providers; `S.transportType` removed,
+    a stored one unread ("The owner's WebRTC decision").
 13. A mid-session `error` is a Logs line, its words kept for a close within
     `ERROR_WORDS_MS`, a negative age ignored.
 14. A drop or the 60-minute cap ends the run in words; no reconnect.
@@ -4520,7 +4530,8 @@ each confirmed as the plan states it:
     `registry.test.ts:301`).
 19. The OpenAI setup guide.
 20. Deletion: one later plan merged with OpenAI Translate's T3, after the WebRTC
-    step's live test.
+    step's live test. **2026-09-29:** after the two WebSocket live tests, the
+    WebRTC step abandoned.
 21. The leg stays unnamed in `SessionContext`.
 22. The start resolves on `session.updated`, bounded at 30 s.
 
@@ -4585,6 +4596,8 @@ What landed, by task:
   with `S.transportType` unread) and `describeRealtime` →
   `{ translationModel, asrModel }`; the `adapter.ts` seed, written first for the
   session-side guard. The fix round: "Found during execution", items 3 and 7.
+  The final fix wave removed `transportType` from `S` altogether (`eaaf8ead`;
+  "The owner's WebRTC decision").
 - **The wire, the socket seam and the fixtures** (`deb7deaf`, fix round
   `7381abad`, Task 6; rulings 16, 25; choices 5, 7, 14, 15): `socket.ts`,
   OpenAI Translate's seam copied — `nativeSocket(url, protocols)` rethrowing a
@@ -4615,7 +4628,8 @@ What landed, by task:
   response's `response.done`; a response out of band makes no segment; ranges
   by arrival, restated within a shorter final text through one
   `speechRanges`. The fix round changed the fallback origin and the empty
-  transcript: "Found during execution", items 1 and 2.
+  transcript: "Found during execution", items 1 and 2. The final fix wave
+  takes the fallback's "newest" in the server's order (`538e9ea5`; item 10).
 - **The response queue** (`10db3b2e`, fix round `7634b836`, Task 8; ruling 8;
   choices 10, 21): `queue.ts` — `ResponseQueue` (`push`, `created`, `done`,
   `refused`, `stop`, `busy`), `Request`, `ACTIVE_RESPONSE`: a request goes up at
@@ -4625,7 +4639,9 @@ What landed, by task:
   drops it; the anchor's responses are none of its requests. A seeded test (400
   runs) pins every request answered exactly once, in the order pushed, whether
   or not the server echoes the metadata. The fix round: "Found during
-  execution", items 6 and 7.
+  execution", items 6 and 7. The final fix wave merges the releases waiting
+  behind a request into it, and replaces the seeded test with a conversation
+  model (`3c7284d9`; item 9).
 - **The check, one bounded model list** (`5f7505d9`, Task 9; rulings 17, 26;
   choice 16): `check.ts` — `createRealtimeCheck` and `checkRealtime`: `GET`
   `OPENAI_MODELS_URL` with `Authorization: Bearer <key>` and nothing else,
@@ -4657,7 +4673,9 @@ What landed, by task:
   before opening (`NEVER_OPENED`), a close before the start, or an `error` (in
   OpenAI's words), closing the socket on every path. Each chunk goes up as it
   came, unframed. Under manual turns a release commits at once and queues its
-  response, and a press without speech clears the buffer; under automatic
+  response — since the final fix wave, merged into the next request that goes
+  up ("Found during execution", item 9) — and a press without speech clears
+  the buffer; under automatic
   turns the keys send nothing. Typed text is trimmed, shown at once, and
   queued. The server's events feed `RealtimeItems` and the queue; `busy`
   follows the in-band responses. The anchor goes up at `session.updated` and
@@ -4758,6 +4776,28 @@ its anchor, as landed:
     (ruling 3), OpenAI Translate's now "the first".
 15. "The session request", what opacity costs: `describe` names the transcript
     model as the ASR model (choice 20).
+
+The final fix wave's amendments (this update):
+16. "What every adapter must honour", `appendText`, and "Turns" → the design
+    table's OpenAI row: the releases still waiting when a request goes up leave
+    with it, counted as its `merged` — one response per batch ("Found during
+    execution", item 9).
+17. "Provider capability": the GA row's fallback takes "newest" by when the
+    server came to hold each input (item 10); after the table, a batch's
+    earlier input shows with no translation beside it.
+18. The owner's WebRTC decision, at each anchor that promised a WebRTC step:
+    D25 closed; L0's `input` taken by no adapter; the WebRTC-to-WebSocket
+    fallback moot; "Turns" — `beginTurn`'s second reason gone, the WebRTC
+    gating defect removed with the transport, "Coverage"'s exception gone;
+    "Provider capability" — both WebRTC clients abandoned, not ported; the
+    shape's `turns(s)` comment; "`start` owns the transport" — no
+    `transportType` in either `S`; "Segmentation is one fact"; "One leg only"
+    — `webrtcOptions`; "Persisted settings that move" — the transport row;
+    "Capture belongs to the runner" — no adapter takes the runner's track;
+    the defects table's WebRTC capture row; "Migration" — the merged deletion
+    after the two WebSocket live tests, the order's item 7 removed (the
+    numbers kept) and the count "nine ported in nine steps"; the D25 open
+    question closed.
 
 **Checked — the gates.** Every implementer ran the suite and the typecheck gate
 on its own commit. In the parallel waves a failure or an extra gate line in
@@ -4862,7 +4902,8 @@ reading of the landed code), with its reason and where it lives:
    it; an open question below. Lives in `src/providers/openai/items.ts`
    (`newestUnanswered`, `originFor`); `items.test.ts` pins X7's case (no
    origin) and X1's (the fallback taken when the response was created, not when
-   its translation opens).
+   its translation opens). The final review agreed with the rule and found its
+   "newest" followed the leg's open order, not the server's: item 10.
 2. **An empty completed source transcript after streamed deltas keeps the
    streamed text** (Task 7's review, m2; `bbb41873`): `inputDone` treats `''`
    as no answer, the rule `outputDone` keeps; with nothing streamed, the source
@@ -4934,6 +4975,117 @@ reading of the landed code), with its reason and where it lives:
    step by moving its own files out of the tree and back. Either may have
    failed another task's concurrent run; no commit carried either. Lives in the
    execution's rules.
+9. **One response per batch of waiting releases** (the final review,
+   Important 1; the controller's ruling, amending the letter of ruling 8 and
+   keeping its aim, told to the owner with the option to overturn;
+   `3c7284d9`). Over GA a `response.create` answers the conversation as it
+   stands, and a release's `input_audio_buffer.commit` goes up at the release.
+   So when any request goes up, every release still waiting has its commit in
+   the conversation already and is answered by that request's response. As
+   first landed, each waiting release then asked its own `response.create`
+   with nothing new to answer — billed, and on a leg that speaks, heard in the
+   meeting: the review's reproduction, three releases, gave three
+   `response.create`s, the third with nothing new; its conversation-model fuzz
+   counted 1,722 of 8,715 manual in-band responses input-less over three
+   seeds. **As landed:** at a flush the queue takes every waiting release off
+   with the request going up, and the adapter frames their count as `merged`
+   on its `response.create` (a field, not a new frame name, so the Logs pin's
+   41 names stand). A typed text is never merged: its item goes up only with
+   its own request, so it needs a response of its own; a text then a release
+   waiting → the text's request answers both, its translation under the text,
+   and a release then a text → each its own. A request refused as active goes
+   again still carrying its merged releases; one refused, naming it, for
+   another reason re-queues the first of them at the head, the rest merged
+   into it (their commits are unanswered still; each such refusal spends one,
+   so a request refused every time ends). An error that names nothing drops
+   the request as before and re-queues nothing — it may be no refusal of this
+   request's, whose response may be running, and a fuzz variant that
+   re-queued there asked 7 input-less responses on one seed. The queue's
+   seeded test (400 runs) now models the conversation — a response answers the
+   user items added since the previous in-band one began; the anchor's
+   response may refuse in-band ones meanwhile; the server's detection under
+   automatic turns — and pins, under releases and typed text, that no
+   response is asked with nothing new, that every release and every typed
+   text is answered, typed text first in first out, one request at a time.
+   The review's reproduction now sends two `response.create`s for the three
+   releases, none input-less; the fuzz, re-run over the review's 15,000
+   lifecycles on four seeds, counts no input-less manual response on the
+   three voice-gated seeds and 158 on the raw one, each after an empty commit
+   the runner's voice rule prevents. Cost if wrong: the owner wants one request per release back
+   — revert, and live-test item 6 records what the extra responses say and
+   cost. Lives in `src/providers/openai/queue.ts` (its header states the
+   rule) and `adapter.ts`, with cases in `queue.test.ts` and `adapter.test.ts`.
+   Left as it stands: under automatic turns a typed text refused as active
+   can be answered by the server's own next response before the queue asks
+   again, and its re-ask then asks for nothing new (the fuzz: 140 of 8,816
+   automatic in-band responses over the four seeds) — an open question below.
+10. **The fallback's "newest" in the server's order** (the final review, Minor
+    1; `538e9ea5`): a typed text queued behind a response opens when typed and
+    reaches the server only when its request goes up, after any commit made
+    meanwhile; walking the inputs in the leg's open order, the fallback found
+    that commit as "newest" — none when it was answered, a wrong pair when it
+    was not (on the review's seed 2, 227 missed and 274 wrong of 5,687 in-band
+    responses). Each input now records when the server came to hold it, one
+    counter set at `committed` and at a typed item's `inputAdded`, and
+    "newest" is taken by that. Every landed case passes unchanged; the new
+    one: a typed text queued behind a response, a commit made meanwhile and
+    answered, then the text's translation announced late → paired with the
+    text. The fuzz, re-run with items 9 and 10: 0 missed and 0 wrong on all
+    four seeds, every judged in-band response paired right or honestly none.
+    Lives in `src/providers/openai/items.ts` (`knownAt`, `newestUnanswered`).
+
+**The owner's WebRTC decision** (2026-09-29, in his words: WebRTC users are
+few, so after this migration the WebRTC clients of OpenAI Translate and OpenAI
+Realtime are abandoned — neither migrated nor reimplemented). What follows
+from it, as the controller ruled and the final fix wave applied:
+- **The Stage 2 order** after this plan runs Palabra → OpenAI Live → Local
+  Native. The spec's item 7, "OpenAI Translate over WebRTC", is removed, its
+  number kept. Palabra's LiveKit WebRTC is a different thing and stays.
+- **The attachment point goes** (`eaaf8ead`): `transportType` leaves `S` in
+  `src/providers/openai/settings.ts` and
+  `src/providers/openai_translate/settings.ts`, with its default and its
+  `migrate` line. A stored value is simply not read
+  — no migration code (ruling 5) — and a stored `webrtc` already ran over
+  WebSocket, so nothing changes for users. `C.transport` stays the literal
+  `'websocket'`, since it reaches `info.transport` and analytics; its
+  comments, and the Realtime adapter's, no longer promise a WebRTC step. The
+  tests that named the field pin that a stored `webrtc` is not read and the
+  session runs over WebSocket.
+- **The old code's deletion waits only for the two WebSocket live tests** —
+  OpenAI Translate's (its record above) and this one's. It is OpenAI
+  Translate's T3 merged with this port's own deletion: both WebSocket and
+  both WebRTC old clients, `OpenAIClient`'s statics, `openAIRealtimeSession`,
+  `EphemeralTokenService` (only the two WebRTC clients import it), the
+  Compatible code and the `openai-realtime-api` fork (this record's
+  inventory). The relay twin's T2 stays as it was.
+- **What existed only for the WebRTC step**, each checked:
+  - F15, the processed track (the foundation plan's inheritance, 1c-3's
+    `Source.track` item and Stage 2's processed-track item above): closed. No
+    adapter takes the runner's track — Palabra builds its LiveKit track from
+    appended pcm (`PalabraAIClient.ts:409-455, 553-570`) — so the items wait
+    for an adapter that would.
+  - D25 and `turns(s)`: closed. No provider offers manual turns only;
+    `turns(s)` stays in the shape and answers both everywhere (spec D25).
+  - The participant's transport: closed — WebSocket, like the speaker's.
+  - Push-to-translate under WebRTC ("manual only"): no one's question.
+  - The transport control and a shared `TransportField`: closed — nothing to
+    choose.
+  - The ephemeral token: deleted with the old code, not moved.
+  - The WebRTC-to-WebSocket fallback in `start`: moot.
+  - The kit-level seeded lifecycle scenario (OpenAI Translate's
+    Recommendation 3, choice 21 here, and this review's Recommendation 3,
+    "keep `fuzz.mts` as the WebRTC step's harness"): reassigned, not closed —
+    a scenario in `src/lib/contract/testing/` modelled on both final reviews'
+    fuzzes, for the next port that wants it (Palabra is next); the review's
+    `fuzz.mts`, re-run by the fix wave, stays in the job's scratch as its
+    model.
+
+**Checked — the final fix wave** (at `eaaf8ead`): the suite, 553 files passed
+and 1 skipped, 7,033 tests passed and 2 skipped, 0 failed, no unhandled errors
+— `f9fe8747`'s 7,026 and seven cases; the gate at its 20 lines, the full tree
+at 259; fourteen scratch mutants of `queue.ts`, `items.ts` and `adapter.ts`,
+each failing a case; the review's reproduction and fuzz re-run as items 9 and
+10 state.
 
 **Accepted as they stand** (the controller's rulings, each with its cost if
 wrong):
@@ -4974,7 +5126,9 @@ execution changed or added is marked):
 - the view's new selects carry an `aria-label` (choice 17);
 - a same-language pair makes both legs read Other's prompt (ruling 21), Gemini's stated departure, the same here;
 - **as landed**, the dated 1.0 snapshot `gpt-realtime-2025-08-28` gets no `reasoning.effort`, where the old sent it ("Found during execution", item 3);
-- **as landed**, a translation the server ties to no input of the leg, whose fallback finds none, shows unpaired ("Found during execution", item 1).
+- **as landed**, a translation the server ties to no input of the leg, whose fallback finds none, shows unpaired ("Found during execution", item 1);
+- **as landed at the final review**, one response per batch of waiting releases, where the old app asked one per release and had the second refused: an earlier input of a batch shows as a source with no translation beside it, its words in the translation under the later one; a typed text's translation likewise holds the words of a release that waited with it ("Found during execution", item 9);
+- **by the owner's decision** (2026-09-29), OpenAI Realtime has no WebRTC transport: a profile that chose it runs over WebSocket, as it already did since this port, and no transport choice returns.
 
 Where the plan departs from its survey, and from its brief, stays in the plan's
 self-review.
@@ -4998,7 +5152,8 @@ self-review.
 to the rulings; what execution added is marked). Switch diagnostic logs on in
 Help **before Start**, so the Logs record from the first frame; each item names
 what settles it there — above all `response.anchor`, `response.create` (its
-`for` and `waitedMs`), `response.queued` (its `waiting`), `response.done` (its
+`for` and `waitedMs`, and `merged` when releases waited behind it),
+`response.queued` (its `waiting`), `response.done` (its
 `status`, `outOfBand` and `usage`), `session.error`, and the four delta frames
 (`conversation.item.input_audio_transcription.delta`,
 `response.output_audio_transcript.delta`, `response.output_text.delta`, and
@@ -5008,10 +5163,10 @@ what settles it there — above all `response.anchor`, `response.create` (its
 3. **Automatic turns, Normal** (rulings 3, 11, 23; choice 8): Japanese to English, several utterances with pauses: each source row appears at its commit (`input_audio_buffer.committed`, its `itemId`), fills as `conversation.item.input_audio_transcription.delta` frames arrive and settles at `.completed`; the translation plays once on the monitor and once in the virtual microphone, with karaoke by arrival — side by side with the old build; each translation sits under its own source as a stated pair, in the panel, the Electron subtitle takeover and the extension overlay; replay per translation row with keep-audio on; Stop mid-translation finalizes the rows and plays nothing after. Record from the Logs whether `response.output_item.added` precedes the assistant's `conversation.item.added` (the SDK leaves the order undocumented; `items.ts` pairs either way, choice 8), and whether that `conversation.item.added` carries a `previousItemId` equal to the source's `itemId`.
 4. **The drift anchor** (ruling 2; choice 11): `response.anchor` at the start (`translations: 0`), then after the fifth completed translation (`translations: 5`), the tenth, and so on, once per count — each followed by a `response.created` and a `response.done` framed `outOfBand: true`, the latter with `usage`. Record each anchor's tokens (input, cached, output) and what the anchors cost per hour, twice that in Both (each leg anchors itself); and, over a session of 20 minutes or more with it on — nothing turns it off (ruling 2) — the translations' quality and any drift (answers instead of translations, the wrong target language, commentary). Whether it earns its cost is the open question below. An anchor makes no row: every anchor's `response.created` must read `outOfBand: true` (a `false` would make its text a translation row), and no `conversation.item.added` with `role: 'assistant'` should arrive between a `response.anchor` and its `response.done` (the SDK says none is sent out of band; if one arrives, `items.ts` opens an empty translation segment for it, with no text and so no row) — record either. **Execution (the adapter's review):** a typed text or a release made while an anchor runs goes up at once; watch for repeated `response.create` frames for one request — a new `eventId` each time, `waitedMs` rising by about one round trip — each answered by a `session.error` with `conversation_already_has_active_response`: the server refusing in-band responses while an out-of-band one runs, the queue asking again once per round trip until the anchor ends.
 5. **Semantic detection** and its eagerness (Auto, Low, Medium, High): turn splitting changes; `session.updated`'s `audio` echoes `semantic_vad` and the eagerness; **Normal's thresholds** — threshold, prefix padding, silence duration — change splitting as the sliders say; the Speech section's summary follows each.
-6. **Push-to-talk** (ruling 8; choice 12): a press and release with speech → `input_audio_buffer.commit`, `input_audio_buffer.committed`, `response.create` (`for: 'turn'`, `waitedMs` 0), then the translation under the press's source. A release while a translation plays → the commit at once, `response.queued` (`for: 'turn'`, `waiting: 1`), then its `response.create` after that translation's `response.done`, `waitedMs` the wait, and its answer after that one ends. A press with no speech → `input_audio_buffer.clear` (and the server's `input_audio_buffer.cleared`), no row, and nothing of it in the next turn's source text. Minutes idle between presses → the session survives. Push-to-translate routes the raw voice while the key is up.
+6. **Push-to-talk** (ruling 8; choice 12): a press and release with speech → `input_audio_buffer.commit`, `response.create` (`for: 'turn'`, `waitedMs` 0) — both sent in one call — then the server's `input_audio_buffer.committed`, then the translation under the press's source. A release before the playing translation's `response.done` → the commit at once, `response.queued` (`for: 'turn'`, `waiting: 1`), then its `response.create` after that `response.done`, `waitedMs` the wait, and its answer after that one ends; a release after `response.done`, while the audio still plays, goes up at once with no `response.queued` (the queue waits for the end of generation, not of playback). **Final fix wave ("Found during execution", item 9):** two releases (or a typed line, then a release) before the running response's `response.done` → one `response.create` after it, the rest framed as merged (`merged: 1`), and no second `response.create`; its translation sits under the later release (under the typed line in the second case), and the earlier release's source shows with no translation beside it, its words in that translation — record how that reads. A press with no speech → `input_audio_buffer.clear` (and the server's `input_audio_buffer.cleared`), no row, and nothing of it in the next turn's source text. Minutes idle between presses → the session survives. Push-to-translate routes the raw voice while the key is up.
 7. **Typed text** (ruling 8; choice 24): shown at once as its own row — `conversation.item.create` (its `itemId`, `length`), then `response.create` (`for: 'text'`) — and its translation under it; three typed while a response plays → each shown at once, `response.queued` with `waiting` 1, 2, 3, then answered in order, one each, each translation under its own typed row; a blank line sends nothing. Under automatic turns, typed text while speaking. **Execution (the queue's review):** record whether a request's `response.created` carries its `metadata` (`{ request: "sokuji_<n>" }`) back. The Logs' `response.created` frame shows only `responseId` and `outOfBand`, so read the socket's messages in DevTools' Network panel; the queue works either way ("Found during execution", item 6).
-8. **Speaking over a playing translation** (`interrupt_response: false`; choice 8): does the server answer the utterance — a `response.created` after the playing one's `response.done`? Either way it is its own source row, and the next translation pairs with the right source (its `previousItemId`). **Execution (the fallback, as landed):** record any translation row that shows with no source beside it: a translation the server ties to no input of the leg takes the newest input only if still unanswered, else none, and then shows unpaired ("Found during execution", item 1).
-9. **A mid-session error** (ruling 13; choice 14): a `conversation_already_has_active_response` refusal — items 6 and 7 can provoke it, a release or a typed text racing the server's own response — is a red `session.error` line in the Logs, not a notice, and the request is asked again after that response (a second `response.create`). Any other mid-session `error`: its `session.error` frame's `type`, `code` and `message`; whether a close follows it, and after how long (tunes `ERROR_WORDS_MS`, 10 s): a close within 10 s reads in that error's words (`invalid_api_key` → the auth words, a spent quota → the rate-limit words), a later one as the lost connection. **Execution (the adapter's review):** record whether an `invalid_api_key` message quotes the key's last four characters — those words reach the `session.error` frame and a close's notice verbatim.
+8. **Speaking over a playing translation** (`interrupt_response: false`; choice 8): does the server answer the utterance — a `response.created` after the playing one's `response.done`? Either way it is its own source row, and the next translation pairs with the right source (its `previousItemId`). **Execution (the fallback, as landed):** record any translation row that shows with no source beside it: a translation the server ties to no input of the leg takes the newest input — by when the server came to hold it — only if still unanswered, else none, and then shows unpaired ("Found during execution", items 1 and 10).
+9. **A mid-session error** (ruling 13; choice 14): a `conversation_already_has_active_response` refusal — item 7 under automatic turns (a typed text racing the server's own response), or item 4's anchor case, can provoke it; under push-to-talk the server starts no response of its own — is a red `session.error` line in the Logs, not a notice, and the request is asked again after that response (a second `response.create`). Any other mid-session `error`: its `session.error` frame's `type`, `code` and `message`; whether a close follows it, and after how long (tunes `ERROR_WORDS_MS`, 10 s): a close within 10 s reads in that error's words (`invalid_api_key` → the auth words, a spent quota → the rate-limit words), a later one as the lost connection. **Execution (the adapter's review):** record whether an `invalid_api_key` message quotes the key's last four characters — those words reach the `session.error` frame and a close's notice verbatim.
 10. **Text only:** `session.opened` shows `modalities: ['text']`; no audio on the monitor or in the virtual microphone and no `response.output_audio.delta`; the translation streams as `response.output_text.delta` and shows as rows, paired as in item 3; the anchor unchanged.
 11. **Both** (rulings 4, 15; D20): two sockets; the participant translated in the reverse direction, with Other's prompt in Advanced mode; its detection the user's own — the participant's `session.opened` shows the speaker's `turnDetection` (`server_vad` under Normal), not the old forced `semantic_vad`; its speech switch on → Other's translation heard on the real device, off → silent (its `session.opened` `modalities: ['text']`); either leg ending ends both; participant-only. An Auto-detect source refuses Both with "This provider can't translate the other participants for this language pair."; speaker-only with Auto-detect translates, the `session.update` frame's instructions naming "the spoken language" (ruling 7).
 12. **Expiry and drops** (ruling 14; choice 14): a session past 60 minutes — against `session.created`'s `expiresAt` — ends in words. Record the `session.error` frame at the cap: `session_expired` is this plan's hypothesis, on which the run ends at once, "This segment has ended — tap Start Session to continue.", and the adapter closes the socket itself, so whether the server would have closed it does not show. If the code is another, the Logs show whether a `session.connection_lost` (its `code`, `reason`) follows, and the run ends in that error's words within 10 s, or as the lost connection. A network drop → "The connection was interrupted — tap Start Session in a moment to continue."; ask for both kinds — Wi-Fi off, and the router's upstream pulled with Wi-Fi up — and record the time until the words; nothing reconnects.
@@ -5019,7 +5174,7 @@ what settles it there — above all `response.anchor`, `response.create` (its
 14. **Reasoning effort** on a `gpt-realtime-2*` model: `session.update` carries `reasoning.effort` and `session.updated` echoes it, for each effort. An older listed model (`gpt-realtime`) starts with none sent and no Reasoning effort field in the view. **Execution ("Found during execution", item 3):** the same for the dated `gpt-realtime-2025-08-28`, if listed — record that it starts.
 15. **The transcript model and keywords:** each of the five models starts (`session.updated`'s `audio.input.transcription`) and streams its source deltas; `gpt-transcribe` and `gpt-live-transcribe` accept `languages` and `keywords`, which the SDK does not type, and show the Keywords field.
 16. **Max tokens:** Unlimited (`inf`) and a number: `session.updated`'s `maxOutputTokens`; a small number cutting a long translation — record its `response.done`'s `status` and `statusDetails`.
-17. **An old profile** (rulings 5, 6, 12; choice 4): key, pair and settings saved by an earlier build with OpenAI selected → ready without re-entry; `transportType: 'webrtc'` runs over WebSocket (`translation_session_start.transport` reads `websocket`); a stored temperature changes nothing (none in `session.update`); a stored `'Disabled'` reads as automatic, the summary "Normal · …"; a stored `gpt-realtime` or `gpt-realtime-mini` runs as stored while Validate lists it, else as `gpt-realtime-2.1-mini` when listed, else as the newest listed — the Model select shows which; an edited global prompt opens as OpenAI Realtime's own.
+17. **An old profile** (rulings 5, 6, 12; choice 4): key, pair and settings saved by an earlier build with OpenAI selected → ready without re-entry; a stored `transportType: 'webrtc'` is not read and the session runs over WebSocket (`translation_session_start.transport` reads `websocket`; the owner abandoned WebRTC, 2026-09-29); a stored temperature changes nothing (none in `session.update`); a stored `'Disabled'` reads as automatic, the summary "Normal · …"; a stored `gpt-realtime` or `gpt-realtime-mini` runs as stored while Validate lists it, else as `gpt-realtime-2.1-mini` when listed, else as the newest listed — the Model select shows which; an edited global prompt opens as OpenAI Realtime's own.
 18. **A stored OpenAI Compatible selection** (ruling 1): an Electron profile with OpenAI Compatible selected → the first provider offered is selected; the stored `settings.common.provider` still reads `openai_compatible` until a provider is picked; nothing else is written.
 19. **Readiness narrowing** (ruling 9): with a valid key and Start on, moving a slider, choosing a voice or editing the prompt leaves Start on, and DevTools' Network panel shows no new `/v1/models` request; changing the key → one request about 800 ms after the last keystroke; changing the language pair re-checks too; after a refusal (a wrong key), a slider edit leaves it refused, and Validate asks again.
 20. **The wizard:** the own-key list shows OpenAI Realtime between Doubao AST 2.0 and OpenAI Translate; its key step validates, and "How to get this key" opens the OpenAI guide.
@@ -5038,6 +5193,8 @@ what settles it there — above all `response.anchor`, `response.create` (its
 - **An out-of-band item announced** (item 4; Task 7's review, X2): the SDK says `conversation.item.added` is never sent for a `conversation: 'none'` response (`realtime.d.ts:80`, `:1984-1985`) — a documentation-based inference. If one does arrive before its output item, `items.ts` opens an empty translation segment for it — owned by the one in-band response running, when there is one — which draws no row; its text never reaches it (every delta of an out-of-band response is dropped). Reading an announced item's owner only from `response.output_item.added` would avoid even that.
 - **An unanswered utterance** (item 8): whether it should be asked a response of its own; parity says no.
 - **The unpaired fallback** (item 8; "Found during execution", item 1): a translation the server ties to no input shows unpaired; if item 8 shows such rows in ordinary use, either L2 pairs a translation with no origin among sources that state one (an L2 change), or the fallback widens again.
+- **One response per batch** (item 6; "Found during execution", item 9; the controller's ruling, the owner's to overturn): a batch's earlier release shows with no translation beside it. If that reads badly, the adapter could state the batch's inputs to L2 (a contract change), or the owner restores one `response.create` per release at the cost item 6 would then record.
+- **A typed text re-asked with nothing new under automatic turns** ("Found during execution", item 9): refused as active, it can be answered by the server's own next response in the round trip before the queue asks again. The fuzz counts it; item 7 under automatic turns, typing while speaking, is where it would show — a `response.create` for a text whose item an earlier `response.done` already answered. Dropping the re-ask when a response created after the refusal follows the text's item is a contained change.
 - **The restricted key** (item 1; ruling 17): if such keys prove common, the check could fall back to "unknown, allow Start" on a 403 whose message names a missing scope — OpenAI Translate's question, the same here.
 - **Readiness narrowing for the other ported providers:** Gemini, OpenAI Translate, Soniox and Doubao are candidates, each declaring its `checkReads` in its own change.
 - **OpenAI's own words reach the notices and the frames verbatim** (items 1, 9): the masked key tail in `invalid_api_key`'s message passes `redact()`; OpenAI Translate's question, the same here — decide with the error mapping after the live test.
@@ -5046,8 +5203,9 @@ what settles it there — above all `response.anchor`, `response.create` (its
 - Analytics for `degraded` (Plan A's open question, unchanged).
 
 **The merged deletion inventory** — OpenAI Translate's T3 and this port's old
-code, one later plan, **after the WebRTC step's live test** (ruling 20; choice
-23): `OpenAIWebRTCClient` imports `openAIRealtimeSession` and
+code, one later plan, **after the two WebSocket live tests** (ruling 20, as the
+owner's WebRTC decision amends it: first "after the WebRTC step's live test";
+choice 23). It is one plan because `OpenAIWebRTCClient` imports `openAIRealtimeSession` and
 `EphemeralTokenService.getToken`, `OpenAITranslateWebRTCClient` imports the
 Translate GA client (`:38`), and `OpenAITranslateGAClient` imports
 `OpenAIClient`'s statics. T3's list as it stands (the OpenAI Translate record
@@ -5056,7 +5214,7 @@ above), less its last item's condition — `settings.userTranscriptModel` and
 `TranscriptionField` and stay — merged with this port's, read at `583df521`
 (none of these files changed through `f9fe8747`, nor T3's since `8db4261f`):
 - the clients and descriptors: T3's `OpenAITranslateGAClient.ts` (+ test), `OpenAITranslateWebRTCClient.ts` (+ test), `OpenAITranslateProviderConfig.ts`; and `OpenAIGAClient.ts`, `OpenAIClient.ts` (`isTranslateRealtimeModel` with it), `OpenAIWebRTCClient.ts`, `openAIRealtimeSession.ts` (each + tests), `OpenAIProviderConfig.ts`, `OpenAICompatibleProviderConfig.ts`, `openaiTranscriptionContext.ts` (+ test), `src/utils/textUtils.ts` (+ test);
-- `EphemeralTokenService`: T3's translation mint (`:115-218`) and now `getToken` too — the file and its test, unless the WebRTC step has moved a mint into its own folder;
+- `EphemeralTokenService`: T3's translation mint (`:115-218`) and now `getToken` too — the file and its test; with no WebRTC step (2026-09-29) no mint moves, and only the two WebRTC clients import it. The diagnostics' comments that cite its lines as their example (`src/lib/diagnostics/describeCause.ts:24`, `report.ts:45`, `redact.ts:61`, and `report.test.ts`, `redact.test.ts`, `consoleLedger.consistency.test.ts`) keep or restate it;
 - `IClient.ts`: `:76-115, 325-331` (`OpenAISessionConfig`, its guard) and T3's `:117-139, 333-335` (`TranslateTargetLanguage`, `OpenAITranslateSessionConfig`, its guard), with their members of the `SessionConfig` union (`:321`);
 - `settingsStore.ts` — the storage keys stay: T3's `openaiTranslate` slice (`:41-43, 289, 419, 548-554, 655, 704, 753-773, 971, 1192-1196, 1349-1352, 1539, 1553-1557, 1623`, which hold Translate's key prefill from the OpenAI slice, `:753-773`, and `useTransportType`, `:1553`); the `openai` and `openaiCompatible` slices' readers (`:285-287, 415-417, 700-702, 967-969, 1535-1537, 1619-1621`), `migrateDeprecatedOpenAIModel` (`:556-588`, its call at `:1339-1345`), `forceWebrtcTurnDetectionOff` (`:647-653`), the model auto-select (`:1174-1191`); and `src/stores/openaiModelMigration.test.ts` whole (`:9-49` this port's, `:50-74` T3's);
 - `src/types/Provider.ts:15, 32-42` (Compatible's id, `OPENAI_COMPATIBLE_PROVIDERS`, `isOpenAICompatible`; `Provider.OPENAI` at `:9` stays, the live provider's id) — the three ruling-1 cases that name `Provider.OPENAI_COMPATIBLE` (`providerPaths.test.ts` twice, `useApplySetup.test.ts`) switch to the string `'openai_compatible'` (cast), and stay;
@@ -5074,8 +5232,8 @@ From "Scheduled by the Stage 2 foundation plan" (`:1291-1296` above) and plan
 
 | Item | Disposition |
 |---|---|
-| F15, the processed WebRTC track | the WebRTC step: this port is WebSocket (ruling 12) |
-| The D25 participant-leg fix | the WebRTC step, with `turns(s)` (ruling 12); the spec's open question moves with it (amendment 6) |
+| F15, the processed WebRTC track | the WebRTC step: this port is WebSocket (ruling 12). **Closed 2026-09-29** with the step: no adapter takes the runner's track ("The owner's WebRTC decision") |
+| The D25 participant-leg fix | the WebRTC step, with `turns(s)` (ruling 12); the spec's open question moves with it (amendment 6). **Closed 2026-09-29:** D25 and the open question closed (amendment 18) |
 | `busy`'s reader | closed by ruling 8: the adapter owns the queue; `busy` is still emitted (Task 11) |
 | The drift anchor | built (Tasks 6, 11; ruling 2) |
 | OpenAI's model migration | not ported (ruling 5; choice 4): a stated departure |
@@ -5124,10 +5282,10 @@ From "Scheduled by the Stage 2 OpenAI Translate plan" (`:4321-4340`,
 | `pcmToBase64` / `base64ToPcm` at their third user | done (Task 1; choice 1) |
 | A shared `boundedFetch` | done (Task 2; choice 2) |
 | `NoiseReductionField`, for OpenAI Realtime to reuse | reused (Task 10) |
-| The kit-level seeded lifecycle scenario | deferred to the WebRTC step (choice 21); the queue's own seeded test here (Task 8) |
+| The kit-level seeded lifecycle scenario | deferred to the WebRTC step (choice 21); the queue's own seeded test here (Task 8). **Reassigned 2026-09-29:** to the next port that wants it, Palabra next ("The owner's WebRTC decision") |
 | T3 | merged with this port's deletion (ruling 20; this record's inventory) |
 | The transcript field | built in the folder (Task 10); T3's orphan keys it reuses stay |
-| The transport field | still the WebRTC step's (ruling 12; choice 18) |
+| The transport field | still the WebRTC step's (ruling 12; choice 18). **Closed 2026-09-29:** nothing to choose; `S.transportType` removed |
 | A restricted key's fallback | parity here too (ruling 17) |
 | OpenAI's own words in the notices | the same here (`errorWords`); carried as an open question |
 | `ERROR_WORDS_MS` and a negative age | consumed (ruling 13) |
@@ -5142,8 +5300,9 @@ From "Scheduled by the Stage 2 OpenAI Translate plan" (`:4321-4340`,
 
 What it leaves, for the plans that meet it (the plan's own list, as written;
 then the items the reviews routed here, last below):
-- **The merged deletion plan** — OpenAI Translate's T3, OpenAI Realtime's and OpenAI Compatible's old code, `textUtils.ts`, `openaiTranscriptionContext`, the `openai-realtime-api` dependency — after the WebRTC step's live test (ruling 20; this record's inventory).
-- **The WebRTC step, for both OpenAI providers:** Realtime's transport and its dispatch in `start`, `C.transport` widened from `S.transportType`, D25's `turns(s)` and the participant's transport, the transport control, the ephemeral token, and the kit-level seeded lifecycle scenario (choice 21).
+- **The merged deletion plan** — OpenAI Translate's T3, OpenAI Realtime's and OpenAI Compatible's old code, `textUtils.ts`, `openaiTranscriptionContext`, the `openai-realtime-api` dependency — after the WebRTC step's live test (ruling 20; this record's inventory). **2026-09-29:** after the two WebSocket live tests instead ("The owner's WebRTC decision").
+- **The WebRTC step, for both OpenAI providers:** Realtime's transport and its dispatch in `start`, `C.transport` widened from `S.transportType`, D25's `turns(s)` and the participant's transport, the transport control, the ephemeral token, and the kit-level seeded lifecycle scenario (choice 21). **Removed 2026-09-29 (owner):** abandoned; each part closed, the ephemeral token deleted with the old code, and the kit-level scenario reassigned to the next port that wants it ("The owner's WebRTC decision").
+- **Comments that still promise a WebRTC step**, in files the final fix wave did not touch: `src/providers/openai/provider.ts:23, 57` (the latter citing D25), `RealtimeSettings.tsx:23`, `RealtimeTurnDetection.tsx:32-33`; `src/providers/openai_translate/provider.ts:21`, `TranslateSettings.tsx:12`, `segments.ts:8`, `adapter.ts:4, 105`. Restate them WebSocket only, citing the owner's decision.
 - **Readiness narrowing for the other ported providers:** each declares its `checkReads` in its own change, with a case like Task 12's.
 - **The copies to lift:** `socket.ts` with F14; `decodeServerEvent`, `errorCode` and `errorWords` at a third user, or after OpenAI Translate's live test.
 - **The owner's open questions** in this record, each with the live-test item that settles it.
@@ -5152,4 +5311,4 @@ then the items the reviews routed here, last below):
 - **`gemini/config.ts:70`** cites "fix round 1" in a production comment, against the rule that production comments cite rulings, never a review or a round (Task 5's review, m1).
 - **`checkReads`' unenforced obligation** (Task 3's review, m3): "every field that decides the credential fields must be listed" (`src/lib/provider/types.ts`) is checked nowhere; no provider is affected — OpenAI Realtime's credential fields are fixed.
 - **An orphaned socket on an unreachable path** (Task 11's re-review): a throw from `clock.setTimeout` or `signal.addEventListener` inside the opening executor would reject the start with the socket still open — an orphaned leg that would send `session.update` and a billed anchor. Unreachable in the app (`realClock`, a real `AbortController`); the cheap hardening is to arm the timer and the listener before `openSocket`, or to close the socket when the executor throws.
-- **For the final review** (the ledger): the session-side guard's 5-second budget under parallel waves (Task 5, m3); `checkReads`' doc "the kept answer is keyed on these alone" reads as covering not-ready answers, which are never kept (Task 3's re-review); the temperature test's comment cites ruling 5 where the removal is ruling 6 (Task 6's fix round).
+- **For the final review** (the ledger): the session-side guard's 5-second budget under parallel waves (Task 5, m3); `checkReads`' doc "the kept answer is keyed on these alone" reads as covering not-ready answers, which are never kept (Task 3's re-review); the temperature test's comment cites ruling 5 where the removal is ruling 6 (Task 6's fix round). **Settled by the final fix wave** (`eaaf8ead`): the guard's budget needs nothing (its slowest case runs in 0.93 s alone, and the full suite met no timeout); the doc reads "a kept ready answer is keyed on these alone", the spec's words; the comment cites rulings 5 and 6.
