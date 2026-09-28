@@ -24,7 +24,7 @@ export interface TranslateConfig {
   noiseReduction: 'near_field' | 'far_field' | null;
   /** Each side's silence timer and the mid-sentence deferral, as Gemini's Live Translate (choice 4). */
   silence: { sourceMs: number; translationMs: number; deferMidSentence: boolean };
-  /** WebSocket only (ruling 1): the WebRTC step widens it, from `S.transportType` (choice 15). */
+  /** WebSocket only (ruling 1; choice 15): the owner abandoned WebRTC for this provider (2026-09-29). It reaches `info.transport`, which analytics reports. */
   transport: 'websocket';
 }
 
@@ -48,7 +48,7 @@ export function buildTranslate(context: SessionContext, s: TranslateSettings, sh
       translationMs: clampSegmentPauseMs(segmentPauseMs(shared.pauses.translationSeconds)),
       deferMidSentence: shared.segmentation.mode === 'sentences',
     },
-    // `s.transportType` is not read: a stored `webrtc` runs over WebSocket until the WebRTC step (ruling 1).
+    // Every session runs over WebSocket (ruling 1): a stored `transportType`, `webrtc` included, is not read into `S`.
     transport: 'websocket',
   };
 }

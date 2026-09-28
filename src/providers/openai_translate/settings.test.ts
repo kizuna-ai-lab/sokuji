@@ -11,15 +11,15 @@ const S = TRANSLATE_DEFAULTS;
 const signedOut = { signedIn: false, getToken: async () => null };
 
 describe("OpenAI Translate's settings", () => {
-  it('keeps the noise reduction and the transport, defaulting to none over WebSocket (ruling 1)', () => {
-    expect(TRANSLATE_DEFAULTS).toEqual({ noiseReduction: 'None', transportType: 'websocket' });
+  it('keeps the noise reduction, defaulting to none, and no transport: every session runs over WebSocket (ruling 1)', () => {
+    expect(TRANSLATE_DEFAULTS).toEqual({ noiseReduction: 'None' });
     expect(NOISE_REDUCTIONS).toEqual(['None', 'Near field', 'Far field']);
   });
 
-  it('migrates what was stored field by field, keeps a stored WebRTC choice, and reads no transcript model (rulings 1, 8)', () => {
+  it('migrates what was stored field by field, and reads neither a stored WebRTC choice nor a transcript model (rulings 1, 8)', () => {
     expect(migrateTranslateSettings({ ...TRANSLATE_DEFAULTS })).toEqual(TRANSLATE_DEFAULTS);
     expect(migrateTranslateSettings({ noiseReduction: 'Far field', transportType: 'webrtc', transcriptModel: 'gpt-realtime-whisper' }))
-      .toEqual({ noiseReduction: 'Far field', transportType: 'webrtc' });
+      .toEqual({ noiseReduction: 'Far field' });
     expect(migrateTranslateSettings({ noiseReduction: 'near_field', transportType: 'sip' })).toEqual(TRANSLATE_DEFAULTS);
     expect(migrateTranslateSettings({})).toEqual(TRANSLATE_DEFAULTS);
   });

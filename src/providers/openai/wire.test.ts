@@ -103,7 +103,7 @@ describe("OpenAI Realtime's wire: session.update", () => {
   });
 
   it('sends no temperature, whatever was stored (ruling 6), and no model: the socket names it', () => {
-    // `migrate` never reads a stored `temperature` (ruling 5): it cannot reach `RealtimeSettings`,
+    // `migrate` never reads a stored `temperature` (rulings 5, 6): it cannot reach `RealtimeSettings`,
     // so `session.update` cannot carry it either — proven through the real migration, not just
     // the wire's own types (which would omit it whatever `migrate` did).
     const migrated = migrateRealtimeSettings({ temperature: 0.7 }, { legacy: {}, credentials: {} });

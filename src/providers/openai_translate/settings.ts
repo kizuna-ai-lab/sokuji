@@ -2,10 +2,12 @@
  * OpenAI Translate's `S`, languages and credentials (survey §2.2, §2.3,
  * §2.5). `S` is the old slice (`OpenAITranslateProviderConfig.ts:20-50`)
  * without what leaves it: the key (a credential, same key), the pair
- * (`providerStore`, same keys) and the transcript model (a constant now,
- * ruling 8). Stored under `settings.openaiTranslate.*` as before. The
- * language lists are the old descriptor's (`:161-256`), copied: nothing here
- * imports `src/services`.
+ * (`providerStore`, same keys), the transcript model (a constant now,
+ * ruling 8) and the transport choice — every session runs over WebSocket
+ * (ruling 1), and the owner abandoned WebRTC for this provider
+ * (2026-09-29), so a stored `transportType` is not read. Stored under
+ * `settings.openaiTranslate.*` as before. The language lists are the old
+ * descriptor's (`:161-256`), copied: nothing here imports `src/services`.
  */
 import type { CredentialsMissing, LanguageOption, Provider } from '../../lib/provider/types';
 
@@ -15,15 +17,9 @@ export const NOISE_REDUCTIONS: readonly NoiseReduction[] = ['None', 'Near field'
 
 export interface TranslateSettings {
   noiseReduction: NoiseReduction;
-  /**
-   * The old transport choice: read and kept for the WebRTC step, never shown,
-   * and not honoured — every session runs over WebSocket until that step
-   * (ruling 1; choice 15).
-   */
-  transportType: 'websocket' | 'webrtc';
 }
 
-export const TRANSLATE_DEFAULTS: TranslateSettings = { noiseReduction: 'None', transportType: 'websocket' };
+export const TRANSLATE_DEFAULTS: TranslateSettings = { noiseReduction: 'None' };
 
 /** The model every session runs (ruling 7): the endpoint fixes it at creation, and the old builder always sent it (`OpenAITranslateProviderConfig.ts:106`). */
 export const TRANSLATE_MODEL = 'gpt-realtime-translate';
@@ -36,17 +32,16 @@ export function isTranslateModelId(id: string): boolean {
 }
 
 const NOISE_VALUES: readonly unknown[] = NOISE_REDUCTIONS;
-const TRANSPORTS: readonly unknown[] = ['websocket', 'webrtc'];
 
 /**
  * What was stored, made valid field by field. A stored transcript model
  * (`gpt-live-transcribe`, or the legacy `gpt-realtime-whisper`) is not read:
- * the model is a constant (ruling 8). Nothing is written back.
+ * the model is a constant (ruling 8). Nor is a stored transport: every
+ * session runs over WebSocket (ruling 1). Nothing is written back.
  */
 export function migrateTranslateSettings(stored: Readonly<Record<string, unknown>>): TranslateSettings {
   return {
     noiseReduction: NOISE_VALUES.includes(stored.noiseReduction) ? (stored.noiseReduction as NoiseReduction) : TRANSLATE_DEFAULTS.noiseReduction,
-    transportType: TRANSPORTS.includes(stored.transportType) ? (stored.transportType as TranslateSettings['transportType']) : TRANSLATE_DEFAULTS.transportType,
   };
 }
 

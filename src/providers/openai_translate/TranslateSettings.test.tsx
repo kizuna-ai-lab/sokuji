@@ -25,7 +25,7 @@ describe("OpenAI Translate's settings view", () => {
 
   it('draws the noise reduction, writing its own field; nothing else — no model, transcript model or transport (rulings 1, 7, 8)', () => {
     const update = vi.fn();
-    const { container } = render(<TranslateSettingsView settings={{ ...TRANSLATE_DEFAULTS, transportType: 'webrtc' }} update={update} />);
+    const { container } = render(<TranslateSettingsView settings={TRANSLATE_DEFAULTS} update={update} />);
     const select = screen.getByLabelText('settings.noiseReduction') as HTMLSelectElement;
     expect(select.value).toBe('None');
     expect([...select.options].map((o) => o.value)).toEqual(['None', 'Near field', 'Far field']);

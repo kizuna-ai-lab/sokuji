@@ -99,7 +99,7 @@ describe('the OpenAI Translate definition', () => {
     expect(opened).not.toHaveBeenCalled();
   });
 
-  it('loads an old profile as it was: the key, the pair, the noise reduction, a WebRTC choice kept and run over WebSocket, the transcript model unread, nothing written (rulings 1, 8)', async () => {
+  it('loads an old profile as it was: the key, the pair, the noise reduction; a WebRTC choice and the transcript model unread, the session over WebSocket, nothing written (rulings 1, 8)', async () => {
     stored.set('settings.openaiTranslate.apiKey', 'sk-proj-oldProfileKey0123');
     stored.set('settings.openaiTranslate.sourceLanguage', 'ko');
     stored.set('settings.openaiTranslate.targetLanguage', 'ja');
@@ -108,7 +108,7 @@ describe('the OpenAI Translate definition', () => {
     stored.set('settings.openaiTranslate.transcriptModel', 'gpt-realtime-whisper');
     await useProviderStore.getState().load(openaiTranslateProvider);
     const entry = useProviderStore.getState().entries.openai_translate;
-    expect(entry.settings as TranslateSettings).toEqual({ noiseReduction: 'Far field', transportType: 'webrtc' });
+    expect(entry.settings as TranslateSettings).toEqual({ noiseReduction: 'Far field' });
     expect(readCredentials(openaiTranslateProvider, entry.settings, entry.credentials, { signedIn: false, getToken: async () => null })).toEqual({ apiKey: 'sk-proj-oldProfileKey0123' });
     expect(entry.pair).toEqual({ source: 'ko', target: 'ja' });
     const config = openaiTranslateProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as TranslateSettings, SHARED) as TranslateConfig;

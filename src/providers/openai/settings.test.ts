@@ -12,7 +12,7 @@ const migrate = (stored: Record<string, unknown>, legacy: Record<string, unknown
 const ids = (...list: string[]) => list.map((id) => ({ id }));
 
 describe("OpenAI Realtime's settings", () => {
-  it('starts from the old defaults, less the temperature (ruling 6), plus the instructions it now owns', () => {
+  it('starts from the old defaults, less the temperature (ruling 6) and the transport (WebSocket only, ruling 12), plus the instructions it now owns', () => {
     expect(REALTIME_DEFAULTS).toEqual({
       ...INSTRUCTIONS_DEFAULTS,
       model: 'gpt-realtime-2.1-mini',
@@ -26,15 +26,15 @@ describe("OpenAI Realtime's settings", () => {
       transcriptModel: 'gpt-4o-mini-transcribe',
       transcriptKeywords: '',
       noiseReduction: 'None',
-      transportType: 'websocket',
       reasoningEffort: 'low',
     });
     expect(REALTIME_DEFAULTS).not.toHaveProperty('temperature');
+    expect(REALTIME_DEFAULTS).not.toHaveProperty('transportType');
     // The instructions' legacy keys, and nothing else (ruling 5).
     expect(REALTIME_LEGACY_KEYS).toEqual(INSTRUCTION_LEGACY_KEYS);
   });
 
-  it('loads an old profile field by field, converting nothing: a stored temperature is not read, a WebRTC choice kept', () => {
+  it('loads an old profile field by field, converting nothing: a stored temperature is not read, nor a stored WebRTC choice', () => {
     const s = migrate({
       model: 'gpt-realtime-2.1', voice: 'marin', turnDetectionMode: 'Semantic', threshold: 0.7, prefixPadding: 0.3, silenceDuration: 1.2,
       semanticEagerness: 'High', maxTokens: 2048, transcriptModel: 'gpt-live-transcribe', transcriptKeywords: 'Sokuji', noiseReduction: 'Far field',
@@ -43,9 +43,10 @@ describe("OpenAI Realtime's settings", () => {
     expect(s).toMatchObject({
       model: 'gpt-realtime-2.1', voice: 'marin', turnDetectionMode: 'Semantic', threshold: 0.7, prefixPadding: 0.3, silenceDuration: 1.2,
       semanticEagerness: 'High', maxTokens: 2048, transcriptModel: 'gpt-live-transcribe', transcriptKeywords: 'Sokuji', noiseReduction: 'Far field',
-      transportType: 'webrtc', reasoningEffort: 'medium',
+      reasoningEffort: 'medium',
     });
     expect(s).not.toHaveProperty('temperature');
+    expect(s).not.toHaveProperty('transportType');
   });
 
   it("reads a stored push mode as no mechanism: 'Disabled' and 'Push-to-Translate' fall to 'Normal' (ruling 5; choice 4)", () => {

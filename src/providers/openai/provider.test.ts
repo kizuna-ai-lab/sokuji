@@ -111,7 +111,7 @@ describe('the OpenAI Realtime definition', () => {
     expect(opened).not.toHaveBeenCalled();
   });
 
-  it("loads an old profile as it was — the key, the pair, the settings, a WebRTC choice run over WebSocket — reading no temperature and converting nothing, and writes nothing (rulings 5, 6, 12)", async () => {
+  it("loads an old profile as it was — the key, the pair, the settings — reading no temperature and no WebRTC choice, which runs over WebSocket, converting nothing, and writes nothing (rulings 5, 6, 12)", async () => {
     stored.set('settings.openai.apiKey', 'sk-proj-oldProfileKey0123');
     stored.set('settings.openai.sourceLanguage', 'ko');
     stored.set('settings.openai.targetLanguage', 'ja');
@@ -128,10 +128,11 @@ describe('the OpenAI Realtime definition', () => {
     await useProviderStore.getState().load(openaiProvider);
     const entry = useProviderStore.getState().entries.openai;
     expect(entry.settings as RealtimeSettings).toMatchObject({
-      model: 'gpt-realtime-2.1', voice: 'marin', turnDetectionMode: 'Semantic', semanticEagerness: 'High', transportType: 'webrtc', maxTokens: 2048,
+      model: 'gpt-realtime-2.1', voice: 'marin', turnDetectionMode: 'Semantic', semanticEagerness: 'High', maxTokens: 2048,
       useTemplateMode: false, systemInstructions: 'Translate plainly.',
     });
     expect(entry.settings).not.toHaveProperty('temperature');
+    expect(entry.settings).not.toHaveProperty('transportType');
     expect(readCredentials(openaiProvider, entry.settings, entry.credentials, noAuth)).toEqual({ apiKey: 'sk-proj-oldProfileKey0123' });
     expect(entry.pair).toEqual({ source: 'ko', target: 'ja' });
     const config = openaiProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as RealtimeSettings, { ...SHARED, models: [{ id: 'gpt-realtime-2.1' }] }) as RealtimeConfig;

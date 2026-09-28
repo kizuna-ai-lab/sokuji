@@ -4,7 +4,7 @@ import { INSTRUCTIONS_TEMPLATE } from '../../lib/provider/instructions';
 import { AUTO } from '../../lib/provider/languages';
 import type { SharedSettings } from '../../lib/provider/types';
 import { buildRealtime, describeRealtime, type RealtimeConfig } from './config';
-import { REALTIME_DEFAULTS, type RealtimeSettings } from './settings';
+import { migrateRealtimeSettings, REALTIME_DEFAULTS, type RealtimeSettings } from './settings';
 
 const PAIR = { source: 'en', target: 'zh_CN' };
 const shared = (patch: Partial<SharedSettings> = {}): SharedSettings => ({
@@ -80,10 +80,12 @@ describe("OpenAI Realtime's builder", () => {
     expect(auto.transcription).toEqual({ model: 'gpt-live-transcribe' });
   });
 
-  it('maps noise reduction to the wire, "None" as null (ruling 16), and keeps running over WebSocket whatever the stored transport (ruling 12)', () => {
+  it('maps noise reduction to the wire, "None" as null (ruling 16), and runs over WebSocket whatever transport was stored: a stored WebRTC choice is not read (ruling 12)', () => {
     expect(build({ noiseReduction: 'Near field' }).noiseReduction).toBe('near_field');
     expect(build({ noiseReduction: 'Far field' }).noiseReduction).toBe('far_field');
-    expect(build({ transportType: 'webrtc' }).transport).toBe('websocket');
+    const stored = migrateRealtimeSettings({ transportType: 'webrtc' }, { legacy: {}, credentials: {} });
+    expect(stored).not.toHaveProperty('transportType');
+    expect((buildRealtime(SPEAKER, stored, shared()) as RealtimeConfig).transport).toBe('websocket');
   });
 
   it('describes the translation model and the transcript model (choice 20)', () => {

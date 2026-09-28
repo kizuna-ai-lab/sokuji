@@ -141,7 +141,7 @@ class RealtimeLeg implements AdapterSession {
     openSocket: OpenSocket,
   ) {
     const { config, clock, signal } = request;
-    // The WebRTC step's attachment point (choice 18): today every config says `websocket`.
+    // Always `websocket` (ruling 12; choice 18): the owner abandoned WebRTC for this provider (2026-09-29). Analytics reports it.
     this.info = { transport: config.transport };
     this.items = new RealtimeItems(events);
     this.queue = new ResponseQueue({

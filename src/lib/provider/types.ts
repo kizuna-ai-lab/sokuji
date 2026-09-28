@@ -298,7 +298,7 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * The settings fields `check` reads (Stage 2 OpenAI Realtime, ruling 9):
    * an edit to any other field keeps the readiness answer — ready or not,
    * Start stays as it was, and nothing is checked again — unless the edit
-   * moved the run's pair; the kept answer is keyed on these alone. Every
+   * moved the run's pair; a kept ready answer is keyed on these alone. Every
    * field `check` reads must be listed, and every field that decides the
    * credential fields. Absent: every field, as before. OpenAI Realtime's
    * model list reads none (`[]`).

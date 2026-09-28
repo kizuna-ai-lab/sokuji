@@ -39,7 +39,7 @@ export interface RealtimeConfig {
   noiseReduction: 'near_field' | 'far_field' | null;
   /** A `gpt-realtime-2*` model only. */
   reasoningEffort?: ReasoningEffort;
-  /** WebSocket only (ruling 12): the WebRTC step widens it, from `S.transportType` (choice 18). */
+  /** WebSocket only (ruling 12; choice 18): the owner abandoned WebRTC for this provider (2026-09-29). It reaches `info.transport`, which analytics reports. */
   transport: 'websocket';
 }
 
@@ -80,7 +80,7 @@ export function buildRealtime(context: SessionContext, s: RealtimeSettings, shar
     transcription: buildTranscriptionHint(s.transcriptModel, source, s.transcriptKeywords),
     noiseReduction: NOISE[s.noiseReduction],
     ...(takesReasoning(model) ? { reasoningEffort: s.reasoningEffort } : {}),
-    // `s.transportType` is not read: a stored `webrtc` runs over WebSocket until the WebRTC step (ruling 12).
+    // Every session runs over WebSocket (ruling 12): a stored `transportType`, `webrtc` included, is not read into `S`.
     transport: 'websocket',
   };
 }

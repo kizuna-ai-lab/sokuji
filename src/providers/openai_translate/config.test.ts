@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { SharedSettings } from '../../lib/provider/types';
 import { buildTranslate, describeTranslate, type TranslateConfig } from './config';
-import { TRANSLATE_DEFAULTS, type TranslateSettings } from './settings';
+import { migrateTranslateSettings, TRANSLATE_DEFAULTS, type TranslateSettings } from './settings';
 
 const PAIR = { source: 'ja', target: 'en' };
 const shared = (patch: Partial<SharedSettings> = {}): SharedSettings => ({
@@ -38,8 +38,10 @@ describe("OpenAI Translate's builder", () => {
     expect(build({}, PARTICIPANT).target).toBe('ja');
   });
 
-  it('runs a stored WebRTC choice over WebSocket (ruling 1)', () => {
-    expect(build({ transportType: 'webrtc' }).transport).toBe('websocket');
+  it('runs a stored WebRTC choice over WebSocket: it is not read (ruling 1)', () => {
+    const stored = migrateTranslateSettings({ transportType: 'webrtc' });
+    expect(stored).not.toHaveProperty('transportType');
+    expect((buildTranslate(SPEAKER, stored, shared()) as TranslateConfig).transport).toBe('websocket');
   });
 
   it("builds a leg that does not speak exactly as one that does: the API always speaks, and the adapter drops the audio (ruling 4)", () => {

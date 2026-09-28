@@ -2,11 +2,13 @@
  * OpenAI Realtime's `S`, languages, credentials and effective model (survey
  * §2.3–2.8). `S` is the old slice (`OpenAIProviderConfig.ts:24-75`) without
  * what leaves it — the key (a credential, same key), the pair
- * (`providerStore`, same keys) and the temperature, which the GA endpoint
- * takes none of (ruling 6) — plus the instructions it now owns (Stage 2
- * Gemini, ruling 4). Stored under `settings.openai.*` as before. The
- * language and voice lists are the old descriptor's, copied: nothing here
- * imports `src/services`.
+ * (`providerStore`, same keys), the temperature, which the GA endpoint
+ * takes none of (ruling 6), and the transport choice: every session runs
+ * over WebSocket (ruling 12), and the owner abandoned WebRTC for this
+ * provider (2026-09-29), so a stored `transportType` is not read — plus the
+ * instructions it now owns (Stage 2 Gemini, ruling 4). Stored under
+ * `settings.openai.*` as before. The language and voice lists are the old
+ * descriptor's, copied: nothing here imports `src/services`.
  */
 import { AUTO } from '../../lib/provider/languages';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS, migrateInstructions, type InstructionsSettings } from '../../lib/provider/instructions';
@@ -53,12 +55,6 @@ export interface RealtimeSettings extends InstructionsSettings {
   /** The raw glossary as typed: `transcription.ts` splits it, for the models that take keywords. */
   transcriptKeywords: string;
   noiseReduction: NoiseReduction;
-  /**
-   * The old transport choice: read and kept for the WebRTC step, never
-   * shown, and not honoured — every session runs over WebSocket until that
-   * step (ruling 12; choice 18).
-   */
-  transportType: 'websocket' | 'webrtc';
   /** Sent only for a `gpt-realtime-2*` model (`takesReasoning`). */
   reasoningEffort: ReasoningEffort;
 }
@@ -81,7 +77,6 @@ export const REALTIME_DEFAULTS: RealtimeSettings = {
   transcriptModel: 'gpt-4o-mini-transcribe',
   transcriptKeywords: '',
   noiseReduction: 'None',
-  transportType: 'websocket',
   reasoningEffort: 'low',
 };
 
@@ -113,9 +108,9 @@ function maxTokensOf(v: unknown): number | 'inf' {
  * `migrate` does (ruling 5): a field of the wrong type or outside its values
  * falls to its default; clamping stays in `build`. No value is converted:
  * a push mode stored in `turnDetectionMode` is not a mechanism and reads as
- * `'Normal'`, a stored temperature is not read, and a model OpenAI has
- * deprecated stays saved — the effective model moves off it once the check
- * no longer lists it (choice 4). The instructions come from
+ * `'Normal'`, a stored temperature or transport is not read, and a model
+ * OpenAI has deprecated stays saved — the effective model moves off it once
+ * the check no longer lists it (choice 4). The instructions come from
  * `migrateInstructions`. Nothing is written back.
  */
 export function migrateRealtimeSettings(stored: Readonly<Record<string, unknown>>, inputs: MigrationInputs): RealtimeSettings {
@@ -133,7 +128,6 @@ export function migrateRealtimeSettings(stored: Readonly<Record<string, unknown>
     transcriptModel: oneOf(TRANSCRIPT_MODELS, stored.transcriptModel, REALTIME_DEFAULTS.transcriptModel),
     transcriptKeywords: text('transcriptKeywords'),
     noiseReduction: oneOf(NOISE_REDUCTIONS, stored.noiseReduction, REALTIME_DEFAULTS.noiseReduction),
-    transportType: oneOf<RealtimeSettings['transportType']>(['websocket', 'webrtc'], stored.transportType, REALTIME_DEFAULTS.transportType),
     reasoningEffort: oneOf(REASONING_EFFORTS, stored.reasoningEffort, REALTIME_DEFAULTS.reasoningEffort),
   };
 }
