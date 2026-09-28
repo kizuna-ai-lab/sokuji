@@ -135,8 +135,9 @@ describe("OpenAI Translate's release tail (ruling 2)", () => {
   it.each([1, 3])('counts beats, not clock.now() deltas, so a timer firing %dms late still ends after exactly 5 frames of quiet, and never past 15 at the cap', (lateMs) => {
     // A late-firing setTimeout, as the real clock's routinely is: `every()`'s
     // own re-arm still lands one tick per beat, but a raw `now() - releasedAt`
-    // check would see less than 1 000 ms / 3 000 ms elapsed at each beat and
-    // cut the tail short (ruling 2's 5 and 15 frames).
+    // check would read MORE than the beat's nominal elapsed time — 1 001 ms
+    // at beat 5, already past 1 000 — and end the tail a beat early (ruling
+    // 2's 5 and 15 frames).
     function lateTail() {
       const { clock: base, timers } = trackedClock();
       const clock = {

@@ -57,14 +57,16 @@ interface Run {
   releasedAt: number;
   lastOutputAt: number | null;
   /** Frames run so far, counted at the top of every tick — never
-   *  `now() - releasedAt`. `every()`'s timer fires at or after its due time
-   *  on the real clock, never exactly on it, so a raw elapsed-time check
-   *  would cut the quiet window under its 5 beats; and a wall clock that
-   *  steps backwards (`Date.now()` moved by the system) would make
-   *  `now() - releasedAt` negative forever, so a raw check would never end
-   *  the tail at all. Counting beats keeps both ends exactly what ruling 2
-   *  fixed: 5 frames of quiet, 15 at the cap, regardless of real time
-   *  (choice 7: the tail owns its own clock reads). */
+   *  `now() - releasedAt`. A timer's `now()` read can land either side of
+   *  its beat (`every()`'s own doc: an on-time fire can read a millisecond
+   *  short of its beat; a late one reads past it), so a raw elapsed-time
+   *  check swings with that read and can end the quiet window a beat early.
+   *  And a wall clock that steps backwards (`Date.now()` moved by the
+   *  system) makes `now() - releasedAt` negative forever, so a raw check
+   *  would never end the tail at all. Counting beats keeps both ends
+   *  exactly what ruling 2 fixed — 5 frames of quiet, 15 at the cap, one
+   *  frame per real-time beat, however late or stepped the clock's own
+   *  reads run (ruling 2; choice 7). */
   beats: number;
   /** The beat `output()` last landed on; 0 (the release itself) when none has. */
   lastOutputBeat: number;
