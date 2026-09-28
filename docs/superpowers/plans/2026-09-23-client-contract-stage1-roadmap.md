@@ -3122,10 +3122,12 @@ Task 17 — with group check A after the fourth and group check B after the
 sixth; Task 10 waited for Task 3's fix round to free `registry.test.ts`, and
 Task 11 started while Wave 2's fix rounds ran. Tasks 3, 6, 7, 8, 9, 12, 14 and
 15 took one review fix round each; Tasks 1, 2, 4, 5, 10, 11, 13, 16 and 17 were
-approved as their implementers committed them. Task 18 is this record. The
-whole-plan review and its final fix wave are still to come: the items the task
-reviews parked for that wave are listed under "What it leaves". The survey the
-plan was written from is named in its research notes.
+approved as their implementers committed them. Task 18 is this record. After
+the whole-plan review (Ready to merge with fixes: no Critical or Important
+item, six Minor ones), one final fix wave took those six, the review's three
+live-test additions and the three items the task reviews had parked for it
+(the last entry under "What landed", below). The survey the plan was written
+from is named in its research notes.
 
 **The pre-flight.** Before Wave 1 a read-only pre-flight reconciled every text
 the plan quotes from a file the Gemini plan touched against `2ad8e910`: 35 of
@@ -3360,6 +3362,61 @@ What landed, by task:
   fields, and its fields, `readCredentials` and `check` read the saved settings
   with the pick laid over them. Nothing is written before Finish; a provider
   with no choice renders and behaves as before.
+- **The final fix wave** (`7f3dded6`, `45e49a6e`, and the docs commit that
+  records it here; the controller's ruling "final, the ONE fix wave" on the
+  whole-plan review):
+  - **The socket seam's fixed words** (Task 15's review, M3b; `7f3dded6`):
+    `nativeSocket` in `volcengine_ast2/socket.ts` and `gemini/socket.ts`
+    wraps `new WebSocket(url)`, and a throw is rethrown as `The browser would
+    not open the socket (<error name>).`, the browser's message dropped and
+    its error name kept on the new error ("Found during execution", item 10).
+    Why: a browser's `SyntaxError` for the constructor can quote the URL, and
+    both URLs carry a credential. Doubao's check opens its socket inside its
+    promise, so the browser's words, URL included, would have become the
+    readiness reason the credential form shows (`providerStore.ts`'
+    `describeCause(error)`). One place each now covers Doubao's check, its
+    start, Gemini's start and Gemini's reconnect ladder, whose
+    `session.reconnect_failed` frame carries the failure's message. Cases:
+    each seam's own `socket.test.ts` (in both credential modes for Doubao),
+    and a case through the real seam, with the global `WebSocket` stubbed, in
+    Doubao's check and adapter suites and in Gemini's adapter suite.
+  - **The check drops another session's `SessionStarted`** (the whole-plan
+    review, M4; `7f3dded6`): after the status check, exactly where the start drops it
+    (`adapter.ts`' `session.foreign`), a frame whose `SessionID` is set and not
+    the one the check sent is ignored. A `SessionStarted` naming no session
+    still counts, as it does for the start. Why: the start already required
+    the echo, so a server that answered with an id of its own would have shown
+    Validate ✓ and then timed out every start after 30 s. Now neither shows
+    ready: the check ends at its 15 s bound. Cases: the foreign one (no ✓, no
+    `FinishSession`, the 15 s words); its own and an unnamed one (✓); a
+    refusal naming another session, still heard (the status is read before
+    the session, as the start reads it); and the check beside a start over the
+    same foreign answer, each ending at its own bound.
+  - **The wizard's write order, pinned** (Task 17's review, m2; `7f3dded6`):
+    `useApplySetup.test.ts` wraps the store's `updateSettings` and
+    `setCredential` in `vi.fn` and asserts by `invocationCallOrder` that the
+    choice's write precedes the first credential's.
+  - **Comments cite rulings, not tasks or findings** (Task 17's review, m1;
+    `45e49a6e`, comments only): the wizard's four "(Stage 2 Volcengine AST2,
+    I2)" now cite ruling 1, the credential choice that review I2 became; the
+    codec's two stubs cite F18 without "Task 1". The clean-up covered every
+    production file the plan touched, so `src/app/session.ts`' four Stage 1
+    ids ("final review M6" twice, "parked item 8", "M2") went too. Ruling and
+    choice citations, D rulings, F items, the L layers, `settings.ts`' "the
+    old rule R3" (the survey's numbering of the old UI's rules) and
+    `logStore.ts`' "PR #538 review" stay.
+  - **The docs** (this record and the spec): Minors 1, 3, 4 and 5 in the live
+    test and the open questions below; Minor 2 in the spec's relay-twins
+    paragraph; Minor 6 under "What it leaves"; the review's three live-test
+    additions in items 1, 9 and 10.
+
+  Each new case failed first against the unchanged code, except those that
+  pin what already held: each seam's success path, and, each shown to bite by
+  a scratch mutant, the start's words through Doubao's real seam, the unnamed
+  and own-session `SessionStarted`, the refusal naming another session and
+  the write order. The suite at `45e49a6e`: 527 files passed and 1 skipped,
+  6,730 tests passed and 2 skipped, 0 failed, no unhandled errors; the gate at
+  its baseline.
 
 **The owner's probes.** Both ran with his real credentials over Node `ws`, each
 case a `StartSession` in `s2t` for zh → en and then `FinishSession`; the scripts
@@ -3416,6 +3473,9 @@ anchor:
 8. "What adding a provider then touches": no manifest change for Doubao.
 9. "What every adapter must honour": Doubao's `logStore` rows.
 10. "Migration": AST2's item, ported; the relay twin deleted, not ported.
+11. **The final fix wave's** (the whole-plan review, M2): "The relay twins"
+    agrees with amendment 10. AST2's twin is deleted, OpenAI Translate's stays
+    held, and the count reads "two relay twins, one held and one deleted".
 
 **Checked — the gates.** Every implementer ran the suite and the typecheck gate
 on its own commit. In the parallel waves a failure or an extra gate line in
@@ -3585,15 +3645,27 @@ lives:
    included, which would have reached the notice's detail and the console
    unredacted, and `start` threw instead of rejecting. Unreachable with
    `ast2Url`'s URL today. The same words in `nativeSocket` itself, which covers
-   Doubao's check and Gemini, are left to the final fix wave ("What it
-   leaves"). Lives in `src/providers/volcengine_ast2/adapter.ts`, with a case
-   in each credential mode.
+   Doubao's check and Gemini, were left to the final fix wave, which added
+   them (`7f3dded6`; item 10). Lives in
+   `src/providers/volcengine_ast2/adapter.ts`, with a case in each credential
+   mode.
 9. **Scratch directories are task-prefixed** (the controller's ruling, from a
    collision Task 6's re-reviewer met). Every agent's scratch work goes under
    the job's scratch directory in a directory named for its task and role
    (`t9-rereview1/`, `t12-review/`), since agents run at once and a generic name
    collides. Lives in the execution's rules for implementers and reviewers,
    both of which carry it.
+10. **The seam's refusal keeps the browser's error name** (the final fix wave;
+    `7f3dded6`). The ruling had `nativeSocket` rethrow `new Error('The browser
+    would not open the socket (<name>).')`. The error it throws also carries
+    the thrown error's `name` (`SyntaxError`, `SecurityError`); its message
+    stays the fixed words, and it has no `cause`. Why: Doubao's `start`
+    catches any opener's throw and words it by the thrown error's name (item
+    8), so with the name dropped a refusal from the app's own seam would have
+    read "The browser would not open the socket (Error)." A scratch probe
+    showed exactly that. A case through the real seam now pins
+    "(SyntaxError)", and a mutant that drops the name fails it. Lives in both
+    `socket.ts` files.
 
 **Accepted as they stand** (the controller's rulings, each with its cost if
 wrong):
@@ -3615,7 +3687,7 @@ execution added is marked):
 - the keepalive sends silence only after 250 ms with no audio, not after 60 ms, so it no longer splices zeros into speech, and what the pacer held goes up before the silence, not after it (ruling 7; review M1);
 - the resampler carries its phase across chunks and sends 80 ms packets (ruling 12). **Execution (Task 7's review, M3):** the 80 ms packets hold each capture chunk's remainder until the next chunk completes it — about 40 ms of added latency on average, at most 80 ms: ruling 12's price, which no ruling had stated;
 - a status error, or `SessionFailed`, after the start ends the run in words (ruling 8; the old client ignored `SessionFailed` once started, survey §2.10);
-- the check validates the user's pair, bounded to 15 s, and throws while offline instead of blaming the credentials (ruling 9, choices 8, 20); a start rejects in words within 30 s on the request's clock, never with the URL (choice 12) — **as landed**, a start whose socket cannot even be constructed rejects at once, in fixed words ("Found during execution", item 8);
+- the check validates the user's pair, bounded to 15 s, and throws while offline instead of blaming the credentials (ruling 9, choices 8, 20); a start rejects in words within 30 s on the request's clock, never with the URL (choice 12) — **as landed**, a start whose socket cannot even be constructed rejects at once, in fixed words ("Found during execution", item 8). **The final fix wave:** a check whose socket cannot be constructed throws the same fixed words, and a `SessionStarted` naming another session is no ✓, as it is no start;
 - a spoken sentence's clip is locked to the translation started at its start, read before the decode, and its decodes run in order (ruling 10; parity with the old lock, the two old races not ported). **Execution (Task 8's review, M4):** a clip locked to a translation that then ends unshown — or is replaced by the next Start before it shows — lands on a ref that never opens: it plays live, but L1 holds it pending and it can never be replayed, where the old client fell back to a standalone, replayable audio item. Accepted: in that state the lock most likely voices the previous sentence anyway, and an empty row with audio is a shape no one has seen. **Execution (Task 8's review, M6):** an unended sentence is flushed as its own clip at the next `TTSSentenceStart`, where the old client dropped those chunks, so a truncated stream can raise `tts_degraded` where the old one stayed silent; and chunks that arrive between a `TTSSentenceEnd` and the next `TTSSentenceStart`, flushed by `TTSEnded`, land on the previous sentence's ref;
 - the Logs' frame names change (`subtitle.*`, `tts.*`, `session.*`), grouped under the old keys (choice 9) — **as landed**, `session.unreadable` said once per episode ("Found during execution", item 1).
 
@@ -3648,7 +3720,7 @@ self-review.
 **The owner's live test** (survey §2.13's list, adjusted to the rulings; what
 execution added is marked). Each item names what to record in the Logs
 (diagnostic logs on, in Help):
-1. **Both credential modes and the check (rulings 1, 9):** the legacy App ID + Access Token → Validate ✓; a wrong token → "The provider did not accept the credentials: …" with the refusal's words, Start off; the API key → ✓; a wrong key → the same words; empty in either mode → "Enter your API key…". Switching modes keeps the other mode's fields. An old profile (App ID and Access Token saved by an earlier build) opens in the legacy mode, ready without re-entry. **An API-key session starts** (no `requestMeta.AppKey` — choice 5; if it is refused at `StartSession`, that is the first suspect). Each check opens and finishes one real session: record whether the console bills it. **Execution (group check B, step 6):** the idle line reads "Enter your API key in Settings before starting." in the legacy mode too — record how it reads to a user who holds an App ID and an Access Token (an open question).
+1. **Both credential modes and the check (rulings 1, 9):** the legacy App ID + Access Token → Validate ✓; a wrong token → "The provider did not accept the credentials: …" with the refusal's words, Start off; the API key → ✓; a wrong key → the same words; empty in either mode → "Enter your API key…". Switching modes keeps the other mode's fields. An old profile (App ID and Access Token saved by an earlier build) opens in the legacy mode, ready without re-entry. **An API-key session starts** (no `requestMeta.AppKey` — choice 5; if it is refused at `StartSession`, that is the first suspect). Each check opens and finishes one real session: record whether the console bills it. **Execution (group check B, step 6):** the idle line reads "Enter your API key in Settings before starting." in the legacy mode too — record how it reads to a user who holds an App ID and an Access Token (an open question). **The final fix wave (the whole-plan review, M4):** record whether `SessionStarted` echoes the `SessionID` the client sent, in the API key mode above all: the old client's identical guard proved the echo for the legacy mode only, and the browser-shape probe accepted `SessionStarted` without comparing it. Both the check and the start now drop a `SessionStarted` that names another session, so if the server answered with an id of its own, Validate would end after 15 s with "Doubao did not answer the check within 15 s." and every start after 30 s with "Doubao did not start the session within 30 s.", the start framing `session.foreign` in the Logs. **The whole-plan review's addition:** the check always asks for text only (ruling 9, choice 20), so an app whose console grants text translation but not speech to speech would validate ✓ and then fail a speaking start. If such an app is at hand, validate it, start a speaking session on it, and record the words.
 2. **The query URL from the web page, the extension's side panel and Electron (ruling 2):** the socket opens in each; no credential in the Logs or the Logs' export; record whether DevTools' own console prints a failed socket's URL with its query. **Execution (Task 14's review):** record too whether it prints it when a check or a start is aborted, or times out, while its socket is still connecting.
 3. **Speech to speech, auto:** zh → en, en → zh, ja → zh and each of the other spoken languages once, as a source and as a target of zh or en; the speaker's cloned voice heard on the monitor and in the virtual microphone, once each; source and translation rows paired; replay per sentence with keep-audio on; no karaoke.
 4. **Text only, the full list:** a sample of the twelve text-only languages as sources (ko → zh, ru → en, ar → en, th → zh) and as targets (zh → ko, en → vi); no audio.
@@ -3656,8 +3728,8 @@ execution added is marked). Each item names what to record in the Logs
 6. **`zhen`:** mixed Chinese and English speech, speaking and text only; rows labelled "ZHEN".
 7. **Pairing (ruling 11):** record the `subtitle.*` frames' `sequence`, `startTime` and `endTime` over several utterances — is `Sequence` shared by a source and its translation, and do the translation's times count on the source's timeline? Check rows on rapid speech, on a long monologue (a translation opening more than 4 s after its source leaves L2's proximity window) and on sentences that overlap.
 8. **Push-to-talk (ruling 6):** a short press → the utterance finalized soon after release; a press with no speech → nothing shown, the next press not merged; `turn.tail` frames, with `cancelled` for a cancel.
-9. **The keepalive during silence (ruling 7; review M1):** ten minutes silent or muted — the session stays open; `audio.idle` once per idle, `audio.resumed` when speech returns; during continuous speech no `audio.idle` at all (a slow device's capture gaps under 250 ms never trip it); recognition quality against the old build's.
-10. **Both with participant speech (ruling 4):** two sockets; the participant's reverse direction; its switch on → the other party's translation heard on the real device in their cloned voice, off → text; a text-only pair with the participant's speech on → the gate refuses the participant leg in words; either leg ending ends both; participant-only. Record whether two sessions on one credential are allowed, and whether the participant's libraries (sent on both legs, choice 6) do harm.
+9. **The keepalive during silence (ruling 7; review M1):** ten minutes silent or muted — the session stays open; `audio.idle` once per idle, `audio.resumed` when speech returns; during continuous speech no `audio.idle` at all (a slow device's capture gaps under 250 ms never trip it); recognition quality against the old build's. **The whole-plan review's addition:** ruling 8 makes any status other than OK fatal mid-session, on any event (`adapter.ts`' status check). During the ten minutes, watch for `session.status` frames: if the server attaches a warning status to `AudioMuted` or `UsageResponse`, the session ends on a warning the old client only displayed. Record the event, the code and its words.
+10. **Both with participant speech (ruling 4):** two sockets; the participant's reverse direction; its switch on → the other party's translation heard on the real device in their cloned voice, off → text; either leg ending ends both; participant-only. **Corrected by the final fix wave (the whole-plan review, M1):** with the speaker on Text only and a text-only pair (zh → ko), turning the participant's speech on makes the run speak, so the shown pair moves into the speaking offer (zh → ko shows as zh → en) and returns when the switch goes off (choice 1). Nothing is refused. The gate refuses the participant leg in words only for a dialect source while the participant is text-only: 粵語 → 中文 in Both, with Text only on and the participant's speech off (D20; an open question below). Record whether two sessions on one credential are allowed, and whether the participant's libraries (sent on both legs, choice 6) do harm. **The whole-plan review's addition:** record whether a Start right after a Validate, or right after a check that a newer one superseded, is refused while the check's session is still being released. The check closes right after `FinishSession`, where the old validation waited 300 ms. Record too whether Both's two legs plus a check that has just finished trip a per-app concurrency quota.
 11. **Errors mid-session (ruling 8):** a status error → the run ends with its words (`notices.client` / `notices.server` with Doubao's detail); a network drop → the connection-lost words.
 12. **The status codes (choice 4):** every status other than 20000000 and its message, from `session.status` frames; whether `4xxxxxxx` is always the client's fault.
 13. **TTS replay (ruling 10):** each sentence's clip on its own translation row, also when translations follow each other fast, and when a sentence starts before its translation shows text (record the order of `subtitle.translation` phase `start`, its first `response`, and `tts.sentence_start` with their `ref`s); keep-audio off → no replay button. **Execution (Task 8's review, M4):** `tts.sentence_start` frames the ref its sentence locked, shown or not — record, for each, whether that ref's translation was ever shown: a ref never shown is a clip with no replay (a stated departure).
@@ -3677,8 +3749,9 @@ execution added is marked). Each item names what to record in the Logs
 - Per-row `zh` / `en` labels in a `zhen` session (choice 18).
 - A failed socket's URL in DevTools' own console (item 2): not a sink of ours; only a header seam would keep the credentials out of the URL. **Execution (Task 14's review):** an abort or a timeout while the socket is still connecting prints it too — a check that times out or is aborted mid-handshake (the wizard's credential step aborts one on a pick), or a start aborted while opening, is such an occasion.
 - Every failure before the socket opens reads as refused credentials while online: a rate-limited upgrade (the account's QPM 60, survey §2.4, with readiness re-checking after edits) or a proxy that blocks it says "check the App ID and the Access Token, or the API key" too (choice 8; review M7). Telling them apart needs what a browser cannot read — the upgrade's status.
-- **Each check opens a real session — Doubao's case of "The readiness re-check on each instruction edit"** (the Gemini section's recommendation 3; the pre-flight's F3): readiness re-checks 800 ms after every settings edit — a library-id keystroke included (the Soniox plan's "re-probes on every settings edit") — and where Gemini's re-check lists models for free, each of Doubao's opens and finishes a real session (item 1). It also re-checks when the store's re-derivation moves the run's pair and forgets its readiness: a Text-only toggle over a text-only pair outside the speaking offer costs one more real session (Task 9). A provider declaring which of its settings the check reads — the generic change the Gemini section records as not taken — would spare the library-id keystrokes.
+- **Each check opens a real session — Doubao's case of "The readiness re-check on each instruction edit"** (the Gemini section's recommendation 3; the pre-flight's F3): readiness re-checks 800 ms after every settings edit — a library-id keystroke included (the Soniox plan's "re-probes on every settings edit") — and where Gemini's re-check lists models for free, each of Doubao's opens and finishes a real session (item 1). It also re-checks when the store's re-derivation moves the run's pair and forgets its readiness: a Text-only toggle over a text-only pair outside the speaking offer costs one more real session (Task 9). **Two more occasions (the whole-plan review, M3):** every audio-mode switch — `setLegs` forgets every loaded provider's readiness, and the check's cache key (`refreshReadiness` in `providerStore.ts`) includes the legs, though Doubao's check ignores them, while only the latest ready answer is kept, so Speaker → Both → Speaker is two more sessions; and every launch of the app, or opening of the side panel, with Doubao selected — the driver checks a provider at once when it is selected and when its entry loads (`src/app/readiness.ts`' header), and the last answer is held in memory only. Item 1's billing question should count all of these. A provider declaring which of its inputs the check reads — the generic change the Gemini section records as not taken — would spare the library-id keystrokes and the audio-mode switches.
 - **A text-only launch can be checked twice** (Task 9's review, M4; beside the item above): at launch, a text-only user whose stored Doubao pair lies outside the speaking offer can be checked once with the pair derived for speaking — the entry lands before the text-only switch does — and again after the pair moves and readiness is forgotten; the audio mode's late load already has that shape.
+- **Dialect sources offered where the gate then refuses them; a Cantonese-speaking participant cannot be set up** (the whole-plan review, M5; items 5 and 10). In a run whose context is text only and that opens the participant leg — participant-only, or Both with Text only on, the participant's speech off in either — Settings and the wizard list 粵語 and 上海话 as sources (`ast2Languages`, reached through `LanguagePairSection` and `StepLanguagePair`), and D20 then refuses every such pick, since the participant runs the reverse and no dialect is ever a target; the wizard lets such a pair reach Finish. By the same reversal the participant leg can never hear a dialect: its source is the pair's target. It is the shape Soniox's AUTO source already has under D20, not a regression, but Doubao adds a new case of it. The owner decides: filter the sources by reverse support while the participant leg opens text-only, or accept it as it stands.
 - **Superseded checks are never aborted** (Task 14's review): the readiness driver calls `refreshReadiness(p, auth())` with no signal (`src/app/readiness.ts:60`), and no check a newer one supersedes is aborted, so an edit made during a handshake can overlap two short, audio-free Doubao sessions on one credential.
 - **The ScriptProcessor fallback's 341 ms chunks against `IDLE_MS`** (Task 7's review, M2): `IDLE_MS` = 250 holds on the AudioWorklet capture path, whose chunks come every 85.3 ms; the ScriptProcessor fallback (16,384 frames, 341 ms a chunk) would find every gap past 250 ms, drain, and splice an 80 ms silent packet into it — the old bug in another form. Rare (the fallback runs only when the worklet fails to load), and not built; the cost while open is clipped or padded speech on that path, until an adaptive idle is built.
 - **A kit-wide "no ws(s) URL in a frame" rule** (Task 15's implementer, concern 2): `framePayload` already redacts query values, so the kit's own check would pass a frame carrying a redacted URL — the endpoint and the parameter names, never a secret; Doubao's own case catches one by its host. A rule in the kit would hold Soniox and Gemini to it too.
@@ -3746,7 +3819,8 @@ the Kizuna Soniox plan's "Found here" (`:2494` above):
 **Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; `RunnerDeps.replayAudio`'s guard; the notice-code namespace.
 
 What it leaves, for the plans that meet it (the plan's own list, as written;
-then the items the task reviews parked for this plan's final fix wave):
+then the whole-plan review's note for later ports; the three items the task
+reviews parked for this plan's final fix wave are done, last below):
 - **V2**, the deletion of the old AST2 code with the relay twin, the AST2 background block (replaced by a start-up clear of rules 2000–2009) and the dead flags, after the owner's live test (this record's inventory).
 - **F14**, the header seam, for OpenAI Live; Soniox's, Gemini's and Doubao's plain `socket.ts` move to `src/lib/contract/` with it.
 - **Palabra's use of F4:** its toggle as a `credentials.choice`.
@@ -3755,6 +3829,7 @@ then the items the task reviews parked for this plan's final fix wave):
 - **The start-up clear of DNR rules 2000–2009** — V2's, before any release that carries Doubao in the extension.
 - **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox and Gemini.
 - **The owner's open questions** in this record, each with the live-test item that settles it.
-- **To the final fix wave:** `nativeSocket` in `volcengine_ast2/socket.ts` and `gemini/socket.ts` rethrows in fixed words — `The browser would not open the socket (<error name>).` — dropping the browser's message, which can quote the URL; one place each covers the adapter, Doubao's check and Gemini (Task 15's review, M3b).
-- **To the final fix wave:** review and task IDs stripped from production comments, plan-wide — "(Stage 2 Volcengine AST2, I2)", "F4", "Task N" — citing rulings and choices as the other files do, Task 1's two codec stubs among them, to cite F18 rather than a task (Task 17's review, m1; the ruling on Task 1's note).
-- **To the final fix wave:** an `invocationCallOrder` pin that Finish writes the credential choice before the credentials. The order is not load-bearing today — both writes are synchronous and the readiness driver schedules its check — and nothing would catch a refactor that made it so (Task 17's review, m2).
+- **Generic frame names grouped under Doubao's Logs keys** (the whole-plan review, M6): `logStore.ts` groups `subtitle.source`, `subtitle.translation`, `tts.sentence_start`, `tts.sentence_end`, `tts.ended`, `session.usage` and `session.audio_muted` — generic `domain.event` names — under the old client's `volcengine_*` keys (choice 9). No other provider emits them today; a later port that names a frame `session.usage` or `tts.ended` would find its rows grouped under Doubao's key, silently. The effect is cosmetic, in the Logs only. That port should give its frames names of its own, or narrow Doubao's rows (V2 is a natural moment, once the old client's names go), or pin in `logStore.test.ts` that these rows are Doubao's only while no other provider emits the names.
+- **To the final fix wave, done** (`7f3dded6`, "The final fix wave" above): `nativeSocket` in `volcengine_ast2/socket.ts` and `gemini/socket.ts` rethrows in fixed words — `The browser would not open the socket (<error name>).` — dropping the browser's message, which can quote the URL; one place each covers the adapter, Doubao's check and Gemini (Task 15's review, M3b). The error keeps the browser's error name ("Found during execution", item 10).
+- **To the final fix wave, done** (`45e49a6e`): review and task IDs stripped from production comments, plan-wide — "(Stage 2 Volcengine AST2, I2)", "F4", "Task N" — citing rulings and choices as the other files do, Task 1's two codec stubs among them, to cite F18 rather than a task (Task 17's review, m1; the ruling on Task 1's note). F4, an F item the codebase cites, stays.
+- **To the final fix wave, done** (`7f3dded6`): an `invocationCallOrder` pin that Finish writes the credential choice before the credentials. The order is not load-bearing today — both writes are synchronous and the readiness driver schedules its check — and nothing would catch a refactor that made it so (Task 17's review, m2). A scratch copy that swaps the two writes fails only the new case.

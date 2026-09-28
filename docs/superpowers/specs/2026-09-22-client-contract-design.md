@@ -1985,11 +1985,15 @@ are not ported onto the relay: the owner ruled on 2026-08-30 that the user's
 audio must not flow through Kizuna. Whether they return as direct connections is
 the owner's decision when their turn comes. If they do, each is
 `managed(base, …)` over its ported base with a direct-connect `K`.
+**Amended by the Stage 2 Volcengine AST2 plan:** for AST2's twin the owner has
+decided. `kizunaai_volcengine_ast2` is deleted with the old AST2 code, not
+ported (item 4 above); `kizunaai_openai_translate` stays held until OpenAI
+Translate's turn.
 
 That is twelve providers: ten ported in ten steps — OpenAI Translate's WebRTC
-transport is a step of its own — and two relay twins held. Each step is its own
-implementation plan; this spec is the design for the whole, not the plan for any
-one stage.
+transport is a step of its own — and two relay twins, one held and one deleted.
+Each step is its own implementation plan; this spec is the design for the
+whole, not the plan for any one stage.
 
 **Batch size is set by testing, not by code risk.** A provider client cannot be
 validated by unit tests alone; protocol behaviour, timing and real audio need a
