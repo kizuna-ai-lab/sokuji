@@ -49,7 +49,9 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   [/(\bsokuji-auth\.)[A-Za-z0-9._~+/=-]+/g, `$1${REDACTED}`],
   // `openai-insecure-api-key.${apiKey}` WebSocket subprotocol — OpenAI
   // Translate's own key (`openai_translate/wire.ts` `translateProtocols`,
-  // Stage 2 OpenAI Translate, choice 3). The subprotocol is never put in a
+  // Stage 2 OpenAI Translate, choice 3) and OpenAI Realtime's
+  // (`openai/wire.ts` `realtimeProtocols`, Stage 2 OpenAI Realtime,
+  // choice 7). The subprotocol is never put in a
   // frame, an error or a notice, and the bare `sk-` rule below masks an
   // OpenAI key anyway; this keeps the carrier's name and masks a key of any
   // shape — a browser that refuses the socket quotes the subprotocol.

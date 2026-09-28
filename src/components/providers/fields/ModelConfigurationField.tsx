@@ -5,9 +5,10 @@ import Tooltip from '../../Tooltip/Tooltip';
 export interface NumberRange { min: number; max: number; step: number }
 
 export interface ModelConfigurationFieldProps {
-  temperature: number;
+  /** Absent, with its range: no temperature row — a model that takes none (OpenAI Realtime's; Stage 2 OpenAI Realtime, ruling 6). */
+  temperature?: number;
   maxTokens: number | 'inf';
-  temperatureRange: NumberRange;
+  temperatureRange?: NumberRange;
   maxTokensRange: NumberRange;
   onChange(patch: { temperature?: number; maxTokens?: number | 'inf' }): void;
   disabled?: boolean;
@@ -15,28 +16,30 @@ export interface ModelConfigurationFieldProps {
 
 const inlineHelpIcon = <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />;
 
-/** A model's sampling and output length (F13): the old "Model configuration" section; unticking Unlimited sets the range's maximum, as it did. */
+/** A model's sampling and output length (F13): the old "Model configuration" section; unticking Unlimited sets the range's maximum, as it did. A model that takes no temperature is handed none. */
 export function ModelConfigurationField({ temperature, maxTokens, temperatureRange, maxTokensRange, onChange, disabled = false }: ModelConfigurationFieldProps) {
   const { t } = useTranslation();
   const unlimited = maxTokens === 'inf';
   return (
     <div className="settings-section">
       <h2>{t('settings.modelConfiguration')}</h2>
-      <div className="setting-item">
-        <div className="setting-label">
-          <span>
-            {t('settings.temperature')}
-            <Tooltip content={t('settings.temperatureTooltip')} position="top">{inlineHelpIcon}</Tooltip>
-          </span>
-          <span className="setting-value">{temperature.toFixed(2)}</span>
+      {temperature !== undefined && temperatureRange && (
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>
+              {t('settings.temperature')}
+              <Tooltip content={t('settings.temperatureTooltip')} position="top">{inlineHelpIcon}</Tooltip>
+            </span>
+            <span className="setting-value">{temperature.toFixed(2)}</span>
+          </div>
+          <input
+            type="range" aria-label={t('settings.temperature')}
+            min={temperatureRange.min} max={temperatureRange.max} step={temperatureRange.step} value={temperature}
+            onChange={(e) => onChange({ temperature: parseFloat(e.target.value) })}
+            className="slider" disabled={disabled}
+          />
         </div>
-        <input
-          type="range" aria-label={t('settings.temperature')}
-          min={temperatureRange.min} max={temperatureRange.max} step={temperatureRange.step} value={temperature}
-          onChange={(e) => onChange({ temperature: parseFloat(e.target.value) })}
-          className="slider" disabled={disabled}
-        />
-      </div>
+      )}
       <div className="setting-item">
         <div className="setting-label">
           <span className="label-with-checkbox">

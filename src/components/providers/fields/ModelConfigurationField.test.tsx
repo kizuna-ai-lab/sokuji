@@ -65,6 +65,18 @@ describe('ModelConfigurationField', () => {
     expect(onChange).toHaveBeenCalledWith({ maxTokens: 'inf' });
   });
 
+  it('draws no temperature row when handed none: a model that takes no temperature (Stage 2 OpenAI Realtime, ruling 6)', () => {
+    const onChange = vi.fn();
+    const { container } = render(<ModelConfigurationField maxTokens={2048} maxTokensRange={{ min: 1, max: 4096, step: 1 }} onChange={onChange} />);
+    expect(screen.queryByLabelText('settings.temperature')).toBeNull();
+    expect(screen.queryByText('settings.temperature')).toBeNull();
+    expect(container.querySelectorAll('.setting-item')).toHaveLength(1);
+    const slider = screen.getByLabelText('settings.maxTokens') as HTMLInputElement;
+    expect(slider.max).toBe('4096');
+    fireEvent.change(slider, { target: { value: '1024' } });
+    expect(onChange).toHaveBeenCalledWith({ maxTokens: 1024 });
+  });
+
   it('disabled locks the sliders and the checkbox', () => {
     render(
       <ModelConfigurationField

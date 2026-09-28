@@ -213,6 +213,30 @@ describe('logStore — per-client event grouping', () => {
     for (const type of others) add(type);
     expect(entriesFor('speaker').slice(3).map((e) => [e.eventType, e.groupingKey])).toEqual(others.map((type) => [type, undefined]));
   });
+
+  it("groups OpenAI Realtime's delta frames each under its own type, and gives its other frames no key (Stage 2 OpenAI Realtime, choice 13)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    const deltas = [
+      'conversation.item.input_audio_transcription.delta', 'response.output_audio_transcript.delta', 'response.output_text.delta', 'response.output_audio.delta',
+    ];
+    for (const type of deltas) {
+      add(type);
+      add(type);
+    }
+    expect(entriesFor('speaker').map((e) => [e.groupingKey, e.events?.length])).toEqual(deltas.map((type) => [type, 2]));
+    // None of its other names is the microphone's row, one of Doubao's (`subtitle.*`, `tts.*`, `session.usage`, `session.audio_muted`) or anyone's: one entry each, ungrouped.
+    const others = [
+      'session.opened', 'session.update', 'input_audio_buffer.commit', 'input_audio_buffer.clear', 'conversation.item.create', 'response.create', 'response.queued', 'response.anchor',
+      'session.created', 'session.updated', 'input_audio_buffer.speech_started', 'input_audio_buffer.speech_stopped', 'input_audio_buffer.committed', 'input_audio_buffer.cleared',
+      'conversation.item.added', 'conversation.item.done', 'conversation.item.input_audio_transcription.completed', 'conversation.item.input_audio_transcription.failed',
+      'response.created', 'response.output_item.added', 'response.output_item.done', 'response.content_part.added', 'response.content_part.done',
+      'conversation.item.deleted', 'conversation.item.truncated', 'conversation.item.input_audio_transcription.segment', 'input_audio_buffer.timeout_triggered',
+      'response.output_audio_transcript.done', 'response.output_text.done', 'response.output_audio.done', 'response.done', 'rate_limits.updated',
+      'session.error', 'session.unknown', 'session.unreadable', 'session.socket_error', 'session.connection_lost',
+    ];
+    for (const type of others) add(type);
+    expect(entriesFor('speaker').slice(deltas.length).map((e) => [e.eventType, e.groupingKey])).toEqual(others.map((type) => [type, undefined]));
+  });
 });
 
 describe('logStore — channel filing', () => {
