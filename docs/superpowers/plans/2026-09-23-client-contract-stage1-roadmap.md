@@ -4977,7 +4977,7 @@ reading of the landed code), with its reason and where it lives:
    execution's rules.
 9. **One response per batch of waiting releases** (the final review,
    Important 1; the controller's ruling, amending the letter of ruling 8 and
-   keeping its aim, told to the owner with the option to overturn;
+   keeping its aim; confirmed by the owner, 2026-09-29;
    `3c7284d9`). Over GA a `response.create` answers the conversation as it
    stands, and a release's `input_audio_buffer.commit` goes up at the release.
    So when any request goes up, every release still waiting has its commit in
@@ -5193,7 +5193,7 @@ what settles it there — above all `response.anchor`, `response.create` (its
 - **An out-of-band item announced** (item 4; Task 7's review, X2): the SDK says `conversation.item.added` is never sent for a `conversation: 'none'` response (`realtime.d.ts:80`, `:1984-1985`) — a documentation-based inference. If one does arrive before its output item, `items.ts` opens an empty translation segment for it — owned by the one in-band response running, when there is one — which draws no row; its text never reaches it (every delta of an out-of-band response is dropped). Reading an announced item's owner only from `response.output_item.added` would avoid even that.
 - **An unanswered utterance** (item 8): whether it should be asked a response of its own; parity says no.
 - **The unpaired fallback** (item 8; "Found during execution", item 1): a translation the server ties to no input shows unpaired; if item 8 shows such rows in ordinary use, either L2 pairs a translation with no origin among sources that state one (an L2 change), or the fallback widens again.
-- **One response per batch** (item 6; "Found during execution", item 9; the controller's ruling, the owner's to overturn): a batch's earlier release shows with no translation beside it. If that reads badly, the adapter could state the batch's inputs to L2 (a contract change), or the owner restores one `response.create` per release at the cost item 6 would then record.
+- **One response per batch** (item 6; "Found during execution", item 9; the controller's ruling, confirmed by the owner on 2026-09-29): a batch's earlier release shows with no translation beside it. If that reads badly in the live test, the adapter could state the batch's inputs to L2 (a contract change); one `response.create` per release is not coming back — it asks the input-less responses item 6 would record.
 - **A typed text re-asked with nothing new under automatic turns** ("Found during execution", item 9): refused as active, it can be answered by the server's own next response in the round trip before the queue asks again. The fuzz counts it; item 7 under automatic turns, typing while speaking, is where it would show — a `response.create` for a text whose item an earlier `response.done` already answered. Dropping the re-ask when a response created after the refusal follows the text's item is a contained change.
 - **The restricted key** (item 1; ruling 17): if such keys prove common, the check could fall back to "unknown, allow Start" on a 403 whose message names a missing scope — OpenAI Translate's question, the same here.
 - **Readiness narrowing for the other ported providers:** Gemini, OpenAI Translate, Soniox and Doubao are candidates, each declaring its `checkReads` in its own change.
