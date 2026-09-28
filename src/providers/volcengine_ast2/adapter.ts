@@ -73,6 +73,12 @@ const SUBTITLES: Readonly<Record<number, [Side, SubtitlePhase]>> = {
 
 const closeWords = (e: CloseEvent) => `${e.code}${e.reason ? ` ${e.reason}` : ''}`;
 
+/** A thrown value's name alone (`SyntaxError`, `SecurityError`), never its message. */
+function errorName(error: unknown): string {
+  const name = (error as { name?: unknown } | null)?.name;
+  return typeof name === 'string' && name !== '' ? name : 'unknown error';
+}
+
 class Ast2Leg implements AdapterSession {
   readonly info = { transport: 'websocket' };
   readonly opening: Promise<AdapterSession>;
@@ -371,7 +377,12 @@ export function createAst2Adapter(deps: Partial<Ast2AdapterDeps> = {}): Adapter<
     start(request, events) {
       // An aborted start opens nothing.
       if (request.signal.aborted) return Promise.reject(request.signal.reason ?? new Error('aborted'));
-      return new Ast2Leg(request, events, resolved).opening;
+      try {
+        return new Ast2Leg(request, events, resolved).opening;
+      } catch (error) {
+        // A start rejects, never throws. In fixed words and with no cause: a browser that refuses the socket quotes its URL, and the URL carries the credentials.
+        return Promise.reject(new AdapterStartError(`The browser would not open the socket (${errorName(error)}).`, 'network'));
+      }
     },
   };
 }

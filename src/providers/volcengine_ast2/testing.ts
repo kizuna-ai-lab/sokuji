@@ -70,6 +70,9 @@ export const SERVER = {
   status: (status: number, message: string, event = EventType.None) => serverFrame({ responseMeta: meta({ status, message }), event }),
   failed: (message = 'session failed') => serverFrame({ responseMeta: meta({ message }), event: EventType.SessionFailed }),
   finished: () => serverFrame({ responseMeta: meta(), event: EventType.SessionFinished }),
+  canceled: () => serverFrame({ responseMeta: meta(), event: EventType.SessionCanceled }),
+  /** A frame that reads, with no event: nothing to say. */
+  none: () => serverFrame({ responseMeta: meta(), event: EventType.None }),
   usage: () => serverFrame({ responseMeta: { ...meta(), Billing: { DurationMsec: 61_000, WordCount: 12, Items: [{ Unit: 'minute', Quantity: 1.02 }] } }, event: EventType.UsageResponse }),
   muted: (ms = 3_000) => serverFrame({ responseMeta: meta(), event: EventType.AudioMuted, mutedDurationMs: ms }),
 };

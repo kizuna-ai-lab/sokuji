@@ -141,6 +141,27 @@ describe('the Doubao AST 2.0 adapter: opening', () => {
     expect(closed.content()).toEqual([]);
   });
 
+  it.each([
+    ['SessionFinished', SERVER.finished, 'session.finished'],
+    ['SessionCanceled', SERVER.canceled, 'session.canceled'],
+  ] as const)('a %s before SessionStarted rejects the start at once, as the service ending it', async (_event, frame, type) => {
+    const h = startAst2();
+    // Read without awaiting: a start that ignored the end would hang to its 30 s bound, and the case must fail at once, not on the test's own timeout.
+    let outcome: 'pending' | 'resolved' | 'rejected' = 'pending';
+    let error: unknown;
+    void h.starting.then(() => { outcome = 'resolved'; }, (e: unknown) => { outcome = 'rejected'; error = e; });
+    h.socket().open();
+    h.socket().receive(frame());
+    await flush();
+    expect(outcome).toBe('rejected');
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect(error).toMatchObject({ code: 'server', message: 'Doubao ended the session before it started.' });
+    expect(h.frames(type)).toHaveLength(1);
+    expect(h.content()).toEqual([]);
+    expect(h.socket().closedByClient).not.toBeNull();
+    expect(h.timers()).toBe(0);
+  });
+
   it('bounds the start: no SessionStarted within 30 s rejects — network when the socket never opened, server when it did — and closes the socket', async () => {
     const never = startAst2();
     never.clock.advance(START_TIMEOUT_MS);
@@ -178,6 +199,31 @@ describe('the Doubao AST 2.0 adapter: opening', () => {
     );
     await expect(starting).rejects.toBe(reason);
     expect(sockets.all).toEqual([]);
+  });
+
+  it.each([
+    ['App ID + Access Token', APP_KEY],
+    ['API key', API_KEY],
+  ] as const)("a browser that will not open the socket rejects the start in fixed words, never its own, which quote the URL (%s)", async (_mode, credentials) => {
+    // As Chromium throws it: a DOMException named SyntaxError, the URL with its credentials in the message.
+    const openSocket = (url: string): WebSocket => { throw new DOMException(`Failed to construct 'WebSocket': The URL '${url}' is invalid.`, 'SyntaxError'); };
+    const { events, log } = recordEvents();
+    let starting: Promise<unknown> = Promise.resolve();
+    expect(() => {
+      starting = createAst2Adapter({ openSocket }).start(
+        { context: AUTO_CTX, config: configFor(), credentials, clock: createVirtualClock(0), signal: new AbortController().signal },
+        events,
+      );
+    }).not.toThrow();
+    const error = await starting.then(() => null, (e: unknown) => e);
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect(error).toMatchObject({ code: 'network', message: 'The browser would not open the socket (SyntaxError).' });
+    // No cause either: the console line that reports a failed start prints it raw.
+    expect((error as AdapterStartError).cause).toBeUndefined();
+    for (const secret of [ast2Url(credentials), ...secretsOf(credentials), 'openspeech.bytedance.com']) {
+      expect((error as Error).message).not.toContain(secret);
+    }
+    expect(log).toEqual([]);
   });
 });
 
@@ -249,6 +295,14 @@ describe('the Doubao AST 2.0 adapter: audio up', () => {
     expect(tail.slice(1).every(isSilent)).toBe(true);
     h.session.cancelTurn();
     expect(h.frames('turn.tail')).toEqual([{ ms: 500 }, { ms: 500, cancelled: true }]);
+    // A release restamps (choice 10): with an idle already running, a press and a release with no chunk, and no silence follows the tail until a real idle has passed again.
+    h.clock.advance(4 * KEEPALIVE_MS);
+    expect(h.frames('audio.idle')).toHaveLength(1);
+    h.session.beginTurn();
+    h.session.endTurn();
+    const afterTail = h.requests().length;
+    h.clock.advance(IDLE_MS - 10);
+    expect(h.requests()).toHaveLength(afterTail);
 
     const auto = await liveAst2();
     auto.session.beginTurn();
@@ -283,12 +337,17 @@ describe('the Doubao AST 2.0 adapter: what comes down', () => {
     h.socket().receive(SERVER.subtitle('translation', 'end', 'Hello.'));
     h.socket().receive(SERVER.subtitle('translation', 'response', 'Next'));
     h.socket().receive(SERVER.ttsChunk(40));
+    h.socket().receive(SERVER.none());
     h.socket().receive(SERVER.ttsChunk(24));
     h.socket().receive(SERVER.ttsEnd({ sequence: 5 }));
     await flush();
     expect(h.of('audio').map((e) => e.payload)).toEqual([{ pcm: new Int16Array(64), ref: 1 }]);
     expect(h.frames('tts.sentence_start')).toEqual([{ ref: 1, sequence: 5 }]);
     expect(h.frames('tts.sentence_end')).toEqual([{ chunks: 2, bytes: 64, sequence: 5 }]);
+    // The hot-path rule: no frame per TTSResponse chunk, and none for a frame with no event.
+    expect(h.of('frame').filter((f) => f.payload.direction === 'in').map((f) => f.payload.type)).toEqual([
+      'session.started', 'subtitle.translation', 'tts.sentence_start', 'subtitle.translation', 'subtitle.translation', 'tts.sentence_end',
+    ]);
   });
 
   it("plays a sentence that starts before its translation's first text on that translation's row, not the previous one (ruling 10)", async () => {
@@ -422,19 +481,22 @@ describe('the Doubao AST 2.0 adapter: what comes down', () => {
 });
 
 describe('the Doubao AST 2.0 adapter: failures and stop', () => {
-  it("fails the run on a mid-session status with the status's code, once, and then says nothing (ruling 8)", async () => {
+  it.each([
+    [55000031, 'server', 'server busy'],
+    [45000081, 'client', 'invalid audio format'],
+  ] as const)("fails the run on a mid-session status %s with the status's code, %s, once, and then says nothing (ruling 8)", async (status, code, words) => {
     const h = await liveAst2();
-    h.socket().receive(SERVER.status(55000031, 'server busy'));
+    h.socket().receive(SERVER.status(status, words));
     const n = h.log.length;
     await flush();
     h.clock.advance(10_000);
-    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code: 'server', message: '[Doubao 55000031] server busy' }]);
+    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code, message: `[Doubao ${status}] ${words}` }]);
     expect(h.socket().closedByClient).not.toBeNull();
     expect(h.timers()).toBe(0);
     expect(h.log.length).toBe(n);
   });
 
-  it("fails on SessionFailed after the start, where the old client ignored it; closes on the server's SessionFinished", async () => {
+  it("fails on SessionFailed after the start, where the old client ignored it; closes on the server's SessionFinished or SessionCanceled (choice 19)", async () => {
     const failed = await liveAst2();
     failed.socket().receive(SERVER.failed('killed'));
     expect(failed.of('failed').map((e) => e.payload.code)).toEqual(['server']);
@@ -442,6 +504,19 @@ describe('the Doubao AST 2.0 adapter: failures and stop', () => {
     const finished = await liveAst2();
     finished.socket().receive(SERVER.finished());
     expect(finished.of('closed').map((e) => e.payload)).toEqual([{ reason: 'SessionFinished' }]);
+    expect(finished.frames('session.finished')).toHaveLength(1);
+
+    const canceled = await liveAst2();
+    canceled.socket().receive(SERVER.canceled());
+    expect(canceled.of('closed').map((e) => e.payload)).toEqual([{ reason: 'SessionCanceled' }]);
+    expect(canceled.frames('session.canceled')).toHaveLength(1);
+    expect(canceled.frames('session.unknown')).toEqual([]);
+    // Closed, not left live on a session the server cancelled: nothing more goes up.
+    const sent = canceled.requests().length;
+    canceled.session.appendAudio(chunk());
+    canceled.clock.advance(1_000);
+    expect(canceled.requests()).toHaveLength(sent);
+    expect(canceled.timers()).toBe(0);
   });
 
   it('an unexpected close fails with connection_lost; a socket error alone is a Logs line', async () => {
