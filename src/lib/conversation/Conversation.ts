@@ -255,24 +255,34 @@ export class Conversation {
       this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] is not a valid range` });
       kept = undefined;
     }
-    // After fill-in the adapter still measures against the text it sent: the range is re-anchored from that text onto
-    // the filled one, as `ranges` does, and one past that text is dropped, said (a clip ranged after its subtitle
-    // closed, Doubao's: Gemini/AST2 follow-up, choice 19).
-    const own = this.unfilled.get(ref);
-    if (kept && own !== undefined) {
-      if (kept[1] <= own.length) {
-        kept = reanchorRanges(own, seg.text, [kept])[0];
-      } else {
-        this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${kept[0]}, ${kept[1]}] outside ${seg.id}'s text of length ${own.length}` });
-        kept = undefined;
-      }
-    }
+    // After fill-in the adapter still measures against the text it sent: re-anchored from that text onto the filled
+    // one, as `ranges` does, through the one shared `measure` (Gemini/AST2 follow-up, choice 19).
+    kept = this.measure(ref, seg, [kept])[0];
     this.replace(i, { ...seg, speech: [...seg.speech, { range: kept, pcm: this.retain(pcm) }] });
+    // A range on an already-closed segment is checked against its settled text right away, as `ranges` does — the same
+    // check `clampRanges` repeats on every later revision.
+    if (seg.final) this.clampRanges(i);
     // Local speech can still arrive after close, so a segment already
     // retired by the trim cursor (final and drained) is not done for good:
     // pull the cursor back to it so `afterAudio` re-examines it.
     if (i < this.trimCursor) this.trimCursor = i;
     this.afterAudio();
+  }
+
+  /**
+   * Measures ranges against a segment whose text a fill-in replaced: fits each one to the adapter's own
+   * (pre-fill-in) text, drops and reports one that reaches past it, then re-anchors what is left onto the settled
+   * text — the one rule `ranges()` and `audio()` both need (Gemini/AST2 follow-up, choice 19). With no fill-in in
+   * flight `own` is `undefined` and every range comes back unchanged, through `reanchorRanges`' identical-text case.
+   */
+  private measure(ref: number, seg: Segment, ranges: ReadonlyArray<TextRange | undefined>): Array<TextRange | undefined> {
+    const own = this.unfilled.get(ref);
+    const fitted = ranges.map((range) => {
+      if (!range || own === undefined || range[1] <= own.length) return range;
+      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] outside ${seg.id}'s text of length ${own.length}` });
+      return undefined;
+    });
+    return reanchorRanges(own ?? seg.text, seg.text, fitted);
   }
 
   /** Ranges an adapter sets on speech it already emitted: measured against the text it last sent, re-anchored onto the text as it stands (choice 1). */
@@ -303,15 +313,7 @@ export class Conversation {
       return;
     }
     const seg = this.segments[i];
-    // After fill-in the skeleton re-anchoring leaves a range past the adapter's own text unmapped without a word:
-    // say so here, as `clampRanges` says so when no fill-in ran, and drop it either way.
-    const own = this.unfilled.get(ref);
-    const measured = hits.map(({ range }) => {
-      if (own === undefined || range[1] <= own.length) return range;
-      this.opts.onDiagnostic?.({ code: 'range_out_of_text', message: `range [${range[0]}, ${range[1]}] outside ${seg.id}'s text of length ${own.length}` });
-      return undefined;
-    });
-    const anchored = reanchorRanges(own ?? seg.text, seg.text, measured);
+    const anchored = this.measure(ref, seg, hits.map((h) => h.range));
     const speech = [...seg.speech];
     hits.forEach((h, k) => { speech[h.index] = { ...speech[h.index], range: anchored[k] }; });
     this.replace(i, { ...seg, speech });

@@ -129,6 +129,15 @@ describe('Conversation — audio', () => {
     expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
   });
 
+  it("drops a range past a segment's text and reports it right away when the audio arrives after close, with no fill-in in flight (Gemini/AST2 follow-up, choice 19)", () => {
+    const { conv, diagnostics, apply } = make();
+    apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: 'hello world' } });
+    apply({ kind: 'segmentClosed', payload: { ref: 1 } });
+    apply({ kind: 'audio', payload: { ref: 1, range: [0, 12], pcm: pcm(240) } }); // 12 is past 'hello world' (11 characters)
+    expect(conv.snapshot().segments[0].speech).toEqual([{ range: undefined, pcm: pcm(240) }]);
+    expect(diagnostics.map((d) => d.code)).toEqual(['range_out_of_text']);
+  });
+
   it("after fill-in, re-anchors a range measured against the adapter's own text onto the filled text (Gemini/AST2 follow-up, choice 19)", async () => {
     const { conv, diagnostics, apply } = make({ languages: { source: 'ja', target: 'zh' }, punctuate: async () => '我来帮你，翻译。' });
     apply({ kind: 'segmentOpened', payload: { ref: 1, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 1, text: '我来帮你翻译' } });
@@ -513,6 +522,20 @@ describe('Conversation — retention and clear', () => {
     apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } }, { kind: 'segmentText', payload: { ref: 9, text: 'Hello.' } }, { kind: 'segmentClosed', payload: { ref: 9 } });
     apply({ kind: 'speechRanges', payload: { ref: 9, ranges: [{ index: 0, range: [0, 6] }] } });
     expect(conv.snapshot().segments[0].speech).toEqual([{ range: [0, 6], pcm: new Int16Array(0) }]);
+    expect(diagnostics).toEqual([]);
+  });
+
+  it('a range stated for the second of two held clips lands on it, after the ceiling dropped only the first\'s pcm (Gemini/AST2 follow-up, choice 6)', () => {
+    const { conv, apply, diagnostics } = make({ retention: { keepPcm: true, maxPcmBytes: 400 } });
+    apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(100) } });   // 200 bytes, held, index 0
+    apply({ kind: 'audio', payload: { ref: 10, pcm: pcm(150) } });  // 500 total: over the ceiling, ref 9's pcm is dropped, its entry kept
+    apply({ kind: 'audio', payload: { ref: 9, pcm: pcm(50) } });    // a second held clip for ref 9, index 1 — 400 total, at the ceiling: kept
+    apply({ kind: 'segmentOpened', payload: { ref: 9, side: 'translation' } });
+    apply({ kind: 'speechRanges', payload: { ref: 9, ranges: [{ index: 1, range: [0, 6] }] } });
+    expect(conv.snapshot().segments[0].speech).toEqual([
+      { range: undefined, pcm: new Int16Array(0) },
+      { range: [0, 6], pcm: pcm(50) },
+    ]);
     expect(diagnostics).toEqual([]);
   });
 
