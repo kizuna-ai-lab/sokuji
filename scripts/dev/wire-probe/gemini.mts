@@ -259,7 +259,8 @@ if (step === 'overlap') {
 } else {
   const variant: Variant = { activityHandling: opt('activity-handling'), turnCoverage: opt('turn-coverage') };
   for (const kind of kinds as Array<'dialogue' | 'translate'>) {
-    const model = opt('model') ?? (kind === 'dialogue' ? defaultGeminiModel(listed.models) : ids.find((id) => isGeminiTranslateModel(id)));
+    // The app's default is Live Translate now (Gemini/AST2 follow-up, ruling 3): the dialogue run takes the default among the dialogue models.
+    const model = opt('model') ?? (kind === 'dialogue' ? defaultGeminiModel(listed.models.filter((m) => !isGeminiTranslateModel(m.id))) : ids.find((id) => isGeminiTranslateModel(id)));
     if (!model) { console.log(`No ${kind} model listed; skipped.`); continue; }
     await session(kind, model, variant);
   }

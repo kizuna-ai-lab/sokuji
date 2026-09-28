@@ -209,14 +209,17 @@ export function sortGeminiModels(ids: readonly string[]): string[] {
 }
 
 /**
- * A fresh profile's model (ruling 2): the newest `native-audio` dialogue
- * model; with none, the newest dialogue model; with none, the newest
- * model (Live Translate); with none, ''.
+ * A fresh profile's model: the newest Live Translate the check listed —
+ * simultaneous interpretation, the product's own scenario (Gemini/AST2
+ * follow-up, ruling 3); with none, the old rule (ruling 2): the newest
+ * `native-audio` dialogue model, else the newest model; with none, ''.
+ * Nothing is migrated: a saved model the check lists stays, and an unset
+ * one (''), or one no longer listed, resolves to this at use
+ * (`effectiveGeminiModel`).
  */
 export function defaultGeminiModel(models: readonly ModelOption[]): string {
   const newest = sortGeminiModels(models.map((m) => m.id));
-  const dialogue = newest.filter((id) => !isGeminiTranslateModel(id));
-  return dialogue.find((id) => id.includes('native-audio')) ?? dialogue[0] ?? newest[0] ?? '';
+  return newest.find(isGeminiTranslateModel) ?? newest.find((id) => id.includes('native-audio')) ?? newest[0] ?? '';
 }
 
 /**

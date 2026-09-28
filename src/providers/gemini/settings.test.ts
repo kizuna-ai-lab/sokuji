@@ -149,23 +149,26 @@ describe("Gemini's models", () => {
     expect(sortGeminiModels(LIVE_NEWEST_FIRST)).toEqual(LIVE_NEWEST_FIRST);
   });
 
-  it('default a fresh profile to the newest native-audio dialogue model, whatever order the list came in (ruling 2)', () => {
+  it('default a fresh profile to Live Translate when the key lists it, whatever order the list came in (Gemini/AST2 follow-up, ruling 3)', () => {
     const live = LISTED.filter(isGeminiLiveModel);
-    expect(defaultGeminiModel(ids(live))).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
-    expect(defaultGeminiModel(ids([...live].reverse()))).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
-    expect(effectiveGeminiModel(GEMINI_DEFAULTS, ids(live))).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
+    expect(defaultGeminiModel(ids(live))).toBe('gemini-3.5-live-translate-preview');
+    expect(defaultGeminiModel(ids([...live].reverse()))).toBe('gemini-3.5-live-translate-preview');
+    expect(effectiveGeminiModel(GEMINI_DEFAULTS, ids(live))).toBe('gemini-3.5-live-translate-preview');
+    // Two listed: the newest.
+    expect(defaultGeminiModel(ids(['gemini-3.5-live-translate-preview', 'gemini-4.0-live-translate-preview']))).toBe('gemini-4.0-live-translate-preview');
   });
 
-  it('fall back to the newest dialogue model, then the newest model, then nothing', () => {
-    expect(defaultGeminiModel(ids(['gemini-2.0-flash-live-001', 'gemini-3.1-flash-live-preview', 'gemini-3.5-live-translate-preview']))).toBe('gemini-3.1-flash-live-preview');
-    expect(defaultGeminiModel(ids(['gemini-3.5-live-translate-preview']))).toBe('gemini-3.5-live-translate-preview');
+  it('with no Live Translate listed, default by the old rule: the newest native-audio dialogue model, then the newest model, then nothing (ruling 2)', () => {
+    const dialogue = LISTED.filter((id) => isGeminiLiveModel(id) && !isGeminiTranslateModel(id));
+    expect(defaultGeminiModel(ids(dialogue))).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
+    expect(defaultGeminiModel(ids(['gemini-2.0-flash-live-001', 'gemini-3.1-flash-live-preview']))).toBe('gemini-3.1-flash-live-preview');
     expect(defaultGeminiModel([])).toBe('');
   });
 
-  it('keep a saved model the check listed, replace one it no longer lists, and keep it while nothing is listed', () => {
+  it('keep a saved model the check listed — a dialogue model too: nothing is migrated — replace one it no longer lists, and keep it while nothing is listed', () => {
     const live = ids(LISTED.filter(isGeminiLiveModel));
-    expect(effectiveGeminiModel({ model: 'gemini-3.5-live-translate-preview' }, live)).toBe('gemini-3.5-live-translate-preview');
-    expect(effectiveGeminiModel({ model: 'gemini-1.0-retired' }, live)).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
+    expect(effectiveGeminiModel({ model: 'gemini-2.5-flash-native-audio-preview-12-2025' }, live)).toBe('gemini-2.5-flash-native-audio-preview-12-2025');
+    expect(effectiveGeminiModel({ model: 'gemini-1.0-retired' }, live)).toBe('gemini-3.5-live-translate-preview');
     expect(effectiveGeminiModel({ model: 'gemini-3.1-flash-live-preview' }, [])).toBe('gemini-3.1-flash-live-preview');
   });
 });

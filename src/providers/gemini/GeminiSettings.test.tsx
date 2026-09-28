@@ -21,7 +21,7 @@ const DIALOGUE = 'gemini-2.5-flash-native-audio-preview-12-2025';
 const TRANSLATE = 'gemini-3.5-live-translate-preview';
 
 const props = (patch: Partial<SettingsProps<GeminiSettings>> = {}): SettingsProps<GeminiSettings> => ({
-  settings: GEMINI_DEFAULTS,
+  settings: { ...GEMINI_DEFAULTS, model: DIALOGUE },
   update: vi.fn(),
   pair: { source: 'en-US', target: 'ja-JP' },
   models: [{ id: TRANSLATE }, { id: DIALOGUE }],
@@ -70,6 +70,12 @@ describe('GeminiSettingsView', () => {
 
     fireEvent.click(screen.getByLabelText('Unlimited'));
     expect(update).toHaveBeenCalledWith({ maxTokens: 8192 });
+  });
+
+  it('a fresh profile, no model saved, shows Live Translate as its model: the default when listed (Gemini/AST2 follow-up, ruling 3)', () => {
+    render(<GeminiSettingsView {...props({ settings: GEMINI_DEFAULTS })} />);
+    expect((screen.getByLabelText('settings.model') as HTMLSelectElement).value).toBe(TRANSLATE);
+    expect(screen.queryByLabelText('settings.voice')).toBeNull();
   });
 
   it('Live Translate hides the voice and the model configuration, and keeps the model (choice 22)', () => {

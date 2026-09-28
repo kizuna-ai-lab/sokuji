@@ -16,10 +16,17 @@ const shared = (patch: Partial<SharedSettings> = {}): SharedSettings => ({
 });
 const SPEAKER: SessionContext = { direction: { source: 'en-US', target: 'ja-JP' }, speech: true, turns: 'auto' };
 const PARTICIPANT: SessionContext = { direction: { source: 'ja-JP', target: 'en-US' }, speech: true, turns: 'auto' };
-const build = (patch: Partial<GeminiSettings> = {}, context = SPEAKER, sh = shared()) => buildGemini(context, { ...GEMINI_DEFAULTS, ...patch }, sh) as GeminiConfig;
+/** A leg's config: Gemini's defaults with the dialogue model saved, unless the patch saves another (or none). */
+const build = (patch: Partial<GeminiSettings> = {}, context = SPEAKER, sh = shared()) => buildGemini(context, { ...GEMINI_DEFAULTS, model: DIALOGUE, ...patch }, sh) as GeminiConfig;
 
 describe("Gemini's builder", () => {
-  it('runs a fresh profile on the newest native-audio model, speaking, with the Quick prompt for its direction (rulings 2, 4)', () => {
+  it('runs a fresh profile — no model saved — on Live Translate when the key lists it (Gemini/AST2 follow-up, ruling 3)', () => {
+    expect(build({ model: '' })).toMatchObject({ model: TRANSLATE, kind: 'translate', translationTargetCode: 'ja' });
+    // Without it, the old rule's dialogue model.
+    expect(build({ model: '' }, SPEAKER, shared({ models: [{ id: DIALOGUE }] }))).toMatchObject({ model: DIALOGUE, kind: 'dialogue' });
+  });
+
+  it('runs a saved dialogue model, speaking, with the Quick prompt for its direction (rulings 2, 4)', () => {
     const c = build();
     expect(c).toMatchObject({ model: DIALOGUE, kind: 'dialogue', voice: 'Aoede', temperature: 0.8 });
     expect(c.instructions).toContain('translate English (United States) → Japanese (Japan).');
