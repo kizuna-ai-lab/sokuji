@@ -8,9 +8,9 @@
  * walk never reaches it.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
-import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
+import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { SharedSettings } from '../../lib/provider/types';
 import { createGeminiAdapter } from './adapter';
 import { buildGemini, type GeminiConfig } from './config';
@@ -58,22 +58,8 @@ export const SERVER = {
   handle: (newHandle: string, resumable = true) => serverFrame({ sessionResumptionUpdate: { newHandle, resumable } }),
 };
 
-/** A virtual clock that counts its live timers — what a stop must leave at zero (a copy of `soniox/testing.ts`'s; choice 21). */
-export function trackedClock(): { clock: VirtualClock; timers: () => number } {
-  const inner = createVirtualClock(0);
-  const live = new Set<symbol>();
-  const clock: VirtualClock = {
-    now: () => inner.now(),
-    advance: (ms) => inner.advance(ms),
-    setTimeout(fn, ms) {
-      const id = Symbol('timer');
-      live.add(id);
-      const cancel = inner.setTimeout(() => { live.delete(id); fn(); }, ms);
-      return () => { live.delete(id); cancel(); };
-    },
-  };
-  return { clock, timers: () => live.size };
-}
+/** A virtual clock that counts its live timers: the kit's now (Stage 2 Volcengine AST2, its third user; Gemini choice 21). */
+export { trackedClock };
 
 /** A Gemini leg started over `FakeSocket`s on a tracked virtual clock; its socket not yet opened. */
 export function startGemini(o: { model?: string; context?: SessionContext; patch?: Partial<GeminiSettings> } = {}) {

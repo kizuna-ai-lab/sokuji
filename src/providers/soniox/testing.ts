@@ -7,7 +7,6 @@
  * walk never reaches it.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
-import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import type { FakeSocket } from '../../lib/contract/testing/fakeSocket';
 import type { SharedSettings } from '../../lib/provider/types';
 import type { SonioxCredentials } from './settings';
@@ -32,19 +31,5 @@ export const END: SonioxToken = { text: '<end>', is_final: true };
 export const FIN: SonioxToken = { text: '<fin>', is_final: true };
 export const ERROR_503 = JSON.stringify({ error_code: 503, error_message: 'Service unavailable' });
 
-/** A virtual clock that counts its live timers: what a stop must leave at zero. */
-export function trackedClock(): { clock: VirtualClock; timers: () => number } {
-  const inner = createVirtualClock(0);
-  const live = new Set<symbol>();
-  const clock: VirtualClock = {
-    now: () => inner.now(),
-    advance: (ms) => inner.advance(ms),
-    setTimeout(fn, ms) {
-      const id = Symbol('timer');
-      live.add(id);
-      const cancel = inner.setTimeout(() => { live.delete(id); fn(); }, ms);
-      return () => { live.delete(id); cancel(); };
-    },
-  };
-  return { clock, timers: () => live.size };
-}
+/** A virtual clock that counts its live timers: the kit's now (Stage 2 Volcengine AST2, its third user). */
+export { trackedClock } from '../../lib/contract/testing/trackedClock';
