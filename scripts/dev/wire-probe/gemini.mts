@@ -170,7 +170,8 @@ async function session(kind: 'dialogue' | 'translate', model: string): Promise<v
 
   const opened = await new Promise<boolean>((resolve) => {
     ws.on('open', () => resolve(true));
-    ws.on('unexpected-response', (_req, res) => { run.log('ws', 'refused', { status: res.statusCode }); resolve(false); });
+    // A refused upgrade: the request is destroyed, or it keeps the process alive.
+    ws.on('unexpected-response', (req, res) => { run.log('ws', 'refused', { status: res.statusCode }); res.resume(); req.destroy(); resolve(false); });
     ws.on('error', () => resolve(false));
   });
   run.log('ws', opened ? 'open' : 'not-open');
