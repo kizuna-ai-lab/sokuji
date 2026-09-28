@@ -25,8 +25,8 @@ const chunk = () => new Int16Array(2_048).fill(1_000);
 /** What no frame, failure or refusal may carry: the key, and the subprotocol that holds it. */
 const SECRETS = [KEY.apiKey, 'openai-insecure-api-key', 'realtimeKey'];
 
-/** A response to a request the adapter asked for (`eventId`), for its input `previous`: created naming the request, its item after that input, one delta, done. */
-function answer(n: number, eventId: string, previous: string, translation = `Answer ${n}.`): string[] {
+/** A response to a request the adapter asked for (`eventId`), for its input `previous` (null: its item names none): created naming the request, its item after that input, one delta, done. */
+function answer(n: number, eventId: string, previous: string | null, translation = `Answer ${n}.`): string[] {
   const resp = `resp_a${n}`;
   const out = `item_a${n}`;
   return [
@@ -210,6 +210,20 @@ describe('the OpenAI Realtime adapter: opening', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it("a start that fails before the socket is asked for rejects with that failure as it was thrown, never in the browser's words (choice 7)", async () => {
+    const sockets = fakeSockets();
+    const { events, log } = recordEvents();
+    // A lone surrogate: `encodeURIComponent` refuses it, so the URL cannot be built.
+    const error = await createRealtimeAdapter({ openSocket: sockets.create }).start(
+      { context: AUTO_CTX, config: { ...configFor(), model: '\uD800' }, credentials: KEY, clock: createVirtualClock(0), signal: new AbortController().signal },
+      events,
+    ).then(() => null, (e: unknown) => e);
+    expect(error).toBeInstanceOf(URIError);
+    expect(error).not.toBeInstanceOf(AdapterStartError);
+    expect(sockets.all).toEqual([]);
+    expect(log).toEqual([]);
+  });
 });
 
 describe('the OpenAI Realtime adapter: audio, turns and typed text going up', () => {
@@ -307,6 +321,33 @@ describe('the OpenAI Realtime adapter: audio, turns and typed text going up', ()
     await flush();
     expect(h.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: 'The connection to OpenAI closed (1006).' }]);
   });
+
+  it('drops a request refused for any other reason, so the next goes up at once: nothing waits behind a refusal (choice 10)', async () => {
+    const h = await liveRealtime({ context: MANUAL_CTX });
+    h.session.appendText('first');
+    h.receive(SERVER.error({ code: 'invalid_value', message: 'The request was refused.', event_id: 'sokuji_3' }));
+    expect(h.of('failed')).toEqual([]);
+    h.session.appendText('second');
+    expect(h.frames('response.queued')).toEqual([]);
+    expect(h.said().filter((m) => m.type === 'conversation.item.create').map((m) => (m.item as { id: string }).id)).toEqual(['sokuji_text_2', 'sokuji_text_4']);
+    expect(h.frames('response.create').map((f) => (f as { eventId: string }).eventId)).toEqual(['sokuji_3', 'sokuji_5']);
+  });
+
+  it('frames only what went up: a release, a cancel or a typed text on a socket already closing sends and frames nothing', async () => {
+    const h = await liveRealtime({ context: MANUAL_CTX });
+    const sent = h.sent().length;
+    const framed = h.of('frame').length;
+    h.session.beginTurn();
+    // The server closes: the socket is closing, its close event not yet delivered, so the leg is still live.
+    h.socket().serverClose(1011, 'Internal error');
+    h.session.endTurn();
+    h.session.cancelTurn();
+    h.session.appendText('typed');
+    expect(h.sent()).toHaveLength(sent);
+    expect(h.of('frame').slice(framed).map((f) => f.payload.type)).toEqual([]);
+    await flush();
+    expect(h.of('failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: 'The connection to OpenAI closed (1011 Internal error).' }]);
+  });
 });
 
 describe('the OpenAI Realtime adapter: what comes down', () => {
@@ -353,6 +394,22 @@ describe('the OpenAI Realtime adapter: what comes down', () => {
       ['stated', '一つ目。', 'The first.'],
       ['stated', '聞き逃し。', ''],
       ['stated', '二つ目。', 'The second.'],
+    ]);
+  });
+
+  it("pairs a typed text's translation whose item names no input with the typed item, once the server holds it (choice 8)", async () => {
+    const h = await liveRealtime();
+    h.session.appendText('Hello there');
+    h.receive(SERVER.itemAdded('sokuji_text_2', 'user'), ...answer(1, 'sokuji_3', null));
+    expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([{ ref: 1, side: 'source', origin: 'sokuji_text_2' }, { ref: 2, side: 'translation', origin: 'sokuji_text_2' }]);
+  });
+
+  it('pairs a translation with the input its item names, even when a newer input waits unanswered (choice 8)', async () => {
+    const h = await liveRealtime();
+    h.receive(SERVER.committed('item_in_1'), SERVER.committed('item_in_2', 'item_in_1'));
+    h.receive(SERVER.responseCreated('resp_1'), SERVER.outputItemAdded('resp_1', 'item_out_1'), SERVER.itemAdded('item_out_1', 'assistant', 'item_in_1'));
+    expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([
+      { ref: 1, side: 'source', origin: 'item_in_1' }, { ref: 2, side: 'source', origin: 'item_in_2' }, { ref: 3, side: 'translation', origin: 'item_in_1' },
     ]);
   });
 
@@ -427,13 +484,16 @@ describe('the OpenAI Realtime adapter: what comes down', () => {
 });
 
 describe('the OpenAI Realtime adapter: failures and stop', () => {
-  it('frames a mid-session error and runs on (ruling 13); a close soon after it is worded as that error, a later one as the lost connection (choice 14)', async () => {
+  it('frames a mid-session error and runs on (ruling 13); a close within 10 s of it is worded as that error, a later one as the lost connection (choice 14)', async () => {
+    expect(ERROR_WORDS_MS).toBe(10_000);
     const keyed = await liveRealtime();
     keyed.receive(SERVER.error({ code: 'invalid_api_key', message: 'Incorrect API key provided.' }));
     expect(keyed.frames('session.error')).toEqual([{ type: 'invalid_request_error', code: 'invalid_api_key', message: 'Incorrect API key provided.', param: null, eventId: null }]);
     expect(keyed.of('failed')).toEqual([]);
     keyed.receive(SERVER.committed('item_in_1'));
     expect(keyed.of('segmentOpened')).toHaveLength(1);
+    // The window's last instant: a close exactly 10 s after the error still reads as it.
+    keyed.clock.advance(ERROR_WORDS_MS);
     keyed.socket().serverClose(1008, '');
     await flush();
     expect(keyed.of('failed').map((e) => e.payload)).toEqual([{ code: 'auth', message: '[OpenAI invalid_api_key] Incorrect API key provided.' }]);

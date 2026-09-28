@@ -152,7 +152,14 @@ class RealtimeLeg implements AdapterSession {
         queued: (asked, waiting) => this.frame('out', 'response.queued', { for: asked.kind, waiting }),
       },
     });
-    this.socket = openSocket(realtimeUrl(config), realtimeProtocols(request.credentials));
+    const url = realtimeUrl(config);
+    const protocols = realtimeProtocols(request.credentials);
+    try {
+      this.socket = openSocket(url, protocols);
+    } catch (error) {
+      // In fixed words and with no cause: a browser that refuses the socket quotes the subprotocols, the key among them (choice 7).
+      throw new AdapterStartError(`The browser would not open the socket (${errorName(error)}).`, 'network');
+    }
     this.socket.binaryType = 'arraybuffer';
     this.opening = new Promise<AdapterSession>((resolve, reject) => {
       const cancelTimer = clock.setTimeout(() => this.refuse(this.opened
@@ -198,7 +205,8 @@ class RealtimeLeg implements AdapterSession {
   /** A release with speech, under manual turns: what was appended becomes an input item now, and its response goes up when none is in progress (ruling 8; choice 12). */
   endTurn(): void {
     if (this.phase !== 'live' || this.request.context.turns !== 'manual') return;
-    this.send(JSON.stringify(COMMIT));
+    // A commit that did not go up made no input: no response is asked for it.
+    if (!this.send(JSON.stringify(COMMIT))) return;
     this.frame('out', 'input_audio_buffer.commit');
     this.queue.push({ kind: 'turn' });
   }
@@ -206,8 +214,7 @@ class RealtimeLeg implements AdapterSession {
   /** A release without speech: the press's audio is cleared, never left to join the next turn (spec, "Defects removed by construction"; choice 12). */
   cancelTurn(): void {
     if (this.phase !== 'live' || this.request.context.turns !== 'manual') return;
-    this.send(JSON.stringify(CLEAR));
-    this.frame('out', 'input_audio_buffer.clear');
+    if (this.send(JSON.stringify(CLEAR))) this.frame('out', 'input_audio_buffer.clear');
   }
 
   /** The close before its first `await`; nothing is sent to end the session first. */
@@ -287,8 +294,7 @@ class RealtimeLeg implements AdapterSession {
     this.frame('in', 'session.created', { id: s.id ?? null, model: s.model ?? null, expiresAt: s.expires_at ?? null });
     if (this.phase !== 'opening') return;
     const update = sessionUpdate(this.request.config);
-    this.send(JSON.stringify(update));
-    this.frame('out', 'session.update', update.session);
+    if (this.send(JSON.stringify(update))) this.frame('out', 'session.update', update.session);
     this.phase = 'configuring';
   }
 
@@ -452,15 +458,19 @@ class RealtimeLeg implements AdapterSession {
     this.frame('out', 'response.anchor', { eventId, translations: this.completed });
   }
 
-  /** A request the queue sends (ruling 8): a typed text's item first — once, however often its response is asked — then its `response.create`. */
+  /**
+   * A request the queue sends (ruling 8): a typed text's item first — once,
+   * however often its response is asked — then its `response.create`. Each
+   * is framed, and the item counted sent, only when it went up: an item
+   * that did not asks no response.
+   */
   private ask(asked: Request, eventId: string, waitedMs: number): void {
     if (asked.kind === 'text' && !this.itemsSent.has(asked.itemId)) {
+      if (!this.send(JSON.stringify(textItem(asked.itemId, asked.text)))) return;
       this.itemsSent.add(asked.itemId);
-      this.send(JSON.stringify(textItem(asked.itemId, asked.text)));
       this.frame('out', 'conversation.item.create', { itemId: asked.itemId, length: asked.text.length });
     }
-    this.send(JSON.stringify(responseCreate(eventId)));
-    this.frame('out', 'response.create', { eventId, for: asked.kind, waitedMs });
+    if (this.send(JSON.stringify(responseCreate(eventId)))) this.frame('out', 'response.create', { eventId, for: asked.kind, waitedMs });
   }
 
   /** A frame, or an audio delta, that will not read: a Logs line and `parse_error` on each latch's ok → failing transition only (choice 15). */
@@ -481,7 +491,7 @@ class RealtimeLeg implements AdapterSession {
     return { code: last.code, message: last.message };
   }
 
-  /** What goes up, when the socket is open; nothing on a closed one. */
+  /** What goes up, when the socket is open; nothing on a closed one. True when it went up: only what went up is framed. */
   private send(data: string): boolean {
     if (this.socket.readyState !== WS_OPEN) return false;
     this.socket.send(data);
@@ -545,8 +555,8 @@ export function createRealtimeAdapter(deps: Partial<RealtimeAdapterDeps> = {}): 
       try {
         return new RealtimeLeg(request, events, openSocket).opening;
       } catch (error) {
-        // A start rejects, never throws. In fixed words and with no cause: a browser that refuses the socket quotes the subprotocols, the key among them.
-        return Promise.reject(new AdapterStartError(`The browser would not open the socket (${errorName(error)}).`, 'network'));
+        // A start rejects, never throws: the socket's refusal already in fixed words, any other failure as it was thrown.
+        return Promise.reject(error);
       }
     },
   };
