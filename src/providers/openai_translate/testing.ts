@@ -1,15 +1,20 @@
 /**
  * The OpenAI Translate suites' fixtures: a key, the settings the suites
  * build from, the server's events as the JSON text frames the endpoint
- * sends, and a browser that refuses the socket. Test-only: nothing but a
- * test imports it (the session-side guard's kit rule counts every
- * provider's `testing.ts` as kit and holds it to that), and the adapter's
- * session walk never reaches it.
+ * sends, a browser that refuses the socket, and the harness that starts a
+ * leg over `FakeSocket`s. Test-only: nothing but a test imports it (the
+ * session-side guard's kit rule counts every provider's `testing.ts` as kit
+ * and holds it to that), and the adapter's session walk never reaches it.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
+import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
+import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
+import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { SharedSettings } from '../../lib/provider/types';
+import { createTranslateAdapter } from './adapter';
 import { buildTranslate, type TranslateConfig } from './config';
 import { TRANSLATE_DEFAULTS, type TranslateCredentials, type TranslateSettings } from './settings';
+import { base64ToPcm } from './wire';
 
 /** Shaped as a real key (`sk-…`), which `redact()` masks: a frame that carried it fails the kit's `frame-secret` rule. */
 export const KEY: TranslateCredentials = { apiKey: 'sk-proj-translateKey0123456789' };
@@ -65,3 +70,35 @@ export const SERVER = {
   /** An event by its type alone: a `.done` the SDK does not list, or one it never sends. */
   bare: (type: string) => event({ type }),
 };
+
+/** An OpenAI Translate leg started over `FakeSocket`s on a tracked virtual clock; its socket not yet opened. */
+export function startTranslate(o: { context?: SessionContext; patch?: Partial<TranslateSettings>; credentials?: TranslateCredentials } = {}) {
+  const sockets = fakeSockets();
+  const { clock, timers } = trackedClock();
+  const { events, log } = recordEvents();
+  const controller = new AbortController();
+  const context = o.context ?? AUTO_CTX;
+  const config = configFor(context, o.patch);
+  const starting = createTranslateAdapter({ openSocket: sockets.create }).start({ context, config, credentials: o.credentials ?? KEY, clock, signal: controller.signal }, events);
+  const socket = () => sockets.last();
+  const of = <K extends AdapterEvent['kind']>(kind: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);
+  /** The payloads of the frames of one type, in order. */
+  const frames = (type: string) => of('frame').filter((e) => e.payload.type === type).map((e) => e.payload.payload);
+  /** What the client sent on the leg's socket, parsed. */
+  const sent = () => socket().sentJson<Record<string, unknown>>();
+  /** The pcm of every append sent, in order. */
+  const appended = () => sent().filter((m) => m.type === 'session.input_audio_buffer.append').map((m) => base64ToPcm(m.audio as string));
+  /** The log without its frames: what L1 folds. */
+  const content = () => log.filter((e) => e.kind !== 'frame');
+  return { sockets, clock, timers, log, controller, config, starting, socket, of, frames, sent, appended, content };
+}
+
+/** Started, opened, created and configured: the start resolved. */
+export async function liveTranslate(o?: Parameters<typeof startTranslate>[0]) {
+  const h = startTranslate(o);
+  h.socket().open('realtime');
+  h.socket().receive(SERVER.created());
+  h.socket().receive(SERVER.updated());
+  const session = await h.starting;
+  return { ...h, session };
+}

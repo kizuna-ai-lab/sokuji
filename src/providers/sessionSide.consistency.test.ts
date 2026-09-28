@@ -231,6 +231,19 @@ describe('a provider session side', () => {
     for (const file of ['Ast2Settings.tsx', 'check.ts', 'config.ts', 'provider.ts', 'settings.ts', 'testing.ts']) {
       expect(ast2).not.toContain(`src/providers/volcengine_ast2/${file}`);
     }
+
+    const translate = sessionSide(REPO_ROOT, 'src/providers/openai_translate');
+    expect(translate).toEqual(expect.arrayContaining([
+      'src/providers/openai_translate/adapter.ts',
+      'src/providers/openai_translate/segments.ts',
+      'src/providers/openai_translate/socket.ts',
+      'src/providers/openai_translate/tail.ts',
+      'src/providers/openai_translate/wire.ts',
+    ]));
+    // The builder, the check, the settings, the view, the definition and the fixtures are not the session's.
+    for (const file of ['TranslateSettings.tsx', 'check.ts', 'config.ts', 'provider.ts', 'settings.ts', 'testing.ts']) {
+      expect(translate).not.toContain(`src/providers/openai_translate/${file}`);
+    }
   });
 
   it('reads imports the way the compiler does', () => {
