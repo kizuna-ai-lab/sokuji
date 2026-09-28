@@ -239,12 +239,10 @@ describe('the Gemini adapter: one session', () => {
     h.socket().receive(SERVER.input('Real Time翻訳機へようこそ。'));
     h.socket().receive(SERVER.output('Welcome to the Real Time translator.'));
     h.socket().receive(SERVER.turnComplete());
-    // Each utterance pairs with its own answer: interrupted and turnComplete each end a turn, so the origins differ, whatever their numbers.
+    // Each utterance pairs with its own answer: interrupted and its trailing turnComplete are one end, so the second utterance is turn 2.
     const [source1, translation1, source2, translation2] = h.of('segmentOpened').map((e) => e.payload);
     expect([source1.side, translation1.side, source2.side, translation2.side]).toEqual(['source', 'translation', 'source', 'translation']);
-    expect(translation1.origin).toBe(source1.origin);
-    expect(translation2.origin).toBe(source2.origin);
-    expect(source2.origin).not.toBe(source1.origin);
+    expect([source1.origin, translation1.origin, source2.origin, translation2.origin]).toEqual(['t1', 't1', 't2', 't2']);
     expect(h.of('audio').map((e) => [e.payload.ref, e.payload.pcm.length])).toEqual([[2, 2400], [2, 2400]]);
     expect(h.of('segmentClosed').map((e) => e.payload.ref)).toEqual([1, 2, 3, 4]);
   });
@@ -451,6 +449,27 @@ describe('the Gemini adapter: turns and typed text', () => {
     h.socket().receive(SERVER.turnComplete());
     expect(h.of('segmentOpened')).toHaveLength(1);
     expect(h.of('audio')).toHaveLength(1);
+  });
+
+  it("on a model that barges in, a voiceless tap during an answer, released before the server's interrupted arrives, drops its own answer: interrupted and its trailing turnComplete are one end (Gemini/AST2 follow-up, ruling 5; ruling 8)", async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(new Int16Array(480));
+    h.session.endTurn();
+    h.socket().receive(SERVER.input('Hello there.'));
+    h.socket().receive(SERVER.output('こんにちは'));
+    h.socket().receive(SERVER.audio());
+    h.session.beginTurn();
+    h.session.cancelTurn();
+    h.socket().receive(SERVER.interrupted());
+    h.socket().receive(SERVER.turnComplete());
+    h.socket().receive(SERVER.output('an answer to the tap'));
+    h.socket().receive(SERVER.audio());
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.frames('realtime_input.activity_end')).toEqual([undefined, { cancelled: true }]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Hello there.', 'こんにちは']);
+    expect(h.of('audio')).toHaveLength(1);
+    expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1, origin: 't1' }, { ref: 2, origin: 't1' }]);
   });
 
   it("a cancelled press the server never answers: the next press ends the drop, and its answer is shown (choice 16)", async () => {

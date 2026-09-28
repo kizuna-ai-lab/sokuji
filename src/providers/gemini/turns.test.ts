@@ -295,12 +295,99 @@ describe('a dialogue model: one turn, one origin, stated', () => {
     expect(texts(2)).toEqual(['kept']);
   });
 
+  it('an interrupted that ends an active drop is one end with its trailing turnComplete: the next answer is kept, in turn t2', () => {
+    const { t, opened } = turns();
+    t.input('uh');
+    t.cancelTurn();
+    t.interrupted();
+    t.turnComplete();
+    t.output('kept');
+    expect(opened()).toEqual([{ ref: 1, side: 'source', origin: 't1' }, { ref: 2, side: 'translation', origin: 't2' }]);
+  });
+
   it('interrupted starts a pending drop, as turnComplete does: the answer after it is dropped', () => {
     const { t, texts } = turns();
     t.output('A');
     t.cancelTurn();
     t.interrupted();
     t.output('B');
+    expect(texts(2)).toEqual([]);
+  });
+
+  it.each([
+    ["before the server's interrupted", (t: GeminiTurns) => { t.cancelTurn(); t.interrupted(); t.turnComplete(); }],
+    ['between interrupted and its turnComplete', (t: GeminiTurns) => { t.interrupted(); t.cancelTurn(); t.turnComplete(); }],
+  ])("on a model that barges in, a voiceless press released %s still drops its own answer: interrupted and its trailing turnComplete are one end (Gemini/AST2 follow-up, ruling 5; ruling 8)", (_, release) => {
+    const { t, log, texts, closed } = turns();
+    t.beginTurn();
+    t.input('Hello');
+    t.endTurn();
+    t.output('Bonjour');
+    // The voiceless press's activityStart cuts the streaming answer: 3.8 sends interrupted, then turnComplete 5 ms later.
+    t.beginTurn();
+    release(t);
+    expect(closed()).toEqual([{ ref: 1, origin: 't1' }, { ref: 2, origin: 't1' }]);
+    const n = log.length;
+    t.output('an answer to the cancelled press');
+    t.audio(pcm());
+    t.turnComplete();
+    expect(log.length).toBe(n);
+    t.output('the next answer');
+    expect(texts(3)).toEqual(['the next answer']);
+  });
+
+  it('on a model that barges in, interrupted and its trailing turnComplete end one answer, not two: the next turn is t2 and its answer is shown (Gemini/AST2 follow-up, ruling 5)', () => {
+    const { t, texts, opened, closed } = turns();
+    t.input('Hello');
+    t.output('Bonjour');
+    t.interrupted();
+    t.turnComplete();
+    expect(closed()).toEqual([{ ref: 1, origin: 't1' }, { ref: 2, origin: 't1' }]);
+    t.input('Again');
+    t.output('Encore');
+    expect(opened().slice(2)).toEqual([{ ref: 3, side: 'source', origin: 't2' }, { ref: 4, side: 'translation', origin: 't2' }]);
+    expect(texts(4)).toEqual(['Encore']);
+  });
+
+  it.each([
+    ['an input transcript', (t: GeminiTurns) => t.input('Again')],
+    ['an output transcript', (t: GeminiTurns) => t.output('Encore')],
+    ['audio', (t: GeminiTurns) => t.audio(pcm())],
+    ['a text part', (t: GeminiTurns) => t.modelText('Encore')],
+    ['typed text', (t: GeminiTurns) => t.typed('again')],
+  ])('a turnComplete after interrupted with %s in between is an answer of its own ending: the turn after it is t3', (_, content) => {
+    const { t, opened } = turns();
+    t.output('Bonjour');
+    t.interrupted();
+    content(t);
+    t.turnComplete();
+    t.output('the next answer');
+    const all = opened();
+    expect(all[all.length - 1]).toMatchObject({ side: 'translation', origin: 't3' });
+  });
+
+  it("content a drop swallows still counts as content: the turnComplete after it ends the cancelled press's answer, and the next answer is shown", () => {
+    const { t, texts } = turns();
+    t.output('A');
+    t.cancelTurn();
+    t.interrupted();
+    t.output('an answer to the cancelled press');
+    t.turnComplete();
+    t.output('the next answer');
+    expect(texts(2)).toEqual(['the next answer']);
+  });
+
+  it("a reconnect after interrupted: the new connection's first turnComplete ends an answer of its own", () => {
+    const { t, texts } = turns();
+    t.output('A');
+    t.interrupted();
+    t.connectionLost();
+    // A voiced press on the new connection, answered with nothing but its turnComplete: that answer is no longer owed.
+    t.endTurn();
+    t.turnComplete();
+    t.beginTurn();
+    t.cancelTurn();
+    t.output('an answer to the cancelled press');
     expect(texts(2)).toEqual([]);
   });
 

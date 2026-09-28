@@ -70,6 +70,11 @@ export class GeminiTurns {
   private suppressing = false;
   /** A cancel came while the previous press's answer was owed or streaming: the drop starts when that answer ends (choice 16). */
   private suppressAfterAnswer = false;
+  /**
+   * `interrupted` ended an answer and no content has come since: the next `turnComplete` is that same end, which a
+   * model that barges in sends a few milliseconds after it, so it ends nothing more (Gemini/AST2 follow-up, ruling 5).
+   */
+  private interruptedEnd = false;
   private stopped = false;
 
   constructor(private readonly o: GeminiTurnsOptions) {}
@@ -84,7 +89,10 @@ export class GeminiTurns {
   }
 
   input(text: string): void {
-    if (this.stopped || this.suppressing || !text) return;
+    if (this.stopped || !text) return;
+    // Content, even content a drop swallows: a `turnComplete` after it ends an answer of its own.
+    this.interruptedEnd = false;
+    if (this.suppressing) return;
     const side = this.ensure('source');
     side.text += text;
     this.o.sink.segmentText({ ref: side.ref, text: normalizeCjkSpaces(side.text) });
@@ -92,7 +100,9 @@ export class GeminiTurns {
   }
 
   output(text: string): void {
-    if (this.stopped || this.suppressing || !text) return;
+    if (this.stopped || !text) return;
+    this.interruptedEnd = false;
+    if (this.suppressing) return;
     if (this.dialogue) this.answering = true;
     const side = this.ensure('translation');
     side.text += text;
@@ -109,7 +119,9 @@ export class GeminiTurns {
    * range ever needs stating again.
    */
   audio(pcm: Int16Array): void {
-    if (this.stopped || this.suppressing || pcm.length === 0) return;
+    if (this.stopped || pcm.length === 0) return;
+    this.interruptedEnd = false;
+    if (this.suppressing) return;
     // Streaming, whether or not this leg plays it.
     if (this.dialogue) this.answering = true;
     if (!this.o.speech) return;
@@ -125,13 +137,21 @@ export class GeminiTurns {
   }
 
   modelText(text: string): void {
-    if (this.stopped || this.suppressing || !this.dialogue) return;
+    if (this.stopped || !text) return;
+    this.interruptedEnd = false;
+    if (this.suppressing || !this.dialogue) return;
     this.answering = true;
     this.fallbackText += text;
   }
 
   turnComplete(): void {
     if (this.stopped) return;
+    if (this.interruptedEnd) {
+      // The rest of the end `interrupted` made: nothing more ends here, and a drop that end started goes on to the
+      // cancelled press's own answer (ruling 8).
+      this.interruptedEnd = false;
+      return;
+    }
     if (this.suppressing) {
       // The cancelled press's own answer ended.
       this.suppressing = false;
@@ -146,6 +166,7 @@ export class GeminiTurns {
 
   interrupted(): void {
     if (this.stopped) return;
+    this.interruptedEnd = true;
     if (this.suppressing) {
       this.suppressing = false;
       return;
@@ -155,9 +176,11 @@ export class GeminiTurns {
 
   typed(text: string): void {
     if (this.stopped) return;
-    // Typed text starts an answer of its own: a cancel's drop, active or pending, ends here, as at the next press.
+    // Typed text starts an answer of its own: a cancel's drop, active or pending, ends here, as at the next press,
+    // and a `turnComplete` after it is no longer the rest of an `interrupted`.
     this.suppressing = false;
     this.suppressAfterAnswer = false;
+    this.interruptedEnd = false;
     if (this.dialogue) this.owed = true;
     const ref = ++this.refs;
     const origin = this.origin();
@@ -185,9 +208,11 @@ export class GeminiTurns {
   cancelTurn(): void {
     // Live Translate: its output belongs to no press, so the cancel is `activityEnd` alone.
     if (this.stopped || !this.dialogue) return;
-    // An answer is owed from the release that asked for it, before its first output; once streaming it keeps going
-    // under `NO_INTERRUPTION`, or, on a model that barges in, ends at the server's `interrupted` (Gemini/AST2
-    // follow-up, ruling 5). Either way it finishes in its own segments, and the drop waits for its end.
+    // An answer is owed from the release that asked for it, before its first output. Once streaming it keeps going
+    // under `NO_INTERRUPTION` and ends at its `turnComplete`; on a model that barges in, this press's `activityStart`
+    // ends it at the server's `interrupted`, and the `turnComplete` that trails it is that same end, not this press's
+    // answer's (Gemini/AST2 follow-up, ruling 5). Either way it finishes in its own segments, and the drop — this
+    // press's own answer, never the one before it (ruling 8) — starts at that one end.
     if (this.answering || this.owed) {
       this.suppressAfterAnswer = true;
       return;
@@ -200,6 +225,8 @@ export class GeminiTurns {
     if (this.stopped) return;
     this.suppressing = false;
     this.suppressAfterAnswer = false;
+    // The trailing `turnComplete` was the old connection's to send: the next one ends an answer of its own.
+    this.interruptedEnd = false;
     // A dialogue turn in flight cannot finish across a reconnect (choice 14); Live Translate's segments ride their timers.
     if (this.dialogue) this.closeTurn();
   }
