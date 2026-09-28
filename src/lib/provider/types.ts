@@ -209,8 +209,7 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   /**
    * The segment the provider's locale keys sit under, when the catalogs
    * spell it otherwise than `id` (controller ruling 2): `providers.<i18nKey
-   * ?? id>.name` and `.description`. LocalInference's is `local_inference`,
-   * OpenAI Compatible's will be `openaiCompatible`.
+   * ?? id>.name` and `.description`. LocalInference's is `local_inference`.
    */
   i18nKey?: string;
   /** Where a user reads how to set this provider up; the picker links it, dismissibly. */
@@ -294,6 +293,15 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * every time.
    */
   check(r: R, s: S, ctx: CheckContext): Promise<CheckResult>;
+  /**
+   * The settings fields `check` reads (Stage 2 OpenAI Realtime, ruling 9):
+   * an edit to any other field keeps the readiness answer — Start stays on,
+   * nothing is checked again — and the kept answer is keyed on these alone.
+   * Every field `check` reads must be listed, and every field that decides
+   * the credential fields. Absent: every field, as before. OpenAI Realtime's
+   * model list reads none (`[]`).
+   */
+  checkReads?: readonly (keyof S & string)[];
   /**
    * Calls back when something `check` reads besides the settings,
    * credentials, pair and legs has changed — a local engine's models

@@ -231,10 +231,14 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // New settings can change the languages on offer; the pair the user left follows them, and the run's pair is derived from it.
       const before = entry.stored ?? entry.pair;
       const kept = normalizePair(p, settings, before);
-      put(p, { settings, credentials: entry.credentials, ...derive(p, settings, kept) });
+      const next = derive(p, settings, kept);
+      put(p, { settings, credentials: entry.credentials, ...next });
       for (const [field, value] of Object.entries(patch)) void persistSetting(storageKey(p, field), value);
       persistPair(p, before, kept);
-      forgetReadiness(p);
+      // The answer holds while the check would read the same inputs (ruling 9): no field it reads was edited, and the run's pair did not move.
+      const read = p.checkReads === undefined || Object.keys(patch).some((field) => p.checkReads!.includes(field));
+      const moved = next.pair.source !== entry.pair.source || next.pair.target !== entry.pair.target;
+      if (read || moved) forgetReadiness(p);
     },
 
     setCredential(p, key, value) {
@@ -289,7 +293,11 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       // readiness changes as models download. Only a managed provider's
       // answer turns on the sign-in and the account; an own-key one checks its key.
       const account = p.kind === 'managed' ? [auth.signedIn, auth.userId ?? null] : [];
-      const key = JSON.stringify([inputs.settings, values, ...account, inputs.pair, inputs.legs]);
+      // Only the fields the check reads key its answer (ruling 9), so a run started after an edit elsewhere is served from it.
+      const read = p.checkReads === undefined
+        ? inputs.settings
+        : Object.fromEntries(p.checkReads.map((field) => [field, (inputs.settings as Record<string, unknown>)[field]]));
+      const key = JSON.stringify([read, values, ...account, inputs.pair, inputs.legs]);
       const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
       if (kept && kept.inputs === key) return answered(kept.readiness);
 

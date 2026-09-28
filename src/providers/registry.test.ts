@@ -219,6 +219,14 @@ describe('the invariants every provider meets (F17)', () => {
     }
   });
 
+  it("a provider's checkReads names only fields of its settings (Stage 2 OpenAI Realtime, ruling 9)", () => {
+    const offenders = (ps: readonly Pick<AnyProvider, 'id' | 'settings' | 'checkReads'>[]) =>
+      ps.flatMap((p) => (p.checkReads ?? []).filter((field: string) => !Object.keys(p.settings.defaults as object).includes(field)).map((field: string) => `${p.id}: ${field}`));
+    expect(offenders(PROVIDERS)).toEqual([]);
+    // The control: a name that is no field.
+    expect(offenders([{ id: 'x', settings: { key: 'x', defaults: { a: 1 } }, checkReads: ['a', 'b'] }])).toEqual(['x: b']);
+  });
+
   it('an initial pair is one the provider offers', () => {
     const withInitial = PROVIDERS.filter((p) => p.languages.initial !== undefined);
     expect(withInitial.length).toBeGreaterThan(0);
