@@ -20,7 +20,8 @@ const adapter = createRealtimeAdapter();
 /**
  * OpenAI Realtime with the user's own key (Stage 2 OpenAI Realtime): a
  * GPT Realtime dialogue model made a translator by its instructions, one
- * WebSocket per leg — the WebRTC transport is a later step (ruling 12).
+ * WebSocket per leg, the only transport (the owner abandoned WebRTC for
+ * this provider, 2026-09-29).
  * The old enum's id and slice (controller ruling 2 of the foundation), so a
  * stored selection, the key, the pair and every setting carry over. The
  * key rides in a subprotocol a browser sets itself, so it runs on every
@@ -54,7 +55,7 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
   textInput: true,
   // The server's commits and responses end segments (the old offer: Auto); cutting by sentences is offered too.
   boundaries: () => 'provider',
-  // WebSocket only: the WebRTC step makes it depend on the transport (D25).
+  // WebSocket only, so both turn modes on every leg.
   turns: () => ['auto', 'manual'],
 
   build: buildRealtime,

@@ -5,8 +5,7 @@
  * segment, closed by its own silence timer; the translation's timer is held
  * by its content audio too, which opens a translation segment when none is
  * open (`:558-627`). Neither side states an origin: L2 infers the pair
- * (F16). Both transports will feed it: the WebRTC step adds a transport,
- * not a second machine.
+ * (F16).
  *
  * Copied from Gemini's Live Translate half (choice 4): the per-side
  * `ensure` / `close` / `arm` / `cancel` and the mid-sentence deferral of

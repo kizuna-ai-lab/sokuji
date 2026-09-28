@@ -19,8 +19,8 @@ import { TranscriptionField } from './TranscriptionField';
  * model — the effective one, the same function `build` calls — the
  * transcript, the noise reduction, the max tokens (no temperature: ruling
  * 6), and the reasoning effort for a `gpt-realtime-2*` model. The
- * automatic-detection knobs are its `TurnDetection`; the transport stays
- * unshown until the WebRTC step (ruling 12).
+ * automatic-detection knobs are its `TurnDetection`; there is no transport
+ * to show (WebSocket only, 2026-09-29).
  */
 export function RealtimeSettingsView({ settings, update, disabled = false, pair, models = [] }: SettingsProps<S>) {
   const model = effectiveRealtimeModel(settings, models);

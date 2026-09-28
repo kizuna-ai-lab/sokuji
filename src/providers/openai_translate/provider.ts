@@ -17,8 +17,8 @@ const adapter = createTranslateAdapter();
 
 /**
  * OpenAI Translate with the user's own key (Stage 2 OpenAI Translate):
- * `gpt-realtime-translate`, speech to speech, one WebSocket per leg — the
- * WebRTC transport is a later step (ruling 1). The old enum's id and slice
+ * `gpt-realtime-translate`, speech to speech, one WebSocket per leg, the
+ * only transport (WebRTC abandoned, 2026-09-29). The old enum's id and slice
  * (controller ruling 2 of the foundation), so a stored selection, the key,
  * the pair and the noise reduction carry over. The key rides in a
  * subprotocol a browser sets itself, so it runs on every platform, and the

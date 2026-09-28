@@ -9,8 +9,8 @@ import { NOISE_REDUCTIONS, type TranslateSettings } from './settings';
  * the pair, the key and the speech mode have their generic homes — the info
  * banner, first, as it was (`ProviderSpecificSettings.tsx:2173-2183`), and
  * the noise reduction (choice 13). The model and the transcript model are
- * constants (rulings 7, 8); the transport stays unshown until the WebRTC
- * step (ruling 1); there are no turn-detection knobs.
+ * constants (rulings 7, 8); there is no transport to show (WebSocket only,
+ * 2026-09-29); there are no turn-detection knobs.
  */
 export function TranslateSettingsView({ settings, update, disabled = false }: SettingsProps<TranslateSettings>) {
   const { t } = useTranslation();

@@ -29,8 +29,8 @@ export function RealtimeTurnDetectionHelp(_props: SettingsProps<S>) {
  * The old turn-detection section's knobs (`ProviderSpecificSettings.tsx:
  * 508-719`) under the VAD heading, as Gemini's: the two automatic
  * mechanisms and each one's knobs. The push modes are the global turn
- * mode's now (the Speech section), and the WebRTC notice waits for the
- * WebRTC step. Both legs use them: the participant's detection is the
+ * mode's now (the Speech section), and the old WebRTC notice went with
+ * WebRTC (2026-09-29). Both legs use them: the participant's detection is the
  * user's own (ruling 4).
  */
 export function RealtimeTurnDetectionControls({ settings, update, disabled = false }: SettingsProps<S>) {

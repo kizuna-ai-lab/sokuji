@@ -1,7 +1,7 @@
 /**
  * OpenAI Translate on the new contract (spec: "L0 — the client contract"),
  * ported from `OpenAITranslateGAClient` (`src/services/clients/`, still
- * compiled until the deletion plan after the WebRTC step) without its items,
+ * compiled until the deletion after the two live tests) without its items,
  * ids, karaoke bookkeeping or segmentation stage: one leg, one WebSocket to
  * the translations endpoint, the key in a subprotocol (choice 3). The start
  * resolves on `session.updated`, the configuration confirmed, so a refused
@@ -102,7 +102,7 @@ class TranslateLeg implements AdapterSession {
     openSocket: OpenSocket,
   ) {
     const { config, clock, signal } = request;
-    // The WebRTC step's attachment point (choice 15): today every config says `websocket`.
+    // WebSocket only (2026-09-29): every config says `websocket`.
     this.info = { transport: config.transport };
     this.segments = new TranslateSegments({ clock, silence: config.silence, sink: events });
     this.tail = new ReleaseTail({ clock, send: (pcm) => this.send(pcm), ended: (summary) => this.tailEnded(summary) });
