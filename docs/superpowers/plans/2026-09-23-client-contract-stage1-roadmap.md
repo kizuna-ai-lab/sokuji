@@ -1740,11 +1740,11 @@ What it leaves, for the plans that meet it (the plan's own list, as written):
 **Found here, for the owner or a later plan:**
 - **Readiness re-probes on every Soniox settings edit** (survey §3.6): the kept answer is keyed on the whole `S`, so a vocabulary keystroke or a voice pick mints a temporary key 800 ms later. Harmless (free, per region), chatty; a provider-declared "check inputs" narrowing is a generic change, not a provider's.
 - **`timing` after a 503 resume** restarts at 0 (Soniox's clock restarts per socket); origins are stated, so L2 infers nothing from it. An offset is optional.
-- **`audio.range` after fill-in:** the late-measure hole `speechRanges` closes with `unfilled` exists for an `audio` range arriving after fill-in too; no adapter sends one (LocalInference closes after its last audio).
+- **`audio.range` after fill-in:** the late-measure hole `speechRanges` closes with `unfilled` exists for an `audio` range arriving after fill-in too; no adapter sends one (LocalInference closes after its last audio). **Done** by the Stage 2 Gemini/AST2 follow-up plan (Task 2, `cfcee4d1`, fix round `0a86fc39`; choice 19): an `audio` range on a segment the fill-in replaced is measured against the adapter's own text and re-anchored onto the filled one, dropped with a diagnostic when it does not fit, through the one `measure` `speechRanges` uses — for every provider, LocalInference's audio after its close included. Doubao's matched clips are the first to send one.
 - **The other voice-preview sites:** `LocalInferenceVoiceSection` (it renders `VoiceLibrarySection` with no preview route) and `nativeVoiceStores` fold in with their providers' plans; `SonioxCloneReviewStep` stays on the default output (ruling 6).
 - **The side decision is latched at an utterance's first token**, as before; a wrong latch now puts the utterance on the other leg's L1 (survey §3.6).
 - **Two TTS sockets per key** in shared Both with participant speech: Soniox's concurrency quota is unmeasured (the live test's item 8).
-- `Conversation.afterAudio` drops a whole `pending` list past the pcm ceiling without counting it in `clearedEntries`; no provider parks audio before its segment opens and emits `speechRanges` today. When one does, empty the dropped entries' pcm (`EMPTY_PCM`) and keep the entries, as the segments branch does — adding to `clearedEntries` alone would realign range indices but not clip keys.
+- `Conversation.afterAudio` drops a whole `pending` list past the pcm ceiling without counting it in `clearedEntries`; no provider parks audio before its segment opens and emits `speechRanges` today. When one does, empty the dropped entries' pcm (`EMPTY_PCM`) and keep the entries, as the segments branch does — adding to `clearedEntries` alone would realign range indices but not clip keys. **Done** by the Stage 2 Gemini/AST2 follow-up plan (Task 2, `cfcee4d1`; choice 6): exactly that — a held list's pcm emptied and its entries kept, a list already empty skipped. Doubao now reaches it in form; no live session is likely to.
 
 **Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; the leased fake's refused hooks; `RunnerDeps.replayAudio`'s guard; the notice-code namespace.
 
@@ -2532,7 +2532,9 @@ each confirmed as the plan states it:
    `native-audio` in its id and stays selectable (it ignores
    `silenceDurationMs`, and on `main` it drops speech made during its answer).
    Execution reads a family with no minor as `.0` ("Found during execution",
-   item 1).
+   item 1). **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling
+   3; choice 8): the default is now the newest listed Live Translate, and this
+   rule only when the check lists none.
 3. The old resumption logic is kept, with a fresh session when there is no
    handle.
 4. System instructions are each provider's own setting.
@@ -2957,7 +2959,7 @@ execution changed or added is marked):
 - a press with no speech sends `activityEnd` and drops its own answer — at once when nothing streams, after the previous answer ends when one still streams (that answer is never cut) — and on Live Translate is `activityEnd` alone (ruling 8, choice 16; the old left the activity open). **As landed** (execution, "Found during execution" items 4 and 5): an answer owed — after a voiced release or typed text, before its first output — waits like one streaming; a release during the ladder sent no `activityEnd` and owes nothing;
 - typed text sent while a dialogue answer still streams (`NO_INTERRUPTION`) takes that turn's origin: it groups with the previous exchange as a stated pair, and its own answer arrives under the next turn's origin with no source beside it — a wrong stated pair (spec "Risks"), the same effect a voice press has there. Stated, not fixed here (choice 17);
 - a start rejects in words within 15 s instead of hanging (choice 12); a transient socket error is a Logs line, not an "Unknown error" bubble;
-- the default model is the newest native-audio dialogue model, not the old sort (ruling 2) — **as landed**, a family with no minor read as `.0` ("Found during execution", item 1); the check sends the key as a header and is bounded (ruling 9, choice 5);
+- the default model is the newest native-audio dialogue model, not the old sort (ruling 2) — **as landed**, a family with no minor read as `.0` ("Found during execution", item 1); the check sends the key as a header and is bounded (ruling 9, choice 5). **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 3): the default is the newest listed Live Translate, the native-audio rule only on a key that lists none — a fresh profile, and a saved model no longer listed, run Live Translate (that record's stated departures);
 - content in a message that also ends the turn is kept (choice 15); `thought` parts never become text; audio at a foreign rate is skipped and said once (choice 18); the odd audio byte and the whole-buffer base64 are fixed (Task 9); `maxTokens` stored as a string on Electron is read as its number (ruling 10);
 - Live Translate's audio outside an open translation plays with no row, so no replay holds it (choice 8);
 - typed text is trimmed, and dropped while no connection is up (choice 17); the spec's `appendText` rule names the departure (the final fix wave, M3);
@@ -2982,11 +2984,11 @@ plan's self-review.
 **The owner's live test** (survey §2.11's list, adjusted to the rulings; what
 execution added is marked):
 1. **Key and check:** a valid key → Validate ✓ and the models listed; an invalid key → "The provider did not accept the credentials: …" with Google's words, Start off; empty → "Enter your API key…". **The `x-goog-api-key` header (ruling 9)** from the web page, the extension's side panel and Electron — the model list loads in each (the CORS preflight), and the Logs and the network log show no `?key=` on the list request. The socket dials the single-slash URL (choice 11). **Execution (Task 5's review):** every 400 reads as a refused key, so Google's 400 `FAILED_PRECONDITION` "User location is not supported" shows as a refused key, with Google's sentence as the detail — record what a user in an unsupported region sees.
-2. **Models and the default (ruling 2):** which models the list shows; a fresh profile starts on the newest **2.5 native-audio** model (not `gemini-3.1-flash-live-preview`, the owner's decision "B"); a saved model the list still has is kept; one it lost falls to the default and is not written back; a `…-native-audio-latest` alias, if listed, ranks below the dated ids.
-3. **A dialogue session, auto, on each model family the list offers** (2.5 native audio, 3.x Live, a `live-2.5` half-cascade if listed): each utterance a source row and its translation grouped (stated pairing); audio heard on the monitor and in the virtual microphone, once each; replay with keep-audio on; no karaoke; the badge "JA-JP" / "CMN-CN" and the subtitle bar's "ZH".
+2. **Models and the default (ruling 2):** which models the list shows; a fresh profile starts on the newest **2.5 native-audio** model (not `gemini-3.1-flash-live-preview`, the owner's decision "B"); a saved model the list still has is kept; one it lost falls to the default and is not written back; a `…-native-audio-latest` alias, if listed, ranks below the dated ids. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 3; choice 8): a fresh profile now starts on the newest listed Live Translate (`gemini-3.5-live-translate-preview`), the 2.5 native-audio model only on a key that lists no Live Translate — that record's live-test item 5.
+3. **A dialogue session, auto, on each model family the list offers** (2.5 native audio, 3.x Live, a `live-2.5` half-cascade if listed): each utterance a source row and its translation grouped (stated pairing); audio heard on the monitor and in the virtual microphone, once each; replay with keep-audio on; no karaoke; the badge "JA-JP" / "CMN-CN" and the subtitle bar's "ZH". **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its rulings 2 and 6): karaoke by arrival, lit across each answer, and the badges now read Google's codes ("JA", "ZH-HANS"), the subtitle bar still "ZH" — that record's live-test items 4 and 9.
 4. **The detection knobs:** end sensitivity and silence duration change turn splitting on a 2.5 model; on 3.x they are known to be ignored (`benchmark/GEMINI-SILENCE-DURATION-BUG.md`) — record it.
-4b. **Speech during an answer, on 3.1 flash live:** on `main` the owner found that with `gemini-3.1-flash-live-preview`, speaking while the translation and its audio are still playing gets no transcription or translation at all (the old client's `activityHandling: NO_INTERRUPTION`); 2.5 native-audio handles it. Run the same on the new adapter with 3.1 and 2.5: record whether 3.1 still drops it, and whether the Logs show any input transcription for the dropped speech. **Execution (Task 10's review):** where the speech is transcribed, record which row its transcript joins — parity with the old client, but its rows now pair.
-5. **Push-to-talk, on a dialogue model and on Live Translate** (`turns()` offers manual turns for every model): a short press → a reply (on Live Translate, the held speech translated); minutes idle between presses → the session survives (resumed or fresh; the Logs say which); push-to-translate routes the raw voice while idle.
+4b. **Speech during an answer, on 3.1 flash live:** on `main` the owner found that with `gemini-3.1-flash-live-preview`, speaking while the translation and its audio are still playing gets no transcription or translation at all (the old client's `activityHandling: NO_INTERRUPTION`); 2.5 native-audio handles it. Run the same on the new adapter with 3.1 and 2.5: record whether 3.1 still drops it, and whether the Logs show any input transcription for the dropped speech. **Execution (Task 10's review):** where the speech is transcribed, record which row its transcript joins — parity with the old client, but its rows now pair. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 5; choice 9): a dialogue model of family 3.0 or later now barges in (`START_OF_ACTIVITY_INTERRUPTS`) — the owner's overlap probe had `gemini-3.8-live` drop the second utterance under `NO_INTERRUPTION` and keep both whole under barge-in; 2.5 keeps `NO_INTERRUPTION`; 3.1 was not measured — that record's live-test items 7, 8, 13 and 15.
+5. **Push-to-talk, on a dialogue model and on Live Translate** (`turns()` offers manual turns for every model): a short press → a reply (on Live Translate, the held speech translated); minutes idle between presses → the session survives (resumed or fresh; the Logs say which); push-to-translate routes the raw voice while idle. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 4; choices 11, 12): on Live Translate a release now sends real-time silence inside the press's activity until the model has been quiet 1 s, at most 3 s, then `activityEnd` — the owner's probe had a press's last words arrive only after the next press — that record's live-test items 6 and 14.
 6. **A press with no speech** (ruling 8, choice 16): no reply shown, and the next press not merged with it. **A voiceless press while the previous answer is still playing:** that answer plays and shows to its end, and nothing answers the voiceless press. Record whether the server answers a cancelled activity at all (a late `turnComplete` in the Logs), and whether a second `activityStart` is tolerated. On Live Translate a voiceless press cuts nothing: the translation streaming at that moment goes on. **Execution (Task 10's fix round):** a voiceless press made right after a voiced release, before its answer's first output, waits for that answer too. The owed answer is a flag, not a count: two presses with voice, then a voiceless one, all inside the latency window, drop the second's answer — record whether that happens in ordinary use.
 7. **Typed text:** in auto; under push-to-talk (the wrap in activity marks answers, choice 17); **on Live Translate** — answered or ignored? If ignored, the row stays unanswered: the open question below.
 8. **Live Translate:** continuous speech → source and translation segments cut by pause, each side on its own; inferred pairing plausible; the speaker's own voice reproduced; speaking the target language produces nothing; **listen for leading audio chunks before a sentence's first transcript** (live only, not in its replay — choice 8); the Logs show whether `finished`, `languageCode` and `turnComplete` ever arrive (a transcription is framed even with no text: the final fix wave, M1).
@@ -3009,7 +3011,7 @@ execution added is marked):
 - `goAway`: make-before-break (a second socket before the first closes) would remove the gap's dropped audio.
 - The `-latest` aliases rank below the dated ids (choice 4); and the check's filter ignores `supportedGenerationMethods` (choice 5).
 - The detection knobs on 3.x (item 4): the summary line promises an effect the server does not give.
-- 3.1 flash live drops speech made during its answer (item 4b, found by the owner on `main`): whether another `realtimeInputConfig` (e.g. `turnCoverage`) lets it accept that speech without interrupting the translation, or whether 3.1 should carry a warning in the model list. Not guessed at here; the live test records the behaviour first.
+- 3.1 flash live drops speech made during its answer (item 4b, found by the owner on `main`): whether another `realtimeInputConfig` (e.g. `turnCoverage`) lets it accept that speech without interrupting the translation, or whether 3.1 should carry a warning in the model list. Not guessed at here; the live test records the behaviour first. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 5): every dialogue model of family 3.0 or later, 3.1 included, now barges in; whether that keeps the speech is its live test's (items 7 and 13).
 - A cancelled turn's late `turnComplete` closes the next press's segments early (choice 16); item 6 says whether it happens.
 - `@google/genai` at G2: kept as a dev dependency (the wire's type imports and the oracle test), or its server types copied into `wire.ts` and the oracle retired.
 - The orphan locale key `settings.geminiParticipantTokenWarning` (30 catalogs).
@@ -3066,7 +3068,7 @@ From the Soniox plan's "Found here" (`:1740-1747` above):
 |---|---|
 | Readiness re-probes on every settings edit (the kept answer is keyed on the whole `S`) | applies to Gemini too: an instruction keystroke re-lists the models 800 ms later (free, bounded). Not taken: a provider-declared narrowing of the check's inputs is a generic change |
 | `timing` after a 503 resume | n/a: Gemini emits no timing |
-| `audio.range` after fill-in | n/a: Gemini emits no ranges |
+| `audio.range` after fill-in | n/a: Gemini emits no ranges. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 2; choice 19): it applies now — arrival ranges, which L1's fill-in re-anchors; each goes out while its translation is open (a closed turn's audio opens the next), so the late path choice 19 closes is Doubao's, not Gemini's |
 | The side latch | n/a: one leg per socket |
 | Two TTS sockets per key in shared Both | its analogue, two Live sessions per key in Both, is live-test item 12 |
 | `Conversation.afterAudio`'s pending drop | n/a: Gemini emits no `speechRanges` |
@@ -3674,7 +3676,10 @@ wrong):
   Cost: none.
 - **Task 8, M4:** a clip locked to a translation that ends unshown plays live
   but can never be replayed — the review's option (a), a stated departure below
-  and live-test item 13. Cost: an occasional clip without replay.
+  and live-test item 13. Cost: an occasional clip without replay. **Changed by
+  the Stage 2 Gemini/AST2 follow-up plan** (its choices 2, 3): now only on the
+  lock's fallback — a translation never shown leaves the recent list, so a
+  sentence matched by its times never names one.
 - **Task 13:** `.volcengine-info-notice` has no rule in `Settings.scss`; the
   class is carried over from the old markup, which had none either; left as
   parity. Cost: none.
@@ -3688,7 +3693,7 @@ execution added is marked):
 - the resampler carries its phase across chunks and sends 80 ms packets (ruling 12). **Execution (Task 7's review, M3):** the 80 ms packets hold each capture chunk's remainder until the next chunk completes it — about 40 ms of added latency on average, at most 80 ms: ruling 12's price, which no ruling had stated;
 - a status error, or `SessionFailed`, after the start ends the run in words (ruling 8; the old client ignored `SessionFailed` once started, survey §2.10);
 - the check validates the user's pair, bounded to 15 s, and throws while offline instead of blaming the credentials (ruling 9, choices 8, 20); a start rejects in words within 30 s on the request's clock, never with the URL (choice 12) — **as landed**, a start whose socket cannot even be constructed rejects at once, in fixed words ("Found during execution", item 8). **The final fix wave:** a check whose socket cannot be constructed throws the same fixed words, and a `SessionStarted` naming another session is no ✓, as it is no start;
-- a spoken sentence's clip is locked to the translation started at its start, read before the decode, and its decodes run in order (ruling 10; parity with the old lock, the two old races not ported). **Execution (Task 8's review, M4):** a clip locked to a translation that then ends unshown — or is replaced by the next Start before it shows — lands on a ref that never opens: it plays live, but L1 holds it pending and it can never be replayed, where the old client fell back to a standalone, replayable audio item. Accepted: in that state the lock most likely voices the previous sentence anyway, and an empty row with audio is a shape no one has seen. **Execution (Task 8's review, M6):** an unended sentence is flushed as its own clip at the next `TTSSentenceStart`, where the old client dropped those chunks, so a truncated stream can raise `tts_degraded` where the old one stayed silent; and chunks that arrive between a `TTSSentenceEnd` and the next `TTSSentenceStart`, flushed by `TTSEnded`, land on the previous sentence's ref;
+- a spoken sentence's clip is locked to the translation started at its start, read before the decode, and its decodes run in order (ruling 10; parity with the old lock, the two old races not ported). **Execution (Task 8's review, M4):** a clip locked to a translation that then ends unshown — or is replaced by the next Start before it shows — lands on a ref that never opens: it plays live, but L1 holds it pending and it can never be replayed, where the old client fell back to a standalone, replayable audio item. Accepted: in that state the lock most likely voices the previous sentence anyway, and an empty row with audio is a shape no one has seen. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its choice 2): the lock is now the fallback, for a sentence whose server times name no recent translation; a matched clip takes the translation its times name, read when the clip is emitted. **Execution (Task 8's review, M6):** an unended sentence is flushed as its own clip at the next `TTSSentenceStart`, where the old client dropped those chunks, so a truncated stream can raise `tts_degraded` where the old one stayed silent; and chunks that arrive between a `TTSSentenceEnd` and the next `TTSSentenceStart`, flushed by `TTSEnded`, land on the previous sentence's ref;
 - the Logs' frame names change (`subtitle.*`, `tts.*`, `session.*`), grouped under the old keys (choice 9) — **as landed**, `session.unreadable` said once per episode ("Found during execution", item 1).
 
 Where the plan departs from its survey, and why, stays in the plan's
@@ -3722,7 +3727,7 @@ execution added is marked). Each item names what to record in the Logs
 (diagnostic logs on, in Help):
 1. **Both credential modes and the check (rulings 1, 9):** the legacy App ID + Access Token → Validate ✓; a wrong token → "The provider did not accept the credentials: …" with the refusal's words, Start off; the API key → ✓; a wrong key → the same words; empty in either mode → "Enter your API key…". Switching modes keeps the other mode's fields. An old profile (App ID and Access Token saved by an earlier build) opens in the legacy mode, ready without re-entry. **An API-key session starts** (no `requestMeta.AppKey` — choice 5; if it is refused at `StartSession`, that is the first suspect). Each check opens and finishes one real session: record whether the console bills it. **Execution (group check B, step 6):** the idle line reads "Enter your API key in Settings before starting." in the legacy mode too — record how it reads to a user who holds an App ID and an Access Token (an open question). **The final fix wave (the whole-plan review, M4):** record whether `SessionStarted` echoes the `SessionID` the client sent, in the API key mode above all: the old client's identical guard proved the echo for the legacy mode only, and the browser-shape probe accepted `SessionStarted` without comparing it. Both the check and the start now drop a `SessionStarted` that names another session, so if the server answered with an id of its own, Validate would end after 15 s with "Doubao did not answer the check within 15 s." and every start after 30 s with "Doubao did not start the session within 30 s.", the start framing `session.foreign` in the Logs. **The whole-plan review's addition:** the check always asks for text only (ruling 9, choice 20), so an app whose console grants text translation but not speech to speech would validate ✓ and then fail a speaking start. If such an app is at hand, validate it, start a speaking session on it, and record the words.
 2. **The query URL from the web page, the extension's side panel and Electron (ruling 2):** the socket opens in each; no credential in the Logs or the Logs' export; record whether DevTools' own console prints a failed socket's URL with its query. **Execution (Task 14's review):** record too whether it prints it when a check or a start is aborted, or times out, while its socket is still connecting.
-3. **Speech to speech, auto:** zh → en, en → zh, ja → zh and each of the other spoken languages once, as a source and as a target of zh or en; the speaker's cloned voice heard on the monitor and in the virtual microphone, once each; source and translation rows paired; replay per sentence with keep-audio on; no karaoke.
+3. **Speech to speech, auto:** zh → en, en → zh, ja → zh and each of the other spoken languages once, as a source and as a target of zh or en; the speaker's cloned voice heard on the monitor and in the virtual microphone, once each; source and translation rows paired; replay per sentence with keep-audio on; no karaoke. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 1; choices 2–4): each translation now lights over its own clip — the whole subtitle whose server times the sentence carries, ranged once the subtitle is final — that record's live-test items 1, 2, 3 and 11.
 4. **Text only, the full list:** a sample of the twelve text-only languages as sources (ko → zh, ru → en, ar → en, th → zh) and as targets (zh → ko, en → vi); no audio.
 5. **A dialect source:** 粵語 → 中文 and 上海话 → English, in text only; the badge reads "YUE-CN" / "SH-CN".
 6. **`zhen`:** mixed Chinese and English speech, speaking and text only; rows labelled "ZHEN".
@@ -3732,7 +3737,7 @@ execution added is marked). Each item names what to record in the Logs
 10. **Both with participant speech (ruling 4):** two sockets; the participant's reverse direction; its switch on → the other party's translation heard on the real device in their cloned voice, off → text; either leg ending ends both; participant-only. **Corrected by the final fix wave (the whole-plan review, M1):** with the speaker on Text only and a text-only pair (zh → ko), turning the participant's speech on makes the run speak, so the shown pair moves into the speaking offer (zh → ko shows as zh → en) and returns when the switch goes off (choice 1). Nothing is refused. The gate refuses the participant leg in words only for a dialect source while the participant is text-only: 粵語 → 中文 in Both, with Text only on and the participant's speech off (D20; an open question below). Record whether two sessions on one credential are allowed, and whether the participant's libraries (sent on both legs, choice 6) do harm. **The whole-plan review's addition:** record whether a Start right after a Validate, or right after a check that a newer one superseded, is refused while the check's session is still being released. The check closes right after `FinishSession`, where the old validation waited 300 ms. Record too whether Both's two legs plus a check that has just finished trip a per-app concurrency quota.
 11. **Errors mid-session (ruling 8):** a status error → the run ends with its words (`notices.client` / `notices.server` with Doubao's detail); a network drop → the connection-lost words.
 12. **The status codes (choice 4):** every status other than 20000000 and its message, from `session.status` frames; whether `4xxxxxxx` is always the client's fault.
-13. **TTS replay (ruling 10):** each sentence's clip on its own translation row, also when translations follow each other fast, and when a sentence starts before its translation shows text (record the order of `subtitle.translation` phase `start`, its first `response`, and `tts.sentence_start` with their `ref`s); keep-audio off → no replay button. **Execution (Task 8's review, M4):** `tts.sentence_start` frames the ref its sentence locked, shown or not — record, for each, whether that ref's translation was ever shown: a ref never shown is a clip with no replay (a stated departure).
+13. **TTS replay (ruling 10):** each sentence's clip on its own translation row, also when translations follow each other fast, and when a sentence starts before its translation shows text (record the order of `subtitle.translation` phase `start`, its first `response`, and `tts.sentence_start` with their `ref`s); keep-audio off → no replay button. **Execution (Task 8's review, M4):** `tts.sentence_start` frames the ref its sentence locked, shown or not — record, for each, whether that ref's translation was ever shown: a ref never shown is a clip with no replay (a stated departure). **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its choices 2, 5): `tts.sentence_start` now also carries the sentence's `startTime` and `endTime`, and each clip is framed `tts.clip` (`ref`, `matched`, `range`) as it goes to L1 — the row it took, whether the times named it, its range (`null` while its subtitle is open); the lock's ref is the clip's only when the times name no recent translation — that record's live-test item 1.
 14. **The libraries:** hot words, replacement and glossary ids take effect as in the old build.
 15. **Stop mid-sentence:** rows finalized; no audio after Stop; `FinishSession` sent.
 16. **The wizard:** the own-key path lists Doubao after Gemini; the credential step shows the choice above the saved mode's fields; **a first-run setup with an API key only** — pick "API key", validate, finish — leaves Settings in the API key mode with the key saved, and a session starts; the language step's lists follow the scenario, and Back to another scenario normalizes a pair its list does not hold. **Execution (Task 17's review, m3):** two edges to try — picking the other mode and then the saved one again leaves the credentials unvalidated (Validate again, or Skip); and on a profile holding both modes' credentials, once the shown mode's saved values were mirrored into the draft, the other mode's saved value is not filled in after a switch. Record whether either confuses.
@@ -3790,10 +3795,10 @@ From the Soniox plan's "Found here" (`:1740-1747` above):
 |---|---|
 | Readiness re-probes on every settings edit | applies: a library-id keystroke re-runs Doubao's handshake 800 ms later — a real session opened and finished — and so does a Text-only toggle that moves the run's pair (Task 9). Not taken (a generic change); an open question, Doubao's case of the Gemini section's |
 | `timing` after a 503 resume | n/a: Doubao emits no timing and does not resume |
-| `audio.range` after fill-in | n/a: Doubao's clips are rangeless |
+| `audio.range` after fill-in | n/a: Doubao's clips are rangeless. **Changed by the Stage 2 Gemini/AST2 follow-up plan:** it applies now — a matched clip emitted after its subtitle closed carries its range, usually after the fill-in in the display cut by sentences; closed by that plan's Task 2 (choice 19) |
 | The side latch | n/a: one leg per socket |
 | Two TTS sockets per key in shared Both | its analogue, two sessions per credential in Both, is live-test item 10 |
-| `Conversation.afterAudio`'s pending drop | n/a: Doubao emits no `speechRanges` |
+| `Conversation.afterAudio`'s pending drop | n/a: Doubao emits no `speechRanges`. **Changed by the Stage 2 Gemini/AST2 follow-up plan:** it applies now in form — a sentence's clip can be held before its translation opens and ranged later by `speechRanges`; closed by that plan's Task 2 (choice 6) |
 
 From "Scheduled by the Stage 2 Gemini plan" (above; the pre-flight's F3 — the
 section was written after this plan):
@@ -3824,7 +3829,7 @@ reviews parked for this plan's final fix wave are done, last below):
 - **V2**, the deletion of the old AST2 code with the relay twin, the AST2 background block (replaced by a start-up clear of rules 2000–2009) and the dead flags, after the owner's live test (this record's inventory).
 - **F14**, the header seam, for OpenAI Live; Soniox's, Gemini's and Doubao's plain `socket.ts` move to `src/lib/contract/` with it.
 - **Palabra's use of F4:** its toggle as a `credentials.choice`.
-- **Stated origins for Doubao,** if the live test shows `Sequence` or the times state the pair (choice 3).
+- **Stated origins for Doubao,** if the live test shows `Sequence` or the times state the pair (choice 3). **Changed by the Stage 2 Gemini/AST2 follow-up plan:** the owner's probe shows every source subtitle carrying its translation's server times — the evidence; still not taken (that record's open questions).
 - **The legacy mode's own idle words** — an open question.
 - **The start-up clear of DNR rules 2000–2009** — V2's, before any release that carries Doubao in the extension.
 - **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox and Gemini.
@@ -5312,3 +5317,368 @@ then the items the reviews routed here, last below):
 - **`checkReads`' unenforced obligation** (Task 3's review, m3): "every field that decides the credential fields must be listed" (`src/lib/provider/types.ts`) is checked nowhere; no provider is affected — OpenAI Realtime's credential fields are fixed.
 - **An orphaned socket on an unreachable path** (Task 11's re-review): a throw from `clock.setTimeout` or `signal.addEventListener` inside the opening executor would reject the start with the socket still open — an orphaned leg that would send `session.update` and a billed anchor. Unreachable in the app (`realClock`, a real `AbortController`); the cheap hardening is to arm the timer and the listener before `openSocket`, or to close the socket when the executor throws.
 - **For the final review** (the ledger): the session-side guard's 5-second budget under parallel waves (Task 5, m3); `checkReads`' doc "the kept answer is keyed on these alone" reads as covering not-ready answers, which are never kept (Task 3's re-review); the temperature test's comment cites ruling 5 where the removal is ruling 6 (Task 6's fix round). **Settled by the final fix wave** (`eaaf8ead`): the guard's budget needs nothing (its slowest case runs in 0.93 s alone, and the full suite met no timeout); the doc reads "a kept ready answer is keyed on these alone", the spec's words; the comment cites rulings 5 and 6.
+
+## Scheduled by the Stage 2 Gemini/AST2 follow-up plan
+
+The Stage 2 Gemini/AST2 follow-up plan
+(`docs/superpowers/plans/2026-09-29-client-contract-stage2-gemini-ast2-followup.md`,
+plan commit `18bc6284`, written over `4f7c6b83`'s code) landed as the eleven
+commits `a81b1e11` through `e27f173e` on `worktree-client-contract-stage2`
+(`18bc6284..e27f173e`: **+1,853 / −231 lines across 31 files**). Then this
+record with the spec's amendments. It ports no provider: it follows up two
+ported ones, **Gemini** (`gemini`) and **Doubao AST 2.0** (`volcengine_ast2`),
+on the evidence of the owner's own wire probes (`scripts/dev/wire-probe/`,
+committed; their logs and reports git-ignored under
+`.superpowers/wire-probes/`) — karaoke for both, which had none; Gemini's
+default model, its push-to-talk release on Live Translate, its activity
+handling and its language codes; Doubao's subtitle pieces; and one generic L1
+change, an `audio` range after the punctuation fill-in measured as a
+`speechRanges` range is. No contract change, no new locale key, no store or
+view change. Eight implementation tasks ran in the plan's three waves: Wave 1,
+Tasks 1–5 in parallel; Wave 2's Task 7 once Tasks 3, 4 and 5 were committed,
+beside Task 5's test-only fix round, and its Task 6 once Task 2's fix round
+had landed (its sentence-mode test consumes choice 19); Wave 3's Task 8 once
+Task 7 was complete, beside Task 6 — Doubao's folder against Gemini's. The
+group check followed Wave 3. Tasks 2, 5 and 6 took one review fix round each;
+Tasks 1, 3, 4, 7 and 8 were approved as their implementers committed them.
+Task 9 is this record, written for the controller. The plan runs before the
+Stage 2 Palabra plan.
+
+**The pre-flight.** The plan's writer applied it block by block to a fresh
+copy of `4f7c6b83`, and again from a fresh copy after its review (Ready after
+fixes; F1–F7 applied): after the three waves 556, 557 and 557 files passed and
+1 skipped, 7,068, 7,094 and 7,097 tests passed and 2 skipped, no unhandled
+errors; the full tree's typecheck at 259 lines and the gate at its 20 after
+each. The controller's scan found every shared file and interface ordered by
+the waves (Tasks 1 → 6 on `segments.ts`, Task 2 → 6 on choice 19, Tasks
+3/4/5 → 7 → 8 on Gemini's files), so no ruling was needed before Wave 1.
+
+**The rulings.** Rulings 1–6 are the owner's (2026-09-29, on his probes'
+evidence; the plan's header), each confirmed as the plan states it:
+1. Doubao AST 2.0: whole-sentence karaoke keyed by the server's times — a TTS
+   sentence's `startTime` / `endTime` equal its translation subtitle's (8 of 8
+   in the probe), so its clip takes that whole subtitle's range, stated once
+   the subtitle's text is final and lined up with the display cut by
+   sentences; a sentence whose times match no subtitle stays rangeless.
+2. Gemini: karaoke by arrival, the honesty rule's third stated exception,
+   OpenAI Translate's and OpenAI Realtime's construction.
+3. Live Translate is Gemini's default model when the check lists it; no
+   one-time migration code.
+4. A push-to-talk release on Live Translate gets a real-time silence tail,
+   quiet 1 s, at most 3 s, counted in frames.
+5. Gemini's `activityHandling` per model family: 3.x and later dialogue models
+   `START_OF_ACTIVITY_INTERRUPTS`; 2.5 and Live Translate `NO_INTERRUPTION`.
+6. Gemini's language offer rebuilt from Google's documented codes, per model
+   family; a stored pair that no longer matches falls to the default, with no
+   migration code — a stated departure for the release note.
+
+Choices 1–19 are the plan's, inside those rulings, each cited where it lands.
+The controller's rulings during execution are recorded below, under "Found
+during execution" and "What it leaves".
+
+What landed, by task:
+- **Doubao's subtitle pieces, joined** (`dc229688`, Task 1; choice 1; the
+  plan's research note 1): a `Response` subtitle frame is a piece of the text,
+  not the text so far — the probe's zh → en source arrives as `W`, `ing`,
+  `使用`, `实时`, `翻译`, `，`, then an `End` of `Wing使用实时翻译，`.
+  `Ast2Segments` keeps each side's pieces since its last `Start` or `End` and
+  shows their join; an `End` replaces it with its own whole text and closes;
+  an empty piece sends nothing, a blank one joins. The false-start rule, the
+  one segment per `Response` run and the refs are as landed.
+- **L1: an `audio` range after the fill-in, and a held clip's entries past the
+  ceiling** (`cfcee4d1`, fix round `0a86fc39`, Task 2; choices 19, 6):
+  `Conversation.audio` measures a range on a segment whose text the fill-in
+  replaced against the adapter's own text (`unfilled`), re-anchors it onto the
+  filled one, and drops one that reaches past it with `range_out_of_text`,
+  keeping the pcm; `afterAudio`'s last loop empties a held list's pcm
+  (`EMPTY_PCM`) and keeps its entries, so a later `speechRanges` still names
+  them and the clip keys stay aligned. **As landed**, one shared measurement
+  and a clamp on a closed segment ("Found during execution", item 1).
+- **Gemini's karaoke by arrival** (`a1a91e7e`, Task 3; ruling 2; choice 7):
+  `GeminiTurns.audio` gives each played chunk `[spoken, text.length]`, `spoken`
+  kept per open translation, `[0, 0]` before any text; a dialogue model's
+  audio opens its turn's translation, Live Translate's audio outside an open
+  translation stays unattributed (the Gemini plan's choice 8, unchanged); Live
+  Translate's silent chunks
+  carry a zero-width range, so karaoke holds and never advances on silence.
+  `src/providers/gemini/karaoke.test.ts` pins both kinds end to end.
+- **Live Translate, the default** (`a81b1e11`, Task 4; ruling 3; choice 8):
+  `defaultGeminiModel` answers the newest listed Live Translate, else the old
+  rule (the newest `native-audio` model, else the newest, else `''`); nothing
+  is migrated — a saved model the check lists stays, an unset or unlisted one
+  resolves to the default at use. The probe's dialogue run takes the default
+  among the dialogue models. Every pinned default moved: `settings.test.ts`,
+  `config.test.ts`, `GeminiSettings.test.tsx`, `provider.test.ts`.
+- **The release tail** (`121c0801`, fix round `570f9e46`, Task 5; ruling 4;
+  choices 10–13): `src/providers/gemini/tail.ts` — `ReleaseTail`, `FRAME_MS`
+  100, `TAIL_QUIET_MS` 1,000, `TAIL_MAX_MS` 3,000, `TailEnd`, `TailSummary` —
+  OpenAI Translate's tail copied less its pad, ending after 10 quiet beats or
+  at 30. Under manual turns on Live Translate, a release (a cancel too) frames
+  `turn.tail`, sends one 100 ms frame of 24 kHz silence per beat inside the
+  press's activity, and when the tail ends frames `turn.tail_end` (`reason`,
+  `silenceMs`, `lastOutputMs`, `cancelled?`) and sends `activityEnd`
+  (`realtime_input.activity_end`); quiet counts transcriptions of either side
+  only; a press, audio or typed text ends it, its `activityEnd` first; a stop
+  or a reconnect drops it silently. A dialogue model sends `activityEnd` at
+  once. The fix round (test-only): "Found during execution", item 2.
+- **Doubao's whole-sentence karaoke** (`bb546622`, fix round `e27f173e`, Task
+  6; ruling 1; choices 2–5): `Ast2Segments` keeps the server times of the last
+  `MATCH_WINDOW` = 8 translation subtitles; `sentence(times)` takes a
+  `TTSSentenceStart` as the lock read then and the times it carries;
+  `clipFor(sentence)`, called as the decoded clip goes to L1, names the recent
+  translation whose start and end both equal the sentence's (`endTime > 0`),
+  `matched` for the first clip to carry them, else the lock's, and ranges it
+  `[0, length]` when that subtitle has closed; a matched clip emitted while it
+  is open is ranged at its close by one `speechRanges`; every clip on a recent
+  ref is counted, so an entry is named by its place among the ref's audio; a
+  translation never shown leaves the list. `Ast2Speech` takes the `ClipFor`
+  callback; the adapter frames `tts.sentence_start` with the times and
+  `tts.clip` per clip. `src/providers/volcengine_ast2/karaoke.test.tsx` pins
+  the display cut by sentences end to end, in the panel's list and the
+  subtitle's bands, with the fill-in landing before the clip and after it.
+  The fix round: "Found during execution", item 3.
+- **Activity handling per model family** (`9a7a7e8f`, Task 7; ruling 5; choice
+  9): `geminiActivityHandling(model)` in `settings.ts` — Live Translate
+  `NO_INTERRUPTION`; family 3.0 or later `START_OF_ACTIVITY_INTERRUPTS`; 2.5
+  and below, and an unversioned id, `NO_INTERRUPTION`;
+  `GeminiConfig.activityHandling`, always set by `buildGemini`; `setupFrame`
+  writes it where
+  the old client hard-coded `NO_INTERRUPTION`; `wire.oracle.test.ts` pins both
+  values against the SDK's converter; `session.opened` frames it. The fixtures
+  gain `BARGE_IN` (`gemini-3.8-live`); the probe sets it from the same
+  function. It follows the model alone: both legs, both turn modes.
+- **Google's language codes, per model family** (`1558d161`, Task 8; ruling 6;
+  choices 14–18): `GEMINI_LANGUAGE_TABLE`, 101 rows — the Live API's 99 and
+  Live Translate's own `jv` and `su` — English first, then Google's order by
+  English name, each with its own name (a static table, choice 15) and
+  Google's English name for the instructions; `GEMINI_DIALOGUE_LANGUAGES`
+  (99), `GEMINI_TRANSLATE_TARGETS` (78), `GEMINI_TRANSLATE_SOURCES` (101);
+  `sources` / `targets` by the saved model's family, `''` read as Live
+  Translate; `initial` `en` → `ja`; `migratePair` (choice 17);
+  `toTranslationLanguageCode` removed, the target sent as the pair holds it;
+  a Live Translate target outside its 78 refused at build in words
+  (`config.ts:55-56`, choice 18). Every fixture and test naming an old code
+  moved. The review checked the data against Google's tables both ways (99
+  and 78 exact, `jv` and `su` the only Live Translate-only rows) and all 101
+  names against CLDR (93 equal ignoring case, the other 8 stylistic).
+
+**The spec's amendments** (this record's commit), the plan's ten, each at its
+anchor, as landed:
+1. D4: a range by arrival is a stated exception, not a real range — OpenAI
+   Translate's, OpenAI Realtime's and Gemini's; Doubao's whole-sentence range
+   is a real one (ruling 1).
+2. "What every adapter must honour", the `frame` bullet: Gemini's
+   `turn.tail` / `turn.tail_end` need no `logStore` row; Doubao's
+   `tts.sentence_start` keeps its row with the times added, and `tts.clip`
+   needs none (choice 5).
+3. "Turns" → "What each provider can do", the Gemini row: barge-in for family
+   3.0 or later (ruling 5; choice 9); the release tail on Live Translate
+   (ruling 4; choices 11, 12); "immediate; Live Translate after silence".
+4. "Turns" → "The design", the Gemini row: `beginTurn`, `endTurn` and
+   `cancelTurn` on Live Translate (choice 11; ruling 4); after the table, a
+   dialogue model gets no tail (choice 13), and **as landed**, typed text ends
+   a tail as a press does, and a stop or a lost connection drops it silently.
+5. "Provider capability": Gemini's karaoke by arrival, the third stated
+   exception (ruling 2; choice 7); Doubao's per TTS sentence, keyed by the
+   times (ruling 1; choices 2–4), its old "need not align" wording gone, and
+   its pairing column noting the probe's evidence for stated pairing.
+6. "Risks", the karaoke bullet: Gemini's arrival ranges the third exception;
+   Doubao's no exception.
+7. "Readiness is one check", the effective-model paragraph: Gemini's default
+   the newest listed Live Translate (ruling 3; choice 8); nothing migrated.
+8. "Languages are two functions": the offer may depend on the settings — a
+   paragraph on Gemini's per-family offer (ruling 6; choice 16), the refusal
+   (choice 18) and, **as landed**, a key that lists no Live Translate running a
+   dialogue model on Live Translate's offer; the codes paragraph — Google's
+   codes, the badges "JA" / "ZH-HANS", `migratePair` and the stated departure
+   (choice 17), the generic fall on a narrowing switch.
+9. L0's `speechRanges` paragraph and "Re-anchoring on every text replacement":
+   an `audio` range after the fill-in measured as a `speechRanges` one is
+   (choice 19). **As landed**, both through one shared measurement
+   (`Conversation.measure`), and an `audio` range on a segment already closed
+   checked against its settled text at once, as a `speechRanges` range is
+   ("Found during execution", item 1).
+10. "Migration", items 3 and 4: Gemini's five and Doubao's one, by this plan.
+
+**Checked — the gates.** Every implementer ran the suite and the typecheck
+gate on its own commit. In the parallel waves a failure in another task's
+uncommitted files was named and left to it — Task 2 saw `turns.test.ts` fail
+during Task 3's work and `adapter.tail.test.ts` during Task 5's; Task 6 saw
+Gemini failures from Task 8's work in progress — and 5-second load timeouts
+under Wave 1's load (`spine.e2e`, `providerOrder`, `nativeModelStore`,
+`kizunaProviderGating` among them) passed re-run alone. The controller's quiet
+run that closed Wave 1: 556 files passed and 1 skipped, 7,068 tests passed and
+2 skipped, 0 failed, no unhandled errors — the plan's wave-1 reference; the
+gate at its baseline. The suite grew from 553 files passed and 1 skipped,
+7,035 tests passed and 2 skipped at `4f7c6b83` to 557 files passed and 1
+skipped, 7,100 tests passed and 2 skipped at `e27f173e`; the gate — the plan's
+regex, unwidened — at its 20 lines throughout, and the full tree at 259.
+Task 6's implementer wrote its tests and code together and captured no
+genuine red; the review reproduced it on `0a86fc39`'s source in a scratch
+copy — 26 failed and 136 passed of 162, the brief's red exactly — and killed
+9 of 10 mutants, the survivor a tolerance in the time match (item 3 below).
+
+**Checked — the group check** (at `1558d161`; Task 6's fix round after it is
+test- and comment-only):
+1. the suite: 557 files passed and 1 skipped, 7,099 tests passed and 2
+   skipped — the plan's 7,097 and Task 2's two fix-round tests — no unhandled
+   errors; `src/services` 49 files, 1,039 tests, the old clients untouched; the
+   gate at its 20 baseline lines, the full tree at 259;
+2. `npm run build` and `npm run extension:build`; `npx vitest run extension`
+   45/45 (7 files); the three D24 greps empty; "Live Translate does not
+   translate into", a phrase only the new refusal holds, in
+   `build/static/index-Cps1TtbG.js` and `extension/dist/fullpage.js`;
+3. **rendered**, on a fresh vite (port 5199, headless port 9341;
+   `/?preview=spine&provider=gemini`, each run a fresh profile, no key typed,
+   Start never pressed): a fresh profile → English → Japanese, 101 sources and
+   78 targets, English first, `中文 (繁體)` and `Português (Portugal)` among the
+   targets, `Basa Jawa` in both; `settings.gemini.model` set to the 2.5
+   native-audio model → 99 and 99, no `Basa Jawa`;
+   `settings.gemini.sourceLanguage` / `targetLanguage` stored as `en-US` /
+   `cmn-CN` → shown English → Japanese, both keys still `en-US` / `cmn-CN`
+   after the reload
+   (nothing written; choice 17); no request to `googleapis.com` or
+   `bytedance.com` in any run. The report, probe and screenshots are under
+   `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/group-check/` (`ui-report.md`,
+   `step1-fresh.png`, `step2-dialogue-model.png`, `step3-legacy-pair.png`).
+
+After Task 6's fix round (`e27f173e`): 557 files passed and 1 skipped, **7,100
+tests passed and 2 skipped**, no unhandled errors — the final count.
+
+**Found during execution** — what execution changed beyond the plan, each
+from a controller's ruling in the ledger, with its reason and where it lives:
+1. **One shared measurement in L1, and `audio` clamped on a closed segment**
+   (Task 2's review, I1 and M1; `0a86fc39`). The plan wrote the fit / report /
+   re-anchor rule inline in `Conversation.audio()`, a second copy of
+   `ranges()`' rule; the review found the duplication the very defect class F1
+   was, two hand-kept copies of one rule. As landed: one private
+   `measure(ref, seg, ranges)` (`src/lib/conversation/Conversation.ts:278-286`)
+   that `audio()` (`:260`) and `ranges()` (`:316`) both call, behaviour
+   unchanged — an 11-row equivalence check re-run by the implementer and the
+   re-reviewer. And `audio()` now clamps a ranged entry on a segment already
+   final (`:264`), as `ranges()` does (`:320`), so a range past a closed
+   segment's text is dropped and reported whether its audio came before the
+   close or after it (`Conversation.test.ts:132`); the re-review found no
+   adapter before Doubao's matched clips that sends a range for a segment
+   already closed. Beside it, a test that a range stated for the second of two
+   held clips lands on it after the ceiling dropped only the first's pcm (M2;
+   `:528`). Cost if wrong:
+   an adapter's out-of-text range dropped with a report instead of kept
+   silently until the next revision. The spec's amendment 9 says both.
+2. **The tail's tests strengthened** (Task 5's review, M1 and M3; `570f9e46`,
+   test-only): the stop test asserts no timer right after `stop()`
+   (`adapter.tail.test.ts:112`) — it could not fail before, since an
+   uncancelled tail ends itself at 1.1 s; a mutant without the tail's cancel
+   in `shutdown()` now fails it — and the session-side guard's Gemini roster
+   lists `tail.ts` (`sessionSide.consistency.test.ts:210`), as Translate's
+   lists its own. Cost: none.
+3. **The time match pinned exact** (Task 6's review, M1 and M3; `e27f173e`): a
+   one-millisecond near miss names no translation and falls to the lock
+   (`segments.test.ts:199`) — a ±500 ms tolerance mutant passed every test
+   before, and fails this one; and `speech.ts`' header states the range rule
+   right: a matched clip emitted while its subtitle is open is ranged later,
+   through `speechRanges` ("else none now — ranged at the close when matched,
+   else replay only"). Cost: none.
+
+**Stated departures from today** (the plan's list, as landed):
+- a live Doubao row now grows piece by piece where it showed only the newest piece (choice 1; research note 1);
+- a Doubao clip's ref comes from the server's times when they match, the lock only when they do not (choice 2);
+- Gemini's default model is Live Translate — a fresh profile, and a saved model no longer listed, run it (ruling 3);
+- a Live Translate release keeps its activity open up to 3 s (ruling 4);
+- a 3.x dialogue model barges in (ruling 5);
+- **a Gemini pair saved before this plan falls to English → Japanese, except a side stored as `pt-BR`, the one old code Google still documents; nothing is written, so it falls on each load until re-picked; the other 33 old codes are gone** (ruling 6; choice 17) — for the release note;
+- known generic behaviour, not new: a model switch that narrows the offer falls to the list's first entry, English, even to English → English;
+- the instructions name Google's English names ("Chinese (Traditional)", no region suffix elsewhere), where the old named "Mandarin Chinese (China)", and Live Translate is sent Google's codes (`zh-Hans`, never measured; the old sent `zh`).
+
+Where the plan departs from its brief — Tasks 1 and 2 were not asked for,
+Live Translate's sources are the 99 and its own two, the pair's fall uses
+`migratePair` — stays in the plan's self-review.
+
+**Before any release from the branch**
+- **The owner's live test below**, before any release that carries these
+  changes.
+- **The release note's line on Gemini's pairs:** a pair saved before this
+  plan shows English → Japanese (a `pt-BR` side excepted) until re-picked.
+- **A native-speaker spot check of the 101 display names** (choice 15),
+  `中文 (简体)` / `中文 (繁體)` above all. No locale key is added.
+
+**The owner's live test** (own credentials; switch diagnostic logs on in Help
+before Start; each item names what settles it; what execution added is
+marked):
+1. **Doubao karaoke, pause and sentence modes** (ruling 1; choices 2–5): zh → en and ja → zh; each translation lights over its clip, in the display cut off, by pause and by sentences (1 per row), in the panel and the subtitle; the Logs' `tts.sentence_start` frames carry times equal to the translation's `subtitle.translation` `end` frame, and each `tts.clip` reads `matched: true` with the row's ref — record how many read `matched: false`.
+2. **A subtitle that changes before its `End`** (research note 1; choice 4): the row grows piece by piece while it streams; where the `End`'s text differs from the pieces, the karaoke still spans the final text; a sentence that starts before its translation's `End` (watch `tts.sentence_start` before `subtitle.translation` `end`) lights only once the row is final. **Execution (Task 6's review, M5):** a matched clip whose translation has not closed when the session ends stays rangeless — its range is stated only at the subtitle's close, and the teardown closes none (the probe always sent the `End` before `SessionFinished`); record any `tts.clip` with `matched: true` and `range: null` whose row never lit.
+3. **Doubao with "Keep audio for replay" on** (ruling 1): replay per sentence plays each translation's clip, and a replayed clip lights as it did live. (Choice 6's ceiling path is not reached live — `afterAudio` drains every segment's pcm before a held list — so its unit tests are its proof.)
+4. **Gemini karaoke on Live Translate and on a dialogue model** (ruling 2; choice 7): Live Translate lights phrase by phrase and holds through silence; the 2.5 and 3.8 dialogue models light across each answer; audio before a translation's first text lights nothing until its text arrives.
+5. **Live Translate the default** (ruling 3): a new profile runs `gemini-3.5-live-translate-preview` (the Logs' `session.opened`); a stored profile with a saved dialogue model keeps it; a stored profile that never picked a model now runs Live Translate; a key that lists no Live Translate runs the newest native-audio model. **Execution (Task 8's review, M1):** on that key, with no model saved, the language lists show Live Translate's offer (101 sources, 78 targets) while the dialogue model runs; with a single listed model the offer cannot be left — the model field is a native select, and choosing the model already shown changes nothing. Record how it reads ("What it leaves").
+6. **Push-to-talk on Live Translate** (ruling 4; choices 11, 12): a press's last words arrive before the next press — the Logs read `turn.tail`, then `turn.tail_end` (`reason`, `silenceMs`, `lastOutputMs`), then `realtime_input.activity_end`; a press during the tail ends it (`reason: 'press'`); tune `TAIL_QUIET_MS` and `TAIL_MAX_MS` from `lastOutputMs`.
+7. **3.8 overlap with barge-in** (ruling 5; choice 9): a second utterance while the first's translation still plays — both transcribed and translated, the first's translation whole (`session.opened` reads `activityHandling: 'START_OF_ACTIVITY_INTERRUPTS'`). Known risks, one probe run per setting: speaking again within about a second of the first utterance's end cuts a 3.8 translation still generating; 3.8's mandatory proactive audio may still skip input; `gemini-3.1-flash-live-preview` (family 3.1, now barge-in) was not measured.
+8. **2.5 unchanged** (ruling 5): `NO_INTERRUPTION`; both translations whole in the same overlap.
+9. **Languages** (ruling 6; choices 14–18): a stored Gemini pair from before falls to English → Japanese (a side stored as `pt-BR` stays), and again after a reload until a pair is picked; the 99 / 78 offers follow the model picked; Traditional Chinese (`zh-Hant`) and `pt-PT` translate on Live Translate; a Live Translate pair with an Assamese source refuses Both in the participant notice's words; a dialogue model translates into Faroese; the row badges read "JA", "ZH-HANS".
+10. **Doubao in `s2t` mode** (choice 1; a text-only leg, or the participant leg): are `Response` frames pieces there too? Both probe runs were `s2s`. A row whose text doubles until its `End` means `s2t` sends snapshots, and choice 1 must split by mode.
+11. **Doubao karaoke in the display cut by sentences with the punctuation pack installed** (choice 19): ja → zh, a translation that ends without a sentence end (the probe had three in eight): the fill-in adds its marks, the karaoke reaches the last character, and the row stops being tinted as playing once its clip ends.
+12. **Live Translate into `zh-Hans` and `zh-Hant`** (ruling 6): Simplified Chinese, the likeliest target — the old code sent `zh`, measured to come back Simplified (`settings.ts:169-170` at `4f7c6b83`); the new one sends Google's `zh-Hans`, never measured. **Execution (Task 8's review, M4):** the old code also recorded `cmn` coming back Traditional; the new one sends `zh-Hant`, never measured either. Each is one probe run, with network allowed: `GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts translate --dst zh-Hant` (and `--dst zh-Hans`).
+13. **3.8 under push-to-talk** (ruling 5; choice 9): a press while the previous translation still generates — record whether barge-in cuts it, and how often.
+14. **A voiceless press on Live Translate** (choice 12): the tail runs, framed `turn.tail` `{ cancelled: true }`, and `turn.tail_end` follows.
+15. **3.x barge-in with the model's own voice in the room** (ruling 5; choice 9): on the participant leg, or under automatic turns with speakers, the model's output echoed into capture must not cut its own response.
+
+**Open questions for the owner**
+- **Stated pairing for Doubao** (live-test item 1; the AST2 section's item 7): every source subtitle carries its translation's server times in the probe — the evidence for stating origins from them; not ruled.
+- **A sentence whose times match nothing** (item 1's `matched: false` count): should it still be ranged on the lock's row? Parity says no.
+- **Live Translate's sources** (item 9; choice 16): the 99 and its own two, against the recommendation's "the 99".
+- **The tail's constants** (item 6): `TAIL_QUIET_MS` and `TAIL_MAX_MS` from `lastOutputMs`.
+- **Barge-in's cost on 3.8 under push-to-talk** (item 13).
+- **The 2.5 dialogue model's Japanese input transcription** came back as " ." in the probe: server behaviour, not fixed here.
+- **A key without Live Translate on a fresh profile** (item 5; "What it leaves"): offer and run disagree; a fix needs the check's model list in the language context.
+
+**Amended in place** by this record, each marked "**Changed by the Stage 2
+Gemini/AST2 follow-up plan**" or "**Done** by the Stage 2 Gemini/AST2
+follow-up plan":
+- the Gemini section: its ruling 2 (the default), its stated departure on the
+  default model (ruling 3), live-test items 2 (the default), 3 ("no karaoke",
+  and the old badges), 4b (speech during an answer on 3.x: barge-in by
+  family) and 5 (push-to-talk on Live Translate: the tail), the open question
+  on 3.1 dropping speech during its answer (ruling 5), and the inheritance row
+  "`audio.range` after fill-in — n/a" (arrival ranges now);
+- the Volcengine AST2 section: live-test items 3 ("no karaoke") and 13 (the
+  `tts.sentence_start` frame with the times, beside `tts.clip`), the accepted
+  item "Task 8, M4" and the stated departure it names (now only on the lock's
+  fallback), the "What it leaves" item "Stated origins for Doubao" (the probe's
+  times the evidence; still not taken), and the inheritance rows
+  "`audio.range` after fill-in" and "`Conversation.afterAudio`'s pending drop"
+  (both apply now, both closed by Task 2);
+- the Soniox section's "Found here" items on `audio.range` after fill-in and on
+  `Conversation.afterAudio`'s pending drop: done (Task 2; choices 19 and 6).
+
+**The roadmap's inheritance, item by item** (the plan's table, as landed):
+taken (and where), or left (and why).
+
+| Item | Disposition |
+|---|---|
+| The Gemini section: live-test item 2 (the default model) | changed: Live Translate (Task 4; ruling 3) |
+| The Gemini section: live-test item 3, "no karaoke" | changed: by arrival (Task 3; ruling 2) |
+| The Gemini section: item 4b and the open question on 3.x dropping speech during an answer | met by barge-in for family 3.0 and later (Task 7; ruling 5); the live test settles it (items 7, 13, 15) |
+| The Gemini section: item 5, push-to-talk on Live Translate | met by the release tail (Task 5; ruling 4) |
+| The Gemini section: its open question "Live Translate's leading audio" | left: audio outside an open translation stays unattributed (ruling 2) |
+| The Volcengine AST2 section: live-test item 3, "no karaoke", and item 13, the lock | changed: whole-sentence karaoke by the times, the lock the fallback (Task 6; ruling 1) |
+| The Volcengine AST2 section: "Stated origins for Doubao" | left: the probe's times are the evidence; not ruled ("What it leaves") |
+| The Soniox section's "Found here": `Conversation.afterAudio`'s pending drop | done (Task 2; choice 6): Doubao can now reach it in form; no live session is likely to |
+| The Soniox section's "Found here": `audio.range` after fill-in | done (Task 2; choice 19): an `audio` range on a segment the fill-in replaced is measured against the adapter's own text and re-anchored, as `speechRanges` is — through one shared `measure`, as landed — Doubao's clips (on their common path in sentence mode, research note 10) and LocalInference's audio after its close alike |
+| OpenAI Translate's tail | copied, not lifted (choice 10); the lift waits for a third user or Translate's live test |
+
+What it leaves, for the plans that meet it (the plan's own list, as written;
+then the items the reviews routed here, last below):
+- **Stated pairing for Doubao:** every source subtitle carries the same server times as its translation in the probe; a later change could state origins from them (the AST2 plan's choice 3 left the question open).
+- **The release tail's lift** to `src/lib/contract/` at its third user, or after OpenAI Translate's live test. Until then `src/providers/gemini/tail.ts` repeats `src/providers/openai_translate/tail.ts:88-146` line for line (Task 5's review, I1; plan-mandated, choice 10): a fix to one copy's beat logic is mirrored by hand in the other.
+- **The pair's fall on a model switch:** a switch that narrows the offer falls to the list's first entry, English, by the generic rule (`normalizePair`) — an English source's pair then reads English → English (choice 17). Generic behaviour for every provider whose offer depends on its settings; not changed here.
+- **The 2.5 dialogue model's Japanese input transcription** came back as " ." in the probe: server behaviour, not fixed; the source row stays empty for it.
+- **Live Translate's sources:** the 99 plus its own two (choice 16) is inference from its guide ("between 70+ languages"); the live test may narrow it.
+- **The wizard's tolerant language match** picks `zh-Hans` for a Traditional Chinese UI (it matches on the primary subtag, `src/components/SetupWizard/languageDefaults.ts:23-30`), for Gemini as for every provider with script variants: unchanged. Task 8's review ran the bundled `defaultLanguagePair` over the new table: `zh_TW` → `zh-Hans`; `zh_CN`, `pt_BR`, `pt_PT` and `ja` come out right. Before, a `zh_TW` UI matched nothing in Gemini's list (`cmn-CN`'s base is `cmn`) and took the provider's default. A `-Hant` preference for `zh_TW` / `zh_HK` in the generic matcher would fix it.
+- **Readiness narrowing** (`checkReads`) for Gemini and Doubao: still their own later change.
+- **The owner's open questions** in this record, each with the live-test item that settles it.
+- **A key without Live Translate on a fresh profile** (Task 8's review, M1; the plan's choice 16, as written): with no model saved the offer is Live Translate's (101 / 78) while `effectiveGeminiModel` runs a dialogue model — the 23 languages only the Live API documents are missing from the targets, Javanese and Sundanese are offered though only the instructions name them, and Both is refused for a source among those 23. With a single listed model the user cannot leave it (the model field is a native `<select>`). Nothing wrong is sent. The plan chose `''` to read as Live Translate; a fix needs the check's model list in the language context. Cost while open: such users miss 23 targets until they pick another model. Told to the owner; live-test item 5.
+- **A stale comment and test title** (Task 8's review, M3): `src/components/Subtitle/SubtitleView.tsx:44` and `SubtitleView.test.tsx:192` still name Gemini's `cmn-CN`; the behaviour is right (`zh-Hans` shows as "ZH"). Outside the plan's files (`src/components/**` read-only).
+- **`clear()` against a whole-text `End`** (Task 6's review, M2): a translation open with "Hello", the user clears, the `End` repeats "Hello" — `show()` sends nothing, the text unchanged to the adapter, so L1 closes the cleared segment blank and drops the matched clip's direct range `[0, 5]` with a `range_out_of_text` warning. Nothing lights wrongly; the warning follows an ordinary user action. A contract question between L1's `clear()` and an adapter that sends the whole text.
+- **A clip before any `TTSSentenceStart` emits no `tts.clip` frame** (Task 6's review, M4; plan-mandated): it plays with no ref, and L1 keeps nothing of it. Unreachable in practice.
+- **`appendAudio`'s `tail.stop('audio')` has no adapter-level test** (Task 5's review, M2): unreachable under push-to-talk — the runner sends speaker audio only while a turn is open, and that press has ended the tail — and covered in `tail.test.ts`.
+- **A Gemini turn answered only by its text parts** (Task 3's review, a note): `turnComplete`'s fallback text never updates the side's text, so its chunks keep `[0, 0]` — no karaoke for it; not a wrong range.
+- **`clampRanges`' doc comment** (`src/lib/conversation/Conversation.ts:367`, "Runs at close and on every later revision") no longer names all its callers: `audio()` runs it on a closed segment too (Task 2's re-review; cosmetic).
