@@ -109,6 +109,7 @@ describe('Live Translate: the release tail (Gemini/AST2 follow-up, ruling 4)', (
     h.clock.advance(200);
     const sent = h.sent().length;
     await h.session.stop();
+    expect(h.timers()).toBe(0);
     h.clock.advance(5_000);
     expect(h.socket().sent).toHaveLength(sent);
     expect(h.frames('turn.tail_end')).toEqual([]);

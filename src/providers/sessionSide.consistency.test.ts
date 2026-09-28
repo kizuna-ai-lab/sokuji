@@ -207,6 +207,7 @@ describe('a provider session side', () => {
     expect(gemini).toEqual(expect.arrayContaining([
       'src/providers/gemini/adapter.ts',
       'src/providers/gemini/socket.ts',
+      'src/providers/gemini/tail.ts',
       'src/providers/gemini/turns.ts',
       'src/providers/gemini/wire.ts',
     ]));
