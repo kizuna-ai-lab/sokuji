@@ -272,6 +272,75 @@ describe('the OpenAI Realtime adapter: audio, turns and typed text going up', ()
     expect(h.frames('response.create')).toEqual([{ eventId: 'sokuji_2', for: 'turn', waitedMs: 1_200 }]);
   });
 
+  it("two releases while a translation streams ask one response when it ends, the second framed as merged into it: both commits are in the conversation, and its translation pairs with the later one (ruling 8)", async () => {
+    const h = await liveRealtime({ context: MANUAL_CTX });
+    const release = () => {
+      h.session.beginTurn();
+      h.session.appendAudio(chunk());
+      h.session.endTurn();
+    };
+    h.receive(SERVER.responseCreated('resp_1'));
+    release();
+    h.receive(SERVER.committed('item_in_1'));
+    release();
+    h.receive(SERVER.committed('item_in_2', 'item_in_1'));
+    expect(h.said().slice(2).map((m) => m.type)).toEqual(['input_audio_buffer.commit', 'input_audio_buffer.commit']);
+    expect(h.frames('response.queued')).toEqual([{ for: 'turn', waiting: 1 }, { for: 'turn', waiting: 2 }]);
+    h.clock.advance(900);
+    h.receive(SERVER.responseDone('resp_1'));
+    expect(h.said().slice(4)).toEqual([{ type: 'response.create', event_id: 'sokuji_2', response: { metadata: { request: 'sokuji_2' } } }]);
+    expect(h.frames('response.create')).toEqual([{ eventId: 'sokuji_2', for: 'turn', waitedMs: 900, merged: 1 }]);
+    // The server answers the conversation as it stands: both inputs, its item after the later one.
+    h.receive(...answer(1, 'sokuji_2', 'item_in_2'));
+    expect(h.frames('response.create')).toHaveLength(1);
+    expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([
+      { ref: 1, side: 'source', origin: 'item_in_1' }, { ref: 2, side: 'source', origin: 'item_in_2' }, { ref: 3, side: 'translation', origin: 'item_in_2' },
+    ]);
+  });
+
+  it("a typed text, then a release, both waiting: the text's item goes up after the release's commit, and its one response answers both, its translation under the text; a release, then a text: each asks its own (ruling 8)", async () => {
+    const textFirst = await liveRealtime({ context: MANUAL_CTX });
+    textFirst.receive(SERVER.responseCreated('resp_1'));
+    textFirst.session.appendText('typed');
+    textFirst.session.beginTurn();
+    textFirst.session.appendAudio(chunk());
+    textFirst.session.endTurn();
+    textFirst.receive(SERVER.committed('item_in_1'));
+    expect(textFirst.frames('response.queued')).toEqual([{ for: 'text', waiting: 1 }, { for: 'turn', waiting: 2 }]);
+    textFirst.receive(SERVER.responseDone('resp_1'));
+    expect(textFirst.said().slice(2).map((m) => m.type)).toEqual(['input_audio_buffer.commit', 'conversation.item.create', 'response.create']);
+    expect(textFirst.frames('response.create')).toEqual([{ eventId: 'sokuji_3', for: 'text', waitedMs: 0, merged: 1 }]);
+    textFirst.receive(SERVER.itemAdded('sokuji_text_2', 'user', 'item_in_1'), ...answer(1, 'sokuji_3', 'sokuji_text_2'));
+    expect(textFirst.frames('response.create')).toHaveLength(1);
+    expect(textFirst.of('segmentOpened').map((e) => e.payload).filter((p) => p.side === 'translation')).toEqual([{ ref: 3, side: 'translation', origin: 'sokuji_text_2' }]);
+
+    const releaseFirst = await liveRealtime({ context: MANUAL_CTX });
+    releaseFirst.receive(SERVER.responseCreated('resp_1'));
+    releaseFirst.session.beginTurn();
+    releaseFirst.session.appendAudio(chunk());
+    releaseFirst.session.endTurn();
+    releaseFirst.session.appendText('typed');
+    releaseFirst.receive(SERVER.responseDone('resp_1'));
+    expect(releaseFirst.frames('response.create')).toEqual([{ eventId: 'sokuji_3', for: 'turn', waitedMs: 0 }]);
+    releaseFirst.receive(...answer(1, 'sokuji_3', 'item_in_1'));
+    expect(releaseFirst.said().slice(3).map((m) => m.type)).toEqual(['response.create', 'conversation.item.create', 'response.create']);
+    expect(releaseFirst.frames('response.create').map((f) => (f as { for: string }).for)).toEqual(['turn', 'text']);
+  });
+
+  it('a request refused for a reason other than an active response, with releases merged into it, asks again for them: one release re-queued (ruling 8; choice 10)', async () => {
+    const h = await liveRealtime({ context: MANUAL_CTX });
+    h.receive(SERVER.responseCreated('resp_1'));
+    for (let i = 0; i < 2; i++) {
+      h.session.beginTurn();
+      h.session.appendAudio(chunk());
+      h.session.endTurn();
+    }
+    h.receive(SERVER.responseDone('resp_1'));
+    h.receive(SERVER.error({ code: 'invalid_value', message: 'The request was refused.', event_id: 'sokuji_2' }));
+    expect(h.frames('response.create')).toEqual([{ eventId: 'sokuji_2', for: 'turn', waitedMs: 0, merged: 1 }, { eventId: 'sokuji_3', for: 'turn', waitedMs: 0 }]);
+    expect(h.of('failed')).toEqual([]);
+  });
+
   it('shows typed text at once as its own source, sends its item and asks its response; its translation pairs with it (ruling 8; choice 8)', async () => {
     const h = await liveRealtime();
     h.session.appendText('  Hello there  ');

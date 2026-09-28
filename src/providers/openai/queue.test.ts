@@ -5,16 +5,26 @@ import { ACTIVE_RESPONSE, ResponseQueue, type Request } from './queue';
 function queue() {
   const clock = createVirtualClock(0);
   const sent: Array<{ request: Request; eventId: string; waitedMs: number }> = [];
+  /** Each send's `merged`, beside `sent`: the releases waiting behind it that its response answers too. */
+  const merged: number[] = [];
   const queued: Array<{ request: Request; waiting: number }> = [];
   let n = 0;
   const q = new ResponseQueue({
     clock,
     eventId: () => `sokuji_${++n}`,
-    sink: { send: (request, eventId, waitedMs) => sent.push({ request, eventId, waitedMs }), queued: (request, waiting) => queued.push({ request, waiting }) },
+    sink: {
+      send: (request, eventId, waitedMs, m) => {
+        sent.push({ request, eventId, waitedMs });
+        merged.push(m);
+      },
+      queued: (request, waiting) => queued.push({ request, waiting }),
+    },
   });
-  return { q, clock, sent, queued };
+  return { q, clock, sent, merged, queued };
 }
 const TURN: Request = { kind: 'turn' };
+/** A release of its own: two turns are otherwise indistinguishable by value. */
+const turn = (): Request => ({ kind: 'turn' });
 const text = (i: number): Request => ({ kind: 'text', itemId: `sokuji_text_${i}`, text: `words ${i}` });
 
 describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
@@ -107,6 +117,92 @@ describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
     expect(sent.map((e) => e.request)).toEqual([TURN, text(1)]);
   });
 
+  it('answers every release waiting behind a response with the one request asked next: their commits are in the conversation already, so its response answers them too (ruling 8)', () => {
+    const { q, clock, sent, merged, queued } = queue();
+    const first = turn();
+    q.push(TURN);
+    q.created('resp_1', 'sokuji_1');
+    q.push(first);
+    q.push(turn());
+    q.push(turn());
+    expect(queued.map((e) => e.waiting)).toEqual([1, 2, 3]);
+    clock.advance(800);
+    q.done('resp_1');
+    // One request goes up for the three: the first, counting the two behind it.
+    expect(sent.slice(1)).toEqual([{ request: first, eventId: 'sokuji_2', waitedMs: 800 }]);
+    expect(merged).toEqual([0, 2]);
+    q.created('resp_2', 'sokuji_2');
+    q.done('resp_2');
+    // Nothing is left to ask: no response with nothing new.
+    expect(sent).toHaveLength(2);
+    expect(q.busy).toBe(false);
+  });
+
+  it("merges the releases waiting behind a typed text into its request — their commits precede its item — and never a typed text into a release's: its item goes up only with its own request (ruling 8)", () => {
+    // A text, then a release, both waiting: the text's response answers the release.
+    const a = queue();
+    a.q.push(TURN);
+    a.q.created('resp_1', 'sokuji_1');
+    a.q.push(text(1));
+    a.q.push(turn());
+    a.q.done('resp_1');
+    expect(a.sent.map((e) => e.request)).toEqual([TURN, text(1)]);
+    expect(a.merged).toEqual([0, 1]);
+    a.q.created('resp_2', 'sokuji_2');
+    a.q.done('resp_2');
+    expect(a.sent).toHaveLength(2);
+
+    // A release, a text, a release: the first release's request answers the second; the text waits for its own.
+    const b = queue();
+    const release = turn();
+    b.q.push(TURN);
+    b.q.created('resp_1', 'sokuji_1');
+    b.q.push(release);
+    b.q.push(text(1));
+    b.q.push(turn());
+    b.q.done('resp_1');
+    expect(b.sent.map((e) => e.request)).toEqual([TURN, release]);
+    expect(b.merged).toEqual([0, 1]);
+    b.q.created('resp_2', 'sokuji_2');
+    b.q.done('resp_2');
+    expect(b.sent.map((e) => e.request)).toEqual([TURN, release, text(1)]);
+    expect(b.merged).toEqual([0, 1, 0]);
+    b.q.created('resp_3', 'sokuji_3');
+    b.q.done('resp_3');
+    expect(b.sent).toHaveLength(3);
+  });
+
+  it('asks again, still answering its merged releases, a request refused as active; re-queues one of them at the head when a refusal names it for another reason — their commits are still unanswered — and none on an error that names nothing (ruling 8; choice 10)', () => {
+    const { q, clock, sent, merged } = queue();
+    const r1 = turn();
+    const r2 = turn();
+    q.push(TURN);
+    q.created('resp_1', 'sokuji_1');
+    q.push(r1);
+    q.push(r2);
+    q.push(text(1));
+    q.push(turn());
+    q.done('resp_1');
+    expect(merged).toEqual([0, 2]);
+    // Refused as active (a response the queue did not know of): asked again once not busy, still answering the two.
+    q.refused('sokuji_2', ACTIVE_RESPONSE);
+    expect(sent.map((e) => [e.request, e.eventId])).toEqual([[TURN, 'sokuji_1'], [r1, 'sokuji_2'], [r1, 'sokuji_3']]);
+    expect(merged).toEqual([0, 2, 2]);
+    // Refused for another reason, naming it: dropped, and the first release it answered asks for the rest — at the head, ahead of the text.
+    clock.advance(300);
+    q.refused('sokuji_3', 'invalid_value');
+    expect(sent.slice(3)).toEqual([{ request: r2, eventId: 'sokuji_4', waitedMs: 300 }]);
+    expect(merged).toEqual([0, 2, 2, 1]);
+    // An error naming nothing is not known to be this request's refusal, and its response may be running: dropped, as before, with nothing re-queued; the text goes up.
+    q.refused(null, 'server_error');
+    expect(sent.map((e) => e.request)).toEqual([TURN, r1, r1, r2, text(1)]);
+    expect(merged).toEqual([0, 2, 2, 1, 0]);
+    q.created('resp_2', 'sokuji_5');
+    q.done('resp_2');
+    expect(sent).toHaveLength(5);
+    expect(q.busy).toBe(false);
+  });
+
   it('sends nothing after stop, including a refusal of the request asked before it that arrives late', () => {
     const { q, sent } = queue();
     q.push(TURN);
@@ -120,14 +216,23 @@ describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
   });
 
   /**
-   * The model: the server answers a `response.create` at once (refused
-   * while a response is active, else created), and its events reach the
-   * client in order, late; its own detection may create a response at any
-   * moment — racing a request — but a response ends only once the client
-   * has heard everything before it (a response lasts seconds, its events
-   * arrive in milliseconds).
+   * The model, a GA conversation: the server answers a `response.create` at
+   * once — refused while a response is active, else created — and a response
+   * answers every user item added since the previous in-band response began;
+   * its events reach the client in order, late, and a response ends only once
+   * the client has heard everything before it (a response lasts seconds, its
+   * events arrive in milliseconds). A typed text's item goes up with its
+   * request. Under manual turns a release's commit enters the conversation at
+   * the release, before the queue hears of it, and the server starts no
+   * response of its own. Under automatic turns its detection commits what it
+   * heard and answers it at any moment, racing a request, or leaves it
+   * unanswered while a response runs (`interrupt_response: false`). Under
+   * either, the drift anchor's out-of-band response may run, and the server
+   * may refuse an in-band one meanwhile (the live test's item 4). Half the
+   * runs echo the request in the response's metadata, so only its end tells
+   * the queue it was answered.
    */
-  it("answers every request exactly once, in the order pushed, whatever the server's own detection and the delay of its answers — echoing the request or not (seeded)", () => {
+  it('asks no response with nothing new under releases and typed text, answers every release and every typed text, sends typed text first in first out and asks one request at a time — whatever the interleaving (seeded)', () => {
     for (let seed = 1; seed <= 400; seed++) {
       let s = seed;
       /** mulberry32 */
@@ -137,72 +242,117 @@ describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
         t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
-      /** Half the runs: a server that does not echo a response's metadata, so only its end tells the queue it was answered. */
+      const where = `seed ${seed}`;
+      const manual = seed % 4 < 2;
       const echoes = seed % 2 === 0;
       const clock = createVirtualClock(0);
       /** What the server said, on its way back: one ordered stream, delivered with delay. */
       const outbox: Array<() => void> = [];
+      const conversation: Array<{ id: string; user: boolean }> = [];
+      /** The conversation's length when the last in-band response began: what the next one answers starts there. */
+      let answeredFrom = 0;
+      /** How often each user item was answered. */
+      const answers = new Map<string, number>();
       let n = 0;
+      let items = 0;
       let responses = 0;
-      let serverActive: string | null = null;
-      const answered: Request[] = [];
-      const pushed: Request[] = [];
+      let inBand: string | null = null;
+      let anchor = false;
+      /** Requests sent whose answer — created or refused — has not reached the queue yet. */
+      let unheard = 0;
+      const broken: string[] = [];
+      const inputless: string[] = [];
+      const commits: string[] = [];
+      const typed: Request[] = [];
+      const itemsSent: Request[] = [];
+      /** A response begins: it answers the user items since the previous one began. */
+      const begin = (): { id: string; fresh: number } => {
+        const id = `resp_${++responses}`;
+        const fresh = conversation.slice(answeredFrom).filter((i) => i.user);
+        for (const i of fresh) answers.set(i.id, (answers.get(i.id) ?? 0) + 1);
+        conversation.push({ id: `${id}_out`, user: false });
+        answeredFrom = conversation.length;
+        inBand = id;
+        return { id, fresh: fresh.length };
+      };
       const q = new ResponseQueue({
         clock,
         eventId: () => `sokuji_${++n}`,
         sink: {
-          // The server answers a `response.create` at once: refused while a response is active, else created.
           send: (request, eventId, waitedMs) => {
-            expect(waitedMs).toBeGreaterThanOrEqual(0);
-            if (serverActive) {
-              outbox.push(() => q.refused(eventId, ACTIVE_RESPONSE));
+            if (waitedMs < 0) broken.push(`waitedMs ${waitedMs}`);
+            // One request at a time: the previous one's answer has reached the queue.
+            if (unheard !== 0) broken.push(`${eventId} asked with ${unheard} unheard`);
+            // Under manual turns no response but the queue's own runs: asking during one is asking two at once.
+            if (manual && inBand) broken.push(`${eventId} asked while ${inBand} ran`);
+            if (request.kind === 'text' && !itemsSent.includes(request)) {
+              itemsSent.push(request);
+              conversation.push({ id: request.itemId, user: true });
+            }
+            unheard += 1;
+            if (inBand || anchor) {
+              outbox.push(() => { unheard -= 1; q.refused(eventId, ACTIVE_RESPONSE); });
               return;
             }
-            const id = `resp_${++responses}`;
-            serverActive = id;
-            answered.push(request);
-            outbox.push(() => q.created(id, echoes ? eventId : undefined));
+            const { id, fresh } = begin();
+            if (fresh === 0) inputless.push(`${id} for ${request.kind}`);
+            outbox.push(() => { unheard -= 1; q.created(id, echoes ? eventId : undefined); });
           },
           queued: () => {},
         },
       });
-      const detect = () => {
-        if (serverActive) return;
-        const id = `resp_${++responses}`;
-        serverActive = id;
-        outbox.push(() => q.created(id, undefined));
+      /** Manual: a release, its commit already in the conversation. Automatic: the server's detection, answering unless a response runs. */
+      const speak = () => {
+        const id = `input_${++items}`;
+        conversation.push({ id, user: true });
+        if (manual) {
+          commits.push(id);
+          // A fresh object each time: a mutant that loses one release while duplicating another must not pass by value.
+          q.push({ kind: 'turn' });
+          return;
+        }
+        if (inBand) return;
+        const { id: responseId } = begin();
+        outbox.push(() => q.created(responseId, undefined));
+      };
+      const type = () => {
+        const request = text(++items);
+        typed.push(request);
+        q.push(request);
       };
       const end = () => {
-        if (!serverActive || outbox.length > 0) return;
-        const id = serverActive;
-        serverActive = null;
+        if (!inBand || outbox.length > 0) return;
+        const id = inBand;
+        inBand = null;
         outbox.push(() => q.done(id));
       };
       for (let step = 0; step < 80; step++) {
         const r = random();
-        if (r < 0.25) {
-          // A fresh object each time (not the shared TURN): two turns are
-          // otherwise indistinguishable by value, so a mutant that answers
-          // the wrong one — losing one turn while duplicating another —
-          // would still pass a value comparison.
-          const request: Request = random() < 0.5 ? { kind: 'turn' } : text(step);
-          pushed.push(request);
-          q.push(request);
-        } else if (r < 0.4) detect();
-        else if (r < 0.6) end();
+        if (r < 0.16) speak();
+        else if (r < 0.28) type();
+        else if (r < 0.34) anchor = !anchor;
+        else if (r < 0.52) end();
         else outbox.shift()?.();
         clock.advance(10);
       }
-      // Drain: every answer delivered, every response ended; nothing is left waiting.
-      for (let i = 0; i < 1_000 && (outbox.length > 0 || serverActive); i++) {
+      // Drain: the anchor ends, every answer is delivered, every response ends.
+      anchor = false;
+      for (let i = 0; i < 1_000 && (outbox.length > 0 || inBand); i++) {
         while (outbox.length > 0) outbox.shift()!();
         end();
       }
-      // By identity, not just by value: a lost turn papered over by a
-      // duplicated one elsewhere must not read as "the same sequence".
-      expect(answered.length, `seed ${seed}`).toBe(pushed.length);
-      expect(answered.every((a, i) => a === pushed[i]), `seed ${seed}`).toBe(true);
-      expect(q.busy, `seed ${seed}`).toBe(false);
+      expect(broken, where).toEqual([]);
+      // Nothing lost: nothing waits or is asked, and every typed text went up, once each, first in first out — by identity.
+      expect(q.busy, where).toBe(false);
+      expect(itemsSent.length, where).toBe(typed.length);
+      expect(itemsSent.every((t, i) => t === typed[i]), where).toBe(true);
+      for (const t of typed) expect(answers.get((t as { itemId: string }).itemId), `${where}: ${(t as { itemId: string }).itemId}`).toBe(1);
+      if (manual) {
+        // Every release answered, and no response asked for nothing new: releases waiting behind one request are its.
+        for (const c of commits) expect(answers.get(c), `${where}: ${c}`).toBe(1);
+        expect(inputless, where).toEqual([]);
+      }
+      // Under automatic turns the server's detection may answer a refused text in the round trip before it is asked again, which then asks for nothing new: outside this rule, and not asserted.
     }
   });
 });

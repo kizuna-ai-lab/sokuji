@@ -148,7 +148,7 @@ class RealtimeLeg implements AdapterSession {
       clock,
       eventId: () => `sokuji_${++this.ids}`,
       sink: {
-        send: (asked, eventId, waitedMs) => this.ask(asked, eventId, waitedMs),
+        send: (asked, eventId, waitedMs, merged) => this.ask(asked, eventId, waitedMs, merged),
         queued: (asked, waiting) => this.frame('out', 'response.queued', { for: asked.kind, waiting }),
       },
     });
@@ -462,15 +462,19 @@ class RealtimeLeg implements AdapterSession {
    * A request the queue sends (ruling 8): a typed text's item first — once,
    * however often its response is asked — then its `response.create`. Each
    * is framed, and the item counted sent, only when it went up: an item
-   * that did not asks no response.
+   * that did not asks no response. The releases merged into it — waiting
+   * behind it, their commits in the conversation already, so its response
+   * answers them too — are framed as its `merged` count.
    */
-  private ask(asked: Request, eventId: string, waitedMs: number): void {
+  private ask(asked: Request, eventId: string, waitedMs: number, merged: number): void {
     if (asked.kind === 'text' && !this.itemsSent.has(asked.itemId)) {
       if (!this.send(JSON.stringify(textItem(asked.itemId, asked.text)))) return;
       this.itemsSent.add(asked.itemId);
       this.frame('out', 'conversation.item.create', { itemId: asked.itemId, length: asked.text.length });
     }
-    if (this.send(JSON.stringify(responseCreate(eventId)))) this.frame('out', 'response.create', { eventId, for: asked.kind, waitedMs });
+    if (this.send(JSON.stringify(responseCreate(eventId)))) {
+      this.frame('out', 'response.create', { eventId, for: asked.kind, waitedMs, ...(merged > 0 ? { merged } : {}) });
+    }
   }
 
   /** A frame, or an audio delta, that will not read: a Logs line and `parse_error` on each latch's ok → failing transition only (choice 15). */
