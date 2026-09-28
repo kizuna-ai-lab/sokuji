@@ -140,6 +140,7 @@ describe('the OpenAI Translate adapter: opening', () => {
     ended.socket().receive(SERVER.created());
     ended.socket().receive(SERVER.closed());
     await expect(ended.starting).rejects.toMatchObject({ code: 'server', message: 'OpenAI closed the session before it started.' });
+    expect(ended.socket().closedByClient).not.toBeNull();
     expect(ended.content()).toEqual([]);
   });
 
@@ -160,6 +161,7 @@ describe('the OpenAI Translate adapter: opening', () => {
     expect(settled).toBe(false);
     silent.clock.advance(1);
     await expect(silent.starting).rejects.toMatchObject({ code: 'server', message: 'OpenAI did not start the session within 30 s.' });
+    expect(silent.socket().closedByClient).not.toBeNull();
     expect(silent.timers()).toBe(0);
   });
 
@@ -244,7 +246,10 @@ describe('the OpenAI Translate adapter: audio up, and a release', () => {
     // The translation of the press's last words comes out while the tail runs.
     h.clock.advance(300);
     h.socket().receive(SERVER.output('the last words.'));
-    h.clock.advance(1_300 - 300);
+    h.clock.advance(700);
+    // A heartbeat is no output: the quiet the tail waits for runs on through it.
+    h.socket().receive(SERVER.heartbeat());
+    h.clock.advance(300);
     expect(h.frames('turn.tail_end')).toEqual([]);
     h.clock.advance(200);
     expect(h.frames('turn.tail_end')).toEqual([{ reason: 'quiet', silenceMs: 1_200, lastOutputMs: 300 }]);
@@ -266,6 +271,20 @@ describe('the OpenAI Translate adapter: audio up, and a release', () => {
     expect(h.frames('turn.tail_end')).toEqual([]);
     h.clock.advance(200);
     expect(h.frames('turn.tail_end')).toEqual([{ reason: 'quiet', silenceMs: 1_800, lastOutputMs: 800 }]);
+  });
+
+  it('audio at a rate it does not play still keeps a release tail running: skipped, it is the translation speaking all the same (ruling 2; choices 7, 16)', async () => {
+    const h = await liveTranslate({ context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.clock.advance(800);
+    h.socket().receive(SERVER.audio({ rate: 16_000 }));
+    h.clock.advance(1_000);
+    expect(h.frames('turn.tail_end')).toEqual([]);
+    h.clock.advance(200);
+    expect(h.frames('turn.tail_end')).toEqual([{ reason: 'quiet', silenceMs: 1_800, lastOutputMs: 800 }]);
+    expect(h.of('audio')).toEqual([]);
   });
 
   it("a press without speech sends the same tail, said as a cancel: the press's audio is the model's input already, and no clear exists (choice 7)", async () => {
@@ -293,6 +312,9 @@ describe('the OpenAI Translate adapter: audio up, and a release', () => {
     expect(h.appended().slice(before).map((p) => isSilent(p))).toEqual([false]);
 
     h.session.endTurn();
+    // The pad counts what the first tail sent: its pad and its two silent frames are on the server's grid too.
+    expect(h.frames('turn.tail')[1]).toEqual({ padSamples: 2_752 });
+    expect(h.appended().reduce((n, p) => n + p.length, 0) % FRAME_SAMPLES).toBe(0);
     h.session.appendAudio(chunk());
     expect(h.frames('turn.tail_end')[1]).toEqual({ reason: 'audio', silenceMs: 0, lastOutputMs: null });
   });
@@ -352,7 +374,10 @@ describe('the OpenAI Translate adapter: what comes down', () => {
       h.socket().receive(SERVER.audio());
       h.clock.advance(1_000);
       h.socket().receive(SERVER.audio());
-      h.clock.advance(1_500);
+      // Past the text's own 1.5 s: the audio holds the translation open, played or not.
+      h.clock.advance(1_000);
+      expect(h.of('segmentClosed')).toEqual([]);
+      h.clock.advance(500);
       return h;
     };
     const spoken = await run(true);
@@ -492,6 +517,26 @@ describe('the OpenAI Translate adapter: failures and stop', () => {
     expect(h.frames('session.unreadable')).toEqual([{ message: expect.any(String) }, { message: expect.any(String) }, { message: expect.any(String) }]);
     expect(h.of('degraded').map((e) => e.payload.code)).toEqual(['parse_error', 'parse_error', 'parse_error']);
     expect(h.of('segmentOpened')).toHaveLength(1);
+  });
+
+  it('an audio delta with no base64 string is that same audio episode, in words quoting nothing of the frame; audio that decodes ends the episode (choice 17)', async () => {
+    const h = await liveTranslate();
+    const MARK = 'frame-content-marker';
+    const audioDelta = (fields: Record<string, unknown>) => JSON.stringify({ type: 'session.output_audio.delta', elapsed_ms: 0, ...fields });
+    h.socket().receive(audioDelta({}));
+    expect(h.frames('session.unreadable')).toHaveLength(1);
+    // Audio that will not decode, and a delta that is no string, add nothing: one episode.
+    h.socket().receive(audioDelta({ delta: '%%' }));
+    h.socket().receive(audioDelta({ delta: { text: MARK } }));
+    expect(h.frames('session.unreadable')).toEqual([{ message: expect.any(String) }]);
+    expect(h.of('degraded').map((e) => e.payload.code)).toEqual(['parse_error']);
+    h.socket().receive(SERVER.audio());
+    h.socket().receive(audioDelta({ delta: 42, note: MARK }));
+    expect(h.frames('session.unreadable')).toHaveLength(2);
+    expect(h.of('degraded').map((e) => e.payload.code)).toEqual(['parse_error', 'parse_error']);
+    // Only the frame that decoded became audio.
+    expect(h.of('audio')).toHaveLength(1);
+    expect(JSON.stringify(h.log.filter((e) => e.kind !== 'audio'))).not.toContain(MARK);
   });
 
   it('never frames, fails or degrades with the key or the subprotocol that carries it', async () => {

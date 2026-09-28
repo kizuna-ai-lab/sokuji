@@ -271,7 +271,12 @@ class TranslateLeg implements AdapterSession {
   }
 
   private audioDelta(e: RealtimeTranslationOutputAudioDeltaEvent): void {
-    if (this.phase !== 'live' || typeof e.delta !== 'string') return;
+    if (this.phase !== 'live') return;
+    // No base64 string where the audio should be: the same episode as audio that will not decode (choice 17), in fixed words that quote nothing of the frame.
+    if (typeof e.delta !== 'string') {
+      this.unreadable('audio', new Error('an audio delta with no base64 string'));
+      return;
+    }
     let pcm: Int16Array;
     try {
       pcm = base64ToPcm(e.delta);
