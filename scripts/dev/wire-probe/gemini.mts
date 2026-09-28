@@ -8,7 +8,12 @@
  * audio's, and how far would an arrival alignment (OpenAI's) or an even
  * interpolation be from each other.
  *
- *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts [dialogue|translate|both] [--model <id>] [--src ja-JP --dst en-US]
+ *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts [dialogue|translate|both] [--model <id>] [--src ja-JP --dst en-US] [--gap <ms>]
+ *     [--activity-handling NO_INTERRUPTION|START_OF_ACTIVITY_INTERRUPTS] [--turn-coverage TURN_INCLUDES_ONLY_ACTIVITY|TURN_INCLUDES_ALL_INPUT]
+ *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts overlap [--models a,b] [--gap 1500]
+ *     The overlap matrix: the second utterance starts while the model still speaks the first's
+ *     translation, under each activity handling × turn coverage; counts whether both utterances
+ *     were heard and translated in full.
  */
 import WebSocket from 'ws';
 import { checkGemini } from '../../../src/providers/gemini/check';
@@ -32,6 +37,7 @@ if (!key) {
 }
 const { step, opt } = args();
 const kinds = step === 'dialogue' || step === 'translate' ? [step] : ['dialogue', 'translate'];
+const gapMs = Number(opt('gap') ?? (step === 'overlap' ? 1500 : 2500));
 const src = opt('src') ?? 'ja-JP';
 const dst = opt('dst') ?? 'en-US';
 
@@ -87,8 +93,19 @@ function analyse(turn: Turn): string {
   return lines.join('\n');
 }
 
-async function session(kind: 'dialogue' | 'translate', model: string): Promise<void> {
-  const run: Run = startRun('gemini', `${kind}-${model.replace(/[^a-z0-9.-]+/gi, '_')}`);
+interface Variant { activityHandling?: string; turnCoverage?: string }
+
+/** Both utterances heard and translated? The clip's two halves, counted over every turn. */
+function coverage(turns: Turn[]): string {
+  const input = turns.map((x) => x.input).join(' ');
+  const output = turns.map((x) => x.text).join(' ').toLowerCase();
+  const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
+  return `heard: first half ×${count(input, /ようこそ/g)}, second half ×${count(input, /手伝い/g)}; translated: first half ×${count(output, /welcome/g)}, second half ×${count(output, /conversation/g)} (a full run is ×2 each)`;
+}
+
+async function session(kind: 'dialogue' | 'translate', model: string, variant: Variant = {}): Promise<void> {
+  const tag = [variant.activityHandling, variant.turnCoverage].filter(Boolean).map((v) => v!.replace(/^(TURN_INCLUDES_|START_OF_ACTIVITY_)/, '').toLowerCase()).join('+');
+  const run: Run = startRun('gemini', `${kind}-${model.replace(/[^a-z0-9.-]+/gi, '_')}${tag ? `-${tag}` : ''}`);
   const dialogue = kind === 'dialogue';
   const config: GeminiConfig = {
     model,
@@ -98,6 +115,9 @@ async function session(kind: 'dialogue' | 'translate', model: string): Promise<v
     activity: { manual: false, start: GEMINI_DEFAULTS.vadStartSensitivity, end: GEMINI_DEFAULTS.vadEndSensitivity, silenceMs: GEMINI_DEFAULTS.vadSilenceDurationMs, prefixMs: GEMINI_DEFAULTS.vadPrefixPaddingMs },
   };
   const setup = setupFrame(config, null);
+  const ric = setup.setup.realtimeInputConfig as Record<string, unknown>;
+  if (variant.activityHandling) ric.activityHandling = variant.activityHandling;
+  if (variant.turnCoverage) ric.turnCoverage = variant.turnCoverage;
   run.log('note', 'config', { kind, model, src, dst, setup: { ...setup, setup: { ...setup.setup, systemInstruction: setup.setup.systemInstruction ? '<the app template>' : undefined } } });
 
   const ws = new WebSocket(liveUrl(key));
@@ -182,8 +202,8 @@ async function session(kind: 'dialogue' | 'translate', model: string): Promise<v
   if (!setupDone) { run.report(`No setupComplete within 20 s; close ${JSON.stringify(closed)}.`); ws.close(); return; }
 
   const clip = readWav(CLIPS.ja, INPUT_RATE);
-  const pcm = concat(clip, silence(2500, INPUT_RATE), clip, silence(10000, INPUT_RATE));
-  run.log('note', 'stream.begin', { seconds: pcm.length / INPUT_RATE, chunkMs: CHUNK_MS });
+  const pcm = concat(clip, silence(gapMs, INPUT_RATE), clip, silence(10000, INPUT_RATE));
+  run.log('note', 'stream.begin', { seconds: pcm.length / INPUT_RATE, chunkMs: CHUNK_MS, gapMs, realtimeInputConfig: ric });
   const sent = await pace(pcm, INPUT_RATE, CHUNK_MS, (chunk) => ws.send(audioFrame(chunk)), () => closed !== null);
   run.log('note', 'stream.done', { chunks: sent });
   for (let i = 0; i < 80 && turn && !closed; i++) await sleep(100);
@@ -194,7 +214,8 @@ async function session(kind: 'dialogue' | 'translate', model: string): Promise<v
   const all = concat(...turns.flatMap((x) => x.audio));
   if (all.length) writeWav(`${run.dir}/${run.name}.wav`, all, turns[0]?.rate ?? 24000);
   run.report([
-    `model \`${model}\` (${kind}), ${src} → ${dst}; ${turns.length} turn(s); close ${JSON.stringify(closed)}`,
+    `model \`${model}\` (${kind}), ${src} → ${dst}; gap ${gapMs} ms; activityHandling ${String(ric.activityHandling ?? '(default)')}, turnCoverage ${String(ric.turnCoverage ?? '(default)')}; ${turns.length} turn(s); close ${JSON.stringify(closed)}`,
+    `**${coverage(turns)}**`,
     '',
     ...turns.map(analyse),
   ].join('\n\n'));
@@ -207,9 +228,21 @@ if (!listed.ok) {
 }
 const ids = listed.models.map((m) => m.id);
 console.log(`Live models this key lists: ${ids.join(', ')}`);
-for (const kind of kinds as Array<'dialogue' | 'translate'>) {
-  const model = opt('model') ?? (kind === 'dialogue' ? defaultGeminiModel(listed.models) : ids.find((id) => isGeminiTranslateModel(id)));
-  if (!model) { console.log(`No ${kind} model listed; skipped.`); continue; }
-  await session(kind, model);
+if (step === 'overlap') {
+  const models = (opt('models') ?? 'gemini-3.8-live,gemini-2.5-flash-native-audio-preview-12-2025').split(',').filter((m) => ids.includes(m));
+  for (const model of models) {
+    for (const activityHandling of ['NO_INTERRUPTION', 'START_OF_ACTIVITY_INTERRUPTS']) {
+      for (const turnCoverage of ['TURN_INCLUDES_ONLY_ACTIVITY', 'TURN_INCLUDES_ALL_INPUT']) {
+        await session(isGeminiTranslateModel(model) ? 'translate' : 'dialogue', model, { activityHandling, turnCoverage });
+      }
+    }
+  }
+} else {
+  const variant: Variant = { activityHandling: opt('activity-handling'), turnCoverage: opt('turn-coverage') };
+  for (const kind of kinds as Array<'dialogue' | 'translate'>) {
+    const model = opt('model') ?? (kind === 'dialogue' ? defaultGeminiModel(listed.models) : ids.find((id) => isGeminiTranslateModel(id)));
+    if (!model) { console.log(`No ${kind} model listed; skipped.`); continue; }
+    await session(kind, model, variant);
+  }
 }
 console.log('done');
