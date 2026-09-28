@@ -30,9 +30,11 @@ export const SHARED: SharedSettings = {
 };
 export const AUTO_CTX: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };
 
-/** A leg's config: the defaults, patched. */
+/** A leg's config: the defaults, patched. A refusal is a fixture bug, not a case any suite means to build — it throws loudly rather than hiding behind a cast. */
 export function configFor(context: SessionContext = AUTO_CTX, patch: Partial<TranslateSettings> = {}): TranslateConfig {
-  return buildTranslate(context, { ...TRANSLATE_DEFAULTS, ...patch }, SHARED) as TranslateConfig;
+  const c = buildTranslate(context, { ...TRANSLATE_DEFAULTS, ...patch }, SHARED);
+  if ('refused' in c) throw new Error(c.refused);
+  return c;
 }
 
 /** `samples` of 24 kHz pcm16 as an audio delta carries it: base64 of little-endian Int16. `fill` 0 is a heartbeat. */
@@ -52,9 +54,9 @@ export const SERVER = {
   updated: () => event({ type: 'session.updated', session: { ...SESSION, audio: { input: { noise_reduction: null, transcription: { model: 'gpt-live-transcribe' } }, output: { language: 'en' } } } }),
   input: (delta: string, elapsed: number | null = 0) => event({ type: 'session.input_transcript.delta', delta, elapsed_ms: elapsed }),
   output: (delta: string, elapsed: number | null = 0) => event({ type: 'session.output_transcript.delta', delta, elapsed_ms: elapsed }),
-  /** Content audio: 200 ms by default. */
+  /** Content audio: 200 ms by default. An explicit `null` elapsed passes through, as `input` and `output` already do — only an omitted one defaults to 0. */
   audio: (o: { samples?: number; fill?: number; elapsed?: number | null; rate?: number } = {}) =>
-    event({ type: 'session.output_audio.delta', delta: b64(o.samples ?? 4_800, o.fill ?? 900), elapsed_ms: o.elapsed ?? 0, format: 'pcm16', sample_rate: o.rate ?? 24_000, channels: 1 }),
+    event({ type: 'session.output_audio.delta', delta: b64(o.samples ?? 4_800, o.fill ?? 900), elapsed_ms: o.elapsed === undefined ? 0 : o.elapsed, format: 'pcm16', sample_rate: o.rate ?? 24_000, channels: 1 }),
   /** A heartbeat: an all-zero frame. */
   heartbeat: (samples = 4_800) => event({ type: 'session.output_audio.delta', delta: b64(samples, 0), elapsed_ms: 0, format: 'pcm16', sample_rate: 24_000, channels: 1 }),
   error: (e: { type?: string; code?: string | null; message?: string } = {}) =>

@@ -9,8 +9,9 @@ import {
   TRANSLATE_WS_URL, translateProtocols, translateUrl,
 } from './wire';
 
-/** The names the key is read through: the credentials' type and its one field. */
+/** The names the key is read through: the credentials' type and its one field. A string literal naming either counts too (an indexed or dynamic-property read), and so does any use of the protocol builder outside its own declaration — nothing else in `wire.ts` may call it. */
 const SECRET_NAMES = new Set(['TranslateCredentials', 'apiKey']);
+const BUILDER_NAME = 'translateProtocols';
 
 /** The functions of a module that name the key, `<module>` for a use outside any function; an import names nothing (Doubao's `wire.test.ts` scan). */
 function secretReaders(source: string): string[] {
@@ -23,9 +24,11 @@ function secretReaders(source: string): string[] {
     }
     return '<module>';
   };
+  const isBuilderDeclaration = (node: ts.Identifier): boolean => ts.isFunctionDeclaration(node.parent) && node.parent.name === node;
   const visit = (node: ts.Node): void => {
     if (ts.isImportDeclaration(node)) return;
-    if (ts.isIdentifier(node) && SECRET_NAMES.has(node.text)) readers.add(enclosing(node));
+    if (ts.isIdentifier(node) && (SECRET_NAMES.has(node.text) || (node.text === BUILDER_NAME && !isBuilderDeclaration(node)))) readers.add(enclosing(node));
+    if (ts.isStringLiteralLike(node) && SECRET_NAMES.has(node.text)) readers.add(enclosing(node));
     ts.forEachChild(node, visit);
   };
   visit(ts.createSourceFile('scan.ts', source, ts.ScriptTarget.Latest, true));
@@ -44,13 +47,15 @@ describe("OpenAI Translate's wire: the socket", () => {
 
   it('reads the key, in `wire.ts`, in the protocol builder alone; the protocols, wherever they land, are masked by their carrier (choice 3)', () => {
     expect(secretReaders(readFileSync(resolve(__dirname, 'wire.ts'), 'utf-8'))).toEqual(['translateProtocols']);
-    // The scan's control: a read in any other function, nested or not, or at the top level, is named; an import is not.
+    // The scan's control: a read in any other function, nested or not, or at the top level, is named; an import is not. An indexed read (`k['apiKey']`) and a call forwarded to the builder under a type-only alias are named too — the two evasions an identifier-only scan misses.
     expect(secretReaders([
       "import type { TranslateCredentials } from './settings';",
       'export function url(k: TranslateCredentials) { return k.apiKey; }',
       'export const frame = (k: { apiKey: string }) => [k].map((c) => c.apiKey);',
       "const leaked = { apiKey: 'x' };",
-    ].join('\n'))).toEqual(['<module>', 'frame', 'url']);
+      "export function leakIndexed(k: Record<string, string>) { return k['apiKey']; }",
+      'export function leakForwarded(k: Parameters<typeof translateProtocols>[0]) { return translateProtocols(k).join(", "); }',
+    ].join('\n'))).toEqual(['<module>', 'frame', 'leakForwarded', 'leakIndexed', 'url']);
     // A key of no key shape (the fixture's `sk-…` would be masked by the bare-shape rule whatever the carrier rule did).
     expect(redact(translateProtocols({ apiKey: '0a1b2c3d' }).join(', '))).toBe('realtime, openai-insecure-api-key.[REDACTED]');
   });
