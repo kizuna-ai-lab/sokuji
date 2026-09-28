@@ -12,9 +12,10 @@ import { geminiProvider } from './gemini/provider';
 import { localInferenceProvider } from './localInference/provider';
 import { kizunaSonioxProvider } from './soniox/kizuna';
 import { sonioxProvider } from './soniox/provider';
+import { volcengineAst2Provider } from './volcengine_ast2/provider';
 
-/** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6; Stage 2 Gemini, ruling 6): the managed Kizuna Soniox, the free LocalInference, then Gemini and Soniox with your own key. */
-const RELEASED = [kizunaSonioxProvider, localInferenceProvider, geminiProvider, sonioxProvider] as const;
+/** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6; Stage 2 Gemini, ruling 6; Stage 2 Volcengine AST2, ruling 5): the managed Kizuna Soniox, the free LocalInference, then Gemini, Doubao AST 2.0 and Soniox with your own key. */
+const RELEASED = [kizunaSonioxProvider, localInferenceProvider, geminiProvider, volcengineAst2Provider, sonioxProvider] as const;
 /** Compiled into development builds only (D24): the fake, and the leased fake that carries the session hooks (Stage 2 foundation, choice 1). */
 const DEV_ONLY = [fakeProvider, fakeLeasedProvider] as const;
 

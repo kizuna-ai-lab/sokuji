@@ -67,8 +67,8 @@ describe('the Gemini definition', () => {
     expect(geminiProvider.session).toBeUndefined();
   });
 
-  it('sits between LocalInference and Soniox (ruling 6)', () => {
-    expect(PROVIDERS.slice(0, 4).map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference', 'gemini', 'soniox']);
+  it('sits after LocalInference (ruling 6)', () => {
+    expect(PROVIDERS.slice(0, 3).map((p) => p.id)).toEqual(['kizunaai_soniox', 'localInference', 'gemini']);
   });
 
   it("lets the participant speak when its switch is on, voiced with Gemini's own voice (ruling 5)", () => {
