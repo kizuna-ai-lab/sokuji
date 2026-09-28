@@ -481,15 +481,18 @@ describe('the Gemini adapter: turns and typed text', () => {
     expect(h.of('segmentOpened')).toHaveLength(1);
   });
 
-  it('on Live Translate a cancel is activityEnd alone: the streaming translation goes on in its segment (choice 16)', async () => {
+  it('on Live Translate a cancel drops nothing: the streaming translation goes on in its segment (choice 16), and its activityEnd follows the release tail (Gemini/AST2 follow-up, ruling 4)', async () => {
     const h = await liveGemini({ model: TRANSLATE, context: MANUAL });
     h.session.beginTurn();
     h.socket().receive(SERVER.output('streaming'));
     h.session.cancelTurn();
     h.socket().receive(SERVER.output(' on'));
-    expect(h.sent().slice(1)).toEqual([{ realtimeInput: { activityStart: {} } }, { realtimeInput: { activityEnd: {} } }]);
+    expect(h.sent().slice(1)).toEqual([{ realtimeInput: { activityStart: {} } }]);
     expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['streaming', 'streaming on']);
     expect(h.of('segmentClosed')).toEqual([]);
+    h.clock.advance(1_100);
+    const sent = h.sent();
+    expect(sent[sent.length - 1]).toEqual({ realtimeInput: { activityEnd: {} } });
   });
 
   it('typed text: trimmed, its own source segment, sent as realtime text; under manual turns with no press held, wrapped in activity marks (choice 17)', async () => {

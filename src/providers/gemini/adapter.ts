@@ -7,6 +7,8 @@
  * resumed with the server's handle, or opened fresh when it issued none
  * (ruling 3). A start resolves once the server answers the setup, so a
  * refused key or model rejects it in words and within a bound (choice 12).
+ * A push-to-talk release on Live Translate sends a real-time silence tail
+ * before its `activityEnd` (`tail.ts`; Gemini/AST2 follow-up, ruling 4).
  * Every timer reads the request's clock, and nothing is said but through
  * events (CLAUDE.md, "Inside an IClient session").
  */
@@ -24,6 +26,7 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { GeminiConfig } from './config';
 import type { GeminiCredentials } from './settings';
 import { nativeSocket, WS_OPEN, type OpenSocket } from './socket';
+import { ReleaseTail, type TailSummary } from './tail';
 import { GeminiTurns } from './turns';
 import {
   ACTIVITY_END,
@@ -95,6 +98,8 @@ class GeminiSession {
   /** Every pending connection attempt and every backoff of the ladder, so a stop ends them at once. */
   private readonly cancels = new Set<() => void>();
   private readonly turns: GeminiTurns;
+  /** Live Translate under manual turns: a release's silence, its press's activity held open until it ends (Gemini/AST2 follow-up, ruling 4; choice 11). */
+  private readonly tail: ReleaseTail;
 
   constructor(private readonly request: GeminiRequest, private readonly events: AdapterEvents, private readonly openSocket: OpenSocket) {
     this.turns = new GeminiTurns({
@@ -103,6 +108,11 @@ class GeminiSession {
       clock: request.clock,
       silence: request.config.silence,
       sink: events,
+    });
+    this.tail = new ReleaseTail({
+      clock: request.clock,
+      send: (pcm) => this.live()?.send(audioFrame(pcm)),
+      ended: (summary) => this.tailEnded(summary),
     });
   }
 
@@ -119,8 +129,11 @@ class GeminiSession {
   api(): AdapterSession {
     return {
       info: { transport: 'websocket' },
-      // No frame per chunk (the hot-path rule). Audio while no connection is set up is dropped (parity).
-      appendAudio: (pcm) => this.live()?.send(audioFrame(pcm)),
+      // No frame per chunk (the hot-path rule). Audio while no connection is set up is dropped (parity). Real audio ends a release's tail first.
+      appendAudio: (pcm) => {
+        this.tail.stop('audio');
+        this.live()?.send(audioFrame(pcm));
+      },
       appendText: (text) => this.appendText(text),
       beginTurn: () => this.beginTurn(),
       endTurn: () => this.endTurn(false),
@@ -240,12 +253,19 @@ class GeminiSession {
     const input = c.inputTranscription;
     if (input) {
       this.frame('in', 'server_content.input_transcription', transcriptionFrame(input));
-      if (input.text) this.turns.input(input.text);
+      if (input.text) {
+        this.turns.input(input.text);
+        // Either side's words mean the model is still working through the press (Gemini/AST2 follow-up, choice 12).
+        this.tail.output();
+      }
     }
     const output = c.outputTranscription;
     if (output) {
       this.frame('in', 'server_content.output_transcription', transcriptionFrame(output));
-      if (output.text) this.turns.output(output.text);
+      if (output.text) {
+        this.turns.output(output.text);
+        this.tail.output();
+      }
     }
     if (c.modelTurn?.parts) this.onModelTurn(c.modelTurn.parts);
     if (c.generationComplete) this.frame('in', 'server_content.generation_complete');
@@ -319,6 +339,8 @@ class GeminiSession {
 
   private beginTurn(): void {
     if (this.ended || !this.request.config.activity.manual || this.turnOpen) return;
+    // A release's tail still running ends first, and with it the last press's activity.
+    this.tail.stop('press');
     this.turnOpen = true;
     this.turns.beginTurn();
     const ws = this.live();
@@ -330,7 +352,9 @@ class GeminiSession {
   /**
    * A release: `activityEnd`, and the press's answer is owed from here, before its first output streams. A cancel
    * instead has `GeminiTurns` drop the cancelled press's own answer — never the one owed or still streaming, and
-   * nothing on Live Translate (ruling 8, choice 16).
+   * nothing on Live Translate (ruling 8, choice 16). On Live Translate, a release — a cancel too — first runs the
+   * tail, inside the press's activity, and `activityEnd` goes when it ends (Gemini/AST2 follow-up, ruling 4;
+   * choices 11, 12).
    */
   private endTurn(cancelled: boolean): void {
     if (this.ended || !this.request.config.activity.manual || !this.turnOpen) return;
@@ -340,6 +364,22 @@ class GeminiSession {
     // Owed only once `activityEnd` goes out: a release in a reconnect gap reaches no server, so nothing answers it.
     else if (ws) this.turns.endTurn();
     if (!ws) return;
+    if (this.request.config.kind === 'translate') {
+      this.tail.start(cancelled);
+      this.frame('out', 'turn.tail', cancelled ? { cancelled: true } : undefined);
+      return;
+    }
+    this.activityEnd(ws, cancelled);
+  }
+
+  /** The tail ended by itself, or by a press, audio or typed text: the press's activity ends now (Gemini/AST2 follow-up, choice 11). */
+  private tailEnded(summary: TailSummary): void {
+    this.frame('out', 'turn.tail_end', summary);
+    const ws = this.live();
+    if (ws) this.activityEnd(ws, summary.cancelled === true);
+  }
+
+  private activityEnd(ws: WebSocket, cancelled: boolean): void {
     ws.send(ACTIVITY_END);
     this.frame('out', 'realtime_input.activity_end', cancelled ? { cancelled: true } : undefined);
   }
@@ -349,6 +389,8 @@ class GeminiSession {
     const text = raw.trim();
     const ws = this.live();
     if (!text || !ws) return;
+    // A release's tail ends first, its activity with it, so the text's own marks never nest in it.
+    this.tail.stop('text');
     this.turns.typed(text);
     const wrap = this.request.config.activity.manual && !this.turnOpen;
     if (wrap) {
@@ -383,6 +425,8 @@ class GeminiSession {
       detach(old);
       old.close(1000);
     }
+    // The tail's activity was the old connection's: nothing of it reaches the new one.
+    this.tail.cancel();
     this.frame('in', 'session.reconnecting', {
       cause: why.cause,
       ...(why.code !== undefined ? { code: why.code } : {}),
@@ -459,6 +503,7 @@ class GeminiSession {
     this.ended = true;
     for (const cancel of [...this.cancels]) cancel();
     this.cancels.clear();
+    this.tail.cancel();
     this.turns.stop();
     const ws = this.socket;
     this.socket = null;
