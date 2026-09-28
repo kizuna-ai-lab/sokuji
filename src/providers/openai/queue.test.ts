@@ -232,7 +232,7 @@ describe("OpenAI Realtime's response queue (ruling 8; choice 10)", () => {
    * runs echo the request in the response's metadata, so only its end tells
    * the queue it was answered.
    */
-  it('asks no response with nothing new under releases and typed text, answers every release and every typed text, sends typed text first in first out and asks one request at a time — whatever the interleaving (seeded)', () => {
+  it('under manual turns asks no response with nothing new; under either turn mode answers every release and every typed text, sends typed text first in first out and asks one request at a time — whatever the interleaving (seeded)', () => {
     for (let seed = 1; seed <= 400; seed++) {
       let s = seed;
       /** mulberry32 */
