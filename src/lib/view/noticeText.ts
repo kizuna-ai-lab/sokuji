@@ -110,6 +110,9 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // Gemini (Stage 2 Gemini, ruling 13): a key that lists no Live model, and a start with no model to run — the old client's sentences, which name no vendor.
   no_realtime_model: 'settings.realtimeModelNotAvailable',
   models_required: 'mainPanel.modelsRequired',
+  // OpenAI Translate (Stage 2 OpenAI Translate, choice 11): a key that lists no gpt-realtime-translate model, and a region OpenAI does not serve — the old validation's sentences, which every locale already has.
+  no_translate_model: 'settings.translateModelNotAvailable',
+  region_unsupported: 'settings.regionNotSupported',
 };
 
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */

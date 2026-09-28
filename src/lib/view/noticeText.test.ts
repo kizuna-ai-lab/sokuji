@@ -101,6 +101,14 @@ describe('noticeText', () => {
     expect(at(enCatalog, NOTICE_ALIASES.models_required)).toBe('Models are required. Please validate your API key first to load available models.');
   });
 
+  it("words OpenAI Translate's two check codes with the old validation's sentences, which every locale already has", () => {
+    const enCatalog = en as unknown as Record<string, unknown>;
+    expect(noticeText(t, { code: 'no_translate_model', message: 'x' })).toMatch(/^settings\.translateModelNotAvailable\|/);
+    expect(noticeText(t, { code: 'region_unsupported', message: 'x' })).toMatch(/^settings\.regionNotSupported\|/);
+    expect(at(enCatalog, NOTICE_ALIASES.no_translate_model)).toBe('API key works, but gpt-realtime-translate is not accessible with this key.');
+    expect(at(enCatalog, NOTICE_ALIASES.region_unsupported)).toBe('Service not available in your region. Please check your network environment or try a different provider.');
+  });
+
   it("puts the local engines' notices into words", () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
       expect(NOTICE_WORDS[code]).toBeDefined();

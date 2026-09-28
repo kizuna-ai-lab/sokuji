@@ -192,6 +192,27 @@ describe('logStore — per-client event grouping', () => {
     }
     expect(speaker).toHaveLength(7);
   });
+
+  it("groups OpenAI Translate's delta frames each under its own type, and gives its other frames no key (Stage 2 OpenAI Translate, choice 12)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    for (const type of ['session.input_transcript.delta', 'session.output_transcript.delta', 'session.output_audio.delta']) {
+      add(type);
+      add(type);
+    }
+    expect(entriesFor('speaker').map((e) => [e.groupingKey, e.events?.length])).toEqual([
+      ['session.input_transcript.delta', 2],
+      ['session.output_transcript.delta', 2],
+      ['session.output_audio.delta', 2],
+    ]);
+    // None of its other names is a row of Doubao's (`subtitle.*`, `tts.*`, `session.usage`, `session.audio_muted`) or of anyone's: one entry each, ungrouped.
+    const others = [
+      'session.opened', 'session.created', 'session.update', 'session.updated', 'session.closed', 'session.error', 'session.unknown', 'session.unreadable',
+      'session.socket_error', 'session.connection_lost', 'session.input_transcript.done', 'session.output_transcript.done', 'session.output_audio.done',
+      'turn.tail', 'turn.tail_end',
+    ];
+    for (const type of others) add(type);
+    expect(entriesFor('speaker').slice(3).map((e) => [e.eventType, e.groupingKey])).toEqual(others.map((type) => [type, undefined]));
+  });
 });
 
 describe('logStore — channel filing', () => {

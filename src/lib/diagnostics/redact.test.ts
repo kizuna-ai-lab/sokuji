@@ -76,11 +76,22 @@ describe('redact', () => {
       .toBe('Authorization: Bearer [REDACTED]');
   });
 
-  // OpenAITranslateGAClient.ts:501 — `sokuji-auth.${this.apiKey}` is the relay
+  // OpenAITranslateGAClient.ts:707 — `sokuji-auth.${this.apiKey}` is the relay
   // WebSocket subprotocol; the carrier name stays, the token goes.
   it('redacts the relay auth subprotocol token', () => {
     expect(redact('subprotocols: sokuji-auth.sess_TOKEN_VALUE_1234, json'))
       .toBe('subprotocols: sokuji-auth.[REDACTED], json');
+  });
+
+  // openai_translate/wire.ts `translateProtocols` — OpenAI Translate's own key
+  // rides in the `openai-insecure-api-key.` subprotocol (Stage 2 OpenAI
+  // Translate, choice 3): the carrier name stays, the key goes, whatever its
+  // shape. The first value has no key shape, so only this rule masks it.
+  it("redacts OpenAI Translate's key subprotocol, keeping the carrier's name", () => {
+    expect(redact('protocols: realtime, openai-insecure-api-key.0a1b2c3d'))
+      .toBe('protocols: realtime, openai-insecure-api-key.[REDACTED]');
+    expect(redact('["realtime","openai-insecure-api-key.sk-proj-abcdefghijklmnop"]'))
+      .toBe('["realtime","openai-insecure-api-key.[REDACTED]"]');
   });
 
   // Named in #441. UserProfileContext and settingsStore:1121 carry auth errors

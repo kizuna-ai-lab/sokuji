@@ -40,6 +40,11 @@ describe('settingsTargetForCode', () => {
     expect(settingsTargetForCode('models_required')).toBe('provider');
   });
 
+  it("sends OpenAI Translate's check codes to the provider section, where its key and the provider choice are", () => {
+    expect(settingsTargetForCode('no_translate_model')).toBe('provider');
+    expect(settingsTargetForCode('region_unsupported')).toBe('provider');
+  });
+
   it('has words for every code it targets, its own or an alias — an action never sits beside an unworded notice', () => {
     for (const code of Object.keys(NOTICE_TARGETS)) {
       expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined();

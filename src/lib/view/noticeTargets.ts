@@ -24,6 +24,9 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   // Gemini's model codes (Stage 2 Gemini): the key and the model are the provider section's.
   no_realtime_model: 'provider',
   models_required: 'provider',
+  // OpenAI Translate's check codes (Stage 2 OpenAI Translate): the key, and the choice of another provider, are the provider section's.
+  no_translate_model: 'provider',
+  region_unsupported: 'provider',
 };
 
 export function settingsTargetForCode(code: string | undefined): string | null {

@@ -44,9 +44,16 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   ],
   // `Authorization: Bearer <token>` on every provider fetch.
   [/(\bBearer\s+)[A-Za-z0-9._~+/=-]{8,}/g, `$1${REDACTED}`],
-  // `sokuji-auth.${this.apiKey}` WebSocket subprotocol — OpenAITranslateGAClient.ts:501,
+  // `sokuji-auth.${this.apiKey}` WebSocket subprotocol — OpenAITranslateGAClient.ts:707,
   // VolcengineAST2Client (relay auth).
   [/(\bsokuji-auth\.)[A-Za-z0-9._~+/=-]+/g, `$1${REDACTED}`],
+  // `openai-insecure-api-key.${apiKey}` WebSocket subprotocol — OpenAI
+  // Translate's own key (`openai_translate/wire.ts` `translateProtocols`,
+  // Stage 2 OpenAI Translate, choice 3). The subprotocol is never put in a
+  // frame, an error or a notice, and the bare `sk-` rule below masks an
+  // OpenAI key anyway; this keeps the carrier's name and masks a key of any
+  // shape — a browser that refuses the socket quotes the subprotocol.
+  [/(\bopenai-insecure-api-key\.)[A-Za-z0-9._~+/=-]+/g, `$1${REDACTED}`],
   // Bare provider key shapes. `sk-`/`AIza`/`key-` were already redacted by
   // errorTracking.ts:57; `ek_` is the OpenAI ephemeral client secret
   // (EphemeralTokenService.ts:190), which :200 could otherwise dump wholesale.
