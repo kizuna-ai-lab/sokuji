@@ -343,6 +343,10 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     expect(moodyEntry()).not.toHaveProperty('stored');
     useProviderStore.getState().setSpeech(speaking);
     expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+    // Narrowed away again, the user's pair is kept beside it, so the next text-only run gets it back.
+    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'en' });
+    useProviderStore.getState().setSpeech(textOnly);
+    expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
     expect(pairWrites()).toEqual([]);
   });
 
@@ -361,6 +365,9 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     useProviderStore.setState({ entries: {} });
     useProviderStore.getState().setSpeech(speaking);
     await useProviderStore.getState().load(moody);
+    // The load derives from the inputs already kept: what a speaking run can start, the user's pair beside it.
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+    expect(moodyEntry().stored).toEqual({ source: 'ko', target: 'en' });
     useProviderStore.getState().setSpeech(textOnly);
     expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
   });
@@ -378,6 +385,17 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     expect(moodyEntry()).not.toHaveProperty('stored');
   });
 
+  it('persists a pick from the stored pair, not the shown one: picking the pair on show replaces the one kept', async () => {
+    await useProviderStore.getState().load(moody);
+    // Speaking shows en → ja while ko → en is kept; the wizard's Finish applies the shown pair.
+    useProviderStore.getState().setPair(moody, { source: 'en', target: 'ja' });
+    expect(moodyEntry()).not.toHaveProperty('stored');
+    await vi.waitFor(() => {
+      expect(stored.get('settings.moody.sourceLanguage')).toBe('en');
+      expect(stored.get('settings.moody.targetLanguage')).toBe('ja');
+    });
+  });
+
   it("keeps the stored pair across a settings edit, writing only the settings", async () => {
     await useProviderStore.getState().load(moody);
     useProviderStore.getState().updateSettings(moody, { count: 2 });
@@ -393,7 +411,12 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     const ready = { state: 'ready' as const, models: [] };
     useProviderStore.setState({ readiness: { moody: ready, probe: ready } });
     const entries = useProviderStore.getState().entries;
+    // appShape's whole-store listeners call it on every settings, routing or audio change: the same inputs wake no reader.
+    const listener = vi.fn();
+    const off = useProviderStore.subscribe(listener);
     useProviderStore.getState().setSpeech(speaking);
+    off();
+    expect(listener).not.toHaveBeenCalled();
     expect(useProviderStore.getState().entries).toBe(entries);
     useProviderStore.getState().setSpeech(textOnly);
     expect(useProviderStore.getState().readiness.moody).toEqual({ state: 'unknown' });

@@ -219,9 +219,13 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
     useSettingsStore.setState({ textOnly: false });
     useRoutingStore.setState({ participantSpeech: true });
     expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: true });
+    // A source that would recapture the participant's speech reaches the store through the audio store alone.
+    environment.value = 'electron';
+    useAudioStore.setState({ selectedParticipantSource: { deviceId: 'desktop-audio-loopback', label: 'System' } });
+    expect(useProviderStore.getState().speech.participantSpeech).toBe(false);
     unwatch();
     useSettingsStore.setState({ textOnly: true });
-    expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: true });
+    expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: false });
   });
 });
 
