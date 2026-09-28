@@ -305,7 +305,9 @@ The conformance suite (D24) checks each rule below against every adapter.
   frames (Gemini's: `server_content.*`, `server.usage_metadata`). Doubao AST
   2.0's rows group `subtitle.*`, `tts.*`, `session.usage` and
   `session.audio_muted` under the old client's keys; a group holds one frame
-  type.
+  type. OpenAI Translate's need no row: its three `.delta` frames group by
+  their own type, `session.error` reads as an error by its suffix, and its
+  `session.closed` — the server ending the session — draws the separator.
 
 ### The session request
 
@@ -369,7 +371,10 @@ The seven `buildParticipantSessionConfig` overrides disappear. Most of them swap
 source and target and re-derive; the two remaining special cases become generic:
 whether a direction is supported (OpenAI Translate's thirteen targets, Palabra's
 check) is answered by the provider definition's two language functions, and the
-participant leg's server-side turn detection follows from `turns: 'auto'`.
+participant leg's server-side turn detection follows from `turns: 'auto'`. For
+OpenAI Translate the thirteen targets now refuse a Both start whose source is
+outside them, before anything opens (D20, D22), where the old guard skipped the
+participant leg and ran the speaker alone (Stage 2 OpenAI Translate).
 
 **One call replaces construct-then-connect.** A client is created, connected
 immediately and used for exactly one session, so the two are one moment. The
@@ -423,7 +428,8 @@ it has leaked out of it.
 | Local ×2 | client VAD, configurable | flush | immediate |
 | Volcengine AST2 | server VAD, no knobs | 500 ms of silence on release, the old finalization's burst (Stage 2 Volcengine AST2, ruling 6); between turns the keepalive sends silence only after 250 ms with no audio (ruling 7) | after silence |
 | Palabra | server segmentation, silence threshold configurable | none on the wire; the track (`dtx:false`) carries silence and the server segments after its threshold | after silence |
-| OpenAI Translate ×2, OpenAI Live | **a continuous stream; there are no turns on the wire** | not needed — release stops the microphone and what was said finishes translating | n/a |
+| OpenAI Translate | **a continuous stream; there are no turns on the wire**, no commit and no server VAD | the held remainder padded to the next 200 ms engine frame, then one frame of silence per 200 ms beat, in real time, until the translation has been quiet 1 s, at most 3 s after the release — both ends counted in beats, five and fifteen frames, never read off the clock, so a late timer or a stepped clock moves neither (Stage 2 OpenAI Translate, ruling 2): the server holds a sub-frame remainder until more audio arrives, and model time advances only with appended audio | after silence |
+| OpenAI Live | **a continuous stream; there are no turns on the wire** | not needed — release stops the microphone and what was said finishes translating | n/a |
 
 **Every one of the twelve can support manual turns correctly.** None is
 incapable; they differ only between immediate and after-silence.
@@ -453,7 +459,8 @@ mechanism:
 | Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
 | AST2 | — | 500 ms of silence | the same tail — the old release sent it for an empty press too |
 | Palabra | — | — (the server closes on silence) | — |
-| OpenAI Translate, OpenAI Live | — | — | — |
+| OpenAI Translate | — (a press ends a tail still running) | the pad, then real-time silence until quiet, capped | the same tail — what the press appended is the model's input already, and no clear exists (Stage 2 OpenAI Translate, choice 7) |
+| OpenAI Live | — | — | — |
 
 `beginTurn` exists for two reasons: Gemini sends `activityStart` today on a
 heuristic ("before the first audio chunk"), and the two WebRTC adapters own their
@@ -534,12 +541,13 @@ takeover keeps its hint, where it is true.
 
 **Coverage.** Soniox, OpenAI Translate (with its Kizuna twin), OpenAI Live and
 Palabra offer only automatic turns today. All of them gain push-to-talk and
-push-to-translate. The one exception runs the other way: OpenAI Realtime over
-WebRTC keeps manual turns only (D25), as today — with the native track live,
-the server's VAD would cut the translation being played whenever the user
-speaks, which is why `forceWebrtcTurnDetectionOff` exists. The definition
-states it through `turns(s)`, and the settings UI hides the automatic mode
-there.
+push-to-translate. OpenAI Translate's gain lands with its Stage 2 plan, over
+WebSocket; its Kizuna twin is deleted, not ported. The one exception runs the
+other way: OpenAI Realtime over WebRTC keeps manual turns only (D25), as
+today — with the native track live, the server's VAD would cut the translation
+being played whenever the user speaks, which is why
+`forceWebrtcTurnDetectionOff` exists. The definition states it through
+`turns(s)`, and the settings UI hides the automatic mode there.
 
 ---
 
@@ -729,6 +737,13 @@ arrives twenty times a second; re-pairing thousands of segments on every one
 would put the cost where today's full `mergeConversationItems` already puts
 it, and the point of running once is to run less, not the same amount in one
 place.
+
+The window holds for untimed pairs. A translation with `timing` still scans
+every source with timing (`pair.ts`), and a timing that changes on every delta
+re-pairs on every delta, so the first provider to emit `timing` sets it once,
+at segment close, and extends F16 to a timed window first — OpenAI Translate's
+follow-up, should its `elapsed_ms` prove one timeline (Stage 2 OpenAI
+Translate, ruling 6).
 
 Filtering, band packing and styling are **not** L2's. They depend on each
 surface's own settings — the extension overlay carries display modes, a font
@@ -966,7 +981,7 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 | LocalInferenceClient | yes | per TTS sentence, **exists today** | one translate job — stated |
 | LocalNativeClient | yes | per TTS sentence, **exists today** | one translate job — stated |
 | SonioxClient | yes | per TTS segment — filled in once the segment's speech has ended (`speechRanges`); unlit before; none for a segment the provider killed | same utterance — stated |
-| OpenAITranslateGAClient | yes | per audio frame, **exists today** | inferred (media time) |
+| OpenAITranslateGAClient | yes | per audio frame, **by arrival**: each content frame carries the translation's text from the previous frame's end to its length when the frame arrived — the old client's alignment (#216), kept by the owner's ruling, not a known correspondence (Stage 2 OpenAI Translate, ruling 6) | inferred by proximity: no `timing` is emitted; every delta frame carries `elapsed_ms`, for the live test to settle whether it puts both sides on one timeline (ruling 6) |
 | OpenAILiveClient | yes | per audio frame, **exists today** | inferred (`end_ms` timeline) |
 | OpenAIGAClient | yes | per audio frame — `handleAudioDelta` already holds the item and the transcript accumulates on the same `item_id` | response ↔ committed input — stated, to be wired |
 | OpenAIClient (compatible) | yes | per audio frame — same shape | same — to be wired |
@@ -983,7 +998,8 @@ table named (Stage 2 Soniox survey §3.7.3).
 
 Gemini, not OpenAI Translate, is the first provider whose origins L2 infers
 (Live Translate). Doubao AST 2.0 is the second, pairing by proximity alone like
-Live Translate: neither states an origin or a timing.
+Live Translate: neither states an origin or a timing. OpenAI Translate is the
+third, by proximity too.
 
 Two findings are worth stating plainly. Palabra is the only client that cannot
 replay, and it holds the cleanest pairing evidence in the codebase: the same
@@ -1120,6 +1136,12 @@ optional `LanguageContext`; `credentials.choice` names a setting that decides
 which credential fields show (`CredentialChoice`, its `setting` typed `string`,
 a field of `S`).
 
+**Amended by the Stage 2 OpenAI Translate plan:** `speech: 'optional'` also
+describes a provider whose API cannot stop speaking: OpenAI Translate always
+produces translated audio, and bills it, so a leg that does not speak receives
+it and drops it in the adapter — Text only then changes playback and nothing
+else (ruling 4).
+
 `settings.key` is today's slice key, and values persist under
 `settings.<key>.<field>` exactly as now: no user's saved settings move.
 
@@ -1134,9 +1156,11 @@ stores, which is where model resolution belongs (never in the adapter).
 
 `start` owns the transport. OpenAI's choice between WebRTC and WebSocket, and the
 fallback from one to the other, become its business, so `supportsWebRTC` and
-`forcedTransport` leave the contract. Palabra's `forcedTransport: 'webrtc'`
-exists only to steer MainPanel's transport switch; its adapter always uses
-LiveKit.
+`forcedTransport` leave the contract. OpenAI Translate's first port is WebSocket
+only: its `transportType` stays in `S`, read and not shown, and its
+`C.transport` is `'websocket'` until its WebRTC step widens both (Stage 2 OpenAI
+Translate, ruling 1). Palabra's `forcedTransport: 'webrtc'` exists only to
+steer MainPanel's transport switch; its adapter always uses LiveKit.
 
 **What else is provider-specific and sits in MainPanel today** goes into the
 adapter: OpenAI's drift anchor — an out-of-band, text-only `createResponse`
@@ -1335,8 +1359,9 @@ pauses. Cutting into a number of sentences is available
 everywhere: rows tile the segment's text and a `range` survives a cut, so the
 reason OpenAI's descriptor withheld it — splitting an item would strand its
 karaoke timing — no longer holds. It takes `S` because the answer can depend on
-transport: OpenAI Translate over WebRTC has no source pause today
-(`SentenceSegmentationSection.tsx:251`).
+a setting. OpenAI Translate's is `'silence'`, and its WebRTC step is to feed the
+same segment machine the WebSocket port built, so both transports keep both
+pauses (Stage 2 OpenAI Translate, choice 4; survey §3.6.5).
 
 ### Managed twins are composition
 
@@ -1439,6 +1464,17 @@ the credentials while online (Stage 2 Volcengine AST2, ruling 2). AST2 is
 therefore not the seam's first user: OpenAI Live is, and the plain `socket.ts`
 of Soniox, Gemini and Doubao move to `src/lib/contract/` with it.
 
+Nor does OpenAI Translate's. Its key rides in the
+`openai-insecure-api-key.<key>` WebSocket subprotocol, which a browser sends
+itself as `Sec-WebSocket-Protocol` on every platform, so it needs neither a
+header seam nor an ephemeral token; a key that is no valid subprotocol token
+makes the browser's `SyntaxError` quote it, so its seam rethrows in fixed words,
+and `redact()` masks the subprotocol (Stage 2 OpenAI Translate, ruling 16,
+choice 3). When OpenAI Live makes the seam's first use, its Electron rule
+scopes by path: the rule is per host and one-shot today
+(`electron/main.js:1113-1133`), so a stale Live rule for `api.openai.com` would
+reach a Translate upgrade.
+
 ### Persisted settings that move
 
 Storage keys stay, but five things change meaning. A provider's own values are
@@ -1470,7 +1506,9 @@ not move.
    statically — none for Soniox, whose twelve origins the manifest already
    lists, or for Gemini, whose origin the manifest's CSP already lists, or for
    Doubao AST 2.0, whose host and CSP origin the manifest already lists
-   (`manifest.json:37, 116`).
+   (`manifest.json:37, 116`), or for OpenAI Translate, whose
+   `wss://api.openai.com/*` host and CSP origins the manifest already lists
+   (`manifest.json:38, 116`).
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
 
 For OpenAI Live that is two code files outside its folder, plus the manifest,
@@ -1941,7 +1979,9 @@ step ports from. What lived only in the old MainPanel — the cross-leg
 orchestration — is read from history
 (`aecaae2b^:src/components/MainPanel/MainPanel.tsx`). A Stage 2 step writes the
 provider's definition, adapter and settings component together, and deletes
-that provider's old code after the owner has run it live.
+that provider's old code after the owner has run it live. OpenAI Translate's
+own-key old code waits for its WebRTC step's live test: the WebRTC client
+imports the GA client (Stage 2 OpenAI Translate, ruling 14).
 
 **Stage 2 — one provider per change**, after a vendor-free foundation plan
 (`docs/superpowers/plans/2026-09-26-client-contract-stage2-foundation.md`).
@@ -1962,8 +2002,11 @@ The order (the owner may overrule it):
    query (no seam), two credential modes, a language offer per speech mode,
    pairing inferred by proximity — ported by the Stage 2 Volcengine AST2 plan.
    Its relay twin (`kizunaai_volcengine_ast2`) is deleted, not ported.
-5. **OpenAI Translate** (`openai_translate`) — frame-level ranges, our own
-   boundaries, inferred origin.
+5. **OpenAI Translate** (`openai_translate`) — frame-level ranges by arrival,
+   our own boundaries, inferred origin, a push-to-talk release tail, Text only
+   as a playback control — ported over WebSocket by the Stage 2 OpenAI
+   Translate plan; its WebRTC transport is item 7. Its relay twin
+   (`kizunaai_openai_translate`) is deleted, not ported.
 6. **OpenAI Realtime and OpenAI Compatible** (`openai`, `openai_compatible`) —
    one settings component, server boundaries, the drift anchor, the typed-text
    queue.
@@ -1989,9 +2032,11 @@ the owner's decision when their turn comes. If they do, each is
 decided. `kizunaai_volcengine_ast2` is deleted with the old AST2 code, not
 ported (item 4 above); `kizunaai_openai_translate` stays held until OpenAI
 Translate's turn.
+**Amended by the Stage 2 OpenAI Translate plan:** the owner has decided that one
+too: it is deleted, not ported, after the own-key port's live test (plan T2).
 
 That is twelve providers: ten ported in ten steps — OpenAI Translate's WebRTC
-transport is a step of its own — and two relay twins, one held and one deleted.
+transport is a step of its own — and two relay twins, both deleted.
 Each step is its own implementation plan; this spec is the design for the
 whole, not the plan for any one stage.
 
@@ -2125,6 +2170,9 @@ From the Stage 2 foundation survey's §3.4:
 - **Karaoke's honesty depends on producers being honest.** A client that reports
   a `range` it does not actually know reintroduces the fake alignment this design
   deletes. The rule is one line: report a `range` only when the producer knew
-  which characters the audio speaks.
+  which characters the audio speaks. OpenAI Translate's arrival ranges are the
+  one stated exception: the old client's alignment, kept as parity by the
+  owner's ruling until its `elapsed_ms` is measured (Stage 2 OpenAI Translate,
+  ruling 6).
 - **A long-lived branch that outlives its welcome.** Mitigated only by Stage 1
   landing quickly enough that Stage 2 can proceed provider by provider.

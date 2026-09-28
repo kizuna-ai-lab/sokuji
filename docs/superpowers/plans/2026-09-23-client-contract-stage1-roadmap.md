@@ -3833,3 +3833,589 @@ reviews parked for this plan's final fix wave are done, last below):
 - **To the final fix wave, done** (`7f3dded6`, "The final fix wave" above): `nativeSocket` in `volcengine_ast2/socket.ts` and `gemini/socket.ts` rethrows in fixed words — `The browser would not open the socket (<error name>).` — dropping the browser's message, which can quote the URL; one place each covers the adapter, Doubao's check and Gemini (Task 15's review, M3b). The error keeps the browser's error name ("Found during execution", item 10).
 - **To the final fix wave, done** (`45e49a6e`): review and task IDs stripped from production comments, plan-wide — "(Stage 2 Volcengine AST2, I2)", "F4", "Task N" — citing rulings and choices as the other files do, Task 1's two codec stubs among them, to cite F18 rather than a task (Task 17's review, m1; the ruling on Task 1's note). F4, an F item the codebase cites, stays.
 - **To the final fix wave, done** (`7f3dded6`): an `invocationCallOrder` pin that Finish writes the credential choice before the credentials. The order is not load-bearing today — both writes are synchronous and the readiness driver schedules its check — and nothing would catch a refactor that made it so (Task 17's review, m2). A scratch copy that swaps the two writes fails only the new case.
+
+## Scheduled by the Stage 2 OpenAI Translate plan
+
+The Stage 2 OpenAI Translate plan
+(`docs/superpowers/plans/2026-09-28-client-contract-stage2-openai-translate.md`,
+plan commit `4592115f`, written over `8db4261f`'s code) landed as the fifteen
+commits `fee5aa77` through `426251e1` on `worktree-client-contract-stage2`
+(`4592115f..426251e1`: **+3,193 / −9 lines across 35 files**). Then this record
+with the spec's amendments. It is Stage 2's fifth provider — **OpenAI
+Translate, `gpt-realtime-translate` speech to speech, with the user's own key**
+(`openai_translate`) on the new session, over WebSocket: its definition,
+settings, credentials, a bounded model-list check, builder, adapter with a
+push-to-talk release tail, and settings view, and the pieces it built for the
+ports after it (`NoiseReductionField`, two notice aliases, the subprotocol's
+redaction). The WebRTC transport is a later Stage 2 step (ruling 1). Deleting
+the relay twin `kizunaai_openai_translate` — which the owner ruled is deleted,
+not ported — is a later plan, T2, after the owner's live test below; deleting
+the own-key old code of both transports is T3, after the WebRTC step's live
+test, since the WebRTC client imports the GA client (ruling 14). Until then the
+old GA and WebRTC clients, the two descriptors, the old settings UI's Translate
+branches, the two store slices and `EphemeralTokenService`'s translation mint
+stay compiled and unreachable. Ten implementation tasks ran in the plan's four
+waves — Tasks 1–3; Tasks 4–8; Task 9; Task 10 — with group check A after the
+third and group check B after the fourth. Wave 2 started while the reviews of
+Tasks 1 and 3 ran, Task 9 while Task 6's re-review ran, and Task 10 while Task
+9's fix round ran, each on files the running work did not touch. Tasks 4, 5 and
+9 took one review fix round each and Task 6 two; Tasks 1, 2, 3, 7, 8 and 10
+were approved as their implementers committed them. Task 11 is this record. The
+survey and the follow-up research the plan was written from are named in its
+research notes.
+
+**The pre-flight.** The plan's independent review applied it task by task to a
+scratch copy of `8db4261f` and ran each task's red and green step at its own
+point: every red failed as stated, every green passed, all 13 diffs applied,
+and every block given in full equalled the tested file. Its two Important and
+nine Minor items were applied by the drafter, who applied the amended plan
+again to a fresh copy of `8db4261f`: 538 files passed and 1 skipped, 6,853
+tests passed and 2 skipped, the full tree's typecheck at 259 lines and the gate
+at its 20. That application was the executed pre-flight; the tree had not moved
+since (`4592115f` adds only the plan), and no ruling was needed before Wave 1.
+
+**The rulings.** Rulings 1–15 are the owner's (2026-09-28; the plan's header),
+each confirmed as the plan states it:
+1. WebSocket only: a stored `webrtc` choice runs over WebSocket until the
+   WebRTC step, and no transport control shows (`S.transportType` kept,
+   `C.transport` `'websocket'`; choice 15).
+2. Push-to-talk's release tail: the held remainder padded to the next 200 ms
+   frame, then silence in real time until the translation has been quiet 1 s,
+   at most 3 s after the release; a press ends it; no idle keepalive until the
+   live test shows a need. Both numbers land as frames counted in 200 ms beats,
+   five and fifteen ("Found during execution", item 1).
+3. A mid-session `error` is a Logs line, the session running on; its words are
+   kept for a close that follows.
+4. Text only is offered as a playback control, `speech: 'optional'`: a leg that
+   does not speak drops the audio the API still sends, and bills.
+5. The participant speaks when its switch is on: the definition sets no
+   `participantSpeech`.
+6. Pairing by proximity through F16 and audio ranges by arrival, with no
+   `timing`; `elapsedMs` framed on every delta — the source's, the
+   translation's and the content audio's.
+7. The model select is gone: every session runs `gpt-realtime-translate`, and
+   the check still requires the family.
+8. The transcript-model select is gone: `gpt-live-transcribe` is a constant.
+9. Noise reduction "None" sends `null`.
+10. No OpenAI-key prefill on first selection.
+11. The registry order `['kizunaai_soniox', 'localInference', 'gemini',
+    'volcengine_ast2', 'openai_translate', 'soniox']`, Translate unflagged
+    (`src/providers/registry.ts:19`, pinned at `registry.test.ts:293`).
+12. The OpenAI setup guide (the same key).
+13. An expiry or a drop ends the run in words; no reconnect.
+14. T2 after this port's live test; T3 after the WebRTC step's.
+15. Same-language pairs stay offered; `auto` stays out of the sources.
+
+Rulings 16–23 are the controller's technical rulings in the plan, applied as
+written. The controller's rulings during execution are recorded below, under
+"Found during execution", "Accepted as they stand", "Stated departures", the
+live test, the open questions and "What it leaves".
+
+What landed, by task:
+- **The check's words, the subprotocol's redaction, the Logs pin** (`914a65a0`,
+  Task 1; rulings 16, 18, 20; choices 3, 11, 12): two `NOTICE_ALIASES` —
+  `no_translate_model` → `settings.translateModelNotAvailable` and
+  `region_unsupported` → `settings.regionNotSupported`, the old validation's
+  sentences — each targeting the provider section; `redact()`'s carrier rule,
+  `(\bopenai-insecure-api-key\.)[A-Za-z0-9._~+/=-]+` → `$1[REDACTED]`, beside
+  `sokuji-auth.` (whose comment's drifted `GA:501` now reads `:707`) and ahead
+  of the bare-key rules in its sequential loop; `logStore.test.ts` pins, with
+  no change to `logStore.ts`, that its `.delta` rule groups the three delta
+  frames each under its own type and that none of Translate's other frame
+  names takes a key — all eighteen enumerated, so none lands under Doubao's
+  rows. No new locale key.
+- **`NoiseReductionField`** (`fee5aa77`, Task 2; ruling 19, choice 13): the old
+  noise section's markup (`ProviderSpecificSettings.tsx:807-840`) as a shared
+  field in `src/components/providers/fields/`, generic over its values, which
+  it shows raw as the old select did, with an `aria-label` as `VoiceField`'s
+  select has. OpenAI Realtime and Compatible reuse it next.
+- **Translate's settings, languages, key and builder; the folder seeded**
+  (`8beadc3a`, Task 3; rulings 1, 4, 5, 7, 8, 9, 15; choices 4, 10, 14, 15):
+  `settings.ts` — `TranslateSettings { noiseReduction, transportType }`,
+  `TRANSLATE_DEFAULTS`, `migrateTranslateSettings`, `TRANSLATE_MODEL`,
+  `TRANSCRIPT_MODEL`, `isTranslateModelId` (`OpenAIClient.ts:265`'s rule),
+  `TRANSLATE_SOURCES` (74, no `auto`) and `TRANSLATE_TARGETS` (13), entry for
+  entry the old descriptor's (`OpenAITranslateProviderConfig.ts:161-256`),
+  `translateLanguages` (one offer in every language context) and
+  `translateCredentials` (one key, trimmed); `config.ts` — `TranslateConfig {
+  model, target, transcriptModel, noiseReduction, silence, transport }`,
+  `buildTranslate` (a target outside the thirteen refused in words, "None" as
+  `null`, `silence` exactly as `buildGemini` builds it, `transport:
+  'websocket'` with `S.transportType` unread) and `describeTranslate` →
+  `{ translationModel, asrModel }`; the `adapter.ts` seed, written first for
+  the session-side guard.
+- **Translate's own settings view** (`49c0f783`, Task 8; D18, rulings 1, 7, 8,
+  19, choice 13): `TranslateSettingsView` draws the old info banner character
+  for character (`ProviderSpecificSettings.tsx:2173-2183`), first, then
+  `NoiseReductionField`, and writes only `update({ noiseReduction })`; no
+  model, transcript-model or transport control, and every string an existing
+  key.
+- **Each side a segment on its own silence timer** (`d78a0920`, fix round
+  `e6af8d8f`, Task 5; rulings 4, 6, 17, 21; choices 4, 5, 6, 18): `segments.ts`,
+  `TranslateSegments` — the per-side `ensure` / `close` / `arm` / `cancel` and
+  the mid-sentence deferral copied from Gemini's Live Translate half
+  (`gemini/turns.ts:217-259`, less the origin and the CJK respacing), not
+  shared, for the three reasons choice 4 gives; content audio opens the
+  translation when none is open and re-arms its timer whether it plays or not
+  (choice 5); a played frame carries `[the previous played frame's end, the
+  text's length at its arrival]` (choice 6); a `.done` event closes its side
+  (choice 18). The fix round (test-only): "Found during execution", item 4.
+- **The wire, the socket seam and the fixtures** (`aed81d5f`, fix round
+  `bbf16f39`, Task 4; rulings 6, 8, 9, 16; choices 3, 8, 9, 17): `socket.ts`,
+  Translate's own seam — `nativeSocket(url, protocols)` rethrows a constructor
+  failure as `The browser would not open the socket (<name>).`, keeping the
+  error's name, as the AST2 plan's final fix wave did for Doubao and Gemini;
+  `wire.ts` — `TRANSLATE_WS_URL` and `translateUrl` (the model in the query),
+  `translateProtocols` (`['realtime', 'openai-insecure-api-key.<key>']`, never
+  the beta tag, which the endpoint refuses; the one reader of the key, pinned
+  by a TypeScript-AST scan), `sessionUpdate` (typed by the SDK's event; the
+  transcription always set, `noise_reduction: null` for none), `appendFrame`,
+  `pcmToBase64` and `base64ToPcm` copied from Gemini's wire (choice 8; an odd
+  trailing byte dropped), `decodeServerEvent`, `OUTPUT_RATE`, `isSilentFrame`,
+  `computeRms`, `elapsedMsOf`, `errorCode` and `errorWords` (choice 9);
+  `testing.ts`, the fixtures. The fix round (test-side): "Found during
+  execution", item 3.
+- **The release tail** (`bd74c926`, fix rounds `b4b83f67` and `f2c91d1f`, Task
+  6; rulings 2, 21; choice 7): `tail.ts` — `FRAME_MS` (200), `FRAME_SAMPLES`
+  (4,800), `TAIL_QUIET_MS` (1,000), `TAIL_MAX_MS` (3,000), `padSamples(sent)`,
+  `TailSummary { reason, silenceMs, lastOutputMs, cancelled? }` and
+  `ReleaseTail` (`start(sent, cancelled)`, `output()`, `stop(reason)`,
+  `cancel()`, `running`): the pad at once, then `every(clock, 200, …)`, one
+  silent frame a beat until quiet or the cap; a press or audio ends it and says
+  so, `cancel` ends it silently. The first fix round made both ends count beats
+  ("Found during execution", item 1) and pinned the `'audio'` ending; the
+  second corrected two comments.
+- **The check, one bounded model list** (`580bd8cd`, Task 7; rulings 7, 18;
+  choice 11): `check.ts` — `createTranslateCheck` and `checkTranslate`: `GET`
+  `OPENAI_MODELS_URL` with `Authorization: Bearer <key>` and nothing else,
+  bounded by `CHECK_TIMEOUT_MS` (15 s) and the caller's signal, on an injected
+  `fetch` and clock; ids starting `gpt-realtime-translate` → ready, newest
+  `created` first, each id once; none → `no_translate_model`;
+  `unsupported_country_region_territory` at any status → `region_unsupported`;
+  401 or 403 → `auth` with `HTTP <status>: <OpenAI's message>`; 429 →
+  `rate_limit`; any other status, a failed fetch, the bound or the abort → it
+  throws. Line for line the skeleton of Soniox's and Gemini's checks.
+- **The adapter** (`49727661`, fix round `426251e1`, Task 9; rulings 2, 3, 4, 6,
+  13, 16, 20, 21; choices 1, 2, 3, 5, 7, 9, 12, 15, 16, 17, 18):
+  `createTranslateAdapter`, one leg per socket. `session.created` sends
+  `session.update`, and the start resolves on `session.updated` (choice 1). It
+  rejects in words within `START_TIMEOUT_MS` (30 s) on the request's clock —
+  `network` if the socket never opened, `server` if it did — and at once for a
+  socket that failed before opening (`NEVER_OPENED`, `network`), a close after
+  it opened, the server's `session.closed` or an `error`, closing the socket on
+  every path (choice 2); a browser that will not open the socket rejects in
+  fixed words (ruling 16). Each chunk goes up as it came, unframed. Under manual
+  turns a release, voiced or cancelled, runs the tail and frames `turn.tail`
+  and `turn.tail_end`; a press or audio ends it (ruling 2, choice 7); under
+  automatic turns the keys send nothing. Deltas become segments (Task 5), each
+  delta framed with its `elapsedMs` (ruling 6); content audio plays on a
+  speaking leg at 24 kHz and holds the translation either way (choices 5, 16);
+  a heartbeat is nothing at all. A mid-session `error` is framed and
+  remembered: a close — the socket's, or the server's `session.closed` —
+  within `ERROR_WORDS_MS` (10 s) fails the run with its code and words (ruling
+  3; choice 9); otherwise an unexpected close fails with `connection_lost` and
+  `session.closed` closes the run (ruling 13). Two unreadable latches, the
+  frame's and the audio's (choice 17). The harness `startTranslate` /
+  `liveTranslate` joins the fixtures; the session-side guard walks the folder
+  (`adapter.ts`, `segments.ts`, `socket.ts`, `tail.ts`, `wire.ts`); the kit's
+  conformance scenarios pass, all but typed text and reconnecting, which
+  Translate has neither of. The fix round: "Found during execution", items 2
+  and 4.
+- **The definition, registered fifth** (`670b9ac1`, Task 10; rulings 1, 4, 5,
+  11, 12, 15): `provider.ts` — the old id and slice (`openaiTranslate`),
+  `platforms: ['electron', 'extension', 'web']`, the OpenAI icon and guide,
+  `speech: 'optional'`, `textInput: false`, `boundaries: 'silence'`, both turn
+  modes, no `participantSpeech` and no `flagged`; `RELEASED` gains
+  `openaiTranslateProvider` before `sonioxProvider`, pinned at
+  `registry.test.ts:293` and in `providerPaths.test.ts` (`['gemini',
+  'volcengine_ast2', 'openai_translate', 'soniox', 'fake']`), whose fit case
+  now expects Translate not greyed for the subtitles-only scenario; Doubao's
+  order case narrowed to "sits after Gemini (ruling 5)". Its own cases: the
+  participant speaks into the pair's source on its switch; Both refused before
+  anything opens for a source-only language (D20); an old profile — the key,
+  the pair, the noise reduction and a `webrtc` choice — loads as it was, with
+  nothing written.
+
+**F14.** OpenAI Translate is not a header user (ruling 16): F14 stays OpenAI
+Live's, and Translate's own `socket.ts`, which takes protocols, moves to
+`src/lib/contract/` with Soniox's, Gemini's and Doubao's when F14 lands. When
+it does, its Electron rule should scope by path (the spec's amendment 10): the
+rule is per host and one-shot today (`electron/main.js:1113-1133`), so a stale
+Live rule for `api.openai.com` would reach a Translate upgrade.
+
+**The spec's amendments** (this record's commit), the plan's thirteen, each at
+its anchor:
+1. "The session request": D20 now refuses a Both start whose source is outside
+   the thirteen targets, where the old guard ran the speaker alone.
+2. "Turns": Translate's row, split from OpenAI Live's — no commit and no server
+   VAD, the release tail, and, as landed, its ends counted in beats ("Found
+   during execution", item 1) — and its design row: a press ends a running
+   tail, and `cancelTurn` sends the same tail (choice 7).
+3. "Coverage": Translate's push-to-talk lands with this plan, over WebSocket;
+   its Kizuna twin is deleted, not ported.
+4. "The provider definition": `speech: 'optional'` for a provider whose API
+   cannot stop speaking (ruling 4).
+5. "`start` owns the transport": WebSocket only, `transportType` in `S`,
+   `C.transport` `'websocket'` (ruling 1).
+6. "Provider capability": Translate's karaoke by arrival and its pairing by
+   proximity with `elapsed_ms` framed; Translate the third provider whose
+   origins L2 infers.
+7. "Risks": the arrival ranges, the one stated exception to the honesty rule.
+8. "L2 — the projection": F16's window holds for untimed pairs; the first
+   provider to emit `timing` sets it once, at segment close, and extends F16 to
+   a timed window first.
+9. "Segmentation is one fact": `'silence'` on both transports through one
+   segment machine (choice 4), replacing "OpenAI Translate over WebRTC has no
+   source pause today".
+10. "Sockets that need upgrade headers": the subprotocol key, no seam, the
+    fixed words and the redaction; the seam's Electron rule to scope by path.
+11. "What adding a provider then touches": no manifest change for Translate
+    (`manifest.json:38, 116`).
+12. "What every adapter must honour": Translate needs no `logStore` row.
+13. "Migration": T3 waits for the WebRTC step's live test; item 5 ported over
+    WebSocket, its WebRTC transport item 7; the relay twin deleted, not ported,
+    and the count "two relay twins, both deleted".
+
+**Checked — the gates.** Every implementer ran the suite and the typecheck gate
+on its own commit. In the parallel waves a failure or an extra gate line in
+another task's uncommitted files was named and left to it: Task 2 saw failures
+only in Task 1's work in progress and extra gate lines only in Task 3's; Task 8
+saw failures only in Tasks 5's and 7's. Tasks 4, 5, 6 and 7 met test timeouts
+under Wave 2's load (a load average of 84 at one point) — in
+`kizunaProviderGating`, `providerOrder` and `spine.e2e` among others — which
+passed re-run alone; the reviews of Tasks 4 and 5 confirmed they could not come
+from those tasks' files, which nothing but their own tests imported yet. The controller's full gate after Wave 2, with no concurrent
+load, at `580bd8cd`: 536 files passed and 1 skipped, 6,805 tests passed and 2
+skipped, 0 failed, no unhandled errors — the plan's own after-Wave-2 figure —
+and the gate at its baseline; the timeouts did not recur. The suite grew from
+527 files passed and 1 skipped, 6,730 tests passed and 2 skipped at `8db4261f`,
+to 538 files passed and 1 skipped, 6,859 tests passed and 2 skipped at
+`426251e1` — the plan's 6,853 and six cases the fix rounds added — 0 failed, no
+unhandled errors; the gate — the AST2 plan's regex, unwidened — at its 20 lines
+throughout, and the full tree at 259.
+
+**Checked — group check A** (at `f2c91d1f`, with Task 9's `49727661` in review;
+nothing registered yet):
+1. the suite: 537 files passed and 1 skipped, 6,850 tests passed and 2 skipped,
+   0 failed, no unhandled errors; the gate at its baseline;
+2. `src/services` and `src/components/Settings`: 112 files, 1,802 tests passed —
+   the old Translate code untouched;
+3. `npm run build` and `npm run extension:build`; the three D24 greps empty;
+   `turn.tail_end` in neither bundle, as expected before the registration;
+   `npx vitest run extension` (7 files, 45 tests);
+4. the full tree's typecheck: 259 lines, the bound;
+5. a fresh vite: the six spine probes and `app-panel-probe` (`--preview`,
+   `--preview --settings`) — all pass; the audio probe's one 3.5 s gap is the
+   fake script's own pause, as in the AST2 run.
+
+**Checked — group check B** (at `426251e1`):
+1. the suite: 538 files passed and 1 skipped, 6,859 tests passed and 2 skipped,
+   0 failed, no unhandled errors; the gate at its baseline; the full tree's
+   typecheck at 259;
+2. `npm run build` and `npm run extension:build`, the three D24 greps empty;
+   `turn.tail_end`, a frame only the new adapter emits, is in
+   `build/static/index-C4SImiAp.js` and `extension/dist/fullpage.js` — the
+   adapter ships in both bundles, neither fake does; `npx vitest run extension`
+   (45 tests);
+3. every probe on a fresh vite, restarted after Task 10 and Task 9's fix round:
+   the six spine probes, `app-panel-probe` (`--preview`, `--preview
+   --settings`, `--app`, `--app --settings`), `extension-overlay-probe` (plain
+   and `--ptt`) — all pass;
+4. **Translate's Provider tab, rendered**, with 0 requests to `api.openai.com`
+   in both layouts: advanced — "OpenAI Translate" with the OpenAI icon and the
+   "Setup guide" link to `https://sokuji.kizuna.ai/docs/tutorials/openai-setup`,
+   one API key row, the info banner, then "Noise reduction" (None / Near field
+   / Far field, None selected), and no model, transcript-model or transport
+   control; simple — the picker and the key row only. The banner's and the
+   noise section's classes are identical to the old tab's
+   (`ProviderSpecificSettings.tsx:2173-2183`, `:807-840`); the one markup delta
+   is the select's `aria-label` (choice 13). Screenshots
+   `oat-tab-advanced-full.png`, `oat-tab-simple-full.png`;
+5. **the languages and Text only** (in the simple layout: the advanced preview
+   has no language section): 74 sources, no "auto"; 13 targets for English and
+   for Thai; English → English selectable; the swap disabled for Thai →
+   English; the Text Only switch shown for Translate, and toggling it on and
+   off changed the switch alone — the language selects' snapshot
+   byte-identical — with 0 requests to OpenAI. That on a live leg it changes
+   playback and nothing else is the adapter suite's case (Task 9): the preview
+   cannot run Translate without the network;
+6. **the gate's words:** `/?preview=spine&panel=1&provider=openai_translate` —
+   ▶ Start disabled, "Enter your API key in Settings before starting." (its
+   title, and the credential field's own validation line), 0 requests to
+   OpenAI. D20's refusal for a source-only language in Both is Task 10's case:
+   the web preview refuses Both earlier, for its missing participant source;
+7. **the wizard** on a fresh profile: the own-key list "Google Gemini | Doubao
+   AST 2.0 | OpenAI Translate | Soniox" (and the development-only fake);
+   OpenAI Translate not greyed under the subtitles-only scenario ("Subtitle my
+   own speech"), ruling 4's departure — though no registered provider declares
+   `speech: 'always'`, so none is greyed there today; its credential step one
+   API key field and "How to get this key" to the OpenAI guide — never filled,
+   never validated, 0 requests to OpenAI. Screenshots `oat-wizard-path.png`,
+   `oat-wizard-credentials.png`;
+8. the Logs' grouping: `logStore.test.ts` (Task 1) is the evidence; no live
+   frame exists before the owner's test.
+
+**Found during execution** — what execution changed or found beyond the plan,
+each from a controller's ruling in the ledger, with its reason and where it
+lives:
+1. **The release tail's two ends count 200 ms beats, not wall-clock time** (Task
+   6's review, I1, which amended the plan's Task 6 Step 3; `b4b83f67`, its
+   comments `f2c91d1f`). Each tick counts a beat first; the tail ends `quiet`
+   when `beats − lastOutputBeat > TAIL_QUIET_MS / FRAME_MS` (more than 5) and
+   `cap` when `beats > TAIL_MAX_MS / FRAME_MS` (more than 15). `releasedAt` and
+   `lastOutputAt` feed only the summary's `lastOutputMs`, and `silenceMs` is the
+   frames sent times 200. Why: the plan compared `clock.now()` differences with
+   thresholds that sit exactly on the 200 ms grid, so a timer read 1 ms late or
+   more ended the quiet a beat early — 4 frames (800 ms) where ruling 2 fixed 5,
+   and 14 where it fixed 15 at the cap — and a wall clock stepped backwards made
+   the difference negative for good, so the tail never ended: 302 frames in a
+   minute, and no `turn.tail_end`. On an exact clock both rules end at the same
+   beat, for output before, at or between beats, so the adapter's cases on the
+   virtual clock were unaffected (the controller's check by hand, confirmed by
+   the re-review for every ordering the adapter produces; an output delivered
+   before a tick of the same instant ends a beat early, which the adapter never
+   does, and which still leaves at least 1 s of quiet). The second round
+   corrected two comments: the test's reason had run backwards (a late tick
+   reads more — 1,001 ms at beat 5 — not less), and the header overstated what
+   a timer's read can be. Lives in `src/providers/openai_translate/tail.ts`;
+   `tail.test.ts` pins a timer firing 1 ms and 3 ms late (five frames, fifteen
+   at the cap) and a clock stepped back an hour mid-tail (five frames, no timer
+   left).
+2. **An audio delta with no base64 string is unreadable audio** (Task 9's
+   review, m2; `426251e1`). A `session.output_audio.delta` whose `delta` is
+   missing or not a string now goes through the audio episode of choice 17 — a
+   `session.unreadable` frame and `parse_error` on the ok → failing transition,
+   in fixed words ("an audio delta with no base64 string") that quote nothing
+   of the frame — where the plan's adapter dropped it without a trace. Why: it
+   was the only server payload swallowed silently. A well-formed delta is
+   unchanged, and audio that decodes ends the episode. Lives in `adapter.ts`,
+   with its case in `adapter.test.ts`.
+3. **The key scan counts every reader** (Task 4's review, M1; `bbf16f39`).
+   `wire.test.ts`' TypeScript-AST scan, which pins `translateProtocols` as the
+   one function in `wire.ts` that reads the key, now also flags a string
+   literal naming the key or its type (an indexed read) and any reference to
+   `translateProtocols` outside its own declaration (a forwarded call), beside
+   the named identifiers; both evasions join the scan's in-test controls, and
+   the real file still scans to `['translateProtocols']`. Why: an
+   identifier-only scan missed both. The same round: `configFor`, the fixtures'
+   builder, throws on a refusal instead of casting it away (M2), so a refused
+   target fails loudly in the suites that use it, and `SERVER.audio` passes an
+   explicit null `elapsed` through (M3), as `input` and `output` do. Lives in
+   `wire.test.ts` and `testing.ts`.
+4. **Test pins the reviews added, with no change in behaviour.** In
+   `adapter.test.ts` (Task 9's review, I1 and m1, m3; `426251e1`): a heartbeat
+   during a tail never marks it (ruling 2); `sent` counts the pad and the
+   silence, so a second release pads 2,752 samples and everything sent stays on
+   the 200 ms grid; a leg that does not speak keeps its translation open on its
+   audio (no `segmentClosed` at 1,000 ms; ruling 4, choice 5); audio at a rate
+   the app does not play still marks the tail (choices 7, 16); the start's two
+   refusals after the socket opened — the server's `session.closed` and the
+   bound — close the socket (choice 2). In `segments.test.ts` (Task 5's review,
+   M1, M2; `e6af8d8f`): `stop()` cancels both sides' timers, and a closed
+   side's mid-sentence deferral resets, so the next segment gets its own window.
+   In `tail.test.ts` (Task 6's review, M1; `b4b83f67`): an `'audio'` ending
+   leaves no timer and sends nothing after, and `running` is false after a stop
+   and a cancel. The adapter's and the segments' new cases were each shown to
+   bite: a mutant passed the committed suite and failed the new case at its own
+   assertion.
+5. **No proof file in the tree** (the controller's ruling during Task 6's fix
+   round). The implementer had proved the pre-fix failure with a temporary
+   harness inside `src/`; it was deleted unstaged, the tree verified clean, and
+   the implementer told not to repeat it — the plan's rule that no task mutates
+   the tree to prove a guard. Lives in the execution's rules.
+
+**Accepted as they stand** (the controller's rulings, each with its cost if
+wrong):
+- **Task 4, M4:** `pcmToBase64` and `base64ToPcm` are copies of Gemini's
+  (choice 8), their provenance cited; lifted at the third user ("What it
+  leaves"). Cost: two copies until then.
+- **Task 4, M6:** the suite's `Not implemented: window.open` stderr comes from
+  `ChildWindowPopover`, pre-existing, not this plan's files. Cost: none.
+- **Task 7, M2:** a 200 whose body is not JSON rethrows through the check's
+  catch — not ready, Start off — which is choice 11's "what says nothing about
+  the key throws"; no case pins it, the test file being the plan's verbatim.
+  Cost: an untested path that already behaves.
+- **Group check B:** the noise select's `aria-label` is the one markup delta
+  from the old tab, as choice 13 intends; the language swap button has no
+  accessible name beyond its native `title`
+  (`src/components/providers/LanguagePairSection.tsx:83-91`), pre-existing,
+  shared and not this plan's — for the final review's out-of-scope list. Cost:
+  none new.
+
+**Stated departures from today** (the plan's self-review list, as landed; what
+execution added is marked):
+- Text only is offered (ruling 4): the switch shows, and a leg that does not speak drops the audio the API still sends; the wizard's subtitles-only scenario offers Translate, where the old greyed it;
+- push-to-talk and push-to-translate are offered (the spec's coverage), with the release tail (ruling 2) — the old provider offered automatic turns only. **As landed**, the tail's two ends count 200 ms beats ("Found during execution", item 1);
+- the participant speaks when its switch is on (ruling 5; the old participant dropped its audio);
+- a source-only language refuses Both at start, in words (D20, D22), where the old guard skipped the participant and ran the speaker alone under a warning line;
+- the model select, the transcript select and the transport toggle are gone (rulings 7, 8, 1); a stored `webrtc` runs over WebSocket (ruling 1); noise reduction "None" sends `null` (ruling 9); no OpenAI-key prefill (ruling 10); a Text only switch left on under another provider now silences Translate, where it was ignored (ruling 4);
+- the start waits for `session.updated`, is bounded on the request's clock with the socket closed on every path, and a close before the session starts rejects at once (choices 1, 2; the old hung 30 s and left its socket open);
+- a mid-session `error` is a Logs line, not two bubbles, and a close within `ERROR_WORDS_MS` of it — the socket's or the server's — says its words (ruling 3; choice 9); an unexpected close ends the run in words, where the old tore it down silently (ruling 13);
+- the check is bounded and throws on a status the key does not explain or a failed fetch, where the old called every failure an invalid key; a region and a missing model are their own codes (choice 11);
+- the key is trimmed (choice 14);
+- appends are no longer framed; delta frames carry `elapsedMs`; heartbeats stay unframed (choice 12); an odd audio byte no longer throws (choice 8); a foreign output rate is skipped and said once (choice 16). **As landed**, an audio delta with no base64 string is said as unreadable audio, once per episode ("Found during execution", item 2).
+
+Where the plan departs from its survey, and from its brief, stays in the plan's
+self-review.
+
+**Before any release from the branch**
+- **The owner's live test below**, before T2 deletes the relay twin and before
+  any release that carries OpenAI Translate.
+- **The registry's order** is now `['kizunaai_soniox', 'localInference',
+  'gemini', 'volcengine_ast2', 'openai_translate', 'soniox']` (ruling 11;
+  `src/providers/registry.ts:19`, pinned at `registry.test.ts:293`), Translate
+  unflagged under D19's model.
+- **The wizard's own-key description** (`setup.paths.own-key.desc`): its
+  "OpenAI" is now partly true — Translate is ported, OpenAI Realtime and OpenAI
+  Live are not.
+- **At Stage 2's end**, `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE` joins the
+  release-flag cleanup (`build.yml:223, 277, 317, 419, 521`,
+  `extension/vite.config.ts:173-174`), with T2.
+- **The Text only tooltip** (`simpleConfig.textOnlyDesc`; en "Translate to text
+  only — no spoken audio output") is true of Translate's playback control in 28
+  catalogs; zh_CN's "不生成语音" and zh_TW's "不產生語音" ("no speech
+  generated") are not — the owner's call (an open question below).
+
+**The owner's live test** (survey §2.14's list, adjusted to the rulings; what
+execution added is marked). Switch diagnostic logs on in Help **before Start**,
+so the Logs record from the first frame; each item names what to look for there
+— above all `session.error`, `turn.tail`, `turn.tail_end` and the three delta
+frames with their `elapsedMs`:
+1. **The key and the check, on Electron, the extension's side panel and the web** (rulings 16, 18; choice 11): a valid key → Validate ✓; a key without translate access → "API key works, but gpt-realtime-translate is not accessible with this key."; a wrong key → "The provider did not accept the credentials: HTTP 401: …"; an unsupported region, if reachable → the region sentence ("Service not available in your region. …"); offline → not ready, Start off, no words about the key. Record any 429 met, and its words. **Execution (Task 4's review, M5):** record whether the wrong key's words quote the key's last four characters (OpenAI's message says `sk-proj-****6789`): the check passes OpenAI's message verbatim, and `redact()`'s bare `sk-` rule does not mask a key already masked (an open question below).
+2. **The socket on all three platforms** (ruling 16; choice 2): it opens with the subprotocol; no key in the Logs or the Logs' export. **Record what a revoked key does at the upgrade** — a refused upgrade (the start then reads "The connection to the provider failed: OpenAI's socket did not open (check the network, and that the API key is still valid)."), or an accepted one followed by an `error` event (then its words, and the `session.error` frame's `type`, `code` and `message`) — and whether DevTools' own console prints the subprotocol.
+3. **The session's configuration** (choice 1; ruling 9): record `session.created`'s `audio` (is noise reduction on by default? transcription?) and `expiresAt`; `session.updated` arrives, with `noise_reduction: null` for "None" and the type for the other two; the start resolves on it. If `session.updated` never arrives, every start times out with "OpenAI did not start the session within 30 s."; the fallback is to resolve on `session.created` once `session.update` is sent (`created()`: set `live` and settle).
+4. **Automatic turns, one leg**, several pairs (en → zh, ja → en, and a source-only language → en, e.g. th → en): rows cut by pause on each side; the translation's audio once on the monitor and once in the virtual microphone; replay per translation row with keep-audio on; karaoke per frame, **side by side with the old build** (ruling 6's arrival ranges).
+5. **Text only** (ruling 4): with it on, no audio on the monitor or in the virtual microphone, and the same rows as with it off; the Logs still show `session.output_audio.delta` frames (the API sends, and bills, the audio). Record how the switch's tooltip reads against that, in en and in zh_CN.
+6. **The `elapsedMs` evidence for the timing follow-up** (ruling 6): diagnostic logs on before Start; export right after the utterances (a group keeps its newest 100 events, `MAX_EVENTS_PER_GROUP`; the panel its newest 2,000 entries). Export the Logs over several utterances, speaking and silent, under automatic turns and push-to-talk. Record, for the source deltas (`session.input_transcript.delta`), the translation deltas (`session.output_transcript.delta`) and the audio deltas (`session.output_audio.delta`): one timeline or several; monotonic or not; jumps across silence and across presses (model time or wall clock); absent or null on any; the audio frame's length (`samples`) against the 200 ms steps; whether a translation's value is its source's time or later by a lag; whether text and audio with the same value are the same words. And whether any `.done` event ever arrives (choice 18). **Execution (Task 5's review, M3):** if a `session.output_transcript.done` arrives, record whether it came before its utterance's last `session.output_audio.delta`: that trailing audio opens a text-less translation row, which the next utterance's text then joins (parity with the old client; an open question below). **Execution (Task 9's review, m2):** a `session.unreadable` frame means a frame, or an audio delta, did not read; record its `message` if one appears.
+7. **Same-language speech:** speaking the target language → silence, rows empty; mixed-language speech → gaps.
+8. **Push-to-talk and push-to-translate** (ruling 2; choice 7): a short press → the last words translated after the release. Over twenty or so presses, record `turn.tail` (`padSamples`) and `turn.tail_end` (`reason`, `silenceMs`, `lastOutputMs`): whether the last words come out before the tail ends (`quiet`, with `lastOutputMs` well inside `silenceMs`), or are cut by the cap (`cap`), or come out only at the next press — which tunes `TAIL_QUIET_MS` and `TAIL_MAX_MS`. **As landed** ("Found during execution", item 1), `silenceMs` counts the frames sent — 1000 is five, 3000 the cap's fifteen — while `lastOutputMs` is wall time from the release; a `turn.tail_end` entry lands about `silenceMs` + 200 ms after its `turn.tail`. Record any tail whose two entries' times lie seconds further apart than that, and on which platform: the tail's ends count frames, so a stalled or throttled timer stretches it in wall time (an open question below). A press with no speech → a tail with `cancelled: true`; record whether anything shows. A second press during a tail → `reason: 'press'`. Record whether `session.input_transcript.delta` frames arrive after a tail ended `quiet` with `lastOutputMs: null` — the model still consuming the press while no translation came yet. Minutes idle between presses → the session survives (a dropped session, or a tail that never ends, is the keepalive question). Push-to-translate routes the raw voice while the key is up.
+9. **Muted for 5+ minutes under automatic turns:** the session survives? Muting mid-sentence stops the audio as a release does, with no tail: record whether the last words wait until the microphone comes back (ruling 2: no keepalive yet).
+10. **Heartbeats:** between utterances, while the API sends its all-zero heartbeat frames, nothing plays and no `session.output_audio.delta` frame appears in the Logs; the Logs do not flood — the delta rows group by type.
+11. **A long session** (ruling 13): 60 minutes or more. Record what happens at `expiresAt` — a `session.closed` (the run ends: "The provider ended the session.") or a close code (the connection-lost words, and a `session.connection_lost` frame with its `code` and `reason`) — and when.
+12. **Errors mid-session** (ruling 3; choice 9): a network drop → the connection-lost words, the run ended. Any mid-session `error`: its `session.error` frame's `type`, `code` and `message`, and whether a `session.closed` or a close follows an `error`, and after how long (tunes `ERROR_WORDS_MS`); a close within 10 s of an error reads with that error's words (`invalid_api_key` → the auth words, a quota error → the rate-limit words), one later with the connection-lost words. **Execution (Task 4's review, M5):** record whether an `invalid_api_key` error's `message` quotes the key's last four characters: those words reach the notice and the frame verbatim.
+13. **Both, with participant speech** (ruling 5): two sockets; the participant translated into the speaker's source; its switch on → heard on the real device; off → silent; a source-only speaker language (th → en) refuses Start with "This provider can't translate the other participants for this language pair."; either leg ending ends both; participant-only. Record whether two sessions on one key are allowed.
+14. **Stop mid-utterance:** rows finalized; nothing plays after Stop; the untranslated remainder is dropped (parity).
+15. **An old profile** (rulings 1, 8, 10): key, pair, noise reduction and `transportType: 'webrtc'` saved by an earlier build → ready without re-entry; the session runs over WebSocket (`translation_session_start.transport` reads `websocket`); a stored `gpt-realtime-whisper` changes nothing. A fresh profile that holds an OpenAI Realtime key → Translate asks for its own (no prefill). A profile with Text only left on under another provider → Translate silent, the switch shown on.
+16. **The wizard:** the own-key list shows OpenAI Translate between Doubao AST 2.0 and Soniox; its key step validates; the subtitles-only scenario offers it.
+17. **Analytics:** `translation_session_start` with `provider: 'openai_translate'`, the translation model `gpt-realtime-translate` and the ASR model `gpt-live-transcribe` (choice 10); a refused start → `api_error` with its code.
+18. **The Logs panel:** the frames grouped, `session.error` red, the server's `session.closed` drawing the separator; no key anywhere, the export included; no `session.unreadable` in a healthy session.
+19. **The extension side panel's core flows:** Validate ✓ and a session that starts and translates in the side panel — the check's fetch and the socket under the extension's CSP; no CSP error in the side panel's DevTools console.
+
+**Open questions for the owner**
+- The tail's constants (item 8), and a keepalive while idle or muted (items 8, 9): ruling 2 defers the keepalive until a dropped session or a stuck tail shows.
+- Count a source delta during the tail as activity (item 8)? Ruling 2 names the translation's output, and the plan counts that alone.
+- **The tail's ends count frames sent, not wall time** (Task 6's re-review; item 8). Ruling 2's reason is model time, so under a stalled or throttled main thread the tail can outlast 1 s or 3 s of wall time while still sending exactly five or fifteen frames. Electron turns background throttling off (`electron/main.js:397`); the extension's side panel does not. `lastOutputMs` is wall time and diagnostic only: across a clock step it can read negative or huge.
+- Timing and F16's timed window, and karaoke by `elapsed_ms` (item 6; ruling 6): the follow-up in "What it leaves".
+- Heartbeats' `elapsed_ms` is unobserved (research Q3, unknown 4): a heartbeat is not a delta, and stays unframed; model time against the wall clock is settled by push-to-talk gaps (item 6).
+- **A `.done` before the last audio** (Task 5's review, M3; item 6): if `session.output_transcript.done` ever precedes its utterance's last audio, that audio opens a text-less translation segment, which the next utterance's text joins — parity with the old client; the survey expects the `.done` events are never sent.
+- A socket that fails before it opens reads as the network with the key named (item 2; choice 2): a revoked key's upgrade may deserve its own words.
+- The Text only tooltip (item 5): zh_CN's and zh_TW's "no speech generated" are untrue for Translate, whose audio is generated and billed; rewording those two to "no speech output" would be true of every provider, and a Translate-specific wording would be a new key in 30 catalogs.
+- Expiry and drops end the run (item 11; ruling 13): a fresh session, or a reconnect, if the long session shows a fixed length.
+- `session.close` at Stop for a graceful flush of the untranslated remainder (item 14): it needs an awaited `session.closed`, which the stop rule forbids.
+- A mid-session `error` never ends the run by itself (item 12; ruling 3): whether any code should.
+- The error-code mapping and `ERROR_WORDS_MS` (choice 9), hypotheses until item 12's frames.
+- **OpenAI's own words reach the notices and the frames verbatim** (Task 4's review, M5; items 1, 12): `errorWords` passes a server `error`'s message into the notice's detail and the `session.error` frame, and the check passes a refusal's message into its reason. OpenAI's `invalid_api_key` message quotes a masked key with its last four characters visible (`sk-proj-****6789`), which the bare `sk-` rule does not mask. Parity with the old client and its check; decide with choice 9's mapping once item 12's frames are in.
+- Source-only languages offered where the gate refuses Both (item 13): the old app warned under the picker (`settings.translateSourceParticipantWarning`, now unused) — the shape of the AST2 section's dialect question; filter the sources by reverse support while the participant leg opens, or accept it.
+- One speech entry per 200 ms frame (about five a second) in L1 and the clip queue over a long session (survey §3.4): the retention ceiling bounds the pcm, not the entry count.
+- A translation spanning two source segments pairs with one (the sides' pauses differ): legal, and visible (item 4).
+- Analytics for `degraded` (Plan A's open question, unchanged).
+
+**T2's inventory** — the relay twin's deletion, after this port's live test
+(ruling 14; survey §3.5; lines read at `8db4261f`, and none of these files
+changed through `426251e1`):
+- `src/services/providers/KizunaAIOpenAITranslateProviderConfig.ts`;
+- `ProviderConfigFactory.ts:9` (its import), `:17` (`isKizunaOpenAITranslateEnabled` in the environment import), `:39-42` (its registration), `:159-166` (`getDefaultManagedProvider`'s entry);
+- `Provider.KIZUNA_AI_OPENAI_TRANSLATE` and the managed helpers' cases (`src/types/Provider.ts:12, 27, 48, 53, 59`);
+- `isKizunaOpenAITranslateEnabled` (`src/utils/environment.ts:222-228`), its forwarding (`extension/vite.config.ts:173-174`), `build.yml:223, 277, 317, 419, 521` (with the release-flag cleanup at Stage 2's end);
+- `KIZUNA_HOSTED_ICONS`' entry (`src/components/Icons/ProviderIcons.tsx:279`);
+- the `kizunaOpenaiTranslate` slice of `settingsStore.ts` (`:62, 293, 423, 662, 708, 975`, the twin's half of the loop at `:1349`, `:1543, 1627`) — the storage keys stay;
+- the old UI's twin branches: `ProviderSpecificSettings.tsx:135, 177-184, 397-398`; `LanguageSection.tsx:158-160, 252-254`;
+- `providers.kizunaai_openai_translate.*` in 30 catalogs;
+- the old test tables naming it (`descriptorRegistry`, `kizunaProviderGating`, `providerOrder`, `participantConfig`, `speechMode`, `sessionResourcesWiring`, `voicePrepWiring`, `prepareToStart.{local,kizunaSoniox}`, `localNativeGating`, `ClientFactory`, `ClientOperations`, `settingsStore.{test,sliceRegistry,kizunaAuth}`, `kizunaProviders`, `ProviderIcons`, `SetupWizard`, `StepCredentials`, `providerPath(s)`, `Provider.test` — survey §3.5);
+- once both twins are gone (AST2's goes with V2): `getRelayWsUrl` (`src/utils/environment.ts:144`, its test and some fifteen test mocks) and the `sokuji-auth.` redaction rule have no producer left — delete, or keep the rule as a net;
+- **keep:** `LEGACY_SLICE_KEYS.kizunaai_openai_translate` and `MANAGED_LEGACY_IDS` (`src/lib/session/storedSettings.ts:38, 64`): a stored selection of the twin falls back to Kizuna Soniox. The GA client's `relay` argument and `sokuji-auth.` branch go with T3.
+
+**T3's inventory** — the own-key old code of both transports, **after the
+WebRTC step's live test**, since the WebRTC client imports the GA client
+(`OpenAITranslateWebRTCClient.ts:38`, for its `buildSessionUpdate` and
+`computeRms`; ruling 14):
+- `OpenAITranslateGAClient.ts` (+ test), `OpenAITranslateWebRTCClient.ts` (+ test), `OpenAITranslateProviderConfig.ts`;
+- `IClient.ts:117-139, 333-335` (`TranslateTargetLanguage`, `OpenAITranslateSessionConfig`, its guard);
+- `EphemeralTokenService.ts:115-218` (the translation mint), unless the WebRTC step has moved it into its own folder — not `getToken`, which OpenAI Realtime's old WebRTC client uses;
+- the `openaiTranslate` slice of `settingsStore.ts` (`:41-43, 289, 419, 548-554, 655, 704, 753-773, 971, 1192-1196, 1349-1352, 1539, 1553-1557, 1623`) — the storage keys stay;
+- the old UI's Translate branches: `ProviderSpecificSettings.tsx:129-184, 384-467, 722-954, 2173-2187, 2274-2280`; `LanguageSection.tsx:99, 154-160, 249-254, 331-364, 587, 673-678`; `ProviderSection.tsx:73, 478-479`;
+- `ProviderConfigFactory.ts:6, 63`; `OpenAIClient.isTranslateRealtimeModel` once the OpenAI port has replaced `OpenAIClient`; `openaiModelMigration.test.ts:50-74`;
+- the orphan keys: `settings.translateModelAvailable`, `settings.translateSourceParticipantWarning`, and `settings.userTranscriptModel` / `settings.transcriptModelTooltip` only if OpenAI Realtime's port does not reuse them.
+
+**The roadmap's inheritance, item by item** (the plan's tables, as landed):
+taken (and where), deferred (and why), or already done.
+
+From "Scheduled by the Stage 2 foundation plan" (`:1289`, `:1292`, `:1304`
+above):
+
+| Item | Disposition |
+|---|---|
+| OpenAI Translate: F16 if AST2 did not land it | done by the Gemini plan (its Task 2); consumed through `createProjector` (Task 9's projection case) |
+| OpenAI Translate: the noise field | built here: `NoiseReductionField` (Task 2); OpenAI Realtime and Compatible reuse it |
+| OpenAI Translate: the transcript field | not built: the transcript model is a constant (ruling 8); OpenAI Realtime's port builds one if its models need it |
+| OpenAI Translate: the transport field | deferred to the WebRTC step (ruling 1): `S.transportType` kept, `C.transport` its attachment point (choice 15); a shared `TransportField`, perhaps OpenAI Realtime's first |
+| OpenAI + Compatible: F15, "unless Translate-WebRTC comes first" | not here: this port is WebSocket; the WebRTC step meets it |
+| OpenAI Live: F14 (reused) | unchanged: Translate needs no header (ruling 16); the seam's per-host Electron rule should scope by path (the spec's amendment 10) |
+
+From the Soniox plan's "Found here" (`:1740-1747` above):
+
+| Item | Disposition |
+|---|---|
+| Readiness re-probes on every settings edit | applies, cheaply: only the noise select can make one, and the model list is free and bounded |
+| `timing` after a 503 resume | n/a: no timing, no resume |
+| `audio.range` after fill-in | applies in form: ranges are measured against the text at arrival, and L1's fill-in re-anchors them; no `speechRanges` |
+| The side latch | n/a: one leg per socket |
+| Two TTS sockets per key in shared Both | its analogue, two sessions on one key in Both, is live-test item 13 |
+| `Conversation.afterAudio`'s pending drop | n/a: no `speechRanges`, and no audio before its segment opens (`segments.audio` opens it first) |
+
+From "Scheduled by the Stage 2 Gemini plan" (`:3005-3022`, `:3037-3093`
+above):
+
+| Item | Disposition |
+|---|---|
+| Live Translate's leading audio: open the translation segment on audio (open question) | Translate does, by parity (choice 5); its live test (item 4) is the first real evidence of that shape. Gemini's question stays Gemini's |
+| Name the leg in `SessionContext` (open question) | n/a: Translate's legs differ by direction alone |
+| The readiness re-check on each instruction edit | n/a: the endpoint takes no instructions (`OpenAITranslateProviderConfig.ts:103`) |
+| `session.closed` on Stop | the same for Translate ("What it leaves") |
+| The instructions of later ports | n/a |
+
+From "Scheduled by the Stage 2 Volcengine AST2 plan" (`:3744-3835` above):
+
+| Item | Disposition |
+|---|---|
+| F14's owner, OpenAI Live | unchanged: Translate's plain `socket.ts`, with protocols, moves to `src/lib/contract/` with the other three when F14 lands |
+| Generic frame names grouped under Doubao's Logs keys (M6) | met: Translate names none of Doubao's rows; Task 1 pins it |
+| A kit-wide "no ws(s) URL in a frame" rule | n/a: Translate's URL carries no credential, and no frame carries the protocols (Task 9's no-leak case) |
+| Each check opens a real session | n/a: Translate's check is a free model list |
+| Superseded checks are never aborted | applies, harmlessly: two overlapping model lists |
+| Dialect sources offered where the gate refuses them | its analogue: 61 source-only languages are offered, and D20 refuses Both for them — an open question above |
+| `trackedClock` in the kit; the seam's fixed words | consumed (Tasks 4, 5, 6, 9) |
+
+"Before any release from the branch" (`:1751-1765`, `:2318-2343`, `:3697-3718`
+above):
+- The registry's order: extended by ruling 11, pinned in `registry.test.ts`.
+- The wizard's own-key description: its "OpenAI" is partly true now (Translate); OpenAI Realtime and OpenAI Live wait for their ports.
+- The relay twins: `kizunaai_openai_translate` deleted, not ported — T2 (ruling 14).
+- The release-flag cleanup at Stage 2's end: `VITE_ENABLE_KIZUNA_OPENAI_TRANSLATE` joins it, with T2.
+- The native-speaker checks: none (no new key).
+
+**Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; `RunnerDeps.replayAudio`'s guard; the notice-code namespace.
+
+What it leaves, for the plans that meet it (the plan's own list, as written,
+its references to Task 11's record read as this record; then the one item a
+task review routed to it, last below):
+- **T2**, the relay twin's deletion, after this port's live test (this record's inventory).
+- **T3**, the own-key old code's deletion — both transports' clients, the descriptor, the translation mint, the slice's readers, the old UI's branches — after the WebRTC step's live test (this record's inventory).
+- **The WebRTC step:** a transport and a dispatch in `start`, its fallback the same request handed to the WebSocket adapter (spec "The session request"), `C.transport` widened from `S.transportType`, the transport control; `segments.ts`, `tail.ts`'s grid and `wire.ts`' session update stay as they are.
+- **The timing follow-up** (ruling 6): if the live log shows one aligned timeline, set `timing` once, at segment close, and extend F16's window to timed pairs (by `startMs`), and consider karaoke by `elapsed_ms`; if the values are emission-time, first let L2 fall back to proximity when no timed candidate clears `minOverlap` (research Q3).
+- **The tail's constants** tuned from the live test, and **a keepalive** only if it shows a dropped session or a stuck tail (ruling 2).
+- **A fresh session or a reconnect at expiry**, if the long session shows a fixed length (ruling 13).
+- **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox, Gemini and Doubao.
+- **`pcmToBase64` / `base64ToPcm`** lifted to `src/lib/contract/` at their third user (choice 8; Task 4's review, M4).
+- **The owner's open questions** in this record, each with the live-test item that settles it.
+- **A shared `boundedFetch` in `src/lib/`** at the next check that needs one — OpenAI Realtime's or Compatible's (Task 7's review, M1): the bounded-fetch skeleton — an `AbortController`, `timedOut`, the clock's bound, the caller's abort listener and one `finally` — now stands three times, in `soniox/`, `gemini/` and `openai_translate/check.ts`.
