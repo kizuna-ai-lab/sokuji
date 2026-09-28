@@ -5,6 +5,7 @@ import type { Tab } from '../Settings/shared/TabBar';
 import './LogsPanel.scss';
 import { useLogData, useLogActions } from '../../stores/logStore';
 import type { LogEntry, ClientId } from '../../stores/logStore';
+import { useProviderStore } from '../../stores/providerStore';
 import { useTranslation } from 'react-i18next';
 
 interface LogsPanelProps {
@@ -135,7 +136,15 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
   const logsContentRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<ClientId>('speaker');
+  // One leg running: its tab opens, and follows a switch to the other one. With
+  // both, the user's tab stands. The app-scope rows show under either tab, so
+  // a participant-only run would otherwise open on a Me tab holding only those.
+  const legs = useProviderStore((s) => s.legs);
+  const onlyLeg: ClientId | undefined = legs.length === 1 ? legs[0] : undefined;
+  const [activeTab, setActiveTab] = useState<ClientId>(onlyLeg ?? 'speaker');
+  useEffect(() => {
+    if (onlyLeg) setActiveTab(onlyLeg);
+  }, [onlyLeg]);
   const [copyLabel, setCopyLabel] = useState<string | null>(null);
 
   // Filter logs based on active tab
