@@ -302,7 +302,10 @@ The conformance suite (D24) checks each rule below against every adapter.
   payload, marks severity by the `error` / `failed` / `warning` suffix, and draws
   its "session ended" separator from `closed` — three conventions the generic
   event must keep. A provider's plan adds the `logStore` rows that group its
-  frames (Gemini's: `server_content.*`, `server.usage_metadata`).
+  frames (Gemini's: `server_content.*`, `server.usage_metadata`). Doubao AST
+  2.0's rows group `subtitle.*`, `tts.*`, `session.usage` and
+  `session.audio_muted` under the old client's keys; a group holds one frame
+  type.
 
 ### The session request
 
@@ -418,7 +421,7 @@ it has leaked out of it.
 | Gemini | server activity detection, configurable | `activityEnd` | immediate |
 | Soniox | server endpoint model (`<end>`), configurable | **`finalize` — exists, never called** | immediate |
 | Local ×2 | client VAD, configurable | flush | immediate |
-| Volcengine AST2 | server VAD, no knobs | none on the wire; its keepalive already streams silence and the server closes the segment | after silence |
+| Volcengine AST2 | server VAD, no knobs | 500 ms of silence on release, the old finalization's burst (Stage 2 Volcengine AST2, ruling 6); between turns the keepalive sends silence only after 250 ms with no audio (ruling 7) | after silence |
 | Palabra | server segmentation, silence threshold configurable | none on the wire; the track (`dtx:false`) carries silence and the server segments after its threshold | after silence |
 | OpenAI Translate ×2, OpenAI Live | **a continuous stream; there are no turns on the wire** | not needed — release stops the microphone and what was said finishes translating | n/a |
 
@@ -448,7 +451,8 @@ mechanism:
 | Gemini | `activityStart` | `activityEnd` | `activityEnd`, and the cancelled press's own answer dropped — after the previous answer ends, when one is still owed (a voiced release or typed text whose answer has not started streaming) or streaming; on Live Translate `activityEnd` alone (no "end without generating" message exists; Stage 2 Gemini, ruling 8, choice 16) |
 | Soniox | — | **`finalize`** | — |
 | Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
-| AST2, Palabra | — | — (the server closes on silence) | — |
+| AST2 | — | 500 ms of silence | the same tail — the old release sent it for an empty press too |
+| Palabra | — | — (the server closes on silence) | — |
 | OpenAI Translate, OpenAI Live | — | — | — |
 
 `beginTurn` exists for two reasons: Gemini sends `activityStart` today on a
@@ -967,7 +971,7 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 | OpenAIGAClient | yes | per audio frame — `handleAudioDelta` already holds the item and the transcript accumulates on the same `item_id` | response ↔ committed input — stated, to be wired |
 | OpenAIClient (compatible) | yes | per audio frame — same shape | same — to be wired |
 | GeminiClient | yes | none — **no karaoke** | dialogue models: same turn — stated; Live Translate: inferred (no turns) |
-| VolcengineAST2Client | yes — today's quality is the bar to keep | none: the server's TTS sentence boundaries need not align with subtitle phases | inferred (`startTime`/`endTime`, **currently unread**) |
+| VolcengineAST2Client | yes — today's quality is the bar to keep | none: the server's TTS sentence boundaries need not align with subtitle phases | inferred by proximity: neither origin nor timing is emitted; each subtitle frame carries `responseMeta.Sequence` and the times, for the live test to settle whether either states the pair (Stage 2 Volcengine AST2, ruling 11) |
 | OpenAIWebRTCClient | yes | none | same as GA — to be wired |
 | OpenAITranslateWebRTCClient | yes | none | inferred |
 | PalabraAIClient | **no** — a continuous track, attributable to nothing | none | **`transcription_id`** — stated, already extracted and then discarded |
@@ -978,7 +982,8 @@ utterance's end (`ttsStream.ts`) — not the sentence the first version of this
 table named (Stage 2 Soniox survey §3.7.3).
 
 Gemini, not OpenAI Translate, is the first provider whose origins L2 infers
-(Live Translate).
+(Live Translate). Doubao AST 2.0 is the second, pairing by proximity alone like
+Live Translate: neither states an origin or a timing.
 
 Two findings are worth stating plainly. Palabra is the only client that cannot
 replay, and it holds the cleanest pairing evidence in the codebase: the same
@@ -1055,13 +1060,18 @@ interface Provider<S, K, C, R = K> {
     keys: string[]                            // every key fields() can return; all load at startup
     fields(s: S): CredentialField[]
     read(values: CredentialValues, ctx: AuthContext): R | { missing: string; code?; params? }   // values: exactly fields(s)
+    choice?: {                                // which fields show (F4)
+      setting: string                         // a field of S
+      options: { value: string; labelKey: string }[]
+    }
   }
   check(r: R, s: S, { pair, legs, signal }): Promise<{ ok: true; models?: ModelOption[] } | { ok: false; reason: string }>   // legs: those a run would open; signal: aborts with its start
 
   // languages
   languages: {
-    sources(s: S): LanguageOption[]          // includes 'auto' when the provider detects
-    targets(source: string, s: S): LanguageOption[]
+    // context: { speech } — whether the run would speak; absent, the widest offer
+    sources(s: S, context?: LanguageContext): LanguageOption[]          // includes 'auto' when the provider detects
+    targets(source: string, s: S, context?: LanguageContext): LanguageOption[]
     initial?(s: S): Partial<LanguagePair>   // when nothing is stored; today's per-slice defaults
   }
 
@@ -1104,6 +1114,11 @@ removed — a provider that sends system instructions owns them in its `S`
 (`src/lib/provider/instructions.ts`: `InstructionsSettings`,
 `resolveInstructions`, `migrateInstructions`); `settings.legacyKeys` may name a
 whole storage key (`settings.common.…`), read at that key and never written.
+
+**Amended by the Stage 2 Volcengine AST2 plan:** the language functions take an
+optional `LanguageContext`; `credentials.choice` names a setting that decides
+which credential fields show (`CredentialChoice`, its `setting` typed `string`,
+a field of `S`).
 
 `settings.key` is today's slice key, and values persist under
 `settings.<key>.<field>` exactly as now: no user's saved settings move.
@@ -1191,6 +1206,14 @@ credential markup, the compatible provider's endpoint input).
 startup: Soniox shows one of three region keys, and a region switch must not
 wait on storage. `read` sees the values of exactly the fields `fields(s)`
 returns, which is how it knows the region's key without reading `S`.
+A provider whose credentials come in more than one shape declares
+`credentials.choice`: a setting of `S` that both credential forms — the
+settings panel's and the setup wizard's — draw above the fields as one
+segmented control (`CredentialChoiceControl`), clearing no credential. The
+panel writes a pick as any settings edit; the wizard holds it in its draft,
+shows and checks that shape's fields, and writes it at Finish before the
+credentials. Doubao AST 2.0's App ID + Access Token or API key (Stage 2
+Volcengine AST2, ruling 1) is the first, Palabra's platform or app next.
 `peekPrimaryCredential` becomes "does `read` succeed", and `neverPersist`
 disappears — a managed twin has no credential fields to persist. With no secrets
 in `S`, settings can be mirrored and logged without redaction; `K` is the one
@@ -1260,6 +1283,19 @@ catalogue-driven lists are simply their implementation. `auto` is in `sources`
 for providers that detect. A swap is generic: allowed when the reversed pair is
 supported.
 
+The offer may depend on whether the run would speak. Doubao AST 2.0 speaks
+eight languages and transcribes twenty and two dialects, so its functions take
+a `LanguageContext` (`{ speech }`), which `languageContext` derives from the
+legs and the speech inputs by `contextsFor`'s own rule. Without one a provider
+answers its widest offer. The provider store keeps the pair the user left
+within the widest offer and derives the pair a run starts for the store's
+context, writing nothing when the context changes: switching text only off and
+on loses no pair (Stage 2 Volcengine AST2, choice 1). AST2's second rule,
+Chinese or English on one side of every pair in both modes, is its `targets`: a
+source other than Chinese or English targets English and Chinese only, and a
+dialect is a source only. Picking `zhen` from the target side, which the old
+sync allowed, has no place in two functions.
+
 This fixes a live inconsistency. The wizard asks the local descriptors for
 targets, which return the source list; the settings panel asks the translation
 catalogue. The two show different target lists for the same provider.
@@ -1274,8 +1310,9 @@ one global pair would need a canonical code and a mapping per provider: a
 product change this design does not need.
 
 **The participant rule (D20).** The participant leg opens when the reversed
-direction is supported: the speaker's target is among `sources`, and the
-speaker's source is among its `targets`. `auto` is never a target, so an `auto`
+direction is supported in the participant leg's own language context: the
+speaker's target is among `sources`, and the speaker's source is among its
+`targets`. `auto` is never a target, so an `auto`
 source refuses the participant leg for every provider. Today OpenAI Live,
 Gemini's translate model and Soniox refuse it at the start gate through
 `reversesDirectionViaSourceLanguage`. Every other provider starts the leg, and in
@@ -1332,8 +1369,12 @@ derived from it; `platforms` and `flagged` decide presence. The five
 per-provider flags — Kizuna Soniox, Kizuna OpenAI Translate, Kizuna AST2,
 Palabra, Local Native — each need `environment.ts`, `extension/vite.config.ts`,
 five env blocks in `.github/workflows/build.yml` and the forwarding consistency
-test; they become one `VITE_ENABLED_PROVIDERS` list of flagged provider ids. The
-Kizuna umbrella flag stays, since six other sites read it, and a managed provider
+test; the own-key AST2's `VITE_ENABLE_VOLCENGINE_AST2` is a sixth, dead since
+`cec1556c` — nothing reads it, though `build.yml` and
+`extension/vite.config.ts` still forward it — and the new registry ships AST2
+unflagged (Stage 2 Volcengine AST2, ruling 5); they become one
+`VITE_ENABLED_PROVIDERS` list of flagged provider ids. The Kizuna umbrella
+flag stays, since six other sites read it, and a managed provider
 needs it as well. The `debug:local-native` switch stays until Local Native ships.
 
 The registry test's seven `Record<Provider, …>` tables go with the capabilities
@@ -1366,13 +1407,17 @@ different mechanisms:
 
 Every extension rule rewrites request headers; none touches response headers.
 
-**The AST2 rules expose the user's keys.** They (`background.js`, ids
-2000–2009) set no `initiatorDomains` and stay installed for the whole session,
-cleared on disconnect (`VolcengineAST2Client.ts:1008-1010`). While an AST2
-session runs, any page that opens a socket to `openspeech.bytedance.com` has the
-user's App Key and Access Key injected: the page cannot read them, but its
-connection is authenticated, and billed, as the user. OpenAI Live's and Bing's
-rules set `initiatorDomains`, and Live's is removed once the session has started.
+**The AST2 rules expose the user's keys.** They (`background.js`: ids
+2000–2003 set, 2000–2009 cleared; dynamic rules outlive a browser restart until
+cleared, survey §3.6.4) set no `initiatorDomains` and stay installed for the
+whole session, cleared on disconnect (`VolcengineAST2Client.ts:1008-1010`).
+While an AST2 session runs, any page that opens a socket to
+`openspeech.bytedance.com` has the user's App Key and Access Key injected: the
+page cannot read them, but its connection is authenticated, and billed, as the
+user. OpenAI Live's and Bing's rules set `initiatorDomains`, and Live's is
+removed once the session has started. The ported provider installs none; the
+old block goes with the old client (the Stage 2 Volcengine AST2 plan's deletion
+plan, V2).
 
 What unifies is the interface a client sees, not the mechanism:
 `openSocket(url, { set, remove }) → WebSocket`, one implementation per platform.
@@ -1385,7 +1430,14 @@ serialized in one place. Today the legs connect one after the other
 (`MainPanel.tsx:2463`, then `:2753`), so nothing collides yet; a per-host
 register/clear pair would, the moment the legs come up together.
 
-Gemini's key rides in the socket's query: it needs no header.
+Gemini's key rides in the socket's query: it needs no header. Nor does Doubao
+AST 2.0's. Its endpoint takes the credentials in the query — `api_resource_id`
+with `api_app_key` and `api_access_key`, or `api_key` — as the owner's probe
+measured on 2026-09-28; a wrong credential answers HTTP 401 before the upgrade,
+which a browser cannot read, so the adapter words a socket that never opened as
+the credentials while online (Stage 2 Volcengine AST2, ruling 2). AST2 is
+therefore not the seam's first user: OpenAI Live is, and the plain `socket.ts`
+of Soniox, Gemini and Doubao move to `src/lib/contract/` with it.
 
 ### Persisted settings that move
 
@@ -1416,7 +1468,9 @@ not move.
    the definition's `i18nKey` where the catalogs already spell it otherwise.
 4. The extension manifest, when the provider uses a new host — MV3 declares hosts
    statically — none for Soniox, whose twelve origins the manifest already
-   lists, or for Gemini, whose origin the manifest's CSP already lists.
+   lists, or for Gemini, whose origin the manifest's CSP already lists, or for
+   Doubao AST 2.0, whose host and CSP origin the manifest already lists
+   (`manifest.json:37, 116`).
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
 
 For OpenAI Live that is two code files outside its folder, plus the manifest,
@@ -1904,8 +1958,10 @@ The order (the owner may overrule it):
 3. **Gemini** (`gemini`) — turn-level origin for the dialogue models and
    inferred for Live Translate, no ranges, `boundaries: 'silence'` (parity),
    reconnect — ported by the Stage 2 Gemini plan.
-4. **Volcengine AST2** (`volcengine_ast2`) — the socket seam's first user,
-   inferred pairing.
+4. **Volcengine AST2** (`volcengine_ast2`) — the credentials in the socket's
+   query (no seam), two credential modes, a language offer per speech mode,
+   pairing inferred by proximity — ported by the Stage 2 Volcengine AST2 plan.
+   Its relay twin (`kizunaai_volcengine_ast2`) is deleted, not ported.
 5. **OpenAI Translate** (`openai_translate`) — frame-level ranges, our own
    boundaries, inferred origin.
 6. **OpenAI Realtime and OpenAI Compatible** (`openai`, `openai_compatible`) —

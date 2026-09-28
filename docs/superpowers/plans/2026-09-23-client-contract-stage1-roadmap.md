@@ -3019,7 +3019,7 @@ execution added is marked):
 - **Separate source and answer turns under push-to-talk** (recommendation 2): each activity gets one answer, so manual mode could count source turns apart from answer turns — the source side advancing at `beginTurn`, the translation at `turnComplete` — and a second voiced press, or typed text, made while an answer streams would no longer join the previous turn's source. A contained change to `GeminiTurns`, if item 4b shows users hit it.
 - **The readiness re-check on each instruction edit** (recommendation 3): every pause of 800 ms or more while typing a prompt forgets readiness — Start is off until the re-check answers — and re-lists the models. A provider declaring which of its settings the check reads is a generic change, best made before the next port that owns instructions (OpenAI); the inheritance table below records it as not taken.
 - **Defer a `goAway` reconnect past the answer in flight** (recommendation 4): `goAway` comes with time to spare (`timeLeft`), and breaking at once throws away the dialogue answer being spoken; waiting for its `turnComplete`, bounded by `timeLeft`, is the cheapest step toward the two resumption questions above.
-- **Promote `trackedClock` to the kit** (recommendation 5): the copies in `gemini/testing.ts` and `soniox/testing.ts` are byte-identical, and AST2 is the third user choice 21 anticipated — when G2 or AST2 lands ("What it leaves").
+- **Promote `trackedClock` to the kit** (recommendation 5): the copies in `gemini/testing.ts` and `soniox/testing.ts` are byte-identical, and AST2 is the third user choice 21 anticipated — when G2 or AST2 lands ("What it leaves"). **Closed** by the Stage 2 Volcengine AST2 plan (Task 12, `e4ec0d34`; its choice 14).
 
 **G2's inventory** (the deletion plan, after the live test; lines read at
 `3665711d`, and none of these files changed through `0c2f461b` but
@@ -3055,7 +3055,7 @@ From "Scheduled by the Stage 2 foundation plan" (`:1285-1289` above):
 | Item | Disposition |
 |---|---|
 | Gemini: F13's `InstructionsField` (moved out of `ProviderSpecificSettings.tsx`), `VoiceField`, `ModelField` over `props.models` and `shared.models`, and the sliders | taken — Task 6 (the four fields), Task 8 (Gemini's view). `InstructionsField` edits the provider's own `S`, not the global template (ruling 4); `ModelField` reads `props.models` and has no refresh button (choice 22) |
-| Volcengine AST2: F14's socket seam | deferred to AST2: Gemini's key rides in the query and needs no header; its `socket.ts` (two lines, as Soniox's) moves to `src/lib/contract/` with F14 |
+| Volcengine AST2: F14's socket seam | deferred to AST2: Gemini's key rides in the query and needs no header; its `socket.ts` (two lines, as Soniox's) moves to `src/lib/contract/` with F14. **Superseded by the Stage 2 Volcengine AST2 record below:** Doubao's credentials ride in the query too (its ruling 2), so F14 is OpenAI Live's, and the plain `socket.ts` of Soniox, Gemini and Doubao move to `src/lib/contract/` with it |
 | Volcengine AST2: F16 | done here (Task 2) |
 | OpenAI Translate: F16 if AST2 did not land it | done here |
 | OpenAI: `busy`'s reader | unchanged: Gemini emits no `busy` (choice 25) |
@@ -3083,10 +3083,678 @@ What it leaves, for the plans that meet it (the plan's own list, as written;
 the three items the task reviews parked are done, last below):
 - **G2**, the deletion of the old Gemini code, after the owner's live test (Task 14's inventory).
 - **`@google/genai`** stays in `package.json` until G2 decides its fate (open question).
-- **F14**: Gemini's `socket.ts` and Soniox's move to `src/lib/contract/` with AST2's header seam.
-- **Inferred pairing in the preview:** no fake script states no origins; one belongs with AST2, the next provider whose origins L2 infers.
-- **`trackedClock`** has two copies (Soniox's and Gemini's `testing.ts`); a third user promotes it to the kit.
+- **F14**: Gemini's `socket.ts` and Soniox's move to `src/lib/contract/` with AST2's header seam. **Superseded by the Stage 2 Volcengine AST2 record below:** AST2 needs no header; the seam is OpenAI Live's, and Doubao's own `socket.ts` moves with the other two.
+- **Inferred pairing in the preview:** no fake script states no origins; one belongs with AST2, the next provider whose origins L2 infers. **Done** by the Stage 2 Volcengine AST2 plan (Task 5, `1ea6855b`): the fake's `proximity` script, seen paired in the preview at its group check A.
+- **`trackedClock`** has two copies (Soniox's and Gemini's `testing.ts`); a third user promotes it to the kit. **Done** by the Stage 2 Volcengine AST2 plan (Task 12, `e4ec0d34`): `src/lib/contract/testing/trackedClock.ts`, re-exported by Soniox's fixtures and imported by Gemini's.
 - **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox.
 - **The instructions of later ports:** each provider that sends instructions spreads `InstructionsSettings` into its `S`, lists `INSTRUCTION_LEGACY_KEYS` in its `legacyKeys`, calls `migrateInstructions` in its `migrate` and `resolveInstructions` in its builder, and renders `InstructionsField` — LocalInference keeps its own prompt as it is.
 - **The owner's open questions** in Task 14's record, each with the live-test item that settles it.
 - **The three items the task reviews parked** — the retention test's single `gc()` call (`src/lib/projection/pair.test.ts`), Soniox's `check.test.ts` timeout assertion twin, and the stale case title quoted in `soniox/testing.ts`'s header: done by the final fix wave (`97afa6ba`, "The final fix wave" above).
+
+## Scheduled by the Stage 2 Volcengine AST2 plan
+
+The Stage 2 Volcengine AST2 plan
+(`docs/superpowers/plans/2026-09-28-client-contract-stage2-volcengine-ast2.md`,
+plan commit `d81d935d`, written over `3665711d`'s code against the Gemini plan
+as that plan was written, `a7810bde`) landed as the twenty-five commits
+`f9fc83b7` through `9ab968e2` on `worktree-client-contract-stage2`
+(`2ad8e910..9ab968e2`: **+10,935 / −6,577 lines across 111 files**, of which
+the codec's move accounts for +6,420 / −6,416 across 8 — git counts the
+generated module and its declarations as new at the new path and the old
+path's two files as rewritten into re-export stubs, the four schemas as renames
+— and the rest for +4,515 / −161 across 103). Then this record with
+the spec's amendments. The plan commit sits inside the Gemini plan's range (its
+record, above); execution started at `2ad8e910`, the Gemini plan landed in full
+with its final fix wave. It is Stage 2's fourth provider — **Doubao AST 2.0,
+Volcengine's simultaneous interpretation, with the user's own credentials**
+(`volcengine_ast2`) on the new session: its definition, settings with two
+credential modes, languages per speech mode, a bounded handshake check,
+builder, adapter and settings view, and the pieces it built for the ports after
+it (the language context, the credential choice F4, `TextField`, the fake's
+`proximity` script, `trackedClock` in the kit). Deleting AST2's old code —
+with its relay twin `kizunaai_volcengine_ast2`, which the owner ruled is
+deleted, not ported — is a later plan, V2, after the owner's live test below;
+until then the old client, its two descriptors, the language sync, the old
+settings UI's AST2 branches, the two store slices and the extension's DNR block
+stay compiled and unreachable. Seventeen implementation tasks ran in the plan's
+six waves — Tasks 1–5; Tasks 6–10; Tasks 11–13; Tasks 14 and 15; Task 16;
+Task 17 — with group check A after the fourth and group check B after the
+sixth; Task 10 waited for Task 3's fix round to free `registry.test.ts`, and
+Task 11 started while Wave 2's fix rounds ran. Tasks 3, 6, 7, 8, 9, 12, 14 and
+15 took one review fix round each; Tasks 1, 2, 4, 5, 10, 11, 13, 16 and 17 were
+approved as their implementers committed them. Task 18 is this record. The
+whole-plan review and its final fix wave are still to come: the items the task
+reviews parked for that wave are listed under "What it leaves". The survey the
+plan was written from is named in its research notes.
+
+**The pre-flight.** Before Wave 1 a read-only pre-flight reconciled every text
+the plan quotes from a file the Gemini plan touched against `2ad8e910`: 35 of
+the plan's 36 diffs applied strictly, and one — Task 12's `soniox/testing.ts`,
+whose header the Gemini final fix wave had reworded — only by content;
+`startGemini` still called `trackedClock()`, and the kit's copy was
+byte-identical to both. It found ten items, each ruled before its task was
+dispatched. Four changed a task's work: F1 (Task 12 edits Soniox's fixtures by
+content, the landed header kept), F2 (Task 15 says `session.unreadable` on the
+ok → failing transition only), F3 (this record takes up the Gemini section's
+AST2 items) and F4 (Task 2's Logs case pins one frame type per group). Six were
+cosmetic: F5 (Task 15's fixtures header gives the widened kit rule's reason),
+F6 (Task 16's Gemini order case at the file's own indent), F7 (the spec's
+amendment 5 drops an implied contrast with Gemini: neither emits timing), F8
+(the `guideUrl`'s source is `src/services/providers/tutorialUrls.ts:19`), F9
+(the offline sentence lives once, in `wire.ts`) and F10 (Task 16's claim about
+empty credentials narrowed to the default mode).
+
+**The rulings.** Rulings 1–5 are the owner's (2026-09-28; the plan's header),
+each confirmed as the plan states it:
+1. Two credential modes, the legacy App ID + Access Token and the new console's
+   API key, drawn as a credential choice (F4) in both credential forms, the
+   legacy mode by default (choice 2), so an old profile loads ready with
+   nothing written.
+2. The credentials ride in the socket's query: a plain `openSocket(url)` on
+   every platform, no header seam and no DNR change. It rests on the owner's
+   first probe, and his second, browser-shape probe (below) confirmed it: no
+   custom header is needed, so the ruling stands with `web` in `platforms`.
+3. The languages follow Volcengine's documented constraints per mode — speaking,
+   its eight and `zhen`; text only, twenty, two dialects as sources only, and
+   `zhen`; Chinese or English on one side in both. Task 6's review enumerated
+   the landed offer against the documented rules.
+4. The participant speaks when its switch is on: the definition sets no
+   `participantSpeech` (Task 16's participant case).
+5. The registry order `['kizunaai_soniox', 'localInference', 'gemini',
+   'volcengine_ast2', 'soniox']`, Doubao unflagged (`src/providers/registry.ts:18`,
+   pinned at `registry.test.ts:293`).
+
+Rulings 6–14 are the controller's technical rulings in the plan, applied as
+written. The controller's rulings during execution are recorded below, under
+"Found during execution", "Accepted as they stand", "Stated departures", the
+live test, the open questions and "What it leaves".
+
+**The interruption.** Midway through Waves 2 and 3 — between `673ae222`
+(08:18) and `e2fc16bb` (11:01) on 2026-09-28 — the weekly API limit stopped
+seven agents at once, and the owner reset the limit. At the cut, Task 6's fix
+round had committed (`673ae222`); Task 8's and Task 9's fix rounds and Task 11
+stood uncommitted at their gate step; Task 12 stood uncommitted midway (the
+kit's `trackedClock`, `socket.ts`, `wire.ts`, `testing.ts` and the Soniox and
+Gemini fixtures); Task 7's re-review and Task 13's review had stopped mid-read.
+All seven were resumed with their context and finished from where each stood;
+Task 12's report found nothing half-edited after the cut.
+
+What landed, by task:
+- **The codec moves to its provider (F18), and the folder is seeded**
+  (`6e224a51`, Task 1): the generated protobuf codec (`ast2-proto.js`, its
+  declarations) and its four schemas moved with `git mv` to
+  `src/providers/volcengine_ast2/proto/`; two re-export stubs at
+  `src/services/clients/volcengine-ast2/` keep the old client compiling; the
+  folder's `adapter.ts` seed (`export {};`) was written first, for the
+  session-side guard; `codec.test.ts` pins the stub as the moved module, both
+  enum directions and two round trips.
+- **The query's credentials redacted, Doubao's frames grouped** (`24d96f71`,
+  Task 2): `redact()`'s query rule names `api_app_key` and `api_access_key`
+  beside `api_key` (ruling 2); `logStore` groups the adapter's
+  `subtitle.source`, `subtitle.translation`, `tts.sentence_start`,
+  `tts.sentence_end`, `tts.ended`, `session.usage` and `session.audio_muted`
+  under the old client's keys (choice 9). Per F4 its case adds each type twice,
+  expects two events per group and seven entries, so a merge of the three
+  `tts.*` types under their shared key fails it.
+- **The language context and the credential choice in the contract**
+  (`d497be72`, fix round `6267a100`, Task 3; rulings 1, 3, choices 1, 2):
+  `LanguageContext { speech }`; `CredentialChoice { setting; options }` and
+  `credentials.choice?`; `sources` and `targets` take an optional context, and
+  `reverseSupported`, `swapped` and `normalizePair` pass it on — without one,
+  the widest offer; `SpeechInputs` and `languageContext(p, legs, inputs)` beside
+  `contextsFor`, over one private `legSpeaks` rule; the gate's D20 reads the
+  participant leg's own context; a registry invariant holds each context's
+  offer within the widest. The fix round (test-only): a control provider per
+  arm (`growing` and `dry`, then `wider`), so dropping any arm fails; the fifth
+  arm ("Found during execution", item 3); a gate case for a speaking speaker
+  beside a text-only participant, which a gate reading the run's context would
+  refuse.
+- **`TextField`** (`f9fc83b7`, Task 4, choice 16): the old library-id rows'
+  markup as a shared field in `src/components/providers/fields/` — a label, its
+  tooltip, a right-aligned link opened by `openExternalUrl`, one `.text-input`.
+- **The fake's `proximity` script** (`1ea6855b`, Task 5, choice 15): an
+  eleventh script in Doubao's shape — no origin, no timing, one rangeless clip
+  per spoken sentence after its translation closed; the projection pairs both
+  exchanges `inferred`, through the Gemini plan's F16. It closes the Gemini
+  section's "inferred pairing in the preview" (marked there).
+- **Doubao's settings, two credential modes, languages per mode, the builder**
+  (`44335635`, fix round `673ae222`, Task 6; rulings 1, 3, 4): `settings.ts` —
+  `Ast2Settings` (`authMode` `'app' | 'apiKey'`, `'app'` by default, and three
+  library ids), `migrateAst2Settings`, `ast2Credentials` (keys `appId`,
+  `accessToken` and `apiKey`, each mode's fields, `read` trimming each value
+  and reading a number as its text, a `missing` answer per mode, `choice` on
+  `authMode`), `ast2Languages` (speaking: the eight and `zhen`; text only, or no
+  context: 23 sources — the twenty, the two dialects as sources only, and
+  `zhen`), `ast2Offers`; `config.ts` — `buildAst2` (`s2s` for a speaking leg,
+  `s2t` otherwise; a direction the leg's speech does not offer refused in
+  words; the libraries on both legs, choice 6) and `describeAst2` = `{}`
+  (choice 7); one locale key, `providers.volcengine_ast2.authModeApp`, in all
+  30 catalogs, each composed from its own catalog's `setup.credentials.appId`
+  and `.accessToken`. One case beyond the brief, at the dispatch: speaking ⊆
+  text, and no context answers text only's offer. The fix round (test-only):
+  the text-only refusal's verb, the eight spoken names against
+  `LANGUAGE_OPTIONS` with `ms`, `sh-CN` and `zhen` by literal, and the mode
+  read through the real caller, `readCredentials`, so the other mode's saved
+  values never leak. **The plan's prose is corrected here** (Task 6's review,
+  M3): where it says `migrateAst2Settings` "reads each field as text", it
+  should say that library ids read as stored strings, else the default; only
+  `read`'s `text()` reads a number as its text.
+- **The resampler and the pacer** (`f74fbbbd`, fix round `dcba0cb9`, Task 7;
+  rulings 6, 7, 12, choices 10, 11): `audioIn.ts` — a streaming 24→16 kHz
+  `Resampler` that carries its phase across chunks, and `InputPacer`: whole
+  80 ms packets, `drain()` at an idle's first tick (what waits, as one short
+  packet, and the carry dropped), `tail()` = what waits, then 500 ms of silence
+  (six 80 ms packets and a 20 ms one); `IDLE_MS` 250, `KEEPALIVE_MS` 80. The
+  fix round (test-only): a ramp case — the packets and the drain equal the
+  resampled stream whatever the cut, killing the offset-0, dropped-overflow and
+  shared-buffer mutants — and a release that drops the carry, so the next turn
+  starts clean.
+- **Subtitles as segments, sentences as rangeless clips, the decoder**
+  (`b4f45fb1`, fix round `e2fc16bb`, Task 8; rulings 10, 11, choices 3, 18):
+  `segments.ts`, `Ast2Segments` — each side's Start, Response and End one
+  segment, no origin and no timing, a false start emits nothing, and
+  `speechRef()` answers the translation started now, shown or not, else the
+  last one shown; `speech.ts`, `Ast2Speech` — one rangeless clip per spoken
+  sentence on the ref locked at `sentenceStart`, read before the decode, the
+  decodes serialized on one chain; `decode.ts`, `decodeOggOpus` over an
+  `OfflineAudioContext` at 24 kHz. The fix round: a blank subtitle counts as
+  empty and `stop()` skips pending decodes ("Found during execution", item 4);
+  the case that source subtitles never move the ref now shows a source first;
+  new cases that a decode failing after `stop()` says nothing and that two
+  Ends of the same text give two segments; the docs worded as ruling 10 words
+  the lock.
+- **The provider store keeps the user's pair and derives the run's**
+  (`77671aa6`, fix round `48b82568`, Task 9; ruling 3, choice 1):
+  `ProviderEntry.stored` (the pair the user left, while the context narrows it
+  away), `speech` and `setSpeech`; a change of legs or speech inputs derives
+  every loaded entry's pair again, forgets the readiness of those whose pair
+  moved, and writes nothing; a pick, a settings edit and a load keep their
+  writes, now from the stored pair; `participantSpeechSwitchFromStores`,
+  `speechInputsFromStores` (the name `shape.ts`' doc gives it) and
+  `watchSpeechFromStores`, which `attach()` starts beside
+  `watchLegsFromStores`. The fix round (test-only), five pins: `stored`
+  survives a round trip of the speech inputs, a pick persists from the stored
+  pair, `setSpeech` with the same inputs notifies nobody, the watcher reads the
+  audio store, and a load derives.
+- **The credential choice drawn** (`2e13d179`, Task 10, F4): the new
+  `CredentialChoiceControl`, the old Palabra group's segmented control;
+  `CredentialForm` draws it above the fields in a `.credential-choice-group`,
+  which shares Palabra's rules in `Settings.scss` (asserted on the compiled
+  stylesheet); `ProviderPicker` writes a pick through `updateSettings`, clearing
+  no credential, so the readiness driver re-checks the fields now shown; a
+  registry invariant, with its `bad` control.
+- **The language pickers offer the context's languages** (`3d57ede5`,
+  Task 11): `LanguagePairSection` takes a context; `ProviderLanguages` passes
+  the store's, `languageContext(provider, legs, speech)`; the wizard's
+  `StepLanguagePair` lists the scenario's, and normalizes into its lists a pair
+  kept from another scenario.
+- **The wire, the socket seam and the fixtures; `trackedClock` in the kit**
+  (`e4ec0d34`, fix round `94982de4`, Task 12; rulings 2, 8, choices 4, 5, 13,
+  14): Doubao's own `socket.ts` (choice 13); `wire.ts` — `ast2Url` (the
+  credentials in the query; the one function that reads the token or the key,
+  pinned by a TypeScript-AST scan in the test), `startSessionFrame`
+  (`requestMeta.AppKey` in the legacy mode only, choice 5), `audioFrame`,
+  `finishSessionFrame`, `decodeResponse`, `statusFailureCode` (`4…` →
+  `client`, anything else `server`, choice 4), and the two refusal sentences
+  ("Found during execution", item 2); `testing.ts`, the fixtures;
+  `src/lib/contract/testing/trackedClock.ts`, which Soniox's fixtures re-export
+  (F1: edited by content, the landed header kept) and Gemini's import for
+  `startGemini`. It closes the Gemini section's `trackedClock` item and its
+  recommendation 5 (both marked there). The fix round: the redaction case's
+  values ("Found during execution", item 5), the scan case's title naming
+  `wire.ts`, and `trackedClock.ts`' header crediting the choice.
+- **Doubao's own settings view** (`c6a94881`, Task 13): `Ast2SettingsView` —
+  the Custom Vocabulary section's three `TextField` rows with their console
+  links, its footer and the info block; no pair, speech, credential or turn UI,
+  and every string an existing key.
+- **The check, one bounded handshake** (`816440cf`, fix round `c58021c2`,
+  Task 14; ruling 9, choices 8, 12, 20): `checkAst2` opens one socket to
+  `ast2Url(k)` and sends `StartSession` in `s2t` for the user's pair, with no
+  corpus and no audio; `SessionStarted` → `FinishSession` and `{ ok: true }`; a
+  failing status → its code; a socket closed before it opened → `auth` with
+  `REFUSED_UPGRADE` online, a throw with `OFFLINE` offline; a close after open,
+  15 s with no answer (`CHECK_TIMEOUT_MS`) or an abort → it throws; one
+  `finish` leaves no timer, listener or socket. Beyond the brief, a no-leak
+  case, and the fix round's status and cleanup pins ("Found during execution",
+  item 6).
+- **The adapter** (`4aa833ca`, fix round `c2f87879`, Task 15; rulings 6–12,
+  choices 3, 8–12, 18, 19): `createAst2Adapter`, one leg per socket. A start
+  resolves at `SessionStarted` and rejects in words: within `START_TIMEOUT_MS`
+  (30 s) on the request's clock — `network` if the socket never opened,
+  `server` if it did (choice 12) — and, for a socket that failed before it
+  opened, `auth` online and `network` offline (choice 8). Audio goes up through
+  the pacer; the keepalive runs on `every(request.clock, 80, …)` and sends
+  silence only after `IDLE_MS`, framing `audio.idle` and `audio.resumed`
+  (ruling 7); `endTurn` and `cancelTurn` send the tail and frame `turn.tail`
+  (ruling 6); subtitles become segments and spoken sentences clips (Task 8); a
+  failing status or `SessionFailed` after the start fails the run with its code
+  (ruling 8), and `SessionFinished` or `SessionCanceled` closes it;
+  `tts.sentence_start` frames the ref it locked (Task 8's review, M4);
+  `session.unreadable` per the pre-flight's F2 ("Found during execution", item
+  1). The fixtures gain the harness `startAst2` / `liveAst2`, with F5's header,
+  and the session-side guard walks Doubao's folder. The seven conformance
+  scenarios pass. Beyond the brief: `shutDown` detaches the socket's four
+  handlers (item 7 there). The fix
+  round: a mid-session status's own code both ways (`55000031` → `server`,
+  `45000081` → `client`); `SessionCanceled` mid-session, and a server end before
+  the start; the release's restamp; the TTS half of the hot-path rule, the
+  leg's frame types pinned exactly; and a start that cannot open its socket
+  rejects in fixed words (item 8 there).
+- **The definition, registered fourth** (`fa471bb9`, Task 16; rulings 1, 2, 4,
+  5): `provider.ts` — `platforms: ['electron', 'extension', 'web']`,
+  `speech: 'optional'`, `textInput: false`, `boundaries: 'provider'`, both turn
+  modes, no `participantSpeech` and no `flagged`; `RELEASED =
+  [kizunaSonioxProvider, localInferenceProvider, geminiProvider,
+  volcengineAst2Provider, sonioxProvider]`, pinned at `registry.test.ts:293`,
+  in `providerPaths.test.ts` (`['gemini', 'volcengine_ast2', 'soniox',
+  'fake']`) and in Gemini's order case, narrowed to "sits after LocalInference"
+  (`slice(0, 3)`, at the file's own indent, F6). An old profile's App ID and
+  Access Token load in the legacy mode with nothing written.
+- **The wizard's credential step offers the credential choice** (`9ab968e2`,
+  Task 17; ruling 1, choice 2): `SetupDraft.credentialChoice` and
+  `setCredentialChoice` (a pick keeps both modes' typed values and clears the
+  validation); `ApplySetupDeps.applyProvider`'s fourth argument, the pick as
+  settings; Finish writes it through `updateSettings` before the credentials,
+  and only as the provider's own `credentials.choice.setting`;
+  `StepCredentials` draws `CredentialChoiceControl` between the prefill and the
+  fields, and its fields, `readCredentials` and `check` read the saved settings
+  with the pick laid over them. Nothing is written before Finish; a provider
+  with no choice renders and behaves as before.
+
+**The owner's probes.** Both ran with his real credentials over Node `ws`, each
+case a `StartSession` in `s2t` for zh → en and then `FinishSession`; the scripts
+read the credentials from the environment and print none.
+- **The first auth probe** (2026-09-28, before the plan; what ruling 2 rests
+  on). The legacy mode: the headers `X-Api-App-Key` (the old code's name) or
+  `X-Api-App-Id` (the documentation's), with `X-Api-Access-Key` and
+  `X-Api-Resource-Id: volc.service_type.10053` → `SessionStarted`; the query
+  `?api_resource_id=volc.service_type.10053&api_app_key=…&api_access_key=…` →
+  `SessionStarted`; a wrong token → HTTP 401 `{"error":"load grant: requested
+  grant not found in SaaS storage"}`. The API key: the header `X-Api-Key` or
+  the query `?api_resource_id=…&api_key=…` → `SessionStarted`, with no
+  `requestMeta.AppKey` (choice 5, settled before dispatch); a wrong key → HTTP
+  401 `{"error":"Invalid X-Api-Key"}`. No credentials → HTTP 400
+  `{"error":"get resource id empty"}`. Every case also sent `X-Api-Connect-Id`.
+- **The browser-shape probe** (2026-09-28, during Wave 4; Task 12's review,
+  I1). Since the first probe put `X-Api-Connect-Id` on every case, nothing had
+  shown a socket opened the way a browser opens one. This one sent no custom
+  header at all, the credentials in the query only, for each mode under three
+  Origins — none (a Node client), `http://localhost:5173` (the app under vite)
+  and a `chrome-extension://` Origin (the side panel): `SessionStarted` in all
+  six, in 598–1,516 ms. `X-Api-Connect-Id` is not required, so ruling 2 stands
+  — one plain `openSocket(ast2Url(k))` on every platform, `web` in `platforms`
+  — and the header-seam rework the review had held open as the fallback (Tasks
+  12, 15 and 16) was not needed.
+
+**F14's owner.** This record supersedes the Stage 2 Gemini section's "with
+AST2's header seam" — its inheritance row and its "What it leaves" line, both
+marked in place: F14 is OpenAI Live's, and the plain `socket.ts` of Soniox,
+Gemini and Doubao move to `src/lib/contract/` with it (the plan's review, D5).
+
+**The spec's amendments** (this record's commit), the plan's ten, each at its
+anchor:
+1. "The shape": `credentials.choice?` — its `setting` typed `string`, a field
+   of `S`, as the code has it (Task 3's review, M4) — and `sources` / `targets`
+   with an optional `LanguageContext`; a note beside the earlier plans'.
+2. "Credentials are not settings": a credential choice, drawn by both
+   credential forms as one control, written by the wizard at Finish before the
+   credentials.
+3. "Languages are two functions": an offer per speech context, the stored pair
+   and the derived one, AST2's `targets` rule; "The participant rule (D20)"
+   reads the participant leg's own context.
+4. "Turns": AST2's release column (500 ms of silence, the keepalive's 250 ms
+   idle), and its design row, split from Palabra's.
+5. "Provider capability": AST2's pairing column; Doubao as the second provider
+   whose origins L2 infers — worded without the plan's implied contrast with
+   Gemini (the pre-flight's F7): neither emits timing.
+6. "The registry is a list (D19)": the dead `VITE_ENABLE_VOLCENGINE_AST2` and
+   AST2 unflagged. It names `extension/vite.config.ts` beside `build.yml` as
+   still forwarding the flag, since both do.
+7. "Sockets that need upgrade headers": Doubao's query credentials, and F14's
+   first user now OpenAI Live; the old AST2 rules' ids (2000–2003 set,
+   2000–2009 cleared), and their removal with V2.
+8. "What adding a provider then touches": no manifest change for Doubao.
+9. "What every adapter must honour": Doubao's `logStore` rows.
+10. "Migration": AST2's item, ported; the relay twin deleted, not ported.
+
+**Checked — the gates.** Every implementer ran the suite and the typecheck gate
+on its own commit. In the parallel waves a failure or an extra gate line in
+another task's uncommitted files was named and left to it: Task 4 and Task 13
+saw failures only in the files of a task still in progress (Wave 1's; Task
+11's); Task 7 saw extra gate lines in Tasks 8's and 9's work in progress, and
+its fix round one failing case in `speech.test.ts` (Task 8's fix round); Task
+6's fix round saw gate lines in Task 12's `wire.test.ts`; Task 11 saw one gate
+line in Task 12's untracked files. Timeouts under a wave's load passed when
+re-run alone (in Tasks 1, 2, 3 and 11, and in Task 6's and Task 9's fix
+rounds). The suite grew from 510 files passed and 1 skipped, 6,538 tests passed
+and 2 skipped at `2ad8e910`, to 525 files passed and 1 skipped, 6,716 tests
+passed and 2 skipped at `9ab968e2`, 0 failed, no unhandled errors; the gate —
+the plan's widened regex, re-measured at `2ad8e910` and identical to the
+plan's stated baseline — at its 20 lines throughout. After Waves 1 and 2, with
+Tasks 11–13 landed, the controller's own run: 522 files passed and 1 skipped,
+6,649 tests passed and 2 skipped, 0 failed, no unhandled errors; the gate at
+its baseline.
+
+**Checked — group check A** (steps 3 and 4 during the reviews of Tasks 14 and
+15 — Doubao is unregistered until Task 16, so no adapter code reached a bundle
+— and steps 1 and 2 at `c2f87879`):
+1. the suite: 6,702 tests passed and 2 skipped, 0 failed, no unhandled errors;
+   the gate at its baseline;
+2. `src/services` and `src/components/Settings`: 1,802 passed — the old AST2
+   client reaches its codec through the stub;
+3. `npm run build` and `npm run extension:build`; the three D24 greps empty;
+   `audio.idle` in neither bundle, as expected before the registration;
+   `npx vitest run extension` (45 tests);
+4. the full tree's typecheck: 259 lines, the bound;
+5. a fresh vite: the six spine probes and `app-panel-probe` (`--preview`,
+   `--settings`) — all pass;
+6. **inferred pairing in the preview:** the fake's `proximity` script with
+   keep-audio on (set by the dev checkbox: a stored value did not reach the
+   preview) — four rows, two exchanges, each source directly above its
+   translation, each translation with "Play this item's audio" once its clip
+   played, no karaoke lit (screenshot `ast2-groupA-proximity.png`);
+7. **no credential choice without a provider that has one:** no
+   `.credential-choice-group` on any of ten pages — advanced and simple, each
+   with the fake, Soniox, Gemini, Kizuna Soniox and LocalInference selected.
+   The first sweep stalled on simple Kizuna Soniox; that was the harness
+   reusing a port between pages, and the page answered alone.
+
+**Checked — group check B** (at `9ab968e2`):
+1. `npm run build` and `npm run extension:build`, the three D24 greps empty;
+   `audio.idle`, a frame only the new adapter emits, is in
+   `build/static/index-*.js` and `extension/dist/fullpage.js` — the adapter
+   ships in both bundles, neither fake does; after Task 17's review, the suite
+   (6,716 tests passed and 2 skipped, 0 failed, no unhandled errors) and the
+   gate at its baseline;
+2. the full tree's typecheck: 259 lines, the bound;
+3. every probe on a fresh vite, restarted after Tasks 16 and 17: the six spine
+   probes, `app-panel-probe` (`--preview`, `--settings`, `--app`, `--app
+   --settings`), `extension-overlay-probe` (plain and `--ptt`) — all pass;
+4. **Doubao's Provider tab, rendered** in both layouts, with 0 requests and 0
+   resources to `openspeech.bytedance.com` in both layouts and both modes: the
+   control "App ID + Access Token" | "API key" above the fields, the first
+   pressed; the "APP ID" and Access Token rows; "API key" → one "Enter your API
+   key" row, the App ID row gone; back → both, empty; the Custom Vocabulary
+   section's three rows with their "Manage …" links, its footer and the info
+   block (screenshots `ast2-groupB-advanced-*.png`, `ast2-groupB-simple-*.png`).
+   The markup was checked class by class against the old Palabra group and the
+   old AST2 rows by the reviews of Tasks 10 and 13;
+5. **the languages per mode** (in the simple layout: the advanced preview has
+   no language section): speaking, exactly the eight spoken languages and
+   `zhen`; Text only on, 23 sources — the twenty, `yue-CN`, `sh-CN` and `zhen`;
+   `ko → zh` picked under Text only, then Text only off → `zh → en`, and on
+   again → `ko → zh`; a dialect source targets English and Chinese; `zhen`
+   targets only itself; no dialect is ever a target;
+6. **the gate's words:** ▶ Start disabled, "Enter your API key in Settings
+   before starting." — in the legacy mode too (an open question below); 0
+   requests to Doubao;
+7. **the wizard** on a fresh profile: the own-key list "Google Gemini | Doubao
+   AST 2.0 | Soniox" (and the development-only fake); Doubao's credential step
+   draws the choice above "APP ID" and "Access Token", "API key" → that one
+   field, back → both — never filled, never validated, 0 requests to Doubao;
+   the language step lists the eight and `zhen` for `be-heard` and the full
+   list for `subtitle-myself`, no dialect as a target;
+8. the Logs' grouping: `logStore.test.ts` (Task 2) is the evidence; no live
+   frame exists before the owner's test.
+
+**Found during execution** — what execution changed or found beyond the plan,
+each from a controller's ruling in the ledger, with its reason and where it
+lives:
+1. **An unreadable frame is said once per ok → failing transition** (the
+   pre-flight's F2; `4aa833ca`). `session.unreadable` is framed, and
+   `parse_error` degrades while live, only when the leg was reading until then;
+   any frame that reads re-arms it; its payload key is `message`, as Soniox's
+   `stt.unreadable` and Gemini's `server.unreadable`. Why: the plan framed every
+   unreadable frame, and `logStore` gives `session.unreadable` no grouping key,
+   so a codec or protocol mismatch would have been one Logs row per `TTSResponse`
+   chunk and subtitle partial — against the plan's own hot-path rule and the
+   precedent of both earlier ports. Choice 19's "framed" reads "framed and said
+   once per episode". Lives in `src/providers/volcengine_ast2/adapter.ts`; the
+   case expects two `session.unreadable` frames, not three.
+2. **The two refusal sentences live once, in `wire.ts`** (the pre-flight's F9;
+   `e4ec0d34`, used by `816440cf` and `4aa833ca`). `OFFLINE` — "The device is
+   offline: Doubao could not be reached." — sits beside `REFUSED_UPGRADE`;
+   `check.ts` and `adapter.ts` import both and restate neither. Why: the plan
+   wrote the offline sentence verbatim in both files, against its own rule that
+   the refusal words the two share live in `wire.ts`. The tests keep their
+   literals, which pin the words, and `wire.test.ts` pins both. Lives in
+   `src/providers/volcengine_ast2/wire.ts`.
+3. **A fifth arm of the language-context invariant: the speaking offer lies
+   within the text one** (Task 3's review, M2; `6267a100`). Under `{ speech:
+   true }` every source, and every target of a source, must also be offered
+   under `{ speech: false }`; a control provider, `wider`, gives the arm its
+   own failing lines, as `growing` and `dry` give the other four (I1). Why: a
+   run speaks when any leg does, so a text-only speaker in a speaking run takes
+   its pair from the speaking offer, which is sound only while that offer lies
+   within the text one. Doubao's lists already did; now the rule is stated in
+   code, and a future provider whose speaking offer is wider fails the
+   invariant and has to argue it. Task 6 pins the same for Doubao in its own
+   suite. Lives in `src/providers/registry.test.ts`.
+4. **Task 8's fix round** (`e2fc16bb`), two rulings on its review:
+   - **a whitespace-only subtitle counts as empty** (M3): `if (text.trim())
+     this.show(side, text)`, the untrimmed text still what is sent — so a blank
+     End after a Start opens nothing, and a blank End on a shown segment keeps
+     its text. Why: parity with the old client's false-start test;
+   - **`stop()` skips pending decodes** (M5): once stopped, `flush()` answers
+     `{ chunks: 0, bytes: 0 }` and the chain decodes no clip still waiting; a
+     decode already running finishes and its result is dropped. Why: the
+     brief's prose said so, while its code decoded clips queued before, or fed
+     after, the stop only to drop them. It made two of the brief's stop cases
+     `await flush()` first, so each still pins a decode that is running at the
+     stop.
+
+   Both live in `src/providers/volcengine_ast2/segments.ts` and `speech.ts`,
+   each with its cases.
+5. **The redaction case is built from values with no key shape** (Task 12's
+   review, M1; `94982de4`). Its two URLs carry `{ appKey: '1234567890',
+   accessKey: 'Abc-Def_ghi' }` and `{ apiKey: '0a1b2c3d' }`. Why: the fixtures'
+   token and key are key-shaped on purpose (`sk-…`, `key-…`, for the kit's
+   frame-secret rule), and `redact()` masks a key-shaped value whatever its
+   query rule names, so the case gave only one of its three names teeth. Now
+   dropping any one of the three names from the query rule fails it. Lives in
+   `src/providers/volcengine_ast2/wire.test.ts`.
+6. **The check's no-leak case, and its status and cleanup pins** (Task 14;
+   `816440cf`, fix round `c58021c2`). Beyond the brief, one case runs the four
+   paths whose words are the check's own — a refused upgrade, a close after
+   open, a timeout, offline — in both modes and asserts that no answer carries
+   the token or the key, the endpoint or `api_`, with an in-case control that
+   the socket's URL holds all three. Why: the brief pinned those paths with
+   `toThrow(string)`, a substring match that a URL appended to the words still
+   passes; a URL-appending mutant proved it. The fix round then pinned what its
+   review found unguarded: a failing status on `SessionStarted` answers
+   `server`, the socket closed and no timer left (killing a hard-coded `client`
+   and a ready-on-failing-status); no timer after the offline throw, the close
+   after open or `SessionFailed`, and the socket closed by the check on
+   `SessionFailed`; the App ID among the leak case's needles in the legacy
+   mode; and no corpus in the check's request with all three library ids set
+   (choice 20). Lives in `src/providers/volcengine_ast2/check.test.ts`.
+7. **`shutDown` detaches the socket's four handlers** (Task 15; `4aa833ca`):
+   `onopen`, `onmessage`, `onerror` and `onclose` are nulled before the close,
+   as Gemini's `detach` does, and the abort listener is removed once the start
+   settles; one case pins both. Why: the dispatch's rule that a stopped leg
+   leaves no timer, socket or listener; every handler was already gated on the
+   leg's phase, so nothing else changes. Lives in
+   `src/providers/volcengine_ast2/adapter.ts`.
+8. **A start that cannot open its socket rejects in fixed words** (Task 15's
+   review, M3 — the implementer's concern 1; `c2f87879`). `start` wraps the
+   leg's construction, which opens the socket synchronously, and a throw there
+   rejects with `AdapterStartError('The browser would not open the socket
+   (<name>).', 'network')`: the error's name alone (`SyntaxError`,
+   `SecurityError`), never its message, and no `cause`. Why: a browser's
+   `SyntaxError` for the `WebSocket` constructor can quote the URL, credentials
+   included, which would have reached the notice's detail and the console
+   unredacted, and `start` threw instead of rejecting. Unreachable with
+   `ast2Url`'s URL today. The same words in `nativeSocket` itself, which covers
+   Doubao's check and Gemini, are left to the final fix wave ("What it
+   leaves"). Lives in `src/providers/volcengine_ast2/adapter.ts`, with a case
+   in each credential mode.
+9. **Scratch directories are task-prefixed** (the controller's ruling, from a
+   collision Task 6's re-reviewer met). Every agent's scratch work goes under
+   the job's scratch directory in a directory named for its task and role
+   (`t9-rereview1/`, `t12-review/`), since agents run at once and a generic name
+   collides. Lives in the execution's rules for implementers and reviewers,
+   both of which carry it.
+
+**Accepted as they stand** (the controller's rulings, each with its cost if
+wrong):
+- **Task 7:** the fix round's commit body labels its paragraphs "I1:" and "M1:"
+  — review IDs in history, a style slip; rewriting a commit is not worth it.
+  Cost: none.
+- **Task 8, M4:** a clip locked to a translation that ends unshown plays live
+  but can never be replayed — the review's option (a), a stated departure below
+  and live-test item 13. Cost: an occasional clip without replay.
+- **Task 13:** `.volcengine-info-notice` has no rule in `Settings.scss`; the
+  class is carried over from the old markup, which had none either; left as
+  parity. Cost: none.
+
+**Stated departures from today** (the plan's self-review list, as landed; what
+execution added is marked):
+- the participant leg speaks when its switch is on (ruling 4; the old participant was text-only);
+- a second credential mode, the new console's API key (ruling 1); the provider runs on the web and installs no DNR rule (ruling 2); both credential forms draw the choice, the wizard's included, so a first run with an API key alone sets Doubao up (choice 2, Task 17);
+- the languages follow the mode: speaking offers the eight languages and `zhen`, text only twenty, two dialects and `zhen`; a pair with neither Chinese nor English on one side is no longer offered in either mode (ruling 3); picking `zhen` from the target side is gone (choice 17);
+- the keepalive sends silence only after 250 ms with no audio, not after 60 ms, so it no longer splices zeros into speech, and what the pacer held goes up before the silence, not after it (ruling 7; review M1);
+- the resampler carries its phase across chunks and sends 80 ms packets (ruling 12). **Execution (Task 7's review, M3):** the 80 ms packets hold each capture chunk's remainder until the next chunk completes it — about 40 ms of added latency on average, at most 80 ms: ruling 12's price, which no ruling had stated;
+- a status error, or `SessionFailed`, after the start ends the run in words (ruling 8; the old client ignored `SessionFailed` once started, survey §2.10);
+- the check validates the user's pair, bounded to 15 s, and throws while offline instead of blaming the credentials (ruling 9, choices 8, 20); a start rejects in words within 30 s on the request's clock, never with the URL (choice 12) — **as landed**, a start whose socket cannot even be constructed rejects at once, in fixed words ("Found during execution", item 8);
+- a spoken sentence's clip is locked to the translation started at its start, read before the decode, and its decodes run in order (ruling 10; parity with the old lock, the two old races not ported). **Execution (Task 8's review, M4):** a clip locked to a translation that then ends unshown — or is replaced by the next Start before it shows — lands on a ref that never opens: it plays live, but L1 holds it pending and it can never be replayed, where the old client fell back to a standalone, replayable audio item. Accepted: in that state the lock most likely voices the previous sentence anyway, and an empty row with audio is a shape no one has seen. **Execution (Task 8's review, M6):** an unended sentence is flushed as its own clip at the next `TTSSentenceStart`, where the old client dropped those chunks, so a truncated stream can raise `tts_degraded` where the old one stayed silent; and chunks that arrive between a `TTSSentenceEnd` and the next `TTSSentenceStart`, flushed by `TTSEnded`, land on the previous sentence's ref;
+- the Logs' frame names change (`subtitle.*`, `tts.*`, `session.*`), grouped under the old keys (choice 9) — **as landed**, `session.unreadable` said once per episode ("Found during execution", item 1).
+
+Where the plan departs from its survey, and why, stays in the plan's
+self-review.
+
+**Before any release from the branch**
+- **The owner's live test below**, before V2 deletes the old code and before
+  any release that carries Doubao.
+- **The registry's order** is now `['kizunaai_soniox', 'localInference',
+  'gemini', 'volcengine_ast2', 'soniox']` (ruling 5; `src/providers/registry.ts:18`,
+  pinned at `registry.test.ts:293`), Doubao unflagged under D19's model.
+- **The wizard's own-key description** (`setup.paths.own-key.desc`): its
+  "Doubao" is now true; its "OpenAI" still is not.
+- **The owner's native-speaker spot check** of
+  `providers.volcengine_ast2.authModeApp` in 30 catalogs (ja and zh_CN drop
+  their labels' parenthesised English) and of the names `粵語 (cantonese)` (the
+  shared registry's) and `上海话 (Shanghainese)` (Task 6 lists them).
+- **V2's start-up clear of DNR rules 2000–2009 before any release that carries
+  Doubao in the extension.** An extension profile that ran the old client may
+  still hold rules 2000–2003, which set no `initiatorDomains`, outlive a browser
+  restart, and inject its old `X-Api-App-Key` / `X-Api-Access-Key` into every
+  socket to `openspeech.bytedance.com`, the new query-authenticated one
+  included (the plan's review, M7; live-test item 20).
+- **At Stage 2's end**, `VITE_ENABLE_VOLCENGINE_AST2` and
+  `VITE_ENABLE_KIZUNA_VOLCENGINE_AST2` join the release-flag cleanup
+  (`build.yml:219,224,273,278,313,318,415,420,517,522`,
+  `extension/vite.config.ts:176-184`).
+
+**The owner's live test** (survey §2.13's list, adjusted to the rulings; what
+execution added is marked). Each item names what to record in the Logs
+(diagnostic logs on, in Help):
+1. **Both credential modes and the check (rulings 1, 9):** the legacy App ID + Access Token → Validate ✓; a wrong token → "The provider did not accept the credentials: …" with the refusal's words, Start off; the API key → ✓; a wrong key → the same words; empty in either mode → "Enter your API key…". Switching modes keeps the other mode's fields. An old profile (App ID and Access Token saved by an earlier build) opens in the legacy mode, ready without re-entry. **An API-key session starts** (no `requestMeta.AppKey` — choice 5; if it is refused at `StartSession`, that is the first suspect). Each check opens and finishes one real session: record whether the console bills it. **Execution (group check B, step 6):** the idle line reads "Enter your API key in Settings before starting." in the legacy mode too — record how it reads to a user who holds an App ID and an Access Token (an open question).
+2. **The query URL from the web page, the extension's side panel and Electron (ruling 2):** the socket opens in each; no credential in the Logs or the Logs' export; record whether DevTools' own console prints a failed socket's URL with its query. **Execution (Task 14's review):** record too whether it prints it when a check or a start is aborted, or times out, while its socket is still connecting.
+3. **Speech to speech, auto:** zh → en, en → zh, ja → zh and each of the other spoken languages once, as a source and as a target of zh or en; the speaker's cloned voice heard on the monitor and in the virtual microphone, once each; source and translation rows paired; replay per sentence with keep-audio on; no karaoke.
+4. **Text only, the full list:** a sample of the twelve text-only languages as sources (ko → zh, ru → en, ar → en, th → zh) and as targets (zh → ko, en → vi); no audio.
+5. **A dialect source:** 粵語 → 中文 and 上海话 → English, in text only; the badge reads "YUE-CN" / "SH-CN".
+6. **`zhen`:** mixed Chinese and English speech, speaking and text only; rows labelled "ZHEN".
+7. **Pairing (ruling 11):** record the `subtitle.*` frames' `sequence`, `startTime` and `endTime` over several utterances — is `Sequence` shared by a source and its translation, and do the translation's times count on the source's timeline? Check rows on rapid speech, on a long monologue (a translation opening more than 4 s after its source leaves L2's proximity window) and on sentences that overlap.
+8. **Push-to-talk (ruling 6):** a short press → the utterance finalized soon after release; a press with no speech → nothing shown, the next press not merged; `turn.tail` frames, with `cancelled` for a cancel.
+9. **The keepalive during silence (ruling 7; review M1):** ten minutes silent or muted — the session stays open; `audio.idle` once per idle, `audio.resumed` when speech returns; during continuous speech no `audio.idle` at all (a slow device's capture gaps under 250 ms never trip it); recognition quality against the old build's.
+10. **Both with participant speech (ruling 4):** two sockets; the participant's reverse direction; its switch on → the other party's translation heard on the real device in their cloned voice, off → text; a text-only pair with the participant's speech on → the gate refuses the participant leg in words; either leg ending ends both; participant-only. Record whether two sessions on one credential are allowed, and whether the participant's libraries (sent on both legs, choice 6) do harm.
+11. **Errors mid-session (ruling 8):** a status error → the run ends with its words (`notices.client` / `notices.server` with Doubao's detail); a network drop → the connection-lost words.
+12. **The status codes (choice 4):** every status other than 20000000 and its message, from `session.status` frames; whether `4xxxxxxx` is always the client's fault.
+13. **TTS replay (ruling 10):** each sentence's clip on its own translation row, also when translations follow each other fast, and when a sentence starts before its translation shows text (record the order of `subtitle.translation` phase `start`, its first `response`, and `tts.sentence_start` with their `ref`s); keep-audio off → no replay button. **Execution (Task 8's review, M4):** `tts.sentence_start` frames the ref its sentence locked, shown or not — record, for each, whether that ref's translation was ever shown: a ref never shown is a clip with no replay (a stated departure).
+14. **The libraries:** hot words, replacement and glossary ids take effect as in the old build.
+15. **Stop mid-sentence:** rows finalized; no audio after Stop; `FinishSession` sent.
+16. **The wizard:** the own-key path lists Doubao after Gemini; the credential step shows the choice above the saved mode's fields; **a first-run setup with an API key only** — pick "API key", validate, finish — leaves Settings in the API key mode with the key saved, and a session starts; the language step's lists follow the scenario, and Back to another scenario normalizes a pair its list does not hold. **Execution (Task 17's review, m3):** two edges to try — picking the other mode and then the saved one again leaves the credentials unvalidated (Validate again, or Skip); and on a profile holding both modes' credentials, once the shown mode's saved values were mirrored into the draft, the other mode's saved value is not filled in after a switch. Record whether either confuses.
+17. **The Logs panel:** the frames grouped (no flood of `subtitle.*` rows), `session.usage` and `session.audio_muted` present, no credential anywhere.
+18. **Analytics:** `translation_session_start` with `provider: 'volcengine_ast2'`; a refused start → `api_error` with its code.
+19. **A long session** (survey §2.13 item 15): 30 minutes or more, speaking and silent — no server timeout, no latency growth.
+20. **Stale header rules from the old client, in the extension** (review M7): on a profile where an old build ran AST2 (`chrome.declarativeNetRequest.getDynamicRules()` in the service worker lists ids 2000–2003), start a session in the API key mode, then in the legacy mode with other credentials than the rules carry: record which credential the server honours, and whether either session is refused.
+
+**Open questions for the owner**
+- Pairing (item 7): state origins from `Sequence`, or emit timing, if the live test shows either holds (choice 3).
+- The idle line's words name an API key in the legacy mode too (`notices.credentials_missing` is generic; group check B, step 6; item 1): a code of its own would need a key in 30 catalogs.
+- **The participant leg's libraries — Doubao's case of "Name the leg in `SessionContext`"** (the Gemini section's open question; the pre-flight's F3): choice 6 sends the speaker's libraries on both legs because `build` has no leg identity — `shared.reversed()` holds for both legs of `zhen/zhen` — the same gap by which a same-language pair makes both Gemini legs read Other's prompt. One leg identity in `SessionContext` settles both; item 10 records whether the participant's libraries do harm.
+- The resampler has no low-pass filter beyond its averaging (choice 11).
+- Per-row `zh` / `en` labels in a `zhen` session (choice 18).
+- A failed socket's URL in DevTools' own console (item 2): not a sink of ours; only a header seam would keep the credentials out of the URL. **Execution (Task 14's review):** an abort or a timeout while the socket is still connecting prints it too — a check that times out or is aborted mid-handshake (the wizard's credential step aborts one on a pick), or a start aborted while opening, is such an occasion.
+- Every failure before the socket opens reads as refused credentials while online: a rate-limited upgrade (the account's QPM 60, survey §2.4, with readiness re-checking after edits) or a proxy that blocks it says "check the App ID and the Access Token, or the API key" too (choice 8; review M7). Telling them apart needs what a browser cannot read — the upgrade's status.
+- **Each check opens a real session — Doubao's case of "The readiness re-check on each instruction edit"** (the Gemini section's recommendation 3; the pre-flight's F3): readiness re-checks 800 ms after every settings edit — a library-id keystroke included (the Soniox plan's "re-probes on every settings edit") — and where Gemini's re-check lists models for free, each of Doubao's opens and finishes a real session (item 1). It also re-checks when the store's re-derivation moves the run's pair and forgets its readiness: a Text-only toggle over a text-only pair outside the speaking offer costs one more real session (Task 9). A provider declaring which of its settings the check reads — the generic change the Gemini section records as not taken — would spare the library-id keystrokes.
+- **A text-only launch can be checked twice** (Task 9's review, M4; beside the item above): at launch, a text-only user whose stored Doubao pair lies outside the speaking offer can be checked once with the pair derived for speaking — the entry lands before the text-only switch does — and again after the pair moves and readiness is forgotten; the audio mode's late load already has that shape.
+- **Superseded checks are never aborted** (Task 14's review): the readiness driver calls `refreshReadiness(p, auth())` with no signal (`src/app/readiness.ts:60`), and no check a newer one supersedes is aborted, so an edit made during a handshake can overlap two short, audio-free Doubao sessions on one credential.
+- **The ScriptProcessor fallback's 341 ms chunks against `IDLE_MS`** (Task 7's review, M2): `IDLE_MS` = 250 holds on the AudioWorklet capture path, whose chunks come every 85.3 ms; the ScriptProcessor fallback (16,384 frames, 341 ms a chunk) would find every gap past 250 ms, drain, and splice an 80 ms silent packet into it — the old bug in another form. Rare (the fallback runs only when the worklet fails to load), and not built; the cost while open is clipped or padded speech on that path, until an adaptive idle is built.
+- **A kit-wide "no ws(s) URL in a frame" rule** (Task 15's implementer, concern 2): `framePayload` already redacts query values, so the kit's own check would pass a frame carrying a redacted URL — the endpoint and the parameter names, never a secret; Doubao's own case catches one by its host. A rule in the kit would hold Soniox and Gemini to it too.
+- Analytics for `degraded` (Plan A's open question, unchanged).
+
+**V2's inventory** (the deletion plan, after the live test; the relay twin with
+it — the owner's ruling: deleted, not ported; lines read at `3665711d`, and
+none of these files changed through `9ab968e2` but `logStore.ts` and the codec's
+two stubs):
+- `src/services/clients/VolcengineAST2Client.ts` (+ test; its six corpus cases already ported to `config.test.ts`), the two stubs `src/services/clients/volcengine-ast2/ast2-proto.{js,d.ts}`;
+- `src/services/providers/VolcengineAST2ProviderConfig.ts`, `KizunaAIVolcengineAST2ProviderConfig.ts` (the relay twin), `volcengineAST2LanguageSync.ts` (+ test); their `ProviderConfigFactory` registrations (`:10, 12, 43-45, 58, 163`) and the old test tables naming them (`descriptorRegistry`, `kizunaProviderGating`, `providerOrder`, `participantConfig`, `speechMode`, `sessionResourcesWiring`, `voicePrepWiring`, `prepareToStart.*`, `ClientFactory`, `ClientOperations`, `settingsStore.*`, `kizunaProviders`, `AccountButton`, `PoweredBy`, `SetupWizard`, `providerPath(s)`, `Provider.test` — survey §1.19);
+- the old UI's AST2 branches: `ProviderSpecificSettings.tsx:1471-1719` and its active-slice ternaries (`:171-194`), `ProviderSection.tsx:76, 484-485, 719-756`, `LanguageSection.tsx:114-121, 166-180, 259-270, 312, 318-326, 605`;
+- the `volcengineAST2` and `kizunaVolcengineAst2` slices of `settingsStore.ts` (`:291, 294, 421, 424, 657, 663, 706, 709, 973, 976, 1541, 1544, 1625, 1628`) — the storage keys stay, `providerStore` reads them;
+- `Provider.KIZUNA_AI_VOLCENGINE_AST2` with `isKizunaManagedProvider` / `kizunaBaseProvider`'s AST2 case (`src/types/Provider.ts:13, 49-60`), `KIZUNA_HOSTED_ICONS`' entry (`src/components/Icons/ProviderIcons.tsx:280`), `isKizunaVolcengineAST2Enabled` (`src/utils/environment.ts:230-236`) and its forwarding (`extension/vite.config.ts:176-184`, `build.yml`'s AST2 lines), `TUTORIAL_URLS`' AST2 entry (`src/services/providers/tutorialUrls.ts:19`) once nothing reads it;
+- the extension's AST2 DNR block and its two messages (`extension/background/background.js:254-317, 544-563`), and **in their place a start-up clear of dynamic rules 2000–2009**, so a browser that ran the old client drops what it left installed;
+- `providers.kizunaai_volcengine_ast2.*` in 30 catalogs; `logStore.ts`' old AST2 event names and grouping alternatives, once no old client emits them;
+- **keep:** `LEGACY_SLICE_KEYS.kizunaai_volcengine_ast2` and `MANAGED_LEGACY_IDS` (a stored selection of the twin falls back, the Kizuna Soniox plan's choice 13), `getRelayWsUrl` and the `sokuji-auth.` redaction rule (shared with the Kizuna OpenAI Translate twin), `electron/main.js`' generic `ws-headers-set/clear` (OpenAI Live's seam will use it).
+
+**The roadmap's inheritance, item by item** (the plan's tables, as landed):
+taken (and where), deferred (and why), or already done.
+
+From "Scheduled by the Stage 2 foundation plan" (`:1287-1289`, `:1298-1302`,
+`:1304` above):
+
+| Item | Disposition |
+|---|---|
+| Volcengine AST2: F14, the socket seam (`openSocket`; its fake hands out `FakeSocket`s) | not built: the credentials ride in the query (ruling 2), and the owner's browser-shape probe showed no header is needed. Doubao has its own plain `socket.ts` (choice 13, Task 12), tested over `FakeSocket` as Soniox and Gemini are; F14's first user becomes OpenAI Live, superseding the Gemini record's "with AST2's header seam" (both its lines, marked in place) |
+| Volcengine AST2: F16, windowing the pairing inference | done by the Gemini plan (its Task 2); consumed here through `createProjector` (Tasks 5, 15), and seen in the preview at group check A |
+| OpenAI Translate: F16 if AST2 did not land it | done by the Gemini plan |
+| Palabra: F4, the credential-adjacent control | built here (Tasks 3, 10), Doubao its first user, and drawn by the wizard's credential step too (Task 17); Palabra's platform / app toggle becomes a `credentials.choice` on its `authMode` |
+| OpenAI Live: F14 (reused) | becomes F14's first user |
+
+From the Soniox plan's "Found here" (`:1740-1747` above):
+
+| Item | Disposition |
+|---|---|
+| Readiness re-probes on every settings edit | applies: a library-id keystroke re-runs Doubao's handshake 800 ms later — a real session opened and finished — and so does a Text-only toggle that moves the run's pair (Task 9). Not taken (a generic change); an open question, Doubao's case of the Gemini section's |
+| `timing` after a 503 resume | n/a: Doubao emits no timing and does not resume |
+| `audio.range` after fill-in | n/a: Doubao's clips are rangeless |
+| The side latch | n/a: one leg per socket |
+| Two TTS sockets per key in shared Both | its analogue, two sessions per credential in Both, is live-test item 10 |
+| `Conversation.afterAudio`'s pending drop | n/a: Doubao emits no `speechRanges` |
+
+From "Scheduled by the Stage 2 Gemini plan" (above; the pre-flight's F3 — the
+section was written after this plan):
+
+| Item | Disposition |
+|---|---|
+| "Volcengine AST2: F14's socket seam — deferred to AST2" (its inheritance table), and "F14 … with AST2's header seam" (its "What it leaves") | superseded, both marked in place: F14 is OpenAI Live's |
+| Inferred pairing in the preview ("one belongs with AST2") | done — Task 5, the fake's `proximity` script (`1ea6855b`); group check A, step 6; marked in place |
+| `trackedClock` promoted to the kit ("What it leaves", and the open question on recommendation 5) | done — Task 12 (`e4ec0d34`, choice 14); both marked in place |
+| The instructions of later ports | n/a: Doubao sends no system instructions |
+| Name the leg in `SessionContext` (open question) | joined: choice 6's libraries on both legs are Doubao's case (open question above) |
+| The readiness re-check on each instruction edit (open question, recommendation 3) | joined: for Doubao every re-check is a real session, a Text-only toggle included (open question above) |
+| `session.closed` on Stop | the same for Doubao ("What it leaves") |
+
+"Before any release from the branch" (`:1751-1765`, `:2318-2343` above) and
+the Kizuna Soniox plan's "Found here" (`:2494` above):
+- The registry's order: extended by ruling 5 (Doubao fourth), pinned in `registry.test.ts`.
+- The wizard's own-key description: its "Doubao" became true with Task 16; "OpenAI" still waits for its port.
+- The relay twin: deleted, not ported (`:2334`) — V2's inventory takes it with the own-key code.
+- The release-flag cleanup at Stage 2's end: the two AST2 flags join it (this record's "Before any release").
+- The native-speaker checks: one key in 30 catalogs and two language names (Task 6).
+
+**Stage 2 items from the roadmap this plan does not take:** the kit's parked items (`{ flush: true }` after an awaited answer, `FakeSocket`'s close codes, the virtual clock's `pending()` count, manual-end's segment check); the account's compile-time narrowing; `RunnerDeps.replayAudio`'s guard; the notice-code namespace.
+
+What it leaves, for the plans that meet it (the plan's own list, as written;
+then the items the task reviews parked for this plan's final fix wave):
+- **V2**, the deletion of the old AST2 code with the relay twin, the AST2 background block (replaced by a start-up clear of rules 2000–2009) and the dead flags, after the owner's live test (this record's inventory).
+- **F14**, the header seam, for OpenAI Live; Soniox's, Gemini's and Doubao's plain `socket.ts` move to `src/lib/contract/` with it.
+- **Palabra's use of F4:** its toggle as a `credentials.choice`.
+- **Stated origins for Doubao,** if the live test shows `Sequence` or the times state the pair (choice 3).
+- **The legacy mode's own idle words** — an open question.
+- **The start-up clear of DNR rules 2000–2009** — V2's, before any release that carries Doubao in the extension.
+- **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox and Gemini.
+- **The owner's open questions** in this record, each with the live-test item that settles it.
+- **To the final fix wave:** `nativeSocket` in `volcengine_ast2/socket.ts` and `gemini/socket.ts` rethrows in fixed words — `The browser would not open the socket (<error name>).` — dropping the browser's message, which can quote the URL; one place each covers the adapter, Doubao's check and Gemini (Task 15's review, M3b).
+- **To the final fix wave:** review and task IDs stripped from production comments, plan-wide — "(Stage 2 Volcengine AST2, I2)", "F4", "Task N" — citing rulings and choices as the other files do, Task 1's two codec stubs among them, to cite F18 rather than a task (Task 17's review, m1; the ruling on Task 1's note).
+- **To the final fix wave:** an `invocationCallOrder` pin that Finish writes the credential choice before the credentials. The order is not load-bearing today — both writes are synchronous and the readiness driver schedules its check — and nothing would catch a refactor that made it so (Task 17's review, m2).
