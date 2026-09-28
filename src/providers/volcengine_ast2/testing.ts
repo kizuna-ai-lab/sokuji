@@ -1,15 +1,21 @@
 /**
  * The Doubao AST 2.0 suites' fixtures: credentials of both kinds, the
  * settings the adapter suites build from, the server's frames as the binary
- * frames it sends, and what the client sent, decoded. Test-only: nothing but
- * a test imports it, and the adapter's session walk never reaches it.
+ * frames it sends, what the client sent, decoded, and a leg started over
+ * `FakeSocket`s. Test-only: nothing but a test imports it (the session-side
+ * guard's kit rule counts every provider's `testing.ts` as kit and holds it
+ * to that), and the adapter's session walk never reaches it.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { FakeSocket } from '../../lib/contract/testing/fakeSocket';
+import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
+import { fakeSockets, type FakeSocket } from '../../lib/contract/testing/fakeSocket';
+import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { SharedSettings } from '../../lib/provider/types';
+import { createAst2Adapter } from './adapter';
 import { buildAst2, type Ast2Config } from './config';
 import { data as proto } from './proto/ast2-proto.js';
 import { AST2_DEFAULTS, type Ast2Credentials, type Ast2Settings } from './settings';
+import type { OggDecoder } from './speech';
 import { EventType, OK_STATUS } from './wire';
 
 /** The legacy mode's. The token is shaped as a key `redact()` masks (`sk-…`): a frame that carried it fails the kit's frame-secret rule. */
@@ -77,4 +83,35 @@ export function sentRequests(socket: FakeSocket): proto.speech.ast.TranslateRequ
 export function pcmOf(request: proto.speech.ast.TranslateRequest): Int16Array {
   const bytes = request.sourceAudio?.binaryData ?? new Uint8Array();
   return new Int16Array(new Uint8Array(bytes).buffer);
+}
+
+/** A Doubao leg started over `FakeSocket`s on a tracked virtual clock; its socket not yet opened. The decoder answers one sample per byte, unless given its own. */
+export function startAst2(o: { context?: SessionContext; credentials?: Ast2Credentials; patch?: Partial<Ast2Settings>; decode?: OggDecoder; online?: boolean } = {}) {
+  const sockets = fakeSockets();
+  const { clock, timers } = trackedClock();
+  const { events, log } = recordEvents();
+  const controller = new AbortController();
+  const context = o.context ?? AUTO_CTX;
+  const config = configFor(context, o.patch);
+  const decode = o.decode ?? (async (ogg: Uint8Array) => new Int16Array(ogg.length));
+  const adapter = createAst2Adapter({ openSocket: sockets.create, decode, newId: counterIds(), online: () => o.online ?? true });
+  const starting = adapter.start({ context, config, credentials: o.credentials ?? APP_KEY, clock, signal: controller.signal }, events);
+  const socket = () => sockets.last();
+  const of = <K extends AdapterEvent['kind']>(kind: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);
+  /** The payloads of the frames of one type, in order. */
+  const frames = (type: string) => of('frame').filter((e) => e.payload.type === type).map((e) => e.payload.payload);
+  /** What the client sent on the leg's socket, decoded. */
+  const requests = () => sentRequests(socket());
+  /** The log without its frames: what L1 folds. */
+  const content = () => log.filter((e) => e.kind !== 'frame');
+  return { sockets, clock, timers, log, controller, config, starting, socket, of, frames, requests, content };
+}
+
+/** Started, opened and answered: the start resolved. */
+export async function liveAst2(o?: Parameters<typeof startAst2>[0]) {
+  const h = startAst2(o);
+  h.socket().open();
+  h.socket().receive(SERVER.started());
+  const session = await h.starting;
+  return { ...h, session };
 }

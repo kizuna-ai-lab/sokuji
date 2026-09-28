@@ -214,6 +214,23 @@ describe('a provider session side', () => {
     for (const file of ['check.ts', 'config.ts', 'settings.ts', 'provider.ts', 'testing.ts']) {
       expect(gemini).not.toContain(`src/providers/gemini/${file}`);
     }
+
+    const ast2 = sessionSide(REPO_ROOT, 'src/providers/volcengine_ast2');
+    expect(ast2).toEqual(expect.arrayContaining([
+      'src/providers/volcengine_ast2/adapter.ts',
+      'src/providers/volcengine_ast2/audioIn.ts',
+      'src/providers/volcengine_ast2/decode.ts',
+      // The generated codec, reached by its `.js` specifier: scanned like the rest (no timer, no store).
+      'src/providers/volcengine_ast2/proto/ast2-proto.js',
+      'src/providers/volcengine_ast2/segments.ts',
+      'src/providers/volcengine_ast2/socket.ts',
+      'src/providers/volcengine_ast2/speech.ts',
+      'src/providers/volcengine_ast2/wire.ts',
+    ]));
+    // The builder, the check, the settings, the view, the definition and the fixtures are not the session's.
+    for (const file of ['Ast2Settings.tsx', 'check.ts', 'config.ts', 'provider.ts', 'settings.ts', 'testing.ts']) {
+      expect(ast2).not.toContain(`src/providers/volcengine_ast2/${file}`);
+    }
   });
 
   it('reads imports the way the compiler does', () => {
