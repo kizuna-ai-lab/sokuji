@@ -10,19 +10,57 @@ const setup = () => {
 };
 
 describe("Doubao's subtitles as segments", () => {
-  it('opens a side on its first text, sends each snapshot whole, and closes it at End — no origin, no timing (choice 3)', () => {
+  it('opens a side on its first text, sends the pieces joined as the whole text each time, and closes it at End — no origin, no timing (choice 3)', () => {
     const { segments, emitted } = setup();
     expect(segments.subtitle('source', 'start', '')).toBe(1);
     expect(emitted()).toEqual([]);
-    segments.subtitle('source', 'response', '你好');
-    segments.subtitle('source', 'response', '你好，今天');
-    expect(segments.subtitle('source', 'end', '你好，今天怎么样？')).toBe(1);
+    // The owner's probe (2026-09-28, zh → en): each Response a piece, the End the whole (Gemini/AST2 follow-up, choice 1).
+    for (const piece of ['W', 'ing', '使用', '实时', '翻译', '，']) segments.subtitle('source', 'response', piece);
+    expect(segments.subtitle('source', 'end', 'Wing使用实时翻译，')).toBe(1);
     expect(emitted()).toEqual([
       { kind: 'segmentOpened', ref: 1, side: 'source' },
-      { kind: 'segmentText', ref: 1, text: '你好' },
-      { kind: 'segmentText', ref: 1, text: '你好，今天' },
-      { kind: 'segmentText', ref: 1, text: '你好，今天怎么样？' },
+      { kind: 'segmentText', ref: 1, text: 'W' },
+      { kind: 'segmentText', ref: 1, text: 'Wing' },
+      { kind: 'segmentText', ref: 1, text: 'Wing使用' },
+      { kind: 'segmentText', ref: 1, text: 'Wing使用实时' },
+      { kind: 'segmentText', ref: 1, text: 'Wing使用实时翻译' },
+      { kind: 'segmentText', ref: 1, text: 'Wing使用实时翻译，' },
+      // The End equals the pieces joined: nothing new to send.
       { kind: 'segmentClosed', ref: 1 },
+    ]);
+  });
+
+  it('sends nothing for an empty piece, keeps a blank one in the join, and takes an End that differs from the join as the whole text', () => {
+    const { segments, emitted } = setup();
+    segments.subtitle('translation', 'start', '');
+    // The probe's ja → zh translations carry empty pieces between the characters.
+    for (const piece of ['“', 'リ', '', 'エ', ' ', 'ル']) segments.subtitle('translation', 'response', piece);
+    segments.subtitle('translation', 'end', '“リエル');
+    expect(emitted()).toEqual([
+      { kind: 'segmentOpened', ref: 1, side: 'translation' },
+      { kind: 'segmentText', ref: 1, text: '“' },
+      { kind: 'segmentText', ref: 1, text: '“リ' },
+      { kind: 'segmentText', ref: 1, text: '“リエ' },
+      { kind: 'segmentText', ref: 1, text: '“リエ ' },
+      { kind: 'segmentText', ref: 1, text: '“リエ ル' },
+      // The server's End is the whole text, and wins.
+      { kind: 'segmentText', ref: 1, text: '“リエル' },
+      { kind: 'segmentClosed', ref: 1 },
+    ]);
+  });
+
+  it("starts the next segment's join from nothing: an End, or a Start, clears the pieces before it", () => {
+    const { segments, emitted } = setup();
+    segments.subtitle('translation', 'response', 'One');
+    segments.subtitle('translation', 'end', 'One.');
+    segments.subtitle('translation', 'response', 'Two');
+    segments.subtitle('translation', 'start', '');
+    segments.subtitle('translation', 'response', 'Three');
+    expect(emitted().filter((e) => e.kind === 'segmentText')).toEqual([
+      { kind: 'segmentText', ref: 1, text: 'One' },
+      { kind: 'segmentText', ref: 1, text: 'One.' },
+      { kind: 'segmentText', ref: 2, text: 'Two' },
+      { kind: 'segmentText', ref: 3, text: 'Three' },
     ]);
   });
 
@@ -86,10 +124,11 @@ describe("Doubao's subtitles as segments", () => {
   it('gives Responses with no Start one segment, not one per frame (survey §1.18.3), and an End with no Start its own', () => {
     const { segments, emitted } = setup();
     segments.subtitle('source', 'response', 'a');
-    segments.subtitle('source', 'response', 'ab');
+    segments.subtitle('source', 'response', 'b');
     segments.subtitle('source', 'end', 'abc');
     segments.subtitle('source', 'end', 'lone');
     expect(emitted().filter((e) => e.kind === 'segmentOpened').map((e) => e.ref)).toEqual([1, 2]);
+    expect(emitted().filter((e) => e.kind === 'segmentText').map((e) => e.text)).toEqual(['a', 'ab', 'abc', 'lone']);
     expect(emitted().filter((e) => e.kind === 'segmentClosed').map((e) => e.ref)).toEqual([1, 2]);
   });
 

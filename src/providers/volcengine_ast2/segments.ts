@@ -1,9 +1,12 @@
 /**
  * Doubao's subtitles as segments (survey §2.10): each side's
  * `*SubtitleStart` / `Response` / `End` becomes one segment, opened when it
- * first has text, its text a snapshot, closed at `End`. No origin and no
- * timing (choice 3): L2 pairs the two sides by proximity (F16). Pure: the
- * adapter hands it each subtitle and forwards what it emits.
+ * first has text, closed at `End`. A `Response` carries one piece of the
+ * text and an `End` the whole of it (Gemini/AST2 follow-up, choice 1), so
+ * the text shown is the pieces joined until the `End` replaces it. No
+ * origin and no timing (choice 3): L2 pairs the two sides by proximity
+ * (F16). Pure: the adapter hands it each subtitle and forwards what it
+ * emits.
  */
 import type { AdapterEvents, Ref, Side } from '../../lib/contract/adapter';
 
@@ -15,10 +18,13 @@ interface SideState {
   /** Allocated at `Start` (or the first text), released at `End`. */
   ref: Ref | null;
   opened: boolean;
+  /** What was last sent for `ref`. */
   text: string;
+  /** Every `Response` piece since the side's last `Start` or `End`, joined as it came. */
+  pieces: string;
 }
 
-const idle = (): SideState => ({ ref: null, opened: false, text: '' });
+const idle = (): SideState => ({ ref: null, opened: false, text: '', pieces: '' });
 
 export class Ast2Segments {
   private next: Ref = 1;
@@ -33,10 +39,11 @@ export class Ast2Segments {
    * - `start`: the previous segment of the side closes as it stands (its
    *   `End` never came) or, never shown, is dropped; a ref is allocated,
    *   and nothing is emitted until text arrives.
-   * - `response`: the whole text so far. A `Response` with no `Start`
-   *   allocates once, not once per frame (survey §1.18.3); an empty or
-   *   blank one shows nothing.
-   * - `end`: the final text, then the close. An empty or blank `End` of a
+   * - `response`: one piece, added to the pieces before it; their join is
+   *   the text shown (Gemini/AST2 follow-up, choice 1). Pieces with no
+   *   `Start` allocate once, not once per frame (survey §1.18.3); while the
+   *   join is empty or blank, nothing is shown.
+   * - `end`: the whole text, then the close. An empty or blank `End` of a
    *   segment never shown is the server VAD's false start: nothing; of one
    *   shown, it closes with the text it had (survey §1.18.4).
    */
@@ -47,10 +54,12 @@ export class Ast2Segments {
       state.ref = this.next++;
       return state.ref;
     }
+    if (phase === 'response') state.pieces += text;
+    const whole = phase === 'end' ? text : state.pieces;
     // Blank counts as empty, as the old client's false-start test did
     // (`!text.trim()`, `VolcengineAST2Client.ts:738-743, 814-819`); the text
     // shown is still the one sent, untrimmed.
-    if (text.trim()) this.show(side, text);
+    if (whole.trim()) this.show(side, whole);
     const ref = state.ref;
     if (phase === 'end') this.finish(side);
     return ref;
