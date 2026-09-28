@@ -11,7 +11,11 @@ import type {
   LiveServerContent, LiveServerGoAway, LiveServerSessionResumptionUpdate, LiveServerSetupComplete, UsageMetadata,
 } from '@google/genai';
 import { SAMPLE_RATE } from '../../lib/contract/adapter';
+import { pcmToBase64 } from '../../lib/contract/pcm64';
 import type { GeminiConfig } from './config';
+
+/** Lifted to the contract at their third user (Stage 2 OpenAI Realtime, choice 1); re-exported, so this wire's importers are unchanged. */
+export { base64ToPcm, pcmToBase64 } from '../../lib/contract/pcm64';
 
 /** The documented Live endpoint, `v1beta` (choice 11): the SDK writes `…com//ws/…`. */
 export const GEMINI_LIVE_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
@@ -89,14 +93,6 @@ export function setupFrame(c: GeminiConfig, handle: string | null): GeminiSetup 
   };
 }
 
-/** Base64 of the view's own bytes, never its backing buffer's (survey §1.16.2); little-endian, as the platforms are. */
-export function pcmToBase64(pcm: Int16Array): string {
-  const bytes = new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(binary);
-}
-
 export function audioFrame(pcm: Int16Array): string {
   return JSON.stringify({ realtimeInput: { audio: { data: pcmToBase64(pcm), mimeType: INPUT_MIME } } });
 }
@@ -134,15 +130,6 @@ export function decodeServerMessage(data: unknown): GeminiServerMessage {
   const parsed: unknown = JSON.parse(text);
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('a server frame that is not a JSON object');
   return parsed as GeminiServerMessage;
-}
-
-/** A model audio part's pcm (little-endian Int16); an odd trailing byte is dropped (survey §1.16.3). */
-export function base64ToPcm(data: string): Int16Array {
-  const binary = atob(data);
-  const even = binary.length - (binary.length % 2);
-  const bytes = new Uint8Array(even);
-  for (let i = 0; i < even; i++) bytes[i] = binary.charCodeAt(i);
-  return new Int16Array(bytes.buffer);
 }
 
 /** Gemini's own documented Live output rate — independent of the contract's `SAMPLE_RATE`, which describes the input the client sends. */

@@ -11,8 +11,12 @@ import type {
   RealtimeTranslationInputAudioBufferAppendEvent,
   RealtimeTranslationSessionUpdateEvent,
 } from 'openai/resources/realtime/realtime';
+import { pcmToBase64 } from '../../lib/contract/pcm64';
 import type { TranslateConfig } from './config';
 import type { TranslateCredentials } from './settings';
+
+/** Lifted to the contract at their third user (Stage 2 OpenAI Realtime, choice 1); re-exported, so this wire's importers are unchanged. */
+export { base64ToPcm, pcmToBase64 } from '../../lib/contract/pcm64';
 
 /** The translations endpoint (`OpenAITranslateGAClient.ts:23`); the model rides in its query, fixed at creation. */
 export const TRANSLATE_WS_URL = 'wss://api.openai.com/v1/realtime/translations';
@@ -57,14 +61,6 @@ export function sessionUpdate(c: TranslateConfig): RealtimeTranslationSessionUpd
   };
 }
 
-/** Base64 of the view's own bytes, never its backing buffer's; little-endian, as the platforms are. Copied from Gemini's wire (choice 8). */
-export function pcmToBase64(pcm: Int16Array): string {
-  const bytes = new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(binary);
-}
-
 /** One chunk as it goes up: 24 kHz PCM16 mono, the contract's own rate — no resampling (SDK: "base64-encoded 24 kHz PCM16 mono little-endian"). */
 export function appendFrame(pcm: Int16Array): string {
   const frame: RealtimeTranslationInputAudioBufferAppendEvent = { type: 'session.input_audio_buffer.append', audio: pcmToBase64(pcm) };
@@ -89,15 +85,6 @@ export function decodeServerEvent(data: unknown): ServerEvent {
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('a server frame that is not a JSON object');
   if (typeof (parsed as { type?: unknown }).type !== 'string') throw new Error('a server frame with no type');
   return parsed as ServerEvent;
-}
-
-/** An output audio delta's pcm (little-endian Int16); an odd trailing byte is dropped, where the old decoder threw (survey §1.14.10). Copied from Gemini's wire (choice 8). */
-export function base64ToPcm(data: string): Int16Array {
-  const binary = atob(data);
-  const even = binary.length - (binary.length % 2);
-  const bytes = new Uint8Array(even);
-  for (let i = 0; i < even; i++) bytes[i] = binary.charCodeAt(i);
-  return new Int16Array(bytes.buffer);
 }
 
 /** The rate an output audio delta that names none is taken at: PCM16 at 24 kHz, the old client's default (`OpenAITranslateGAClient.ts:604`). */
