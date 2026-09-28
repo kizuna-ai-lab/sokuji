@@ -75,7 +75,7 @@ describe("Doubao's spoken sentences (ruling 10)", () => {
     expect(audio().map((a) => [a.ref, a.pcm.length])).toEqual([[1, 1], [3, 2]]);
   });
 
-  it('plays a sentence with no translation shown yet with no ref, and decodes nothing for an empty one', async () => {
+  it('plays a sentence with no translation yet with no ref, and decodes nothing for an empty one', async () => {
     const decode = vi.fn(async (clip: Uint8Array) => new Int16Array(clip.length));
     const { speech, audio } = setup(decode);
     speech.sentenceStart(undefined);
@@ -112,6 +112,8 @@ describe("Doubao's spoken sentences (ruling 10)", () => {
     speech.sentenceStart(1);
     speech.chunk(new Uint8Array([1]));
     speech.flush();
+    await flush();
+    // The clip is decoding when the session stops.
     speech.chunk(new Uint8Array([2]));
     speech.stop();
     await flush();
@@ -119,5 +121,41 @@ describe("Doubao's spoken sentences (ruling 10)", () => {
     await flush();
     expect(log).toEqual([]);
     expect(speech.flush()).toEqual({ chunks: 0, bytes: 0 });
+  });
+
+  it('says nothing after stop when a decode still running fails', async () => {
+    const { decode, waiting } = heldDecoder();
+    const { speech, log } = setup(decode);
+    speech.sentenceStart(1);
+    speech.chunk(new Uint8Array([1]));
+    speech.flush();
+    await flush();
+    // The clip is decoding when the session stops.
+    speech.stop();
+    waiting[0].fail(new Error('EncodingError'));
+    await flush();
+    expect(log).toEqual([]);
+  });
+
+  it('decodes no clip once stopped: neither one still waiting nor one fed after', async () => {
+    const { decode, waiting } = heldDecoder();
+    const { speech, log } = setup(decode);
+    speech.sentenceStart(1);
+    speech.chunk(new Uint8Array([1]));
+    speech.flush();
+    speech.sentenceStart(3);
+    speech.chunk(new Uint8Array([3]));
+    speech.flush();
+    await flush();
+    // The first is decoding; the second waits behind it.
+    expect(waiting).toHaveLength(1);
+    speech.stop();
+    speech.sentenceStart(5);
+    speech.chunk(new Uint8Array([5]));
+    expect(speech.flush()).toEqual({ chunks: 0, bytes: 0 });
+    waiting[0].release();
+    await flush();
+    expect(waiting.map((w) => Array.from(w.clip))).toEqual([[1]]);
+    expect(log).toEqual([]);
   });
 });

@@ -50,6 +50,27 @@ describe("Doubao's subtitles as segments", () => {
     expect(emitted()).toEqual([]);
   });
 
+  it('treats a blank End after a Start as a false start, as the old client did: no segment, and no ref for speech', () => {
+    const { segments, emitted } = setup();
+    segments.subtitle('translation', 'start', '');
+    segments.subtitle('translation', 'response', '  ');
+    expect(segments.subtitle('translation', 'end', ' ')).toBe(1);
+    expect(emitted()).toEqual([]);
+    expect(segments.speechRef()).toBeUndefined();
+  });
+
+  it('keeps the text of a shown segment whose End came blank', () => {
+    const { segments, emitted } = setup();
+    segments.subtitle('translation', 'start', '');
+    segments.subtitle('translation', 'response', 'Hello');
+    segments.subtitle('translation', 'end', ' ');
+    expect(emitted()).toEqual([
+      { kind: 'segmentOpened', ref: 1, side: 'translation' },
+      { kind: 'segmentText', ref: 1, text: 'Hello' },
+      { kind: 'segmentClosed', ref: 1 },
+    ]);
+  });
+
   it('closes a shown segment whose End came empty with the text it had (survey §1.18.4)', () => {
     const { segments, emitted } = setup();
     segments.subtitle('translation', 'start', '');
@@ -70,6 +91,16 @@ describe("Doubao's subtitles as segments", () => {
     segments.subtitle('source', 'end', 'lone');
     expect(emitted().filter((e) => e.kind === 'segmentOpened').map((e) => e.ref)).toEqual([1, 2]);
     expect(emitted().filter((e) => e.kind === 'segmentClosed').map((e) => e.ref)).toEqual([1, 2]);
+  });
+
+  it('sends a text the previous segment of the side also ended with', () => {
+    const { segments, emitted } = setup();
+    segments.subtitle('source', 'end', 'Yes.');
+    segments.subtitle('source', 'end', 'Yes.');
+    expect(emitted().filter((e) => e.kind === 'segmentText')).toEqual([
+      { kind: 'segmentText', ref: 1, text: 'Yes.' },
+      { kind: 'segmentText', ref: 2, text: 'Yes.' },
+    ]);
   });
 
   it('closes a segment whose End never came when the next Start arrives, and drops one never shown', () => {
@@ -106,6 +137,7 @@ describe("Doubao's subtitles as segments", () => {
     expect(segments.speechRef()).toBe(1);
     // Source subtitles never move it.
     segments.subtitle('source', 'start', '');
+    segments.subtitle('source', 'response', 'src');
     expect(segments.speechRef()).toBe(1);
   });
 });

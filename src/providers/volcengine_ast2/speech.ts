@@ -23,7 +23,7 @@ export class Ast2Speech {
 
   constructor(private readonly decode: OggDecoder, private readonly sink: SpeechSink) {}
 
-  /** `TTSSentenceStart`: the sentence belongs to `ref` (the translation shown now, or the last one shown), locked now. A sentence left unended is flushed first. */
+  /** `TTSSentenceStart`: the sentence belongs to `ref` (the translation started now, shown or not, else the last one shown), locked now. A sentence left unended is flushed first. */
   sentenceStart(ref: Ref | undefined): void {
     this.flush();
     this.ref = ref;
@@ -35,10 +35,11 @@ export class Ast2Speech {
     if (data.length > 0) this.chunks.push(new Uint8Array(data));
   }
 
-  /** `TTSSentenceEnd`, or `TTSEnded` for what is left: the clip goes to the decoder; answers what it held, for the adapter's frame. */
+  /** `TTSSentenceEnd`, or `TTSEnded` for what is left: the clip goes to the decoder; answers what it held, for the adapter's frame — nothing once stopped. */
   flush(): { chunks: number; bytes: number } {
     const held = this.chunks;
     this.chunks = [];
+    if (this.stopped) return { chunks: 0, bytes: 0 };
     const bytes = held.reduce((n, c) => n + c.length, 0);
     if (bytes === 0) return { chunks: 0, bytes: 0 };
     const clip = new Uint8Array(bytes);
@@ -46,7 +47,8 @@ export class Ast2Speech {
     for (const c of held) { clip.set(c, at); at += c.length; }
     const ref = this.ref;
     this.chain = this.chain
-      .then(() => this.decode(clip))
+      // A clip still waiting when the session stops is never decoded: the empty pcm is dropped below.
+      .then(() => (this.stopped ? new Int16Array(0) : this.decode(clip)))
       .then(
         (pcm) => { if (!this.stopped && pcm.length > 0) this.sink.audio(ref === undefined ? { pcm } : { pcm, ref }); },
         (error: unknown) => {
@@ -56,7 +58,7 @@ export class Ast2Speech {
     return { chunks: held.length, bytes };
   }
 
-  /** Stop, a failure or a close: nothing more is emitted, a decode still running included. */
+  /** Stop, a failure or a close: nothing more is decoded or emitted — a decode already running finishes, and its result is dropped. */
   stop(): void {
     this.stopped = true;
     this.chunks = [];

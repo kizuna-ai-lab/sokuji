@@ -28,17 +28,17 @@ export class Ast2Segments {
   constructor(private readonly sink: SegmentSink) {}
 
   /**
-   * One subtitle message; answers the side's ref after it — null when it
-   * has none — for the adapter's frame.
+   * One subtitle message; answers the ref the message belongs to — null
+   * when it has none — for the adapter's frame.
    * - `start`: the previous segment of the side closes as it stands (its
    *   `End` never came) or, never shown, is dropped; a ref is allocated,
    *   and nothing is emitted until text arrives.
    * - `response`: the whole text so far. A `Response` with no `Start`
-   *   allocates once, not once per frame (survey §1.18.3); an empty one
-   *   shows nothing.
-   * - `end`: the final text, then the close. An empty `End` of a segment
-   *   never shown is the server VAD's false start: nothing; of one shown, it
-   *   closes with the text it had (survey §1.18.4).
+   *   allocates once, not once per frame (survey §1.18.3); an empty or
+   *   blank one shows nothing.
+   * - `end`: the final text, then the close. An empty or blank `End` of a
+   *   segment never shown is the server VAD's false start: nothing; of one
+   *   shown, it closes with the text it had (survey §1.18.4).
    */
   subtitle(side: Side, phase: SubtitlePhase, text: string): Ref | null {
     const state = this.sides[side];
@@ -47,7 +47,10 @@ export class Ast2Segments {
       state.ref = this.next++;
       return state.ref;
     }
-    if (text) this.show(side, text);
+    // Blank counts as empty, as the old client's false-start test did
+    // (`!text.trim()`, `VolcengineAST2Client.ts:738-743, 814-819`); the text
+    // shown is still the one sent, untrimmed.
+    if (text.trim()) this.show(side, text);
     const ref = state.ref;
     if (phase === 'end') this.finish(side);
     return ref;
