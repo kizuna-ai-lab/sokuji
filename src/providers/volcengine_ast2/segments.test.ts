@@ -196,7 +196,7 @@ describe("Doubao's spoken sentences, named by their server times (Gemini/AST2 fo
     expect(emitted().filter((e) => e.kind === 'speechRanges')).toEqual([]);
   });
 
-  it('requires the times to match exactly: one millisecond off names no translation, and the sentence falls back to the lock (review M1)', () => {
+  it('requires the times to match exactly: one millisecond off names no translation, and the sentence falls back to the lock (Gemini/AST2 follow-up, choice 3)', () => {
     const { segments } = setup();
     segments.subtitle('translation', 'start', '', T2);
     segments.subtitle('translation', 'end', TEXT, T2);

@@ -1740,7 +1740,7 @@ What it leaves, for the plans that meet it (the plan's own list, as written):
 **Found here, for the owner or a later plan:**
 - **Readiness re-probes on every Soniox settings edit** (survey §3.6): the kept answer is keyed on the whole `S`, so a vocabulary keystroke or a voice pick mints a temporary key 800 ms later. Harmless (free, per region), chatty; a provider-declared "check inputs" narrowing is a generic change, not a provider's.
 - **`timing` after a 503 resume** restarts at 0 (Soniox's clock restarts per socket); origins are stated, so L2 infers nothing from it. An offset is optional.
-- **`audio.range` after fill-in:** the late-measure hole `speechRanges` closes with `unfilled` exists for an `audio` range arriving after fill-in too; no adapter sends one (LocalInference closes after its last audio). **Done** by the Stage 2 Gemini/AST2 follow-up plan (Task 2, `cfcee4d1`, fix round `0a86fc39`; choice 19): an `audio` range on a segment the fill-in replaced is measured against the adapter's own text and re-anchored onto the filled one, dropped with a diagnostic when it does not fit, through the one `measure` `speechRanges` uses — for every provider, LocalInference's audio after its close included. Doubao's matched clips are the first to send one.
+- **`audio.range` after fill-in:** the late-measure hole `speechRanges` closes with `unfilled` exists for an `audio` range arriving after fill-in too; no adapter sends one (LocalInference closes after its last audio). **Done** by the Stage 2 Gemini/AST2 follow-up plan (Task 2, `cfcee4d1`, fix round `0a86fc39`; choice 19): an `audio` range on a segment the fill-in replaced is measured against the adapter's own text and re-anchored onto the filled one, dropped with a diagnostic when it does not fit, through the one `measure` `speechRanges` uses — for every provider; Doubao's matched clips are the only current caller.
 - **The other voice-preview sites:** `LocalInferenceVoiceSection` (it renders `VoiceLibrarySection` with no preview route) and `nativeVoiceStores` fold in with their providers' plans; `SonioxCloneReviewStep` stays on the default output (ruling 6).
 - **The side decision is latched at an utterance's first token**, as before; a wrong latch now puts the utterance on the other leg's L1 (survey §3.6).
 - **Two TTS sockets per key** in shared Both with participant speech: Soniox's concurrency quota is unmeasured (the live test's item 8).
@@ -3679,7 +3679,7 @@ wrong):
   and live-test item 13. Cost: an occasional clip without replay. **Changed by
   the Stage 2 Gemini/AST2 follow-up plan** (its choices 2, 3): now only on the
   lock's fallback — a translation never shown leaves the recent list, so a
-  sentence matched by its times never names one.
+  sentence matched by its times never names one already dropped.
 - **Task 13:** `.volcengine-info-notice` has no rule in `Settings.scss`; the
   class is carried over from the old markup, which had none either; left as
   parity. Cost: none.
@@ -5398,9 +5398,9 @@ What landed, by task:
   `GeminiTurns.audio` gives each played chunk `[spoken, text.length]`, `spoken`
   kept per open translation, `[0, 0]` before any text; a dialogue model's
   audio opens its turn's translation, Live Translate's audio outside an open
-  translation stays unattributed (the Gemini plan's choice 8, unchanged); Live
-  Translate's silent chunks
-  carry a zero-width range, so karaoke holds and never advances on silence.
+  translation stays unattributed (the Gemini plan's choice 8, unchanged); on
+  Live Translate a chunk with no new text since the last is zero-width, so
+  karaoke holds and never advances on silence.
   `src/providers/gemini/karaoke.test.ts` pins both kinds end to end.
 - **Live Translate, the default** (`a81b1e11`, Task 4; ruling 3; choice 8):
   `defaultGeminiModel` answers the newest listed Live Translate, else the old
@@ -5579,6 +5579,27 @@ from a controller's ruling in the ledger, with its reason and where it lives:
    right: a matched clip emitted while its subtitle is open is ranged later,
    through `speechRanges` ("else none now — ranged at the close when matched,
    else replay only"). Cost: none.
+4. **A barged-in answer's `interrupted` and its trailing `turnComplete` are
+   one end** (the final review, I1; `58ee9e5c`). On a 3.x model, which barges
+   in (ruling 5), the `turnComplete` that follows `interrupted` by about 5 ms
+   (the plan's research note 8) consumed a voiceless press's pending drop (the
+   Gemini plan's ruling 8), so the model's reply to that press was shown —
+   reproduced through the adapter when the release reaches it before
+   `interrupted`, or between the two. `GeminiTurns` now keeps a flag from
+   `interrupted` until any content (a transcript of either side, audio, a text
+   part, typed text) or a lost connection, and a `turnComplete` while it is
+   set ends nothing more; the turn counter no longer skips a number, now
+   pinned in the adapter's barge-in case (`t1`, `t2`). The spec's Gemini
+   `cancelTurn` cell states the rule; live-test item 17 watches it. The suite
+   after it: 557 files passed and 1 skipped, 7,112 tests passed and 2 skipped,
+   no unhandled errors; the gate at its baseline. Cost if wrong: a server that
+   sent `interrupted` with no `turnComplete` after it, and then an answer with
+   no content at all, would have that answer's end taken as the rest of the
+   `interrupted`. The review's six minors are wording, fixed in place: the
+   zero-width chunk (a chunk with no new text since the last), `audio.range`
+   after fill-in (every provider; Doubao's matched clips the only current
+   caller), the AST2 accepted item ("already dropped"), the instructions'
+   names, a test title citing choice 3, and live-test item 16.
 
 **Stated departures from today** (the plan's list, as landed):
 - a live Doubao row now grows piece by piece where it showed only the newest piece (choice 1; research note 1);
@@ -5588,7 +5609,7 @@ from a controller's ruling in the ledger, with its reason and where it lives:
 - a 3.x dialogue model barges in (ruling 5);
 - **a Gemini pair saved before this plan falls to English → Japanese, except a side stored as `pt-BR`, the one old code Google still documents; nothing is written, so it falls on each load until re-picked; the other 33 old codes are gone** (ruling 6; choice 17) — for the release note;
 - known generic behaviour, not new: a model switch that narrows the offer falls to the list's first entry, English, even to English → English;
-- the instructions name Google's English names ("Chinese (Traditional)", no region suffix elsewhere), where the old named "Mandarin Chinese (China)", and Live Translate is sent Google's codes (`zh-Hans`, never measured; the old sent `zh`).
+- the instructions name Google's English names ("Chinese (Traditional)"; Chinese and Portuguese keep their variant in parentheses), where the old named "Mandarin Chinese (China)", and Live Translate is sent Google's codes (`zh-Hans`, never measured; the old sent `zh`).
 
 Where the plan departs from its brief — Tasks 1 and 2 were not asked for,
 Live Translate's sources are the 99 and its own two, the pair's fall uses
@@ -5620,6 +5641,8 @@ marked):
 13. **3.8 under push-to-talk** (ruling 5; choice 9): a press while the previous translation still generates — record whether barge-in cuts it, and how often.
 14. **A voiceless press on Live Translate** (choice 12): the tail runs, framed `turn.tail` `{ cancelled: true }`, and `turn.tail_end` follows.
 15. **3.x barge-in with the model's own voice in the room** (ruling 5; choice 9): on the participant leg, or under automatic turns with speakers, the model's output echoed into capture must not cut its own response.
+16. **Typed text on a 3.x model while an answer streams** (ruling 5; the Gemini plan's choice 17). **Execution (the final review, M6):** under manual turns the text is wrapped in `activityStart` / `activityEnd`, so on a model that barges in it cuts the answer in flight — record whether `server_content.interrupted` follows `realtime_input.text` and whether the cut answer's row stays as it stood; under automatic turns, whether a text input interrupts is unknown — record whether it does.
+17. **A voiceless tap on 3.8 under push-to-talk while an answer streams** (ruling 5; the Gemini plan's ruling 8). **Execution (the final review, I1; `58ee9e5c`):** the adapter counts `interrupted` and a `turnComplete` with no content between them as one end, so the tap's own answer is dropped whether the release reaches it before `interrupted` or after. Record the order of `realtime_input.activity_end` (`cancelled: true`) and `server_content.interrupted` in the Logs, and whether a reply row appears for the tap.
 
 **Open questions for the owner**
 - **Stated pairing for Doubao** (live-test item 1; the AST2 section's item 7): every source subtitle carries its translation's server times in the probe — the evidence for stating origins from them; not ruled.
@@ -5662,7 +5685,7 @@ taken (and where), or left (and why).
 | The Volcengine AST2 section: live-test item 3, "no karaoke", and item 13, the lock | changed: whole-sentence karaoke by the times, the lock the fallback (Task 6; ruling 1) |
 | The Volcengine AST2 section: "Stated origins for Doubao" | left: the probe's times are the evidence; not ruled ("What it leaves") |
 | The Soniox section's "Found here": `Conversation.afterAudio`'s pending drop | done (Task 2; choice 6): Doubao can now reach it in form; no live session is likely to |
-| The Soniox section's "Found here": `audio.range` after fill-in | done (Task 2; choice 19): an `audio` range on a segment the fill-in replaced is measured against the adapter's own text and re-anchored, as `speechRanges` is — through one shared `measure`, as landed — Doubao's clips (on their common path in sentence mode, research note 10) and LocalInference's audio after its close alike |
+| The Soniox section's "Found here": `audio.range` after fill-in | done (Task 2; choice 19): an `audio` range on a segment the fill-in replaced is measured against the adapter's own text and re-anchored, as `speechRanges` is — through one shared `measure`, as landed — for every provider; Doubao's matched clips (on their common path in sentence mode, research note 10) are the only current caller |
 | OpenAI Translate's tail | copied, not lifted (choice 10); the lift waits for a third user or Translate's live test |
 
 What it leaves, for the plans that meet it (the plan's own list, as written;
