@@ -46,6 +46,15 @@ describe("Doubao AST 2.0's check (ruling 9)", () => {
     await expect(answer).resolves.toEqual({ ok: true });
   });
 
+  it('sends no libraries, whatever the settings name (choice 20)', async () => {
+    const h = setup();
+    const answer = h.check(APP_KEY, { ...AST2_DEFAULTS, hotWordTableId: 'hw', replacementTableId: 'rp', glossaryTableId: 'gl' }, ctx());
+    h.socket().open();
+    expect(sentRequests(h.socket())[0].request?.corpus ?? null).toBeNull();
+    h.socket().receive(SERVER.started());
+    await expect(answer).resolves.toEqual({ ok: true });
+  });
+
   it("answers a status refusal not ready, with the server's words and the status's code", async () => {
     const h = setup();
     const answer = h.check(APP_KEY, AST2_DEFAULTS, ctx());
@@ -53,6 +62,7 @@ describe("Doubao AST 2.0's check (ruling 9)", () => {
     h.socket().receive(SERVER.status(45000001, 'unsupported language pair', EventType.SessionFailed));
     await expect(answer).resolves.toEqual({ ok: false, code: 'client', reason: '[Doubao 45000001] unsupported language pair' });
     expect(h.socket().closedByClient).not.toBeNull();
+    expect(h.timers()).toBe(0);
   });
 
   it('answers SessionFailed with an OK status not ready, as the service', async () => {
@@ -61,6 +71,18 @@ describe("Doubao AST 2.0's check (ruling 9)", () => {
     h.socket().open();
     h.socket().receive(SERVER.failed('quota exhausted'));
     await expect(answer).resolves.toEqual({ ok: false, code: 'server', reason: '[Doubao 20000000] quota exhausted' });
+    expect(h.socket().closedByClient).not.toBeNull();
+    expect(h.timers()).toBe(0);
+  });
+
+  it("reads a status outside 4xxxxxxx as the service's, through the status rule", async () => {
+    const h = setup();
+    const answer = h.check(APP_KEY, AST2_DEFAULTS, ctx());
+    h.socket().open();
+    h.socket().receive(SERVER.status(55000001, 'server busy', EventType.SessionStarted));
+    await expect(answer).resolves.toEqual({ ok: false, code: 'server', reason: '[Doubao 55000001] server busy' });
+    expect(h.socket().closedByClient).not.toBeNull();
+    expect(h.timers()).toBe(0);
   });
 
   it('reads a socket that fails before it opens as refused credentials — the auth words — while online', async () => {
@@ -76,12 +98,14 @@ describe("Doubao AST 2.0's check (ruling 9)", () => {
     const a = offline.check(APP_KEY, AST2_DEFAULTS, ctx());
     offline.socket().drop();
     await expect(a).rejects.toThrow('The device is offline: Doubao could not be reached.');
+    expect(offline.timers()).toBe(0);
 
     const h = setup();
     const b = h.check(APP_KEY, AST2_DEFAULTS, ctx());
     h.socket().open();
     h.socket().serverClose(1011, 'busy');
     await expect(b).rejects.toThrow("Doubao closed the check's connection before the session started (1011 busy).");
+    expect(h.timers()).toBe(0);
   });
 
   it('bounds its handshake: no answer within 15 s throws and closes the socket', async () => {
@@ -146,8 +170,8 @@ describe("Doubao AST 2.0's check (ruling 9)", () => {
       offline.socket().drop();
       answers.push(await words(d));
       const secret = k.kind === 'app' ? k.accessKey : k.apiKey;
-      // The control: the socket did open with the secret, the endpoint and the query's names in its URL.
-      const needles = [secret, AST2_ENDPOINT, 'api_'];
+      // The control: the socket did open with the secret, the legacy mode's App ID, the endpoint and the query's names in its URL.
+      const needles = [secret, AST2_ENDPOINT, 'api_', ...(k.kind === 'app' ? [k.appKey] : [])];
       for (const needle of needles) expect(refused.socket().url).toContain(needle);
       for (const answer of answers) for (const needle of needles) expect(answer).not.toContain(needle);
     }
