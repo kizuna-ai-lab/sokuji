@@ -67,9 +67,8 @@ describe('the OpenAI Translate definition', () => {
     expect(openaiTranslateProvider.turns(TRANSLATE_DEFAULTS)).toEqual(['auto', 'manual']);
   });
 
-  it('sits after Doubao AST 2.0 and before Soniox (ruling 11)', () => {
+  it('sits before Soniox (ruling 11)', () => {
     const ids = PROVIDERS.map((p) => p.id);
-    expect(ids.indexOf('openai_translate')).toBe(ids.indexOf('volcengine_ast2') + 1);
     expect(ids.indexOf('openai_translate')).toBe(ids.indexOf('soniox') - 1);
   });
 

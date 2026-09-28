@@ -82,7 +82,8 @@ describe('loadSessionStores', () => {
   });
 
   it('falls back to the first offered provider when the stored one is not offered here, and never overwrites the stored value', async () => {
-    stored.set('settings.common.provider', 'openai');
+    // OpenAI Compatible, retired (Stage 2 OpenAI Realtime, ruling 1): no build registers it.
+    stored.set('settings.common.provider', 'openai_compatible');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 
     await loadSessionStores();

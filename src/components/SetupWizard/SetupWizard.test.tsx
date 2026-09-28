@@ -328,7 +328,8 @@ describe('SetupWizard', () => {
   });
 
   it('starts blank from an own-key record whose provider this build does not register', async () => {
-    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'openai', completedAt: 'x' };
+    // OpenAI Compatible, retired (Stage 2 OpenAI Realtime, ruling 1): no build registers it.
+    setupRecord = { version: 1, scenario: 'be-heard', providerPath: 'own-key', provider: 'openai_compatible', completedAt: 'x' };
     render(<SetupWizard variant="rerun" onClose={vi.fn()} />);
     next();
     expect(screen.queryAllByRole('radio', { checked: true })).toHaveLength(0);

@@ -118,7 +118,8 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
   it('throws before any write when the draft names a provider this build does not offer', async () => {
     const { result } = renderHook(() => useApplySetup());
 
-    await expect(result.current(draft({ provider: Provider.OPENAI }))).rejects.toThrow(/This build does not offer/);
+    // OpenAI Compatible, retired (Stage 2 OpenAI Realtime, ruling 1): no build offers it.
+    await expect(result.current(draft({ provider: Provider.OPENAI_COMPATIBLE }))).rejects.toThrow(/This build does not offer/);
 
     expect(useProviderStore.getState().selected).toBeNull();
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());

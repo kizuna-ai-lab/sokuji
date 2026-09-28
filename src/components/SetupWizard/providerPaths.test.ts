@@ -25,7 +25,7 @@ describe('providerPaths', () => {
   });
 
   it("lists the registered own-key providers in registry order, in the old enum's spelling", () => {
-    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'volcengine_ast2', 'openai_translate', 'soniox', 'fake']);
+    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'soniox', 'fake']);
   });
 
   it("judges a provider's fit from its speech", () => {
@@ -37,6 +37,8 @@ describe('providerPaths', () => {
     expect(text[Provider.SONIOX]).toEqual({ ok: true });
     // OpenAI Translate offers Text only now (Stage 2 OpenAI Translate, ruling 4): the subtitles-only scenario no longer greys it.
     expect(text[Provider.OPENAI_TRANSLATE]).toEqual({ ok: true });
+    // OpenAI Realtime asks for text alone when a leg does not speak (Stage 2 OpenAI Realtime), as the old provider offered.
+    expect(text[Provider.OPENAI]).toEqual({ ok: true });
   });
 
   it("judges the managed card's fit from the definition's speech", () => {
@@ -51,7 +53,8 @@ describe('providerPaths', () => {
     expect(providerFits(Provider.SONIOX, 'subtitle-myself')).toBe(true);
     expect(providerFits(Provider.LOCAL_INFERENCE, 'two-way-voice')).toBe(true);
     expect(providerFits(Provider.KIZUNA_AI_SONIOX, 'subtitle-myself')).toBe(true);
-    expect(providerFits(Provider.OPENAI, 'be-heard')).toBe(false);
+    // OpenAI Compatible, retired (Stage 2 OpenAI Realtime, ruling 1): no build registers it.
+    expect(providerFits(Provider.OPENAI_COMPATIBLE, 'be-heard')).toBe(false);
   });
 
   describe('offersRecord', () => {
@@ -76,7 +79,7 @@ describe('providerPaths', () => {
     });
 
     it('refuses an own-key record for a provider this build does not register', () => {
-      expect(offersRecord({ scenario: 'be-heard', providerPath: 'own-key', provider: Provider.OPENAI })).toBe(false);
+      expect(offersRecord({ scenario: 'be-heard', providerPath: 'own-key', provider: Provider.OPENAI_COMPATIBLE })).toBe(false);
     });
 
     it('refuses a null providerPath or scenario', () => {
@@ -89,7 +92,8 @@ describe('providerPaths', () => {
     expect(wizardProvider('local_inference')?.id).toBe('localInference');
     expect(wizardProvider('soniox')?.id).toBe('soniox');
     expect(wizardProvider('kizunaai_soniox')?.kind).toBe('managed');
-    expect(wizardProvider('openai')).toBeUndefined();
+    expect(wizardProvider('openai')?.id).toBe('openai');
+    expect(wizardProvider('openai_compatible')).toBeUndefined();
     expect(wizardProvider(null)).toBeUndefined();
   });
 });
