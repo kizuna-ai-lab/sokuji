@@ -151,6 +151,22 @@ describe("OpenAI Realtime's items: translations, paired exactly (choice 8)", () 
     expect(m.of('segmentOpened').filter((e) => e.side === 'translation').map((e) => e.origin)).toEqual(['item_a', 'sokuji_text_1']);
   });
 
+  it('takes the newest input in the order the server came to hold them, not the order this leg opened them: a typed text queued behind a response is added after a commit made meanwhile (choice 8)', () => {
+    const m = machine();
+    // Typed while a response runs: shown at once, its item not yet sent.
+    m.items.typed('sokuji_text_1', 'queued words');
+    // Spoken meanwhile: committed, and answered.
+    m.items.committed('item_a');
+    m.items.responseCreated('resp_1', false);
+    m.items.assistantAdded('item_x', 'item_a');
+    m.items.responseDone('resp_1');
+    // The text's item reaches the server after the commit; its translation is announced late, naming nothing.
+    m.items.inputAdded('sokuji_text_1');
+    m.items.responseCreated('resp_2', false);
+    m.items.outputDelta('item_y', 'resp_2', 'y');
+    expect(m.of('segmentOpened').filter((e) => e.side === 'translation').map((e) => e.origin)).toEqual(['item_a', 'sokuji_text_1']);
+  });
+
   it('leaves an input no response answers as a source of its own: an utterance spoken over a playing translation', () => {
     const m = machine();
     m.items.committed('item_a');

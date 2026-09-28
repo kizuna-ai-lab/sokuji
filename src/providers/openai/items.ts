@@ -11,10 +11,11 @@
  * - **Translations, paired exactly** (choice 8): a response's assistant item
  *   is a translation segment whose origin is the input its
  *   `previous_item_id` names, when this leg opened that input; else, taken
- *   as the response was created, the newest input the server holds if it is
- *   still unanswered — never an older, still-unanswered one behind it —
- *   else none. An input no response ever answers — an utterance spoken over
- *   a playing translation, which the server may leave unanswered under
+ *   as the response was created, the newest input the server holds — by
+ *   when it came to hold it, not when this leg opened it — if it is still
+ *   unanswered, never an older, still-unanswered one behind it; else none.
+ *   An input no response ever answers — an utterance spoken over a playing
+ *   translation, which the server may leave unanswered under
  *   `interrupt_response: false` — stays a source row of its own.
  * - **Karaoke by arrival** (ruling 3): a played frame carries
  *   `[the previous played frame's end, the translation's length when the
@@ -34,6 +35,8 @@ interface Input {
   closed: boolean;
   /** The server holds the item: a commit's, or a typed item the server has added. A typed text still waiting is no one's origin by default. */
   known: boolean;
+  /** When the server came to hold it, by one counter: a typed text queued behind a response is added after commits made meanwhile, though it opened before them. */
+  knownAt: number;
   /** A translation named it as its origin. */
   answered: boolean;
 }
@@ -56,6 +59,8 @@ interface ResponseState {
 
 export class RealtimeItems {
   private refs = 0;
+  /** The last `knownAt` given. */
+  private knownSeq = 0;
   /** By item id, in the order they opened. */
   private readonly inputs = new Map<string, Input>();
   private readonly outputs = new Map<string, Output>();
@@ -84,7 +89,9 @@ export class RealtimeItems {
   /** The server added an input item (`conversation.item.added`, role user): a typed text reached it. */
   inputAdded(itemId: string): void {
     const input = this.inputs.get(itemId);
-    if (input) input.known = true;
+    if (!input || input.known) return;
+    input.known = true;
+    input.knownAt = ++this.knownSeq;
   }
 
   /** A transcript delta for an input (ruling 11). */
@@ -212,7 +219,7 @@ export class RealtimeItems {
   private openInput(itemId: string, known: boolean): Input {
     const ref = ++this.refs;
     this.sink.segmentOpened({ ref, side: 'source', origin: itemId });
-    const input: Input = { ref, text: '', closed: false, known, answered: false };
+    const input: Input = { ref, text: '', closed: false, known, knownAt: known ? ++this.knownSeq : 0, answered: false };
     this.inputs.set(itemId, input);
     return input;
   }
@@ -256,10 +263,16 @@ export class RealtimeItems {
     return origin;
   }
 
-  /** The newest known input — never an older, still-unanswered one behind it — if that newest one is itself unanswered; else none (choice 8). */
+  /** The newest input the server holds, by when it came to hold it — never an older, still-unanswered one behind it — if that newest one is itself unanswered; else none (choice 8). */
   private newestUnanswered(): string | undefined {
-    let newest: string | undefined;
-    for (const [itemId, input] of this.inputs) if (input.known) newest = itemId;
-    return newest !== undefined && !this.inputs.get(newest)!.answered ? newest : undefined;
+    let newest: Input | undefined;
+    let newestId: string | undefined;
+    for (const [itemId, input] of this.inputs) {
+      if (input.known && (newest === undefined || input.knownAt > newest.knownAt)) {
+        newest = input;
+        newestId = itemId;
+      }
+    }
+    return newest !== undefined && !newest.answered ? newestId : undefined;
   }
 }
