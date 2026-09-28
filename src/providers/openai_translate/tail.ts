@@ -52,8 +52,22 @@ export interface ReleaseTailOptions {
 const SILENT_FRAME = new Int16Array(FRAME_SAMPLES);
 
 interface Run {
+  /** Kept only to compute the summary's `lastOutputMs`; the ends themselves
+   *  never read it (see `beats`). */
   releasedAt: number;
   lastOutputAt: number | null;
+  /** Frames run so far, counted at the top of every tick — never
+   *  `now() - releasedAt`. `every()`'s timer fires at or after its due time
+   *  on the real clock, never exactly on it, so a raw elapsed-time check
+   *  would cut the quiet window under its 5 beats; and a wall clock that
+   *  steps backwards (`Date.now()` moved by the system) would make
+   *  `now() - releasedAt` negative forever, so a raw check would never end
+   *  the tail at all. Counting beats keeps both ends exactly what ruling 2
+   *  fixed: 5 frames of quiet, 15 at the cap, regardless of real time
+   *  (choice 7: the tail owns its own clock reads). */
+  beats: number;
+  /** The beat `output()` last landed on; 0 (the release itself) when none has. */
+  lastOutputBeat: number;
   frames: number;
   cancelled: boolean;
   stop: () => void;
@@ -73,7 +87,7 @@ export class ReleaseTail {
     this.cancel();
     const pad = padSamples(sent);
     if (pad > 0) this.o.send(new Int16Array(pad));
-    const run: Run = { releasedAt: this.o.clock.now(), lastOutputAt: null, frames: 0, cancelled, stop: () => {} };
+    const run: Run = { releasedAt: this.o.clock.now(), lastOutputAt: null, beats: 0, lastOutputBeat: 0, frames: 0, cancelled, stop: () => {} };
     this.run = run;
     run.stop = every(this.o.clock, FRAME_MS, () => this.tick());
     return pad;
@@ -81,7 +95,10 @@ export class ReleaseTail {
 
   /** The translation wrote or spoke: its quiet starts again. Ignored while no tail runs. */
   output(): void {
-    if (this.run) this.run.lastOutputAt = this.o.clock.now();
+    if (this.run) {
+      this.run.lastOutputAt = this.o.clock.now();
+      this.run.lastOutputBeat = this.run.beats;
+    }
   }
 
   /** A new press, or audio: the tail ends now, and says so. */
@@ -99,12 +116,13 @@ export class ReleaseTail {
   private tick(): void {
     const run = this.run;
     if (!run) return;
-    const now = this.o.clock.now();
-    if (now - Math.max(run.releasedAt, run.lastOutputAt ?? run.releasedAt) > TAIL_QUIET_MS) {
+    run.beats += 1;
+    // Beats, not `clock.now()` deltas (see `Run.beats`): quiet first, then the cap.
+    if (run.beats - run.lastOutputBeat > TAIL_QUIET_MS / FRAME_MS) {
       this.finish('quiet');
       return;
     }
-    if (now - run.releasedAt > TAIL_MAX_MS) {
+    if (run.beats > TAIL_MAX_MS / FRAME_MS) {
       this.finish('cap');
       return;
     }

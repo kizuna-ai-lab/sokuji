@@ -76,6 +76,7 @@ describe("OpenAI Translate's release tail (ruling 2)", () => {
     press.clock.advance(700);
     press.t.stop('press');
     expect(press.ended).toEqual([{ reason: 'press', silenceMs: 600, lastOutputMs: null }]);
+    expect(press.t.running).toBe(false);
     press.clock.advance(5_000);
     expect(press.shape()).toEqual(frames(3));
     expect(press.timers()).toBe(0);
@@ -84,6 +85,10 @@ describe("OpenAI Translate's release tail (ruling 2)", () => {
     audio.t.start(0, false);
     audio.t.stop('audio');
     expect(audio.ended).toEqual([{ reason: 'audio', silenceMs: 0, lastOutputMs: null }]);
+    expect(audio.t.running).toBe(false);
+    audio.clock.advance(5_000);
+    expect(audio.shape()).toEqual([]);
+    expect(audio.timers()).toBe(0);
   });
 
   it("says a cancelled press's tail is one, and runs it the same (the press appended audio no clear can take back)", () => {
@@ -99,6 +104,7 @@ describe("OpenAI Translate's release tail (ruling 2)", () => {
     t.start(0, false);
     clock.advance(400);
     t.cancel();
+    expect(t.running).toBe(false);
     clock.advance(5_000);
     expect(ended).toEqual([]);
     expect(shape()).toEqual(frames(2));
@@ -124,5 +130,65 @@ describe("OpenAI Translate's release tail (ruling 2)", () => {
     expect(timers()).toBe(1);
     clock.advance(1_200);
     expect(ended).toEqual([{ reason: 'quiet', silenceMs: 1_000, lastOutputMs: null }]);
+  });
+
+  it.each([1, 3])('counts beats, not clock.now() deltas, so a timer firing %dms late still ends after exactly 5 frames of quiet, and never past 15 at the cap', (lateMs) => {
+    // A late-firing setTimeout, as the real clock's routinely is: `every()`'s
+    // own re-arm still lands one tick per beat, but a raw `now() - releasedAt`
+    // check would see less than 1 000 ms / 3 000 ms elapsed at each beat and
+    // cut the tail short (ruling 2's 5 and 15 frames).
+    function lateTail() {
+      const { clock: base, timers } = trackedClock();
+      const clock = {
+        now: () => base.now(),
+        advance: (ms: number) => base.advance(ms),
+        setTimeout: (fn: () => void, ms: number) => base.setTimeout(fn, ms + lateMs),
+      };
+      const sent: Int16Array[] = [];
+      const ended: TailSummary[] = [];
+      const t = new ReleaseTail({ clock, send: (pcm) => sent.push(pcm), ended: (s) => ended.push(s) });
+      return { t, clock, timers, sent, ended };
+    }
+
+    const quiet = lateTail();
+    quiet.t.start(0, false);
+    quiet.clock.advance(6_000);
+    expect(quiet.sent).toHaveLength(5);
+    expect(quiet.ended).toEqual([{ reason: 'quiet', silenceMs: 1_000, lastOutputMs: null }]);
+    expect(quiet.timers()).toBe(0);
+
+    const capped = lateTail();
+    capped.t.start(0, false);
+    for (let at = 250; at <= 6_000; at += 250) {
+      capped.clock.advance(250);
+      capped.t.output();
+    }
+    expect(capped.sent).toHaveLength(15);
+    expect(capped.ended).toEqual([{ reason: 'cap', silenceMs: 3_000, lastOutputMs: 3_000 }]);
+    expect(capped.timers()).toBe(0);
+  });
+
+  it('a wall clock that steps backwards mid-tail still ends after 5 frames of quiet, and never sends past the cap', () => {
+    // A stepped `Date.now()` (the system clock moved) makes `now() - releasedAt`
+    // negative forever on a raw check, so counting beats is what still ends
+    // the tail — not `clock.now()`.
+    const { clock: base, timers } = trackedClock();
+    let offset = 0;
+    const clock = {
+      now: () => base.now() - offset,
+      advance: (ms: number) => base.advance(ms),
+      setTimeout: (fn: () => void, ms: number) => base.setTimeout(fn, ms),
+    };
+    const sent: Int16Array[] = [];
+    const ended: TailSummary[] = [];
+    const t = new ReleaseTail({ clock, send: (pcm) => sent.push(pcm), ended: (s) => ended.push(s) });
+    t.start(0, false);
+    clock.advance(500);
+    offset = 3_600_000;
+    clock.advance(60_000);
+    expect(sent).toHaveLength(5);
+    expect(ended).toEqual([{ reason: 'quiet', silenceMs: 1_000, lastOutputMs: null }]);
+    expect(t.running).toBe(false);
+    expect(timers()).toBe(0);
   });
 });
