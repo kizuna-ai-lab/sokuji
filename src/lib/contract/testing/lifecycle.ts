@@ -111,6 +111,8 @@ const CHUNKS = [480, 2_048, 2_400, 4_800, 8_192] as const;
 const ADVANCES = [10, 100, 320, 500, 1_000, 2_100, 5_000, 10_000] as const;
 const MAX_FAILURES = 40;
 const DEFAULT_STOP_BOUND_MS = 10_000;
+/** Near the old, unconditional early-abort rate: how often the kit aborts mid-handshake, once the start is genuinely still pending after the opening. */
+const OPENING_ABORT_P = 0.06;
 /** A refused start's log, read the way `mustReject` reads a scenario's refusal (`scenarios.ts`): content and `closed`/`failed` are flagged, a status event is admitted. */
 const REFUSED_CONTENT = new Set(['segmentOpened', 'segmentText', 'segmentClosed', 'audio']);
 const REFUSED_ENDED = new Set(['closed', 'failed']);
@@ -160,10 +162,17 @@ export async function runLifecycles<C, K>(h: LifecycleHarness<C, K>, o: { seed: 
           // `state.ended` alone is a race for a refused start: a send a
           // mutant schedules right as the rejection settles can run before
           // any reaction attached to that same promise (a plain callback
-          // queued ahead of a `.then` is always a hop earlier). The socket's
-          // own readyState has no such lag: once it is not `OPEN`, nothing
-          // sent through it is legitimate, whatever `state.ended` reads yet.
-          if (state.ended || socket.readyState !== FakeSocket.OPEN) state.lateSends += 1;
+          // queued ahead of a `.then` is always a hop earlier). `CLOSED` has
+          // no such lag: it is set only as the close event is delivered, so
+          // the adapter has been told. `CLOSING` counts only when the
+          // adapter closed the socket itself (`closedByClient`): a send
+          // queued before a close it has not yet heard of — a continuation
+          // racing a server close or drop, or a timer task a browser could
+          // run in that window — is not a "send after the session ended"
+          // from anyone's point of view, and a browser drops it the same
+          // way. `CONNECTING` is left out: `FakeSocket` throws there, as a
+          // browser does, and a leak or a refusal already reports it.
+          if (state.ended || socket.readyState === FakeSocket.CLOSED || (socket.readyState === FakeSocket.CLOSING && socket.closedByClient !== null)) state.lateSends += 1;
           send(data);
         };
         return ws;
@@ -212,10 +221,14 @@ export async function runLifecycles<C, K>(h: LifecycleHarness<C, K>, o: { seed: 
       (error: unknown) => { settled.error = error; settled.done = true; state.ended = true; },
     );
 
-    // The opening: the kit's own abort or drop before it runs, the
-    // harness's own opening, or — while the start is still pending once
-    // that has run — the kit's own abort mid-handshake, before or after a
-    // few hops: the realistic "Stop pressed while connecting" race.
+    // The opening: the kit's own abort or drop before it runs, or the
+    // harness's own opening. Only once that has settled, a hop lets
+    // anything already in flight catch up — a resolution the kit has not
+    // yet observed is not "still opening" — before the kit decides, on a
+    // random draw, whether to abort mid-handshake too: the realistic "Stop
+    // pressed while connecting" race. Not drawn, or resolved anyway despite
+    // it: the start's own bound gets its turn below, as it always did.
+    let abortedWhileOpening = false;
     const roll = rand();
     if (roll < 0.03) { run.abort(new Error('the lifecycle cancelled the start')); count('opening.abort'); }
     else if (roll < 0.06 && sockets.all.length > 0) { sockets.last().drop(); count('opening.drop'); }
@@ -225,20 +238,26 @@ export async function runLifecycles<C, K>(h: LifecycleHarness<C, K>, o: { seed: 
       } catch (error) {
         fail(`the harness's opening threw: ${String(error)}`);
       }
-      if (!settled.done) {
+      await hops();
+      if (!settled.done && rand() < OPENING_ABORT_P) {
         if (rand() < 0.5) {
           run.abort(new Error('the lifecycle aborted while the start was still opening'));
+          abortedWhileOpening = true;
           count('opening.abort.early');
         } else {
           count('opening.abort.late');
           await hops(Math.floor(rand() * 11));
-          if (!settled.done) run.abort(new Error('the lifecycle aborted while the start was still opening'));
+          if (!settled.done) {
+            run.abort(new Error('the lifecycle aborted while the start was still opening'));
+            abortedWhileOpening = true;
+          }
         }
       }
     }
     await hops();
     await flush();
     if (!settled.done) {
+      count('opening.bound');
       clock.advance(h.startBoundMs);
       await hops();
       await flush();
@@ -254,6 +273,20 @@ export async function runLifecycles<C, K>(h: LifecycleHarness<C, K>, o: { seed: 
     if (!session) {
       count('refused');
       state.ended = true;
+    } else if (abortedWhileOpening) {
+      // The runner's own shape: a start that resolves into an already
+      // aborted run defers nothing — `openLeg` unwinds it at once
+      // (`run.ts`), with no live step in between.
+      count('opening.abort.resolved');
+      recorder.mark('stop');
+      try {
+        const ending = session.stop();
+        state.ended = true;
+        await awaitStop(ending);
+      } catch (error) {
+        state.ended = true;
+        fail(`the unwind's stop threw: ${String(error)}`);
+      }
     } else {
       count('live');
       let held = false;
