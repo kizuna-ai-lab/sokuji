@@ -80,9 +80,24 @@ function withOwnBound(adapter: Echo, boundMs: number): Echo {
  * as a real provider answers this (Palabra's own `START_TIMEOUT_MS`).
  */
 function pendingHarness(): LifecycleHarness<EchoConfig, { key: string }> {
+  const base = echoHarness(withOwnBound(createEchoAdapter(), 5_000));
   return {
-    ...echoHarness(withOwnBound(createEchoAdapter(), 5_000)),
+    ...base,
     startBoundMs: 6_000,
+    // Counts a rejection that actually carries the kit's own mid-opening
+    // abort reason: unlike `opening.abort.early` / `.late`, which count the
+    // draw being taken, this counts the abort actually reaching the start —
+    // so a mutant that keeps the draw and its counts but drops the
+    // `run.abort(...)` call itself still turns this red.
+    adapter: (run) => {
+      const inner = base.adapter(run);
+      return {
+        start: (request, events) => inner.start(request, events).catch((error: unknown) => {
+          if (error instanceof Error && /still opening/.test(error.message)) run.count('opening.abort.effective');
+          throw error;
+        }),
+      };
+    },
     opening: (run) => {
       const r = run.rand();
       if (r < 0.3) return; // nothing at all: genuinely pending until the kit's abort or its bound
@@ -124,6 +139,65 @@ function resolvesAfterAbortHarness(): LifecycleHarness<EchoConfig, { key: string
         for (let i = 0; i < 25; i++) await Promise.resolve();
         run.sockets.last().open();
       })();
+    },
+  };
+}
+
+/**
+ * An adapter that acks each server frame after a few awaits (a decode, say)
+ * and, if asked, keeps a keepalive — both sends check only its own `ended`,
+ * which its `onclose` sets: it cannot know of a close the browser has not
+ * delivered yet. What the narrowed late-send rule must not flag.
+ */
+function asyncAck(o: { awaits: number; keepalive: boolean }): Echo {
+  return {
+    start: (request, events) => new Promise<AdapterSession>((resolve, reject) => {
+      const ws = request.config.openSocket('wss://ack.test/');
+      let opened = false;
+      let ended = false;
+      let stopBeat = () => {};
+      const session: AdapterSession = {
+        info: { transport: 'websocket' },
+        appendAudio: (pcm) => { if (!ended) ws.send(String(pcm.length)); },
+        appendText() {},
+        beginTurn() {},
+        endTurn() {},
+        cancelTurn() {},
+        async stop() { ended = true; stopBeat(); ws.close(1000); },
+      };
+      const onAbort = () => { if (opened) return; ended = true; ws.close(); reject(request.signal.reason ?? new Error('aborted')); };
+      request.signal.addEventListener('abort', onAbort, { once: true });
+      ws.onopen = () => {
+        opened = true;
+        if (o.keepalive) stopBeat = every(request.clock, 320, () => { if (!ended) ws.send('ping'); });
+        resolve(session);
+      };
+      ws.onmessage = async () => {
+        if (ended) return;
+        for (let i = 0; i < o.awaits; i++) await Promise.resolve();
+        if (!ended) ws.send('ack');
+      };
+      ws.onclose = () => {
+        if (ended) return;
+        ended = true;
+        stopBeat();
+        if (!opened) { reject(new Error('refused')); return; }
+        events.closed({ reason: 'closed' });
+      };
+    }),
+  };
+}
+
+/** The same harness, but a server close is followed at once by a clock step: a timer task a browser can run between the close frame and the close event. */
+function closeThenTick(h: LifecycleHarness<EchoConfig, { key: string }>): LifecycleHarness<EchoConfig, { key: string }> {
+  return {
+    ...h,
+    server: (run) => {
+      const socket = run.sockets.last();
+      if (socket.readyState !== FakeSocket.OPEN) return;
+      const r = run.rand();
+      if (r < 0.8) socket.receive(JSON.stringify({ source: 'Hello.', translation: 'こんにちは。' }));
+      else { socket.serverClose(1011, 'server error'); run.clock.advance(1_000); }
     },
   };
 }
@@ -308,9 +382,19 @@ describe('runLifecycles', () => {
       request.signal.addEventListener('abort', () => events.failed({ message: 'aborted' }));
       return session;
     });
-    const full = await runLifecycles(echoHarness(listening), { seed: 7, runs: 60 });
+    const full = await runLifecycles(echoHarness(listening), { seed: 7, runs: 15 });
     expect(full.failures.length).toBeGreaterThan(0);
-    const n = Number(full.failures[0].match(/run (\d+)/)?.[1]);
+    // Below the 40-failure cap: each of this run's failing lives is fully
+    // recorded, so comparing a lone replay against a `filter()` of the full
+    // run is apples to apples.
+    expect(full.failures.length).toBeLessThan(40);
+    // The LAST failing run, not the first: replaying 0..n when `from` is
+    // ignored would pick up no extra failures if n is the first one to fail
+    // (nothing before it fails either way) — a loophole that hides `from`
+    // being dropped entirely. An earlier failing run exposes it.
+    const runsThatFailed = full.failures.map((f) => Number(f.match(/run (\d+)/)?.[1]));
+    const n = Math.max(...runsThatFailed);
+    expect(runsThatFailed.some((r) => r < n)).toBe(true);
     const alone = await runLifecycles(echoHarness(listening), { seed: 7, runs: n + 1, from: n });
     expect(alone.seed).toBe(7);
     expect(alone.failures).toEqual(full.failures.filter((f) => f.startsWith(`seed 7 run ${n}`)));
@@ -401,7 +485,7 @@ describe('runLifecycles', () => {
   it('reaches its own abort or the start bound while a start is still pending, and pins both', async () => {
     const report = await runLifecycles(pendingHarness(), { seed: 7, runs: 300 });
     expect(report.failures).toEqual([]);
-    for (const key of ['opening.abort.early', 'opening.abort.late', 'opening.bound']) {
+    for (const key of ['opening.abort.early', 'opening.abort.late', 'opening.bound', 'opening.abort.effective']) {
       expect(report.stats[key], key).toBeGreaterThan(0);
     }
   });
@@ -410,5 +494,47 @@ describe('runLifecycles', () => {
     const report = await runLifecycles(resolvesAfterAbortHarness(), { seed: 7, runs: 300 });
     expect(report.failures).toEqual([]);
     expect(report.stats['opening.abort.resolved'], 'opening.abort.resolved').toBeGreaterThan(0);
+  });
+
+  it('passes over an adapter that acks after a few awaits, racing a server close or drop', async () => {
+    // A continuation queued before the close — or a timer task a browser
+    // could run in that window — is not a "send after the session ended"
+    // from anyone's point of view: the adapter has not been told yet.
+    const report = await runLifecycles(echoHarness(asyncAck({ awaits: 3, keepalive: false })), { seed: 7, runs: 300 });
+    expect(report.failures).toEqual([]);
+  });
+
+  it('passes over a keepalive beat between a server close and onclose', async () => {
+    // FakeSocket delivers `close` on a microtask after `serverClose()`; a
+    // timer task a browser could run in that window (here, the harness's own
+    // clock advance right after the close frame) is not late either.
+    const report = await runLifecycles(closeThenTick(echoHarness(asyncAck({ awaits: 0, keepalive: true }))), { seed: 7, runs: 300 });
+    expect(report.failures).toEqual([]);
+  });
+
+  it('passes a stop() whose release settles only once the clock passes its bound', async () => {
+    const boundedRelease: Echo = {
+      start: async (request, events) => {
+        const session = await createEchoAdapter().start(request, events);
+        // Closes its socket at once, then waits on a release that answers
+        // only once the clock passes 5 s — inside the kit's default 10 s bound.
+        return { ...session, stop: async () => { await session.stop(); await new Promise<void>((resolve) => { request.clock.setTimeout(resolve, 5_000); }); } };
+      },
+    };
+    const report = await runLifecycles(echoHarness(boundedRelease), { seed: 7, runs: 20 });
+    expect(report.failures).toEqual([]);
+  });
+
+  it('does not abort mid-opening a start whose opening already decided it, once an extra hop catches up', async () => {
+    // The template's own opening decides synchronously; wrapping the
+    // session in one more async layer (as `wrapped` does) adds exactly the
+    // kind of hop a real adapter's own promise chain might add. Without the
+    // catch-up hop before the kit's abort decision, this reads as "still
+    // pending" and can draw a spurious abort, even though nothing is.
+    const oneHopLater = wrapped((session) => session);
+    const report = await runLifecycles(echoHarness(oneHopLater), { seed: 7, runs: 300 });
+    expect(report.failures).toEqual([]);
+    expect(report.stats['opening.abort.early'] ?? 0).toBe(0);
+    expect(report.stats['opening.abort.late'] ?? 0).toBe(0);
   });
 });
