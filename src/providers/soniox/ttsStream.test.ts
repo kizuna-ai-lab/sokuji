@@ -181,6 +181,24 @@ describe('SonioxTtsStream', () => {
     expect(ws.readyState).toBe(MockWebSocket.CLOSED);
   });
 
+  it('close ends the active stream with text_end and returns its id; with none active, and once closed, it returns null (Stage 2 session end, ruling 2 (ii))', async () => {
+    const { t, ws } = await openTts();
+    t.sendText('hello', 'en');
+    expect(t.close()).toBe('utt-1-1');
+    expect(ended(ws)).toEqual(['utt-1-1']);
+    expect(t.close()).toBeNull();
+    expect(ended(ws)).toEqual(['utt-1-1']);
+  });
+
+  it('close with no stream active returns null and sends no text_end', async () => {
+    const { t, ws } = await openTts();
+    t.sendText('hello', 'en');
+    t.endUtterance();
+    expect(ended(ws)).toEqual(['utt-1-1']);
+    expect(t.close()).toBeNull();
+    expect(ended(ws)).toEqual(['utt-1-1']);
+  });
+
   it('drops audio for a stream_id that does not match the active/draining stream, but forwards a matching one', async () => {
     const { t, ws } = await openTts();
     const chunks: Int16Array[] = [];

@@ -262,6 +262,21 @@ describe('Soniox startBoth: shared', () => {
     expect(h.rec.participant.log.length).toBe(n.participant);
   });
 
+  it("shared: a stop's end of the stream is on the speaker's log, and a speaking leg's TTS stream end on its own (Stage 2 session end, ruling 2 (ii); choice 8)", async () => {
+    const h = await live({ participantSpeaks: true });
+    const stt = h.sttSockets()[0];
+    // The speaker's utterance, spoken and ended; then the participant's, its translation still speaking (no sentence end, no <end>).
+    stt.receive(msg({ ...orig('Hello.'), language: 'en' }, tr('こんにちは。'), END));
+    stt.receive(msg({ ...orig('Ohayō'), language: 'ja' }, tr('Good morning', 'en', 'ja')));
+    expect(opened(h, 'speaker')).toEqual([1, 2]);
+    expect(opened(h, 'participant')).toEqual([3, 4]);
+    const n = { speaker: h.rec.speaker.log.length, participant: h.rec.participant.log.length };
+    await h.sessions.participant.stop();
+    const said = (leg: LegName) => h.rec[leg].log.slice(n[leg]).map((e) => (e.kind === 'frame' ? [e.payload.type, e.payload.payload] : [e.kind]));
+    expect(said('speaker')).toEqual([['stt.end', undefined]]);
+    expect(said('participant')).toEqual([['tts.end', { streamId: 'utt-1-1' }]]);
+  });
+
   it('shared: a socket failure fails both legs', async () => {
     const h = await live();
     h.sttSockets()[0].serverClose(1011);

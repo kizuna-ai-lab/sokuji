@@ -201,9 +201,9 @@ class SonioxCore {
     };
   }
 
-  /** Closes every socket before returning (the `stop()` rule); idempotent. */
+  /** Closes every socket before returning (the `stop()` rule); idempotent. The one graceful ending: the STT stream's end goes first. */
   stop(): Promise<void> {
-    this.shutdown();
+    this.shutdown(true);
     return Promise.resolve();
   }
 
@@ -428,7 +428,8 @@ class SonioxCore {
     this.shutdown();
   }
 
-  private shutdown(): void {
+  /** Every way the core ends. `graceful` — a stop — ends the STT stream first; a failure says nothing more to a server that refused the session. */
+  private shutdown(graceful = false): void {
     if (this.ended) return;
     this.ended = true;
     for (const cancel of this.cancels) cancel();
@@ -437,8 +438,13 @@ class SonioxCore {
     this.mixer?.stop();
     const stt = this.stt;
     this.stt = null;
-    // The empty text frame ends the stream (`SonioxClient.ts:1540-1589`); its trailing tokens are not awaited.
-    stt?.end();
+    // The empty text frame ends the stream (`SonioxClient.ts:1540-1589`); its
+    // trailing tokens are not awaited. Framed as `stt.finalize` is, past the
+    // core's own end: the ending's one line (Stage 2 session end, ruling 2 (ii); choice 8).
+    if (graceful && stt?.isOpen()) {
+      stt.end();
+      this.o.legs[0].events.frame({ direction: 'out', type: 'stt.end' });
+    }
     stt?.close();
     for (const leg of this.o.legs) leg.speech?.close();
   }

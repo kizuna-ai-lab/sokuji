@@ -315,16 +315,19 @@ export class SonioxTtsStream {
     this.doEndUtterance();
   }
 
-  close(): void {
+  /** Closes the socket. Returns the stream it ended first with `text_end`, so the server frees it, or null when none was active: the caller's Logs line (Stage 2 session end, ruling 2 (ii)). */
+  close(): string | null {
     this.intentionalClose = true;
     this.stopKeepalive();
     this.clearSegmentTimers();
     this.queue = [];
+    let ended: string | null = null;
     if (this.ws) {
       // Best-effort close of the active stream so the server frees it.
       if (this.activeStreamId) {
         try {
           this.ws.send(JSON.stringify({ stream_id: this.activeStreamId, text: '', text_end: true }));
+          ended = this.activeStreamId;
         } catch { /* closing anyway */ }
       }
       this.ws.close();
@@ -333,6 +336,7 @@ export class SonioxTtsStream {
     this.resetStreams();
     // An intentional close ends nothing: whatever was live is simply forgotten.
     this.segments.clear();
+    return ended;
   }
 
   isOpen(): boolean {

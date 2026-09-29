@@ -391,23 +391,37 @@ describe('LegSpeech', () => {
     expect(frames('tts.speak')).toHaveLength(1);
   });
 
-  it('close stops everything: nothing after it', async () => {
+  it('close ends the stream still speaking with text_end, says so, and stops everything: nothing after it (Stage 2 session end, ruling 2 (ii))', async () => {
     const { speech, tts, sockets, log, clock } = await setup();
     speech.speak(2, 'and so', [0, 6], 'en');
     const socket = tts();
     const n = log.length;
     speech.close();
-    expect(log.length).toBe(n);
+    expect(socket.sentJson<Json>().slice(-1)).toEqual([{ stream_id: 'utt-1-1', text: '', text_end: true }]);
+    expect(log.slice(n)).toEqual([{ kind: 'frame', payload: { direction: 'out', type: 'tts.end', payload: { streamId: 'utt-1-1' } } }]);
     expect(socket.closedByClient).not.toBeNull();
+    const ended = log.length;
     await flush();
     clock.advance(60_000);
     await flush();
-    expect(log.length).toBe(n);
+    expect(log.length).toBe(ended);
     speech.speak(4, 'More.', [0, 5], 'en');
     speech.endUtterance();
     await flush();
-    expect(log.length).toBe(n);
+    expect(log.length).toBe(ended);
     expect(sockets.all).toHaveLength(1);
+  });
+
+  it('close with no stream speaking sends no text_end and says nothing', async () => {
+    const { speech, tts, log } = await setup();
+    speech.speak(2, 'Done.', [0, 5], 'en');
+    speech.endUtterance();
+    const socket = tts();
+    const sent = socket.sent.length;
+    const n = log.length;
+    speech.close();
+    expect(socket.sent).toHaveLength(sent);
+    expect(log.length).toBe(n);
   });
 
   it('sends the leg\'s voice, speed and key, and a client reference only when there is one', async () => {

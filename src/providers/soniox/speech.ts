@@ -91,14 +91,21 @@ export class LegSpeech {
     else this.stream?.endUtterance();
   }
 
-  /** Before the caller's first await (the `stop()` rule): every socket it holds or is opening is closed, and nothing is emitted after it. */
+  /**
+   * Before the caller's first await (the `stop()` rule): every socket it
+   * holds or is opening is closed, and nothing is emitted after it but the
+   * line for the stream it ended with `text_end` (Stage 2 session end,
+   * ruling 2 (ii)).
+   */
   close(): void {
+    const stream = this.stream;
+    this.stream = null;
+    const ended = stream?.close() ?? null;
+    if (ended !== null) this.frame('out', 'tts.end', { streamId: ended });
     this.closed = true;
     this.pending = [];
     this.segments.clear();
     this.texts.clear();
-    this.stream?.close();
-    this.stream = null;
     // A close while CONNECTING rejects its connect(); ensure()'s catch sees `closed` and says nothing.
     this.opening?.close();
     this.opening = null;
