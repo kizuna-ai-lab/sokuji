@@ -321,7 +321,9 @@ class GeminiSession {
     }
     if (c.waitingForInput) {
       this.frame('in', 'server_content.waiting_for_input');
-      this.hold?.waitingForInput();
+      // Beside a `turnComplete` it says nothing more: that has ended the model's turn, and its release may have begun a
+      // hold of its own — a held release's `activityEnd`, held text's marks — that this is not about (Gemini hold, choice 4).
+      if (!c.turnComplete) this.hold?.waitingForInput();
     }
   }
 

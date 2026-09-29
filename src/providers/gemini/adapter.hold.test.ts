@@ -429,6 +429,34 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     expect(h.timers()).toBe(0);
   });
 
+  it("a waitingForInput in the same message as the turnComplete leaves alone the hold that turnComplete's release began: the next press stays held until that release's answer ends (choices 3, 4, 7)", async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.socket().receive(SERVER.output('answer one'));
+    h.socket().receive(SERVER.audio(24_000));
+    // Press 2, voiced and released during the hold; press 3 down, still held.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(2_000));
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(3_000));
+    h.socket().receive(serverFrame({ serverContent: { turnComplete: true, waitingForInput: true } }));
+    // Press 2 goes up, and its activityEnd begins the next hold; the waitingForInput is framed, and ends nothing.
+    expect(wire(h.sent() as Sent[]).slice(3)).toEqual(['activityStart', 'audio ×2048', 'activityEnd']);
+    const order = h.of('frame').map((f) => f.payload.type);
+    expect(order.slice(order.indexOf('server_content.turn_complete'))).toEqual([
+      'server_content.turn_complete', 'turn.hold_end', 'realtime_input.activity_start', 'realtime_input.activity_end', 'turn.hold',
+      'server_content.waiting_for_input',
+    ]);
+    // Press 2's answer ends: press 3 goes up, still down.
+    h.socket().receive(SERVER.output('answer two'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[]).slice(6)).toEqual(['activityStart', 'audio ×2048']);
+    expect(h.frames('turn.hold_end').map((s) => (s as { reason: string }).reason)).toEqual(['turn_complete', 'turn_complete']);
+  });
+
   it('a press still held when the hold lets go goes up then, and goes on live: its audio at once, its release at once (choice 7)', async () => {
     const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
     h.session.beginTurn();
@@ -670,6 +698,56 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
       ['source', 't1'], ['translation', 't1'], ['source', 't2'], ['translation', 't2'],
     ]);
     expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['一つ目。', 'The first', 'typed', 'タイプ。']);
+  });
+
+  it('a waitingForInput between interrupted and the turnComplete that trails it lets nothing go: held text goes up after that end, owed from a closed turn, and pairs with its own answer (choices 4, 13)', async () => {
+    const h = await liveGemini({ model: BARGE_IN });
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_START'));
+    h.socket().receive(SERVER.input('一つ目。'));
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_END'));
+    h.session.appendText('typed');
+    h.socket().receive(SERVER.output('The first'));
+    h.socket().receive(SERVER.interrupted());
+    h.socket().receive(SERVER.waitingForInput());
+    expect(wire(h.sent() as Sent[])).toEqual([]);
+    expect(h.frames('turn.hold_end')).toEqual([]);
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[])).toEqual(['text']);
+    expect(h.frames('turn.hold_end')).toMatchObject([{ reason: 'turn_complete', actions: 1 }]);
+    h.socket().receive(SERVER.output('タイプ。'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([
+      ['source', 't1'], ['translation', 't1'], ['source', 't2'], ['translation', 't2'],
+    ]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['一つ目。', 'The first', 'typed', 'タイプ。']);
+  });
+
+  it("an ACTIVITY_START while an answer streams lets held text go at once, on the path of text typed at that moment: its row under the answering turn, its answer owed from that answer's end — which streams on whole, and the text's own answer follows its turnComplete (choices 13, 14)", async () => {
+    const h = await liveGemini({ model: BARGE_IN });
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_START'));
+    h.socket().receive(SERVER.input('一つ目。'));
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_END'));
+    h.session.appendText('typed');
+    h.socket().receive(SERVER.output('The first'));
+    h.socket().receive(SERVER.audio());
+    expect(wire(h.sent() as Sent[])).toEqual([]);
+    // Failure mode (a)'s case: the next utterance's START while answer 1 streams.
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_START'));
+    expect(wire(h.sent() as Sent[])).toEqual(['text']);
+    expect(h.frames('turn.hold_end')).toMatchObject([{ reason: 'voice_activity_start', actions: 1 }]);
+    h.socket().receive(SERVER.output(' one.'));
+    h.socket().receive(SERVER.audio());
+    h.socket().receive(SERVER.turnComplete());
+    h.socket().receive(SERVER.output('タイプ。'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentOpened').map((e) => [e.payload.ref, e.payload.side, e.payload.origin])).toEqual([
+      [1, 'source', 't1'], [2, 'translation', 't1'], [3, 'source', 't1'], [4, 'translation', 't2'],
+    ]);
+    expect(h.of('segmentText').map((e) => [e.payload.ref, e.payload.text])).toEqual([
+      [1, '一つ目。'], [2, 'The first'], [3, 'typed'], [2, 'The first one.'], [4, 'タイプ。'],
+    ]);
+    expect(h.of('audio').map((e) => e.payload.ref)).toEqual([2, 2]);
+    expect(h.timers()).toBe(0);
   });
 
   it("a model part that is no content to GeminiTurns — a thought, audio that will not decode, audio at a rate it does not play — does not end an interrupted's wait for its turnComplete either: held text still goes up after that end, and pairs with its own answer (choices 2, 4, 13, 14)", async () => {

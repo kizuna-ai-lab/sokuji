@@ -189,6 +189,19 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
     expect(sent).toHaveLength(1);
   });
 
+  it('a waitingForInput between interrupted and the turnComplete that trails it lets nothing go: that turnComplete does, so no held send goes between the two ends (choice 4)', () => {
+    const { h, log, action, ended } = hold();
+    h.voiceActivity('ACTIVITY_END');
+    action('typed text');
+    h.interrupted();
+    h.waitingForInput();
+    expect(h.holding).toBe(true);
+    expect(log).toEqual(['began voice_activity']);
+    h.turnComplete();
+    expect(log).toEqual(['began voice_activity', 'ended turn_complete', 'typed text']);
+    expect(ended.map((s) => s.reason)).toEqual(['turn_complete']);
+  });
+
   it('turnComplete with nothing held says nothing and sends nothing', () => {
     const { h, sent, ended, timers } = hold();
     h.turnComplete();
@@ -530,6 +543,22 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
       expect(timers()).toBe(0);
     });
 
+    it("while a split's hold awaits its END, a waitingForInput lets nothing go: that END is still to come, and the split's own wait bounds it (choices 4, 14)", () => {
+      const { h, clock, sent, ended } = hold();
+      h.voiceActivity('ACTIVITY_END');
+      h.audio(tone(300));
+      h.audio(hush(700));
+      h.audio(tone(300, 2_000));
+      h.turnComplete();
+      h.waitingForInput();
+      expect(h.holding).toBe(true);
+      expect(ended.map((s) => s.reason)).toEqual(['turn_complete']);
+      expect(sent.map((p) => p.length)).toEqual([24_000]);
+      clock.advance(SPLIT_END_MS);
+      expect(ended.map((s) => s.reason)).toEqual(['turn_complete', 'split_timeout']);
+      expect(sent.map((p) => p.length)).toEqual([24_000, 7_200]);
+    });
+
     it("the split's pause follows the session's end-of-speech silence: 100 ms past it, never under 200 ms (choice 15)", () => {
       expect([50, 500, 1_500].map(splitPauseMs)).toEqual([200, 600, 1_600]);
       // A 700 ms pause: a close at the default silence, 500 ms, and so a split; not one at 1 500 ms.
@@ -606,6 +635,25 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
         h.audio(tone(100));
         h.voiceActivity('ACTIVITY_START');
         expect(ended.map((e) => e.reason)).toEqual(['voice_activity_start']);
+      }
+    });
+
+    it('content after a START that waits for the turnComplete trailing an interrupted ends that wait too: the hold lets go at the content, as the START\'s, not at the cap (choice 14)', () => {
+      for (const content of ['output', 'input'] as const) {
+        const { h, clock, sent, ended, timers } = hold();
+        h.voiceActivity('ACTIVITY_END');
+        h.audio(tone(100));
+        h.interrupted();
+        h.voiceActivity('ACTIVITY_START');
+        clock.advance(10);
+        expect(h.holding).toBe(true);
+        // The next answer's first content — for the output, with 2 s of its audio, which arms a cap 4 s out.
+        if (content === 'output') h.output(2_000);
+        else h.input();
+        expect(ended).toEqual([{ reason: 'voice_activity_start', heldMs: 10, audioMs: 100, actions: 0, withdrawn: 0, playbackEndMs: null }]);
+        expect(sent.map((p) => p.length)).toEqual([2_400]);
+        expect(h.holding).toBe(false);
+        expect(timers()).toBe(0);
       }
     });
 

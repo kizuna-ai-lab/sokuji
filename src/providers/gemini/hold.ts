@@ -124,7 +124,7 @@ interface Run {
   stop: () => void;
   /** A split's hold waits for the server's ACTIVITY_END for what went up: this stops that wait. While it runs, a START is that utterance's own (choice 14). */
   awaiting: (() => void) | null;
-  /** An ACTIVITY_START came between `interrupted` and the `turnComplete` that trails it: it lets go there (choices 4, 14). */
+  /** An ACTIVITY_START came between `interrupted` and the `turnComplete` that trails it: it lets go there, or at content before it (choices 4, 14). */
   startWaits: boolean;
 }
 
@@ -195,7 +195,7 @@ export class InputHold {
     if (type === 'ACTIVITY_START') {
       this.speaking = true;
       if (!run || this.o.manual || run.awaiting) return;
-      // Between `interrupted` and the `turnComplete` that trails it, a held send would split that end in two: it lets go there (choice 4).
+      // Between `interrupted` and the `turnComplete` that trails it, a held send would split that end in two: it lets go there, or at content before it (choices 4, 14).
       if (this.cut) run.startWaits = true;
       else this.letGo(this.finish('voice_activity_start'));
       return;
@@ -214,8 +214,7 @@ export class InputHold {
 
   /** An input transcription with text: a turn close only on a session that has heard no voice activity (choice 2). */
   input(): void {
-    // Content: the `interrupted` is behind it, as `GeminiTurns` reads it (choice 4).
-    this.cut = false;
+    this.contentCame();
     if (!this.heard) this.fallback('input_transcription');
   }
 
@@ -225,7 +224,7 @@ export class InputHold {
    * but it neither ends an `interrupted`'s wait nor begins a hold (choices 2, 4).
    */
   output(audioMs = 0, content = true): void {
-    if (content) this.cut = false;
+    if (content) this.contentCame();
     if (audioMs > 0) {
       if (this.firstAudioAt === null) this.firstAudioAt = this.o.clock.now();
       this.answerMs += audioMs;
@@ -251,11 +250,12 @@ export class InputHold {
 
   /**
    * The model is not generating: it waits for the user, its turn over (choice 4). Not while a split's hold awaits its
-   * END: that split was just released — by a `turnComplete` in the same message, say — its END is still to come, and
-   * its own wait bounds it (choice 14).
+   * END: that split was just released — by the `turnComplete` just before, say — its END is still to come, and its own
+   * wait bounds it (choice 14). Nor between `interrupted` and the `turnComplete` that trails it: a held send let go
+   * there would split that end in two; that `turnComplete`, content or the cap lets go (Gemini hold, choice 4).
    */
   waitingForInput(): void {
-    if (this.run?.awaiting) return;
+    if (this.run?.awaiting || this.cut) return;
     const release = this.finish('waiting_for_input');
     this.newTurn();
     this.letGo(release);
@@ -357,6 +357,17 @@ export class InputHold {
     run?.stop();
     run?.awaiting?.();
     this.queue.length = 0;
+  }
+
+  /**
+   * Content: the `interrupted` is behind it, as `GeminiTurns` reads it (choice 4). A START that waited for that
+   * `interrupted`'s trailing `turnComplete` lets the hold go now, at once, as a START does: that `turnComplete` may never
+   * come (Gemini hold, choice 14). First on the call: the answer this content begins is not that hold's to count, and a
+   * fallback after it may hold for that answer.
+   */
+  private contentCame(): void {
+    this.cut = false;
+    if (this.run?.startWaits) this.letGo(this.finish('voice_activity_start'));
   }
 
   private fallback(cause: HoldCause): void {
