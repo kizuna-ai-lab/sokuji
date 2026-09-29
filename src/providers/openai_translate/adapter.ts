@@ -6,7 +6,9 @@
  * the translations endpoint, the key in a subprotocol (choice 3). The start
  * resolves on `session.updated`, the configuration confirmed, so a refused
  * one rejects in words within a bound (choices 1, 2). Deltas become segments
- * (`segments.ts`); a push-to-talk release sends a real-time silence tail
+ * (`segments.ts`), the translation cut where the source was and stating it as
+ * its origin (Stage 2 translation cuts, rulings 1, 2); a push-to-talk release
+ * sends a real-time silence tail
  * (`tail.ts`, ruling 2). Every timer reads the request's clock, and nothing
  * is said but through events (CLAUDE.md, "Inside an IClient session").
  */
@@ -104,7 +106,13 @@ class TranslateLeg implements AdapterSession {
     const { config, clock, signal } = request;
     // WebSocket only (2026-09-29): every config says `websocket`.
     this.info = { transport: config.transport };
-    this.segments = new TranslateSegments({ clock, silence: config.silence, sink: events });
+    this.segments = new TranslateSegments({
+      clock,
+      silence: config.silence,
+      sink: events,
+      // Each translation cut and why, for the live test (Stage 2 translation cuts, choice 14).
+      cut: (summary) => this.frame('out', 'translation.cut', summary),
+    });
     this.tail = new ReleaseTail({ clock, send: (pcm) => this.send(pcm), ended: (summary) => this.tailEnded(summary) });
     this.socket = openSocket(translateUrl(config), translateProtocols(request.credentials));
     this.socket.binaryType = 'arraybuffer';
@@ -290,7 +298,7 @@ class TranslateLeg implements AdapterSession {
     const rate = typeof e.sample_rate === 'number' ? e.sample_rate : OUTPUT_RATE;
     this.frame('in', e.type, { samples: pcm.length, rms: Math.round(computeRms(pcm) * 10_000) / 10_000, elapsedMs: elapsedMsOf(e), sampleRate: rate });
     if (rate !== OUTPUT_RATE) this.foreignRate(rate);
-    // Played only on a leg that speaks, at the contract's rate; it holds the translation either way (choices 5, 16).
+    // Played only on a leg that speaks, at the contract's rate; above the noise floor it holds the translation either way (choices 5, 16; translation cuts, choice 11).
     this.segments.audio(pcm, this.request.context.speech && rate === OUTPUT_RATE);
     this.tail.output();
   }

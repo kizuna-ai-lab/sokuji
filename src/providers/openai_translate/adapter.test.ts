@@ -331,13 +331,13 @@ describe('the OpenAI Translate adapter: audio up, and a release', () => {
 });
 
 describe('the OpenAI Translate adapter: what comes down', () => {
-  it('makes each side a segment with no origin, timing or language, and frames every delta with its elapsed_ms (ruling 6)', async () => {
+  it('makes each side a segment with no timing or language, the source stating its origin and the translation that source, and frames every delta with its elapsed_ms (ruling 6; Stage 2 translation cuts, ruling 2)', async () => {
     const h = await liveTranslate();
     h.socket().receive(SERVER.input('こんにちは', 200));
     h.socket().receive(SERVER.input('、元気?', 400));
     h.socket().receive(SERVER.output('Hello,', 1_000));
     h.socket().receive(SERVER.output(' how are you?', null));
-    expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([{ ref: 1, side: 'source' }, { ref: 2, side: 'translation' }]);
+    expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([{ ref: 1, side: 'source', origin: 's1' }, { ref: 2, side: 'translation', origin: 's1' }]);
     expect(h.of('segmentText').map((e) => e.payload)).toEqual([
       { ref: 1, text: 'こんにちは' }, { ref: 1, text: 'こんにちは、元気?' }, { ref: 2, text: 'Hello,' }, { ref: 2, text: 'Hello, how are you?' },
     ]);
@@ -405,22 +405,65 @@ describe('the OpenAI Translate adapter: what comes down', () => {
     expect(silent.of('degraded')).toEqual([]);
   });
 
-  it('closes a side at a .done event should one come, and frames what it does not know (choice 18)', async () => {
+  it('plays a frame at the noise floor inside an open translation and frames it, but it neither opens one nor holds it open (Stage 2 translation cuts, choice 11)', async () => {
+    const h = await liveTranslate();
+    h.socket().receive(SERVER.audio({ fill: 30 }));
+    expect(h.of('segmentOpened')).toEqual([]);
+    expect(h.frames('session.output_audio.delta')).toEqual([{ samples: 4_800, rms: 0.0009, elapsedMs: 0, sampleRate: 24_000 }]);
+    h.socket().receive(SERVER.output('Hello.'));
+    h.clock.advance(1_000);
+    h.socket().receive(SERVER.audio({ fill: 30 }));
+    expect(h.of('audio').map((e) => [e.payload.ref, e.payload.range])).toEqual([[1, [0, 6]]]);
+    h.clock.advance(500);
+    expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1 }]);
+    expect(h.timers()).toBe(0);
+  });
+
+  it("cuts the translation where the source was cut, even when the interpreter pauses less than the speaker, and frames each cut (Stage 2 translation cuts, rulings 1, 2; choice 14)", async () => {
+    const h = await liveTranslate();
+    h.socket().receive(SERVER.input('第一句'));
+    h.clock.advance(1_000);
+    h.socket().receive(SERVER.input('话。'));
+    h.clock.advance(200);
+    h.socket().receive(SERVER.output('The first'));
+    h.clock.advance(600);
+    h.socket().receive(SERVER.output(' sentence.'));
+    // The speaker pauses 2 s, past the source's 1.5 s; the interpreter goes on 1.4 s after its sentence, inside its own 1.5 s.
+    h.clock.advance(1_200);
+    h.socket().receive(SERVER.input('第二句。'));
+    h.clock.advance(200);
+    h.socket().receive(SERVER.output(' The second.'));
+    h.clock.advance(1_500);
+    expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([
+      { ref: 1, side: 'source', origin: 's1' }, { ref: 2, side: 'translation', origin: 's1' },
+      { ref: 3, side: 'source', origin: 's3' }, { ref: 4, side: 'translation', origin: 's3' },
+    ]);
+    expect(h.of('segmentText').filter((e) => e.payload.ref === 2).map((e) => e.payload.text)).toEqual(['The first', 'The first sentence.']);
+    expect(h.frames('translation.cut')).toEqual([
+      { reason: 'sentences', origin: 's1', sentences: 1, owed: 0, dropped: 0 },
+      { reason: 'quiet', origin: 's3', sentences: 1, owed: 0, dropped: 0 },
+    ]);
+  });
+
+  it("closes the source at its .done should one come, owing its cut, settles the translation at its own, and frames what it does not know (choice 18; Stage 2 translation cuts, choices 13, 14)", async () => {
     const h = await liveTranslate();
     h.socket().receive(SERVER.input('speaking'));
     h.socket().receive(SERVER.output('translating'));
     h.socket().receive(SERVER.bare('session.output_audio.done'));
-    expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 2 }]);
+    // No cut owed and its source still open: the translation waits for that source.
+    expect(h.of('segmentClosed')).toEqual([]);
     h.socket().receive(SERVER.bare('session.input_transcript.done'));
-    expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 2 }, { ref: 1 }]);
+    expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1 }]);
     h.socket().receive(SERVER.bare('session.output_transcript.done'));
+    expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1 }, { ref: 2 }]);
     h.socket().receive(SERVER.bare('rate_limits.updated'));
     expect(h.frames('session.output_audio.done')).toHaveLength(1);
     expect(h.frames('session.input_transcript.done')).toHaveLength(1);
+    expect(h.frames('translation.cut')).toEqual([{ reason: 'done', origin: 's1', sentences: 0, owed: 0, dropped: 0 }]);
     expect(h.frames('session.unknown')).toEqual([{ type: 'rate_limits.updated' }]);
   });
 
-  it('pairs an exchange by proximity through the projection (F16): no origin stated, inferred', async () => {
+  it('pairs an exchange through the projection by the origin it states (Stage 2 translation cuts, ruling 2): stated, not inferred', async () => {
     const h = await liveTranslate();
     const conv = new Conversation({ leg: 'speaker', session: 'translate', languages: AUTO_CTX.direction, clock: h.clock });
     let folded = 0;
@@ -437,7 +480,7 @@ describe('the OpenAI Translate adapter: what comes down', () => {
     const entries = createProjector().project([conv.snapshot()], { ...DEFAULT_PROJECTION, mode: 'off', sentencesPerRow: 0 });
     const exchanges = entries.filter((e) => e.kind === 'exchange');
     expect(exchanges).toHaveLength(1);
-    for (const ex of exchanges) { if (ex.kind === 'exchange') expect(ex.pairing).toBe('inferred'); }
+    for (const ex of exchanges) { if (ex.kind === 'exchange') expect(ex.pairing).toBe('stated'); }
   });
 });
 

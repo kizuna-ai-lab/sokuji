@@ -5,8 +5,8 @@ import ts from 'typescript';
 import { redact } from '../../lib/diagnostics/redact';
 import { configFor, KEY, SERVER } from './testing';
 import {
-  appendFrame, base64ToPcm, computeRms, decodeServerEvent, elapsedMsOf, errorCode, errorWords, isSilentFrame, OUTPUT_RATE, pcmToBase64, sessionUpdate,
-  TRANSLATE_WS_URL, translateProtocols, translateUrl,
+  appendFrame, base64ToPcm, computeRms, decodeServerEvent, elapsedMsOf, errorCode, errorWords, isQuietFrame, isSilentFrame, OUTPUT_RATE, pcmToBase64, QUIET_RMS,
+  sessionUpdate, TRANSLATE_WS_URL, translateProtocols, translateUrl,
 } from './wire';
 
 /** The names the key is read through: the credentials' type and its one field. A string literal naming either counts too (an indexed or dynamic-property read), and so does any use of the protocol builder outside its own declaration — nothing else in `wire.ts` may call it. */
@@ -111,6 +111,18 @@ describe("OpenAI Translate's wire: audio", () => {
     expect(computeRms(new Int16Array(10))).toBe(0);
     expect(computeRms(new Int16Array(10).fill(-32768))).toBe(1);
     expect(computeRms(new Int16Array(10).fill(1638))).toBeCloseTo(0.05, 3);
+  });
+
+  it("reads a frame below 0.002 RMS as the noise floor, not speech — the spike's near-silent frames among them (Stage 2 translation cuts, choice 11)", () => {
+    expect(QUIET_RMS).toBe(0.002);
+    // 65 / 32768 is 0.00198; 66 / 32768 is 0.00201.
+    expect(isQuietFrame(new Int16Array(4_800).fill(65))).toBe(true);
+    expect(isQuietFrame(new Int16Array(4_800).fill(66))).toBe(false);
+    // The spike's floor frames, 0.0001–0.0009.
+    expect(isQuietFrame(new Int16Array(9_600).fill(5))).toBe(true);
+    expect(isQuietFrame(new Int16Array(9_600).fill(30))).toBe(true);
+    // A heartbeat is below it too: the adapter drops it before any of this.
+    expect(isQuietFrame(new Int16Array(4_800))).toBe(true);
   });
 });
 

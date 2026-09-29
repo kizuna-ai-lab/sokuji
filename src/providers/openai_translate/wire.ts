@@ -101,12 +101,27 @@ export function isSilentFrame(pcm: Int16Array): boolean {
   return true;
 }
 
-/** RMS over [0, 1] (the old `computeRms`), for the Logs' audio frames only. */
+/** RMS over [0, 1] (the old `computeRms`): the Logs' audio frames, and the noise floor below. */
 export function computeRms(pcm: Int16Array): number {
   if (pcm.length === 0) return 0;
   let sum = 0;
   for (let i = 0; i < pcm.length; i++) sum += pcm[i] * pcm[i];
   return Math.sqrt(sum / pcm.length) / 32768;
+}
+
+/**
+ * Below this RMS an output frame is the stream's noise floor, not speech:
+ * the OpenAI Live client's `OUTPUT_SILENCE_RMS`, set 3× above the floor it
+ * measured and 15× below the quietest speech. OpenAI Translate sends such
+ * frames beside its all-zero heartbeats — 0.0001–0.0009 in the spike's
+ * sessions — and they are not the translation speaking (Stage 2 translation
+ * cuts, ruling 1; choice 11).
+ */
+export const QUIET_RMS = 0.002;
+
+/** A frame below the noise floor: it neither opens the translation nor holds it open (choice 11). A heartbeat is one too, dropped before this. */
+export function isQuietFrame(pcm: Int16Array): boolean {
+  return computeRms(pcm) < QUIET_RMS;
 }
 
 /** A delta's `elapsed_ms` when it is a number, else null: framed on every delta (ruling 6), read for nothing else yet. */
