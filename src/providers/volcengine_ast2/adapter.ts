@@ -155,9 +155,17 @@ class Ast2Leg implements AdapterSession {
     this.tail(true);
   }
 
-  /** `FinishSession` and the close before its first `await`; what the server still sends is not awaited (parity). */
+  /**
+   * `FinishSession`, framed, and the close before its first `await`. Its
+   * `SessionFinished`, and the billing it carries, is not awaited: Stop stays
+   * fast, and the old client read neither (parity; Stage 2 session end,
+   * ruling 2 (ii), (iv)).
+   */
   stop(): Promise<void> {
-    if (this.phase === 'live' && this.socket.readyState === WS_OPEN) this.socket.send(finishSessionFrame(this.ids, this.sequence++));
+    if (this.phase === 'live' && this.socket.readyState === WS_OPEN) {
+      this.socket.send(finishSessionFrame(this.ids, this.sequence++));
+      this.frame('out', 'session.finish', { sessionId: this.ids.session });
+    }
     this.shutDown();
     return Promise.resolve();
   }

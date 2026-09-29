@@ -659,7 +659,7 @@ describe('the Doubao AST 2.0 adapter: failures and stop', () => {
     expect(h.of('segmentOpened')).toHaveLength(1);
   });
 
-  it('stop sends FinishSession and closes the socket before it returns, cancels every timer, and nothing follows — a decode still running included', async () => {
+  it('stop sends FinishSession, framed, and closes the socket before it returns, cancels every timer, and nothing follows — a decode still running included (Stage 2 session end, ruling 2 (ii), (iv))', async () => {
     const waiting: Array<() => void> = [];
     const decode: OggDecoder = (ogg) => new Promise((resolve) => { waiting.push(() => resolve(new Int16Array(ogg.length))); });
     const h = await liveAst2({ decode });
@@ -672,6 +672,8 @@ describe('the Doubao AST 2.0 adapter: failures and stop', () => {
     const stopping = h.session.stop();
     expect(h.requests().map((r) => r.event).slice(-1)).toEqual([EventType.FinishSession]);
     expect(h.socket().closedByClient).toEqual({ code: 1000, reason: undefined });
+    // The one line the ending says, before it returns; SessionFinished is not awaited.
+    expect(h.log.slice(n)).toEqual([{ kind: 'frame', payload: { direction: 'out', type: 'session.finish', payload: { sessionId: 'id-1' } } }]);
     await stopping;
     expect(h.timers()).toBe(0);
     waiting[0]();
@@ -679,6 +681,16 @@ describe('the Doubao AST 2.0 adapter: failures and stop', () => {
     await flush();
     h.session.appendAudio(chunk());
     h.session.endTurn();
+    expect(h.log.length).toBe(n + 1);
+  });
+
+  it('a stop on a session already ended sends and frames no FinishSession (Stage 2 session end, ruling 2 (ii))', async () => {
+    const h = await liveAst2();
+    h.socket().drop();
+    await flush();
+    const n = h.log.length;
+    await h.session.stop();
+    expect(h.requests().map((r) => r.event)).not.toContain(EventType.FinishSession);
     expect(h.log.length).toBe(n);
   });
 
