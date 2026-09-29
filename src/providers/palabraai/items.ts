@@ -3,7 +3,10 @@
  * is one `transcription_id`, on all four of its text messages and on every
  * chunk of its speech (the owner's probe): the origin that pairs each
  * translation with its source, stated. A source opens at its first partial
- * and closes when validated; a translation — one per `translation_part_id`
+ * and closes when validated — with the sentence splitter on, a long
+ * transcription validates in parts, `<id>_part_<n>`, the first taking over
+ * the row its partials opened and each later part a row of its own (the
+ * owner's session, 2026-09-30); a translation — one per `translation_part_id`
  * — opens at its first text or its first audio, whichever comes first, and
  * closes at its final text. A sentence's speech arrives as a burst after
  * its text, ending at `last_chunk`: once both are in, the text is tiled
@@ -34,23 +37,73 @@ interface Translation {
 /** The first part when a message names none: the probe's every sentence was part 0. */
 const FIRST_PART = '0';
 
+/**
+ * The transcription a sentence splitter's part was cut from: with the
+ * splitter on, a long transcription's partials carry its own id (or, later,
+ * a part's) while it validates in parts, `<id>_part_<n>`, each with its own
+ * translation (the owner's session, 2026-09-30).
+ */
+const transcriptionOf = (id: string): string => id.replace(/_part_\d+$/, '');
+
+/**
+ * What `text` says beyond `said`, the parts of its transcription already
+ * validated, compared without whitespace (the server joins parts with a
+ * space); the text whole when it does not begin with them, and null when
+ * nothing is left.
+ */
+function unsaid(text: string, said: string): string | null {
+  let i = 0;
+  let j = 0;
+  while (j < said.length) {
+    if (/\s/.test(said[j])) { j++; continue; }
+    while (i < text.length && /\s/.test(text[i])) i++;
+    if (i >= text.length || text[i] !== said[j]) return text;
+    i++;
+    j++;
+  }
+  const rest = text.slice(i).trimStart();
+  return rest.length > 0 ? rest : null;
+}
+
 export class PalabraItems {
   private nextRef = 1;
+  /** Validated sources by the id they validated under: a final said twice, or a partial after it, changes nothing. */
   private readonly sources = new Map<string, Source>();
+  /** The one open row per transcription that shows its partial text, until its next part validates onto it. */
+  private readonly live = new Map<string, Source>();
+  /** Per transcription, the text of its parts validated so far: what a later partial still repeating them does not show again. */
+  private readonly said = new Map<string, string>();
   private readonly translations = new Map<string, Translation>();
   private stopped = false;
 
   constructor(private readonly events: AdapterEvents) {}
 
-  /** A partial transcription: the sentence's source opened, and its whole text so far. Ignored once the sentence is validated, and without an id (none was ever seen). */
+  /**
+   * A partial transcription: its transcription's open row — opened at the
+   * first — shows the text so far, less the parts already validated. Ignored
+   * once its own id is validated, and without an id (none was ever seen).
+   */
   sourcePartial(t: Transcription): void {
     if (this.stopped || t.id === undefined) return;
-    const source = this.source(t.id);
-    if (source.closed) return;
-    this.sourceText(source, t);
+    if (this.sources.get(t.id)?.closed) return;
+    const transcription = transcriptionOf(t.id);
+    const text = unsaid(t.text, this.said.get(transcription) ?? '');
+    if (text === null) return;
+    let source = this.live.get(transcription);
+    if (!source) {
+      source = this.open(t.id);
+      this.live.set(transcription, source);
+    }
+    this.sourceText(source, { ...t, text });
   }
 
-  /** A validated transcription: the sentence's final text, and its source closed — once. With no id, a source of its own, paired with nothing. */
+  /**
+   * A validated transcription: the sentence's final text, and its source
+   * closed — once, under its own id. It takes over its transcription's open
+   * row when there is one (a splitter's first part, or a sentence never
+   * split), else it has a row of its own. With no id, a source of its own,
+   * paired with nothing.
+   */
   sourceFinal(t: Transcription): void {
     if (this.stopped) return;
     if (t.id === undefined) {
@@ -60,8 +113,12 @@ export class PalabraItems {
       this.events.segmentClosed({ ref });
       return;
     }
-    const source = this.source(t.id);
-    if (source.closed) return;
+    if (this.sources.get(t.id)?.closed) return;
+    const transcription = transcriptionOf(t.id);
+    const source = this.live.get(transcription) ?? this.open(t.id);
+    this.live.delete(transcription);
+    this.sources.set(t.id, source);
+    this.said.set(transcription, (this.said.get(transcription) ?? '') + t.text);
     // Unlike a partial, the final always sends (choice 12; the owner's
     // probe: 46 of 46 sentences validate with their last partial's text),
     // so an unchanged text still reaches the row, and a refined language
@@ -134,13 +191,10 @@ export class PalabraItems {
     this.stopped = true;
   }
 
-  private source(id: string): Source {
-    let source = this.sources.get(id);
-    if (!source) {
-      source = { ref: this.nextRef++, text: '', closed: false };
-      this.sources.set(id, source);
-      this.events.segmentOpened({ ref: source.ref, side: 'source', origin: id });
-    }
+  /** A source row opened under `id`; the id it validates under states its origin at the close. */
+  private open(id: string): Source {
+    const source: Source = { ref: this.nextRef++, text: '', closed: false };
+    this.events.segmentOpened({ ref: source.ref, side: 'source', origin: id });
     return source;
   }
 

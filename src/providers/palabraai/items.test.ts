@@ -312,3 +312,86 @@ describe("Palabra AI's segments: one sentence, one id (survey §2.8)", () => {
     expect(h.log).toHaveLength(2);
   });
 });
+
+/** Every source row's last text and the origin it closed under, in the order opened; every row closed. */
+function sourceRows(h: ReturnType<typeof items>): Array<{ text: string; origin: string | undefined }> {
+  const opened = h.of('segmentOpened').filter((e) => e.side === 'source').map((e) => e.ref);
+  const closed = new Map(h.of('segmentClosed').map((e) => [e.ref, e.origin] as const));
+  return opened.map((ref) => {
+    expect(closed.has(ref)).toBe(true);
+    const texts = h.of('segmentText').filter((e) => e.ref === ref);
+    return { text: texts[texts.length - 1]?.text ?? '', origin: closed.get(ref) };
+  });
+}
+
+describe("Palabra AI's sentence splitter: a transcription validated in parts (the owner's session, 2026-09-30)", () => {
+  const X = '1a0eed43fa309c22';
+
+  it('the first part takes over the row its partial opened, and each later part has a row of its own: one row per part, each paired', () => {
+    const h = items();
+    h.feed(SERVER.partial('7年後までに、', X));
+    h.feed(SERVER.partial('7年後までに、75人を目標に手術を行います。これが確実な有効性を示していくステップになる、ということなんです。', X));
+    h.feed(SERVER.validated('7年後までに、75人を目標に手術を行います。', `${X}_part_0`));
+    h.feed(SERVER.translated('我们的目标是在7年内完成75例手术。', `${X}_part_0`));
+    h.feed(SERVER.validated('これが確実な有効性を示していくステップになる、ということなんです。', `${X}_part_1`));
+    h.feed(SERVER.translated('这将是证明其确切有效性的关键步骤。', `${X}_part_1`));
+    expect(sourceRows(h)).toEqual([
+      { text: '7年後までに、75人を目標に手術を行います。', origin: `${X}_part_0` },
+      { text: 'これが確実な有効性を示していくステップになる、ということなんです。', origin: `${X}_part_1` },
+    ]);
+    expect(h.of('segmentOpened').filter((e) => e.side === 'translation').map((e) => e.origin)).toEqual([`${X}_part_0`, `${X}_part_1`]);
+    expect(checkConformance(h.log, AUTO)).toEqual([]);
+  });
+
+  it("a partial whose id turns from the transcription's own to its first part's stays on the one row", () => {
+    const h = items();
+    h.feed(SERVER.partial('差は名誉教授によりますと、', X));
+    h.feed(SERVER.partial('差は名誉教授によりますと、心臓を止め', `${X}_part_0`));
+    h.feed(SERVER.validated('差は名誉教授によりますと、心臓を止めることなく、', `${X}_part_0`));
+    h.feed(SERVER.partial('シートを乗せるだけで', `${X}_part_1`));
+    h.feed(SERVER.validated('シートを乗せるだけで1時間程度で終ることが大事だということです。', `${X}_part_1`));
+    expect(sourceRows(h)).toEqual([
+      { text: '差は名誉教授によりますと、心臓を止めることなく、', origin: `${X}_part_0` },
+      { text: 'シートを乗せるだけで1時間程度で終ることが大事だということです。', origin: `${X}_part_1` },
+    ]);
+  });
+
+  it('a partial that still repeats the parts already validated shows only the rest, which the next part then takes over', () => {
+    const h = items();
+    h.feed(SERVER.partial('はい。今後、日本から世界へ', X));
+    h.feed(SERVER.validated('はい。', `${X}_part_0`));
+    h.feed(SERVER.partial('はい。 今後、日本から世界へ普及させていくには、', X));
+    expect(h.of('segmentText').slice(-1)).toEqual([{ ref: 2, text: '今後、日本から世界へ普及させていくには、', language: 'ja' }]);
+    h.feed(SERVER.validated('今後、日本から世界へ普及させていくには、どんなポイントがありますか。', `${X}_part_1`));
+    expect(sourceRows(h)).toEqual([
+      { text: 'はい。', origin: `${X}_part_0` },
+      { text: '今後、日本から世界へ普及させていくには、どんなポイントがありますか。', origin: `${X}_part_1` },
+    ]);
+  });
+
+  it('a partial that says nothing beyond the parts already validated opens no row', () => {
+    const h = items();
+    h.feed(SERVER.partial('はい。', X));
+    h.feed(SERVER.validated('はい。', `${X}_part_0`));
+    h.feed(SERVER.partial('はい。', X));
+    expect(sourceRows(h)).toEqual([{ text: 'はい。', origin: `${X}_part_0` }]);
+  });
+
+  it("the owner's second exchange: a partial running on into the next transcription's words leaves no row behind", () => {
+    const h = items();
+    const Y = '1a0eed48da26c1aa';
+    h.feed(SERVER.partial('はい。今後、日本から世界へ普及させていくには、どんなポイントがありますか。 はい。まずは手術のシンプルさです。', X));
+    h.feed(SERVER.validated('はい。', `${X}_part_0`));
+    h.feed(SERVER.translated('是的。', `${X}_part_0`));
+    h.feed(SERVER.validated('今後、日本から世界へ普及させていくには、どんなポイントがありますか。', `${X}_part_1`));
+    h.feed(SERVER.translated('那么，今后要将这项技术从日本推广到全世界，有哪些关键点呢。', `${X}_part_1`));
+    h.feed(SERVER.partial('はい。まずは手術のシンプルさです。差は名誉教授によりますと、', Y));
+    h.feed(SERVER.validated('はい。', `${Y}_part_0`));
+    h.feed(SERVER.translated('是的。', `${Y}_part_0`));
+    h.feed(SERVER.validated('まずは手術のシンプルさです。', `${Y}_part_1`));
+    h.feed(SERVER.translated('首先是手术的简便性。', `${Y}_part_1`));
+    expect(sourceRows(h).map((r) => r.text)).toEqual(['はい。', '今後、日本から世界へ普及させていくには、どんなポイントがありますか。', 'はい。', 'まずは手術のシンプルさです。']);
+    expect(h.of('segmentClosed').filter((e) => e.origin?.endsWith('_part_1'))).toHaveLength(4);
+    expect(checkConformance(h.log, AUTO)).toEqual([]);
+  });
+});
