@@ -3019,8 +3019,8 @@ execution added is marked):
 4b. **Speech during an answer, on 3.1 flash live:** on `main` the owner found that with `gemini-3.1-flash-live-preview`, speaking while the translation and its audio are still playing gets no transcription or translation at all (the old client's `activityHandling: NO_INTERRUPTION`); 2.5 native-audio handles it. Run the same on the new adapter with 3.1 and 2.5: record whether 3.1 still drops it, and whether the Logs show any input transcription for the dropped speech. **Execution (Task 10's review):** where the speech is transcribed, record which row its transcript joins — parity with the old client, but its rows now pair. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 5; choice 9): a dialogue model of family 3.0 or later now barges in (`START_OF_ACTIVITY_INTERRUPTS`) — the owner's overlap probe had `gemini-3.8-live` drop the second utterance under `NO_INTERRUPTION` and keep both whole under barge-in; 2.5 keeps `NO_INTERRUPTION`; 3.1 was not measured — that record's live-test items 7, 8, 13 and 15.
 5. **Push-to-talk, on a dialogue model and on Live Translate** (`turns()` offers manual turns for every model): a short press → a reply (on Live Translate, the held speech translated); minutes idle between presses → the session survives (resumed or fresh; the Logs say which); push-to-translate routes the raw voice while idle. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (its ruling 4; choices 11, 12): on Live Translate a release now sends real-time silence inside the press's activity until the model has been quiet 1 s, at most 3 s, then `activityEnd` — the owner's probe had a press's last words arrive only after the next press — that record's live-test items 6 and 14.
 6. **A press with no speech** (ruling 8, choice 16): no reply shown, and the next press not merged with it. **A voiceless press while the previous answer is still playing:** that answer plays and shows to its end, and nothing answers the voiceless press. Record whether the server answers a cancelled activity at all (a late `turnComplete` in the Logs), and whether a second `activityStart` is tolerated. On Live Translate a voiceless press cuts nothing: the translation streaming at that moment goes on. **Execution (Task 10's fix round):** a voiceless press made right after a voiced release, before its answer's first output, waits for that answer too. The owed answer is a flag, not a count: two presses with voice, then a voiceless one, all inside the latency window, drop the second's answer — record whether that happens in ordinary use. **Changed by the Stage 2 Gemini/AST2 follow-up plan** (the owed flag's fix, `f7bdb8bb`): this item also decides the Gemini/AST2 follow-up's open question "The owed flag vs a count" — record how many `turnComplete`s follow two quick voiced releases (one per activity, or one for both), and whether an empty activity is answered at all.
-7. **Typed text:** in auto; under push-to-talk (the wrap in activity marks answers, choice 17); **on Live Translate** — answered or ignored? If ignored, the row stays unanswered: the open question below.
-8. **Live Translate:** continuous speech → source and translation segments cut by pause, each side on its own; inferred pairing plausible; the speaker's own voice reproduced; speaking the target language produces nothing; **listen for leading audio chunks before a sentence's first transcript** (live only, not in its replay — choice 8); the Logs show whether `finished`, `languageCode` and `turnComplete` ever arrive (a transcription is framed even with no text: the final fix wave, M1).
+7. **Typed text:** in auto; under push-to-talk (the wrap in activity marks answers, choice 17); **on Live Translate** — answered or ignored? If ignored, the row stays unanswered: the open question below. **Answered by the owner's live test (2026-09-30):** ignored — the typed row stands with no answer. The Stage 2 translation cuts plan keeps that row owing no cut (its choice 12), so the spoken rows around it keep their own translations.
+8. **Live Translate:** continuous speech → source and translation segments cut by pause, each side on its own; inferred pairing plausible (**changed by the Stage 2 translation cuts plan**, its ruling 3: the translation is now cut at its source's cuts and the pairing stated — that plan's live-test items 3 and 6); the speaker's own voice reproduced; speaking the target language produces nothing; **listen for leading audio chunks before a sentence's first transcript** (live only, not in its replay — choice 8); the Logs show whether `finished`, `languageCode` and `turnComplete` ever arrive (a transcription is framed even with no text: the final fix wave, M1).
 9. **Live Translate past 10–15 minutes:** whether a resumable handle is ever issued (`server.session_resumption_update` with `hasHandle: true`), and whether a `goAway` or a drop resumes or opens fresh (`session.opened` with `resumed`) — ruling 3's fresh session keeps it running either way.
 10. **A long dialogue session (> 10 min):** `server.go_away` → `session.reconnecting` → a new `session.opened` (`resumed`) and `server.setup_complete`, and the leg's reconnecting state clears (there is no `session.reconnected` frame: the `reconnected` event is the record); rows continue with nothing duplicated; the resumed context remembers the conversation (a handle), or a fresh one does not. **Execution (Task 12's fix round):** under push-to-talk, a press held across the gap starts again with `activityStart` on the new connection, and a release during the ladder sends no `activityEnd`; a resumed session may still hold an activity whose `activityStart` went out before the drop — record what the server does with it, which is not knowable offline.
 11. **Start failures and drops:** a model the server rejects and an exhausted quota → words, no hang — record each close code and reason (choice 12's mapping); a network drop mid-session → three attempts in the Logs, then the connection-lost words, the run ended. **The final fix wave (M2):** a key revoked or a quota spent mid-session → three refused attempts, then that refusal's words ("The provider did not accept the credentials: …" / "The provider is limiting requests …"), not the connection-lost words — record whether Google refuses a resume that way. **Execution (Task 12's fix round):** as in item 10, a drop under push-to-talk with a press in flight — record what a resumed session does with the activity opened before the drop.
@@ -3034,7 +3034,7 @@ execution added is marked):
 19. **Analytics:** `translation_session_start` with `provider: 'gemini'` and the model as the translation model (choice 6); a refused start → `api_error` with its code.
 
 **Open questions for the owner**
-- Live Translate and typed text (item 7): if the server ignores it, either `textInput` becomes a function of `S` (a spec change) or the adapter answers with the source alone and a degradation whose words fit.
+- Live Translate and typed text (item 7): if the server ignores it, either `textInput` becomes a function of `S` (a spec change) or the adapter answers with the source alone and a degradation whose words fit. **Answered by the owner's live test (2026-09-30):** the server ignores it. The owner chose the first option (2026-09-30, 「按照这个做」): `textInput(s)`, as `boundaries(s)` and `turns(s)` are, false on Live Translate, so the box is hidden there as it is on every other continuous interpreter — a follow-up after the Stage 2 translation cuts plan.
 - Live Translate's leading audio (item 8): open the translation segment on audio, so its replay holds the leading chunks, instead of ref-less playback (choice 8).
 - A resume the server refuses keeps its handle for the remaining attempts (parity); falling back to a fresh session within the ladder would save the run.
 - `goAway`: make-before-break (a second socket before the first closes) would remove the gap's dropped audio.
@@ -4335,10 +4335,10 @@ frames with their `elapsedMs`:
 1. **The key and the check, on Electron, the extension's side panel and the web** (rulings 16, 18; choice 11): a valid key → Validate ✓; a key without translate access → "API key works, but gpt-realtime-translate is not accessible with this key."; a wrong key → "The provider did not accept the credentials: HTTP 401: …"; an unsupported region, if reachable → the region sentence ("Service not available in your region. …"); offline → not ready, Start off, no words about the key. Record any 429 met, and its words. **Execution (Task 4's review, M5):** record whether the wrong key's words quote the key's last four characters (OpenAI's message says `sk-proj-****6789`): the check passes OpenAI's message verbatim, and `redact()`'s bare `sk-` rule does not mask a key already masked (an open question below). **The final fix wave (Recommendation 2):** a restricted project key — Models "None", Realtime "Write" — is expected to answer the check's `/v1/models` with 403 (a missing `api.model.read` scope): the auth words, Start off, though the session might run over the socket, which never calls `/v1/models` (parity with the old validation). Record whether such keys are common among users.
 2. **The socket on all three platforms** (ruling 16; choice 2): it opens with the subprotocol; no key in the Logs or the Logs' export. **Record what a revoked key does at the upgrade** — a refused upgrade (the start then reads "The connection to the provider failed: OpenAI's socket did not open (check the network, and that the API key is still valid)."), or an accepted one followed by an `error` event (then its words, and the `session.error` frame's `type`, `code` and `message`) — and whether DevTools' own console prints the subprotocol.
 3. **The session's configuration** (choice 1; ruling 9): record `session.created`'s `audio` (is noise reduction on by default? transcription?) and `expiresAt`; `session.updated` arrives, with `noise_reduction: null` for "None" and the type for the other two; the start resolves on it. If `session.updated` never arrives, every start times out with "OpenAI did not start the session within 30 s."; the fallback is to resolve on `session.created` once `session.update` is sent (`created()`: set `live` and settle).
-4. **Automatic turns, one leg**, several pairs (en → zh, ja → en, and a source-only language → en, e.g. th → en): rows cut by pause on each side; the translation's audio once on the monitor and once in the virtual microphone; replay per translation row with keep-audio on; karaoke per frame, **side by side with the old build** (ruling 6's arrival ranges).
+4. **Automatic turns, one leg**, several pairs (en → zh, ja → en, and a source-only language → en, e.g. th → en): rows cut by pause on each side; the translation's audio once on the monitor and once in the virtual microphone; replay per translation row with keep-audio on; karaoke per frame, **side by side with the old build** (ruling 6's arrival ranges). **Changed by the Stage 2 translation cuts plan** (its rulings 1, 2): the source is still cut by its pause, the translation now at its source's cuts, each source row with its own translation and the pairing stated — that plan's live-test item 1.
 5. **Text only** (ruling 4): with it on, no audio on the monitor or in the virtual microphone, and the same rows as with it off; the Logs still show `session.output_audio.delta` frames (the API sends, and bills, the audio). Record how the switch's tooltip reads against that, in en and in zh_CN, and in participant-only mode, with participant speech on and off.
-6. **The `elapsedMs` evidence for the timing follow-up** (ruling 6): diagnostic logs on before Start; export right after the utterances (a group keeps its newest 100 events, `MAX_EVENTS_PER_GROUP`; the panel its newest 2,000 entries). Export the Logs over several utterances, speaking and silent, under automatic turns and push-to-talk. Record, for the source deltas (`session.input_transcript.delta`), the translation deltas (`session.output_transcript.delta`) and the audio deltas (`session.output_audio.delta`): one timeline or several; monotonic or not; jumps across silence and across presses (model time or wall clock); absent or null on any; the audio frame's length (`samples`) against the 200 ms steps; whether a translation's value is its source's time or later by a lag; whether text and audio with the same value are the same words. And whether any `.done` event ever arrives (choice 18). **Execution (Task 5's review, M3):** if a `session.output_transcript.done` arrives, record whether it came before its utterance's last `session.output_audio.delta`: that trailing audio opens a text-less translation row, which the next utterance's text then joins (parity with the old client; an open question below). **Execution (Task 9's review, m2):** a `session.unreadable` frame means a frame, or an audio delta, did not read; record its `message` if one appears.
-7. **Same-language speech:** speaking the target language → silence, rows empty; mixed-language speech → gaps.
+6. **The `elapsedMs` evidence for the timing follow-up** (ruling 6): diagnostic logs on before Start; export right after the utterances (a group keeps its newest 100 events, `MAX_EVENTS_PER_GROUP`; the panel its newest 2,000 entries). Export the Logs over several utterances, speaking and silent, under automatic turns and push-to-talk. Record, for the source deltas (`session.input_transcript.delta`), the translation deltas (`session.output_transcript.delta`) and the audio deltas (`session.output_audio.delta`): one timeline or several; monotonic or not; jumps across silence and across presses (model time or wall clock); absent or null on any; the audio frame's length (`samples`) against the 200 ms steps; whether a translation's value is its source's time or later by a lag; whether text and audio with the same value are the same words. And whether any `.done` event ever arrives (choice 18). **Execution (Task 5's review, M3):** if a `session.output_transcript.done` arrives, record whether it came before its utterance's last `session.output_audio.delta`: that trailing audio opens a text-less translation row, which the next utterance's text then joins (parity with the old client; an open question below). **Execution (Task 9's review, m2):** a `session.unreadable` frame means a frame, or an audio delta, did not read; record its `message` if one appears. **Narrowed by the Stage 2 translation cuts plan** (its ruling 2; choice 13): pairing no longer needs the timing — each translation states its source — so the `elapsedMs` evidence serves karaoke by `elapsed_ms` alone; and a translation's `.done`, should one come, now settles it as its quiet would, so audio after it stays with it rather than opening a text-less row.
+7. **Same-language speech:** speaking the target language → silence, rows empty; mixed-language speech → gaps. **Changed by the Stage 2 translation cuts plan** (its choice 8): the untranslated source row stands alone and its cut is dropped — a `translation.cut` with `reason: 'idle'` and `dropped: 1`, or a `quiet` one with a `dropped` — so the next translation is not shifted onto it; that plan's live-test item 6.
 8. **Push-to-talk and push-to-translate** (ruling 2; choice 7): a short press → the last words translated after the release. Over twenty or so presses, record `turn.tail` (`padSamples`) and `turn.tail_end` (`reason`, `silenceMs`, `lastOutputMs`): whether the last words come out before the tail ends (`quiet`, with `lastOutputMs` well inside `silenceMs`), or are cut by the cap (`cap`), or come out only at the next press — which tunes `TAIL_QUIET_MS` and `TAIL_MAX_MS`. **As landed** ("Found during execution", item 1), `silenceMs` counts the frames sent — 1000 is five, 3000 the cap's fifteen — while `lastOutputMs` is wall time from the release; a `turn.tail_end` entry lands about `silenceMs` + 200 ms after its `turn.tail`. Record any tail whose two entries' times lie seconds further apart than that, and on which platform: the tail's ends count frames, so a stalled or throttled timer stretches it in wall time (an open question below). A press with no speech → a tail with `cancelled: true`; record whether anything shows. A second press during a tail → `reason: 'press'`. Record whether `session.input_transcript.delta` frames arrive after a tail ended `quiet` with `lastOutputMs: null` — the model still consuming the press while no translation came yet. Minutes idle between presses → the session survives (a dropped session, or a tail that never ends, is the keepalive question). Push-to-translate routes the raw voice while the key is up.
 9. **Muted for 5+ minutes under automatic turns:** the session survives? Muting mid-sentence stops the audio as a release does, with no tail: record whether the last words wait until the microphone comes back (ruling 2: no keepalive yet).
 10. **Heartbeats:** between utterances, while the API sends its all-zero heartbeat frames, nothing plays and no `session.output_audio.delta` frame appears in the Logs; heartbeats add no rows; interleaved deltas still make one row per run of a type.
@@ -4357,9 +4357,9 @@ frames with their `elapsedMs`:
 - **A no-server-frame watchdog** (item 12; Minor 2): if the router-upstream drop leaves the socket OPEN for minutes with no server frame arriving while appends keep queueing, a follow-up could end the run as `connection_lost` after N s with no server frame while appends continue — the adapter already sees every server frame, heartbeats included, so the watchdog is nearly free. Decided by item 12's two-drop measurement.
 - Count a source delta during the tail as activity (item 8)? Ruling 2 names the translation's output, and the plan counts that alone.
 - **The tail's ends count frames sent, not wall time** (Task 6's re-review; item 8). Ruling 2's reason is model time, so under a stalled or throttled main thread the tail can outlast 1 s or 3 s of wall time while still sending exactly five or fifteen frames. Electron turns background throttling off (`electron/main.js:397`); the extension's side panel does not. `lastOutputMs` is wall time and diagnostic only: across a clock step it can read negative or huge.
-- Timing and F16's timed window, and karaoke by `elapsed_ms` (item 6; ruling 6): the follow-up in "What it leaves".
+- Timing and F16's timed window, and karaoke by `elapsed_ms` (item 6; ruling 6): the follow-up in "What it leaves". **Narrowed by the Stage 2 translation cuts plan** (its ruling 2): pairing no longer needs the timing; karaoke by `elapsed_ms` stays open.
 - Heartbeats' `elapsed_ms` is unobserved (research Q3, unknown 4): a heartbeat is not a delta, and stays unframed; model time against the wall clock is settled by push-to-talk gaps (item 6).
-- **A `.done` before the last audio** (Task 5's review, M3; item 6): if `session.output_transcript.done` ever precedes its utterance's last audio, that audio opens a text-less translation segment, which the next utterance's text joins — parity with the old client; the survey expects the `.done` events are never sent.
+- **A `.done` before the last audio** (Task 5's review, M3; item 6): if `session.output_transcript.done` ever precedes its utterance's last audio, that audio opens a text-less translation segment, which the next utterance's text joins — parity with the old client; the survey expects the `.done` events are never sent. **Changed by the Stage 2 translation cuts plan** (its choice 13): a translation's `.done` settles it as its quiet would, where choice 18 closed it at once, so trailing audio stays in the translation it belongs to.
 - A socket that fails before it opens reads as the network with the key named (item 2; choice 2): a revoked key's upgrade may deserve its own words.
 - The Text only tooltip (item 5): zh_CN's and zh_TW's "no speech generated" are untrue for Translate, whose audio is generated and billed; rewording those two to "no speech output" would be true of every provider, and a Translate-specific wording would be a new key in 30 catalogs. The participant-only tooltip (`simpleConfig.textOnlyForcedByMode`) is untrue for Translate too, twice over — its audio is billed and, with participant speech on, spoken ("Before any release", above) — though that predates this plan.
 - Expiry and drops end the run (item 11; ruling 13): a fresh session, or a reconnect, if the long session shows a fixed length.
@@ -4370,7 +4370,7 @@ frames with their `elapsedMs`:
 - **A restricted project key's fallback** (item 1; Recommendation 2): if such keys prove common, the check could fall back to "unknown, allow Start" on a 403 whose message names a missing scope, rather than reading as a wrong key.
 - Source-only languages offered where the gate refuses Both (item 13): the old app warned under the picker (`settings.translateSourceParticipantWarning`, now unused) — the shape of the AST2 section's dialect question; filter the sources by reverse support while the participant leg opens, or accept it.
 - One speech entry per 200 ms frame (about five a second) in L1 and the clip queue over a long session (survey §3.4): the retention ceiling bounds the pcm, not the entry count.
-- A translation spanning two source segments pairs with one (the sides' pauses differ): legal, and visible (item 4).
+- A translation spanning two source segments pairs with one (the sides' pauses differ): legal, and visible (item 4). **Addressed by the Stage 2 translation cuts plan** (its rulings 1, 2): the translation is cut at its source's cuts, and each part states its source.
 - Analytics for `degraded` (Plan A's open question, unchanged).
 
 **T2's inventory** — the relay twin's deletion, after this port's live test
@@ -4465,7 +4465,7 @@ task review routed to it, last below):
 - **T2**, the relay twin's deletion, after this port's live test (this record's inventory).
 - **T3**, the own-key old code's deletion — both transports' clients, the descriptor, the translation mint, the slice's readers, the old UI's branches — after the WebRTC step's live test (this record's inventory). **Merged** by the Stage 2 OpenAI Realtime plan with OpenAI Realtime's and OpenAI Compatible's deletion (its ruling 20; its record's inventory, below). **2026-09-29:** after the two WebSocket live tests, the WebRTC step abandoned (owner).
 - **The WebRTC step** — **abandoned 2026-09-29 (owner)**: none of what follows is built; the kit-level scenario is reassigned (the Stage 2 OpenAI Realtime record, "The owner's WebRTC decision"). As planned: a transport and a dispatch in `start`, its fallback the same request handed to the WebSocket adapter (spec "The session request"), `C.transport` widened from `S.transportType`, the transport control; `segments.ts`, `tail.ts`'s grid and `wire.ts`' session update stay as they are. **The final fix wave (Recommendation 3):** a kit-level seeded lifecycle scenario, in `src/lib/contract/testing/`, modelled on the final review's fuzz of this adapter — driving random lifecycles over `FakeSocket` on a tracked virtual clock the way `run.ts` drives an adapter (presses and releases under manual turns, streamed audio under automatic turns; every opening path — success, a drop, the 30 s bound, an abort, an `error`, `session.closed`, a close; live steps mixing chunk sizes, input/output/audio deltas, heartbeats, bad base64, `.done` and unknown types, unparsable frames, mid-session errors and clock advances) — and asserting across every run: every `turn.tail` on the 4,800-sample grid; `turn.tail_end` timed to `silenceMs + 200` ms; `silenceMs` never past 3,000; append-only text with none on a closed ref; audio ranges starting at the previous end; at most one `failed` or `closed`, nothing after it; no timer or socket handler left after any ending; and no key or subprotocol in any payload. It would pin the WebRTC transport to the same cross-module guarantees this port's own adapter suite pins one at a time, and a mutant with `this.tail.cancel()` dropped from `shutDown` shows it bites at once.
-- **The timing follow-up** (ruling 6): if the live log shows one aligned timeline, set `timing` once, at segment close, and extend F16's window to timed pairs (by `startMs`), and consider karaoke by `elapsed_ms`; if the values are emission-time, first let L2 fall back to proximity when no timed candidate clears `minOverlap` (research Q3).
+- **The timing follow-up** (ruling 6): if the live log shows one aligned timeline, set `timing` once, at segment close, and extend F16's window to timed pairs (by `startMs`), and consider karaoke by `elapsed_ms`; if the values are emission-time, first let L2 fall back to proximity when no timed candidate clears `minOverlap` (research Q3). **Narrowed by the Stage 2 translation cuts plan** (its ruling 2): pairing no longer needs it — the translation states its source; what stays is karaoke by `elapsed_ms`.
 - **The tail's constants** tuned from the live test, and **a keepalive** only if it shows a dropped session or a stuck tail (ruling 2).
 - **A fresh session or a reconnect at expiry**, if the long session shows a fixed length (ruling 13).
 - **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox, Gemini and Doubao.
@@ -6313,7 +6313,7 @@ is marked):
 14. **An old profile** (ruling 2): key, pair and settings saved by an earlier build are ready without re-entry; a pre-July profile opens in the platform mode and one click brings its pair back; a stored `vn` target reads Arabic; a stored `eo` source reads Auto-detect, and Both is refused for it. **Execution (group check B):** with the Arabic target, record whether the pair row misaligns (the target select grew 34 → 47 px headless; CJK by a few px) — the shared `LanguagePairSection`, not Palabra code.
 15. **Analytics:** `translation_session_start` with `provider: 'palabraai'`, `transport: 'websocket'`; a refused start → `api_error` with its code.
 16. **The wizard:** Palabra AI last among the own-key providers; its credential step offers both modes and validates.
-17. **Sentences in parts** (choice 12's `last_chunk` rule, [inf]): long sentences, with the sentence splitter and partial translations on, until a `translation_part_id` of 1 appears in the `audio.output` frames; record whether `last_chunk` comes once per sentence or once per part, and whether the parts' bursts interleave; watch the karaoke of each part. **Execution (Task 11's review, m3):** record also whether a part's first message can come before a lower part's.
+17. **Sentences in parts** (choice 12's `last_chunk` rule, [inf]): long sentences, with the sentence splitter and partial translations on, until a `translation_part_id` of 1 appears in the `audio.output` frames; record whether `last_chunk` comes once per sentence or once per part, and whether the parts' bursts interleave; watch the karaoke of each part. **Execution (Task 11's review, m3):** record also whether a part's first message can come before a lower part's. **Found by the owner's live test (2026-09-30):** with the splitter on, a long transcription validates in parts, `<id>_part_<n>`, while its partials carry the transcription's id (or a part's), and every sentence showed twice — the partials' row, then the validated parts beside it. Fixed on the branch (`e311ef7f`): one open row per transcription shows its partial text less the parts already validated; the first validated part takes that row over, each later part has a row of its own, and each states its own id at its close. Record any sentence still shown twice, with its `transcription.*` frames.
 18. **The settings take effect** (ruling 10): change each Provider-tab setting in turn — the sentence splitter off; partial translations on (`translation.partial` rows, and a translation streaming before it closes); the buffer's target and max; adaptive speech speed — run a session after each, and record the `task.set` frame and what changes in the behaviour.
 
 **Open questions for the owner**
@@ -6433,6 +6433,7 @@ then the items the reviews and this record routed here, last below):
 - **Three plain swaps left outside the hook:** `src/lib/export/transcript.ts:107` (`pairOf`) rebuilds the speaker's pair from the participant's as `{ source: participant.target, target: participant.source }`, so a participant-only export of Palabra's `ja → en-us` reads `ja → en` in its header; `src/app/telemetry.ts:189` labels the participant's segmentation bucket with `run.pair.target`, `en-us` where the leg ran `en` (Task 4's review, N4); and the Both mirror line — `pairSentence` (`src/components/SetupWizard/languageSentence.ts:52`), rendered by `src/components/providers/LanguagePairSection.tsx:106-113` and the wizard's `StepLanguagePair.tsx:97-103` and `StepFinish.tsx:62` — builds "They speak {target} → I read {source}" from the pair itself, without `reversedPair` or `reverseSupported` (the final review, M2): Palabra's `ja → en-us` shows "They speak English (US) → I read 日本語" while the participant leg actually runs `en → ja`, and a pair with no documented reverse still shows the line, though the live gate keeps Start off for it. All three cosmetic; routing them through `reversedPair` needs the provider at each site — the mirror line's fix, computing it through `reverseSupported` / `reversedPair` in `LanguagePairSection`, is a UI change left to the owner.
 - **`pause_task` for idle billing:** an open question (above), not built.
 - **Typed text through `tts_task`:** not proposed; `textInput: false` stays at parity.
+- **Karaoke with Adaptive Speech Speed on** (the owner's live test, 2026-09-30): with `auto_tempo` on, Palabra streams a sentence's speech in real time, in 480-sample chunks, so its burst — and `last_chunk`, where the text is tiled over the chunks (choice 12) — ends only as the sentence finishes playing, and karaoke lights it only then. The setting is off by default (ruling 10); the owner ruled no change (「既然默认是关闭的，那么问题不大 不用改」).
 - **The owner's open questions,** each with the live-test item that settles it.
 - **Nothing on the old code:** the old client, descriptor, slice readers and UI branches stay compiled and unreachable, as the protocol documentation.
 - **For the final review:** the items under "Accepted as they stand" above.
@@ -6886,3 +6887,315 @@ own revisions; kept for the record):
   go (the coordinator's ruling C), and the split's pause follows the
   session's Silence Duration (ruling B); live-test items 12, 15 and 16 count
   the `split_timeout`s.
+
+## Scheduled by the Stage 2 translation cuts plan
+
+The Stage 2 translation cuts plan
+(`docs/superpowers/plans/2026-09-30-client-contract-stage2-translation-cuts.md`,
+plan commit `a84ec8f9`, written over `43437057`'s code) landed as the three
+commits `241249b4`, `70bb6bd5` and `dc0fc2b1` on
+`worktree-client-contract-stage2`, over `e311ef7f` (the Palabra splitter fix,
++5 tests, which touches none of its files): **+3 144 / −215 lines across 21
+files** under `src/` and `scripts/` (`git diff --shortstat e311ef7f dc0fc2b1 --
+src scripts`; the range also holds `2648b390`, the session-end-and-wizard
+plan's own revision). Then this record with the spec's amendments. It ports no
+provider: it carries out the owner's rulings on his OpenAI Translate session
+of 2026-09-30, where the last two sentences had no translation beside them —
+theirs sat inside the second segment's — that **on a continuous interpreter
+the translation is cut where its source was, and its pairing is stated**
+(rulings 1, 2), on OpenAI Translate and on Gemini Live Translate alike (ruling
+3). The rule was validated first on a spike over three recorded sessions: 19
+of 19 sources paired, where the rule before paired 12.
+
+Three implementation tasks ran in two waves: Wave 1, Task 1, at `e311ef7f`;
+Wave 2, Tasks 2 and 3 in parallel at `241249b4`, on disjoint folders. Each
+task had one review and no fix round — Spec ✅, Quality Approved; Tasks 1 and 3
+with 0 findings, Task 2 with 2 Nits, parked (a comment's one extra word, and
+two new adapter cases placed after two landed ones — byte-identical bodies) —
+and every committed file was checked mechanically against the plan's code (the
+plan's diffs applied with `patch -p1` to the task's base, then diffed). Task 4
+is this record; the final whole-branch review follows it.
+
+**What landed, by task:**
+- **One shared, pure rule for a continuous interpreter's two sides**
+  (`241249b4`, Task 1; red: unresolved import → green 47 tests, 39 of the
+  module's and 8 of the session-side guard's):
+  `src/lib/segmentation/continuousSegments.ts` — `ContinuousSegments`,
+  `ContinuousSegmentsOptions` (`clock`, `silence`, `sink`, `showSource`,
+  `cut`, `holdMidSentence`), `SegmentSink`, `CutReason`, `CutSummary`
+  (`reason`, `origin`, `sentences`, `owed`, `dropped`),
+  `MID_SENTENCE_HOLD_MS` = 5 000, `endsSentence`, `countSentenceEnds`,
+  `atSentenceEnd`; `SilenceDeferral` moved into it unchanged. Each closed
+  source owes the translation a cut of `n = max(1, its sentence ends)`, taken
+  at the translation's n-th sentence end arriving after the source's last
+  delta; the next delta opens the next translation. The four recordings
+  (`src/lib/segmentation/recordings/`, arrival times, types, text deltas,
+  frame lengths and RMS — no pcm, no key, 32 KB), their generator
+  (`scripts/dev/wire-probe/translation-cuts-fixtures.mts`) and
+  `replay.testing.ts`; `sessionSide.consistency.test.ts` reads the module by
+  name in its timer scan, and its kit rule covers every `*.testing.ts`.
+- **Gemini Live Translate's translation follows the source's cuts**
+  (`70bb6bd5`, Task 3; red 15 failed / 340 passed → green 19 files, 363
+  tests): `GeminiTurns`' Live Translate half on the module, by its kind alone;
+  its audio rules kept; `writesSentenceMarks(target)` keys the mid-sentence
+  hold off for Thai and Lao; the `translation.cut` frame; the dialogue half
+  untouched; `turns.replay.test.ts` replays the recorded Live Translate
+  session (`2026-09-28T19-41-14`, push-to-talk).
+- **OpenAI Translate's translation follows the source's cuts, and the noise
+  floor holds nothing** (`dc0fc2b1`, Task 2; red 15 failed / 116 passed →
+  green 12 files, 139 tests): `segments.ts` on the module, origins stated;
+  `QUIET_RMS` = 0.002 and `isQuietFrame` in `wire.ts` — a frame under it opens
+  no translation and holds none open, and outside one is dropped as a
+  heartbeat is; a translation's `.done` settles it as its quiet would; the
+  `translation.cut` frame; `segments.replay.test.ts` replays the three
+  recorded sessions, 19 of 19 paired, stated.
+
+**Gates after each wave** (the controller's, 0 failed and no unhandled errors
+throughout, the typecheck gate at its 20-line baseline, the full tree at 259
+with none under `src/lib/segmentation/`): Wave 1 (`241249b4`) — 574 files
+passed and 1 skipped, 7 497 tests passed and 2 skipped; Wave 2 (`dc0fc2b1`) —
+576 + 1, 7 514 + 2 — each the plan's replay count plus the 5 of `e311ef7f`.
+
+**Checked — the group check** (at `dc0fc2b1`):
+1. `npx vitest run src`: 576 passed and 1 skipped files, 7 514 passed and 2
+   skipped tests, no unhandled errors; the typecheck gate prints exactly the
+   20-line baseline; the full tree at 259, none naming
+   `src/lib/segmentation/`;
+2. `src/services`: 49 files, 1 039 tests — the old clients untouched;
+3. `npm run build` and `npm run extension:build` exit 0; `npx vitest run
+   extension`: 7 files, 45 tests; the three D24 greps print nothing;
+   `translation.cut` ships in `build/static/index-*.js` and
+   `extension/dist/fullpage.js`;
+4. no rendered check: the rows and their pairing show only in a live session;
+   the replays already read them through L1 and L2.
+
+**The plan's revisions,** each replayed on a fresh tree before execution:
+- **Revision 1** (`89f8b53f`; the independent review, Ready after fixes, 1
+  Critical / 2 Important / 10 Minor): C1, other scripts' sentence ends counted
+  at their own marks, and the mid-sentence hold only once the stream has shown
+  one; I1, the stale cut dropped, the continuation and the typed reset; I2,
+  one sentence-end rule shared by every count.
+- **Revision 2** (`a84ec8f9`; the re-check, 0 / 1 / 3): N1, `holdMidSentence`
+  off for Thai and Lao through `writesSentenceMarks`; Khmer's marks counted;
+  the Gemini fixture named push-to-talk; the pause to begin ended when a
+  translation opens.
+
+**Departures, stated:**
+- on OpenAI Translate and Gemini Live Translate the translation is cut where
+  its source was, not on its own silence alone, and its pairing is stated, not
+  inferred (rulings 1–3);
+- a translation that stops mid-sentence stays open to 5 s after its last
+  activity, in every mode, where by pause it closed at its pause — once its
+  stream has shown a sentence end, and never into Thai or Lao (ruling 1 (vi);
+  choice 6);
+- **how rulings 1 (iii) and (vi) read for scripts they do not name** (the
+  controller's ruling on the review's C1): a sentence end in Hindi, Bengali,
+  Marathi, Urdu, Arabic, Burmese, Armenian, Amharic or Khmer is that script's
+  own mark — `।॥۔؟။։።។៕`, and the fullwidth `．` and halfwidth `｡` — counted
+  as the CJK ones; in a script that writes none, Thai or Lao, "only at a
+  sentence end" is unobservable, so Gemini Live Translate into Thai or Lao
+  holds no translation mid-sentence at all — its pause settles it, whatever
+  stray Latin mark the stream shows (the controller's ruling on the re-check's
+  N1) — and into any other target the hold waits for the stream to show a
+  mark, the translation's pause settling it until then (choices 3, 6, 12);
+- OpenAI Translate's output frames below RMS 0.002 no longer open a
+  translation or hold it open; outside one they are dropped, as heartbeats are
+  (ruling 1 (vii); choice 11);
+- a translation with no cut owed waits for a source still open; a quiet close
+  drops cuts no translation answered, and so does a pause with no translation
+  after a source closed, and a translation that begins in that pause while a
+  newer source is open, which follows the newer one; a translation with
+  nothing owed and no source open continues the spoken source that closed
+  last, and typed text clears that (choices 7–9: beyond the spike, ruled by
+  the controller with the review's fixes);
+- a translation's `.done`, should the endpoint send one, settles it as its
+  quiet would, where OpenAI Translate's choice 18 closed it at once (choice
+  13).
+
+**Before any release from the branch:** the owner's live test below.
+
+**The owner's live test** (own credentials; switch diagnostic logs on in Help
+before Start; each item names what settles it; `translation.cut` frames carry
+`reason`, `origin`, `sentences`, `owed` and `dropped`):
+1. **OpenAI Translate zh → en with the owner's pauses** (rulings 1, 2): six or
+   so sentences with pauses of 1.8–2.4 s — the owner's live session — and the
+   interpreter catching up in its shorter pauses: every source row has its own
+   translation beside it, `pairing` stated in the export's JSON; no
+   translation row stands alone; the Logs read one `translation.cut` per
+   translation, `reason` `sentences` or `quiet`, `dropped: 0`. Record any row
+   without its translation, with the frames around it.
+2. **OpenAI Translate ja → en**, the same: the terminal `。` wherever it
+   stands; record a cut one sentence late or early.
+3. **Gemini Live Translate** (ruling 3), the default model, the same two
+   directions: record the same; audio that arrives before its text still
+   plays unattributed (Gemini choice 8).
+4. **A speaker who pauses mid-sentence** (ruling 1 (i), (vi); choices 6, 7):
+   pauses of 1–1.5 s inside sentences, by pause and by sentence: the source as
+   today (split by pause, held by sentence); the translation waits — no
+   `translation.cut` for a source still open — and never stands alone.
+5. **A translator who merges or splits sentences** (choices 3, 4, 8): long
+   compound sentences, lists, numbers ("1.5", "U.S."), and very short
+   sentences: watch for a translation cut one sentence late (the next
+   sentence's opening words at the end of a row) or early (a row's last words
+   opening the next), and whether it resyncs at the next real pause — a
+   `translation.cut` with `reason: 'quiet'` and a `dropped` — or drifts.
+6. **A source never translated** (choice 8): a sentence in the target
+   language, a filler ("嗯", "えーと"), with the next sentence both 3 s later
+   and within about 2 s: its source row alone, the next sentence's translation
+   beside its own source; the Logs: `translation.cut` `reason: 'idle'` with
+   `dropped: 1` — at the pause to begin's end, or as the next translation
+   begins — or a `quiet` one with a `dropped`. Record any translation beside
+   the filler.
+7. **Text only** (OpenAI Translate's choice 5): the same rows and pairs as
+   with it off.
+8. **The participant leg** (Both): the same, on the other leg's stream, its
+   own pauses.
+9. **The pause settings** (choices 6–8): the translation's pause shorter than
+   the source's (0.8 against 1.5 s), and longer (3 s): rows still paired, and
+   at 3 s every close a `sentences` or a `quiet` after 3 s; the source's pause
+   at 1 s: sentences split into fragments, as today, the translation beside
+   the last fragment ("What this plan leaves").
+10. **The noise floor** (ruling 1 (vii); choice 11): a translation row closes
+    about its pause after its last word, not when the next sentence begins;
+    `session.output_audio.delta` frames with an `rms` under 0.002 still
+    appear in the Logs.
+11. **The one-word audio boundary** (ruling 1 (v)): keep-audio on, replay each
+    translation row: its audio says its text, bar at most the next sentence's
+    first word at its end (the spike: twice in 16 sentence boundaries).
+12. **A long monologue with short pauses** (choices 7, 8): a minute or more
+    with pauses under the source's: the source and its translation grow
+    together until a real pause; record a translation held open long after
+    its source closed, and every `dropped`.
+13. **Other scripts** (choices 3, 6, 12; the stated departure): OpenAI
+    Translate zh → hi (Hindi, its `।`), and Gemini Live Translate into Arabic
+    or Urdu, into Khmer (its `។`) and into Thai: every source row with its own
+    translation, none alone; for Thai, the rows cut where the interpreter
+    pauses, the `translation.cut` frames `quiet`, none held 5 s — with a
+    question, which Thai may end with a `?`, or a Buddhist-era year written
+    `พ.ศ.`, early in the session, which must change nothing. Record a script
+    whose marks are not counted — a whole session's translation in one row,
+    or every row closing 5 s after its last word, is the sign.
+14. **The first sentence of a session** (choice 6's cost): a long first
+    sentence the interpreter pauses inside — its first translation may close
+    at its pause, before any sentence end has shown; record whether its rest
+    joins the next row.
+15. **Typed text on Live Translate** (choices 9, 12; with the Gemini section's
+    item 7): **answered before this record by the owner's live test
+    (2026-09-30): Live Translate ignores typed text** — the typed row stands
+    alone and, owing no cut, shifts no spoken row. What remains to watch,
+    while the box still shows there: after a spoken exchange, a typed
+    sentence, then speech — the spoken rows keep their own translations.
+
+**Open questions for the owner:** none from this plan. The controller ruled
+choices 7–9, with the review's fixes, and the reading of rulings 1 (iii) and
+(vi) for scripts they do not name — a stated departure, above. The live test
+observes what is left: `MID_SENTENCE_HOLD_MS` (items 4, 12, 14) and other
+scripts (item 13). Whether Live Translate answers typed text — the Gemini
+section's item 7 — is answered (it does not); hiding the box there, by making
+`textInput` a function of the settings, is a follow-up the owner approved on
+2026-09-30, outside this plan.
+
+**Amended in place**, each marked as changed, answered, narrowed or addressed
+by this plan: in the Gemini section, live-test item 7 (typed text on Live
+Translate — answered by the owner's test: ignored) and its open question
+(answered; the follow-up approved), and item 8 (Live Translate's translation
+now cut at its source's cuts, the pairing stated); in the OpenAI Translate
+section, live-test item 4 (the translation at its source's cuts), item 6 (the
+`elapsedMs` evidence now serves karaoke alone; a `.done` settles a
+translation), item 7 (the untranslated source row stands alone, its cut
+dropped), the open questions "Timing and F16's timed window" (narrowed), "A
+`.done` before the last audio" (changed: choice 13) and "A translation
+spanning two source segments pairs with one" (addressed: rulings 1, 2), and
+"What it leaves"'s timing follow-up (narrowed: karaoke by `elapsed_ms` alone).
+This record also carries two notes from the owner's Palabra live test of
+2026-09-30 into the Palabra section: under its item 17, the splitter's
+duplicate rows and their fix (`e311ef7f`); and in its "What it leaves",
+karaoke with Adaptive Speech Speed on — the owner ruled no change.
+
+**The roadmap's inheritance, item by item** (the plan's table, as landed):
+taken (and where), or left (and why).
+
+| Item | Disposition |
+|---|---|
+| The owner's live session (2026-09-30): several OpenAI Translate source rows with no translation, their translations inside one earlier segment | met: the translation cut at its source's cuts, stated (Tasks 1, 2; rulings 1, 2) — 19 of 19 on the spike's sessions, where the old rule paired 12; live-test items 1, 2 |
+| The same on Gemini Live Translate (ruling 3) | met: Task 3 — 19 of 19 on the same sessions under Gemini's audio rules, where the old half paired 15 and left 4 alone; on a recorded Live Translate session 2 of 2, stated, none alone, where the old half at a 0.8 s translation pause left seven fragments alone; live-test item 3 |
+| The OpenAI Translate section, "What it leaves": a translation spanning two source segments pairs with one | met: the translation is cut at its source's cuts (rulings 1, 2) |
+| The OpenAI Translate section, live-test item 7: the target language spoken, rows empty | changed: the source row stands alone and its cut is dropped, so the next translation is not shifted (choice 8); live-test item 6 |
+| The OpenAI Translate section, the timing follow-up (F16's timed window, `elapsed_ms` as one timeline) | narrowed: pairing no longer needs timing (ruling 2); karaoke by `elapsed_ms` stays open |
+| The OpenAI Translate section, "A `.done` before the last audio" | changed: a translation's `.done` settles it as its quiet would (choice 13) |
+| The Gemini section, live-test item 8: Live Translate cut by pause, each side on its own, inferred pairing | changed: stated, the translation at its source's cuts (ruling 3); live-test items 3, 6 |
+| The Gemini section, live-test item 7 and its open question: typed text on Live Translate | kept: a row of its own, no origin, no cut (choices 9, 12); answered since by the owner's test — ignored — and the box's follow-up approved; live-test item 15 |
+| OpenAI Live's pairing (its survey, question 3) | left: `ContinuousSegments` is the candidate; its own plan decides (research note 10) |
+
+**What this plan leaves** (the plan's own list, as written):
+- **A sentence-count mismatch until the next real pause.** A translator that
+  merges two source sentences into one, or splits one into two, meets a cut
+  one sentence late or early; the next quiet close — its pause at a sentence
+  end — takes the cut owed and drops any other, so the error does not pass a
+  real pause (choice 8). Between two real pauses, a sentence of translation
+  can sit in the neighbouring row. Live-test item 5.
+- **The one-word audio boundary.** Audio is handed over by arrival: a frame
+  that carries the next sentence's first word, arriving before that word's
+  text, plays in the segment that closes (the spike: twice in 16 sentence
+  boundaries). Live-test item 11.
+- **A source pause below the transcript's own gaps** splits a sentence into
+  fragments, as today; the interpreter waits for the sentence, and its
+  translation sits beside the fragment open when it began, the earlier
+  fragments alone — their cuts dropped (choice 8; research note 5). The
+  sentence mode's deferral already keeps a sentence whole while its text
+  grows. Live-test item 9.
+- **The lagging interpreter's trade** (choice 8; the review's F1): an
+  interpreter that says nothing for a source until the speaker's next
+  sentence has begun has its translation put beside that newer source, the
+  older one standing alone — pinned. The filler case it serves is the
+  likelier. Live-test items 6, 12.
+- **A translation that begins more than its pause after its source closed**,
+  with no source open, closes as that source's continuation (choice 9); with a
+  newer source open by then, it follows that one (choice 8).
+- **Before a session's first translated sentence end, a mid-sentence pause
+  closes the translation at its pause** (choice 6's cost): the hold waits for
+  the stream to show a mark. The recorded Gemini session shows it — its first
+  translation closes at "…I'm", where its source closed too, and "here to
+  help." goes with the source that holds します。 Live-test item 14.
+- **A script with no sentence-final mark** (Thai, Lao) is cut by the
+  translation's pauses and the source's cuts alone: no cut is ever due, so
+  each translation closes at its pause for the cut owed first — 18 of 19 on
+  the recordings through the module, 15 of 19 through OpenAI Translate's
+  segments, none alone, where the rule before paired 12 and left 3 alone.
+  Gemini Live Translate, the provider that offers them, keys the hold off by
+  its target (choices 6, 12), so a stray Latin mark changes nothing: 18 of 19
+  again with one mark kept, where the gate alone, latching on it, paired 4.
+  The key is the target code: a Thai or Lao stream reached another way — a
+  target not keyed, or text the interpreter leaves untranslated — reads as any
+  other. Live-test item 13.
+- **A Latin end inside a closing quote** (`He said "go." Then`) is not
+  counted: the mark is followed by the quote, not whitespace, as ruling 1
+  (iii) reads; a cut there comes one sentence late, and the next quiet settles
+  it. A text that ends so reads as at a sentence end (choice 3).
+- **Scripts beyond the widened set**: a mark not in `ANYWHERE_ENDS` or `.?!` —
+  Tibetan's `།`, Greek's `;` question mark — is not counted. A Greek question
+  reads as mid-sentence, its cut one sentence late until the next `.` or real
+  pause; a Tibetan target behaves as a script with no mark that is not keyed
+  off, so a stray Latin mark would latch the hold for it as it did for Thai
+  (choice 6). Live-test item 13.
+- **Typed text on Live Translate** owes no cut: an answer to it, should Live
+  Translate send one, stands beside its typed row, inferred, when it begins
+  with nothing owed and no source open; while a spoken source is open or owed,
+  it joins that source's translation (choice 12). The owner's test found no
+  answer comes; the box's follow-up removes the case.
+- **The guard reads the wall clock** (`realClock.now()` is `Date.now()`): a
+  clock stepped back between a source's last delta and the translation's
+  sentence end makes that cut not due, and the quiet settles it (choice 10).
+- **OpenAI Translate's release tail still hears the noise floor**
+  (`tail.output()` for every frame that is not a heartbeat): a tail may run to
+  its 3 s cap while floor frames come. Unchanged, and bounded (choice 11).
+  `isQuietFrame` recomputes the RMS the adapter computed for the frame's Logs
+  line — one pass over 4 800 samples.
+- **`MID_SENTENCE_HOLD_MS` = 5 000** is the spike's value; the live test
+  observes it (items 4, 12, 14).
+- **OpenAI Live's pairing:** `ContinuousSegments` is the candidate; not built
+  here (research note 10).
+- **The spike keeps its own `simulate`**
+  (`scripts/dev/wire-probe/openai-translate.mts`), a research instrument; the
+  module is not shared with it.
+- **Doubao AST 2.0** is now the one ported provider whose origins L2 infers.

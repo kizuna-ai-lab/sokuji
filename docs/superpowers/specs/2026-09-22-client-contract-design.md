@@ -79,9 +79,9 @@ workload untouched does not count.
 | D1 | Scope | Rewrite the `IClient` contract. Clients emit content; cross-cutting features move up. Approved at a scope of "approach C or larger". |
 | D2 | Two legs | Technically identical and fully independent. One `IClient` and one L1 per leg. No merging in L1. |
 | D3 | Replay | **Kept.** Every provider replays: Palabra's audio names its sentence since its WebSocket port (Stage 2 Palabra, ruling 6; this row first said "only Palabra cannot", true of its old LiveKit client). Replay does not require precision. |
-| D4 | Karaoke | Drawn only where a speech entry carries a real `range`. The linear-interpolation fallback is deleted outright. **Amended by the Stage 2 Gemini/AST2 follow-up:** a range by arrival is a stated exception, not a real range — OpenAI Translate's, OpenAI Realtime's and Gemini's, each by the owner's ruling ("Risks"). Doubao AST 2.0's whole-sentence range is a real one: the TTS sentence carries its translation subtitle's server times (ruling 1). |
+| D4 | Karaoke | Drawn only where a speech entry carries a real `range`. The linear-interpolation fallback is deleted outright. **Amended by the Stage 2 Gemini/AST2 follow-up:** a range by arrival is a stated exception, not a real range — OpenAI Translate's, OpenAI Realtime's and Gemini's, each by the owner's ruling ("Risks"); on OpenAI Translate and Gemini Live Translate a range by arrival runs within one translation segment, which now closes at its source's cut: audio arriving before the next translation delta stays with the segment that closes, so a frame can carry the next sentence's first word into the previous segment — its range is by arrival, not a known correspondence (Stage 2 translation cuts, ruling 1 (v)). Doubao AST 2.0's whole-sentence range is a real one: the TTS sentence carries its translation subtitle's server times (ruling 1). |
 | D5 | Audio↔text | Stored as `{ range?, pcm }` pairs on the segment. No timeline, no anchors, no quality tag — an absent `range` is the quality signal. |
-| D6 | Source↔translation | A shared `origin` key. Stated by the client where the provider supplies one; inferred in L2 otherwise. |
+| D6 | Source↔translation | A shared `origin` key. Stated by the client where the provider supplies one; inferred in L2 otherwise. **Amended by the Stage 2 translation cuts plan:** or by the adapter's own rule where it cuts both sides of a stream with no turns — OpenAI Translate and Gemini Live Translate state, for each translation, the source whose cut it closed for, as OpenAI Realtime's "newest unanswered" fallback is stated (rulings 1–3). |
 | D7 | Segmentation | Cutting already-final text moves to L2. Deciding the translation-job boundary stays in the local clients — it is a pipeline decision, not a display one. |
 | D8 | Logs | One generic `frame({direction, type, payload?})` replaces 15-18 bespoke event types per client. |
 | D9 | Analytics | Translation latency and `translation_count` are no longer collected. |
@@ -350,7 +350,9 @@ The conformance suite (D24) checks each rule below against every adapter.
   Realtime, choice 13). Gemini's `turn.tail` and `turn.tail_end`, OpenAI
   Translate's names, need none; Gemini's `server.voice_activity`,
   `server_content.waiting_for_input`, `turn.hold` and `turn.hold_end` need
-  none either (Stage 2 Gemini hold, choice 12); Doubao's `tts.sentence_start`
+  none either (Stage 2 Gemini hold, choice 12); OpenAI Translate's and
+  Gemini's `translation.cut` needs none (Stage 2 translation cuts, choice
+  14); Doubao's `tts.sentence_start`
   keeps its row
   with the sentence's times added (`ref` — the lock's —, `startTime`,
   `endTime`, `sequence`), and its new `tts.clip` (`ref`, `matched`, `range`,
@@ -872,7 +874,11 @@ every source with timing (`pair.ts`), and a timing that changes on every delta
 re-pairs on every delta, so the first provider whose origins L2 infers to
 emit `timing` sets it once, at segment close, and extends F16 to a timed
 window first — OpenAI Translate's follow-up, should its `elapsed_ms` prove
-one timeline (Stage 2 OpenAI Translate, ruling 6).
+one timeline (Stage 2 OpenAI Translate, ruling 6). OpenAI Translate now
+states its origins (Stage 2 translation cuts, ruling 2), so its pairing needs
+no timing; the timed window waits for a provider whose origins L2 infers and
+that emits `timing` — Doubao AST 2.0 emits none, and OpenAI Live may state its
+origins by the same cuts instead.
 
 Filtering, band packing and styling are **not** L2's. They depend on each
 surface's own settings — the extension overlay carries display modes, a font
@@ -1110,11 +1116,11 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 | LocalInferenceClient | yes | per TTS sentence, **exists today** | one translate job — stated |
 | LocalNativeClient | yes | per TTS sentence, **exists today** | one translate job — stated |
 | SonioxClient | yes | per TTS segment — filled in once the segment's speech has ended (`speechRanges`); unlit before; none for a segment the provider killed | same utterance — stated |
-| OpenAITranslateGAClient | yes | per audio frame, **by arrival**: each content frame carries the translation's text from the previous frame's end to its length when the frame arrived — the old client's alignment (#216), kept by the owner's ruling, not a known correspondence (Stage 2 OpenAI Translate, ruling 6) | inferred by proximity: no `timing` is emitted; every delta frame carries `elapsed_ms`, for the live test to settle whether it puts both sides on one timeline (ruling 6) |
+| OpenAITranslateGAClient | yes | per audio frame, **by arrival**: each content frame carries the translation's text from the previous frame's end to its length when the frame arrived — the old client's alignment (#216), kept by the owner's ruling, not a known correspondence (Stage 2 OpenAI Translate, ruling 6) | source cut ↔ translation cut — **stated**: each closing source owes the translation one cut, taken once the translation holds as many sentence ends as the source, the latest arriving after the source's last delta; the translation states that source, at its open when known (the cut owed first, else the source still open), else at its close; a sentence end counted as ruling 1 (iii) says, and in the scripts it does not name at their own marks (`।॥۔؟။։።។៕．｡`, counted as the CJK ones); its own quiet settles it and drops cuts no translation answered, as does a translation that begins for a newer source; one that follows no cut continues the spoken source that closed last (Stage 2 translation cuts, rulings 1, 2; choices 3, 5–9). `elapsed_ms` is still framed, and read by nothing |
 | OpenAILiveClient | yes | per audio frame, **exists today** | inferred (`end_ms` timeline) |
 | OpenAIGAClient | yes | per audio frame, **by arrival**, as OpenAI Translate's: each played frame carries the translation's text from the previous frame's end to its length when the frame arrived, restated within the final text when that settles shorter (`speechRanges`). This table's first "per audio frame" for this client and the compatible one was never true: neither produced a range, and their karaoke was the interpolation D4 deletes (survey §3.7.1). So this is the second stated exception to the honesty rule (Stage 2 OpenAI Realtime, ruling 3; choice 9) | input item ↔ response — **stated**: the assistant item's `previous_item_id` when it names one of the leg's inputs; else, taken when the response began, the newest input the server holds — by when it came to hold it, not when the leg opened it — if it is still unanswered, never an older one behind it; else none, and the translation shows unpaired (Stage 2 OpenAI Realtime, ruling 23; choice 8; the server's order since its final review) |
 | OpenAIClient (compatible) | retired, not ported (Stage 2 OpenAI Realtime, ruling 1) | — | — |
-| GeminiClient | yes | per audio chunk, **by arrival**, as OpenAI Translate's and OpenAI Realtime's: each played chunk carries its translation's text from the previous chunk's end to its length when the chunk arrived, `[0, 0]` before any text — a dialogue model's audio opens its turn's translation, and Live Translate's audio outside an open translation stays unattributed; the text only grows, so nothing is restated. Live Translate's stream is real time with its text 0–0.3 s ahead, so its karaoke is phrase-level and holds through its silence: a chunk with no new text since the last is zero-width. The third stated exception to the honesty rule (Stage 2 Gemini/AST2 follow-up, ruling 2; choice 7) | dialogue models: same turn — stated; Live Translate: inferred (no turns) |
+| GeminiClient | yes | per audio chunk, **by arrival**, as OpenAI Translate's and OpenAI Realtime's: each played chunk carries its translation's text from the previous chunk's end to its length when the chunk arrived, `[0, 0]` before any text — a dialogue model's audio opens its turn's translation, and Live Translate's audio outside an open translation stays unattributed; the text only grows, so nothing is restated. Live Translate's stream is real time with its text 0–0.3 s ahead, so its karaoke is phrase-level and holds through its silence: a chunk with no new text since the last is zero-width. The third stated exception to the honesty rule (Stage 2 Gemini/AST2 follow-up, ruling 2; choice 7) | dialogue models: same turn — stated; Live Translate: source cut ↔ translation cut — stated, as OpenAI Translate's, with no mid-sentence hold into Thai or Lao (Stage 2 translation cuts, ruling 3; choice 6) |
 | VolcengineAST2Client | yes — today's quality is the bar to keep | per TTS sentence — the whole translation subtitle whose server times the sentence carries (8 of 8 in the owner's probe), matched exactly (start and end) against the last eight translations as its clip is emitted, after its decode, and stated once the subtitle closes: at the clip's emission, or by `speechRanges` at the close; the first clip to carry a subtitle's times takes its range, a later one plays rangeless on the same row; a sentence whose times name no recent translation plays rangeless on the old lock, read at the sentence's start (Stage 2 Gemini/AST2 follow-up, ruling 1; choices 2–4) | inferred by proximity: neither origin nor timing is emitted; each subtitle frame carries `responseMeta.Sequence` and the times, for the live test to settle whether either states the pair (Stage 2 Volcengine AST2, ruling 11); every source subtitle carries its translation's times in the owner's probe — evidence for stated pairing, not taken yet |
 | OpenAIWebRTCClient | abandoned, not ported (owner, 2026-09-29) | — | — |
 | OpenAITranslateWebRTCClient | abandoned, not ported (owner, 2026-09-29) | — | — |
@@ -1128,7 +1134,9 @@ table named (Stage 2 Soniox survey §3.7.3).
 Gemini, not OpenAI Translate, is the first provider whose origins L2 infers
 (Live Translate). Doubao AST 2.0 is the second, pairing by proximity alone like
 Live Translate: neither states an origin or a timing. OpenAI Translate is the
-third, by proximity too.
+third, by proximity too. **Amended by the Stage 2 translation cuts plan:**
+OpenAI Translate and Gemini Live Translate now state their origins; Doubao AST
+2.0 is the one ported provider whose origins L2 still infers.
 
 OpenAI Realtime's pairing is stated by the server's own item ids: every input
 item — a commit, automatic or manual, or a typed text under the adapter's own
@@ -1605,7 +1613,13 @@ provider does (`'provider'`), the user may keep its boundary — Auto. Where our
 own silence timers do (`'silence'`: OpenAI Translate, OpenAI Live, Gemini) — for
 Gemini as parity with the old offer: its dialogue segments end at
 `turnComplete`, and only Live Translate's end on our timers — the user tunes the
-pauses. Cutting into a number of sentences is available
+pauses. On OpenAI Translate and Live Translate the source's segments end on its
+timer and the translation's where its source's did; the translation's own pause
+only settles it — at a sentence end, or 5 s after its last activity
+mid-sentence once its stream has shown a sentence end, never into a script that
+writes no sentence-final mark — and bounds how long a closed source's cut waits
+for a translation to begin (Stage 2 translation cuts, ruling 1; choices 6, 8).
+Cutting into a number of sentences is available
 everywhere: rows tile the segment's text and a `range` survives a cut, so the
 reason OpenAI's descriptor withheld it — splitting an item would strand its
 karaoke timing — no longer holds. It takes `S` because the answer can depend on
@@ -2384,7 +2398,8 @@ The order (the owner may overrule it):
    the budget, the voice claim, the balance floor. It may share a plan with
    Soniox, in two task groups, each with its own live test.
 3. **Gemini** (`gemini`) — turn-level origin for the dialogue models and
-   inferred for Live Translate, `boundaries: 'silence'` (parity), reconnect —
+   stated for Live Translate by the translation's cuts (the Stage 2
+   translation cuts plan), `boundaries: 'silence'` (parity), reconnect —
    ported by the Stage 2 Gemini plan; ranges by arrival, Live Translate the
    default, a push-to-talk release tail on Live Translate, activity handling
    per model family, Google's language codes per family — the last five by
@@ -2396,7 +2411,8 @@ The order (the owner may overrule it):
    follow-up). Its relay twin (`kizunaai_volcengine_ast2`) is deleted, not
    ported.
 5. **OpenAI Translate** (`openai_translate`) — frame-level ranges by arrival,
-   our own boundaries, inferred origin, a push-to-talk release tail, Text only
+   our own boundaries, origins stated by the translation's cuts (the Stage 2
+   translation cuts plan), a push-to-talk release tail, Text only
    as a playback control — ported over WebSocket by the Stage 2 OpenAI
    Translate plan; its WebRTC transport abandoned (item 7). Its relay twin
    (`kizunaai_openai_translate`) is deleted, not ported.
@@ -2582,7 +2598,10 @@ From the Stage 2 foundation survey's §3.4:
 - **`origin` inference has no ground truth to test against** for the three
   providers that need it. Its failure mode is a wrong pairing, which is worse
   than no pairing — so `pairing: 'none'` must stay reachable and the display must
-  not assume a group is a real pair.
+  not assume a group is a real pair. **Amended by the Stage 2 translation cuts
+  plan:** of the three, OpenAI Translate and Gemini Live Translate now state
+  their origins; Doubao AST 2.0 still needs it, and OpenAI Live will unless it
+  states its own.
 - **Karaoke's honesty depends on producers being honest.** A client that reports
   a `range` it does not actually know reintroduces the fake alignment this design
   deletes. The rule is one line: report a `range` only when the producer knew
