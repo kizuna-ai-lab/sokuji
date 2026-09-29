@@ -6520,7 +6520,14 @@ is this record; the final whole-branch review follows it.
     `voice_activity_start`, as choice 14 (the coordinator's ruling D) says —
     it waited for that `turnComplete`, or the cap. It runs first on the call,
     before the new answer's audio counts and before any fallback. A pure
-    case.
+    case. **Refined on the fix round's re-review** (`d8fe1060`): the
+    server's ACTIVITY_END for that START ends the wait instead — that
+    utterance is closed, and the content that follows begins its answer, so
+    letting go there sent held input into that answer; the hold now goes on
+    for it, to its `turnComplete` or its cap, as any hold does, the pattern
+    of the coordinator's ruling E. Content with no END still lets go. A pure
+    case (`interrupted → START → END → content`: held through the content,
+    let go at the `turnComplete`).
   - **M5, in part** (`0c0c9480`): one adapter case pins choice 13 — a START's
     release while an answer streams sends held text on the path of text typed
     at that moment: its row under the answering turn, its answer owed from
