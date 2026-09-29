@@ -180,6 +180,8 @@ and the final-review fix wave). Its final review raised these for later plans.
   of the cache key.
 - With Palabra: `migrate(stored)` cannot tell "absent" from "default" and
   cannot see credentials, both of which Palabra's `authMode` migration needs.
+  **Not taken** by the Stage 2 Palabra plan (rulings 2, 20): F5 was built for
+  it, and Palabra's port converts nothing; F5 stays for its other users.
 
 ## Carried out of plan 1c-1
 
@@ -206,7 +208,7 @@ later plans.
 **1c-3 — capture**
 - `Source` has no `track`, and each `StartRequest` is built before its source
   opens, so `input` is always empty: add `Source.track?` and build a leg's
-  request after `openSource`, for the WebRTC adapters. (2026-09-29: none is left to take it — the owner abandoned OpenAI's two WebRTC clients, and Palabra builds its LiveKit track from appended pcm; it waits for an adapter that would.)
+  request after `openSource`, for the WebRTC adapters. (2026-09-29: none is left to take it — the owner abandoned OpenAI's two WebRTC clients, and Palabra builds its LiveKit track from appended pcm; it waits for an adapter that would.) **Closed** by the Stage 2 Palabra plan: none will — Palabra's port sends pcm over WebSocket — so `StartRequest.input` and `Source.track` are deleted (ruling 16; `7d0b8cdd`).
 - A source's degradation reaches L1 through `Conversation.notice()`, which
   skips the per-code throttle `degraded` events get; route it through the
   throttle.
@@ -402,7 +404,7 @@ a target tab; notice listeners guarded). Its reviews leave these.
 - `Source.track` is the raw device track: mute and device switches happen
   downstream of it. Nothing reads it before the WebRTC adapters; before one
   does, give them a processed track (a `MediaStreamAudioDestinationNode`
-  stream) that mute and switches reach. (2026-09-29: no adapter reads it — the owner abandoned OpenAI's WebRTC, and Palabra's track is built from appended pcm — so this waits for one that would.)
+  stream) that mute and switches reach. (2026-09-29: no adapter reads it — the owner abandoned OpenAI's WebRTC, and Palabra's track is built from appended pcm — so this waits for one that would.) **Closed** by the Stage 2 Palabra plan: the track is deleted with the seam (ruling 16; `7d0b8cdd`).
 - No test hands `startBoth` a distinct track per leg (correct by inspection):
   add one with Soniox's `startBoth`.
 
@@ -1301,6 +1303,13 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
 - `deleteSession` with a timeout.
 - The G3 latency a stall leaves behind (group check A's record), checked in its live test.
 
+**Settled by the Stage 2 Palabra plan** (its record below): F4 taken, as
+`credentials.choice` on `authMode`; `authMode` through `legacyKeys` and
+`vn` → `vi` through `migratePair` not taken (rulings 2, 20: stated
+departures); the delete bounded at 5 s, the leg's own session only (choice
+9); the G3 latency mostly moot, since a sentence's audio is a
+faster-than-real-time burst [inf], and its live test's item 4 listens for gaps.
+
 **OpenAI Live:** F14 (reused); the `connection_lost` alias (Task 3).
 
 **Local Native:**
@@ -1323,6 +1332,8 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
   at the code and validates no close code; the virtual clock has no
   `pending()` count to catch an interval that outlives `stop()`; the
   manual-end scenario does not check that a real segment was produced.
+  **Done** by the Stage 2 Palabra plan (ruling 15; choice 4; `2bf854f5`,
+  `d1bfb544`).
 - The account (Soniox plan): choice 4 — `account` reaches `Settings` only — is
   held by convention; a Settings-only props type would let the compiler hold
   it. `account.auth.getToken` reads the host's function through a
@@ -3776,8 +3787,8 @@ execution added is marked). Each item names what to record in the Logs
 - **A text-only launch can be checked twice** (Task 9's review, M4; beside the item above): at launch, a text-only user whose stored Doubao pair lies outside the speaking offer can be checked once with the pair derived for speaking — the entry lands before the text-only switch does — and again after the pair moves and readiness is forgotten; the audio mode's late load already has that shape.
 - **Dialect sources offered where the gate then refuses them; a Cantonese-speaking participant cannot be set up** (the whole-plan review, M5; items 5 and 10). In a run whose context is text only and that opens the participant leg — participant-only, or Both with Text only on, the participant's speech off in either — Settings and the wizard list 粵語 and 上海话 as sources (`ast2Languages`, reached through `LanguagePairSection` and `StepLanguagePair`), and D20 then refuses every such pick, since the participant runs the reverse and no dialect is ever a target; the wizard lets such a pair reach Finish. By the same reversal the participant leg can never hear a dialect: its source is the pair's target. It is the shape Soniox's AUTO source already has under D20, not a regression, but Doubao adds a new case of it. The owner decides: filter the sources by reverse support while the participant leg opens text-only, or accept it as it stands.
 - **Superseded checks are never aborted** (Task 14's review): the readiness driver calls `refreshReadiness(p, auth())` with no signal (`src/app/readiness.ts:60`), and no check a newer one supersedes is aborted, so an edit made during a handshake can overlap two short, audio-free Doubao sessions on one credential.
-- **The ScriptProcessor fallback's 341 ms chunks against `IDLE_MS`** (Task 7's review, M2): `IDLE_MS` = 250 holds on the AudioWorklet capture path, whose chunks come every 85.3 ms; the ScriptProcessor fallback (16,384 frames, 341 ms a chunk) would find every gap past 250 ms, drain, and splice an 80 ms silent packet into it — the old bug in another form. Rare (the fallback runs only when the worklet fails to load), and not built; the cost while open is clipped or padded speech on that path, until an adaptive idle is built.
-- **A kit-wide "no ws(s) URL in a frame" rule** (Task 15's implementer, concern 2): `framePayload` already redacts query values, so the kit's own check would pass a frame carrying a redacted URL — the endpoint and the parameter names, never a secret; Doubao's own case catches one by its host. A rule in the kit would hold Soniox and Gemini to it too.
+- **The ScriptProcessor fallback's 341 ms chunks against `IDLE_MS`** (Task 7's review, M2): `IDLE_MS` = 250 holds on the AudioWorklet capture path, whose chunks come every 85.3 ms; the ScriptProcessor fallback (16,384 frames, 341 ms a chunk) would find every gap past 250 ms, drain, and splice an 80 ms silent packet into it — the old bug in another form. Rare (the fallback runs only when the worklet fails to load), and not built; the cost while open is clipped or padded speech on that path, until an adaptive idle is built. **Widened by the Stage 2 Palabra plan's execution** (its Task 9 review, I1): the participant leg's capture delivers at 24 kHz, so its fallback's 16,384 samples come every 682.7 ms (its worklet's 4,096 every 170.7 ms), and an idle shorter than that finds every gap between two of its chunks. Palabra's `IDLE_MS` is 800 ms for it; AST2's 250 ms stays this item's.
+- **A kit-wide "no ws(s) URL in a frame" rule** (Task 15's implementer, concern 2): `framePayload` already redacts query values, so the kit's own check would pass a frame carrying a redacted URL — the endpoint and the parameter names, never a secret; Doubao's own case catches one by its host. A rule in the kit would hold Soniox and Gemini to it too. **Done** by the Stage 2 Palabra plan (choice 10; `e5e3e5d5`): `checkConformance`'s `frame-url`, which every registered provider passes.
 - Analytics for `degraded` (Plan A's open question, unchanged).
 
 **V2's inventory** (the deletion plan, after the live test; the relay twin with
@@ -3845,7 +3856,7 @@ What it leaves, for the plans that meet it (the plan's own list, as written;
 then the whole-plan review's note for later ports; the three items the task
 reviews parked for this plan's final fix wave are done, last below):
 - **V2**, the deletion of the old AST2 code with the relay twin, the AST2 background block (replaced by a start-up clear of rules 2000–2009) and the dead flags, after the owner's live test (this record's inventory).
-- **F14**, the header seam, for OpenAI Live; Soniox's, Gemini's and Doubao's plain `socket.ts` move to `src/lib/contract/` with it.
+- **F14**, the header seam, for OpenAI Live; Soniox's, Gemini's and Doubao's plain `socket.ts` move to `src/lib/contract/` with it. **Changed by the Stage 2 Palabra plan** (choice 1; `0e9ccff0`): the plain seam moved without F14, at its fifth user — Gemini's, Doubao's, OpenAI Translate's and OpenAI Realtime's copies re-export `src/lib/contract/socket.ts`; Soniox's stays its own. F14 joins it there.
 - **Palabra's use of F4:** its toggle as a `credentials.choice`.
 - **Stated origins for Doubao,** if the live test shows `Sequence` or the times state the pair (choice 3). **Changed by the Stage 2 Gemini/AST2 follow-up plan:** the owner's probe shows every source subtitle carrying its translation's server times — the evidence; still not taken (that record's open questions).
 - **The legacy mode's own idle words** — an open question.
@@ -5064,6 +5075,8 @@ from it, as the controller ruled and the final fix wave applied:
 - **The Stage 2 order** after this plan runs Palabra → OpenAI Live → Local
   Native. The spec's item 7, "OpenAI Translate over WebRTC", is removed, its
   number kept. Palabra's LiveKit WebRTC is a different thing and stays.
+  **Changed by the Stage 2 Palabra plan:** Palabra's port is a WebSocket
+  client written from scratch (ruling 19); LiveKit goes with its old code.
 - **The attachment point goes** (`eaaf8ead`): `transportType` leaves `S` in
   `src/providers/openai/settings.ts` and
   `src/providers/openai_translate/settings.ts`, with its default and its
@@ -5086,7 +5099,8 @@ from it, as the controller ruled and the final fix wave applied:
     `Source.track` item and Stage 2's processed-track item above): closed. No
     adapter takes the runner's track — Palabra builds its LiveKit track from
     appended pcm (`PalabraAIClient.ts:409-455, 553-570`) — so the items wait
-    for an adapter that would.
+    for an adapter that would. **Closed for good** by the Stage 2 Palabra
+    plan: the seam is deleted (ruling 16; `7d0b8cdd`).
   - D25 and `turns(s)`: closed. No provider offers manual turns only;
     `turns(s)` stays in the shape and answers both everywhere (spec D25).
   - The participant's transport: closed — WebSocket, like the speaker's.
@@ -5101,7 +5115,9 @@ from it, as the controller ruled and the final fix wave applied:
     a scenario in `src/lib/contract/testing/` modelled on both final reviews'
     fuzzes, for the next port that wants it (Palabra is next); the review's
     `fuzz.mts`, re-run by the fix wave, stays in the job's scratch as its
-    model.
+    model. **Done** by the Stage 2 Palabra plan: `runLifecycles` in
+    `src/lib/contract/testing/lifecycle.ts`, first run over Palabra's adapter
+    (ruling 15; choice 19; its record's "Found during execution", item 2).
 
 **Checked — the final fix wave** (at `eaaf8ead`): the suite, 553 files passed
 and 1 skipped, 7,033 tests passed and 2 skipped, 0 failed, no unhandled errors
@@ -5327,12 +5343,12 @@ then the items the reviews routed here, last below):
 - **The WebRTC step, for both OpenAI providers:** Realtime's transport and its dispatch in `start`, `C.transport` widened from `S.transportType`, D25's `turns(s)` and the participant's transport, the transport control, the ephemeral token, and the kit-level seeded lifecycle scenario (choice 21). **Removed 2026-09-29 (owner):** abandoned; each part closed, the ephemeral token deleted with the old code, and the kit-level scenario reassigned to the next port that wants it ("The owner's WebRTC decision").
 - **Comments that still promise a WebRTC step**, in files the final fix wave did not touch: `src/providers/openai/provider.ts:23, 57` (the latter citing D25), `RealtimeSettings.tsx:23`, `RealtimeTurnDetection.tsx:32-33`; `src/providers/openai_translate/provider.ts:21`, `TranslateSettings.tsx:12`, `segments.ts:8`, `adapter.ts:4, 105`. Restate them WebSocket only, citing the owner's decision. **Done** in the commit after `b384ec59`.
 - **Readiness narrowing for the other ported providers:** each declares its `checkReads` in its own change, with a case like Task 12's.
-- **The copies to lift:** `socket.ts` with F14; `decodeServerEvent`, `errorCode` and `errorWords` at a third user, or after OpenAI Translate's live test.
+- **The copies to lift:** `socket.ts` with F14; `decodeServerEvent`, `errorCode` and `errorWords` at a third user, or after OpenAI Translate's live test. **`socket.ts` done** by the Stage 2 Palabra plan, without F14 (choice 1; `0e9ccff0`).
 - **The owner's open questions** in this record, each with the live-test item that settles it.
 - **Nothing on the old code:** the old descriptors, clients and slices stay compiled and unreachable, as the protocol documentation.
 - **OpenAI Translate's error window** (Task 11's review, I1): its adapter suite pins `ERROR_WORDS_MS` only past the window (`openai_translate/adapter.test.ts:467`, at `+ 1`) — the gap this plan closed for OpenAI Realtime, at its inclusive edge and its value.
 - **`gemini/config.ts:70`** cites "fix round 1" in a production comment, against the rule that production comments cite rulings, never a review or a round (Task 5's review, m1).
-- **`checkReads`' unenforced obligation** (Task 3's review, m3): "every field that decides the credential fields must be listed" (`src/lib/provider/types.ts`) is checked nowhere; no provider is affected — OpenAI Realtime's credential fields are fixed.
+- **`checkReads`' unenforced obligation** (Task 3's review, m3): "every field that decides the credential fields must be listed" (`src/lib/provider/types.ts`) is checked nowhere; no provider is affected — OpenAI Realtime's credential fields are fixed. **Met by the Stage 2 Palabra plan**, whose provider is the first it reaches: Palabra's fields follow `authMode`, which its `checkReads` lists (choice 16); the obligation is still checked nowhere.
 - **An orphaned socket on an unreachable path** (Task 11's re-review): a throw from `clock.setTimeout` or `signal.addEventListener` inside the opening executor would reject the start with the socket still open — an orphaned leg that would send `session.update` and a billed anchor. Unreachable in the app (`realClock`, a real `AbortController`); the cheap hardening is to arm the timer and the listener before `openSocket`, or to close the socket when the executor throws.
 - **For the final review** (the ledger): the session-side guard's 5-second budget under parallel waves (Task 5, m3); `checkReads`' doc "the kept answer is keyed on these alone" reads as covering not-ready answers, which are never kept (Task 3's re-review); the temperature test's comment cites ruling 5 where the removal is ruling 6 (Task 6's fix round). **Settled by the final fix wave** (`eaaf8ead`): the guard's budget needs nothing (its slowest case runs in 0.93 s alone, and the full suite met no timeout); the doc reads "a kept ready answer is keyed on these alone", the spec's words; the comment cites rulings 5 and 6.
 
@@ -5724,8 +5740,695 @@ then the items the reviews routed here, last below):
 - **The owner's open questions** in this record, each with the live-test item that settles it.
 - **A key without Live Translate on a fresh profile** (Task 8's review, M1; the plan's choice 16, as written): with no model saved the offer is Live Translate's (101 / 78) while `effectiveGeminiModel` runs a dialogue model — the 23 languages only the Live API documents are missing from the targets, Javanese and Sundanese are offered though only the instructions name them, and Both is refused for a source among those 23. With a single listed model the user cannot leave it (the model field is a native `<select>`). Nothing wrong is sent. The plan chose `''` to read as Live Translate; a fix needs the check's model list in the language context. Cost while open: such users miss 23 targets until they pick another model. Told to the owner; live-test item 5.
 - **A stale comment and test title** (Task 8's review, M3): `src/components/Subtitle/SubtitleView.tsx:44` and `SubtitleView.test.tsx:192` still name Gemini's `cmn-CN`; the behaviour is right (`zh-Hans` shows as "ZH"). Outside the plan's files (`src/components/**` read-only).
-- **`clear()` against a whole-text `End`** (Task 6's review, M2): a translation open with "Hello", the user clears, the `End` repeats "Hello" — `show()` sends nothing, the text unchanged to the adapter, so L1 closes the cleared segment blank and drops the matched clip's direct range `[0, 5]` with a `range_out_of_text` warning. Nothing lights wrongly; the warning follows an ordinary user action. A contract question between L1's `clear()` and an adapter that sends the whole text.
+- **`clear()` against a whole-text `End`** (Task 6's review, M2): a translation open with "Hello", the user clears, the `End` repeats "Hello" — `show()` sends nothing, the text unchanged to the adapter, so L1 closes the cleared segment blank and drops the matched clip's direct range `[0, 5]` with a `range_out_of_text` warning. Nothing lights wrongly; the warning follows an ordinary user action. A contract question between L1's `clear()` and an adapter that sends the whole text. **Met for Palabra's finals** by the Stage 2 Palabra plan (its record, "Found during execution", item 6): a final always sends its text, so a clear before it no longer closes the row blank; the contract question stands.
 - **A clip before any `TTSSentenceStart` emits no `tts.clip` frame** (Task 6's review, M4; plan-mandated): it plays with no ref, and L1 keeps nothing of it. Unreachable in practice.
 - **`appendAudio`'s `tail.stop('audio')` has no adapter-level test** (Task 5's review, M2): unreachable under push-to-talk — the runner sends speaker audio only while a turn is open, and that press has ended the tail — and covered in `tail.test.ts`.
 - **A Gemini turn answered only by its text parts** (Task 3's review, a note): `turnComplete`'s fallback text never updates the side's text, so its chunks keep `[0, 0]` — no karaoke for it; not a wrong range.
 - **`clampRanges`' doc comment** (`src/lib/conversation/Conversation.ts:367`, "Runs at close and on every later revision") no longer names all its callers: `audio()` runs it on a closed segment too (Task 2's re-review; cosmetic).
+
+## Scheduled by the Stage 2 Palabra plan
+
+The Stage 2 Palabra plan
+(`docs/superpowers/plans/2026-09-29-client-contract-stage2-palabra.md`, plan
+commit `0e6d478f`, written over `024266a0`'s code) landed as the twenty-five
+commits `63d38a6b` through `ced275ae` on `worktree-client-contract-stage2`
+(`0e6d478f..ced275ae` less the two commits outside the plan named below:
+**+6,052 / −208 lines across 73 files**; the range whole, those two included,
++6,957 / −240 across 77). Then this record with the spec's amendments. It is
+Stage 2's seventh provider — **Palabra AI** (`palabraai`), speech to speech
+with the user's own platform key or legacy app pair, **a WebSocket client
+written from scratch** (ruling 19): its definition, settings, credentials and
+their choice, the documented language tables with their own reverse, builder,
+bounded REST check, wire, 320 ms re-chunker, items paired by sentence, adapter
+with the real-time silence rule, and settings view. Around it, the shared
+pieces it was due: the plain socket seam lifted to
+`src/lib/contract/socket.ts` (choice 1), Soniox's `tileSpan` to
+`src/lib/contract/ranges.ts` (choice 2), the `input` seam deleted (ruling 16),
+a `languages.reverse` hook any provider may state (ruling 9; choice 3), the
+kit's four parked items (ruling 15; choice 4), the kit's seeded lifecycle
+scenario (ruling 15), two redaction shapes and a kit-wide `frame-url` rule
+(choice 10), and the Logs' rows (choice 11). The old LiveKit client is not
+ported, and not deleted here: it, its descriptor, the store's Palabra readers
+and migrations, the old UI's branches, `isPalabraAIEnabled` and
+`livekit-client` stay compiled and unreachable until one later plan after the
+owner's live test (ruling 17; this record's inventory).
+
+Fourteen implementation tasks ran in six waves. Wave 1, Tasks 1–6 in parallel
+at `0e6d478f`. Wave 2 by a controller ruling on its order: Task 8 once Task
+4's review was in, beside Task 4's fix round, and Task 7 once Task 5's was,
+beside Task 5's — each consumes that task's interface, which a fix round could
+move under it. Wave 3, Tasks 9 and 10 at `62361ce6`, beside Task 7's first fix
+round. Wave 4, Tasks 11 and 12 at `55e86e86`, with Task 7's re-reviews and its
+second and third fix rounds running beside them. Wave 5, Task 13 at
+`e0143c7b`, once Task 7 was complete; then group check A at `b7aaf60d`. Wave
+6, Task 14 at `b7aaf60d`; then group check B at `ced275ae`. Task 7 took three
+review fix rounds; Task 11 two; Tasks 4, 5, 8, 9 and 13 one each (Task 8's,
+test-only, re-reviewed by the controller); Tasks 1, 2, 3, 6, 10 and 12 were
+approved as their implementers committed them; Task 14 was approved with one
+Minor, a test comment that cited a review, which the controller reworded
+(`ced275ae`). Task 15 is this record, written for the controller.
+
+Two commits outside this plan landed on the branch during its execution and
+are not counted above: `55e86e86`, the owner's karaoke flicker fix (a clip's
+early `onended` no longer blanks the playing position — `ClipQueue`'s
+`endedAt`, `src/lib/audio/clipQueue.ts`), and `72223a27`, the Gemini hold
+probe (`scripts/dev/wire-probe/gemini.mts`, `gemini-hold.mts`). Neither
+touches a file of this plan's.
+
+**The pre-flight.** The plan's writer ran every block in a scratch copy, then
+applied the plan to a fresh `git archive` of `024266a0` task by task — each
+red step, then its green, each wave's gates after it — and the result was
+byte-identical to the tested tree. Its review (Critical 0, Important 4, Minor
+11: ready after fixes) was ruled by the controller — all accepted,
+`task.not_found` framed while opening (m8), a release idle at the next beat
+(m11) — and applied over three writer rounds, with a re-review between them
+(0 / 1 / 5: N1, the push-to-talk stream running ahead of real time, which
+choice 7's stream clock answers) and one after (ready to execute, 0 open). The
+replay's references: after each wave 559, 562, 566, 568, 569 and 570 files
+passed and 1 skipped; 7,151, 7,180, 7,209, 7,227, 7,287 and 7,296 tests passed
+and 2 skipped; the gate at its 20 lines and the full tree at 259 after every
+wave. The controller's scan found each wave's file sets disjoint and every
+interface dependency ordered by the waves (Task 4 → 8 and 14; Task 5 → 7; Task
+8 → 9 and 10; Task 9 → 11, 12 and 13; Task 2 → 11; Tasks 1, 3, 5, 6, 7, 11 → 13;
+Tasks 10, 12, 13 → 14), so no ruling was needed before Wave 1.
+
+**The rulings.** Rulings 1–18 are the owner's answers to the survey's
+eighteen questions (2026-09-29), 19–21 his standing decisions (the plan's
+header), each confirmed as the plan states it:
+1. Two ways in: the platform key dials the streaming socket straight; the app
+   pair creates a REST session, dials its `ws_url` with the publisher token,
+   and deletes that session — its own alone — bounded, `pagehide` included;
+   the check is REST, per mode.
+2. No migration: stated departures (below).
+3. Real-time silence while no audio comes — required: ten seconds without
+   input is `SERVICE_TIMEOUT` and a close 1008.
+4. The start resolves when `get_task` finds the task running; a refused
+   `set_task` rejects it in Palabra's words.
+5. 320 ms chunks.
+6. Karaoke by Soniox's fill-in, the audio replayable (spec D3).
+7. Text only offered: a leg that does not speak sends `output_stream: null`.
+8. Palabra's documented language tables, less the targets they hide; `auto` a
+   source.
+9. A `languages.reverse` hook; Palabra's by its documented codes (spec D20).
+10. The settings as the API takes them: the threshold's floor 0.3, the max
+    buffer above the target, timbre detection off, the three English-only
+    tooltips dropped.
+11. OpenAI's error rule: a red `session.error` Logs line, its words kept for a
+    close within `ERROR_WORDS_MS`; `VOICE_NOT_FOUND` the `voice_fallback`
+    notice, once; `AUDIO_STREAM_*` in the Logs only.
+12. No reconnect.
+13. Stop drops what is in flight: `end_task { force: true }`, never awaited.
+14. Unflagged, registered last.
+15. The kit-level seeded lifecycle scenario, with the kit's four parked items.
+16. `StartRequest.input` and the runner's `Source.track` deleted.
+17. The old code's deletion a later plan (this record's inventory).
+18. The setup guide later: the definition links today's page.
+19. A WebSocket client written from scratch; the old LiveKit client not
+    ported.
+20. No one-time migration code.
+21. The judging standard: does adding a new provider get simpler?
+
+Choices 1–20 are the plan's, inside those rulings, each cited where it lands.
+The controller's rulings during execution are recorded below, under "Found
+during execution", "Accepted as they stand" and "What it leaves"; one of them
+departs from an owner's answer — `IDLE_MS` ("Found during execution", item 1).
+
+What landed, by task:
+- **The plain socket seam, lifted** (`0e9ccff0`, Task 1; choice 1):
+  `src/lib/contract/socket.ts` — `OpenSocket`, `nativeSocket` (a refused
+  socket rethrown in fixed words, its name kept), `WS_OPEN`. Gemini's, Doubao
+  AST 2.0's, OpenAI Translate's and OpenAI Realtime's `socket.ts` re-export
+  it, each keeping the `OpenSocket` type its adapter calls; Soniox's stays its
+  own.
+- **`tileSpan`, lifted** (`63d38a6b`, Task 2; choice 2):
+  `src/lib/contract/ranges.ts`, byte for byte Soniox's; `soniox/speech.ts`
+  re-exports it.
+- **The `input` seam, deleted** (`7d0b8cdd`, Task 3; ruling 16):
+  `StartRequest.input`, `Source.track`, the runner's two threading sites and
+  the capture's track option; the fake's `refless-stream` comments name it an
+  L1 fixture that no provider emits now.
+- **A provider may state its reverse** (`6885d309`, fix round `c0e57e5d`, Task
+  4; ruling 9; choice 3): `languages.reverse?` on the definition;
+  `reversedPair` in `src/lib/provider/languages.ts`, the one door that
+  `reverseSupported`, `swapped`, `contextsFor`, the gate and
+  `buildSharedSettings` (handed the participant's direction, not the pair, by
+  `appShape.ts`) read; a registry invariant that a provider with no reverse of
+  its own offers no target outside its sources, in every declared settings
+  shape and language context. As landed, `auto` guarded and the gate's words
+  from the hook ("Found during execution", item 4).
+- **The kit's four parked items** (`2bf854f5`, fix round `d1bfb544`, Task 5;
+  ruling 15; choice 4): `VirtualClock.pending()` and its check after every
+  scenario; `FakeSocket`'s browser refusals and close codes; the flush after
+  the exchange; `manual-end`'s segment check. As landed, the unflushed
+  server-close drive and 1005 / 1006 (item 3).
+- **Redaction, `frame-url`, the Logs' rows** (`e5e3e5d5`, Task 6; choices 10,
+  11): `redact()` masks a bare `plbr_…` key and a JWT whole, its query rule's
+  `token` naming Palabra; `checkConformance`'s `frame-url`; `logStore` groups
+  `transcription.partial`, `translation.partial` and `audio.output` under
+  their own types.
+- **The seeded lifecycle scenario** (`e4400a55`, fix rounds `a0e06f55`,
+  `8f6a5821`, `e0143c7b`, Task 7; ruling 15): `runLifecycles` in
+  `src/lib/contract/testing/lifecycle.ts`. As landed, hardened over three
+  rounds (item 2).
+- **Palabra's settings, credentials, languages and builder** (`c1ece27e`, fix
+  round `62361ce6`, Task 8; rulings 1, 2, 7, 8, 9, 10; choices 5, 13, 14):
+  `S` and its clamps, `K` and `credentials.choice` on `authMode`, the
+  documented tables (58 sources with Auto-detect, 63 targets) and their
+  reverse, `C`, `build`, `describe`; the adapter's seed. As landed, the
+  refused-reverse set pinned exactly (item 5).
+- **The settings view and the turn detection** (`27199faf`, Task 10; ruling
+  10; choice 15): `PalabraSettings.tsx` (voice, Speech Processing, Audio
+  Buffer Configuration) and `PalabraTurnDetection.tsx` (the summary and the
+  threshold slider under `#palabra-vad-section`).
+- **The wire, the re-chunker and the fixtures** (`edfcffe9`, fix round
+  `52703d72`, Task 9; rulings 3, 4, 5, 11; choices 6–9): `wire.ts` (the URLs,
+  the REST headers and bodies, the task, the server's messages, an error's
+  code and words; the credential read in four functions alone, pinned by an
+  AST scan), `audioIn.ts` (`Rechunker`, `CHUNK_MS`, `IDLE_MS`, `SILENCE`),
+  `testing.ts` (the probe's shapes, `fakeRest`). As landed, `IDLE_MS` 800
+  (item 1) and a browser-true `fakeRest`, pinned (item 8).
+- **Messages become segments** (`921ba5d9`, fix rounds `ee32997d`,
+  `b47be8b8`, Task 11; ruling 6; choice 12): `PalabraItems` — a source per
+  sentence, a translation per part, audio on its part's translation, ranges by
+  `tileSpan` once a burst is whole. As landed, a final always sends (item 6).
+- **The readiness check** (`313e8c1d`, Task 12; ruling 1; choice 16): one
+  bounded `GET /session-storage/sessions`, 15 s, per mode; 401 / 403 `auth`,
+  429 `rate_limit`, anything else throws.
+- **The adapter** (`15a07f0a`, fix round `b7aaf60d`, Task 13; rulings 1, 3, 4,
+  11, 12, 13; choices 6–9, 19): one leg, one socket; the two ways in; the
+  start on `get_task` every 2.1 s, bounded at 20 s; 320 ms chunks and the
+  silence rule on the request's clock; errors in words; `stop()` before its
+  first `await`; the REST delete, bounded, its own; conformance and the seeded
+  lifecycles in both credential modes; the session-side guard's roster. As
+  landed, the delete's plain retry (item 7).
+- **Registered** (`07b67bd9`, `ced275ae`, Task 14; rulings 14, 18; choice
+  16): `palabraProvider` last in `RELEASED`, unflagged, `checkReads:
+  ['authMode']`; the wizard's own-key pin; the old profile's cases; and the
+  `appShape.test.ts` case routed from Task 4's review (item 4).
+
+**The spec's amendments** (this record's commit), the plan's sixteen, each at
+its anchor and marked "(Stage 2 Palabra, …)", as landed; then two this record
+adds:
+1. D3, and "Provider capability"'s "Two findings" paragraph: every provider
+   replays — Palabra's audio names its sentence (ruling 6); no client is left
+   that cannot, and the contract keeps ref-less `audio`, which only the fake's
+   `refless-stream` fixture produces.
+2. D20, "The session request"'s direction paragraph, "Languages are two
+   functions"' swap sentence, and "The participant rule (D20)": the reverse is
+   the provider's own where it states one, else the plain swap (ruling 9;
+   choice 3); `auto` never reverses, guarded in `reverseSupported`
+   (`c0e57e5d`); Palabra's documented codes, the hidden `to_target` (choice
+   5), the refused sets; the gate's words; the registry invariant over
+   declared shapes. "The shape" gains `reverse?` with a one-line comment, and
+   an "Amended by the Stage 2 Palabra plan" paragraph.
+3. "L0 — the client contract": the listing loses `input` and its LiveKit
+   comment; ref-less `audio` is "no provider now; the fake's `refless-stream`
+   fixture"; the fabrication note kept as history, both clients retired;
+   "The shape"'s `start` loses `input`; "Capture belongs to the runner": the
+   seam deleted (ruling 16; `7d0b8cdd`).
+4. `ref`'s rationale and the revision rule: Palabra's `partial` →
+   `validated` is an open and a close, and it needs `ref` because several
+   `transcription_id`s are in flight at once; the rule stays, the fake's
+   fixture keeping it tested.
+5. "Turns": Palabra's automatic row — the server's segmentation after its
+   threshold, and real-time silence after `IDLE_MS`, 800 ms, the departure
+   from the owner's half second stated; its release — the re-chunker flushed,
+   silence from the next beat (ruling 3; choice 7); its design row (`beginTurn`
+   sends nothing, `endTurn` / `cancelTurn` alike, `interrupt_task` no help);
+   "Coverage": Palabra's push-to-talk landed.
+6. "Provider capability", Palabra's row — replay yes, ranges at a burst's end
+   by Soniox's fill-in, a range filled in later and not a stated exception,
+   so D4's list is unchanged, pairing by `transcription_id` stated (ruling 6;
+   choice 12); "`start` owns the transport": the port is WebSocket (ruling
+   19).
+7. "Readiness is one check": the REST list, `checkReads: ['authMode']`
+   (choice 16).
+8. "Sockets that need upgrade headers": Palabra needs none; a wrong key a bare
+   403 worded as the key while online (choice 8); the plain seam in
+   `src/lib/contract/socket.ts` (choice 1), and the earlier "move with F14"
+   sentence marked.
+9. "Persisted settings that move": `authMode` and the pair codes, nothing
+   converted (rulings 2, 20), the clamps (ruling 10), F5 kept for its users.
+10. "What adding a provider then touches", item 4: no manifest change
+    [inf: live-test item 3].
+11. "Session hooks on the provider definition": Palabra uses none (choice 9).
+12. "What the surveys' defects become": LiveKit's reconnects gone with the
+    transport; the delete bounded, its own, the create on its own signal, and
+    the plain retry (choice 9; `b7aaf60d`).
+13. "Testing": the kit as made stricter — `pending()`, `FakeSocket`'s codes
+    (1005 clean, 1004 / 1015 / 1016–2999 throwing, 1006 kept), the flushed
+    and unflushed server-close drives, `manual-end`, `frame-url`,
+    `runLifecycles` as landed, and a browser-true fake REST server.
+14. "Migration", item 8, and the deletion paragraph: Palabra's old code and
+    `livekit-client` wait for its live test (ruling 17), meeting the OpenAI
+    deletion at `WebRTCAudioBridge`.
+15. "Stage 2 — open for the plans that meet them", item 9: OpenAI and Gemini
+    use F5; Palabra does not (rulings 2, 20).
+16. "Risks": the keepalive on a timer on a hidden page (ruling 3; choice 7);
+    a socket URL carries the credential.
+17. (added) "What every adapter must honour", the `frame` bullet: Palabra's
+    three rows (choice 11), and no socket URL in a frame (choice 10).
+18. (added) "The registry is a list (D19)": Palabra unflagged, last (ruling
+    14).
+
+**Checked — the gates.** Every implementer ran the suite and the typecheck
+gate on its own commit. In the parallel waves a failure or an extra gate line
+in another task's uncommitted files was named and left to it: Tasks 1 and 2
+saw extra gate lines only in Tasks 3, 4 and 5's work in progress; Task 6 saw
+seven failures, all in Task 5's kit files, and gate lines in Tasks 3 and 4's;
+Task 10 saw gate lines in Task 9's;
+Task 8 met two 5-second load timeouts (`nativeModelStore`, `providerOrder`),
+68 of 68 alone. The controller's gate after each wave, on a clean tree:
+- Wave 1 (at `2bf854f5`): 559 files passed and 1 skipped, 7,151 tests passed
+  and 2 skipped — the replay's reference exactly;
+- Wave 2 (at `62361ce6`, with `d1bfb544`; Task 7's first fix round not yet
+  dispatched): 562 and 1, 7,184 and 2 — the replay's 7,180 and four
+  fix-round tests (Task 4's one, Task 8's one, Task 5's two);
+- Wave 3 (at `55e86e86`): 567 and 1, 7,235 and 2 — the replay's 566 and
+  7,209, `testing.test.ts` (Task 9's fix round), the other fix rounds' tests
+  and `55e86e86`'s three;
+- Wave 4 (at `e0143c7b`): 569 and 1, 7,281 and 2;
+- group check A (at `b7aaf60d`): 570 and 1, 7,350 and 2;
+- group check B (at `ced275ae`): 571 and 1, **7,360 and 2** — the final
+  count.
+
+Each with 0 failed and no unhandled errors, the gate — the Volcengine AST2
+plan's regex, unwidened — at exactly its 20 baseline lines, and the full tree
+at 259. The suite grew from 557 files passed and 1 skipped, 7,125 tests passed
+and 2 skipped at `024266a0`. Against the replay's final 570 files and 7,296
+tests: one file (`testing.test.ts`) and 64 tests — 61 from the review rounds'
+rulings, 3 from `55e86e86`.
+
+**Checked — group check A** (at `b7aaf60d`; nothing registered yet; the tree
+clean but for another plan's untracked Gemini hold plan):
+1. the suite as above; the gate at its baseline; the full tree at 259;
+2. `src/services` and `extension` together: 56 files, 1,084 tests — the old
+   client and descriptor untouched;
+3. `npm run build` and `npm run extension:build` exit 0; the three D24 greps
+   empty; `task.current`, a frame only the new adapter emits, in neither
+   bundle — as expected before the registration.
+
+**Checked — group check B** (at `ced275ae`):
+1. the suite as above; the gate at its baseline; the full tree at 259;
+   `src/services` and `extension` 56 files, 1,084 tests;
+2. both builds exit 0; the three D24 greps empty; `task.current` in
+   `build/static/index-BLT2czsT.js` (and its map) and
+   `extension/dist/fullpage.js` — the adapter ships in both bundles, neither
+   fake does;
+3. **rendered**, on a fresh vite (port 5199, `--force`), Playwright's Chromium
+   151 headless over the DevTools protocol, each run a fresh profile, no
+   credential typed (the old profile's made-up pair seeded in `localStorage`
+   only), Validate and Start never pressed — all eight items pass:
+   1. the picker and the credential form: "Platform API Key" and "App Client
+      ID/Secret" above the fields; the platform mode's empty key; the app
+      pair's empty Client ID and Client Secret; the key again on the way back;
+   2. the Provider tab, advanced: Voice (Default Low), Speech Processing
+      (Sentence Splitter enabled, Translate Partial Transcriptions disabled),
+      Audio Buffer (8.0s, 24.0s, Adaptive Speech Speed disabled); a tooltip on
+      the voice alone; the target at 15.0s raises the max slider's minimum
+      from 12000 to 18000; the simple layout shows none of them; the markup
+      Gemini's (`VoiceField`, the slider rows, the option-button pairs,
+      `#palabra-vad-section`), each difference from the old block a planned
+      one;
+   3. the Speech section's summary, "VAD Settings · Silence Threshold: 0.70s",
+      a link to the Provider tab's `#palabra-vad-section`; the slider from
+      0.30 to 2.00, step 0.01;
+   4. the language picker: 58 sources, Auto Detect first, then `ar` … `cy` by
+      English name, each by its native name; 63 targets from `ar`
+      "العربية الفصحى"; no `bn`, `mr`, `fa`, `zh`, `en-au` or `en-ca` target;
+      the swap `ja → en-us` → `en → ja` → `ja → en-us`;
+   5. Start off, "Enter your API key in Settings before starting." (the
+      advanced tooltip on hover, the basic title);
+   6. the wizard's own-key list: Google Gemini, Doubao AST 2.0, OpenAI
+      Realtime, OpenAI Translate, Soniox, Palabra AI, then the development
+      build's fake;
+   7. an old profile (`palabraai` selected, a made-up `clientId` and
+      `clientSecret`, no `authMode`, source `eo`, target `vn`): Palabra
+      selected, the platform mode with an empty key, the source Auto Detect,
+      the target `ar` "العربية الفصحى", the swap disabled; none of the six
+      watched keys rewritten, no `settings.palabraai.*` written;
+   8. no request to `palabra.ai` in any run (the protocol's
+      `requestWillBeSent` and `webSocketCreated`, worklets included, and an
+      in-page wrapper; 619, 617, 617, 1,238 and 619 entries logged).
+
+   The app pair's error line reads the runner's `credentials_missing` words,
+   which `settings.ts` marks as intended. Outside the checklist: an Arabic
+   target — Palabra's fallback for an old profile — grows the shared
+   `LanguagePairSection`'s target select from 34 to 47 px and drops the source
+   column 13 px, so "I speak" and "they hear" misalign; CJK does it by a few
+   px. Not Palabra code, and not checked on other providers ("Accepted as they
+   stand"). The report, scripts and screenshots are under
+   `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/group-b/rendered/`.
+
+**Found during execution** — what execution changed beyond the plan, each
+from a controller's ruling in the ledger, with its reason, where it lives, and
+its cost:
+1. **`IDLE_MS` is 800 ms, not 500** (Task 9's review, I1; `52703d72`). The
+   plan's 500 ms (choice 7) cleared the microphone's two capture cadences —
+   the worklet's 85.3 ms and the ScriptProcessor fallback's 341 ms — but not
+   the participant leg's, whose capture runs at 24 kHz: its fallback's 16,384
+   samples come every 682.7 ms, so 500 would splice silence into its speech,
+   11.7 s of it in a minute. 800 clears the slowest of the four cadences with
+   a margin; it delays the first silence after an unexpected stop by 0.3 s,
+   far inside Palabra's 10 s, and leaves a release's idle (the next beat,
+   choice 7) unchanged. **It departs from the owner's "about half a second"
+   (Q3)**: reported to him, and reversible — one constant,
+   `src/providers/palabraai/audioIn.ts`, its four cadences cited at their
+   sources and pinned in `audioIn.test.ts` (500 and 700 mutants killed).
+   Task 13's three timing cases were adapted to it (item 9). Cost if wrong: a
+   silent stream's first silence 0.3 s later.
+2. **The lifecycle kit, hardened over three fix rounds** (Task 7's review and
+   two re-reviews; `a0e06f55`, `8f6a5821`, `e0143c7b`). The plan's
+   `runLifecycles` passed Palabra, but its review found it unlike the runner
+   in places, and the re-reviews found the first fix's own gaps. As landed:
+   - **the runner's stop order** (I-1): the kit's stop, and its unwind of a
+     session that ended itself, marks the log, aborts the request's signal,
+     then calls `stop()`, as `run.ts` does — an adapter that says `failed` on
+     its own abort would have put an error notice on every Stop, unseen;
+   - **an abort while the start is pending** (I-2; round 2): at random, 6 % of
+     runs, and only while the start is still pending once the opening has
+     run. The first fix aborted after every opening, which erased the start's
+     bound path (Palabra's bound rejections 24–44 of 300 → 0: NB-1) and
+     aborted starts already resolved (NB-2); the bound path is restored and
+     pinned (`opening.bound`, 28–39 of 300);
+   - **the late-send rule, narrowed** (round 2): a send is late once the
+     session has ended, or its socket is `CLOSED`, or `CLOSING` by the
+     adapter's own close. The first fix counted any socket not `OPEN`, which
+     flagged a continuation racing a server close or a drop (33 false
+     positives in 1,200 lives) and a keepalive between a server close and its
+     `onclose`;
+   - **a refused start read as `mustReject` reads one** (I-3, N-3): content
+     and `closed` / `failed` flagged, a status event admitted, read once the
+     clock has run on;
+   - **a runner-shaped release** (M-5): `endTurn` when the turn held at least
+     12,000 samples (the runner's `MIN_VOICED_SAMPLES`), else `cancelTurn`,
+     with a small raw draw counted under its own key;
+   - **0–10 microtask hops** after the server's, the clock's and a drop's
+     steps (N-2), reaching races inside async handling;
+   - **a generator per run** (M-4), seeded from the seed and the run's index,
+     taking `{ seed, runs, from? }`; a failure is named "seed S run N step I
+     (op)";
+   - **a bound on `stop()`** (M-3): the clock run on 10 s by default, then
+     "stop() did not return within its bound";
+   - the flush before a start's bound (N-1); each harness hook in its own
+     `try` with a named failure (M-2); an adapter broken one way for each
+     check that had none, a goodbye-in-`stop()` adapter that must pass —
+     Palabra sends `end_task` there — and a stats key per opening path pinned
+     above zero (M-1);
+   - **round 3, tests only**: five surviving scratch mutants (R2h, the
+     late-send rule reverted; R2f; KMM4a; KMM3a; R2d) each killed by a case of
+     its own; the kit's suite at 65 tests.
+
+   Palabra's adapter under the finished kit: 0 failures in 7,200 lives over
+   extra seeds (Task 13), and 9,600 across both modes at its fix round's
+   re-review. Cost: three kit rounds before Task 13.
+3. **The kit's close codes and the server-ended race** (Task 5's review, I1,
+   M1–M3, N1, N2; `d1bfb544`). The plan's flush after the exchange (choice 4)
+   erased the only test of a server close overtaking an awaited answer, a race
+   Palabra's adapter faces too; `server-close` now also runs unflushed,
+   requiring only that nothing lands after `failed` / `closed` or `stop()`
+   (mutant H2, AST2's `end()` leaving its speech running, caught again).
+   `serverClose(1005)` is clean with an empty reason, as a browser reports the
+   empty close frame; 1004, 1015 and 1016–2999 throw. **1006 stays accepted**
+   (the controller's ruling on the fix's deviation): the OpenAI Realtime,
+   OpenAI Translate, Soniox, Gemini and Doubao AST 2.0 suites use
+   `serverClose(1006, …)` to mean an abnormal close, and converting them was
+   outside the task; it reports `wasClean: false`, and `drop()` is the
+   preferred form. Beside it, three tests — refusals on a closed socket, a
+   leak on a refused start, a 124-byte multibyte reason — and a note that the
+   flush before `h.reconnect` is not pinned. Cost if wrong: a fake abnormal
+   close carries a code no frame carries, harmless in tests.
+4. **D20 holds for a hooked reverse** (Task 4's review, M2, N1–N3;
+   `c0e57e5d`). `reverseSupported` refuses an `auto` source before it reads
+   the hook: with the plan's code, a hook that mapped `auto` to an offered
+   pair would have opened Both on it. A no-op for every plain-swap provider,
+   none of which offers `auto` as a target. The gate's refusal is worded from
+   `reversedPair` — "has no reverse of X → Y", or "does not offer X → Y" —
+   where it named the plain swap; `languages.ts`' header names the hook;
+   `legacyKeys`' comment names its live users (`INSTRUCTION_LEGACY_KEYS`). The
+   one production line that turns a hook into `SharedSettings.reversed` —
+   `appShape.ts`' call to `reversedPair` — is pinned by an `appShape.test.ts`
+   case for Palabra's `ja → en-us` (M1; landed with Task 14, `07b67bd9`, red
+   on a plain-swap mutant). Cost if wrong: none.
+5. **The refused-reverse set pinned exactly** (Task 8's review, M1;
+   `62361ce6`). One test over every offered pair pins the pairs Both refuses:
+   an `auto` source, and the nine sources and seven targets with no
+   documented reverse — killing the mutants that drop or add one. The
+   controller ruled not to copy the reverse table or the names into the test:
+   a second copy catches no deliberate re-capture and doubles the data to keep
+   in step. Cost if wrong: an edit that maps a code to a wrong one (M6), or
+   renames one (M7), goes unseen by the suite. The review had checked the
+   tables against the docs' `models-map.json` row by row (0 mismatches) and
+   the reverse over 3,654 pairs. The clamp test was retitled (0.3 the API's
+   floor, 2.0 the slider's ceiling).
+6. **A final always sends its text and language** (Task 11's review, m1 and
+   m2, and re-review; `ee32997d`, `b47be8b8`). The plan's `PalabraItems`
+   skipped a text equal to the last it sent, finals included, and the owner's
+   probe shows 46 of 46 sentences validating with exactly their last
+   partial's text, 69 ms to 2.9 s after it (median 437 ms). So a `clear()` in
+   that window closed the row blank, and a validation that refined the
+   language of an unchanged text never reached the badge. Finals now always
+   send; the skip stays for partials. Beside it, ten edge cases (a
+   `last_chunk` ending only its own sentence, a part with no speech yet not
+   ended, …) and, at the re-review, the probe's own case — a final equal to
+   the last partial in the same language (mutant M46). The probe replay pairs
+   and fills 50 of 50. Cost: none; L1 already drops an identical snapshot.
+7. **The delete, tried again without `keepalive`** (Task 13's review, m5;
+   `b7aaf60d`). Palabra's DELETE always needs a CORS preflight — neither its
+   method nor its app pair's headers are a simple request's — so a runtime
+   that refuses a `keepalive` request needing one would fail every delete,
+   not only `pagehide`'s, leaving sessions to expire on Palabra's side. A
+   transport failure (a rejected fetch, or a synchronous throw) is now tried
+   once more without `keepalive`, on the same controller, inside what is left
+   of the same 5 s bound; a status answer and the bound's own abort are not
+   retried; nothing is framed — as the Soniox lease's session end does
+   (`soniox/lease.ts:151-174`). The `keepalive` DELETE still goes out first,
+   before any `await`, so `pagehide` sends it. Live-test item 9 records which
+   runs. Beside it (m1–m4, n1, n3–n5): push-to-talk after a wall clock
+   stepped back; a create answering a `ws_url` that is no URL; two legs of one
+   adapter each deleting their own session; the participant's 683 ms
+   cadence; `opening.bound` and `opening.abort.early` added to both modes'
+   pinned stats keys (item 2's NB-1 had erased the bound path silently), the
+   pins reading `stats[key] ?? 0` so an erased path names its key; and
+   `startPalabra`'s optional `fetch` wrapper, test-only. Cost: a second
+   request in the rare failure case.
+8. **A browser-true `fakeRest`, pinned** (Task 9's review, M1–M3, N1–N3;
+   `52703d72`). `CreatedSession` joined the wire's credential scan
+   (`SECRET_NAMES`); `testing.test.ts` pins the fake REST server's browser
+   behaviour — an aborted request rejects, and so does an aborted answer's
+   body — on which choice 9's leak guard rests, each case shown red on a
+   scratch mutant; the fake re-checks an abort in the same tick, records
+   headers through `Headers` (so lowercase), words its error envelope by
+   status, and settles an immediate answer on a microtask; `IDLE_MS` pinned;
+   a session id with reserved characters encoded; `SILENCE` documented as
+   never written. Cost: none.
+9. **Task 13's suite, adapted to what landed before it** (`15a07f0a`). The
+   adapter is byte-identical to the plan's; the plan's suite, run verbatim
+   against the landed code, failed 8 of 60 — six on header names (item 8's
+   lowercase recording) and two on `IDLE_MS` (item 1). Seven changes, all in
+   `adapter.test.ts`: an `APP_HEADERS` constant and the four places it is
+   read, and the idle-silence, release-idle and stepped-clock cases' timings
+   and titles in terms of `IDLE_MS`, each reducing to the plan's own numbers
+   at 500.
+
+**Accepted as they stand** (the controller's rulings, for the final review
+unless marked, each with its cost):
+- **Hand-declared settings shapes** in the registry invariant (Task 4's
+  review, N5): the invariant runs each provider's defaults and Gemini's three
+  named shapes; a Proxy that records what an offer reads is overkill today.
+  Cost: a future provider whose offer reads its settings is checked at its
+  defaults only.
+- **The gate's words for an `auto` source under a hook** (Task 4's
+  re-review): were a hook to map `auto` to an offered pair, the gate would say
+  "does not offer X → Y" where D20's `auto` rule is the reason. Unreachable —
+  Palabra's hook answers null for `auto` — and in English, in the Logs only.
+  Cost: a misleading Logs line for a future hook.
+- **`serverClose(1006)`'s doc** (Task 5's re-review): it explains the suites'
+  deliberate use but does not say in so many words that `drop()` is
+  preferred. A wording gap.
+- **The kit's N-4 and N-5** (Task 7's review): an adapter deaf to its signal
+  passes if it has its own bound — the kit does not require an aborted start
+  to settle before the bound, though the fixed `abort-while-opening` scenario
+  catches it; and late sends count per session, not per socket, so a
+  reconnecting adapter's send into its dead socket counts nowhere — never
+  Palabra's, which does not reconnect.
+- **The check's throw path matched by substring** (Task 12's review;
+  cross-provider): the tests match substrings of a thrown message, so a
+  credential appended to one would pass; OpenAI Translate's check has the
+  same blind spot. Not a live leak. Cost: a future edit could put a key into
+  a readiness error unseen.
+- **`OnOff`'s `role="group"` and `aria-label`** (Task 10's review; accepted
+  as written): the one markup delta from the old block and the siblings,
+  needed to tell three groups apart; an accessible superset, no class change.
+- **The shared `LanguagePairSection` with an Arabic or CJK target** (group
+  check B): the target select grows, 34 → 47 px for Arabic, and the pair row
+  misaligns. Not Palabra code; for the final review or the owner; live-test
+  item 14 looks at it in the real app.
+
+**Stated departures from today** (the plan's list, as landed):
+- a profile with no stored `authMode` — every one saved before 2026-07-30 — opens in the platform mode; one click on the app pair's option reads its pair again (ruling 2);
+- a stored `ba`, `eo` or `ia` source falls to Auto-detect (the first source), which also refuses Both; a stored `vn`, `zh`, `en-au`, `en-ca`, `bn`, `mr` or `fa` target falls to Arabic, the first target (rulings 2, 8);
+- timbre detection is off: the voice picked is the voice heard (ruling 10);
+- a stored threshold under 0.3 is sent as 0.3, and a stored max buffer not above its target is raised (ruling 10);
+- Both refuses a pair with no documented reverse — targets `az`, `bs`, `fil`, `is`, `kk`, `mk`, `sr` (of which `fil`, `kk`, `mk` and `sr` are sources too, so a plain swap would have run them), and sources `bn`, `eu`, `fa`, `ga`, `mn`, `mr`, `mt`, `ug`, `yue`, of which `bn`, `mr` and `fa` ran Both in the old app (rulings 8, 9);
+- Stop drops what is still being translated (ruling 13);
+- each leg deletes only its own REST session (choice 9);
+- the three English-only tooltips are gone (ruling 10);
+- new: Text only (ruling 7), push-to-talk and push-to-translate, `auto`, and the languages the docs add;
+- **added by execution:** a stream with no audio carries silence after 800 ms, not the half second the owner answered (item 1).
+
+**Before any release from the branch**
+- **The registry's order**, pinned (ruling 14).
+- **The release notes:** a stored `ba`, `eo` or `ia` source now reads Auto-detect (the first source), which also refuses Both, and a stored `vn`, `zh`, `en-au`, `en-ca`, `bn`, `mr` or `fa` target Arabic; a pre-July profile opens in the platform mode (one click back); timbre detection is off.
+- **No new locale key**, so no native-speaker check.
+- **`VITE_ENABLE_PALABRA_AI`** no longer gates anything the user sees; it goes with the old code.
+- **The owner's live test below**, before any release that carries Palabra.
+
+**The owner's live test** (own credentials, real Palabra; switch diagnostic
+logs on in Help first; each item names what settles it; what execution added
+is marked):
+1. **The check, both modes** (ruling 1; choice 16): a valid key is ready; a wrong key reads as the credentials, in Palabra's words; a valid and a wrong app pair; offline: not ready, with no words about the key; a slider or a switch edit sends no new `/session-storage/sessions` request (`checkReads`).
+2. **The start, per mode** (ruling 4; choices 6, 8): the Logs show, in order, `session.create` and `session.created` (the pair only), `session.opened`, `task.set`, `task.get`, a `task.not_found` if an ask came before the task ran (expected, and not red), `task.current` `running`; record the time from Start to live per mode against the 20 s bound. A stored threshold of 0.1 (edited into storage) starts at 0.3.
+3. **Connections, per platform** (survey §6): the web build, the extension side panel (its CSP, and CORS on the REST calls with their custom headers — a preflight each) and Electron: items 2, 4 and 9 on each. Origin is unchecked (the owner's probe, from Node): confirm from a real page.
+4. **Automatic turns, ja → en** (rulings 6, 11; choice 12): source rows grow on `transcription.partial` and close on `transcription.validated`; each translation sits under its source as a stated pair — in the panel, the Electron subtitle takeover, the extension overlay and the export; speech plays once on the monitor and once in the virtual mic; karaoke lights a sentence by sample count once its burst is whole; replay works per translation row with keep-audio on; no clicks at the 200 ms seams, no gaps inside a sentence, over ten minutes (G3's heir).
+5. **The silence rule** (ruling 3; choice 7). No audio reaches the adapter while the microphone is muted (`src/lib/audio/capture/core.ts:89`) or between push-to-talk presses (`src/lib/session/run.ts:457-460`), so only then does the keepalive carry the session. Under automatic turns the silence starts once no audio has come for `IDLE_MS`, 800 ms as landed ("Found during execution", item 1).
+   - push-to-talk: a release closes its sentence about 1.9 s after it at the default threshold, 0.7 (the probe's speech end → `validated_transcription`, the threshold already inside it), plus up to one beat (320 ms), scaling with the threshold — the silence starts at the next beat, not after `IDLE_MS`; record release-to-close times; an empty press gives no row; push-to-translate sends the raw voice while the key is up;
+   - many presses in a row (twenty or more, a second or so apart): record whether release-to-close time grows along the run, and whether a `session.warning` `AUDIO_STREAM_TOO_FAST` appears (the stream's own clock, choice 7);
+   - **a hidden window with no audio** — on the extension side panel and on the web build: hide or minimize the browser window, with the microphone muted under automatic turns, for 10 minutes or more; then again idle under push-to-talk (no press) for 10 minutes or more. Record whether `SERVICE_TIMEOUT` ends the session and after how long; if it does, its words read "[Palabra SERVICE_TIMEOUT] No input audio received for 10s…". Electron is exempt (`backgroundThrottling: false`, `electron/main.js:397`): run it there once as the control;
+   - visible, muted for a minute under automatic turns: the session survives and the sentence spoken before the mute closes; record any `session.warning` (`AUDIO_STREAM_*`) or close over minutes of real-time silence;
+   - **Execution (Task 13's review, n2):** only a wall clock stepped back is rebased (choice 7); one stepped forward inside a gap between capture chunks reads as an idle and splices one padded chunk (at most 320 ms) into continuous speech. Rare — an NTP step while speaking — and harmless; watch for a lone `audio.idle` in the middle of a sentence.
+6. **Both** (rulings 8, 9; D20): two sessions on one credential; the participant is reversed by Palabra's codes (`ja → en-us` runs `en → ja`, `en → ja` runs `ja → en-us`, `zh → en` runs `en → zh-hans`); its speech follows its switch; either leg ending ends both; Auto-detect and a pair ending on `fil` are refused in words.
+7. **Text only** (ruling 7): no audio at all, no `audio.output` frames, the rows paired.
+8. **`auto`** (ruling 8): each source row carries the language the server heard; speaker only. **Execution (Task 9's review):** an `auto` source sends `detectable_languages: []`, which the probe never ran: record whether the server accepts it and detects.
+9. **Stop, and a cancelled create** (ruling 13; choice 9): nothing plays after Stop; for the pair, the REST delete goes out (DevTools' network panel: `DELETE` 204, `keepalive`); **cancel during the app pair's create** (press Stop, or switch provider, within a moment of Start), then Start again at once: the new start must not be refused for parallel sessions, and the network panel shows the first session's `DELETE` after its create's answer; close the side panel mid-session, then Start within a minute — whether the `pagehide` delete got through its preflight, and whether a lingering session blocks the next. **Execution (Task 13's fix round, `b7aaf60d`):** a `keepalive` DELETE refused at the transport is sent again once without it, inside the same 5 s bound — record which path runs on each platform: one `keepalive` DELETE answered 204, or a failed one followed by a plain one.
+10. **Failures** (rulings 11, 12; choice 8): Wi-Fi off mid-session → the connection-lost words, with the time until them; ten quick Start / Stop rounds in Both (two connections each) to cross 20 connections a minute → the 1008 words; nothing reconnects.
+11. **Voices and the fallback** (rulings 10, 11): `default_low` against `default_high`; a target with no voice — try the added ones (`az`, `bs`, `is`, `kk`, `mk`, `sr`) — shows the `voice_fallback` notice once and a `session.warning` per sentence.
+12. **Languages** (ruling 8): `mr` and `fa` as sources; two or three of the added sources and targets translate and speak.
+13. **The Logs** (choices 8, 10, 11, 17): the three streamed frames grouped; `session.error` red, `task.not_found` not; no key, no JWT and no URL anywhere, the export included; record any `session.unknown` type.
+14. **An old profile** (ruling 2): key, pair and settings saved by an earlier build are ready without re-entry; a pre-July profile opens in the platform mode and one click brings its pair back; a stored `vn` target reads Arabic; a stored `eo` source reads Auto-detect, and Both is refused for it. **Execution (group check B):** with the Arabic target, record whether the pair row misaligns (the target select grew 34 → 47 px headless; CJK by a few px) — the shared `LanguagePairSection`, not Palabra code.
+15. **Analytics:** `translation_session_start` with `provider: 'palabraai'`, `transport: 'websocket'`; a refused start → `api_error` with its code.
+16. **The wizard:** Palabra AI last among the own-key providers; its credential step offers both modes and validates.
+17. **Sentences in parts** (choice 12's `last_chunk` rule, [inf]): long sentences, with the sentence splitter and partial translations on, until a `translation_part_id` of 1 appears in the `audio.output` frames; record whether `last_chunk` comes once per sentence or once per part, and whether the parts' bursts interleave; watch the karaoke of each part. **Execution (Task 11's review, m3):** record also whether a part's first message can come before a lower part's.
+18. **The settings take effect** (ruling 10): change each Provider-tab setting in turn — the sentence splitter off; partial translations on (`translation.partial` rows, and a translation streaming before it closes); the buffer's target and max; adaptive speech speed — run a session after each, and record the `task.set` frame and what changes in the behaviour.
+
+**Open questions for the owner**
+- **Each live-test hypothesis:** the start's bound against the times measured (item 2); the silence rule on a hidden page (item 5); whether minutes of real-time silence draw warnings (item 5); `errorCode`'s mapping past `VALIDATION_ERROR` (the frames of item 10); a refused upgrade online worded as the key (choice 8); `ERROR_WORDS_MS`; `last_chunk` per sentence or per part (item 17); `detectable_languages: []` under `auto` (item 8); which delete path runs (item 9).
+- **`IDLE_MS` at 800 ms, not your "about half a second"** (Q3; "Found during execution", item 1): reported to you; reversible — one constant and its pins.
+- **Silence on the audio clock:** the silence rule could ride the audio instead of a timer, and then no throttled timer could end a session. It needs two sites changed: while muted, the capture drops the chunk (`src/lib/audio/capture/core.ts:89`) and would deliver zeros instead; between presses, the capture still delivers and the runner's turn gate drops it (`src/lib/session/run.ts:457-460`), which would forward zeros instead (or a capture tick). Not built here, and not Palabra's alone: Soniox's STT keepalive (`src/providers/soniox/sttStream.ts:245-254`: a check every 5 s, a `keepalive` frame after 15 s without audio, against a server that times out at about 20 s), Soniox's TTS keepalive (`src/providers/soniox/ttsStream.ts:535`, every 20 s) and Doubao AST 2.0's real-time silence (`src/providers/volcengine_ast2/adapter.ts:278`, 80 ms packets after 250 ms without audio) share the exposure.
+- **The idle bill:** Palabra bills while the task runs, silence included [doc], as the old always-on track did; `pause_task` would stop it at the cost of a resume on the next speech.
+- **The docs' missing reverses:** targets `fil`, `kk`, `mk`, `sr`, which a plain swap would run.
+- **Palabra's own guidance that the API key belongs on a server** [doc], which every own-key browser provider already departs from.
+
+**The deletion inventory** (ruling 17), after the owner's live test — one
+plan, read at `024266a0` (none of these files moved since `7ab709e1`, nor
+during this plan):
+- `src/services/clients/PalabraAIClient.ts` (+ test), `src/services/providers/PalabraAIProviderConfig.ts` (+ test), `palabraLanguageCodes.test.ts`, and every old test naming `Provider.PALABRA_AI` or `isPalabraAIEnabled` (`command grep -rln -e PALABRA_AI -e isPalabraAIEnabled src`), each checked first for what it pins of live code (`providerPaths.test.ts` pins the new definition's fit through the enum, and stays);
+- `ProviderConfigFactory.ts:8, 80-83`; `tutorialUrls.ts:17`;
+- `settingsStore.ts`: the slice's import, types and defaults (`:51-52`, `:88`, `:96`, `:288`, `:418`, `:654`, `:703`, `:970`), `migrateRejectedPalabraLanguages` (`:500-520`), `migratePalabraAuthMode` (`:522-537`), the load's two migrations (`:1354-1362`), `usePalabraAISettings` (`:1538`) and `useUpdatePalabraAI` (`:1622`) — the storage keys stay;
+- the old UI's Palabra branches: `ProviderSpecificSettings.tsx:17, 37, 128, 152, 391-392, 470, 728, 957, 1226-1463, 2283`; `ProviderSection.tsx:15, 22, 107, 115, 471-476` and the `palabraai-credentials-group` block from `:757` (with its styles); `LanguageSection.tsx:16, 98, 151-152, 246-247`;
+- `logStore.ts`: the old type classification (`:87-100`) and the old grouping rows (`:433-465` at `024266a0`, eight lines lower after Task 6);
+- `isPalabraAIEnabled` (`src/utils/environment.ts:238-253`) and its forwarding — `extension/vite.config.ts:179-181`, `.github/workflows/build.yml:220, 274, 314, 416, 518`, the feature-gate forwarding test — and every test's `isPalabraAIEnabled` mock;
+- `livekit-client` in `package.json:184` and the lockfile, with CLAUDE.md's pin text (`:390`, `:395-415`);
+- `src/lib/modern-audio/WebRTCAudioBridge.ts:14` (`import type { RemoteAudioTrack } from 'livekit-client'`), coordinated with the OpenAI deletion, which orphans the bridge and its pcm worklet copy (`extension/vite.config.ts:76`): whichever plan runs second deletes the bridge;
+- **keep:** `Provider.PALABRA_AI` and `LEGACY_SLICE_KEYS.palabraai` (the live id; a stored selection still resolves), `PalabraAIIcon`, the locale keys the new definition reads, the credential-choice styles.
+
+**Amended in place** by this record, each marked "**Done**", "**Closed**",
+"**Changed**", "**Settled**", "**Met**", "**Not taken**" or "**Widened**" by
+the Stage 2 Palabra plan:
+- plan 1b's F5 item for Palabra (not taken); the `Source.track` item carried out of plan 1c-1 ("1c-3 — capture") and plan 1c-3's Stage 2 processed-track item (closed);
+- the foundation section's Palabra list (settled) and its parked kit items (done);
+- the Volcengine AST2 section's `IDLE_MS` item (widened: the participant leg's 682.7 ms), its `frame-url` item (done), and its F14 line (changed: the plain seam moved without it);
+- the OpenAI Realtime section's WebRTC decision — the order's LiveKit sentence (changed), F15 (closed for good), the kit-level scenario (done) — and its "What it leaves" items on the copies to lift (`socket.ts` done) and `checkReads`' obligation (met);
+- the Gemini/AST2 follow-up's "What it leaves" item on `clear()` against a whole-text `End` (met for Palabra's finals).
+
+**The roadmap's inheritance, item by item** (the plan's tables, as landed;
+anchors are the roadmap's at `024266a0`): taken (and where), deferred (and
+why), or already done. Survey §4 lists the earlier items.
+
+From plans 1b, 1c-1 and 1c-3:
+
+| Item | Disposition |
+|---|---|
+| 1b: "With Palabra: `migrate` cannot tell absent from default and cannot see credentials" (`:181-182`) | F5 was built for it; **Palabra does not use it** (rulings 2, 20). F5 stays for its users (OpenAI's and Gemini's `legacyKeys`, Gemini's `migratePair`); its comments no longer name Palabra as their reason (Task 4) |
+| 1c-1 / 1c-3: `Source.track` / `StartRequest.input` "waits for an adapter that would" (`:206-209`, `:405`) | **deleted** (ruling 16; Task 3, `7d0b8cdd`): no adapter will |
+
+From "Scheduled by the Stage 2 foundation plan":
+
+| Item | Disposition |
+|---|---|
+| Palabra → F4, the credential-adjacent control (`:1299`) | consumed: `credentials.choice` on `authMode` (Task 8) |
+| Palabra → `authMode` via `legacyKeys`, `vn` → `vi` via `migratePair` (`:1300`) | **not taken** (rulings 2, 20): stated departures |
+| Palabra → `deleteSession` with a timeout (`:1301`) | **taken** for the app pair's session: 5 s, `keepalive`, its own only, a create the leg outlives included (choice 9); as landed, a transport failure tried again without `keepalive` ("Found during execution", item 7); moot for the platform key |
+| Palabra → the G3 latency a stall leaves (`:1196-1201`, `:1302`) | mostly moot [inf]: a sentence's audio is a faster-than-real-time burst, so the clip queue has lead within it; live-test item 4 listens for gaps |
+| The kit's parked items (`:1321-1325`) | **taken** (ruling 15; Task 5; choice 4); as landed, the unflushed server-close drive and 1005 / 1006 (item 3) |
+| "Before any release": the release flags and the registry order (`:1352-1363`) | unflagged (ruling 14): nothing added to `VITE_ENABLED_PROVIDERS`; `VITE_ENABLE_PALABRA_AI` goes with the deletion |
+
+From the Soniox plan's "Found here" (`:1740-1750`):
+
+| Item | Disposition |
+|---|---|
+| Readiness re-probes on every edit | met by `checkReads: ['authMode']` (Task 14) |
+| `audio.range` after fill-in (`:1743`) | **Done** by the Gemini/AST2 follow-up (its choice 19) for every provider; Palabra sends no `audio.range` at all — its ranges come by `speechRanges` over the final text, which L1 re-anchors on a punctuation fill-in (Palabra's text arrives punctuated, so it is a no-op [inf]) |
+| Two TTS sockets per key | its analogue, two sessions per credential, settled by the owner's probe |
+| `Conversation.afterAudio`'s pending drop (`:1747`) | **Done** by the follow-up (its choice 6); Palabra never reaches it: the translation opens on its first text or its first audio (choice 12) |
+
+From "Scheduled by the Stage 2 Gemini plan":
+
+| Item | Disposition |
+|---|---|
+| Leading audio opens the translation segment | done by construction (choice 12) |
+| Name the leg in `SessionContext` | n/a: Palabra sends no instructions |
+| `session.closed` on Stop | the same: nothing after stop |
+
+From "Scheduled by the Stage 2 Volcengine AST2 plan":
+
+| Item | Disposition |
+|---|---|
+| Palabra's use of F4 (`:3807`, `:3849`) | taken (Task 8) |
+| Generic frame names grouped under Doubao's Logs keys (`:3855`) | respected: none of Palabra's names collides (Task 6's pin) |
+| A kit-wide "no ws(s) URL in a frame" rule (`:3780`) | **built** (choice 10; `e5e3e5d5`): Palabra is its third query-credential user |
+| Each check opens a real session (`:3775`) | n/a: a GET that creates nothing |
+| Superseded checks are never aborted (`:3778`) | applies, harmlessly: a GET, rarer with `checkReads` |
+| The ScriptProcessor's 341 ms chunks against `IDLE_MS` (`:3779`) | avoided by construction: Palabra's `IDLE_MS` is 800 ms as landed — the plan's 500 raised for the participant leg's fallback, 682.7 ms a chunk ("Found during execution", item 1); AST2's own stays its question, widened in place |
+
+From "Scheduled by the Stage 2 OpenAI Translate plan" and "… OpenAI Realtime plan":
+
+| Item | Disposition |
+|---|---|
+| `pcmToBase64` / `base64ToPcm`, `boundedFetch` | reused (Tasks 9, 12) |
+| `ERROR_WORDS_MS` and a negative age (`:4545`, `:5314`) | reused (ruling 11; choice 8); the same rule also rebases the idle wait (choice 7) |
+| `socket.ts` "to move with the others when F14 lands" (`:5330`) | **lifted now** without F14 (choice 1; `0e9ccff0`); F14 stays OpenAI Live's and joins it |
+| `checkReads`' obligation: every field that decides the credential fields (`:5335`) | met: `authMode` is listed — the first provider whose fields depend on a setting to declare `checkReads` |
+| The orphaned socket on an unreachable path (`:5336`) | applied from the start: the bound and the abort are armed before anything opens |
+| The kit-level seeded lifecycle scenario, "reassigned … Palabra next" (`:5098-5104`, `:5308`) | **built** (ruling 15; Task 7, hardened over three review rounds — "Found during execution", item 2), first run over Palabra (choice 19) |
+| The kit's parked items (`:5322`) | taken (Task 5) |
+| The merged OpenAI deletion (`:5077-5083`) | coordinated: it orphans `WebRTCAudioBridge` (a `livekit-client` type import) and the pcm worklet copy — recorded in this record's inventory |
+| F15, the processed track (`:5085-5089`, "closed … the items wait for an adapter that would") | closed for good: the seam is deleted (ruling 16) |
+
+From "Scheduled by the Stage 2 Gemini/AST2 follow-up plan", its "What it leaves" (`:5714-5731`):
+
+| Item | Disposition |
+|---|---|
+| `clear()` against a whole-text `End` | **applied as planned, then met for finals** ("Found during execution", item 6): a final always sends its text and language, so a clear between the last partial and the validation no longer closes the row blank; a partial equal to the last is still skipped. The contract question stays the follow-up's |
+| The release tail's lift | n/a: Palabra's release flushes the re-chunker and relies on the silence rule, not a tail |
+| The pair's fall on a model switch | n/a: Palabra's offer reads no setting (choice 13) |
+| Gemini's per-model offer (its choice 16) | taken into Task 4's invariant: Gemini's three offer shapes are declared by name (choice 3) |
+| Readiness narrowing (`checkReads`) for Gemini and Doubao | not Palabra's; Palabra declares its own (Task 14) |
+
+Stage 2 items no plan took and this one does not either: `RunnerDeps.replayAudio`'s guard, the notice-code namespace, the account's compile-time narrowing.
+
+What it leaves, for the plans that meet it (the plan's own list, as written;
+then the items the reviews and this record routed here, last below):
+- **The Palabra deletion plan** (ruling 17; this record's inventory), after the owner's live test — coordinated with the OpenAI deletion over `WebRTCAudioBridge`.
+- **The setup guide** (ruling 18): the definition links today's page.
+- **Silence on the audio clock** (an open question for the owner, above): zeros that rode the audio — the capture delivering them while muted (`core.ts:89`), and the runner forwarding them between presses, where its turn gate drops the capture's audio (`run.ts:457-460`) — would keep every provider's session alive on a throttled page; not built — the rule's timer is Palabra's, Soniox's and Doubao's alike.
+- **The shared `SliderField` and on/off field** (choice 15): Palabra's view is the sixth copy of the slider markup; the lift rewrites five providers' views, each with its own render check.
+- **The silence rule and the re-chunker at a third user:** AST2's and Palabra's are two; lift them when a third provider needs real-time silence. AST2's keepalive reads `now - lastAudioAt` as Palabra's did before choice 7's rebase: a wall clock stepped back delays its silence too — for its own change.
+- **The seeded lifecycles for the other adapters:** the kit is ready (ruling 21); each earlier port gains a harness in its own change.
+- **Two plain swaps left outside the hook:** `src/lib/export/transcript.ts:107` (`pairOf`) rebuilds the speaker's pair from the participant's as `{ source: participant.target, target: participant.source }`, so a participant-only export of Palabra's `ja → en-us` reads `ja → en` in its header; and `src/app/telemetry.ts:189` labels the participant's segmentation bucket with `run.pair.target`, `en-us` where the leg ran `en` (Task 4's review, N4). Both cosmetic; routing them through `reversedPair` needs the provider at each site.
+- **`pause_task` for idle billing:** an open question (above), not built.
+- **Typed text through `tts_task`:** not proposed; `textInput: false` stays at parity.
+- **The owner's open questions,** each with the live-test item that settles it.
+- **Nothing on the old code:** the old client, descriptor, slice readers and UI branches stay compiled and unreachable, as the protocol documentation.
+- **For the final review:** the items under "Accepted as they stand" above.
+- **Production comments that cite a review or a task** (this record's reading of the landed code), against the plan's rule that production comments cite rulings, choices, D rulings and F items only: `src/lib/session/shape.ts:129` ("review N3"), `src/providers/palabraai/audioIn.ts:18` ("fix round 1, I1"), `:42` ("fix round 1, N3") and `:43` ("Task 13's adapter"). The test-only kit and fixtures do the same (`src/lib/contract/testing/fakeSocket.ts:99`, `scenarios.ts:34, 36, 131`; `src/providers/palabraai/testing.ts:157, 169, 181, 217`), which the rule does not cover. Wording only; the OpenAI Realtime record's `gemini/config.ts:70` is the same kind.

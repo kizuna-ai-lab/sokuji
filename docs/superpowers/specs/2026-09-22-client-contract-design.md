@@ -78,7 +78,7 @@ workload untouched does not count.
 |---|---|---|
 | D1 | Scope | Rewrite the `IClient` contract. Clients emit content; cross-cutting features move up. Approved at a scope of "approach C or larger". |
 | D2 | Two legs | Technically identical and fully independent. One `IClient` and one L1 per leg. No merging in L1. |
-| D3 | Replay | **Kept.** Every provider whose audio can be attributed to a segment does replay; only Palabra cannot. Replay does not require precision. |
+| D3 | Replay | **Kept.** Every provider replays: Palabra's audio names its sentence since its WebSocket port (Stage 2 Palabra, ruling 6; this row first said "only Palabra cannot", true of its old LiveKit client). Replay does not require precision. |
 | D4 | Karaoke | Drawn only where a speech entry carries a real `range`. The linear-interpolation fallback is deleted outright. **Amended by the Stage 2 Gemini/AST2 follow-up:** a range by arrival is a stated exception, not a real range — OpenAI Translate's, OpenAI Realtime's and Gemini's, each by the owner's ruling ("Risks"). Doubao AST 2.0's whole-sentence range is a real one: the TTS sentence carries its translation subtitle's server times (ruling 1). |
 | D5 | Audio↔text | Stored as `{ range?, pcm }` pairs on the segment. No timeline, no anchors, no quality tag — an absent `range` is the quality signal. |
 | D6 | Source↔translation | A shared `origin` key. Stated by the client where the provider supplies one; inferred in L2 otherwise. |
@@ -95,7 +95,7 @@ workload untouched does not count.
 | D17 | Participant leg | Nothing beyond the reversed direction and automatic turns. It is the same configuration builder called with the direction reversed; the concept of a participant configuration disappears. |
 | D18 | Provider settings UI | Each provider owns its settings component, composed from shared field components. The capability flags that drive today's generic panel leave the contract. |
 | D19 | Feature flags | One `VITE_ENABLED_PROVIDERS` list of provider ids replaces the per-provider `VITE_ENABLE_*` flags. The Kizuna umbrella flag stays. |
-| D20 | `auto` source and the participant leg | The participant leg opens only when the reversed direction is supported. `auto` is never a target, so an `auto` source refuses the participant leg for every provider. |
+| D20 | `auto` source and the participant leg | The participant leg opens only when the reversed direction is supported. `auto` is never a target, so an `auto` source refuses the participant leg for every provider. **Amended by the Stage 2 Palabra plan:** the reversed direction is the provider's own where it states one (`languages.reverse`), else the plain swap (ruling 9; choice 3); an `auto` source still never reverses, whatever a provider's own reverse would answer ("The participant rule (D20)"). |
 | D21 | A leg ends | Any leg ending ends the session. There is no one-way running state. The legs stay technically independent (D2); this is a lifecycle rule, not a data one. |
 | D22 | A leg fails to start | Every requested leg must come up, or the start fails with the reason. A session never starts on a subset of the legs it was asked for. |
 | D23 | Soniox shared Both | Kept, as an optional `startBoth` on the provider definition that only Soniox implements. In the 90 days to 2026-09-23, 193 of 387 managed Soniox users and 44 of 70 BYOK Soniox users ran a two-leg session (PostHog `translation_session_start.channels`; shared and split are not told apart there, and shared is the default). One shared stream halves the transcription cost. |
@@ -181,11 +181,9 @@ the audio stored elsewhere) splits one fact across two places.
 
 ```ts
 // how a session starts — one call, no construct-then-connect
-adapter.start({ context, config, credentials, input, clock, signal }, events): Promise<Session>
-//   input: a MediaStreamTrack from the runner's capture graph, for adapters
-//   that send a native track (WebRTC); every other adapter uses appendAudio.
-//   None does since the owner abandoned OpenAI's WebRTC (2026-09-29):
-//   Palabra builds its LiveKit track from appended pcm
+adapter.start({ context, config, credentials, clock, signal }, events): Promise<Session>
+//   no input: every adapter takes the runner's pcm through appendAudio; the
+//   native-track seam (`input`) is deleted (Stage 2 Palabra, ruling 16)
 //   clock: every timer the adapter runs; the runner's, a virtual one in tests
 //   signal: the run's; an adapter still opening rejects when it aborts
 
@@ -210,7 +208,8 @@ segmentText  ({ ref, text, timing?, language? })   // always the whole text
 segmentClosed({ ref, origin? })
 
 audio({ pcm, ref?, range? })
-//   ref absent   — attributable to no segment (Palabra); plays, pairs with nothing
+//   ref absent   — attributable to no segment (no provider now; the fake's
+//                  `refless-stream` fixture); plays, pairs with nothing
 //   range absent — this segment's audio, but which characters is unknown
 //                  → replay only, no karaoke
 speechRanges({ ref, ranges: [{ index, range }] })
@@ -226,9 +225,12 @@ busy(boolean)                    // the model is producing
 frame({ direction: 'in' | 'out', type, payload? })
 ```
 
-`ref` is a client-local counter. It exists because a provider can revise a
-specific earlier stretch — Palabra promotes `partial_<id>` into
-`validated_<id>`, rewriting that item's id in place today.
+`ref` is a client-local counter. It exists because a provider can address a
+specific earlier stretch: Palabra keeps several sentences in flight at once,
+each its own `transcription_id`, and every message names the one it belongs
+to. This paragraph first said Palabra revises one, promoting `partial_<id>`
+into `validated_<id>` in place; in its port that is an open and a close, not
+a revision (Stage 2 Palabra, choice 12).
 
 **No `final` flag on `segmentText`.** It coincides exactly with `segmentClosed`
 in every client surveyed (Soniox `<end>`, AST2's `end` phase, Palabra's
@@ -243,7 +245,10 @@ rewritten" the normal case instead of an assumption violation.
 **`audio.ref` may be absent.** This removes the reason two clients fabricate a
 `ConversationItem` that never enters their own list
 (`OpenAIWebRTCClient:120-138`, `PalabraAIClient:1327`): audio may belong to
-nothing, and today's contract has no way to say so.
+nothing, and today's contract has no way to say so. Both clients are retired
+from the contract (Stage 2 OpenAI Realtime; Stage 2 Palabra), and no ported
+provider emits `audio` without a `ref`; the contract keeps it, and the fake's
+`refless-stream` fixture keeps it tested.
 
 **`range`, not a running offset.** It is self-describing and needs no context
 from the previous chunk. Clients also stop maintaining cumulative audio duration
@@ -294,8 +299,11 @@ The conformance suite (D24) checks each rule below against every adapter.
   until the segment opens; pcm for a ref that never opens is dropped when the
   session closes.
 - **`segmentText` after `segmentClosed` is a revision** of that ref's text and
-  does not reopen it — Palabra's `partial` → `validated` promotion. Opening the
-  same ref twice is a contract violation.
+  does not reopen it. L1 must take one, though no provider revises closed text
+  now: Palabra's `partial` → `validated`, the example first given here, is an
+  open and a close in its port (Stage 2 Palabra, choice 12), and the fake's
+  `refless-stream` fixture keeps the rule tested. Opening the same ref twice
+  is a contract violation.
 - **`ref`s are never reused within one `Session`**, across an internal reconnect
   included.
 - **`appendText` is answered by the adapter**, which emits the typed text as a
@@ -340,7 +348,15 @@ The conformance suite (D24) checks each rule below against every adapter.
   with the sentence's times added (`ref` — the lock's —, `startTime`,
   `endTime`, `sequence`), and its new `tts.clip` (`ref`, `matched`, `range`,
   one per clip as it goes to L1) needs none (Stage 2 Gemini/AST2 follow-up,
-  choice 5).
+  choice 5). Palabra's three streamed frames — `transcription.partial` and
+  `translation.partial`, a partial's snapshots at about four a second, and
+  `audio.output`, a sentence's burst of 200 ms chunks — each get a row that
+  groups them under their own type, the `.delta` rule's way, with no key
+  another provider's frames could share; its other names need none (Stage 2
+  Palabra, choice 11). No frame payload holds a `ws://` or `wss://` URL:
+  three providers' credentials ride a socket's query, and `redact()` masks
+  only the parameters it names, so the kit's `frame-url` rule holds every
+  adapter to it (choice 10).
 
 ### The session request
 
@@ -404,7 +420,11 @@ The seven `buildParticipantSessionConfig` overrides disappear. Most of them swap
 source and target and re-derive; the two remaining special cases become generic:
 whether a direction is supported (OpenAI Translate's thirteen targets, Palabra's
 check) is answered by the provider definition's two language functions, and the
-participant leg's server-side turn detection follows from `turns: 'auto'`. For
+participant leg's server-side turn detection follows from `turns: 'auto'`.
+"The reversed direction" is the provider's own reverse where it states one
+(`languages.reverse`): Palabra codes its targets apart from its sources, so its
+reverse of `ja → en-us` is `en → ja`, not the plain swap's `en-us → ja` (Stage 2
+Palabra, ruling 9; "The participant rule (D20)"). For
 OpenAI Translate the thirteen targets now refuse a Both start whose source is
 outside them, before anything opens (D20, D22), where the old guard skipped the
 participant leg and ran the speaker alone (Stage 2 OpenAI Translate).
@@ -464,7 +484,7 @@ it has leaked out of it.
 | Soniox | server endpoint model (`<end>`), configurable | **`finalize` — exists, never called** | immediate |
 | Local ×2 | client VAD, configurable | flush | immediate |
 | Volcengine AST2 | server VAD, no knobs | 500 ms of silence on release, the old finalization's burst (Stage 2 Volcengine AST2, ruling 6); between turns the keepalive sends silence only after 250 ms with no audio (ruling 7) | after silence |
-| Palabra | server segmentation, silence threshold configurable | none on the wire; the track (`dtx:false`) carries silence and the server segments after its threshold | after silence |
+| Palabra | server segmentation after its silence threshold, configurable 0.3–2.0 s; a stream with no audio for `IDLE_MS` (800 ms) carries real-time silence, one 320 ms chunk a beat, never ahead of the stream's own clock — ten seconds without input would end the session (Stage 2 Palabra, ruling 3; choice 7). 800 ms, not the owner's "about half a second": the participant leg's ScriptProcessor fallback delivers every 682.7 ms, and 500 would splice silence into its speech (reported to the owner; reversible) | what waits in the 320 ms re-chunker sent at once, padded with silence to a chunk, then the adapter's real-time silence from the next beat, and the server confirms the sentence at its threshold (ruling 3; choice 7) — the old "the track (`dtx:false`) carries silence" was the LiveKit client's | after silence |
 | OpenAI Translate | **a continuous stream; there are no turns on the wire**, no commit and no server VAD | the held remainder padded to the next 200 ms engine frame, then one frame of silence per 200 ms beat, in real time, until the translation has been quiet 1 s, at most 3 s after the release — both ends counted in beats, five and fifteen frames, never read off the clock, so a late timer or a stepped clock moves neither (Stage 2 OpenAI Translate, ruling 2): the server holds a sub-frame remainder until more audio arrives, and model time advances only with appended audio | after silence |
 | OpenAI Live | **a continuous stream; there are no turns on the wire** | not needed — release stops the microphone and what was said finishes translating | n/a |
 
@@ -495,7 +515,7 @@ mechanism:
 | Soniox | — | **`finalize`** | — |
 | Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
 | AST2 | — | 500 ms of silence | the same tail — the old release sent it for an empty press too |
-| Palabra | — | — (the server closes on silence) | — |
+| Palabra | — (sends nothing) | flush the re-chunker, padded; the leg idle from the next beat, so the server hears silence from the release on and closes the sentence at its threshold (Stage 2 Palabra, choice 7) | the same — the runner sends no audio after either (`run.ts:347-351`); `interrupt_task` does not help (the owner's probe) |
 | OpenAI Translate | — (a press ends a tail still running) | the pad, then real-time silence until quiet, capped | the same tail — what the press appended is the model's input already, and no clear exists (Stage 2 OpenAI Translate, choice 7) |
 | OpenAI Live | — | — | — |
 
@@ -601,7 +621,8 @@ takeover keeps its hint, where it is true.
 **Coverage.** Soniox, OpenAI Translate (with its Kizuna twin), OpenAI Live and
 Palabra offer only automatic turns today. All of them gain push-to-talk and
 push-to-translate. OpenAI Translate's gain lands with its Stage 2 plan, over
-WebSocket; its Kizuna twin is deleted, not ported. The one exception runs the
+WebSocket; its Kizuna twin is deleted, not ported. Palabra's landed with its
+WebSocket port (Stage 2 Palabra, choice 7). The one exception runs the
 other way: OpenAI Realtime over WebRTC keeps manual turns only (D25), as
 today — with the native track live, the server's VAD would cut the translation
 being played whenever the user speaks, which is why
@@ -1062,7 +1083,7 @@ real `range`. Pairing needs an `origin`, stated or inferred.
 | VolcengineAST2Client | yes — today's quality is the bar to keep | per TTS sentence — the whole translation subtitle whose server times the sentence carries (8 of 8 in the owner's probe), matched exactly (start and end) against the last eight translations as its clip is emitted, after its decode, and stated once the subtitle closes: at the clip's emission, or by `speechRanges` at the close; the first clip to carry a subtitle's times takes its range, a later one plays rangeless on the same row; a sentence whose times name no recent translation plays rangeless on the old lock, read at the sentence's start (Stage 2 Gemini/AST2 follow-up, ruling 1; choices 2–4) | inferred by proximity: neither origin nor timing is emitted; each subtitle frame carries `responseMeta.Sequence` and the times, for the live test to settle whether either states the pair (Stage 2 Volcengine AST2, ruling 11); every source subtitle carries its translation's times in the owner's probe — evidence for stated pairing, not taken yet |
 | OpenAIWebRTCClient | abandoned, not ported (owner, 2026-09-29) | — | — |
 | OpenAITranslateWebRTCClient | abandoned, not ported (owner, 2026-09-29) | — | — |
-| PalabraAIClient | **no** — a continuous track, attributable to nothing | none | **`transcription_id`** — stated, already extracted and then discarded |
+| Palabra (`palabraai`, WebSocket) | **yes** — each chunk names its sentence (Stage 2 Palabra, ruling 6) | per sentence — its translation's text tiled over the chunks by sample count once the burst is whole, at `last_chunk` (`speechRanges`, Soniox's fill-in; ruling 6, choice 12); unlit before. A range filled in later, as Soniox's ("A range known only later is filled in"), not a stated exception, so D4's list is unchanged | **`transcription_id`** — stated (choice 12). The old LiveKit client (`PalabraAIClient`) replayed nothing: a continuous track, attributable to nothing, and its id extracted and then discarded |
 
 Soniox's unit is the TTS **segment** — a sentence, a clause after 1.5 s with no
 new text, 3 s of idle, an 8-s cap, a change of language or of row, or the
@@ -1089,11 +1110,16 @@ it, its words in the translation under the later one — a typed text's
 translation likewise holds the words of releases waiting with it, whose
 commits went up before its item.
 
-Two findings are worth stating plainly. Palabra is the only client that cannot
-replay, and it holds the cleanest pairing evidence in the codebase: the same
-`transcription_id` appears on all four of its item kinds, is extracted at four
-sites, and is then baked into a prefixed string id where it can no longer be
-read. And "OpenAI Realtime GA can only ever offer Auto", recorded in the
+Two findings are worth stating plainly. Palabra holds the cleanest pairing
+evidence in the codebase: the same `transcription_id` appears on all four of
+its item kinds — and, the owner's probe showed, on every chunk of its speech;
+the old client extracted it at four sites and then baked it into a prefixed
+string id where it could no longer be read, and the port states it (Stage 2
+Palabra, choice 12). This paragraph first also found Palabra the only client
+that cannot replay; its port's audio names its sentence (ruling 6), so no
+client is left that cannot. The contract keeps ref-less `audio` all the same,
+which only the fake's `refless-stream` fixture produces now. And "OpenAI
+Realtime GA can only ever offer Auto", recorded in the
 segmentation notes, is **wrong** — it is three lines it never wrote, not a
 limitation of its data.
 
@@ -1178,6 +1204,7 @@ interface Provider<S, K, C, R = K> {
     sources(s: S, context?: LanguageContext): LanguageOption[]          // includes 'auto' when the provider detects
     targets(source: string, s: S, context?: LanguageContext): LanguageOption[]
     initial?(s: S): Partial<LanguagePair>   // when nothing is stored; today's per-slice defaults
+    reverse?(pair: LanguagePair, s: S): LanguagePair | null   // the pair the other way round; absent: the plain swap; null: none
   }
 
   // the only capabilities generic code reads
@@ -1190,7 +1217,7 @@ interface Provider<S, K, C, R = K> {
   // one leg's session
   build(context: SessionContext, s: S, shared: SharedSettings): C | { refused: string }
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string }
-  start(request: { context: SessionContext; config: C; credentials: K; input: MediaStreamTrack; clock: Clock; signal: AbortSignal }, events): Promise<Session>
+  start(request: { context: SessionContext; config: C; credentials: K; clock: Clock; signal: AbortSignal }, events): Promise<Session>
 
   // across legs and time — optional; see Session lifecycle
   session?: SessionHooks<S, K, C>
@@ -1235,6 +1262,16 @@ else (ruling 4).
 fields a provider's `check` reads, so an edit to any other keeps the readiness
 answer ("Readiness is one check"; ruling 9).
 
+**Amended by the Stage 2 Palabra plan:** `languages` has a third optional
+member beside `initial?` and `migratePair?`: `reverse?`, the pair the other way
+round — the participant leg's direction and the swap button's result, read
+through `reversedPair` (`src/lib/provider/languages.ts`), the plain swap where
+it is absent, `null` for a pair with none; whether the answer is offered stays
+the two lists' to say ("The participant rule (D20)"; ruling 9, choice 3).
+`start`'s request has no `input`: the native-track seam is deleted
+("Capture belongs to the runner"; ruling 16). This listing had `input`
+required; the code had it optional, and no adapter read it.
+
 `settings.key` is today's slice key, and values persist under
 `settings.<key>.<field>` exactly as now: no user's saved settings move.
 
@@ -1258,8 +1295,9 @@ as it already did — and each `C.transport` is the literal `'websocket'`, which
 choice 15; Stage 2 OpenAI Realtime, ruling 12, choice 18). Both ports first
 kept `transportType` in `S`, read and not shown, as a WebRTC step's
 attachment point; it went with the decision. Palabra's `forcedTransport:
-'webrtc'` exists only to steer MainPanel's transport switch; its adapter
-always uses LiveKit.
+'webrtc'` existed only to steer MainPanel's transport switch, for an old
+client that always used LiveKit; its port is WebSocket, written from scratch
+(Stage 2 Palabra, ruling 19), and imports no LiveKit.
 
 **What else is provider-specific and sits in MainPanel today** goes into the
 adapter: OpenAI's drift anchor — an out-of-band, text-only `createResponse`
@@ -1397,7 +1435,13 @@ pair, which every check reads; a ready answer kept is keyed on the listed
 fields alone. A refusal, or a check that threw, stands through such an edit
 too; Validate asks again. A credential edit forgets the answer as before.
 Absent, every field counts, as before. OpenAI Realtime's model list reads none
-(`[]`); the other ported providers are candidates.
+(`[]`); the other ported providers are candidates. Palabra's check lists the
+REST sessions (`GET /session-storage/sessions`, bounded at 15 s, per
+credential mode; nothing is created or billed) — not the socket, whose refusal
+a browser cannot read — and declares `checkReads: ['authMode']`: the first
+provider whose credential fields depend on a setting to declare it, and that
+setting the one field its check reads, so a slider or a switch keeps Start on
+(Stage 2 Palabra, ruling 1; choice 16).
 
 The store's model auto-select, a switch covering three providers, becomes a pure
 effective-model function inside each provider that offers a model choice: the
@@ -1429,7 +1473,8 @@ functions. AST2's `zhen`, both-or-neither, is `targets('zhen')` returning only
 `zhen` and every other source's targets omitting it. The local engines'
 catalogue-driven lists are simply their implementation. `auto` is in `sources`
 for providers that detect. A swap is generic: allowed when the reversed pair is
-supported.
+supported — the provider's own reverse where it states one (Stage 2 Palabra,
+ruling 9; "The participant rule (D20)").
 
 The offer may depend on whether the run would speak. Doubao AST 2.0 speaks
 eight languages and transcribes twenty and two dialects, so its functions take
@@ -1480,11 +1525,16 @@ ruling 6), Palabra's `en-us` and `zh-hant`, AST2's `zhen` — so
 one global pair would need a canonical code and a mapping per provider: a
 product change this design does not need.
 
-**The participant rule (D20).** The participant leg opens when the reversed
-direction is supported in the participant leg's own language context: the
-speaker's target is among `sources`, and the speaker's source is among its
-`targets`. `auto` is never a target, so an `auto`
-source refuses the participant leg for every provider. Today OpenAI Live,
+**The participant rule (D20).** The participant leg opens when the pair's
+reverse is offered in the participant leg's own language context: its source
+among `sources`, and its target among that source's `targets`. The reverse is
+the provider's own where it states one (`languages.reverse`), else the plain
+swap, the speaker's target and source (Stage 2 Palabra, ruling 9; choice 3;
+this paragraph first named the plain swap alone). `auto` never reverses: it is
+never a target for the swap, and a provider's own reverse gives none —
+`reverseSupported` refuses an `auto` source before it reads the hook
+(`c0e57e5d`) — so an `auto` source refuses the participant leg for every
+provider. Today OpenAI Live,
 Gemini's translate model and Soniox refuse it at the start gate through
 `reversesDirectionViaSourceLanguage`. Every other provider starts the leg, and in
 template mode its prompt asks for a translation into the raw string `auto`,
@@ -1494,6 +1544,24 @@ combination work; that use goes. The advanced-mode participant prompt itself
 stays, as the prompt for the reversed direction: the provider's own
 `participantSystemInstructions`, resolved by `resolveInstructions` for the
 participant's direction, and the builder still sees only a direction.
+
+One door, `reversedPair` (`src/lib/provider/languages.ts`), answers the swap
+button, the participant's direction (`contextsFor`) and
+`SharedSettings.reversed` (`buildSharedSettings` is handed the participant's
+direction, not the pair), and the gate's refusal names the pair it checked
+("has no reverse of X → Y", or "does not offer X → Y"). Palabra reverses by
+its documented codes (Stage 2 Palabra, ruling 9): a target by its
+`to_source` (`en-us` → `en`), a source by its `to_target` (`en` → `en-us`),
+and a `to_target` the docs hide by the first offered target of its source
+(`zh` → `zh-hans`; choice 5); a pair either side of which has none — the
+targets `az`, `bs`, `fil`, `is`, `kk`, `mk`, `sr` and the sources `bn`, `eu`,
+`fa`, `ga`, `mn`, `mr`, `mt`, `ug`, `yue` — refuses Both in words. A provider
+with no reverse of its own offers no target outside its sources, in every
+settings shape its offer reads and every language context — a registry
+invariant over the shapes it declares by name (each provider's defaults, and
+Gemini's three, whose offer reads its saved model; choice 3), so the plain
+swap reverses what the provider offers, and a provider that ever breaks it
+must state its own.
 
 ### Segmentation is one fact
 
@@ -1545,7 +1613,8 @@ five env blocks in `.github/workflows/build.yml` and the forwarding consistency
 test; the own-key AST2's `VITE_ENABLE_VOLCENGINE_AST2` is a sixth, dead since
 `cec1556c` — nothing reads it, though `build.yml` and
 `extension/vite.config.ts` still forward it — and the new registry ships AST2
-unflagged (Stage 2 Volcengine AST2, ruling 5); they become one
+unflagged (Stage 2 Volcengine AST2, ruling 5), and Palabra unflagged, last,
+its flag going with its old code (Stage 2 Palabra, ruling 14); they become one
 `VITE_ENABLED_PROVIDERS` list of flagged provider ids. The Kizuna umbrella
 flag stays, since six other sites read it, and a managed provider
 needs it as well. The `debug:local-native` switch stays until Local Native ships.
@@ -1612,7 +1681,8 @@ measured on 2026-09-28; a wrong credential answers HTTP 401 before the upgrade,
 which a browser cannot read, so the adapter words a socket that never opened as
 the credentials while online (Stage 2 Volcengine AST2, ruling 2). AST2 is
 therefore not the seam's first user: OpenAI Live is, and the plain `socket.ts`
-of Soniox, Gemini and Doubao move to `src/lib/contract/` with it.
+of Soniox, Gemini and Doubao move to `src/lib/contract/` with it. (Amended
+below: the plain copies moved without it, at Palabra.)
 
 Nor does OpenAI Translate's. Its key rides in the
 `openai-insecure-api-key.<key>` WebSocket subprotocol, which a browser sends
@@ -1629,6 +1699,18 @@ Nor does OpenAI Realtime's: the same subprotocol, read in one function of its
 wire, through its own seam in fixed words (Stage 2 OpenAI Realtime, ruling 25,
 choice 7; survey §3.7.6). The stale-rule hazard above reaches its upgrade as
 well, on the same host.
+
+Nor does Palabra's. The platform key, or a REST session's publisher token,
+rides the query's `token`, which `redact()` masks, with a bare `plbr_…` key
+and a JWT masked whole as nets (Stage 2 Palabra, choice 10); a wrong key is a
+bare 403 on the upgrade, which a browser cannot read, so the adapter words a
+socket that never opened as the key while online (choice 8), as Doubao's
+does. The plain seam the four copies held now lives in
+`src/lib/contract/socket.ts`, lifted at its fifth user (choice 1):
+Gemini's, Doubao's, OpenAI Translate's and OpenAI Realtime's `socket.ts`
+re-export it, each keeping the `OpenSocket` type its adapter calls, and it
+rethrows a refused socket in fixed words; Soniox's seam stays its own. F14,
+the header seam, joins it there when OpenAI Live builds it.
 
 ### Persisted settings that move
 
@@ -1654,6 +1736,20 @@ OpenAI's temperature leaves its `S` (Stage 2 OpenAI Realtime, ruling 6): the
 GA session takes none, so it is neither shown nor sent, and its stored value
 is left in place, unread.
 
+Palabra's `authMode` and pair codes move with nothing converted (Stage 2
+Palabra, rulings 2, 20): a profile with no stored `authMode` — every one
+saved before 2026-07-30 — opens in the platform mode, and one click on the app
+pair's option reads its stored pair again; a stored `ba`, `eo` or `ia` source
+falls to Auto-detect (the first source), which also refuses Both; a stored
+`vn` target, and the stored targets the documented tables no longer offer
+(`zh`, `en-au`, `en-ca`, `bn`, `mr`, `fa`), fall to Arabic (the first
+target) — each by `normalizePair`'s generic fall, nothing written. A stored
+silence threshold under the API's 0.3 is sent as 0.3, and a stored max buffer
+not above its target is raised above it, at use (ruling 10; choice 14).
+F5's `legacyKeys` and `migratePair` stay for their users — the instruction
+keys OpenAI Realtime and Gemini read, and Gemini's `migratePair` — no longer
+named for Palabra, for which they were first built.
+
 ### What adding a provider then touches
 
 1. One folder, `src/providers/<id>/`: the definition, the adapter, the `Settings`
@@ -1668,7 +1764,10 @@ is left in place, unread.
    (`manifest.json:37, 116`), or for OpenAI Translate, whose
    `wss://api.openai.com/*` host and CSP origins the manifest already lists
    (`manifest.json:38, 116`), or for OpenAI Realtime, the same host and
-   origins (`manifest.json:38, 116`).
+   origins (`manifest.json:38, 116`), or for Palabra, whose `https://*.palabra.ai`
+   and `wss://*.palabra.ai` the manifest's CSP already lists
+   (`manifest.json:116`) — its REST calls are plain CORS [inf: live-test
+   item 3, the roadmap's Palabra record].
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
 
 For OpenAI Live that is two code files outside its folder, plus the manifest,
@@ -1901,6 +2000,12 @@ interface Resources<K> {
   ask for (`ceil((n_stt × 1.1 + n_tts × 1.4) × 10⁶ × 60 / 3600)` µUSD), so a
   participant speech stream counts once its flag is on.
 
+Palabra uses none (Stage 2 Palabra, choice 9). The old client's delete-all
+`prepare` is gone — it deleted every session on the account, Both's other leg
+included — and each leg deletes only the REST session it created, a create
+the leg outlives included; Both is two independent sessions on one
+credential, which the owner's probe ran.
+
 ### Capture belongs to the runner
 
 Sources are the runner's, one per leg: the microphone, system audio (Electron:
@@ -1921,9 +2026,13 @@ session never reaches the track. The output device passed today is applied to
 an audio element that is itself muted; the Stage 2 rewrite of the WebRTC
 adapters confirms whether it does anything. **Amended 2026-09-29:** no
 adapter takes the runner's track now — the owner abandoned OpenAI's two
-WebRTC clients, and Palabra builds its LiveKit track from appended pcm
-(`PalabraAIClient.ts:409-455, 553-570`) — so this waits for an adapter that
-would; the two defects go with the deleted clients.
+WebRTC clients, and Palabra's old client builds its LiveKit track from
+appended pcm (`PalabraAIClient.ts:409-455, 553-570`) — so this waited for an
+adapter that would; the two defects go with the deleted clients.
+**Amended by the Stage 2 Palabra plan:** none will — Palabra's port is a
+WebSocket client written from scratch (ruling 19) — so the seam is deleted:
+`StartRequest.input`, the runner's `Source.track` and its two threading
+sites, and the capture's track option (ruling 16; `7d0b8cdd`).
 
 **Passthrough is a route** tapping the microphone source (Playback), not a
 property of the recorder.
@@ -2052,6 +2161,13 @@ Not removed by construction: auto-save on an abrupt close (not possible from
 `pagehide`), and adapter-internal issues — ICE `disconnected` treated as fatal,
 LiveKit reconnects not surfaced, Palabra's `deleteSession` having no timeout —
 which the Stage 2 rewrites own. The release timeout bounds the last.
+**Amended by the Stage 2 Palabra plan:** LiveKit's reconnects went with the
+transport (ruling 19), and Palabra's delete is bounded at 5 s with
+`keepalive`, sent before `stop()`'s first `await` so `pagehide` still sends
+it, for the leg's own session only; the create runs on its own signal, so a
+session made after the leg ended is deleted too (choice 9); and a transport
+failure is tried once more without `keepalive`, inside the same bound, as the
+Soniox lease's release is (`b7aaf60d`).
 
 ---
 
@@ -2084,6 +2200,61 @@ builds only, whose adapter plays a timed script of L0 events. Three layers:
 
 **Contract conformance.** The rules under "What every adapter must honour" are
 one suite, run against the fake provider first and every real adapter after it.
+
+**The kit, as the Stage 2 Palabra plan made it stricter** (ruling 15; choices
+4, 9, 10). Every registered provider's conformance passes the first five; the
+last two are tools a provider's own suite takes up, Palabra's first:
+- `VirtualClock.pending()` counts the timers armed and not yet fired or
+  cancelled, and every scenario that did not hang checks it is zero once the
+  session has ended and the clock has run on — an interval that outlives its
+  session re-arms forever.
+- `FakeSocket` refuses what a browser refuses: `close(code)` outside 1000 and
+  3000–4999 throws `InvalidAccessError`, a reason over 123 UTF-8 bytes
+  `SyntaxError`, before anything closes and whatever the socket's state. A
+  server's close frame is clean at every code a frame can carry, 1008
+  included, and 1005 arrives with an empty reason; `serverClose` with 1004,
+  1015 or 1016–2999 throws, since no browser reports them from a frame. 1006
+  is still accepted, unclean, because five provider suites (OpenAI Realtime,
+  OpenAI Translate, Soniox, Gemini, Doubao AST 2.0) use it to mean an abnormal
+  close; `drop()` is the preferred form (`d1bfb544`).
+- `runScenario` flushes after the harness's exchange before a server close or
+  a reconnect, so an answer after an `await` lands first. `server-close` runs
+  both ways: flushed, the adapter must say the session ended; unflushed, an
+  answer still in flight when the server closes may be dropped, but nothing
+  may land after `failed` / `closed` or after `stop()` — the server-ended race
+  (`d1bfb544`).
+- `manual-end` checks that the release and the exchange produced a segment.
+- `checkConformance`'s `frame-url` rule: no frame payload holds a socket URL
+  (choice 10).
+- **The seeded lifecycle scenario**, `runLifecycles`
+  (`src/lib/contract/testing/lifecycle.ts`): many random lives of one adapter,
+  each driven the way the runner drives it, over `FakeSocket`s on a virtual
+  clock, modelled on the OpenAI final reviews' fuzzes. Audio always under
+  automatic turns and only while a key is held under manual ones; a release
+  that ends the turn when it held at least 12,000 samples — the runner's
+  `MIN_VOICED_SAMPLES` — and cancels it otherwise, with a small raw draw
+  kept; typed text where the provider takes it; the server's own steps, the
+  clock, a dropped connection, each followed by 0–10 microtask hops. The kit
+  aborts before the opening runs, drops the newest socket, or — at random,
+  6 % of the time — aborts while the start is still pending after it; a
+  start still pending then gets its bound (`opening.bound`). A stop is
+  the runner's: mark, abort the request's signal, then `stop()`; `stop()` has
+  a bound of its own (10 s by default) and fails by name past it. Each run
+  checks that the start settles; that a refused start says nothing but frames
+  and status (the rule `mustReject` reads); that nothing goes up a socket once
+  the session has ended — ended, or `CLOSED`, or `CLOSING` by the adapter's
+  own close; at most one `failed` / `closed`; no timer armed and no socket
+  open once the clock has run on; no secret the harness names; the whole log
+  conformant, less `text-input-answered` (a random stop may cut a typed
+  text's answer short); and the harness's own `after`. Each run draws from a generator
+  of its own, seeded from the seed and its index, so a failure — named by
+  seed, run, step and draw — replays alone. It was hardened over three
+  review rounds (`a0e06f55`, `8f6a5821`, `e0143c7b`) and first runs over
+  Palabra's adapter in both credential modes, 300 lives each (choice 19).
+- A provider's fake REST server reads bodies as a browser's `fetch` does: an
+  aborted request rejects, and so does reading an answer's body once its
+  request is aborted (Palabra's `fakeRest`, choice 9; pinned in its own
+  suite).
 
 **Pure layers.** L1 and L2 are tested as the pure functions they are, with the
 fake's scripts as fixtures.
@@ -2156,7 +2327,14 @@ migrated nor reimplemented, so the merged deletion waits only for the two
 WebSocket live tests, OpenAI Translate's and OpenAI Realtime's. It takes both
 WebSocket and both WebRTC old clients, `OpenAIClient`'s statics,
 `openAIRealtimeSession`, `EphemeralTokenService` (only the two WebRTC clients
-use it), the Compatible code and the `openai-realtime-api` fork.
+use it), the Compatible code and the `openai-realtime-api` fork. Palabra's old
+code — its client, descriptor, the store's readers and migrations, the old
+UI's branches, `isPalabraAIEnabled` and its forwarding — and the
+`livekit-client` dependency with its pin wait for Palabra's own live test, one
+later plan (Stage 2 Palabra, ruling 17; the roadmap's Palabra record holds
+the inventory). It meets the OpenAI deletion at `WebRTCAudioBridge`, whose
+`livekit-client` type import that deletion orphans: whichever runs second
+deletes the bridge.
 
 **Stage 2 — one provider per change**, after a vendor-free foundation plan
 (`docs/superpowers/plans/2026-09-26-client-contract-stage2-foundation.md`).
@@ -2199,8 +2377,11 @@ The order (the owner may overrule it):
    Realtime, ruling 12). WebRTC users are few, so the WebRTC transport of both
    OpenAI providers is neither migrated nor reimplemented. The list keeps its
    numbers; after item 6 the order runs Palabra, OpenAI Live, Local Native.
-8. **Palabra** (`palabraai`) — the degenerate extreme: `audio` without `ref`, no
-   `range`, the cleanest `origin`.
+8. **Palabra** (`palabraai`) — ported by the Stage 2 Palabra plan as a
+   WebSocket client written from scratch (ruling 19): attributable audio per
+   sentence, stated pairing, ranges at a burst's end. The degenerate extreme
+   this item first named — `audio` without `ref`, no `range` — was its old
+   LiveKit client's.
 9. **OpenAI Live** (`openai_live`) — span caps, the `end_ms` timeline.
 10. **Local Native** (`local_native`) — LocalInference's sibling on the sidecar.
     Its `Engine` is a thin wrapper like LocalInference's: the shared
@@ -2351,7 +2532,9 @@ From the Stage 2 foundation survey's §3.4:
     a managed `read` answers the sign-in (`R`), and the lease reads the token
     from the run's `auth` when it mints `K`. Kizuna Soniox uses it first.
   - item 9 by F5: `legacyKeys`, the credentials and `migratePair` reach a
-    migration. OpenAI and Palabra use it first.
+    migration. OpenAI and Gemini use F5 (`legacyKeys`; Gemini's `migratePair`,
+    which converts nothing); Palabra, for which it was first named, does not
+    (Stage 2 Palabra, rulings 2, 20).
 
 ## Risks
 
@@ -2376,5 +2559,25 @@ From the Stage 2 foundation survey's §3.4:
   the third, by the same kind of ruling (Stage 2 Gemini/AST2 follow-up, ruling
   2). Doubao's whole-sentence ranges are no exception: the TTS sentence states
   which subtitle it speaks by carrying its server times (ruling 1).
+- **A keepalive on a timer, on a hidden page** (Stage 2 Palabra, ruling 3;
+  choice 7). No audio reaches an adapter while the microphone is muted
+  (`src/lib/audio/capture/core.ts:89`) or between push-to-talk presses (the
+  runner's turn gate, `src/lib/session/run.ts:457-460`), so then only the
+  adapter's own timer keeps a session alive. A hidden page throttles timers:
+  at about one wake-up a minute — Chrome's intensive throttling, after about
+  5 minutes hidden and silent [inf] — no timer keepalive can survive, and
+  Palabra, hearing nothing for 10 s, sends `SERVICE_TIMEOUT` and closes 1008.
+  Electron's main window is exempt (`backgroundThrottling: false`,
+  `electron/main.js:397`); the extension side panel and the web build are not
+  [inf]. Soniox's STT and TTS keepalives and Doubao AST 2.0's real-time
+  silence share the exposure. At about 1 Hz a throttled page still keeps the
+  session, with less silence than real time — a beat it could not keep is
+  skipped, not caught up. The roadmap's Palabra record carries the live test
+  (item 5) and the open question "Silence on the audio clock": zeros carried
+  by the audio itself, which no throttled timer could end.
+- **A socket URL carries the credential** (Doubao AST 2.0's accepted
+  question, now Palabra's too): no frame, error, notice or log
+  line of ours carries one (the kit's `frame-url`; `redact()`'s query rule),
+  but DevTools' own console prints a failed socket's URL, outside our sinks.
 - **A long-lived branch that outlives its welcome.** Mitigated only by Stage 1
   landing quickly enough that Stage 2 can proceed provider by provider.
