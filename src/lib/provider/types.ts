@@ -229,8 +229,9 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     defaults: S;
     /**
      * Keys read with no default at load and handed to `migrate` (F5): a setting this
-     * version no longer has (OpenAI's `turnDetectionMode`), or a field whose
-     * absence must be told from its default (Palabra's `authMode`). May name
+     * version no longer has, or a field whose absence must be told from its
+     * default (built for Palabra's `authMode`, which its port does not take:
+     * Stage 2 Palabra, ruling 2). May name
      * a field of `defaults`. May name a whole storage key
      * (`settings.common.systemInstructions`), read there, never written.
      * Nothing is written back.
@@ -321,10 +322,22 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     initial?(s: S): Partial<LanguagePair>;
     /**
      * Rewrites the stored pair before it is normalized (F5): a code the
-     * provider renamed (Palabra's `vn` → `vi`). '' in a side means nothing
-     * is stored there; a side returned as '' falls back to `initial`.
+     * provider renamed, or one its offer no longer holds. '' in a side means
+     * nothing is stored there; a side returned as '' falls back to
+     * `initial`. First named for Palabra's `vn` → `vi`, which Palabra's port
+     * does not take (Stage 2 Palabra, ruling 2); Gemini reads its stored
+     * pair through it (Stage 2 Gemini/AST2 follow-up, choice 17).
      */
     migratePair?(stored: LanguagePair, s: S): LanguagePair;
+    /**
+     * The pair the other way round (Stage 2 Palabra, ruling 9): the
+     * participant leg's direction (D17, D20) and the swap button's result.
+     * Absent: the plain swap, `{ source: target, target: source }`. For a
+     * provider whose targets and sources are coded apart — Palabra's `en-us`
+     * target is its `en` source — or null when this pair has no reverse.
+     * Whether the provider offers the answer is still its two lists' to say.
+     */
+    reverse?(pair: LanguagePair, s: S): LanguagePair | null;
   };
 
   // the only capabilities generic code reads

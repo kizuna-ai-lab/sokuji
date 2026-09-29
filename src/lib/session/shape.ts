@@ -1,6 +1,6 @@
 import type { SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
-import { reverseSupported } from '../provider/languages';
+import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
@@ -37,7 +37,11 @@ export function languageContext(p: Speaking, legs: readonly LegName[], inputs: S
   return { speech: legs.some((leg) => legSpeaks(p, leg, inputs)) };
 }
 
-/** What each leg's adapter is told (spec: "The session request"). The participant leg runs the reverse, always with automatic turns. */
+/**
+ * What each leg's adapter is told (spec: "The session request"). The
+ * participant leg runs the reverse — the provider's own where it states one
+ * (Stage 2 Palabra, ruling 9) — always with automatic turns.
+ */
 export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionContext>> {
   const { provider: p, pair } = shape;
   const contexts: Partial<Record<LegName, SessionContext>> = {};
@@ -50,7 +54,8 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
   }
   if (shape.legs.includes('participant')) {
     contexts.participant = {
-      direction: { source: pair.target, target: pair.source },
+      // The gate refused a pair with no reverse before anything asks (D20); the plain swap only answers a shape nothing gated.
+      direction: reversedPair(p, shape.settings, pair) ?? { source: pair.target, target: pair.source },
       speech: legSpeaks(p, 'participant', shape),
       turns: 'auto',
     };

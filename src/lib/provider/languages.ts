@@ -10,7 +10,7 @@ import type { LanguageContext, LanguageOption, LanguagePair, Provider } from './
 /** The source value that asks the provider to detect the language. Never a target. */
 export const AUTO = 'auto';
 
-/** Only the two language functions are read, so a provider of any `K` and `C` fits. */
+/** Only the language functions are read, so a provider of any `K` and `C` fits. */
 type Languages<S> = Pick<Provider<S, never, never>, 'languages'>;
 
 function offers(options: readonly LanguageOption[], value: string): boolean {
@@ -18,19 +18,31 @@ function offers(options: readonly LanguageOption[], value: string): boolean {
 }
 
 /**
- * Whether the provider supports the reversed pair: the target among its
- * sources, and the source among that target's targets. It decides both the
- * swap button and whether the participant leg may open (D20). `AUTO` is never
- * a target, so an `AUTO` source never reverses.
+ * The pair the other way round, by the provider's own `reverse` where it
+ * states one (Stage 2 Palabra, ruling 9: Palabra's documented target → source
+ * and source → target codes) and otherwise the plain swap. Null: this pair
+ * has no reverse. Whether the provider offers it is `reverseSupported`'s.
+ */
+export function reversedPair<S>(p: Languages<S>, s: S, pair: LanguagePair): LanguagePair | null {
+  return p.languages.reverse ? p.languages.reverse(pair, s) : { source: pair.target, target: pair.source };
+}
+
+/**
+ * Whether the provider supports the reversed pair: its source among the
+ * provider's sources, and its target among that source's targets. It decides
+ * both the swap button and whether the participant leg may open (D20). `AUTO`
+ * is never a target, so an `AUTO` source never reverses.
  */
 export function reverseSupported<S>(p: Languages<S>, s: S, pair: LanguagePair, context?: LanguageContext): boolean {
-  return offers(p.languages.sources(s, context), pair.target) && offers(p.languages.targets(pair.target, s, context), pair.source);
+  const reversed = reversedPair(p, s, pair);
+  return reversed !== null && offers(p.languages.sources(s, context), reversed.source) && offers(p.languages.targets(reversed.source, s, context), reversed.target);
 }
 
 /** The reversed pair; null when the provider does not support it, or when it is the same pair. */
 export function swapped<S>(p: Languages<S>, s: S, pair: LanguagePair, context?: LanguageContext): LanguagePair | null {
-  if (pair.source === pair.target || !reverseSupported(p, s, pair, context)) return null;
-  return { source: pair.target, target: pair.source };
+  const reversed = reversedPair(p, s, pair);
+  if (reversed === null || !reverseSupported(p, s, pair, context)) return null;
+  return reversed.source === pair.source && reversed.target === pair.target ? null : reversed;
 }
 
 /**

@@ -227,6 +227,31 @@ describe('the invariants every provider meets (F17)', () => {
     expect(offenders([{ id: 'x', settings: { key: 'x', defaults: { a: 1 } }, checkReads: ['a', 'b'] }])).toEqual(['x: b']);
   });
 
+  it("a provider with no reverse of its own offers no target outside its sources, in every settings shape its offer reads and every language context: the plain swap reverses what it offers (Stage 2 Palabra, ruling 9)", () => {
+    const opt = (value: string) => ({ value, name: value, englishName: value });
+    // Each provider's defaults, and the shapes whose offer differs from theirs, by name: Gemini's offer reads its saved model's family (Stage 2 Gemini/AST2 follow-up, choice 16) — Live Translate's, a 2.5 native-audio dialogue model's, a 3.x Live dialogue model's.
+    const SHAPES: Readonly<Record<string, readonly Record<string, unknown>[]>> = {
+      gemini: [{ model: 'gemini-3.5-live-translate-preview' }, { model: 'gemini-2.5-flash-native-audio-preview-12-2025' }, { model: 'gemini-3.1-flash-live-preview' }],
+    };
+    const shapesOf = (p: AnyProvider): unknown[] => [p.settings.defaults, ...(SHAPES[p.id] ?? []).map((patch) => ({ ...(p.settings.defaults as object), ...patch }))];
+    const offenders = (ps: readonly AnyProvider[]) => ps.flatMap((p) => {
+      if (p.languages.reverse) return [];
+      return shapesOf(p).flatMap((s, shape) => [undefined, { speech: true }, { speech: false }].flatMap((context) => {
+        const sources = new Set(p.languages.sources(s, context).map((o: { value: string }) => o.value));
+        const outside = new Set([...sources].flatMap((source) => p.languages.targets(source, s, context).map((o: { value: string }) => o.value)).filter((t) => !sources.has(t)));
+        return [...outside].map((t) => `${p.id}: ${t} (shape ${shape}, speech ${String(context?.speech)})`);
+      }));
+    });
+    expect(offenders(PROVIDERS)).toEqual([]);
+    // The declared shapes reach both of Gemini's offers: the list names no stale shape.
+    const gemini = PROVIDERS.find((p) => p.id === 'gemini')!;
+    expect(new Set(shapesOf(gemini).map((s) => gemini.languages.sources(s).length)).size).toBe(2);
+    // The control: a region target none of its sources names, with no reverse of its own — and with one, which states its own answer.
+    const regional = { ...fakeProvider, id: 'regional', languages: { sources: () => [opt('en')], targets: () => [opt('en-us')] } } as unknown as AnyProvider;
+    expect(offenders([regional])).toEqual(['regional: en-us (shape 0, speech undefined)', 'regional: en-us (shape 0, speech true)', 'regional: en-us (shape 0, speech false)']);
+    expect(offenders([{ ...regional, languages: { ...regional.languages, reverse: () => null } } as AnyProvider])).toEqual([]);
+  });
+
   it('an initial pair is one the provider offers', () => {
     const withInitial = PROVIDERS.filter((p) => p.languages.initial !== undefined);
     expect(withInitial.length).toBeGreaterThan(0);

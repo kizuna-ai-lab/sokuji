@@ -6,6 +6,7 @@
  */
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
+import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import { presentProviders } from '../../providers/registry';
 import { useAccountStore } from '../../stores/accountStore';
@@ -86,7 +87,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     participantSpeech: participantSpeechFromStores(provider),
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
-      entry.pair,
+      reversedPair(provider, entry.settings, entry.pair),
       { sourceSeconds: st.segmentationSourcePause, translationSeconds: st.segmentationTranslationPause },
       { mode: st.segmentationMode, sentencesPerRow: st.sentenceSegmentationChunkSentences },
     ),

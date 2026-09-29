@@ -47,6 +47,12 @@ describe('contextsFor', () => {
     expect(contextsFor(shape({ provider: { ...fakeProvider, speech: 'never' } })).speaker?.speech).toBe(false);
   });
 
+  it("gives the participant the provider's own reverse where it states one (Stage 2 Palabra, ruling 9)", () => {
+    // A reverse that is no plain swap: en → ja runs its participant zh → en.
+    const provider = { ...fakeProvider, languages: { ...fakeProvider.languages, reverse: () => ({ source: 'zh', target: 'en' }) } };
+    expect(contextsFor(shape({ provider, legs: ['speaker', 'participant'] })).participant?.direction).toEqual({ source: 'zh', target: 'en' });
+  });
+
   it("gives the participant no speech while its provider's flag is off, whatever the opt-in; speech again once it is on", () => {
     const off = contextsFor(shape({ provider: { ...fakeProvider, participantSpeech: false }, legs: ['speaker', 'participant'], participantSpeech: true }));
     expect(off.participant?.speech).toBe(false);
@@ -99,6 +105,15 @@ describe('gate', () => {
   it('refuses the participant leg where the provider cannot run the reversed pair (D20)', () => {
     expect(gate(shape({ legs: ['participant'], pair: { source: AUTO, target: 'en' } }), 'electron'))
       .toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
+  });
+
+  it("reads the provider's own reverse: a pair it gives none refuses the participant leg, one it maps into the offer passes (Stage 2 Palabra, ruling 9)", () => {
+    const none = { ...fakeProvider, languages: { ...fakeProvider.languages, reverse: () => null } };
+    expect(gate(shape({ provider: none, legs: ['speaker', 'participant'] }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
+    // `en → ja` has a plain swap the fake offers; `en → en` has none, and the provider's own reverse maps it into the offer.
+    const mapped = { ...fakeProvider, languages: { ...fakeProvider.languages, reverse: () => ({ source: 'zh', target: 'en' }) } };
+    expect(gate(shape({ legs: ['speaker', 'participant'], pair: { source: 'en', target: 'en' } }), 'electron')).toMatchObject({ code: 'participant_unsupported' });
+    expect(gate(shape({ provider: mapped, legs: ['speaker', 'participant'], pair: { source: 'en', target: 'en' } }), 'electron')).toBeNull();
   });
 
   it('refuses the participant leg where the platform has no participant source', () => {
