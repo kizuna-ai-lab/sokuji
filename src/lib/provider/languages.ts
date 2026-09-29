@@ -1,9 +1,9 @@
 /**
  * The language rules every provider shares (spec: "Languages are two
- * functions"). What differs between providers lives inside its `sources` and
- * `targets`; nothing here names a provider. Each rule takes an optional
- * language context (Stage 2 Volcengine AST2, choice 1): under one, the offer
- * for it; without, the provider's widest offer.
+ * functions"). What differs between providers lives inside its `sources`,
+ * `targets` and optional `reverse`; nothing here names a provider. Each rule
+ * takes an optional language context (Stage 2 Volcengine AST2, choice 1):
+ * under one, the offer for it; without, the provider's widest offer.
  */
 import type { LanguageContext, LanguageOption, LanguagePair, Provider } from './types';
 
@@ -30,12 +30,13 @@ export function reversedPair<S>(p: Languages<S>, s: S, pair: LanguagePair): Lang
 /**
  * Whether the provider supports the reversed pair: its source among the
  * provider's sources, and its target among that source's targets. It decides
- * both the swap button and whether the participant leg may open (D20). `AUTO`
- * is never a target, so an `AUTO` source never reverses.
+ * both the swap button and whether the participant leg may open (D20). An
+ * `AUTO` source never reverses (D20), whatever a provider's own `reverse`
+ * hook would return for it.
  */
 export function reverseSupported<S>(p: Languages<S>, s: S, pair: LanguagePair, context?: LanguageContext): boolean {
   const reversed = reversedPair(p, s, pair);
-  return reversed !== null && offers(p.languages.sources(s, context), reversed.source) && offers(p.languages.targets(reversed.source, s, context), reversed.target);
+  return pair.source !== AUTO && reversed !== null && offers(p.languages.sources(s, context), reversed.source) && offers(p.languages.targets(reversed.source, s, context), reversed.target);
 }
 
 /** The reversed pair; null when the provider does not support it, or when it is the same pair. */

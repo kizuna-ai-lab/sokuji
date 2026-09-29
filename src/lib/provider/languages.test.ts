@@ -140,4 +140,9 @@ describe("a provider's own reverse (Stage 2 Palabra, ruling 9)", () => {
     expect(swapped(regional, s, { source: 'ja', target: 'ja' })).toBeNull();
     expect(swapped(regional, s, { source: 'en', target: 'en-us' })).toBeNull();
   });
+
+  it('refuses an AUTO source even when the hook maps it into a pair the provider offers (D20; review M2)', () => {
+    const rogue = { languages: { sources: regional.languages.sources, targets: regional.languages.targets, reverse: () => ({ source: 'en', target: 'ja' }) } };
+    expect(reverseSupported(rogue, s, { source: AUTO, target: 'ja' })).toBe(false);
+  });
 });

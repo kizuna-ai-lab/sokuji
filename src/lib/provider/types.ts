@@ -230,7 +230,9 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     /**
      * Keys read with no default at load and handed to `migrate` (F5): a setting this
      * version no longer has, or a field whose absence must be told from its
-     * default (built for Palabra's `authMode`, which its port does not take:
+     * default (the instruction fields, `INSTRUCTION_LEGACY_KEYS` —
+     * `src/lib/provider/instructions.ts`, used by OpenAI Realtime and Gemini;
+     * first built for Palabra's `authMode`, which its port does not take:
      * Stage 2 Palabra, ruling 2). May name
      * a field of `defaults`. May name a whole storage key
      * (`settings.common.systemInstructions`), read there, never written.
@@ -336,6 +338,8 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
      * provider whose targets and sources are coded apart — Palabra's `en-us`
      * target is its `en` source — or null when this pair has no reverse.
      * Whether the provider offers the answer is still its two lists' to say.
+     * An `AUTO` source has none (D20) whatever this returns:
+     * `reverseSupported` refuses it before reading the answer.
      */
     reverse?(pair: LanguagePair, s: S): LanguagePair | null;
   };
