@@ -206,6 +206,7 @@ describe('a provider session side', () => {
     const gemini = sessionSide(REPO_ROOT, 'src/providers/gemini');
     expect(gemini).toEqual(expect.arrayContaining([
       'src/providers/gemini/adapter.ts',
+      'src/providers/gemini/hold.ts',
       'src/providers/gemini/socket.ts',
       'src/providers/gemini/tail.ts',
       'src/providers/gemini/turns.ts',

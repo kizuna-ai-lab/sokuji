@@ -9,6 +9,9 @@
  * refused key or model rejects it in words and within a bound (choice 12).
  * A push-to-talk release on Live Translate sends a real-time silence tail
  * before its `activityEnd` (`tail.ts`; Gemini/AST2 follow-up, ruling 4).
+ * A 3.x dialogue model's input is held from the user's turn close to the
+ * model's `turnComplete` (`hold.ts`; Gemini hold, ruling 1), and under
+ * automatic turns let go one utterance at a time (ruling 4).
  * Every timer reads the request's clock, and nothing is said but through
  * events (CLAUDE.md, "Inside an IClient session").
  */
@@ -24,6 +27,7 @@ import {
 import { framePayload } from '../../lib/contract/framePayload';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { GeminiConfig } from './config';
+import { InputHold } from './hold';
 import type { GeminiCredentials } from './settings';
 import { nativeSocket, WS_OPEN, type OpenSocket } from './socket';
 import { ReleaseTail, type TailSummary } from './tail';
@@ -100,6 +104,8 @@ class GeminiSession {
   private readonly turns: GeminiTurns;
   /** Live Translate under manual turns: a release's silence, its press's activity held open until it ends (Gemini/AST2 follow-up, ruling 4; choice 11). */
   private readonly tail: ReleaseTail;
+  /** A model that barges in: the leg's input held from the user's turn close to the model's `turnComplete` (Gemini hold, ruling 1; choice 1). Null on every other model. */
+  private readonly hold: InputHold | null;
 
   constructor(private readonly request: GeminiRequest, private readonly events: AdapterEvents, private readonly openSocket: OpenSocket) {
     this.turns = new GeminiTurns({
@@ -114,6 +120,18 @@ class GeminiSession {
       send: (pcm) => this.live()?.send(audioFrame(pcm)),
       ended: (summary) => this.tailEnded(summary),
     });
+    // Derived, no knob: the dialogue models that barge in, 3.x and later; 2.5 and Live Translate never hold (Gemini hold, ruling 2).
+    const { kind, activityHandling, activity } = request.config;
+    this.hold = kind === 'dialogue' && activityHandling === 'START_OF_ACTIVITY_INTERRUPTS'
+      ? new InputHold({
+          clock: request.clock,
+          // Under automatic turns the split's pause follows the server's own end-of-speech silence (Gemini hold, choice 15).
+          ...(activity.manual ? { manual: true as const } : { manual: false as const, silenceMs: activity.silenceMs }),
+          send: (pcm) => this.live()?.send(audioFrame(pcm)),
+          began: (cause) => this.frame('out', 'turn.hold', { cause }),
+          ended: (summary) => this.frame('out', 'turn.hold_end', summary),
+        })
+      : null;
   }
 
   /** Resolves once the server answers the setup; rejects, leaving nothing open, when it refuses, drops, does not answer in time, or the signal aborts. */
@@ -130,9 +148,11 @@ class GeminiSession {
     return {
       info: { transport: 'websocket' },
       // No frame per chunk (the hot-path rule). Audio while no connection is set up is dropped (parity). Real audio ends a release's tail first.
+      // During a hold it waits its turn (Gemini hold, ruling 1).
       appendAudio: (pcm) => {
         this.tail.stop('audio');
-        this.live()?.send(audioFrame(pcm));
+        if (this.hold?.holding) this.hold.audio(pcm);
+        else this.live()?.send(audioFrame(pcm));
       },
       appendText: (text) => this.appendText(text),
       beginTurn: () => this.beginTurn(),
@@ -247,6 +267,9 @@ class GeminiSession {
         ...(activity.type ? { type: activity.type } : {}),
         ...(activity.audioOffset ? { audioOffset: activity.audioOffset } : {}),
       });
+      // ACTIVITY_END is the server closing the user's turn, or the close a split waits for; an ACTIVITY_START during
+      // a hold lets it go (Gemini hold, choices 2, 14).
+      this.hold?.voiceActivity(activity.type);
     }
     if (m.serverContent) this.onContent(m.serverContent);
     if (m.goAway) {
@@ -266,6 +289,7 @@ class GeminiSession {
         this.turns.input(input.text);
         // Either side's words mean the model is still working through the press (Gemini/AST2 follow-up, choice 12).
         this.tail.output();
+        this.hold?.input();
       }
     }
     const output = c.outputTranscription;
@@ -274,6 +298,7 @@ class GeminiSession {
       if (output.text) {
         this.turns.output(output.text);
         this.tail.output();
+        this.hold?.output();
       }
     }
     if (c.modelTurn?.parts) this.onModelTurn(c.modelTurn.parts);
@@ -281,16 +306,25 @@ class GeminiSession {
     if (c.interrupted) {
       this.frame('in', 'server_content.interrupted');
       this.turns.interrupted();
+      // A hold goes on to the `turnComplete` that trails it (Gemini hold, choice 4).
+      this.hold?.interrupted();
     }
     if (c.turnComplete) {
       this.frame('in', 'server_content.turn_complete', c.turnCompleteReason ? { reason: c.turnCompleteReason } : {});
       this.turns.turnComplete();
+      // After the turn has ended: what the hold lets go of is owed from a closed turn (Gemini hold, choices 4, 13).
+      this.hold?.turnComplete();
     }
-    if (c.waitingForInput) this.frame('in', 'server_content.waiting_for_input');
+    if (c.waitingForInput) {
+      this.frame('in', 'server_content.waiting_for_input');
+      this.hold?.waitingForInput();
+    }
   }
 
   private onModelTurn(parts: readonly Part[]): void {
     let audioBytes = 0;
+    /** How long the decoded parts play, at their own rates: the hold's cap counts it (Gemini hold, ruling 3). */
+    let audioMs = 0;
     let mimeType: string | undefined;
     let text = '';
     const playable: Int16Array[] = [];
@@ -310,6 +344,7 @@ class GeminiSession {
         this.partsReadable = true;
         audioBytes += pcm.byteLength;
         const rate = pcmRate(mimeType);
+        audioMs += (pcm.length * 1000) / rate;
         if (rate === SAMPLE_RATE) playable.push(pcm);
         else this.foreignRate(rate);
       } else if (part.text && !part.thought) {
@@ -320,6 +355,11 @@ class GeminiSession {
     this.frame('in', 'server_content.model_turn', { audioBytes, ...(mimeType ? { mimeType } : {}), ...(text ? { text } : {}) });
     for (const pcm of playable) this.turns.audio(pcm);
     if (text) this.turns.modelText(text);
+    // Every part's audio moves the hold's cap, played here or not (Gemini hold, ruling 3; choice 6). Only what `GeminiTurns` takes
+    // as content — playable audio, the model's text — is the model's turn under way; a thought, or a part that will not
+    // decode, is not (choices 2, 4).
+    const content = playable.some((pcm) => pcm.length > 0) || text !== '';
+    if (content || audioMs > 0) this.hold?.output(audioMs, content);
   }
 
   /** Audio at a rate this app does not play is skipped; a speaking leg says so once (choice 18). */
@@ -437,6 +477,8 @@ class GeminiSession {
     }
     // The tail's activity was the old connection's: nothing of it reaches the new one.
     this.tail.cancel();
+    // Not what a hold kept back: that, and what comes until the next connection is set up, goes up on that one (Gemini hold, choice 10).
+    this.hold?.carry();
     this.frame('in', 'session.reconnecting', {
       cause: why.cause,
       ...(why.code !== undefined ? { code: why.code } : {}),
@@ -477,6 +519,8 @@ class GeminiSession {
         this.frame('out', 'realtime_input.activity_start');
       }
       this.events.reconnected();
+      // What a hold carried across goes up now, in order: no model turn is in flight on the new connection (Gemini hold, choice 10).
+      this.hold?.reconnected();
       return;
     }
     this.frame('in', 'session.connection_lost', { attempts: RECONNECT_DELAYS_MS.length });
@@ -514,6 +558,7 @@ class GeminiSession {
     for (const cancel of [...this.cancels]) cancel();
     this.cancels.clear();
     this.tail.cancel();
+    this.hold?.cancel();
     this.turns.stop();
     const ws = this.socket;
     this.socket = null;

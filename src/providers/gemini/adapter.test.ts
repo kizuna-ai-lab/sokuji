@@ -61,7 +61,7 @@ function harnessFor(model: string): AdapterHarness<GeminiConfig, GeminiCredentia
   };
 }
 
-describe.each([['a dialogue model', DIALOGUE], ['Live Translate', TRANSLATE]] as const)('the Gemini adapter: conformance, %s', (_name, model) => {
+describe.each([['a dialogue model', DIALOGUE], ['a 3.x dialogue model, which holds its input (Gemini hold, ruling 1)', BARGE_IN], ['Live Translate', TRANSLATE]] as const)('the Gemini adapter: conformance, %s', (_name, model) => {
   const harness = harnessFor(model);
 
   it('runs every scenario', () => {
