@@ -65,6 +65,8 @@ export interface RunHost {
 
 export class Run {
   readonly id: string;
+  /** When the run was created — Start — on the run's clock: what each leg's `session.stopped` counts from. */
+  readonly startedAt: number;
   readonly legStates = new Map<LegName, LegState>();
   /** When every leg went live; null until then. */
   liveSince: number | null = null;
@@ -99,6 +101,7 @@ export class Run {
   /** `host` is a factory because the runner's host closes over the run it serves. */
   constructor(private readonly deps: RunnerDeps, host: (run: Run) => RunHost, readonly shape: RunShape) {
     this.id = deps.newSessionId();
+    this.startedAt = deps.clock.now();
     this.host = host(this);
     this.stack = new ResourceStack(deps.clock, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS, (f) =>
       reportWarning('SessionRunner', `Releasing ${f.name} failed: ${f.message}`, { dedupeKey: `release:${f.name}` }));
@@ -295,8 +298,9 @@ export class Run {
     this.liveSince = deps.clock.now();
   }
 
-  /** Ends the run: decide nothing more, close an open turn, abort, wait for a leg still opening, unwind, finalize the legs, wait (bounded) for fill-in. */
-  async close(): Promise<void> {
+  /** Ends the run: decide nothing more, close an open turn, abort, wait for a leg still opening, unwind, finalize the legs, say each leg stopped, wait (bounded) for fill-in. */
+  async close(result: RunEnd): Promise<void> {
+    const endedAt = this.deps.clock.now();
     this.ending = true;
     if (this.turn?.close()) this.hold(false);
     this.controller.abort(new Error('the run ended'));
@@ -307,10 +311,39 @@ export class Run {
     await this.awaitOpening();
     await this.stack.unwind();
     for (const conversation of this.conversations.values()) conversation.finalizeAll();
+    this.frameStopped(result, endedAt);
     // Fill-in lands through `Conversation`'s own jobs, not `onEvent`; nothing
     // legitimate depends on the run still accepting events past this point.
     this.finished = true;
     await this.settled();
+  }
+
+  /**
+   * One Logs line per leg once the unwind is done — after whatever its
+   * adapter framed of its own ending — as every old client's `disconnect()`
+   * logged `session.closed` (Stage 2 session end, ruling 2 (i); choices 1,
+   * 2). Only once the run reached its opening step — a refusal, or a stop
+   * while it checked, opened no leg — and not after `abandon()`: the page is
+   * going away. Why it stopped (the run's reason, and its notice's code and
+   * leg), the leg's last state, and the time from Start to the stop; never
+   * the notice's words, which may quote a provider.
+   */
+  private frameStopped(result: RunEnd, endedAt: number): void {
+    if (this.finished || this.conversations.size === 0) return;
+    const { reason, notice } = result;
+    for (const leg of this.shape.legs) {
+      this.deps.frames?.frame(leg, {
+        direction: 'out',
+        type: 'session.stopped',
+        payload: {
+          reason,
+          ...(notice?.code ? { code: notice.code } : {}),
+          ...(notice?.leg ? { leg: notice.leg } : {}),
+          state: this.legStates.get(leg) ?? null,
+          elapsedMs: endedAt - this.startedAt,
+        },
+      });
+    }
   }
 
   /** `pagehide`: decide nothing more, close an open turn, abort, fire every release now, finalize the legs (spec: "Stopping, and closing the window"). */

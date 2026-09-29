@@ -128,7 +128,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
           // Stop speaking now; the port is guarded, so a throw here cannot keep the run open.
           if (!refused) deps.playback.clear();
           deps.playback.live(false);
-          await run.close();
+          await run.close(result);
           if (liveSince !== null && !abandoned.has(run)) {
             const duration = endedAt - liveSince;
             const provider = run.shape.provider.id;

@@ -417,6 +417,27 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     expect(frames.frame).toHaveBeenCalledWith('speaker', frame);
   });
 
+  it("a lease's end is each leg's session.stopped, after the lease's own release frame (Stage 2 session end, ruling 2 (i))", async () => {
+    let endLease!: (notice: RunNotice) => void;
+    const seen: Array<[string, string, unknown]> = [];
+    const provider = withHooks({
+      acquire: async (_shape, _s, ctx) => {
+        endLease = ctx.end;
+        return { credentials: () => ({}), release: async () => { ctx.frame({ direction: 'out', type: 'session.end' }); } };
+      },
+    });
+    const { runner, clock } = setup(provider, ['speaker', 'participant'], undefined, undefined, { frame: (leg, f) => { seen.push([leg, f.type, f.payload]); } });
+    await runner.start();
+    clock.advance(30_000);
+    endLease({ code: 'budget_exhausted', message: 'Session budget exhausted' });
+    await flush();
+    expect(seen).toEqual([
+      ['speaker', 'session.end', undefined],
+      ['speaker', 'session.stopped', { reason: 'lease-ended', code: 'budget_exhausted', state: 'live', elapsedMs: 30_000 }],
+      ['participant', 'session.stopped', { reason: 'lease-ended', code: 'budget_exhausted', state: 'live', elapsedMs: 30_000 }],
+    ]);
+  });
+
   it("puts a lease's budget in the running state, and keeps it through a leg's change", async () => {
     let events!: AdapterEvents;
     const provider = withHooks(

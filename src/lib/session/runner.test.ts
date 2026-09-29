@@ -882,6 +882,151 @@ describe('runner — legs end together (D21)', () => {
   });
 });
 
+describe('runner — the Logs line each leg ends with (Stage 2 session end, ruling 2 (i))', () => {
+  /** Every frame the frames port saw: its leg, its type and its payload. */
+  function framesSeen() {
+    const seen: Array<[string, string, unknown]> = [];
+    const port: FramePort = { frame: (leg, f) => { seen.push([leg, f.type, f.payload]); } };
+    return { seen, port, stopped: () => seen.filter(([, type]) => type === 'session.stopped') };
+  }
+  /** The fake, but each session frames a goodbye as it stops: what an adapter says of its own ending. */
+  const sayingGoodbye = {
+    ...fakeProvider,
+    async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
+      const session = await fakeProvider.start(request as never, events);
+      // Spreading a `FakeSession` instance would drop its prototype methods; delegate explicitly.
+      return {
+        info: session.info,
+        appendAudio: (pcm: Int16Array) => session.appendAudio(pcm),
+        appendText: (text: string) => session.appendText(text),
+        beginTurn: () => session.beginTurn(),
+        endTurn: () => session.endTurn(),
+        cancelTurn: () => session.cancelTurn(),
+        stop: () => {
+          events.frame({ direction: 'out', type: 'fake.goodbye' });
+          return session.stop();
+        },
+      };
+    },
+  } as unknown as AnyProvider;
+
+  it("a stop frames session.stopped once per leg, speaker first, after what each leg's adapter framed of its own ending: why, the leg's last state and the time since Start", async () => {
+    const frames = framesSeen();
+    const { runner, clock } = setup({ shape: { provider: sayingGoodbye, legs: ['speaker', 'participant'] }, frames: frames.port });
+    await runner.start();
+    clock.advance(4_000);
+    await runner.stop();
+    expect(frames.seen).toEqual([
+      ['participant', 'fake.goodbye', undefined],
+      ['speaker', 'fake.goodbye', undefined],
+      ['speaker', 'session.stopped', { reason: 'user', state: 'live', elapsedMs: 4_000 }],
+      ['participant', 'session.stopped', { reason: 'user', state: 'live', elapsedMs: 4_000 }],
+    ]);
+  });
+
+  it('counts the time from Start, not from when the leg went live', async () => {
+    const frames = framesSeen();
+    const { runner, clock } = setup({ settings: { startDelayMs: 2_000 }, frames: frames.port });
+    const starting = runner.start();
+    await flush();
+    clock.advance(2_000);
+    await starting;
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', since: 2_000 });
+    clock.advance(3_000);
+    await runner.stop();
+    expect(frames.stopped()).toEqual([['speaker', 'session.stopped', { reason: 'user', state: 'live', elapsedMs: 5_000 }]]);
+  });
+
+  it("a leg's failure is each leg's reason, with its notice's code and the leg that failed", async () => {
+    const frames = framesSeen();
+    const { runner, clock } = setup({ shape: { legs: ['speaker', 'participant'] }, settings: { failAfterMs: 1_000 }, frames: frames.port });
+    await runner.start();
+    clock.advance(1_000);
+    await flush();
+    expect(frames.stopped()).toEqual([
+      ['speaker', 'session.stopped', { reason: 'leg-failed', code: 'leg_failed', leg: 'speaker', state: 'live', elapsedMs: 1_000 }],
+      ['participant', 'session.stopped', { reason: 'leg-failed', code: 'leg_failed', leg: 'speaker', state: 'live', elapsedMs: 1_000 }],
+    ]);
+  });
+
+  it('a start that fails, or a stop while its leg still opens, ends with the state the leg reached', async () => {
+    const failed = framesSeen();
+    const one = setup({ settings: { startThrows: true }, frames: failed.port });
+    await one.runner.start();
+    await flush();
+    expect(failed.seen).toEqual([['speaker', 'session.stopped', { reason: 'start-failed', code: 'start_failed', leg: 'speaker', state: 'opening', elapsedMs: 0 }]]);
+
+    const slow = framesSeen();
+    const two = setup({ settings: { startDelayMs: 2_000 }, frames: slow.port });
+    const starting = two.runner.start();
+    await flush();
+    two.clock.advance(500);
+    await two.runner.stop();
+    await starting;
+    expect(slow.seen).toEqual([['speaker', 'session.stopped', { reason: 'user', state: 'opening', elapsedMs: 500 }]]);
+  });
+
+  it('a leg whose source will not open ends with no state: its adapter was never asked to start', async () => {
+    const frames = framesSeen();
+    const { runner } = setup({ openSource: async () => { throw new Error('permission denied'); }, frames: frames.port });
+    await runner.start();
+    expect(frames.seen).toEqual([['speaker', 'session.stopped', { reason: 'start-failed', code: 'start_failed', leg: 'speaker', state: null, elapsedMs: 0 }]]);
+  });
+
+  it('says nothing for a start refused before it opened anything, a stop while it checked, or a page going away', async () => {
+    const refused = framesSeen();
+    const one = setup({ settings: { buildRefused: true }, frames: refused.port });
+    await one.runner.start();
+    expect(refused.seen).toEqual([]);
+
+    const checking = framesSeen();
+    const two = setup({ ensureReady: () => new Promise(() => {}), frames: checking.port });
+    void two.runner.start();
+    await flush();
+    await two.runner.stop();
+    expect(checking.seen).toEqual([]);
+
+    const gone = framesSeen();
+    const three = setup({ frames: gone.port });
+    await three.runner.start();
+    three.runner.abandon();
+    await flush();
+    expect(gone.stopped()).toEqual([]);
+
+    // Nor an ending that overran its bound and was then abandoned, once its release gives up.
+    const overran = framesSeen();
+    const { provider } = hangingStop();
+    const four = setup({ shape: { provider }, frames: overran.port, closeTimeoutMs: 3_000, timeoutMs: 10_000 });
+    await four.runner.start();
+    const stopped = four.runner.stop();
+    await flush();
+    four.clock.advance(3_000);
+    await stopped;
+    four.runner.abandon();
+    for (let i = 0; i < 4; i++) {
+      four.clock.advance(10_000);
+      await flush();
+    }
+    expect(overran.stopped()).toEqual([]);
+  });
+
+  it('an ending that overran its bound says its line once its unwind finishes, counting to the stop, not to then', async () => {
+    const frames = framesSeen();
+    const { provider, finishStop } = hangingStop();
+    const { runner, clock } = setup({ shape: { provider }, frames: frames.port, closeTimeoutMs: 3_000, timeoutMs: 10_000 });
+    await runner.start();
+    clock.advance(600);
+    const stopped = runner.stop();
+    await flush();
+    clock.advance(3_000);
+    await stopped;
+    expect(frames.stopped()).toEqual([]);
+    finishStop();
+    await flush();
+    expect(frames.stopped()).toEqual([['speaker', 'session.stopped', { reason: 'user', state: 'live', elapsedMs: 600 }]]);
+  });
+});
+
 describe('runner — capture carry-over', () => {
   it('hands the adapter a request of the context, config, credentials, clock, signal and punctuator alone — no track, even from a source that has one (Stage 2 Palabra, ruling 16)', async () => {
     const requests: Array<StartRequest<never, never>> = [];
