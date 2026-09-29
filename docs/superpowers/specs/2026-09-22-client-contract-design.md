@@ -309,7 +309,10 @@ The conformance suite (D24) checks each rule below against every adapter.
 - **`appendText` is answered by the adapter**, which emits the typed text as a
   source segment (opened, text, closed) and then its translation. L1 fabricates
   no segment for it. Gemini departs from this: text typed while its connection
-  is down is dropped, with no segment (Stage 2 Gemini, choice 17). OpenAI
+  is down is dropped, with no segment (Stage 2 Gemini, choice 17). On a 3.x
+  dialogue model, text typed while its input is held waits, with its segment,
+  until the hold lets go — across a reconnect too, where it goes up on the new
+  connection (Stage 2 Gemini hold, choices 8, 10). OpenAI
   Realtime shows typed text at once and holds its request, first in first out,
   while a response is in progress; the adapter owns that queue, so `busy` has
   no reader (Stage 2 OpenAI Realtime, ruling 8). A release's request waits
@@ -344,7 +347,10 @@ The conformance suite (D24) checks each rule below against every adapter.
   need none either: its four `.delta` frames group by their own type when
   consecutive, and none of its other names is anyone's row (Stage 2 OpenAI
   Realtime, choice 13). Gemini's `turn.tail` and `turn.tail_end`, OpenAI
-  Translate's names, need none; Doubao's `tts.sentence_start` keeps its row
+  Translate's names, need none; Gemini's `server.voice_activity`,
+  `server_content.waiting_for_input`, `turn.hold` and `turn.hold_end` need
+  none either (Stage 2 Gemini hold, choice 12); Doubao's `tts.sentence_start`
+  keeps its row
   with the sentence's times added (`ref` — the lock's —, `startTime`,
   `endTime`, `sequence`), and its new `tts.clip` (`ref`, `matched`, `range`,
   one per clip as it goes to L1) needs none (Stage 2 Gemini/AST2 follow-up,
@@ -480,7 +486,7 @@ it has leaked out of it.
 | Provider | Automatic turns | Ending on release | Precision |
 |---|---|---|---|
 | OpenAI ×3 | server VAD or semantic VAD, configurable | commit + `response.create` | immediate |
-| Gemini | server activity detection, configurable; a dialogue model of family 3.0 or later barges in (`START_OF_ACTIVITY_INTERRUPTS`), 2.5, an unversioned id and Live Translate do not (Stage 2 Gemini/AST2 follow-up, ruling 5; choice 9) | `activityEnd`; on Live Translate first real-time silence inside the press's activity — 100 ms frames until no transcription for 1 s, at most 3 s, counted in beats — then `activityEnd` (ruling 4; choices 11, 12) | immediate; Live Translate after silence |
+| Gemini | server activity detection, configurable; a dialogue model of family 3.0 or later barges in (`START_OF_ACTIVITY_INTERRUPTS`), 2.5, an unversioned id and Live Translate do not (Stage 2 Gemini/AST2 follow-up, ruling 5; choice 9); a 3.x dialogue model holds the leg's input from the server's turn close (`voiceActivity` ACTIVITY_END, else the turn's first output, or its first input transcription on a session that has heard no voice activity) to its `turnComplete`, then sends it in order, the audio as one frame; an ACTIVITY_START lets a hold go, and a release lets one utterance go — up to its first pause after speech 100 ms past the session's own silence setting — holding the rest until the server has closed and answered it, or for 2 s without the close, longer when more went up; a reconnect carries it over (Stage 2 Gemini hold, rulings 1, 2, 4; choices 2, 4, 5, 10, 14, 15) | `activityEnd`; on Live Translate first real-time silence inside the press's activity — 100 ms frames until no transcription for 1 s, at most 3 s, counted in beats — then `activityEnd` (ruling 4; choices 11, 12); on a 3.x dialogue model the release's `activityEnd` begins a hold, and a press made while it holds waits for `turnComplete` (choices 3, 7) | immediate; Live Translate after silence |
 | Soniox | server endpoint model (`<end>`), configurable | **`finalize` — exists, never called** | immediate |
 | Local ×2 | client VAD, configurable | flush | immediate |
 | Volcengine AST2 | server VAD, no knobs | 500 ms of silence on release, the old finalization's burst (Stage 2 Volcengine AST2, ruling 6); between turns the keepalive sends silence only after 250 ms with no audio (ruling 7) | after silence |
@@ -511,7 +517,7 @@ mechanism:
 | | `beginTurn` | `endTurn` | `cancelTurn` |
 |---|---|---|---|
 | OpenAI | — (WebRTC, which enabled its own track, abandoned by the owner, 2026-09-29) | commit at once; its `response.create` waits behind a response in progress, and releases still waiting when a request goes up are answered by that request's response (Stage 2 OpenAI Realtime, ruling 8, its letter amended at the final review) | **`input_audio_buffer.clear`** (Stage 2 OpenAI Realtime, choice 12) |
-| Gemini | `activityStart`; on Live Translate a press ends a tail still running, its `activityEnd` first (Stage 2 Gemini/AST2 follow-up, choice 11) | `activityEnd`; on Live Translate the release tail, then `activityEnd` (ruling 4) | `activityEnd`, and the cancelled press's own answer dropped, never the one before it — after the previous answer ends, when one is still owed (a voiced release or typed text whose answer has not started streaming; one made while an earlier answer streams is owed from that answer's end) or streaming (Stage 2 Gemini, ruling 8, choice 16) — except within the owed flag's remaining limit: it is a flag, not a count, so two answers waiting at once to start are one claim, cleared by the first to end, and a tap before the second's answer streams drops that answer. The two are either two voiced releases (or typed texts) waiting at once for their answers to start (both before any answer streams, for instance), or, on a model that answers an empty press, a tap's and a release's: within one streaming answer, a tap, then a voiced press (or typed text) that ends the tap's pending drop and is released, then another tap — the tap's queued answer takes the release's claim, so that utterance is lost where the flag before the fix (`f7bdb8bb`) kept it; with no answer to taps it is the other way round. On balance the fix keeps far more than it loses, and loses none when taps get no answer (the roadmap's Gemini/AST2 follow-up section, "What it leaves"); on a model that barges in, the press's `activityStart` ends a streaming answer at the server's `interrupted`, and the `turnComplete` that trails it is the same end, not the cancelled press's answer's: `interrupted` and a `turnComplete` with no content between them count as one end (Stage 2 Gemini/AST2 follow-up, ruling 5, settled at its final review); on Live Translate the same tail, framed `cancelled`, then `activityEnd` — no "end without generating" message exists (Stage 2 Gemini/AST2 follow-up, ruling 4) |
+| Gemini | `activityStart`; on Live Translate a press ends a tail still running, its `activityEnd` first (Stage 2 Gemini/AST2 follow-up, choice 11); on a 3.x dialogue model during a hold, held, with its audio, until the hold lets go (Stage 2 Gemini hold, choice 7) | `activityEnd`; on Live Translate the release tail, then `activityEnd` (ruling 4); on a 3.x dialogue model it begins a hold, and during one it is held (choices 3, 7) | `activityEnd`, and the cancelled press's own answer dropped, never the one before it — after the previous answer ends, when one is still owed (a voiced release or typed text whose answer has not started streaming; one made while an earlier answer streams is owed from that answer's end) or streaming (Stage 2 Gemini, ruling 8, choice 16) — except within the owed flag's remaining limit: it is a flag, not a count, so two answers waiting at once to start are one claim, cleared by the first to end, and a tap before the second's answer streams drops that answer. The two are either two voiced releases (or typed texts) waiting at once for their answers to start (both before any answer streams, for instance), or, on a model that answers an empty press, a tap's and a release's: within one streaming answer, a tap, then a voiced press (or typed text) that ends the tap's pending drop and is released, then another tap — the tap's queued answer takes the release's claim, so that utterance is lost where the flag before the fix (`f7bdb8bb`) kept it; with no answer to taps it is the other way round. On balance the fix keeps far more than it loses, and loses none when taps get no answer (the roadmap's Gemini/AST2 follow-up section, "What it leaves"); on a model that barges in, the press's `activityStart` ends a streaming answer at the server's `interrupted`, and the `turnComplete` that trails it is the same end, not the cancelled press's answer's: `interrupted` and a `turnComplete` with no content between them count as one end (Stage 2 Gemini/AST2 follow-up, ruling 5, settled at its final review); on a 3.x dialogue model a press whose `activityStart` is still held is withdrawn whole — nothing sent, nothing to drop — and the owed flag's limit cannot arise while holds run, only after a hold let go at its cap or on a model that answers taps (Stage 2 Gemini hold, choices 7, 13); on Live Translate the same tail, framed `cancelled`, then `activityEnd` — no "end without generating" message exists (Stage 2 Gemini/AST2 follow-up, ruling 4) |
 | Soniox | — | **`finalize`** | — |
 | Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
 | AST2 | — | 500 ms of silence | the same tail — the old release sent it for an empty press too |
@@ -524,6 +530,34 @@ whole (Stage 2 Gemini/AST2 follow-up, choice 13). On Live Translate, typed text
 ends a running tail as a press does, its `activityEnd` before the text's own
 marks; a stop or a lost connection drops the tail silently, since its activity
 was the old connection's (choice 11).
+
+**A 3.x dialogue model holds its input while it answers** (Stage 2 Gemini
+hold, ruling 1). It paces `turnComplete` to a simulated real-time playback of
+its answer, and input inside that turn cut the answer or lost its own start,
+so from the user's turn close to `turnComplete` the adapter holds the audio, a
+press's marks and typed text, and sends them in order at `turnComplete` or
+`waitingForInput` — not at `generationComplete`, and not at `interrupted`,
+whose trailing `turnComplete` lets go (choice 4). Its cap lets go 2 s past the
+model's computed playback end — the first audio's arrival plus all its audio —
+or 10 s after it began with no model audio, on the request's clock, and
+releases, never discards (ruling 3). A lost connection, a GoAway included,
+carries what is held to the new connection — with at most 5 s of the gap's own
+audio under automatic turns — which lets it go once set up, a press whose
+start is still held sent once; a stop drops it silently (choices 10, 11).
+Typed text's own marks are read on the wire (choice 9). Under automatic turns
+an ACTIVITY_START lets a hold go at once — the server is hearing speech that
+went up before it, and must hear its end — and a release lets one utterance
+go, the held audio up to its first pause after speech of at least
+`max(200, silenceMs + 100)` ms, the session's own end-of-speech silence plus a
+margin (an energy gate over the held audio finds it), holding the rest until
+the server's ACTIVITY_END for what went up, then to that answer's
+`turnComplete`, or for 2 s — half as long as the released audio plays when
+that is longer — without that END (ruling 4; choices 14, 15). 2.5 and Live
+Translate never hold (ruling 2). Probed for two utterances 1.57–2.47 s apart
+and, with ruling 4, for three Japanese sentences 0.8–1.5 s apart and a
+five-sentence monologue: every utterance translated whole in 10 of 10
+sessions, at the default silence; noisy rooms, other voices, long monologues
+and other silence settings are the live test's.
 
 `beginTurn` exists for two reasons: Gemini sends `activityStart` today on a
 heuristic ("before the first audio chunk"), and the two WebRTC adapters own their

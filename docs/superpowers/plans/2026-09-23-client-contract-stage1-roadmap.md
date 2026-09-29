@@ -5666,25 +5666,25 @@ marked):
 4. **Gemini karaoke on Live Translate and on a dialogue model** (ruling 2; choice 7): Live Translate lights phrase by phrase and holds through silence; the 2.5 and 3.8 dialogue models light across each answer; audio before a translation's first text lights nothing until its text arrives.
 5. **Live Translate the default** (ruling 3): a new profile runs `gemini-3.5-live-translate-preview` (the Logs' `session.opened`); a stored profile with a saved dialogue model keeps it; a stored profile that never picked a model now runs Live Translate; a key that lists no Live Translate runs the newest native-audio model. **Execution (Task 8's review, M1):** on that key, with no model saved, the language lists show Live Translate's offer (101 sources, 78 targets) while the dialogue model runs; with a single listed model the offer cannot be left — the model field is a native select, and choosing the model already shown changes nothing. Record how it reads ("What it leaves").
 6. **Push-to-talk on Live Translate** (ruling 4; choices 11, 12): a press's last words arrive before the next press — the Logs read `turn.tail`, then `turn.tail_end` (`reason`, `silenceMs`, `lastOutputMs`), then `realtime_input.activity_end`; a press during the tail ends it (`reason: 'press'`); tune `TAIL_QUIET_MS` and `TAIL_MAX_MS` from `lastOutputMs`.
-7. **3.8 overlap with barge-in** (ruling 5; choice 9): a second utterance while the first's translation still plays — both transcribed and translated, the first's translation whole (`session.opened` reads `activityHandling: 'START_OF_ACTIVITY_INTERRUPTS'`). Known risks, one probe run per setting: speaking again within about a second of the first utterance's end cuts a 3.8 translation still generating; 3.8's mandatory proactive audio may still skip input; `gemini-3.1-flash-live-preview` (family 3.1, now barge-in) was not measured.
+7. **3.8 overlap with barge-in** (ruling 5; choice 9): a second utterance while the first's translation still plays — both transcribed and translated, the first's translation whole (`session.opened` reads `activityHandling: 'START_OF_ACTIVITY_INTERRUPTS'`). Known risks, one probe run per setting: speaking again within about a second of the first utterance's end cuts a 3.8 translation still generating; 3.8's mandatory proactive audio may still skip input; `gemini-3.1-flash-live-preview` (family 3.1, now barge-in) was not measured. **Changed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model speaking again within about a second of the first utterance's end no longer cuts a translation still generating — the hold keeps it, and lets it go one utterance at a time (Stage 2 Gemini hold, ruling 1; live-test item 1).
 8. **2.5 unchanged** (ruling 5): `NO_INTERRUPTION`; both translations whole in the same overlap.
 9. **Languages** (ruling 6; choices 14–18): a stored Gemini pair from before falls to English → Japanese (a side stored as `pt-BR` stays), and again after a reload until a pair is picked; the 99 / 78 offers follow the model picked; Traditional Chinese (`zh-Hant`) and `pt-PT` translate on Live Translate; a Live Translate pair with an Assamese source refuses Both in the participant notice's words; a dialogue model translates into Faroese; the row badges read "JA", "ZH-HANS".
 10. **Doubao in `s2t` mode** (choice 1; a text-only leg, or the participant leg): are `Response` frames pieces there too? Both probe runs were `s2s`. A row whose text doubles until its `End` means `s2t` sends snapshots, and choice 1 must split by mode.
 11. **Doubao karaoke in the display cut by sentences with the punctuation pack installed** (choice 19): ja → zh, a translation that ends without a sentence end (the probe had three in eight): the fill-in adds its marks, the karaoke reaches the last character, and the row stops being tinted as playing once its clip ends.
 12. **Live Translate into `zh-Hans` and `zh-Hant`** (ruling 6): Simplified Chinese, the likeliest target — the old code sent `zh`, measured to come back Simplified (`settings.ts:169-170` at `4f7c6b83`); the new one sends Google's `zh-Hans`, never measured. **Execution (Task 8's review, M4):** the old code also recorded `cmn` coming back Traditional; the new one sends `zh-Hant`, never measured either. Each is one probe run, with network allowed: `GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts translate --dst zh-Hant` (and `--dst zh-Hans`).
-13. **3.8 under push-to-talk** (ruling 5; choice 9): a press while the previous translation still generates — record whether barge-in cuts it, and how often.
+13. **3.8 under push-to-talk** (ruling 5; choice 9): a press while the previous translation still generates — record whether barge-in cuts it, and how often. **Changed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model a press made while the previous translation streams now waits for `turnComplete` instead of barging in (Stage 2 Gemini hold, choice 7; live-test item 3).
 14. **A voiceless press on Live Translate** (choice 12): the tail runs, framed `turn.tail` `{ cancelled: true }`, and `turn.tail_end` follows.
-15. **3.x barge-in with the model's own voice in the room** (ruling 5; choice 9): on the participant leg, or under automatic turns with speakers, the model's output echoed into capture must not cut its own response.
-16. **Typed text on a 3.x model while an answer streams** (ruling 5; the Gemini plan's choice 17). **Execution (the final review, M6):** under manual turns the text is wrapped in `activityStart` / `activityEnd`, so on a model that barges in it cuts the answer in flight — record whether `server_content.interrupted` follows `realtime_input.text` and whether the cut answer's row stays as it stood; under automatic turns, whether a text input interrupts is unknown — record whether it does.
-17. **A voiceless tap on 3.8 under push-to-talk while an answer streams** (ruling 5; the Gemini plan's ruling 8). **Execution (the final review, I1; `58ee9e5c`):** the adapter counts `interrupted` and a `turnComplete` with no content between them as one end, so the tap's own answer is dropped whether the release reaches it before `interrupted` or after. Record the order of `realtime_input.activity_end` (`cancelled: true`) and `server_content.interrupted` in the Logs, and whether a reply row appears for the tap.
-18. **A double press on a dialogue model** (the Gemini plan's ruling 8; the final fix wave's re-review). **Changed by the owed flag's fix (`f7bdb8bb`; "What it leaves"):** on 2.5, speak over an answer and release while it streams, then tap before your own reply starts; on 3.8, type text during an answer, then tap. The spoken (or typed) row must survive with its own translation and audio, and no reply to the tap may show. Watch the fix's one assumption, that a press released while an answer streams gets an answer of its own after it: record whether the Logs show a `turnComplete` for that answer before the tap's. Where the model folds the press into the streaming answer instead, the tap's reply shows — record that too. Then the order the fix moved: on 2.5, within one answer, tap, then speak and release, then tap again, all before your reply starts — on a model that answers an empty press the first tap's queued answer takes the spoken row's claim, so the spoken row and its translation vanish and both taps' replies show (where the flag before `f7bdb8bb` kept it); with no answer to taps the spoken row survives. Record which, and whether the Logs show a `turnComplete` for each tap. The flag against a count is the open question "The owed flag vs a count" below. Live Translate is not affected (it has no turns).
+15. **3.x barge-in with the model's own voice in the room** (ruling 5; choice 9): on the participant leg, or under automatic turns with speakers, the model's output echoed into capture must not cut its own response. **Changed by the Stage 2 Gemini hold plan:** the model's own voice, if it reaches capture, is held with the rest of the input and sent after `turnComplete`, not fed back live while the answer still plays (Stage 2 Gemini hold, choice 15; this plan's live-test item 5).
+16. **Typed text on a 3.x model while an answer streams** (ruling 5; the Gemini plan's choice 17). **Execution (the final review, M6):** under manual turns the text is wrapped in `activityStart` / `activityEnd`, so on a model that barges in it cuts the answer in flight — record whether `server_content.interrupted` follows `realtime_input.text` and whether the cut answer's row stays as it stood; under automatic turns, whether a text input interrupts is unknown — record whether it does. **Changed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model, typed text made while an answer streams is held and sent at `turnComplete`, not wrapped in `activityStart` / `activityEnd` that could cut the answer (Stage 2 Gemini hold, choice 8; live-test items 7, 13).
+17. **A voiceless tap on 3.8 under push-to-talk while an answer streams** (ruling 5; the Gemini plan's ruling 8). **Execution (the final review, I1; `58ee9e5c`):** the adapter counts `interrupted` and a `turnComplete` with no content between them as one end, so the tap's own answer is dropped whether the release reaches it before `interrupted` or after. Record the order of `realtime_input.activity_end` (`cancelled: true`) and `server_content.interrupted` in the Logs, and whether a reply row appears for the tap. **Changed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model a tap made while an answer streams is withdrawn whole — nothing sent, nothing to drop — so this item's one-end rule now runs only past the hold's cap (Stage 2 Gemini hold, choice 7).
+18. **A double press on a dialogue model** (the Gemini plan's ruling 8; the final fix wave's re-review). **Changed by the owed flag's fix (`f7bdb8bb`; "What it leaves"):** on 2.5, speak over an answer and release while it streams, then tap before your own reply starts; on 3.8, type text during an answer, then tap. The spoken (or typed) row must survive with its own translation and audio, and no reply to the tap may show. Watch the fix's one assumption, that a press released while an answer streams gets an answer of its own after it: record whether the Logs show a `turnComplete` for that answer before the tap's. Where the model folds the press into the streaming answer instead, the tap's reply shows — record that too. Then the order the fix moved: on 2.5, within one answer, tap, then speak and release, then tap again, all before your reply starts — on a model that answers an empty press the first tap's queued answer takes the spoken row's claim, so the spoken row and its translation vanish and both taps' replies show (where the flag before `f7bdb8bb` kept it); with no answer to taps the spoken row survives. Record which, and whether the Logs show a `turnComplete` for each tap. The flag against a count is the open question "The owed flag vs a count" below. Live Translate is not affected (it has no turns). **Changed by the Stage 2 Gemini hold plan:** on 3.x, typed text made during an answer is held and sent at `turnComplete`, and a tap made during the same hold is withdrawn, so neither can reach this item's queued-tap case; on 2.5, which holds nothing, this item is unchanged (Stage 2 Gemini hold, choices 7, 8).
 
 **Open questions for the owner**
 - **Stated pairing for Doubao** (live-test item 1; the AST2 section's item 7): every source subtitle carries its translation's server times in the probe — the evidence for stating origins from them; not ruled.
 - **A sentence whose times match nothing** (item 1's `matched: false` count): should it still be ranged on the lock's row? Parity says no.
 - **Live Translate's sources** (item 9; choice 16): the 99 and its own two, against the recommendation's "the 99".
 - **The tail's constants** (item 6): `TAIL_QUIET_MS` and `TAIL_MAX_MS` from `lastOutputMs`.
-- **Barge-in's cost on 3.8 under push-to-talk** (item 13).
+- **Barge-in's cost on 3.8 under push-to-talk** (item 13). **Answered by the Stage 2 Gemini hold plan:** a press made during an answer now waits for `turnComplete` instead of barging in — nothing is cut (Stage 2 Gemini hold, choice 7).
 - **The 2.5 dialogue model's Japanese input transcription** came back as " ." in the probe: server behaviour, not fixed here.
 - **A key without Live Translate on a fresh profile** (item 5; "What it leaves"): offer and run disagree; a fix needs the check's model list in the language context.
 - **The owed flag's limit on dialogue models** (item 18; "What it leaves"): land the `owedNext` fix now, or once the live test shows a press lost? **Done**: the owner ruled it fixed now (2026-09-29), landed in `f7bdb8bb`; item 18 now checks the fix and watches its assumption.
@@ -5736,7 +5736,7 @@ then the items the reviews routed here, last below):
 - **Live Translate's sources:** the 99 plus its own two (choice 16) is inference from its guide ("between 70+ languages"); the live test may narrow it.
 - **The wizard's tolerant language match** picks `zh-Hans` for a Traditional Chinese UI (it matches on the primary subtag, `src/components/SetupWizard/languageDefaults.ts:23-30`), for Gemini as for every provider with script variants: unchanged. Task 8's review ran the bundled `defaultLanguagePair` over the new table: `zh_TW` → `zh-Hans`; `zh_CN`, `pt_BR`, `pt_PT` and `ja` come out right. Before, a `zh_TW` UI matched nothing in Gemini's list (`cmn-CN`'s base is `cmn`) and took the provider's default. A `-Hant` preference for `zh_TW` / `zh_HK` in the generic matcher would fix it.
 - **Readiness narrowing** (`checkReads`) for Gemini and Doubao: still their own later change.
-- **The owed flag's limit on dialogue models** (found by the final fix wave, confirmed by its re-review; pre-existing since the Gemini plan's owed flag, `2f7a38f1`, not introduced or widened here): `closeTurn()` resets `owed` at the end of whichever answer was streaming (`src/providers/gemini/turns.ts`), so a voiced release or typed text made while an earlier answer streams loses its claim when that answer ends — its end is the answer's `turnComplete` under `NO_INTERRUPTION`, `interrupted` on a barge-in model — and a voiceless tap before its own answer streams then drops it: the real utterance's source row, translation and audio vanish, and the tap's reply (if the model answers one) shows instead. Reachable under `NO_INTERRUPTION` (2.5): release during an answer's 1.3–4.7 s streaming window, then a tap within about 1–2 s; narrower on 3.x (the round trip must outlast a 0.5 s voiced press; or typed text, then a tap). Live Translate is unaffected (no turns). A tested fix exists (the re-review's sketch, about ten lines, tried in scratch): a second flag `owedNext` set by `endTurn()` / `typed()` while an answer streams, carried into `owed` by `closeTurn()` instead of clearing it, cleared by `connectionLost()`, and `endAnswer()` starting a pending drop only when no answer is still owed; in scratch all six cases and both probe orders come out right, the 239 Gemini tests pass unchanged and the fuzz (seeds 31337 and 7, 3,000 runs each) breaks no invariant. Its one new assumption: a press released while an earlier answer streams gets its own answer afterwards (both overlap probes support it, under automatic detection). **Done** on the owner's ruling (2026-09-29; `f7bdb8bb`): the sketch landed as described, so a voiced release or typed text made while an earlier answer streams keeps its source row, its own translation and audio, and the tap's reply is dropped — pinned for the six orders, a reconnect between release and answer (nothing carried over), and the `NO_INTERRUPTION` case through the adapter; the six-case matrix, both probe orders, the barge-in harness and the fuzz (seeds 31337 and 7) came out as in scratch. The suite after it: 557 files passed and 1 skipped, 7,123 tests passed and 2 skipped, no unhandled errors; the gate at its baseline. What remains: the flag's own limit, as ruled — two answers waiting at once to start are one claim, cleared by the first to end, so a tap before the second's answer streams drops that answer (the Gemini section's "Found during execution", item 4). The two are either two voiced releases (or typed texts) waiting at once for their answers to start (both before any answer streams, or both while the same answer streams, for instance), or, on a model that answers an empty press, a tap's and a release's: within one streaming answer, a tap, then a voiced press (or typed text) that ends the tap's pending drop and is released, then another tap — the tap's queued answer takes the release's claim, so that utterance is lost where the flag before `f7bdb8bb` kept it; with no answer to taps it is the other way round. On balance the fix keeps far more than it loses: the independent review's oracle fuzz found 234 runs improved against 11 regressed with taps answered at random, 278 against none when taps get no answer, every regression this queued-tap order. And the assumption above, which live-test item 18 now watches; whether a count should replace the flag is the open question "The owed flag vs a count".
+- **The owed flag's limit on dialogue models** (found by the final fix wave, confirmed by its re-review; pre-existing since the Gemini plan's owed flag, `2f7a38f1`, not introduced or widened here): `closeTurn()` resets `owed` at the end of whichever answer was streaming (`src/providers/gemini/turns.ts`), so a voiced release or typed text made while an earlier answer streams loses its claim when that answer ends — its end is the answer's `turnComplete` under `NO_INTERRUPTION`, `interrupted` on a barge-in model — and a voiceless tap before its own answer streams then drops it: the real utterance's source row, translation and audio vanish, and the tap's reply (if the model answers one) shows instead. Reachable under `NO_INTERRUPTION` (2.5): release during an answer's 1.3–4.7 s streaming window, then a tap within about 1–2 s; narrower on 3.x (the round trip must outlast a 0.5 s voiced press; or typed text, then a tap). Live Translate is unaffected (no turns). A tested fix exists (the re-review's sketch, about ten lines, tried in scratch): a second flag `owedNext` set by `endTurn()` / `typed()` while an answer streams, carried into `owed` by `closeTurn()` instead of clearing it, cleared by `connectionLost()`, and `endAnswer()` starting a pending drop only when no answer is still owed; in scratch all six cases and both probe orders come out right, the 239 Gemini tests pass unchanged and the fuzz (seeds 31337 and 7, 3,000 runs each) breaks no invariant. Its one new assumption: a press released while an earlier answer streams gets its own answer afterwards (both overlap probes support it, under automatic detection). **Done** on the owner's ruling (2026-09-29; `f7bdb8bb`): the sketch landed as described, so a voiced release or typed text made while an earlier answer streams keeps its source row, its own translation and audio, and the tap's reply is dropped — pinned for the six orders, a reconnect between release and answer (nothing carried over), and the `NO_INTERRUPTION` case through the adapter; the six-case matrix, both probe orders, the barge-in harness and the fuzz (seeds 31337 and 7) came out as in scratch. The suite after it: 557 files passed and 1 skipped, 7,123 tests passed and 2 skipped, no unhandled errors; the gate at its baseline. What remains: the flag's own limit, as ruled — two answers waiting at once to start are one claim, cleared by the first to end, so a tap before the second's answer streams drops that answer (the Gemini section's "Found during execution", item 4). The two are either two voiced releases (or typed texts) waiting at once for their answers to start (both before any answer streams, or both while the same answer streams, for instance), or, on a model that answers an empty press, a tap's and a release's: within one streaming answer, a tap, then a voiced press (or typed text) that ends the tap's pending drop and is released, then another tap — the tap's queued answer takes the release's claim, so that utterance is lost where the flag before `f7bdb8bb` kept it; with no answer to taps it is the other way round. On balance the fix keeps far more than it loses: the independent review's oracle fuzz found 234 runs improved against 11 regressed with taps answered at random, 278 against none when taps get no answer, every regression this queued-tap order. And the assumption above, which live-test item 18 now watches; whether a count should replace the flag is the open question "The owed flag vs a count". **Narrowed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model this limit cannot arise while a hold runs — a press or typed text made during an answer is held or withdrawn before it can compete for the flag — and shows only once a hold has let go at its cap, or on a model that answers taps (Stage 2 Gemini hold, choice 13); on 2.5, which holds nothing, the limit stands as described above.
 - **The owner's open questions** in this record, each with the live-test item that settles it.
 - **A key without Live Translate on a fresh profile** (Task 8's review, M1; the plan's choice 16, as written): with no model saved the offer is Live Translate's (101 / 78) while `effectiveGeminiModel` runs a dialogue model — the 23 languages only the Live API documents are missing from the targets, Javanese and Sundanese are offered though only the instructions name them, and Both is refused for a source among those 23. With a single listed model the user cannot leave it (the model field is a native `<select>`). Nothing wrong is sent. The plan chose `''` to read as Live Translate; a fix needs the check's model list in the language context. Cost while open: such users miss 23 targets until they pick another model. Told to the owner; live-test item 5.
 - **A stale comment and test title** (Task 8's review, M3): `src/components/Subtitle/SubtitleView.tsx:44` and `SubtitleView.test.tsx:192` still name Gemini's `cmn-CN`; the behaviour is right (`zh-Hans` shows as "ZH"). Outside the plan's files (`src/components/**` read-only).
@@ -6437,3 +6437,384 @@ then the items the reviews and this record routed here, last below):
 - **Nothing on the old code:** the old client, descriptor, slice readers and UI branches stay compiled and unreachable, as the protocol documentation.
 - **For the final review:** the items under "Accepted as they stand" above.
 - **Production comments that cite a review or a task** (this record's reading of the landed code), against the plan's rule that production comments cite rulings, choices, D rulings and F items only: `src/lib/session/shape.ts:129` ("review N3"), `src/providers/palabraai/audioIn.ts:18` ("fix round 1, I1"), `:42` ("fix round 1, N3") and `:43` ("Task 13's adapter"). The test-only kit and fixtures do the same (`src/lib/contract/testing/fakeSocket.ts:99`, `scenarios.ts:34, 36, 131`; `src/providers/palabraai/testing.ts:157, 169, 181, 217`), which the rule does not cover. Wording only; the OpenAI Realtime record's `gemini/config.ts:70` is the same kind.
+
+## Scheduled by the Stage 2 Gemini hold plan
+
+The Stage 2 Gemini hold plan
+(`docs/superpowers/plans/2026-09-29-client-contract-stage2-gemini-hold.md`,
+plan commit `5a6d7091`, written over `ef2f61d3`'s code — the Palabra plan's
+record included) landed as the four commits `95860d69` through `85925a07` on
+`worktree-client-contract-stage2` (`5a6d7091..85925a07`: **+2 228 / −11 lines
+across 8 files**, `git diff --shortstat`). Then this record with the spec's
+amendments. It ports no new provider: it carries out the owner's ruling that a
+**3.x Gemini dialogue model holds its input** — the audio, a press's marks and
+typed text — from the user's turn close to the model's `turnComplete`, under
+both turn modes, with an adaptive cap, carried across a reconnect, and, under
+automatic turns, letting it go one utterance at a time. No contract change, no
+new locale key, no store or view change.
+
+Four implementation tasks ran in three waves: Wave 1, Tasks 1 and 2 in
+parallel at `5a6d7091`; Wave 2, Task 3, once Wave 1 was committed; Wave 3, Task
+4, once Task 3 was committed. Each task had one review and no fix round — 0
+findings each, Spec ✅, Quality Approved — and every committed file was
+checked mechanically byte-identical to the plan's code (the plan's diffs
+applied with `patch -p1` to the task's base, then diffed against it). Task 5
+is this record; the final whole-branch review follows it.
+
+**What landed, by task:**
+- **Read the server's voice activity and wait for input, and frame them**
+  (`95860d69`, Task 2; red 1 failed / 61 passed → green 5 files, 113 tests):
+  `GeminiServerMessage.voiceActivity`, `SERVER.voiceActivity`,
+  `SERVER.waitingForInput`; the `server.voice_activity` (`in`) and
+  `server_content.waiting_for_input` (`in`) frames.
+- **A pure hold for a 3.x dialogue model's input** (`54d2b1ba`, Task 1; red:
+  unresolved import → green 41 tests): `src/providers/gemini/hold.ts` —
+  `InputHold`, `HeldAction`, `HoldSummary` (`carried`, `droppedMs`,
+  `keptMs`), `HoldCause` (with `split`), `HoldEnd` (with
+  `voice_activity_start` and `split_timeout`), `InputHoldOptions`,
+  `HOLD_MARGIN_MS` = 2 000, `HOLD_IDLE_MS` = 10 000, `HOLD_CARRY_MS` = 5 000,
+  `SPLIT_PAUSE_MARGIN_MS` = 100, `SPLIT_PAUSE_FLOOR_MS` = 200, `splitPauseMs`,
+  `SPLIT_END_MS` = 2 000, `GATE_FRAME_MS` = 10, `GATE_PEAK_DIVISOR` = 10 — a
+  provider-side module timed only through the clock it is handed, importing no
+  store and no reporter (the import rule holds; `hold.ts` imports only the
+  contract's `SAMPLE_RATE` and the `Clock` type).
+- **A 3.x dialogue model holds its input until `turnComplete` (automatic
+  turns)** (`9925932f`, Task 3; red 16 failed / 82 passed → green 18 files,
+  329 tests): the adapter wired to `InputHold` under automatic turns — the
+  hold begins at the server's turn close (`voiceActivity` ACTIVITY_END, else
+  the turn's first output, or its first input transcription on a session that
+  has heard no voice activity), an ACTIVITY_START or a split's own timeout
+  lets part of it go, and `turn.hold` / `turn.hold_end` frame it;
+  `src/providers/gemini/adapter.hold.test.ts` (new); the session-side guard's
+  roster in `sessionSide.consistency.test.ts` lists `hold.ts`, above
+  Palabra's.
+- **Push-to-talk and typed text wait for a 3.x model's turn to end**
+  (`85925a07`, Task 4; red 16 failed / 91 passed → green 18 files, 346
+  tests): the hold under manual turns — a release's `activityEnd` begins it, a
+  press made during it waits for `turnComplete`, a voiceless press whose start
+  is still held is withdrawn whole (nothing sent, nothing to drop); typed
+  text's marks are read on the wire and its text held and sent in order.
+
+**Gates after each wave** (the controller's, on a clean tree, 0 failed and no
+unhandled errors throughout, the typecheck gate at its 20-line baseline): Wave
+1 (`54d2b1ba`/`95860d69`) — 572 files passed and 1 skipped, 7 401 tests passed
+and 2 skipped; Wave 2 (`9925932f`) — 573 + 1, 7 429 + 2; Wave 3 (`85925a07`) —
+573 + 1, 7 446 + 2 — the same count as the group check below, Task 4 being the
+branch's last commit before it.
+
+**Checked — the group check** (at `85925a07`):
+1. `npx vitest run src`: 573 passed and 1 skipped files, 7 446 passed and 2
+   skipped tests, no unhandled errors; the typecheck gate prints exactly the
+   20-line baseline, the full tree at 259;
+2. `src/services`: 49 files, 1 039 tests — the old clients untouched;
+3. `npm run build` and `npm run extension:build` exit 0; `npx vitest run
+   extension`: 7 files, 45 tests; the three D24 greps print nothing;
+   `turn.hold_end` ships in `build/static/index-*.js` and
+   `extension/dist/fullpage.js`;
+4. no rendered check: nothing on screen changes without a live session.
+
+**The plan's revisions,** each replayed on a fresh tree before execution — the
+final replay went 7 360 → 7 446 tests, and 54 hand mutants were all caught:
+- **Revision 1** (`f0956d70`; the independent review, Ready after fixes, 0
+  Critical / 3 Important / 9 Minor): the controller's rulings — I1, the multi
+  probe's two failure modes (a) and (b) named; I2, the input-transcription
+  fallback off once voice activity has come; I3, a hold carried across a
+  reconnect (choice 10).
+- **Revision 2** (`f0956d70`; the re-review, 0 / 1 / 1): `HOLD_CARRY_MS` =
+  5 000 bounds the gap's audio under automatic turns; failure mode (a)'s
+  window corrected (stream time against the run clock).
+- Between Revisions 2 and 3 (`fb563efd`), the owner's decisions: the
+  participant leg keeps the hold (choice 1); a multi-session probe batch run.
+- **Revision 3** (`88f550f6`; ruling 4, from the owner's multi batches —
+  batch 2, `12-13-51`: `turn2` 10/10 whole, `turn` 5/10, `none` 0/10): an
+  ACTIVITY_START lets a hold go, and one utterance per release — a split at a
+  pause, a wait for the server's close.
+- **Revision 4** (`7aeb45a8`; re-review 3, Ready after fixes, 0 / 2 Important
+  / 4 Minor): the coordinator's rulings A–F — `SPLIT_END_MS` = 2 000 (A); the
+  split's pause = `max(200, silenceMs + 100)` (B); the split's wait =
+  `max(SPLIT_END_MS, ceil(sentMs / 2))` (C); `cut` cleared on content, and
+  `waitingForInput` ends the model turn first (D); a split's hold lets a START
+  go once its END has come (E); live-test items 15–17 (F).
+- **Revision 5** (`5a6d7091`; the fourth re-check, Ready after fixes, 0 / 0 /
+  3 Minor): the coordinator's rulings — M1, a leftover "1.5 s" in choice 2
+  fixed; M2, `hold.output(audioMs, content)` reads content as `GeminiTurns`
+  counts it (non-empty 24 kHz pcm, or text), while audio at any rate still
+  feeds the cap; M3, `waitingForInput` does nothing while a split awaits its
+  END.
+
+**Departures, stated:**
+- on a 3.x dialogue model the second utterance, and a press or typed text made
+  while an answer plays, reach the server only when the answer's simulated
+  playback ends — the translation of a quick second sentence starts later
+  (the probes: clip 2's end → answer 2's first audio 0.94–2.6 s), where
+  barge-in cut the first (ruling 1);
+- a typed row appears when it is sent (choice 8);
+- a tap during an answer is withdrawn, never sent (choice 7);
+- under automatic turns each utterance waits for the answer before it to
+  finish its simulated playback, and a split waits for a close that may not
+  come — 2 s, or half as long as the audio it let go plays — then merges
+  (ruling 4; choice 14): in the owner's batch 2 the second and third of three
+  sentences were translated 3.25–7.36 s after they ended, against 2.12–3.66 s
+  for the hold without ruling 4 where it did not stall, and 0.9–1.5 s under
+  barge-in, which cut answers;
+- the participant leg's next sentence waits through a phantom playback, and
+  over a monologue whose translations run longer than the speech that
+  follows, that lag accumulates, one utterance at a time — L(n+1) ≈ max(L(n) +
+  A(n) − P − U(n+1) + c′, c) + f (choice 1);
+- a reconnect during a hold — a GoAway, which every connection gets about
+  every 9–10 min, or a close — carries what is held, and input sent in the
+  gap (under automatic turns up to 5 s of the gap's audio, the rest dropped as
+  today), to the new connection, where today's gap drops it all (choice 10).
+
+**Before any release from the branch:** the owner's live test below.
+
+**The owner's live test** (own credentials; switch diagnostic logs on in Help
+before Start; each item names what settles it):
+1. **Overlap under automatic turns on 3.8 and 3.1** (ruling 1; choices 2, 4,
+   5): two sentences with speech pauses of 1.5–2.5 s: both transcribed and
+   translated whole; the Logs read `server.voice_activity` ACTIVITY_END →
+   `turn.hold` (`cause: 'voice_activity'`) → … `server_content.turn_complete`
+   → `turn.hold_end` (`reason: 'turn_complete'`, `heldMs` close to
+   `playbackEndMs`; a `keptMs` when sentence 2 and a pause after it were held,
+   then `turn.hold { cause: 'split' }`, choice 14), and no
+   `server_content.interrupted`; record the gap between the answers.
+2. **A long answer** (ruling 3; choice 5): a **non-repetitive** 15–20 s
+   passage in one go (2f's thrice-repeated pair was translated once, as one
+   ~4.5 s answer, and bounded nothing), then a sentence: the hold lasts to
+   `turnComplete` — no `cap` — and the second sentence is translated whole;
+   record the largest `heldMs` and `audioMs` (the burst's length).
+3. **Push-to-talk on 3.8 and 3.1** (choices 3, 7): press, speak, release;
+   press again while the first translation plays: the second press's
+   `realtime_input.activity_start` comes only after
+   `server_content.turn_complete` and `turn.hold_end`; both translated whole;
+   the owner's live log's cut gone (no `server_content.interrupted`).
+4. **A tap during an answer on 3.x** (choice 7): no `realtime_input.*` line
+   for the tap; `turn.hold_end` reads `withdrawn: 1`; the answer plays whole,
+   and the next press's answer shows.
+5. **Speakers, no headphones** (research note 5): automatic turns on 3.8 with
+   the answer audible in the room, **on Windows, macOS and Linux, and with the
+   output on a non-default device**: does the held echo come back after
+   `turnComplete` as input — a source row of the model's own words, or a
+   translation of its translation? Record, per run, the recorder's
+   echo-cancellation setting as logged, whether an EchoNotice showed (and
+   which: `tts-echo`, `self-capture`, `far-end-echo`, `routing-loop`), and
+   whether releases still split — a `keptMs` on `turn.hold_end` — with the
+   answer audible: the echo may leave the held audio no pause (choice 15).
+6. **The participant leg on 3.x** (choice 1): a remote speaker's
+   **monologue of at least 1 minute**: every sentence translated whole;
+   record each participant `turn.hold_end` `heldMs`, `keptMs` and `reason`
+   (how many `split_timeout`) — the participant capture has no echo
+   cancellation or noise suppression, and meeting audio may carry music or
+   crosstalk, so a release with no `keptMs` there means the gate found no
+   pause — whether the lag behind the speaker grows over the minute against
+   choice 1's formula, and any `server_content.interrupted` inside a hold
+   (item 10).
+7. **Typed text during an answer on 3.x** (choice 8): under push-to-talk, the
+   row appears when the answer's playback ends, then its own translation,
+   paired, and no `server_content.interrupted`.
+8. **2.5 and Live Translate** (ruling 2): no `turn.hold` line; the behaviour
+   as before.
+9. **A turn with no answer** (ruling 3): a cough under automatic turns on
+   3.8, and **a voiced release under push-to-talk that the model neither
+   answers nor completes**: record whether `server_content.turn_complete`
+   (with its reason) or `server_content.waiting_for_input` lets the hold go,
+   or `turn.hold_end` reads `idle` after 10 s — under push-to-talk that keeps
+   the next press back up to 10 s.
+10. **`interrupted` near a hold, and the gap** (choices 4, 5, 14): any
+    `server_content.interrupted` just after a `turn.hold` has one of two
+    causes. **(a) Speech that reached the server before the hold began** (a
+    pause of about 0.63–0.91 s plus the hold's 0.03–0.19 s, and the server
+    needing 0.14–0.56 s of that speech; unseen in 54 probe sessions): the
+    `turn.hold` came after live audio, with no `turn.hold_end` in the second
+    before it, then `server.voice_activity` ACTIVITY_START — whose
+    `audioOffset` lies in audio sent before the hold began — and
+    `turn.hold_end` `voice_activity_start` at once. **(b) A split whose wait
+    ran out before the server's close:** `turn.hold_end` `split_timeout`,
+    then within about 0.1 s `server.voice_activity` ACTIVITY_END — its
+    `audioOffset` seconds behind the audio sent — a `turn.hold` on it, an
+    ACTIVITY_START and `server_content.interrupted` with no
+    `generation_complete`, and that hold's end `voice_activity_start`. Record
+    which, and the pause. **The gap, which ruling 4 ends:** a `turn.hold`
+    begun on an ACTIVITY_END that arrived seconds behind its `audioOffset`, an
+    ACTIVITY_START within about 0.3 s, then `turn.hold_end` with `reason:
+    'idle'` after its wait (2 s, or half the audio it let go). With ruling 4
+    that hold ends `voice_activity_start` at the START instead: an `idle`
+    there is a regression — record it with the Logs around it.
+11. **A reconnect during a hold** (choice 10): wait for a GoAway (about every
+    9–10 min; `server.go_away` in the Logs) while a translation plays and you
+    speak, and force a close (drop the network briefly): `turn.hold_end` with
+    `reason: 'reconnect'` and `carried: true` after the new connection's
+    `server.setup_complete`, and the utterance spoken across the gap
+    translated whole; record the gap (from `session.reconnecting` to the new
+    `server.setup_complete`), `audioMs` and any `droppedMs` — a `droppedMs`
+    means the gap passed 5 s of speech, and whether 5 s is right; under
+    push-to-talk, a press held across it shows one
+    `realtime_input.activity_start` on the new connection, then its audio.
+12. **Several sentences under automatic turns** (ruling 4; failure modes (a)
+    and (b)): three or more short sentences with pauses of about 0.8–1.5 s —
+    across both the merge boundary and failure mode (a)'s band — and a short
+    sentence right after a long answer, on 3.8, on 3.1 and on the participant
+    leg: every sentence translated whole, one answer per sentence. The Logs
+    read, per release, `turn.hold_end` with a `keptMs`, then `turn.hold {
+    cause: 'split' }`; the server's ACTIVITY_START and ACTIVITY_END for what
+    went up inside that hold; then `server_content.turn_complete` and its
+    `turn.hold_end` `turn_complete`. Record every `split_timeout` (and
+    whether an `interrupted` followed it) and the lag per sentence; the other
+    signatures are item 10's, the gap's among them.
+13. **Typed text under automatic turns while speaking** (choice 8): type
+    during an answer while talking: the release sends audio, then the text,
+    then audio (Google documents no ordering across modalities) — a text
+    typed after the pause waits with the next sentence (choice 14) — record
+    whether the text's answer and the speech's come out whole and in order.
+14. **A noisy room** (choice 15): item 12 again with steady noise — a fan, a
+    café recording — at a level the voice clears by less than 20 dB: record
+    whether releases split (a `keptMs`), any `split_timeout`, and any
+    `turn.hold_end` `idle`; without a split the release goes whole, and the
+    START rule still ends any stall.
+15. **The Silence Duration slider** (choice 15): item 12 again with the
+    slider at 300 ms and at 1 500 ms, on 3.8 and 3.1: record the
+    `split_timeout`s — at 1 500 a split's pause is 1.6 s — and any
+    `server_content.interrupted` inside a hold — at 300, a close under the
+    split's 400 ms pause goes up with the next onset.
+16. **Long sentences** (choice 14): 3.1, and the participant leg, with
+    sentences of 5–10 s and pauses of about 1 s: record each `split_timeout`
+    against the audio its split let go (`audioMs − keptMs` of the
+    `turn.hold_end` before it) — the wait is half that, at least 2 s — and any
+    `interrupted` after one.
+17. **A hesitating reader** (choice 15): on 3.8 and 3.1, read sentences with
+    pauses of 0.6–1 s inside them: record the `split_timeout`s, and whether
+    one sentence comes back as two answers.
+
+**Open questions for the owner:**
+- a release without voice begins no hold (choice 3) — to revisit if item 4 or
+  the Gemini section's item 6 shows 3.x answering empty activity;
+- the held echo (item 5);
+- a typed row shown late against one shown at once under the answering turn's
+  origin (choice 8).
+
+**Amended in place**, each marked as changed, answered or narrowed by this
+plan (the literal marks are on the entries themselves, in the Gemini/AST2
+follow-up section above), in that section: live-test items 7 (3.8
+overlap: speaking again within about a second no longer cuts a translation
+still generating — the hold), 13 (3.8 under push-to-talk: a press while the
+translation generates now waits), 15 (the model's own voice in the room: now
+held and sent after `turnComplete`; this plan's item 5), 16 (typed text on 3.x
+while an answer streams: held to `turnComplete`), 17 (a voiceless tap on 3.8
+while an answer streams: withdrawn during a hold; the one-end path only past a
+cap) and 18 (on 3.8, typed text during an answer, then a tap: the text held,
+the tap withdrawn); its "What it leaves" item "The owed flag's limit on
+dialogue models" (narrowed: cannot arise on 3.x while holds run, only after a
+cap or on a model that answers taps; unchanged on 2.5); its open question
+"Barge-in's cost on 3.8 under push-to-talk" (answered: a press during an
+answer waits, nothing is cut).
+
+**The roadmap's inheritance, item by item** (the plan's table, as landed):
+taken (and where), or left (and why).
+
+| Item | Disposition |
+|---|---|
+| The Gemini/AST2 follow-up section: live-test item 7, 3.8 overlap ("speaking again within about a second … cuts a 3.8 translation still generating") | met: the hold (Tasks 3, 4; ruling 1), and for several sentences under automatic turns ruling 4 (Tasks 1, 3) — every utterance whole in batch 2's 10 `turn2` sessions, pauses 0.8–1.5 s; failure mode (a) unseen in 54 sessions — live-test items 1, 10, 12 |
+| Its item 13, 3.8 under push-to-talk (a press while the previous translation generates) | met: the press waits (Task 4; choice 7); live-test item 3 |
+| Its item 15, the model's own voice in the room | changed: held and sent after `turnComplete` (research note 5); live-test item 5 |
+| Its item 16, typed text on a 3.x model while an answer streams | met: held to `turnComplete` (Task 4; choice 8); live-test items 7, 13 |
+| Its item 17, a voiceless tap on 3.8 while an answer streams | changed: withdrawn during a hold (Task 4; choice 7); the landed one-end path runs only past a cap |
+| Its item 18, a double press (on 3.8: typed text, then a tap) | changed on 3.x: the text held, the tap withdrawn (choices 7, 8); on 2.5 unchanged |
+| Its "What it leaves": the owed flag's limit on dialogue models | narrowed: cannot arise on 3.x while holds run, only after a cap or on a model that answers taps (choice 13); unchanged on 2.5 |
+| Its open question: barge-in's cost on 3.8 under push-to-talk | answered: a press during an answer waits, nothing is cut |
+| The research's release at `generationComplete` (its "Variant B") | not taken: the probe's `generation` policy left utterance 2's start untranslated (choice 4) |
+
+**What this plan leaves** (the plan's own list, as written):
+- **Failure mode (a): speech that starts just after the server's close,
+  narrowed, not closed.** The server closes the user's turn 0.71–0.79 s after
+  the speech (batch 2: 0.63–0.91 s) and the client begins the hold 0.03–0.04 s
+  (3.8) or 0.12–0.19 s (3.1) later; speech that starts in that window reaches
+  the server before the hold, and once the server has 0.14–0.56 s of it, its
+  ACTIVITY_START can barge into answer 1 — on 3.8 more speech than the window
+  lets through, on 3.1 a narrow band. Ruling 4's START rule changes what
+  follows, not the cut: the hold lets go at the START instead of keeping that
+  utterance's end to the idle cap. Unseen in 54 sessions; live-test items 10
+  and 12.
+- **Failure mode (b) where a split's wait runs out first.** The gap and (b)
+  came from a released burst that held the next utterance's onset; ruling 4
+  keeps that onset held until the server has closed and answered the
+  utterance before it, but only for the split's wait. At the probe's 1.5 s, 4
+  of batch 2's 22 splits (all 3.1) ran out 50–90 ms before the close, and
+  where the next onset went up then (2 of the 4), 3.1 cut the pending answer
+  before any output and answered the two utterances together — whole, one
+  answer for two. At 2 s, or half the released audio, all 22 are caught; what
+  is left is a server that reads a released part slower than 3.1's 2.1× (the
+  wait's scale), a close later than 2 s after a short one, and a START after a
+  split's END that still belongs to its utterance (choice 14, departure 6).
+  Live-test items 6, 10, 12 and 16.
+- **A long released part on a pause the server never closes** waits half its
+  length before the rest goes: a 16 s part, 8 s, with nothing but the hold's
+  own cap to bound it (choice 14). Lag only, the rest merged; live-test item
+  16.
+- **A Silence Duration under about 100 ms** puts the split's pause on its
+  200 ms floor, above the server's close: a burst can hold a close under
+  200 ms and the next onset — (b), at a setting no probe used (choice 15).
+  Only the default, 500, is measured; live-test item 15.
+- **The gate's ground.** Ten sessions (batch 2's `turn2`) of clean speech
+  from two TTS voices, with digital silence between sentences (choice 15). A
+  noise floor within 20 dB of the voice, other voices, or the answer's echo in
+  held audio can leave no pause to find: the release then goes whole, as
+  under ruling 1 alone, and the START rule still ends a stall. A speaker who
+  pauses past the split's pause inside a sentence — 600 ms at the default — is
+  split there: the server closes on it only where it would have live; else
+  the split's wait, then a merge. Live-test items 5, 6, 12, 14 and 17.
+- **The lag ruling 4 costs** (choice 1; the departures): every utterance
+  waits for the answer before it to finish its simulated playback, so on a
+  monologue whose translations run longer than its sentences the lag grows by
+  sentence, up to 7.36 s in batch 2's sentence-after-a-long-one case. No bound
+  but a long pause; Live Translate for monologues.
+- **A missed ACTIVITY_END** leaves the server's speaking state set: neither
+  fallback begins a hold for that model turn or the next, which fall back to
+  barge-in, until the next ACTIVITY_END recovers it (choice 2; the review's
+  scenario S3). A split's hold whose END is missed lets the rest go after its
+  wait.
+- **A `turnComplete` lets go of whatever hold is on,** even one begun for a
+  later turn. Reachable only after a cap let a hold go before its
+  `turnComplete`, or after a tap's answer on a model that answers taps
+  (choice 3): the next hold may then end early, and a press during it barges
+  in as it did before this plan.
+- **A model that sends no voice activity** keeps the input-transcription
+  fallback, and with it the risk of a late transcription beginning a hold
+  that waits for the idle cap; no 3.x model is such a model (choice 2).
+- **A model that stalls mid-answer** longer than the audio it has sent plus
+  2 s is let go of by the cap before `generationComplete`, and may be cut
+  truly (choice 6).
+- **The probe keeps its own hold** (`scripts/dev/wire-probe/gemini-hold.mts`),
+  a research instrument with its own policies; the adapter's `InputHold` is
+  not shared with it.
+- **The seeded lifecycles run the 3.x model only:** 2.5 and Live Translate
+  still rest on the conformance scenarios and their own suites.
+- **Trimming a held burst while the echo monitor reports `tts-echo`** — a
+  later option if item 5 shows the held echo translated; outside this plan.
+- **A pending indicator for held typed text** — the cheap UX follow-up to
+  choice 8's late row.
+- **Manual turns driven by a client VAD** (the research's §2.8) — only if the
+  live test shows no reliable turn close.
+- **Google's "playback status reporting"** (`turnComplete`'s doc), which
+  could shorten the simulated playback, has no client field in the reference
+  or SDK 2.24.0; a lever if Google ships it.
+- **The owed flag's limit after a cap, or on a model that answers taps**
+  (choice 13) keeps the landed rules; whether a count should replace the flag
+  is still the follow-up's open question.
+
+**The plan's open questions, as landed** (already decided during the plan's
+own revisions; kept for the record):
+- **The participant leg** (choice 1): **decided 2026-09-29 — the owner:
+  「参会方要暂存」.** It keeps the hold, knowing its lag can accumulate over a
+  monologue (the formula above, one utterance at a time under ruling 4); Live
+  Translate, the default, is the no-turn option for monologues.
+- **The probe batch before the live test** (the review's fix 6): **run by the
+  owner on 2026-09-29 (「补一个探针我帮你跑」), twice** — batch 1, 24
+  sessions, and batch 2, 30, Japanese only; its results are ruling 4
+  (「按turn2改计划」).
+- **`SPLIT_END_MS`** (choice 14): **decided — `SPLIT_END_MS` is 2 000 —
+  coordinator's ruling: at 1 500 all four batch-2 timeouts were 3.1 closes
+  landing at 1 561–1 611 ms; at 2 000 they are caught and nothing else
+  changes (re-review 3, §3).** The wait also grows with the audio a split let
+  go (the coordinator's ruling C), and the split's pause follows the
+  session's Silence Duration (ruling B); live-test items 12, 15 and 16 count
+  the `split_timeout`s.
