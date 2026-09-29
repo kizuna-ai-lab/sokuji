@@ -11,17 +11,12 @@ describe('scenario presets', () => {
     ]);
   });
 
-  it('pins the presets the spec table lists', () => {
-    expect(getScenario('understand-others')).toMatchObject({ mode: 'participant', textOnly: true, participantDisplayMode: 'translation' });
-    expect(getScenario('be-heard')).toMatchObject({ mode: 'speaker', textOnly: false, speakerDisplayMode: 'both' });
-    expect(getScenario('subtitle-myself')).toMatchObject({ mode: 'speaker', textOnly: true, speakerDisplayMode: 'translation' });
-    expect(getScenario('two-way-voice')).toMatchObject({ mode: 'both', textOnly: false, speakerDisplayMode: 'both', participantDisplayMode: 'both' });
-    expect(getScenario('two-way-text')).toMatchObject({ mode: 'both', textOnly: true, speakerDisplayMode: 'both', participantDisplayMode: 'both' });
-  });
-
-  it('leaves the display mode of a leg the scenario does not run untouched', () => {
-    expect(getScenario('understand-others').speakerDisplayMode).toBeUndefined();
-    expect(getScenario('be-heard').participantDisplayMode).toBeUndefined();
+  it('pins the presets the spec table lists: a mode and whether the speaker leg speaks, and nothing else — no display mode (Stage 2 session end, ruling 1)', () => {
+    expect(getScenario('understand-others')).toEqual({ id: 'understand-others', mode: 'participant', textOnly: true });
+    expect(getScenario('be-heard')).toEqual({ id: 'be-heard', mode: 'speaker', textOnly: false });
+    expect(getScenario('subtitle-myself')).toEqual({ id: 'subtitle-myself', mode: 'speaker', textOnly: true });
+    expect(getScenario('two-way-voice')).toEqual({ id: 'two-way-voice', mode: 'both', textOnly: false });
+    expect(getScenario('two-way-text')).toEqual({ id: 'two-way-text', mode: 'both', textOnly: true });
   });
 });
 

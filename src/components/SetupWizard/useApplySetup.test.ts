@@ -28,6 +28,7 @@ import { Provider } from '../../types/Provider';
 import { readCredentials } from '../../lib/provider/credentials';
 import { volcengineAst2Provider } from '../../providers/volcengine_ast2/provider';
 import { useProviderStore } from '../../stores/providerStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { useApplySetup } from './useApplySetup';
 import { initialDraft } from './setupDraft';
 import type { SetupDraft } from './setupDraft';
@@ -59,6 +60,22 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
     expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'local_inference');
     expect(setSetting).toHaveBeenCalledWith('settings.localInference.sourceLanguage', 'en');
     expect(setSetting).toHaveBeenCalledWith('settings.localInference.targetLanguage', 'ja');
+  });
+
+  it('leaves both display modes as the user chose them: a re-run of a two-way scenario writes neither (Stage 2 session end, ruling 1)', async () => {
+    useSettingsStore.setState({ speakerDisplayMode: 'source', participantDisplayMode: 'source' });
+    try {
+      const { result } = renderHook(() => useApplySetup());
+
+      await result.current(draft({ scenario: 'two-way-voice' }));
+
+      expect(useSettingsStore.getState().speakerDisplayMode).toBe('source');
+      expect(useSettingsStore.getState().participantDisplayMode).toBe('source');
+      expect(setSetting).not.toHaveBeenCalledWith('settings.common.speakerDisplayMode', expect.anything());
+      expect(setSetting).not.toHaveBeenCalledWith('settings.common.participantDisplayMode', expect.anything());
+    } finally {
+      useSettingsStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both' });
+    }
   });
 
   it("drops credentials the provider does not take (LocalInference's own credentials.keys is empty)", async () => {

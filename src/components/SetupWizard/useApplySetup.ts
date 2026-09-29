@@ -20,8 +20,6 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
     await applySetupDraft(draft, {
       setMode: useAudioStore.getState().setMode,
       setTextOnly: s.setTextOnly,
-      setSpeakerDisplayMode: s.setSpeakerDisplayMode,
-      setParticipantDisplayMode: s.setParticipantDisplayMode,
       applyProvider: async (provider, pair, credentials, settings) => {
         const id = providerIdFromStored(provider);
         const p = presentProviders().find((candidate) => candidate.id === id);
