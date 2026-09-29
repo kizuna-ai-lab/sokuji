@@ -92,13 +92,13 @@ describe('Live Translate: the release tail (Gemini/AST2 follow-up, ruling 4)', (
     expect(h.frames('realtime_input.activity_end')).toEqual([{ cancelled: true }]);
   });
 
-  it("typed text during the tail ends it first, so the text's own activity marks never nest in the press's", async () => {
+  it("typed text during the tail ends it first, so it never nests in the press's activity; this model's family sends it bare, not in marks of its own (the owner's text probe, 2026-09-30)", async () => {
     const h = await liveGemini({ model: TRANSLATE, context: MANUAL });
     h.session.beginTurn();
     h.session.endTurn();
     h.clock.advance(200);
     h.session.appendText('hello');
-    expect(kinds(h.sent() as Sent[])).toEqual(['setup', 'activityStart', 'silence', 'silence', 'activityEnd', 'activityStart', 'text', 'activityEnd']);
+    expect(kinds(h.sent() as Sent[])).toEqual(['setup', 'activityStart', 'silence', 'silence', 'activityEnd', 'text']);
     expect(h.frames('turn.tail_end')).toEqual([{ reason: 'text', silenceMs: 200, lastOutputMs: null }]);
   });
 

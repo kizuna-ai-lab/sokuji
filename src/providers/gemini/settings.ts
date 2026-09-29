@@ -319,6 +319,19 @@ export function geminiActivityHandling(model: string): GeminiActivityHandling {
   return familyOf(model) >= 3000 ? 'START_OF_ACTIVITY_INTERRUPTS' : 'NO_INTERRUPTION';
 }
 
+/**
+ * Whether typed text sent alone under manual turns belongs in activity marks
+ * (the owner's text probe, 2026-09-30): 2.5 and below, and an id with no
+ * version, answer typed text only when it sits inside `activityStart` /
+ * `activityEnd` — a bare send waits for the next activity to close it. A
+ * 3.x model is the opposite: it closes the socket with 1007 "Precondition
+ * check failed." on marks around text with no audio, and answers a bare
+ * send at once, on its own.
+ */
+export function geminiTextInMarks(model: string): boolean {
+  return familyOf(model) < 3000;
+}
+
 /** The release date an id ends with, `-MM-YYYY` (`…-preview-12-2025`), as YYYYMM; an undated id reads 0. */
 function dateOf(id: string): number {
   const m = /-(\d{2})-(\d{4})$/.exec(id);

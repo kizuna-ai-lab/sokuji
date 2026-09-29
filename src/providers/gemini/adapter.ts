@@ -85,7 +85,7 @@ class GeminiSession {
   private socket: WebSocket | null = null;
   /** Manual turns: a press is held. */
   private turnOpen = false;
-  /** Manual turns: an `activityStart` is on the wire with no `activityEnd` after it — a press's, or a Live Translate tail's. Typed text brings its own marks only when none is (Gemini hold, choice 9). */
+  /** Manual turns: an `activityStart` is on the wire with no `activityEnd` after it — a press's, or a Live Translate tail's. Typed text with none open goes alone: wrapped in marks on 2.5 and below, bare on a 3.x model (Gemini hold, choice 9; the owner's text probe, 2026-09-30). */
   private activityOpen = false;
   /** The press held during a hold: its `activityStart`, still held, which a release without voice withdraws (Gemini hold, choice 7). */
   private heldPress: HeldAction | null = null;
@@ -469,9 +469,11 @@ class GeminiSession {
   }
 
   /**
-   * Typed text (choice 17): its own source segment, then `realtimeInput.text`; wrapped in activity marks under manual
-   * turns with no activity open on the wire. During a hold it waits its turn, whole — its row, its owed answer and its
-   * marks (Gemini hold, choice 8) — a hold carried across a lost connection included (choice 10).
+   * Typed text (choice 17): its own source segment, then `realtimeInput.text`. With no activity open on the wire
+   * under manual turns, it goes alone — wrapped in activity marks on 2.5 and below, bare on a 3.x model, which
+   * refuses marks around text with no audio (the owner's text probe, 2026-09-30). During a hold it waits its turn,
+   * whole — its row, its owed answer and its marks, where it takes any (Gemini hold, choice 8) — a hold carried
+   * across a lost connection included (choice 10).
    */
   private appendText(raw: string): void {
     const text = raw.trim();
@@ -486,13 +488,18 @@ class GeminiSession {
     this.sendText(text);
   }
 
-  /** Typed text on the wire: at once, or when a hold lets go of it. */
+  /**
+   * Typed text on the wire: at once, or when a hold lets go of it. Sent alone under manual turns with no activity
+   * open, it is wrapped in marks on 2.5 and below; a 3.x model gets it bare, its own turn close, which begins the
+   * hold with cause `'text'` in place of `'activity_end'` (the owner's text probe, 2026-09-30; Gemini hold, choice 3).
+   */
   private sendText(text: string): void {
     const ws = this.live();
     if (!ws) return;
     this.turns.typed(text);
     // Read on the wire, not off the key: a held text can outlive a withdrawn press (Gemini hold, choice 9).
-    const wrap = this.request.config.activity.manual && !this.activityOpen;
+    const alone = this.request.config.activity.manual && !this.activityOpen;
+    const wrap = alone && this.request.config.textInMarks;
     if (wrap) {
       ws.send(ACTIVITY_START);
       this.frame('out', 'realtime_input.activity_start');
@@ -502,9 +509,9 @@ class GeminiSession {
     if (wrap) {
       ws.send(ACTIVITY_END);
       this.frame('out', 'realtime_input.activity_end');
-      // Its own turn close, which the model answers: the hold begins (Gemini hold, choice 3).
-      this.hold?.begin('activity_end');
     }
+    // Its own turn close, which the model answers: the hold begins — with marks, at their own end; bare, at once (Gemini hold, choice 3; by family, the owner's text probe, 2026-09-30).
+    if (alone) this.hold?.begin(wrap ? 'activity_end' : 'text');
   }
 
   /** An unexpected close after the setup: every one tries the ladder (ruling 3, parity). */

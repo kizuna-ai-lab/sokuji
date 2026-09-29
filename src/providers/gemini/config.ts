@@ -11,9 +11,9 @@ import { resolveInstructions } from '../../lib/provider/instructions';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { clampSegmentPauseMs, segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import {
-  effectiveGeminiModel, geminiActivityHandling, geminiLanguageName, GEMINI_DEFAULTS, GEMINI_DEFAULT_VOICE, GEMINI_MAX_TOKENS_RANGE,
-  GEMINI_TEMPERATURE_RANGE, GEMINI_TRANSLATE_TARGETS, GEMINI_VAD_PREFIX_RANGE, GEMINI_VAD_SILENCE_RANGE, isGeminiTranslateModel,
-  type GeminiActivityHandling, type GeminiSettings,
+  effectiveGeminiModel, geminiActivityHandling, geminiLanguageName, geminiTextInMarks, GEMINI_DEFAULTS, GEMINI_DEFAULT_VOICE,
+  GEMINI_MAX_TOKENS_RANGE, GEMINI_TEMPERATURE_RANGE, GEMINI_TRANSLATE_TARGETS, GEMINI_VAD_PREFIX_RANGE, GEMINI_VAD_SILENCE_RANGE,
+  isGeminiTranslateModel, type GeminiActivityHandling, type GeminiSettings,
 } from './settings';
 
 export interface GeminiConfig {
@@ -37,6 +37,8 @@ export interface GeminiConfig {
     | { manual: false; start: 'high' | 'low'; end: 'high' | 'low'; silenceMs: number; prefixMs: number };
   /** What speech does to a response still playing, by the model's family (Gemini/AST2 follow-up, ruling 5; choice 9). */
   activityHandling: GeminiActivityHandling;
+  /** Typed text sent alone under manual turns: wrapped in activity marks, by the model's family — a 3.x model refuses them with no audio (the owner's text probe, 2026-09-30). */
+  textInMarks: boolean;
   /** Live Translate only: each side's silence timer (the old continuous segmentation) and the mid-sentence deferral (choice 7). */
   silence?: { sourceMs: number; translationMs: number; deferMidSentence: boolean };
 }
@@ -89,6 +91,7 @@ export function buildGemini(context: SessionContext, s: GeminiSettings, shared: 
     }),
     activity,
     activityHandling: geminiActivityHandling(model),
+    textInMarks: geminiTextInMarks(model),
   };
 }
 

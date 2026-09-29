@@ -610,6 +610,28 @@ describe('the Gemini adapter: turns and typed text', () => {
     expect(m.sent().slice(4)).toEqual([{ realtimeInput: { activityStart: {} } }, { realtimeInput: { text: 'held' } }]);
   });
 
+  it("a 3.x dialogue model under manual turns: typed text with no press held sends realtime text alone, with no activity marks — the model closes the socket with 1007 on marks around text with no audio (the owner's text probe, 2026-09-30) — and its own turn close begins the hold with cause 'text'", async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.appendText('  hello  ');
+    expect(h.sent().slice(1)).toEqual([{ realtimeInput: { text: 'hello' } }]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['hello']);
+    expect(h.frames('realtime_input.text')).toEqual([{ length: 5 }]);
+    expect(h.frames('realtime_input.activity_start')).toEqual([]);
+    expect(h.frames('realtime_input.activity_end')).toEqual([]);
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'text' }]);
+  });
+
+  it("a 3.x dialogue model, text while a press is held: it goes inside the press, with no extra marks and no hold at the text; the release's activityEnd begins the hold, as on any model (the owner's text probe, 2026-09-30)", async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendText('held');
+    expect(h.sent().slice(1)).toEqual([{ realtimeInput: { activityStart: {} } }, { realtimeInput: { text: 'held' } }]);
+    expect(h.frames('turn.hold')).toEqual([]);
+    h.session.endTurn();
+    expect(h.sent().slice(3)).toEqual([{ realtimeInput: { activityEnd: {} } }]);
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'activity_end' }]);
+  });
+
   it('stop closes the socket before it returns, cancels every timer, and nothing follows', async () => {
     const h = await liveGemini({ model: TRANSLATE });
     h.socket().receive(SERVER.input('Hello'));

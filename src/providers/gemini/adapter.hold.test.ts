@@ -493,7 +493,7 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['The answer.', 'the next answer']);
   });
 
-  it('typed text during a hold is held whole — its row, its owed answer and its marks — and goes at turnComplete under the next turn, its activityEnd beginning the next hold (choices 3, 8)', async () => {
+  it("typed text during a hold is held whole — its row and its owed answer — and goes bare at turnComplete under the next turn: its own turn close begins the next hold with cause 'text', not the marks 3.x refuses (the owner's text probe, 2026-09-30; choices 3, 8)", async () => {
     const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
     h.session.beginTurn();
     h.session.appendAudio(chunk());
@@ -504,15 +504,15 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     expect(wire(h.sent() as Sent[])).toHaveLength(3);
     expect(h.of('segmentOpened')).toHaveLength(2);
     h.socket().receive(SERVER.turnComplete());
-    expect(wire(h.sent() as Sent[]).slice(3)).toEqual(['activityStart', 'text', 'activityEnd']);
-    expect(h.frames('turn.hold')).toEqual([{ cause: 'activity_end' }, { cause: 'activity_end' }]);
+    expect(wire(h.sent() as Sent[]).slice(3)).toEqual(['text']);
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'activity_end' }, { cause: 'text' }]);
     h.socket().receive(SERVER.output('タイプ。'));
     h.socket().receive(SERVER.turnComplete());
     expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([['source', 't1'], ['translation', 't1'], ['source', 't2'], ['translation', 't2']]);
     expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Hello.', 'こんにちは。', 'typed', 'タイプ。']);
   });
 
-  it('typed text held inside a withdrawn press still goes, in marks of its own: they are read on the wire, not off the key (choice 9)', async () => {
+  it("typed text held inside a withdrawn press still goes, bare, its own turn close, not the marks 3.x refuses (the owner's text probe, 2026-09-30; choice 9)", async () => {
     const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
     h.session.beginTurn();
     h.session.endTurn();
@@ -520,11 +520,12 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     h.session.appendText('typed');
     h.session.cancelTurn();
     h.socket().receive(SERVER.turnComplete());
-    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'activityEnd', 'activityStart', 'text', 'activityEnd']);
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'activityEnd', 'text']);
     expect(h.frames('turn.hold_end')).toMatchObject([{ actions: 1, withdrawn: 1 }]);
+    expect(h.frames('turn.hold').map((f) => (f as { cause: string }).cause)).toEqual(['activity_end', 'text']);
   });
 
-  it('typed text held between two presses goes in marks of its own though a key is down when it goes (choice 9)', async () => {
+  it("typed text held between two presses goes bare though a key is down when it goes, its own turn close, not the marks 3.x refuses (the owner's text probe, 2026-09-30; choice 9)", async () => {
     const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
     h.session.beginTurn();
     h.session.endTurn();
@@ -533,20 +534,20 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     h.session.endTurn();
     h.session.appendText('typed');
     h.session.beginTurn();
-    // The second press goes, and its activityEnd begins a hold; then the text, whose own activityEnd begins one; then the third press.
+    // The second press goes, and its activityEnd begins a hold; then the text, bare, begins one with cause 'text'; then the third press.
     h.socket().receive(SERVER.turnComplete());
     h.socket().receive(SERVER.turnComplete());
     h.socket().receive(SERVER.turnComplete());
     expect(wire(h.sent() as Sent[])).toEqual([
       'activityStart', 'activityEnd',
       'activityStart', 'audio ×2048', 'activityEnd',
-      'activityStart', 'text', 'activityEnd',
+      'text',
       'activityStart',
     ]);
-    expect(h.frames('turn.hold')).toHaveLength(3);
+    expect(h.frames('turn.hold').map((f) => (f as { cause: string }).cause)).toEqual(['activity_end', 'activity_end', 'text']);
   });
 
-  it("a press's activity is the connection's: across a reconnect, text goes inside a press started again, and in marks of its own after a press released in the gap (choice 9)", async () => {
+  it("a press's activity is the connection's: across a reconnect, text goes inside a press started again, and bare — its own turn close, not the marks 3.x refuses — after a press released in the gap (the owner's text probe, 2026-09-30; choice 9)", async () => {
     const again = await liveGemini({ model: BARGE_IN, context: MANUAL });
     again.session.beginTurn();
     again.socket().serverClose(1011, 'Internal error');
@@ -566,7 +567,8 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     gap.socket().receive(SERVER.setupComplete());
     await flush();
     gap.session.appendText('after');
-    expect(wire(gap.sent() as Sent[])).toEqual(['activityStart', 'text', 'activityEnd']);
+    expect(wire(gap.sent() as Sent[])).toEqual(['text']);
+    expect(gap.frames('turn.hold')).toEqual([{ cause: 'text' }]);
   });
 
   it('a release without voice begins no hold: whether the server answers an empty press is unknown, and the next press goes at once (choice 3)', async () => {
@@ -578,7 +580,7 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     expect(h.frames('turn.hold')).toEqual([]);
   });
 
-  it('interrupted during a hold holds on to the turnComplete that trails it: typed text held there pairs with its own answer (choice 4)', async () => {
+  it("interrupted during a hold holds on to the turnComplete that trails it: typed text held there pairs with its own answer, and goes bare — its own turn close, not the marks 3.x refuses (the owner's text probe, 2026-09-30; choice 4)", async () => {
     const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
     h.session.beginTurn();
     h.session.appendAudio(chunk());
@@ -588,7 +590,7 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     h.socket().receive(SERVER.interrupted());
     expect(wire(h.sent() as Sent[])).toHaveLength(3);
     h.socket().receive(SERVER.turnComplete());
-    expect(wire(h.sent() as Sent[]).slice(3)).toEqual(['activityStart', 'text', 'activityEnd']);
+    expect(wire(h.sent() as Sent[]).slice(3)).toEqual(['text']);
     h.socket().receive(SERVER.output('タイプ'));
     h.socket().receive(SERVER.turnComplete());
     expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([['translation', 't1'], ['source', 't2'], ['translation', 't2']]);
@@ -632,7 +634,7 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     expect(h.frames('turn.hold_end')).toEqual([{ reason: 'reconnect', heldMs: 0, audioMs: 7_000, actions: 1, withdrawn: 0, playbackEndMs: null, carried: true }]);
   });
 
-  it("a reconnect carries held text and a held press in order: the text's own marks go first and begin the next hold, which keeps the press until it lets go (choice 10)", async () => {
+  it("a reconnect carries held text and a held press in order: the text goes first, bare — its own turn close, not the marks 3.x refuses — and begins the next hold with cause 'text', which keeps the press until it lets go (the owner's text probe, 2026-09-30; choice 10)", async () => {
     const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
     h.session.beginTurn();
     h.session.endTurn();
@@ -645,12 +647,13 @@ describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, 
     h.socket().receive(SERVER.setupComplete());
     await flush();
     expect(h.frames('turn.hold_end')).toEqual([{ reason: 'reconnect', heldMs: 0, audioMs: 85, actions: 2, withdrawn: 0, playbackEndMs: null, carried: true }]);
-    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'text', 'activityEnd']);
+    expect(wire(h.sent() as Sent[])).toEqual(['text']);
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'activity_end' }, { cause: 'text' }]);
     expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['typed']);
     // The text's answer ends: the press goes up, still down, and its release at once.
     h.socket().receive(SERVER.turnComplete());
     h.session.endTurn();
-    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'text', 'activityEnd', 'activityStart', 'audio ×2048', 'activityEnd']);
+    expect(wire(h.sent() as Sent[])).toEqual(['text', 'activityStart', 'audio ×2048', 'activityEnd']);
   });
 
   it('text typed while a hold is carried across a reconnect goes up after the carried audio, on the new connection (choice 10)', async () => {

@@ -59,10 +59,12 @@ export function splitPauseMs(silenceMs: number): number {
 /**
  * What began a hold: the server's `voiceActivity` ACTIVITY_END, the first
  * input transcription or model output of a model turn (automatic turns),
- * the leg's own `activityEnd` (manual turns), or a release that let one
- * utterance go and holds the rest (`split`, automatic turns).
+ * the leg's own `activityEnd` (manual turns), typed text sent alone under
+ * manual turns on a 3.x model — its own turn close, with no marks (the
+ * owner's text probe, 2026-09-30) — or a release that let one utterance go
+ * and holds the rest (`split`, automatic turns).
  */
-export type HoldCause = 'voice_activity' | 'input_transcription' | 'model_output' | 'activity_end' | 'split';
+export type HoldCause = 'voice_activity' | 'input_transcription' | 'model_output' | 'activity_end' | 'text' | 'split';
 /**
  * What ended it: the model's turn or its wait for input; the cap past the computed playback end, or with no model
  * audio; the next connection's setup, after a lost one; an ACTIVITY_START; a split's wait for its ACTIVITY_END run out.
