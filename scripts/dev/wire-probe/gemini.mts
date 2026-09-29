@@ -39,6 +39,14 @@
  *     session's pauses, a comma separates sessions). The report classifies every `interrupted` as the
  *     plan's failure mode (a) or (b), flags a hold that kept an utterance the server had open (the gap),
  *     and gives each answer's lag against L(n+1) ≈ max(L(n) + A(n) − P − U(n+1), c) + f.
+ *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts text [--models a,b] [--variants wrap,bare,client,auto,wrap-audio] [--turn-coverage …]
+ *     Typed text on a dialogue model: one fresh session per model × variant, the app's own setup, one Japanese
+ *     sentence sent as `wrap` (detection off; activityStart, realtimeInput.text, activityEnd — the adapter's
+ *     choice 17), `bare` (detection off; the text alone), `client` (detection off; clientContent, turnComplete),
+ *     `auto` (detection on; the text alone) or `wrap-audio` (as `wrap`, 300 ms of silence before the text).
+ *     Up to 15 s for its answer; then, if the socket is open, one push-to-talk utterance of the clip and up to
+ *     15 s for that; after a server close, one resume with the last handle. Default models: the listed 3.x
+ *     dialogue models and the app's default 2.5. The summary table lands in `report.md`.
  *
  * Every mode logs each server message's top-level and serverContent keys
  * (`msg`) and, verbatim, every key it does not otherwise read
@@ -57,7 +65,10 @@ import type { GeminiConfig } from '../../../src/providers/gemini/config';
 import {
   GEMINI_DEFAULT_VOICE, GEMINI_DEFAULTS, defaultGeminiModel, geminiActivityHandling, geminiLanguageName, isGeminiTranslateModel,
 } from '../../../src/providers/gemini/settings';
-import { ACTIVITY_END, ACTIVITY_START, GEMINI_LIVE_URL, audioFrame, base64ToPcm, decodeServerMessage, liveUrl, pcmRate, setupFrame } from '../../../src/providers/gemini/wire';
+import {
+  ACTIVITY_END, ACTIVITY_START, GEMINI_LIVE_URL, audioFrame, base64ToPcm, decodeServerMessage, liveUrl, pcmRate, setupFrame, textFrame,
+  type GeminiServerMessage, type GeminiSetup,
+} from '../../../src/providers/gemini/wire';
 import { resolveInstructions } from '../../../src/lib/provider/instructions';
 import { CLIPS, args, concat, pace, readWav, secret, silence, sleep, startRun, writeWav, type Run } from './common.mts';
 import {
@@ -229,22 +240,27 @@ interface Probe {
   multi?: { script: string; ids: readonly string[]; pauses: readonly number[]; label: string };
 }
 
+/** The app's own config for a leg of this kind, under manual or automatic turns. */
+function configFor(kind: 'dialogue' | 'translate', model: string, manualTurns: boolean): GeminiConfig {
+  return {
+    model,
+    kind,
+    instructions: resolveInstructions(GEMINI_DEFAULTS, { participant: false, source: geminiLanguageName(src), target: geminiLanguageName(dst) }),
+    ...(kind === 'dialogue' ? { voice: GEMINI_DEFAULT_VOICE, temperature: GEMINI_DEFAULTS.temperature } : { translationTargetCode: dst }),
+    activity: manualTurns
+      ? { manual: true }
+      : { manual: false, start: GEMINI_DEFAULTS.vadStartSensitivity, end: GEMINI_DEFAULTS.vadEndSensitivity, silenceMs: GEMINI_DEFAULTS.vadSilenceDurationMs, prefixMs: GEMINI_DEFAULTS.vadPrefixPaddingMs },
+    // The app's own rule; `--activity-handling` still overrides it in `session`.
+    activityHandling: geminiActivityHandling(model),
+  };
+}
+
 async function session(kind: 'dialogue' | 'translate', model: string, variant: Variant = {}, probe: Probe = {}): Promise<void> {
   const tag = [variant.activityHandling, variant.turnCoverage].filter(Boolean).map((v) => v!.replace(/^(TURN_INCLUDES_|START_OF_ACTIVITY_)/, '').toLowerCase()).join('+');
   const run: Run = startRun(PROVIDER, probe.name ?? `${kind}-${model.replace(/[^a-z0-9.-]+/gi, '_')}${tag ? `-${tag}` : ''}`, outDir);
   const dialogue = kind === 'dialogue';
   const gap = probe.hold?.gapMs ?? gapMs;
-  const config: GeminiConfig = {
-    model,
-    kind,
-    instructions: resolveInstructions(GEMINI_DEFAULTS, { participant: false, source: geminiLanguageName(src), target: geminiLanguageName(dst) }),
-    ...(dialogue ? { voice: GEMINI_DEFAULT_VOICE, temperature: GEMINI_DEFAULTS.temperature } : { translationTargetCode: dst }),
-    activity: manual
-      ? { manual: true }
-      : { manual: false, start: GEMINI_DEFAULTS.vadStartSensitivity, end: GEMINI_DEFAULTS.vadEndSensitivity, silenceMs: GEMINI_DEFAULTS.vadSilenceDurationMs, prefixMs: GEMINI_DEFAULTS.vadPrefixPaddingMs },
-    // The app's own rule; `--activity-handling` still overrides it below.
-    activityHandling: geminiActivityHandling(model),
-  };
+  const config = configFor(kind, model, manual);
   const setup = setupFrame(config, null);
   const ric = setup.setup.realtimeInputConfig as Record<string, unknown>;
   if (variant.activityHandling) ric.activityHandling = variant.activityHandling;
@@ -475,6 +491,213 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
   ].join('\n\n'));
 }
 
+// ---------- typed text (the `text` mode) ----------
+
+const TEXT_VARIANTS = ['wrap', 'bare', 'client', 'auto', 'wrap-audio'] as const;
+type TextVariant = (typeof TEXT_VARIANTS)[number];
+const TYPED = 'こんにちは、元気ですか';
+/** How long each phase waits for its answer's turnComplete. */
+const ANSWER_WAIT_MS = 15000;
+
+/** One input and what came back for it; times are run times. */
+interface Phase { sentAt?: number; first?: number; turnComplete?: number; chunks: number; text: string; heard: string; flags: string[]; va: string[] }
+type Closed = { code: number; reason: string; t: number };
+
+const until = async (done: () => boolean, ms: number) => {
+  for (const end = Date.now() + ms; !done() && Date.now() < end;) await sleep(100);
+};
+const since = (t: number | undefined, from: number | undefined) => (t === undefined || from === undefined ? '-' : `${t >= from ? '+' : '−'}${(Math.abs(t - from) / 1000).toFixed(2)} s`);
+const clip60 = (s: string) => (s.length > 60 ? `${s.slice(0, 60)}…` : s);
+
+/** Dials, sends `setup`, and waits up to 20 s for setupComplete; `onMessage` sees every decoded frame. */
+async function dial(run: Run, setup: GeminiSetup, onMessage: (m: GeminiServerMessage, t: number) => void) {
+  const ws = new WebSocket(dialUrl());
+  let closed: Closed | null = null;
+  let ready = false;
+  ws.on('message', (data, isBinary) => {
+    const t = run.now();
+    let m: GeminiServerMessage;
+    try {
+      m = decodeServerMessage(isBinary ? new Uint8Array(data as Buffer).buffer.slice(0) : (data as Buffer).toString());
+    } catch (e) {
+      run.log('in', 'unreadable', { error: (e as Error).message });
+      return;
+    }
+    if (m.setupComplete) ready = true;
+    onMessage(m, t);
+  });
+  ws.on('close', (code, reason) => { closed = { code, reason: reason.toString(), t: run.now() }; run.log('ws', 'close', closed); });
+  ws.on('error', (e) => run.log('ws', 'error', { message: e.message }));
+  const opened = await new Promise<boolean>((resolve) => {
+    ws.on('open', () => resolve(true));
+    ws.on('unexpected-response', (req, res) => { run.log('ws', 'refused', { status: res.statusCode }); res.resume(); req.destroy(); resolve(false); });
+    ws.on('error', () => resolve(false));
+  });
+  if (opened) {
+    ws.send(JSON.stringify(setup));
+    run.log('out', 'setup', { resumed: setup.setup.sessionResumption.handle !== undefined });
+    await until(() => ready || closed !== null, 20000);
+  }
+  return { ws, ready: () => ready, closed: (): Closed | null => closed };
+}
+
+/**
+ * One fresh dialogue session: the typed sentence as `variant` sends it, up to 15 s for its answer; then, if the
+ * socket is still open, one push-to-talk utterance (the clip alone under `auto`) and up to 15 s for its answer;
+ * then, if the server closed the socket, one resume with the last handle. Returns the summary row, or null when
+ * the setup was never answered.
+ */
+async function textSession(model: string, variant: TextVariant, turnCoverage: string | undefined): Promise<string | null> {
+  const cov = turnCoverage ? `-${turnCoverage.replace(/^TURN_INCLUDES_/, '').toLowerCase()}` : '';
+  const run = startRun(PROVIDER, `text-${model.replace(/[^a-z0-9.-]+/gi, '_')}-${variant}${cov}`, outDir);
+  const manualTurns = variant !== 'auto';
+  const config = configFor('dialogue', model, manualTurns);
+  const withCoverage = (s: GeminiSetup): GeminiSetup => {
+    if (turnCoverage) (s.setup.realtimeInputConfig as Record<string, unknown>).turnCoverage = turnCoverage;
+    return s;
+  };
+  const setup = withCoverage(setupFrame(config, null));
+  run.log('note', 'config', { model, variant, typed: TYPED, realtimeInputConfig: setup.setup.realtimeInputConfig });
+
+  const phaseOf = (): Phase => ({ chunks: 0, text: '', heard: '', flags: [], va: [] });
+  const text = phaseOf();
+  const follow = phaseOf();
+  let phase = text;
+  let handle: string | null = null;
+  const keys = { top: new Map<string, number>(), sc: new Map<string, number>() };
+  const conn = await dial(run, setup, (m, t) => {
+    const raw = m as Record<string, unknown>;
+    const scRaw = m.serverContent as Record<string, unknown> | undefined;
+    run.log('in', 'msg', scRaw ? { top: Object.keys(raw), sc: Object.keys(scRaw) } : { top: Object.keys(raw) });
+    for (const k of Object.keys(raw)) keys.top.set(k, (keys.top.get(k) ?? 0) + 1);
+    for (const k of Object.keys(scRaw ?? {})) keys.sc.set(k, (keys.sc.get(k) ?? 0) + 1);
+    if (m.setupComplete) run.log('in', 'setupComplete');
+    if (m.voiceActivity !== undefined) {
+      const v = m.voiceActivity as { type?: string; voiceActivityType?: string; audioOffset?: string };
+      phase.va.push(`${v.type ?? v.voiceActivityType ?? '?'}@${v.audioOffset ?? '?'}`);
+      run.log('in', 'voiceActivity', m.voiceActivity);
+    }
+    if (m.sessionResumptionUpdate) {
+      const u = m.sessionResumptionUpdate;
+      // Held in memory only, never written.
+      if (u.resumable && u.newHandle) handle = u.newHandle;
+      run.log('in', 'sessionResumptionUpdate', { resumable: u.resumable, handle: u.newHandle ? '<present>' : undefined });
+    }
+    const sc = m.serverContent;
+    if (sc && scRaw) {
+      for (const part of sc.modelTurn?.parts ?? []) {
+        if (part.inlineData?.data && part.inlineData.mimeType?.startsWith('audio/')) {
+          phase.chunks += 1;
+          phase.first ??= t;
+          run.log('in', 'audio', { bytes: Math.floor((part.inlineData.data.length * 3) / 4), mime: part.inlineData.mimeType });
+        } else {
+          run.log('in', 'modelTurn.part', verbatim(part));
+        }
+      }
+      if (sc.outputTranscription?.text) {
+        phase.text += sc.outputTranscription.text;
+        phase.first ??= t;
+        run.log('in', 'outputTranscription', { text: sc.outputTranscription.text });
+      }
+      if (sc.inputTranscription?.text) {
+        phase.heard += sc.inputTranscription.text;
+        run.log('in', 'inputTranscription', { text: sc.inputTranscription.text });
+      }
+      for (const flag of END_ORDER) {
+        if (!scRaw[flag]) continue;
+        run.log('in', flag);
+        phase.flags.push(`${flag} ${since(t, phase.sentAt)}`);
+        if (flag === 'turnComplete') phase.turnComplete ??= t;
+      }
+      for (const k of Object.keys(scRaw)) {
+        if (!KNOWN_SC.has(k) || k === 'turnCompleteReason' || k === 'interactionStatus' || k === 'interimInputTranscription') run.log('in', `sc.${k}`, verbatim(scRaw[k]));
+      }
+    }
+    if (m.usageMetadata) run.log('in', 'usageMetadata', m.usageMetadata);
+    if (m.goAway) run.log('in', 'goAway', m.goAway);
+    for (const k of Object.keys(raw)) if (!KNOWN_TOP.has(k)) run.log('in', `top.${k}`, verbatim(raw[k]));
+  });
+  const { ws } = conn;
+  const closedNow = () => conn.closed() !== null;
+  if (!conn.ready()) {
+    const c = conn.closed();
+    run.report(`No setupComplete within 20 s; close ${JSON.stringify(c)}.`);
+    ws.close();
+    return null;
+  }
+  const send = (frame: string, what: string, detail?: unknown) => { ws.send(frame); run.log('out', what, detail); };
+
+  // The typed sentence, as the variant sends it.
+  const marks = variant === 'wrap' || variant === 'wrap-audio';
+  if (marks) send(ACTIVITY_START, 'activityStart');
+  if (variant === 'wrap-audio') {
+    const n = await pace(silence(300, INPUT_RATE), INPUT_RATE, CHUNK_MS, (c) => ws.send(audioFrame(c)), closedNow);
+    run.log('out', 'audio.silence', { chunks: n, ms: 300 });
+  }
+  text.sentAt = run.now();
+  if (variant === 'client') {
+    // Built here, not in the app's wire: the SDK's `sendClientContent` shape (`index.mjs:15019`).
+    send(JSON.stringify({ clientContent: { turns: [{ role: 'user', parts: [{ text: TYPED }] }], turnComplete: true } }), 'clientContent', { length: TYPED.length });
+  } else {
+    send(textFrame(TYPED), 'realtimeInput.text', { length: TYPED.length });
+  }
+  if (marks) send(ACTIVITY_END, 'activityEnd');
+  await until(() => text.turnComplete !== undefined || closedNow(), ANSWER_WAIT_MS);
+  const afterText = conn.closed();
+
+  // One real utterance, if the socket is still open: does the session still work after the text?
+  let followSent = false;
+  if (!closedNow()) {
+    followSent = true;
+    phase = follow;
+    const clip = readWav(CLIPS.ja, INPUT_RATE);
+    if (manualTurns) send(ACTIVITY_START, 'activityStart');
+    const n = await pace(clip, INPUT_RATE, CHUNK_MS, (c) => ws.send(audioFrame(c)), closedNow);
+    follow.sentAt = run.now();
+    if (manualTurns) send(ACTIVITY_END, 'activityEnd', { chunks: n });
+    // Automatic turns: the server's own detection needs silence to close the turn.
+    else run.log('out', 'audio', { chunks: n + (await pace(silence(2000, INPUT_RATE), INPUT_RATE, CHUNK_MS, (c) => ws.send(audioFrame(c)), closedNow)) });
+    await until(() => follow.turnComplete !== undefined || closedNow(), ANSWER_WAIT_MS);
+  }
+  const serverClosed = conn.closed();
+  if (!serverClosed) ws.close(1000);
+  await sleep(300);
+
+  // The owner's 3.8 run: every resume after the server's close failed with 1011. Once, with the last handle.
+  let resume = '-';
+  if (serverClosed && handle) {
+    const r = await dial(run, withCoverage(setupFrame(config, handle)), (m) => {
+      if (m.setupComplete) run.log('in', 'resume.setupComplete');
+      else run.log('in', 'resume.msg', { top: Object.keys(m) });
+    });
+    if (r.ready()) await until(() => r.closed() !== null, 3000);
+    const c = r.closed();
+    resume = r.ready() ? (c ? `setupComplete, then closed ${c.code} “${c.reason}”` : 'setupComplete, open 3 s later') : `refused: ${c ? `${c.code} “${c.reason}”` : 'no answer in 20 s'}`;
+    if (!c) r.ws.close(1000);
+    await sleep(300);
+  } else if (serverClosed) {
+    resume = 'no handle';
+  }
+
+  const answered = (p: Phase) => (p.first === undefined
+    ? `no answer${p.flags.length ? ` (${p.flags.join(', ')})` : ''}`
+    : `answered ${since(p.first, p.sentAt)}, ${p.chunks} chunk(s), “${clip60(p.text.trim())}”${p.turnComplete !== undefined ? `, turnComplete ${since(p.turnComplete, p.sentAt)}` : ', no turnComplete'}`);
+  const closeText = (c: Closed | null) => (c ? `**${c.code} “${c.reason}”** ${since(c.t, text.sentAt)} after the text` : 'open');
+  const followText = followSent ? `${answered(follow)}${follow.heard ? `; heard “${clip60(follow.heard.trim())}”` : ''}` : 'not sent (closed)';
+  const row = `| \`${model}\` | ${variant}${cov} | ${answered(text)} | ${text.va.join(', ') || 'none'} | ${closeText(afterText ?? serverClosed)} | ${followText} | ${resume} |`;
+  run.report([
+    `model \`${model}\`, variant **${variant}**; realtimeInputConfig ${JSON.stringify(setup.setup.realtimeInputConfig)}; typed “${TYPED}”`,
+    '',
+    `- text: ${answered(text)}${text.heard ? `; heard “${text.heard.trim()}”` : ''}`,
+    `- voiceActivity: after the text ${text.va.join(', ') || 'none'}; after the utterance ${follow.va.join(', ') || 'none'}`,
+    `- close: ${closeText(serverClosed)}`,
+    `- follow-up utterance: ${followText}`,
+    `- resume with the last handle: ${resume}`,
+    `- server keys: top-level ${[...keys.top].map(([k, n]) => `${k} ×${n}`).join(', ') || '-'}; serverContent ${[...keys.sc].map(([k, n]) => `${k} ×${n}`).join(', ') || '-'}`,
+  ].join('\n'));
+  return row;
+}
+
 const listed = await check({ apiKey: key }, GEMINI_DEFAULTS, { signal: AbortSignal.timeout(20000) } as never);
 if (!listed.ok) {
   console.error(`The model list was refused: ${listed.reason}`);
@@ -614,6 +837,37 @@ if (step === 'overlap') {
   for (const c of combos) {
     await session(isGeminiTranslateModel(c.model) ? 'translate' : 'dialogue', c.model, {}, { hold: c.o, name: c.name, multi: c.multi });
   }
+} else if (step === 'text') {
+  if (manual) {
+    console.error('text: each variant sets its own turn detection; drop --manual.');
+    process.exit(2);
+  }
+  // Default: the listed 3.x dialogue models (the app's own family rule: 3.0 and later barge in) and the app's default 2.5.
+  const threeX = ids.filter((id) => !isGeminiTranslateModel(id) && geminiActivityHandling(id) === 'START_OF_ACTIVITY_INTERRUPTS');
+  const wanted = list('models') ?? [...new Set([...threeX, defaultGeminiModel(models.filter((m) => !isGeminiTranslateModel(m.id)))])].filter(Boolean);
+  const chosen = wanted.filter((m) => ids.includes(m));
+  const missing = wanted.filter((m) => !ids.includes(m));
+  if (missing.length) console.log(`Not listed by this key, skipped: ${missing.join(', ')}`);
+  const variants = oneOf('variants', TEXT_VARIANTS, TEXT_VARIANTS);
+  const turnCoverage = opt('turn-coverage');
+  console.log(`text: ${chosen.length * variants.length} session(s), at most about ${Math.ceil((chosen.length * variants.length * 45) / 60)} min`);
+  const rows: string[] = [];
+  for (const model of chosen) {
+    for (const variant of variants) {
+      const row = await textSession(model, variant, turnCoverage);
+      if (row) { rows.push(row); continue; }
+      // The setup itself was refused: every other variant would be too.
+      rows.push(`| \`${model}\` | ${variant} | setup not answered — the model's other variants skipped; see its log | | | | |`);
+      break;
+    }
+  }
+  startRun(PROVIDER, 'text-summary', outDir).report([
+    `typed “${TYPED}”; turnCoverage ${turnCoverage ?? '(each model\'s default)'}; times from the text frame`,
+    '',
+    '| model | variant | answer to the text | voiceActivity | close | follow-up utterance | resume |',
+    '|---|---|---|---|---|---|---|',
+    ...rows,
+  ].join('\n'));
 } else {
   const variant: Variant = { activityHandling: opt('activity-handling'), turnCoverage: opt('turn-coverage') };
   for (const kind of kinds as Array<'dialogue' | 'translate'>) {
