@@ -114,6 +114,14 @@ export interface GeminiServerMessage {
   usageMetadata?: UsageMetadata;
   goAway?: LiveServerGoAway;
   sessionResumptionUpdate?: LiveServerSessionResumptionUpdate;
+  /**
+   * The server's voice activity, a message of its own: `type` as the wire
+   * spells it, which the SDK's own `VoiceActivity` renames
+   * `voiceActivityType` — so typed here, not taken from the SDK (Gemini
+   * hold, choice 12). The 3.x dialogue models send it under both turn
+   * modes; the 2.5 model sends none (the owner's probes).
+   */
+  voiceActivity?: { type?: string; audioOffset?: string };
 }
 
 const isArrayBuffer = (data: unknown): data is ArrayBuffer => Object.prototype.toString.call(data) === '[object ArrayBuffer]';

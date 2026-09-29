@@ -241,6 +241,13 @@ class GeminiSession {
       if (update.resumable && update.newHandle) this.handle = update.newHandle;
       this.frame('in', 'server.session_resumption_update', { resumable: update.resumable === true, hasHandle: Boolean(update.newHandle) });
     }
+    const activity = m.voiceActivity;
+    if (activity) {
+      this.frame('in', 'server.voice_activity', {
+        ...(activity.type ? { type: activity.type } : {}),
+        ...(activity.audioOffset ? { audioOffset: activity.audioOffset } : {}),
+      });
+    }
     if (m.serverContent) this.onContent(m.serverContent);
     if (m.goAway) {
       this.frame('in', 'server.go_away', m.goAway.timeLeft ? { timeLeft: m.goAway.timeLeft } : {});
@@ -279,6 +286,7 @@ class GeminiSession {
       this.frame('in', 'server_content.turn_complete', c.turnCompleteReason ? { reason: c.turnCompleteReason } : {});
       this.turns.turnComplete();
     }
+    if (c.waitingForInput) this.frame('in', 'server_content.waiting_for_input');
   }
 
   private onModelTurn(parts: readonly Part[]): void {

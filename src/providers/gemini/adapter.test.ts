@@ -350,26 +350,33 @@ describe('the Gemini adapter: one session', () => {
     expect(h.frames('server_content.model_turn')).toEqual([{ audioBytes: 0, text: 'Bonjour' }]);
   });
 
-  it('frames what the server says under domain.event names — never the audio, the key or a handle — and keeps a transcript language in the Logs (choices 13, 19)', async () => {
+  it('frames what the server says under domain.event names — never the audio, the key or a handle — and keeps a transcript language in the Logs (choices 13, 19; Gemini hold, choice 12)', async () => {
     const h = await liveGemini();
     h.socket().receive(serverFrame({ usageMetadata: { totalTokenCount: 12 } }));
     h.socket().receive(serverFrame({ toolCall: { functionCalls: [] } }));
     h.socket().receive(SERVER.handle('secret-handle-1'));
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_END', '6.760s'));
+    h.socket().receive(serverFrame({ voiceActivity: {} }));
     h.socket().receive(serverFrame({ serverContent: { inputTranscription: { text: 'Hi', finished: true, languageCode: 'en-US' } } }));
     h.socket().receive(serverFrame({ serverContent: { generationComplete: true } }));
     h.socket().receive(SERVER.interrupted());
     h.socket().receive(serverFrame({ serverContent: { turnComplete: true, turnCompleteReason: 'NEED_MORE_INPUT' } }));
+    h.socket().receive(SERVER.waitingForInput());
     expect(h.of('frame').map((f) => `${f.payload.direction} ${f.payload.type}`)).toEqual([
       'out session.opened',
       'in server.setup_complete',
       'in server.usage_metadata',
       'in server.tool_call',
       'in server.session_resumption_update',
+      'in server.voice_activity',
+      'in server.voice_activity',
       'in server_content.input_transcription',
       'in server_content.generation_complete',
       'in server_content.interrupted',
       'in server_content.turn_complete',
+      'in server_content.waiting_for_input',
     ]);
+    expect(h.frames('server.voice_activity')).toEqual([{ type: 'ACTIVITY_END', audioOffset: '6.760s' }, {}]);
     expect(h.frames('server.session_resumption_update')).toEqual([{ resumable: true, hasHandle: true }]);
     expect(h.frames('server_content.input_transcription')).toEqual([{ text: 'Hi', finished: true, languageCode: 'en-US' }]);
     expect(h.frames('server_content.turn_complete')).toEqual([{ reason: 'NEED_MORE_INPUT' }]);

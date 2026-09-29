@@ -64,6 +64,10 @@ export const SERVER = {
   audio: (samples = 2400, mimeType = 'audio/pcm;rate=24000') => serverFrame({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType, data: b64(samples) } }] } } }),
   turnComplete: () => serverFrame({ serverContent: { turnComplete: true } }),
   interrupted: () => serverFrame({ serverContent: { interrupted: true } }),
+  generationComplete: () => serverFrame({ serverContent: { generationComplete: true } }),
+  waitingForInput: () => serverFrame({ serverContent: { waitingForInput: true } }),
+  /** A message of its own, as the 3.x models send it: `{"voiceActivity":{"type":"ACTIVITY_END","audioOffset":"6.760s"}}`. */
+  voiceActivity: (type: 'ACTIVITY_START' | 'ACTIVITY_END', audioOffset = '0.000s') => serverFrame({ voiceActivity: { type, audioOffset } }),
   goAway: () => serverFrame({ goAway: { timeLeft: '50s' } }),
   handle: (newHandle: string, resumable = true) => serverFrame({ sessionResumptionUpdate: { newHandle, resumable } }),
 };
