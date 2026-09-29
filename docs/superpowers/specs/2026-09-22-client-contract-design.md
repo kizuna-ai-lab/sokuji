@@ -515,7 +515,7 @@ mechanism:
 | Soniox | — | **`finalize`** | — |
 | Local ×2 | — | flush, padding the tail where the engine needs it | discard the current VAD segment |
 | AST2 | — | 500 ms of silence | the same tail — the old release sent it for an empty press too |
-| Palabra | — (sends nothing) | flush the re-chunker, padded; the leg idle from the next beat, so the server hears silence from the release on and closes the sentence at its threshold (Stage 2 Palabra, choice 7) | the same — the runner sends no audio after either (`run.ts:347-351`); `interrupt_task` does not help (the owner's probe) |
+| Palabra | — (sends nothing) | flush the re-chunker, padded; the leg idle from the next beat, so the server hears silence from the release on and closes the sentence at its threshold (Stage 2 Palabra, choice 7) | the same — the runner sends no audio after either (`run.ts:342-346`); `interrupt_task` does not help (the owner's probe) |
 | OpenAI Translate | — (a press ends a tail still running) | the pad, then real-time silence until quiet, capped | the same tail — what the press appended is the model's input already, and no clear exists (Stage 2 OpenAI Translate, choice 7) |
 | OpenAI Live | — | — | — |
 
@@ -2561,8 +2561,8 @@ From the Stage 2 foundation survey's §3.4:
   which subtitle it speaks by carrying its server times (ruling 1).
 - **A keepalive on a timer, on a hidden page** (Stage 2 Palabra, ruling 3;
   choice 7). No audio reaches an adapter while the microphone is muted
-  (`src/lib/audio/capture/core.ts:89`) or between push-to-talk presses (the
-  runner's turn gate, `src/lib/session/run.ts:457-460`), so then only the
+  (`src/lib/audio/capture/core.ts:85`) or between push-to-talk presses (the
+  runner's turn gate, `src/lib/session/run.ts:450-453`), so then only the
   adapter's own timer keeps a session alive. A hidden page throttles timers:
   at about one wake-up a minute — Chrome's intensive throttling, after about
   5 minutes hidden and silent [inf] — no timer keepalive can survive, and
