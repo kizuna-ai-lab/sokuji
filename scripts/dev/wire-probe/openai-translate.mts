@@ -5,7 +5,9 @@
  * offline through today's rule and a proposed one, and checks whether each
  * translation segment's audio says what its text says.
  *
- *   OPENAI_API_KEY=… npx tsx scripts/dev/wire-probe/openai-translate.mts record [--script user|tight|long] [--target en]
+ *   OPENAI_API_KEY=… npx tsx scripts/dev/wire-probe/openai-translate.mts record [--script user|tight|long|en] [--target en|zh] [--wav <file>]
+ *     `--script en --target zh`: English speech into Chinese, the owner's direction on 2026-09-30. `--wav <file>`
+ *     streams a recorded clip (16-bit PCM WAV, any rate) instead of a synthesised script.
  *     Synthesises the script's sentences (OpenAI TTS, cached), joins them with the script's pauses, streams
  *     them at real-time pace, then 10 s of silence. Writes `<stamp>-<script>.jsonl` (every frame's arrival and
  *     `elapsed_ms`), `<stamp>-<script>.out.pcm` (the output audio, 24 kHz PCM16) and the input clip as a wav.
@@ -16,6 +18,10 @@
  *     the output audio once (whisper-1, word timestamps) to say which words each segment's audio holds.
  *     `GUARD=arrival` guards the cut by arrival time instead of `elapsed_ms` (the rule Gemini Live Translate,
  *     which stamps nothing, would use); `TRACE=1` prints every close of the proposed rule.
+ *   npx tsx scripts/dev/wire-probe/openai-translate.mts marks --run <stamp>-<script>
+ *     Offline, no key: where each side's sentence-final marks arrive — alone, leading, trailing or inside a
+ *     delta, the gap before and after — and which land in the next row after a pause; each side's text with
+ *     its pauses drawn, and its mark counts.
  *
  * The rule as proposed, and what the first spike (2026-09-30) settled: the translation segment is cut at
  * its n-th sentence end after each source cut (n = the source segment's sentence ends, at least one), the
@@ -29,7 +35,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import WebSocket from 'ws';
-import { REPO, args, concat, pace, secret, silence, sleep, startRun, stamp, writeWav } from './common.mts';
+import { REPO, args, concat, pace, readWav, secret, silence, sleep, startRun, stamp, writeWav } from './common.mts';
 
 const RATE = 24_000;
 const DIR = path.join(REPO, '.superpowers/wire-probes/openai-translate');
@@ -48,22 +54,39 @@ const S = {
   g: '吃完以后我在附近的公园走了一会儿。',
   h: '天气有点冷，但是空气很好。',
 };
-/** Sentences and pauses (ms) in order: the owner's session (`user`), every pause just over the source's 1.5 s (`tight`), and a longer mix. */
+/** English sentences in the manner of the owner's English → Chinese session (2026-09-30): a speech on ocean protection, with one short sentence and one with a number. */
+const E = {
+  a: 'Today we are announcing new measures to protect the waters along our Atlantic coast.',
+  b: 'Through the global ocean observing system, we will share this data with a network of countries around the world.',
+  c: 'That matters.',
+  d: 'Last week, together with our partners in the European Union, we brought together twenty-nine other countries and mobilized three hundred and forty million dollars for this essential work.',
+  e: 'Getting ocean protection right is the prerequisite for sustainable growth.',
+  f: 'In the coming months, we will release the other two pillars of our ocean strategy.',
+  g: 'Let me end at the beginning.',
+  h: 'First, water.',
+};
+/** Sentences and pauses (ms) in order: the owner's session (`user`), every pause just over the source's 1.5 s (`tight`), a longer mix, and English (`en`, with `--target zh`). */
 const SCRIPTS: Record<string, Array<string | number>> = {
   user: [500, S.a, 2400, S.b, 400, S.c, 2200, S.d, 1800, S.e, 1400, S.f],
   tight: [500, S.a, 1700, S.b, 1700, S.c, 1700, S.d, 1700, S.e, 1700, S.f],
   long: [500, S.a, 2400, S.b, 400, S.c, 2200, S.d, 1800, S.e, 1400, S.f, 2000, S.g, 900, S.h],
+  en: [500, E.a, 1800, E.b, 700, E.c, 2200, E.d, 1600, E.e, 400, E.f, 2400, E.g, 900, E.h],
 };
+/** How the TTS is told to speak each script. */
+const SPEAK: Record<string, string> = {
+  en: 'Speak natural English at the pace of a public speech.',
+};
+const SPEAK_DEFAULT = 'Speak natural Mandarin Chinese at a normal conversational pace.';
 
 const key = secret(process.env.OPENAI_API_KEY);
 
-async function tts(text: string): Promise<Int16Array> {
+async function tts(text: string, instructions: string): Promise<Int16Array> {
   const file = path.join(DIR, 'tts', `${crypto.createHash('sha1').update(text).digest('hex')}.pcm`);
   if (!fs.existsSync(file)) {
     const res = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: 'alloy', input: text, response_format: 'pcm', instructions: 'Speak natural Mandarin Chinese at a normal conversational pace.' }),
+      body: JSON.stringify({ model: 'gpt-4o-mini-tts', voice: 'alloy', input: text, response_format: 'pcm', instructions }),
     });
     if (!res.ok) throw new Error(`TTS ${res.status}: ${(await res.text()).slice(0, 300)}`);
     fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -83,15 +106,17 @@ const allZero = (pcm: Int16Array) => pcm.every((x) => x === 0);
 
 // ---------- record ----------
 
-async function record(scriptName: string, target: string): Promise<void> {
-  const script = SCRIPTS[scriptName];
+async function record(scriptName: string, target: string, wav?: string): Promise<void> {
+  const script = wav ? [] : SCRIPTS[scriptName];
   if (!script) throw new Error(`no script ${scriptName}`);
   const parts: Int16Array[] = [];
   const marks: Array<{ text: string; startMs: number; endMs: number }> = [];
   let at = 0;
+  // A recorded clip (`--wav`, any rate, 16-bit PCM) plays as it is, then the same 10 s of silence.
+  if (wav) parts.push(readWav(wav, RATE));
   for (const p of script) {
     if (typeof p === 'number') { parts.push(silence(p, RATE)); at += p; continue; }
-    const pcm = await tts(p);
+    const pcm = await tts(p, SPEAK[scriptName] ?? SPEAK_DEFAULT);
     parts.push(pcm);
     const ms = (pcm.length / RATE) * 1000;
     marks.push({ text: p, startMs: Math.round(at), endMs: Math.round(at + ms) });
@@ -399,8 +424,52 @@ async function analyze(runName: string): Promise<void> {
   run.report(lines.join('\n'));
 }
 
+// ---------- marks ----------
+
+/** A sentence-final mark, CJK or Latin (the module's rule counts a Latin one only before a space or the end). */
+const MARK = /[。？！.?!]/;
+
+/**
+ * Where each side's sentence-final marks arrive (the owner's English → Chinese session, 2026-09-30: source rows
+ * opening with ". ", and no "。" in the translation). Per side: every delta holding a mark — alone, leading,
+ * trailing or inside — with the gap since that side's previous delta and to its next; a mark arriving more than
+ * the source's 1.5 s pause after the delta before it lands in the next row. Then each side's text with every
+ * such pause drawn as " ‖ ", and its counts. Offline: no key.
+ */
+function marksReport(runName: string): void {
+  const { evs } = load(runName);
+  const lines: string[] = [`# Sentence marks — ${runName}`, ''];
+  for (const [side, type] of [['source', 'session.input_transcript.delta'], ['translation', 'session.output_transcript.delta']] as const) {
+    const d = evs.filter((e) => e.type === type && e.delta);
+    lines.push(`## ${side}: ${d.length} deltas`, '');
+    let text = '';
+    let late = 0;
+    let marked = 0;
+    d.forEach((e, i) => {
+      const prev = d[i - 1];
+      const next = d[i + 1];
+      const gap = prev ? e.t - prev.t : 0;
+      if (prev && gap > PAUSE_MS) text += ' ‖ ';
+      text += e.delta;
+      if (!MARK.test(e.delta!)) return;
+      marked++;
+      const s = e.delta!;
+      const where = s.trim().length === 1 ? 'alone' : MARK.test(s.trimStart()[0]) ? 'leading' : MARK.test(s.trimEnd().slice(-1)) ? 'trailing' : 'inside';
+      if (prev && gap > PAUSE_MS && where !== 'inside' && where !== 'trailing') late++;
+      lines.push(`- ${JSON.stringify(s)} (${where}) at ${e.t} ms: ${prev ? `+${gap} ms after ${JSON.stringify(prev.delta)}` : 'first'}; next ${next ? `+${next.t - e.t} ms` : '—'}${prev && gap > PAUSE_MS ? ' — **after a pause: lands in the next row**' : ''}`);
+    });
+    const count = (re: RegExp) => (text.match(re) ?? []).length;
+    lines.push('', `- deltas with a mark: ${marked}; landing after a pause: ${late}`, `- 。 ${count(/。/g)}, ？ ${count(/？/g)}, ！ ${count(/！/g)}, . ${count(/\./g)}, ? ${count(/\?/g)}, ， ${count(/，/g)}, , ${count(/,/g)}`, '', '```', text, '```', '');
+  }
+  const run = startRun('openai-translate', `${runName}-marks`, DIR);
+  run.report(lines.join('\n'));
+}
+
 const a = args();
-if (!key) { console.error('OPENAI_API_KEY is not set'); process.exit(1); }
-if (a.step === 'record') await record(a.opt('script') ?? 'user', a.opt('target') ?? 'en');
-else if (a.step === 'analyze') await analyze(a.opt('run') ?? '');
-else console.error('usage: record [--script user|tight|long] | analyze --run <stamp>-<script>');
+if (a.step === 'marks') marksReport(a.opt('run') ?? '');
+else {
+  if (!key) { console.error('OPENAI_API_KEY is not set'); process.exit(1); }
+  if (a.step === 'record') await record(a.opt('wav') ? 'wav' : (a.opt('script') ?? 'user'), a.opt('target') ?? 'en', a.opt('wav'));
+  else if (a.step === 'analyze') await analyze(a.opt('run') ?? '');
+  else console.error('usage: record [--script user|tight|long|en] [--target en|zh] [--wav <file>] | analyze --run <stamp>-<script> | marks --run <stamp>-<script>');
+}
