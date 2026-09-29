@@ -68,7 +68,7 @@ describe('the OpenAI Realtime definition', () => {
 
   it('offers Text only and typed text, keeps the server\'s boundaries, and offers both turn modes', () => {
     expect(openaiProvider.speech).toBe('optional');
-    expect(openaiProvider.textInput).toBe(true);
+    expect(openaiProvider.textInput(REALTIME_DEFAULTS)).toBe(true);
     expect(openaiProvider.boundaries(REALTIME_DEFAULTS)).toBe('provider');
     expect(openaiProvider.turns(REALTIME_DEFAULTS)).toEqual(['auto', 'manual']);
   });

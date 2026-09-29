@@ -162,6 +162,7 @@ export default function MainPanel() {
   const participantSources = useParticipantSources();
   const participantSource = useSelectedParticipantSource();
   const provider = useProviderStore((s) => (s.selected ? getProvider(s.selected) : undefined));
+  const providerSettings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
   const display = useConversationDisplayStore();
 
   // The conversation: the view's entries through the display filter, reusing unchanged lines (ruling 14), then why the last start did not happen.
@@ -217,7 +218,8 @@ export default function MainPanel() {
   const speakerLive = run.phase === 'running' && run.legs.speaker === 'live';
   const ptt = usePushToTalk({ enabled: speakerLive && subtitle.holdToTalk, press: runner.press, release: runner.release });
   const duration = useSessionClock(run);
-  const canSendText = speakerLive && !!provider?.textInput;
+  // The stored settings are the run's: they are locked while it is live.
+  const canSendText = speakerLive && !!provider && providerSettings !== undefined && provider.textInput(providerSettings);
 
   // Mode picker: the active segment toggles its device popover; another segment switches the mode while idle.
   const [popover, setPopover] = useState<HTMLElement | null>(null);

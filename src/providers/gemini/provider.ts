@@ -11,6 +11,7 @@ import {
   geminiCredentials,
   geminiLanguages,
   migrateGeminiSettings,
+  offersTranslate,
   type GeminiCredentials,
   type GeminiSettings,
 } from './settings';
@@ -45,8 +46,9 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
   languages: geminiLanguages,
 
   speech: 'optional',
-  // Every model, as before (`GeminiProviderConfig.ts:247`); whether Live Translate answers it is a live-test item.
-  textInput: true,
+  // The dialogue models answer typed text; Live Translate ignores it (the owner's live test, 2026-09-30), so it offers
+  // none, the box hidden as on every other continuous interpreter. No model chosen reads as Live Translate, as the offer does.
+  textInput: (s) => !offersTranslate(s),
   // Parity with the old offer (pause, not Auto): a dialogue turn ends at turnComplete, Live Translate on our own timers.
   boundaries: () => 'silence',
   turns: () => ['auto', 'manual'],

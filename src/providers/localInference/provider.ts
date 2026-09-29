@@ -45,7 +45,7 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   languages: localInferenceLanguages,
 
   speech: 'optional',
-  textInput: true,
+  textInput: () => true,
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],
 

@@ -62,7 +62,7 @@ describe('the OpenAI Translate definition', () => {
 
   it('offers Text only, takes no typed text, ends segments on our own timers, and offers both turn modes (ruling 4)', () => {
     expect(openaiTranslateProvider.speech).toBe('optional');
-    expect(openaiTranslateProvider.textInput).toBe(false);
+    expect(openaiTranslateProvider.textInput(TRANSLATE_DEFAULTS)).toBe(false);
     expect(openaiTranslateProvider.boundaries(TRANSLATE_DEFAULTS)).toBe('silence');
     expect(openaiTranslateProvider.turns(TRANSLATE_DEFAULTS)).toEqual(['auto', 'manual']);
   });

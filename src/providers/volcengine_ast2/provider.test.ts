@@ -59,7 +59,7 @@ describe('the Doubao AST 2.0 definition', () => {
 
   it('speaks optionally, takes no typed text, lets the server end segments, and offers both turn modes', () => {
     expect(volcengineAst2Provider.speech).toBe('optional');
-    expect(volcengineAst2Provider.textInput).toBe(false);
+    expect(volcengineAst2Provider.textInput(AST2_DEFAULTS)).toBe(false);
     expect(volcengineAst2Provider.boundaries(AST2_DEFAULTS)).toBe('provider');
     expect(volcengineAst2Provider.turns(AST2_DEFAULTS)).toEqual(['auto', 'manual']);
   });

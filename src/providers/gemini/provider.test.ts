@@ -28,7 +28,7 @@ import { GeminiSettingsView } from './GeminiSettings';
 import { GeminiTurnDetectionControls, GeminiTurnDetectionHelp, GeminiTurnDetectionSummary } from './GeminiTurnDetection';
 import { geminiProvider } from './provider';
 import { GEMINI_DEFAULTS, GEMINI_LEGACY_KEYS, geminiCredentials, geminiLanguages, migrateGeminiSettings, type GeminiSettings } from './settings';
-import { AUTO_CTX, configFor, DIALOGUE, KEY, SHARED } from './testing';
+import { AUTO_CTX, configFor, DIALOGUE, KEY, SHARED, TRANSLATE } from './testing';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -59,12 +59,17 @@ describe('the Gemini definition', () => {
     expect(geminiProvider).not.toHaveProperty('i18nKey');
   });
 
-  it('speaks optionally, takes typed text, cuts on silence (parity), offers both turn modes, and needs no session hook', () => {
+  it('speaks optionally, cuts on silence (parity), offers both turn modes, and needs no session hook', () => {
     expect(geminiProvider.speech).toBe('optional');
-    expect(geminiProvider.textInput).toBe(true);
     expect(geminiProvider.boundaries(GEMINI_DEFAULTS)).toBe('silence');
     expect(geminiProvider.turns(GEMINI_DEFAULTS)).toEqual(['auto', 'manual']);
     expect(geminiProvider.session).toBeUndefined();
+  });
+
+  it('takes typed text on a dialogue model, and none on Live Translate, which ignores it — no model chosen reads as Live Translate', () => {
+    expect(geminiProvider.textInput({ ...GEMINI_DEFAULTS, model: DIALOGUE })).toBe(true);
+    expect(geminiProvider.textInput({ ...GEMINI_DEFAULTS, model: TRANSLATE })).toBe(false);
+    expect(geminiProvider.textInput({ ...GEMINI_DEFAULTS, model: '' })).toBe(false);
   });
 
   it('sits after LocalInference (ruling 6)', () => {

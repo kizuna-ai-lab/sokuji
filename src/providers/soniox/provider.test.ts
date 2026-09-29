@@ -45,7 +45,7 @@ describe('sonioxProvider', () => {
 
   it('speaks optionally, takes no typed text, keeps the provider\'s boundaries, and offers both turn modes', () => {
     expect(sonioxProvider.speech).toBe('optional');
-    expect(sonioxProvider.textInput).toBe(false);
+    expect(sonioxProvider.textInput(SONIOX_DEFAULTS)).toBe(false);
     expect(sonioxProvider.boundaries(SONIOX_DEFAULTS)).toBe('provider');
     expect(sonioxProvider.turns(SONIOX_DEFAULTS)).toEqual(['auto', 'manual']);
   });

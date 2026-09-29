@@ -235,9 +235,9 @@ export const GEMINI_TRANSLATE_SOURCES = offered(['both', 'dialogue', 'translate'
  * follow-up, ruling 3). A key that lists none runs a dialogue model on the
  * Live Translate offer until a model is picked: narrower targets, each one a
  * dialogue model takes too but Javanese and Sundanese, which only its
- * instructions name.
+ * instructions name. The typed-text box reads it too (`textInput`).
  */
-function offersTranslate(s: Pick<GeminiSettings, 'model'>): boolean {
+export function offersTranslate(s: Pick<GeminiSettings, 'model'>): boolean {
   return s.model === '' || isGeminiTranslateModel(s.model);
 }
 

@@ -1252,7 +1252,7 @@ interface Provider<S, K, C, R = K> {
 
   // the only capabilities generic code reads
   speech: 'always' | 'optional' | 'never'
-  textInput: boolean
+  textInput(s: S): boolean                 // a function of S since Gemini's Live Translate (below); was `textInput: boolean`
   boundaries(s: S): 'provider' | 'silence'
   turns(s: S): Array<'auto' | 'manual'>    // both for everyone (D25, OpenAI over WebRTC manual only, closed 2026-09-29)
   participantSpeech?: boolean              // false: the participant never speaks (a flag, off for Kizuna Soniox until par_tts)
@@ -1314,6 +1314,17 @@ the two lists' to say ("The participant rule (D20)"; ruling 9, choice 3).
 `start`'s request has no `input`: the native-track seam is deleted
 ("Capture belongs to the runner"; ruling 16). This listing had `input`
 required; the code had it optional, and no adapter read it.
+
+**Amended after the Stage 2 translation cuts plan** (the owner's decision,
+2026-09-30): `textInput(s: S): boolean`, a function of the settings as
+`boundaries` and `turns` are, where it was a flat `boolean`. Gemini's Live
+Translate ignores typed text (the owner's live test) while its dialogue models
+answer it, so Gemini returns false for a Live Translate model — and for no
+model chosen, which reads as Live Translate, as its language offer does — and
+the box is hidden there, as on every other continuous interpreter. The run
+asks with its frozen settings before it sends; the panel asks with the stored
+ones, which are the run's while it is live (the provider's settings are locked
+then).
 
 `settings.key` is today's slice key, and values persist under
 `settings.<key>.<field>` exactly as now: no user's saved settings move.

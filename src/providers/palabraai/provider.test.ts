@@ -69,7 +69,7 @@ describe('the Palabra AI definition', () => {
 
   it("offers Text only (ruling 7), takes no typed text, keeps the server's boundaries, and offers both turn modes", () => {
     expect(palabraProvider.speech).toBe('optional');
-    expect(palabraProvider.textInput).toBe(false);
+    expect(palabraProvider.textInput(PALABRA_DEFAULTS)).toBe(false);
     expect(palabraProvider.boundaries(PALABRA_DEFAULTS)).toBe('provider');
     expect(palabraProvider.turns(PALABRA_DEFAULTS)).toEqual(['auto', 'manual']);
   });

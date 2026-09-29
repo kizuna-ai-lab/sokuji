@@ -3034,7 +3034,7 @@ execution added is marked):
 19. **Analytics:** `translation_session_start` with `provider: 'gemini'` and the model as the translation model (choice 6); a refused start → `api_error` with its code.
 
 **Open questions for the owner**
-- Live Translate and typed text (item 7): if the server ignores it, either `textInput` becomes a function of `S` (a spec change) or the adapter answers with the source alone and a degradation whose words fit. **Answered by the owner's live test (2026-09-30):** the server ignores it. The owner chose the first option (2026-09-30, 「按照这个做」): `textInput(s)`, as `boundaries(s)` and `turns(s)` are, false on Live Translate, so the box is hidden there as it is on every other continuous interpreter — a follow-up after the Stage 2 translation cuts plan.
+- Live Translate and typed text (item 7): if the server ignores it, either `textInput` becomes a function of `S` (a spec change) or the adapter answers with the source alone and a degradation whose words fit. **Answered by the owner's live test (2026-09-30):** the server ignores it. The owner chose the first option (2026-09-30, 「按照这个做」): `textInput(s)`, as `boundaries(s)` and `turns(s)` are, false on Live Translate, so the box is hidden there as it is on every other continuous interpreter — a follow-up after the Stage 2 translation cuts plan. **Done** in the commit after `1c060377` (the spec's "Amended after the Stage 2 translation cuts plan").
 - Live Translate's leading audio (item 8): open the translation segment on audio, so its replay holds the leading chunks, instead of ref-less playback (choice 8).
 - A resume the server refuses keeps its handle for the remaining attempts (parity); falling back to a fresh session within the ladder would save the run.
 - `goAway`: make-before-break (a second socket before the first closes) would remove the gap's dropped audio.
@@ -7082,9 +7082,9 @@ before Start; each item names what settles it; `translation.cut` frames carry
 15. **Typed text on Live Translate** (choices 9, 12; with the Gemini section's
     item 7): **answered before this record by the owner's live test
     (2026-09-30): Live Translate ignores typed text** — the typed row stands
-    alone and, owing no cut, shifts no spoken row. What remains to watch,
-    while the box still shows there: after a spoken exchange, a typed
-    sentence, then speech — the spoken rows keep their own translations.
+    alone and, owing no cut, shifts no spoken row. The follow-up right after
+    this record hides the box there: check that it shows on a dialogue model
+    and not on Live Translate, nor with no model chosen.
 
 **Open questions for the owner:** none from this plan. The controller ruled
 choices 7–9, with the review's fixes, and the reading of rulings 1 (iii) and
@@ -7093,7 +7093,7 @@ observes what is left: `MID_SENTENCE_HOLD_MS` (items 4, 12, 14) and other
 scripts (item 13). Whether Live Translate answers typed text — the Gemini
 section's item 7 — is answered (it does not); hiding the box there, by making
 `textInput` a function of the settings, is a follow-up the owner approved on
-2026-09-30, outside this plan.
+2026-09-30, outside this plan, done in the commit after this record.
 
 **Amended in place**, each marked as changed, answered, narrowed or addressed
 by this plan: in the Gemini section, live-test item 7 (typed text on Live

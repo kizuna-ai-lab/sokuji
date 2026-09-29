@@ -80,7 +80,7 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
   languages: FAKE_LANGUAGES,
 
   speech: 'optional',
-  textInput: true,
+  textInput: () => true,
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],
 

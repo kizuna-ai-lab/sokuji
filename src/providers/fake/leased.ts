@@ -77,7 +77,7 @@ export const fakeLeasedProvider: Provider<FakeLeasedSettings, FakeLeasedCredenti
   check: (_k, s) => checkFake(_k, s),
   languages: FAKE_LANGUAGES,
   speech: 'optional',
-  textInput: true,
+  textInput: () => true,
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],
   build: (context, s, shared) => {

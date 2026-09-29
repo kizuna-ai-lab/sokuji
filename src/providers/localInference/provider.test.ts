@@ -55,7 +55,7 @@ describe('localInferenceProvider', () => {
 
   it('offers optional speech, text input, provider-cut boundaries, and both turn modes', () => {
     expect(localInferenceProvider.speech).toBe('optional');
-    expect(localInferenceProvider.textInput).toBe(true);
+    expect(localInferenceProvider.textInput(LOCAL_INFERENCE_DEFAULTS)).toBe(true);
     expect(localInferenceProvider.boundaries(LOCAL_INFERENCE_DEFAULTS)).toBe('provider');
     expect(localInferenceProvider.turns(LOCAL_INFERENCE_DEFAULTS)).toEqual(['auto', 'manual']);
   });
