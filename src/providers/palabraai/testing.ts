@@ -214,8 +214,8 @@ export function fakeRest(o: { create?: RestAnswer; list?: RestAnswer; remove?: R
       url: String(input),
       // A browser normalises header names to lowercase (the `Headers` API);
       // recording the raw object hid a case mismatch a real fetch would not
-      // have (fix round 1, M3c). Nothing yet reads `RestCall.headers` by a
-      // capitalised name — the brief's own tests never do.
+      // have (fix round 1, M3c). Read `RestCall.headers` by the lowercase
+      // name, as the adapter's suite does (`clientid`, `content-type`).
       headers: Object.fromEntries(new Headers(init.headers).entries()),
       ...(typeof init.body === 'string' ? { body: init.body } : {}),
       ...(init.keepalive === undefined ? {} : { keepalive: init.keepalive }),
@@ -242,6 +242,8 @@ export function startPalabra(o: {
   patch?: Partial<PalabraSettings>;
   credentials?: PalabraCredentials;
   rest?: Parameters<typeof fakeRest>[0];
+  /** A test's own answers in front of the fake server: what it passes on reaches `rest`, and is recorded there. */
+  fetch?: (rest: ReturnType<typeof fakeRest>) => (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   online?: boolean;
 } = {}) {
   const sockets = fakeSockets();
@@ -251,7 +253,7 @@ export function startPalabra(o: {
   const controller = new AbortController();
   const context = o.context ?? AUTO_CTX;
   const config = configFor(context, o.patch);
-  const adapter = createPalabraAdapter({ openSocket: (url) => sockets.create(url), fetch: rest.fetch, newId: () => 'test-hash', online: () => o.online ?? true });
+  const adapter = createPalabraAdapter({ openSocket: (url) => sockets.create(url), fetch: o.fetch ? o.fetch(rest) : rest.fetch, newId: () => 'test-hash', online: () => o.online ?? true });
   const starting = adapter.start({ context, config, credentials: o.credentials ?? KEY, clock, signal: controller.signal }, events);
   const socket = () => sockets.last();
   const of = <K extends AdapterEvent['kind']>(kind: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);

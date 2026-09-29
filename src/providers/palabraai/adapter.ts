@@ -593,22 +593,37 @@ class PalabraLeg implements AdapterSession {
 
   /**
    * Deletes the REST session this leg created, once (ruling 1): its own id
-   * alone, bounded by `RELEASE_TIMEOUT_MS`, with `keepalive` so a page that is
-   * going away still sends it. The request goes out before any `await`. Not
-   * framed: it may run after the session has ended.
+   * alone, bounded by `RELEASE_TIMEOUT_MS` on the request's clock, with
+   * `keepalive` so a page that is going away still sends it. The request goes
+   * out before any `await`. Not framed: it may run after the session has
+   * ended.
+   *
+   * A transport failure is tried once more without `keepalive`, inside what
+   * is left of the same bound, as the Soniox lease's session end does: a
+   * runtime that refuses a keepalive request needing a CORS preflight fails
+   * it that way — and Palabra's DELETE always needs one, neither its method
+   * nor its app pair's headers being a simple request's — while a plain
+   * request still reaches Palabra on a normal Stop, as the old client's
+   * delete did. A status is Palabra's answer, and the bound's own abort is
+   * the bound: neither is tried again.
    */
   private release(): void {
     if (!this.sessionId || this.releasing) return;
+    const url = sessionDeleteUrl(this.sessionId);
     const controller = new AbortController();
     const cancel = this.request.clock.setTimeout(() => controller.abort(), RELEASE_TIMEOUT_MS);
-    let sent: Promise<unknown>;
-    try {
-      sent = this.deps.fetch(sessionDeleteUrl(this.sessionId), { method: 'DELETE', headers: restHeaders(this.request.credentials), keepalive: true, signal: controller.signal });
-    } catch (error) {
-      sent = Promise.reject(error);
-    }
+    const remove = (keepalive: boolean): Promise<unknown> => {
+      try {
+        return this.deps.fetch(url, { method: 'DELETE', headers: restHeaders(this.request.credentials), ...(keepalive ? { keepalive: true } : {}), signal: controller.signal });
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    };
     // A delete that failed leaves the session to expire on its own [inf: the docs say only that `expires_at` is extended every minute while a connection is active].
-    this.releasing = sent.then(() => undefined, () => undefined).then(() => cancel());
+    this.releasing = remove(true)
+      .catch(() => (controller.signal.aborted ? undefined : remove(false)))
+      .then(() => undefined, () => undefined)
+      .then(() => cancel());
   }
 
   private frame(direction: 'in' | 'out', type: string, payload?: unknown): void {

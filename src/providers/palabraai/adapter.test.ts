@@ -9,6 +9,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, SAMPLE_RATE, type AdapterEvents } from '../../lib/contract/adapter';
 import { createVirtualClock, type Clock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
+import { WS_OPEN } from '../../lib/contract/socket';
 import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { runLifecycles, type LifecycleHarness } from '../../lib/contract/testing/lifecycle';
@@ -20,7 +21,7 @@ import { CHUNK_MS, CHUNK_SAMPLES, IDLE_MS } from './audioIn';
 import type { PalabraConfig } from './config';
 import type { PalabraCredentials } from './settings';
 import {
-  APP, AUTO_CTX, configFor, EN, fakeRest, JA, KEY, livePalabra, MANUAL_CTX, PUBLISHER, SENTENCE, SERVER, SESSION_ID, SESSION_WS_URL, startPalabra,
+  APP, AUTO_CTX, configFor, CREATED_BODY, EN, fakeRest, JA, KEY, livePalabra, MANUAL_CTX, PUBLISHER, SENTENCE, SERVER, SESSION_ID, SESSION_WS_URL, startPalabra,
 } from './testing';
 import { directUrl, sessionDeleteUrl, setTask } from './wire';
 
@@ -98,17 +99,19 @@ describe('the Palabra AI adapter: the seeded lifecycles (ruling 15)', () => {
         const socket = run.sockets.all[run.sockets.all.length - 1];
         if (!socket) return;
         const r = run.rand();
+        // Each of the harness's own ways is counted: the app pair's socket exists only once its create is answered, so the kit's own drop before the opening never reaches it, and these are what reach its opening.
         // A refused upgrade; or nothing at all, and the kit runs the start's bound out.
-        if (r < 0.04) return socket.drop();
-        if (r < 0.07) return;
+        if (r < 0.04) { run.count('harness.drop'); return socket.drop(); }
+        if (r < 0.07) { run.count('harness.silent'); return; }
         socket.open();
-        if (r < 0.1) return socket.receive(SERVER.thresholdRefused());
-        if (r < 0.12) return socket.serverClose(1008);
+        if (r < 0.1) { run.count('harness.refused_task'); return socket.receive(SERVER.thresholdRefused()); }
+        if (r < 0.12) { run.count('harness.close_1008'); return socket.serverClose(1008); }
         run.clock.advance(POLL_MS);
         if (r < 0.2) {
           socket.receive(SERVER.notFound());
           run.clock.advance(POLL_MS);
         }
+        if (r < 0.22) run.count('harness.paused');
         socket.receive(SERVER.currentTask(r < 0.22 ? 'paused' : 'running'));
       },
       server: (run) => {
@@ -147,13 +150,17 @@ describe('the Palabra AI adapter: the seeded lifecycles (ruling 15)', () => {
   it('the platform key: every life settles, ends clean, and leaves no timer, socket or REST call behind', async () => {
     const report = await runLifecycles(lifecycles(KEY), { seed: 20260929, runs: 300 });
     expect(report.failures).toEqual([]);
-    for (const key of ['refused', 'live', 'stopped', 'end.failed.connection_lost', 'end.failed.rate_limit', 'end.failed.server']) expect(report.stats[key], key).toBeGreaterThan(0);
+    for (const key of ['refused', 'live', 'stopped', 'end.failed.connection_lost', 'end.failed.rate_limit', 'end.failed.server', 'opening.bound', 'opening.abort.early']) expect(report.stats[key] ?? 0, key).toBeGreaterThan(0);
   }, 20_000);
 
   it("the app pair: the same, and every REST session created is deleted, once", async () => {
     const report = await runLifecycles(lifecycles(APP), { seed: 20260930, runs: 300 });
     expect(report.failures).toEqual([]);
-    for (const key of ['refused', 'live', 'stopped', 'end.failed.connection_lost']) expect(report.stats[key], key).toBeGreaterThan(0);
+    for (const key of [
+      'refused', 'live', 'stopped', 'end.failed.connection_lost', 'opening.bound', 'opening.abort.early',
+      // The harness's own ways into the session's socket, which the kit's own drop cannot reach.
+      'harness.drop', 'harness.silent', 'harness.refused_task', 'harness.close_1008', 'harness.paused',
+    ]) expect(report.stats[key] ?? 0, key).toBeGreaterThan(0);
   }, 20_000);
 });
 
@@ -230,6 +237,8 @@ describe('the Palabra AI adapter: the app pair goes through a REST session of it
     const reason = new Error('cancelled');
     // The answer in, its body unread: the body is read on the create's own signal, which the leg's end does not abort.
     const read = startPalabra({ credentials: APP });
+    // One hop: the fake server's answer has settled, and the leg has not yet read it.
+    await Promise.resolve();
     read.controller.abort(reason);
     await expect(read.starting).rejects.toBe(reason);
     await flush();
@@ -287,6 +296,61 @@ describe('the Palabra AI adapter: the app pair goes through a REST session of it
     h.clock.advance(RELEASE_TIMEOUT_MS * 2);
     await flush();
     expect(h.rest.of('DELETE')).toHaveLength(1);
+  });
+
+  it('an answer in time whose socket address is no URL is refused as the service\'s, opens nothing, and the session it made is deleted, exactly once (choice 8)', async () => {
+    const rest = fakeRest();
+    const fetch = (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> =>
+      init.method === 'POST'
+        ? Promise.resolve(new Response(JSON.stringify({ ...CREATED_BODY, data: { ...CREATED_BODY.data, ws_url: 'not a url' } }), { status: 201 }))
+        : rest.fetch(input, init);
+    const sockets = fakeSockets();
+    const clock = createVirtualClock(0);
+    const { events, log } = recordEvents();
+    const starting = createPalabraAdapter({ openSocket: (url) => sockets.create(url), fetch }).start(
+      { context: AUTO_CTX, config: configFor(), credentials: APP, clock, signal: new AbortController().signal },
+      events,
+    );
+    await expect(starting).rejects.toMatchObject({ code: 'server', message: 'Palabra answered the session request with an address that is no URL.' });
+    await flush();
+    expect(sockets.all).toEqual([]);
+    expect(rest.of('DELETE')).toMatchObject([{ url: sessionDeleteUrl(SESSION_ID), keepalive: true, headers: APP_HEADERS }]);
+    clock.advance(RELEASE_TIMEOUT_MS * 2);
+    await flush();
+    expect(rest.of('DELETE')).toHaveLength(1);
+    noSecret(log);
+  });
+
+  it("two legs of one adapter — Both's — each delete their own session and no other: stopping one leaves the other's socket open (ruling 1)", async () => {
+    let made = 0;
+    const rest = fakeRest();
+    // Each create answers a session of its own.
+    const fetch = (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
+      if (init.method !== 'POST') return rest.fetch(input, init);
+      made += 1;
+      return Promise.resolve(new Response(JSON.stringify({ ...CREATED_BODY, data: { ...CREATED_BODY.data, id: `${SESSION_ID}-${made}` } }), { status: 201 }));
+    };
+    const sockets = fakeSockets();
+    const clock = createVirtualClock(0);
+    const adapter = createPalabraAdapter({ openSocket: (url) => sockets.create(url), fetch, newId: () => 'test-hash', online: () => true });
+    const start = () => adapter.start({ context: AUTO_CTX, config: configFor(), credentials: APP, clock, signal: new AbortController().signal }, recordEvents().events);
+    const first = start();
+    const second = start();
+    await flush();
+    const [a, b] = sockets.all;
+    a.open();
+    b.open();
+    clock.advance(POLL_MS);
+    a.receive(SERVER.currentTask());
+    b.receive(SERVER.currentTask());
+    const [one, two] = await Promise.all([first, second]);
+    await one.stop();
+    expect(rest.of('DELETE').map((d) => d.url)).toEqual([sessionDeleteUrl(`${SESSION_ID}-1`)]);
+    expect(a.closedByClient).not.toBeNull();
+    expect(b.closedByClient).toBeNull();
+    expect(b.readyState).toBe(WS_OPEN);
+    await two.stop();
+    expect(rest.of('DELETE').map((d) => d.url)).toEqual([sessionDeleteUrl(`${SESSION_ID}-1`), sessionDeleteUrl(`${SESSION_ID}-2`)]);
   });
 
   it("a create that never answers is given the start's bound from its send, then abandoned: nothing opens, nothing is left to delete", async () => {
@@ -485,6 +549,17 @@ describe('the Palabra AI adapter: audio up (rulings 3, 5)', () => {
     for (const p of h.appended()) expect(p.every((s) => s === 3)).toBe(true);
   });
 
+  it("waits past the participant fallback's 683 ms chunks too — the slowest capture cadence, and why IDLE_MS is 800: its gaps are no idle", async () => {
+    const h = await livePalabra();
+    // 16 384 samples at 24 kHz, 682.7 ms: forty of them sweep the chunk's phase against the 320 ms beat.
+    for (let i = 0; i < 40; i++) {
+      h.session.appendAudio(new Int16Array(16_384).fill(3));
+      h.clock.advance(683);
+    }
+    expect(h.frames('audio.idle')).toEqual([]);
+    for (const p of h.appended()) expect(p.every((s) => s === 3)).toBe(true);
+  });
+
   it('under push-to-talk a release sends what waits at once, padded to a chunk; an empty press too; the idle silence follows', async () => {
     const h = await livePalabra({ context: MANUAL_CTX });
     h.session.beginTurn();
@@ -583,6 +658,49 @@ describe('the Palabra AI adapter: audio up (rulings 3, 5)', () => {
     const beats = 1 + Math.ceil(IDLE_MS / CHUNK_MS) + 1;
     for (let i = 0; i < beats; i++) beat();
     expect(audio()).toHaveLength(2);
+  });
+
+  it('a wall clock stepped back rebases the stream once, not at every beat after: over 40 presses after a 10 s step, what went up is never two chunks past real time (choice 7)', async () => {
+    let now = 50_000;
+    const inner = createVirtualClock(0);
+    const stepped: Clock = { now: () => now, setTimeout: (fn, ms) => inner.setTimeout(fn, ms) };
+    const tick = (ms: number) => { now += ms; inner.advance(ms); };
+    const sockets = fakeSockets();
+    const starting = createPalabraAdapter({ openSocket: (url) => sockets.create(url), fetch: fakeRest().fetch }).start(
+      { context: MANUAL_CTX, config: configFor(MANUAL_CTX), credentials: KEY, clock: stepped, signal: new AbortController().signal },
+      recordEvents().events,
+    );
+    sockets.last().open();
+    tick(POLL_MS);
+    sockets.last().receive(SERVER.currentTask());
+    const session = await starting;
+    // Real time since the leg went live, read on the virtual timers: the step does not move them.
+    const liveAt = inner.now();
+    tick(CHUNK_MS);
+    // Ten seconds back, between two beats.
+    now -= 10_000;
+    tick(CHUNK_MS);
+    // Every chunk that goes up is 320 ms, whatever it holds; counted without decoding it.
+    const lead = () => sockets.last().sent.filter((d) => typeof d === 'string' && d.startsWith('{"message_type":"input_audio_data"')).length * CHUNK_MS - (inner.now() - liveAt);
+    // A capture chunk every 85⅓ ms, as the 40-press case without a step.
+    const steps = [85, 85, 86];
+    let step = 0;
+    let most = -Infinity;
+    for (let press = 0; press < 40; press++) {
+      session.beginTurn();
+      for (let k = 0; k < 14; k++) {
+        session.appendAudio(chunk());
+        tick(steps[step++ % 3]);
+      }
+      session.endTurn();
+      most = Math.max(most, lead());
+      const idle = 700 + ((press * 37) % 320);
+      for (let t = 0; t < idle; t += 40) {
+        tick(40);
+        most = Math.max(most, lead());
+      }
+    }
+    expect(most).toBeLessThan(2 * CHUNK_MS);
   });
 
   it('under automatic turns a release sends nothing of its own', async () => {
@@ -770,6 +888,93 @@ describe('the Palabra AI adapter: stop (ruling 13)', () => {
     await flush();
     expect(done).toHaveBeenCalled();
     expect(h.rest.of('DELETE')[0].signal?.aborted).toBe(true);
+    // The bound's own abort is not a transport failure to try again.
+    expect(h.rest.of('DELETE')).toHaveLength(1);
+    expect(h.timers()).toBe(0);
+  });
+
+  it("a delete refused with keepalive at the transport — a runtime refusing a keepalive request that needs a CORS preflight — goes again once, plain, and the stop resolves once that is answered (ruling 1)", async () => {
+    const refused: RequestInit[] = [];
+    const h = await livePalabra({
+      credentials: APP,
+      fetch: (rest) => (input, init = {}) => {
+        if (init.method === 'DELETE' && init.keepalive === true) {
+          refused.push(init);
+          return Promise.reject(new TypeError('Failed to fetch'));
+        }
+        return rest.fetch(input, init);
+      },
+    });
+    const logged = h.log.length;
+    const stopping = h.session.stop();
+    // The first goes before the stop's first await, with keepalive.
+    expect(refused).toHaveLength(1);
+    await expect(stopping).resolves.toBeUndefined();
+    // Then exactly one more, plain: our own session's, with its credentials, and answered.
+    expect(h.rest.of('DELETE')).toMatchObject([{ url: sessionDeleteUrl(SESSION_ID), headers: APP_HEADERS }]);
+    expect(h.rest.of('DELETE')[0].keepalive).not.toBe(true);
+    expect(refused).toHaveLength(1);
+    // The delete is never framed: nothing is said after the stop.
+    expect(h.log.length).toBe(logged);
+    expect(h.timers()).toBe(0);
+  });
+
+  it('a delete that fails at the transport both times ends there: two attempts, nothing framed, no timer left (ruling 1)', async () => {
+    const attempts: RequestInit[] = [];
+    const h = await livePalabra({
+      credentials: APP,
+      fetch: (rest) => (input, init = {}) => {
+        if (init.method !== 'DELETE') return rest.fetch(input, init);
+        attempts.push(init);
+        return Promise.reject(new TypeError('Failed to fetch'));
+      },
+    });
+    const logged = h.log.length;
+    const done = vi.fn();
+    void h.session.stop().then(done);
+    await flush();
+    expect(attempts.map((a) => a.keepalive === true)).toEqual([true, false]);
+    expect(done).toHaveBeenCalled();
+    expect(h.log.length).toBe(logged);
+    expect(h.timers()).toBe(0);
+  });
+
+  it("the plain try has only what is left of the delete's 5 s, on the request's clock: refused at 3 s, a plain one that never answers is given 2 s more, not 5 (ruling 1)", async () => {
+    let refuse: () => void = () => {};
+    const attempts: RequestInit[] = [];
+    const h = await livePalabra({
+      credentials: APP,
+      fetch: (rest) => (input, init = {}) => {
+        if (init.method !== 'DELETE') return rest.fetch(input, init);
+        attempts.push(init);
+        const { signal } = init;
+        return new Promise<Response>((_resolve, reject) => {
+          if (init.keepalive === true) refuse = () => reject(new TypeError('Failed to fetch'));
+          signal?.addEventListener('abort', () => reject(signal.reason), { once: true });
+        });
+      },
+    });
+    const done = vi.fn();
+    void h.session.stop().then(done);
+    h.clock.advance(3_000);
+    refuse();
+    await flush();
+    expect(attempts.map((a) => a.keepalive === true)).toEqual([true, false]);
+    h.clock.advance(RELEASE_TIMEOUT_MS - 3_000 - 1);
+    await flush();
+    expect(done).not.toHaveBeenCalled();
+    h.clock.advance(1);
+    await flush();
+    expect(done).toHaveBeenCalled();
+    expect(attempts[1].signal?.aborted).toBe(true);
+    expect(h.timers()).toBe(0);
+  });
+
+  it.each([404, 500])('a delete Palabra answers with %i is its answer, not tried again (ruling 1)', async (status) => {
+    const h = await livePalabra({ credentials: APP, rest: { remove: status } });
+    await expect(h.session.stop()).resolves.toBeUndefined();
+    await flush();
+    expect(h.rest.of('DELETE')).toMatchObject([{ url: sessionDeleteUrl(SESSION_ID), keepalive: true }]);
     expect(h.timers()).toBe(0);
   });
 });
