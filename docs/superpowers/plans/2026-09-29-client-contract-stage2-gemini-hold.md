@@ -2,10 +2,10 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Standing of the rulings below.** Rulings 1–4 are **the owner's decisions** (2026-09-29, in conversation, on the evidence of his own wire probes): the hold itself (「按『暂存到 turnComplete 再补发』写计划」, rulings 1 and 2), its adaptive cap (「就按自适应上限来」, ruling 3, which replaced the fixed `HOLD_MAX_MS` the first brief named), and, on the probe batches he ran for this plan, its two rules for automatic turns (「按turn2改计划」, ruling 4). Where a ruling left a sub-decision to this plan, the answer is a numbered *choice* below, and the self-review lists each one; choice 10 (a hold carried across a reconnect) and choice 2's input-transcription guard are the controller's rulings on the plan's independent review (Revision 1), choice 10's bound on the carried gap audio its ruling on the re-review (Revision 2), and choices 14 and 15 carry ruling 4 (Revision 3). This plan runs **after** the Stage 2 Palabra plan, whose code and record have landed in the same worktree (`15a07f0a`, `b7aaf60d`, `07b67bd9`, `ced275ae`, `ac8ccdd1`, `42072b5b`, `78aab5fd`, `ba48e426`); Task 5 anchors by content.
+> **Standing of the rulings below.** Rulings 1–4 are **the owner's decisions** (2026-09-29, in conversation, on the evidence of his own wire probes): the hold itself (「按『暂存到 turnComplete 再补发』写计划」, rulings 1 and 2), its adaptive cap (「就按自适应上限来」, ruling 3, which replaced the fixed `HOLD_MAX_MS` the first brief named), and, on the probe batches he ran for this plan, its two rules for automatic turns (「按turn2改计划」, ruling 4). Where a ruling left a sub-decision to this plan, the answer is a numbered *choice* below, and the self-review lists each one; choice 10 (a hold carried across a reconnect) and choice 2's input-transcription guard are the controller's rulings on the plan's independent review (Revision 1), choice 10's bound on the carried gap audio its ruling on the re-review (Revision 2), choices 14 and 15 carry ruling 4 (Revision 3), and the coordinator's rulings on the third re-review set the split's wait, derive the split's pause from the session's silence setting and the wait from the audio a split let go, fix two pieces of stale state and narrow the START rule's exception for a split's hold (Revision 4; choices 2, 4, 14, 15). This plan runs **after** the Stage 2 Palabra plan, whose code and record have landed in the same worktree (`15a07f0a`, `b7aaf60d`, `07b67bd9`, `ced275ae`, `ac8ccdd1`, `42072b5b`, `78aab5fd`, `ba48e426`); Task 5 anchors by content.
 
 **Goal:** On a Gemini 3.x dialogue model — the family that barges in (the Gemini/AST2 follow-up's ruling 5) — keep every translation whole and every utterance heard from its start, **as the owner's probes measured it**: two utterances 1.57–2.47 s apart, 12 of 12 whole; and, with ruling 4, three Japanese sentences 0.8–1.5 s apart or a five-sentence monologue, every utterance translated whole in 10 of 10 sessions, where the hold without ruling 4 managed 5 and today's barge-in none (research notes, "Found in the owner's multi batches"). Noisy rooms, other voices and long monologues are unprobed: the owner's live test watches them. Once the server has closed the user's turn, the adapter holds what the leg would send — the microphone's audio, a press's activity marks, typed text — until the model's `turnComplete`, then sends it in order, the audio as one frame, and goes on live. Concretely:
-- **Automatic turns** (the speaker's, and always the participant's): the hold begins at the server's `voiceActivity` ACTIVITY_END — a message the adapter reads for the first time — or, when none comes, at a model turn's first output, or its first input transcription on a session that has heard no voice activity (choice 2). **Two more rules** (ruling 4): an ACTIVITY_START while a hold is on lets it go at once — the server is hearing speech that went up before the hold — and a release lets one utterance go: the held audio up to its first pause of 600 ms after speech, found by an energy gate over the held audio, while the rest stays held until the server's ACTIVITY_END for what went up, then to that answer's `turnComplete`, or 1.5 s without that END (choices 14, 15).
+- **Automatic turns** (the speaker's, and always the participant's): the hold begins at the server's `voiceActivity` ACTIVITY_END — a message the adapter reads for the first time — or, when none comes, at a model turn's first output, or its first input transcription on a session that has heard no voice activity (choice 2). **Two more rules** (ruling 4): an ACTIVITY_START while a hold is on lets it go at once — the server is hearing speech that went up before the hold — and a release lets one utterance go: the held audio up to its first pause after speech 100 ms longer than the session's own end-of-speech silence (600 ms at the default), found by an energy gate over the held audio, while the rest stays held until the server's ACTIVITY_END for what went up, then to that answer's `turnComplete` — or, without that END, for 2 s, or half as long as the released audio plays when that is longer (choices 14, 15).
 - **Push-to-talk:** it begins when the leg's own `activityEnd` goes out, for a release with voice or for typed text's own marks (choice 3). A press made while it holds waits: its `activityStart`, its audio and its release go at `turnComplete`; a press released without voice while its `activityStart` is still held is withdrawn whole, nothing sent (choice 7). The leg's own marks already end each utterance: ruling 4's rules do not apply (choice 14).
 - **It lets go** at `turnComplete` (or `waitingForInput`), after `GeminiTurns` has ended the turn (choice 4); or at its cap — 2 s past the model's computed playback end (its first audio's arrival plus all the audio it sent), or 10 s after it began while no model audio has come (ruling 3; choice 6). A cap releases, never discards. A lost connection — a GoAway included — carries what is held to the next connection, with at most the gap's first 5 s of audio under automatic turns, and that connection lets it go once set up (choice 10); a stop drops it silently (choice 11).
 - 2.5 dialogue models and Live Translate are unchanged (ruling 2).
@@ -55,7 +55,7 @@ It ends with the controller's docs task and the owner's live test (Task 5).
   4. **The landed barge-in tap case cannot happen while a hold runs** (`adapter.test.ts`, "a voiceless tap during an answer, released before the server's interrupted arrives"): under push-to-talk a tap during an answer is now withdrawn before any server sees it. Task 4 keeps the case, driven past the cap, where the landed path — the tap's `activityStart` barging in — still runs.
   5. **The hold sends the server what the microphone heard during the answer.** On speakers that includes the answer's own voice: 3.8 under `NO_INTERRUPTION` discarded it, and today's barge-in lets it cut the answer's simulated playback; held, it reaches the server after `turnComplete`, as input. The speaker leg's recorder asks for echo cancellation (Chromium's), whose far-end reference may or may not include the app's own playback by platform and output device; the participant capture has it off by design; the echo monitor only detects. The same echo may leave the held audio no pause the split's gate can find (choice 15). Live-test item 5 settles it.
   6. **The runner feeds audio under manual turns only while a key is held** (`run.ts`, `send`): a push-to-talk hold holds only the presses made during it, and every audio entry held after a press's `activityStart` is that press's own — what `withdraw` relies on (choice 7).
-  7. **The kit's seeded lifecycles are cheap here** (about 90 lines, the Palabra plan's shape): Task 4 runs 300 lives over both turn modes, the ladder and every server signal, and checks that each hold is said once at its begin and once at its end, never two at once, and that no mark or text goes up while one is on; and (Revision 3) that a split's hold follows at once the release that kept something, and only that one, that an ACTIVITY_START never ends a split's hold and only a split's hold times out, and that push-to-talk never splits. The kit sends every chunk at one level, which has no pause: the harness turns a chunk in three into a 700 ms silence, and the 300 lives then split 13 times, time out 5 splits and let 16 holds go at a START.
+  7. **The kit's seeded lifecycles are cheap here** (about 90 lines, the Palabra plan's shape): Task 4 runs 300 lives over both turn modes, the ladder and every server signal, and checks that each hold is said once at its begin and once at its end, never two at once, and that no mark or text goes up while one is on; and (Revision 3) that a split's hold follows at once the release that kept something, and only that one, that an ACTIVITY_START ends a split's hold only after the server's ACTIVITY_END has come (Revision 4) and a split's hold times out only before it, that only a split's hold times out, and that push-to-talk never splits. The kit sends every chunk at one level, which has no pause: the harness turns a chunk in three into a silence 100 ms longer than the split's pause at the session's silence setting — 700 ms at the default, the same under push-to-talk, where none may split — and the 300 lives then split 13 times, time out 5 splits and let 19 holds go at a START.
   8. **The Palabra plan landed first** — its code (`15a07f0a`, `b7aaf60d`, `07b67bd9`, `ced275ae`, `42072b5b`; `src/providers/palabraai/**`, the registry, `providerPaths.test.ts`, `appShape.test.ts`) and its record (`ac8ccdd1`, `78aab5fd`, `ba48e426`) — with Palabra's roster in `sessionSide.consistency.test.ts` below Gemini's; this plan's hunk there anchors on Gemini's roster lines. `42072b5b` and `ba48e426` edited the kit's comments and reworded one of its failure lines (`… send(s) after the session ended or into a closed socket`), which no test of this plan reads; `f0956d70` and `fb563efd` are this plan's own revisions, `57c3785d` and `ef2f61d3` the probe's `multi` mode and `turn2`. None of this plan's code files moved.
 - **Found in review** (Revision 1; each a controller's ruling, 2026-09-29):
   1. **On 3.x the input-transcription fallback could only fire late** (the review's I2): the guard against an open voice activity blocked every real one (note above), so it fired only on a transcription that came after its own `turnComplete` — and then held all of the user's live speech for the idle cap, 10 s, since nothing the server never heard could end it (scenario S1). Once any voice activity has come, the input fallback is off (choice 2).
@@ -67,8 +67,8 @@ It ends with the controller's docs task and the owner's live test (Task 5).
 - **Found while writing Revision 3** (at `ef2f61d3`):
   1. **An `interrupted` can reach the client before the ACTIVITY_START that set it off** (3 of the multi batches' 53, note 7 above). A START that lets a hold go there would send held text between `interrupted` and the `turnComplete` that trails it — research note 2's hazard: in the scratch copy the text's answer then opened under a third origin (`t3` for a `t2` text). The START's release waits for that `turnComplete` instead (choice 14).
   2. **A capture's chunks can be smaller than the gate's 10 ms frame** (an AudioWorklet's render quantum is 128 samples, 5.3 ms at 24 kHz): the probe framed each 100 ms chunk alone, which on such chunks finds no frame and never splits. The gate frames the held audio as one stream (choice 15).
-  3. **Nothing in the adapter changes for ruling 4** but two comments: it already hands every `voiceActivity` to the hold, and frames the hold's causes and summaries as they come. The rules live in `hold.ts`.
-- **A scratch copy of the tree** at `15a07f0a` (outside the repository, 2026-09-29) ran every code and test block below before it was written down, and again after Revisions 1 and 2, and at `ef2f61d3` after Revision 3; each block is that copy's file, and every diff is generated from it. Each task's red step was run against the code before the task, and each green step after it, with the counts quoted in the steps; Revision 3's new cases were also run against Revision 2's code first, and each failed there for the rule it pins (the self-review). Then the revised plan was replayed on a fresh copy of `ef2f61d3`, task by task, from this document's own blocks, every diff taken by `patch -p1`, and every step's count came out as quoted. At `ef2f61d3`: 571 files passed and 1 skipped, 7 360 tests passed and 2 skipped. After Wave 1: **572 files passed and 1 skipped, 7 396 tests passed and 2 skipped**; after Wave 2: **573 files passed and 1 skipped, 7 422 tests passed and 2 skipped**; after Wave 3: **573 files passed and 1 skipped, 7 438 tests passed and 2 skipped**; no unhandled errors; the typecheck at 259 lines in the full tree and exactly the gate's 20 after every wave. The seeded lifecycles also ran 5 000 more lives (seeds 1–8, 31337 and 7777, 500 each) with no failure, each seed splitting, timing a split out and letting a hold go at a START at least once, and forty-one hand mutants each failed at least one test (the self-review lists them).
+  3. **Nothing in the adapter changes for ruling 4** but two comments — and, since Revision 4, the session's silence setting handed to the hold (choice 15): it already hands every `voiceActivity` to the hold, and frames the hold's causes and summaries as they come. The rules live in `hold.ts`.
+- **A scratch copy of the tree** at `15a07f0a` (outside the repository, 2026-09-29) ran every code and test block below before it was written down, and again after Revisions 1 and 2, and at `ef2f61d3` after Revisions 3 and 4; each block is that copy's file, and every diff is generated from it. Each task's red step was run against the code before the task, and each green step after it, with the counts quoted in the steps; Revision 3's new cases were also run against Revision 2's code first, and Revision 4's against Revision 3's, and each failed there for the rule it pins (the self-review). Then the revised plan was replayed on a fresh copy of `ef2f61d3`, task by task, from this document's own blocks, every diff taken by `patch -p1`, and every step's count came out as quoted. At `ef2f61d3`: 571 files passed and 1 skipped, 7 360 tests passed and 2 skipped. After Wave 1: **572 files passed and 1 skipped, 7 401 tests passed and 2 skipped**; after Wave 2: **573 files passed and 1 skipped, 7 428 tests passed and 2 skipped**; after Wave 3: **573 files passed and 1 skipped, 7 444 tests passed and 2 skipped**; no unhandled errors; the typecheck at 259 lines in the full tree and exactly the gate's 20 after every wave. The seeded lifecycles also ran 5 000 more lives (seeds 1–8, 31337 and 7777, 500 each) with no failure, each seed splitting, timing a split out and letting a hold go at a START at least once, and fifty-one hand mutants each failed at least one test (the self-review lists them).
 
 ## Global Constraints
 
@@ -151,7 +151,7 @@ Cited as *ruling N* (in code, "Gemini hold, ruling N"). All four are the owner's
 1. **A 3.x dialogue model holds the leg's input from the user's turn close to its `turnComplete`.** Once the server has closed the user's turn, the adapter holds the microphone's audio, a press's activity marks and typed text locally until the model's `turnComplete`, then releases what it held and goes on live. Under automatic turns the hold begins at the server's `voiceActivity` ACTIVITY_END, falling back to the first `inputTranscription` or the first model output of the turn. Under push-to-talk it begins when the adapter's own `activityEnd` goes out; a press during the hold defers its `activityStart` and its audio until `turnComplete`, then sends `activityStart` and the held audio, and `activityEnd` if the press has already ended. Lands in: Task 1 (the hold), Task 2 (the signal on the wire), Task 3 (automatic turns), Task 4 (push-to-talk and typed text), Task 5.
 2. **Only the family that barges in holds.** The 2.5 dialogue models and Live Translate are unchanged: they do not barge in, and 2.5 under `NO_INTERRUPTION` hears the overlap whole. The follow-up's ruling 5 stays — 3.x barges in — and with the hold the server never sees the overlap. Lands in: Task 3 (choice 1), Task 5.
 3. **The cap is adaptive** (「就按自适应上限来」, confirmed 2026-09-29 on the controller's proposal from the owner's probe batch 2f). A hold releases at `turnComplete`; if that has not come, at the first model audio's arrival plus the total received audio's duration plus `HOLD_MARGIN_MS` (2 000), recomputed as audio arrives; with no model audio at all, `HOLD_IDLE_MS` (10 000) after it began. The cap always releases what it holds, never discards it; everything on the request's clock. Lands in: Task 1 (choice 6), Task 3, Task 5.
-4. **Under automatic turns, a new start lets a hold go, and a release lets one utterance go** (「按turn2改计划」, 2026-09-29, on the multi batches he ran for this plan: the probe's `turn2` policy). (ii) An ACTIVITY_START while a hold is on releases it at once — except the hold a split release itself begins. (iii) A release sends the held audio only up to its first pause of at least `SPLIT_PAUSE_MS` (600) after speech, found by an energy gate over the held audio, and keeps the rest held until the server's ACTIVITY_END for what went up, then until that answer's `turnComplete`; with no ACTIVITY_END within `SPLIT_END_MS` (1 500), it sends the rest. The adaptive cap (ruling 3), the participant leg's hold (choice 1), the carry across a reconnect with `HOLD_CARRY_MS` (choice 10) and ruling 2 stand. Lands in: Task 1 (choices 14, 15), Task 3, Task 4 (the seeded lifecycles), Task 5.
+4. **Under automatic turns, a new start lets a hold go, and a release lets one utterance go** (「按turn2改计划」, 2026-09-29, on the multi batches he ran for this plan: the probe's `turn2` policy). (ii) An ACTIVITY_START while a hold is on releases it at once — except the hold a split release itself begins, while it waits for its END. (iii) A release sends the held audio only up to its first pause after speech of at least the split's pause, found by an energy gate over the held audio, and keeps the rest held until the server's ACTIVITY_END for what went up, then until that answer's `turnComplete`; with no ACTIVITY_END within the split's wait, it sends the rest. The owner adopted the probe's values, a 600 ms pause and a 1 500 ms wait; the coordinator's rulings on the third re-review (Revision 4) set the wait to `SPLIT_END_MS` (2 000) or half the released audio's length, whichever is longer, the pause to `max(200, silenceMs + 100)` — 600 at the default silence — and end (ii)'s exception at the split's END (choices 14, 15). The adaptive cap (ruling 3), the participant leg's hold (choice 1), the carry across a reconnect with `HOLD_CARRY_MS` (choice 10) and ruling 2 stand. Lands in: Task 1 (choices 14, 15), Task 3, Task 4 (the seeded lifecycles), Task 5.
 
 The standing rules hold: no one-time migration code (nothing is stored here), and production comments cite rulings and choices.
 
@@ -160,9 +160,9 @@ The standing rules hold: no one-time migration code (nothing is stored here), an
 Cited as *choice N*.
 
 1. **Which sessions hold: derived, no knob.** `config.kind === 'dialogue' && config.activityHandling === 'START_OF_ACTIVITY_INTERRUPTS'` — exactly the models the follow-up's ruling 5 makes barge in (a dialogue model of family 3.0 or later) — builds an `InputHold`; every other session has none. No `GeminiConfig` field, no setting: the probe keeps its own hold for experiments. Both legs, both turn modes. **The participant leg holds the same** (its turns are always automatic): the server paces its `turnComplete` to a playback nobody may hear on a leg that does not speak, and the same input is at risk — without the hold, remote speakers, who do not wait for translations, are where barge-in cuts most. **The cost, and that it can accumulate:** answer n+1 cannot start before answer n's simulated playback ends, and under ruling 4 each utterance is its own n, so the lag behind the end of utterance n+1 is roughly L(n+1) ≈ max(L(n) + A(n) − P − U(n+1) + c′, c) + f — A an answer's audio length, P the pause, U the next utterance's length, c′ the server's close of a held utterance once it goes up (0.76–1.41 s in batch 2), c its close of live speech (0.63–0.91 s), f 0.3–0.8 s to first audio. The lag grows by A − U − P + c′ + f per sentence whenever translations run longer than the speech that follows, with no bound until a long pause: in batch 2 it reached 7.36 s behind a short sentence that followed a long one, and on the five-sentence monologue it stayed within 1.4–3.4 s (3.8; research note 6 of the multi batches). Nothing is lost: it is sent late, not dropped. For a participant leg that mostly listens to long monologues, Live Translate — the default model — has no turns and no such lag (about 0.5 s measured; the concurrent-turns research §5). **The owner confirmed it on 2026-09-29: 「参会方要暂存」.**
-2. **What begins a hold under automatic turns.** The server's `voiceActivity` ACTIVITY_END: it has closed the user's turn. Failing that, a model turn's first model output — an output transcription, or any model part — or, **only on a session that has heard no voice activity**, its first input transcription. Two more guards on the fallbacks: none while the server says the user is speaking (an ACTIVITY_START with no ACTIVITY_END yet — an output while the user speaks closes no turn); and one per model turn — once a hold has begun in a model turn its later output begins none, even after a cap let it go, until `turnComplete` or `interrupted` ends that turn. ACTIVITY_END always begins one — except the one a split's hold waits for, which ends that wait instead; and a release that kept the next utterance begins a split's hold itself (ruling 4; choice 14). Typed text under automatic turns begins none itself: its answer's first output does, which is why the output fallback stays. This is the probe's cascade (`CASCADE.activity_end`), less its `generation` policy's "none after `generationComplete`" guard, which a hold to `turnComplete` does not need: a late signal still holds to `turnComplete`, which is what protects the input. **Why the input fallback is off once voice activity has come** (the controller's ruling on the review's I2): in all 44 3.x probe runs the transcription arrived while the voice activity was still open, so on a model that sends voice activity it is never a turn close — only a transcription that comes after its own `turnComplete` (Google: "no guaranteed ordering") could reach the fallback, and that one would hold all of the user's live speech, which no server signal could end, until the idle cap, 10 s (the review's scenario S1, pinned in Task 3). "Heard" is the model's property, kept across a reconnect. A model that sends no voice activity keeps the input fallback. **A missed ACTIVITY_END** leaves `speaking` set: neither fallback begins a hold for that model turn or the next, which fall back to barge-in, until the next ACTIVITY_END ("What this plan leaves"); a split's hold whose ACTIVITY_END is missed lets the rest go after its 1.5 s wait.
+2. **What begins a hold under automatic turns.** The server's `voiceActivity` ACTIVITY_END: it has closed the user's turn. Failing that, a model turn's first model output — an output transcription, or any model part — or, **only on a session that has heard no voice activity**, its first input transcription. Two more guards on the fallbacks: none while the server says the user is speaking (an ACTIVITY_START with no ACTIVITY_END yet — an output while the user speaks closes no turn); and one per model turn — once a hold has begun in a model turn its later output begins none, even after a cap let it go, until `turnComplete`, `interrupted` or `waitingForInput` ends that turn. ACTIVITY_END always begins one — except the one a split's hold waits for, which ends that wait instead; and a release that kept the next utterance begins a split's hold itself (ruling 4; choice 14). Typed text under automatic turns begins none itself: its answer's first output does, which is why the output fallback stays. This is the probe's cascade (`CASCADE.activity_end`), less its `generation` policy's "none after `generationComplete`" guard, which a hold to `turnComplete` does not need: a late signal still holds to `turnComplete`, which is what protects the input. **Why the input fallback is off once voice activity has come** (the controller's ruling on the review's I2): in all 44 3.x probe runs the transcription arrived while the voice activity was still open, so on a model that sends voice activity it is never a turn close — only a transcription that comes after its own `turnComplete` (Google: "no guaranteed ordering") could reach the fallback, and that one would hold all of the user's live speech, which no server signal could end, until the idle cap, 10 s (the review's scenario S1, pinned in Task 3). "Heard" is the model's property, kept across a reconnect. A model that sends no voice activity keeps the input fallback. **A missed ACTIVITY_END** leaves `speaking` set: neither fallback begins a hold for that model turn or the next, which fall back to barge-in, until the next ACTIVITY_END ("What this plan leaves"); a split's hold whose ACTIVITY_END is missed lets the rest go after its 1.5 s wait.
 3. **What begins a hold under push-to-talk: the leg's own `activityEnd`,** when it closes a turn the model answers — a release with voice, and typed text's own marks. The server's voice activity, which under push-to-talk only mirrors the client's marks (the probe), and the fallbacks begin nothing. **A release without voice begins none** — a departure from the brief's wording, which has the hold begin "when our own `activityEnd` goes out (a release)": whether the server answers an empty activity is unknown (the Gemini section's live-test item 6), and a hold waiting for an answer that never comes would keep the next press back until the idle cap. So a press made while a tap's answer, if any, streams goes up at once and barges in — cutting an answer the tap's drop hides anyway (the Gemini plan's ruling 8). The runner already classes a press under `MIN_VOICED_SAMPLES` (500 ms) as a tap. Ruling 4's two rules do not apply under push-to-talk (choice 14).
-4. **What lets go: `turnComplete`, and `waitingForInput`** — and under automatic turns an ACTIVITY_START, or a split's wait run out (ruling 4; choice 14). At `turnComplete`, after `GeminiTurns` has ended the turn, so a held release and a held text are owed from a closed turn (choice 13). At `waitingForInput` — the model "is not generating content because it is waiting for more input from the user" — at once: holding would keep from it the input it waits for. **Not `generationComplete`:** the probe's `generation` policy kept answer 1 whole but left utterance 2's start transcribed and not translated — input inside the simulated playback is mishandled even under barge-in. **Not `interrupted`:** with the hold it should not come, but it can. The server closes the user's turn at the ACTIVITY_END's `audioOffset`, 0.71–0.79 s after the speech's end on the multi batches' clips (batch 2: 0.63–0.91 s; later than its 500 ms `silenceDurationMs` setting), and the client begins the hold 0.03–0.04 s (3.8) or 0.12–0.19 s (3.1) after that, in stream time: speech that starts in that window reaches the server before the hold begins, and once the server has heard 0.14–0.18 s of it (the Japanese clips; 0.27–0.56 s of English) its ACTIVITY_START may barge into answer 1 as it starts generating, a true cut (failure mode (a), "What this plan leaves") — so on 3.8 it needs more speech than the window lets through, on 3.1 a narrow band; it did not happen in 54 sessions. Speech that starts before the close merges into the same turn. A released burst that itself holds a turn close could also end in `interrupted` (failure mode (b)); ruling 4 leaves that only where a split's wait runs out before the server's close (choice 14). Either way `interrupted` itself lets nothing go: the hold goes on to the `turnComplete` Google says follows it ("interrupted > turn_complete"; about 5 ms in the probes), because a held text let go at `interrupted` would break the one-end rule (research note 2). The ACTIVITY_START behind an `interrupted` lets a hold go at once when it comes first, as 50 of the multi batches' 53 did — the held text then goes before the `interrupted`, as text typed at that moment would — and at that trailing `turnComplete` when it comes between the two (choice 14). Should no `turnComplete` follow, the cap lets go.
+4. **What lets go: `turnComplete`, and `waitingForInput`** — and under automatic turns an ACTIVITY_START, or a split's wait run out (ruling 4; choice 14). At `turnComplete`, after `GeminiTurns` has ended the turn, so a held release and a held text are owed from a closed turn (choice 13). At `waitingForInput` — the model "is not generating content because it is waiting for more input from the user" — at once: holding would keep from it the input it waits for; its turn is over, as at `turnComplete` (the coordinator's ruling D on re-review 3). **Not `generationComplete`:** the probe's `generation` policy kept answer 1 whole but left utterance 2's start transcribed and not translated — input inside the simulated playback is mishandled even under barge-in. **Not `interrupted`:** with the hold it should not come, but it can. The server closes the user's turn at the ACTIVITY_END's `audioOffset`, 0.71–0.79 s after the speech's end on the multi batches' clips (batch 2: 0.63–0.91 s; later than its 500 ms `silenceDurationMs` setting), and the client begins the hold 0.03–0.04 s (3.8) or 0.12–0.19 s (3.1) after that, in stream time: speech that starts in that window reaches the server before the hold begins, and once the server has heard 0.14–0.18 s of it (the Japanese clips; 0.27–0.56 s of English) its ACTIVITY_START may barge into answer 1 as it starts generating, a true cut (failure mode (a), "What this plan leaves") — so on 3.8 it needs more speech than the window lets through, on 3.1 a narrow band; it did not happen in 54 sessions. Speech that starts before the close merges into the same turn. A released burst that itself holds a turn close could also end in `interrupted` (failure mode (b)); ruling 4 leaves that only where a split's wait runs out before the server's close (choice 14). Either way `interrupted` itself lets nothing go: the hold goes on to the `turnComplete` Google says follows it ("interrupted > turn_complete"; about 5 ms in the probes), because a held text let go at `interrupted` would break the one-end rule (research note 2). The ACTIVITY_START behind an `interrupted` lets a hold go at once when it comes first, as 50 of the multi batches' 53 did — the held text then goes before the `interrupted`, as text typed at that moment would — and at that trailing `turnComplete` when it comes between the two, unless content has come since the `interrupted`, which ends that end as `GeminiTurns` reads it (choice 14). Should no `turnComplete` follow, the cap lets go.
 5. **The release: in order, the audio as one frame per unbroken run.** Each held send — a press's start or end, typed text — runs in its place; each run of audio between them goes up as one `realtimeInput.audio` frame, the probe's burst (a paced release made no difference; Google's own examples send a whole utterance as one message; `audioOffset` counts audio time). A held send that begins a new hold — a release's `activityEnd`, typed text's own marks — stops the release there; what follows it stays held until that hold lets go. Held audio is a copy: the capture may reuse its buffer. **Size:** a burst is as long as the held audio — about 5 s in the probes, 240 KB of pcm, 320 KB as base64 JSON (`pcmToBase64` encodes in 32 KiB steps); Google documents no size limit for a realtime message, and live-test item 2 watches a long one. **Under automatic turns the burst stops at the held audio's first pause after speech** (ruling 4; choice 14): a burst that held the end of one utterance, a pause the server closes a turn on, and the start of the next let the server read both at once — the gap and failure mode (b) in the multi batches.
 6. **The cap's details, inside ruling 3.** The computed end counts the model turn's audio at each part's own rate, whether this leg plays it or not, and the audio that came before the hold began; it is recomputed at each part. **Why computed:** in every probe run a 3.x `turnComplete` came at first audio plus total audio within ±20 ms (research §1.0), so the adapter can know the end itself, where a fixed cap would either cut a long answer's hold short or keep a short one waiting; 2f collapsed its long clip into one ~4.5 s answer, so no probe bounds a long answer's hold. **What an early cap costs:** it lands inside the simulated playback, after `generationComplete` so long as the model generates ahead of real time — 4.4–4.9× in every probe turn, which puts the computed end past the last part's arrival — so a simulated cut only: answer 1's text and audio are whole, and utterance 2's start may go untranslated, as under the `generation` policy; not a true cut. A model that stalls mid-answer for longer than the audio it has sent plus 2 s could be cut truly. **The clock:** the cap is a timer on the request's clock, never an end compared with `now()`; its delay is at most the audio received plus the margin, so a wall clock stepped back cannot stretch it (OpenAI Translate's tail's lesson); a wall clock stepped forward lets go early, a simulated cut at worst. `turn.hold_end` carries `playbackEndMs` beside `heldMs`: what the live test tunes the margin by. Pinned with a virtual clock: a long answer holds past 8 s; a short answer lets go at its computed end when `turnComplete` is late; a hold with no model audio lets go at 10 s. No cap runs while a hold is carried across a reconnect (choice 10). A split's hold has the same cap — armed at its begin, the idle cap since its answer has no audio yet, and recomputed as that answer's audio arrives — beside its own shorter wait for the server's close (choice 14).
 7. **A press during a hold waits its turn.** Its `activityStart` — with `GeminiTurns.beginTurn()` — is held, its audio after it, and its release — with `GeminiTurns.endTurn()` or `cancelTurn()` — too: each call reaches `GeminiTurns` when its frame goes out. At the release they go in order; a press still held when the hold lets go goes on live, its release sent at once. **A press released without voice while its `activityStart` is still held is withdrawn** — a departure from the brief's wording, which has a deferred press "then send `activityStart` + held audio (+ `activityEnd`…)": that start and every audio entry held after it — the press's own, since audio comes only while a key is held (research note 6) — go, and nothing is sent. It never reached the server, so nothing answers it and nothing needs dropping (no `cancelTurn()`): strictly better than sending it. A text typed inside it stays and goes in its own marks (choice 9). `turn.hold_end` counts it in `withdrawn`.
@@ -181,13 +181,18 @@ Cited as *choice N*.
     - **Push-to-talk:** a press made during a hold reaches `GeminiTurns` — `beginTurn()`, then `endTurn()` — only after the answer before it has ended (`closeTurn` clears `answering` before the release), so `endTurn()` finds no answer streaming and sets `owed`, never `owedNext`; a tap during a hold is withdrawn and never reaches it (no `cancelTurn()`, no drop). **The owed flag's limit** (the roadmap's follow-up section, "What it leaves": two answers waiting at once to start are one claim; a queued tap's answer taking a release's claim) **cannot arise while holds run**: every voiced release and every text's own marks begin a hold that lasts to that answer's `turnComplete`, so no second claim is made before the first ends and no tap in that window reaches the server. It can again in two cases, where the landed rules apply unchanged: after a hold let go at its cap; and on a model that answers taps — a tap begins no hold (choice 3), so a voiced press released while the tap's answer streams takes the `owedNext` path. On 2.5, unchanged. A carried release or text reaches `GeminiTurns` on the new connection, after `connectionLost()` closed the old turn: owed there.
     - `interruptedEnd`: the hold lets go at the `turnComplete` that trails `interrupted`, after `GeminiTurns` has folded it (choice 4). `suppressAfterAnswer` is set only by a tap that reaches the server: outside a hold.
     - **Karaoke by arrival** (the follow-up's ruling 2) is unaffected: its ranges come from the model's output as it arrives, and the hold changes only what goes up. **The release tail** (`tail.ts`) is unaffected: Live Translate never holds, and a dialogue model never tails.
-14. **Ruling 4's rules, in detail** (automatic turns only; the probe's `turn2`, with the departures named here).
-    - **A new start lets go.** An ACTIVITY_START while a hold is on lets it go at once, everything it holds, in order, framed `turn.hold_end { reason: 'voice_activity_start' }`, and the release is not split. Nothing goes up while a hold is on, so the START concerns speech that went up before it — the multi batches' gap: a hold begun on an ACTIVITY_END that lagged a released burst by 1.0–3.7 s, the next utterance's START 15–130 ms after, and the idle cap (research notes, multi batches, note 2). Holding on keeps that utterance's end from a server that already has it open and can then never close it. The START's own effect — a cut on 3.1, on 3.8 a merge before the answer's first output — has happened by the time it arrives: letting go costs nothing measured. **Three exceptions.** A split's own hold (below): its utterance's START is expected once the server reads that utterance's onset. Between `interrupted` and the `turnComplete` that trails it, the hold lets go at that `turnComplete`, still saying `voice_activity_start`: a held text sent between the two would make the trailing `turnComplete` an end of its own (research note 2; found while writing Revision 3, note 1). Push-to-talk (below).
-    - **One utterance per release.** On a session that has heard voice activity, a release at `turnComplete`, at `waitingForInput` or on a new connection sends what is held only up to the first entry after the first pause of at least `SPLIT_PAUSE_MS` = 600 that follows speech (the gate: choice 15) — the next utterance's audio, from the chunk its first speech frame begins in, or a send held after the pause. The rest stays held in a hold of its own, framed `turn.hold { cause: 'split' }`, which waits `SPLIT_END_MS` = 1 500 for the server's ACTIVITY_END for what went up. That END begins no hold; the split's hold then runs to that answer's `turnComplete`, as any hold does, its caps included (choice 6). With no END within 1.5 s the pause closed no turn: all the rest goes, as one burst, unsplit, framed `reason: 'split_timeout'` — a merge, not a loss. Held audio that ends in such a pause goes up whole and the leg holds on the same way (`keptMs: 0`), so speech right after the release cannot reach the server before the released utterance is answered. With no such pause the release goes whole, as before ruling 4. The cap, the idle cap, a START and a split's own timeout never split: each exists so that nothing waits longer. Evidence: research notes, multi batches, note 5 — every utterance whole in 10 of 10 sessions; 22 splits, the server's END 0.76–1.41 s after 18 of them; the wait ran out on 4, all on 3.1, about 50–90 ms before the END.
-    - **Where this departs from the probe's `turn2`** — none of it changes a decision on batch 2's sessions, which had no reconnect, no typed text, voice activity always heard, no `interrupted` ahead of its START under `turn2`, and 100 ms chunks of whole frames (Task 3 replays two of them through the adapter): a release on a new connection splits too, since carried audio can hold several utterances and one burst of them on a fresh connection is the burst the gap and (b) came from; the split waits only on a session that has heard voice activity, since on a model that sends none every release would wait 1.5 s for an END that never comes; a START between `interrupted` and its `turnComplete` waits for that `turnComplete`; a send held after the pause stays with the next utterance (choice 8); the gate frames across chunks (choice 15).
-    - **Push-to-talk splits nothing, and a START lets nothing go there.** The leg's own marks already end each utterance: a release's `activityEnd` begins the next hold and stops the drain there (choice 5), so a press's burst never carries the next press's onset; the server closes no turn inside a press — its automatic detection is off — so a pause inside a press is not a turn and cutting there would break the user's own turn in two; and the server's voice activity only mirrors the leg's marks (choice 3), so a START during a hold is the echo of a mark already sent.
-    - **With what stands.** The adaptive cap (ruling 3): a split's hold is a hold (choice 6). The participant leg (choice 1): its turns are automatic, so both rules apply, and its lag per sentence is choice 1's formula. A lost connection (choice 10): a split's wait stops with it; what a split kept was held before the loss and is carried whole, the gap's audio bounded by `HOLD_CARRY_MS` after it; the new connection's release splits again and waits there. 2.5 and Live Translate never hold (ruling 2). `waitingForInput` releases as `turnComplete` does, split. Typed text: held in its place (choice 8), and a START's release sends it with the rest — owed as text typed at that moment would be (choice 13). Presses: push-to-talk, above. Stop: the split's wait stops with the hold (choice 11).
-15. **The gate that finds the pause** (ruling 4; the probe's `splitAt`). The held audio, as one stream, in `GATE_FRAME_MS` = 10 frames; a frame is speech when its RMS is above the loudest held frame's RMS divided by `GATE_PEAK_DIVISOR` = 10 — 20 dB under it — and a pause is a run of frames that are not; a held send breaks the stream. The probe framed each of its 100 ms chunks alone; a capture's chunks may be smaller than a frame (an AudioWorklet's render quantum is 128 samples), where that finds no frame and never splits, so frames here run across chunks and each is counted to the chunk it begins in (found while writing Revision 3, note 2). **What the thresholds rest on, and what they do not:** on batch 2's clips — synthesised Japanese sentences with digital silence between them — every split fell at an utterance's boundary, none inside one; `SPLIT_PAUSE_MS` sits under every close the server made (0.63–0.91 s after the speech in batch 2), so every pause the server closes a turn on is a split point, and a shorter one it does not close on costs the 1.5 s wait, then goes up merged; `SPLIT_END_MS` covered 18 of the 22 closes (0.76–1.41 s) and missed 4 by about 50–90 ms, all on 3.1 (an open question). Ten sessions (batch 2's `turn2`), two TTS voices, clean audio: unprobed are a noise floor within 20 dB of the voice (no pause is found and the release goes whole, as under ruling 1 alone, with the START rule still ending any stall), other voices, the answer's own echo in held audio on speakers (research note 5; the same fallback), and a speaker who pauses 600 ms or more inside a sentence (split there: the server closes on it only if it would have live, else the wait, then a merge). Live-test items 5, 6 and 12 watch them.
+14. **Ruling 4's rules, in detail** (automatic turns only; the probe's `turn2`, with the departures named here, and the coordinator's rulings on re-review 3, Revision 4).
+    - **A new start lets go.** An ACTIVITY_START while a hold is on lets it go at once, everything it holds, in order, framed `turn.hold_end { reason: 'voice_activity_start' }`, and the release is not split. Nothing goes up while a hold is on, so the START concerns speech that went up before it — the multi batches' gap: a hold begun on an ACTIVITY_END that lagged a released burst by 1.0–3.7 s, the next utterance's START 15–130 ms after, and the idle cap (research notes, multi batches, note 2). Holding on keeps that utterance's end from a server that already has it open and can then never close it. The START's own effect — a cut on 3.1, on 3.8 a merge before the answer's first output — has happened by the time it arrives: letting go costs nothing measured. **Three exceptions.** A split's own hold while it waits for its END (below): its utterance's START is expected once the server reads that utterance's onset; once the END has come, a START lets it go like any other (departure 6). Between `interrupted` and the `turnComplete` that trails it, the hold lets go at that `turnComplete`, still saying `voice_activity_start`: a held text sent between the two would make the trailing `turnComplete` an end of its own (research note 2; found while writing Revision 3, note 1); content since the `interrupted` — an input transcription, a model output — ends that wait, as it ends `GeminiTurns`' own one-end window, so a trailing `turnComplete` that never comes cannot leave the START rule off (the coordinator's ruling D). Push-to-talk (below).
+    - **One utterance per release.** On a session that has heard voice activity, a release at `turnComplete`, at `waitingForInput` or on a new connection sends what is held only up to the first entry after the first pause that follows speech and lasts at least the split's pause — `max(SPLIT_PAUSE_FLOOR_MS, silenceMs + SPLIT_PAUSE_MARGIN_MS)`, 600 ms at the default silence (choice 15) — the next utterance's audio, from the chunk its first speech frame begins in, or a send held after the pause. The rest stays held in a hold of its own, framed `turn.hold { cause: 'split' }`, which waits for the server's ACTIVITY_END for what went up: `SPLIT_END_MS` = 2 000, or half as long as the audio it let go plays, whichever is longer. That END begins no hold; the split's hold then runs to that answer's `turnComplete`, as any hold does, its caps included (choice 6). With no END within the wait the pause closed no turn: all the rest goes, as one burst, unsplit, framed `reason: 'split_timeout'` — a merge, not a loss. Held audio that ends in such a pause goes up whole and the leg holds on the same way (`keptMs: 0`), so speech right after the release cannot reach the server before the released utterance is answered. With no such pause the release goes whole, as before ruling 4. The cap, the idle cap, a START and a split's own timeout never split: each exists so that nothing waits longer. Evidence: research notes, multi batches, note 5 — every utterance whole in 10 of 10 sessions; 22 splits, the server's END 0.76–1.41 s after 18 of them.
+    - **The wait: 2 s** — `SPLIT_END_MS` is 2 000, the coordinator's ruling on re-review 3 (ruling A there): at the probe's 1 500, all four of batch 2's timeouts were 3.1 closes landing 1 561–1 611 ms after the split; at 2 000 they are caught, and nothing else in the ten sessions changes (re-review 3, §3, replaying them through this plan's adapter).
+    - **The wait grows with what went up** (ruling C there). The server reads a released burst at about 2–4× real time, so its close comes later the more it has to read: on 3.1, 2.1 s released → its END 0.96 s later, 3.5 s → 1.25 s, 4.9 s → 1.39 s, and 3.3–6.4 s → 1.56–1.61 s where the 1.5 s wait ran out (re-review 3, §5). Half the released audio covers the slowest rate measured (3.1, 2.1×) and leaves 2 s wherever 4 s or less went up; batch 2 never released more than 6.4 s. The END ends the wait early, so the longer wait costs lag only on a pause the server does not close — and there nothing bounds it but the hold's own cap: a 16 s released part waits 8 s before the rest goes, merged ("What this plan leaves"). Pinned: 8.8 s released waits 4.4 s, and an END at 3.9 s is consumed.
+    - **Where this departs from the probe's `turn2`** — none of the six changes a decision on batch 2's sessions, which had no reconnect, no typed text, voice activity always heard, no `interrupted` ahead of its START under `turn2`, no START after a split's END, and 100 ms chunks of whole frames (Task 3 replays two of them through the adapter; re-review 3 replayed all ten): (1) a release on a new connection splits too, since carried audio can hold several utterances and one burst of them on a fresh connection is the burst the gap and (b) came from; (2) the split waits only on a session that has heard voice activity, since on a model that sends none every release would wait its 2 s for an END that never comes; (3) a START between `interrupted` and its `turnComplete` waits for that `turnComplete`; (4) a send held after the pause stays with the next utterance (choice 8); (5) the gate frames across chunks (choice 15); (6) **a split's hold lets a START go once its END has come** — the coordinator's ruling E on re-review 3. After the END the server has closed the released utterance, so a START is a new user turn the hold cannot protect against, and holding on to it reproduces the gap's stall to the idle cap; letting go merges the held audio into that turn, exactly the START rule. The probe exempted a split's hold for its whole life. If this is wrong — a START after the END that still belongs to the released utterance — the kept onset goes up while that answer is pending: failure mode (b), a cut on 3.1 or a merge on 3.8, as a timeout sends it. Beside the six, the coordinator's rulings set the wait (2 s where the probe had 1.5 s, and longer for long released parts) and derive the pause from the session's silence (the probe's 600 at the default): at batch 2's setting the first turns its four timeouts into closes caught, and nothing else moves.
+    - **Push-to-talk splits nothing, and a START lets nothing go there.** The leg's own marks already end each utterance: a release's `activityEnd` begins the next hold and stops the drain there (choice 5), so a press's burst never carries the next press's onset; the server closes no turn inside a press — its automatic detection is off — so a pause inside a press is not a turn and cutting there would break the user's own turn in two; and the server's voice activity only mirrors the leg's marks (choice 3), so a START during a hold is the echo of a mark already sent. `InputHold` takes no silence setting under push-to-talk, and has no split's pause there.
+    - **With what stands.** The adaptive cap (ruling 3): a split's hold is a hold (choice 6). The participant leg (choice 1): its turns are automatic, so both rules apply, at its own Silence Duration, and its lag per sentence is choice 1's formula. A lost connection (choice 10): a split's wait stops with it; what a split kept was held before the loss and is carried whole, the gap's audio bounded by `HOLD_CARRY_MS` after it; the new connection's release splits again and waits there. 2.5 and Live Translate never hold (ruling 2). `waitingForInput` ends the model's turn before it lets go, as `turnComplete` does, and releases split, so a split's hold arms its cap from a fresh turn, not the last answer's audio (the coordinator's ruling D). Typed text: held in its place (choice 8), and a START's release sends it with the rest — owed as text typed at that moment would be (choice 13). Presses: push-to-talk, above. Stop: the split's wait stops with the hold (choice 11).
+15. **The split's pause, and the gate that finds it** (ruling 4; the probe's `splitAt`; the coordinator's ruling B on re-review 3).
+    - **The pause follows the session's own end-of-speech silence.** `splitPauseMs(silenceMs)` = `max(SPLIT_PAUSE_FLOOR_MS, silenceMs + SPLIT_PAUSE_MARGIN_MS)` = max(200, silenceMs + 100), `silenceMs` the session's `activity.silenceMs` under automatic turns — the Silence Duration slider, 50–3 000 ms, default 500 (`config.ts` clamps it), on both legs; the adapter hands it to `InputHold`, which takes none under push-to-talk. At the default the pause is 600, the probe's, so every batch-2 decision stands (Task 3's replays run at the default). **The direction of error:** a split pause shorter than the server's close costs a wait — lag only, the rest going up merged; one longer than the close misses it — failure mode (b), and on 3.8 the gap. `silenceMs + 100` errs toward the first: at the default the server closed 0.63–0.91 s after the speech, every close above 600. Only the default setting is measured; `END_SENSITIVITY_LOW` closes later still, the safe side. The floor keeps the gaps between words from splitting; below a `silenceMs` of about 100 it lets closes shorter than 200 ms through unsplit ("What this plan leaves"). A fixed 600, as in the probe, would split every pause of 0.6 s up to the server's close at a 1 500 ms setting — a wait and a merge each, inside sentences too — and miss every close under 600 ms at a 300 ms one (re-review 3, Important 1).
+    - **The gate.** The held audio, as one stream, in `GATE_FRAME_MS` = 10 frames; a frame is speech when its RMS is above the loudest held frame's RMS divided by `GATE_PEAK_DIVISOR` = 10 — 20 dB under it — and a pause is a run of frames that are not; a held send breaks the stream. The probe framed each of its 100 ms chunks alone; a capture's chunks may be smaller than a frame (an AudioWorklet's render quantum is 128 samples), where that finds no frame and never splits, so frames here run across chunks and each is counted to the chunk it begins in (found while writing Revision 3, note 2). On batch 2's audio in 128-sample chunks the split lands 113–157 ms later than the probe's, the onset's quiet rise going with the released utterance, and every decision is the same (re-review 3, §3).
+    - **What the thresholds rest on, and what they do not.** On batch 2's clips — synthesised Japanese sentences with digital silence between them — every split fell at an utterance's boundary, none inside one; the default pause, 600, sits under every close the server made (0.63–0.91 s after the speech), so every pause the server closes a turn on is a split point, and a shorter one it does not close on costs the split's wait, then goes up merged. Ten sessions (batch 2's `turn2`), two TTS voices, clean audio, one silence setting. Re-review 3 measured the gate in scratch on batch 2's audio: steady white noise still split at 22 dB under the loudest speech frame and no longer at 20 dB — the gate's cliff, `GATE_PEAK_DIVISOR` — while a speech-shaped echo still split down to 10 dB. Unprobed live: a noise floor within 20 dB of the voice (no pause is found and the release goes whole, as under ruling 1 alone, with the START rule still ending any stall), other voices, the answer's own echo in held audio on speakers (research note 5; the same fallback), a speaker who pauses past the split's pause inside a sentence (split there: the server closes on it only if it would have live, else the wait, then a merge), and any Silence Duration but the default. Live-test items 5, 6, 12, 14, 15 and 17 watch them.
 
 ## What this plan consumes from the earlier plans
 
@@ -228,7 +233,7 @@ Named as landed, so a reconciliation is mechanical. Where a landed name or text 
 
 **Interfaces:**
 - Consumes: `SAMPLE_RATE` (`src/lib/contract/adapter`), `Clock` (`src/lib/contract/clock`), `trackedClock` (the kit).
-- Produces: `src/providers/gemini/hold.ts` — `HOLD_MARGIN_MS` (2 000), `HOLD_IDLE_MS` (10 000), `HOLD_CARRY_MS` (5 000), `SPLIT_PAUSE_MS` (600), `SPLIT_END_MS` (1 500), `GATE_FRAME_MS` (10), `GATE_PEAK_DIVISOR` (10), `type HoldCause = 'voice_activity' | 'input_transcription' | 'model_output' | 'activity_end' | 'split'`, `type HoldEnd = 'turn_complete' | 'waiting_for_input' | 'cap' | 'idle' | 'reconnect' | 'voice_activity_start' | 'split_timeout'`, `interface HoldSummary { reason: HoldEnd; heldMs: number; audioMs: number; actions: number; withdrawn: number; playbackEndMs: number | null; carried?: true; droppedMs?: number; keptMs?: number }`, `interface HeldAction { readonly run: () => void }`, `class InputHold { constructor(o: { clock: Pick<Clock, 'setTimeout' | 'now'>; manual: boolean; send(pcm: Int16Array): void; began(cause: HoldCause): void; ended(summary: HoldSummary): void }); get holding(): boolean; voiceActivity(type: string | undefined): void; input(): void; output(audioMs?: number): void; interrupted(): void; turnComplete(): void; waitingForInput(): void; begin(cause: HoldCause): void; audio(pcm: Int16Array): void; defer(run: () => void): HeldAction; holds(action: HeldAction | null): boolean; withdraw(action: HeldAction): boolean; carry(): void; reconnected(): void; cancel(): void }`. Tasks 3 and 4 wire it into the adapter.
+- Produces: `src/providers/gemini/hold.ts` — `HOLD_MARGIN_MS` (2 000), `HOLD_IDLE_MS` (10 000), `HOLD_CARRY_MS` (5 000), `SPLIT_PAUSE_MARGIN_MS` (100), `SPLIT_PAUSE_FLOOR_MS` (200), `SPLIT_END_MS` (2 000), `GATE_FRAME_MS` (10), `GATE_PEAK_DIVISOR` (10), `splitPauseMs(silenceMs: number): number`, `type HoldCause = 'voice_activity' | 'input_transcription' | 'model_output' | 'activity_end' | 'split'`, `type HoldEnd = 'turn_complete' | 'waiting_for_input' | 'cap' | 'idle' | 'reconnect' | 'voice_activity_start' | 'split_timeout'`, `interface HoldSummary { reason: HoldEnd; heldMs: number; audioMs: number; actions: number; withdrawn: number; playbackEndMs: number | null; carried?: true; droppedMs?: number; keptMs?: number }`, `interface HeldAction { readonly run: () => void }`, `type InputHoldOptions = { clock: Pick<Clock, 'setTimeout' | 'now'>; send(pcm: Int16Array): void; began(cause: HoldCause): void; ended(summary: HoldSummary): void } & ({ manual: true } | { manual: false; silenceMs: number })`, `class InputHold { constructor(o: InputHoldOptions); get holding(): boolean; voiceActivity(type: string | undefined): void; input(): void; output(audioMs?: number): void; interrupted(): void; turnComplete(): void; waitingForInput(): void; begin(cause: HoldCause): void; audio(pcm: Int16Array): void; defer(run: () => void): HeldAction; holds(action: HeldAction | null): boolean; withdraw(action: HeldAction): boolean; carry(): void; reconnected(): void; cancel(): void }`. Tasks 3 and 4 wire it into the adapter.
 
 - [ ] **Step 1: Write the failing tests** (rulings 1, 3, 4; choices 2–7, 10, 11, 14, 15), `src/providers/gemini/hold.test.ts`:
 
@@ -243,12 +248,15 @@ import {
   HOLD_MARGIN_MS,
   InputHold,
   SPLIT_END_MS,
-  SPLIT_PAUSE_MS,
+  SPLIT_PAUSE_FLOOR_MS,
+  SPLIT_PAUSE_MARGIN_MS,
+  splitPauseMs,
   type HoldCause,
   type HoldSummary,
 } from './hold';
 
-function hold(o: { manual?: boolean } = {}) {
+/** A hold: under automatic turns, at the default end-of-speech silence, every probe session's, unless one is given. */
+function hold(o: { manual?: boolean; silenceMs?: number } = {}) {
   const { clock, timers } = trackedClock();
   const sent: Int16Array[] = [];
   const began: HoldCause[] = [];
@@ -257,7 +265,7 @@ function hold(o: { manual?: boolean } = {}) {
   const log: string[] = [];
   const h = new InputHold({
     clock,
-    manual: o.manual ?? false,
+    ...(o.manual ? { manual: true as const } : { manual: false as const, silenceMs: o.silenceMs ?? 500 }),
     send: (pcm) => { sent.push(pcm); log.push(`audio ${Array.from(pcm.subarray(0, 4)).join(',')} ×${pcm.length}`); },
     began: (cause) => { began.push(cause); log.push(`began ${cause}`); },
     ended: (s) => { ended.push(s); log.push(`ended ${s.reason}`); },
@@ -274,9 +282,9 @@ const tone = (ms: number, level = 1_000) => pcm((ms * 24_000) / 1000, level);
 const hush = (ms: number) => tone(ms, 0);
 
 describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
-  it('lets go 2 s past the computed playback end, and 10 s after its begin while no model audio has come (ruling 3); carries at most 5 s of a reconnect gap\'s audio under automatic turns (choice 10); lets one utterance go at a time — up to a pause of 600 ms, waiting 1.5 s for its close — found by 10 ms frames 20 dB under the loudest (choices 14, 15)', () => {
+  it('lets go 2 s past the computed playback end, and 10 s after its begin while no model audio has come (ruling 3); carries at most 5 s of a reconnect gap\'s audio under automatic turns (choice 10); lets one utterance go at a time — up to a pause 100 ms past the session\'s silence and at least 200 ms, waiting at least 2 s for its close — found by 10 ms frames 20 dB under the loudest (choices 14, 15)', () => {
     expect([HOLD_MARGIN_MS, HOLD_IDLE_MS, HOLD_CARRY_MS]).toEqual([2_000, 10_000, 5_000]);
-    expect([SPLIT_PAUSE_MS, SPLIT_END_MS, GATE_FRAME_MS, GATE_PEAK_DIVISOR]).toEqual([600, 1_500, 10, 10]);
+    expect([SPLIT_PAUSE_MARGIN_MS, SPLIT_PAUSE_FLOOR_MS, SPLIT_END_MS, GATE_FRAME_MS, GATE_PEAK_DIVISOR]).toEqual([100, 200, 2_000, 10, 10]);
   });
 
   it("begins at the server's ACTIVITY_END, holds what comes, and lets it go at turnComplete — the audio as one frame — saying what it held (choices 2, 4, 5)", () => {
@@ -533,7 +541,7 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
       let offset = 0;
       const clock = { now: () => base.now() - offset, setTimeout: (fn: () => void, ms: number) => base.setTimeout(fn, ms) };
       const ended: HoldSummary[] = [];
-      const h = new InputHold({ clock, manual: false, send: () => {}, began: () => {}, ended: (s) => ended.push(s) });
+      const h = new InputHold({ clock, manual: false, silenceMs: 500, send: () => {}, began: () => {}, ended: (s) => ended.push(s) });
       h.voiceActivity('ACTIVITY_END');
       h.output(1_000);
       base.advance(500);
@@ -703,7 +711,7 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
       expect(h.holding).toBe(false);
     });
 
-    it("a release lets one utterance go — the held audio up to the first pause of 600 ms after speech — and holds the next onset, and what comes, until the server's ACTIVITY_END for what went up, then to that answer's turnComplete", () => {
+    it("a release lets one utterance go — the held audio up to the first pause after speech of 600 ms, at the default silence — and holds the next onset, and what comes, until the server's ACTIVITY_END for what went up, then to that answer's turnComplete", () => {
       const { h, clock, sent, began, ended, timers } = hold();
       h.voiceActivity('ACTIVITY_START');
       h.voiceActivity('ACTIVITY_END');
@@ -729,13 +737,13 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
       h.output(500);
       clock.advance(500);
       h.turnComplete();
-      expect(ended[1]).toEqual({ reason: 'turn_complete', heldMs: 2_900, audioMs: 500, actions: 0, withdrawn: 0, playbackEndMs: 2_900 });
+      expect(ended[1]).toEqual({ reason: 'turn_complete', heldMs: 1_400 + SPLIT_END_MS, audioMs: 500, actions: 0, withdrawn: 0, playbackEndMs: 1_400 + SPLIT_END_MS });
       expect(sent.map((p) => [p[0], p.length])).toEqual([[1_000, 24_000], [2_000, 12_000]]);
       expect(h.holding).toBe(false);
       expect(timers()).toBe(0);
     });
 
-    it("with no ACTIVITY_END 1.5 s after it, a split's hold lets all the rest go, pauses and all: that pause closed no turn; the late END begins a hold of its own, which the next START lets go", () => {
+    it("with no ACTIVITY_END within its wait, a split's hold lets all the rest go, pauses and all: that pause closed no turn; the late END begins a hold of its own, which the next START lets go", () => {
       const { h, clock, sent, began, ended, timers } = hold();
       h.voiceActivity('ACTIVITY_END');
       h.audio(tone(300));
@@ -748,9 +756,10 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
       clock.advance(SPLIT_END_MS - 1);
       expect(h.holding).toBe(true);
       clock.advance(1);
-      expect(ended[1]).toEqual({ reason: 'split_timeout', heldMs: 1_500, audioMs: 1_200, actions: 0, withdrawn: 0, playbackEndMs: null });
+      expect(ended[1]).toEqual({ reason: 'split_timeout', heldMs: SPLIT_END_MS, audioMs: 1_200, actions: 0, withdrawn: 0, playbackEndMs: null });
       expect(sent.map((p) => [p[0], p.length])).toEqual([[1_000, 24_000], [2_000, 28_800]]);
-      // Batch 2, 3.1's monologue: the END came 70 ms after the wait ran out, the next utterance's START 89 ms after it.
+      // An END after the wait has run out — 70 ms, and the next utterance's START 89 ms after it: the shape batch 2's 3.1
+      // monologue showed twice at a 1.5 s wait.
       clock.advance(70);
       h.voiceActivity('ACTIVITY_END');
       h.audio(tone(100));
@@ -759,6 +768,102 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
       expect(began).toEqual(['voice_activity', 'split', 'voice_activity']);
       expect(ended.map((s) => s.reason)).toEqual(['turn_complete', 'split_timeout', 'voice_activity_start']);
       expect(timers()).toBe(0);
+    });
+
+    it("the split's pause follows the session's end-of-speech silence: 100 ms past it, never under 200 ms (choice 15)", () => {
+      expect([50, 500, 1_500].map(splitPauseMs)).toEqual([200, 600, 1_600]);
+      // A 700 ms pause: a close at the default silence, 500 ms, and so a split; not one at 1 500 ms.
+      const held = (t: ReturnType<typeof hold>) => {
+        t.h.voiceActivity('ACTIVITY_END');
+        t.h.audio(tone(300));
+        t.h.audio(hush(700));
+        t.h.audio(tone(300, 2_000));
+        t.h.turnComplete();
+      };
+      const slow = hold({ silenceMs: 1_500 });
+      held(slow);
+      expect(slow.sent.map((p) => p.length)).toEqual([31_200]);
+      expect(slow.began).toEqual(['voice_activity']);
+      const usual = hold({ silenceMs: 500 });
+      held(usual);
+      expect(usual.sent.map((p) => p.length)).toEqual([24_000]);
+      expect(usual.began).toEqual(['voice_activity', 'split']);
+    });
+
+    it("the split's wait grows with what it let go — half as long as that audio plays, when that is past 2 s: an 8.8 s utterance waits 4.4 s, and its END at 3.9 s is consumed", () => {
+      const t = hold();
+      t.h.voiceActivity('ACTIVITY_END');
+      t.h.audio(tone(8_100));
+      t.h.audio(hush(700));
+      t.h.audio(tone(300, 2_000));
+      t.h.turnComplete();
+      expect(t.ended[0]).toMatchObject({ audioMs: 9_100, keptMs: 300 });
+      t.clock.advance(3_900);
+      t.h.voiceActivity('ACTIVITY_END');
+      t.clock.advance(1_000);
+      expect(t.h.holding).toBe(true);
+      expect(t.ended).toHaveLength(1);
+      // Without that END the wait runs out at 4.4 s, not 2 s.
+      const u = hold();
+      u.h.voiceActivity('ACTIVITY_END');
+      u.h.audio(tone(8_100));
+      u.h.audio(hush(700));
+      u.h.audio(tone(300, 2_000));
+      u.h.turnComplete();
+      u.clock.advance(4_399);
+      expect(u.h.holding).toBe(true);
+      u.clock.advance(1);
+      expect(u.ended[1]).toMatchObject({ reason: 'split_timeout', heldMs: 4_400 });
+    });
+
+    it("after a split's END a START lets its hold go, as any START does: that utterance is closed, and the START is a new one", () => {
+      const { h, clock, sent, began, ended, timers } = hold();
+      h.voiceActivity('ACTIVITY_END');
+      h.audio(tone(300));
+      h.audio(hush(700));
+      h.audio(tone(300, 2_000));
+      h.turnComplete();
+      h.voiceActivity('ACTIVITY_START');
+      clock.advance(900);
+      h.voiceActivity('ACTIVITY_END');
+      h.audio(tone(100, 3_000));
+      clock.advance(100);
+      h.voiceActivity('ACTIVITY_START');
+      expect(ended.map((e) => e.reason)).toEqual(['turn_complete', 'voice_activity_start']);
+      expect(sent.map((p) => [p[0], p.length])).toEqual([[1_000, 24_000], [2_000, 9_600]]);
+      expect(began).toEqual(['voice_activity', 'split']);
+      expect(timers()).toBe(0);
+    });
+
+    it('content after an interrupted ends its wait for the trailing turnComplete: a START during a hold then lets it go at once (choice 4)', () => {
+      for (const content of ['output', 'input'] as const) {
+        const { h, ended } = hold();
+        h.voiceActivity('ACTIVITY_END');
+        // No turnComplete follows this one.
+        h.interrupted();
+        if (content === 'output') h.output();
+        else h.input();
+        h.audio(tone(100));
+        h.voiceActivity('ACTIVITY_START');
+        expect(ended.map((e) => e.reason)).toEqual(['voice_activity_start']);
+      }
+    });
+
+    it("waitingForInput ends the model's turn before it lets go: a split's hold arms its cap from a fresh turn, not the last answer's audio (choice 4)", () => {
+      const { h, clock, ended } = hold();
+      h.voiceActivity('ACTIVITY_END');
+      h.output(1_000);
+      h.audio(tone(300));
+      h.audio(hush(700));
+      h.audio(tone(300, 2_000));
+      clock.advance(500);
+      h.waitingForInput();
+      h.voiceActivity('ACTIVITY_END');
+      // The last answer's 1 s would cap it 2.5 s from here; a fresh turn has no audio, so the idle cap.
+      clock.advance(1_000 + HOLD_MARGIN_MS);
+      expect(h.holding).toBe(true);
+      clock.advance(HOLD_IDLE_MS - 1_000 - HOLD_MARGIN_MS);
+      expect(ended.map((e) => [e.reason, e.playbackEndMs])).toEqual([['waiting_for_input', 1_000], ['idle', null]]);
     });
 
     it('held audio that ends in such a pause goes up whole, and the leg holds on the same way: speech right after it waits', () => {
@@ -812,8 +917,10 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
         t.h.audio(hush(700));
         t.h.audio(tone(300));
       };
-      // Push-to-talk: the leg's own marks already end each utterance (choice 5).
+      // Push-to-talk: the leg's own marks already end each utterance (choice 5) — whatever voice activity the server mirrors.
       const manual = hold({ manual: true });
+      manual.h.voiceActivity('ACTIVITY_START');
+      manual.h.voiceActivity('ACTIVITY_END');
       manual.h.begin('activity_end');
       held(manual);
       manual.h.turnComplete();
@@ -933,9 +1040,10 @@ Expected: FAIL — the file does not load: `Failed to resolve import "./hold"`.
  * the session's end drops it, silently (choice 11). Under automatic turns
  * two more rules (Gemini hold, ruling 4): an ACTIVITY_START during a hold
  * lets it go at once, and a release lets one utterance go — up to the first
- * pause of `SPLIT_PAUSE_MS` after speech — holding the rest until the
- * server has closed that one and answered it (choices 14, 15). Pure: a
- * clock and three callbacks — the adapter sends and frames.
+ * pause after speech a little longer than the session's own end-of-speech
+ * silence — holding the rest until the server has closed that one and
+ * answered it (choices 14, 15). Pure: a clock and three callbacks — the
+ * adapter sends and frames.
  */
 import { SAMPLE_RATE } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
@@ -946,16 +1054,23 @@ export const HOLD_MARGIN_MS = 2_000;
 export const HOLD_IDLE_MS = 10_000;
 /** Under automatic turns, at most this much of a reconnect gap's audio is carried: the gap's first; later gap audio is dropped, as outside a hold (choice 10). */
 export const HOLD_CARRY_MS = 5_000;
-/** Under automatic turns a release lets the held audio go up to the first pause at least this long after speech: one utterance (Gemini hold, ruling 4; choice 14). */
-export const SPLIT_PAUSE_MS = 600;
-/** The hold such a release begins waits this long for the server's ACTIVITY_END for what went up, then lets the rest go: that pause closed no turn (choice 14). */
-export const SPLIT_END_MS = 1_500;
+/** Under automatic turns a release lets the held audio go up to the first pause after speech at least this much longer than the session's end-of-speech silence: one utterance (Gemini hold, ruling 4; choice 15). */
+export const SPLIT_PAUSE_MARGIN_MS = 100;
+/** …and never shorter than this, so that the gaps between words never split (choice 15). */
+export const SPLIT_PAUSE_FLOOR_MS = 200;
+/** The hold such a release begins waits at least this long for the server's ACTIVITY_END for what went up, then lets the rest go: that pause closed no turn (Gemini hold, ruling 4; choice 14). */
+export const SPLIT_END_MS = 2_000;
 /** The pause's gate reads the held audio in frames this long (choice 15). */
 export const GATE_FRAME_MS = 10;
 /** A frame is speech when its RMS is above the held audio's loudest frame's divided by this: 20 dB under it (choice 15). */
 export const GATE_PEAK_DIVISOR = 10;
 const CARRY_SAMPLES = (HOLD_CARRY_MS * SAMPLE_RATE) / 1000;
 const GATE_FRAME = (GATE_FRAME_MS * SAMPLE_RATE) / 1000;
+
+/** The split's pause for a session whose server closes a turn after `silenceMs` of silence: at the default 500, 600 (choice 15). */
+export function splitPauseMs(silenceMs: number): number {
+  return Math.max(SPLIT_PAUSE_FLOOR_MS, silenceMs + SPLIT_PAUSE_MARGIN_MS);
+}
 
 /**
  * What began a hold: the server's `voiceActivity` ACTIVITY_END, the first
@@ -999,16 +1114,19 @@ export interface HeldAction {
 type HeldAudio = { readonly pcm: Int16Array };
 type Entry = HeldAudio | HeldAction;
 
-export interface InputHoldOptions {
+export type InputHoldOptions = {
   clock: Pick<Clock, 'setTimeout' | 'now'>;
-  /** Manual turns: only the leg's own `activityEnd` begins a hold; the server's signals begin none (choice 3). */
-  manual: boolean;
   /** Sends one unbroken run of held audio up, as one frame. */
   send(pcm: Int16Array): void;
   began(cause: HoldCause): void;
   /** Before what it held goes up; never on `cancel`. */
   ended(summary: HoldSummary): void;
-}
+} & (
+  /** Manual turns: only the leg's own `activityEnd` begins a hold; the server's signals begin none, and nothing splits (choices 3, 14). */
+  | { manual: true }
+  /** Automatic turns: the session's end-of-speech silence (`activity.silenceMs`), which the split's pause follows (choice 15). */
+  | { manual: false; silenceMs: number }
+);
 
 interface Run {
   cause: HoldCause;
@@ -1020,14 +1138,14 @@ interface Run {
   gapKept: number;
   gapDropped: number;
   stop: () => void;
-  /** A split's hold waits for the server's ACTIVITY_END for what went up: this stops that wait (choice 14). */
+  /** A split's hold waits for the server's ACTIVITY_END for what went up: this stops that wait. While it runs, a START is that utterance's own (choice 14). */
   awaiting: (() => void) | null;
   /** An ACTIVITY_START came between `interrupted` and the `turnComplete` that trails it: it lets go there (choices 4, 14). */
   startWaits: boolean;
 }
 
-/** A release: the entries a split kept held (none kept is an empty list), or null when it let all go. */
-type Release = { kept: Entry[] | null };
+/** A release: the entries a split kept held (none kept is an empty list), or null when it let all go; and how much audio it let go, in ms. */
+type Release = { kept: Entry[] | null; sentMs: number };
 
 /** Each unbroken run of audio as one frame (choice 5). */
 function join(run: readonly HeldAudio[]): Int16Array {
@@ -1068,10 +1186,14 @@ export class InputHold {
   /** This model turn's audio: when its first part arrived, and how long all of it plays (choice 6). */
   private firstAudioAt: number | null = null;
   private answerMs = 0;
-  /** An `interrupted` has come and the `turnComplete` that trails it has not (choice 4). */
+  /** An `interrupted` has come, and neither the `turnComplete` that trails it nor any content since (choice 4). */
   private cut = false;
+  /** The split's pause; null under manual turns, which never split (choice 15). */
+  private readonly pauseMs: number | null;
 
-  constructor(private readonly o: InputHoldOptions) {}
+  constructor(private readonly o: InputHoldOptions) {
+    this.pauseMs = o.manual ? null : splitPauseMs(o.silenceMs);
+  }
 
   get holding(): boolean {
     return this.run !== null;
@@ -1080,15 +1202,15 @@ export class InputHold {
   /**
    * The server's voice activity. ACTIVITY_END is the user's turn closing (choice 2) — or, on a split's hold, the close
    * it waits for. Under automatic turns an ACTIVITY_START during a hold lets it go: nothing goes up while one is on,
-   * so the server is hearing speech that went up before it, and must hear its end — unless it is a split's hold,
-   * whose own utterance's START is expected (choice 14).
+   * so the server is hearing speech that went up before it, and must hear its end — unless it is a split's hold still
+   * waiting for its END, whose own utterance's START is expected (choice 14).
    */
   voiceActivity(type: string | undefined): void {
     this.heard = true;
     const run = this.run;
     if (type === 'ACTIVITY_START') {
       this.speaking = true;
-      if (!run || this.o.manual || run.cause === 'split') return;
+      if (!run || this.o.manual || run.awaiting) return;
       // Between `interrupted` and the `turnComplete` that trails it, a held send would split that end in two: it lets go there (choice 4).
       if (this.cut) run.startWaits = true;
       else this.letGo(this.finish('voice_activity_start'));
@@ -1108,11 +1230,14 @@ export class InputHold {
 
   /** An input transcription with text: a turn close only on a session that has heard no voice activity (choice 2). */
   input(): void {
+    // Content: the `interrupted` is behind it, as `GeminiTurns` reads it (choice 4).
+    this.cut = false;
     if (!this.heard) this.fallback('input_transcription');
   }
 
   /** Model output — an output transcription, a model part — and how much of it is audio, in ms. */
   output(audioMs = 0): void {
+    this.cut = false;
     if (audioMs > 0) {
       if (this.firstAudioAt === null) this.firstAudioAt = this.o.clock.now();
       this.answerMs += audioMs;
@@ -1136,9 +1261,11 @@ export class InputHold {
     this.letGo(release);
   }
 
-  /** The model is not generating: it waits for the user (choice 4). */
+  /** The model is not generating: it waits for the user, its turn over (choice 4). */
   waitingForInput(): void {
-    this.letGo(this.finish('waiting_for_input'));
+    const release = this.finish('waiting_for_input');
+    this.newTurn();
+    this.letGo(release);
   }
 
   /** Begins a hold, unless one is on. The adapter's own `activityEnd` comes here (choice 3). */
@@ -1288,9 +1415,11 @@ export class InputHold {
       if ('pcm' in e) samples += e.pcm.length;
       else actions += 1;
     }
-    const splits = !this.o.manual && this.heard && (reason === 'turn_complete' || reason === 'waiting_for_input' || reason === 'reconnect');
-    const at = splits ? this.splitAt() : undefined;
+    const pauseMs = this.pauseMs;
+    const splits = pauseMs !== null && this.heard && (reason === 'turn_complete' || reason === 'waiting_for_input' || reason === 'reconnect');
+    const at = splits ? this.splitAt(pauseMs) : undefined;
     const kept = at === undefined ? null : this.queue.splice(at);
+    const keptSamples = kept ? samplesIn(kept) : 0;
     this.o.ended({
       reason,
       heldMs: this.o.clock.now() - run.beganAt,
@@ -1300,19 +1429,19 @@ export class InputHold {
       playbackEndMs: this.firstAudioAt === null ? null : Math.round(this.firstAudioAt + this.answerMs - run.beganAt),
       ...(run.carried ? { carried: true as const } : {}),
       ...(run.gapDropped > 0 ? { droppedMs: ms(run.gapDropped) } : {}),
-      ...(kept ? { keptMs: ms(samplesIn(kept)) } : {}),
+      ...(kept ? { keptMs: ms(keptSamples) } : {}),
     });
-    return { kept };
+    return { kept, sentMs: ms(samples - keptSamples) };
   }
 
   /**
-   * Where a release splits what is held (choice 14): at the first entry after a pause of at least `SPLIT_PAUSE_MS`
+   * Where a release splits what is held (choice 14): at the first entry after a pause of at least `pauseMs`
    * that follows speech — the next utterance's audio, or a send held after the pause; the queue's end when the held
    * audio ends in such a pause; none without one. The gate (choice 15): `GATE_FRAME_MS` frames over the held audio as
    * one stream, whatever its chunks, each counted to the entry it begins in; speech above the loudest frame's RMS
    * divided by `GATE_PEAK_DIVISOR`. A held send breaks the stream.
    */
-  private splitAt(): number | undefined {
+  private splitAt(pauseMs: number): number | undefined {
     const frames: Array<{ at: number; rms: number }> = [];
     let peak = 0;
     let sum = 0;
@@ -1342,7 +1471,7 @@ export class InputHold {
     let speech = false;
     let quiet = 0;
     for (const f of frames) {
-      const paused = speech && quiet >= SPLIT_PAUSE_MS;
+      const paused = speech && quiet >= pauseMs;
       if (f.rms < 0) {
         if (paused) return f.at;
         continue;
@@ -1353,13 +1482,14 @@ export class InputHold {
         quiet = 0;
       } else quiet += GATE_FRAME_MS;
     }
-    return speech && quiet >= SPLIT_PAUSE_MS ? this.queue.length : undefined;
+    return speech && quiet >= pauseMs ? this.queue.length : undefined;
   }
 
   /**
    * What a release let go goes up in order, until none is left or a held send begins a new hold, which keeps the rest
-   * (choice 5). What a split kept stays held, in a hold of its own that waits `SPLIT_END_MS` for the server's
-   * ACTIVITY_END for what went up (choice 14).
+   * (choice 5). What a split kept stays held, in a hold of its own that waits for the server's ACTIVITY_END for what
+   * went up: `SPLIT_END_MS`, or half as long as that audio plays when that is longer — the server reads a released
+   * burst at about 2–4× real time, and its close comes later the more it has to read (choice 14).
    */
   private letGo(release: Release | null): void {
     if (!release) return;
@@ -1372,7 +1502,7 @@ export class InputHold {
     run.awaiting = this.o.clock.setTimeout(() => {
       run.awaiting = null;
       this.letGo(this.finish('split_timeout'));
-    }, SPLIT_END_MS);
+    }, Math.max(SPLIT_END_MS, Math.ceil(release.sentMs / 2)));
   }
 
   private drain(): void {
@@ -1394,7 +1524,7 @@ export class InputHold {
 - [ ] **Step 4: Run it.**
 
 Run: `npx vitest run src/providers/gemini/hold.test.ts`
-Expected: PASS — 1 file, 36 tests.
+Expected: PASS — 1 file, 41 tests.
 
 - [ ] **Step 5: The gates.** `npx vitest run src` (0 failed, no unhandled errors; in Wave 1 name any failure in Task 2's files) and the typecheck gate (the baseline). Nothing imports `hold.ts` yet, so no other suite can move.
 
@@ -1417,9 +1547,10 @@ computed playback end, or 10 s after it began with no model audio, and
 releases what it holds, never drops it. A lost connection carries it to
 the next one, with at most 5 s of the gap's audio under automatic turns.
 Under automatic turns a new ACTIVITY_START lets a hold go, and a release
-lets one utterance go, up to its first pause of 600 ms (an energy gate
-finds it), holding the rest until the server has closed that one and
-answered it, or for 1.5 s without the close. Not wired yet.
+lets one utterance go, up to its first pause 100 ms past the session's
+own silence setting (an energy gate finds it), holding the rest until
+the server has closed that one and answered it, or for at least 2 s
+without the close, longer when more went up. Not wired yet.
 
 Co-Authored-By: <implementing model> <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01Q5eVcuCVVhSpoUCA5C7bDe
@@ -1591,10 +1722,10 @@ EOF
 - Test: `src/providers/gemini/adapter.hold.test.ts` (new), `src/providers/gemini/adapter.test.ts` (the conformance list, `:64`), `src/providers/sessionSide.consistency.test.ts` (Gemini's roster, anchored by content: the Palabra roster below it is another plan's)
 
 **Interfaces:**
-- Consumes: `InputHold`, `HOLD_MARGIN_MS`, `HOLD_IDLE_MS`, `HOLD_CARRY_MS` (Task 1); `SETUP_TIMEOUT_MS` (the adapter, landed); `SERVER.voiceActivity`, `SERVER.generationComplete`, `SERVER.waitingForInput`, `GeminiServerMessage.voiceActivity` (Task 2); `BARGE_IN` (`gemini-3.8-live`, a model that barges in).
+- Consumes: `InputHold`, `HOLD_MARGIN_MS`, `HOLD_IDLE_MS`, `HOLD_CARRY_MS`, `SPLIT_END_MS` (Task 1); `SETUP_TIMEOUT_MS` (the adapter, landed); `SERVER.voiceActivity`, `SERVER.generationComplete`, `SERVER.waitingForInput`, `GeminiServerMessage.voiceActivity` (Task 2); `BARGE_IN` (`gemini-3.8-live`, a model that barges in).
 - Produces: `GeminiSession.hold: InputHold | null`; the frames `turn.hold` and `turn.hold_end`, ruling 4's causes and reasons among them (they come from `hold.ts`: the adapter already hands it every voice activity). Under manual turns no hold begins yet: Task 4 wires the presses and typed text, and the ladder's coordination with a held press.
 
-- [ ] **Step 1: Write the failing tests** (rulings 1–4; choices 1, 2, 4–6, 10, 11, 14): a new suite, `src/providers/gemini/adapter.hold.test.ts` — its last two cases replay two of the owner's batch-2 sessions through the adapter, the server's messages at their real times (research notes, multi batches); the 3.x model in the conformance list; `hold.ts` on Gemini's session side.
+- [ ] **Step 1: Write the failing tests** (rulings 1–4; choices 1, 2, 4–6, 10, 11, 14, 15): a new suite, `src/providers/gemini/adapter.hold.test.ts` — among its cases one that the session's Silence Duration reaches the split, and its last two replay two of the owner's batch-2 sessions through the adapter, the server's messages at their real times (research notes, multi batches), the 3.1 one to its first split's ACTIVITY_END; the 3.x model in the conformance list; `hold.ts` on Gemini's session side.
 
 ```ts
 /**
@@ -1609,7 +1740,7 @@ EOF
 import { describe, it, expect } from 'vitest';
 import { flush } from '../../lib/contract/testing/drive';
 import { SETUP_TIMEOUT_MS } from './adapter';
-import { HOLD_CARRY_MS, HOLD_IDLE_MS, HOLD_MARGIN_MS } from './hold';
+import { HOLD_CARRY_MS, HOLD_IDLE_MS, HOLD_MARGIN_MS, SPLIT_END_MS } from './hold';
 import { AUTO_CTX, BARGE_IN, DIALOGUE, liveGemini, SERVER, TRANSLATE } from './testing';
 import { base64ToPcm } from './wire';
 
@@ -1695,15 +1826,19 @@ describe('a 3.x dialogue model under automatic turns (Gemini hold, ruling 1)', (
     expect(wire(h.sent() as Sent[])).toEqual(['audio ×2048']);
   });
 
-  it("interrupted ends the model's turn for the fallbacks, as turnComplete does: the next turn's first output begins a hold (choice 2)", async () => {
+  it("interrupted and waitingForInput end the model's turn for the fallbacks, as turnComplete does: the next turn's first output begins a hold (choices 2, 4)", async () => {
     const h = await liveGemini({ model: BARGE_IN });
-    h.socket().receive(SERVER.output('a'));
-    h.socket().receive(SERVER.waitingForInput());
+    h.socket().receive(SERVER.audio(2_400));
+    h.clock.advance(100 + HOLD_MARGIN_MS);
+    // Let go at its cap: the same model turn's later output begins none.
     h.socket().receive(SERVER.output('b'));
     expect(h.frames('turn.hold')).toHaveLength(1);
     h.socket().receive(SERVER.interrupted());
     h.socket().receive(SERVER.output('c'));
-    expect(h.frames('turn.hold')).toEqual([{ cause: 'model_output' }, { cause: 'model_output' }]);
+    expect(h.frames('turn.hold')).toHaveLength(2);
+    h.socket().receive(SERVER.waitingForInput());
+    h.socket().receive(SERVER.output('d'));
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'model_output' }, { cause: 'model_output' }, { cause: 'model_output' }]);
   });
 
   it("counts every model audio part at its own rate toward the cap, on a leg that does not speak too — the participant's, the same as the speaker's (ruling 3; choices 1, 6)", async () => {
@@ -1732,6 +1867,19 @@ describe('a 3.x dialogue model under automatic turns (Gemini hold, ruling 1)', (
     expect(wire(h.sent() as Sent[])).toEqual([]);
     h.socket().receive(SERVER.turnComplete());
     expect(wire(h.sent() as Sent[])).toEqual(['audio ×2048']);
+  });
+
+  it("the split's pause follows the session's own Silence Duration: a 700 ms pause splits a release at the default 500 ms, not at 1 500 ms (choice 15)", async () => {
+    const causes: string[][] = [];
+    for (const vadSilenceDurationMs of [500, 1_500]) {
+      const h = await liveGemini({ model: BARGE_IN, patch: { vadSilenceDurationMs } });
+      h.socket().receive(SERVER.voiceActivity('ACTIVITY_START'));
+      h.socket().receive(SERVER.voiceActivity('ACTIVITY_END'));
+      for (const fill of [1_000, 1_000, 1_000, 0, 0, 0, 0, 0, 0, 0, 2_000, 2_000, 2_000]) h.session.appendAudio(new Int16Array(2_400).fill(fill));
+      h.socket().receive(SERVER.turnComplete());
+      causes.push((h.frames('turn.hold') as Array<{ cause: string }>).map((p) => p.cause));
+    }
+    expect(causes).toEqual([['voice_activity', 'split'], ['voice_activity']]);
   });
 
   it('waitingForInput lets go at once: the model is not generating (choice 4)', async () => {
@@ -1878,7 +2026,7 @@ describe('a 3.x dialogue model under automatic turns: one utterance per release,
     const h = await liveGemini({ model: BARGE_IN });
     // Batch 2, `seq` at 1 100 ms on gemini-3.8-live, its `turn2` session (the first rule's `turn` session of the same
     // clips released U2's end and U3's onset in one burst; the server opened U3 while a hold begun on U2's lagging
-    // ACTIVITY_END kept its end, to the idle cap).
+    // ACTIVITY_END kept its end, to the idle cap). At the default silence, 500 ms, the probe's own: a 600 ms split pause.
     replay(h, [[60, 5_250], [6_350, 7_800], [8_900, 11_470]], 18_600, [
       [287, SERVER.voiceActivity('ACTIVITY_START', '0.240s')],
       [6_074, SERVER.input('Lyrical Theme of Fanfare にようこそ。自然な会話をお手伝いします。')],
@@ -1919,12 +2067,13 @@ describe('a 3.x dialogue model under automatic turns: one utterance per release,
     expect(h.timers()).toBe(0);
   });
 
-  it("3.1, a monologue: a split's wait ran out just before its ACTIVITY_END twice, and the hold that late END began was let go by the next ACTIVITY_START at once — never the idle cap (choice 14)", async () => {
+  it("3.1, a monologue: the split's hold consumes the server's close of what it let go, 1.58 s after it and inside its 2 s wait — where the probe's 1.5 s wait ran out (choice 14)", async () => {
     const h = await liveGemini({ model: BARGE_IN });
-    // Batch 2, `mono` (pauses 800/1 200/1 000/1 500 ms) on gemini-3.1-flash-live-preview, its `turn2` session. Its END
-    // came 70 and 49 ms after the 1.5 s wait ran out; 3.1 then cut the pending answer before any output (failure mode
-    // (b)) and answered the two utterances together, both whole.
-    replay(h, [[50, 3_470], [4_270, 6_530], [7_730, 10_660], [11_660, 14_170], [15_670, 18_710]], 25_900, [
+    // Batch 2, `mono` (pauses 800/1 200/1 000/1 500 ms) on gemini-3.1-flash-live-preview, its `turn2` session, to its
+    // first split's ACTIVITY_END. The probe's own wait was 1.5 s: it ran out 70 ms before that END, 3.1 cut the pending
+    // answer before any output (failure mode (b)) and answered two utterances together. The session's later messages
+    // answer what that timeout sent, so the replay stops at the END; the late-END path is `hold.test.ts`'s.
+    replay(h, [[50, 3_470], [4_270, 6_530], [7_730, 10_660], [11_660, 14_170], [15_670, 18_710]], 9_400, [
       [182, SERVER.voiceActivity('ACTIVITY_START', '0.160s')],
       [4_398, SERVER.input('今日 は 雨 が 降り そう な の で 傘 を 持っ て 行き ます 。')],
       [4_398, SERVER.voiceActivity('ACTIVITY_END', '4.280s')],
@@ -1935,42 +2084,17 @@ describe('a 3.x dialogue model under automatic turns: one utterance per release,
       [8_317, SERVER.voiceActivity('ACTIVITY_START', '4.600s')],
       [9_388, SERVER.input('ドア を 閉め て ください 。')],
       [9_388, SERVER.voiceActivity('ACTIVITY_END', '7.160s')],
-      [9_477, SERVER.voiceActivity('ACTIVITY_START', '7.840s')],
-      [9_477, SERVER.interrupted()],
-      [9_691, SERVER.turnComplete()],
-      [11_694, SERVER.input('明日 の 会議 は 午後 3 時 に 始まり ます 。')],
-      [11_694, SERVER.voiceActivity('ACTIVITY_END', '11.520s')],
-      [11_714, SERVER.audio(90_721)],
-      [11_714, SERVER.output('Please close')],
-      [12_777, SERVER.generationComplete()],
-      [15_504, SERVER.turnComplete()],
-      [15_665, SERVER.voiceActivity('ACTIVITY_START', '11.840s')],
-      [17_065, SERVER.input('この 本 は とても 面白かっ た です 。')],
-      [17_065, SERVER.voiceActivity('ACTIVITY_END', '15.080s')],
-      [17_254, SERVER.voiceActivity('ACTIVITY_START', '15.880s')],
-      [17_255, SERVER.interrupted()],
-      [17_498, SERVER.turnComplete()],
-      [19_792, SERVER.input('週末 に 家族 と 一緒 に 夕食 を 食べ まし た 。')],
-      [19_792, SERVER.voiceActivity('ACTIVITY_END', '19.640s')],
-      [19_847, SERVER.audio(109_201)],
-      [19_847, SERVER.output('This book')],
-      [21_128, SERVER.generationComplete()],
-      [24_408, SERVER.turnComplete()],
     ]);
-    expect(h.frames('turn.hold').map((p) => (p as { cause: string }).cause)).toEqual([
-      'voice_activity', 'split', 'voice_activity', 'voice_activity', 'split', 'voice_activity', 'voice_activity',
+    // Split at 7 806 ms (3.3 s let go, so a 2 s wait), its END at 9 388: consumed, no hold of its own.
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'voice_activity' }, { cause: 'split' }]);
+    expect(h.frames('turn.hold_end')).toEqual([
+      { reason: 'turn_complete', heldMs: 3_408, audioMs: 3_500, actions: 0, withdrawn: 0, playbackEndMs: 3_377, keptMs: 200 },
     ]);
-    const ends = h.frames('turn.hold_end') as Array<{ reason: string; audioMs: number; keptMs?: number }>;
-    expect(ends.map((s) => [s.reason, s.audioMs, s.keptMs])).toEqual([
-      ['turn_complete', 3_500, 200],
-      ['split_timeout', 1_700, undefined],
-      ['voice_activity_start', 100, undefined],
-      ['turn_complete', 3_900, 0],
-      ['split_timeout', 1_500, undefined],
-      ['voice_activity_start', 200, undefined],
-      ['turn_complete', 4_700, undefined],
-    ]);
-    expect(h.timers()).toBe(0);
+    // The wait is over: past it the split's hold still holds U3's onset, for its answer's turnComplete.
+    h.clock.advance(SPLIT_END_MS);
+    expect(h.frames('turn.hold_end')).toHaveLength(1);
+    const sent = wire(h.sent() as Sent[]);
+    expect(runs(sent)).toEqual([['audio ×2400', 44], ['audio ×79200', 1]]);
   });
 });
 ```
@@ -2007,9 +2131,9 @@ diff --git a/src/providers/sessionSide.consistency.test.ts b/src/providers/sessi
 - [ ] **Step 2: Run them to see them fail.**
 
 Run: `npx vitest run src/providers/gemini/adapter.hold.test.ts src/providers/gemini/adapter.test.ts src/providers/sessionSide.consistency.test.ts`
-Expected: FAIL — `2 failed | 1 passed (3)` files, `14 failed | 82 passed (96)` tests: nothing holds, and the session side does not reach `hold.ts`. The stop-during-a-hold case and the 2.5 and Live Translate cases pass already, and so do the 3.x model's conformance runs: they guard what must not change.
+Expected: FAIL — `2 failed | 1 passed (3)` files, `15 failed | 82 passed (97)` tests: nothing holds, and the session side does not reach `hold.ts`. The stop-during-a-hold case and the 2.5 and Live Translate cases pass already, and so do the 3.x model's conformance runs: they guard what must not change.
 
-- [ ] **Step 3: Hold under automatic turns, and carry a hold across a reconnect.** Ruling 4 needs nothing more here than the header and one comment: its rules are `hold.ts`'s.
+- [ ] **Step 3: Hold under automatic turns, and carry a hold across a reconnect.** Ruling 4 needs nothing more here than the header, one comment and the session's silence setting handed to the hold under automatic turns (choice 15): its rules are `hold.ts`'s.
 
 ```diff
 diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
@@ -2042,7 +2166,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
  
    constructor(private readonly request: GeminiRequest, private readonly events: AdapterEvents, private readonly openSocket: OpenSocket) {
      this.turns = new GeminiTurns({
-@@ -114,6 +120,17 @@
+@@ -114,6 +120,18 @@
        send: (pcm) => this.live()?.send(audioFrame(pcm)),
        ended: (summary) => this.tailEnded(summary),
      });
@@ -2051,7 +2175,8 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
 +    this.hold = kind === 'dialogue' && activityHandling === 'START_OF_ACTIVITY_INTERRUPTS'
 +      ? new InputHold({
 +          clock: request.clock,
-+          manual: activity.manual,
++          // Under automatic turns the split's pause follows the server's own end-of-speech silence (Gemini hold, choice 15).
++          ...(activity.manual ? { manual: true as const } : { manual: false as const, silenceMs: activity.silenceMs }),
 +          send: (pcm) => this.live()?.send(audioFrame(pcm)),
 +          began: (cause) => this.frame('out', 'turn.hold', { cause }),
 +          ended: (summary) => this.frame('out', 'turn.hold_end', summary),
@@ -2060,7 +2185,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
    }
  
    /** Resolves once the server answers the setup; rejects, leaving nothing open, when it refuses, drops, does not answer in time, or the signal aborts. */
-@@ -130,9 +147,11 @@
+@@ -130,9 +148,11 @@
      return {
        info: { transport: 'websocket' },
        // No frame per chunk (the hot-path rule). Audio while no connection is set up is dropped (parity). Real audio ends a release's tail first.
@@ -2073,7 +2198,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
        },
        appendText: (text) => this.appendText(text),
        beginTurn: () => this.beginTurn(),
-@@ -247,6 +266,9 @@
+@@ -247,6 +267,9 @@
          ...(activity.type ? { type: activity.type } : {}),
          ...(activity.audioOffset ? { audioOffset: activity.audioOffset } : {}),
        });
@@ -2083,7 +2208,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
      }
      if (m.serverContent) this.onContent(m.serverContent);
      if (m.goAway) {
-@@ -266,6 +288,7 @@
+@@ -266,6 +289,7 @@
          this.turns.input(input.text);
          // Either side's words mean the model is still working through the press (Gemini/AST2 follow-up, choice 12).
          this.tail.output();
@@ -2091,7 +2216,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
        }
      }
      const output = c.outputTranscription;
-@@ -274,6 +297,7 @@
+@@ -274,6 +298,7 @@
        if (output.text) {
          this.turns.output(output.text);
          this.tail.output();
@@ -2099,7 +2224,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
        }
      }
      if (c.modelTurn?.parts) this.onModelTurn(c.modelTurn.parts);
-@@ -281,16 +305,25 @@
+@@ -281,16 +306,25 @@
      if (c.interrupted) {
        this.frame('in', 'server_content.interrupted');
        this.turns.interrupted();
@@ -2126,7 +2251,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
      let mimeType: string | undefined;
      let text = '';
      const playable: Int16Array[] = [];
-@@ -310,6 +343,7 @@
+@@ -310,6 +344,7 @@
          this.partsReadable = true;
          audioBytes += pcm.byteLength;
          const rate = pcmRate(mimeType);
@@ -2134,7 +2259,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
          if (rate === SAMPLE_RATE) playable.push(pcm);
          else this.foreignRate(rate);
        } else if (part.text && !part.thought) {
-@@ -320,6 +354,8 @@
+@@ -320,6 +355,8 @@
      this.frame('in', 'server_content.model_turn', { audioBytes, ...(mimeType ? { mimeType } : {}), ...(text ? { text } : {}) });
      for (const pcm of playable) this.turns.audio(pcm);
      if (text) this.turns.modelText(text);
@@ -2143,7 +2268,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
    }
  
    /** Audio at a rate this app does not play is skipped; a speaking leg says so once (choice 18). */
-@@ -437,6 +473,8 @@
+@@ -437,6 +474,8 @@
      }
      // The tail's activity was the old connection's: nothing of it reaches the new one.
      this.tail.cancel();
@@ -2152,7 +2277,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
      this.frame('in', 'session.reconnecting', {
        cause: why.cause,
        ...(why.code !== undefined ? { code: why.code } : {}),
-@@ -477,6 +515,8 @@
+@@ -477,6 +516,8 @@
          this.frame('out', 'realtime_input.activity_start');
        }
        this.events.reconnected();
@@ -2161,7 +2286,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
        return;
      }
      this.frame('in', 'session.connection_lost', { attempts: RECONNECT_DELAYS_MS.length });
-@@ -514,6 +554,7 @@
+@@ -514,6 +555,7 @@
      for (const cancel of [...this.cancels]) cancel();
      this.cancels.clear();
      this.tail.cancel();
@@ -2174,7 +2299,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
 - [ ] **Step 4: Run Gemini's suites and the session-side guard.**
 
 Run: `npx vitest run src/providers/gemini src/providers/sessionSide.consistency.test.ts`
-Expected: PASS — 18 files, 322 tests. The landed barge-in cases pass unchanged: under automatic turns a hold begins at the first transcription (no voice activity in those cases) and lets go at each `turnComplete` without touching segments; under push-to-talk nothing holds yet. The landed reconnect cases (`adapter.reconnect.test.ts`) run the 2.5 model and Live Translate, which never hold. The session-side guard now walks `hold.ts` too: it imports no store, no reporter, and times only through the clock it is handed. The two replays pin, on batch 2's own timings, three answers one per utterance where the first rule stalled (3.8), and two split waits run out followed by holds a START let go at once (3.1).
+Expected: PASS — 18 files, 328 tests. The landed barge-in cases pass unchanged: under automatic turns a hold begins at the first transcription (no voice activity in those cases) and lets go at each `turnComplete` without touching segments; under push-to-talk nothing holds yet. The landed reconnect cases (`adapter.reconnect.test.ts`) run the 2.5 model and Live Translate, which never hold. The session-side guard now walks `hold.ts` too: it imports no store, no reporter, and times only through the clock it is handed. The two replays pin, on batch 2's own timings at its default silence, three answers one per utterance where the first rule stalled (3.8), and the 3.1 monologue's first split consuming its ACTIVITY_END 1.58 s after it, inside the 2 s wait where the probe's 1.5 s ran out (3.1).
 
 - [ ] **Step 5: The gates.** The suite and the typecheck gate.
 
@@ -2194,9 +2319,10 @@ its own start. Once the server closes the user's turn (voiceActivity
 ACTIVITY_END, or else the turn's first output), the microphone's audio
 is held and sent as one frame at turnComplete; the cap lets go 2 s past
 the computed playback end, or 10 s with no model audio. A new
-ACTIVITY_START lets a hold go, and a release lets one utterance go,
-holding the next until the server has closed and answered this one:
-replayed on two of the owner's probe sessions. A reconnect, a goAway
+ACTIVITY_START lets a hold go, and a release lets one utterance go, at
+the session's own silence setting, holding the next until the server
+has closed and answered this one: replayed on two of the owner's probe
+sessions. A reconnect, a goAway
 included, carries it to the new connection, with at most 5 s of the
 gap's own audio; a stop drops it. 2.5 and Live Translate never hold.
 
@@ -2214,10 +2340,10 @@ EOF
 - Test: `src/providers/gemini/adapter.hold.test.ts` (its imports, a push-to-talk and typed-text suite, the seeded lifecycles), `src/providers/gemini/adapter.test.ts` (the barge-in tap case, `:454-473` at `ef2f61d3`, driven past the cap)
 
 **Interfaces:**
-- Consumes: `InputHold.begin`, `defer`, `holds`, `withdraw`, `HeldAction`, `HOLD_MARGIN_MS`, `SPLIT_PAUSE_MS` (Task 1); the adapter's hold and its carry across a reconnect (Task 3); `runLifecycles`, `LifecycleHarness` (the kit).
+- Consumes: `InputHold.begin`, `defer`, `holds`, `withdraw`, `HeldAction`, `HOLD_MARGIN_MS`, `SPLIT_END_MS`, `splitPauseMs` (Task 1); the adapter's hold and its carry across a reconnect (Task 3); `runLifecycles`, `LifecycleHarness` (the kit).
 - Produces: `GeminiSession.activityOpen`, `GeminiSession.heldPress`, `pressStart()`, `pressEnd(cancelled)`, `sendText(text)`.
 
-- [ ] **Step 1: Write the failing tests** (rulings 1, 4; choices 3–5, 7–10, 13, 14): the suite's push-to-talk, typed-text and reconnect cases — among them a START that reaches the adapter after the `interrupted` it set off, with typed text held — and its seeded lifecycles, whose audio has pauses so that releases split, and the landed tap case, which a hold now withdraws, driven past the cap (research note 4).
+- [ ] **Step 1: Write the failing tests** (rulings 1, 4; choices 3–5, 7–10, 13, 14): the suite's push-to-talk, typed-text and reconnect cases — among them a START that reaches the adapter after the `interrupted` it set off, with typed text held — and its seeded lifecycles, whose audio has pauses so that releases split and whose checks let a START end a split's hold only after its END, and the landed tap case, which a hold now withdraws, driven past the cap (research note 4).
 
 ```diff
 diff --git a/src/providers/gemini/adapter.hold.test.ts b/src/providers/gemini/adapter.hold.test.ts
@@ -2228,20 +2354,20 @@ diff --git a/src/providers/gemini/adapter.hold.test.ts b/src/providers/gemini/ad
  import { describe, it, expect } from 'vitest';
  import { flush } from '../../lib/contract/testing/drive';
 -import { SETUP_TIMEOUT_MS } from './adapter';
--import { HOLD_CARRY_MS, HOLD_IDLE_MS, HOLD_MARGIN_MS } from './hold';
+-import { HOLD_CARRY_MS, HOLD_IDLE_MS, HOLD_MARGIN_MS, SPLIT_END_MS } from './hold';
 -import { AUTO_CTX, BARGE_IN, DIALOGUE, liveGemini, SERVER, TRANSLATE } from './testing';
 +import { FakeSocket } from '../../lib/contract/testing/fakeSocket';
 +import { runLifecycles, type LifecycleHarness } from '../../lib/contract/testing/lifecycle';
 +import { createGeminiAdapter, SETUP_TIMEOUT_MS } from './adapter';
 +import type { GeminiConfig } from './config';
-+import { HOLD_CARRY_MS, HOLD_IDLE_MS, HOLD_MARGIN_MS, SPLIT_PAUSE_MS } from './hold';
++import { HOLD_CARRY_MS, HOLD_IDLE_MS, HOLD_MARGIN_MS, SPLIT_END_MS, splitPauseMs } from './hold';
 +import type { GeminiCredentials } from './settings';
 +import { AUTO_CTX, BARGE_IN, configFor, DIALOGUE, KEY, liveGemini, SERVER, TRANSLATE } from './testing';
  import { base64ToPcm } from './wire';
  
  type Live = Awaited<ReturnType<typeof liveGemini>>;
-@@ -374,3 +378,389 @@
-     expect(h.timers()).toBe(0);
+@@ -367,3 +371,396 @@
+     expect(runs(sent)).toEqual([['audio ×2400', 44], ['audio ×79200', 1]]);
    });
  });
 +
@@ -2536,8 +2662,10 @@ diff --git a/src/providers/gemini/adapter.hold.test.ts b/src/providers/gemini/ad
 +      return {
 +        async start(request, events) {
 +          const session = await gemini.start(request, events);
-+          // A chunk in three is a pause long enough to split on, so that held audio has pauses and releases split (choice 14).
-+          const pause = ((SPLIT_PAUSE_MS + 100) * 24_000) / 1000;
++          // A chunk in three is a pause long enough to split on at the session's own silence — the default's under
++          // push-to-talk, where `after` requires that none splits — so that held audio has pauses (choices 14, 15).
++          const { activity } = request.config;
++          const pause = ((splitPauseMs(activity.manual ? 500 : activity.silenceMs) + 100) * 24_000) / 1000;
 +          return { ...session, appendAudio: (pcm) => session.appendAudio(run.rand() < 1 / 3 ? new Int16Array(pause) : pcm) };
 +        },
 +      };
@@ -2589,16 +2717,20 @@ diff --git a/src/providers/gemini/adapter.hold.test.ts b/src/providers/gemini/ad
 +      else if (r < 0.9) socket.serverClose(1011, 'Internal error');
 +    },
 +    // A hold is said at its begin and at its end, never two at once, and no mark or text goes up while one is on. A
-+    // split's hold follows at once the release that kept something, and only that one; only a START ends a hold on a
-+    // START, never a split's; only a split's hold times out; push-to-talk never splits (choice 14).
++    // split's hold follows at once the release that kept something, and only that one; a START ends a split's hold
++    // only once the server's ACTIVITY_END has come, and a split's hold times out only before it; only a split's hold
++    // times out; push-to-talk never splits (choice 14).
 +    after: (run, log) => {
 +      let open: string | null = null;
 +      let kept = false;
++      /** The open split's hold has had its ACTIVITY_END: the one it waits for is the first to come. */
++      let closed = false;
 +      const problems: string[] = [];
 +      for (const e of log) {
 +        if (e.kind !== 'frame') continue;
 +        const { type, payload } = e.payload;
 +        if (open && type.startsWith('realtime_input.')) problems.push(`${type} went up while holding`);
++        if (type === 'server.voice_activity' && open === 'split' && (payload as { type?: string }).type === 'ACTIVITY_END') closed = true;
 +        if (type === 'turn.hold') {
 +          const { cause } = payload as { cause: string };
 +          if (open) problems.push('a hold began inside a hold');
@@ -2606,11 +2738,12 @@ diff --git a/src/providers/gemini/adapter.hold.test.ts b/src/providers/gemini/ad
 +          if (cause === 'split') run.count('hold.split');
 +          open = cause;
 +          kept = false;
++          closed = false;
 +        } else if (type === 'turn.hold_end') {
 +          const { reason, keptMs } = payload as { reason: string; keptMs?: number };
 +          if (!open) problems.push('a hold ended that had not begun');
-+          if (reason === 'voice_activity_start' && open === 'split') problems.push("an ACTIVITY_START let a split's hold go");
-+          if (reason === 'split_timeout' && open !== 'split') problems.push(`a ${open} hold ended on a split's timeout`);
++          if (reason === 'voice_activity_start' && open === 'split' && !closed) problems.push("an ACTIVITY_START let a split's hold go before its END");
++          if (reason === 'split_timeout' && (open !== 'split' || closed)) problems.push(`a ${open} hold ended on a split's timeout${closed ? ' after its END' : ''}`);
 +          if (run.context.turns === 'manual' && (keptMs !== undefined || reason === 'voice_activity_start')) problems.push(`push-to-talk ended a hold on ${reason}, keeping ${keptMs}`);
 +          run.count(`hold.${reason}`);
 +          kept = keptMs !== undefined;
@@ -2668,7 +2801,7 @@ diff --git a/src/providers/gemini/adapter.test.ts b/src/providers/gemini/adapter
 - [ ] **Step 2: Run them to see them fail.**
 
 Run: `npx vitest run src/providers/gemini/adapter.hold.test.ts src/providers/gemini/adapter.test.ts`
-Expected: FAIL — `2 failed (2)` files, `15 failed | 89 passed (104)` tests: nothing holds under push-to-talk, typed text goes at once, and the ladder would restart a press whose start a carried hold still holds. Choice 9's reconnect case and the release without voice pass already: they guard what must not change. The seeded lifecycles fail: presses and text go up while a hold is on.
+Expected: FAIL — `2 failed (2)` files, `15 failed | 90 passed (105)` tests: nothing holds under push-to-talk, typed text goes at once, and the ladder would restart a press whose start a carried hold still holds. Choice 9's reconnect case and the release without voice pass already: they guard what must not change. The seeded lifecycles fail: presses and text go up while a hold is on.
 
 - [ ] **Step 3: Hold the presses and typed text.**
 
@@ -2696,7 +2829,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
    /** The last frame parsed: `server.unreadable` is said on the ok → failing transition only (as Soniox's `stt.unreadable`). */
    private readable = true;
    /**
-@@ -388,10 +392,18 @@
+@@ -389,10 +393,18 @@
      // A release's tail still running ends first, and with it the last press's activity.
      this.tail.stop('press');
      this.turnOpen = true;
@@ -2715,7 +2848,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
      this.frame('out', 'realtime_input.activity_start');
    }
  
-@@ -400,11 +412,24 @@
+@@ -401,11 +413,24 @@
     * instead has `GeminiTurns` drop the cancelled press's own answer — never the one owed or still streaming, and
     * nothing on Live Translate (ruling 8, choice 16). On Live Translate, a release — a cancel too — first runs the
     * tail, inside the press's activity, and `activityEnd` goes when it ends (Gemini/AST2 follow-up, ruling 4;
@@ -2741,7 +2874,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
      const ws = this.live();
      if (cancelled) this.turns.cancelTurn();
      // Owed only once `activityEnd` goes out: a release in a reconnect gap reaches no server, so nothing answers it.
-@@ -416,6 +441,8 @@
+@@ -417,6 +442,8 @@
        return;
      }
      this.activityEnd(ws, cancelled);
@@ -2750,7 +2883,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
    }
  
    /** The tail ended by itself, or by a press, audio or typed text: the press's activity ends now (Gemini/AST2 follow-up, choice 11). */
-@@ -427,18 +454,35 @@
+@@ -428,18 +455,35 @@
  
    private activityEnd(ws: WebSocket, cancelled: boolean): void {
      ws.send(ACTIVITY_END);
@@ -2790,7 +2923,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
      if (wrap) {
        ws.send(ACTIVITY_START);
        this.frame('out', 'realtime_input.activity_start');
-@@ -448,6 +492,8 @@
+@@ -449,6 +493,8 @@
      if (wrap) {
        ws.send(ACTIVITY_END);
        this.frame('out', 'realtime_input.activity_end');
@@ -2799,7 +2932,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
      }
    }
  
-@@ -475,6 +521,7 @@
+@@ -476,6 +522,7 @@
      this.tail.cancel();
      // Not what a hold kept back: that, and what comes until the next connection is set up, goes up on that one (Gemini hold, choice 10).
      this.hold?.carry();
@@ -2807,7 +2940,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
      this.frame('in', 'session.reconnecting', {
        cause: why.cause,
        ...(why.code !== undefined ? { code: why.code } : {}),
-@@ -508,10 +555,12 @@
+@@ -509,10 +556,12 @@
        // Single-use: dropped, unless the new session has already issued another.
        if (handle !== null && this.handle === handle) this.handle = null;
        this.reconnecting = false;
@@ -2827,7 +2960,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
 - [ ] **Step 4: Run Gemini's suites and the session-side guard.**
 
 Run: `npx vitest run src/providers/gemini src/providers/sessionSide.consistency.test.ts`
-Expected: PASS — 18 files, 338 tests. The landed push-to-talk cases on the 2.5 model and on Live Translate pass unchanged (no hold there), the Live Translate tail's among them: the wrap rule reads `activityOpen`, which a tail's end clears before any text. `turns.test.ts` is untouched and green: the held calls reach `GeminiTurns` in the order the landed cases already use.
+Expected: PASS — 18 files, 344 tests. The landed push-to-talk cases on the 2.5 model and on Live Translate pass unchanged (no hold there), the Live Translate tail's among them: the wrap rule reads `activityOpen`, which a tail's end clears before any text. `turns.test.ts` is untouched and green: the held calls reach `GeminiTurns` in the order the landed cases already use.
 
 - [ ] **Step 5: The gates.** The suite and the typecheck gate.
 
@@ -2859,7 +2992,7 @@ EOF
 
 ### Group check (controller, after Wave 3)
 
-- [ ] The full gates: `npx vitest run src` at 0 failed with no unhandled errors (the replay at `ef2f61d3`: 573 files passed and 1 skipped, 7 438 tests passed and 2 skipped); the typecheck gate at exactly the baseline, 259 lines in the full tree.
+- [ ] The full gates: `npx vitest run src` at 0 failed with no unhandled errors (the replay at `ef2f61d3`: 573 files passed and 1 skipped, 7 444 tests passed and 2 skipped); the typecheck gate at exactly the baseline, 259 lines in the full tree.
 - [ ] `npx vitest run src/services` green: the old clients are untouched (the replay: 49 files, 1 039 tests).
 - [ ] `npm run build`, then `npm run extension:build`; `npx vitest run extension`.
 - [ ] The three D24 greps print nothing.
@@ -2878,16 +3011,16 @@ The controller's docs task, after the group check. It edits only the spec and th
 - [ ] **Step 1: Amend the spec.** Each amendment is marked "(Stage 2 Gemini hold, ruling / choice N)" in the text, as the earlier plans' are:
   1. **"L0 — the client contract" → "What every adapter must honour", the `appendText` bullet** (`:309-320`): after "Gemini departs from this: text typed while its connection is down is dropped, with no segment (Stage 2 Gemini, choice 17).", add "On a 3.x dialogue model, text typed while its input is held waits, with its segment, until the hold lets go — across a reconnect too, where it goes up on the new connection (Stage 2 Gemini hold, choices 8, 10)."
   2. **The same section, the `frame` bullet** (`:324-359`): after "Gemini's `turn.tail` and `turn.tail_end`, OpenAI Translate's names, need none;", add "Gemini's `server.voice_activity`, `server_content.waiting_for_input`, `turn.hold` and `turn.hold_end` need none either (Stage 2 Gemini hold, choice 12);".
-  3. **"Turns" → "What each provider can do", the Gemini row** (`:483`): Automatic turns → append "; a 3.x dialogue model holds the leg's input from the server's turn close (`voiceActivity` ACTIVITY_END, else the turn's first output, or its first input transcription on a session that has heard no voice activity) to its `turnComplete`, then sends it in order, the audio as one frame; an ACTIVITY_START lets a hold go, and a release lets one utterance go — up to its first pause of 600 ms after speech — holding the rest until the server has closed and answered it, or 1.5 s without the close; a reconnect carries it over (Stage 2 Gemini hold, rulings 1, 2, 4; choices 2, 4, 5, 10, 14, 15)"; Ending on release → append "; on a 3.x dialogue model the release's `activityEnd` begins a hold, and a press made while it holds waits for `turnComplete` (choices 3, 7)".
+  3. **"Turns" → "What each provider can do", the Gemini row** (`:483`): Automatic turns → append "; a 3.x dialogue model holds the leg's input from the server's turn close (`voiceActivity` ACTIVITY_END, else the turn's first output, or its first input transcription on a session that has heard no voice activity) to its `turnComplete`, then sends it in order, the audio as one frame; an ACTIVITY_START lets a hold go, and a release lets one utterance go — up to its first pause after speech 100 ms past the session's own silence setting — holding the rest until the server has closed and answered it, or for 2 s without the close, longer when more went up; a reconnect carries it over (Stage 2 Gemini hold, rulings 1, 2, 4; choices 2, 4, 5, 10, 14, 15)"; Ending on release → append "; on a 3.x dialogue model the release's `activityEnd` begins a hold, and a press made while it holds waits for `turnComplete` (choices 3, 7)".
   4. **"Turns" → "The design", the Gemini row** (`:514`): `beginTurn` → append "; on a 3.x dialogue model during a hold, held, with its audio, until the hold lets go (Stage 2 Gemini hold, choice 7)"; `endTurn` → append "; on a 3.x dialogue model it begins a hold, and during one it is held (choices 3, 7)"; `cancelTurn` → before the Live Translate clause, add "on a 3.x dialogue model a press whose `activityStart` is still held is withdrawn whole — nothing sent, nothing to drop — and the owed flag's limit cannot arise while holds run, only after a hold let go at its cap or on a model that answers taps (Stage 2 Gemini hold, choices 7, 13);".
-  5. **After the paragraph "A Gemini dialogue model gets no tail: …"** (`:522-526`), add: "**A 3.x dialogue model holds its input while it answers** (Stage 2 Gemini hold, ruling 1). It paces `turnComplete` to a simulated real-time playback of its answer, and input inside that turn cut the answer or lost its own start, so from the user's turn close to `turnComplete` the adapter holds the audio, a press's marks and typed text, and sends them in order at `turnComplete` or `waitingForInput` — not at `generationComplete`, and not at `interrupted`, whose trailing `turnComplete` lets go (choice 4). Its cap lets go 2 s past the model's computed playback end — the first audio's arrival plus all its audio — or 10 s after it began with no model audio, on the request's clock, and releases, never discards (ruling 3). A lost connection, a GoAway included, carries what is held to the new connection — with at most 5 s of the gap's own audio under automatic turns — which lets it go once set up, a press whose start is still held sent once; a stop drops it silently (choices 10, 11). Typed text's own marks are read on the wire (choice 9). Under automatic turns an ACTIVITY_START lets a hold go at once — the server is hearing speech that went up before it, and must hear its end — and a release lets one utterance go, the held audio up to its first pause of 600 ms after speech (an energy gate over the held audio finds it), holding the rest until the server's ACTIVITY_END for what went up, then to that answer's `turnComplete`, or for 1.5 s without that END (ruling 4; choices 14, 15). 2.5 and Live Translate never hold (ruling 2). Probed for two utterances 1.57–2.47 s apart and, with ruling 4, for three Japanese sentences 0.8–1.5 s apart and a five-sentence monologue: every utterance translated whole in 10 of 10 sessions; noisy rooms, other voices and long monologues are the live test's."
+  5. **After the paragraph "A Gemini dialogue model gets no tail: …"** (`:522-526`), add: "**A 3.x dialogue model holds its input while it answers** (Stage 2 Gemini hold, ruling 1). It paces `turnComplete` to a simulated real-time playback of its answer, and input inside that turn cut the answer or lost its own start, so from the user's turn close to `turnComplete` the adapter holds the audio, a press's marks and typed text, and sends them in order at `turnComplete` or `waitingForInput` — not at `generationComplete`, and not at `interrupted`, whose trailing `turnComplete` lets go (choice 4). Its cap lets go 2 s past the model's computed playback end — the first audio's arrival plus all its audio — or 10 s after it began with no model audio, on the request's clock, and releases, never discards (ruling 3). A lost connection, a GoAway included, carries what is held to the new connection — with at most 5 s of the gap's own audio under automatic turns — which lets it go once set up, a press whose start is still held sent once; a stop drops it silently (choices 10, 11). Typed text's own marks are read on the wire (choice 9). Under automatic turns an ACTIVITY_START lets a hold go at once — the server is hearing speech that went up before it, and must hear its end — and a release lets one utterance go, the held audio up to its first pause after speech of at least `max(200, silenceMs + 100)` ms, the session's own end-of-speech silence plus a margin (an energy gate over the held audio finds it), holding the rest until the server's ACTIVITY_END for what went up, then to that answer's `turnComplete`, or for 2 s — half as long as the released audio plays when that is longer — without that END (ruling 4; choices 14, 15). 2.5 and Live Translate never hold (ruling 2). Probed for two utterances 1.57–2.47 s apart and, with ruling 4, for three Japanese sentences 0.8–1.5 s apart and a five-sentence monologue: every utterance translated whole in 10 of 10 sessions, at the default silence; noisy rooms, other voices, long monologues and other silence settings are the live test's."
 - [ ] **Step 2: Write the roadmap's section.** Append `## Scheduled by the Stage 2 Gemini hold plan` as the roadmap's last section, after the Palabra plan's, in the earlier sections' form:
-  - **What landed:** the plan's path and commit, the commit range and its `+/−` lines and files (from `git diff --shortstat`), the waves as run, each task's review rounds, the group check with its numbers; the plan's Revisions 1–3 (the review's three Important findings and nine Minor ones, the re-review's two, and the controller's rulings on them; ruling 4, from the owner's multi batches); Task 5 is the record.
+  - **What landed:** the plan's path and commit, the commit range and its `+/−` lines and files (from `git diff --shortstat`), the waves as run, each task's review rounds, the group check with its numbers; the plan's Revisions 1–4 (the review's three Important findings and nine Minor ones, the re-review's two, and the controller's rulings on them; ruling 4, from the owner's multi batches; the third re-review's two Important findings and four Minor ones, and the coordinator's rulings A–F on them); Task 5 is the record.
   - **Departures, stated:**
     - on a 3.x dialogue model the second utterance, and a press or typed text made while an answer plays, reach the server only when the answer's simulated playback ends — the translation of a quick second sentence starts later (the probes: clip 2's end → answer 2's first audio 0.94–2.6 s), where barge-in cut the first (ruling 1);
     - a typed row appears when it is sent (choice 8);
     - a tap during an answer is withdrawn, never sent (choice 7);
-    - under automatic turns each utterance waits for the answer before it to finish its simulated playback, and a split waits up to 1.5 s for a close that may not come, then merges (ruling 4; choice 14): in the owner's batch 2 the second and third of three sentences were translated 3.25–7.36 s after they ended, against 2.12–3.66 s for the hold without ruling 4 where it did not stall, and 0.9–1.5 s under barge-in, which cut answers;
+    - under automatic turns each utterance waits for the answer before it to finish its simulated playback, and a split waits for a close that may not come — 2 s, or half as long as the audio it let go plays — then merges (ruling 4; choice 14): in the owner's batch 2 the second and third of three sentences were translated 3.25–7.36 s after they ended, against 2.12–3.66 s for the hold without ruling 4 where it did not stall, and 0.9–1.5 s under barge-in, which cut answers;
     - the participant leg's next sentence waits through a phantom playback, and over a monologue whose translations run longer than the speech that follows, that lag accumulates, one utterance at a time — L(n+1) ≈ max(L(n) + A(n) − P − U(n+1) + c′, c) + f (choice 1);
     - a reconnect during a hold — a GoAway, which every connection gets about every 9–10 min, or a close — carries what is held, and input sent in the gap (under automatic turns up to 5 s of the gap's audio, the rest dropped as today), to the new connection, where today's gap drops it all (choice 10).
   - **Before any release from the branch:** the owner's live test below.
@@ -2897,7 +3030,7 @@ The controller's docs task, after the group check. It edits only the spec and th
     3. **Push-to-talk on 3.8 and 3.1** (choices 3, 7): press, speak, release; press again while the first translation plays: the second press's `realtime_input.activity_start` comes only after `server_content.turn_complete` and `turn.hold_end`; both translated whole; the owner's live log's cut gone (no `server_content.interrupted`).
     4. **A tap during an answer on 3.x** (choice 7): no `realtime_input.*` line for the tap; `turn.hold_end` reads `withdrawn: 1`; the answer plays whole, and the next press's answer shows.
     5. **Speakers, no headphones** (research note 5): automatic turns on 3.8 with the answer audible in the room, **on Windows, macOS and Linux, and with the output on a non-default device**: does the held echo come back after `turnComplete` as input — a source row of the model's own words, or a translation of its translation? Record, per run, the recorder's echo-cancellation setting as logged, whether an EchoNotice showed (and which: `tts-echo`, `self-capture`, `far-end-echo`, `routing-loop`), and whether releases still split — a `keptMs` on `turn.hold_end` — with the answer audible: the echo may leave the held audio no pause (choice 15).
-    6. **The participant leg on 3.x** (choice 1): a remote speaker's **monologue of at least 1 minute**: every sentence translated whole; record each participant `turn.hold_end` `heldMs`, `keptMs` and `reason` (how many `split_timeout`), whether the lag behind the speaker grows over the minute against choice 1's formula, and any `server_content.interrupted` inside a hold (item 10).
+    6. **The participant leg on 3.x** (choice 1): a remote speaker's **monologue of at least 1 minute**: every sentence translated whole; record each participant `turn.hold_end` `heldMs`, `keptMs` and `reason` (how many `split_timeout`) — the participant capture has no echo cancellation or noise suppression, and meeting audio may carry music or crosstalk, so a release with no `keptMs` there means the gate found no pause — whether the lag behind the speaker grows over the minute against choice 1's formula, and any `server_content.interrupted` inside a hold (item 10).
     7. **Typed text during an answer on 3.x** (choice 8): under push-to-talk, the row appears when the answer's playback ends, then its own translation, paired, and no `server_content.interrupted`.
     8. **2.5 and Live Translate** (ruling 2): no `turn.hold` line; the behaviour as before.
     9. **A turn with no answer** (ruling 3): a cough under automatic turns on 3.8, and **a voiced release under push-to-talk that the model neither answers nor completes**: record whether `server_content.turn_complete` (with its reason) or `server_content.waiting_for_input` lets the hold go, or `turn.hold_end` reads `idle` after 10 s — under push-to-talk that keeps the next press back up to 10 s.
@@ -2906,7 +3039,10 @@ The controller's docs task, after the group check. It edits only the spec and th
     12. **Several sentences under automatic turns** (ruling 4; failure modes (a) and (b)): three or more short sentences with pauses of about 0.8–1.5 s — across both the merge boundary and failure mode (a)'s band — and a short sentence right after a long answer, on 3.8, on 3.1 and on the participant leg: every sentence translated whole, one answer per sentence. The Logs read, per release, `turn.hold_end` with a `keptMs`, then `turn.hold { cause: 'split' }`; the server's ACTIVITY_START and ACTIVITY_END for what went up inside that hold; then `server_content.turn_complete` and its `turn.hold_end` `turn_complete`. Record every `split_timeout` (and whether an `interrupted` followed it) and the lag per sentence; the other signatures are item 10's, the gap's among them.
     13. **Typed text under automatic turns while speaking** (choice 8): type during an answer while talking: the release sends audio, then the text, then audio (Google documents no ordering across modalities) — a text typed after the pause waits with the next sentence (choice 14) — record whether the text's answer and the speech's come out whole and in order.
     14. **A noisy room** (choice 15): item 12 again with steady noise — a fan, a café recording — at a level the voice clears by less than 20 dB: record whether releases split (a `keptMs`), any `split_timeout`, and any `turn.hold_end` `idle`; without a split the release goes whole, and the START rule still ends any stall.
-  - **Open questions for the owner:** `SPLIT_END_MS` — 1.5 s missed 4 of batch 2's 22 closes by about 50–90 ms, all on 3.1, and 2 s would have caught them all, at 0.5 s more lag where a pause closes no turn (choice 14); a release without voice begins no hold (choice 3) — to revisit if item 4 or the Gemini section's item 6 shows 3.x answering empty activity; the held echo (item 5); a typed row shown late against one shown at once under the answering turn's origin (choice 8).
+    15. **The Silence Duration slider** (choice 15): item 12 again with the slider at 300 ms and at 1 500 ms, on 3.8 and 3.1: record the `split_timeout`s — at 1 500 a split's pause is 1.6 s — and any `server_content.interrupted` inside a hold — at 300, a close under the split's 400 ms pause goes up with the next onset.
+    16. **Long sentences** (choice 14): 3.1, and the participant leg, with sentences of 5–10 s and pauses of about 1 s: record each `split_timeout` against the audio its split let go (`audioMs − keptMs` of the `turn.hold_end` before it) — the wait is half that, at least 2 s — and any `interrupted` after one.
+    17. **A hesitating reader** (choice 15): on 3.8 and 3.1, read sentences with pauses of 0.6–1 s inside them: record the `split_timeout`s, and whether one sentence comes back as two answers.
+  - **Open questions for the owner:** a release without voice begins no hold (choice 3) — to revisit if item 4 or the Gemini section's item 6 shows 3.x answering empty activity; the held echo (item 5); a typed row shown late against one shown at once under the answering turn's origin (choice 8).
   - **Amend in place** (mark each "**Changed by the Stage 2 Gemini hold plan** (…)"), in the Gemini/AST2 follow-up section: live-test items 7 (3.8 overlap: speaking again within about a second no longer cuts a translation still generating — the hold), 13 (3.8 under push-to-talk: a press while the translation generates now waits), 15 (the model's own voice in the room: now held and sent after `turnComplete`; this plan's item 5), 16 (typed text on 3.x while an answer streams: held to `turnComplete`), 17 (a voiceless tap on 3.8 while an answer streams: withdrawn during a hold; the one-end path only past a cap) and 18 (on 3.8, typed text during an answer, then a tap: the text held, the tap withdrawn); its "What it leaves" item "The owed flag's limit on dialogue models" (cannot arise on 3.x while holds run, only after a cap or on a model that answers taps: choice 13); its open question "Barge-in's cost on 3.8 under push-to-talk" (answered: a press during an answer waits).
   - **The roadmap's inheritance, item by item,** **what it leaves** and **the open questions:** the three lists below, as landed.
 - [ ] **Step 3: Commit.**
@@ -2951,10 +3087,12 @@ Taken (and where), or left (and why).
 ## What this plan leaves
 
 - **Failure mode (a): speech that starts just after the server's close, narrowed, not closed.** The server closes the user's turn 0.71–0.79 s after the speech (batch 2: 0.63–0.91 s) and the client begins the hold 0.03–0.04 s (3.8) or 0.12–0.19 s (3.1) later; speech that starts in that window reaches the server before the hold, and once the server has 0.14–0.56 s of it, its ACTIVITY_START can barge into answer 1 — on 3.8 more speech than the window lets through, on 3.1 a narrow band. Ruling 4's START rule changes what follows, not the cut: the hold lets go at the START instead of keeping that utterance's end to the idle cap. Unseen in 54 sessions; live-test items 10 and 12.
-- **Failure mode (b) where a split's wait runs out first.** The gap and (b) came from a released burst that held the next utterance's onset; ruling 4 keeps that onset held until the server has closed and answered the utterance before it, but only for 1.5 s: on 4 of batch 2's 22 splits (all 3.1) the server's close came about 50–90 ms later, and where the next onset went up then (2 of the 4), 3.1 cut the pending answer before any output and answered the two utterances together — whole, one answer for two. A longer wait trades that for lag where a pause closes no turn (the open question). Live-test items 6, 10 and 12.
-- **The gate's ground.** Ten sessions (batch 2's `turn2`) of clean speech from two TTS voices, with digital silence between sentences (choice 15). A noise floor within 20 dB of the voice, other voices, or the answer's echo in held audio can leave no pause to find: the release then goes whole, as under ruling 1 alone, and the START rule still ends a stall. A speaker who pauses 600 ms or more inside a sentence is split there: the server closes on it only where it would have live; else the 1.5 s wait, then a merge. Live-test items 5, 6, 12 and 14.
+- **Failure mode (b) where a split's wait runs out first.** The gap and (b) came from a released burst that held the next utterance's onset; ruling 4 keeps that onset held until the server has closed and answered the utterance before it, but only for the split's wait. At the probe's 1.5 s, 4 of batch 2's 22 splits (all 3.1) ran out 50–90 ms before the close, and where the next onset went up then (2 of the 4), 3.1 cut the pending answer before any output and answered the two utterances together — whole, one answer for two. At 2 s, or half the released audio, all 22 are caught; what is left is a server that reads a released part slower than 3.1's 2.1× (the wait's scale), a close later than 2 s after a short one, and a START after a split's END that still belongs to its utterance (choice 14, departure 6). Live-test items 6, 10, 12 and 16.
+- **A long released part on a pause the server never closes** waits half its length before the rest goes: a 16 s part, 8 s, with nothing but the hold's own cap to bound it (choice 14). Lag only, the rest merged; live-test item 16.
+- **A Silence Duration under about 100 ms** puts the split's pause on its 200 ms floor, above the server's close: a burst can hold a close under 200 ms and the next onset — (b), at a setting no probe used (choice 15). Only the default, 500, is measured; live-test item 15.
+- **The gate's ground.** Ten sessions (batch 2's `turn2`) of clean speech from two TTS voices, with digital silence between sentences (choice 15). A noise floor within 20 dB of the voice, other voices, or the answer's echo in held audio can leave no pause to find: the release then goes whole, as under ruling 1 alone, and the START rule still ends a stall. A speaker who pauses past the split's pause inside a sentence — 600 ms at the default — is split there: the server closes on it only where it would have live; else the split's wait, then a merge. Live-test items 5, 6, 12, 14 and 17.
 - **The lag ruling 4 costs** (choice 1; the departures): every utterance waits for the answer before it to finish its simulated playback, so on a monologue whose translations run longer than its sentences the lag grows by sentence, up to 7.36 s in batch 2's sentence-after-a-long-one case. No bound but a long pause; Live Translate for monologues.
-- **A missed ACTIVITY_END** leaves the server's speaking state set: neither fallback begins a hold for that model turn or the next, which fall back to barge-in, until the next ACTIVITY_END recovers it (choice 2; the review's scenario S3). A split's hold whose END is missed lets the rest go after its 1.5 s wait.
+- **A missed ACTIVITY_END** leaves the server's speaking state set: neither fallback begins a hold for that model turn or the next, which fall back to barge-in, until the next ACTIVITY_END recovers it (choice 2; the review's scenario S3). A split's hold whose END is missed lets the rest go after its wait.
 - **A `turnComplete` lets go of whatever hold is on,** even one begun for a later turn. Reachable only after a cap let a hold go before its `turnComplete`, or after a tap's answer on a model that answers taps (choice 3): the next hold may then end early, and a press during it barges in as it did before this plan.
 - **A model that sends no voice activity** keeps the input-transcription fallback, and with it the risk of a late transcription beginning a hold that waits for the idle cap; no 3.x model is such a model (choice 2).
 - **A model that stalls mid-answer** longer than the audio it has sent plus 2 s is let go of by the cap before `generationComplete`, and may be cut truly (choice 6).
@@ -2970,7 +3108,7 @@ Taken (and where), or left (and why).
 
 - **The participant leg** (choice 1): **decided 2026-09-29 — the owner: 「参会方要暂存」.** It keeps the hold, knowing its lag can accumulate over a monologue (the formula in choice 1, one utterance at a time under ruling 4); Live Translate, the default, is the no-turn option for monologues.
 - **The probe batch before the live test** (the review's fix 6): **run by the owner on 2026-09-29 (「补一个探针我帮你跑」), twice** — batch 1, 24 sessions, and batch 2, 30, Japanese only; its results are ruling 4 (「按turn2改计划」).
-- **`SPLIT_END_MS`** (choice 14): 1.5 s, the probe's, missed 4 of batch 2's 22 closes by about 50–90 ms, all on 3.1, two of them ending in a cut and a merged answer. 2 s would have caught all 22, at 0.5 s more lag wherever a pause closes no turn. Kept at 1.5 s, as ruled; the live test's item 12 counts `split_timeout`s.
+- **`SPLIT_END_MS`** (choice 14): **decided — `SPLIT_END_MS` is 2 000 — coordinator's ruling: at 1 500 all four batch-2 timeouts were 3.1 closes landing at 1 561–1 611 ms; at 2 000 they are caught and nothing else changes (re-review 3, §3).** The wait also grows with the audio a split let go (the coordinator's ruling C), and the split's pause follows the session's Silence Duration (ruling B); live-test items 12, 15 and 16 count the `split_timeout`s.
 
 ## Self-review
 
@@ -2985,14 +3123,22 @@ Taken (and where), or left (and why).
   - **New-2** (failure mode (a)'s window): pauses of roughly 0.92–1.1 s, not 1.0–1.4 s; the timing figures corrected in the research notes, choice 4, live-test item 10, "What this plan leaves"; item 12 and the probe batch widened to about 0.8–1.5 s, across both the merge boundary and (a)'s band.
 - **Revision 3** (the owner's ruling 4, 「按turn2改计划」, 2026-09-29, on his multi batches; the controller's brief):
   - **(ii), a new start lets go:** `InputHold.voiceActivity` lets a hold go at an ACTIVITY_START under automatic turns, unsplit, `reason: 'voice_activity_start'` — not a split's own hold, not under push-to-talk, and between `interrupted` and its `turnComplete` at that `turnComplete` (found while writing, note 1). Tests first, each red on Revision 2's code: the gap's own timings (a hold, a START 10 ms later); push-to-talk untouched (green there too, as it must be); the START behind an `interrupted` (Task 1) and its typed text pairing with its own answer (Task 4).
-  - **(iii), one utterance per release:** `finish` splits a release at `turnComplete`, `waitingForInput` or a new connection, under automatic turns on a session that has heard voice activity, at the first entry after a pause of `SPLIT_PAUSE_MS` = 600 that follows speech; the rest waits in a `split` hold for the server's ACTIVITY_END, which that hold consumes, for `SPLIT_END_MS` = 1 500; the gate mirrors the probe's `splitAt` (`GATE_FRAME_MS` = 10, `GATE_PEAK_DIVISOR` = 10) with its frames across chunks; `turn.hold_end` gains `keptMs`. Push-to-talk splits nothing — its own marks already end each utterance (choice 14). Tests first, each red on Revision 2's code: the split and its wait, its timeout, held audio ending in the pause, no pause, the 600 ms boundary, held sends on either side of the pause, which releases split, a lost connection during a split's wait, the gate's ratio and cross-chunk frames (Task 1); batch 2's two sessions replayed through the adapter on their own timings — 3.8 at 1 100 ms, three answers one per utterance where the first rule stalled on the idle cap, and 3.1's monologue, two waits run out and the late ENDs' holds let go by the next START (Task 3).
+  - **(iii), one utterance per release:** `finish` splits a release at `turnComplete`, `waitingForInput` or a new connection, under automatic turns on a session that has heard voice activity, at the first entry after a pause of `SPLIT_PAUSE_MS` = 600 that follows speech (Revision 4: `max(200, silenceMs + 100)`); the rest waits in a `split` hold for the server's ACTIVITY_END, which that hold consumes, for `SPLIT_END_MS` = 1 500 (Revision 4: 2 000, or half the released audio); the gate mirrors the probe's `splitAt` (`GATE_FRAME_MS` = 10, `GATE_PEAK_DIVISOR` = 10) with its frames across chunks; `turn.hold_end` gains `keptMs`. Push-to-talk splits nothing — its own marks already end each utterance (choice 14). Tests first, each red on Revision 2's code: the split and its wait, its timeout, held audio ending in the pause, no pause, the 600 ms boundary, held sends on either side of the pause, which releases split, a lost connection during a split's wait, the gate's ratio and cross-chunk frames (Task 1); batch 2's two sessions replayed through the adapter on their own timings — 3.8 at 1 100 ms, three answers one per utterance where the first rule stalled on the idle cap, and 3.1's monologue, two waits run out and the late ENDs' holds let go by the next START (Task 3; Revision 4 replays it to its first END, which the 2 s wait catches).
   - **The lifecycle harness:** the kit's audio has no pause, so a chunk in three becomes a 700 ms silence, and `after` checks that a split's hold follows at once and only the release that kept something, that a START never ends a split's hold and only a split's hold times out, and that push-to-talk never splits; the test requires splits, split timeouts and START releases to happen (Task 4).
   - **The rulings kept, rechecked:** the adaptive cap (choice 6), the participant leg's hold (choice 1), the carry and its bound (choice 10), 2.5 and Live Translate (ruling 2); `waitingForInput`, typed text, presses, stop and the owed flag (choices 4, 8, 11, 13, 14).
   - **Corrections:** the server's close is 0.71–0.79 s after the speech (the multi batches; 0.63–0.91 s in batch 2), not 0.92–0.96 s, which was measured to the end of a clip's tail; failure mode (a) was not seen in 54 sessions; "What this plan leaves" now says what ruling 4 leaves of (a) and (b); live-test items 10 and 12 carry the gap's signature, item 14 is new; the departures state the lag.
   - **Re-anchored** at `ef2f61d3` (the Palabra record, a Palabra fix touching the kit's comments and one failure line, this plan's own two commits, the probe's `multi` mode); replayed there whole, the counts re-measured.
-- **Placeholders.** None: every code block is the tested scratch copy's file or diff. The constants' values appear once each, in `hold.ts` (`HOLD_MARGIN_MS` = 2 000, `HOLD_IDLE_MS` = 10 000, `HOLD_CARRY_MS` = 5 000, `SPLIT_PAUSE_MS` = 600, `SPLIT_END_MS` = 1 500, `GATE_FRAME_MS` = 10, `GATE_PEAK_DIVISOR` = 10), and are pinned once, in `hold.test.ts`'s first case; the first three are read by name everywhere else — the first two set to 3 000 and 12 000 in the scratch copy, only that pin failed, so an override is a line each and the pin (the carry cases' figures are 5 s of 24 kHz audio, computed from `HOLD_CARRY_MS` in the burst lengths). Ruling 4's four are read by name where a case waits on them, but the split cases' 590/600/700 ms pauses, the gate's floors of 100 and 101 against a voice at 1 000, and the two replays' outcomes pin the ruled values themselves: changing one is a ruling, and moves those cases with it. The one template is the commit messages' `<implementing model>`, which Global Constraints says to fill in; Task 5 fills its numbers from the run.
-- **Type consistency.** Checked in the scratch copy, where every file compiled at the gate after every wave: `InputHold`, `HeldAction`, `HoldSummary` (with `carried`, `droppedMs` and `keptMs`), `HoldCause` (with `split`), `HoldEnd` (with `voice_activity_start` and `split_timeout`), `HOLD_MARGIN_MS`, `HOLD_IDLE_MS`, `HOLD_CARRY_MS`, `SPLIT_PAUSE_MS`, `SPLIT_END_MS`, `GATE_FRAME_MS`, `GATE_PEAK_DIVISOR`, `holding`, `voiceActivity`, `input`, `output`, `interrupted`, `turnComplete`, `waitingForInput`, `begin`, `audio`, `defer`, `holds`, `withdraw`, `carry`, `reconnected`, `cancel`, `GeminiServerMessage.voiceActivity`, `SERVER.voiceActivity`, `SERVER.generationComplete`, `SERVER.waitingForInput`, `activityOpen`, `heldPress`, `pressStart`, `pressEnd`, `sendText` — each spelled the same in every task that names it.
-- **Mutants tried in the scratch copy,** each failing at least one test: the cap's clamp removed; a release at `interrupted`; the speaking guard removed; the model turn's audio forgotten after the release instead of before; held audio not copied; a withdrawal keeping the press's audio; `begin` without its guard (the seeded lifecycles catch it too); an output transcription beginning no hold; model audio counted at 24 kHz whatever its rate; stop without `hold.cancel()`; the wrap rule read off the key; no `activityOpen` reset on a reconnect; a release without voice beginning a hold; and, in Revision 1: the input fallback ignoring `heard`; `heard` forgotten on a lost connection; the cap left running across a lost connection; the ladder never letting a carried hold go; the ladder restarting a press whose start is still held (and the lifecycles' new line flags it); a press never deferred (the lifecycles' new line, as the review found); the summary never saying `carried`; and, in Revision 2: no carry bound (Revision 1's code); the bound applied to push-to-talk too; a chunk straddling the bound dropped whole instead of trimmed; and, in Revision 3: no START release at all; a split's hold let go by a START; a START letting a push-to-talk hold go; a START between `interrupted` and its `turnComplete` letting go at once; `turnComplete` leaving that `interrupted` mark set; no split at all; the cap and the idle cap splitting; a split's timeout splitting again; push-to-talk splitting; a split on a session that has heard no voice activity; the awaited END leaving the split's wait running; a lost connection leaving it running; stop leaving it running; held audio that ends in the pause beginning no hold; a send held after the pause going with the utterance before it; the gate framing each chunk alone; the gate counting a frame at a tenth of the peak as speech; a pause needing more than 600 ms.
+- **Revision 4** (the third re-review: Ready after fixes, Critical 0, Important 2, Minor 4; the coordinator's rulings A–F on it, 2026-09-29):
+  - **A — `SPLIT_END_MS` is 2 000** (the open question, ruled): the constant, its pin, the split cases' elapsed times read from it, and the timeout case's END made synthetic (70 ms after the wait, the shape batch 2 showed at 1.5 s); the 3.1 monologue replay now runs to its first split's ACTIVITY_END, which the split's hold consumes 1 582 ms after the split, inside the wait — the session's later messages answered what the probe's 1.5 s timeout sent, so the replay stops there; every prose line that said 1.5 s. Research note 5 of the multi batches stays as history.
+  - **B — the split's pause follows the session's silence** (Important 1): `InputHold` takes `silenceMs` under automatic turns (`InputHoldOptions` is a union on `manual`), and the pause is `splitPauseMs(silenceMs)` = max(200, silenceMs + 100) — 600 at the default, so batch 2's replays are unchanged; choice 15 states the direction of error and that only the default is measured; "What this plan leaves" names the floor's gap under a `silenceMs` of about 100; live-test item 15. Tests first: 50/500/1 500 → 200/600/1 600, and a 700 ms pause that splits at 500 and not at 1 500 (Task 1); the session's Silence Duration reaching the split through the adapter (Task 3).
+  - **C — the split's wait grows with what it let go** (Important 2): `max(SPLIT_END_MS, ceil(sentMs / 2))`; choice 14 and "What this plan leaves" state the unbounded case (16 s released, 8 s waited); live-test item 16. Test first: 8.8 s released waits 4.4 s, an END at 3.9 s consumed (Task 1).
+  - **D — two pieces of stale state** (Minor 2): content — `output()` or `input()` — clears the `interrupted` mark, and `waitingForInput` ends the model's turn before it lets go. Tests first: an `interrupted` with no `turnComplete`, then content, then a START during a hold, let go at once; `waitingForInput`, then the split's hold capped from a fresh turn, at 10 s (Task 1); Task 3's fallback case now says `waitingForInput` ends the model's turn, and lets a cap release first to show one hold per model turn.
+  - **E — a split's hold lets a START go once its END has come** (Minor 3): the exemption holds only while the split awaits its END; departure 6 from the probe, stated with what it costs if wrong (choice 14). Test first: a split, its END, then a START — let go at once, not at the idle cap (Task 1). The lifecycles' `after` now lets a START end a split's hold only after an ACTIVITY_END frame since it began, and flags a split's hold that times out after one.
+  - **F — the live test** (Minor 4): items 15 (the slider at 300 and 1 500 ms), 16 (long sentences on 3.1 and the participant leg, timeouts against the audio let go) and 17 (a hesitating reader); item 6 says a missing `keptMs` on the participant leg means the gate found no pause.
+  - **Found while doing it:** Revision 3's "push-to-talk splits" mutant had been caught only by the seeded lifecycles' push-to-talk pauses; the push-to-talk case in `hold.test.ts` now hears voice activity first, so it catches it alone, and the lifecycles keep their pauses under push-to-talk.
+- **Placeholders.** None: every code block is the tested scratch copy's file or diff. The constants' values appear once each, in `hold.ts` (`HOLD_MARGIN_MS` = 2 000, `HOLD_IDLE_MS` = 10 000, `HOLD_CARRY_MS` = 5 000, `SPLIT_PAUSE_MARGIN_MS` = 100, `SPLIT_PAUSE_FLOOR_MS` = 200, `SPLIT_END_MS` = 2 000, `GATE_FRAME_MS` = 10, `GATE_PEAK_DIVISOR` = 10), and are pinned once, in `hold.test.ts`'s first case; the first three are read by name everywhere else — the first two set to 3 000 and 12 000 in the scratch copy, only that pin failed, so an override is a line each and the pin (the carry cases' figures are 5 s of 24 kHz audio, computed from `HOLD_CARRY_MS` in the burst lengths). Ruling 4's five are read by name where a case waits on them — `SPLIT_END_MS` in every split's wait and elapsed time — but the split cases' 590/600/700 ms pauses at the default silence, `splitPauseMs`' 200/600/1 600, the 8.8 s part's 4.4 s wait, the gate's floors of 100 and 101 against a voice at 1 000, and the two replays' outcomes pin the ruled values themselves: changing one is a ruling, and moves those cases with it. The one template is the commit messages' `<implementing model>`, which Global Constraints says to fill in; Task 5 fills its numbers from the run.
+- **Type consistency.** Checked in the scratch copy, where every file compiled at the gate after every wave: `InputHold`, `HeldAction`, `HoldSummary` (with `carried`, `droppedMs` and `keptMs`), `HoldCause` (with `split`), `HoldEnd` (with `voice_activity_start` and `split_timeout`), `HOLD_MARGIN_MS`, `HOLD_IDLE_MS`, `HOLD_CARRY_MS`, `SPLIT_PAUSE_MARGIN_MS`, `SPLIT_PAUSE_FLOOR_MS`, `splitPauseMs`, `InputHoldOptions` (with `silenceMs` under automatic turns), `SPLIT_END_MS`, `GATE_FRAME_MS`, `GATE_PEAK_DIVISOR`, `holding`, `voiceActivity`, `input`, `output`, `interrupted`, `turnComplete`, `waitingForInput`, `begin`, `audio`, `defer`, `holds`, `withdraw`, `carry`, `reconnected`, `cancel`, `GeminiServerMessage.voiceActivity`, `SERVER.voiceActivity`, `SERVER.generationComplete`, `SERVER.waitingForInput`, `activityOpen`, `heldPress`, `pressStart`, `pressEnd`, `sendText` — each spelled the same in every task that names it.
+- **Mutants tried in the scratch copy,** each failing at least one test: the cap's clamp removed; a release at `interrupted`; the speaking guard removed; the model turn's audio forgotten after the release instead of before; held audio not copied; a withdrawal keeping the press's audio; `begin` without its guard (the seeded lifecycles catch it too); an output transcription beginning no hold; model audio counted at 24 kHz whatever its rate; stop without `hold.cancel()`; the wrap rule read off the key; no `activityOpen` reset on a reconnect; a release without voice beginning a hold; and, in Revision 1: the input fallback ignoring `heard`; `heard` forgotten on a lost connection; the cap left running across a lost connection; the ladder never letting a carried hold go; the ladder restarting a press whose start is still held (and the lifecycles' new line flags it); a press never deferred (the lifecycles' new line, as the review found); the summary never saying `carried`; and, in Revision 2: no carry bound (Revision 1's code); the bound applied to push-to-talk too; a chunk straddling the bound dropped whole instead of trimmed; and, in Revision 3: no START release at all; a split's hold let go by a START; a START letting a push-to-talk hold go; a START between `interrupted` and its `turnComplete` letting go at once; `turnComplete` leaving that `interrupted` mark set; no split at all; the cap and the idle cap splitting; a split's timeout splitting again; push-to-talk splitting; a split on a session that has heard no voice activity; the awaited END leaving the split's wait running; a lost connection leaving it running; stop leaving it running; held audio that ends in the pause beginning no hold; a send held after the pause going with the utterance before it; the gate framing each chunk alone; the gate counting a frame at a tenth of the peak as speech; a pause needing more than 600 ms; and, in Revision 4 (with Revision 3's rerun on the new code, and re-review 3's R1–R6: a START releasing a split's hold before its END, a START between `interrupted` and its `turnComplete` letting go at once, no split on a new connection, a held send neither breaking the gate nor marking a split point, the probe's per-chunk framing, a split's wait running while carried): a split's hold ignoring every START, after its END too (ruling E); the wait back at 1 500; the pause fixed at 600; the pause with no floor; the wait fixed whatever went up; content leaving the `interrupted` mark set; `waitingForInput` keeping the model turn; the adapter handing the hold 500 whatever the session's silence.
 - **Choices made inside the rulings:** 1–15, listed above; each is cited where it lands.
-- **Departures, stated in the plan:** a quick second sentence on 3.x reaches the server only after the answer's simulated playback (ruling 1); a typed row appears when it is sent (choice 8); a tap during an answer is withdrawn (choice 7); the participant's next sentence waits through a phantom playback, and that lag can accumulate (choice 1); a reconnect during a hold carries what is held and the gap's input to the new connection — under automatic turns at most 5 s of the gap's audio (choice 10); under automatic turns each utterance waits for the answer before it, and a split waits up to 1.5 s for a close that may not come (ruling 4; choice 14).
-- **Departures from the brief:** the cap is the adaptive rule with two constants, not `HOLD_MAX_MS` (ruling 3, the owner's); `waitingForInput` also lets go (choice 4), as the probe's `turn` policy did; a release without voice begins no hold, where the brief's wording has the hold begin at "our own `activityEnd` … (a release)" (choice 3); a press released without voice during a hold is withdrawn, where the brief's wording has a deferred press "then send `activityStart` + held audio (+ `activityEnd`…)" (choice 7); the input fallback is off on a session that has heard voice activity, where the brief lists it as a fallback (choice 2; the controller's ruling on the review); the wrap rule of typed text now reads the wire (choice 9) — needed once a text can be held inside a press that is withdrawn (research note 3); the landed barge-in tap case is driven past the cap (research note 4). From the probe's `turn2`, which ruling 4 adopts: a release on a new connection splits too; a split waits only on a session that has heard voice activity; a START between `interrupted` and its `turnComplete` lets go at that `turnComplete`; a send held after the pause waits with the next utterance (choice 14); the gate's frames run across chunks (choice 15). None changes a decision on batch 2's sessions.
+- **Departures, stated in the plan:** a quick second sentence on 3.x reaches the server only after the answer's simulated playback (ruling 1); a typed row appears when it is sent (choice 8); a tap during an answer is withdrawn (choice 7); the participant's next sentence waits through a phantom playback, and that lag can accumulate (choice 1); a reconnect during a hold carries what is held and the gap's input to the new connection — under automatic turns at most 5 s of the gap's audio (choice 10); under automatic turns each utterance waits for the answer before it, and a split waits for a close that may not come — 2 s, or half the audio it let go (ruling 4; choice 14).
+- **Departures from the brief:** the cap is the adaptive rule with two constants, not `HOLD_MAX_MS` (ruling 3, the owner's); `waitingForInput` also lets go (choice 4), as the probe's `turn` policy did; a release without voice begins no hold, where the brief's wording has the hold begin at "our own `activityEnd` … (a release)" (choice 3); a press released without voice during a hold is withdrawn, where the brief's wording has a deferred press "then send `activityStart` + held audio (+ `activityEnd`…)" (choice 7); the input fallback is off on a session that has heard voice activity, where the brief lists it as a fallback (choice 2; the controller's ruling on the review); the wrap rule of typed text now reads the wire (choice 9) — needed once a text can be held inside a press that is withdrawn (research note 3); the landed barge-in tap case is driven past the cap (research note 4). From the probe's `turn2`, which ruling 4 adopts: a release on a new connection splits too; a split waits only on a session that has heard voice activity; a START between `interrupted` and its `turnComplete` lets go at that `turnComplete`; a send held after the pause waits with the next utterance; a split's hold lets a START go once its END has come (the coordinator's ruling E) (choice 14); the gate's frames run across chunks (choice 15). None changes a decision on batch 2's sessions. The coordinator's rulings also set the split's wait — 2 s, or half the audio let go, where the probe waited 1.5 s: batch 2's four timeouts become closes caught — and its pause from the session's silence setting, the probe's 600 at the default (choices 14, 15).
