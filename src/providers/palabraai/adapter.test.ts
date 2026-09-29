@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, SAMPLE_RATE, type AdapterEvents } from '../../lib/contract/adapter';
 import { createVirtualClock, type Clock } from '../../lib/contract/clock';
-import { recordEvents } from '../../lib/contract/events';
+import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { WS_OPEN } from '../../lib/contract/socket';
 import { flush, type ScenarioStep } from '../../lib/contract/testing/drive';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
@@ -36,6 +36,8 @@ const noSecret = (value: unknown) => {
 };
 /** The app pair's REST headers as the fake server records them: a browser's `Headers`, lowercase names. */
 const APP_HEADERS = { clientid: APP.clientId, clientsecret: APP.clientSecret };
+/** A stretch of the log as the Logs read it: each frame's type and payload, each other event's kind. */
+const lines = (log: readonly AdapterEvent[]) => log.map((e) => (e.kind !== 'frame' ? [e.kind] : e.payload.payload === undefined ? [e.payload.type] : [e.payload.type, e.payload.payload]));
 
 function harness(credentials: PalabraCredentials): AdapterHarness<PalabraConfig, PalabraCredentials> {
   let sockets = fakeSockets();
@@ -296,6 +298,32 @@ describe('the Palabra AI adapter: the app pair goes through a REST session of it
     h.clock.advance(RELEASE_TIMEOUT_MS * 2);
     await flush();
     expect(h.rest.of('DELETE')).toHaveLength(1);
+  });
+
+  it("a start that fails after its session was made rejects only once the delete has settled, its outcome framed first — within the delete's bound (Stage 2 session end, choice 5)", async () => {
+    const answered = startPalabra({ credentials: APP });
+    let seenAt = -1;
+    void answered.starting.catch(() => { seenAt = answered.log.length; });
+    await flush();
+    answered.socket().drop();
+    await expect(answered.starting).rejects.toMatchObject({ code: 'network', message: NEVER_OPENED });
+    expect(lines(answered.log.slice(0, seenAt))).toEqual([
+      ['session.create'], ['session.created', { status: 201 }], ['session.socket_error'], ['session.connection_lost', { code: 1006, reason: '' }],
+      ['session.delete'], ['session.deleted', { status: 204 }],
+    ]);
+
+    const hung = startPalabra({ credentials: APP, rest: { remove: 'hang' } });
+    let rejected = false;
+    void hung.starting.catch(() => { rejected = true; });
+    await flush();
+    hung.socket().drop();
+    await flush();
+    expect(rejected).toBe(false);
+    hung.clock.advance(RELEASE_TIMEOUT_MS);
+    await flush();
+    expect(rejected).toBe(true);
+    expect(hung.frames('session.delete_warning')).toEqual([{ timeoutMs: RELEASE_TIMEOUT_MS }]);
+    expect(hung.timers()).toBe(0);
   });
 
   it('an answer in time whose socket address is no URL is refused as the service\'s, opens nothing, and the session it made is deleted, exactly once (choice 8)', async () => {
@@ -842,8 +870,9 @@ describe('the Palabra AI adapter: a session that ends (rulings 11, 12)', () => {
     expect(log.filter((e) => e.kind === 'failed').map((e) => e.payload)).toEqual([{ code: 'connection_lost', message: 'The connection to Palabra closed (1011).' }]);
   });
 
-  it('an ending says failed once, then nothing; the app pair\'s session is deleted, and a later stop deletes nothing more', async () => {
+  it('an ending says failed once, then nothing but its delete\'s outcome; the app pair\'s session is deleted, and a later stop deletes nothing more', async () => {
     const h = await livePalabra({ credentials: APP });
+    const logged = h.log.length;
     h.socket().serverClose(1011);
     await flush();
     h.socket().serverClose(1011);
@@ -851,33 +880,55 @@ describe('the Palabra AI adapter: a session that ends (rulings 11, 12)', () => {
     expect(h.rest.of('DELETE')).toHaveLength(1);
     await h.session.stop();
     expect(h.rest.of('DELETE')).toHaveLength(1);
+    // The delete goes out as the leg ends, before its failed; its outcome after (Stage 2 session end, ruling 2 (ii)).
+    expect(lines(h.log.slice(logged))).toEqual([
+      ['session.connection_lost', { code: 1011, reason: '' }], ['session.delete'], ['failed'], ['session.deleted', { status: 204 }],
+    ]);
     expect(h.timers()).toBe(0);
   });
 });
 
 describe('the Palabra AI adapter: stop (ruling 13)', () => {
-  it('ends the task and closes the socket before its first await, what is in flight dropped; nothing is said after, and no timer is left', async () => {
+  it('ends the task, framed, and closes the socket before its first await, what is in flight dropped; nothing more is said, and no timer is left (Stage 2 session end, ruling 2 (ii))', async () => {
     const h = await livePalabra();
     h.session.appendAudio(chunk());
     const logged = h.log.length;
     void h.session.stop();
     expect(h.sent().slice(-1)).toEqual([{ message_type: 'end_task', data: { force: true } }]);
     expect(h.socket().closedByClient).toEqual({ code: 1000, reason: undefined });
+    // The platform key's one line: it has no REST session to delete.
+    expect(lines(h.log.slice(logged))).toEqual([['task.end', { force: true }]]);
     await flush();
     h.clock.advance(60_000);
-    expect(h.log.length).toBe(logged);
+    expect(h.log.length).toBe(logged + 1);
     expect(h.timers()).toBe(0);
   });
 
-  it("the app pair's stop sends its session's delete before its first await, with keepalive, and resolves once it is answered", async () => {
+  it("a stop as the server's close comes in, before its close event lands, sends and frames no end_task: the socket is no longer open (Stage 2 session end, choice 4)", async () => {
+    const h = await livePalabra();
+    const socket = h.socket();
+    const sent = socket.sent.length;
+    socket.serverClose(1011);
+    const logged = h.log.length;
+    await h.session.stop();
+    expect(socket.sent).toHaveLength(sent);
+    expect(h.log.length).toBe(logged);
+  });
+
+  it("the app pair's stop sends its session's delete before its first await, with keepalive, and resolves once it is answered — each framed (Stage 2 session end, ruling 2 (ii))", async () => {
     const h = await livePalabra({ credentials: APP });
+    const logged = h.log.length;
     const stopping = h.session.stop();
     expect(h.rest.of('DELETE')).toMatchObject([{ url: sessionDeleteUrl(SESSION_ID), keepalive: true, headers: APP_HEADERS }]);
+    expect(lines(h.log.slice(logged))).toEqual([['task.end', { force: true }], ['session.delete']]);
     await expect(stopping).resolves.toBeUndefined();
+    expect(lines(h.log.slice(logged))).toEqual([['task.end', { force: true }], ['session.delete'], ['session.deleted', { status: 204 }]]);
     expect(h.timers()).toBe(0);
   });
 
-  it('a delete that never answers is given 5 s on the request\'s clock, then the stop resolves', async () => {
+  it('a delete that never answers is given its bound on the request\'s clock — 4 s, inside the runner\'s own — then the stop resolves, the delete a warning (Stage 2 session end, ruling 2 (ii); choice 5)', async () => {
+    // 4 s: under the runner's own 5 s bound on a release (`adapter.runner.test.ts` shows why).
+    expect(RELEASE_TIMEOUT_MS).toBe(4_000);
     const h = await livePalabra({ credentials: APP, rest: { remove: 'hang' } });
     const done = vi.fn();
     void h.session.stop().then(done);
@@ -890,6 +941,7 @@ describe('the Palabra AI adapter: stop (ruling 13)', () => {
     expect(h.rest.of('DELETE')[0].signal?.aborted).toBe(true);
     // The bound's own abort is not a transport failure to try again.
     expect(h.rest.of('DELETE')).toHaveLength(1);
+    expect(h.frames('session.delete_warning')).toEqual([{ timeoutMs: RELEASE_TIMEOUT_MS }]);
     expect(h.timers()).toBe(0);
   });
 
@@ -914,12 +966,12 @@ describe('the Palabra AI adapter: stop (ruling 13)', () => {
     expect(h.rest.of('DELETE')).toMatchObject([{ url: sessionDeleteUrl(SESSION_ID), headers: APP_HEADERS }]);
     expect(h.rest.of('DELETE')[0].keepalive).not.toBe(true);
     expect(refused).toHaveLength(1);
-    // The delete is never framed: nothing is said after the stop.
-    expect(h.log.length).toBe(logged);
+    // One attempt framed, one outcome: the plain try's answer (Stage 2 session end, ruling 2 (ii)).
+    expect(lines(h.log.slice(logged))).toEqual([['task.end', { force: true }], ['session.delete'], ['session.deleted', { status: 204 }]]);
     expect(h.timers()).toBe(0);
   });
 
-  it('a delete that fails at the transport both times ends there: two attempts, nothing framed, no timer left (ruling 1)', async () => {
+  it('a delete that fails at the transport both times ends there: two attempts, a warning naming the error alone, no timer left (ruling 1; Stage 2 session end, ruling 2 (ii))', async () => {
     const attempts: RequestInit[] = [];
     const h = await livePalabra({
       credentials: APP,
@@ -935,11 +987,11 @@ describe('the Palabra AI adapter: stop (ruling 13)', () => {
     await flush();
     expect(attempts.map((a) => a.keepalive === true)).toEqual([true, false]);
     expect(done).toHaveBeenCalled();
-    expect(h.log.length).toBe(logged);
+    expect(lines(h.log.slice(logged))).toEqual([['task.end', { force: true }], ['session.delete'], ['session.delete_warning', { error: 'TypeError' }]]);
     expect(h.timers()).toBe(0);
   });
 
-  it("the plain try has only what is left of the delete's 5 s, on the request's clock: refused at 3 s, a plain one that never answers is given 2 s more, not 5 (ruling 1)", async () => {
+  it("the plain try has only what is left of the delete's bound, on the request's clock: refused at 3 s, a plain one that never answers is given 1 s more, not 4 (ruling 1)", async () => {
     let refuse: () => void = () => {};
     const attempts: RequestInit[] = [];
     const h = await livePalabra({
@@ -967,14 +1019,17 @@ describe('the Palabra AI adapter: stop (ruling 13)', () => {
     await flush();
     expect(done).toHaveBeenCalled();
     expect(attempts[1].signal?.aborted).toBe(true);
+    expect(h.frames('session.delete_warning')).toEqual([{ timeoutMs: RELEASE_TIMEOUT_MS }]);
     expect(h.timers()).toBe(0);
   });
 
-  it.each([404, 500])('a delete Palabra answers with %i is its answer, not tried again (ruling 1)', async (status) => {
+  it.each([404, 500])('a delete Palabra answers with %i is its answer, not tried again, and a warning (ruling 1; Stage 2 session end, ruling 2 (ii))', async (status) => {
     const h = await livePalabra({ credentials: APP, rest: { remove: status } });
     await expect(h.session.stop()).resolves.toBeUndefined();
     await flush();
     expect(h.rest.of('DELETE')).toMatchObject([{ url: sessionDeleteUrl(SESSION_ID), keepalive: true }]);
+    expect(h.frames('session.delete_warning')).toEqual([{ status }]);
+    expect(h.frames('session.deleted')).toEqual([]);
     expect(h.timers()).toBe(0);
   });
 });

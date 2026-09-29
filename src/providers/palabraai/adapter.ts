@@ -69,8 +69,14 @@ export const START_TIMEOUT_MS = 20_000;
 export const POLL_MS = 2_100;
 /** How long a mid-session `error` words the close that follows it (ruling 11): OpenAI's value; the probe's `SERVICE_TIMEOUT` closed 0.26 s after its error. */
 export const ERROR_WORDS_MS = 10_000;
-/** How long deleting a REST session may take (ruling 1): the spec's bound on a release. */
-export const RELEASE_TIMEOUT_MS = 5_000;
+/**
+ * How long deleting a REST session may take (ruling 1): strictly inside the
+ * runner's own bound on a release (5 000 ms), as the Kizuna lease's session
+ * end is, so the delete's outcome — a warning when it had no answer — is
+ * framed before the runner stops filing the run's frames (Stage 2 session
+ * end, choice 5).
+ */
+export const RELEASE_TIMEOUT_MS = 4_000;
 
 /** The platform key's socket, failed before it opened while online: a wrong key is a bare 403 on the upgrade (the owner's probe), which a browser cannot see. */
 export const REFUSED_UPGRADE = 'Palabra refused the connection before it opened: check the API key.';
@@ -202,10 +208,12 @@ class PalabraLeg implements AdapterSession {
    * The close before its first `await`, what is still being translated
    * dropped (ruling 13): `end_task` best-effort, then the close; a REST
    * session's delete goes out now and is the one thing awaited, bounded.
-   * Nothing is framed after a stop.
+   * What the ending sends is framed — `task.end`, the delete and its outcome
+   * — and nothing after `stop()` has returned (Stage 2 session end, ruling
+   * 2 (ii); choice 3).
    */
   stop(): Promise<void> {
-    if (this.phase === 'live') this.send(JSON.stringify(END_TASK));
+    if (this.phase === 'live' && this.send(JSON.stringify(END_TASK))) this.frame('out', 'task.end', END_TASK.data);
     this.shutDown();
     return this.releasing ?? Promise.resolve();
   }
@@ -553,13 +561,19 @@ class PalabraLeg implements AdapterSession {
       : { code: 'connection_lost', message: `The connection to Palabra closed (${closeWords(e)}).` }));
   }
 
-  /** A start that will not resolve: rejected once, everything shut, nothing emitted but frames. */
+  /**
+   * A start that will not resolve: rejected once, everything shut, nothing
+   * emitted but frames. A REST session's delete, when one went out, settles
+   * first — bounded by `RELEASE_TIMEOUT_MS` — so its outcome is framed while
+   * the runner still files the run (Stage 2 session end, choice 5).
+   */
   private refuse(error: unknown): void {
     if (this.phase === 'live' || this.phase === 'ended') return;
     this.shutDown();
     const settle = this.settle;
     this.settle = null;
-    settle?.reject(error);
+    if (this.releasing) void this.releasing.then(() => settle?.reject(error));
+    else settle?.reject(error);
   }
 
   /** A session that ends by itself: said once, then nothing (the kit's `ended-silence`). */
@@ -595,8 +609,11 @@ class PalabraLeg implements AdapterSession {
    * Deletes the REST session this leg created, once (ruling 1): its own id
    * alone, bounded by `RELEASE_TIMEOUT_MS` on the request's clock, with
    * `keepalive` so a page that is going away still sends it. The request goes
-   * out before any `await`. Not framed: it may run after the session has
-   * ended.
+   * out before any `await`. Framed as it goes out and as it ends, though the
+   * leg has ended: `session.deleted` on Palabra's 2xx, else
+   * `session.delete_warning` — a warning by its name, since a session that
+   * was not deleted expires on its own (Stage 2 session end, ruling 2 (ii);
+   * choice 5). Its id is never framed: it is shaped as a token.
    *
    * A transport failure is tried once more without `keepalive`, inside what
    * is left of the same bound, as the Soniox lease's session end does: a
@@ -612,22 +629,36 @@ class PalabraLeg implements AdapterSession {
     const url = sessionDeleteUrl(this.sessionId);
     const controller = new AbortController();
     const cancel = this.request.clock.setTimeout(() => controller.abort(), RELEASE_TIMEOUT_MS);
-    const remove = (keepalive: boolean): Promise<unknown> => {
+    const remove = (keepalive: boolean): Promise<Response> => {
       try {
         return this.deps.fetch(url, { method: 'DELETE', headers: restHeaders(this.request.credentials), ...(keepalive ? { keepalive: true } : {}), signal: controller.signal });
       } catch (error) {
         return Promise.reject(error);
       }
     };
+    this.releaseFrame('out', 'session.delete');
     // A delete that failed leaves the session to expire on its own [inf: the docs say only that `expires_at` is extended every minute while a connection is active].
     this.releasing = remove(true)
-      .catch(() => (controller.signal.aborted ? undefined : remove(false)))
-      .then(() => undefined, () => undefined)
-      .then(() => cancel());
+      .catch((error: unknown) => (controller.signal.aborted ? Promise.reject(error) : remove(false)))
+      .then(
+        (response) => {
+          if (response.ok) this.releaseFrame('in', 'session.deleted', { status: response.status });
+          else this.releaseFrame('in', 'session.delete_warning', { status: response.status });
+        },
+        // The bound's own abort, or the transport twice: the error's name alone, never its words (`errorName`).
+        (error: unknown) => this.releaseFrame('in', 'session.delete_warning', controller.signal.aborted ? { timeoutMs: RELEASE_TIMEOUT_MS } : { error: errorName(error) }),
+      )
+      // Settles whatever happened: a stop that waits on it never rejects, and no timer is left.
+      .then(() => cancel(), () => cancel());
   }
 
   private frame(direction: 'in' | 'out', type: string, payload?: unknown): void {
     if (this.phase === 'ended') return;
+    this.events.frame(payload === undefined ? { direction, type } : { direction, type, payload: framePayload(payload) });
+  }
+
+  /** The delete's own lines: said as the leg ends, so not gated on it (choice 5). */
+  private releaseFrame(direction: 'in' | 'out', type: string, payload?: Record<string, unknown>): void {
     this.events.frame(payload === undefined ? { direction, type } : { direction, type, payload: framePayload(payload) });
   }
 }
