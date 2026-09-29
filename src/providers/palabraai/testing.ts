@@ -145,17 +145,38 @@ const aborted = (signal: AbortSignal) => signal.reason ?? new DOMException('The 
  * the fetch() call has been fulfilled but before the response body has been
  * read, then attempting to read the response body will reject with an
  * AbortError exception" (MDN, fetch()). A body that ignored the signal hid
- * a leaked session (choice 9).
+ * a leaked session (choice 9). Checked twice: before the read starts, and
+ * again once it settles — a read already under way when the abort lands
+ * rejects too, since `signal.aborted` is already true by the time our own
+ * `.then` runs, whatever the native call's own microtask count (fix round 1,
+ * M3b).
  */
 function honouring(response: Response, signal: AbortSignal | undefined): Response {
   if (!signal) return response;
-  const json = response.json.bind(response);
-  const text = response.text.bind(response);
-  return Object.assign(response, {
-    json: () => (signal.aborted ? Promise.reject(aborted(signal)) : json()),
-    text: () => (signal.aborted ? Promise.reject(aborted(signal)) : text()),
-  });
+  const guard = <T>(read: () => Promise<T>) => (): Promise<T> => {
+    if (signal.aborted) return Promise.reject(aborted(signal));
+    return read().then((v) => (signal.aborted ? Promise.reject(aborted(signal)) : v));
+  };
+  return Object.assign(response, { json: guard(response.json.bind(response)), text: guard(response.text.bind(response)) });
 }
+
+/** A REST refusal's title, by its status — a browser-true envelope, not always the platform key's 401 (fix round 1, M3d). */
+const STATUS_TITLES: Readonly<Record<number, string>> = {
+  400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 409: 'Conflict',
+  422: 'Unprocessable Entity', 429: 'Too Many Requests', 500: 'Internal Server Error', 502: 'Bad Gateway', 503: 'Service Unavailable',
+};
+const statusTitle = (status: number): string => STATUS_TITLES[status] ?? `HTTP ${status}`;
+
+/**
+ * An immediate answer, settled on a microtask that re-checks `signal.aborted`
+ * — an `'ok'` or a status answer resolved `fetch()`'s own promise
+ * synchronously, so a signal aborted in the same tick (after `fetch()` was
+ * called, before this promise's continuation ran) went unnoticed; a browser
+ * rejects it (fix round 1, M3a). `'hang'` and `'later'` need no such check:
+ * their promise only ever settles from the abort listener or `answer()`.
+ */
+const settleNow = (make: () => Response, signal: AbortSignal | undefined): Promise<Response> =>
+  Promise.resolve().then(() => (signal?.aborted ? Promise.reject(aborted(signal)) : honouring(make(), signal)));
 
 /**
  * A fake of Palabra's REST server that behaves as a browser's fetch: `fetch`
@@ -178,14 +199,18 @@ export function fakeRest(o: { create?: RestAnswer; list?: RestAnswer; remove?: R
         signal?.addEventListener('abort', () => reject(aborted(signal)), { once: true });
       });
     }
-    if (how === 'ok') return Promise.resolve(honouring(ok(), signal));
-    return Promise.resolve(honouring(new Response(JSON.stringify({ ok: false, errors: [{ title: 'Unauthorized', detail: `Refused with ${how}.` }] }), { status: how }), signal));
+    if (how === 'ok') return settleNow(ok, signal);
+    return settleNow(() => new Response(JSON.stringify({ ok: false, errors: [{ title: statusTitle(how), detail: `Refused with ${how}.` }] }), { status: how }), signal);
   };
   const fetch = (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
     const call: RestCall = {
       method: init.method ?? 'GET',
       url: String(input),
-      headers: { ...(init.headers as Record<string, string> | undefined) },
+      // A browser normalises header names to lowercase (the `Headers` API);
+      // recording the raw object hid a case mismatch a real fetch would not
+      // have (fix round 1, M3c). Nothing yet reads `RestCall.headers` by a
+      // capitalised name — the brief's own tests never do.
+      headers: Object.fromEntries(new Headers(init.headers).entries()),
       ...(typeof init.body === 'string' ? { body: init.body } : {}),
       ...(init.keepalive === undefined ? {} : { keepalive: init.keepalive }),
       ...(init.signal ? { signal: init.signal } : {}),

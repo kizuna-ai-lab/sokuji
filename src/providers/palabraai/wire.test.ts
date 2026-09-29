@@ -11,8 +11,14 @@ import {
 } from './wire';
 import { APP, AUTO_CTX, configFor, CREATED_BODY, EN, JA, KEY, PUBLISHER, SENTENCE, SERVER, SESSION_ID, SESSION_WS_URL } from './testing';
 
-/** The names a credential is read through: the credentials' type, its three fields, and a REST session's publisher token. */
-const SECRET_NAMES = new Set(['PalabraCredentials', 'apiKey', 'clientId', 'clientSecret', 'publisher']);
+/**
+ * The names a credential is read through: the credentials' type, its three
+ * fields, a REST session's publisher token, and the session type that holds
+ * it and the socket address (fix round 1, M1) — a reader typed on
+ * `CreatedSession` alone, naming neither `publisher` nor `id`, is still
+ * caught by its parameter's or return type's own identifier.
+ */
+const SECRET_NAMES = new Set(['PalabraCredentials', 'CreatedSession', 'apiKey', 'clientId', 'clientSecret', 'publisher']);
 
 /** The functions of a module that name a credential, `<module>` for a use outside any function; an import, or a type declared, names nothing. */
 function secretReaders(source: string): string[] {
@@ -59,6 +65,8 @@ describe("Palabra AI's wire: the two ways in (ruling 1)", () => {
     // Its own id alone is deleted — the id, too, is JWT-shaped, and masked wherever it lands.
     expect(sessionDeleteUrl(SESSION_ID)).toBe(`${SESSIONS_URL}/${SESSION_ID}`);
     expect(redact(SESSION_ID)).toBe('[REDACTED]');
+    // An id holding a reserved character is still encoded (fix round 1, N2): a JWT needs none, so the encoding step went unexercised.
+    expect(sessionDeleteUrl('a b&c')).toBe(`${SESSIONS_URL}/a%20b%26c`);
   });
 
   it('reads no session from an answer without a socket to reach', () => {
@@ -84,6 +92,11 @@ describe("Palabra AI's wire: the two ways in (ruling 1)", () => {
       "const leaked = { clientSecret: 'x' };",
       "export function indexed(k: Record<string, string>) { return k['clientId']; }",
     ].join('\n'))).toEqual(['<module>', 'frame', 'indexed', 'url']);
+  });
+
+  it('reads a credential through a function typed on the session alone, naming neither field (fix round 1, M1)', () => {
+    // The review's own mutant: `id` and `wsUrl` are not secret names, but the parameter's `CreatedSession` type is.
+    expect(secretReaders("export function sessionWords(c: CreatedSession): string { return `session ${c.id} at ${c.wsUrl}`; }")).toEqual(['sessionWords']);
   });
 });
 

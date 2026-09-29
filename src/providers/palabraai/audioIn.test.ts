@@ -11,8 +11,10 @@ describe("What Palabra hears (rulings 3, 5)", () => {
     expect(CHUNK_SAMPLES).toBe(7_680);
     expect(SILENCE).toHaveLength(CHUNK_SAMPLES);
     expect(SILENCE.every((s) => s === 0)).toBe(true);
-    // The ScriptProcessor fallback delivers 8 192 samples a chunk: 341 ms.
-    expect(IDLE_MS).toBeGreaterThan((8_192 / SAMPLE_RATE) * 1000);
+    // The participant's ScriptProcessor fallback is the slowest of the four
+    // capture cadences: 16 384 samples at 24 kHz, 682.7 ms (fix round 1, I1).
+    expect(IDLE_MS).toBeGreaterThan((16_384 / SAMPLE_RATE) * 1000);
+    expect(IDLE_MS).toBe(800);
   });
 
   it("re-chunks the worklet's 2 048-sample chunks into whole 320 ms ones, every sample in order", () => {
