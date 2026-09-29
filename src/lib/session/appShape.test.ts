@@ -83,7 +83,7 @@ describe('readShapeFromStores', () => {
     expect(shape.shared).not.toHaveProperty('instructions');
   });
 
-  // Controller ruling M1 (Task 4 review): the one production line that turns
+  // The one production line that turns
   // a provider's own `languages.reverse` into `SharedSettings.reversed` is
   // this call to `reversedPair`. Palabra's documented reverse of `ja →
   // en-us` is `en → ja` (Stage 2 Palabra, ruling 9), not the plain swap
