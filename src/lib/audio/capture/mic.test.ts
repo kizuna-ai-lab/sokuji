@@ -107,7 +107,8 @@ describe('openMic', () => {
     fake.push();
     expect(fake.calls).toEqual(['ns:standard', 'begin:mic-1', 'record']);
     expect(heard).toHaveBeenCalledTimes(1);
-    expect(source.track).toBe(fake.track);
+    // No track leaves the source: every adapter takes the pcm (Stage 2 Palabra, ruling 16).
+    expect(source).not.toHaveProperty('track');
   });
 
   it("rejects with the recorder's message when the device will not open, and disposes the recorder it built rather than just ending it", async () => {

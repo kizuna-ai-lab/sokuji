@@ -276,11 +276,6 @@ export class Run {
     }])) as Record<LegName, StartRequest<unknown, unknown>>;
 
     if (together) {
-      // Built without a track; a source with a track hands it to the adapter (WebRTC).
-      shape.legs.forEach((leg, i) => {
-        const track = sources![i].track;
-        if (track) requests[leg] = { ...requests[leg], input: track };
-      });
       const events = { speaker: this.eventsFor('speaker'), participant: this.eventsFor('participant') };
       let sessions: Record<LegName, AdapterSession>;
       try {
@@ -412,9 +407,7 @@ export class Run {
     try {
       const source = opened ?? await this.openSource(leg);
       this.setLegState(leg, 'opening');
-      // Built without a track; a source with a track hands it to the adapter (WebRTC).
-      const withInput = source.track ? { ...request, input: source.track } : request;
-      const session = await this.shape.provider.start(withInput, this.eventsFor(leg));
+      const session = await this.shape.provider.start(request, this.eventsFor(leg));
       this.stack.defer(`${leg} session`, () => session.stop());
       this.throwIfAborted();
       this.connect(leg, source, session);

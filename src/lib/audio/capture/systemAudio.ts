@@ -123,7 +123,6 @@ export async function openSystemAudio(
 
   const core = createSourceCore({
     muted: () => settings.muted(),
-    track: () => recorder?.getStream?.()?.getAudioTracks()[0],
     release: async () => {
       unsubscribe();
       await chain;

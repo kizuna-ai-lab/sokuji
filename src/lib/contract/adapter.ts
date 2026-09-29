@@ -32,13 +32,15 @@ export interface SessionContext {
 /** Asks a punctuation model for `text` with marks. Null: no answer. */
 export type Punctuator = (lang: string, text: string) => Promise<string | null>;
 
+/**
+ * Every adapter takes the runner's pcm through `appendAudio`: none sends a
+ * native track since Palabra's port over WebSocket, so the request carries
+ * none (Stage 2 Palabra, ruling 16).
+ */
 export interface StartRequest<C, K> {
   context: SessionContext;
   config: C;
   credentials: K;
-  /** A track from the runner's capture graph, for adapters that send a native
-   *  track (WebRTC). Absent in tests and ignored by adapters that take pcm. */
-  input?: MediaStreamTrack;
   /** Every timer the adapter runs reads this clock; tests pass a virtual one. */
   clock: Clock;
   /** Aborted when the run is cancelled; an adapter still opening rejects and opens nothing. */

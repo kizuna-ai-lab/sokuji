@@ -883,35 +883,23 @@ describe('runner — legs end together (D21)', () => {
 });
 
 describe('runner — capture carry-over', () => {
-  /** The fake provider, with every request it starts recorded. */
-  function recordingInputs() {
-    const inputs: Array<MediaStreamTrack | undefined> = [];
+  it('hands the adapter a request of the context, config, credentials, clock, signal and punctuator alone — no track, even from a source that has one (Stage 2 Palabra, ruling 16)', async () => {
+    const requests: Array<StartRequest<never, never>> = [];
     const provider = {
       ...fakeProvider,
       async start(request: StartRequest<never, never>, events: AdapterEvents) {
-        inputs.push(request.input);
+        requests.push(request);
         return fakeProvider.start(request, events);
       },
     } as unknown as AnyProvider;
-    return { inputs, provider };
-  }
-
-  it("hands the adapter the source's track, and builds the request once the source has opened", async () => {
-    const track = { kind: 'audio' } as MediaStreamTrack;
-    const { inputs, provider } = recordingInputs();
     const { runner } = setup({
       shape: { provider },
-      openSource: async () => Object.assign(createFakeSource(createVirtualClock(0)), { track }),
+      // A capture that still carries its device track: nothing reads it.
+      openSource: async () => Object.assign(createFakeSource(createVirtualClock(0)), { track: { kind: 'audio' } as MediaStreamTrack }),
     });
     await runner.start();
-    expect(inputs).toEqual([track]);
-  });
-
-  it('builds a request without input when the source has no track', async () => {
-    const { inputs, provider } = recordingInputs();
-    const { runner } = setup({ shape: { provider } });
-    await runner.start();
-    expect(inputs).toEqual([undefined]);
+    expect(requests).toHaveLength(1);
+    expect(Object.keys(requests[0]).sort()).toEqual(['clock', 'config', 'context', 'credentials', 'punctuate', 'signal']);
   });
 
   it('keeps capturing when the adapter throws on audio, and reports it once per failing streak', async () => {

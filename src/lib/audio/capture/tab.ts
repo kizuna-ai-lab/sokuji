@@ -48,7 +48,6 @@ export async function openTab(
   let open = false;
   const core = createSourceCore({
     muted: () => settings.muted(),
-    track: () => recorder.getStream()?.getAudioTracks()[0],
     release: async () => {
       unwatch();
       if (!open) return;

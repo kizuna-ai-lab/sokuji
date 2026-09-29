@@ -268,7 +268,7 @@ describe('runner — startBoth (D23)', () => {
     });
   });
 
-  it("hands startBoth each leg's own track", async () => {
+  it("hands startBoth each leg's own request, with no track in either (Stage 2 Palabra, ruling 16)", async () => {
     const clock = createVirtualClock(0);
     let requestsSeen!: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>;
     const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => {
@@ -281,12 +281,12 @@ describe('runner — startBoth (D23)', () => {
     const { runner } = setup(
       withHooks({ startBoth }),
       ['speaker', 'participant'],
-      (leg) => ({ ...createFakeSource(clock), track: { id: `${leg}-track` } as unknown as MediaStreamTrack }),
+      // Captures that still carry their device tracks: nothing reads them.
+      (leg) => Object.assign(createFakeSource(clock), { track: { id: `${leg}-track` } as unknown as MediaStreamTrack }),
     );
     await runner.start();
-    expect(requestsSeen.speaker.input).toMatchObject({ id: 'speaker-track' });
-    expect(requestsSeen.participant.input).toMatchObject({ id: 'participant-track' });
-    expect(requestsSeen.speaker.input).not.toBe(requestsSeen.participant.input);
+    expect(requestsSeen.speaker.context.direction).not.toEqual(requestsSeen.participant.context.direction);
+    for (const leg of ['speaker', 'participant'] as const) expect(requestsSeen[leg]).not.toHaveProperty('input');
   });
 
   // Split Both opens two sockets; the faster one can hear the server before

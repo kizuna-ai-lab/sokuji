@@ -14,9 +14,11 @@ export function longScript(count: number, everyMs = 1500): FakeScript {
 }
 
 /**
- * Palabra's shape (F10): text with stated origins — a translation's text
- * revised after it closed, as Palabra's `partial_` → `validated_` — and one
- * continuous speech stream that names no segment. The stream arrives in
+ * The old Palabra client's shape (F10), kept as an L1 fixture: text with
+ * stated origins — a translation's text revised after it closed — and one
+ * continuous speech stream that names no segment. No provider emits it
+ * since Palabra's port, whose audio names its sentence and whose text
+ * closes once (Stage 2 Palabra, ruling 6). The stream arrives in
  * real time in 20–200 ms chunks: jittered by at most 20 ms for its first
  * `steadyMs`, then every `hiccupEvery`-th chunk `hiccupMs` late, the chunks
  * behind it arriving with it (G3's measurement, group check A).
@@ -42,7 +44,7 @@ export function reflessStreamScript(): FakeScript {
       { at: 1000, open: { ref: ref + 1, side: 'translation', origin } },
       { at: 1000, text: { ref: ref + 1, text: partials[k] } },
       { at: 1400, close: { ref: ref + 1, origin } },
-      // `partial_` → `validated_`: the closed translation's text, revised.
+      // The closed translation's text, revised: what L1 must take (the spec's revision rule), though no provider sends it now.
       { at: 2400, text: { ref: ref + 1, text: translations[k] } },
     ] });
   }

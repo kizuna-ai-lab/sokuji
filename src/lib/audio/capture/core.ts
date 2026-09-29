@@ -23,7 +23,6 @@ export interface SourceCore extends Source {
 export interface SourceCoreOptions {
   /** Read on every chunk: mute takes effect at once. */
   muted(): boolean;
-  track(): MediaStreamTrack | undefined;
   /** Stops the recorders; called once, by the first `stop()`. */
   release(): Promise<void>;
 }
@@ -80,9 +79,6 @@ export function createSourceCore(options: SourceCoreOptions): SourceCore {
         for (const notice of held.splice(0)) guard('degraded', () => listener(notice));
       }
       return off;
-    },
-    get track() {
-      return options.track();
     },
 
     deliver(pcm) {

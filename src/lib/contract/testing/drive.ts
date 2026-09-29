@@ -60,7 +60,6 @@ export interface DriveOptions<C, K> {
   steps?: readonly ScenarioStep[];
   /** After the steps the session is stopped (unless a step did), then the clock runs this much further. Default 10 000 ms. */
   settleMs?: number;
-  input?: MediaStreamTrack;
   punctuate?: Punctuator;
 }
 
@@ -123,7 +122,7 @@ export async function driveAdapter<C, K>(adapter: Pick<Adapter<C, K>, 'start'>, 
   let started: Promise<AdapterSession>;
   try {
     started = adapter.start(
-      { context: o.context, config: o.config, credentials: o.credentials, clock, signal: controller.signal, input: o.input, punctuate: o.punctuate },
+      { context: o.context, config: o.config, credentials: o.credentials, clock, signal: controller.signal, punctuate: o.punctuate },
       recorder.events,
     );
   } catch (error) {

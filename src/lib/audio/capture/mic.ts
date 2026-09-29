@@ -59,7 +59,6 @@ export async function openMic(
 
   const core = createSourceCore({
     muted: () => settings.muted(),
-    track: () => recorder.getStream()?.getAudioTracks()[0],
     release: async () => {
       // `Source.stop` stops capturing before its first `await` (roadmap 1e-1): a
       // `pagehide` never awaits this, and a device switch in flight must not keep

@@ -18,7 +18,7 @@ function fakeStream(o: { ended?: boolean } = {}) {
 
 function setup(o: { muted?: () => boolean } = {}) {
   const release = vi.fn(async () => {});
-  const core = createSourceCore({ muted: o.muted ?? (() => false), track: () => undefined, release });
+  const core = createSourceCore({ muted: o.muted ?? (() => false), release });
   return { core, release };
 }
 
@@ -123,13 +123,9 @@ describe('createSourceCore', () => {
     expect(ended).not.toHaveBeenCalled();
   });
 
-  it('exposes the current track', () => {
-    const { track } = fakeStream();
-    let current: MediaStreamTrack | undefined;
-    const core = createSourceCore({ muted: () => false, track: () => current, release: async () => {} });
-    expect(core.track).toBeUndefined();
-    current = track;
-    expect(core.track).toBe(track);
+  it('exposes no track: every adapter takes the pcm (Stage 2 Palabra, ruling 16)', () => {
+    const { core } = setup();
+    expect(core).not.toHaveProperty('track');
   });
 
   it("reports each listener's own failing streak", () => {
