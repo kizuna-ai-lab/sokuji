@@ -67,7 +67,7 @@ describe("Palabra AI's settings", () => {
     expect(migratePalabraSettings({}).authMode).toBe('platform');
   });
 
-  it("clamps the threshold to the API's 0.3–2.0 and keeps the max buffer above the target, on the sliders' grids (ruling 10)", () => {
+  it("clamps the threshold to the API's 0.3 floor and the slider's 2.0 ceiling, and keeps the max buffer above the target, on the sliders' grids (ruling 10)", () => {
     expect(SILENCE_THRESHOLD_RANGE).toEqual({ min: 0.3, max: 2, step: 0.01 });
     expect(effectiveThreshold({ segmentConfirmationSilenceThreshold: 0.1 })).toBe(0.3);
     expect(effectiveThreshold({ segmentConfirmationSilenceThreshold: 0.7 })).toBe(0.7);
@@ -176,6 +176,17 @@ describe("Palabra AI's reverse: its documented codes (ruling 9)", () => {
     expect(reversedPair(p, S, { source: AUTO, target: 'en' })).toBeNull();
     for (const source of ['bn', 'eu', 'fa', 'ga', 'mn', 'mr', 'mt', 'ug', 'yue']) expect(reversedPair(p, S, { source, target: 'en' }), source).toBeNull();
     for (const target of ['az', 'bs', 'fil', 'is', 'kk', 'mk', 'sr']) expect(reversedPair(p, S, { source: 'en', target }), target).toBeNull();
+  });
+
+  it('refuses to reverse exactly an auto source, the nine sources and the seven targets above, and no other offered pair', () => {
+    const NO_REVERSE_SOURCES = new Set(['bn', 'eu', 'fa', 'ga', 'mn', 'mr', 'mt', 'ug', 'yue']);
+    const NO_REVERSE_TARGETS = new Set(['az', 'bs', 'fil', 'is', 'kk', 'mk', 'sr']);
+    for (const source of codes(palabraLanguages.sources(S))) {
+      for (const target of codes(palabraLanguages.targets(source, S))) {
+        const expected = source !== AUTO && !NO_REVERSE_SOURCES.has(source) && !NO_REVERSE_TARGETS.has(target);
+        expect(reverseSupported(p, S, { source, target }), `${source} → ${target}`).toBe(expected);
+      }
+    }
   });
 
   it('reverses every offered pair into the offer, or not at all', () => {
