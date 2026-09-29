@@ -7,9 +7,10 @@
  * on a microtask as a browser queues it, and nothing after it; an adapter
  * closing a socket that never opened fails it (`error`, then an unclean
  * 1006), and a close code or reason a browser refuses throws as a browser
- * does; a server's close frame is a clean close, whatever its code; a
- * binary frame arrives as `binaryType` asks. Test-only: nothing but a test
- * imports `src/lib/contract/testing`.
+ * does, whatever the socket's state; a server's close frame is a clean
+ * close for almost any code (1006 stays unclean here, unresolved: see
+ * `serverClose`'s own comment); a binary frame arrives as `binaryType`
+ * asks. Test-only: nothing but a test imports `src/lib/contract/testing`.
  */
 export type SocketData = string | ArrayBufferLike | Blob | ArrayBufferView;
 
@@ -83,16 +84,26 @@ export class FakeSocket extends EventTarget {
   }
 
   /**
-   * The server closes the connection with a close frame: a clean close,
-   * whatever its code (1008, Palabra's rate limit, too). 1005, 1006 and 1015
-   * never travel in a frame — a browser reports them for a close no frame
-   * ended — so they arrive unclean. A code no browser reports throws: the
-   * test is wrong (the kit's parked item; Stage 2 Palabra, ruling 15).
+   * The server closes the connection with a close frame: a clean close for
+   * every code that could actually arrive in one — 1008, Palabra's rate
+   * limit, included; a browser never reports a code it read from a frame as
+   * unclean. 1005 is the empty close frame: no status code at all, so a
+   * browser reports it with an empty reason whatever `reason` was asked
+   * for. 1004, 1015 and 1016–2999 never travel in a frame either, so they
+   * throw: the test is wrong (the kit's parked item; Stage 2 Palabra,
+   * ruling 15). 1006 is left unclean here too, unlike a literal browser
+   * (which never reads 1006 from a frame — it reports 1006 itself, for a
+   * drop it saw with no frame at all): several provider suites already call
+   * `serverClose(1006, …)` to mean exactly "the connection closed
+   * abnormally", so throwing there is a controller decision, not this
+   * fix's (Minor 1, reported, not applied to 1006).
    */
   serverClose(code = 1000, reason = ''): void {
-    if (!(code >= 1000 && code <= 4999)) throw new Error(`serverClose(${code}): no browser reports that close code`);
+    if (code === 1004 || code === 1015 || (code >= 1016 && code <= 2999) || !(code >= 1000 && code <= 4999)) {
+      throw new Error(`serverClose(${code}): no browser reports that close code`);
+    }
     if (this.readyState >= FakeSocket.CLOSING) return;
-    this.closing(code, reason, code !== 1005 && code !== 1006 && code !== 1015);
+    this.closing(code, code === 1005 ? '' : reason, code !== 1006);
   }
 
   /** The connection drops: `error`, then an unclean `close` 1006. */

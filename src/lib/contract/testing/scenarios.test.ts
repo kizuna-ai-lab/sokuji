@@ -180,8 +180,30 @@ describe('runScenario', () => {
   });
 
   it("lets an exchange answered after an await land before the server's close, with no flush in the harness (Stage 2 Palabra, ruling 15)", async () => {
-    // Answers each frame a few microtasks late and says `closed` on a close it did not ask for: without the kit's flush, the answer would come after `closed`.
+    // Answers each frame a few microtasks late and says `closed` on a close it did not ask for: without the kit's flush, the answer would come after `closed`. It drops an answer that is
+    // still pending once the session has already ended — the well-behaved half of the race the kit's own unflushed drive checks (Important 1).
     const lateClosing: Pick<Adapter<EchoConfig, { key: string }>, 'start'> = {
+      start: (request, events) => new Promise<AdapterSession>((resolve) => {
+        const ws = request.config.openSocket('wss://echo.test/translate');
+        let ended = false;
+        ws.onopen = () => resolve(idle(async () => { ended = true; ws.close(1000); }));
+        ws.onmessage = async () => {
+          await hops(3)();
+          if (ended) return;
+          events.segmentOpened({ ref: 1, side: 'source' });
+          events.segmentText({ ref: 1, text: 'Hello.' });
+          events.segmentClosed({ ref: 1 });
+        };
+        ws.onclose = () => { if (!ended) { ended = true; events.closed({ reason: 'the server went away' }); } };
+      }),
+    };
+    const report = await runScenario({ ...echoHarness, adapter: lateClosing, serverClose: [{ run: () => sockets.last().serverClose(1011, 'server error') }] }, 'server-close');
+    expect(report).toEqual({ name: 'server-close', violations: [], problems: [] });
+  });
+
+  it("flags an answer that lands after the server closed when the adapter does not drop it (the negative control for Important 1's race, Stage 2 Palabra, ruling 15)", async () => {
+    // The same adapter, without the drop: the unflushed run the kit adds beside the flushed one must catch this.
+    const lateClosingKeepsAnswering: Pick<Adapter<EchoConfig, { key: string }>, 'start'> = {
       start: (request, events) => new Promise<AdapterSession>((resolve) => {
         const ws = request.config.openSocket('wss://echo.test/translate');
         let ended = false;
@@ -195,8 +217,11 @@ describe('runScenario', () => {
         ws.onclose = () => { if (!ended) { ended = true; events.closed({ reason: 'the server went away' }); } };
       }),
     };
-    const report = await runScenario({ ...echoHarness, adapter: lateClosing, serverClose: [{ run: () => sockets.last().serverClose(1011, 'server error') }] }, 'server-close');
-    expect(report).toEqual({ name: 'server-close', violations: [], problems: [] });
+    const report = await runScenario(
+      { ...echoHarness, adapter: lateClosingKeepsAnswering, serverClose: [{ run: () => sockets.last().serverClose(1011, 'server error') }] },
+      'server-close',
+    );
+    expect(report.problems.some((p) => p.includes('ended-silence'))).toBe(true);
   });
 
   it('catches a release that produces no segment (Stage 2 Palabra, ruling 15)', async () => {
@@ -217,6 +242,18 @@ describe('runScenario', () => {
     expect(leaked.problems).toContain('1 timer(s) still armed after the session ended');
     // The control: the template as it is.
     expect((await runScenario(echoHarness, 'open-stop')).problems).toEqual([]);
+  });
+
+  it('catches a timer a refused start never cancels, where a bound one tends to leak (Stage 2 Palabra, ruling 15)', async () => {
+    // The template, plus a timer armed at the top of `start` and never cancelled, whichever way `start` settles.
+    const leakingOnRefusal: Pick<Adapter<EchoConfig, { key: string }>, 'start'> = {
+      start: (request, events) => {
+        request.clock.setTimeout(() => {}, 60_000);
+        return createEchoAdapter().start(request, events);
+      },
+    };
+    const leaked = await runScenario({ ...echoHarness, adapter: leakingOnRefusal }, 'refused-while-opening');
+    expect(leaked.problems).toContain('1 timer(s) still armed after the session ended');
   });
 
   it('asks a harness only for what it has', async () => {

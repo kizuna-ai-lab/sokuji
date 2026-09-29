@@ -26,7 +26,15 @@ export interface AdapterHarness<C, K> {
    * Makes the provider produce one exchange: a source segment and its
    * translation, closed. No trailing `{ flush: true }` is needed — the driver
    * flushes before its stop — except where the next list must not run before
-   * the answer lands (an answer the adapter awaits, then `serverClose`).
+   * the answer lands (an answer the adapter awaits, then `serverClose` or
+   * `reconnect`). `server-close` is the one scenario that checks both sides
+   * of that flush: once with it, requiring the answer to land before the
+   * close; once without, requiring only that nothing lands after
+   * `failed`/`closed` or after `stop()` — the answer may be dropped instead
+   * (Important 1, the kit's parked item; Stage 2 Palabra, ruling 15). The
+   * same flush sits before `h.reconnect`, but nothing checks that side of
+   * it: an answer crossing a drop is not pinned safe to drop (Nit 2, same
+   * ruling).
    */
   exchange: readonly ScenarioStep[];
   /** Makes the server end the session unexpectedly. */
@@ -115,10 +123,20 @@ export async function runScenario<C, K>(h: AdapterHarness<C, K>, name: ScenarioN
       if (!h.answerText) throw new Error('this harness takes no typed text');
       r = await drive(AUTO, h.opening(name), [{ text: 'typed words' }, ...h.answerText]);
       break;
-    case 'server-close':
+    case 'server-close': {
       r = await drive(AUTO, h.opening(name), [...exchange, ...h.serverClose]);
       if (!kinds(r.log).some((k) => k === 'closed' || k === 'failed')) problems.push('the server ended the session and the adapter did not say so (failed or closed)');
+      // The race the flush above hides: an answer still in flight when the
+      // server closes may be dropped instead of landing, but nothing may
+      // arrive after `failed`/`closed` or after `stop()` (Important 1, the
+      // kit's parked item; Stage 2 Palabra, ruling 15).
+      const raced = await drive(AUTO, h.opening(name), [...h.exchange, ...h.serverClose]);
+      const racedBad = raced.violations.filter((v) => v.rule === 'ended-silence' || v.rule === 'stop-silence');
+      if (racedBad.length > 0) {
+        problems.push(`an answer still in flight when the server closed was not dropped: ${racedBad.map((v) => `${v.rule} (${v.detail})`).join('; ')}`);
+      }
       break;
+    }
     case 'reconnect': {
       if (!h.reconnect) throw new Error('this harness does not reconnect');
       r = await drive(AUTO, h.opening(name), [...exchange, ...h.reconnect, ...h.exchange]);
