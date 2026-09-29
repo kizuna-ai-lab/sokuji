@@ -64,18 +64,24 @@ export class GeminiTurns {
   /**
    * A dialogue answer is owed: a press with voice was released, or text was typed, and that answer has not ended
    * (ruling 8, choice 16); one released while an earlier answer streamed is owed from that answer's end (`owedNext`).
-   * A flag, not a count: two voiced releases (or typed texts) waiting at once for their answers to start — both made
-   * before any answer streams, both while the same earlier answer streams, or one while it streams and one after it
-   * ends — are one claim, so a voiceless press before either answer streams drops the second's answer, not its own.
+   * A flag, not a count: two answers waiting at once to start are one claim, which the first of them to end clears, so
+   * a voiceless press made before the second's answer streams drops that answer, not its own. The two are either two
+   * voiced releases (or typed texts) — both made before any answer streams, both while the same earlier answer
+   * streams, or one while it streams and one after it ends — or, on a model that answers an empty press, a tap's and a
+   * release's: within one streaming answer, a tap, then a voiced press (or typed text) that ends the tap's pending drop
+   * and is released, then another tap. There the first tap's queued answer takes the release's claim: the release's
+   * row and answer are dropped, and both taps' replies show. With no answer to taps the same order keeps the release;
+   * on balance `owedNext` keeps far more utterances than it loses, and loses none when taps get no answer.
    */
   private owed = false;
   /**
    * A press with voice was released, or text was typed, while an earlier answer streamed: its answer is owed from that
    * answer's end — its `turnComplete` under `NO_INTERRUPTION`, or, on a model that barges in, its `interrupted`
-   * (Gemini/AST2 follow-up, ruling 5) — which moves this flag into `owed` instead of clearing it. It assumes such a
-   * press gets an answer of its own after the streaming one, as both overlap probes did (each answered the second
-   * utterance whole, as its own turn, under automatic detection). Set only while `answering`, and moved on or cleared
-   * wherever `answering` clears, so it implies `answering`: a cancel that meets it always waits for the streaming end.
+   * (Gemini/AST2 follow-up, ruling 5) — which moves this flag into `owed` instead of clearing it. It assumes the next
+   * answer after the streaming one is that press's own, as both overlap probes showed (each answered the second
+   * utterance whole, as its own turn, under automatic detection), unless a tap's answer is queued ahead of it (`owed`).
+   * Set only while `answering`, and moved on or cleared wherever `answering` clears, so it implies `answering`: a
+   * cancel that meets it always waits for the streaming end.
    */
   private owedNext = false;
   /** The cancelled press's own answer is being dropped, until it ends (ruling 8). */

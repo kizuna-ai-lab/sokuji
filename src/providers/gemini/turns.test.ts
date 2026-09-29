@@ -296,14 +296,13 @@ describe('a dialogue model: one turn, one origin, stated', () => {
     t.turnComplete();
     t.output('the next answer');
     const shown = of('segmentText').map((e) => e.payload.text);
-    expect(shown).toContain('Again.');
-    expect(shown).toContain('Encore');
+    // The second press's row, then its own answer, then — the drop ended with the tap's own answer — the next. Typed
+    // text always shows its row, so there the order is what can fail: its answer, not the tap's, follows the row.
+    expect(shown.slice(shown.indexOf('Again.'))).toEqual(['Again.', 'Encore', 'the next answer']);
     expect(shown).not.toContain('an answer to the tap');
     // Each kept answer's audio plays under its own translation; the tap's plays nowhere.
     const encore = of('segmentText').find((e) => e.payload.text === 'Encore')?.payload.ref;
     expect(of('audio').map((e) => e.payload.ref)).toEqual([2, encore]);
-    // The drop ends with the tap's own answer.
-    expect(shown[shown.length - 1]).toBe('the next answer');
   });
 
   it('a press released while an earlier answer streams owes nothing across a reconnect: a tap on the new connection drops the next answer, its own', () => {
@@ -323,7 +322,7 @@ describe('a dialogue model: one turn, one origin, stated', () => {
     ['both before any answer streams', (t: GeminiTurns) => { voiced(t); voiced(t); }],
     ['both while the same earlier answer streams', (t: GeminiTurns) => { voiced(t); t.output('Bonjour'); voiced(t); voiced(t); t.turnComplete(); }],
     ['one while an earlier answer streams, one after it ends', (t: GeminiTurns) => { voiced(t); t.output('Bonjour'); voiced(t); t.turnComplete(); voiced(t); }],
-  ])("the flag's stated limit, a flag and not a count: two voiced releases waiting at once for their answers to start, %s, are one claim, so a tap before either's answer streams drops the second's answer, not its own", (_, releases) => {
+  ])("the flag's stated limit, a flag and not a count: two voiced releases waiting at once for their answers to start, %s, are one claim, so a tap before the second's answer streams (here, before either's) drops the second's answer, not its own", (_, releases) => {
     const { t, of } = turns();
     releases(t);
     tap(t);
@@ -335,6 +334,32 @@ describe('a dialogue model: one turn, one origin, stated', () => {
     t.turnComplete();
     const shown = of('segmentText').map((e) => e.payload.text).filter((text) => text !== 'Bonjour');
     expect(shown).toEqual(["the first release's answer", 'an answer to the tap']);
+  });
+
+  it.each([
+    ['answers an empty press: the first tap\'s queued answer takes the release\'s claim, so the release\'s row and answer are dropped and both taps\' replies show', true, ['Bonjour', 'Bonjour à tous', 'an answer to the first tap', 'an answer to the second tap']],
+    ['answers no empty press: the release keeps its row and its answer', false, ['Bonjour', 'Bonjour à tous', 'Again.', 'Encore']],
+  ])("the flag's stated limit, a tap's queued answer: within one streaming answer, a tap, a voiced press that ends its pending drop and is released, then a tap — on a model that %s", (_, answersTaps, expected) => {
+    const { t, of } = turns();
+    voiced(t);
+    t.output('Bonjour');
+    tap(t);
+    voiced(t);
+    tap(t);
+    t.output(' à tous');
+    t.turnComplete();
+    if (answersTaps) {
+      t.output('an answer to the first tap');
+      t.turnComplete();
+    }
+    t.input('Again.');
+    t.output('Encore');
+    t.turnComplete();
+    if (answersTaps) {
+      t.output('an answer to the second tap');
+      t.turnComplete();
+    }
+    expect(of('segmentText').map((e) => e.payload.text)).toEqual(expected);
   });
 
   it("the model's audio marks its answer streaming, on a leg that does not speak too: a cancel then waits for it", () => {
