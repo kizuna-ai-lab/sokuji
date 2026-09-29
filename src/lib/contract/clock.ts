@@ -106,12 +106,20 @@ export interface VirtualClock extends Clock {
    *  insertion. A timer scheduled by a callback fires in the same advance
    *  when it falls due inside it. */
   advance(ms: number): void;
+  /**
+   * The timers armed and not yet fired or cancelled: what a session's stop
+   * must leave at zero. An interval that outlives `stop()` re-arms on every
+   * beat and never reaches zero (the kit's parked item; Stage 2 Palabra,
+   * ruling 15).
+   */
+  pending(): number;
 }
 
 interface Timer {
   at: number;
   seq: number;
   fn: () => void;
+  /** Cancelled, or fired: either way no longer pending. */
   cancelled: boolean;
 }
 
@@ -123,6 +131,8 @@ export function createVirtualClock(start = 0): VirtualClock {
    *  schedules tens of thousands of timers; a linear scan per pop would be
    *  quadratic. */
   const timers: Timer[] = [];
+  /** Armed, not yet fired or cancelled. */
+  let live = 0;
 
   const before = (a: Timer, b: Timer) => a.at < b.at || (a.at === b.at && a.seq < b.seq);
 
@@ -137,7 +147,12 @@ export function createVirtualClock(start = 0): VirtualClock {
         if (before(timers[mid], timer)) lo = mid + 1; else hi = mid;
       }
       timers.splice(lo, 0, timer);
-      return () => { timer.cancelled = true; };
+      live += 1;
+      return () => {
+        if (timer.cancelled) return;
+        timer.cancelled = true;
+        live -= 1;
+      };
     },
     advance(ms) {
       const target = now + ms;
@@ -148,11 +163,15 @@ export function createVirtualClock(start = 0): VirtualClock {
       while (i < timers.length && timers[i].at <= target) {
         const due = timers[i++];
         if (due.cancelled) continue;
+        // Fired: no longer pending, and a cancel from inside its callback counts nothing.
+        due.cancelled = true;
+        live -= 1;
         now = due.at;
         due.fn();
       }
       timers.splice(0, i);
       now = target;
     },
+    pending: () => live,
   };
 }

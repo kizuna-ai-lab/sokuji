@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AdapterStartError, type Adapter, type AdapterSession, type SessionContext } from '../adapter';
+import { every } from '../clock';
 import { createFakeAdapter, type FakeConfig, type FakeCredentials } from '../../../providers/fake/adapter';
 import { exchange } from '../../../providers/fake/script';
 import { driveAdapter } from './drive';
@@ -176,6 +177,46 @@ describe('runScenario', () => {
       const report = await runScenario({ ...echoHarness, adapter: lateEcho(delay) }, 'open-stop');
       expect({ label, problems: report.problems, violations: report.violations }).toEqual({ label, problems: [], violations: [] });
     }
+  });
+
+  it("lets an exchange answered after an await land before the server's close, with no flush in the harness (Stage 2 Palabra, ruling 15)", async () => {
+    // Answers each frame a few microtasks late and says `closed` on a close it did not ask for: without the kit's flush, the answer would come after `closed`.
+    const lateClosing: Pick<Adapter<EchoConfig, { key: string }>, 'start'> = {
+      start: (request, events) => new Promise<AdapterSession>((resolve) => {
+        const ws = request.config.openSocket('wss://echo.test/translate');
+        let ended = false;
+        ws.onopen = () => resolve(idle(async () => { ended = true; ws.close(1000); }));
+        ws.onmessage = async () => {
+          await hops(3)();
+          events.segmentOpened({ ref: 1, side: 'source' });
+          events.segmentText({ ref: 1, text: 'Hello.' });
+          events.segmentClosed({ ref: 1 });
+        };
+        ws.onclose = () => { if (!ended) { ended = true; events.closed({ reason: 'the server went away' }); } };
+      }),
+    };
+    const report = await runScenario({ ...echoHarness, adapter: lateClosing, serverClose: [{ run: () => sockets.last().serverClose(1011, 'server error') }] }, 'server-close');
+    expect(report).toEqual({ name: 'server-close', violations: [], problems: [] });
+  });
+
+  it('catches a release that produces no segment (Stage 2 Palabra, ruling 15)', async () => {
+    const report = await runScenario(brokenHarness, 'manual-end');
+    expect(report.problems).toContain('the release and the exchange steps produced no segment');
+  });
+
+  it('catches a timer that outlives the session, and counts none for an adapter that cancels its own (Stage 2 Palabra, ruling 15)', async () => {
+    // The template, with a keep-alive it never stops.
+    const leaking: Pick<Adapter<EchoConfig, { key: string }>, 'start'> = {
+      start: async (request, events) => {
+        const session = await createEchoAdapter().start(request, events);
+        every(request.clock, 100, () => {});
+        return session;
+      },
+    };
+    const leaked = await runScenario({ ...echoHarness, adapter: leaking }, 'open-stop');
+    expect(leaked.problems).toContain('1 timer(s) still armed after the session ended');
+    // The control: the template as it is.
+    expect((await runScenario(echoHarness, 'open-stop')).problems).toEqual([]);
   });
 
   it('asks a harness only for what it has', async () => {

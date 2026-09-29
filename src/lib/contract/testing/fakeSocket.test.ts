@@ -57,7 +57,7 @@ describe('FakeSocket', () => {
     expect(onclose).toHaveBeenCalledTimes(1);
   });
 
-  it('a server close is clean only at 1000; a drop is an error, then an unclean 1006', async () => {
+  it("a server's close frame is clean whatever its code, one no frame carries is not, a code no browser reports throws; a drop is an error, then an unclean 1006 (Stage 2 Palabra, ruling 15)", async () => {
     const s = new FakeSocket('wss://x', undefined);
     const onclose = vi.fn();
     s.onclose = onclose;
@@ -65,7 +65,21 @@ describe('FakeSocket', () => {
     s.serverClose(1011, 'err');
     await Promise.resolve();
     expect(onclose).toHaveBeenCalledTimes(1);
-    expect(onclose.mock.calls[0][0]).toMatchObject({ code: 1011, reason: 'err', wasClean: false });
+    expect(onclose.mock.calls[0][0]).toMatchObject({ code: 1011, reason: 'err', wasClean: true });
+
+    for (const [code, clean] of [[1008, true], [4001, true], [1006, false], [1005, false], [1015, false]] as const) {
+      const c = new FakeSocket('wss://c', undefined);
+      const seen = vi.fn();
+      c.onclose = seen;
+      c.open();
+      c.serverClose(code);
+      await Promise.resolve();
+      expect(seen.mock.calls[0][0], String(code)).toMatchObject({ code, wasClean: clean });
+    }
+    const bad = new FakeSocket('wss://b', undefined);
+    bad.open();
+    expect(() => bad.serverClose(999)).toThrow('no browser reports that close code');
+    expect(() => bad.serverClose(5000)).toThrow('no browser reports that close code');
 
     const d = new FakeSocket('wss://y', undefined);
     const onerror = vi.fn();
@@ -79,6 +93,21 @@ describe('FakeSocket', () => {
     await Promise.resolve();
     expect(dropClose).toHaveBeenCalledTimes(1);
     expect(dropClose.mock.calls[0][0]).toMatchObject({ code: 1006, wasClean: false });
+  });
+
+  it("refuses a close code or reason a browser refuses, as a browser does: before anything closes (Stage 2 Palabra, ruling 15)", () => {
+    const s = new FakeSocket('wss://x', undefined);
+    s.open();
+    for (const code of [1001, 1006, 1008, 2999, 5000]) {
+      expect(() => s.close(code), String(code)).toThrow(expect.objectContaining({ name: 'InvalidAccessError' }));
+    }
+    expect(() => s.close(1000, 'x'.repeat(124))).toThrow(expect.objectContaining({ name: 'SyntaxError' }));
+    expect(s.readyState).toBe(FakeSocket.OPEN);
+    expect(s.closedByClient).toBeNull();
+    // What a browser takes: no code, 1000, 3000–4999, and a reason of 123 bytes.
+    expect(() => new FakeSocket('wss://a', undefined).close()).not.toThrow();
+    expect(() => new FakeSocket('wss://b', undefined).close(3000, 'x'.repeat(123))).not.toThrow();
+    expect(() => new FakeSocket('wss://c', undefined).close(4999)).not.toThrow();
   });
 
   it('closing a socket that never opened fails it, as a browser does: error, then an unclean 1006, after the call returns', async () => {

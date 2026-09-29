@@ -13,6 +13,7 @@ export function trackedClock(): { clock: VirtualClock; timers: () => number } {
   const clock: VirtualClock = {
     now: () => inner.now(),
     advance: (ms) => inner.advance(ms),
+    pending: () => inner.pending(),
     setTimeout(fn, ms) {
       const id = Symbol('timer');
       live.add(id);

@@ -6,8 +6,10 @@
  * adapter's, the server's or a dropped connection's — fires `close` once,
  * on a microtask as a browser queues it, and nothing after it; an adapter
  * closing a socket that never opened fails it (`error`, then an unclean
- * 1006); a binary frame arrives as `binaryType` asks. Test-only: nothing
- * but a test imports `src/lib/contract/testing`.
+ * 1006), and a close code or reason a browser refuses throws as a browser
+ * does; a server's close frame is a clean close, whatever its code; a
+ * binary frame arrives as `binaryType` asks. Test-only: nothing but a test
+ * imports `src/lib/contract/testing`.
  */
 export type SocketData = string | ArrayBufferLike | Blob | ArrayBufferView;
 
@@ -51,6 +53,13 @@ export class FakeSocket extends EventTarget {
   }
 
   close(code?: number, reason?: string): void {
+    // A browser refuses these before anything else (the kit's parked item; Stage 2 Palabra, ruling 15): a code only 1000 or 3000–4999, a reason of at most 123 bytes.
+    if (code !== undefined && code !== 1000 && !(code >= 3000 && code <= 4999)) {
+      throw new DOMException(`Failed to execute 'close' on 'WebSocket': The close code must be either 1000, or between 3000 and 4999. ${code} is neither.`, 'InvalidAccessError');
+    }
+    if (reason !== undefined && new TextEncoder().encode(reason).length > 123) {
+      throw new DOMException("Failed to execute 'close' on 'WebSocket': The close reason must not be greater than 123 UTF-8 bytes.", 'SyntaxError');
+    }
     if (this.readyState >= FakeSocket.CLOSING) return;
     this.closedByClient = { code, reason };
     // Before `open` a browser fails the connection: `error`, then an unclean 1006, whatever code was asked.
@@ -73,10 +82,17 @@ export class FakeSocket extends EventTarget {
     this.fire(new MessageEvent('message', { data: delivered }));
   }
 
-  /** The server closes the connection: clean at 1000, unclean at any other code. */
+  /**
+   * The server closes the connection with a close frame: a clean close,
+   * whatever its code (1008, Palabra's rate limit, too). 1005, 1006 and 1015
+   * never travel in a frame — a browser reports them for a close no frame
+   * ended — so they arrive unclean. A code no browser reports throws: the
+   * test is wrong (the kit's parked item; Stage 2 Palabra, ruling 15).
+   */
   serverClose(code = 1000, reason = ''): void {
+    if (!(code >= 1000 && code <= 4999)) throw new Error(`serverClose(${code}): no browser reports that close code`);
     if (this.readyState >= FakeSocket.CLOSING) return;
-    this.closing(code, reason, code === 1000);
+    this.closing(code, reason, code !== 1005 && code !== 1006 && code !== 1015);
   }
 
   /** The connection drops: `error`, then an unclean `close` 1006. */

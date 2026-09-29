@@ -43,6 +43,33 @@ describe('createVirtualClock', () => {
     clock.advance(50);
     expect(seen).toEqual([10, 20]);
   });
+
+  it('counts the timers armed and not yet fired or cancelled (the kit\'s pending count; Stage 2 Palabra, ruling 15)', () => {
+    const clock = createVirtualClock();
+    expect(clock.pending()).toBe(0);
+    const cancelA = clock.setTimeout(() => {}, 10);
+    clock.setTimeout(() => {}, 20);
+    expect(clock.pending()).toBe(2);
+    cancelA();
+    // A second cancel, or a cancel after it fired, counts nothing.
+    cancelA();
+    expect(clock.pending()).toBe(1);
+    clock.advance(20);
+    expect(clock.pending()).toBe(0);
+    const cancelFired = clock.setTimeout(() => {}, 5);
+    clock.advance(5);
+    cancelFired();
+    expect(clock.pending()).toBe(0);
+  });
+
+  it('never reaches zero while an interval runs, and does once it is cancelled', () => {
+    const clock = createVirtualClock();
+    const stop = every(clock, 100, () => {});
+    clock.advance(1_000);
+    expect(clock.pending()).toBe(1);
+    stop();
+    expect(clock.pending()).toBe(0);
+  });
 });
 
 describe('every', () => {

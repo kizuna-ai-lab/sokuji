@@ -87,6 +87,8 @@ export async function runScenario<C, K>(h: AdapterHarness<C, K>, name: ScenarioN
   const drive = (context: SessionContext, opening: readonly ScenarioStep[], steps: readonly ScenarioStep[]) =>
     driveAdapter(h.adapter, { context, config: h.config(context, name), credentials: h.credentials, opening, steps });
   const manual: SessionContext = { ...AUTO, turns: 'manual' };
+  // The exchange's answer lands before whatever the scenario does next: an adapter that answers after an `await` needs no flush of its harness's own (the kit's parked item; Stage 2 Palabra, ruling 15).
+  const exchange: readonly ScenarioStep[] = [...h.exchange, { flush: true }];
   let r: DriveResult;
   switch (name) {
     case 'open-stop':
@@ -104,6 +106,7 @@ export async function runScenario<C, K>(h: AdapterHarness<C, K>, name: ScenarioN
       break;
     case 'manual-end':
       r = await drive(manual, h.opening(name), [{ turn: 'begin' }, { audio: 600 }, { turn: 'end' }, ...h.exchange]);
+      if (!kinds(untilStop(r.log)).includes('segmentOpened')) problems.push('the release and the exchange steps produced no segment');
       break;
     case 'manual-cancel':
       r = await drive(manual, h.opening(name), [{ turn: 'begin' }, { audio: 100 }, { turn: 'cancel' }, { advance: 5_000 }]);
@@ -113,12 +116,12 @@ export async function runScenario<C, K>(h: AdapterHarness<C, K>, name: ScenarioN
       r = await drive(AUTO, h.opening(name), [{ text: 'typed words' }, ...h.answerText]);
       break;
     case 'server-close':
-      r = await drive(AUTO, h.opening(name), [...h.exchange, ...h.serverClose]);
+      r = await drive(AUTO, h.opening(name), [...exchange, ...h.serverClose]);
       if (!kinds(r.log).some((k) => k === 'closed' || k === 'failed')) problems.push('the server ended the session and the adapter did not say so (failed or closed)');
       break;
     case 'reconnect': {
       if (!h.reconnect) throw new Error('this harness does not reconnect');
-      r = await drive(AUTO, h.opening(name), [...h.exchange, ...h.reconnect, ...h.exchange]);
+      r = await drive(AUTO, h.opening(name), [...exchange, ...h.reconnect, ...h.exchange]);
       const k = kinds(r.log);
       const at = k.indexOf('reconnecting');
       if (at < 0 || k.indexOf('reconnected', at) < 0) problems.push('no reconnecting followed by reconnected');
@@ -132,5 +135,7 @@ export async function runScenario<C, K>(h: AdapterHarness<C, K>, name: ScenarioN
     if (r.startOutcome === 'hung') problems.push('start neither resolved nor rejected after the opening steps (it hung)');
     if (r.startOutcome === 'rejected') problems.push(`start rejected: ${describeCause(r.startError)}`);
   }
+  // Stopped or refused, and the clock run on: an adapter leaves no timer armed — an interval that outlives its session re-arms forever (the kit's parked item; Stage 2 Palabra, ruling 15). A start that hung is still opening, its bound still armed: its own problem says so.
+  if (r.startOutcome !== 'hung' && r.clock.pending() > 0) problems.push(`${r.clock.pending()} timer(s) still armed after the session ended`);
   return { name, violations: r.violations, problems };
 }
