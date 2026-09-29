@@ -144,8 +144,8 @@ function testOnlyModules(files: readonly string[], importers: ReadonlyMap<string
 }
 
 const isTest = (f: string) => /\.test\.tsx?$/.test(f);
-/** The kit, and each provider's fixtures (`src/providers/<name>/testing.ts`): whatever imports either must itself be test-only. */
-const inKit = (f: string) => f.startsWith('src/lib/contract/testing/') || /^src\/providers\/[^/]+\/testing\.ts$/.test(f);
+/** The kit, each provider's fixtures (`src/providers/<name>/testing.ts`) and any `*.testing.ts` (the recorded sessions' replay, Stage 2 translation cuts): whatever imports one must itself be test-only. */
+const inKit = (f: string) => f.startsWith('src/lib/contract/testing/') || /^src\/providers\/[^/]+\/testing\.ts$/.test(f) || /\.testing\.ts$/.test(f);
 
 /** Every `.ts` / `.tsx` under `src` (no `.d.ts`), the files each imports by value (resolved), and who imports each. */
 function importGraph(root: string): { files: string[]; importers: Map<string, Set<string>>; targets: Map<string, string[]> } {
@@ -295,6 +295,8 @@ describe('a provider session side', () => {
 
   it("a session side runs no global timer: every timer reads the request's clock", () => {
     expect(providerDirs().flatMap((dir) => timerOffenders(REPO_ROOT, dir))).toEqual([]);
+    // The walk does not follow `src/lib/**`: the one shared module two session sides cut their segments with, by name (Stage 2 translation cuts, choice 1).
+    expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
   });
 
   it("only test-only modules import the adapter test kit or a provider's fixtures", () => {
