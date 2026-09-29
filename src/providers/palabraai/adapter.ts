@@ -149,7 +149,7 @@ class PalabraLeg implements AdapterSession {
     private readonly deps: PalabraAdapterDeps,
   ) {
     this.items = new PalabraItems(events);
-    // The bound and the abort are armed before anything opens, so nothing can leave a socket behind (the OpenAI Realtime review's hardening).
+    // The bound and the abort are armed before anything opens, so nothing can leave a socket behind (the OpenAI Translate leg's shape, as OpenAI Realtime hardened it).
     this.opening = new Promise<AdapterSession>((resolve, reject) => {
       const { clock, signal } = request;
       const cancelTimer = clock.setTimeout(() => this.refuse(this.opened

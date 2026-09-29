@@ -15,16 +15,15 @@ export const CHUNK_SAMPLES = (SAMPLE_RATE * CHUNK_MS) / 1000;
 /**
  * How long no audio must have come before the silence starts (ruling 3).
  * Four capture cadences feed this rule, its worklet buffer over its
- * AudioContext's own rate (fix round 1, I1 — 500 ms held only for the
- * microphone, and spliced silence into a participant leg's speech on its
- * fallback):
+ * AudioContext's own rate (ruling 3: 800 ms, not the owner's "about half
+ * a second", for the participant fallback below):
  *   - microphone worklet: 4 096 samples at 48 kHz, 85.3 ms, downsampled to
  *     2 048 at 24 kHz (`audio-recorder-worklet-processor.js:22`,
  *     `ModernAudioRecorder.ts:353`, `:97` for the 48 kHz context);
  *   - microphone fallback: 16 384 samples at 48 kHz, 341 ms
  *     (`BaseAudioRecorder.ts:206-207`, `performance.js:23`); inherited
- *     unchanged from the base class, so — pre-existing, outside this task —
- *     this path never downsamples, unlike the worklet path above;
+ *     unchanged from the base class, so — pre-existing, and not this
+ *     module's — this path never downsamples, unlike the worklet path above;
  *   - participant worklet: 4 096 samples at 24 kHz, 170.7 ms
  *     (`audio-recorder-worklet-processor.js:22`, `ParticipantRecorder.ts:62`);
  *   - participant fallback: 16 384 samples at 24 kHz, **682.7 ms**
@@ -39,8 +38,8 @@ export const IDLE_MS = 800;
 /**
  * One chunk of silence: what an idle beat sends. Shared and never written —
  * a typed array with elements cannot be frozen, and a writer here would
- * corrupt every later idle beat (fix round 1, N3). Kept an `Int16Array`
- * constant, not a function returning a fresh one: Task 13's adapter imports
+ * corrupt every later idle beat (ruling 3). Kept an `Int16Array`
+ * constant, not a function returning a fresh one: the adapter imports
  * this same instance to encode once and cache the frame.
  */
 export const SILENCE: Int16Array = new Int16Array(CHUNK_SAMPLES);

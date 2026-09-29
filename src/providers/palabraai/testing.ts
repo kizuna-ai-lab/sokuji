@@ -154,8 +154,7 @@ const aborted = (signal: AbortSignal) => signal.reason ?? new DOMException('The 
  * a leaked session (choice 9). Checked twice: before the read starts, and
  * again once it settles — a read already under way when the abort lands
  * rejects too, since `signal.aborted` is already true by the time our own
- * `.then` runs, whatever the native call's own microtask count (fix round 1,
- * M3b).
+ * `.then` runs, whatever the native call's own microtask count.
  */
 function honouring(response: Response, signal: AbortSignal | undefined): Response {
   if (!signal) return response;
@@ -166,7 +165,7 @@ function honouring(response: Response, signal: AbortSignal | undefined): Respons
   return Object.assign(response, { json: guard(response.json.bind(response)), text: guard(response.text.bind(response)) });
 }
 
-/** A REST refusal's title, by its status — a browser-true envelope, not always the platform key's 401 (fix round 1, M3d). */
+/** A REST refusal's title, by its status — a browser-true envelope, not always the platform key's 401. */
 const STATUS_TITLES: Readonly<Record<number, string>> = {
   400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 409: 'Conflict',
   422: 'Unprocessable Entity', 429: 'Too Many Requests', 500: 'Internal Server Error', 502: 'Bad Gateway', 503: 'Service Unavailable',
@@ -178,7 +177,7 @@ const statusTitle = (status: number): string => STATUS_TITLES[status] ?? `HTTP $
  * — an `'ok'` or a status answer resolved `fetch()`'s own promise
  * synchronously, so a signal aborted in the same tick (after `fetch()` was
  * called, before this promise's continuation ran) went unnoticed; a browser
- * rejects it (fix round 1, M3a). `'hang'` and `'later'` need no such check:
+ * rejects it. `'hang'` and `'later'` need no such check:
  * their promise only ever settles from the abort listener or `answer()`.
  */
 const settleNow = (make: () => Response, signal: AbortSignal | undefined): Promise<Response> =>
@@ -214,7 +213,7 @@ export function fakeRest(o: { create?: RestAnswer; list?: RestAnswer; remove?: R
       url: String(input),
       // A browser normalises header names to lowercase (the `Headers` API);
       // recording the raw object hid a case mismatch a real fetch would not
-      // have (fix round 1, M3c). Read `RestCall.headers` by the lowercase
+      // have. Read `RestCall.headers` by the lowercase
       // name, as the adapter's suite does (`clientid`, `content-type`).
       headers: Object.fromEntries(new Headers(init.headers).entries()),
       ...(typeof init.body === 'string' ? { body: init.body } : {}),

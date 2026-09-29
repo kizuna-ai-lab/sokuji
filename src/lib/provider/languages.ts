@@ -35,8 +35,9 @@ export function reversedPair<S>(p: Languages<S>, s: S, pair: LanguagePair): Lang
  * hook would return for it.
  */
 export function reverseSupported<S>(p: Languages<S>, s: S, pair: LanguagePair, context?: LanguageContext): boolean {
+  if (pair.source === AUTO) return false;
   const reversed = reversedPair(p, s, pair);
-  return pair.source !== AUTO && reversed !== null && offers(p.languages.sources(s, context), reversed.source) && offers(p.languages.targets(reversed.source, s, context), reversed.target);
+  return reversed !== null && offers(p.languages.sources(s, context), reversed.source) && offers(p.languages.targets(reversed.source, s, context), reversed.target);
 }
 
 /** The reversed pair; null when the provider does not support it, or when it is the same pair. */

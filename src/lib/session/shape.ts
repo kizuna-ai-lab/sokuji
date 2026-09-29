@@ -126,7 +126,7 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
     // D20: the participant leg runs the reversed pair, in the languages its own speech offers (Stage 2 Volcengine AST2, choice 1); an auto source never reverses.
     const participant = { speech: legSpeaks(p, 'participant', { textOnly: shape.textOnly ?? false, participantSpeech: shape.participantSpeech ?? false }) };
     if (!reverseSupported(p, s, shape.pair, participant)) {
-      // Worded from the pair actually checked (review N3): a hooked provider's reverse of `shape.pair`, not the plain swap.
+      // Worded from the pair actually checked (ruling 9; choice 3): a hooked provider's reverse of `shape.pair`, not the plain swap.
       const reversed = reversedPair(p, s, shape.pair);
       const message = reversed === null
         ? `${p.id} has no reverse of ${shape.pair.source} → ${shape.pair.target}.`

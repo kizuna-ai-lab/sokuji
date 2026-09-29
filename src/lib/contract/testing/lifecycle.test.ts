@@ -238,7 +238,7 @@ describe('runLifecycles', () => {
       },
     };
     const report = await runLifecycles(echoHarness(lateSender), { seed: 7, runs: 20 });
-    expect(report.failures.some((f) => f.endsWith('send(s) after the session ended'))).toBe(true);
+    expect(report.failures.some((f) => f.endsWith('send(s) after the session ended or into a closed socket'))).toBe(true);
   });
 
   it('catches an event said after stop', async () => {
@@ -463,7 +463,7 @@ describe('runLifecycles', () => {
       },
     };
     const report = await runLifecycles(echoHarness(lateGoodbye), { seed: 7, runs: 60 });
-    expect(report.failures.some((f) => f.endsWith('send(s) after the session ended'))).toBe(true);
+    expect(report.failures.some((f) => f.endsWith('send(s) after the session ended or into a closed socket'))).toBe(true);
   });
 
   it('catches a send one microtask after a refusal', async () => {
@@ -479,7 +479,7 @@ describe('runLifecycles', () => {
       },
     };
     const report = await runLifecycles(echoHarness(t20), { seed: 7, runs: 60 });
-    expect(report.failures.some((f) => f.endsWith('send(s) after the session ended'))).toBe(true);
+    expect(report.failures.some((f) => f.endsWith('send(s) after the session ended or into a closed socket'))).toBe(true);
   });
 
   it('reaches its own abort or the start bound while a start is still pending, and pins both', async () => {

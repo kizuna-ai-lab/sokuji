@@ -84,19 +84,14 @@ export class FakeSocket extends EventTarget {
   }
 
   /**
-   * The server closes the connection with a close frame: a clean close for
-   * every code that could actually arrive in one — 1008, Palabra's rate
-   * limit, included; a browser never reports a code it read from a frame as
-   * unclean. 1005 is the empty close frame: no status code at all, so a
-   * browser reports it with an empty reason whatever `reason` was asked
-   * for. 1004, 1015 and 1016–2999 never travel in a frame either, so they
-   * throw: the test is wrong (the kit's parked item; Stage 2 Palabra,
-   * ruling 15). 1006 is left unclean here too, unlike a literal browser
-   * (which never reads 1006 from a frame — it reports 1006 itself, for a
-   * drop it saw with no frame at all): several provider suites already call
-   * `serverClose(1006, …)` to mean exactly "the connection closed
-   * abnormally", so throwing there is a controller decision, not this
-   * fix's (Minor 1, reported, not applied to 1006).
+   * The server closes the connection with a close frame: clean for every
+   * code a frame can carry — 1008, Palabra's rate limit, included. 1005 is
+   * the empty close frame, reported with an empty reason whatever `reason`
+   * is asked. 1004, 1015 and 1016–2999 never travel in a frame, so they
+   * throw: the test is wrong (ruling 15). 1006 is accepted and unclean — a
+   * browser reports it for a drop it saw with no frame at all, never from
+   * one — because five provider suites call `serverClose(1006, …)` to mean
+   * an abnormal close; `drop()` is the preferred form for that.
    */
   serverClose(code = 1000, reason = ''): void {
     if (code === 1004 || code === 1015 || (code >= 1016 && code <= 2999) || !(code >= 1000 && code <= 4999)) {

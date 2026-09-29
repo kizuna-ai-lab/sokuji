@@ -6,9 +6,9 @@
  * (`turn.ts`); typed text where the provider takes it; the server's own
  * steps, the clock, a dropped connection, an abort mid-opening, a stop —
  * over FakeSockets on a virtual clock, and checked for what every adapter
- * owes whatever the interleaving. Modelled on the OpenAI Translate and
- * OpenAI Realtime final reviews' fuzzes; the conformance scenarios pin one
- * path each, this one many orders of the same steps.
+ * owes whatever the interleaving. Modelled on the fuzz testing OpenAI
+ * Translate and OpenAI Realtime's own final passes did; the conformance
+ * scenarios pin one path each, this one many orders of the same steps.
  *
  * What it checks, per run:
  * - the start settles: it resolves or rejects once the opening and the
@@ -366,7 +366,7 @@ export async function runLifecycles<C, K>(h: LifecycleHarness<C, K>, o: { seed: 
     if (clock.pending() > 0) fail(`${clock.pending()} timer(s) still armed after the session ended`);
     const open = sockets.all.filter((s) => s.readyState !== FakeSocket.CLOSED).length;
     if (open > 0) fail(`${open} socket(s) left open after the session ended`);
-    if (state.lateSends > 0) fail(`${state.lateSends} send(s) after the session ended`);
+    if (state.lateSends > 0) fail(`${state.lateSends} send(s) after the session ended or into a closed socket`);
     if (state.terminals > 1) fail(`${state.terminals} failed/closed events: at most one`);
     for (const e of recorder.log) {
       if (e.kind === 'marker') continue;
