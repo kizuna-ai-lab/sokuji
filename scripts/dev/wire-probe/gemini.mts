@@ -26,6 +26,15 @@
  *     behaviour. The report adds each turn's cut class, each utterance heard/translated whole or not,
  *     the latencies, and a pass/fail line. Every list option takes comma-separated values: one session
  *     per combination (models × handlings × policies × begins × releases × gaps).
+ *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts multi [--models a,b] [--policy none,turn] [--scripts seq,mono]
+ *     [--seq-pauses 800,950,1050,1200,1500] [--mono-pauses 800/1200/1000/1500] [--seq-sentences ja,en1,zh2] [--mono-sentences …]
+ *     Three or more different sentences (`gemini-multi.mts`), automatic turns, each model under its own
+ *     rule: `none` is today's barge-in, `turn` the Gemini hold plan's hold (its begin, its release at
+ *     turnComplete, its adaptive cap). `seq`: a long sentence, a short one, a third, with the same pause
+ *     between each — per value of `--seq-pauses`; `mono`: five sentences in a row (the participant leg's
+ *     monologue), the pauses of `--mono-pauses` in turn (a slash separates one session's pauses, a
+ *     comma separates sessions). The report classifies every `interrupted` as the plan's failure mode
+ *     (a) or (b), and gives each answer's lag against L(n+1) ≈ max(L(n) + A(n) − P − U(n+1), c) + f.
  *
  * Every mode logs each server message's top-level and serverContent keys
  * (`msg`) and, verbatim, every key it does not otherwise read
@@ -51,6 +60,7 @@ import {
   BEGINS, POLICIES, RELEASES, createHold, holdReport, longClip, timeline, whereIn,
   type EndFlag, type Hold, type HoldOptions, type Utterance,
 } from './gemini-hold.mts';
+import { SCRIPTS, SENTENCES, multiReport, parsePauses, sequence, type Script } from './gemini-multi.mts';
 
 const INPUT_RATE = 24000;
 const CHUNK_MS = 100;
@@ -208,7 +218,12 @@ function wireReport(w: Wire): string {
   ].join('\n');
 }
 
-interface Probe { hold?: HoldOptions; name?: string }
+interface Probe {
+  hold?: HoldOptions;
+  name?: string;
+  /** The `multi` mode: these sentences in turn, with these speech pauses between them (cycled). */
+  multi?: { script: string; ids: readonly string[]; pauses: readonly number[]; label: string };
+}
 
 async function session(kind: 'dialogue' | 'translate', model: string, variant: Variant = {}, probe: Probe = {}): Promise<void> {
   const tag = [variant.activityHandling, variant.turnCoverage].filter(Boolean).map((v) => v!.replace(/^(TURN_INCLUDES_|START_OF_ACTIVITY_)/, '').toLowerCase()).join('+');
@@ -299,6 +314,7 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
           tr.audio.push(pcm);
           tr.events.push({ t, kind: 'audio', samples: pcm.length, rate: tr.rate });
           run.log('in', 'audio', { samples: pcm.length, ms: Math.round((1000 * pcm.length) / tr.rate), mime: inline.mimeType });
+          hold?.audio(t, (1000 * pcm.length) / tr.rate);
           hold?.signal('output');
         } else if (part.text) {
           run.log('in', 'modelTurn.text', { text: part.text });
@@ -368,20 +384,25 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
   const clip = readWav(CLIPS.ja, INPUT_RATE);
   let sent = 0;
   let utterances: Utterance[] = [];
+  let clips: ReturnType<typeof sequence>['clips'] = [];
   let streamT0 = 0;
   if (probe.hold) {
     // The capture timeline at real-time pace; every entry through the hold, which sends it or keeps it.
     const o = probe.hold;
     const long = o.clip === 'long';
-    const plan = timeline(long ? longClip(clip, INPUT_RATE) : clip, INPUT_RATE, CHUNK_MS, o.gapMs, long ? 20000 : 10000, o.manual, long ? 3 : 1);
+    const m = probe.multi;
+    const seq = m ? sequence(m.ids, m.pauses, INPUT_RATE, CHUNK_MS, 10000) : undefined;
+    const plan = seq ?? timeline(long ? longClip(clip, INPUT_RATE) : clip, INPUT_RATE, CHUNK_MS, o.gapMs, long ? 20000 : 10000, o.manual, long ? 3 : 1);
     utterances = plan.utterances;
+    if (seq) clips = seq.clips;
     const t0 = Date.now();
     streamT0 = run.now();
     const h = createHold(o, { run, ws, streamPos: () => Date.now() - t0, where: (pos) => whereIn(plan.utterances, pos), closed: isClosed });
     hold = h;
     run.log('note', 'stream.begin', {
       seconds: plan.endPos / 1000, chunkMs: CHUNK_MS, gapMs: o.gapMs, realtimeInputConfig: ric, hold: o,
-      utterances: plan.utterances.map((u) => ({ k: u.k, start: Math.round(u.start), onset: Math.round(u.onset), end: Math.round(u.end), stop: Math.round(u.stop) })),
+      ...(m ? { multi: { script: m.script, ids: m.ids, pauses: m.pauses } } : {}),
+      utterances: plan.utterances.map((u) => ({ k: u.k, ...(u.id ? { id: u.id } : {}), start: Math.round(u.start), onset: Math.round(u.onset), end: Math.round(u.end), stop: Math.round(u.stop) })),
     });
     for (const e of plan.entries) {
       const wait = t0 + e.pos - Date.now();
@@ -420,15 +441,22 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
   const all = concat(...turns.flatMap((x) => x.audio));
   if (all.length) writeWav(`${run.dir}/${run.name}.wav`, all, turns[0]?.rate ?? 24000);
   const held = hold as Hold | null;
+  const m = probe.multi;
   run.report([
-    `model \`${model}\` (${kind}), ${src} → ${dst}; gap ${gap} ms; activityHandling ${String(ric.activityHandling ?? '(default)')}, turnCoverage ${String(ric.turnCoverage ?? '(default)')}; ${turns.length} turn(s); close ${JSON.stringify(closed)}`,
-    `**${coverage(turns)}**`,
+    `model \`${model}\` (${kind}), ${src} → ${dst}; ${m ? `pauses ${m.label} ms` : `gap ${gap} ms`}; activityHandling ${String(ric.activityHandling ?? '(default)')}, turnCoverage ${String(ric.turnCoverage ?? '(default)')}; ${turns.length} turn(s); close ${JSON.stringify(closed)}`,
+    // The clip pair's own regexes: meaningless for the multi mode's sentences, which its own report counts.
+    ...(m ? [] : [`**${coverage(turns)}**`]),
     '',
     ...turns.map(analyse),
     wireReport(wire),
-    ...(probe.hold && held
-      ? [holdReport({ o: probe.hold, utterances, streamT0, holds: held.holds, sent: held.sent, inputs: wire.inputs, turns, ends: wire.ends, va: wire.va })]
-      : []),
+    ...(probe.hold && held && m
+      ? [multiReport({
+        script: m.script, policy: probe.hold.policy, pausesLabel: m.label, utterances, clips, streamT0,
+        holds: held.holds, sent: held.sent, inputs: wire.inputs, turns, ends: wire.ends, va: wire.va,
+      }).text]
+      : probe.hold && held
+        ? [holdReport({ o: probe.hold, utterances, streamT0, holds: held.holds, sent: held.sent, inputs: wire.inputs, turns, ends: wire.ends, va: wire.va })]
+        : []),
   ].join('\n\n'));
 }
 
@@ -519,6 +547,55 @@ if (step === 'overlap') {
   console.log(`hold: ${combos.length} session(s), about ${Math.ceil(seconds / 60)} min`);
   for (const c of combos) {
     await session(isGeminiTranslateModel(c.model) ? 'translate' : 'dialogue', c.model, { activityHandling: c.handling, turnCoverage }, { hold: c.o, name: c.name });
+  }
+} else if (step === 'multi') {
+  // Automatic turns only, each model under its own rule (3.x barge-in): `none` is today, `turn` the plan's hold.
+  if (manual) {
+    console.error('multi runs automatic turns only.');
+    process.exit(2);
+  }
+  const wanted = list('models') ?? ['gemini-3.8-live', 'gemini-3.1-flash-live-preview'];
+  const chosen = wanted.filter((m) => ids.includes(m));
+  const missing = wanted.filter((m) => !ids.includes(m));
+  if (missing.length) console.log(`Not listed by this key, skipped: ${missing.join(', ')}`);
+  const policies = oneOf('policy', ['none', 'turn'] as const, ['none', 'turn']);
+  const scripts = oneOf('scripts', Object.keys(SCRIPTS) as Script[], ['seq', 'mono']);
+  const sentences = (script: Script): string[] => {
+    const own = list(`${script}-sentences`) ?? [...SCRIPTS[script]];
+    const bad = own.filter((id) => !SENTENCES[id]);
+    if (bad.length || own.length < 3) {
+      console.error(`--${script}-sentences: three or more of ${Object.keys(SENTENCES).join(', ')}${bad.length ? ` (not known: ${bad.join(', ')})` : ''}.`);
+      process.exit(2);
+    }
+    return own;
+  };
+  const pausesOf: Record<Script, number[][]> = {
+    seq: parsePauses(opt('seq-pauses') ?? '800,950,1050,1200,1500'),
+    mono: parsePauses(opt('mono-pauses') ?? '800/1200/1000/1500'),
+  };
+  const combos: Array<{ model: string; o: HoldOptions; multi: NonNullable<Probe['multi']>; name: string; seconds: number }> = [];
+  for (const model of chosen) {
+    for (const script of scripts) {
+      const idsOf = sentences(script);
+      for (const pauses of pausesOf[script]) {
+        for (const policy of policies) {
+          const label = pauses.join('/');
+          const o: HoldOptions = { policy, begin: 'activity_end', release: 'burst', pace: 4, minMs: 0, maxMs: 8000, manual: false, gapMs: 0, clip: 'default', rules: 'plan', cap: 'plan' };
+          const speech = idsOf.reduce((n, id) => n + (SENTENCES[id].to - SENTENCES[id].from + 160) / 1000, 0);
+          const gaps = idsOf.slice(1).reduce((n, _, i) => n + pauses[i % pauses.length] / 1000, 0);
+          combos.push({
+            model, o, multi: { script, ids: idsOf, pauses, label },
+            name: ['multi', script, model.replace(/[^a-z0-9.-]+/gi, '_'), `p${pauses.join('_')}`, policy].join('-'),
+            // The sentences, the pauses, the tail, and a few seconds of setup and of the last answer.
+            seconds: speech + gaps + 10 + 5,
+          });
+        }
+      }
+    }
+  }
+  console.log(`multi: ${combos.length} session(s), about ${Math.ceil(combos.reduce((n, c) => n + c.seconds, 0) / 60)} min`);
+  for (const c of combos) {
+    await session(isGeminiTranslateModel(c.model) ? 'translate' : 'dialogue', c.model, {}, { hold: c.o, name: c.name, multi: c.multi });
   }
 } else {
   const variant: Variant = { activityHandling: opt('activity-handling'), turnCoverage: opt('turn-coverage') };

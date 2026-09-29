@@ -40,7 +40,26 @@ export interface HoldOptions {
   manual: boolean;
   gapMs: number;
   clip: 'default' | 'long';
+  /**
+   * `probe` (the `hold` mode's own): the `--begin` cascade, with its guards.
+   * `plan` (the `multi` mode's): the Gemini hold plan's choice 2 — ACTIVITY_END
+   * always begins; else a model turn's first output, or its first input
+   * transcription only on a session that has heard no voice activity; none
+   * while the user speaks, one per model turn, no "after generationComplete" guard.
+   */
+  rules?: 'probe' | 'plan';
+  /**
+   * `fixed`: `maxMs`. `plan` (choice 6): 2 s past the model turn's computed
+   * playback end — its first audio's arrival plus all its audio — recomputed at
+   * each part, or 10 s after the hold began while no model audio has come
+   * (reason `idle`).
+   */
+  cap?: 'fixed' | 'plan';
 }
+
+/** The plan's cap (choice 6): the margin past the computed playback end, and the wait with no model audio. */
+export const PLAN_CAP_MARGIN_MS = 2000;
+export const PLAN_IDLE_MS = 10000;
 
 /**
  * `--begin activity_end` begins on the first of a `voiceActivity`
@@ -74,6 +93,8 @@ export interface Utterance {
   stop: number;
   /** How many times the clip's sentence pair is spoken in it (3 for `--clip long`). */
   reps: number;
+  /** The `multi` mode's: which sentence it is (`gemini-multi.mts`). */
+  id?: string;
 }
 
 /** The first and last 10 ms frame louder than a tenth of the loudest one, in ms. */
@@ -163,12 +184,16 @@ export function whereIn(us: readonly Utterance[], pos: number): string {
 // ---------- the hold ----------
 
 export interface HoldRecord {
+  /** 1-based, in the order holds began. */
+  n: number;
   cause: string;
   /** Run time it began, and the stream position then. */
   t: number;
   pos: number;
   where: string;
   released?: number;
+  /** The stream position when it let go. */
+  releasedPos?: number;
   reason?: string;
   heldMs?: number;
   audioMs?: number;
@@ -177,10 +202,12 @@ export interface HoldRecord {
   /** The longest stretch with no server message while it held: what an idle cap would have seen. */
   maxQuietMs?: number;
   sendMs?: number;
+  /** The model turn's computed playback end (first audio's arrival plus all its audio), from the hold's begin; null with no model audio. */
+  playbackEndMs?: number | null;
 }
 
-/** One audio frame as it went out: its stream position and length, when, and whether a hold had kept it. */
-export interface SentAudio { pos: number; ms: number; at: number; held: boolean }
+/** One audio frame as it went out: its stream position and length, when, and — when a hold had kept it — which hold (1-based) let it go. */
+export interface SentAudio { pos: number; ms: number; at: number; held: boolean; hold?: number }
 
 export interface HoldDeps {
   run: Run;
@@ -199,24 +226,31 @@ export type Hold = ReturnType<typeof createHold>;
  * order is kept). The socket's handler feeds it the server's signals.
  */
 export function createHold(o: HoldOptions, d: HoldDeps) {
+  const rules = o.rules ?? 'probe';
+  const capRule = o.cap ?? 'fixed';
   const queue: Entry[] = [];
   const holds: HoldRecord[] = [];
   const sent: SentAudio[] = [];
   let current: HoldRecord | null = null;
   let draining = false;
-  // Per model turn: has it finished generating, has its first output been seen; and is the user speaking (voiceActivity).
+  // Per model turn: has it finished generating, has its first output been seen, has a hold begun in it, and its audio
+  // (first arrival, total ms: the plan's computed playback end). Per session: is the user speaking, has any voice activity come.
   let genDone = false;
   let outputSeen = false;
+  let heldThisTurn = false;
+  let turnFirstAudio: number | undefined;
+  let turnAudioMs = 0;
   let vaOpen = false;
+  let heardVa = false;
   let capTimer: ReturnType<typeof setTimeout> | undefined;
   let minTimer: ReturnType<typeof setTimeout> | undefined;
   let quietFrom = 0;
   let maxQuiet = 0;
 
-  function sendEntry(e: Entry, held: boolean): void {
+  function sendEntry(e: Entry, from?: HoldRecord): void {
     if (e.kind === 'audio') {
       d.ws.send(audioFrame(e.pcm));
-      sent.push({ pos: e.pos, ms: e.ms, at: d.run.now(), held });
+      sent.push({ pos: e.pos, ms: e.ms, at: d.run.now(), held: from !== undefined, hold: from?.n });
       return;
     }
     d.ws.send(e.data);
@@ -225,12 +259,12 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
     if (e.label === 'activityEnd' && o.manual && o.policy !== 'none') begin('activity_end_sent');
   }
 
-  function sendBurst(entries: Array<Extract<Entry, { kind: 'audio' }>>): void {
+  function sendBurst(entries: Array<Extract<Entry, { kind: 'audio' }>>, from: HoldRecord): void {
     const pcm = concat(...entries.map((e) => e.pcm));
     d.ws.send(audioFrame(pcm));
     const at = d.run.now();
-    for (const e of entries) sent.push({ pos: e.pos, ms: e.ms, at, held: true });
-    d.run.log('out', 'audio.burst', { frames: entries.length, ms: Math.round(entries.reduce((n, e) => n + e.ms, 0)), bytes: pcm.length * 2 });
+    for (const e of entries) sent.push({ pos: e.pos, ms: e.ms, at, held: true, hold: from.n });
+    d.run.log('out', 'audio.burst', { hold: from.n, frames: entries.length, ms: Math.round(entries.reduce((n, e) => n + e.ms, 0)), bytes: pcm.length * 2, fromMs: Math.round(entries[0].pos) });
   }
 
   function push(e: Entry): void {
@@ -239,24 +273,44 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
       if (e.kind === 'frame') d.run.log('note', 'hold.defer', { label: e.label, pos: Math.round(e.pos) });
       return;
     }
-    sendEntry(e, false);
+    sendEntry(e);
+  }
+
+  /** The plan's cap (choice 6), re-armed at the begin and at each model part. */
+  function armPlanCap(): void {
+    const h = current;
+    if (!h) return;
+    clearTimeout(capTimer);
+    const now = d.run.now();
+    const idle = turnFirstAudio === undefined;
+    const delay = idle ? h.t + PLAN_IDLE_MS - now : turnFirstAudio! + turnAudioMs + PLAN_CAP_MARGIN_MS - now;
+    capTimer = setTimeout(() => {
+      d.run.log('note', 'hold.cap', { n: h.n, rule: 'plan', idle, streamMs: Math.round(d.streamPos()) });
+      release(idle ? 'idle' : 'cap');
+    }, Math.max(0, delay));
   }
 
   function begin(cause: string): void {
     if (current) return;
     const pos = d.streamPos();
-    current = { cause, t: d.run.now(), pos: Math.round(pos), where: d.where(pos) };
+    current = { n: holds.length + 1, cause, t: d.run.now(), pos: Math.round(pos), where: d.where(pos) };
     holds.push(current);
+    heldThisTurn = true;
     quietFrom = current.t;
     maxQuiet = 0;
-    d.run.log('note', 'hold.begin', { n: holds.length, cause, streamMs: current.pos, where: current.where });
+    d.run.log('note', 'hold.begin', { n: current.n, cause, streamMs: current.pos, where: current.where });
+    if (capRule === 'plan') {
+      armPlanCap();
+      return;
+    }
+    const n = current.n;
     capTimer = setTimeout(() => {
-      d.run.log('note', 'hold.cap', { n: holds.length, maxMs: o.maxMs, streamMs: Math.round(d.streamPos()) });
+      d.run.log('note', 'hold.cap', { n, maxMs: o.maxMs, streamMs: Math.round(d.streamPos()) });
       release('cap');
     }, o.maxMs);
   }
 
-  function release(reason: string): void {
+  function release(reason: string, playbackEnd = turnFirstAudio === undefined ? undefined : turnFirstAudio + turnAudioMs): void {
     const h = current;
     if (!h) return;
     clearTimeout(capTimer);
@@ -268,16 +322,18 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
     const audio = queue.filter((e) => e.kind === 'audio');
     Object.assign(h, {
       released: now,
+      releasedPos: Math.round(d.streamPos()),
       reason,
       heldMs: now - h.t,
       audioMs: Math.round(audio.reduce((n, e) => n + (e.kind === 'audio' ? e.ms : 0), 0)),
       entries: queue.length,
       actions: queue.length - audio.length,
       maxQuietMs: Math.round(Math.max(maxQuiet, now - quietFrom)),
+      playbackEndMs: playbackEnd === undefined ? null : Math.round(playbackEnd - h.t),
     });
     d.run.log('note', 'hold.release', {
-      n: holds.indexOf(h) + 1, reason, heldMs: h.heldMs, audioMs: h.audioMs, entries: h.entries, actions: h.actions,
-      maxQuietMs: h.maxQuietMs, release: o.release, streamMs: Math.round(d.streamPos()),
+      n: h.n, reason, heldMs: h.heldMs, audioMs: h.audioMs, entries: h.entries, actions: h.actions,
+      maxQuietMs: h.maxQuietMs, playbackEndMs: h.playbackEndMs, release: o.release, streamMs: h.releasedPos,
     });
     void drain(h);
   }
@@ -292,18 +348,18 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
       if (o.release === 'burst' && queue[0].kind === 'audio') {
         let n = 0;
         while (n < queue.length && queue[n].kind === 'audio') n += 1;
-        sendBurst(queue.splice(0, n) as Array<Extract<Entry, { kind: 'audio' }>>);
+        sendBurst(queue.splice(0, n) as Array<Extract<Entry, { kind: 'audio' }>>, h);
         messages += 1;
         continue;
       }
       const e = queue.shift()!;
-      sendEntry(e, true);
+      sendEntry(e, h);
       messages += 1;
       if (e.kind === 'audio' && o.release === 'paced') await sleep(e.ms / o.pace);
     }
     draining = false;
     h.sendMs = d.run.now() - t0;
-    d.run.log('note', 'hold.sent', { n: holds.indexOf(h) + 1, sendMs: h.sendMs, messages, bufferedBytes: d.ws.bufferedAmount, left: queue.length });
+    d.run.log('note', 'hold.sent', { n: h.n, sendMs: h.sendMs, messages, bufferedBytes: d.ws.bufferedAmount, left: queue.length });
   }
 
   function skip(kind: Signal, why: string): void {
@@ -317,6 +373,15 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
       outputSeen = true;
     }
     if (o.policy === 'none' || o.manual || current) return;
+    if (rules === 'plan') {
+      // Choice 2: ACTIVITY_END always; the fallbacks never while the user speaks, one per model turn, and the input
+      // transcription only on a session that has heard no voice activity.
+      if (kind === 'activity_end') return begin(kind);
+      if (vaOpen) return skip(kind, 'voice activity is open: the user is still speaking');
+      if (heldThisTurn) return skip(kind, 'a hold already began in this model turn');
+      if (kind === 'input' && heardVa) return skip(kind, 'this session has heard voice activity: the input fallback is off');
+      return begin(kind);
+    }
     if (!CASCADE[o.begin].includes(kind)) return;
     // A transcription piece or an output while the user still speaks is not the turn's close.
     if (kind !== 'activity_end' && vaOpen) return skip(kind, 'voice activity is open: the user is still speaking');
@@ -327,22 +392,26 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
 
   /** A model-turn end flag, fed in its semantic order (generation, interrupt, turn). */
   function end(flag: EndFlag): void {
+    const playbackEnd = turnFirstAudio === undefined ? undefined : turnFirstAudio + turnAudioMs;
     if (flag === 'generationComplete') genDone = true;
     if (flag === 'interrupted' || flag === 'turnComplete') {
       genDone = false;
       outputSeen = false;
+      heldThisTurn = false;
+      turnFirstAudio = undefined;
+      turnAudioMs = 0;
     }
     if (!current || o.policy === 'none' || !RELEASED_BY[o.policy].includes(flag)) return;
     const early = o.minMs - (d.run.now() - current.t);
     if (early > 0) {
       if (!minTimer) {
         const why = `${flag}+hold-min`;
-        minTimer = setTimeout(() => release(why), early);
+        minTimer = setTimeout(() => release(why, playbackEnd), early);
         d.run.log('note', 'hold.min', { flag, waitMs: Math.round(early) });
       }
       return;
     }
-    release(flag);
+    release(flag, playbackEnd);
   }
 
   return {
@@ -358,7 +427,14 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
       maxQuiet = Math.max(maxQuiet, t - quietFrom);
       quietFrom = t;
     },
+    /** A model audio part: the model turn's computed playback end, and the plan's cap re-armed on it. */
+    audio(t: number, ms: number): void {
+      if (turnFirstAudio === undefined) turnFirstAudio = t;
+      turnAudioMs += ms;
+      if (capRule === 'plan') armPlanCap();
+    },
     voiceActivity(type: string | undefined): void {
+      heardVa = true;
       if (type === 'ACTIVITY_START') vaOpen = true;
       if (type === 'ACTIVITY_END') {
         vaOpen = false;
@@ -367,7 +443,7 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
     },
     /** After the stream: waits for a hold to release (the cap bounds it) and its queue to drain. */
     async settle(): Promise<void> {
-      const until = Date.now() + o.maxMs + o.minMs + 2000;
+      const until = Date.now() + (capRule === 'plan' ? PLAN_IDLE_MS + 30000 : o.maxMs) + o.minMs + 2000;
       while ((current || draining || queue.length) && !d.closed() && Date.now() < until) await sleep(50);
     },
     stop(): void {
