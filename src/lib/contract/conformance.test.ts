@@ -98,6 +98,18 @@ describe('checkConformance rules', () => {
     expect(rules(log)).toContain('frame-secret');
   });
 
+  it('flags a socket URL in a frame payload, whatever carries its credential (Stage 2 Palabra, choice 10)', () => {
+    // `redact()` masks `token=` already: the URL is flagged for being a socket URL, not for its secret.
+    const masked = [frame('out', 'session.opened', { url: 'wss://streaming.palabra.ai/streaming-api/ab12/v1/speech-to-speech/stream?token=[REDACTED]' })];
+    expect(rules(masked)).toContain('frame-url');
+    // A parameter no rule names, deep in the payload, in any case.
+    const unnamed = [frame('in', 'session.whatever', { attempts: [{ to: 'WS://host.example/stream?credential=abc' }] })];
+    expect(rules(unnamed)).toContain('frame-url');
+    // An https URL, or prose that mentions a socket, is no socket URL.
+    const fine = [frame('out', 'session.create', { endpoint: 'https://api.palabra.ai/session-storage/session', note: 'the ws transport' })];
+    expect(rules(fine)).not.toContain('frame-url');
+  });
+
   it('flags audio when speech is off', () => {
     const log: ConformanceLog = [opened(1, 'translation'), text(1, 'hi'), { kind: 'audio', payload: { ref: 1, pcm } }];
     expect(rules(log, { ...auto, speech: false })).toContain('no-audio-when-silent');

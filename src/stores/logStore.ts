@@ -430,7 +430,15 @@ const useLogStore = create<LogStore>(
         // Group Gemini input transcription events together
         groupingKey = 'gemini_input_transcription';
       }
-      // PalabraAI-specific grouping
+      // Palabra's frames that come in streams (Stage 2 Palabra, choice 11): a
+      // partial's snapshots, about four a second, and a sentence's audio, a
+      // burst of 200 ms chunks — each grouped under its own type when
+      // consecutive, the `.delta` rule's way, with no key another provider's
+      // frames could share.
+      else if (eventType === 'transcription.partial' || eventType === 'translation.partial' || eventType === 'audio.output') {
+        groupingKey = eventType;
+      }
+      // PalabraAI-specific grouping (the old client's names; they go with it)
       else if (eventType === 'partial_transcription') {
         // Group PalabraAI partial transcription events together
         groupingKey = 'palabraai_partial_transcription';

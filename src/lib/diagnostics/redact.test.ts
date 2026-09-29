@@ -71,6 +71,33 @@ describe('redact', () => {
     expect(redact('?API_APP_KEY=a1&Api_Access_Key=b2')).toBe('?API_APP_KEY=[REDACTED]&Api_Access_Key=[REDACTED]');
   });
 
+  // palabraai/wire.ts `directUrl` and `sessionUrl` — Palabra's socket takes the
+  // platform key or a REST session's publisher token in its query (Stage 2
+  // Palabra, ruling 1): the parameter's name stays, the value goes.
+  it("redacts Palabra's socket token, keeping the parameter's name", () => {
+    expect(redact('wss://streaming.palabra.ai/streaming-api/4593a758/v1/speech-to-speech/stream?token=plbr_0123456789abcdef'))
+      .toBe('wss://streaming.palabra.ai/streaming-api/4593a758/v1/speech-to-speech/stream?token=[REDACTED]');
+  });
+
+  // palabraai/wire.ts `restHeaders` / `directUrl` — Palabra's platform key has a
+  // documented shape, `plbr_…` (Stage 2 Palabra, choice 10): masked wherever it
+  // stands bare, as the other providers' key shapes are.
+  it('redacts a bare Palabra platform key', () => {
+    expect(redact('Invalid API key plbr_Abc-def_0123456789 for this organization'))
+      .toBe('Invalid API key [REDACTED] for this organization');
+    expect(redact('plbr_short')).toBe('plbr_short');
+  });
+
+  // palabraai/wire.ts `readCreated` — a REST session's publisher token, and its
+  // id of the same shape in the owner's probe, are JWTs (Stage 2 Palabra,
+  // choice 10): masked whole. A string that only starts like one stays.
+  it('redacts a JWT whole', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwdWJsaXNoZXIifQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+    expect(redact(`publisher ${jwt} issued`)).toBe('publisher [REDACTED] issued');
+    expect(redact(`{"id":"${jwt}"}`)).toBe('{"id":"[REDACTED]"}');
+    expect(redact('eyJ is how every JWT starts')).toBe('eyJ is how every JWT starts');
+  });
+
   it('redacts Bearer tokens but keeps the scheme', () => {
     expect(redact('Authorization: Bearer sess_abcdef123456'))
       .toBe('Authorization: Bearer [REDACTED]');

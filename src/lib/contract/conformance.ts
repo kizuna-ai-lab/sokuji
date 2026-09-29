@@ -202,6 +202,8 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         if (problem) flag('frame-clean', problem, index);
         const secret = frameSecret(payload);
         if (secret) flag('frame-secret', secret, index);
+        const url = frameUrl(payload);
+        if (url) flag('frame-url', url, index);
         break;
       }
       default:
@@ -237,6 +239,31 @@ function dirtyFrame(value: unknown, path = 'payload'): string | null {
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       if (CREDENTIAL_KEY.test(k)) return `${path}.${k} looks like a credential`;
       const p = dirtyFrame(v, `${path}.${k}`);
+      if (p) return p;
+    }
+  }
+  return null;
+}
+
+/**
+ * Where a frame payload holds a socket URL, or null (Stage 2 Palabra,
+ * choice 10): Gemini's key, Doubao AST 2.0's credentials and Palabra's
+ * token ride in their socket's query, and `redact()` masks only the
+ * parameters it names. No adapter frames its URL; this holds every one to
+ * it, whatever the parameter is called.
+ */
+function frameUrl(value: unknown, path = 'payload'): string | null {
+  if (typeof value === 'string') return /\bwss?:\/\//i.test(value) ? `${path} carries a socket URL` : null;
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const p = frameUrl(value[i], `${path}[${i}]`);
+      if (p) return p;
+    }
+    return null;
+  }
+  if (value && typeof value === 'object' && !(value instanceof Int16Array || value instanceof ArrayBuffer || ArrayBuffer.isView(value))) {
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const p = frameUrl(v, `${path}.${k}`);
       if (p) return p;
     }
   }

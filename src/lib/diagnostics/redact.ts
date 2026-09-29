@@ -38,6 +38,10 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   // credentials in the socket's query (`volcengine_ast2/wire.ts` `ast2Url`,
   // Stage 2 Volcengine AST2 ruling 2). The URL is never put in a frame, an
   // error or a notice; this is the net for one that reaches a sink anyway.
+  //
+  // `token`: Palabra's socket takes the platform key, or a REST session's
+  // publisher token, in its query (`palabraai/wire.ts` `directUrl` and
+  // `sessionUrl`, Stage 2 Palabra, ruling 1) — the same net.
   [
     /([?&](?:key|api_key|api_app_key|api_access_key|apikey|token|access_token|accessToken|secret|signature|x-credential|x-signature|x-security-token)=)[^&\s"']+/gi,
     `$1${REDACTED}`,
@@ -59,7 +63,17 @@ const PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
   // Bare provider key shapes. `sk-`/`AIza`/`key-` were already redacted by
   // errorTracking.ts:57; `ek_` is the OpenAI ephemeral client secret
   // (EphemeralTokenService.ts:190), which :200 could otherwise dump wholesale.
-  [/\b(?:sk-|AIza|key-|ek_)[A-Za-z0-9_-]{10,}\b/g, REDACTED],
+  // `plbr_` is Palabra's platform key, a documented shape (its OpenAPI's
+  // `APIKey` scheme), in the REST header and the direct socket's query
+  // (`palabraai/wire.ts` `restHeaders`, `directUrl`): a net for a key
+  // Palabra's own words might quote (Stage 2 Palabra, choice 10).
+  [/\b(?:sk-|AIza|key-|ek_|plbr_)[A-Za-z0-9_-]{10,}\b/g, REDACTED],
+  // A JWT, whole: Palabra's REST session hands out a publisher token (and an
+  // id of the same shape, as the owner's probe logged it) that rides the
+  // session socket's query (`palabraai/wire.ts` `readCreated`, `sessionUrl`;
+  // Stage 2 Palabra, choice 10). Neither is framed; this is the net, and
+  // what lets the kit's `frame-secret` rule catch one that is.
+  [/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, REDACTED],
   // Account addresses — named in #441. Reached via the wallet and auth paths
   // (UserProfileContext, settingsStore.ts:1121).
   [/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, REDACTED],

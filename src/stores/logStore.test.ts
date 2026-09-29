@@ -237,6 +237,24 @@ describe('logStore — per-client event grouping', () => {
     for (const type of others) add(type);
     expect(entriesFor('speaker').slice(deltas.length).map((e) => [e.eventType, e.groupingKey])).toEqual(others.map((type) => [type, undefined]));
   });
+
+  it("groups Palabra's streamed frames each under its own type, and gives its other frames no key (Stage 2 Palabra, choice 11)", () => {
+    const add = (type: string) => useLogStore.getState().addRealtimeEvent({ type, data: {} } as any, 'server', type, 'speaker');
+    const streamed = ['transcription.partial', 'translation.partial', 'audio.output'];
+    for (const type of streamed) {
+      add(type);
+      add(type);
+    }
+    expect(entriesFor('speaker').map((e) => [e.groupingKey, e.events?.length])).toEqual(streamed.map((type) => [type, 2]));
+    // None of its other names is the microphone's row, one of Doubao's (`subtitle.*`, `tts.*`, `session.usage`, `session.audio_muted`), the old client's, or anyone's: one entry each, ungrouped.
+    const others = [
+      'session.create', 'session.created', 'session.create_failed', 'session.opened', 'task.set', 'task.get', 'task.not_found', 'task.current',
+      'transcription.validated', 'translation.final', 'audio.idle', 'audio.resumed', 'turn.flush',
+      'session.warning', 'session.error', 'session.end_of_stream', 'session.unknown', 'session.unreadable', 'session.socket_error', 'session.connection_lost',
+    ];
+    for (const type of others) add(type);
+    expect(entriesFor('speaker').slice(streamed.length).map((e) => [e.eventType, e.groupingKey])).toEqual(others.map((type) => [type, undefined]));
+  });
 });
 
 describe('logStore — channel filing', () => {
