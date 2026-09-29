@@ -383,6 +383,8 @@ export class ContinuousSegments {
     if (this.owed.length === 0 && this.source) {
       this.cancelTranslation();
       this.waiting = true;
+      // Already settled by a reason other than its own quiet: the quiet after the source's close settles it at once, at its pause, not the hold (choice 13).
+      if (reason !== 'quiet') this.held = true;
       return;
     }
     this.closeTranslation(reason);

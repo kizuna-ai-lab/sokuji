@@ -548,6 +548,25 @@ describe("the translation's own quiet (translation cuts, ruling 1; choices 6–9
     expect(closed().slice(2)).toEqual([{ ref: 3 }, { ref: 4 }, { ref: 5 }]);
   });
 
+  it('a source\'s pause to begin restarts at each later close, not just the first: a translation beginning between the two still states the older cut, the newer one still owed (choice 8)', () => {
+    const { s, at, opened, cuts } = segments({ ...SILENCE, translationMs: 3_000 });
+    s.sourceText('一。');
+    // s1 closes at 1 500, with none open: its pause to begin runs to 4 500.
+    at(1_600);
+    s.sourceText('二。');
+    // s2 closes at 3 100, still with none open: the pause to begin restarts from here, to 6 100.
+    at(5_000);
+    // Past s1's deadline (4 500) but short of s2's (6 100): nothing has been dropped yet.
+    s.translationText('One.');
+    expect(cuts).toEqual([]);
+    expect(opened()[2]).toEqual({ ref: 3, side: 'translation', origin: 's1' });
+    at(5_100);
+    s.translationText(' Two.');
+    // The cut owed first (s1) is taken; s2's is still owed, not dropped, and the next translation follows it.
+    expect(cuts).toEqual([{ reason: 'sentences', origin: 's1', sentences: 1, owed: 1, dropped: 0 }]);
+    expect(opened()[3]).toEqual({ ref: 4, side: 'translation', origin: 's2' });
+  });
+
   it('a translation that begins more than its pause after its source closed, with no source open, closes as that source\'s (choice 9)', () => {
     const { s, at, opened, closed, cuts } = segments();
     s.sourceText('今天天气很好。');
@@ -664,6 +683,39 @@ describe('typed text, .done, a turn end, stop (translation cuts, choices 12, 13)
     s.done('translation');
     expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
     expect(cuts).toEqual([{ reason: 'done', origin: 's1', sentences: 0, owed: 0, dropped: 0 }]);
+  });
+
+  it("a translation .done mid-sentence with nothing owed and its source still open settles at the source's pause after it closes, not the 5 s hold (choice 13)", () => {
+    const { s, at, closed, cuts } = segments();
+    // A first exchange, so the stream has shown a sentence end (choice 6): it stays shown for the session.
+    s.sourceText('你好。');
+    at(200);
+    s.translationText('Hello.');
+    at(1_700);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+
+    // The second exchange: nothing owed yet, its source still open, when the translation's .done arrives mid-sentence.
+    at(6_700);
+    s.sourceText('第二');
+    at(6_900);
+    s.translationText('The second');
+    at(7_000);
+    s.done('translation');
+    // Nothing owed, the source open: it waits (choice 7).
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+    // The source closes on its own pause at 8 200 (its last delta at 6 700, plus 1 500).
+    at(8_199);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+    at(8_200);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }]);
+    // Without the fix it would wait a further 5 s hold from here (to 13 200). With it, it settles at once at its own
+    // pause after the source's close: 9 700 — not 13 200.
+    at(9_699);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }]);
+    at(9_700);
+    // Its origin was already stated when it opened (the source was still open then), so it is not restated here (choice 5).
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }, { ref: 4 }]);
+    expect(cuts[cuts.length - 1]).toEqual({ reason: 'quiet', origin: 's3', sentences: 0, owed: 0, dropped: 0 });
   });
 
   it('a turn end closes the source and settles the translation for it', () => {
