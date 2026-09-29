@@ -193,6 +193,16 @@ describe("Palabra AI's segments: one sentence, one id (survey §2.8)", () => {
     expect(h.of('segmentText').filter((t) => t.ref === 2)).toEqual([{ ref: 2, text: '' }]);
   });
 
+  it("the probe's own case: a final with the same text and the same language as its last partial is still sent (fix round 2, m1)", () => {
+    const h = items();
+    h.feed(SERVER.partial(JA));
+    h.feed(SERVER.validated(JA));
+    expect(h.of('segmentText')).toEqual([
+      { ref: 1, text: JA, language: 'ja' },
+      { ref: 1, text: JA, language: 'ja' },
+    ]);
+  });
+
   it("two sentences with overlapping bursts: one sentence's last chunk does not fill the other (fix round 1, m2)", () => {
     const h = items();
     h.feed(SERVER.translated('A.', 'a'));
