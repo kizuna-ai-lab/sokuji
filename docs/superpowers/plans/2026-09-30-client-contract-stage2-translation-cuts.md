@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Standing of the rulings below.** Rulings 1–3 are **the owner's decisions** (2026-09-30, in conversation, on the spike he asked for): the rule itself — 「按你方案先spike测试，看看测试结果如何」, then, on its results, 「如果测试结果好，就按你推荐」 (ruling 1; the spike's results were good: research notes); the translation segment stating its origin, the recommendation he accepted with it (ruling 2); and Gemini Live Translate too — 「的确Gemini Live Translate有同样的问题」 (ruling 3). Where a ruling leaves a sub-decision to this plan, the answer is a numbered *choice* below, and the self-review lists each one. **Choices 7, 8 and 9 go beyond what the spike ran** — cases its three sessions never met, found while writing — and are marked so wherever they land. **Revision 1** carries the controller's rulings on the plan's independent review (2026-09-30; Ready after fixes — 1 Critical, 2 Important, 10 Minor), binding like the rest: the terminal marks of the scripts ruling 1 does not name, and the mid-sentence hold only once the translation's stream has shown a sentence end (C1; choices 3, 6 — a stated departure, not an owner's question); a translation beginning for a newer open source drops the stale cuts, a translation that follows no cut continues the source that closed last, and typed text clears that continuation (I1; choices 8, 9, 12); one sentence-end rule shared by every count, with the cases that pin it (I2; choice 3); and the ten Minors, among them a fourth fixture from a recorded Gemini Live Translate session and the new starting point `43437057` (the self-review lists each). The controller ruled choices 7–9, with those fixes, adapter heuristics serving the owner's stated goal, not his decisions: none is left open for him. This plan runs after the Stage 2 Gemini hold plan, whose code and record have landed in the same worktree (`95860d69` through `0a421e1f`), and after the spike (`8a177214`); every anchor is by content.
+> **Standing of the rulings below.** Rulings 1–3 are **the owner's decisions** (2026-09-30, in conversation, on the spike he asked for): the rule itself — 「按你方案先spike测试，看看测试结果如何」, then, on its results, 「如果测试结果好，就按你推荐」 (ruling 1; the spike's results were good: research notes); the translation segment stating its origin, the recommendation he accepted with it (ruling 2); and Gemini Live Translate too — 「的确Gemini Live Translate有同样的问题」 (ruling 3). Where a ruling leaves a sub-decision to this plan, the answer is a numbered *choice* below, and the self-review lists each one. **Choices 7, 8 and 9 go beyond what the spike ran** — cases its three sessions never met, found while writing — and are marked so wherever they land. **Revision 1** carries the controller's rulings on the plan's independent review (2026-09-30; Ready after fixes — 1 Critical, 2 Important, 10 Minor), binding like the rest: the terminal marks of the scripts ruling 1 does not name, and the mid-sentence hold only once the translation's stream has shown a sentence end (C1; choices 3, 6 — a stated departure, not an owner's question); a translation beginning for a newer open source drops the stale cuts, a translation that follows no cut continues the source that closed last, and typed text clears that continuation (I1; choices 8, 9, 12); one sentence-end rule shared by every count, with the cases that pin it (I2; choice 3); and the ten Minors, among them a fourth fixture from a recorded Gemini Live Translate session and the new starting point `43437057` (the self-review lists each). The controller ruled choices 7–9, with those fixes, adapter heuristics serving the owner's stated goal, not his decisions: none is left open for him. **Revision 2** carries the controller's rulings on the re-check of Revision 1 (2026-09-30; Ready after fixes — 0 Critical, 1 Important, 3 Minor), binding likewise: no mid-sentence hold for a target whose script writes no sentence-final mark — a Thai or Lao target, read from Gemini Live Translate's config — since one stray Latin mark latched the hold for the whole session (N1; choices 6, 12), and Khmer's `។៕` counted as the other scripts' marks (N1, M3; choice 3); the Gemini fixture named as the push-to-talk session it is (M1); and a case that the pause to begin ends once a translation begins (M2). This plan runs after the Stage 2 Gemini hold plan, whose code and record have landed in the same worktree (`95860d69` through `0a421e1f`), and after the spike (`8a177214`); every anchor is by content.
 
 **Goal:** On OpenAI Translate and Gemini Live Translate — the two providers whose streams have no turns, so the adapter cuts both sides — give each source segment its own translation, as the owner's live session did not: the source is still cut by its own silence timer, and the translation is **cut where its source was**, stating that source as its origin, so the panel groups each pair as *stated*, never by proximity. Concretely:
 - **A source segment that closes owes the translation one cut:** `{ origin, n, lastAt }` — `n` its sentence ends, at least one; `lastAt` the request clock's time of its last delta.
 - **The cut:** once the open translation holds `n` sentence ends, the latest of them arriving strictly after `lastAt`, the next translation delta closes it and opens the next segment with itself. Audio that arrives before that delta stays with the segment that closes.
-- **Sentence ends:** a CJK `。？！` wherever it stands, a Latin `.?!` only before whitespace or at the end — and the marks of the scripts ruling 1 does not name, Hindi's `।` among them, as the CJK ones (choice 3). One rule, shared by every count.
-- **The translation's own quiet** still closes it, but only at a sentence end: a translation that stops mid-sentence waits once more, to 5 s after its last activity — once its stream has shown a sentence end, since a script that writes none (Thai) would otherwise be held for good (choice 6). A quiet close takes the cut owed first as its origin, and drops any other still owed (choice 8).
+- **Sentence ends:** a CJK `。？！` wherever it stands, a Latin `.?!` only before whitespace or at the end — and the marks of the scripts ruling 1 does not name, Hindi's `।` and Khmer's `។` among them, as the CJK ones (choice 3). One rule, shared by every count.
+- **The translation's own quiet** still closes it, but only at a sentence end: a translation that stops mid-sentence waits once more, to 5 s after its last activity — once its stream has shown a sentence end, and never for a target whose script writes none (Thai, Lao), which would otherwise be held for good (choice 6). A quiet close takes the cut owed first as its origin, and drops any other still owed (choice 8).
 - **OpenAI Translate's output frames below RMS 0.002** — its noise floor — neither open the translation nor hold it open; they still play inside an open one (ruling 1 (vii); choice 11). Gemini's audio keeps its own rules (ruling 3).
 - **Each translation cut is framed** for the Logs, `translation.cut`, with why it closed (choice 14).
 
@@ -19,7 +19,7 @@ It ends with the controller's docs task and the owner's live test (Task 4).
 **Architecture:**
 - **A new pure module, `src/lib/segmentation/continuousSegments.ts` (`ContinuousSegments`)**, on the request's clock: both sides of a continuous interpreter — the source's segments, its silence timer and its mid-sentence deferral (moved, not changed), the translation's segments, the cuts the sources owe, the origins, and the translation's audio with its ranges by arrival. One class, because both sides share one ref counter and the source's close is the cause of the translation's cut (choice 1). It says each cut to an optional callback.
 - **OpenAI Translate's `segments.ts`** becomes a wrapper around it: what is its own is the noise floor (`wire.ts` gains `QUIET_RMS` and `isQuietFrame`) and the `.done` events (choices 11, 13).
-- **Gemini's `turns.ts`** hands its Live Translate half to the module — the dialogue half is untouched — reading the source with Gemini 3.x's CJK spaces removed; its audio neither opens nor holds a translation, as before (ruling 3; choice 12).
+- **Gemini's `turns.ts`** hands its Live Translate half to the module — the dialogue half is untouched — reading the source with Gemini 3.x's CJK spaces removed; its audio neither opens nor holds a translation, as before (ruling 3; choice 12). Its adapter turns the module's mid-sentence hold off for a Thai or Lao target (`writesSentenceMarks`, choice 6); OpenAI Translate's thirteen targets all write marks, and it keeps the hold.
 - **Each adapter** frames `translation.cut` (`out`) from the module's callback (choice 14).
 - **The recordings:** the spike's three sessions and one recorded Gemini Live Translate session as four small JSON fixtures, a committed generator that writes them from the git-ignored recordings, and a test-only replay (`replay.testing.ts`, under the kit rule) that feeds a leg at each event's own arrival time and reads the result through L1 and L2 — the panel's own pairing (choice 15).
 - **`sessionSide.consistency.test.ts`** gains two lines: the kit rule covers every `*.testing.ts`, and the session-side timer scan reads the shared module by name, which the walk does not reach (choice 1).
@@ -55,13 +55,18 @@ It ends with the controller's docs task and the owner's live test (Task 4).
   1. **A target whose sentence end is neither `。？！` nor `.?!` collapsed every translation into one row** (C1). With the three recordings' translation marks rewritten as Hindi's danda, today's rule paired 12 of 19 and Revision 0's rule 3: no cut was ever due, every quiet read as mid-sentence, the 5 s hold never ran out. With no marks at all (Thai, Lao), 3 of 19 again. Hindi is one of OpenAI Translate's thirteen targets; Gemini Live Translate offers Hindi, Bengali, Marathi, Urdu `۔`, Arabic `؟`, Burmese `။`, Armenian `։`, Amharic `።`, Thai and Lao among its 78. Revision 1's rule — the other scripts' marks counted as the CJK ones, and the hold only once the stream has shown a sentence end (choices 3, 6) — pairs the danda sessions 19 of 19 and the no-mark ones 18 of 19 through the module (15 of 19 through OpenAI Translate's segments, whose speech audio holds a translation open as a delta does), none alone; the recorded ones are unchanged. Rulings 1 (iii) and (vi) name no mark for these scripts: how they read there is a stated departure (Task 4).
   2. **Choices 8 and 9, as Revision 0 wrote them, mis-paired three plausible cases that today's proximity pairs right** (I1): (a) a filler, or a sentence in the target language, then the next sentence within about the translation's pause plus the interpreter's lag — the next translation took the filler's cut, and the sentence it translates stood alone, until the next quiet; (b) a translation beginning more than its pause after its source closed, with no source open — its cut dropped, it joined the previous exchange as the last one paid; (c) an answer to typed text on Live Translate, should one come — it streamed beside its typed row, inferred, then jumped into the last spoken exchange at its close. The review's fixes, tried in its scratch and ruled: a translation that begins, within its pause to begin, while a newer source is already open follows that source and drops the stale cuts (choice 8); a translation that follows no cut continues the spoken source that closed last, not the last one paid (choice 9); typed text clears that continuation (choices 9, 12). The 36-setting sweep gives the same counts with them.
   3. **The translation side's count was under-pinned** (I2): its per-delta reading re-implemented the source's count, and six mutants survived the full suites — a Latin mark within a delta counted without the whitespace after it ("1.5" in one delta), a CJK mark within one counted only before whitespace (the spike's own first bug, on the side that decides every cut for en → ja and en → zh), the first end's time read where ruling 1 (iv) says the last, three ways, and a settled trailing end stamped with the next delta's arrival. One rule now serves every count (`endsSentence`, choice 3), and the cases that pin it are Task 1's.
-  4. **Two Gemini Live Translate sessions had been recorded** (`.superpowers/wire-probes/gemini/2026-09-28T19-15-21-…`, `…19-41-14-…`), which Revision 0 said none had. The second is the fourth fixture: its source splits mid-sentence (お手伝い | します。, 3.6 s apart), and today's half at a 0.8 s translation pause leaves seven translation fragments alone. Through this plan's `GeminiTurns`, 2 of 2, stated, none alone, at 1.5 s and at 0.8 s — the first translation closing at "…I'm" where the source did, its mid-sentence pause coming before the stream's first sentence end (choice 6's cost; "What this plan leaves"), and "here to help." with the source that holds します。. By sentence, "…I'm here to help." with the first.
+  4. **Two Gemini Live Translate sessions had been recorded** (`.superpowers/wire-probes/gemini/2026-09-28T19-15-21-…`, `…19-41-14-…`), which Revision 0 said none had. The second is the fourth fixture. **It is a push-to-talk session** (automatic activity detection off: the clip went up in two presses, 2.5 s apart — Revision 2, M1): its source splits mid-sentence (お手伝い | します。, 3.6 s apart) at the gap between those presses, not at a speaker's pause; and today's half at a 0.8 s translation pause leaves seven translation fragments alone. Through this plan's `GeminiTurns`, 2 of 2, stated, none alone, at 1.5 s and at 0.8 s — the first translation closing at "…I'm" where the source did, its mid-sentence pause coming before the stream's first sentence end (choice 6's cost; "What this plan leaves"), and "here to help." with the source that holds します。. By sentence, "…I'm here to help." with the first.
   5. **The Minors** (the self-review lists each): the hold's constant pinned; the continuation case with two paid cuts; a quiet close with a cut owed while the next source is open; the replay named `replay.testing.ts` under the kit rule; the module in the session-side timer scan by name; closing quotes skipped before a text's last mark; `GeminiTurns` Live Translate by its kind alone; the new starting point.
-- **A scratch copy of the tree** at `8a177214` (a `git archive`, `node_modules` linked, outside the repository, 2026-09-30) ran every code and test block below before it was written down; each block is that copy's file, and every diff is generated from it; Revision 1 was written the same way on a scratch copy of `43437057`. Each task's red step was run against the code before the task and each green step after it, with the counts quoted in the steps; then the revised plan was replayed on a fresh copy of `43437057`, task by task, from this document's own blocks — every diff taken by `patch -p1`, every new file written from its block, the recordings generated by the generator block and checked against the hashes quoted — and every step's count came out as quoted. At `43437057` (as at `8a177214`): **573 files passed and 1 skipped, 7 453 tests passed and 2 skipped**. After Wave 1: **574 files passed and 1 skipped, 7 490 tests passed and 2 skipped**; after Wave 2: **576 files passed and 1 skipped, 7 504 tests passed and 2 skipped**; no unhandled errors; the typecheck gate exactly the baseline's 20 lines after each wave, and the full tree at 259 lines, none naming a new file. Fifty-four hand mutants ran against the result — the review's survivors among them — and fifty failed at least one test; the other four are equivalent (the self-review lists them). The review's seeded fuzz, 3 000 seeds, its vocabulary widened by a danda and a Thai delta, found no violation of its invariants.
+- **Found in re-check** (Revision 2; the re-check of Revision 1, `/home/jiangzhuo/.claude/jobs/ac3aa5d5/tmp/translate-cuts-plan-rereview.md`, and the controller's rulings on it, 2026-09-30):
+  1. **The "shown an end" gate latched for the session** (N1): in a Thai or Lao translation — the scripts it exists for — one early Latin mark (a question mark, an era's abbreviation "พ.ศ.", a decimal split across deltas) turned the mid-sentence hold on for good, and C1's collapse came back: with the three recordings' translation marks removed but the first one kept, 4 of 19 through either provider, where today's rule pairs 12. Thai text carries such marks routinely. The fix, ruled: the module takes `holdMidSentence`, and Gemini's adapter turns it off for a `th` or `lo` target (choices 6, 12) — the same run then pairs 18 of 19 through the module, none alone, as with no marks at all; OpenAI Translate's thirteen targets all write marks, so it keeps the hold. The gate stays: under the key it only decides when a session's first hold may start in a script that writes marks, the trailing-Latin-mark trigger with it (the re-check accepts it with this fix). And Khmer's `។៕` are counted (choice 3): Khmer, a Live Translate target, writes `?` too, so it would have latched the same way.
+  2. **The Gemini fixture is push-to-talk** (M1): named so in "Found in review" 4, choice 15, the generator's comment, the replay's header and the replay case.
+  3. **That the pause to begin ends when a translation opens was unpinned** (M2; the re-check's mutant R-F1c, `beginning` not cleared at the open, survived): a translation that began inside the pause to begin, cut at its sentences while the speaker is on a newer source, would have its next segment drop the owed cut and follow the open source. The case now pins it (Task 1).
+  4. **Khmer is no longer a leftover** (M3); Tibetan and Greek stay, as stated.
+- **A scratch copy of the tree** at `8a177214` (a `git archive`, `node_modules` linked, outside the repository, 2026-09-30) ran every code and test block below before it was written down; each block is that copy's file, and every diff is generated from it; Revisions 1 and 2 were written the same way on a scratch copy of `43437057`. Each task's red step was run against the code before the task and each green step after it, with the counts quoted in the steps; then the plan as revised (Revision 2) was replayed on a fresh copy of `43437057`, task by task, from this document's own blocks — every diff taken by `patch -p1`, every new file written from its block, the recordings generated by the generator block and checked against the hashes quoted — and every step's count came out as quoted. At `43437057` (as at `8a177214`): **573 files passed and 1 skipped, 7 453 tests passed and 2 skipped**. After Wave 1: **574 files passed and 1 skipped, 7 492 tests passed and 2 skipped**; after Wave 2: **576 files passed and 1 skipped, 7 509 tests passed and 2 skipped**; no unhandled errors; the typecheck gate exactly the baseline's 20 lines after each wave, and the full tree at 259 lines, none naming a new file. Sixty-one hand mutants ran against the result — the review's and the re-check's survivors among them — and fifty-seven failed at least one test; the other four are equivalent (the self-review lists them). The review's seeded fuzz, 3 000 seeds, its vocabulary widened by a danda and a Thai delta, found no violation of its invariants, on Revision 1 and again on Revision 2.
 
 ## Global Constraints
 
-- **Starting point.** HEAD `43437057` on `worktree-client-contract-stage2` (Revision 1). Since the spike, `8a177214`, two probe commits of another session have landed in this worktree, `2b9d891a` and `43437057`, and this plan's own `726c0d34`: they touch only `scripts/dev/wire-probe/live.mts` and this document, so `src/` is byte-identical to `8a177214`'s, and `docs/` differs by this document alone. Task 1 writes into the same `scripts/dev/wire-probe/` folder: the pathspec commits keep another session's files out. The session-end-and-wizard plan (`docs/superpowers/plans/2026-09-30-client-contract-stage2-session-end-and-wizard.md`, being written) executes after this one and also edits `src/providers/openai_translate/adapter.ts` — its `stop()` only, which no hunk here touches. Every task anchors its edits by content, not by line: a line number cited here was read at `43437057`. Other commits may land first; every anchor is by content.
+- **Starting point.** `43437057` on `worktree-client-contract-stage2` (Revisions 1 and 2). Since the spike, `8a177214`, two probe commits of another session have landed in this worktree, `2b9d891a` and `43437057`, and this plan's own `726c0d34`: they touch only `scripts/dev/wire-probe/live.mts` and this document, so `src/` is byte-identical to `8a177214`'s, and `docs/` differs by this document alone. Since `43437057`, two documents only: this plan's Revision 1, `89f8b53f`, and the session-end-and-wizard plan, `0a0a1f4d`. Task 1 writes into the same `scripts/dev/wire-probe/` folder: the pathspec commits keep another session's files out. The session-end-and-wizard plan (`docs/superpowers/plans/2026-09-30-client-contract-stage2-session-end-and-wizard.md`) executes after this one and shares three of its files, `src/providers/openai_translate/{wire,adapter,adapter.test}.ts` — `wire.ts`'s header and imports and `adapter.ts`'s `stop()` among its hunks; its own replay applied them on this plan's Revision 1 result, and Revision 2 changes none of this plan's hunks in those files. Every task anchors its edits by content, not by line: a line number cited here was read at `43437057`. Other commits may land first; every anchor is by content.
 - **Edits shown as diffs.** A change to an existing file is a unified diff with its context lines, generated from the scratch copy; its hunk headers count the lines at `43437057`. Apply a hunk by its content all the same (`patch -p1` took every one in the replay). A new file is shown in full, and so is the one file rewritten whole, OpenAI Translate's `segments.ts`: replace its content. The recordings are not shown: the generator block writes them, and their SHA-256 hashes are quoted.
 - **What this plan touches:**
   - `src/lib/segmentation/{continuousSegments,continuousSegments.test}.ts`, `src/lib/segmentation/recordings/{replay.testing.ts,user.json,tight.json,long.json,gemini-live-translate.json}` and `scripts/dev/wire-probe/translation-cuts-fixtures.mts` (all new), `src/providers/sessionSide.consistency.test.ts` — Task 1;
@@ -160,19 +165,19 @@ Cited as *choice N*.
 
 1. **One module, in `src/lib/segmentation/`, both sides.** `ContinuousSegments` owns the source's segments (its timer and the `SilenceDeferral` moved from each provider, unchanged — ruling 1 (i)), the translation's segments, the cuts owed, the origins and the translation's ranges by arrival. Both sides in one class because they share one ref counter — refs are never reused within a session (`src/lib/contract/adapter.ts:18`) — and because the source's close is the cause of the translation's cut. `src/lib/segmentation/`, beside `SilenceDeferral`, because no provider imports another's folder. What stays with each provider: OpenAI Translate's noise floor and `.done` events (choices 11, 13); Gemini's CJK spaces (handed in as `showSource`), its audio rules, typed text, a turn end and the reconnect (choice 12). The module is pure: a clock, a sink, an optional `cut` callback; its timers are the source's pause, and one for the translation — its pause, its mid-sentence hold, or, none open, its pause to begin. The session-side guard's walk does not follow `src/lib/**`, so its timer scan reads the module by name (Revision 1, Minor 6).
 2. **A source states its origin when it opens: `s<ref>`.** Every source these two providers open states one, and a close never restates it — OpenAI Realtime's form (research note 9). So `pair.ts`, which infers only for segments that state no origin, leaves every one of them alone, as ruling 2 asks; a translation that states none — one that closes before any cut was paid (choice 9) — shows unpaired, as an OpenAI Realtime translation left with no origin does. Typed text on Live Translate is the exception, and states none (choice 12).
-3. **Sentence ends: ruling 1 (iii), counted across deltas, by one rule — and the other scripts' marks.** One predicate, `endsSentence(mark, next)`, decides every count (Revision 1, I2): a mark of `ANYWHERE_ENDS` ends a sentence wherever it stands; a Latin `.?!` only before whitespace, and with nothing after it yet what follows decides — `undefined`. `countSentenceEnds(text)` counts with it, a Latin mark at the text's end counted ("or the end"); `atSentenceEnd(text)` asks whether the text, trailing whitespace and closing quotes and brackets (`SENTENCE_CLOSERS`) aside, ends on one (Revision 1, Minor 7); the translation counts its deltas with it as they arrive, a Latin mark that ends a delta settled by the next delta's first character and stamped with its own delta's arrival — so "It is 1." then "5" is no end, where the spike, counting each delta alone, counted one (research note 6). **`ANYWHERE_ENDS` is `。？！` and the marks of the scripts ruling 1 (iii) does not name** — Devanagari and Bengali `।॥`, Urdu `۔`, Arabic `؟`, Burmese `။`, Armenian `։`, Ethiopic `።`, the fullwidth `．` and the halfwidth `｡` — counted like the CJK ones (the controller's ruling on C1). **A stated departure:** ruling 1 (iii) names CJK and Latin marks only; read for a script it does not name, a Hindi or Urdu target would never reach a cut, and every quiet would read as mid-sentence ("Found in review" 1); so that script's sentence end is its own mark. Not `sentenceEnd.ts`' rule (its `sentenceEnds`, which `cut.ts` uses for rows): its abbreviations and lowercase continuations were not what the spike ran, and ruling 1 names its own; only its `SENTENCE_CLOSERS` is read. A Latin mark inside a closing quote (`."`) is not counted, as ruling 1 (iii) reads ("What this plan leaves").
+3. **Sentence ends: ruling 1 (iii), counted across deltas, by one rule — and the other scripts' marks.** One predicate, `endsSentence(mark, next)`, decides every count (Revision 1, I2): a mark of `ANYWHERE_ENDS` ends a sentence wherever it stands; a Latin `.?!` only before whitespace, and with nothing after it yet what follows decides — `undefined`. `countSentenceEnds(text)` counts with it, a Latin mark at the text's end counted ("or the end"); `atSentenceEnd(text)` asks whether the text, trailing whitespace and closing quotes and brackets (`SENTENCE_CLOSERS`) aside, ends on one (Revision 1, Minor 7); the translation counts its deltas with it as they arrive, a Latin mark that ends a delta settled by the next delta's first character and stamped with its own delta's arrival — so "It is 1." then "5" is no end, where the spike, counting each delta alone, counted one (research note 6). **`ANYWHERE_ENDS` is `。？！` and the marks of the scripts ruling 1 (iii) does not name** — Devanagari and Bengali `।॥`, Urdu `۔`, Arabic `؟`, Burmese `။`, Armenian `։`, Ethiopic `።`, Khmer `។៕` (Revision 2, N1), the fullwidth `．` and the halfwidth `｡` — counted like the CJK ones (the controller's ruling on C1). **A stated departure:** ruling 1 (iii) names CJK and Latin marks only; read for a script it does not name, a Hindi or Urdu target would never reach a cut, and every quiet would read as mid-sentence ("Found in review" 1); so that script's sentence end is its own mark. Not `sentenceEnd.ts`' rule (its `sentenceEnds`, which `cut.ts` uses for rows): its abbreviations and lowercase continuations were not what the spike ran, and ruling 1 names its own; only its `SENTENCE_CLOSERS` is read. A Latin mark inside a closing quote (`."`) is not counted, as ruling 1 (iii) reads ("What this plan leaves").
 4. **The cut is due at the next translation delta.** Ruling 1 (iv)'s pending cut takes effect only there, so it is read there: before a delta is appended, the cut owed first is due when the open translation holds its `n` sentence ends — the delta read as the lookahead of a trailing Latin terminal — the latest arriving strictly after its `lastAt`. Then the open segment closes, and the delta opens the next. The same decision as the spike's flag, set on each delta and each source close, without the flag. Audio arriving before that delta goes to the open segment, the one that closes (ruling 1 (v)).
 5. **The translation's origin is stated when it opens, when it is known then.** At its open, the cut owed first names it — unless it begins in its pause to begin with a newer source open, whose it then is (choice 8); with none owed, the source still open, whose cut is the next owed. Else it is stated when it closes: the cut it closes for, else the spoken source that closed last (choice 9). **Why at the open:** a translation stated only at its close has no origin while it streams, so L2 draws it apart — no source states none to pair it with — and it jumps into its source's exchange when it closes, every time. **The invariant**, pinned: a translation that states its origin at its open closes for that same cut, and never states another. Only its own close takes an owed cut, the drops of choice 8 happen at its close or with none open, and a source opened while it runs closes after the one it named.
-6. **The translation's own quiet, and what counts as activity.** Its pause is the translation's setting, from its last activity: a delta, or audio that counts — OpenAI Translate's frames at or above the noise floor (choice 11); none of Gemini's (ruling 3). At its expiry: at a sentence end, it settles (choices 7, 8); mid-sentence, it waits once more — the hold, `MID_SENTENCE_HOLD_MS` = 5 000, measured from the last activity: a timer of `5 000 − its pause` armed at the expiry, which fired its pause after that activity, so no end is ever compared with `now()` (the release tail's lesson on the wall clock); activity ends the hold, and gives the next pause its hold again. In every mode: ruling 1 (vi) names none, and the translation side no longer reads the deferral, which stays the source's. **Only once the translation's stream has shown a sentence-end mark** — a counted end, or a Latin mark closing a delta, which may be one (the controller's ruling on C1): a script that writes none, Thai or Lao, never reaches a sentence end, and would be held for the whole session; until the stream shows one, a pause is all there is, and the quiet settles at once. The stated departure of choice 3 extends to ruling 1 (vi): "only at a sentence end" is unobservable in a script without marks. **The cost:** before a session's first translated sentence end, a translation that pauses mid-sentence closes at its pause ("What this plan leaves"; the Gemini fixture's first translation, "Found in review" 4).
+6. **The translation's own quiet, and what counts as activity.** Its pause is the translation's setting, from its last activity: a delta, or audio that counts — OpenAI Translate's frames at or above the noise floor (choice 11); none of Gemini's (ruling 3). At its expiry: at a sentence end, it settles (choices 7, 8); mid-sentence, it waits once more — the hold, `MID_SENTENCE_HOLD_MS` = 5 000, measured from the last activity: a timer of `5 000 − its pause` armed at the expiry, which fired its pause after that activity, so no end is ever compared with `now()` (the release tail's lesson on the wall clock); activity ends the hold, and gives the next pause its hold again. In every mode: ruling 1 (vi) names none, and the translation side no longer reads the deferral, which stays the source's. **Only once the translation's stream has shown a sentence-end mark** — a counted end, or a Latin mark closing a delta, which may be one (the controller's ruling on C1): until the stream shows one, a pause is all there is, and the quiet settles at once. **And never for a target whose script writes no sentence-final mark** (the controller's ruling on N1, Revision 2): the module's `holdMidSentence` option, true by default, which Gemini's adapter sets false for a Thai or Lao target (choice 12). A script that writes none never reaches a sentence end, so every pause would read as mid-sentence; and the gate alone does not protect it, since one stray Latin mark — a question mark, an era's abbreviation, a split decimal — would show "an end" and hold every later pause for the session ("Found in re-check" 1). OpenAI Translate's thirteen targets all write marks: it keeps the default. The stated departure of choice 3 extends to ruling 1 (vi): "only at a sentence end" is unobservable in a script without marks. **The cost:** before a session's first translated sentence end, a translation that pauses mid-sentence closes at its pause ("What this plan leaves"; the Gemini fixture's first translation, "Found in review" 4).
 7. **Beyond the spike: a translation with nothing owed waits for a source still open.** When its quiet comes at a sentence end — or after its hold — with no cut owed and a source open, it does not close: it is that source's translation, and closes for that source's cut. That source's close gives it its pause again, from there; activity meanwhile goes on as ever. The case: a translation that pauses at a sentence end while the speaker is still talking (research note 4) — likelier once the translation's pause is set shorter than the source's. The spike would close it with no origin, an orphan; here its source's cut pays it, and the translation of that source's rest joins it.
-8. **Beyond the spike: a quiet settles what is owed.** A quiet close — its pause at a sentence end, the end of its hold, an endpoint's `.done` or a turn end (choices 12, 13) — takes the cut owed first as its origin, per ruling 1 (vi), **and drops every other cut still owed**; a cut at its sentences leaves them owed. And a source that closes with no translation open gives the translation its pause to begin; when none begins, every cut owed is dropped. **And a translation that begins within that pause while a newer source is already open follows that source, and drops the cuts still owed** (Revision 1, I1's F1): the speaker had moved on before the interpreter said anything for the sources that closed, so what begins now is the newer one's — the filler case, 「嗯。」 then the next sentence within about the translation's pause plus the interpreter's lag ("Found in review" 2 (a)). Both drops are framed `idle`. **Why:** a source the interpreter never translates (research note 4) would otherwise leave its cut at the head of the queue, and every later translation would close for the source before its own, across every real pause. The interpreter translates in order and lags the speaker by about a second: once it has gone quiet for its pause, or said nothing for its pause after a source closed, or said nothing for a source until the next one had begun, what it has not answered it will not. With the drops, ruling 1 (vi)'s "an error does not propagate past a real pause" holds — a source never translated no longer shifts the translations after it, whether the next sentence starts after that pause or within it. **The cost:** a lagging interpreter that says nothing for a source until the next has begun — the trade the review named, pinned — puts that translation beside the newer source; and a translation that begins more than its pause after its source closed, with no source open, closes as that source's continuation (choice 9).
+8. **Beyond the spike: a quiet settles what is owed.** A quiet close — its pause at a sentence end, the end of its hold, an endpoint's `.done` or a turn end (choices 12, 13) — takes the cut owed first as its origin, per ruling 1 (vi), **and drops every other cut still owed**; a cut at its sentences leaves them owed. And a source that closes with no translation open gives the translation its pause to begin; when none begins, every cut owed is dropped. **And a translation that begins within that pause while a newer source is already open follows that source, and drops the cuts still owed** (Revision 1, I1's F1): the speaker had moved on before the interpreter said anything for the sources that closed, so what begins now is the newer one's — the filler case, 「嗯。」 then the next sentence within about the translation's pause plus the interpreter's lag ("Found in review" 2 (a)). Both drops are framed `idle`. The pause to begin ends when a translation opens: the segment that follows a cut at its sentences takes the cut owed next, whatever source is open by then — it does not begin afresh (Revision 2, M2). **Why:** a source the interpreter never translates (research note 4) would otherwise leave its cut at the head of the queue, and every later translation would close for the source before its own, across every real pause. The interpreter translates in order and lags the speaker by about a second: once it has gone quiet for its pause, or said nothing for its pause after a source closed, or said nothing for a source until the next one had begun, what it has not answered it will not. With the drops, ruling 1 (vi)'s "an error does not propagate past a real pause" holds — a source never translated no longer shifts the translations after it, whether the next sentence starts after that pause or within it. **The cost:** a lagging interpreter that says nothing for a source until the next has begun — the trade the review named, pinned — puts that translation beside the newer source; and a translation that begins more than its pause after its source closed, with no source open, closes as that source's continuation (choice 9).
 9. **Beyond the spike: with nothing owed and no source open, a translation continues the spoken source that closed last.** It closes stating that source's origin (Revision 1, I1's F2): the rest of a translation cut one sentence early, whose source has already been paid, or a translation that began more than its pause after its source closed, whose cut was dropped ("Found in review" 2 (b)) — where the last one paid would name the source before it. **Typed text clears it** (I1's typed reset): an answer to typed text, should Live Translate send one, then states no origin, and L2 pairs it with its typed row, which states none either — as today ("Found in review" 2 (c); choice 12). Before any spoken source it states none, and shows unpaired.
 10. **The guard's clock, ruling 1 (viii).** `lastAt` and each sentence end are stamped with the request clock's `now()` as their deltas arrive: arrival, as the spike's `GUARD=arrival` did, for both providers. A wall clock stepped back between a source's last delta and the translation's sentence end makes the cut not due; the translation's quiet settles it instead (choice 8). `elapsed_ms` stays framed on every OpenAI Translate delta and read by nothing.
 11. **OpenAI Translate's noise floor, ruling 1 (vii).** `wire.ts` gains `QUIET_RMS` = 0.002 — the Live client's `OUTPUT_SILENCE_RMS` — and `isQuietFrame(pcm)`: RMS **below** it, as ruling 1 (vii) words it (the Live client's own test is `<=`; the two differ only on a frame exactly at 0.002). `segments.ts` reads it: such a frame neither opens the translation nor counts as its activity; inside an open translation it plays with its range, as today; **outside one it is dropped, as a heartbeat is** — the spike dropped it too, and the Live client drops the noise floor everywhere ("noise for the timeline and for the conversation"). The adapter is unchanged but a comment: it still drops an exact-zero frame as a heartbeat before anything, and still frames every other frame with its RMS. **Not the release tail:** `tail.output()` still hears every non-heartbeat frame, as today; the tail's quiet (1 s) and cap (3 s) were tuned by their own live test, and a floor frame keeping it to its cap costs silence sent, not a cut ("What this plan leaves").
-12. **Gemini Live Translate, ruling 3.** `GeminiTurns` builds a `ContinuousSegments` when `kind` is `'translate'` and hands it every Live Translate call: the input and output transcriptions; the model's audio, with `play` the leg's `speech` and never `active` — so it neither opens a translation nor holds one open, and plays with no ref outside one (Gemini choice 8, kept); the source read with its CJK spaces removed (`normalizeCjkSpaces`, as shown today). **Typed text** is a source row of its own, opened, written and closed at once, stating no origin and owing no cut — as today, now with a ref from the module's one counter: whether Live Translate answers typed text at all is still the Gemini section's open question (its live-test item 7); a cut owed to a text never answered would take the next spoken source's translation until a quiet. A text owing none clears the continuation origin (choice 9), so an answer that begins after it with nothing owed and no source open states no origin, and L2 pairs it with the typed row, as today; an answer that begins while a spoken source is open or owed joins that source's translation. **A `turnComplete` or an `interrupted`**, should Live Translate send one: the source closes (its cut owed) and the translation settles for it — today's close of both sides, kept (the Gemini section's live-test item 8 still asks whether they come). **A reconnect** changes nothing: the segments ride their timers and the cuts stay owed, as today (Gemini choice 14); a quiet settles any the new connection does not answer. **By its kind alone:** `kind === 'translate'` builds it, its pauses the config's — which `buildGemini` always sets for Live Translate — or the app's default, 1.5 s each, should none come, so the dialogue path never sees Live Translate (Revision 1, Minor 9). The dialogue half of `GeminiTurns` is untouched but for the dead Live Translate branches and timers it no longer needs.
+12. **Gemini Live Translate, ruling 3.** `GeminiTurns` builds a `ContinuousSegments` when `kind` is `'translate'` and hands it every Live Translate call: the input and output transcriptions; the model's audio, with `play` the leg's `speech` and never `active` — so it neither opens a translation nor holds one open, and plays with no ref outside one (Gemini choice 8, kept); the source read with its CJK spaces removed (`normalizeCjkSpaces`, as shown today). **Typed text** is a source row of its own, opened, written and closed at once, stating no origin and owing no cut — as today, now with a ref from the module's one counter: whether Live Translate answers typed text at all is still the Gemini section's open question (its live-test item 7); a cut owed to a text never answered would take the next spoken source's translation until a quiet. A text owing none clears the continuation origin (choice 9), so an answer that begins after it with nothing owed and no source open states no origin, and L2 pairs it with the typed row, as today; an answer that begins while a spoken source is open or owed joins that source's translation. **A `turnComplete` or an `interrupted`**, should Live Translate send one: the source closes (its cut owed) and the translation settles for it — today's close of both sides, kept (the Gemini section's live-test item 8 still asks whether they come). **A reconnect** changes nothing: the segments ride their timers and the cuts stay owed, as today (Gemini choice 14); a quiet settles any the new connection does not answer. **The mid-sentence hold keyed by target** (Revision 2, N1): `writesSentenceMarks(config.translationTargetCode)` — false for Thai and Lao, read by base language — is what the adapter hands `GeminiTurns` as `holdMidSentence`, which it forwards to the module (choice 6). **By its kind alone:** `kind === 'translate'` builds it, its pauses the config's — which `buildGemini` always sets for Live Translate — or the app's default, 1.5 s each, should none come, so the dialogue path never sees Live Translate (Revision 1, Minor 9). The dialogue half of `GeminiTurns` is untouched but for the dead Live Translate branches and timers it no longer needs.
 13. **The `.done` events** (OpenAI Translate's choice 18: "should the endpoint send one" — the SDK lists none). A source's `.done` closes the source now, and its cut is owed. **A translation's `.done` settles the translation as its quiet would, without the hold** — a departure from choice 18's "that side closes now": with nothing owed and its source still open, a translation that closed at once would state no origin and orphan the rest of its source's translation (choice 7).
 14. **The frame `translation.cut`** (`out`), one per translation close, and one when owed cuts are dropped with no translation open: `{ reason, origin, sentences, owed, dropped }` — `reason` `sentences` (a cut at its sentences), `quiet` (its pause, or the end of its hold), `done` (an endpoint's `.done`), `turn` (a turn end on Live Translate) or `idle` (no translation began within its pause after a source closed); `origin` the source it closed for, `null` for `idle` or a translation that followed none; `sentences` the translation's sentence ends; `owed` the cuts still owed after it; `dropped` the cuts dropped there (choice 8). No text, no audio. What the live test reads a cut one sentence late or early by (Task 4, items 5 and 6).
-15. **The recordings: small, committed, generated.** `scripts/dev/wire-probe/translation-cuts-fixtures.mts` reads the spike's three `.jsonl` recordings and one recorded Gemini Live Translate session (`2026-09-28T19-41-14-translate-…`, the one whose source splits mid-sentence: "Found in review" 4) and writes `src/lib/segmentation/recordings/{user,tight,long,gemini-live-translate}.json` — 8.9, 9.0, 10.9 and 3.4 KB: each event's arrival time and kind, a transcript delta's text, an audio frame's length and, where the probe measured it, its RMS (Gemini's did not); no pcm, no `elapsed_ms`, no key (the recordings hold none); the heartbeats left out, which the adapter drops before its segments. Committed because the recordings are git-ignored, and a later session can be added the same way. `recordings/replay.testing.ts` — test-only, its name under the kit rule, which Task 1 widens to every `*.testing.ts` (Revision 1, Minor 5) — plays a recording into a leg on a virtual clock, every event at its own arrival time, a frame's pcm filled at its recorded RMS, or at speech level with none (never all zero), lets every timer run out, folds what the leg emitted into L1 as it came, and reads the exchanges L2 projects: sources with text, the sources beside a translation, translations standing alone, each exchange's pairing and texts. Four replays: through the module, the text alone, as recorded and with the translation's marks rewritten as dandas or removed (Task 1); through OpenAI Translate's real `segments.ts`, with its noise floor, pinning each exchange's two ends against the spike's report (Task 2); through `GeminiTurns` under Gemini's audio rules, the recorded Live Translate session among them, its exchanges pinned (Task 3).
+15. **The recordings: small, committed, generated.** `scripts/dev/wire-probe/translation-cuts-fixtures.mts` reads the spike's three `.jsonl` recordings and one recorded Gemini Live Translate session (`2026-09-28T19-41-14-translate-…`, a push-to-talk session whose source splits mid-sentence at the gap between its two presses: "Found in review" 4) and writes `src/lib/segmentation/recordings/{user,tight,long,gemini-live-translate}.json` — 8.9, 9.0, 10.9 and 3.4 KB: each event's arrival time and kind, a transcript delta's text, an audio frame's length and, where the probe measured it, its RMS (Gemini's did not); no pcm, no `elapsed_ms`, no key (the recordings hold none); the heartbeats left out, which the adapter drops before its segments. Committed because the recordings are git-ignored, and a later session can be added the same way. `recordings/replay.testing.ts` — test-only, its name under the kit rule, which Task 1 widens to every `*.testing.ts` (Revision 1, Minor 5) — plays a recording into a leg on a virtual clock, every event at its own arrival time, a frame's pcm filled at its recorded RMS, or at speech level with none (never all zero), lets every timer run out, folds what the leg emitted into L1 as it came, and reads the exchanges L2 projects: sources with text, the sources beside a translation, translations standing alone, each exchange's pairing and texts. Four replays: through the module, the text alone, as recorded, with the translation's marks rewritten as dandas or removed, and with all but the first removed and the mid-sentence hold off (Task 1); through OpenAI Translate's real `segments.ts`, with its noise floor, pinning each exchange's two ends against the spike's report (Task 2); through `GeminiTurns` under Gemini's audio rules, the recorded Live Translate session among them, its exchanges pinned (Task 3).
 
 ## What this plan consumes from the earlier plans
 
@@ -222,7 +227,7 @@ Named as landed, so a reconciliation is mechanical. Where a landed name or text 
 **Interfaces:**
 - Consumes: `AdapterEvents`, `Ref` (`src/lib/contract/adapter`), `Clock`, `createVirtualClock`, `VirtualClock` (`src/lib/contract/clock`), `SilenceDeferral` (`./silenceDeferral`), `SENTENCE_CLOSERS` (`./sentenceEnd`), `recordEvents`, `eventsFrom`, `AdapterEvent` (`src/lib/contract/events`), `trackedClock` (the kit), `Conversation` (L1), `createProjector`, `DEFAULT_PROJECTION` (L2), `Pairing` (`src/lib/projection/types`); `REPO` (`scripts/dev/wire-probe/common.mts`); the consistency test's `globalTimerCalls`, `readFileSync`, `join`, `REPO_ROOT`.
 - Produces:
-  - `src/lib/segmentation/continuousSegments.ts` — `MID_SENTENCE_HOLD_MS` (5 000), `endsSentence(mark: string, next: string | undefined): boolean | undefined`, `countSentenceEnds(text: string): number`, `atSentenceEnd(text: string): boolean`, `type SegmentSink = Pick<AdapterEvents, 'segmentOpened' | 'segmentText' | 'segmentClosed' | 'audio'>`, `type CutReason = 'sentences' | 'quiet' | 'done' | 'turn' | 'idle'`, `interface CutSummary { reason: CutReason; origin: string | null; sentences: number; owed: number; dropped: number }`, `interface ContinuousSegmentsOptions { clock: Pick<Clock, 'setTimeout' | 'now'>; silence: { sourceMs: number; translationMs: number; deferMidSentence: boolean }; sink: SegmentSink; showSource?: (text: string) => string; cut?: (summary: CutSummary) => void }`, `class ContinuousSegments { constructor(o: ContinuousSegmentsOptions); get translating(): boolean; sourceText(delta: string): void; translationText(delta: string): void; audio(pcm: Int16Array, o: { play: boolean; active: boolean }): void; typed(text: string): void; done(side: 'source' | 'translation'): void; endTurn(): void; stop(): void }`. Tasks 2 and 3 wire it in.
+  - `src/lib/segmentation/continuousSegments.ts` — `MID_SENTENCE_HOLD_MS` (5 000), `endsSentence(mark: string, next: string | undefined): boolean | undefined`, `countSentenceEnds(text: string): number`, `atSentenceEnd(text: string): boolean`, `type SegmentSink = Pick<AdapterEvents, 'segmentOpened' | 'segmentText' | 'segmentClosed' | 'audio'>`, `type CutReason = 'sentences' | 'quiet' | 'done' | 'turn' | 'idle'`, `interface CutSummary { reason: CutReason; origin: string | null; sentences: number; owed: number; dropped: number }`, `interface ContinuousSegmentsOptions { clock: Pick<Clock, 'setTimeout' | 'now'>; silence: { sourceMs: number; translationMs: number; deferMidSentence: boolean }; sink: SegmentSink; showSource?: (text: string) => string; cut?: (summary: CutSummary) => void; holdMidSentence?: boolean }`, `class ContinuousSegments { constructor(o: ContinuousSegmentsOptions); get translating(): boolean; sourceText(delta: string): void; translationText(delta: string): void; audio(pcm: Int16Array, o: { play: boolean; active: boolean }): void; typed(text: string): void; done(side: 'source' | 'translation'): void; endTurn(): void; stop(): void }`. Tasks 2 and 3 wire it in.
   - `src/lib/segmentation/recordings/replay.testing.ts` (test-only) — `type RecordedEvent = [number, 's' | 't', string] | [number, 'a', number, number?]`, `interface Recording { run: string; events: RecordedEvent[] }`, `RECORDINGS: Readonly<Record<'user' | 'tight' | 'long' | 'geminiLiveTranslate', Recording>>`, `interface ReplayTarget { input(delta: string): void; output(delta: string): void; audio(pcm: Int16Array): void }`, `interface ReplayResult { sources: number; paired: number; orphans: number; pairings: Pairing[]; exchanges: Array<[string, string]> }`, `frameAt(samples: number, rms?: number): Int16Array`, `replay(recording: Recording, build: (clock: VirtualClock, events: AdapterEvents) => ReplayTarget): ReplayResult`. Tasks 2 and 3 replay through it.
   - The kit rule: every `*.testing.ts` under `src/` is kit, whatever imports it test-only.
 
@@ -278,6 +283,7 @@ const FIXTURES: Array<[name: string, run: string, read: Reader]> = [
   ['user', 'openai-translate/2026-09-29T17-19-57-user', openaiTranslate],
   ['tight', 'openai-translate/2026-09-29T17-21-44-tight', openaiTranslate],
   ['long', 'openai-translate/2026-09-29T17-24-18-long', openaiTranslate],
+  // Push-to-talk: the clip went up in two presses 2.5 s apart, so its source splits where the first press ended.
   ['gemini-live-translate', 'gemini/2026-09-28T19-41-14-translate-gemini-3.5-live-translate-preview', geminiLiveTranslate],
 ];
 
@@ -327,7 +333,8 @@ Each file begins as `user.json` does, one event a line; the Gemini one's audio f
  * `scripts/dev/wire-probe/translation-cuts-fixtures.mts` wrote them — the
  * OpenAI Translate spike's three (the owner's six sentences with his own
  * pauses, `user`; every pause 1.7 s, `tight`; an eight-sentence mix, `long`)
- * and one Gemini Live Translate session (`geminiLiveTranslate`) — replayed
+ * and one Gemini Live Translate session, pushed to talk in two presses
+ * (`geminiLiveTranslate`) — replayed
  * into a leg at each event's own arrival time, and what the conversation
  * panel then shows (L1, then L2): which sources have a translation beside
  * them, and which translations stand alone (Stage 2 translation cuts,
@@ -436,12 +443,12 @@ import { RECORDINGS, replay, type RecordedEvent, type Recording } from './record
 
 const SILENCE: ContinuousSegmentsOptions['silence'] = { sourceMs: 1500, translationMs: 1500, deferMidSentence: false };
 
-function segments(silence = SILENCE, showSource?: (text: string) => string) {
+function segments(silence = SILENCE, showSource?: (text: string) => string, holdMidSentence?: boolean) {
   // `timers()` counts what has neither fired nor been cancelled: the clock rule's proof that no timer outlives what should end it.
   const { clock, timers } = trackedClock();
   const { events, log } = recordEvents();
   const cuts: CutSummary[] = [];
-  const s = new ContinuousSegments({ clock, silence, sink: events, showSource, cut: (c) => cuts.push(c) });
+  const s = new ContinuousSegments({ clock, silence, sink: events, showSource, holdMidSentence, cut: (c) => cuts.push(c) });
   const of = <K extends AdapterEvent['kind']>(k: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === k);
   const texts = (ref: number) => of('segmentText').filter((e) => e.payload.ref === ref).map((e) => e.payload.text);
   const opened = () => of('segmentOpened').map((e) => e.payload);
@@ -471,13 +478,15 @@ describe('sentence ends (translation cuts, ruling 1; choice 3)', () => {
   });
 
   it("counts the other scripts' own marks wherever they stand, as the CJK ones", () => {
-    // Devanagari and Bengali, Urdu, Arabic, Burmese, Armenian, Ethiopic, fullwidth and halfwidth.
+    // Devanagari and Bengali, Urdu, Arabic, Burmese, Armenian, Ethiopic, fullwidth and halfwidth, then Khmer.
     expect(countSentenceEnds('यह पहला है। यह दूसरा है॥')).toBe(2);
     expect(countSentenceEnds('یہ پہلا ہے۔ کیا یہ دوسرا ہے؟')).toBe(2);
     expect(countSentenceEnds('ပထမ။ ဒုတိယ။')).toBe(2);
     expect(countSentenceEnds('Առաջին։ Երկրորդ։')).toBe(2);
     expect(countSentenceEnds('አንድ። ሁለት።')).toBe(2);
     expect(countSentenceEnds('一つ目．二つ目｡')).toBe(2);
+    // Khmer.
+    expect(countSentenceEnds('ប្រយោគទីមួយ។ ទីពីរ៕')).toBe(2);
     // Thai writes none.
     expect(countSentenceEnds('ประโยคแรก ประโยคที่สอง')).toBe(0);
   });
@@ -772,6 +781,27 @@ describe("the translation: cut at the source's cuts (translation cuts, rulings 1
     behind.at(3_400);
     behind.s.translationText(' Two');
     expect(behind.opened().slice(3)).toEqual([{ ref: 4, side: 'source', origin: 's4' }, { ref: 5, side: 'translation', origin: 's3' }]);
+
+    // The same, the translation beginning inside its pause to begin: once it has begun, that pause is over, and its next
+    // segment still follows the cut owed first.
+    const late = segments({ ...SILENCE, translationMs: 3_000 });
+    late.s.sourceText('一。');
+    late.at(1_500);
+    // The first source closed with no translation open: the pause to begin runs; the translation begins inside it.
+    late.at(1_600);
+    late.s.translationText('One');
+    late.at(1_700);
+    late.s.sourceText('二。');
+    late.at(2_500);
+    late.s.translationText(' is');
+    late.at(3_300);
+    late.s.sourceText('三');
+    late.at(3_400);
+    late.s.translationText(' done.');
+    late.at(3_500);
+    late.s.translationText(' Two');
+    expect(late.opened().slice(3)).toEqual([{ ref: 4, side: 'source', origin: 's4' }, { ref: 5, side: 'translation', origin: 's3' }]);
+    expect(late.cuts).toEqual([{ reason: 'sentences', origin: 's1', sentences: 1, owed: 1, dropped: 0 }]);
   });
 });
 
@@ -845,6 +875,31 @@ describe("the translation's own quiet (translation cuts, ruling 1; choices 6–9
     expect(latin.closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }]);
     latin.at(4_600 + MID_SENTENCE_HOLD_MS);
     expect(latin.closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }, { ref: 4 }]);
+  });
+
+  it('holds nothing mid-sentence for a target whose script writes no mark, whatever stray Latin mark its stream shows: `holdMidSentence: false` (choice 6)', () => {
+    // A Thai translation with one early Latin mark — a question, an era's abbreviation — then none: with the hold, that one mark
+    // would hold every later pause for 5 s, and no cut would ever come due.
+    const run = (holdMidSentence: boolean) => {
+      const h = segments(SILENCE, undefined, holdMidSentence);
+      h.s.sourceText('一。');
+      h.at(1_600);
+      h.s.translationText('ใช่ไหม?');
+      // Its quiet at 3 100, at a sentence end: it closes for the first source.
+      h.at(3_200);
+      h.s.sourceText('二。');
+      h.at(4_800);
+      h.s.translationText('ปี พ ศ 2567 เราไป');
+      h.at(6_300);
+      return h;
+    };
+    const off = run(false);
+    expect(off.closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }, { ref: 4 }]);
+    // The default holds it — the latch the option exists to keep away from such a target.
+    const on = run(true);
+    expect(on.closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }]);
+    on.at(4_800 + MID_SENTENCE_HOLD_MS);
+    expect(on.closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }, { ref: 4 }]);
   });
 
   it("with nothing owed and a source still open it waits for that source's cut, then has its pause again (choice 7)", () => {
@@ -1107,13 +1162,25 @@ describe("the spike's three recorded sessions (translation cuts, ruling 1; choic
   const retarget = (r: Recording, map: (text: string) => string): Recording =>
     ({ run: r.run, events: r.events.map((e) => (e[1] === 't' ? [e[0], 't', map(e[2])] : e)) as RecordedEvent[] });
 
+  /** A target that writes no mark whose stream still shows one, early — a question, an abbreviation — as Thai text may: the first delta's first mark kept, every other removed. */
+  const oneEarlyMark = () => {
+    let seen = false;
+    return (t: string) => {
+      const i = t.search(/[.?!]/);
+      if (seen || i < 0) return t.replace(/[.?!]/g, '');
+      seen = true;
+      return t.slice(0, i + 1) + t.slice(i + 1).replace(/[.?!]/g, '');
+    };
+  };
+
   it.each([
-    ['a target that ends its sentences with dandas, as Hindi does, pairs them all', (t: string) => t.replace(/[.?!]/g, '।'), [6, 6, 7]],
-    ['a target that writes no sentence-final mark, as Thai does, leaves none alone', (t: string) => t.replace(/[.?!]/g, ''), [6, 6, 6]],
-  ] as const)('the same sessions, their translation in another script: %s (choices 3, 6)', (_name, map, paired) => {
+    ['a target that ends its sentences with dandas, as Hindi does, pairs them all', () => (t: string) => t.replace(/[.?!]/g, '।'), [6, 6, 7], true],
+    ['a target that writes no sentence-final mark, as Thai does, leaves none alone', () => (t: string) => t.replace(/[.?!]/g, ''), [6, 6, 6], true],
+    ['the same, its stream showing one early Latin mark, with no mid-sentence hold for such a target', oneEarlyMark, [6, 6, 6], false],
+  ] as const)('the same sessions, their translation in another script: %s (choices 3, 6)', (_name, make, paired, holdMidSentence) => {
     (['user', 'tight', 'long'] as const).forEach((name, i) => {
-      const r = replay(retarget(RECORDINGS[name], map), (clock, sink) => {
-        const s = new ContinuousSegments({ clock, silence: SILENCE, sink });
+      const r = replay(retarget(RECORDINGS[name], make()), (clock, sink) => {
+        const s = new ContinuousSegments({ clock, silence: SILENCE, sink, holdMidSentence });
         return { input: (d) => s.sourceText(d), output: (d) => s.translationText(d), audio: (p) => s.audio(p, INACTIVE) };
       });
       expect({ name, paired: r.paired, orphans: r.orphans }).toEqual({ name, paired: paired[i], orphans: 0 });
@@ -1176,7 +1243,8 @@ Expected: FAIL — `Test Files  2 failed (2)`, `Tests  1 failed | 7 passed (8)`:
  * - The translation's own quiet settles it: at a sentence end it closes for
  *   the cut owed first and drops any other still owed; mid-sentence it waits
  *   once more, to `MID_SENTENCE_HOLD_MS` after its last activity — once its
- *   stream has shown a sentence end at all (choices 6, 8). With nothing owed
+ *   stream has shown a sentence end at all, and never for a target whose
+ *   script writes none (choices 6, 8). With nothing owed
  *   it waits for a source still open (choice 7), else closes as the rest of
  *   the source that closed last (choice 9).
  * - A source that closes while no translation is open gives the translation
@@ -1197,10 +1265,10 @@ export const MID_SENTENCE_HOLD_MS = 5_000;
 /**
  * Marks that end a sentence wherever they stand: CJK `。？！` (ruling 1 (iii)),
  * and those of the scripts the ruling does not name — Devanagari and Bengali
- * `।॥`, Urdu `۔`, Arabic `؟`, Burmese `။`, Armenian `։`, Ethiopic `።`, the
- * fullwidth `．` and the halfwidth `｡` (translation cuts, choice 3).
+ * `।॥`, Urdu `۔`, Arabic `؟`, Burmese `။`, Armenian `։`, Ethiopic `።`, Khmer
+ * `។៕`, the fullwidth `．` and the halfwidth `｡` (translation cuts, choice 3).
  */
-const ANYWHERE_ENDS = '。？！।॥۔؟။։።．｡';
+const ANYWHERE_ENDS = '。？！।॥۔؟။։።។៕．｡';
 /** Marks that end a sentence only before whitespace or at the end: not "1.5", not "U.S" (ruling 1 (iii)). */
 const LATIN_ENDS = '.?!';
 const SPACE = /\s/;
@@ -1261,6 +1329,12 @@ export interface ContinuousSegmentsOptions {
   sink: SegmentSink;
   /** The source's text as shown, and as its pauses and sentences are read: Gemini 3.x's CJK spaces removed. The identity when absent. */
   showSource?: (text: string) => string;
+  /**
+   * A translation that stops mid-sentence is held (choice 6) — `false` for a
+   * target whose script writes no sentence-final mark (Thai, Lao), where a
+   * stray Latin mark would otherwise turn the hold on for good. True when absent.
+   */
+  holdMidSentence?: boolean;
   /** Each cut, for the Logs (choice 14). */
   cut?: (summary: CutSummary) => void;
 }
@@ -1520,8 +1594,8 @@ export class ContinuousSegments {
       return;
     }
     // Mid-sentence, the interpreter is waiting for the source: once more, to the hold after its last activity, which was this pause ago (choice 6) —
-    // unless its stream has shown no sentence end at all, in a script that may write none (Thai, Lao): then a pause is all there is.
-    if (!this.held && this.shownEnd && !atSentenceEnd(tr.text)) {
+    // unless its stream has shown no sentence end yet, or its target writes none (Thai, Lao): then a pause is all there is.
+    if (!this.held && this.o.holdMidSentence !== false && this.shownEnd && !atSentenceEnd(tr.text)) {
       this.held = true;
       this.armQuiet(Math.max(0, MID_SENTENCE_HOLD_MS - this.o.silence.translationMs));
       return;
@@ -1582,9 +1656,9 @@ export class ContinuousSegments {
 - [ ] **Step 7: Run them.**
 
 Run: `npx vitest run src/lib/segmentation/continuousSegments.test.ts src/providers/sessionSide.consistency.test.ts`
-Expected: PASS — 2 files, 45 tests (37 and 8).
+Expected: PASS — 2 files, 47 tests (39 and 8).
 
-- [ ] **Step 8: The gates.** `npx vitest run src` (0 failed, no unhandled errors; the replay: 574 files passed and 1 skipped, 7 490 tests passed and 2 skipped), the typecheck gate (the baseline), and the full tree (259; none naming `src/lib/segmentation/`). Nothing but its own test imports the module and the replay yet, so no other suite can move; the consistency test's walk over every provider is unchanged but for the kit rule's wider net, which catches nothing.
+- [ ] **Step 8: The gates.** `npx vitest run src` (0 failed, no unhandled errors; the replay: 574 files passed and 1 skipped, 7 492 tests passed and 2 skipped), the typecheck gate (the baseline), and the full tree (259; none naming `src/lib/segmentation/`). Nothing but its own test imports the module and the replay yet, so no other suite can move; the consistency test's walk over every provider is unchanged but for the kit rule's wider net, which catches nothing.
 
 - [ ] **Step 9: Commit.**
 
@@ -1603,9 +1677,10 @@ source on its own pause, as before, and the translation where the source
 was: each closing source owes one cut, taken at the next delta once the
 translation holds that source's sentence ends, the latest after its last
 delta, and the translation states that source as its origin. One rule
-counts sentence ends, the marks of scripts such as Hindi's among them.
-Its own quiet closes it only at a sentence end, once its stream has
-shown one, and drops cuts no translation answered. Four recorded
+counts sentence ends, the marks of scripts such as Hindi's and Khmer's
+among them. Its own quiet closes it only at a sentence end, once its
+stream has shown one, and never for a target whose script writes no
+mark, and drops cuts no translation answered. Four recorded
 sessions, committed as small fixtures with their generator, replay
 through L1 and L2; the replay is kit, and the module is in the
 session-side timer scan by name. Not wired yet.
@@ -2201,26 +2276,30 @@ EOF
 ### Task 3: Gemini Live Translate's translation at its source's cuts (Wave 2)
 
 **Files:**
-- Modify: `src/providers/gemini/turns.ts` (the header, the imports, `GeminiTurnsOptions`, a default for Live Translate's pauses, the fields, the constructor, the Live Translate paths of `input`, `output`, `audio`, `modelText`, `turnComplete`, `interrupted`, `typed`, `stop`; `close`, `arm`, `cancel`, `:305-336`), `src/providers/gemini/adapter.ts` (the `GeminiTurns` it builds, `:115-121`)
-- Test: `src/providers/gemini/turns.test.ts` (the Live Translate block, `:545-737`), `src/providers/gemini/turns.replay.test.ts` (new), `src/providers/gemini/adapter.test.ts` (the Live Translate case, `:261-271`; the L1 and L2 block, `:618-648`)
+- Modify: `src/providers/gemini/turns.ts` (the header, the imports, `GeminiTurnsOptions`, a default for Live Translate's pauses, the fields, the constructor, the Live Translate paths of `input`, `output`, `audio`, `modelText`, `turnComplete`, `interrupted`, `typed`, `stop`; `close`, `arm`, `cancel`, `:305-336`), `src/providers/gemini/adapter.ts` (its `./turns` import, `:34`; the `GeminiTurns` it builds, `:115-121`)
+- Test: `src/providers/gemini/turns.test.ts` (its `./turns` import; the Live Translate block, `:545-737`), `src/providers/gemini/turns.replay.test.ts` (new), `src/providers/gemini/adapter.test.ts` (the Live Translate case, `:261-271`, and a new one after it; the L1 and L2 block, `:618-648`)
 
 **Interfaces:**
 - Consumes: Task 1's `ContinuousSegments`, `CutSummary`, `MID_SENTENCE_HOLD_MS`, `RECORDINGS` (`geminiLiveTranslate` among them), `replay`; `DEFAULT_SEGMENT_PAUSE_MS` (`src/lib/segmentation/segmentationMode.ts`); the landed `normalizeCjkSpaces`, `liveGemini`, `SERVER`, `TRANSLATE`, `trackedClock`, `recordEvents`.
-- Produces: `GeminiTurnsOptions` gains `cut?: (summary: CutSummary) => void` and its clock `Pick<Clock, 'setTimeout' | 'now'>`; `kind: 'translate'` alone makes a Live Translate `GeminiTurns`; the frame `translation.cut` on Live Translate. `GeminiTurns`' public methods are unchanged; its dialogue half is untouched.
+- Produces: `GeminiTurnsOptions` gains `cut?: (summary: CutSummary) => void`, `holdMidSentence?: boolean` (handed to the module) and its clock `Pick<Clock, 'setTimeout' | 'now'>`; `writesSentenceMarks(target: string | undefined): boolean` (`turns.ts`), false for a Thai or Lao target by its base language, which the adapter passes as `holdMidSentence`; `kind: 'translate'` alone makes a Live Translate `GeminiTurns`; the frame `translation.cut` on Live Translate. `GeminiTurns`' public methods are unchanged; its dialogue half is untouched.
 
-- [ ] **Step 1: Write the failing tests** (rulings 1–3; choices 5–7, 9, 12, 14, 15): the Live Translate cases rewritten for the new rule — each keeps what it pinned where that still holds — and five new, `GeminiTurns` as Live Translate by its kind alone among them; the replay of the recorded Live Translate session, its exchanges pinned, and of the spike's sessions, through `GeminiTurns` under Gemini's audio rules; and through the adapter, the frame, the pairing through L1 and L2 now stated, and an answer to typed text beside its typed row.
+- [ ] **Step 1: Write the failing tests** (rulings 1–3; choices 5–7, 9, 12, 14, 15): the Live Translate cases rewritten for the new rule — each keeps what it pinned where that still holds — and seven new, `GeminiTurns` as Live Translate by its kind alone among them, and the two of the target key (Revision 2, N1): which targets write sentence-final marks, and a `GeminiTurns` with no mid-sentence hold; the replay of the recorded push-to-talk Live Translate session, its exchanges pinned, and of the spike's sessions, through `GeminiTurns` under Gemini's audio rules; and through the adapter, the frame, a Thai target holding nothing mid-sentence where an English one holds, the pairing through L1 and L2 now stated, and an answer to typed text beside its typed row.
 
 ```diff
 diff --git a/src/providers/gemini/turns.test.ts b/src/providers/gemini/turns.test.ts
 --- a/src/providers/gemini/turns.test.ts
 +++ b/src/providers/gemini/turns.test.ts
-@@ -1,5 +1,6 @@
+@@ -1,8 +1,9 @@
  import { describe, it, expect } from 'vitest';
  import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 +import { MID_SENTENCE_HOLD_MS } from '../../lib/segmentation/continuousSegments';
  import type { GeminiConfig } from './config';
  import { trackedClock } from './testing';
- import { GeminiTurns, normalizeCjkSpaces } from './turns';
+-import { GeminiTurns, normalizeCjkSpaces } from './turns';
++import { GeminiTurns, normalizeCjkSpaces, writesSentenceMarks } from './turns';
+ 
+ function turns(o: { kind?: GeminiConfig['kind']; speech?: boolean; silence?: GeminiConfig['silence'] } = {}) {
+   // `timers()` counts what has neither fired nor been cancelled: the clock rule's proof that no timer outlives what should end it.
 @@ -542,18 +543,19 @@
    });
  });
@@ -2338,7 +2417,7 @@ diff --git a/src/providers/gemini/turns.test.ts b/src/providers/gemini/turns.tes
      expect(timers()).toBe(0);
    });
  
-@@ -677,11 +719,45 @@
+@@ -677,11 +719,65 @@
      expect(closed()).toEqual([{ ref: 1 }]);
    });
  
@@ -2365,6 +2444,26 @@ diff --git a/src/providers/gemini/turns.test.ts b/src/providers/gemini/turns.tes
 +    t.input('spoken');
 +    t.typed('more words');
 +    expect(opened()).toEqual([{ ref: 1, side: 'source' }, { ref: 2, side: 'source', origin: 's2' }, { ref: 3, side: 'source' }]);
++  });
++
++  it('reads a target as writing sentence-final marks but Thai and Lao, by its base language (Stage 2 translation cuts, choice 6)', () => {
++    expect(writesSentenceMarks('th')).toBe(false);
++    expect(writesSentenceMarks('lo')).toBe(false);
++    expect(writesSentenceMarks('th-TH')).toBe(false);
++    expect(writesSentenceMarks('km')).toBe(true);
++    expect(writesSentenceMarks('ja')).toBe(true);
++    expect(writesSentenceMarks('zh-Hant')).toBe(true);
++    expect(writesSentenceMarks(undefined)).toBe(true);
++  });
++
++  it('with no mid-sentence hold, a translation that stops mid-sentence closes at its pause, a sentence end shown or not (Stage 2 translation cuts, choice 6)', () => {
++    const { clock, timers } = trackedClock();
++    const { events, log } = recordEvents();
++    const t = new GeminiTurns({ kind: 'translate', speech: true, clock, silence: { sourceMs: 1500, translationMs: 1500, deferMidSentence: false }, sink: events, holdMidSentence: false });
++    t.output('ใช่ไหม? แล้วก็');
++    clock.advance(1_500);
++    expect(log.filter((e) => e.kind === 'segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1 }]);
++    expect(timers()).toBe(0);
 +  });
 +
 +  it('is Live Translate by its kind alone: with no pauses given it takes the default ones, and its audio still opens no translation (Stage 2 translation cuts, ruling 3)', () => {
@@ -2406,7 +2505,7 @@ function live(name: keyof typeof RECORDINGS, silence: NonNullable<GeminiConfig['
 }
 
 describe("Gemini Live Translate's segments on recorded sessions (Stage 2 translation cuts, ruling 3; choice 15)", () => {
-  it("a recorded Live Translate session, `3.5-live-translate-preview` ja → en: each source with its own translation, stated — at a 0.8 s translation pause too, where each side on its own left seven fragments alone", () => {
+  it("a recorded Live Translate session, `3.5-live-translate-preview` ja → en, pushed to talk — its source split where one press ended and the next began: each source with its own translation, stated — at a 0.8 s translation pause too, where each side on its own left seven fragments alone", () => {
     const expected = [
       ['リアルタイムファンキアよそうシーズンな会話お手伝い', "Real-time Funky it is, so it's a seasonal conversation, I'm"],
       ['します。リアルタイムファンキアよそうシーズンな会話お手伝い', "here to help. Real-time Funky it is, so it's a seasonal conversation, I'm here to help."],
@@ -2433,7 +2532,7 @@ describe("Gemini Live Translate's segments on recorded sessions (Stage 2 transla
 diff --git a/src/providers/gemini/adapter.test.ts b/src/providers/gemini/adapter.test.ts
 --- a/src/providers/gemini/adapter.test.ts
 +++ b/src/providers/gemini/adapter.test.ts
-@@ -258,16 +258,17 @@
+@@ -258,16 +258,28 @@
      expect(h.content().map((e) => e.kind)).toEqual(['segmentOpened', 'segmentText', 'audio', 'segmentClosed']);
    });
  
@@ -2451,10 +2550,21 @@ diff --git a/src/providers/gemini/adapter.test.ts b/src/providers/gemini/adapter
      expect(h.of('audio').map((e) => e.payload.ref)).toEqual([undefined, 2]);
      expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1 }, { ref: 2 }]);
 +    expect(h.frames('translation.cut')).toEqual([{ reason: 'quiet', origin: 's1', sentences: 1, owed: 0, dropped: 0 }]);
++  });
++
++  it('Live Translate into Thai, a script with no sentence-final mark, holds no translation mid-sentence, a stray Latin mark notwithstanding; into English it does (Stage 2 translation cuts, choice 6)', async () => {
++    const run = async (target: string) => {
++      const h = await liveGemini({ model: TRANSLATE, context: { ...AUTO_CTX, direction: { source: 'ja', target } } });
++      h.socket().receive(SERVER.output('ใช่ไหม? แล้วก็'));
++      h.clock.advance(1_500);
++      return h.of('segmentClosed').map((e) => e.payload);
++    };
++    expect(await run('th')).toEqual([{ ref: 1 }]);
++    expect(await run('en')).toEqual([]);
    });
  
    it('a leg that does not speak drops the model audio, and still logs the part', async () => {
-@@ -616,7 +617,7 @@
+@@ -616,7 +628,7 @@
  });
  
  describe('the Gemini adapter: through L1 and L2', () => {
@@ -2463,7 +2573,7 @@ diff --git a/src/providers/gemini/adapter.test.ts b/src/providers/gemini/adapter
      // The adapter's events feed L1 as the runner's do, on the adapter's own clock (as `localInference/adapter.test.ts`'s u9 → u10 case).
      const clock = createVirtualClock(0);
      const conversation = new Conversation({ leg: 'speaker', session: 's', languages: AUTO_CTX.direction, clock });
-@@ -629,7 +630,7 @@
+@@ -629,7 +641,7 @@
      sockets.last().receive(SERVER.setupComplete());
      await starting;
      const socket = sockets.last();
@@ -2472,7 +2582,7 @@ diff --git a/src/providers/gemini/adapter.test.ts b/src/providers/gemini/adapter
      socket.receive(SERVER.input('Hello.'));
      clock.advance(1_000);
      socket.receive(SERVER.output('こんにちは。'));
-@@ -640,8 +641,35 @@
+@@ -640,8 +652,35 @@
      clock.advance(1_500);
      const exchanges = createProjector().project([conversation.snapshot()], DEFAULT_PROJECTION).flatMap((e) => (e.kind === 'exchange' ? [e] : []));
      expect(exchanges.map((e) => [e.pairing, e.source.map((r) => r.text).join(''), e.translation.map((r) => r.text).join('')])).toEqual([
@@ -2515,10 +2625,10 @@ diff --git a/src/providers/gemini/adapter.test.ts b/src/providers/gemini/adapter
 - [ ] **Step 2: Run them to see them fail.**
 
 Run: `npx vitest run src/providers/gemini`
-Expected: FAIL — `Test Files  3 failed | 15 passed (18)`, `Tests  13 failed | 339 passed (352)`:
-- `turns.test.ts`, 8: "runs the source on its own pause, stating its origin …", "cuts the translation where the source was …", "a translation with no cut owed waits …", "once its stream has shown a sentence end, a translation that stops mid-sentence waits …" (it closes at its pause), "keeps its open segments across a reconnect … and the cut a source owes", "a turnComplete or an interrupted …" (no origins), the typed-text case (its second row takes a ref of its own from the source's counter, and the source states no origin), and "is Live Translate by its kind alone …" (the source states no origin);
+Expected: FAIL — `Test Files  3 failed | 15 passed (18)`, `Tests  15 failed | 340 passed (355)`:
+- `turns.test.ts`, 9: "runs the source on its own pause, stating its origin …", "cuts the translation where the source was …", "a translation with no cut owed waits …", "once its stream has shown a sentence end, a translation that stops mid-sentence waits …" (it closes at its pause), "keeps its open segments across a reconnect … and the cut a source owes", "a turnComplete or an interrupted …" (no origins), the typed-text case (its second row takes a ref of its own from the source's counter, and the source states no origin), "reads a target as writing sentence-final marks but Thai and Lao …" (`writesSentenceMarks` does not exist yet), and "is Live Translate by its kind alone …" (the source states no origin). The other new case, "with no mid-sentence hold …", passes: today's rule never holds, which is what it asks for once the module holds by default;
 - `turns.replay.test.ts`, 2 — today's rule: the recorded Live Translate session pairs `['inferred', 'inferred']` (and at a 0.8 s translation pause leaves seven fragments alone); the spike's sessions, `{ name: 'user', sources: 6, paired: 5, orphans: 1 }` (the three: 15 of 19, and 4 alone);
-- `adapter.test.ts`, 3: the Live Translate case (no origins, no `translation.cut`), the pairing through L1 and L2 (`inferred`), and the typed-text answer (the spoken exchange before it `inferred`).
+- `adapter.test.ts`, 4: the Live Translate case (no origins, no `translation.cut`), the Thai-and-English case (into English, today's rule closes at the pause, `[{ ref: 1 }]`), the pairing through L1 and L2 (`inferred`), and the typed-text answer (the spoken exchange before it `inferred`).
 
 - [ ] **Step 3: Hand Live Translate to the module, and frame its cuts.**
 
@@ -2549,7 +2659,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
  import type { GeminiConfig } from './config';
  
  export type TurnSink = Pick<AdapterEvents, 'segmentOpened' | 'segmentText' | 'segmentClosed' | 'audio'>;
-@@ -20,12 +23,21 @@
+@@ -20,12 +23,31 @@
    kind: GeminiConfig['kind'];
    /** The leg speaks: the model's audio is emitted; otherwise dropped (the conformance rule `no-audio-when-silent`). */
    speech: boolean;
@@ -2560,8 +2670,18 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
    sink: TurnSink;
 +  /** Live Translate: each translation cut, for the Logs (Stage 2 translation cuts, choice 14). */
 +  cut?: (summary: CutSummary) => void;
++  /** Live Translate: a translation that stops mid-sentence is held — not for a target that writes no sentence-final mark (`writesSentenceMarks`). True when absent. */
++  holdMidSentence?: boolean;
  }
  
++/** Live Translate's targets whose script writes no sentence-final mark: Thai and Lao (Stage 2 translation cuts, choice 6). */
++const NO_SENTENCE_MARKS = new Set(['th', 'lo']);
++
++/** Whether a Live Translate target's script ends its sentences with a mark, read by its base language (`th-TH` as `th`). */
++export function writesSentenceMarks(target: string | undefined): boolean {
++  return target === undefined || !NO_SENTENCE_MARKS.has(target.split('-')[0].toLowerCase());
++}
++
 +/** Live Translate's pauses when none are given: the app's default, 1.5 s each side, cut by pause. */
 +const LIVE_TRANSLATE_DEFAULT_SILENCE: NonNullable<GeminiConfig['silence']> = {
 +  sourceMs: DEFAULT_SEGMENT_PAUSE_MS,
@@ -2572,7 +2692,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
  const CJK = '\\u3000-\\u303f\\u3040-\\u309f\\u30a0-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff\\uff00-\\uffef';
  const CJK_SPACE = new RegExp(`([${CJK}])\\s+([${CJK}])`, 'g');
  
-@@ -55,8 +67,8 @@
+@@ -55,8 +77,8 @@
    private refs = 0;
    private turn = 1;
    private readonly sides: Record<SideName, OpenSide | null> = { source: null, translation: null };
@@ -2583,7 +2703,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
    /** A dialogue turn's text parts: its translation when no transcript came. */
    private fallbackText = '';
    /** A dialogue model's answer is streaming: its output transcript, audio or text arrived since the last `turnComplete` / `interrupted` (choice 16). */
-@@ -95,18 +107,28 @@
+@@ -95,18 +117,35 @@
    private interruptedEnd = false;
    private stopped = false;
  
@@ -2592,7 +2712,14 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
 +    // Live Translate: a stream with no turns, cut as OpenAI Translate's is; the source read with its CJK spaces removed (Stage 2 translation cuts,
 +    // ruling 3). Its config always carries the pauses; the default ones stand in should one not, so the dialogue path never sees Live Translate.
 +    this.live = o.kind === 'translate'
-+      ? new ContinuousSegments({ clock: o.clock, silence: o.silence ?? LIVE_TRANSLATE_DEFAULT_SILENCE, sink: o.sink, showSource: normalizeCjkSpaces, cut: o.cut })
++      ? new ContinuousSegments({
++          clock: o.clock,
++          silence: o.silence ?? LIVE_TRANSLATE_DEFAULT_SILENCE,
++          sink: o.sink,
++          showSource: normalizeCjkSpaces,
++          cut: o.cut,
++          holdMidSentence: o.holdMidSentence,
++        })
 +      : null;
 +  }
  
@@ -2614,7 +2741,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
      if (this.stopped || !text) return;
      // Content, even content a drop swallows: a `turnComplete` after it ends an answer of its own.
      this.interruptedEnd = false;
-@@ -114,10 +136,13 @@
+@@ -114,10 +153,13 @@
      const side = this.ensure('source');
      side.text += text;
      this.o.sink.segmentText({ ref: side.ref, text: normalizeCjkSpaces(side.text) });
@@ -2629,7 +2756,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
      if (this.stopped || !text) return;
      this.interruptedEnd = false;
      if (this.suppressing) return;
-@@ -125,7 +150,6 @@
+@@ -125,7 +167,6 @@
      const side = this.ensure('translation');
      side.text += text;
      this.o.sink.segmentText({ ref: side.ref, text: side.text });
@@ -2637,7 +2764,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
    }
  
    /**
-@@ -137,17 +161,17 @@
+@@ -137,17 +178,17 @@
     * range ever needs stating again.
     */
    audio(pcm: Int16Array): void {
@@ -2660,7 +2787,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
      const side = this.ensure('translation');
      const end = side.text.length;
      this.o.sink.audio({ pcm, ref: side.ref, range: [side.spoken, end] });
-@@ -155,7 +179,8 @@
+@@ -155,7 +196,8 @@
    }
  
    modelText(text: string): void {
@@ -2670,7 +2797,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
      this.interruptedEnd = false;
      if (this.suppressing || !this.dialogue) return;
      this.answering = true;
-@@ -163,6 +188,11 @@
+@@ -163,6 +205,11 @@
    }
  
    turnComplete(): void {
@@ -2682,7 +2809,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
      if (this.stopped) return;
      if (this.interruptedEnd) {
        // The rest of the end `interrupted` made: nothing more ends here, and a drop that end started goes on to the
-@@ -183,6 +213,10 @@
+@@ -183,6 +230,10 @@
    }
  
    interrupted(): void {
@@ -2693,7 +2820,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
      if (this.stopped) return;
      this.interruptedEnd = true;
      if (this.suppressing) {
-@@ -193,6 +227,11 @@
+@@ -193,6 +244,11 @@
    }
  
    typed(text: string): void {
@@ -2705,7 +2832,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
      if (this.stopped) return;
      // Typed text starts an answer of its own: a cancel's drop, active or pending, ends here, as at the next press,
      // and a `turnComplete` after it is no longer the rest of an `interrupted`.
-@@ -261,8 +300,7 @@
+@@ -261,8 +317,7 @@
  
    stop(): void {
      this.stopped = true;
@@ -2715,7 +2842,7 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
    }
  
    /**
-@@ -303,35 +341,9 @@
+@@ -303,35 +358,9 @@
    }
  
    private close(side: SideName, origin: string | undefined): void {
@@ -2757,12 +2884,23 @@ diff --git a/src/providers/gemini/turns.ts b/src/providers/gemini/turns.ts
 diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
 --- a/src/providers/gemini/adapter.ts
 +++ b/src/providers/gemini/adapter.ts
-@@ -118,6 +118,8 @@
+@@ -31,7 +31,7 @@
+ import type { GeminiCredentials } from './settings';
+ import { nativeSocket, WS_OPEN, type OpenSocket } from './socket';
+ import { ReleaseTail, type TailSummary } from './tail';
+-import { GeminiTurns } from './turns';
++import { GeminiTurns, writesSentenceMarks } from './turns';
+ import {
+   ACTIVITY_END,
+   ACTIVITY_START,
+@@ -118,6 +118,10 @@
        clock: request.clock,
        silence: request.config.silence,
        sink: events,
 +      // Live Translate: each translation cut and why, for the live test (Stage 2 translation cuts, choice 14).
 +      cut: (summary) => this.frame('out', 'translation.cut', summary),
++      // No mid-sentence hold into a script that writes no sentence-final mark (Stage 2 translation cuts, choice 6).
++      holdMidSentence: writesSentenceMarks(request.config.translationTargetCode),
      });
      this.tail = new ReleaseTail({
        clock: request.clock,
@@ -2771,7 +2909,7 @@ diff --git a/src/providers/gemini/adapter.ts b/src/providers/gemini/adapter.ts
 - [ ] **Step 4: Run Gemini's suites and the session-side guard.**
 
 Run: `npx vitest run src/providers/gemini src/providers/sessionSide.consistency.test.ts`
-Expected: PASS — 19 files, 360 tests. The dialogue models' cases, the hold's (`hold.test.ts`, `adapter.hold.test.ts`, its seeded lifecycles), the tail's and the reconnect's pass unchanged: no dialogue path moved, and a dialogue model never armed the timers removed. Live Translate's conformance scenarios pass unchanged: they read what opens and what follows the stop, and no rule reads an origin; its exchange (`Hello.`, `こんにちは。`, a chunk, 1.5 s) closes both sides as before, now stating one, and its typed text's answer, `入力された言葉`, which has no sentence end in a stream that has shown none, closes at its pause (choice 6). The session-side walk still lists `turns.ts`; it does not follow `src/lib/**`.
+Expected: PASS — 19 files, 363 tests. The dialogue models' cases, the hold's (`hold.test.ts`, `adapter.hold.test.ts`, its seeded lifecycles), the tail's and the reconnect's pass unchanged: no dialogue path moved, and a dialogue model never armed the timers removed. Live Translate's conformance scenarios pass unchanged: they read what opens and what follows the stop, and no rule reads an origin; its exchange (`Hello.`, `こんにちは。`, a chunk, 1.5 s) closes both sides as before, now stating one, and its typed text's answer, `入力された言葉`, which has no sentence end in a stream that has shown none, closes at its pause (choice 6). The session-side walk still lists `turns.ts`; it does not follow `src/lib/**`.
 
 - [ ] **Step 5: The gates.** The suite and the typecheck gate, and the full tree (in Wave 2, a failure in `src/providers/openai_translate/` is Task 2's).
 
@@ -2792,9 +2930,11 @@ CJK spaces removed, and the translation where the source was, stating
 that source as its origin. Its audio still neither opens nor holds a
 translation. Typed text stays a row of its own, and an answer to it
 stays beside it; a turn end closes the source and settles the
-translation; the kind alone makes Live Translate. Each translation cut
-is framed as translation.cut. A recorded Live Translate session pairs
-2 of 2, stated. The dialogue models are untouched.
+translation; the kind alone makes Live Translate. Into Thai or Lao,
+scripts that write no sentence-final mark, no translation is held
+mid-sentence. Each translation cut is framed as translation.cut. A
+recorded Live Translate session pairs 2 of 2, stated. The dialogue
+models are untouched.
 
 Co-Authored-By: <implementing model> <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01Q5eVcuCVVhSpoUCA5C7bDe
@@ -2805,7 +2945,7 @@ EOF
 
 ### Group check (controller, after Wave 2)
 
-- [ ] The full gates: `npx vitest run src` at 0 failed with no unhandled errors (the replay at `43437057`: 576 files passed and 1 skipped, 7 504 tests passed and 2 skipped); the typecheck gate at exactly the baseline; the full tree at 259, none naming `src/lib/segmentation/`.
+- [ ] The full gates: `npx vitest run src` at 0 failed with no unhandled errors (the replay at `43437057`: 576 files passed and 1 skipped, 7 509 tests passed and 2 skipped); the typecheck gate at exactly the baseline; the full tree at 259, none naming `src/lib/segmentation/`.
 - [ ] `npx vitest run src/services` green: the old clients are untouched (the replay: 49 files, 1 039 tests).
 - [ ] `npm run build`, then `npm run extension:build`; `npx vitest run extension`.
 - [ ] The three D24 greps print nothing.
@@ -2826,17 +2966,17 @@ The controller's docs task, after the group check. It edits only the spec and th
   2. **D4, "Karaoke"** (`:82`): after "each by the owner's ruling ('Risks')", add "; on OpenAI Translate and Gemini Live Translate a range by arrival runs within one translation segment, which now closes at its source's cut: audio arriving before the next translation delta stays with the segment that closes, so a frame can carry the next sentence's first word into the previous segment — its range is by arrival, not a known correspondence (Stage 2 translation cuts, ruling 1 (v))".
   3. **"L0 — the client contract" → "What every adapter must honour", the `frame` bullet** (`:336-360`): after "Gemini's `server.voice_activity`, `server_content.waiting_for_input`, `turn.hold` and `turn.hold_end` need none either (Stage 2 Gemini hold, choice 12);", add "OpenAI Translate's and Gemini's `translation.cut` needs none (Stage 2 translation cuts, choice 14);".
   4. **"L2 — the projection", the F16 paragraph** (`:870-875`): after "OpenAI Translate's follow-up, should its `elapsed_ms` prove one timeline (Stage 2 OpenAI Translate, ruling 6).", add "OpenAI Translate now states its origins (Stage 2 translation cuts, ruling 2), so its pairing needs no timing; the timed window waits for a provider whose origins L2 infers and that emits `timing` — Doubao AST 2.0 emits none, and OpenAI Live may state its origins by the same cuts instead."
-  5. **"Provider capability", the table** (`:1108-1122`): the `OpenAITranslateGAClient` row's last column becomes "source cut ↔ translation cut — **stated**: each closing source owes the translation one cut, taken once the translation holds as many sentence ends as the source, the latest arriving after the source's last delta; the translation states that source, at its open when known (the cut owed first, else the source still open), else at its close; a sentence end counted as ruling 1 (iii) says, and in the scripts it does not name at their own marks (`।॥۔؟။։።．｡`, counted as the CJK ones); its own quiet settles it and drops cuts no translation answered, as does a translation that begins for a newer source; one that follows no cut continues the spoken source that closed last (Stage 2 translation cuts, rulings 1, 2; choices 3, 5–9). `elapsed_ms` is still framed, and read by nothing"; the `GeminiClient` row's last column becomes "dialogue models: same turn — stated; Live Translate: source cut ↔ translation cut — stated, as OpenAI Translate's (Stage 2 translation cuts, ruling 3)".
+  5. **"Provider capability", the table** (`:1108-1122`): the `OpenAITranslateGAClient` row's last column becomes "source cut ↔ translation cut — **stated**: each closing source owes the translation one cut, taken once the translation holds as many sentence ends as the source, the latest arriving after the source's last delta; the translation states that source, at its open when known (the cut owed first, else the source still open), else at its close; a sentence end counted as ruling 1 (iii) says, and in the scripts it does not name at their own marks (`।॥۔؟။։።។៕．｡`, counted as the CJK ones); its own quiet settles it and drops cuts no translation answered, as does a translation that begins for a newer source; one that follows no cut continues the spoken source that closed last (Stage 2 translation cuts, rulings 1, 2; choices 3, 5–9). `elapsed_ms` is still framed, and read by nothing"; the `GeminiClient` row's last column becomes "dialogue models: same turn — stated; Live Translate: source cut ↔ translation cut — stated, as OpenAI Translate's, with no mid-sentence hold into Thai or Lao (Stage 2 translation cuts, ruling 3; choice 6)".
   6. **The paragraph below the table** "Gemini, not OpenAI Translate, is the first provider whose origins L2 infers …" (`:1128-1131`): append "**Amended by the Stage 2 translation cuts plan:** OpenAI Translate and Gemini Live Translate now state their origins; Doubao AST 2.0 is the one ported provider whose origins L2 still infers."
-  7. **"Segmentation is one fact"** (`:1603-1615`): after "only Live Translate's end on our timers — the user tunes the pauses.", add "On OpenAI Translate and Live Translate the source's segments end on its timer and the translation's where its source's did; the translation's own pause only settles it — at a sentence end, or 5 s after its last activity mid-sentence once its stream has shown a sentence end — and bounds how long a closed source's cut waits for a translation to begin (Stage 2 translation cuts, ruling 1; choices 6, 8)."
+  7. **"Segmentation is one fact"** (`:1603-1615`): after "only Live Translate's end on our timers — the user tunes the pauses.", add "On OpenAI Translate and Live Translate the source's segments end on its timer and the translation's where its source's did; the translation's own pause only settles it — at a sentence end, or 5 s after its last activity mid-sentence once its stream has shown a sentence end, never into a script that writes no sentence-final mark — and bounds how long a closed source's cut waits for a translation to begin (Stage 2 translation cuts, ruling 1; choices 6, 8)."
   8. **"Provider order", items 3 and 5** (`:2386-2402`): item 3's "inferred for Live Translate" → "stated for Live Translate by the translation's cuts (the Stage 2 translation cuts plan)"; item 5's "inferred origin" → "origins stated by the translation's cuts (the Stage 2 translation cuts plan)".
   9. **"Risks", "`origin` inference has no ground truth to test against for the three providers that need it"** (`:2582-2585`): append "**Amended by the Stage 2 translation cuts plan:** of the three, OpenAI Translate and Gemini Live Translate now state their origins; Doubao AST 2.0 still needs it, and OpenAI Live will unless it states its own."
 - [ ] **Step 2: Write the roadmap's section.** Append `## Scheduled by the Stage 2 translation cuts plan` as the roadmap's last section, after the Gemini hold plan's, in the earlier sections' form:
   - **What landed:** the plan's path and commit, the commit range and its `+/−` lines and files (from `git diff --shortstat`), the waves as run, each task's review rounds, the group check with its numbers; Task 4 is the record.
   - **Departures, stated:**
     - on OpenAI Translate and Gemini Live Translate the translation is cut where its source was, not on its own silence alone, and its pairing is stated, not inferred (rulings 1–3);
-    - a translation that stops mid-sentence stays open to 5 s after its last activity, in every mode, where by pause it closed at its pause — once its stream has shown a sentence end (ruling 1 (vi); choice 6);
-    - **how rulings 1 (iii) and (vi) read for scripts they do not name** (the controller's ruling on the review's C1): a sentence end in Hindi, Bengali, Marathi, Urdu, Arabic, Burmese, Armenian or Amharic is that script's own mark — `।॥۔؟။։።`, and the fullwidth `．` and halfwidth `｡` — counted as the CJK ones; in a script that writes none, Thai or Lao, "only at a sentence end" is unobservable, so the mid-sentence hold waits for the stream to show one, and until then the translation's pause settles it (choices 3, 6);
+    - a translation that stops mid-sentence stays open to 5 s after its last activity, in every mode, where by pause it closed at its pause — once its stream has shown a sentence end, and never into Thai or Lao (ruling 1 (vi); choice 6);
+    - **how rulings 1 (iii) and (vi) read for scripts they do not name** (the controller's ruling on the review's C1): a sentence end in Hindi, Bengali, Marathi, Urdu, Arabic, Burmese, Armenian, Amharic or Khmer is that script's own mark — `।॥۔؟။։።។៕`, and the fullwidth `．` and halfwidth `｡` — counted as the CJK ones; in a script that writes none, Thai or Lao, "only at a sentence end" is unobservable, so Gemini Live Translate into Thai or Lao holds no translation mid-sentence at all — its pause settles it, whatever stray Latin mark the stream shows (the controller's ruling on the re-check's N1) — and into any other target the hold waits for the stream to show a mark, the translation's pause settling it until then (choices 3, 6, 12);
     - OpenAI Translate's output frames below RMS 0.002 no longer open a translation or hold it open; outside one they are dropped, as heartbeats are (ruling 1 (vii); choice 11);
     - a translation with no cut owed waits for a source still open; a quiet close drops cuts no translation answered, and so does a pause with no translation after a source closed, and a translation that begins in that pause while a newer source is open, which follows the newer one; a translation with nothing owed and no source open continues the spoken source that closed last, and typed text clears that (choices 7–9: beyond the spike, ruled by the controller with the review's fixes);
     - a translation's `.done`, should the endpoint send one, settles it as its quiet would, where OpenAI Translate's choice 18 closed it at once (choice 13).
@@ -2854,7 +2994,7 @@ The controller's docs task, after the group check. It edits only the spec and th
     10. **The noise floor** (ruling 1 (vii); choice 11): a translation row closes about its pause after its last word, not when the next sentence begins; `session.output_audio.delta` frames with an `rms` under 0.002 still appear in the Logs.
     11. **The one-word audio boundary** (ruling 1 (v)): keep-audio on, replay each translation row: its audio says its text, bar at most the next sentence's first word at its end (the spike: twice in 16 sentence boundaries).
     12. **A long monologue with short pauses** (choices 7, 8): a minute or more with pauses under the source's: the source and its translation grow together until a real pause; record a translation held open long after its source closed, and every `dropped`.
-    13. **Other scripts** (choices 3, 6; the stated departure): OpenAI Translate zh → hi (Hindi, its `।`), and Gemini Live Translate into Arabic or Urdu and into Thai: every source row with its own translation, none alone; for Thai, the rows cut where the interpreter pauses, the `translation.cut` frames `quiet`, none held 5 s. Record a script whose marks are not counted — a whole session's translation in one row is the sign.
+    13. **Other scripts** (choices 3, 6, 12; the stated departure): OpenAI Translate zh → hi (Hindi, its `।`), and Gemini Live Translate into Arabic or Urdu, into Khmer (its `។`) and into Thai: every source row with its own translation, none alone; for Thai, the rows cut where the interpreter pauses, the `translation.cut` frames `quiet`, none held 5 s — with a question, which Thai may end with a `?`, or a Buddhist-era year written `พ.ศ.`, early in the session, which must change nothing. Record a script whose marks are not counted — a whole session's translation in one row, or every row closing 5 s after its last word, is the sign.
     14. **The first sentence of a session** (choice 6's cost): a long first sentence the interpreter pauses inside — its first translation may close at its pause, before any sentence end has shown; record whether its rest joins the next row.
     15. **Typed text on Live Translate** (choices 9, 12; with the Gemini section's item 7): after a spoken exchange, type a sentence: if an answer comes, it stands beside the typed row, `inferred` in the export's JSON, and the spoken exchange before it keeps its own translation.
   - **Open questions for the owner:** this plan's, below.
@@ -2906,9 +3046,9 @@ Taken (and where), or left (and why).
 - **The lagging interpreter's trade** (choice 8; the review's F1): an interpreter that says nothing for a source until the speaker's next sentence has begun has its translation put beside that newer source, the older one standing alone — pinned. The filler case it serves is the likelier. Live-test items 6, 12.
 - **A translation that begins more than its pause after its source closed**, with no source open, closes as that source's continuation (choice 9); with a newer source open by then, it follows that one (choice 8).
 - **Before a session's first translated sentence end, a mid-sentence pause closes the translation at its pause** (choice 6's cost): the hold waits for the stream to show a mark. The recorded Gemini session shows it — its first translation closes at "…I'm", where its source closed too, and "here to help." goes with the source that holds します。 ("Found in review" 4). Live-test item 14.
-- **A script with no sentence-final mark** (Thai, Lao) is cut by the translation's pauses and the source's cuts alone: no cut is ever due, so each translation closes at its pause for the cut owed first — 18 of 19 on the recordings through the module, 15 of 19 through OpenAI Translate's segments, none alone, where today's rule pairs 12 and leaves 3 alone ("Found in review" 1). Live-test item 13.
+- **A script with no sentence-final mark** (Thai, Lao) is cut by the translation's pauses and the source's cuts alone: no cut is ever due, so each translation closes at its pause for the cut owed first — 18 of 19 on the recordings through the module, 15 of 19 through OpenAI Translate's segments, none alone, where today's rule pairs 12 and leaves 3 alone ("Found in review" 1). Gemini Live Translate, the provider that offers them, keys the hold off by its target (choices 6, 12), so a stray Latin mark changes nothing: 18 of 19 again with one mark kept, where the gate alone, latching on it, paired 4 ("Found in re-check" 1). The key is the target code: a Thai or Lao stream reached another way — a target not keyed, or text the interpreter leaves untranslated — reads as any other. Live-test item 13.
 - **A Latin end inside a closing quote** (`He said "go." Then`) is not counted: the mark is followed by the quote, not whitespace, as ruling 1 (iii) reads; a cut there comes one sentence late, and the next quiet settles it. A text that ends so reads as at a sentence end (choice 3).
-- **Scripts beyond the widened set**: a mark not in `ANYWHERE_ENDS` or `.?!` — Tibetan's `།`, Khmer's `។`, Greek's `;` question mark — is not counted; such a target behaves as a script with no mark (choice 6). The live test names the targets that matter (item 13).
+- **Scripts beyond the widened set**: a mark not in `ANYWHERE_ENDS` or `.?!` — Tibetan's `།`, Greek's `;` question mark — is not counted. A Greek question reads as mid-sentence, its cut one sentence late until the next `.` or real pause; a Tibetan target behaves as a script with no mark that is not keyed off, so a stray Latin mark would latch the hold for it as it did for Thai (choice 6). The live test names the targets that matter (item 13).
 - **Typed text on Live Translate** owes no cut: an answer to it, should Live Translate send one, stands beside its typed row, inferred, when it begins with nothing owed and no source open; while a spoken source is open or owed, it joins that source's translation (choice 12). The Gemini section's open question.
 - **The guard reads the wall clock** (`realClock.now()` is `Date.now()`): a clock stepped back between a source's last delta and the translation's sentence end makes that cut not due, and the quiet settles it (choice 10).
 - **OpenAI Translate's release tail still hears the noise floor** (`tail.output()` for every frame that is not a heartbeat): a tail may run to its 3 s cap while floor frames come. Unchanged, and bounded (choice 11). `isQuietFrame` recomputes the RMS the adapter computed for the frame's Logs line — the review's Minor 10, left: one pass over 4 800 samples.
@@ -2923,17 +3063,23 @@ None. The controller ruled choices 7–9, with the review's fixes, adapter heuri
 
 ## Self-review
 
-- **Brief coverage.** The owner's decisions: ruling 1, the rule, each of its eight parts landing in Task 1 (i–vi, viii) and Task 2 (vii), with a test first for each: (i) the source's pause and deferral (the module's source cases), (ii) the owed cut and its `n` (the two-sentence and no-sentence cases), (iii) the sentence ends (the counting cases, CJK anywhere, "1.5" and "U.S" across and within deltas, the other scripts' marks, the one rule), (iv) the cut at the next delta (the owner's case, in all three suites; the latest end, not the first, three ways), (v) audio by arrival (its own case), (vi) the translation's quiet and hold (the resync and hold cases, in both providers; the hold once an end has shown), (vii) the noise floor (the wire, segments and adapter cases), (viii) arrival (the guard cases, on the virtual clock, each end at its own delta's arrival). Ruling 2, the stated origin: choices 2 and 5, `s<ref>` at the open, the translation's at its open when known, pinned through L1 and L2 as `stated` in both adapters. Ruling 3, Gemini Live Translate: Task 3, the text rule only, its audio rules kept, by its kind alone. The one shared pure module: choice 1, in `src/lib/segmentation/`, on the request's clock; `SilenceDeferral` read and moved into it, unchanged; the import rules and `sessionSide.consistency.test.ts` held — its timer scan now reads the module by name, its kit rule covers the replay. The stated origin through the contract and OpenAI Realtime's landed form: research note 9, choice 2; `pair.ts` leaves them alone, unchanged. The regression fixtures: four JSON files of arrival time, type, text deltas, frame length and RMS — no pcm, no key — 32 KB in all; the replay through the real `segments.ts` asserts 19 of 19 paired and no orphan, each exchange's two ends pinned (Task 2), and fails on today's rule (12 of 19 through L2); the Gemini session's through `GeminiTurns` (Task 3). Tests first for every rule, both providers: every task's first step; the kit's lifecycles cover neither adapter (they cover the 3.x Gemini dialogue model and Palabra), and the conformance scenarios, which do, pass unchanged in both. The spec and roadmap: Task 4, the pairing rows argued stated (the adapter cuts the translation because of that source's cut, its own rule, as OpenAI Realtime's "newest unanswered" is), the D4 and karaoke note, the live test with each of the brief's items (1–3, 4, 5, 7, 8) and its leftovers (the sentence-count mismatch, the one-word boundary), and Revision 1's stated departure. OpenAI Live: research note 10, "What this plan leaves", Task 4's inheritance table; not built.
+- **Brief coverage.** The owner's decisions: ruling 1, the rule, each of its eight parts landing in Task 1 (i–vi, viii) and Task 2 (vii), with a test first for each: (i) the source's pause and deferral (the module's source cases), (ii) the owed cut and its `n` (the two-sentence and no-sentence cases), (iii) the sentence ends (the counting cases, CJK anywhere, "1.5" and "U.S" across and within deltas, the other scripts' marks, the one rule), (iv) the cut at the next delta (the owner's case, in all three suites; the latest end, not the first, three ways), (v) audio by arrival (its own case), (vi) the translation's quiet and hold (the resync and hold cases, in both providers; the hold once an end has shown, and never into Thai or Lao), (vii) the noise floor (the wire, segments and adapter cases), (viii) arrival (the guard cases, on the virtual clock, each end at its own delta's arrival). Ruling 2, the stated origin: choices 2 and 5, `s<ref>` at the open, the translation's at its open when known, pinned through L1 and L2 as `stated` in both adapters. Ruling 3, Gemini Live Translate: Task 3, the text rule only, its audio rules kept, by its kind alone. The one shared pure module: choice 1, in `src/lib/segmentation/`, on the request's clock; `SilenceDeferral` read and moved into it, unchanged; the import rules and `sessionSide.consistency.test.ts` held — its timer scan now reads the module by name, its kit rule covers the replay. The stated origin through the contract and OpenAI Realtime's landed form: research note 9, choice 2; `pair.ts` leaves them alone, unchanged. The regression fixtures: four JSON files of arrival time, type, text deltas, frame length and RMS — no pcm, no key — 32 KB in all; the replay through the real `segments.ts` asserts 19 of 19 paired and no orphan, each exchange's two ends pinned (Task 2), and fails on today's rule (12 of 19 through L2); the Gemini session's through `GeminiTurns` (Task 3). Tests first for every rule, both providers: every task's first step; the kit's lifecycles cover neither adapter (they cover the 3.x Gemini dialogue model and Palabra), and the conformance scenarios, which do, pass unchanged in both. The spec and roadmap: Task 4, the pairing rows argued stated (the adapter cuts the translation because of that source's cut, its own rule, as OpenAI Realtime's "newest unanswered" is), the D4 and karaoke note, the live test with each of the brief's items (1–3, 4, 5, 7, 8) and its leftovers (the sentence-count mismatch, the one-word boundary), and Revision 1's stated departure. OpenAI Live: research note 10, "What this plan leaves", Task 4's inheritance table; not built.
 - **Revision 1** (the independent review: Ready after fixes, Critical 1, Important 2, Minor 10; the controller's rulings, 2026-09-30, binding):
   - **C1 — other scripts' sentence ends** (fixed as the review proposed): `ANYWHERE_ENDS` adds `।॥۔؟။։።．｡`, counted as the CJK marks wherever they stand, in the one shared predicate (choice 3); the mid-sentence hold only once the translation's stream has shown a sentence-end mark (choice 6). Tests first: the marks counted; a Hindi translation cut at its dandas; a Thai one closed at its pause, not held; the hold once a CJK or a Latin mark has shown; the three recordings with their translation's marks rewritten as dandas (19 of 19) and removed (18 of 19, none alone). Recorded as a stated departure in Task 4, not an owner's question.
   - **I1 — the stale cut, the continuation and typed text** (F1, F2 and the typed reset, the review's `variant-f.ts`): a translation that begins in its pause to begin while a newer source is already open drops the stale cuts, framed `idle`, and states the open source (choice 8); a translation that follows no cut continues the spoken source that closed last (choice 9); typed text clears that continuation (choices 9, 12). The case "a cut owed and the next source already open" rewritten to pin the new behaviour, with its `idle` frame; cases (a) the filler then speech within the pause to begin, (b) a translation beginning more than its pause after its source closed, (c) an answer to typed text — through the module, and on Live Translate through the adapter, L1 and L2 (inferred beside its typed row). Choice 8's claim, research note 4, choice 12's wording and "What this plan leaves" corrected. The 36-setting sweep re-run: 1 344 of 1 380, none alone, the review's counts.
   - **I2 — one sentence-end rule** (`endsSentence`, shared by `countSentenceEnds`, `atSentenceEnd` and the translation's per-delta count, carrying C1's set) and the review's four cases: "1.5" within one delta cuts nothing; 「一つ目。二つ目」 counts one, then 「。」 two; the first end before the source's last delta and the second after it make the cut due — across deltas, within them, and in CJK; 'One.' before `lastAt` settled by a delta after it stays stamped with its own arrival, not due (the guard case, strengthened). The review's A5, A6, B3, B3b, B3c and B6 now fail (below).
   - **Minors:** 1 `MID_SENTENCE_HOLD_MS` pinned at 5 000; 2 the continuation case with two paid cuts; 3 a quiet close with a cut owed while the next source is open closes for the cut; 4 `turns.replay.test.ts` no longer says no Live Translate session was recorded, and the fourth fixture, from `2026-09-28T19-41-14`, replays through `GeminiTurns`, its exchanges pinned; 5 `replay.testing.ts`, with the kit rule widened to every `*.testing.ts` (a production import fails the consistency test: R9 below); 6 the module in the session-side timer scan by name (a wall-clock read fails it: R10 below); 7 `atSentenceEnd` skips `SENTENCE_CLOSERS`; 8 the starting point `43437057`, the two probe commits and the session-end-and-wizard plan's later edit of `openai_translate/adapter.ts` named in Global Constraints; 9 `GeminiTurns` Live Translate by `kind === 'translate'` alone, with the app's default pauses should none come; 10 left, as ruled.
   - **Found while doing it:** with F1, the case that pinned the cut owed first against the source still open (Revision 0's M8) no longer could — a translation beginning in the pause to begin now follows the open source by rule; a new case pins it where it still holds, a translation two sources behind while the speaker is on a third, cut at its sentences (not beginning afresh). And the "shown an end" gate moved the recorded Gemini session's first translation: it closes at its pause at "…I'm", before the stream's first sentence end, where the review, measuring without the gate, saw "…I'm here to help." together — choice 6's cost, pinned and stated ("Found in review" 4; "What this plan leaves").
+- **Revision 2** (the re-check of Revision 1: Ready after fixes, Critical 0, Important 1, Minor 3; the controller's rulings, 2026-09-30, binding):
+  - **N1 — the gate latched for Thai and Lao** (fixed as ruled): the module's `holdMidSentence` option, true by default, turns the mid-sentence hold off; `writesSentenceMarks(target)` in `turns.ts` reads a target by its base language, false for `th` and `lo`; Gemini's adapter passes it for the config's `translationTargetCode`, and `GeminiTurns` forwards it (choices 6, 12). OpenAI Translate keeps the default. Khmer's `។៕` join `ANYWHERE_ENDS` (choice 3). The gate and its trailing-Latin-mark trigger stay. Tests first: a Thai-target stream with one early Latin mark (`ใช่ไหม?`) closes its later mid-sentence pause at its pause with the hold off, and 5 s after its last text with it on; a Khmer terminal counted (`ប្រយោគទីមួយ។ ទីពីរ៕`, two); the recordings with every translation mark removed but the first, 6, 6 and 6 through the module with the hold off (18 of 19, none alone); which targets write marks (`th`, `lo`, `th-TH` not; `km`, `ja`, `zh-Hant` and none given do); a `GeminiTurns` with the hold off; and through the adapter, a Thai target closing at its pause where an English one holds.
+  - **M1 — the Gemini fixture is push-to-talk:** said so in "Found in review" 4, choice 15, the generator's comment, the replay's header and the replay case's title: its source splits where one press ended and the next began, not at a speaker's pause.
+  - **M2 — the pause to begin ends when a translation opens:** a new case in "a cut at its sentences leaves the later cuts owed …": a translation that begins inside the pause to begin, cut at its sentences while the speaker is on a third source — its next segment states the second source, the cut owed, and the first cut is the only one framed, `dropped: 0`. The re-check's R-F1c now fails (below).
+  - **M3:** Khmer out of "What this plan leaves"; Tibetan and Greek stay, each said how it reads.
+  - **Found while doing it:** the new `GeminiTurns` case with the hold off passes on the code before Task 3 — today's rule never holds — so Task 3's red list names it as passing; the adapter's Thai-and-English case fails before it on its English half.
 - **Choices made inside the rulings:** 1–15, listed above; each is cited where it lands. Choices 7, 8 and 9 go beyond the spike and are marked so in the choices, "What this plan leaves" and Task 4's departures; the controller ruled them, with the review's fixes.
 - **Departures from the brief, each with its reason:**
   - **Choices 7–9 add rules to ruling 1 (vi)** for cases the spike never met (research note 4; "Found in review" 2): without them a translation that pauses with nothing owed, or the rest of one cut early, stands alone, and a source never translated shifts every translation after it across every real pause — the brief's own "an error does not propagate past a real pause" needs choice 8, and, when the next sentence starts within the translation's pause, its F1.
-  - **Choices 3 and 6 read rulings 1 (iii) and (vi) for scripts they do not name** (the controller's ruling on C1): those scripts' own marks end their sentences, and the hold waits for the stream to show one — without it, a Hindi or Thai target put the whole session's translation in one row.
+  - **Choices 3 and 6 read rulings 1 (iii) and (vi) for scripts they do not name** (the controller's rulings on C1 and N1): those scripts' own marks end their sentences, the hold waits for the stream to show one, and into Thai or Lao there is no hold — without them, a Hindi or Thai target put the whole session's translation in one row, and a Thai one with a stray Latin mark held every pause 5 s.
   - **Choice 3 counts ruling 1 (iii) across deltas**, not per delta as the spike did: the ruling's "only before whitespace or the end" read on each delta alone counts "1." in "1" + "." + "5"; the recordings are the same either way.
   - **Choice 13 changes the landed OpenAI Translate choice 18:** a translation's `.done` settles it rather than closing it at once, so it cannot orphan its source's rest.
   - **Choice 11 drops a noise-floor frame outside an open translation** rather than playing it unattributed: ruling 1 (vii) says only that it opens none; the spike and the Live client drop it.
@@ -2941,11 +3087,12 @@ None. The controller ruled choices 7–9, with the review's fixes, adapter heuri
   - **The translation's origin is stated at its open when known** (choice 5), where ruling 1 (iv) words it at the close: the same origin, known earlier, so the row does not jump; pinned by the invariant, which the fuzz checks.
   - **Added, not asked:** the frame `translation.cut` (choice 14), for the live test's reading of a late or early cut; the fixtures' generator, committed (choice 15); the replays read through L1 and L2, not only the adapter's events, so what they count is what the panel shows.
 - **Placeholders.** None: every code block is the tested scratch copy's file or diff; the recordings are written by the generator block and pinned by their hashes. The constants appear once each — `MID_SENTENCE_HOLD_MS` = 5 000 in the module, pinned by its own case; `QUIET_RMS` = 0.002 in `wire.ts`, pinned with its 65/66 boundary — and are read by name elsewhere; the module's `sentences`/`owed`/`dropped` counts pin the rule itself. The one template is the commit messages' `<implementing model>`, which Global Constraints says to fill in; Task 4 fills its numbers from the run.
-- **Type consistency.** Checked in the scratch copy, where every file compiled — the gate at its baseline and the full tree at 259 after each wave: `ContinuousSegments`, `ContinuousSegmentsOptions` (`clock`, `silence`, `sink`, `showSource`, `cut`), `SegmentSink`, `CutReason`, `CutSummary` (`reason`, `origin`, `sentences`, `owed`, `dropped`), `MID_SENTENCE_HOLD_MS`, `endsSentence`, `countSentenceEnds`, `atSentenceEnd`, `translating`, `sourceText`, `translationText`, `audio(pcm, { play, active })`, `typed`, `done`, `endTurn`, `stop`; `RecordedEvent` (its audio RMS optional), `Recording`, `RECORDINGS` (`user`, `tight`, `long`, `geminiLiveTranslate`), `ReplayTarget`, `ReplayResult` (`sources`, `paired`, `orphans`, `pairings`, `exchanges`), `frameAt`, `replay`; `QUIET_RMS`, `isQuietFrame`; `TranslateSegmentsOptions.cut`, `GeminiTurnsOptions.cut`; the frame `translation.cut` — each spelled the same in every task that names it.
-- **Mutants,** fifty-four, run on the replayed result against the three touched folders' suites (the consistency test alone for R9 and R10), each failing at least one test but the four equivalent:
+- **Type consistency.** Checked in the scratch copy, where every file compiled — the gate at its baseline and the full tree at 259 after each wave: `ContinuousSegments`, `ContinuousSegmentsOptions` (`clock`, `silence`, `sink`, `showSource`, `cut`, `holdMidSentence`), `SegmentSink`, `CutReason`, `CutSummary` (`reason`, `origin`, `sentences`, `owed`, `dropped`), `MID_SENTENCE_HOLD_MS`, `endsSentence`, `countSentenceEnds`, `atSentenceEnd`, `translating`, `sourceText`, `translationText`, `audio(pcm, { play, active })`, `typed`, `done`, `endTurn`, `stop`; `RecordedEvent` (its audio RMS optional), `Recording`, `RECORDINGS` (`user`, `tight`, `long`, `geminiLiveTranslate`), `ReplayTarget`, `ReplayResult` (`sources`, `paired`, `orphans`, `pairings`, `exchanges`), `frameAt`, `replay`; `QUIET_RMS`, `isQuietFrame`; `TranslateSegmentsOptions.cut`, `GeminiTurnsOptions.cut`, `GeminiTurnsOptions.holdMidSentence`, `writesSentenceMarks`; the frame `translation.cut` — each spelled the same in every task that names it.
+- **Mutants,** sixty-one, run on the replayed result against the three touched folders' suites (the consistency test alone for R9 and R10), each failing at least one test but the four equivalent:
+  - **Revision 2's:** R-F1c, the re-check's survivor, the pause to begin not ended when a translation opens; N1, the re-check's, the hold latched for `th` — the module ignoring `holdMidSentence`; N1b the adapter keeping the hold for `th`; N1c `GeminiTurns` not forwarding the option; N1d the target read whole, `th-TH` held; N1e Lao left out; K1 Khmer's marks not counted — each caught;
   - **the review's survivors:** A5 a Latin mark within a delta counted without the whitespace; A6 a CJK mark within one counted only before whitespace; B3/B3b an end within a delta keeping the first end's time; B3c a settled trailing end keeping the first's; B6 a settled trailing end stamped with the next delta's arrival; C2 the hold at 4 s; F9b the continuation never updated after the first; F12 a quiet waiting whenever a source is open — each now caught;
   - **Revision 1's rules:** R1 no stale-cut drop (F1); R2 the continuation the last paid, not the source that closed last (F2 undone); R3 typed text leaving the continuation; R4 only CJK marks counted wherever they stand; R5 the hold whether or not an end has shown; R6 closing quotes not skipped; R7 a trailing Latin mark not showing an end; R8 Gemini Live Translate only with its pauses given; R9 a production import of the replay (the kit rule); R10 a wall-clock read in the module (the timer scan) — each caught;
   - **Revision 0's, re-run:** M1 the guard not strict; M4 no drop with no translation open; M5 a quiet close dropping nothing; M6 no wait for an open source; M7 no origin stated at the open; M8 the open source preferred to the cut owed (caught again by the two-behind case); M9 no continuation origin; M10 no hold; M11 the hold measured from its expiry; M12 activity leaving the hold spent; M13 a waiting translation not given its pause at its source's close; M14 no pause to begin; M15 no guard at all; M16 the source stating no origin; M17 a CJK end counted only before whitespace — the spike's first bug; M18 trailing whitespace hiding a sentence end; M19 audio that does not count holding an open translation; M20 every close restating its origin; M21 stop leaving the translation's timer; M22 typed text owing a cut; M23 a translation's `.done` closing it at once; M24 a turn end leaving the source open; M25 a cut at its sentences dropping the cuts after it; P1 the noise floor holding the translation; P2 the floor playing outside a translation; P4 no `translation.cut` frame (OpenAI Translate); G1 Gemini's audio counting as activity; G2 its source read with its CJK spaces; G3 a turn end not handed on; G4 typed text not handed on; G5 no `translation.cut` frame; G6 a leg that does not speak playing Live Translate's audio — each caught;
   - **equivalent (4):** A3, the source counted raw, not as shown — removing CJK spaces never changes a count; E6, a close stating the owed cut over its open origin — equal by the invariant; P3, the floor at `<=` — no integer fill lands on 0.002; M3, `n` without its "at least one" — the guard already needs an end after `lastAt` (research note 7).
-- **The fuzz:** the review's, 3 000 seeds of random source and translation deltas (Latin, CJK, "1." then "5", "U.S", "です。次", and, added, a danda sentence and a Thai delta), audio counting and not, typed text, `.done`, turn ends, stop and clock jumps, at random pause settings, run once on the result: no violation — never more than two timers and none after 60 s, nothing after stop, each ref opened once and closed at most once, no text after a close, no origin restated, every origin naming a source that exists and never going backwards, ranges contiguous and within the text, one spoken source and one translation open at a time. It has teeth: with M20 (every close restating its origin) it counts 6 104 violations.
-- **Red before green, each measured:** Task 1's test file fails to load without the module, and the consistency test's timer scan finds no module to read; Task 2's 15 cases and Task 3's 13 fail on the code before them, each for the rule it pins (the steps list them). The cases a diff touches that pass before their task's code, as after it, are landed cases rewritten only so they still hold under the new rule: in Gemini's, a timer count moved past a source's pause to begin (sentence mode); in OpenAI Translate's, the stop case, whose comments alone changed.
+- **The fuzz:** the review's, 3 000 seeds of random source and translation deltas (Latin, CJK, "1." then "5", "U.S", "です。次", and, added, a danda sentence and a Thai delta), audio counting and not, typed text, `.done`, turn ends, stop and clock jumps, at random pause settings, run once on Revision 1's result and once on Revision 2's, the mid-sentence hold on for even seeds and off for odd: no violation — never more than two timers and none after 60 s, nothing after stop, each ref opened once and closed at most once, no text after a close, no origin restated, every origin naming a source that exists and never going backwards, ranges contiguous and within the text, one spoken source and one translation open at a time. It has teeth: with M20 (every close restating its origin) it counted 6 104 violations on Revision 1's result.
+- **Red before green, each measured:** Task 1's test file fails to load without the module, and the consistency test's timer scan finds no module to read; Task 2's 15 cases and Task 3's 15 fail on the code before them, each for the rule it pins (the steps list them); Task 3's one new case that passes before it, the hold off in `GeminiTurns`, asks for what today's rule already does. The cases a diff touches that pass before their task's code, as after it, are landed cases rewritten only so they still hold under the new rule: in Gemini's, a timer count moved past a source's pause to begin (sentence mode); in OpenAI Translate's, the stop case, whose comments alone changed.
