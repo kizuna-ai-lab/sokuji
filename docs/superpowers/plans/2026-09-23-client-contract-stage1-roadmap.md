@@ -6248,9 +6248,9 @@ unless marked, each with its cost):
   "does not offer X → Y" where D20's `auto` rule is the reason. Unreachable —
   Palabra's hook answers null for `auto` — and in English, in the Logs only.
   Cost: a misleading Logs line for a future hook.
-- **`serverClose(1006)`'s doc** (Task 5's re-review): it explains the suites'
-  deliberate use but does not say in so many words that `drop()` is
-  preferred. A wording gap.
+- **`serverClose(1006)`'s doc** (Task 5's re-review): **Done** after the
+  final review (`42072b5b`): the doc now says `drop()` is the preferred form
+  for an abnormal close.
 - **The kit's N-4** (Task 7's review): an adapter deaf to its signal
   passes if it has its own bound — the kit does not require an aborted start
   to settle before the bound, though the fixed `abort-while-opening` scenario

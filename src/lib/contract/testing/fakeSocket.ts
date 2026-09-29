@@ -88,7 +88,7 @@ export class FakeSocket extends EventTarget {
    * code a frame can carry — 1008, Palabra's rate limit, included. 1005 is
    * the empty close frame, reported with an empty reason whatever `reason`
    * is asked. 1004, 1015 and 1016–2999 never travel in a frame, so they
-   * throw: the test is wrong (ruling 15). 1006 is accepted and unclean — a
+   * throw: the test is wrong (Stage 2 Palabra, ruling 15). 1006 is accepted and unclean — a
    * browser reports it for a drop it saw with no frame at all, never from
    * one — because five provider suites call `serverClose(1006, …)` to mean
    * an abnormal close; `drop()` is the preferred form for that.
