@@ -163,6 +163,29 @@ describe('LogsPanel', () => {
     });
   });
 
+  describe('the ends of a session (Stage 2 session end)', () => {
+    const rows = (container: HTMLElement) => Array.from(container.querySelectorAll('.event-entry, .session-separator'))
+      .map((el) => (el.classList.contains('session-separator') ? '—' : el.querySelector('.event-type')?.textContent));
+
+    it("draws the session-ended separator after the runner's session.stopped, each leg's last line, and not after a server's session.closed before it (choice 7)", () => {
+      write(() => {
+        useLogStore.getState().addRealtimeEvent({ type: 'session.closed', data: {} } as never, 'server', 'session.closed', 'speaker');
+        useLogStore.getState().addRealtimeEvent({ type: 'session.stopped', data: { reason: 'leg-closed' } } as never, 'client', 'session.stopped', 'speaker');
+        useLogStore.getState().addRealtimeEvent({ type: 'session.opened', data: {} } as never, 'client', 'session.opened', 'speaker');
+      });
+      const { container } = render(<LogsPanel toggleLogs={() => {}} />);
+      expect(rows(container)).toEqual(['session.closed', 'session.stopped', '—', 'session.opened']);
+    });
+
+    it("marks a failed REST delete as a warning, by its name's suffix (ruling 2 (ii); choice 5)", () => {
+      write(() => {
+        useLogStore.getState().addRealtimeEvent({ type: 'session.delete_warning', data: { status: 404 } } as never, 'server', 'session.delete_warning', 'speaker');
+      });
+      const { container } = render(<LogsPanel toggleLogs={() => {}} />);
+      expect(container.querySelector('.event-entry.warning')).not.toBeNull();
+    });
+  });
+
   describe('grouped rows', () => {
     // A silent session's mic appends all land in one row. The store keeps only
     // the newest MAX_EVENTS_PER_GROUP of them (#531), so the row's count has to

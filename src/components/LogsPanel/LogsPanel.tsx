@@ -262,9 +262,11 @@ const LogsPanel: React.FC<LogsPanelProps> = ({ toggleLogs }) => {
   const renderLogEntry = useCallback((log: LogEntry) => {
     const elements: React.ReactNode[] = [];
 
-    // Check if this is a session end marker
-    const isSessionEnd = log.eventType === 'session.closed' ||
-                        (log.message && log.message.includes('session.closed'));
+    // The separator follows the runner's `session.stopped`, each leg's last
+    // line of a session, as it followed the old clients' `session.closed`; a
+    // server's own `session.closed` (OpenAI Translate's) comes before that
+    // line anyway (Stage 2 session end, choice 7).
+    const isSessionEnd = log.eventType === 'session.stopped';
 
     // Render the log entry itself
     if (log.events && log.events.length > 0 && log.source) {
