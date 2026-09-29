@@ -1306,7 +1306,9 @@ Each item goes to the first provider plan that needs it (survey §3.1's "→X");
 **Settled by the Stage 2 Palabra plan** (its record below): F4 taken, as
 `credentials.choice` on `authMode`; `authMode` through `legacyKeys` and
 `vn` → `vi` through `migratePair` not taken (rulings 2, 20: stated
-departures); the delete bounded at 5 s, the leg's own session only (choice
+departures); the delete bounded at 5 s (**changed by the Stage 2 session-end
+and wizard plan**, its choice 5: 4 s, inside the runner's own bound on a
+release), the leg's own session only (choice
 9); the G3 latency mostly moot, since a sentence's audio is a
 faster-than-real-time burst [inf], and its live test's item 4 listens for gaps.
 
@@ -1625,7 +1627,7 @@ controller's ruling N"; a bare "ruling N" in this entry is the plan's):
 - **A second speech failure within 5 s shows nothing** (Task 7): L1 drops a `degraded` of the same code within `DEGRADED_DEDUPE_MS` (`Conversation.ts:25`, 5 s), so a second `tts_segment_lost` or `tts_stopped` episode inside 5 s of the first raises no notice; the old client raised a bubble per episode.
 - **An unreadable Soniox frame is logged, not shown** (choice 7, reversed on the review): one `stt.unreadable` / `tts.unreadable` frame per episode in the Logs, where the old client dropped it silently. No notice, no locale text.
 - **A TTS connect failure at start and a failed resume attempt** reach only the Logs (as before: the old `diagnose` calls). The start failure is retried by the first translation, and a failed retry says "speech stopped" once, as before (choice 6).
-- **No "session ended" separator in the Logs for a Soniox run** (Task 8): the old client emitted `session.closed`, which LogsPanel draws that separator from (`LogsPanel.tsx:257-258`); the new adapter does not, and neither does LocalInference's. A run's end is the runner's to log, for every provider — not yet written.
+- **No "session ended" separator in the Logs for a Soniox run** (Task 8): the old client emitted `session.closed`, which LogsPanel draws that separator from (`LogsPanel.tsx:257-258`); the new adapter does not, and neither does LocalInference's. A run's end is the runner's to log, for every provider — not yet written. **Changed by the Stage 2 session-end and wizard plan** (its ruling 2 (i); choice 7): written — the runner frames `session.stopped` as each leg's last line, and the separator follows it.
 - **Frames go to the socket's first leg** (choice 16; the review's M16): in shared Both every socket-level and token frame appears in the speaker leg's Logs; the survey (§2.9) had routed them to each utterance's leg. A leg's TTS frames go to that leg.
 - `tts.audio`'s `bytes` is now the byte count; the old client sent the sample count under that name.
 - **Soniox's key is checked on its own** (the foundation's readiness driver): at once when selected, 800 ms after an edit — a temporary key minted each time, also after a vocabulary or voice edit.
@@ -3117,7 +3119,7 @@ the three items the task reviews parked are done, last below):
 - **F14**: Gemini's `socket.ts` and Soniox's move to `src/lib/contract/` with AST2's header seam. **Superseded by the Stage 2 Volcengine AST2 record below:** AST2 needs no header; the seam is OpenAI Live's, and Doubao's own `socket.ts` moves with the other two.
 - **Inferred pairing in the preview:** no fake script states no origins; one belongs with AST2, the next provider whose origins L2 infers. **Done** by the Stage 2 Volcengine AST2 plan (Task 5, `1ea6855b`): the fake's `proximity` script, seen paired in the preview at its group check A.
 - **`trackedClock`** has two copies (Soniox's and Gemini's `testing.ts`); a third user promotes it to the kit. **Done** by the Stage 2 Volcengine AST2 plan (Task 12, `e4ec0d34`): `src/lib/contract/testing/trackedClock.ts`, re-exported by Soniox's fixtures and imported by Gemini's.
-- **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox.
+- **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox. **Changed by the Stage 2 session-end and wizard plan** (its ruling 2 (i); choices 1, 3): the runner's `session.stopped` is each leg's line now, and the kit lets an ending frame itself until `stop()` has returned; Gemini has no end message of its own.
 - **The instructions of later ports:** each provider that sends instructions spreads `InstructionsSettings` into its `S`, lists `INSTRUCTION_LEGACY_KEYS` in its `legacyKeys`, calls `migrateInstructions` in its `migrate` and `resolveInstructions` in its builder, and renders `InstructionsField` — LocalInference keeps its own prompt as it is.
 - **The owner's open questions** in Task 14's record, each with the live-test item that settles it.
 - **The three items the task reviews parked** — the retention test's single `gc()` call (`src/lib/projection/pair.test.ts`), Soniox's `check.test.ts` timeout assertion twin, and the stale case title quoted in `soniox/testing.ts`'s header: done by the final fix wave (`97afa6ba`, "The final fix wave" above).
@@ -3840,7 +3842,7 @@ section was written after this plan):
 | The instructions of later ports | n/a: Doubao sends no system instructions |
 | Name the leg in `SessionContext` (open question) | joined: choice 6's libraries on both legs are Doubao's case (open question above) |
 | The readiness re-check on each instruction edit (open question, recommendation 3) | joined: for Doubao every re-check is a real session, a Text-only toggle included (open question above) |
-| `session.closed` on Stop | the same for Doubao ("What it leaves") |
+| `session.closed` on Stop | the same for Doubao ("What it leaves"). **Changed by the Stage 2 session-end and wizard plan:** the runner's `session.stopped`, and Doubao's `session.finish` (its ruling 2) |
 
 "Before any release from the branch" (`:1751-1765`, `:2318-2343` above) and
 the Kizuna Soniox plan's "Found here" (`:2494` above):
@@ -3861,7 +3863,7 @@ reviews parked for this plan's final fix wave are done, last below):
 - **Stated origins for Doubao,** if the live test shows `Sequence` or the times state the pair (choice 3). **Changed by the Stage 2 Gemini/AST2 follow-up plan:** the owner's probe shows every source subtitle carrying its translation's server times — the evidence; still not taken (that record's open questions).
 - **The legacy mode's own idle words** — an open question.
 - **The start-up clear of DNR rules 2000–2009** — V2's, before any release that carries Doubao in the extension.
-- **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox and Gemini.
+- **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox and Gemini. **Changed by the Stage 2 session-end and wizard plan** (its ruling 2 (i), (ii); choices 1, 3, 10): the runner's `session.stopped` is each leg's line now, Doubao frames its `FinishSession` as `session.finish`, and the kit lets an ending frame itself until `stop()` has returned.
 - **The owner's open questions** in this record, each with the live-test item that settles it.
 - **Generic frame names grouped under Doubao's Logs keys** (the whole-plan review, M6): `logStore.ts` groups `subtitle.source`, `subtitle.translation`, `tts.sentence_start`, `tts.sentence_end`, `tts.ended`, `session.usage` and `session.audio_muted` — generic `domain.event` names — under the old client's `volcengine_*` keys (choice 9). No other provider emits them today; a later port that names a frame `session.usage` or `tts.ended` would find its rows grouped under Doubao's key, silently. The effect is cosmetic, in the Logs only. That port should give its frames names of its own, or narrow Doubao's rows (V2 is a natural moment, once the old client's names go), or pin in `logStore.test.ts` that these rows are Doubao's only while no other provider emits the names.
 - **To the final fix wave, done** (`7f3dded6`, "The final fix wave" above): `nativeSocket` in `volcengine_ast2/socket.ts` and `gemini/socket.ts` rethrows in fixed words — `The browser would not open the socket (<error name>).` — dropping the browser's message, which can quote the URL; one place each covers the adapter, Doubao's check and Gemini (Task 15's review, M3b). The error keeps the browser's error name ("Found during execution", item 10).
@@ -4349,7 +4351,7 @@ frames with their `elapsedMs`:
 15. **An old profile** (rulings 1, 8, 10): key, pair, noise reduction and `transportType: 'webrtc'` saved by an earlier build → ready without re-entry; the session runs over WebSocket (`translation_session_start.transport` reads `websocket`); a stored `gpt-realtime-whisper` changes nothing. A fresh profile that holds an OpenAI Realtime key → Translate asks for its own (no prefill). A profile with Text only left on under another provider → Translate silent, the switch shown on.
 16. **The wizard:** the own-key list shows OpenAI Translate between Doubao AST 2.0 and Soniox; its key step validates; the subtitles-only scenario offers it.
 17. **Analytics:** `translation_session_start` with `provider: 'openai_translate'`, the translation model `gpt-realtime-translate` and the ASR model `gpt-live-transcribe` (choice 10); a refused start → `api_error` with its code.
-18. **The Logs panel:** the frames grouped by type when consecutive, `session.error` red, the server's `session.closed` drawing the separator; no key anywhere, the export included; no `session.unreadable` in a healthy session.
+18. **The Logs panel:** the frames grouped by type when consecutive, `session.error` red, the server's `session.closed` drawing the separator (**changed by the Stage 2 session-end and wizard plan**, its choice 7: the separator now follows the runner's `session.stopped`, which follows the server's `session.closed`); no key anywhere, the export included; no `session.unreadable` in a healthy session.
 19. **The extension side panel's core flows:** Validate ✓ and a session that starts and translates in the side panel — the check's fetch and the socket under the extension's CSP; no CSP error in the side panel's DevTools console.
 
 **Open questions for the owner**
@@ -4468,7 +4470,7 @@ task review routed to it, last below):
 - **The timing follow-up** (ruling 6): if the live log shows one aligned timeline, set `timing` once, at segment close, and extend F16's window to timed pairs (by `startMs`), and consider karaoke by `elapsed_ms`; if the values are emission-time, first let L2 fall back to proximity when no timed candidate clears `minOverlap` (research Q3). **Narrowed by the Stage 2 translation cuts plan** (its ruling 2): pairing no longer needs it — the translation states its source; what stays is karaoke by `elapsed_ms`.
 - **The tail's constants** tuned from the live test, and **a keepalive** only if it shows a dropped session or a stuck tail (ruling 2).
 - **A fresh session or a reconnect at expiry**, if the long session shows a fixed length (ruling 13).
-- **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox, Gemini and Doubao.
+- **`session.closed` on Stop** is not emitted (the kit forbids emissions after stop), as for Soniox, Gemini and Doubao. **Changed by the Stage 2 session-end and wizard plan** (its ruling 2 (i); choices 1, 3): the runner's `session.stopped` is each leg's line now, and the kit lets an ending frame itself until `stop()` has returned; OpenAI Realtime has no end message of its own.
 - **`pcmToBase64` / `base64ToPcm`** lifted to `src/lib/contract/` at their third user (choice 8; Task 4's review, M4). **Done** by the Stage 2 OpenAI Realtime plan (Task 1, `2f7c681d`): `src/lib/contract/pcm64.ts`, re-exported by both wires.
 - **The owner's open questions** in this record, each with the live-test item that settles it.
 - **A shared `boundedFetch` in `src/lib/`** at the next check that needs one — OpenAI Realtime's or Compatible's (Task 7's review, M1): the bounded-fetch skeleton — an `AbortController`, `timedOut`, the clock's bound, the caller's abort listener and one `finally` — now stands three times, in `soniox/`, `gemini/` and `openai_translate/check.ts`. **Done** by the Stage 2 OpenAI Realtime plan (Task 2, `bf2702ba`): `src/lib/provider/boundedFetch.ts`, the three checks run inside it.
@@ -6200,8 +6202,11 @@ its cost:
    not only `pagehide`'s, leaving sessions to expire on Palabra's side. A
    transport failure (a rejected fetch, or a synchronous throw) is now tried
    once more without `keepalive`, on the same controller, inside what is left
-   of the same 5 s bound; a status answer and the bound's own abort are not
-   retried; nothing is framed — as the Soniox lease's session end does
+   of the same 5 s bound (**changed by the Stage 2 session-end and wizard
+   plan**, its choice 5: 4 s); a status answer and the bound's own abort are not
+   retried; nothing is framed (**changed by the same plan**, its ruling 2 (ii):
+   `session.delete` as it goes out, then `session.deleted` or
+   `session.delete_warning`) — as the Soniox lease's session end does
    (`soniox/lease.ts:151-174`). The `keepalive` DELETE still goes out first,
    before any `await`, so `pagehide` sends it. Live-test item 9 records which
    runs. Beside it (m1–m4, n1, n3–n5): push-to-talk after a wall clock
@@ -6305,7 +6310,7 @@ is marked):
 6. **Both** (rulings 8, 9; D20): two sessions on one credential; the participant is reversed by Palabra's codes (`ja → en-us` runs `en → ja`, `en → ja` runs `ja → en-us`, `zh → en` runs `en → zh-hans`); its speech follows its switch; either leg ending ends both; Auto-detect and a pair ending on `fil` are refused in words.
 7. **Text only** (ruling 7): no audio at all, no `audio.output` frames, the rows paired.
 8. **`auto`** (ruling 8): each source row carries the language the server heard; speaker only. **Execution (Task 9's review):** an `auto` source sends `detectable_languages: []`, which the probe never ran: record whether the server accepts it and detects.
-9. **Stop, and a cancelled create** (ruling 13; choice 9): nothing plays after Stop; for the pair, the REST delete goes out (DevTools' network panel: `DELETE` 204, `keepalive`); **cancel during the app pair's create** (press Stop, or switch provider, within a moment of Start), then Start again at once: the new start must not be refused for parallel sessions, and the network panel shows the first session's `DELETE` after its create's answer; close the side panel mid-session, then Start within a minute — whether the `pagehide` delete got through its preflight, and whether a lingering session blocks the next. **Execution (Task 13's fix round, `b7aaf60d`):** a `keepalive` DELETE refused at the transport is sent again once without it, inside the same 5 s bound — record which path runs on each platform: one `keepalive` DELETE answered 204, or a failed one followed by a plain one. **The final fix wave (N4):** a create whose headers arrive in time but whose body stalls past the bound reads as no id, so its session is left to expire — the one case choice 9 cannot delete, needing a body stall of about 20 s after the headers to reach.
+9. **Stop, and a cancelled create** (ruling 13; choice 9): nothing plays after Stop; for the pair, the REST delete goes out (DevTools' network panel: `DELETE` 204, `keepalive`); **cancel during the app pair's create** (press Stop, or switch provider, within a moment of Start), then Start again at once: the new start must not be refused for parallel sessions, and the network panel shows the first session's `DELETE` after its create's answer; close the side panel mid-session, then Start within a minute — whether the `pagehide` delete got through its preflight, and whether a lingering session blocks the next. **Execution (Task 13's fix round, `b7aaf60d`):** a `keepalive` DELETE refused at the transport is sent again once without it, inside the same 5 s bound (**changed by the Stage 2 session-end and wizard plan**, its choice 5: 4 s, and the outcome framed) — record which path runs on each platform: one `keepalive` DELETE answered 204, or a failed one followed by a plain one. **The final fix wave (N4):** a create whose headers arrive in time but whose body stalls past the bound reads as no id, so its session is left to expire — the one case choice 9 cannot delete, needing a body stall of about 20 s after the headers to reach.
 10. **Failures** (rulings 11, 12; choice 8): Wi-Fi off mid-session → the connection-lost words, with the time until them; ten quick Start / Stop rounds in Both (two connections each) to cross 20 connections a minute → the 1008 words; nothing reconnects.
 11. **Voices and the fallback** (rulings 10, 11): `default_low` against `default_high`; a target with no voice — try the added ones (`az`, `bs`, `is`, `kk`, `mk`, `sr`) — shows the `voice_fallback` notice once and a `session.warning` per sentence.
 12. **Languages** (ruling 8): `mr` and `fa` as sources; two or three of the added sources and targets translate and speak.
@@ -6363,7 +6368,7 @@ From "Scheduled by the Stage 2 foundation plan":
 |---|---|
 | Palabra → F4, the credential-adjacent control (`:1299`) | consumed: `credentials.choice` on `authMode` (Task 8) |
 | Palabra → `authMode` via `legacyKeys`, `vn` → `vi` via `migratePair` (`:1300`) | **not taken** (rulings 2, 20): stated departures |
-| Palabra → `deleteSession` with a timeout (`:1301`) | **taken** for the app pair's session: 5 s, `keepalive`, its own only, a create the leg outlives included (choice 9); as landed, a transport failure tried again without `keepalive` ("Found during execution", item 7); moot for the platform key |
+| Palabra → `deleteSession` with a timeout (`:1301`) | **taken** for the app pair's session: 5 s (**changed by the Stage 2 session-end and wizard plan**, its choice 5: 4 s, inside the runner's own bound), `keepalive`, its own only, a create the leg outlives included (choice 9); as landed, a transport failure tried again without `keepalive` ("Found during execution", item 7); moot for the platform key |
 | Palabra → the G3 latency a stall leaves (`:1196-1201`, `:1302`) | mostly moot [inf]: a sentence's audio is a faster-than-real-time burst, so the clip queue has lead within it; live-test item 4 listens for gaps |
 | The kit's parked items (`:1321-1325`) | **taken** (ruling 15; Task 5; choice 4); as landed, the unflushed server-close drive and 1005 / 1006 (item 3) |
 | "Before any release": the release flags and the registry order (`:1352-1363`) | unflagged (ruling 14): nothing added to `VITE_ENABLED_PROVIDERS`; `VITE_ENABLE_PALABRA_AI` goes with the deletion |
@@ -7250,3 +7255,288 @@ taken (and where), or left (and why).
   (`scripts/dev/wire-probe/openai-translate.mts`), a research instrument; the
   module is not shared with it.
 - **Doubao AST 2.0** is now the one ported provider whose origins L2 infers.
+- **Deferred by the owner (2026-09-30), English into Chinese on OpenAI
+  Translate** (「这个问题不是太大，等之后我们再处理吧」). His session logs showed
+  two things:
+  - The English transcript (`gpt-live-transcribe`) sends a sentence's "."
+    only with the next word — after a pause, always. The source row cut at
+    that pause therefore opens the next row with ". ". A Chinese source's
+    "。" came within 10 ms, which is why no test met this.
+  - An interpreter that merges sentences (seven English into four Chinese,
+    joined across the source's boundary with a comma) never reaches the
+    source's count. The translation runs on until its quiet, and the next
+    source's cut is dropped: that row shows no translation.
+
+  Both transcripts' `elapsedMs` are one timeline (the input audio's). Cutting
+  at the first translation sentence end at or after the source's last word
+  by `elapsedMs` would have paired that session — an offline spike on his
+  log is the proposed next step. A first session, French and English into
+  Chinese, showed no "。" at all; its log was not seen. The probe for the
+  direction: `openai-translate.mts record --script en --target zh` or
+  `--wav`, then `marks` (`37ec855a`).
+
+## Scheduled by the Stage 2 session-end and wizard plan
+
+The Stage 2 session-end and wizard plan
+(`docs/superpowers/plans/2026-09-30-client-contract-stage2-session-end-and-wizard.md`,
+plan commit `2648b390`, written over `43437057`'s code and replayed on the
+translation cuts plan's result) landed as the eight commits `55e4a192`
+through `7c96f2ac` on `worktree-client-contract-stage2`
+(`37ec855a..7c96f2ac`: **+781 / −106 lines across 34 files**, `git diff
+--shortstat`). Then this record with the two specs' amendments. It carries
+out two rulings of the owner's (2026-09-30):
+- **every session leg ends with a line in the Logs**, and each provider
+  frames the graceful end it sends (ruling 2);
+- **the setup wizard no longer sets display modes** (ruling 1).
+
+No locale key and no store change.
+
+Execution began at `37ec855a`, past the plan's own starting point. Five
+commits had landed since:
+- the translation cuts plan;
+- `e311ef7f`, Palabra's splitter;
+- `b5153784`, `textInput(s)`;
+- `4041bf86`, Gemini's typed text;
+- the probes.
+
+A pre-flight replay of every task on a fresh copy of `37ec855a` applied each
+hunk of Tasks 1–7 with no offset and Task 8's with offsets only (the
+translation cuts had moved its lines), with no fuzz, and ran the gates after
+each wave. The only drift was additive: Task 2's folder counted 261 tests
+where the plan said 260, Task 7's 180 where it said 175, and Task 8's 11
+files and 133 tests where it said 10 and 126 — each from tests other commits
+had added to files the task does not edit.
+
+Eight implementation tasks ran in two parallel waves:
+- **Wave 1**, Tasks 1–4 at `37ec855a`: the kit, the runner, the Logs panel
+  and the wizard, on disjoint folders.
+- **Wave 2**, Tasks 5–8 at `f95b3abc`, once Task 1's review was in: one
+  provider folder each. Task 7's runner-level case consumes Task 2's
+  `session.stopped`, so it needed Wave 1 first. The plan's order note said
+  "none needs Task 2 or 3", and its Task 7 Consumes list omitted it; the
+  execution rulings corrected both here.
+
+Each task had one review and no fix round — Spec ✅, Quality Approved, 0
+findings each — and every committed file was checked mechanically against
+the plan's code (the plan's diffs applied with `patch -p1` to the task's
+base, then diffed). Task 9 is this record; the final whole-branch review
+follows it.
+
+**What landed, by task:**
+- **The kit lets an ending frame itself until `stop()` has returned**
+  (`1f02de83`, Task 1; red 6 failed / 68 passed → green 74; the kit's 13
+  files, 135 tests):
+  - the `stopped` marker, recorded by both drivers once `stop()` has settled;
+  - a frame after `stop` / `failed` / `closed` passes only when that marker
+    follows it;
+  - a log with no marker keeps the old rule (choice 3).
+- **The runner frames `session.stopped` per leg** (`07aabb17`, Task 2; red 7
+  failed / 121 passed → green 11 files, 261 tests): `Run.startedAt`,
+  `Run.close(result)` and `frameStopped` — after the unwind, speaker first,
+  `{ reason, code?, leg?, state, elapsedMs }`; none for a run that opened no
+  leg or was abandoned (choices 1, 2).
+- **The Logs draw their "session ended" separator after `session.stopped`**
+  (`55e4a192`, Task 3; red 1 failed / 11 passed → green 2 files, 37 tests),
+  no longer after `session.closed`; `session.delete_warning` reads as a
+  warning row (choice 7).
+- **The wizard leaves display modes alone** (`f95b3abc`, Task 4; red 8 failed
+  / 12 passed → green 13 files, 124 tests): `ScenarioPreset` and
+  `ScenarioDisplayMode`, `ApplySetupDeps`' two setters and `useApplySetup`'s
+  bindings gone; no migration (ruling 1; choice 11).
+- **Doubao frames its `FinishSession`** (`3f2c2a7d`, Task 5; red 1 failed /
+  45 passed → green 14 files, 164 tests): `session.finish { sessionId }`
+  inside the send's own guard; `SessionFinished` not awaited (ruling 2 (ii),
+  (iv); choice 10).
+- **Soniox frames the ends it sends** (`c2ce882e`, Task 6; red 8 failed / 177
+  passed → green 185; Soniox and the old clients, 50 files, 1 147 tests):
+  - `stt.end` at Stop only, since a failure sends no end;
+  - `tts.end { streamId }` for the stream `SonioxTtsStream.close()` ended;
+  - in shared Both, `stt.end` on the speaker leg (choice 8).
+- **Palabra frames `end_task` and its session's delete** (`7c96f2ac`, Task 7;
+  green 12 files, 180 tests; the suite at 577 + 1 files, 7 549 + 2 tests):
+  - `task.end { force: true }`;
+  - `session.delete`, then `session.deleted { status }` or
+    `session.delete_warning` with `{ status }`, `{ error }` (the error's name)
+    or `{ timeoutMs: 4000 }`, through `releaseFrame`;
+  - `RELEASE_TIMEOUT_MS` = 4 000, inside the runner's 5 s bound;
+  - a failed start rejects once the delete has settled;
+  - a new `adapter.runner.test.ts` steps the virtual clock to each bound
+    alone (choice 5).
+- **OpenAI Translate sends `session.close` at Stop** (`bcfaa522`, Task 8;
+  green 11 files, 133 tests): `SESSION_CLOSE` in `wire.ts`, typed by the
+  SDK; sent and framed only while live and open, then the close — the tail
+  still dropped (ruling 2 (iii); choice 9).
+
+**Gates after each wave** (the controller's, 0 failed and no unhandled
+errors, the typecheck gate at its 20-line baseline, the full tree at 259):
+- the base `37ec855a`: 576 files passed and 1 skipped, 7 521 tests passed
+  and 2 skipped;
+- Wave 1 (`f95b3abc`): 576 + 1, 7 536 + 2;
+- Wave 2 (`7c96f2ac`): 577 + 1, 7 549 + 2.
+
+Each figure is exactly the pre-flight's.
+
+**Checked — the group check** (at `7c96f2ac`):
+1. `npx vitest run src`: 577 passed and 1 skipped files, 7 549 passed and 2
+   skipped tests, no unhandled errors. The typecheck gate prints exactly the
+   20-line baseline; the full tree is at 259, none naming `src/lib/setup/`.
+   `LogsPanel.tsx` keeps its four pre-existing lines.
+2. `src/services`: 49 files, 1 039 tests — the old clients untouched, their
+   re-exported `ttsStream.ts` included.
+3. `npm run build` and `npm run extension:build` exit 0, and `npx vitest run
+   extension` passes 7 files, 45 tests. The three D24 greps print nothing.
+   `session.stopped` and `session.delete_warning` ship in
+   `build/static/index-*.js` and `extension/dist/fullpage.js`.
+4. No rendered check: the lines show only in a live session's Logs, and
+   Task 3's cases render the panel.
+
+**Departures, stated:**
+- every session leg ends with a `session.stopped` line in the Logs, and the
+  "session ended" separator follows it, no longer `session.closed` (ruling 2
+  (i); choice 7);
+- OpenAI Translate now sends `session.close` at Stop, where it sent nothing;
+  the tail at Stop is still dropped (ruling 2 (iii));
+- Soniox sends the STT stream's end only at Stop, no longer after a failure
+  (choice 8);
+- Palabra's delete is bounded at 4 s, where the Palabra plan's ruling 1 set
+  5 s, and a start that fails after its REST session was made rejects only
+  once the delete has settled, up to 4 s later (choice 5);
+- the kit lets a frame follow an ending until `stop()` has returned, and a
+  log with no `stopped` marker keeps the old rule (choice 3);
+- the setup wizard no longer sets display modes: a re-run leaves them as the
+  user set them (ruling 1).
+
+**Before any release from the branch:** the owner's live test below.
+
+**The owner's live test** (own credentials; switch diagnostic logs on in Help
+before Start; each item names what settles it):
+1. **Stop on each provider** (ruling 2). Start, speak a sentence and Stop on:
+   - Gemini;
+   - OpenAI Realtime;
+   - OpenAI Translate;
+   - Soniox (own key);
+   - Kizuna Soniox;
+   - Doubao AST 2.0;
+   - Palabra (the platform key and the app pair);
+   - LocalInference.
+
+   Each leg's tab ends with `session.stopped` (`reason: 'user'`, `state:
+   'live'`, `elapsedMs` about the session's length from Start), then the
+   "Session ended" separator. Before them comes the provider's own end line:
+   - Doubao: `session.finish`;
+   - Soniox: `stt.end`, and `tts.end` when a translation was still speaking;
+   - Kizuna Soniox: the same, then the lease's `session.end`;
+   - Palabra: `task.end`, and on the app pair `session.delete` then
+     `session.deleted { status: 204 }`;
+   - OpenAI Translate: `session.close`;
+   - Gemini, OpenAI Realtime and LocalInference: nothing but
+     `session.stopped`.
+
+   Record any leg with no `session.stopped`, or a line after it.
+2. **Both** (choice 1): Stop a Both session on Soniox (shared) and on
+   Palabra: each tab its own `session.stopped` and separator; Soniox's
+   `stt.end` in the Me tab, each leg's `tts.end` in its own.
+3. **A session that ends by itself** (choice 2):
+   - drop the network during an OpenAI Translate or Palabra session:
+     `session.stopped` with `reason: 'leg-failed'`, the code
+     (`connection_lost`) and the leg;
+   - on Kizuna Soniox, run a segment to its cap: `reason: 'lease-ended'`
+     with the lease's code;
+   - start with a wrong key: `reason: 'start-failed'`, `state: 'opening'`.
+4. **A Palabra app-pair delete that fails** (ruling 2 (ii); choice 5). With
+   the app pair, cut the network (Wi-Fi off) just before Stop:
+   - `task.end` is still framed if the socket has not yet noticed; else the
+     leg's own `session.connection_lost` and `session.stopped { reason:
+     'leg-failed' }`;
+   - then `session.delete` and `session.delete_warning` — `{ error:
+     'TypeError' }` or `{ timeoutMs: 4000 }` — **drawn as a warning row,
+     before `session.stopped`**;
+   - the Stop itself is done at once or within 4 s, with no "Releasing …
+     timed out" warning.
+
+   Then, with the network still cut, Start again on the app pair: if the
+   create got through, the start fails with `session.delete` and its warning
+   before `session.stopped { reason: 'start-failed' }`. Record each payload
+   and how long Stop and the failed start took.
+5. **OpenAI Translate's `session.close`** (ruling 2 (iii)): Stop
+   mid-sentence: no `session.error` in the Logs before `session.stopped`;
+   the translation's tail is dropped, as before. Record anything the
+   endpoint says that the Logs show.
+6. **Doubao** (ruling 2 (iv)): Stop stays as fast as before;
+   `session.finish` is the last Doubao line — no `session.finished` or
+   `session.usage` after it, as the adapter reads none.
+7. **The wizard** (ruling 1): set the Me and Other display modes to
+   "source" in the panel's toolbar, re-run the setup wizard (Settings →
+   Help, "Run setup again") choosing a two-way scenario, finish: both modes
+   are still "source", and still after a restart. Then on a fresh profile:
+   both default to "both".
+
+**Open questions for the owner:** none — the controller ruled the review's
+questions (Revision 1): the separator after `session.stopped` (choice 7), the
+name `session.delete_warning` (choice 5), and `elapsedMs` from Start (choice
+2).
+
+**Amended in place**, each marked as changed by this plan:
+- In the Soniox section, "What it leaves": the missing "session ended"
+  separator — written: the runner's `session.stopped` and the separator
+  after it.
+- In the Gemini, Doubao (and its inheritance row) and OpenAI Realtime
+  sections: "`session.closed` on Stop is not emitted" — the runner's
+  `session.stopped` is each leg's line now, and the kit lets an ending frame
+  itself until `stop()` has returned.
+- In the OpenAI Translate section, live-test item 18 — the separator follows
+  the runner's `session.stopped`.
+- In the Palabra section:
+  - the foundation section's "the delete bounded at 5 s";
+  - the fix-round note's "the same 5 s bound" and "nothing is framed";
+  - live-test item 9's "the same 5 s bound";
+  - the inheritance row's "5 s".
+
+  Each now reads 4 s, inside the runner's own bound on a release, with the
+  delete's outcome framed (choice 5; the execution rulings' Minor 2).
+
+**The roadmap's inheritance, item by item** (the plan's table, as landed):
+taken (and where), or left (and why).
+
+| Item | Disposition |
+|---|---|
+| The Soniox section, "What it leaves": no "session ended" separator for a Soniox run — "A run's end is the runner's to log, for every provider — not yet written" | met: the runner's `session.stopped` (Task 2) and the separator after it (Task 3; choice 7); live-test item 1 |
+| The Gemini section: "`session.closed` on Stop is not emitted (the kit forbids emissions after stop)" | met: the runner's line (Task 2); Gemini has no end message of its own (ruling 2) |
+| The Doubao section: the same, and its inheritance row | met: the runner's line, and `session.finish` (Tasks 2, 5); the kit's rule (Task 1) |
+| The OpenAI Realtime section: the same | met: the runner's line (Task 2); no end message exists |
+| The OpenAI Translate section, live-test item 18: the server's `session.closed` drawing the separator | changed: the separator follows the runner's `session.stopped`, which follows it (choice 7) |
+| The OpenAI Translate plan's parity note: no `session.close` at Stop | changed: sent and framed, not waited for (ruling 2 (iii); Task 8) |
+| The Palabra plan's "nothing is framed after a stop", and the delete that fails with no trace | changed: `task.end`, the delete and its outcome framed, a failed one a warning, a failed start's too (ruling 2 (ii); choice 5; Task 7) |
+| The Palabra plan's delete bound, 5 s (its ruling 1) | changed: 4 s, inside the runner's own 5 s bound on a release (choice 5; the controller's ruling on the review's I1) |
+| The sweep's finding 8: the Kizuna Soniox lease's successful `session.end` has no ack line | left: its request is framed and its failures are; the runner's `session.stopped` follows it (What this plan leaves) |
+
+**What this plan leaves** (the plan's own list, as written):
+- **A Palabra create that lands after its leg gave up** deletes its session
+  and frames both lines, but the runner has finished that run and files
+  neither (choice 5). The session is deleted all the same.
+- **A Palabra delete that answers between 4 and 5 s** now shows a timeout
+  warning where it may have succeeded: its bound moved under the runner's
+  (choice 5). The live test records how long deletes take (item 4).
+- **The Kizuna Soniox lease's successful `session.end`** has no answer line
+  (the sweep's finding 8): its request is framed, its failures are
+  (`session.notify_failed`), and `session.stopped` follows.
+- **What the graceful ends would bring back is not read:**
+  - Doubao's `SessionFinished` and its billing (ruling 2 (iv));
+  - OpenAI Translate's flushed tail and `session.closed` (ruling 2 (iii));
+  - Soniox's trailing tokens and `{ finished: true }`.
+
+  Each adapter closes at once, as before.
+- **Soniox ends one TTS stream at Stop:** the active one; a stream already
+  draining had its `text_end` at `endUtterance`, and a socket still opening
+  sends nothing (choice 8).
+- **`elapsedMs` counts from Start** (choice 2); a leg's live time is
+  analytics' `duration_ms`. If the live test wants it in the Logs, it is one
+  more field.
+- **The old clients' `session.closed`** (`src/services/clients/**`) no longer
+  draws a separator; they do not run in the app, and go with the deletion
+  plan.
+- **The kit's virtual clock fires same-due timers in one call:** a case that
+  depends on which of two bounds wins must step the clock to each alone, as
+  Task 7's runner-level case does (choice 3). The other adapters' bounds were
+  not re-checked against the runner's; the Kizuna lease's (4 s) is inside it
+  already.

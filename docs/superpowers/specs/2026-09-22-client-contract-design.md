@@ -323,14 +323,18 @@ The conformance suite (D24) checks each rule below against every adapter.
   one response per batch of waiting releases (ruling 8's aim; its letter,
   one response per release, amended by the plan's final review).
 - **An adapter that can no longer work says so**, with `failed` or an unexpected
-  `closed`, and emits nothing after either. `closed` need not be preceded by
+  `closed`, and emits nothing after either but a frame of its own ending — the
+  graceful end it sends, a REST session's delete and its outcome — until
+  `stop()` has returned (Stage 2 session end, choice 3). `closed` need not be preceded by
   closing every segment; L1 finalizes what is open.
 - **`frame` carries no audio and no credential.** Its `type` is the adapter's own
   vocabulary, `domain.event`, and its payload is what the Logs panel shows; the
   adapter strips audio and base64 before emitting, and `logStore` still
   sanitizes. The panel groups consecutive frames by `type` alone, marks
   severity by the `error` / `failed` / `warning` suffix, and draws its "session
-  ended" separator from `closed` — three conventions the generic event must
+  ended" separator after the runner's `session.stopped` (Stage 2 session end,
+  choice 7; before, from `closed`, the old clients' `disconnect()` line) —
+  three conventions the generic event must
   keep. It never finds an item id in a frame: `logStore` reads `item_id` at the
   event's top level (`logStore.ts:495-496`), while a frame reaches it as
   `{ type, data: payload }` (`src/app/telemetry.ts:94`), so a frame groups with
@@ -344,7 +348,9 @@ The conformance suite (D24) checks each rule below against every adapter.
   type. OpenAI Translate's need no row: its three `.delta` frames group by
   their own type when consecutive (the Logs' rule for every provider),
   `session.error` reads as an error by its suffix, and its `session.closed`
-  — the server ending the session — draws the separator. OpenAI Realtime's
+  — the server ending the session — comes before the runner's
+  `session.stopped`, which draws the separator (Stage 2 session end, choice
+  7). OpenAI Realtime's
   need none either: its four `.delta` frames group by their own type when
   consecutive, and none of its other names is anyone's row (Stage 2 OpenAI
   Realtime, choice 13). Gemini's `turn.tail` and `turn.tail_end`, OpenAI
@@ -362,7 +368,11 @@ The conformance suite (D24) checks each rule below against every adapter.
   `audio.output`, a sentence's burst of 200 ms chunks — each get a row that
   groups them under their own type, the `.delta` rule's way, with no key
   another provider's frames could share; its other names need none (Stage 2
-  Palabra, choice 11). No frame payload holds a `ws://` or `wss://` URL:
+  Palabra, choice 11). The runner's `session.stopped`, Doubao's
+  `session.finish`, Soniox's `stt.end` and `tts.end`, Palabra's `task.end`,
+  `session.delete`, `session.deleted` and `session.delete_warning` — a warning
+  by its suffix — and OpenAI Translate's `session.close` need none: each is
+  said once per leg's end (Stage 2 session end, choices 4–6). No frame payload holds a `ws://` or `wss://` URL:
   three providers' credentials ride a socket's query, and `redact()` masks
   only the parameters it names, so the kit's `frame-url` rule holds every
   adapter to it (choice 10).
@@ -2075,7 +2085,10 @@ Palabra uses none (Stage 2 Palabra, choice 9). The old client's delete-all
 `prepare` is gone — it deleted every session on the account, Both's other leg
 included — and each leg deletes only the REST session it created, a create
 the leg outlives included; Both is two independent sessions on one
-credential, which the owner's probe ran.
+credential, which the owner's probe ran. Its delete is framed as it goes out
+and as it ends, within 4 s; one that failed is a warning row; and a start that
+fails after its session was made rejects only once the delete has settled, so
+that outcome is framed too (Stage 2 session end, choice 5).
 
 ### Capture belongs to the runner
 
@@ -2120,6 +2133,24 @@ session.
 
 - **One path.** `stop()` aborts, unwinds and resolves one promise; the button in
   `stopping` does nothing, so a double tap no longer starts a new session.
+- **Each leg's last line in the Logs is the runner's.** Once a run has unwound
+  — every leg's `stop()` settled — it frames `session.stopped` (`out`) for each
+  leg: `{ reason, code?, leg?, state, elapsedMs }`, the run's end reason, its
+  notice's code and the leg it names, the leg's last state (`null` when its
+  adapter never started) and the run clock's time from Start to the stop; none
+  for a start refused before it opened a leg, a stop while it checked, or
+  `abandon()`. It is the uniform line the old clients' `disconnect()` logged as
+  `session.closed`. Before it, each adapter frames the graceful end it sends:
+  Doubao's `FinishSession` (`session.finish`), Soniox's end of the STT stream
+  at Stop (`stt.end`; a failure sends none) and a speaking TTS stream's
+  `text_end` (`tts.end`), Palabra's `end_task` (`task.end`) and its REST
+  session's delete (`session.delete`, then `session.deleted`, or
+  `session.delete_warning` with Palabra's status, the error's name or its 4 s
+  bound — strictly inside the runner's own 5 s bound on a release, so the line
+  is filed), and OpenAI Translate's `session.close`, which it now sends, not
+  waiting for the server's flush; Doubao does not wait for `SessionFinished`.
+  Gemini and OpenAI Realtime have no end message (Stage 2 session end, ruling
+  2; choices 1, 2, 4, 5, 8).
 - **Auto-save runs after the legs have closed, from L1** — both legs. Today the
   participant leg's final rows are never written to React state and reach only
   the saved file.
@@ -2238,7 +2269,11 @@ transport (ruling 19), and Palabra's delete is bounded at 5 s with
 it, for the leg's own session only; the create runs on its own signal, so a
 session made after the leg ended is deleted too (choice 9); and a transport
 failure is tried once more without `keepalive`, inside the same bound, as the
-Soniox lease's release is (`b7aaf60d`).
+Soniox lease's release is (`b7aaf60d`). **Amended by the Stage 2 session-end
+and wizard plan:** the bound is 4 s, strictly inside the runner's own 5 s
+bound on each release, as the Kizuna lease's session end is — at an equal 5 s
+the runner's timer, armed first, filed the run before the delete's outcome
+(choice 5).
 
 ---
 
@@ -2292,8 +2327,10 @@ last two are tools a provider's own suite takes up, Palabra's first:
   a reconnect, so an answer after an `await` lands first. `server-close` runs
   both ways: flushed, the adapter must say the session ended; unflushed, an
   answer still in flight when the server closes may be dropped, but nothing
-  may land after `failed` / `closed` or after `stop()` — the server-ended race
-  (`d1bfb544`).
+  may land after `failed` / `closed` or after `stop()` — but a frame, until
+  `stop()` has returned: the kit marks the log `stopped` then, and a log with
+  no such mark keeps the old rule (Stage 2 session end, choice 3) — the
+  server-ended race (`d1bfb544`).
 - `manual-end` checks that the release and the exchange produced a segment.
 - `checkConformance`'s `frame-url` rule: no frame payload holds a socket URL
   (choice 10).
@@ -2309,7 +2346,8 @@ last two are tools a provider's own suite takes up, Palabra's first:
   aborts before the opening runs, drops the newest socket, or — at random,
   6 % of the time — aborts while the start is still pending after it; a
   start still pending then gets its bound (`opening.bound`). A stop is
-  the runner's: mark, abort the request's signal, then `stop()`; `stop()` has
+  the runner's: mark, abort the request's signal, then `stop()`; the log is
+  marked again once it has returned; `stop()` has
   a bound of its own (10 s by default) and fails by name past it. Each run
   checks that the start settles; that a refused start says nothing but frames
   and status (the rule `mustReject` reads); that nothing goes up a socket once
@@ -2322,6 +2360,10 @@ last two are tools a provider's own suite takes up, Palabra's first:
   seed, run, step and draw — replays alone. It was hardened over three
   review rounds (`a0e06f55`, `8f6a5821`, `e0143c7b`) and first runs over
   Palabra's adapter in both credential modes, 300 lives each (choice 19).
+- The kit's virtual clock fires every timer one `advance()` makes due in one
+  call: a case that depends on which of two bounds fires first steps the
+  clock to each alone (Stage 2 session end, choice 3; Palabra's
+  `adapter.runner.test.ts`).
 - A provider's fake REST server reads bodies as a browser's `fetch` does: an
   aborted request rejects, and so does reading an answer's body once its
   request is aborted (Palabra's `fakeRest`, choice 9; pinned in its own
