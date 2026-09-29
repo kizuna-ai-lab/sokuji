@@ -4,7 +4,7 @@
  * over broken variants of it, each of which it must catch.
  */
 import { describe, it, expect } from 'vitest';
-import type { Adapter, AdapterSession } from '../adapter';
+import type { Adapter, AdapterEvents, AdapterSession } from '../adapter';
 import { every } from '../clock';
 import { createEchoAdapter, type EchoConfig } from './examples';
 import { FakeSocket } from './fakeSocket';
@@ -36,10 +36,17 @@ function echoHarness(adapter: Echo = createEchoAdapter()): LifecycleHarness<Echo
   };
 }
 
-/** The template, with its session wrapped: what each broken variant changes. */
+/** The template, with its session wrapped: what a session-level broken variant changes. */
 function wrapped(change: (session: AdapterSession, request: Parameters<Echo['start']>[0], events: Parameters<Echo['start']>[1]) => AdapterSession): Echo {
   return {
     start: async (request, events) => change(await createEchoAdapter().start(request, events), request, events),
+  };
+}
+
+/** The template, with its events intercepted before the adapter sees them: what an events-level broken variant needs (a session that says `closed` and then `failed`, say — `wrapped` alone cannot reach the events the adapter itself calls). */
+function withEvents(onEvents: (events: AdapterEvents, ctx: { request: Parameters<Echo['start']>[0] }) => AdapterEvents): Echo {
+  return {
+    start: async (request, events) => createEchoAdapter().start(request, onEvents(events, { request })),
   };
 }
 
@@ -48,7 +55,9 @@ describe('runLifecycles', () => {
     const report = await runLifecycles(echoHarness(), { seed: 7, runs: 200 });
     expect(report.failures).toEqual([]);
     expect(report.runs).toBe(200);
-    for (const key of ['refused', 'live', 'stopped', 'end.closed']) expect(report.stats[key], key).toBeGreaterThan(0);
+    for (const key of ['refused', 'live', 'stopped', 'end.closed', 'opening.abort', 'opening.drop', 'opening.abort.early', 'opening.abort.late']) {
+      expect(report.stats[key], key).toBeGreaterThan(0);
+    }
   });
 
   it('plays the same runs for the same seed', async () => {
@@ -103,9 +112,82 @@ describe('runLifecycles', () => {
     const hangs: Echo = { start: () => new Promise<AdapterSession>(() => {}) };
     const report = await runLifecycles({ ...echoHarness(hangs), opening: () => {} }, { seed: 7, runs: 3 });
     expect(report.failures).toEqual([
-      'run 0: the start neither resolved nor rejected once its bound had run',
-      'run 1: the start neither resolved nor rejected once its bound had run',
-      'run 2: the start neither resolved nor rejected once its bound had run',
+      'seed 7 run 0: the start neither resolved nor rejected once its bound had run',
+      'seed 7 run 1: the start neither resolved nor rejected once its bound had run',
+      'seed 7 run 2: the start neither resolved nor rejected once its bound had run',
     ]);
+  });
+
+  it('catches an abort listener left attached after start, which speaks on the run\'s own stop', async () => {
+    // The runner aborts the request's signal on every stop: a session that
+    // answers its own abort is caught by `stop-silence`, not missed.
+    const listening = wrapped((session, request, events) => {
+      request.signal.addEventListener('abort', () => events.failed({ message: 'aborted' }));
+      return session;
+    });
+    const report = await runLifecycles(echoHarness(listening), { seed: 7, runs: 60 });
+    expect(report.failures.some((f) => f.includes('conformance stop-silence'))).toBe(true);
+  });
+
+  it('catches a session that says closed, then failed', async () => {
+    const doubled = withEvents((events) => ({ ...events, closed: (e) => { events.closed(e); events.failed({ message: 'and failed' }); } }));
+    const report = await runLifecycles(echoHarness(doubled), { seed: 7, runs: 60 });
+    expect(report.failures.some((f) => f.endsWith('failed/closed events: at most one'))).toBe(true);
+  });
+
+  it('catches a refused start that speaks', async () => {
+    const speaksOnRefusal: Echo = {
+      start: async (request, events) => {
+        try {
+          return await createEchoAdapter().start(request, events);
+        } catch (error) {
+          events.failed({ message: 'refused', code: 'auth' });
+          throw error;
+        }
+      },
+    };
+    const report = await runLifecycles(echoHarness(speaksOnRefusal), { seed: 7, runs: 60 });
+    expect(report.failures.some((f) => f.endsWith('a refused start said failed'))).toBe(true);
+  });
+
+  it('catches a start that throws synchronously', async () => {
+    const throwing: Echo = { start: () => { throw new Error('sync throw'); } };
+    const report = await runLifecycles(echoHarness(throwing), { seed: 7, runs: 5 });
+    expect(report.failures.length).toBe(5);
+    expect(report.failures.every((f) => f.includes('start threw rather than rejecting'))).toBe(true);
+  });
+
+  it('catches a step that throws', async () => {
+    const throwingAudio = wrapped((session) => ({ ...session, appendAudio: () => { throw new Error('no audio'); } }));
+    const report = await runLifecycles(echoHarness(throwingAudio), { seed: 7, runs: 60 });
+    expect(report.failures.some((f) => f.includes('a step threw'))).toBe(true);
+  });
+
+  it('catches what the harness\'s after() names', async () => {
+    const report = await runLifecycles({ ...echoHarness(), after: (run) => (run.index % 10 === 0 ? ['after: boom'] : []) }, { seed: 7, runs: 20 });
+    expect(report.failures.filter((f) => f.endsWith('after: boom')).length).toBeGreaterThan(0);
+  });
+
+  it('passes over an adapter that leaves typed text unanswered after a stop', async () => {
+    // The text-input-answered rule is excluded on purpose: a random stop may
+    // cut a typed text's answer short. An adapter that never answers it at
+    // all must still pass.
+    const silentText = wrapped((session) => ({ ...session, appendText: () => {} }));
+    const report = await runLifecycles(echoHarness(silentText), { seed: 7, runs: 200 });
+    expect(report.failures).toEqual([]);
+  });
+
+  it('passes over an adapter whose stop() sends a goodbye synchronously while still live', async () => {
+    // Load-bearing: Palabra's stop() sends END_TASK synchronously, before its
+    // first await. What stop() sends before it returns is its own.
+    const goodbye: Echo = {
+      start: async (request, events) => {
+        let ws: WebSocket | undefined;
+        const session = await createEchoAdapter().start({ ...request, config: { openSocket: (url) => { ws = request.config.openSocket(url); return ws; } } }, events);
+        return { ...session, stop: () => { if (ws && ws.readyState === FakeSocket.OPEN) ws.send(JSON.stringify({ type: 'bye' })); return session.stop(); } };
+      },
+    };
+    const report = await runLifecycles(echoHarness(goodbye), { seed: 7, runs: 200 });
+    expect(report.failures).toEqual([]);
   });
 });
