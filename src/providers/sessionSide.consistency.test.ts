@@ -254,6 +254,15 @@ describe('a provider session side', () => {
       'src/providers/openai/socket.ts',
       'src/providers/openai/wire.ts',
     ]);
+
+    // Palabra's seam is the contract's (Stage 2 Palabra, choice 1): no `socket.ts` of its own. The builder, the check, the settings, the view, the definition and the fixtures are not the session's.
+    const palabra = sessionSide(REPO_ROOT, 'src/providers/palabraai');
+    expect(palabra).toEqual([
+      'src/providers/palabraai/adapter.ts',
+      'src/providers/palabraai/audioIn.ts',
+      'src/providers/palabraai/items.ts',
+      'src/providers/palabraai/wire.ts',
+    ]);
   });
 
   it('reads imports the way the compiler does', () => {

@@ -8,7 +8,13 @@
  * and holds it to that), and the adapter's session walk never reaches it.
  */
 import type { SessionContext } from '../../lib/contract/adapter';
+import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
+import { base64ToPcm } from '../../lib/contract/pcm64';
+import { flush } from '../../lib/contract/testing/drive';
+import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
+import { trackedClock } from '../../lib/contract/testing/trackedClock';
 import type { SharedSettings } from '../../lib/provider/types';
+import { createPalabraAdapter, POLL_MS } from './adapter';
 import { buildPalabra, type PalabraConfig } from './config';
 import { PALABRA_DEFAULTS, type PalabraCredentials, type PalabraSettings } from './settings';
 
@@ -228,4 +234,46 @@ export function fakeRest(o: { create?: RestAnswer; list?: RestAnswer; remove?: R
     /** Answers every request held as `'later'`, in order. */
     answer: () => { for (const go of held.splice(0)) go(); },
   };
+}
+
+/** A Palabra leg started over `FakeSocket`s and the fake REST server, on a tracked virtual clock; nothing opened yet. The platform key's socket exists at once; the app pair's once its create is answered (a flush). */
+export function startPalabra(o: {
+  context?: SessionContext;
+  patch?: Partial<PalabraSettings>;
+  credentials?: PalabraCredentials;
+  rest?: Parameters<typeof fakeRest>[0];
+  online?: boolean;
+} = {}) {
+  const sockets = fakeSockets();
+  const rest = fakeRest(o.rest);
+  const { clock, timers } = trackedClock();
+  const { events, log } = recordEvents();
+  const controller = new AbortController();
+  const context = o.context ?? AUTO_CTX;
+  const config = configFor(context, o.patch);
+  const adapter = createPalabraAdapter({ openSocket: (url) => sockets.create(url), fetch: rest.fetch, newId: () => 'test-hash', online: () => o.online ?? true });
+  const starting = adapter.start({ context, config, credentials: o.credentials ?? KEY, clock, signal: controller.signal }, events);
+  const socket = () => sockets.last();
+  const of = <K extends AdapterEvent['kind']>(kind: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);
+  /** The payloads of the frames of one type, in order. */
+  const frames = (type: string) => of('frame').filter((e) => e.payload.type === type).map((e) => e.payload.payload);
+  /** What the client sent on the leg's socket, parsed. */
+  const sent = () => socket().sentJson<{ message_type: string; data: Record<string, unknown> }>();
+  /** The pcm of every chunk sent, in order. */
+  const appended = () => sent().filter((m) => m.message_type === 'input_audio_data').map((m) => base64ToPcm(m.data.data as string));
+  /** The log without its frames: what L1 folds. */
+  const content = () => log.filter((e) => e.kind !== 'frame');
+  return { sockets, rest, clock, timers, log, controller, config, starting, socket, of, frames, sent, appended, content };
+}
+
+/** Started, opened, the task set and found running: the start resolved. */
+export async function livePalabra(o?: Parameters<typeof startPalabra>[0]) {
+  const h = startPalabra(o);
+  // The app pair's socket waits for its create's answer.
+  await flush();
+  h.socket().open();
+  h.clock.advance(POLL_MS);
+  h.socket().receive(SERVER.currentTask());
+  const session = await h.starting;
+  return { ...h, session };
 }
