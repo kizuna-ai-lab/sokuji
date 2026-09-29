@@ -26,15 +26,19 @@
  *     behaviour. The report adds each turn's cut class, each utterance heard/translated whole or not,
  *     the latencies, and a pass/fail line. Every list option takes comma-separated values: one session
  *     per combination (models × handlings × policies × begins × releases × gaps).
- *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts multi [--models a,b] [--policy none,turn] [--scripts seq,mono]
- *     [--seq-pauses 800,950,1050,1200,1500] [--mono-pauses 800/1200/1000/1500] [--seq-sentences ja,en1,zh2] [--mono-sentences …]
- *     Three or more different sentences (`gemini-multi.mts`), automatic turns, each model under its own
- *     rule: `none` is today's barge-in, `turn` the Gemini hold plan's hold (its begin, its release at
- *     turnComplete, its adaptive cap). `seq`: a long sentence, a short one, a third, with the same pause
- *     between each — per value of `--seq-pauses`; `mono`: five sentences in a row (the participant leg's
- *     monologue), the pauses of `--mono-pauses` in turn (a slash separates one session's pauses, a
- *     comma separates sessions). The report classifies every `interrupted` as the plan's failure mode
- *     (a) or (b), and gives each answer's lag against L(n+1) ≈ max(L(n) + A(n) − P − U(n+1), c) + f.
+ *   GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts multi [--models a,b] [--policy none,turn,turn2] [--scripts seq,mono]
+ *     [--seq-pauses 800,950,1050,1200,1500] [--mono-pauses 800/1200/1000/1500] [--seq-sentences ja,wait,train] [--mono-sentences …]
+ *     [--split-ms 600] [--split-wait-ms 1500]
+ *     Three or more different Japanese sentences (`gemini-multi.mts`), automatic turns, each model under
+ *     its own rule: `none` is today's barge-in, `turn` the Gemini hold plan's hold (its begin, its
+ *     release at turnComplete, its adaptive cap), `turn2` that hold with the multi batch's two fixes (an
+ *     ACTIVITY_START during a hold lets it go; a release sends one utterance and holds the rest until
+ *     the server has closed and answered it). `seq`: a long sentence, a short one, a third, with the
+ *     same pause between each — per value of `--seq-pauses`; `mono`: five sentences in a row (the
+ *     participant leg's monologue), the pauses of `--mono-pauses` in turn (a slash separates one
+ *     session's pauses, a comma separates sessions). The report classifies every `interrupted` as the
+ *     plan's failure mode (a) or (b), flags a hold that kept an utterance the server had open (the gap),
+ *     and gives each answer's lag against L(n+1) ≈ max(L(n) + A(n) − P − U(n+1), c) + f.
  *
  * Every mode logs each server message's top-level and serverContent keys
  * (`msg`) and, verbatim, every key it does not otherwise read
@@ -57,7 +61,7 @@ import { ACTIVITY_END, ACTIVITY_START, GEMINI_LIVE_URL, audioFrame, base64ToPcm,
 import { resolveInstructions } from '../../../src/lib/provider/instructions';
 import { CLIPS, args, concat, pace, readWav, secret, silence, sleep, startRun, writeWav, type Run } from './common.mts';
 import {
-  BEGINS, POLICIES, RELEASES, createHold, holdReport, longClip, timeline, whereIn,
+  BEGINS, POLICIES, RELEASES, SPLIT_MS, SPLIT_WAIT_MS, createHold, holdReport, longClip, timeline, whereIn,
   type EndFlag, type Hold, type HoldOptions, type Utterance,
 } from './gemini-hold.mts';
 import { SCRIPTS, SENTENCES, multiReport, parsePauses, sequence, type Script } from './gemini-multi.mts';
@@ -253,6 +257,8 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
   const turns: Turn[] = [];
   let turn: Turn | null = null;
   let lastOutput = 0;
+  /** Run time of the last server message: the hold modes wait for the server to go quiet before closing. */
+  let lastMessage = 0;
   let setupDone = false;
   let pendingInput = '';
   const wire: Wire = { top: new Map(), sc: new Map(), va: [], vaOpen: false, inputs: [], groups: [], grouping: false, interim: 0, values: new Map(), ends: [] };
@@ -272,6 +278,7 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
 
   ws.on('message', (data, isBinary) => {
     const t = run.now();
+    lastMessage = t;
     let m;
     try {
       m = decodeServerMessage(isBinary ? new Uint8Array(data as Buffer).buffer.slice(0) : (data as Buffer).toString());
@@ -391,7 +398,8 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
     const o = probe.hold;
     const long = o.clip === 'long';
     const m = probe.multi;
-    const seq = m ? sequence(m.ids, m.pauses, INPUT_RATE, CHUNK_MS, 10000) : undefined;
+    // A 7 s tail: the hold's settle and the wait for the server to go quiet cover any answer that comes later.
+    const seq = m ? sequence(m.ids, m.pauses, INPUT_RATE, CHUNK_MS, 7000) : undefined;
     const plan = seq ?? timeline(long ? longClip(clip, INPUT_RATE) : clip, INPUT_RATE, CHUNK_MS, o.gapMs, long ? 20000 : 10000, o.manual, long ? 3 : 1);
     utterances = plan.utterances;
     if (seq) clips = seq.clips;
@@ -432,6 +440,13 @@ async function session(kind: 'dialogue' | 'translate', model: string, variant: V
     }
   }
   run.log('note', 'stream.done', { chunks: sent });
+  if (probe.multi) {
+    // A hold let go at the end (its idle cap, a split's wait) sends audio the server still has to answer: listen
+    // until it has been quiet for 4 s with no model turn open, at most 15 s. The multi batch closed too early.
+    const until = Date.now() + 15000;
+    while (Date.now() < until && !isClosed() && (turn !== null || run.now() - lastMessage < 4000)) await sleep(100);
+    run.log('note', 'drain.done', { quietMs: run.now() - lastMessage });
+  }
   for (let i = 0; i < 80 && turn && !closed; i++) await sleep(100);
   if (turn) (turn as Turn).end ??= 'open at the end';
   (hold as Hold | null)?.stop();
@@ -558,7 +573,7 @@ if (step === 'overlap') {
   const chosen = wanted.filter((m) => ids.includes(m));
   const missing = wanted.filter((m) => !ids.includes(m));
   if (missing.length) console.log(`Not listed by this key, skipped: ${missing.join(', ')}`);
-  const policies = oneOf('policy', ['none', 'turn'] as const, ['none', 'turn']);
+  const policies = oneOf('policy', ['none', 'turn', 'turn2'] as const, ['none', 'turn', 'turn2']);
   const scripts = oneOf('scripts', Object.keys(SCRIPTS) as Script[], ['seq', 'mono']);
   const sentences = (script: Script): string[] => {
     const own = list(`${script}-sentences`) ?? [...SCRIPTS[script]];
@@ -569,6 +584,8 @@ if (step === 'overlap') {
     }
     return own;
   };
+  const splitMs = amount('split-ms', SPLIT_MS, 0);
+  const splitWaitMs = amount('split-wait-ms', SPLIT_WAIT_MS, 0);
   const pausesOf: Record<Script, number[][]> = {
     seq: parsePauses(opt('seq-pauses') ?? '800,950,1050,1200,1500'),
     mono: parsePauses(opt('mono-pauses') ?? '800/1200/1000/1500'),
@@ -580,14 +597,14 @@ if (step === 'overlap') {
       for (const pauses of pausesOf[script]) {
         for (const policy of policies) {
           const label = pauses.join('/');
-          const o: HoldOptions = { policy, begin: 'activity_end', release: 'burst', pace: 4, minMs: 0, maxMs: 8000, manual: false, gapMs: 0, clip: 'default', rules: 'plan', cap: 'plan' };
+          const o: HoldOptions = { policy, begin: 'activity_end', release: 'burst', pace: 4, minMs: 0, maxMs: 8000, manual: false, gapMs: 0, clip: 'default', rules: 'plan', cap: 'plan', splitMs, splitWaitMs };
           const speech = idsOf.reduce((n, id) => n + (SENTENCES[id].to - SENTENCES[id].from + 160) / 1000, 0);
           const gaps = idsOf.slice(1).reduce((n, _, i) => n + pauses[i % pauses.length] / 1000, 0);
           combos.push({
             model, o, multi: { script, ids: idsOf, pauses, label },
             name: ['multi', script, model.replace(/[^a-z0-9.-]+/gi, '_'), `p${pauses.join('_')}`, policy].join('-'),
-            // The sentences, the pauses, the tail, and a few seconds of setup and of the last answer.
-            seconds: speech + gaps + 10 + 5,
+            // The sentences, the pauses, the tail, setup, and the wait for the server to go quiet (4 s at least).
+            seconds: speech + gaps + 7 + 8,
           });
         }
       }

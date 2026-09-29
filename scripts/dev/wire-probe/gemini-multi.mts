@@ -33,14 +33,30 @@ export interface Sentence {
 }
 
 const BENCH = path.join(REPO, 'benchmark/test-speech-silence-speech.wav');
+const JA = (id: string) => path.join(REPO, 'scripts/dev/wire-probe/assets/ja', `${id}.wav`);
 
 /**
- * The sentences, and where each comes from. `classic-ja.wav` (6.16 s) holds
- * two sentences split by a 0.32 s pause; `classic-zh.wav` (4.64 s) one
+ * The sentences, and where each comes from.
+ *
+ * Japanese, the scripts' own (the session is ja → en: a sentence in another
+ * language measures the prompt, not the hold — the 2026-09-29 batch's 3.8
+ * answered English with "I am only able to translate from Japanese to
+ * English" and often never transcribed Chinese):
+ * - `ja`, `ja1`, `ja2`: `classic-ja.wav` (6.16 s), two sentences split by a 0.32 s pause;
+ * - the rest: `scripts/dev/wire-probe/assets/ja/<id>.wav`, the repository's
+ *   only other Japanese speech, synthesised offline on 2026-09-29 with the
+ *   native stack's Irodori-TTS v4 small (q8_0; native 1.1.0, audio.cpp
+ *   0.8.2), every silence inside the speech shortened to 250 ms (Irodori
+ *   left up to 1.65 s at chunk joins, which would split a sentence into two
+ *   turns), stored at 16 kHz, and each transcribed back exactly by the local
+ *   cohere-transcribe 03-2026. No other Japanese audio exists in the tree:
+ *   FLEURS' `ja_jp` transcript is there, its audio never downloaded.
+ *
+ * Kept for reference, in no default script: `classic-zh.wav` (4.64 s), one
  * sentence whose comma is a 0.59 s pause; the benchmark's
- * `test-speech-silence-speech.wav` (9.69 s) the same English sentence twice,
- * of which only the first copy is used, split at its comma (a 0.17 s pause).
- * `zh1` means what `ja1` means, so no script holds both.
+ * `test-speech-silence-speech.wav` (9.69 s), the same English sentence
+ * twice, the first copy split at its comma (a 0.17 s pause). `zh1` means
+ * what `ja1` means.
  */
 export const SENTENCES: Record<string, Sentence> = {
   ja: { file: CLIPS.ja, from: 610, to: 5800, text: 'リアルタイム翻訳へようこそ。自然な会話をお手伝いします。', heard: [/ようこそ/g, /手伝い/g], said: [/welcome/gi, /conversation/gi] },
@@ -50,12 +66,25 @@ export const SENTENCES: Record<string, Sentence> = {
   zh2: { file: CLIPS.zh, from: 1970, to: 4520, text: '希望这个声音能让交流变得轻松自然。', heard: [/希望/g], said: [/hope/gi] },
   en1: { file: BENCH, from: 60, to: 1900, text: 'Ask not what your country can do for you,', heard: [/ask not|don'?t ask|do not ask/gi, /do for you(?!r)/gi], said: [/ask not|don'?t ask|do not ask/gi, /do for you(?!r)/gi] },
   en2: { file: BENCH, from: 2070, to: 3730, text: 'ask what you can do for your country.', heard: [/ask what you/gi, /for your country/gi], said: [/ask what you/gi, /for your country/gi] },
+  wait: { file: JA('wait'), from: 50, to: 1520, text: '少々お待ちください。', heard: [/待/g], said: [/wait|moment/gi] },
+  door: { file: JA('door'), from: 40, to: 2300, text: 'ドアを閉めてください。', heard: [/ドア|扉/g], said: [/door/gi] },
+  book: { file: JA('book'), from: 50, to: 2560, text: 'この本はとても面白かったです。', heard: [/本/g], said: [/book/gi] },
+  train: { file: JA('train'), from: 30, to: 2600, text: '電車が十分遅れています。', heard: [/電車/g], said: [/train/gi] },
+  meeting: { file: JA('meeting'), from: 20, to: 2950, text: '明日の会議は午後三時に始まります。', heard: [/会議/g], said: [/meeting/gi] },
+  dinner: { file: JA('dinner'), from: 40, to: 3090, text: '週末に家族と一緒に夕食を食べました。', heard: [/夕食|夕飯|晩ご飯/g], said: [/dinner|supper/gi] },
+  cafe: { file: JA('cafe'), from: 30, to: 3240, text: '駅の近くに新しいカフェができました。', heard: [/カフェ/g], said: [/caf[eé]|coffee/gi] },
+  umbrella: { file: JA('umbrella'), from: 50, to: 3470, text: '今日は雨が降りそうなので、傘を持っていきます。', heard: [/傘/g], said: [/umbrella/gi] },
 };
 
-/** Two scripts: `seq` — a long first sentence, a short second (shorter than the first's answer), a third; `mono` — five sentences in a row, the participant leg's monologue. */
+/**
+ * Two scripts, Japanese only: `seq` — a long first sentence (5.19 s, its
+ * answer ~4.5 s), a short second (1.47 s: shorter than the first's answer), a
+ * third (2.57 s); `mono` — five sentences in a row (3.42, 2.26, 2.93, 2.51,
+ * 3.05 s), the participant leg's monologue.
+ */
 export const SCRIPTS = {
-  seq: ['ja', 'en1', 'zh2'],
-  mono: ['ja1', 'en1', 'zh2', 'en2', 'ja2'],
+  seq: ['ja', 'wait', 'train'],
+  mono: ['umbrella', 'door', 'meeting', 'book', 'dinner'],
 } as const;
 export type Script = keyof typeof SCRIPTS;
 
@@ -146,7 +175,7 @@ const verdictOf = (c: number[]) => (c.every((n) => n > 0) ? 'whole' : c.some((n)
 /** One `interrupted`, classified by the plan's live-test item 10. */
 export interface Interrupt {
   t: number;
-  kind: '(a)' | '(a), before its hold began' | '(b)' | '(b), before its hold began' | 'barge-in, no hold' | 'unclassified';
+  kind: '(a)' | '(a), before its hold began' | '(b)' | '(b), before its hold began' | '(b), the hold began late' | 'barge-in, no hold' | 'unclassified';
   cut: 'true' | 'simulated';
   hold?: number;
   line: string;
@@ -182,7 +211,12 @@ export function multiReport(r: MultiReportInput): { text: string; interrupts: In
     return inside;
   };
 
-  lines.push(`**Multi** — script \`${r.script}\` (${us.map(idOf).join(', ')}); policy \`${r.policy}\`${r.policy === 'turn' ? ' (the plan\'s hold: begins on ACTIVITY_END, else the first output; lets go at turnComplete or waitingForInput; cap 2 s past the computed playback end, 10 s with no model audio)' : ' (today: barge-in, no hold)'}; pauses ${r.pausesLabel} ms`);
+  const policyText: Record<string, string> = {
+    none: ' (today: barge-in, no hold)',
+    turn: ' (the plan\'s hold: begins on ACTIVITY_END, else the first output; lets go at turnComplete or waitingForInput; cap 2 s past the computed playback end, 10 s with no model audio)',
+    turn2: ' (the plan\'s hold, plus: an ACTIVITY_START during a hold lets it go; a release sends one utterance — up to its first pause of 600 ms — and holds the rest until the server closes and answers it, or 1.5 s without its ACTIVITY_END)',
+  };
+  lines.push(`**Multi** — script \`${r.script}\` (${us.map(idOf).join(', ')}); policy \`${r.policy}\`${policyText[r.policy] ?? ''}; pauses ${r.pausesLabel} ms`);
   lines.push('');
   for (const x of us) {
     const c = r.clips[x.k - 1];
@@ -197,13 +231,19 @@ export function multiReport(r: MultiReportInput): { text: string; interrupts: In
   for (const x of us.slice(1)) {
     const prev = u(x.k - 1);
     const close = closeOf(prev);
-    const h = r.holds.find((y) => y.pos >= prev.end && y.pos < x.end + 3000 && (close === undefined || y.t >= close.t - 1));
+    // The hold begun on this pause's close (a split's hold begins at a release, not on a close).
+    const h = close ? r.holds.find((y) => y.cause === 'activity_end' && y.t >= close.t - 1 && y.t - close.t < 50) : undefined;
     const parts = [`U${prev.k}→U${x.k}: pause ${sec(x.onset - prev.end)}`];
     parts.push(close ? `U${prev.k}'s close at ${signed(close.offsetMs! - prev.end)} after its speech end` : `no ACTIVITY_END in this pause (U${prev.k} and U${x.k} one turn to the server, or none was sent)`);
-    if (h) parts.push(`hold ${h.n} began at stream ${sec(h.pos)}${close ? ` (${signed(h.pos - close.offsetMs!)} after the close)` : ''}; U${x.k}'s onset ${x.onset >= h.pos ? `held (${sec(x.onset - h.pos)} after the hold began)` : `**sent live ${sec(h.pos - x.onset)} before the hold began**`}`);
-    else if (r.policy === 'turn') parts.push('no hold began in this pause');
+    if (h) parts.push(`hold ${h.n} began on it at stream ${sec(h.pos)} (${signed(h.pos - close!.offsetMs!)} after the close)`);
+    // Where the onset went: from the frame that carried it.
     const e = entryAt(x.onset);
-    if (e?.held) parts.push(`U${x.k}'s onset went up in hold ${e.hold}'s release`);
+    if (e?.held) parts.push(`U${x.k}'s onset held, sent in hold ${e.hold}'s release`);
+    else if (e) {
+      // Only a hold begun soon after the onset makes it failure mode (a)'s question; later, the onset simply went up live.
+      const next = r.holds.find((y) => y.t > e.at && y.pos > x.onset && y.pos - x.onset < 1500);
+      parts.push(next ? `U${x.k}'s onset **sent live ${sec(next.pos - x.onset)} before hold ${next.n} began**` : `U${x.k}'s onset sent live, no hold after it`);
+    }
     lines.push(`- ${parts.join('; ')}`);
   }
 
@@ -217,10 +257,24 @@ export function multiReport(r: MultiReportInput): { text: string; interrupts: In
     const ended = [...r.ends].reverse().find((e) => e.flag === 'turnComplete' && e.t <= h.t && h.t - e.t < 1000);
     return ended && (h.reason === 'idle' || h.reason === 'cap') ? ended : undefined;
   };
+  /**
+   * How far behind its own audioOffset the ACTIVITY_END that began a hold came (stream time): live, 0.01–0.2 s; after a
+   * burst, the server reads the burst at ~3x and its ACTIVITY_END comes seconds behind — a hold begun on it holds
+   * audio the server has not yet reached.
+   */
+  const endLag = (h: HoldRecord) => {
+    if (h.cause !== 'activity_end') return undefined;
+    const e = [...endsVa].reverse().find((v) => v.t <= h.t && h.t - v.t < 50);
+    return e ? h.pos - e.offsetMs! : undefined;
+  };
+  /** The gap: a hold that ended on its idle/cap timer after an ACTIVITY_START came within 300 ms of its begin — the burst had reopened the server's voice activity, and the hold kept that utterance's end. */
+  const gapOf = (h: HoldRecord) => (h.reason === 'idle' || h.reason === 'cap') ? starts.find((v) => v.t >= h.t && v.t - h.t <= 300) : undefined;
   for (const h of r.holds) {
     const inside = spans(h);
     const late = lateHold(h);
-    lines.push(`- hold ${h.n}: stream ${sec(h.pos)} → ${sec(h.releasedPos)} (began on \`${h.cause}\`, let go on \`${h.reason ?? 'never'}\`); held ${sec(h.heldMs)}, ${sec(h.audioMs)} of audio${inside.length ? `, holding ${inside.join(', ')}` : ''}; playbackEndMs ${h.playbackEndMs ?? 'null'}${late ? `; **began ${sec(h.t - late.t)} after a turnComplete: the turn it waited for had already ended, and the speech it held could not close a new one**` : ''}`);
+    const lag = endLag(h);
+    const gap = gapOf(h);
+    lines.push(`- hold ${h.n}: stream ${sec(h.pos)} → ${sec(h.releasedPos)} (began on \`${h.cause}\`${lag !== undefined ? `, ${sec(lag)} behind its ACTIVITY_END's offset${lag > 500 ? ' — the server was still reading a burst' : ''}` : ''}, let go on \`${h.reason ?? 'never'}\`); held ${sec(h.heldMs)}, ${sec(h.audioMs)} of audio${inside.length ? `, holding ${inside.join(', ')}` : ''}; playbackEndMs ${h.playbackEndMs ?? 'null'}${gap ? `; **the gap: an ACTIVITY_START (offset ${sec(gap.offsetMs)}) came ${sec(gap.t - h.t)} after it began — the server had an utterance open and this hold kept its end**` : ''}${late && !gap ? `; **began ${sec(h.t - late.t)} after a turnComplete: the turn it waited for had already ended, and the speech it held could not close a new one**` : ''}`);
   }
 
   // What each model turn answered, and its cut.
@@ -274,6 +328,12 @@ export function multiReport(r: MultiReportInput): { text: string; interrupts: In
         kind = 'barge-in, no hold';
         why = `${startText}, sent ${entry?.held ? `in hold ${entry.hold}'s release` : 'live'}; no hold was on`;
       }
+    } else if (entry && !entry.held && entry.at < h.t && (endLag(h) ?? 0) > 500 && r.holds.some((y) => y.released !== undefined && y.released <= h.t && h.t - y.released < 3000)) {
+      // Live audio, but only because the hold began late: its ACTIVITY_END trailed its offset while the server read an
+      // earlier burst, and the next onset went up live meanwhile — the burst's aftermath, not a short pause.
+      kind = '(b), the hold began late';
+      const p = [...r.holds].reverse().find((y) => y.released !== undefined && y.released <= h.t)!;
+      why = `${startText} went up live ${sec(h.pos - (who?.onset ?? h.pos))} before hold ${h.n} began, which began on an ACTIVITY_END ${sec(endLag(h))} behind its offset: the server was still reading hold ${p.n}'s burst (let go ${sec(h.t - p.released!)} before)`;
     } else if (entry && !entry.held && entry.at < h.t) {
       kind = '(a)';
       const prevEnd = [...r.holds].reverse().find((y) => y.released !== undefined && y.released <= h.t);
@@ -364,12 +424,16 @@ export function multiReport(r: MultiReportInput): { text: string; interrupts: In
   const lost = per.filter((p) => p.t !== 'whole').map((p) => `U${p.x.k} translated ${p.t}`);
   const deaf = per.filter((p) => p.h !== 'whole').map((p) => `U${p.x.k} heard ${p.h}`);
   const lates = r.holds.filter((h) => lateHold(h)).length;
+  const gaps = r.holds.filter((h) => gapOf(h)).length;
   const capped = r.holds.filter((h) => h.reason === 'idle' || h.reason === 'cap').length;
-  const pass = !lost.length && !deaf.length && trueCuts === 0;
+  const startReleases = r.holds.filter((h) => h.reason === 'voice_activity_start').length;
+  const splitTimeouts = r.holds.filter((h) => h.reason === 'split_timeout').length;
+  const pass = !lost.length && !deaf.length && trueCuts === 0 && !gaps;
   const why = [
     a ? `(a) ×${a}` : '', b ? `(b) ×${b}` : '', barge ? `barge-in cuts ×${barge}` : '',
-    trueCuts ? `true cuts ×${trueCuts}` : '', ...deaf, ...lost,
+    trueCuts ? `true cuts ×${trueCuts}` : '', gaps ? `the gap ×${gaps} (a hold kept an utterance the server had open, to its idle cap)` : '', ...deaf, ...lost,
     capped ? `holds let go on the cap ×${capped}${lates ? ` (${lates} begun after their turn had ended)` : ''}` : '',
+    startReleases ? `holds let go on an ACTIVITY_START ×${startReleases}` : '', splitTimeouts ? `split releases closed by no ACTIVITY_END ×${splitTimeouts}` : '',
   ].filter(Boolean);
   lines.push('');
   lines.push(`**Multi verdict: ${pass ? 'PASS' : 'FAIL'}**${pass && mergedTurns.length ? ' (merged)' : ''} — ${why.length ? why.join('; ') : 'every utterance heard and translated whole, no true cut'}; lag ${known.map((l) => sec(l)).join(' → ') || '-'} (${trend.replace(/\*\*/g, '')})`);

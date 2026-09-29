@@ -16,7 +16,7 @@
 import { ACTIVITY_END, ACTIVITY_START, audioFrame } from '../../../src/providers/gemini/wire';
 import { concat, silence, sleep, type Run } from './common.mts';
 
-export const POLICIES = ['none', 'generation', 'turn'] as const;
+export const POLICIES = ['none', 'generation', 'turn', 'turn2'] as const;
 export const BEGINS = ['activity_end', 'input', 'output'] as const;
 export const RELEASES = ['burst', 'frames', 'paced'] as const;
 export type Policy = (typeof POLICIES)[number];
@@ -55,6 +55,9 @@ export interface HoldOptions {
    * (reason `idle`).
    */
   cap?: 'fixed' | 'plan';
+  /** `turn2`: the pause that splits a release, and how long a split waits for its ACTIVITY_END (defaults SPLIT_MS, SPLIT_WAIT_MS). */
+  splitMs?: number;
+  splitWaitMs?: number;
 }
 
 /** The plan's cap (choice 6): the margin past the computed playback end, and the wait with no model audio. */
@@ -77,7 +80,30 @@ const CASCADE: Record<Begin, readonly Signal[]> = {
 const RELEASED_BY: Record<Exclude<Policy, 'none'>, readonly EndFlag[]> = {
   generation: ['generationComplete', 'interrupted', 'turnComplete', 'waitingForInput'],
   turn: ['turnComplete', 'waitingForInput'],
+  turn2: ['turnComplete', 'waitingForInput'],
 };
+
+/**
+ * `turn2` (the 2026-09-29 multi batch's fixes to the plan's `turn`):
+ * - (ii) an ACTIVITY_START while a hold is on lets it go at once: nothing is
+ *   sent during a hold, so the server is hearing speech that went up before
+ *   it — a burst it is still reading at ~3x — and must hear that speech's end
+ *   (seven holds in the batch began at a burst's lagging ACTIVITY_END with the
+ *   next utterance already open at the server, held its end, and waited out
+ *   the 10 s idle cap);
+ * - (iii) one utterance per release: at a release, the held audio goes up only
+ *   to the first pause of at least `splitMs` after speech — the next
+ *   utterance's onset stays held — and the leg keeps holding until the
+ *   server's ACTIVITY_END for what went up (the hold then runs to that
+ *   answer's turnComplete, as any hold does), or `splitWaitMs` without one
+ *   (the pause closed no turn: the rest goes up). Held audio that ends in such
+ *   a pause keeps holding the same way, so live speech right after a release
+ *   cannot reach the server before the released utterance is answered (3.1
+ *   cut the pending answer three times when it did). Held audio with no such
+ *   pause goes up whole, as under `turn`.
+ */
+export const SPLIT_MS = 600;
+export const SPLIT_WAIT_MS = 1500;
 
 // ---------- the utterances ----------
 
@@ -244,6 +270,9 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
   let heardVa = false;
   let capTimer: ReturnType<typeof setTimeout> | undefined;
   let minTimer: ReturnType<typeof setTimeout> | undefined;
+  // `turn2`'s split: a hold begun by a split release waits for the server's ACTIVITY_END for what went up.
+  let splitTimer: ReturnType<typeof setTimeout> | undefined;
+  let awaitingEnd = false;
   let quietFrom = 0;
   let maxQuiet = 0;
 
@@ -310,13 +339,49 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
     }, o.maxMs);
   }
 
+  /**
+   * `turn2`'s split point: the queue index of the first held entry after the
+   * first pause of at least `splitMs` that follows speech (10 ms frames at the
+   * probe's 24 kHz, speech above a tenth of the held audio's loudest frame);
+   * the queue's end when the held audio ends in such a pause; none otherwise.
+   */
+  function splitAt(): number | undefined {
+    const need = o.splitMs ?? SPLIT_MS;
+    const frames: Array<{ i: number; rms: number }> = [];
+    let peak = 0;
+    queue.forEach((e, i) => {
+      if (e.kind !== 'audio') return;
+      for (let k = 0; k + 240 <= e.pcm.length; k += 240) {
+        let s = 0;
+        for (let j = k; j < k + 240; j++) s += e.pcm[j] * e.pcm[j];
+        const rms = Math.sqrt(s / 240);
+        peak = Math.max(peak, rms);
+        frames.push({ i, rms });
+      }
+    });
+    if (!peak) return undefined;
+    let speech = false;
+    let quiet = 0;
+    for (const f of frames) {
+      if (f.rms > peak / 10) {
+        if (speech && quiet >= need) return f.i;
+        speech = true;
+        quiet = 0;
+      } else quiet += 10;
+    }
+    return speech && quiet >= need ? queue.length : undefined;
+  }
+
   function release(reason: string, playbackEnd = turnFirstAudio === undefined ? undefined : turnFirstAudio + turnAudioMs): void {
     const h = current;
     if (!h) return;
     clearTimeout(capTimer);
     clearTimeout(minTimer);
+    clearTimeout(splitTimer);
     capTimer = undefined;
     minTimer = undefined;
+    splitTimer = undefined;
+    awaitingEnd = false;
     current = null;
     const now = d.run.now();
     const audio = queue.filter((e) => e.kind === 'audio');
@@ -335,7 +400,26 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
       n: h.n, reason, heldMs: h.heldMs, audioMs: h.audioMs, entries: h.entries, actions: h.actions,
       maxQuietMs: h.maxQuietMs, playbackEndMs: h.playbackEndMs, release: o.release, streamMs: h.releasedPos,
     });
+    // `turn2` (iii): one utterance per release — what follows its pause stays held, and the leg holds on for its close.
+    const split = o.policy === 'turn2' && !['voice_activity_start', 'split_timeout', 'cap', 'idle'].includes(reason) ? splitAt() : undefined;
+    if (split === undefined) {
+      void drain(h);
+      return;
+    }
+    const kept = queue.splice(split);
+    const keptMs = kept.reduce((n, e) => n + (e.kind === 'audio' ? e.ms : 0), 0);
+    d.run.log('note', 'hold.split', { n: h.n, sentMs: Math.round((h.audioMs ?? 0) - keptMs), keptMs: Math.round(keptMs), keptFromMs: kept[0] ? Math.round(kept[0].pos) : null });
+    // A burst drains synchronously (turn2 always releases as one burst), so the kept entries go back at the front.
     void drain(h);
+    queue.splice(0, 0, ...kept);
+    begin('split');
+    awaitingEnd = true;
+    const n = current!.n;
+    splitTimer = setTimeout(() => {
+      if (!current || current.n !== n || !awaitingEnd) return;
+      d.run.log('note', 'hold.split_timeout', { n, waitMs: o.splitWaitMs ?? SPLIT_WAIT_MS });
+      release('split_timeout');
+    }, o.splitWaitMs ?? SPLIT_WAIT_MS);
   }
 
   /** Sends what was held — one message, back-to-back frames, or frames at `pace`× real time — until the queue is empty or a new hold begins. */
@@ -435,9 +519,25 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
     },
     voiceActivity(type: string | undefined): void {
       heardVa = true;
-      if (type === 'ACTIVITY_START') vaOpen = true;
+      if (type === 'ACTIVITY_START') {
+        vaOpen = true;
+        // `turn2` (ii): the server hears speech that went up before this hold, and must hear its end. Not a split's
+        // own hold: the START of the utterance the split just let go is expected, and its ACTIVITY_END is awaited.
+        if (current && o.policy === 'turn2' && current.cause !== 'split') {
+          d.run.log('note', 'hold.start_release', { n: current.n, streamMs: Math.round(d.streamPos()) });
+          release('voice_activity_start');
+        }
+      }
       if (type === 'ACTIVITY_END') {
         vaOpen = false;
+        if (current && awaitingEnd) {
+          // The split's utterance is closed: the hold now runs to its answer's turnComplete.
+          awaitingEnd = false;
+          clearTimeout(splitTimer);
+          splitTimer = undefined;
+          d.run.log('note', 'hold.split_closed', { n: current.n, streamMs: Math.round(d.streamPos()) });
+          return;
+        }
         signal('activity_end');
       }
     },
@@ -449,6 +549,7 @@ export function createHold(o: HoldOptions, d: HoldDeps) {
     stop(): void {
       clearTimeout(capTimer);
       clearTimeout(minTimer);
+      clearTimeout(splitTimer);
     },
   };
 }
