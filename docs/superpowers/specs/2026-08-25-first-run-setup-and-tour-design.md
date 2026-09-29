@@ -102,7 +102,7 @@ You / Others / Both channel scope. The settings a scenario would set already exi
 |---|---|---|
 | `audio.mode` | `audioStore.ts:101`, `setMode` `:273` | `'speaker' \| 'participant' \| 'both'` |
 | `common.textOnly` | `settingsStore.ts:109` | A *request*; see below |
-| `common.speakerDisplayMode`, `participantDisplayMode` | `:111-112` | `'source' \| 'translation' \| 'both'` |
+| `common.speakerDisplayMode`, `participantDisplayMode` | `:111-112` | `'source' \| 'translation' \| 'both'` — no longer set by the wizard (**Amended by the Stage 2 session-end and wizard plan**, ruling 1) |
 
 **The participant leg never speaks.** Every descriptor's `buildParticipantSessionConfig`
 forces `textOnly: true` and `descriptorRegistry.test.ts` pins it as a registry-wide

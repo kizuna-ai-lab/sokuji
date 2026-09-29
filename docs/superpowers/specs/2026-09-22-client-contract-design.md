@@ -2138,7 +2138,8 @@ session.
   leg: `{ reason, code?, leg?, state, elapsedMs }`, the run's end reason, its
   notice's code and the leg it names, the leg's last state (`null` when its
   adapter never started) and the run clock's time from Start to the stop; none
-  for a start refused before it opened a leg, a stop while it checked, or
+  for a start refused before it opened a leg, a stop while it checked or
+  prepared, or
   `abandon()`. It is the uniform line the old clients' `disconnect()` logged as
   `session.closed`. Before it, each adapter frames the graceful end it sends:
   Doubao's `FinishSession` (`session.finish`), Soniox's end of the STT stream

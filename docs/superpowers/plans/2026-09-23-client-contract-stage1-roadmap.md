@@ -7442,7 +7442,12 @@ before Start; each item names what settles it):
      (`connection_lost`) and the leg;
    - on Kizuna Soniox, run a segment to its cap: `reason: 'lease-ended'`
      with the lease's code;
-   - start with a wrong key: `reason: 'start-failed'`, `state: 'opening'`.
+   - a wrong key is refused at readiness, before any leg opens, and frames no
+     `session.stopped` (choice 1): the Start refusal's words are the whole
+     record. To see `reason: 'start-failed'`, `state: 'opening'`, cut the
+     network right after pressing Start on a provider whose check already
+     passed (its ready answer is kept), before the socket opens (the final
+     review, Minor 1: the plan's text asked a wrong key for it).
 4. **A Palabra app-pair delete that fails** (ruling 2 (ii); choice 5). With
    the app pair, cut the network (Wi-Fi off) just before Stop:
    - `task.end` is still framed if the socket has not yet noticed; else the
@@ -7454,10 +7459,12 @@ before Start; each item names what settles it):
    - the Stop itself is done at once or within 4 s, with no "Releasing …
      timed out" warning.
 
-   Then, with the network still cut, Start again on the app pair: if the
-   create got through, the start fails with `session.delete` and its warning
-   before `session.stopped { reason: 'start-failed' }`. Record each payload
-   and how long Stop and the failed start took.
+   Then, with the network still cut, Start again on the app pair. The
+   readiness check usually refuses first (nothing framed); only with its
+   ready answer still kept does the start reach the create, and if the create
+   got through, the start fails with `session.delete` and its warning before
+   `session.stopped { reason: 'start-failed' }`. Record each payload and how
+   long Stop and the failed start took.
 5. **OpenAI Translate's `session.close`** (ruling 2 (iii)): Stop
    mid-sentence: no `session.error` in the Logs before `session.stopped`;
    the translation's tail is dropped, as before. Record anything the
@@ -7540,3 +7547,41 @@ taken (and where), or left (and why).
   Task 7's runner-level case does (choice 3). The other adapters' bounds were
   not re-checked against the runner's; the Kizuna lease's (4 s) is inside it
   already.
+- **The kit admits any frame between an ending and `stop()`'s return,** not
+  only a frame of the adapter's own ending, as the spec words it: a timer
+  left armed that frames while Palabra's delete is awaited would pass. The
+  runner files the same window, so the Logs agree with the kit; a leaked
+  timer that fires after `stop()` has returned is still caught (the final
+  review's recommendation).
+- **A lease line can follow `session.stopped` in one edge:** lease frames go
+  straight to the frames port, and if a Kizuna lease's `acquire` outlives
+  `close()`'s bounded wait for the opening (5 s), its late release — and its
+  `session.end` or `session.notify_failed` — lands after the runner's line.
+  The path predates this plan and needs a backend slower than 5 s on
+  `acquire` after a Stop; dropping lease frames once the run has finished
+  would change the lease's contract (the final review, Minor 3).
+- **Doubao's `session.finish` carries the session id,** as `session.start`
+  and `session.started` already do: client-minted, it grants nothing (choice
+  4; the final review, Minor 5, kept).
+
+**The final review and its fix round** (the whole plan, `37ec855a..04ba9b28`:
+Ready to merge, 0 Critical / 0 Important / 7 Minor, three of them
+plan-mandated; a seeded fuzz of Palabra's app pair under the real runner, 400
+lives over every delete answer and every run ending, one leg and Both, passed
+and caught both mutants tried — a failed start rejecting at once, and the
+bound back at 5 s; the controller's rulings):
+- **Minor 1** (this record): live-test item 3 asked a wrong key for
+  `start-failed`, which no wrong key produces — every provider's check
+  refuses it first and a refused start frames nothing (choice 1); reworded,
+  and item 4's second half with it.
+- **Minors 2, 4 and 6** (the fix commit after this record): Soniox sends
+  `text_end`, and frames `tts.end`, only while its TTS socket is open (choice
+  4: each frame only when its message was sent); Palabra's `releaseFrame`
+  comment cites "(Stage 2 session end, choice 5)"; the kit's violation text
+  says "after stop() returned" only for a log that recorded the return.
+- **Minors 3 and 5** (this record): above, under "What this plan leaves".
+- **Minor 7** (this record): the spec's Stopping bullet adds "or prepared";
+  the first-run spec's background table marks the display modes as no longer
+  set.
+- **Left:** landing the review's fuzz as a Palabra suite (its
+  recommendation) — parked.
