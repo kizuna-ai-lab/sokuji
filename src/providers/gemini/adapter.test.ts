@@ -258,16 +258,28 @@ describe('the Gemini adapter: one session', () => {
     expect(h.content().map((e) => e.kind)).toEqual(['segmentOpened', 'segmentText', 'audio', 'segmentClosed']);
   });
 
-  it('Live Translate: each side closes on its own pause with no origin; audio outside an open translation plays with no ref (choice 8)', async () => {
+  it("Live Translate: the source states its origin and the translation that source, each closing at its pause, the cut framed; audio outside an open translation plays with no ref (choice 8; Stage 2 translation cuts, rulings 2, 3; choice 14)", async () => {
     const h = await liveGemini({ model: TRANSLATE });
     h.socket().receive(SERVER.audio(480));
     h.socket().receive(SERVER.input('Hello'));
-    h.socket().receive(SERVER.output('こんにちは'));
+    h.socket().receive(SERVER.output('こんにちは。'));
     h.socket().receive(SERVER.audio(480));
     h.clock.advance(1_500);
-    expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([{ ref: 1, side: 'source' }, { ref: 2, side: 'translation' }]);
+    expect(h.of('segmentOpened').map((e) => e.payload)).toEqual([{ ref: 1, side: 'source', origin: 's1' }, { ref: 2, side: 'translation', origin: 's1' }]);
     expect(h.of('audio').map((e) => e.payload.ref)).toEqual([undefined, 2]);
     expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1 }, { ref: 2 }]);
+    expect(h.frames('translation.cut')).toEqual([{ reason: 'quiet', origin: 's1', sentences: 1, owed: 0, dropped: 0 }]);
+  });
+
+  it('Live Translate into Thai, a script with no sentence-final mark, holds no translation mid-sentence, a stray Latin mark notwithstanding; into English it does (Stage 2 translation cuts, choice 6)', async () => {
+    const run = async (target: string) => {
+      const h = await liveGemini({ model: TRANSLATE, context: { ...AUTO_CTX, direction: { source: 'ja', target } } });
+      h.socket().receive(SERVER.output('ใช่ไหม? แล้วก็'));
+      h.clock.advance(1_500);
+      return h.of('segmentClosed').map((e) => e.payload);
+    };
+    expect(await run('th')).toEqual([{ ref: 1 }]);
+    expect(await run('en')).toEqual([]);
   });
 
   it('a leg that does not speak drops the model audio, and still logs the part', async () => {
@@ -616,7 +628,7 @@ describe('the Gemini adapter: turns and typed text', () => {
 });
 
 describe('the Gemini adapter: through L1 and L2', () => {
-  it("Live Translate's segments pair by inference: two exchanges, each its own source and translation (ruling 1, F16)", async () => {
+  it("Live Translate's segments pair by the origin they state: two exchanges, each its own source and translation (ruling 1; Stage 2 translation cuts, rulings 2, 3)", async () => {
     // The adapter's events feed L1 as the runner's do, on the adapter's own clock (as `localInference/adapter.test.ts`'s u9 → u10 case).
     const clock = createVirtualClock(0);
     const conversation = new Conversation({ leg: 'speaker', session: 's', languages: AUTO_CTX.direction, clock });
@@ -629,7 +641,7 @@ describe('the Gemini adapter: through L1 and L2', () => {
     sockets.last().receive(SERVER.setupComplete());
     await starting;
     const socket = sockets.last();
-    // Each translation opens a second after its source, inside the 4 s proximity window; the second pair comes after a pause.
+    // Each translation opens a second after its source and states it as its origin; the second pair comes after a pause.
     socket.receive(SERVER.input('Hello.'));
     clock.advance(1_000);
     socket.receive(SERVER.output('こんにちは。'));
@@ -640,8 +652,35 @@ describe('the Gemini adapter: through L1 and L2', () => {
     clock.advance(1_500);
     const exchanges = createProjector().project([conversation.snapshot()], DEFAULT_PROJECTION).flatMap((e) => (e.kind === 'exchange' ? [e] : []));
     expect(exchanges.map((e) => [e.pairing, e.source.map((r) => r.text).join(''), e.translation.map((r) => r.text).join('')])).toEqual([
-      ['inferred', 'Hello.', 'こんにちは。'],
-      ['inferred', 'Goodbye.', 'さようなら。'],
+      ['stated', 'Hello.', 'こんにちは。'],
+      ['stated', 'Goodbye.', 'さようなら。'],
+    ]);
+  });
+
+  it('on Live Translate an answer to typed text, should one come, stays beside its typed row, inferred, after a spoken exchange (Stage 2 translation cuts, choices 9, 12)', async () => {
+    const clock = createVirtualClock(0);
+    const conversation = new Conversation({ leg: 'speaker', session: 's', languages: AUTO_CTX.direction, clock });
+    const sockets = fakeSockets();
+    const starting = createGeminiAdapter({ openSocket: sockets.create }).start(
+      { context: AUTO_CTX, config: configFor(TRANSLATE), credentials: KEY, clock, signal: new AbortController().signal },
+      eventsFrom((e) => conversation.apply(e)),
+    );
+    sockets.last().open();
+    sockets.last().receive(SERVER.setupComplete());
+    const session = await starting;
+    const socket = sockets.last();
+    socket.receive(SERVER.input('Hello.'));
+    clock.advance(1_000);
+    socket.receive(SERVER.output('こんにちは。'));
+    clock.advance(11_500);
+    session.appendText('Thank you');
+    clock.advance(500);
+    socket.receive(SERVER.output('ありがとう。'));
+    clock.advance(1_500);
+    const exchanges = createProjector().project([conversation.snapshot()], DEFAULT_PROJECTION).flatMap((e) => (e.kind === 'exchange' ? [e] : []));
+    expect(exchanges.map((e) => [e.pairing, e.source.map((r) => r.text).join(''), e.translation.map((r) => r.text).join('')])).toEqual([
+      ['stated', 'Hello.', 'こんにちは。'],
+      ['inferred', 'Thank you', 'ありがとう。'],
     ]);
   });
 });

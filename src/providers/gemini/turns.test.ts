@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
+import { MID_SENTENCE_HOLD_MS } from '../../lib/segmentation/continuousSegments';
 import type { GeminiConfig } from './config';
 import { trackedClock } from './testing';
-import { GeminiTurns, normalizeCjkSpaces } from './turns';
+import { GeminiTurns, normalizeCjkSpaces, writesSentenceMarks } from './turns';
 
 function turns(o: { kind?: GeminiConfig['kind']; speech?: boolean; silence?: GeminiConfig['silence'] } = {}) {
   // `timers()` counts what has neither fired nor been cancelled: the clock rule's proof that no timer outlives what should end it.
@@ -542,18 +543,19 @@ describe('a dialogue model: one turn, one origin, stated', () => {
   });
 });
 
-describe('Live Translate: no turns, each side on its own silence timer (ruling 1)', () => {
+describe("Live Translate: no turns — the source on its own silence timer, the translation at the source's cuts (ruling 1; Stage 2 translation cuts, ruling 3)", () => {
   const translate = (silence?: GeminiConfig['silence']) => turns({ kind: 'translate', silence });
 
-  it('runs each side on its own pause, and states no origin (`GeminiClient.test.ts:808`)', () => {
+  it('runs the source on its own pause, stating its origin, and the translation states that source (`GeminiClient.test.ts:808`; Stage 2 translation cuts, ruling 2)', () => {
     const { t, clock, timers, opened, closed } = translate({ sourceMs: 700, translationMs: 2500, deferMidSentence: false });
     t.input('first utterance');
-    expect(opened()).toEqual([{ ref: 1, side: 'source' }]);
+    expect(opened()).toEqual([{ ref: 1, side: 'source', origin: 's1' }]);
     clock.advance(699);
     expect(closed()).toEqual([]);
     clock.advance(1);
     expect(closed()).toEqual([{ ref: 1 }]);
     t.output('最初の翻訳。');
+    expect(opened()[1]).toEqual({ ref: 2, side: 'translation', origin: 's1' });
     clock.advance(2499);
     expect(closed()).toHaveLength(1);
     clock.advance(1);
@@ -577,14 +579,40 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
     expect(texts(2)).toEqual(['second utterance']);
   });
 
-  it('times the two sides independently (`:864`)', () => {
+  it("cuts the translation where the source was, when the interpreter pauses less than the speaker, and reads the source with its CJK spaces removed (Stage 2 translation cuts, rulings 1, 3)", () => {
+    const { t, clock, opened, closed, texts } = translate();
+    t.input('第 一 句');
+    clock.advance(1000);
+    t.input(' 话 。');
+    clock.advance(200);
+    t.output('The first');
+    clock.advance(600);
+    t.output(' sentence.');
+    // The speaker pauses 2 s, past the source's 1.5 s; the interpreter's pause, 1.4 s, is inside its own.
+    clock.advance(1200);
+    t.input('第 二 句 。');
+    clock.advance(200);
+    t.output(' The second.');
+    expect(texts(1)).toEqual(['第一句', '第一句话。']);
+    expect(opened()).toEqual([
+      { ref: 1, side: 'source', origin: 's1' }, { ref: 2, side: 'translation', origin: 's1' },
+      { ref: 3, side: 'source', origin: 's3' }, { ref: 4, side: 'translation', origin: 's3' },
+    ]);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+  });
+
+  it('a translation with no cut owed waits for the source still open, then closes for its cut (`:864`; Stage 2 translation cuts, choice 7)', () => {
     const { t, clock, closed } = translate();
     t.input('speaking');
-    t.output('translating');
+    t.output('translating.');
     clock.advance(1000);
     t.input(' and continuing');
     clock.advance(600);
-    expect(closed()).toEqual([{ ref: 2 }]);
+    expect(closed()).toEqual([]);
+    clock.advance(900);
+    expect(closed()).toEqual([{ ref: 1 }]);
+    clock.advance(1500);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
   });
 
   it('audio never holds a timer open: it streams straight through pauses (`:881`)', () => {
@@ -594,6 +622,15 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
       t.audio(pcm());
       clock.advance(250);
     }
+    expect(closed()).toEqual([{ ref: 1 }]);
+  });
+
+  it(`once its stream has shown a sentence end, a translation that stops mid-sentence waits to ${MID_SENTENCE_HOLD_MS} ms after its last text, not its pause (Stage 2 translation cuts, choice 6)`, () => {
+    const { t, clock, closed } = translate();
+    t.output('Il a dit. Et que');
+    clock.advance(1500);
+    expect(closed()).toEqual([]);
+    clock.advance(MID_SENTENCE_HOLD_MS - 1500);
     expect(closed()).toEqual([{ ref: 1 }]);
   });
 
@@ -630,14 +667,18 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
     ]);
   });
 
-  it('keeps its open segments across a reconnect, closing them on their own timers (`:914`; choice 14)', () => {
-    const { t, clock, timers, closed } = translate();
+  it('keeps its open segments across a reconnect, closing them on their own timers, and the cut a source owes (`:914`; choice 14; Stage 2 translation cuts, choice 12)', () => {
+    const { t, clock, timers, closed, opened } = translate();
     t.input('interrupted mid-sentence');
     t.connectionLost();
     expect(closed()).toEqual([]);
     expect(timers()).toBe(1);
     clock.advance(1500);
     expect(closed()).toEqual([{ ref: 1 }]);
+    t.output('Cut short.');
+    expect(opened()[1]).toEqual({ ref: 2, side: 'translation', origin: 's1' });
+    clock.advance(1500);
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
     expect(timers()).toBe(0);
   });
 
@@ -651,10 +692,11 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
     expect(closed()).toEqual([]);
     clock.advance(1000);
     expect(closed()).toEqual([{ ref: 1 }]);
-    expect(timers()).toBe(0);
     t.input('Done.');
     clock.advance(1000);
     expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+    // Each closed source gave the translation its pause to begin (Stage 2 translation cuts, choice 8).
+    clock.advance(1000);
     expect(timers()).toBe(0);
   });
 
@@ -677,10 +719,64 @@ describe('Live Translate: no turns, each side on its own silence timer (ruling 1
     expect(closed()).toEqual([{ ref: 1 }]);
   });
 
-  it('typed text states no origin', () => {
+  it('a turnComplete or an interrupted, should Live Translate send one, closes the source and settles the translation for it (Stage 2 translation cuts, choice 12)', () => {
+    const { t, timers, opened, closed } = translate();
+    t.input('你好');
+    t.output('Hello');
+    t.turnComplete();
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }]);
+    t.input('再见');
+    t.output('Bye');
+    t.interrupted();
+    expect(opened()[3]).toEqual({ ref: 4, side: 'translation', origin: 's3' });
+    expect(closed()).toEqual([{ ref: 1 }, { ref: 2 }, { ref: 3 }, { ref: 4 }]);
+    expect(timers()).toBe(0);
+  });
+
+  it('typed text is a row of its own: it states no origin, owes no cut, and takes a ref no other segment has (Stage 2 translation cuts, choice 12)', () => {
     const { t, timers, opened } = translate();
     t.typed('typed words');
     expect(opened()).toEqual([{ ref: 1, side: 'source' }]);
+    expect(timers()).toBe(0);
+    t.input('spoken');
+    t.typed('more words');
+    expect(opened()).toEqual([{ ref: 1, side: 'source' }, { ref: 2, side: 'source', origin: 's2' }, { ref: 3, side: 'source' }]);
+  });
+
+  it('reads a target as writing sentence-final marks but Thai and Lao, by its base language (Stage 2 translation cuts, choice 6)', () => {
+    expect(writesSentenceMarks('th')).toBe(false);
+    expect(writesSentenceMarks('lo')).toBe(false);
+    expect(writesSentenceMarks('th-TH')).toBe(false);
+    expect(writesSentenceMarks('km')).toBe(true);
+    expect(writesSentenceMarks('ja')).toBe(true);
+    expect(writesSentenceMarks('zh-Hant')).toBe(true);
+    expect(writesSentenceMarks(undefined)).toBe(true);
+  });
+
+  it('with no mid-sentence hold, a translation that stops mid-sentence closes at its pause, a sentence end shown or not (Stage 2 translation cuts, choice 6)', () => {
+    const { clock, timers } = trackedClock();
+    const { events, log } = recordEvents();
+    const t = new GeminiTurns({ kind: 'translate', speech: true, clock, silence: { sourceMs: 1500, translationMs: 1500, deferMidSentence: false }, sink: events, holdMidSentence: false });
+    t.output('ใช่ไหม? แล้วก็');
+    clock.advance(1_500);
+    expect(log.filter((e) => e.kind === 'segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1 }]);
+    expect(timers()).toBe(0);
+  });
+
+  it('is Live Translate by its kind alone: with no pauses given it takes the default ones, and its audio still opens no translation (Stage 2 translation cuts, ruling 3)', () => {
+    const { clock, timers } = trackedClock();
+    const { events, log } = recordEvents();
+    const t = new GeminiTurns({ kind: 'translate', speech: true, clock, sink: events });
+    t.audio(pcm());
+    t.input('你好');
+    expect(log.map((e) => e.kind)).toEqual(['audio', 'segmentOpened', 'segmentText']);
+    expect(log[1].payload).toEqual({ ref: 1, side: 'source', origin: 's1' });
+    clock.advance(1_499);
+    expect(log).toHaveLength(3);
+    clock.advance(1);
+    expect(log[3].payload).toEqual({ ref: 1 });
+    // Its pause to begin a translation, then nothing is left.
+    clock.advance(1_500);
     expect(timers()).toBe(0);
   });
 

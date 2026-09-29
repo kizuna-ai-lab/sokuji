@@ -4,14 +4,17 @@
  * machine on the request's clock. A dialogue model ends a turn with
  * `turnComplete`, so its source and translation share the turn's origin,
  * stated (`t<n>`). Live Translate has no turns (`GeminiClient.ts:74-94`):
- * each side is its own segment, closed by its own silence timer, and its
- * origin is L2's to infer (F16). The audio a translation plays carries the
- * stretch of its text that had arrived with it — karaoke by arrival
- * (Gemini/AST2 follow-up, ruling 2; choice 7).
+ * its two sides are cut as OpenAI Translate's are, by `ContinuousSegments` —
+ * the source by its own silence timer, the translation where the source was,
+ * stating that source as its origin (Stage 2 translation cuts, rulings 2, 3).
+ * The audio a translation plays carries the stretch of its text that had
+ * arrived with it — karaoke by arrival (Gemini/AST2 follow-up, ruling 2;
+ * choice 7).
  */
 import type { AdapterEvents, Ref } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
-import { SilenceDeferral } from '../../lib/segmentation/silenceDeferral';
+import { ContinuousSegments, type CutSummary } from '../../lib/segmentation/continuousSegments';
+import { DEFAULT_SEGMENT_PAUSE_MS } from '../../lib/segmentation/segmentationMode';
 import type { GeminiConfig } from './config';
 
 export type TurnSink = Pick<AdapterEvents, 'segmentOpened' | 'segmentText' | 'segmentClosed' | 'audio'>;
@@ -20,11 +23,30 @@ export interface GeminiTurnsOptions {
   kind: GeminiConfig['kind'];
   /** The leg speaks: the model's audio is emitted; otherwise dropped (the conformance rule `no-audio-when-silent`). */
   speech: boolean;
-  clock: Pick<Clock, 'setTimeout'>;
+  clock: Pick<Clock, 'setTimeout' | 'now'>;
   /** Live Translate's silence timers (`C.silence`); absent for a dialogue model. */
   silence?: GeminiConfig['silence'];
   sink: TurnSink;
+  /** Live Translate: each translation cut, for the Logs (Stage 2 translation cuts, choice 14). */
+  cut?: (summary: CutSummary) => void;
+  /** Live Translate: a translation that stops mid-sentence is held — not for a target that writes no sentence-final mark (`writesSentenceMarks`). True when absent. */
+  holdMidSentence?: boolean;
 }
+
+/** Live Translate's targets whose script writes no sentence-final mark: Thai and Lao (Stage 2 translation cuts, choice 6). */
+const NO_SENTENCE_MARKS = new Set(['th', 'lo']);
+
+/** Whether a Live Translate target's script ends its sentences with a mark, read by its base language (`th-TH` as `th`). */
+export function writesSentenceMarks(target: string | undefined): boolean {
+  return target === undefined || !NO_SENTENCE_MARKS.has(target.split('-')[0].toLowerCase());
+}
+
+/** Live Translate's pauses when none are given: the app's default, 1.5 s each side, cut by pause. */
+const LIVE_TRANSLATE_DEFAULT_SILENCE: NonNullable<GeminiConfig['silence']> = {
+  sourceMs: DEFAULT_SEGMENT_PAUSE_MS,
+  translationMs: DEFAULT_SEGMENT_PAUSE_MS,
+  deferMidSentence: false,
+};
 
 const CJK = '\\u3000-\\u303f\\u3040-\\u309f\\u30a0-\\u30ff\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff\\uff00-\\uffef';
 const CJK_SPACE = new RegExp(`([${CJK}])\\s+([${CJK}])`, 'g');
@@ -55,8 +77,8 @@ export class GeminiTurns {
   private refs = 0;
   private turn = 1;
   private readonly sides: Record<SideName, OpenSide | null> = { source: null, translation: null };
-  private readonly timers: Record<SideName, (() => void) | null> = { source: null, translation: null };
-  private readonly deferral: Record<SideName, SilenceDeferral> = { source: new SilenceDeferral(), translation: new SilenceDeferral() };
+  /** Live Translate's two sides; null on a dialogue model. */
+  private readonly live: ContinuousSegments | null;
   /** A dialogue turn's text parts: its translation when no transcript came. */
   private fallbackText = '';
   /** A dialogue model's answer is streaming: its output transcript, audio or text arrived since the last `turnComplete` / `interrupted` (choice 16). */
@@ -95,18 +117,35 @@ export class GeminiTurns {
   private interruptedEnd = false;
   private stopped = false;
 
-  constructor(private readonly o: GeminiTurnsOptions) {}
+  constructor(private readonly o: GeminiTurnsOptions) {
+    // Live Translate: a stream with no turns, cut as OpenAI Translate's is; the source read with its CJK spaces removed (Stage 2 translation cuts,
+    // ruling 3). Its config always carries the pauses; the default ones stand in should one not, so the dialogue path never sees Live Translate.
+    this.live = o.kind === 'translate'
+      ? new ContinuousSegments({
+          clock: o.clock,
+          silence: o.silence ?? LIVE_TRANSLATE_DEFAULT_SILENCE,
+          sink: o.sink,
+          showSource: normalizeCjkSpaces,
+          cut: o.cut,
+          holdMidSentence: o.holdMidSentence,
+        })
+      : null;
+  }
 
   private get dialogue(): boolean {
     return this.o.kind === 'dialogue';
   }
 
-  /** A dialogue turn's origin; Live Translate states none. */
+  /** A dialogue turn's origin; Live Translate's are its segments' own (Stage 2 translation cuts, ruling 2). */
   private origin(): string | undefined {
     return this.dialogue ? `t${this.turn}` : undefined;
   }
 
   input(text: string): void {
+    if (this.live) {
+      this.live.sourceText(text);
+      return;
+    }
     if (this.stopped || !text) return;
     // Content, even content a drop swallows: a `turnComplete` after it ends an answer of its own.
     this.interruptedEnd = false;
@@ -114,10 +153,13 @@ export class GeminiTurns {
     const side = this.ensure('source');
     side.text += text;
     this.o.sink.segmentText({ ref: side.ref, text: normalizeCjkSpaces(side.text) });
-    this.arm('source');
   }
 
   output(text: string): void {
+    if (this.live) {
+      this.live.translationText(text);
+      return;
+    }
     if (this.stopped || !text) return;
     this.interruptedEnd = false;
     if (this.suppressing) return;
@@ -125,7 +167,6 @@ export class GeminiTurns {
     const side = this.ensure('translation');
     side.text += text;
     this.o.sink.segmentText({ ref: side.ref, text: side.text });
-    this.arm('translation');
   }
 
   /**
@@ -137,17 +178,17 @@ export class GeminiTurns {
    * range ever needs stating again.
    */
   audio(pcm: Int16Array): void {
+    // Live Translate: audio outside an open translation plays and is no row's (choice 8). Audio opens none and holds none open: it streams straight through pauses (`GeminiClient.ts:1319-1324`).
+    if (this.live) {
+      this.live.audio(pcm, { play: this.o.speech, active: false });
+      return;
+    }
     if (this.stopped || pcm.length === 0) return;
     this.interruptedEnd = false;
     if (this.suppressing) return;
     // Streaming, whether or not this leg plays it.
     if (this.dialogue) this.answering = true;
     if (!this.o.speech) return;
-    // Live Translate: audio outside an open translation plays and is no row's (choice 8). Audio never re-arms a timer: it streams straight through pauses (`GeminiClient.ts:1319-1324`).
-    if (!this.dialogue && !this.sides.translation) {
-      this.o.sink.audio({ pcm });
-      return;
-    }
     const side = this.ensure('translation');
     const end = side.text.length;
     this.o.sink.audio({ pcm, ref: side.ref, range: [side.spoken, end] });
@@ -155,7 +196,8 @@ export class GeminiTurns {
   }
 
   modelText(text: string): void {
-    if (this.stopped || !text) return;
+    // Live Translate: its translation is the output transcript alone.
+    if (this.live || this.stopped || !text) return;
     this.interruptedEnd = false;
     if (this.suppressing || !this.dialogue) return;
     this.answering = true;
@@ -163,6 +205,11 @@ export class GeminiTurns {
   }
 
   turnComplete(): void {
+    // Live Translate, should it send one: the source closes and the translation settles for it (Stage 2 translation cuts, choice 12).
+    if (this.live) {
+      this.live.endTurn();
+      return;
+    }
     if (this.stopped) return;
     if (this.interruptedEnd) {
       // The rest of the end `interrupted` made: nothing more ends here, and a drop that end started goes on to the
@@ -183,6 +230,10 @@ export class GeminiTurns {
   }
 
   interrupted(): void {
+    if (this.live) {
+      this.live.endTurn();
+      return;
+    }
     if (this.stopped) return;
     this.interruptedEnd = true;
     if (this.suppressing) {
@@ -193,6 +244,11 @@ export class GeminiTurns {
   }
 
   typed(text: string): void {
+    // Live Translate: a row of its own, stating no origin and owing no cut (Stage 2 translation cuts, choice 12).
+    if (this.live) {
+      this.live.typed(text);
+      return;
+    }
     if (this.stopped) return;
     // Typed text starts an answer of its own: a cancel's drop, active or pending, ends here, as at the next press,
     // and a `turnComplete` after it is no longer the rest of an `interrupted`.
@@ -261,8 +317,7 @@ export class GeminiTurns {
 
   stop(): void {
     this.stopped = true;
-    this.cancel('source');
-    this.cancel('translation');
+    this.live?.stop();
   }
 
   /**
@@ -303,35 +358,9 @@ export class GeminiTurns {
   }
 
   private close(side: SideName, origin: string | undefined): void {
-    this.cancel(side);
-    this.deferral[side].reset();
     const open = this.sides[side];
     if (!open) return;
     this.sides[side] = null;
     this.o.sink.segmentClosed({ ref: open.ref, ...(origin ? { origin } : {}) });
-  }
-
-  /** Live Translate only: (re)starts a side's silence countdown (`GeminiClient.ts:790-835`). */
-  private arm(side: SideName): void {
-    const silence = this.o.silence;
-    if (this.dialogue || !silence) return;
-    this.cancel(side);
-    this.timers[side] = this.o.clock.setTimeout(() => {
-      this.timers[side] = null;
-      const open = this.sides[side];
-      if (this.stopped || !open) return;
-      // While the display cuts by sentences, a pause mid-sentence is the speaker resting: one more window, while the text still grows (choice 7).
-      const text = side === 'source' ? normalizeCjkSpaces(open.text) : open.text;
-      if (silence.deferMidSentence && this.deferral[side].deferAtExpiry(text)) {
-        this.arm(side);
-        return;
-      }
-      this.close(side, undefined);
-    }, side === 'source' ? silence.sourceMs : silence.translationMs);
-  }
-
-  private cancel(side: SideName): void {
-    this.timers[side]?.();
-    this.timers[side] = null;
   }
 }

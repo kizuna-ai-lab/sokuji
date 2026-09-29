@@ -31,7 +31,7 @@ import { InputHold, type HeldAction } from './hold';
 import type { GeminiCredentials } from './settings';
 import { nativeSocket, WS_OPEN, type OpenSocket } from './socket';
 import { ReleaseTail, type TailSummary } from './tail';
-import { GeminiTurns } from './turns';
+import { GeminiTurns, writesSentenceMarks } from './turns';
 import {
   ACTIVITY_END,
   ACTIVITY_START,
@@ -118,6 +118,10 @@ class GeminiSession {
       clock: request.clock,
       silence: request.config.silence,
       sink: events,
+      // Live Translate: each translation cut and why, for the live test (Stage 2 translation cuts, choice 14).
+      cut: (summary) => this.frame('out', 'translation.cut', summary),
+      // No mid-sentence hold into a script that writes no sentence-final mark (Stage 2 translation cuts, choice 6).
+      holdMidSentence: writesSentenceMarks(request.config.translationTargetCode),
     });
     this.tail = new ReleaseTail({
       clock: request.clock,
