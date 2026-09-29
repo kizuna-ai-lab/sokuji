@@ -13,6 +13,7 @@
 import { SAMPLE_RATE, type AdapterEvents, type Ref, type TextRange } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
 import { framePayload } from '../../lib/contract/framePayload';
+import { tileSpan } from '../../lib/contract/ranges';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
@@ -33,30 +34,8 @@ export interface LegSpeechOptions {
 
 type Pending = { kind: 'text'; text: string; language: string; tag: TextTag } | { kind: 'end' };
 
-const isHigh = (c: number) => c >= 0xd800 && c <= 0xdbff;
-const isLow = (c: number) => c >= 0xdc00 && c <= 0xdfff;
-
-/**
- * A segment's span divided among its chunks in proportion to their sample
- * counts (every count positive), so consecutive ranges tile the span; the
- * last ends at the span's end. A boundary inside a surrogate pair moves
- * past it (choice 4). `text` is the ref's text the span indexes.
- */
-export function tileSpan(span: TextRange, samples: readonly number[], text: string): TextRange[] {
-  const [a, b] = span;
-  const total = samples.reduce((sum, n) => sum + n, 0);
-  const out: TextRange[] = [];
-  let start = a;
-  let cum = 0;
-  samples.forEach((n, k) => {
-    cum += n;
-    let end = k === samples.length - 1 ? b : Math.max(start, a + Math.round(((b - a) * cum) / total));
-    if (end > start && end < b && isHigh(text.charCodeAt(end - 1)) && isLow(text.charCodeAt(end))) end += 1;
-    out.push([start, end]);
-    start = end;
-  });
-  return out;
-}
+/** Lifted to the contract at its second user (Stage 2 Palabra, choice 2); re-exported, so this module's importers are unchanged. */
+export { tileSpan } from '../../lib/contract/ranges';
 
 export class LegSpeech {
   private stream: SonioxTtsStream | null = null;
