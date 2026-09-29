@@ -1,6 +1,6 @@
 /**
  * OpenAI Translate's wire, spoken directly (survey §1.3–1.4): the URL and
- * its subprotocols, the two client frames the adapter sends, the server's
+ * its subprotocols, the three client frames the adapter sends, the server's
  * frames decoded, the heartbeat test, and a server `error` as a notice code
  * and words. The client frames are typed by the `openai` SDK's translation
  * types, imported for types only, so a frame that drifts from the SDK fails
@@ -9,6 +9,7 @@
 import type {
   RealtimeError,
   RealtimeTranslationInputAudioBufferAppendEvent,
+  RealtimeTranslationSessionCloseEvent,
   RealtimeTranslationSessionUpdateEvent,
 } from 'openai/resources/realtime/realtime';
 import { pcmToBase64 } from '../../lib/contract/pcm64';
@@ -66,6 +67,14 @@ export function appendFrame(pcm: Int16Array): string {
   const frame: RealtimeTranslationInputAudioBufferAppendEvent = { type: 'session.input_audio_buffer.append', audio: pcmToBase64(pcm) };
   return JSON.stringify(frame);
 }
+
+/**
+ * The graceful end (SDK: "the server flushes pending input audio and emits
+ * any remaining translated output before closing the session"), sent at
+ * Stop just before the close — nothing waits for what it flushes (Stage 2
+ * session end, ruling 2 (iii)).
+ */
+export const SESSION_CLOSE: RealtimeTranslationSessionCloseEvent = { type: 'session.close' };
 
 /**
  * A server event as the adapter reads it: a JSON object with a string

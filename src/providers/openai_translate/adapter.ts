@@ -45,6 +45,7 @@ import {
   errorWords,
   isSilentFrame,
   OUTPUT_RATE,
+  SESSION_CLOSE,
   sessionUpdate,
   translateProtocols,
   translateUrl,
@@ -160,8 +161,17 @@ class TranslateLeg implements AdapterSession {
     this.release(true);
   }
 
-  /** The close before its first `await`. No `session.close`: its flush would land on a socket already closed (parity — a tail at Stop is dropped). */
+  /**
+   * `session.close`, framed, then the close before its first `await`. Its
+   * flush and the server's `session.closed` are not waited for: they land on
+   * a socket already closed, so a tail at Stop is still dropped (parity;
+   * Stage 2 session end, ruling 2 (iii)).
+   */
   stop(): Promise<void> {
+    if (this.phase === 'live' && this.socket.readyState === WS_OPEN) {
+      this.socket.send(JSON.stringify(SESSION_CLOSE));
+      this.frame('out', 'session.close');
+    }
     this.shutDown();
     return Promise.resolve();
   }

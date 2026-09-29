@@ -620,7 +620,7 @@ describe('the OpenAI Translate adapter: failures and stop', () => {
     for (const secret of SECRETS) expect(everything).not.toContain(secret);
   });
 
-  it('stop closes the socket before it returns, cancels every timer — the tail and both sides — and nothing follows', async () => {
+  it('stop sends session.close, framed, then closes the socket before it returns, cancels every timer — the tail and both sides — and nothing follows (Stage 2 session end, ruling 2 (iii))', async () => {
     const h = await liveTranslate({ context: MANUAL });
     h.socket().receive(SERVER.input('speaking'));
     h.socket().receive(SERVER.output('translating'));
@@ -631,6 +631,9 @@ describe('the OpenAI Translate adapter: failures and stop', () => {
     const n = h.log.length;
     const sentBefore = h.sent().length;
     const stopping = h.session.stop();
+    // The graceful end and its Logs line; what it flushes is not waited for.
+    expect(h.sent().slice(sentBefore)).toEqual([{ type: 'session.close' }]);
+    expect(h.log.slice(n)).toEqual([{ kind: 'frame', payload: { direction: 'out', type: 'session.close' } }]);
     expect(h.socket().closedByClient).toEqual({ code: 1000, reason: undefined });
     await stopping;
     expect(h.timers()).toBe(0);
@@ -638,8 +641,29 @@ describe('the OpenAI Translate adapter: failures and stop', () => {
     await flush();
     h.session.appendAudio(chunk());
     h.session.endTurn();
+    expect(h.log.length).toBe(n + 1);
+    expect(h.sent()).toHaveLength(sentBefore + 1);
+  });
+
+  it("a stop as the server's close comes in, before its close event lands, sends and frames no session.close: the socket is no longer open (Stage 2 session end, choice 9)", async () => {
+    const h = await liveTranslate();
+    const sent = h.sent().length;
+    h.socket().serverClose(1011, 'Internal error');
+    const n = h.log.length;
+    await h.session.stop();
+    expect(h.sent()).toHaveLength(sent);
     expect(h.log.length).toBe(n);
-    expect(h.sent()).toHaveLength(sentBefore);
+  });
+
+  it('a stop after the session ended sends no session.close, and says nothing', async () => {
+    const h = await liveTranslate();
+    h.socket().serverClose(1011, 'Internal error');
+    await flush();
+    const sent = h.sent().length;
+    const n = h.log.length;
+    await h.session.stop();
+    expect(h.sent()).toHaveLength(sent);
+    expect(h.log.length).toBe(n);
   });
 
   it("leaves no listener behind: the signal's once the start settles, the socket's once the session ends", async () => {
