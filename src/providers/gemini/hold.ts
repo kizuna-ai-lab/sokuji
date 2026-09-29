@@ -209,6 +209,8 @@ export class InputHold {
       run.awaiting = null;
       return;
     }
+    // A START that waited for an `interrupted`'s trailing `turnComplete` is closed by this END: the hold goes on for its answer, as any hold does (choice 14).
+    if (run) run.startWaits = false;
     this.begin('voice_activity');
   }
 

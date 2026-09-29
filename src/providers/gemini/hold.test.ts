@@ -657,6 +657,27 @@ describe("a 3.x dialogue model's input hold (Gemini hold, ruling 1)", () => {
       }
     });
 
+    it("a START that waits for an interrupted's trailing turnComplete stops waiting at its own END: that utterance is closed, so the hold goes on through the answer's first content and lets go at the turnComplete (choice 14)", () => {
+      const { h, clock, sent, ended, timers } = hold();
+      h.voiceActivity('ACTIVITY_END');
+      h.audio(tone(100));
+      h.interrupted();
+      h.voiceActivity('ACTIVITY_START');
+      clock.advance(10);
+      h.voiceActivity('ACTIVITY_END');
+      h.audio(tone(100));
+      // The answer to the utterance that START opened: its first content, with 2 s of audio.
+      h.output(2_000);
+      expect(ended).toEqual([]);
+      expect(h.holding).toBe(true);
+      expect(sent).toEqual([]);
+      h.turnComplete();
+      expect(ended.map((e) => e.reason)).toEqual(['turn_complete']);
+      expect(sent.map((p) => p.length)).toEqual([4_800]);
+      expect(h.holding).toBe(false);
+      expect(timers()).toBe(0);
+    });
+
     it("waitingForInput ends the model's turn before it lets go: a split's hold arms its cap from a fresh turn, not the last answer's audio (choice 4)", () => {
       const { h, clock, ended } = hold();
       h.voiceActivity('ACTIVITY_END');
