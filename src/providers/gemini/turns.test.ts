@@ -18,6 +18,10 @@ function turns(o: { kind?: GeminiConfig['kind']; speech?: boolean; silence?: Gem
   return { t, clock, timers, log, of, texts, opened, closed };
 }
 const pcm = (n = 160) => new Int16Array(n).fill(3);
+/** A press with voice, released: what the adapter reports once its `activityEnd` goes out. */
+const voiced = (t: GeminiTurns) => { t.beginTurn(); t.endTurn(); };
+/** A press released without voice. */
+const tap = (t: GeminiTurns) => { t.beginTurn(); t.cancelTurn(); };
 
 describe('a dialogue model: one turn, one origin, stated', () => {
   it("a turn's source and translation share its origin; turnComplete closes both, and the next turn is t2", () => {
@@ -231,6 +235,106 @@ describe('a dialogue model: one turn, one origin, stated', () => {
     t.output('an answer to the cancelled press');
     expect(closed()).toEqual([{ ref: 1, origin: 't1' }]);
     expect(texts(2)).toEqual([]);
+  });
+
+  it.each([
+    ["on a model that barges in, released before the server's interrupted (Gemini/AST2 follow-up, ruling 5)", (t: GeminiTurns) => {
+      voiced(t);
+      t.interrupted();
+      t.turnComplete();
+      tap(t);
+      t.input('Again.');
+    }],
+    ['on a model that barges in, released after interrupted and its turnComplete — the control', (t: GeminiTurns) => {
+      t.beginTurn();
+      t.interrupted();
+      t.turnComplete();
+      t.endTurn();
+      tap(t);
+      t.input('Again.');
+    }],
+    ['on a model that barges in, typed text instead, which reaches it before the interrupted it causes (Gemini/AST2 follow-up, ruling 5)', (t: GeminiTurns) => {
+      t.typed('Again.');
+      t.interrupted();
+      t.turnComplete();
+      tap(t);
+    }],
+    ["under NO_INTERRUPTION, released while the answer streams, the tap after that answer's turnComplete", (t: GeminiTurns) => {
+      voiced(t);
+      t.output(' à tous');
+      t.turnComplete();
+      tap(t);
+      t.input('Again.');
+    }],
+    ['under NO_INTERRUPTION, released while the answer streams, the tap too', (t: GeminiTurns) => {
+      voiced(t);
+      tap(t);
+      t.output(' à tous');
+      t.turnComplete();
+      t.input('Again.');
+    }],
+    ['under NO_INTERRUPTION, released after the answer ends — the control', (t: GeminiTurns) => {
+      t.output(' à tous');
+      t.turnComplete();
+      voiced(t);
+      tap(t);
+      t.input('Again.');
+    }],
+  ])("a second press, %s, keeps its source row and its own answer; a voiceless tap before that answer streams drops only the tap's own (ruling 8, choice 16)", (_, second) => {
+    const { t, of } = turns();
+    voiced(t);
+    t.input('Hello');
+    t.output('Bonjour');
+    t.audio(pcm());
+    // Up to the second press's source row: its input transcript, or the typed text's own row.
+    second(t);
+    t.output('Encore');
+    t.audio(pcm());
+    t.turnComplete();
+    t.output('an answer to the tap');
+    t.audio(pcm());
+    t.turnComplete();
+    t.output('the next answer');
+    const shown = of('segmentText').map((e) => e.payload.text);
+    expect(shown).toContain('Again.');
+    expect(shown).toContain('Encore');
+    expect(shown).not.toContain('an answer to the tap');
+    // Each kept answer's audio plays under its own translation; the tap's plays nowhere.
+    const encore = of('segmentText').find((e) => e.payload.text === 'Encore')?.payload.ref;
+    expect(of('audio').map((e) => e.payload.ref)).toEqual([2, encore]);
+    // The drop ends with the tap's own answer.
+    expect(shown[shown.length - 1]).toBe('the next answer');
+  });
+
+  it('a press released while an earlier answer streams owes nothing across a reconnect: a tap on the new connection drops the next answer, its own', () => {
+    const { t, of } = turns();
+    voiced(t);
+    t.output('Bonjour');
+    voiced(t);
+    t.connectionLost();
+    tap(t);
+    t.output('an answer to the tap');
+    t.turnComplete();
+    t.output('the next answer');
+    expect(of('segmentText').map((e) => e.payload.text)).toEqual(['Bonjour', 'the next answer']);
+  });
+
+  it.each([
+    ['both before any answer streams', (t: GeminiTurns) => { voiced(t); voiced(t); }],
+    ['both while the same earlier answer streams', (t: GeminiTurns) => { voiced(t); t.output('Bonjour'); voiced(t); voiced(t); t.turnComplete(); }],
+    ['one while an earlier answer streams, one after it ends', (t: GeminiTurns) => { voiced(t); t.output('Bonjour'); voiced(t); t.turnComplete(); voiced(t); }],
+  ])("the flag's stated limit, a flag and not a count: two voiced releases waiting at once for their answers to start, %s, are one claim, so a tap before either's answer streams drops the second's answer, not its own", (_, releases) => {
+    const { t, of } = turns();
+    releases(t);
+    tap(t);
+    t.output("the first release's answer");
+    t.turnComplete();
+    t.output("the second release's answer");
+    t.turnComplete();
+    t.output('an answer to the tap');
+    t.turnComplete();
+    const shown = of('segmentText').map((e) => e.payload.text).filter((text) => text !== 'Bonjour');
+    expect(shown).toEqual(["the first release's answer", 'an answer to the tap']);
   });
 
   it("the model's audio marks its answer streaming, on a leg that does not speak too: a cancel then waits for it", () => {

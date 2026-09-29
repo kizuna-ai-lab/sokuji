@@ -62,10 +62,22 @@ export class GeminiTurns {
   /** A dialogue model's answer is streaming: its output transcript, audio or text arrived since the last `turnComplete` / `interrupted` (choice 16). */
   private answering = false;
   /**
-   * A dialogue answer is owed: a press with voice was released, or text was typed, and that answer has not ended.
-   * A flag, not a count: after two voiced releases, a voiceless press before either answer streams drops the second's answer, not its own.
+   * A dialogue answer is owed: a press with voice was released, or text was typed, and that answer has not ended
+   * (ruling 8, choice 16); one released while an earlier answer streamed is owed from that answer's end (`owedNext`).
+   * A flag, not a count: two voiced releases (or typed texts) waiting at once for their answers to start — both made
+   * before any answer streams, both while the same earlier answer streams, or one while it streams and one after it
+   * ends — are one claim, so a voiceless press before either answer streams drops the second's answer, not its own.
    */
   private owed = false;
+  /**
+   * A press with voice was released, or text was typed, while an earlier answer streamed: its answer is owed from that
+   * answer's end — its `turnComplete` under `NO_INTERRUPTION`, or, on a model that barges in, its `interrupted`
+   * (Gemini/AST2 follow-up, ruling 5) — which moves this flag into `owed` instead of clearing it. It assumes such a
+   * press gets an answer of its own after the streaming one, as both overlap probes did (each answered the second
+   * utterance whole, as its own turn, under automatic detection). Set only while `answering`, and moved on or cleared
+   * wherever `answering` clears, so it implies `answering`: a cancel that meets it always waits for the streaming end.
+   */
+  private owedNext = false;
   /** The cancelled press's own answer is being dropped, until it ends (ruling 8). */
   private suppressing = false;
   /** A cancel came while the previous press's answer was owed or streaming: the drop starts when that answer ends (choice 16). */
@@ -181,7 +193,7 @@ export class GeminiTurns {
     this.suppressing = false;
     this.suppressAfterAnswer = false;
     this.interruptedEnd = false;
-    if (this.dialogue) this.owed = true;
+    if (this.dialogue) this.owe();
     const ref = ++this.refs;
     const origin = this.origin();
     this.o.sink.segmentOpened({ ref, side: 'source', ...(origin ? { origin } : {}) });
@@ -196,12 +208,19 @@ export class GeminiTurns {
   }
 
   /**
-   * A press with voice was released (`activityEnd`, not a cancel): its answer is owed from here, before its first
-   * output streams, so a voiceless press made in that gap drops only its own answer (choice 16).
+   * A press with voice was released (`activityEnd`, not a cancel): its answer is owed from here — from the end of an
+   * answer still streaming, if one is — before its first output streams, so a voiceless press made in that gap drops
+   * only its own answer (choice 16).
    */
   endTurn(): void {
     if (this.stopped || !this.dialogue) return;
-    this.owed = true;
+    this.owe();
+  }
+
+  /** A voiced release or typed text: its answer is owed now, or from the streaming answer's end while one streams. */
+  private owe(): void {
+    if (this.answering) this.owedNext = true;
+    else this.owed = true;
   }
 
   /** A press released without voice (ruling 8, choice 16): drop that press's own answer, never the one before it. */
@@ -212,7 +231,8 @@ export class GeminiTurns {
     // under `NO_INTERRUPTION` and ends at its `turnComplete`; on a model that barges in, this press's `activityStart`
     // ends it at the server's `interrupted`, and the `turnComplete` that trails it is that same end, not this press's
     // answer's (Gemini/AST2 follow-up, ruling 5). Either way it finishes in its own segments, and the drop — this
-    // press's own answer, never the one before it (ruling 8) — starts at that one end.
+    // press's own answer, never the one before it (ruling 8) — starts at that one end, or, when a press released while
+    // it streamed is still owed its answer, at the end of that answer (`endAnswer()`).
     if (this.answering || this.owed) {
       this.suppressAfterAnswer = true;
       return;
@@ -227,6 +247,8 @@ export class GeminiTurns {
     this.suppressAfterAnswer = false;
     // The trailing `turnComplete` was the old connection's to send: the next one ends an answer of its own.
     this.interruptedEnd = false;
+    // Nothing the old connection owed is answered on the new one, a release made while its answer streamed included.
+    this.owedNext = false;
     // A dialogue turn in flight cannot finish across a reconnect (choice 14); Live Translate's segments ride their timers.
     if (this.dialogue) this.closeTurn();
   }
@@ -237,10 +259,14 @@ export class GeminiTurns {
     this.cancel('translation');
   }
 
-  /** The answer ended: the turn closes, and a cancel made while it streamed now drops the next answer — the cancelled press's own. */
+  /**
+   * The answer ended: the turn closes, and a cancel made while it streamed now drops the next answer — the cancelled
+   * press's own — unless an answer is still owed: one released while the answer that ended streamed comes first, and
+   * the drop starts at its end.
+   */
   private endAnswer(): void {
     this.closeTurn();
-    if (this.suppressAfterAnswer) {
+    if (this.suppressAfterAnswer && !this.owed) {
       this.suppressAfterAnswer = false;
       this.suppressing = true;
     }
@@ -253,7 +279,9 @@ export class GeminiTurns {
     this.close('translation', origin);
     this.fallbackText = '';
     this.answering = false;
-    this.owed = false;
+    // The answer owed before this end has ended; one owed from this end on is now the next.
+    this.owed = this.owedNext;
+    this.owedNext = false;
     if (this.dialogue) this.turn += 1;
   }
 

@@ -526,6 +526,36 @@ describe('the Gemini adapter: turns and typed text', () => {
     expect(h.of('segmentOpened')).toHaveLength(1);
   });
 
+  it("a voiced press released while the previous answer still streams keeps its source row and its own answer: a voiceless tap before that answer streams drops only the tap's own (ruling 8, NO_INTERRUPTION)", async () => {
+    const h = await liveGemini({ context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(new Int16Array(480));
+    h.session.endTurn();
+    h.socket().receive(SERVER.input('Hello there.'));
+    h.socket().receive(SERVER.output('こんにちは'));
+    h.socket().receive(SERVER.audio());
+    // The second press, voiced, released while that answer streams: it plays on to its own turnComplete.
+    h.session.beginTurn();
+    h.session.appendAudio(new Int16Array(480));
+    h.session.endTurn();
+    h.socket().receive(SERVER.output('、皆さん'));
+    h.socket().receive(SERVER.turnComplete());
+    // The tap, before the second press's answer streams.
+    h.session.beginTurn();
+    h.session.cancelTurn();
+    h.socket().receive(SERVER.input('Again.'));
+    h.socket().receive(SERVER.output('もう一度'));
+    h.socket().receive(SERVER.audio());
+    h.socket().receive(SERVER.turnComplete());
+    h.socket().receive(SERVER.output('an answer to the tap'));
+    h.socket().receive(SERVER.audio());
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.frames('realtime_input.activity_end')).toEqual([undefined, undefined, { cancelled: true }]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Hello there.', 'こんにちは', 'こんにちは、皆さん', 'Again.', 'もう一度']);
+    expect(h.of('audio').map((e) => e.payload.ref)).toEqual([2, 4]);
+    expect(h.of('segmentClosed').map((e) => e.payload)).toEqual([{ ref: 1, origin: 't1' }, { ref: 2, origin: 't1' }, { ref: 3, origin: 't2' }, { ref: 4, origin: 't2' }]);
+  });
+
   it('on Live Translate a cancel drops nothing: the streaming translation goes on in its segment (choice 16), and its activityEnd follows the release tail (Gemini/AST2 follow-up, ruling 4)', async () => {
     const h = await liveGemini({ model: TRANSLATE, context: MANUAL });
     h.session.beginTurn();
