@@ -174,6 +174,124 @@ describe("Palabra AI's segments: one sentence, one id (survey §2.8)", () => {
     expect(checkConformance(h.log, AUTO)).toEqual([]);
   });
 
+  it('a final that repeats its last partial still sends its text, carrying a refined language (fix round 1, m1)', () => {
+    const h = items();
+    const withLang = (type: string, language: string, text: string) =>
+      JSON.stringify({ message_type: type, data: { transcription: { transcription_id: SENTENCE, language, text } } });
+    h.feed(withLang('partial_transcription', 'ja', JA));
+    h.feed(withLang('validated_transcription', 'zh', JA));
+    expect(h.of('segmentText')).toEqual([
+      { ref: 1, text: JA, language: 'ja' },
+      { ref: 1, text: JA, language: 'zh' },
+    ]);
+  });
+
+  it('an empty final is sent, never silently skipped for repeating the untouched text (fix round 1, m1)', () => {
+    const h = items();
+    h.feed(SERVER.validated());
+    h.feed(SERVER.translated(''));
+    expect(h.of('segmentText').filter((t) => t.ref === 2)).toEqual([{ ref: 2, text: '' }]);
+  });
+
+  it("two sentences with overlapping bursts: one sentence's last chunk does not fill the other (fix round 1, m2)", () => {
+    const h = items();
+    h.feed(SERVER.translated('A.', 'a'));
+    h.feed(SERVER.translated('B.', 'b'));
+    h.feed(SERVER.audio({ id: 'a' }), new Int16Array(4_800));
+    h.feed(SERVER.audio({ id: 'b' }), new Int16Array(4_800));
+    h.feed(SERVER.audio({ id: 'a', last: true }), new Int16Array(4_800));
+    expect(h.of('speechRanges').map((r) => r.ref)).toEqual([1]);
+    h.feed(SERVER.audio({ id: 'b', last: true }), new Int16Array(4_800));
+    expect(h.of('speechRanges').map((r) => [r.ref, r.ranges.length])).toEqual([[1, 2], [2, 2]]);
+  });
+
+  it('last_chunk per part, bursts in turn: each part filled over its own chunks (fix round 1, m2)', () => {
+    const h = items();
+    h.feed(SERVER.translated('First part.', SENTENCE, 0));
+    h.feed(SERVER.translated('Second part.', SENTENCE, 1));
+    h.feed(SERVER.audio({ part: '0' }), new Int16Array(4_800));
+    h.feed(SERVER.audio({ part: '0', last: true }), new Int16Array(4_800));
+    h.feed(SERVER.audio({ part: '1' }), new Int16Array(4_800));
+    h.feed(SERVER.audio({ part: '1', last: true }), new Int16Array(4_800));
+    expect(h.of('speechRanges').map((r) => [r.ref, r.ranges.length])).toEqual([[1, 2], [2, 2]]);
+  });
+
+  it('the last chunk while the translation is still a partial: filled only at the final text, over the final text (fix round 1, m2)', () => {
+    const h = items();
+    h.feed(SERVER.translationPartial('Welcome to'));
+    h.feed(SERVER.audio(), new Int16Array(4_800));
+    h.feed(SERVER.audio({ last: true }), new Int16Array(4_800));
+    expect(h.of('speechRanges')).toEqual([]);
+    h.feed(SERVER.translated('Welcome to real time.'));
+    expect(h.of('speechRanges')).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 11] }, { index: 1, range: [11, 21] }] }]);
+    expect(checkConformance(h.log, AUTO)).toEqual([]);
+  });
+
+  it('the final text mid-burst: no fill until the last chunk (fix round 1, m2)', () => {
+    const h = items();
+    h.feed(SERVER.audio(), new Int16Array(4_800));
+    h.feed(SERVER.translated());
+    expect(h.of('speechRanges')).toEqual([]);
+    h.feed(SERVER.audio({ last: true }), new Int16Array(4_800));
+    expect(h.of('speechRanges')).toEqual([{ ref: 1, ranges: [{ index: 0, range: [0, 41] }, { index: 1, range: [41, EN.length] }] }]);
+  });
+
+  it('no partial translation after stop() (fix round 1, m2)', () => {
+    const h = items();
+    h.items.stop();
+    h.feed(SERVER.translationPartial('late'));
+    expect(h.log).toEqual([]);
+  });
+
+  it('a partial translation of part 1 lands on part 1 (fix round 1, m2)', () => {
+    const h = items();
+    h.feed(SERVER.translated('First part.', SENTENCE, 0));
+    h.feed(SERVER.translationPartial('Sec', SENTENCE, 1));
+    expect(h.of('segmentOpened')).toHaveLength(2);
+    expect(h.of('segmentText')).toEqual([{ ref: 1, text: 'First part.' }, { ref: 2, text: 'Sec' }]);
+  });
+
+  // The equal-text skip no longer reaches translationFinal after the m1 fix, so this
+  // sends its empty text once instead of staying silent (adapted from the reviewer's
+  // pre-fix pin, which expected no segmentText at all here).
+  it('an empty translation: opened and closed with its empty text sent once, its audio rangeless, no fill (fix round 1, m2)', () => {
+    const h = items();
+    h.feed(SERVER.validated());
+    h.feed(SERVER.translated(''));
+    h.feed(SERVER.audio(), new Int16Array(4_800));
+    h.feed(SERVER.audio({ last: true }), new Int16Array(4_800));
+    expect(h.of('segmentText').filter((t) => t.ref === 2)).toEqual([{ ref: 2, text: '' }]);
+    expect(h.of('segmentClosed')).toEqual([{ ref: 1, origin: SENTENCE }, { ref: 2, origin: SENTENCE }]);
+    expect(h.of('audio').map((a) => [a.ref, a.range])).toEqual([[2, undefined], [2, undefined]]);
+    expect(h.of('speechRanges')).toEqual([]);
+    expect(checkConformance(h.log, AUTO)).toEqual([]);
+  });
+
+  // The m1 fix moved the equal-text skip for a translation's *final* out of
+  // translationText into translationFinal directly, so translationText's own
+  // guard is now reachable only through a repeated *partial* (M36).
+  it('a partial translation that repeats its last text is not re-sent (fix round 1, m2)', () => {
+    const h = items();
+    h.feed(SERVER.translationPartial('Welcome'));
+    h.feed(SERVER.translationPartial('Welcome'));
+    expect(h.of('segmentText')).toEqual([{ ref: 1, text: 'Welcome' }]);
+  });
+
+  it('an empty chunk with no id emits nothing (fix round 1, m2, M12)', () => {
+    const h = items();
+    h.feed(JSON.stringify({ message_type: 'output_audio_data', data: { last_chunk: false, data: '' } }), new Int16Array(0));
+    expect(h.log).toEqual([]);
+  });
+
+  it('a translation with no part named takes part "0", pairing with its audio (fix round 1, m2, M32)', () => {
+    const h = items();
+    const bare = (type: string, transcription: Record<string, unknown>) => JSON.stringify({ message_type: type, data: { transcription } });
+    h.feed(bare('translated_transcription', { transcription_id: 'x', text: 'Hi' }));
+    h.feed(SERVER.audio({ id: 'x', part: '0', last: true }));
+    expect(h.of('segmentOpened')).toHaveLength(1);
+    expect(h.of('audio')[0].ref).toBe(1);
+  });
+
   it('says nothing once stopped', () => {
     const h = items();
     h.feed(SERVER.partial('リ'));

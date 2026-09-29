@@ -62,7 +62,11 @@ export class PalabraItems {
     }
     const source = this.source(t.id);
     if (source.closed) return;
-    this.sourceText(source, t);
+    // Unlike a partial, the final always sends: every one of the probe's 46
+    // sentences validates with exactly the last partial's text, and a
+    // refined language must still reach the badge (fix round 1, m1).
+    source.text = t.text;
+    this.events.segmentText({ ref: source.ref, text: t.text, ...(t.language ? { language: t.language } : {}) });
     source.closed = true;
     this.events.segmentClosed({ ref: source.ref, origin: t.id });
   }
@@ -87,7 +91,11 @@ export class PalabraItems {
     }
     const translation = this.translation(t.id, t.part ?? FIRST_PART);
     if (translation.closed) return;
-    this.translationText(translation, t.text);
+    // The final always sends too (fix round 1, m1): the equal-text skip is
+    // for partials only, so an untouched or repeated part's text still
+    // reaches the row rather than staying blank.
+    translation.text = t.text;
+    this.events.segmentText({ ref: translation.ref, text: t.text });
     translation.closed = true;
     this.events.segmentClosed({ ref: translation.ref, origin: t.id });
     this.fill(translation);
