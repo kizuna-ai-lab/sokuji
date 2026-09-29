@@ -312,7 +312,8 @@ The conformance suite (D24) checks each rule below against every adapter.
   is down is dropped, with no segment (Stage 2 Gemini, choice 17). On a 3.x
   dialogue model, text typed while its input is held waits, with its segment,
   until the hold lets go — across a reconnect too, where it goes up on the new
-  connection (Stage 2 Gemini hold, choices 8, 10). OpenAI
+  connection (Stage 2 Gemini hold, choices 8, 10); a stop before the hold lets
+  go drops it, with no segment (Stage 2 Gemini hold, choice 11). OpenAI
   Realtime shows typed text at once and holds its request, first in first out,
   while a response is in progress; the adapter owns that queue, so `busy` has
   no reader (Stage 2 OpenAI Realtime, ruling 8). A release's request waits

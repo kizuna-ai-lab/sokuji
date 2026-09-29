@@ -5674,8 +5674,8 @@ marked):
 12. **Live Translate into `zh-Hans` and `zh-Hant`** (ruling 6): Simplified Chinese, the likeliest target — the old code sent `zh`, measured to come back Simplified (`settings.ts:169-170` at `4f7c6b83`); the new one sends Google's `zh-Hans`, never measured. **Execution (Task 8's review, M4):** the old code also recorded `cmn` coming back Traditional; the new one sends `zh-Hant`, never measured either. Each is one probe run, with network allowed: `GEMINI_API_KEY=… npx tsx scripts/dev/wire-probe/gemini.mts translate --dst zh-Hant` (and `--dst zh-Hans`).
 13. **3.8 under push-to-talk** (ruling 5; choice 9): a press while the previous translation still generates — record whether barge-in cuts it, and how often. **Changed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model a press made while the previous translation streams now waits for `turnComplete` instead of barging in (Stage 2 Gemini hold, choice 7; live-test item 3).
 14. **A voiceless press on Live Translate** (choice 12): the tail runs, framed `turn.tail` `{ cancelled: true }`, and `turn.tail_end` follows.
-15. **3.x barge-in with the model's own voice in the room** (ruling 5; choice 9): on the participant leg, or under automatic turns with speakers, the model's output echoed into capture must not cut its own response. **Changed by the Stage 2 Gemini hold plan:** the model's own voice, if it reaches capture, is held with the rest of the input and sent after `turnComplete`, not fed back live while the answer still plays (Stage 2 Gemini hold, choice 15; this plan's live-test item 5).
-16. **Typed text on a 3.x model while an answer streams** (ruling 5; the Gemini plan's choice 17). **Execution (the final review, M6):** under manual turns the text is wrapped in `activityStart` / `activityEnd`, so on a model that barges in it cuts the answer in flight — record whether `server_content.interrupted` follows `realtime_input.text` and whether the cut answer's row stays as it stood; under automatic turns, whether a text input interrupts is unknown — record whether it does. **Changed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model, typed text made while an answer streams is held and sent at `turnComplete`, not wrapped in `activityStart` / `activityEnd` that could cut the answer (Stage 2 Gemini hold, choice 8; live-test items 7, 13).
+15. **3.x barge-in with the model's own voice in the room** (ruling 5; choice 9): on the participant leg, or under automatic turns with speakers, the model's output echoed into capture must not cut its own response. **Changed by the Stage 2 Gemini hold plan:** the model's own voice, if it reaches capture, is held with the rest of the input and sent after `turnComplete`, not fed back live while the answer still plays (Stage 2 Gemini hold, research note 5; this plan's live-test item 5).
+16. **Typed text on a 3.x model while an answer streams** (ruling 5; the Gemini plan's choice 17). **Execution (the final review, M6):** under manual turns the text is wrapped in `activityStart` / `activityEnd`, so on a model that barges in it cuts the answer in flight — record whether `server_content.interrupted` follows `realtime_input.text` and whether the cut answer's row stays as it stood; under automatic turns, whether a text input interrupts is unknown — record whether it does. **Changed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model, typed text made while an answer streams is held; under push-to-talk it is sent at `turnComplete` in marks of its own, so it no longer cuts the answer; under automatic turns it is sent bare when the hold lets go (Stage 2 Gemini hold, choice 8; live-test items 7, 13).
 17. **A voiceless tap on 3.8 under push-to-talk while an answer streams** (ruling 5; the Gemini plan's ruling 8). **Execution (the final review, I1; `58ee9e5c`):** the adapter counts `interrupted` and a `turnComplete` with no content between them as one end, so the tap's own answer is dropped whether the release reaches it before `interrupted` or after. Record the order of `realtime_input.activity_end` (`cancelled: true`) and `server_content.interrupted` in the Logs, and whether a reply row appears for the tap. **Changed by the Stage 2 Gemini hold plan:** on a 3.x dialogue model a tap made while an answer streams is withdrawn whole — nothing sent, nothing to drop — so this item's one-end rule now runs only past the hold's cap (Stage 2 Gemini hold, choice 7).
 18. **A double press on a dialogue model** (the Gemini plan's ruling 8; the final fix wave's re-review). **Changed by the owed flag's fix (`f7bdb8bb`; "What it leaves"):** on 2.5, speak over an answer and release while it streams, then tap before your own reply starts; on 3.8, type text during an answer, then tap. The spoken (or typed) row must survive with its own translation and audio, and no reply to the tap may show. Watch the fix's one assumption, that a press released while an answer streams gets an answer of its own after it: record whether the Logs show a `turnComplete` for that answer before the tap's. Where the model folds the press into the streaming answer instead, the tap's reply shows — record that too. Then the order the fix moved: on 2.5, within one answer, tap, then speak and release, then tap again, all before your reply starts — on a model that answers an empty press the first tap's queued answer takes the spoken row's claim, so the spoken row and its translation vanish and both taps' replies show (where the flag before `f7bdb8bb` kept it); with no answer to taps the spoken row survives. Record which, and whether the Logs show a `turnComplete` for each tap. The flag against a count is the open question "The owed flag vs a count" below. Live Translate is not affected (it has no turns). **Changed by the Stage 2 Gemini hold plan:** on 3.x, typed text made during an answer is held and sent at `turnComplete`, and a tap made during the same hold is withdrawn, so neither can reach this item's queued-tap case; on 2.5, which holds nothing, this item is unchanged (Stage 2 Gemini hold, choices 7, 8).
 
@@ -6494,6 +6494,54 @@ is this record; the final whole-branch review follows it.
   press made during it waits for `turnComplete`, a voiceless press whose start
   is still held is withdrawn whole (nothing sent, nothing to drop); typed
   text's marks are read on the wire and its text held and sent in order.
+- **The final review and its fix round** (the whole branch,
+  `5a6d7091..adc66908`: With fixes, 0 Critical / 1 Important / 5 Minor; the
+  fixes `0c0c9480`, and the docs commit that records it here; the
+  controller's rulings on the final review):
+  - **I1** (`0c0c9480`): a `server_content.waiting_for_input` is always
+    framed, but reaches the hold only when its message carries no
+    `turnComplete`. That `turnComplete` has already ended the model's turn,
+    and under push-to-talk its release may have begun a hold of its own — a
+    held release's `activityEnd`, held text's marks — which the same
+    message's `waitingForInput` ended at once, so the next press went up and
+    barged into the answer (choice 4). One case under push-to-talk:
+    `{ turnComplete, waitingForInput }` in one message, press 2 released
+    during the hold and press 3 down → press 3 stays held until press 2's
+    answer's `turnComplete`. The broader shape, a `waitingForInput` as its
+    own message just after, is not guarded ("What this plan leaves";
+    live-test item 9).
+  - **M1** (`0c0c9480`): `waitingForInput` lets nothing go between
+    `interrupted` and the `turnComplete` that trails it — that
+    `turnComplete`, content or the cap does — so held text no longer goes
+    between the two ends, where its answer opened under a third origin
+    (choice 4). A pure case and an adapter case: the text pairs `t2` / `t2`.
+  - **M2** (`0c0c9480`): content after a START that waits for an
+    `interrupted`'s trailing `turnComplete` lets the hold go at once,
+    `voice_activity_start`, as choice 14 (the coordinator's ruling D) says —
+    it waited for that `turnComplete`, or the cap. It runs first on the call,
+    before the new answer's audio counts and before any fallback. A pure
+    case.
+  - **M5, in part** (`0c0c9480`): one adapter case pins choice 13 — a START's
+    release while an answer streams sends held text on the path of text typed
+    at that moment: its row under the answering turn, its answer owed from
+    that answer's end (`owedNext`), the answer streaming on whole. It passed
+    at `adc66908`, a coverage case. Beside it, a pure pin for a split's wait
+    against a `waitingForInput` (choice 14): after I1's fix the landed
+    combined-message case no longer reaches the hold, and without the pin the
+    guard's removal survived the suite.
+  - **M3, M4 and the live test** (the docs commit): item 10's gap reads
+    `idle` "10 s later", as the plan has it; the marks on the follow-up
+    section's items 15 (research note 5, not choice 15) and 16 (under
+    push-to-talk, sent at `turnComplete` in marks of its own); the spec's
+    `appendText` rule adds that a stop before the hold lets go drops held
+    text, with no segment (choice 11); item 9 records any `waitingForInput`,
+    and whether it rides with or comes just after `turnComplete`.
+  - **Left:** the seeded lifecycles' combined server-content shapes ("What
+    this plan leaves").
+  - **Gates** at `0c0c9480`: `npx vitest run src` — 573 passed and 1 skipped
+    files, 7 452 passed and 2 skipped tests, no unhandled errors; the Gemini
+    folder with the session-side guard, 18 files and 352 tests; the
+    typecheck gate at its 20-line baseline.
 
 **Gates after each wave** (the controller's, on a clean tree, 0 failed and no
 unhandled errors throughout, the typecheck gate at its 20-line baseline): Wave
@@ -6619,7 +6667,11 @@ before Start; each item names what settles it):
    answers nor completes**: record whether `server_content.turn_complete`
    (with its reason) or `server_content.waiting_for_input` lets the hold go,
    or `turn.hold_end` reads `idle` after 10 s — under push-to-talk that keeps
-   the next press back up to 10 s.
+   the next press back up to 10 s. Here and in every other item, record any
+   `server_content.waiting_for_input`, and whether it rides with, or comes
+   just after, `server_content.turn_complete`: one sent as its own message
+   just after would end a push-to-talk hold that the release just began,
+   which nothing guards ("What this plan leaves").
 10. **`interrupted` near a hold, and the gap** (choices 4, 5, 14): any
     `server_content.interrupted` just after a `turn.hold` has one of two
     causes. **(a) Speech that reached the server before the hold began** (a
@@ -6637,9 +6689,9 @@ before Start; each item names what settles it):
     which, and the pause. **The gap, which ruling 4 ends:** a `turn.hold`
     begun on an ACTIVITY_END that arrived seconds behind its `audioOffset`, an
     ACTIVITY_START within about 0.3 s, then `turn.hold_end` with `reason:
-    'idle'` after its wait (2 s, or half the audio it let go). With ruling 4
-    that hold ends `voice_activity_start` at the START instead: an `idle`
-    there is a regression — record it with the Logs around it.
+    'idle'` 10 s later. With ruling 4 that hold ends `voice_activity_start` at
+    the START instead: an `idle` there is a regression — record it with the
+    Logs around it.
 11. **A reconnect during a hold** (choice 10): wait for a GoAway (about every
     9–10 min; `server.go_away` in the Logs) while a translation plays and you
     speak, and force a close (drop the network briefly): `turn.hold_end` with
@@ -6800,6 +6852,15 @@ taken (and where), or left (and why).
 - **The owed flag's limit after a cap, or on a model that answers taps**
   (choice 13) keeps the landed rules; whether a count should replace the flag
   is still the follow-up's open question.
+- **A `waitingForInput` sent as its own message right after `turnComplete`**
+  would end a push-to-talk hold that the release just began, and the next
+  press would barge in: unguarded, and never seen — the fix guards only one
+  that rides with its `turnComplete`; live-test item 9 watches for it (added
+  by the final review, I1).
+- **The seeded lifecycles send one server-content field per message,** so
+  combined shapes are pinned only by direct adapter cases:
+  `{ turnComplete, waitingForInput }` by two, one per turn mode;
+  `{ interrupted, turnComplete }` by none (added by the final review, M5).
 
 **The plan's open questions, as landed** (already decided during the plan's
 own revisions; kept for the record):
