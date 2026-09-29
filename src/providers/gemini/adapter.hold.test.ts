@@ -9,9 +9,13 @@
  */
 import { describe, it, expect } from 'vitest';
 import { flush } from '../../lib/contract/testing/drive';
-import { SETUP_TIMEOUT_MS } from './adapter';
-import { HOLD_CARRY_MS, HOLD_IDLE_MS, HOLD_MARGIN_MS, SPLIT_END_MS } from './hold';
-import { AUTO_CTX, BARGE_IN, DIALOGUE, liveGemini, SERVER, serverFrame, TRANSLATE } from './testing';
+import { FakeSocket } from '../../lib/contract/testing/fakeSocket';
+import { runLifecycles, type LifecycleHarness } from '../../lib/contract/testing/lifecycle';
+import { createGeminiAdapter, SETUP_TIMEOUT_MS } from './adapter';
+import type { GeminiConfig } from './config';
+import { HOLD_CARRY_MS, HOLD_IDLE_MS, HOLD_MARGIN_MS, SPLIT_END_MS, splitPauseMs } from './hold';
+import type { GeminiCredentials } from './settings';
+import { AUTO_CTX, BARGE_IN, configFor, DIALOGUE, KEY, liveGemini, SERVER, serverFrame, TRANSLATE } from './testing';
 import { base64ToPcm } from './wire';
 
 type Live = Awaited<ReturnType<typeof liveGemini>>;
@@ -384,4 +388,424 @@ describe('a 3.x dialogue model under automatic turns: one utterance per release,
     const sent = wire(h.sent() as Sent[]);
     expect(runs(sent)).toEqual([['audio ×2400', 44], ['audio ×79200', 1]]);
   });
+});
+
+const MANUAL = { ...AUTO_CTX, turns: 'manual' as const };
+
+describe('a 3.x dialogue model under push-to-talk, and typed text (Gemini hold, ruling 1)', () => {
+  it("a release's activityEnd begins the hold; a press during it waits its turn, and at turnComplete its activityStart, its audio as one frame and its activityEnd go up in order — that activityEnd beginning the next hold (choices 3, 5, 7)", async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'audio ×2048', 'activityEnd']);
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'activity_end' }]);
+    h.socket().receive(SERVER.input('Hello there.'));
+    h.socket().receive(SERVER.output('こんにちは。'));
+    h.socket().receive(SERVER.audio(24_000));
+    // The second press, voiced, pressed and released while the first's answer plays: nothing goes up.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(2_000));
+    h.session.appendAudio(chunk(2_001));
+    h.session.endTurn();
+    expect(wire(h.sent() as Sent[])).toHaveLength(3);
+    expect(h.frames('realtime_input.activity_start')).toHaveLength(1);
+    h.clock.advance(1_000);
+    h.socket().receive(SERVER.generationComplete());
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[]).slice(3)).toEqual(['activityStart', 'audio ×4096', 'activityEnd']);
+    expect(h.frames('turn.hold_end')).toEqual([{ reason: 'turn_complete', heldMs: 1_000, audioMs: 171, actions: 2, withdrawn: 0, playbackEndMs: 1_000 }]);
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'activity_end' }, { cause: 'activity_end' }]);
+    const order = h.of('frame').map((f) => f.payload.type);
+    expect(order.slice(order.indexOf('server_content.turn_complete'))).toEqual([
+      'server_content.turn_complete', 'turn.hold_end', 'realtime_input.activity_start', 'realtime_input.activity_end', 'turn.hold',
+    ]);
+    // The second press's own answer is turn 2.
+    h.socket().receive(SERVER.input('Again.'));
+    h.socket().receive(SERVER.output('もう一度。'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([['source', 't1'], ['translation', 't1'], ['source', 't2'], ['translation', 't2']]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Hello there.', 'こんにちは。', 'Again.', 'もう一度。']);
+    expect(h.timers()).toBe(0);
+  });
+
+  it('a press still held when the hold lets go goes up then, and goes on live: its audio at once, its release at once (choice 7)', async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'activityEnd']);
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'activityEnd', 'activityStart', 'audio ×2048']);
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    expect(wire(h.sent() as Sent[]).slice(4)).toEqual(['audio ×2048', 'activityEnd']);
+  });
+
+  it("a press released without voice while its activityStart is still held is withdrawn: nothing of it goes up, nothing is dropped for it, and the next press's answer shows (choice 7)", async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.socket().receive(SERVER.output('The answer.'));
+    h.socket().receive(SERVER.audio());
+    h.session.beginTurn();
+    h.session.appendAudio(new Int16Array(480));
+    h.session.cancelTurn();
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'audio ×2048', 'activityEnd']);
+    expect(h.frames('turn.hold_end')).toEqual([{ reason: 'turn_complete', heldMs: 0, audioMs: 0, actions: 0, withdrawn: 1, playbackEndMs: 100 }]);
+    expect(h.frames('realtime_input.activity_end')).toEqual([undefined]);
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.socket().receive(SERVER.output('the next answer'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['The answer.', 'the next answer']);
+  });
+
+  it('typed text during a hold is held whole — its row, its owed answer and its marks — and goes at turnComplete under the next turn, its activityEnd beginning the next hold (choices 3, 8)', async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.socket().receive(SERVER.input('Hello.'));
+    h.socket().receive(SERVER.output('こんにちは。'));
+    h.session.appendText('  typed  ');
+    expect(wire(h.sent() as Sent[])).toHaveLength(3);
+    expect(h.of('segmentOpened')).toHaveLength(2);
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[]).slice(3)).toEqual(['activityStart', 'text', 'activityEnd']);
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'activity_end' }, { cause: 'activity_end' }]);
+    h.socket().receive(SERVER.output('タイプ。'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([['source', 't1'], ['translation', 't1'], ['source', 't2'], ['translation', 't2']]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Hello.', 'こんにちは。', 'typed', 'タイプ。']);
+  });
+
+  it('typed text held inside a withdrawn press still goes, in marks of its own: they are read on the wire, not off the key (choice 9)', async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.appendText('typed');
+    h.session.cancelTurn();
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'activityEnd', 'activityStart', 'text', 'activityEnd']);
+    expect(h.frames('turn.hold_end')).toMatchObject([{ actions: 1, withdrawn: 1 }]);
+  });
+
+  it('typed text held between two presses goes in marks of its own though a key is down when it goes (choice 9)', async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.session.appendText('typed');
+    h.session.beginTurn();
+    // The second press goes, and its activityEnd begins a hold; then the text, whose own activityEnd begins one; then the third press.
+    h.socket().receive(SERVER.turnComplete());
+    h.socket().receive(SERVER.turnComplete());
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[])).toEqual([
+      'activityStart', 'activityEnd',
+      'activityStart', 'audio ×2048', 'activityEnd',
+      'activityStart', 'text', 'activityEnd',
+      'activityStart',
+    ]);
+    expect(h.frames('turn.hold')).toHaveLength(3);
+  });
+
+  it("a press's activity is the connection's: across a reconnect, text goes inside a press started again, and in marks of its own after a press released in the gap (choice 9)", async () => {
+    const again = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    again.session.beginTurn();
+    again.socket().serverClose(1011, 'Internal error');
+    await flush();
+    again.socket().open();
+    again.socket().receive(SERVER.setupComplete());
+    await flush();
+    again.session.appendText('inside');
+    expect(wire(again.sent() as Sent[])).toEqual(['activityStart', 'text']);
+
+    const gap = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    gap.session.beginTurn();
+    gap.socket().serverClose(1011, 'Internal error');
+    await flush();
+    gap.session.endTurn();
+    gap.socket().open();
+    gap.socket().receive(SERVER.setupComplete());
+    await flush();
+    gap.session.appendText('after');
+    expect(wire(gap.sent() as Sent[])).toEqual(['activityStart', 'text', 'activityEnd']);
+  });
+
+  it('a release without voice begins no hold: whether the server answers an empty press is unknown, and the next press goes at once (choice 3)', async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.cancelTurn();
+    h.session.beginTurn();
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'activityEnd', 'activityStart']);
+    expect(h.frames('turn.hold')).toEqual([]);
+  });
+
+  it('interrupted during a hold holds on to the turnComplete that trails it: typed text held there pairs with its own answer (choice 4)', async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.socket().receive(SERVER.output('こんにちは'));
+    h.session.appendText('typed');
+    h.socket().receive(SERVER.interrupted());
+    expect(wire(h.sent() as Sent[])).toHaveLength(3);
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[]).slice(3)).toEqual(['activityStart', 'text', 'activityEnd']);
+    h.socket().receive(SERVER.output('タイプ'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([['translation', 't1'], ['source', 't2'], ['translation', 't2']]);
+  });
+
+  it('a press still down across a reconnect sends one activityStart on the new connection, then its held audio — the gap\'s too — and its release at once (choice 10)', async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    // The second press, during the hold, still down when the connection goes.
+    h.session.beginTurn();
+    h.session.appendAudio(chunk(2_000));
+    h.socket().serverClose(1011, 'Internal error');
+    await flush();
+    h.session.appendAudio(chunk(2_001));
+    h.socket().open();
+    h.socket().receive(SERVER.setupComplete());
+    await flush();
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'audio ×4096']);
+    expect(h.frames('turn.hold_end')).toEqual([{ reason: 'reconnect', heldMs: 0, audioMs: 171, actions: 1, withdrawn: 0, playbackEndMs: null, carried: true }]);
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'audio ×4096', 'audio ×2048', 'activityEnd']);
+    expect(h.frames('turn.hold').map((p) => (p as { cause: string }).cause)).toEqual(['activity_end', 'activity_end']);
+  });
+
+  it('a press held across a reconnect keeps all its gap audio, past 5 s: push-to-talk is not capped, the press bounds it (choice 10)', async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.session.endTurn();
+    h.session.beginTurn();
+    h.socket().serverClose(1011, 'Internal error');
+    await flush();
+    for (let i = 0; i < 70; i++) h.session.appendAudio(new Int16Array(2_400).fill(9));
+    h.socket().open();
+    h.socket().receive(SERVER.setupComplete());
+    await flush();
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'audio ×168000']);
+    expect(h.frames('turn.hold_end')).toEqual([{ reason: 'reconnect', heldMs: 0, audioMs: 7_000, actions: 1, withdrawn: 0, playbackEndMs: null, carried: true }]);
+  });
+
+  it("a reconnect carries held text and a held press in order: the text's own marks go first and begin the next hold, which keeps the press until it lets go (choice 10)", async () => {
+    const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
+    h.session.beginTurn();
+    h.session.endTurn();
+    h.session.appendText('typed');
+    h.session.beginTurn();
+    h.session.appendAudio(chunk());
+    h.socket().serverClose(1011, 'Internal error');
+    await flush();
+    h.socket().open();
+    h.socket().receive(SERVER.setupComplete());
+    await flush();
+    expect(h.frames('turn.hold_end')).toEqual([{ reason: 'reconnect', heldMs: 0, audioMs: 85, actions: 2, withdrawn: 0, playbackEndMs: null, carried: true }]);
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'text', 'activityEnd']);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['typed']);
+    // The text's answer ends: the press goes up, still down, and its release at once.
+    h.socket().receive(SERVER.turnComplete());
+    h.session.endTurn();
+    expect(wire(h.sent() as Sent[])).toEqual(['activityStart', 'text', 'activityEnd', 'activityStart', 'audio ×2048', 'activityEnd']);
+  });
+
+  it('text typed while a hold is carried across a reconnect goes up after the carried audio, on the new connection (choice 10)', async () => {
+    const h = await liveGemini({ model: BARGE_IN });
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_END'));
+    h.session.appendAudio(chunk());
+    h.socket().receive(SERVER.goAway());
+    await flush();
+    h.session.appendText('typed');
+    h.socket().open();
+    h.socket().receive(SERVER.setupComplete());
+    await flush();
+    expect(wire(h.sent() as Sent[])).toEqual(['audio ×2048', 'text']);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['typed']);
+  });
+
+  it("typed text under automatic turns during a hold is held, sent bare at turnComplete, and its answer's first output begins the next hold (choices 2, 8)", async () => {
+    const h = await liveGemini({ model: BARGE_IN });
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_END'));
+    h.session.appendText('typed');
+    expect(h.of('segmentOpened')).toEqual([]);
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[])).toEqual(['text']);
+    expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([['source', 't2']]);
+    h.socket().receive(SERVER.output('タイプ。'));
+    expect(h.frames('turn.hold')).toEqual([{ cause: 'voice_activity' }, { cause: 'model_output' }]);
+  });
+
+  it("an ACTIVITY_START that comes after the interrupted it set off lets go at the turnComplete that trails it: held text goes up after that end, owed from a closed turn, and pairs with its own answer (choices 4, 13, 14)", async () => {
+    const h = await liveGemini({ model: BARGE_IN });
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_START'));
+    h.socket().receive(SERVER.input('一つ目。'));
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_END'));
+    h.session.appendText('typed');
+    h.socket().receive(SERVER.output('The first'));
+    h.socket().receive(SERVER.interrupted());
+    h.socket().receive(SERVER.voiceActivity('ACTIVITY_START'));
+    expect(wire(h.sent() as Sent[])).toEqual([]);
+    h.socket().receive(SERVER.turnComplete());
+    expect(wire(h.sent() as Sent[])).toEqual(['text']);
+    expect(h.frames('turn.hold_end')).toMatchObject([{ reason: 'voice_activity_start', actions: 1 }]);
+    h.socket().receive(SERVER.output('タイプ。'));
+    h.socket().receive(SERVER.turnComplete());
+    expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([
+      ['source', 't1'], ['translation', 't1'], ['source', 't2'], ['translation', 't2'],
+    ]);
+    expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['一つ目。', 'The first', 'typed', 'タイプ。']);
+  });
+
+  it("a model part that is no content to GeminiTurns — a thought, audio that will not decode, audio at a rate it does not play — does not end an interrupted's wait for its turnComplete either: held text still goes up after that end, and pairs with its own answer (choices 2, 4, 13, 14)", async () => {
+    const noContent = [
+      serverFrame({ serverContent: { modelTurn: { parts: [{ text: 'thinking', thought: true }] } } }),
+      serverFrame({ serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: 'audio/pcm;rate=24000', data: '%%not base64%%' } }] } } }),
+      SERVER.audio(1_600, 'audio/pcm;rate=16000'),
+    ];
+    for (const frame of noContent) {
+      const h = await liveGemini({ model: BARGE_IN });
+      h.socket().receive(SERVER.voiceActivity('ACTIVITY_START'));
+      h.socket().receive(SERVER.input('一つ目。'));
+      h.socket().receive(SERVER.voiceActivity('ACTIVITY_END'));
+      h.session.appendText('typed');
+      h.socket().receive(SERVER.output('The first'));
+      h.socket().receive(SERVER.interrupted());
+      h.socket().receive(frame);
+      h.socket().receive(SERVER.voiceActivity('ACTIVITY_START'));
+      expect(wire(h.sent() as Sent[])).toEqual([]);
+      h.socket().receive(SERVER.turnComplete());
+      expect(wire(h.sent() as Sent[])).toEqual(['text']);
+      h.socket().receive(SERVER.output('タイプ。'));
+      h.socket().receive(SERVER.turnComplete());
+      expect(h.of('segmentOpened').map((e) => [e.payload.side, e.payload.origin])).toEqual([
+        ['source', 't1'], ['translation', 't1'], ['source', 't2'], ['translation', 't2'],
+      ]);
+    }
+  });
+});
+
+describe('a 3.x dialogue model: the seeded lifecycles (Gemini hold, ruling 1)', () => {
+  /** The kit's random lives over a 3.x model, both turn modes: the server's every signal, the ladder's attempts, drops, stops. */
+  const lifecycles: LifecycleHarness<GeminiConfig, GeminiCredentials> = {
+    adapter: (run) => {
+      const gemini = createGeminiAdapter({ openSocket: (url) => run.sockets.create(url) });
+      return {
+        async start(request, events) {
+          const session = await gemini.start(request, events);
+          // A chunk in three is a pause long enough to split on at the session's own silence — the default's under
+          // push-to-talk, where `after` requires that none splits — so that held audio has pauses (choices 14, 15).
+          const { activity } = request.config;
+          const pause = ((splitPauseMs(activity.manual ? 500 : activity.silenceMs) + 100) * 24_000) / 1000;
+          return { ...session, appendAudio: (pcm) => session.appendAudio(run.rand() < 1 / 3 ? new Int16Array(pause) : pcm) };
+        },
+      };
+    },
+    config: (context) => configFor(BARGE_IN, context),
+    credentials: KEY,
+    secrets: [KEY.apiKey, 'secret-handle'],
+    textInput: true,
+    startBoundMs: SETUP_TIMEOUT_MS,
+    opening: (run) => {
+      const socket = run.sockets.last();
+      const r = run.rand();
+      if (r < 0.04) return socket.drop();
+      socket.open();
+      if (r < 0.08) return socket.serverClose(1008, 'API key not valid. Please pass a valid API key.');
+      // Never answered: the kit runs the setup's bound out.
+      if (r < 0.1) return;
+      socket.receive(SERVER.setupComplete());
+    },
+    server: (run) => {
+      const socket = run.sockets.last();
+      if (!socket) return;
+      // The ladder's next attempt: answered, dropped, or refused.
+      if (socket.readyState === FakeSocket.CONNECTING) {
+        const a = run.rand();
+        if (a < 0.5) {
+          socket.open();
+          socket.receive(SERVER.setupComplete());
+        } else if (a < 0.85) socket.drop();
+        else {
+          socket.open();
+          socket.serverClose(1011, 'Internal error');
+        }
+        return;
+      }
+      if (socket.readyState !== FakeSocket.OPEN) return;
+      const r = run.rand();
+      if (r < 0.12) socket.receive(SERVER.voiceActivity(run.pick(['ACTIVITY_START', 'ACTIVITY_END'] as const)));
+      else if (r < 0.22) socket.receive(SERVER.input(run.pick(['Hello.', 'こんにちは。'])));
+      else if (r < 0.34) socket.receive(SERVER.output(run.pick(['Hi.', 'どうも。'])));
+      else if (r < 0.5) socket.receive(SERVER.audio(run.pick([2_400, 24_000, 48_000])));
+      else if (r < 0.55) socket.receive(SERVER.generationComplete());
+      else if (r < 0.61) socket.receive(SERVER.interrupted());
+      else if (r < 0.76) socket.receive(SERVER.turnComplete());
+      else if (r < 0.79) socket.receive(SERVER.waitingForInput());
+      else if (r < 0.83) socket.receive(SERVER.handle('secret-handle'));
+      else if (r < 0.85) socket.receive(SERVER.goAway());
+      else if (r < 0.87) socket.receive('{bad');
+      else if (r < 0.9) socket.serverClose(1011, 'Internal error');
+    },
+    // A hold is said at its begin and at its end, never two at once, and no mark or text goes up while one is on. A
+    // split's hold follows at once the release that kept something, and only that one; a START ends a split's hold
+    // only once the server's ACTIVITY_END has come, and a split's hold times out only before it; only a split's hold
+    // times out; push-to-talk never splits (choice 14).
+    after: (run, log) => {
+      let open: string | null = null;
+      let kept = false;
+      /** The open split's hold has had its ACTIVITY_END: the one it waits for is the first to come. */
+      let closed = false;
+      const problems: string[] = [];
+      for (const e of log) {
+        if (e.kind !== 'frame') continue;
+        const { type, payload } = e.payload;
+        if (open && type.startsWith('realtime_input.')) problems.push(`${type} went up while holding`);
+        if (type === 'server.voice_activity' && open === 'split' && (payload as { type?: string }).type === 'ACTIVITY_END') closed = true;
+        if (type === 'turn.hold') {
+          const { cause } = payload as { cause: string };
+          if (open) problems.push('a hold began inside a hold');
+          if (kept !== (cause === 'split')) problems.push(kept ? 'a release kept audio and no split followed' : 'a split followed no release that kept audio');
+          if (cause === 'split') run.count('hold.split');
+          open = cause;
+          kept = false;
+          closed = false;
+        } else if (type === 'turn.hold_end') {
+          const { reason, keptMs } = payload as { reason: string; keptMs?: number };
+          if (!open) problems.push('a hold ended that had not begun');
+          if (reason === 'voice_activity_start' && open === 'split' && !closed) problems.push("an ACTIVITY_START let a split's hold go before its END");
+          if (reason === 'split_timeout' && (open !== 'split' || closed)) problems.push(`a ${open} hold ended on a split's timeout${closed ? ' after its END' : ''}`);
+          if (run.context.turns === 'manual' && (keptMs !== undefined || reason === 'voice_activity_start')) problems.push(`push-to-talk ended a hold on ${reason}, keeping ${keptMs}`);
+          run.count(`hold.${reason}`);
+          kept = keptMs !== undefined;
+          open = null;
+        }
+      }
+      return problems;
+    },
+  };
+
+  // 300 lives each: about a second alone; the bound is for a loaded machine.
+  it('every life settles, ends clean, and leaves no timer or socket behind; nothing goes up after it ends; each hold begins and ends once', async () => {
+    const report = await runLifecycles(lifecycles, { seed: 20260929, runs: 300 });
+    expect(report.failures).toEqual([]);
+    for (const key of ['refused', 'live', 'stopped', 'end.failed.connection_lost', 'hold.split', 'hold.voice_activity_start', 'hold.split_timeout']) {
+      expect(report.stats[key], key).toBeGreaterThan(0);
+    }
+  }, 20_000);
 });

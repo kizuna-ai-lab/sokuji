@@ -16,6 +16,7 @@ import { Conversation } from '../../lib/conversation/Conversation';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { createGeminiAdapter, SETUP_TIMEOUT_MS } from './adapter';
 import type { GeminiConfig } from './config';
+import { HOLD_MARGIN_MS } from './hold';
 import type { GeminiCredentials } from './settings';
 import { AUTO_CTX, b64, BARGE_IN, configFor, DIALOGUE, KEY, liveGemini, RefusingWebSocket, SERVER, serverFrame, startGemini, trackedClock, TRANSLATE } from './testing';
 import { base64ToPcm, liveUrl, setupFrame } from './wire';
@@ -458,7 +459,7 @@ describe('the Gemini adapter: turns and typed text', () => {
     expect(h.of('audio')).toHaveLength(1);
   });
 
-  it("on a model that barges in, a voiceless tap during an answer, released before the server's interrupted arrives, drops its own answer: interrupted and its trailing turnComplete are one end (Gemini/AST2 follow-up, ruling 5; ruling 8)", async () => {
+  it("on a model that barges in, a voiceless tap during an answer, once the release's hold has let go at its cap, and released before the server's interrupted arrives, drops its own answer: interrupted and its trailing turnComplete are one end (Gemini/AST2 follow-up, ruling 5; ruling 8; Gemini hold, ruling 3)", async () => {
     const h = await liveGemini({ model: BARGE_IN, context: MANUAL });
     h.session.beginTurn();
     h.session.appendAudio(new Int16Array(480));
@@ -466,6 +467,9 @@ describe('the Gemini adapter: turns and typed text', () => {
     h.socket().receive(SERVER.input('Hello there.'));
     h.socket().receive(SERVER.output('こんにちは'));
     h.socket().receive(SERVER.audio());
+    // The answer's 100 ms have played and its turnComplete is late: the cap lets go, and the tap goes up as before the hold.
+    h.clock.advance(100 + HOLD_MARGIN_MS);
+    expect(h.frames('turn.hold_end').map((s) => (s as { reason: string }).reason)).toEqual(['cap']);
     h.session.beginTurn();
     h.session.cancelTurn();
     h.socket().receive(SERVER.interrupted());

@@ -27,7 +27,7 @@ import {
 import { framePayload } from '../../lib/contract/framePayload';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { GeminiConfig } from './config';
-import { InputHold } from './hold';
+import { InputHold, type HeldAction } from './hold';
 import type { GeminiCredentials } from './settings';
 import { nativeSocket, WS_OPEN, type OpenSocket } from './socket';
 import { ReleaseTail, type TailSummary } from './tail';
@@ -85,6 +85,10 @@ class GeminiSession {
   private socket: WebSocket | null = null;
   /** Manual turns: a press is held. */
   private turnOpen = false;
+  /** Manual turns: an `activityStart` is on the wire with no `activityEnd` after it — a press's, or a Live Translate tail's. Typed text brings its own marks only when none is (Gemini hold, choice 9). */
+  private activityOpen = false;
+  /** The press held during a hold: its `activityStart`, still held, which a release without voice withdraws (Gemini hold, choice 7). */
+  private heldPress: HeldAction | null = null;
   /** The last frame parsed: `server.unreadable` is said on the ok → failing transition only (as Soniox's `stt.unreadable`). */
   private readable = true;
   /**
@@ -392,10 +396,18 @@ class GeminiSession {
     // A release's tail still running ends first, and with it the last press's activity.
     this.tail.stop('press');
     this.turnOpen = true;
+    // During a hold the press waits its turn: its `activityStart`, and the audio after it, go when the hold lets go (Gemini hold, ruling 1; choice 7).
+    if (this.hold?.holding) this.heldPress = this.hold.defer(() => this.pressStart());
+    else this.pressStart();
+  }
+
+  /** A press on the wire: at once, or when a hold lets go of it. */
+  private pressStart(): void {
     this.turns.beginTurn();
     const ws = this.live();
     if (!ws) return;
     ws.send(ACTIVITY_START);
+    this.activityOpen = true;
     this.frame('out', 'realtime_input.activity_start');
   }
 
@@ -404,11 +416,24 @@ class GeminiSession {
    * instead has `GeminiTurns` drop the cancelled press's own answer — never the one owed or still streaming, and
    * nothing on Live Translate (ruling 8, choice 16). On Live Translate, a release — a cancel too — first runs the
    * tail, inside the press's activity, and `activityEnd` goes when it ends (Gemini/AST2 follow-up, ruling 4;
-   * choices 11, 12).
+   * choices 11, 12). During a hold it waits its turn, but a cancel whose press is still held withdraws that press
+   * whole: it never reached the server, so nothing answers it and nothing is dropped (Gemini hold, choice 7).
    */
   private endTurn(cancelled: boolean): void {
     if (this.ended || !this.request.config.activity.manual || !this.turnOpen) return;
     this.turnOpen = false;
+    const held = this.heldPress;
+    this.heldPress = null;
+    if (!this.hold?.holding) {
+      this.pressEnd(cancelled);
+      return;
+    }
+    if (cancelled && held && this.hold.withdraw(held)) return;
+    this.hold.defer(() => this.pressEnd(cancelled));
+  }
+
+  /** A release on the wire: at once, or when a hold lets go of it. */
+  private pressEnd(cancelled: boolean): void {
     const ws = this.live();
     if (cancelled) this.turns.cancelTurn();
     // Owed only once `activityEnd` goes out: a release in a reconnect gap reaches no server, so nothing answers it.
@@ -420,6 +445,8 @@ class GeminiSession {
       return;
     }
     this.activityEnd(ws, cancelled);
+    // A release with voice closes a turn the model answers: the hold begins. A cancel's closes none (Gemini hold, choice 3).
+    if (!cancelled) this.hold?.begin('activity_end');
   }
 
   /** The tail ended by itself, or by a press, audio or typed text: the press's activity ends now (Gemini/AST2 follow-up, choice 11). */
@@ -431,18 +458,35 @@ class GeminiSession {
 
   private activityEnd(ws: WebSocket, cancelled: boolean): void {
     ws.send(ACTIVITY_END);
+    this.activityOpen = false;
     this.frame('out', 'realtime_input.activity_end', cancelled ? { cancelled: true } : undefined);
   }
 
-  /** Typed text (choice 17): its own source segment, then `realtimeInput.text`; wrapped in activity marks under manual turns with no press held. */
+  /**
+   * Typed text (choice 17): its own source segment, then `realtimeInput.text`; wrapped in activity marks under manual
+   * turns with no activity open on the wire. During a hold it waits its turn, whole — its row, its owed answer and its
+   * marks (Gemini hold, choice 8) — a hold carried across a lost connection included (choice 10).
+   */
   private appendText(raw: string): void {
     const text = raw.trim();
-    const ws = this.live();
-    if (!text || !ws) return;
+    if (!text) return;
+    if (this.hold?.holding) {
+      this.hold.defer(() => this.sendText(text));
+      return;
+    }
+    if (!this.live()) return;
     // A release's tail ends first, its activity with it, so the text's own marks never nest in it.
     this.tail.stop('text');
+    this.sendText(text);
+  }
+
+  /** Typed text on the wire: at once, or when a hold lets go of it. */
+  private sendText(text: string): void {
+    const ws = this.live();
+    if (!ws) return;
     this.turns.typed(text);
-    const wrap = this.request.config.activity.manual && !this.turnOpen;
+    // Read on the wire, not off the key: a held text can outlive a withdrawn press (Gemini hold, choice 9).
+    const wrap = this.request.config.activity.manual && !this.activityOpen;
     if (wrap) {
       ws.send(ACTIVITY_START);
       this.frame('out', 'realtime_input.activity_start');
@@ -452,6 +496,8 @@ class GeminiSession {
     if (wrap) {
       ws.send(ACTIVITY_END);
       this.frame('out', 'realtime_input.activity_end');
+      // Its own turn close, which the model answers: the hold begins (Gemini hold, choice 3).
+      this.hold?.begin('activity_end');
     }
   }
 
@@ -479,6 +525,7 @@ class GeminiSession {
     this.tail.cancel();
     // Not what a hold kept back: that, and what comes until the next connection is set up, goes up on that one (Gemini hold, choice 10).
     this.hold?.carry();
+    this.activityOpen = false;
     this.frame('in', 'session.reconnecting', {
       cause: why.cause,
       ...(why.code !== undefined ? { code: why.code } : {}),
@@ -512,10 +559,12 @@ class GeminiSession {
       // Single-use: dropped, unless the new session has already issued another.
       if (handle !== null && this.handle === handle) this.handle = null;
       this.reconnecting = false;
-      // A press held across the gap starts again on the new connection (choice 14).
+      // A press held across the gap starts again on the new connection (choice 14) — unless its `activityStart` is
+      // still held: the carried hold sends it, once, before the press's audio (Gemini hold, choice 10).
       const ws = this.live();
-      if (this.turnOpen && ws) {
+      if (this.turnOpen && ws && !this.hold?.holds(this.heldPress)) {
         ws.send(ACTIVITY_START);
+        this.activityOpen = true;
         this.frame('out', 'realtime_input.activity_start');
       }
       this.events.reconnected();
