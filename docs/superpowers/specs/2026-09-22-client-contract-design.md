@@ -532,7 +532,10 @@ A Gemini dialogue model gets no tail: its `activityEnd` ends a turn it answers
 whole (Stage 2 Gemini/AST2 follow-up, choice 13). On Live Translate, typed text
 ends a running tail as a press does, its `activityEnd` before the text's own
 marks; a stop or a lost connection drops the tail silently, since its activity
-was the old connection's (choice 11).
+was the old connection's (choice 11). **Amended after the Stage 2 translation
+cuts plan:** Live Translate takes no typed text (`textInput(s)` is false for
+it: the owner's live test found it ignored), so that path is kept in the
+adapter but no longer reached.
 
 **A 3.x dialogue model holds its input while it answers** (Stage 2 Gemini
 hold, ruling 1). It paces `turnComplete` to a simulated real-time playback of
@@ -547,7 +550,15 @@ releases, never discards (ruling 3). A lost connection, a GoAway included,
 carries what is held to the new connection — with at most 5 s of the gap's own
 audio under automatic turns — which lets it go once set up, a press whose
 start is still held sent once; a stop drops it silently (choices 10, 11).
-Typed text's own marks are read on the wire (choice 9). Under automatic turns
+Typed text's own marks are read on the wire (choice 9). **Amended after the
+Stage 2 translation cuts plan** (the owner's live test and text probe,
+2026-09-30): under manual turns a 3.x model's typed text takes no marks of its
+own — it closes the socket with 1007 "Precondition check failed." on marks
+around text with no audio, and answers the text sent bare — so it goes bare,
+its send beginning the hold (cause `text`); 2.5 and below answer typed text
+only inside marks, and keep them (`geminiTextInMarks`, carried on
+`GeminiConfig.textInMarks`). Text typed inside a press goes in that press on
+every model. Under automatic turns
 an ACTIVITY_START lets a hold go at once — the server is hearing speech that
 went up before it, and must hear its end — and a release lets one utterance
 go, the held audio up to its first pause after speech of at least
