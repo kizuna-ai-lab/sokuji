@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { AdapterSession, SessionContext } from '../adapter';
+import type { Adapter, AdapterSession, SessionContext } from '../adapter';
 import type { ConformanceLog, Marker } from '../conformance';
 import { createFakeAdapter } from '../../../providers/fake/adapter';
 import { exchange, type FakeScript } from '../../../providers/fake/script';
@@ -18,7 +18,7 @@ describe('driveAdapter', () => {
     expect(r.startOutcome).toBe('resolved');
     expect(r.startError).toBeUndefined();
     expect(r.log.some((e) => e.kind === 'segmentOpened')).toBe(true);
-    expect(r.log[r.log.length - 1]).toEqual({ kind: 'marker', payload: 'stop' });
+    expect(r.log.slice(-2)).toEqual([{ kind: 'marker', payload: 'stop' }, { kind: 'marker', payload: 'stopped' }]);
   });
 
   it('marks what the caller did in the log: typed text, the ends of turns, and stop', async () => {
@@ -28,14 +28,15 @@ describe('driveAdapter', () => {
       credentials: {},
       steps: [{ text: 'hi' }, { turn: 'begin' }, { turn: 'end' }, { turn: 'cancel' }],
     });
-    // A `begin` marks nothing. Conformance reads only the `appendText` and
-    // `stop` markers; `endTurn` and `cancelTurn` are recorded for a reader of
-    // the log, and no rule checks what a turn did.
+    // A `begin` marks nothing. Conformance reads only the `appendText`,
+    // `stop` and `stopped` markers; `endTurn` and `cancelTurn` are recorded
+    // for a reader of the log, and no rule checks what a turn did.
     expect(r.log.filter((e): e is Marker => e.kind === 'marker')).toEqual([
       { kind: 'marker', payload: 'appendText', text: 'hi' },
       { kind: 'marker', payload: 'endTurn' },
       { kind: 'marker', payload: 'cancelTurn' },
       { kind: 'marker', payload: 'stop' },
+      { kind: 'marker', payload: 'stopped' },
     ]);
   });
 
@@ -43,6 +44,31 @@ describe('driveAdapter', () => {
     // The broken adapter's stop() schedules a segmentOpened on request.clock 100 ms later.
     const r = await driveAdapter(createBrokenAdapter(), { context: auto, config: {}, credentials: {} });
     expect(r.violations.map((v) => v.rule)).toContain('stop-silence');
+  });
+
+  it('lets stop() frame its own ending, and still catches a frame after it has returned (Stage 2 session end, choice 3)', async () => {
+    const saying = (late: boolean): Pick<Adapter<unknown, unknown>, 'start'> => ({
+      start: async (request, events) => ({
+        info: {},
+        appendAudio() {},
+        appendText() {},
+        beginTurn() {},
+        endTurn() {},
+        cancelTurn() {},
+        async stop() {
+          // The goodbye it sends, then an answer it awaits.
+          events.frame({ direction: 'out', type: 'test.goodbye' });
+          await Promise.resolve();
+          events.frame({ direction: 'in', type: 'test.answer' });
+          if (late) request.clock.setTimeout(() => events.frame({ direction: 'in', type: 'test.late' }), 100);
+        },
+      }),
+    });
+    const said = await driveAdapter(saying(false), { context: auto, config: {}, credentials: {} });
+    expect(said.violations).toEqual([]);
+    expect(said.log.map((e) => (e.kind === 'marker' ? e.payload : e.kind))).toEqual(['stop', 'frame', 'frame', 'stopped']);
+    const late = await driveAdapter(saying(true), { context: auto, config: {}, credentials: {} });
+    expect(late.violations.map((v) => v.rule)).toEqual(['stop-silence']);
   });
 
   it('reports a start that never settles instead of hanging', async () => {

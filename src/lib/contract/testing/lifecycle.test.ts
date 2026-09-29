@@ -250,6 +250,24 @@ describe('runLifecycles', () => {
     expect(report.failures.some((f) => /conformance stop-silence \(log index \d+\)/.test(f))).toBe(true);
   });
 
+  it('lets stop() frame its own ending — its goodbye, then an answer it awaits — and still catches a frame after it has returned (Stage 2 session end, choice 3)', async () => {
+    const saying = (late: boolean) => wrapped((session, request, events) => ({
+      ...session,
+      stop: async () => {
+        events.frame({ direction: 'out', type: 'test.goodbye' });
+        await session.stop();
+        await Promise.resolve();
+        events.frame({ direction: 'in', type: 'test.answer' });
+        if (late) request.clock.setTimeout(() => events.frame({ direction: 'in', type: 'test.late' }), 100);
+      },
+    }));
+    const said = await runLifecycles(echoHarness(saying(false)), { seed: 7, runs: 60 });
+    expect(said.failures).toEqual([]);
+    expect(said.stats.stopped ?? 0).toBeGreaterThan(0);
+    const late = await runLifecycles(echoHarness(saying(true)), { seed: 7, runs: 20 });
+    expect(late.failures.some((f) => /conformance stop-silence \(log index \d+\): frame after stop\(\) returned/.test(f))).toBe(true);
+  });
+
   it('catches a socket left open, and a secret in an event', async () => {
     const leaky: Echo = {
       start: async (request, events) => {

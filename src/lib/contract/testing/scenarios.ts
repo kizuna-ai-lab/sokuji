@@ -30,8 +30,9 @@ export interface AdapterHarness<C, K> {
    * `reconnect`). `server-close` is the one scenario that checks both sides
    * of that flush: once with it, requiring the answer to land before the
    * close; once without, requiring only that nothing lands after
-   * `failed`/`closed` or after `stop()` — the answer may be dropped instead
-   * (the kit's parked item; Stage 2 Palabra, ruling 15). The
+   * `failed`/`closed` or after `stop()` but a frame the ending says of itself
+   * before `stop()` returns — the answer may be dropped instead (the kit's
+   * parked item; Stage 2 Palabra, ruling 15; Stage 2 session end, choice 3). The
    * same flush sits before `h.reconnect`, but nothing checks that side of
    * it: an answer crossing a drop is not pinned safe to drop (same
    * ruling).
@@ -128,8 +129,9 @@ export async function runScenario<C, K>(h: AdapterHarness<C, K>, name: ScenarioN
       if (!kinds(r.log).some((k) => k === 'closed' || k === 'failed')) problems.push('the server ended the session and the adapter did not say so (failed or closed)');
       // The race the flush above hides: an answer still in flight when the
       // server closes may be dropped instead of landing, but nothing may
-      // arrive after `failed`/`closed` or after `stop()` (the kit's parked
-      // item; Stage 2 Palabra, ruling 15).
+      // arrive after `failed`/`closed` or after `stop()` — bar a frame the
+      // ending says of itself before `stop()` returns (the kit's parked item;
+      // Stage 2 Palabra, ruling 15; Stage 2 session end, choice 3).
       const raced = await drive(AUTO, h.opening(name), [...h.exchange, ...h.serverClose]);
       const racedBad = raced.violations.filter((v) => v.rule === 'ended-silence' || v.rule === 'stop-silence');
       if (racedBad.length > 0) {

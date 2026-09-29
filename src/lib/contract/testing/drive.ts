@@ -45,7 +45,7 @@ export type ScenarioStep =
   | { turn: 'begin' | 'end' | 'cancel' }
   /** Abort the request's signal: a cancel. */
   | { abort: true }
-  /** `stop()`, marked and awaited. */
+  /** `stop()`, marked, awaited, and marked again once it has returned. */
   | { stop: true }
   /** The test's own step: a server frame, a socket drop. */
   | { run(handles: ScenarioHandles): void | Promise<void> };
@@ -102,6 +102,8 @@ export async function driveAdapter<C, K>(adapter: Pick<Adapter<C, K>, 'start'>, 
     box.stopped = true;
     recorder.mark('stop');
     await handles.session.stop();
+    // What the ending framed of itself came before this; a frame after it is late (Stage 2 session end, choice 3).
+    recorder.mark('stopped');
   };
   const play = async (step: ScenarioStep): Promise<void> => {
     if ('advance' in step) clock.advance(step.advance);

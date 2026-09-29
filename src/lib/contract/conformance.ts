@@ -1,13 +1,15 @@
 /**
  * The rules of "What every adapter must honour", checked over a recorded
- * event log. Markers record what the caller did (stop, turns, text input) so
- * the rules that depend on it can be checked from the log alone.
+ * event log. Markers record what the caller did (stop, turns, text input),
+ * and when `stop()` returned, so the rules that depend on it can be checked
+ * from the log alone.
  */
 import type { SessionContext } from './adapter';
 import { redact } from '../diagnostics/redact';
 import { eventsFrom, type AdapterEvent } from './events';
 
-export type MarkerName = 'stop' | 'endTurn' | 'cancelTurn' | 'appendText';
+/** `stop` as the caller calls `stop()`, `stopped` once its promise has settled. */
+export type MarkerName = 'stop' | 'stopped' | 'endTurn' | 'cancelTurn' | 'appendText';
 /** `text` is the typed text, for `appendText` markers. */
 export interface Marker { kind: 'marker'; payload: MarkerName; text?: string }
 export type ConformanceLog = Array<AdapterEvent | Marker>;
@@ -48,6 +50,8 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   const pending: PendingText[] = [];
   let ended = false;
   let stopped = false;
+  /** Where `stop()` returned, if the log says so: a frame after an ending is admitted only before this marker. */
+  const returnedAt = log.findIndex((e) => e.kind === 'marker' && e.payload === 'stopped');
   let translationUnavailable = false;
 
   const flag = (rule: string, detail: string, index: number) => out.push({ rule, detail, index });
@@ -101,8 +105,15 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
       if (entry.payload === 'appendText') pending.push({ index, text: entry.text ?? '', answered: false });
       return;
     }
-    if (ended) flag('ended-silence', `${entry.kind} after failed/closed`, index);
-    if (stopped) flag('stop-silence', `${entry.kind} after stop()`, index);
+    // A frame said before `stop()` has returned is the ending's own Logs line
+    // — the goodbye it sends, a REST delete's outcome — which the runner files
+    // until every leg's stop has settled. It is admitted only when the log's
+    // `stopped` marker follows it; a log with none keeps the old rule. Anything
+    // else after an ending is late at once (Stage 2 session end, choice 3).
+    const late = entry.kind !== 'frame' || !(index < returnedAt);
+    const after = entry.kind === 'frame' ? 'after stop() returned' : 'after stop()';
+    if (ended && late) flag('ended-silence', `${entry.kind} after failed/closed`, index);
+    if (stopped && late) flag('stop-silence', `${entry.kind} ${after}`, index);
 
     switch (entry.kind) {
       case 'segmentOpened': {

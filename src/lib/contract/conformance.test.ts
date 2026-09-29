@@ -54,6 +54,29 @@ describe('checkConformance rules', () => {
     expect(rules(log)).toContain('stop-silence');
   });
 
+  it('lets a frame follow the stop marker only when the stopped marker follows it, and flags one after it (Stage 2 session end, choice 3)', () => {
+    const goodbye = frame('out', 'session.finish');
+    expect(rules([{ kind: 'marker', payload: 'stop' }, goodbye, { kind: 'marker', payload: 'stopped' }])).toEqual([]);
+    expect(rules([{ kind: 'marker', payload: 'stop' }, { kind: 'marker', payload: 'stopped' }, goodbye])).toEqual(['stop-silence']);
+    // A log with no stopped marker keeps the old rule.
+    expect(rules([{ kind: 'marker', payload: 'stop' }, goodbye])).toEqual(['stop-silence']);
+    // Anything else is late at once, as ever.
+    expect(rules([{ kind: 'marker', payload: 'stop' }, opened(1), { kind: 'marker', payload: 'stopped' }])).toEqual(['stop-silence']);
+  });
+
+  it('lets a frame follow failed or closed only when the stopped marker follows it, and flags one after it (Stage 2 session end, choice 3)', () => {
+    const outcome = frame('in', 'session.deleted', { status: 204 });
+    const failed = { kind: 'failed' as const, payload: { message: 'x' } };
+    const stop = { kind: 'marker' as const, payload: 'stop' as const };
+    const stopped = { kind: 'marker' as const, payload: 'stopped' as const };
+    expect(rules([failed, outcome, stop, stopped])).toEqual([]);
+    expect(rules([{ kind: 'closed', payload: { reason: 'x' } }, stop, outcome, stopped])).toEqual([]);
+    expect(rules([failed, stop, stopped, outcome])).toEqual(['ended-silence', 'stop-silence']);
+    expect(rules([failed, opened(1), stop, stopped])).toEqual(['ended-silence']);
+    // A log with no stopped marker keeps the old rule.
+    expect(rules([failed, outcome])).toEqual(['ended-silence']);
+  });
+
   it('flags a ref opened twice', () => {
     expect(rules([opened(1), opened(1)])).toContain('ref-opened-once');
   });

@@ -23,7 +23,10 @@
  * - a stop — the kit's random one, or its own unwind of a session that
  *   ended on its own — aborts the request's signal first and marks the log
  *   before that, exactly as the runner's own stop does: an adapter that
- *   answers its own abort is caught by `stop-silence`, not missed;
+ *   answers its own abort with anything but a frame is caught by
+ *   `stop-silence`, not missed; the log is marked again once `stop()` has
+ *   returned, and only a frame the ending says of itself before that mark is
+ *   admitted (Stage 2 session end, choice 3);
  * - `stop()` is given a bound of its own: a session whose release never
  *   answers is failed by name, not left to hang the scenario;
  * - with the clock run on after the end, no timer is armed and every
@@ -201,6 +204,8 @@ export async function runLifecycles<C, K>(h: LifecycleHarness<C, K>, o: { seed: 
         return;
       }
       await ending;
+      // What the ending framed of itself came before this; a frame after it is late (Stage 2 session end, choice 3).
+      recorder.mark('stopped');
     };
     const recorder = recordConformance();
     const events = recorder.events;
