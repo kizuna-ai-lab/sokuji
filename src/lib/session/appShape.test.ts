@@ -22,6 +22,7 @@ vi.mock('../../utils/environment', async (importOriginal) => {
 import type { AnyProvider, CheckContext } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
+import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -80,6 +81,22 @@ describe('readShapeFromStores', () => {
     // The participant's direction is the pair's reverse; instructions are no longer the shape's (Stage 2 Gemini, ruling 4).
     expect(shape.shared.reversed({ source: 'ja', target: 'en' })).toBe(true);
     expect(shape.shared).not.toHaveProperty('instructions');
+  });
+
+  // Controller ruling M1 (Task 4 review): the one production line that turns
+  // a provider's own `languages.reverse` into `SharedSettings.reversed` is
+  // this call to `reversedPair`. Palabra's documented reverse of `ja →
+  // en-us` is `en → ja` (Stage 2 Palabra, ruling 9), not the plain swap
+  // `en-us → ja` a naive `{ source: pair.target, target: pair.source }`
+  // would give.
+  it("finds the participant in a provider's own reverse, not a plain swap (Stage 2 Palabra, ruling 9)", () => {
+    useProviderStore.setState({
+      selected: 'palabraai',
+      entries: { palabraai: { settings: PALABRA_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en-us' } } },
+    });
+    const shape = readShapeFromStores(auth)!;
+    expect(shape.shared.reversed({ source: 'en', target: 'ja' })).toBe(true);
+    expect(shape.shared.reversed({ source: 'en-us', target: 'ja' })).toBe(false);
   });
 });
 

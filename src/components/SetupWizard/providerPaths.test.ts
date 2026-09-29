@@ -25,7 +25,7 @@ describe('providerPaths', () => {
   });
 
   it("lists the registered own-key providers in registry order, in the old enum's spelling", () => {
-    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'soniox', 'fake']);
+    expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'soniox', 'palabraai', 'fake']);
   });
 
   it("judges a provider's fit from its speech", () => {
@@ -39,6 +39,8 @@ describe('providerPaths', () => {
     expect(text[Provider.OPENAI_TRANSLATE]).toEqual({ ok: true });
     // OpenAI Realtime asks for text alone when a leg does not speak (Stage 2 OpenAI Realtime), as the old provider offered.
     expect(text[Provider.OPENAI]).toEqual({ ok: true });
+    // Palabra AI asks for text alone too when a leg does not speak (Stage 2 Palabra, ruling 7).
+    expect(text[Provider.PALABRA_AI]).toEqual({ ok: true });
   });
 
   it("judges the managed card's fit from the definition's speech", () => {
