@@ -1446,7 +1446,9 @@ async function releaseMode(): Promise<void> {
 }
 
 async function muteMode(): Promise<void> {
-  const run = startRun(PROVIDER, 'mute', outDir);
+  /** `--no-append`: mute, then append nothing for the span — the push-to-talk release candidate (does the pending sentence finish, and is the span billed?). */
+  const noAppend = process.argv.includes('--no-append');
+  const run = startRun(PROVIDER, noAppend ? 'mute-noappend' : 'mute', outDir);
   const sc = scripts();
   const A = await build(sc.muteA);
   const M = await build(sc.muteM);
@@ -1458,9 +1460,13 @@ async function muteMode(): Promise<void> {
   const tMute = run.now();
   const sinceMute = s.recs.length;
   s.send({ type: 'session.input_audio.mute', event_id: 'mute_1' });
-  await paceInto([s], M.pcm);
-  const tMutedEnd = run.now();
-  await paceInto([s], silence(Math.max(0, 20_000 - (tMutedEnd - tMute)), RATE));
+  if (noAppend) {
+    await sleep(20_000);
+  } else {
+    await paceInto([s], M.pcm);
+    const tMutedEnd = run.now();
+    await paceInto([s], silence(Math.max(0, 20_000 - (tMutedEnd - tMute)), RATE));
+  }
   const tUnmute = run.now();
   const sinceUnmute = s.recs.length;
   s.send({ type: 'session.input_audio.unmute', event_id: 'unmute_1' });
