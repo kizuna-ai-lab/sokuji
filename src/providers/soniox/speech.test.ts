@@ -412,6 +412,17 @@ describe('LegSpeech', () => {
     expect(sockets.all).toHaveLength(1);
   });
 
+  it('close while its TTS socket is CLOSING (a server close in flight) sends no text_end and frames no tts.end (Stage 2 session end, choice 4)', async () => {
+    const { speech, tts, frames } = await setup();
+    speech.speak(2, 'and so', [0, 6], 'en');
+    const socket = tts();
+    const sentBefore = socket.sent.length;
+    socket.serverClose(); // CLOSING until the queued microtask fires close
+    speech.close();
+    expect(socket.sent).toHaveLength(sentBefore);
+    expect(frames('tts.end')).toEqual([]);
+  });
+
   it('close with no stream speaking sends no text_end and says nothing', async () => {
     const { speech, tts, log } = await setup();
     speech.speak(2, 'Done.', [0, 5], 'en');

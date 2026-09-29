@@ -323,12 +323,14 @@ export class SonioxTtsStream {
     this.queue = [];
     let ended: string | null = null;
     if (this.ws) {
-      // Best-effort close of the active stream so the server frees it.
-      if (this.activeStreamId) {
-        try {
-          this.ws.send(JSON.stringify({ stream_id: this.activeStreamId, text: '', text_end: true }));
-          ended = this.activeStreamId;
-        } catch { /* closing anyway */ }
+      // Best-effort close of the active stream so the server frees it — only
+      // when the socket is still open: a CLOSING socket drops the send
+      // silently instead of throwing, so text_end would never reach the
+      // server and there would be nothing to report `tts.end` for (Stage 2
+      // session end, choice 4).
+      if (this.activeStreamId && this.ws.readyState === WS_OPEN) {
+        this.ws.send(JSON.stringify({ stream_id: this.activeStreamId, text: '', text_end: true }));
+        ended = this.activeStreamId;
       }
       this.ws.close();
       this.ws = null;

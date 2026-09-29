@@ -111,7 +111,7 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
     // `stopped` marker follows it; a log with none keeps the old rule. Anything
     // else after an ending is late at once (Stage 2 session end, choice 3).
     const late = entry.kind !== 'frame' || !(index < returnedAt);
-    const after = entry.kind === 'frame' ? 'after stop() returned' : 'after stop()';
+    const after = entry.kind === 'frame' && returnedAt >= 0 && index > returnedAt ? 'after stop() returned' : 'after stop()';
     if (ended && late) flag('ended-silence', `${entry.kind} after failed/closed`, index);
     if (stopped && late) flag('stop-silence', `${entry.kind} ${after}`, index);
 

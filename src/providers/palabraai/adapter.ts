@@ -657,7 +657,7 @@ class PalabraLeg implements AdapterSession {
     this.events.frame(payload === undefined ? { direction, type } : { direction, type, payload: framePayload(payload) });
   }
 
-  /** The delete's own lines: said as the leg ends, so not gated on it (choice 5). */
+  /** The delete's own lines: said as the leg ends, so not gated on it (Stage 2 session end, choice 5). */
   private releaseFrame(direction: 'in' | 'out', type: string, payload?: Record<string, unknown>): void {
     this.events.frame(payload === undefined ? { direction, type } : { direction, type, payload: framePayload(payload) });
   }

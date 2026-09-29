@@ -64,6 +64,14 @@ describe('checkConformance rules', () => {
     expect(rules([{ kind: 'marker', payload: 'stop' }, opened(1), { kind: 'marker', payload: 'stopped' }])).toEqual(['stop-silence']);
   });
 
+  it('says "after stop()", not "after stop() returned", for a frame after stop with no stopped marker in the log', () => {
+    const goodbye = frame('out', 'session.finish');
+    const violations = checkConformance([{ kind: 'marker', payload: 'stop' }, goodbye], auto);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].rule).toBe('stop-silence');
+    expect(violations[0].detail).toBe('frame after stop()');
+  });
+
   it('lets a frame follow failed or closed only when the stopped marker follows it, and flags one after it (Stage 2 session end, choice 3)', () => {
     const outcome = frame('in', 'session.deleted', { status: 204 });
     const failed = { kind: 'failed' as const, payload: { message: 'x' } };
