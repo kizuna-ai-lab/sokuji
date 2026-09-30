@@ -49,13 +49,9 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   local_models_missing: 'Please download the required models in Settings to start.',
   // The adapters' degradations (CLIENT_DIAGNOSTICS).
   parse_error: "A message from the provider couldn't be read; the session continues.",
-  cleanup_failed: 'A step while closing the session failed.',
-  input_pipeline_failed: 'Audio capture stopped working; nothing further will be translated.',
   tts_degraded: 'Speech playback is degraded; the translated text still arrives.',
   resume_attempt_failed: 'Reconnecting failed; trying again.',
-  send_dropped: "Some audio or text couldn't be sent and was dropped.",
   voice_fallback: 'The chosen voice was unavailable, so another voice is used.',
-  lease_notify_failed: "The service couldn't be told about the session's state.",
   // A failed leg's API error type (the adapter's code).
   auth: 'The provider did not accept the credentials: {{detail}}',
   rate_limit: 'The provider is limiting requests; try again shortly: {{detail}}',

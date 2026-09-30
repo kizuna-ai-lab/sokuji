@@ -307,9 +307,9 @@ describe('S2 buildParticipantSessionConfig', () => {
   });
 });
 
-describe('legacy façade credential guards (deprecated ClientOperations/ClientFactory paths)', () => {
+describe('legacy façade credential guards (the deprecated ClientFactory path)', () => {
   // The production path runs extractCredentials first, but the @deprecated
-  // façades accept raw positional args — they must keep the old contract of
+  // façade accepts raw positional args — it must keep the old contract of
   // rejecting incomplete credentials instead of reaching provider clients
   // with `secret: undefined`.
   it('ClientFactory.createClient rejects an empty apiKey for credentialed providers', async () => {

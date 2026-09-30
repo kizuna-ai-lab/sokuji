@@ -18,9 +18,10 @@ export function providerIdFromStored(stored: unknown): string | null {
 
 /**
  * What `settings.common.provider` holds for a provider: the old enum's
- * spelling where one exists — the value every install already has, and the
- * one the old settings store (still loaded until Stage 2 retires it) reads as
- * the provider it is instead of falling back to OpenAI.
+ * spelling where one exists — the value every install already has. The old
+ * settings store, kept for Local Native until kizuna-ai-lab/sokuji#578,
+ * reads a value its registry does not hold as its inert default (Stage 2
+ * deletion, choice 4).
  */
 export function storedProviderValue(id: string): string {
   for (const [legacy, current] of Object.entries(LEGACY_PROVIDER_IDS)) if (current === id) return legacy;

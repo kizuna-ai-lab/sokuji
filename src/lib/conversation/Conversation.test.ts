@@ -165,11 +165,11 @@ describe('Conversation — notices and closing', () => {
   it('turns failed into an error notice and degraded into a notice with the table\'s severity', () => {
     const { conv, apply } = make();
     apply({ kind: 'failed', payload: { message: 'socket died', code: 'E1' } });
-    apply({ kind: 'degraded', payload: { code: 'input_pipeline_failed', message: 'mic gone' } });
+    apply({ kind: 'degraded', payload: { code: 'parse_error', message: 'bad frame' } });
     apply({ kind: 'degraded', payload: { code: 'tts_degraded', message: 'no voice' } });
     expect(conv.snapshot().notices.map((n) => [n.severity, n.message, n.code])).toEqual([
       ['error', 'socket died', 'E1'],
-      ['error', 'mic gone', 'input_pipeline_failed'],
+      ['warning', 'bad frame', 'parse_error'],
       ['warning', 'no voice', 'tts_degraded'],
     ]);
     expect(conv.snapshot().notices[0].id).toBe('s1:speaker:n1');

@@ -1,15 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-// Force every provider gate on so ALL descriptors register regardless of build
-// env — same trick as descriptorRegistry.test.ts.
-vi.mock('../utils/environment', async (orig) => ({
-  ...(await orig<any>()),
-  isKizunaAIEnabled: () => true,
-  isLocalNativeEnabled: () => true,
-  isElectron: () => true,
-  isExtension: () => false,
-}));
-import { ProviderConfigFactory } from '../services/providers/ProviderConfigFactory';
+import { describe, it, expect } from 'vitest';
 import en from './en/translation.json';
+import { SEMANTIC_EAGERNESSES } from '../providers/openai/settings';
 import {
   SONIOX_VOICE_ROSTER,
   SONIOX_ACCENTS,
@@ -65,22 +56,15 @@ describe('locale catalogs stay in lockstep with en', () => {
 });
 
 describe('dynamically-built i18n keys resolve in en', () => {
-  // ProviderSpecificSettings renders one button per capabilities.turnDetection.mode
-  // and derives the label key from the mode string. A mode whose key is absent
-  // renders the raw key as the button text — Volcengine's 'Push-to-Talk' did
-  // exactly that until it was folded into the settings.pushToTalk branch.
-  it('every provider turn-detection mode maps to a key that exists', () => {
-    const missing: string[] = [];
-    for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      // Read through getConfig().capabilities — the exact path the component uses.
-      const modes = ProviderConfigFactory.getConfig(id).capabilities.turnDetection.modes;
-      for (const mode of modes) {
-        const key = mode === 'Disabled' || mode === 'Push-to-Talk'
-          ? 'settings.pushToTalk'
-          : `settings.${mode.toLowerCase()}`;
-        if (EN[key] === undefined) missing.push(`${id}: ${mode} -> ${key}`);
-      }
-    }
+  // RealtimeTurnDetection derives a label key from each mode and eagerness it
+  // offers (`settings.${x.toLowerCase()}`); a value whose key is absent renders
+  // the raw key as the button text. The old registry's turn-detection modes,
+  // which this walked before, left with its providers (Stage 2 deletion,
+  // ruling 2).
+  it('every Realtime turn-detection mode and eagerness maps to a key that exists', () => {
+    const missing = ['Normal', 'Semantic', ...SEMANTIC_EAGERNESSES]
+      .map((value) => `settings.${value.toLowerCase()}`)
+      .filter((key) => EN[key] === undefined);
     expect(missing).toEqual([]);
   });
 

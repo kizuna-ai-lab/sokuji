@@ -11,10 +11,9 @@ const shortfall = vi.hoisted(() => ({ value: false }));
 vi.mock('./useBalanceShortfall', () => ({ useBalanceShortfall: () => shortfall.value }));
 
 // providerStore imports ServiceFactory at module scope, which chains into
-// SettingsService -> ClientOperations -> ProviderConfigFactory (a static
-// initializer that reads isKizunaAIEnabled at import time) and into i18n's
-// own setup. Stubbed, as every other test that pulls in the real
-// providerStore does, so this file stays scoped to AccountButton's wiring.
+// SettingsService and into i18n's own setup. Stubbed, as every other test
+// that pulls in the real providerStore does, so this file stays scoped to
+// AccountButton's wiring.
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({

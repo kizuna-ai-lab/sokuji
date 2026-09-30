@@ -171,16 +171,6 @@ export interface ClientEventHandlers {
 }
 
 /**
- * API Key validation result interface
- */
-export interface ApiKeyValidationResult {
-  valid: boolean | null;
-  message: string;
-  validating: boolean;
-  hasRealtimeModel?: boolean;
-}
-
-/**
  * Model information interface
  */
 export interface FilteredModel {

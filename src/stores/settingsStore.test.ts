@@ -38,7 +38,6 @@ describe('settingsStore', () => {
     useSettingsStore.setState({
       provider: Provider.OPENAI,
       isValidating: false,
-      cacheTimestamp: null,
     });
     vi.clearAllMocks();
   });
@@ -53,9 +52,8 @@ describe('settingsStore', () => {
       // validation is delegated to SettingsInitializer which reacts to provider changes.
       const store = useSettingsStore.getState();
 
-      // Set some cache data first
+      // Set some validation state first
       useSettingsStore.setState({
-        validationCache: new Map([['test', { validation: { valid: true, message: '' }, models: [], timestamp: Date.now() }]]),
         availableModels: [{ id: 'test', type: 'realtime' as const, created: 0 }],
         isApiKeyValid: true,
       });
@@ -66,7 +64,7 @@ describe('settingsStore', () => {
       // Provider should be updated
       expect(useSettingsStore.getState().provider).toBe(Provider.GEMINI);
 
-      // Cache should be cleared (availableModels reset, validationCache empty)
+      // The validation state is reset (availableModels empty, isApiKeyValid null)
       const state = useSettingsStore.getState();
       expect(state.availableModels).toEqual([]);
       expect(state.isApiKeyValid).toBeNull();
@@ -99,9 +97,8 @@ describe('settingsStore', () => {
     });
 
     it('should clear cache when switching providers', async () => {
-      // Set some cache data
+      // Set some validation state
       useSettingsStore.setState({
-        validationCache: new Map([['test', { validation: { valid: true, message: '' }, models: [], timestamp: Date.now() }]]),
         availableModels: [{ id: 'test', type: 'realtime' as const, created: 0 }],
         isApiKeyValid: true,
       });
@@ -109,9 +106,8 @@ describe('settingsStore', () => {
       // Switch provider
       await useSettingsStore.getState().setProvider(Provider.GEMINI);
 
-      // Verify cache was cleared by checking state (not spy)
+      // Verify it was reset by checking state (not spy)
       const state = useSettingsStore.getState();
-      expect(state.validationCache.size).toBe(0);
       expect(state.availableModels).toEqual([]);
       expect(state.isApiKeyValid).toBeNull();
     });
@@ -130,19 +126,17 @@ describe('settingsStore', () => {
 
   describe('Cache Management', () => {
     it('should clear cache and reset validation state', () => {
-      // Set initial state with cache
+      // Set initial validation state
       useSettingsStore.setState({
-        validationCache: new Map([['test', { validation: { valid: true, message: '' }, models: [], timestamp: Date.now() }]]),
         availableModels: [{ id: 'test', type: 'realtime' as const, created: 0 }],
         isApiKeyValid: true,
       });
 
-      // Clear cache
+      // Clear it
       useSettingsStore.getState().clearCache();
 
       // Check state was reset
       const state = useSettingsStore.getState();
-      expect(state.validationCache.size).toBe(0);
       expect(state.availableModels).toEqual([]);
       expect(state.isApiKeyValid).toBeNull();
     });

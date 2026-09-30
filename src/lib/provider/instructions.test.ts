@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { useSettingsStore } from '../../stores/settingsStore';
 import {
   COMMON_INSTRUCTION_KEYS,
   INSTRUCTION_LEGACY_KEYS,
@@ -13,16 +12,13 @@ import {
 const stored = (patch: Partial<InstructionsSettings> = {}): Record<string, unknown> => ({ ...INSTRUCTIONS_DEFAULTS, ...patch });
 
 describe('the instructions a provider owns (Stage 2 Gemini, ruling 4)', () => {
-  it("start from the old app's defaults, word for word: Quick mode, its default prompt, no Other's prompt, its template", () => {
-    // The old store is read here only, as the parity pin (choice 2): new code imports nothing from it.
-    const old = useSettingsStore.getState();
-    expect(INSTRUCTIONS_TEMPLATE).toBe(old.templateSystemInstructions);
-    expect(INSTRUCTIONS_DEFAULTS).toEqual({
-      useTemplateMode: old.useTemplateMode,
-      systemInstructions: old.systemInstructions,
-      participantSystemInstructions: old.participantSystemInstructions,
-    });
+  it("start from the old app's defaults: Quick mode, its default prompt, no Other's prompt, its template", () => {
+    // The old store's copy these were pinned to word for word (choice 2) went
+    // with the old providers (Stage 2 deletion, ruling 2); the values stand on
+    // their own now.
     expect(INSTRUCTIONS_DEFAULTS.useTemplateMode).toBe(true);
+    expect(INSTRUCTIONS_DEFAULTS.participantSystemInstructions).toBe('');
+    expect(INSTRUCTIONS_DEFAULTS.systemInstructions).toContain('Your ONLY function: translate Chinese → Japanese.');
     expect(INSTRUCTIONS_TEMPLATE).toContain('{{SOURCE_LANGUAGE}} → {{TARGET_LANGUAGE}}');
   });
 
