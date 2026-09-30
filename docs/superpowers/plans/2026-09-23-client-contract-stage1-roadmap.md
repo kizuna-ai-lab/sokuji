@@ -739,7 +739,7 @@ What it leaves:
   the cursor in place, so each later partial re-seals it and logs its frame
   again; rows and jobs stay right. Today's client has the same cursor.
 - Move `SentenceCut` to a shared home when LocalNative ports: it drives
-  `SentenceStream` the same way.
+  `SentenceStream` the same way. **Changed by the owner** (2026-09-30): Local Native is out of Stage 2, deferred to kizuna-ai-lab/sokuji#578; this goes with it.
 
 ## Scheduled by plan 1e-3a
 
@@ -1319,6 +1319,7 @@ faster-than-real-time burst [inf], and its live test's item 4 listens for gaps.
 - Its `Engine` reuses the existing native UI (`EngineSurface` + `useNativeEngineAdapter`, `NativeModelManagementSection`, `NativeVoiceSection`, `NativeDeviceControl`), wired to the provider's `settings` / `update` / `pair` instead of the old `settingsStore` slice — the same override LocalInference's `useWasmEngineAdapter` got. Not a rewrite (the survey's §3.4 item 7 overstated it; controller correction, confirmed by the owner 2026-09-26).
 - `watchReadiness` over `nativeModelStore`.
 - `SentenceCut` moved to a shared home (roadmap 1e-2b → Stage 2).
+- **Changed by the owner** (2026-09-30): Local Native is out of Stage 2, deferred to kizuna-ai-lab/sokuji#578, which carries every item above.
 
 **The relay twins:** held (controller ruling 3).
 
@@ -1492,7 +1493,8 @@ adjusted to the code:
    through `VoiceLibrarySection` (`NativeVoiceSection.tsx:494`), so they fold
    in when Local Native's host hands that section a port. "What it leaves"
    below keeps the plan's wording ("`nativeVoiceStores` fold in with their
-   providers' plans"), which means that.
+   providers' plans"), which means that. **Changed by the owner** (2026-09-30): Local Native is out of Stage 2, deferred to kizuna-ai-lab/sokuji#578; its previews fold
+   in there.
 7. "What adding a provider then touches": the manifest item is a no-op for
    Soniox (its twelve origins are listed).
 8. "Session hooks": `startBoth` rejects with `LegStartError`; any other
@@ -2346,7 +2348,9 @@ c), in order:
     providers (`KizunaAIOpenAITranslateProviderConfig`,
     `KizunaAIVolcengineAST2ProviderConfig`) are deleted, not ported; Local
     Native is `flagged: true` with its tester switch; every other provider is
-    ported unflagged;
+    ported unflagged. **Changed by the owner** (2026-09-30): Local Native is out of Stage 2, deferred to kizuna-ai-lab/sokuji#578: until it ports, the registry lists no
+    Local Native, and `VITE_ENABLE_LOCAL_NATIVE` stays, with the old path it
+    gates;
   - the cleanup at Stage 2's end: the per-provider `VITE_ENABLE_*` lines out of
     `.github/workflows/build.yml` (five env blocks today), the matching repo
     variables deleted by the owner; `VITE_ENABLE_KIZUNA_AI` stays, so a build
@@ -5082,7 +5086,7 @@ few, so after this migration the WebRTC clients of OpenAI Translate and OpenAI
 Realtime are abandoned — neither migrated nor reimplemented). What follows
 from it, as the controller ruled and the final fix wave applied:
 - **The Stage 2 order** after this plan runs Palabra → OpenAI Live → Local
-  Native. The spec's item 7, "OpenAI Translate over WebRTC", is removed, its
+  Native. **Changed by the owner** (2026-09-30): Local Native is out of Stage 2, deferred to kizuna-ai-lab/sokuji#578; OpenAI Live is the last port. The spec's item 7, "OpenAI Translate over WebRTC", is removed, its
   number kept. Palabra's LiveKit WebRTC is a different thing and stays.
   **Changed by the Stage 2 Palabra plan:** Palabra's port is a WebSocket
   client written from scratch (ruling 19); LiveKit goes with its old code.
@@ -8093,7 +8097,7 @@ taken (and where), or left (and why).
 | The OpenAI Translate section: Translate's `socket.ts` "moves … when F14 lands" | superseded by the Palabra plan: moved without F14; nothing left |
 | The OpenAI Translate section, "Before any release": the wizard's own-key description, "OpenAI Live wait[s] for [its] port" | met: "OpenAI" is true for all three OpenAI providers on the desktop app and the extension; no locale change (the web offers two of them, as before) |
 | The OpenAI Realtime section: F14 stays Live's; the stale per-host rule reaches Realtime's upgrade too, so the seam's rule scopes by path | met, as the Translate row |
-| The OpenAI Realtime section: "The Stage 2 order … Palabra → OpenAI Live → Local Native" | this plan is the Live step; Local Native is next |
+| The OpenAI Realtime section: "The Stage 2 order … Palabra → OpenAI Live → Local Native" | this plan is the Live step; Local Native was next. **Changed by the owner** (2026-09-30): Local Native is out of Stage 2, deferred to kizuna-ai-lab/sokuji#578 |
 | The OpenAI Realtime section: the wizard's description, "OpenAI Live waits" | met, as the Translate row |
 | The OpenAI Realtime section: F14's owner, `socket.ts` "to move with the others" | superseded by the Palabra plan |
 | The OpenAI Realtime section, "The copies to lift": `decodeServerEvent`, `errorCode` and `errorWords` at a third user | **done** at this third user, with the model-list check (Task 4; ruling 9; choice 4) |
@@ -8238,3 +8242,45 @@ real `replay()`, L1 and L2; the controller's rulings):
   and a test's name, and the seam's `sent` flag still saying a refused
   registration is not cleared — the controller fixed (`90dc6511`). The
   suite after the fix wave: 590 + 1 files, 7 690 + 2 tests.
+
+## Stage 2 without Local Native: what remains (the owner, 2026-09-30)
+
+The owner took Local Native out of Stage 2 and deferred its port to its own
+change, kizuna-ai-lab/sokuji#578 (「LocalNative从stage2去掉吧，创建个新的issue
+记录一下，我们以后再做。现在先跳过LocalNative继续后面的」). Stage 2's provider
+ports are therefore complete: Soniox, Kizuna Soniox, Gemini, Doubao AST 2.0,
+OpenAI Translate, OpenAI Realtime, Palabra and OpenAI Live, with the four
+follow-up plans (the Gemini/AST2 follow-up, the Gemini hold, the translation
+cuts, session end and the wizard) and the owner's rule C for sentence ends.
+
+**What that means for Local Native until #578 lands:** the registry lists no
+Local Native, so it is not offered, even behind its tester switch; its old
+path (`LocalNativeClient`, `LocalNativeProviderConfig` and its factory
+registrations, the old settings UI's Local Native branches, the `localNative`
+slice, the native UI it reuses) stays compiled and unreachable, and every
+deletion plan below keeps those pieces. #578 lists them.
+
+**What remains before the branch can merge**, all of it closing work:
+1. **The owner's live tests**, as the owner's checklist page records them on
+   2026-09-30 (pass or skip; no fail recorded):
+   - done: Soniox (2026-09-27, all eighteen), Kizuna Soniox (18 of 18),
+     Doubao AST 2.0 (21 of 21), OpenAI Realtime (25 of 25), Palabra (18 of 18);
+   - begun: Gemini (5 of 20);
+   - not begun: OpenAI Translate (19), the Gemini/AST2 follow-up (19), the
+     Gemini hold (17), the Stage 1 items (6);
+   - not yet on the page: the translation cuts, session end and the wizard,
+     OpenAI Live (its seventeen items, rule C's checks in item 15).
+2. **One deletion plan per provider**, each after its live test: Soniox with
+   Kizuna Soniox (plan B2), Doubao AST 2.0 (V2), Palabra (with
+   `livekit-client` and its pin), OpenAI Realtime with OpenAI Compatible, the
+   `openai-realtime-api` fork and OpenAI Translate's T3 (merged), OpenAI
+   Translate (T2), Gemini (G2), OpenAI Live. Each section's inventory names what goes; none
+   names Local Native's pieces, and each plan re-checks that.
+3. **The release flags at Stage 2's end:** the per-provider `VITE_ENABLE_*`
+   lines out of `.github/workflows/build.yml` and the matching repository
+   variables (the owner's), once each flag's old client is deleted;
+   `VITE_ENABLE_KIZUNA_AI` stays, and so does `VITE_ENABLE_LOCAL_NATIVE` with
+   the old path it gates.
+
+**Left for after the merge:** the deferred OpenAI Translate English → Chinese
+item; Doubao AST 2.0's fixed voice (#577, built from main once #571 merges).

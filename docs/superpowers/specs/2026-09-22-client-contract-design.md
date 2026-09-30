@@ -2536,6 +2536,8 @@ The order (the owner may overrule it):
    Realtime, ruling 12). WebRTC users are few, so the WebRTC transport of both
    OpenAI providers is neither migrated nor reimplemented. The list keeps its
    numbers; after item 6 the order runs Palabra, OpenAI Live, Local Native.
+   **Amended by the owner** (2026-09-30): Local Native is taken out of Stage 2
+   (item 10); OpenAI Live is Stage 2's last port.
 8. **Palabra** (`palabraai`) — ported by the Stage 2 Palabra plan as a
    WebSocket client written from scratch (ruling 19): attributable audio per
    sentence, stated pairing, ranges at a burst's end. The degenerate extreme
@@ -2552,7 +2554,12 @@ The order (the owner may overrule it):
     existing `NativeModelManagementSection`, `NativeVoiceSection` and
     `NativeDeviceControl` — reused, switched from the old `settingsStore` slice
     to the provider's `settings` / `update` / `pair` (the override
-    `useWasmEngineAdapter` got for LocalInference).
+    `useWasmEngineAdapter` got for LocalInference). **Taken out of Stage 2 by
+    the owner** (2026-09-30) and deferred to its own change,
+    kizuna-ai-lab/sokuji#578: the Stage 2 registry lists no Local Native, so it
+    is not offered, even behind its tester switch, until that port lands; its
+    old path stays compiled and unreachable, and the Stage 2 deletions keep
+    what it uses (#578 names the pieces).
 
 **The relay twins** (`kizunaai_openai_translate`, `kizunaai_volcengine_ast2`)
 are not ported onto the relay: the owner ruled on 2026-08-30 that the user's
@@ -2569,6 +2576,8 @@ too: it is deleted, not ported, after the own-key port's live test (plan T2).
 That is twelve providers: nine ported in nine steps — the tenth, OpenAI
 Translate's WebRTC transport with OpenAI Realtime's, removed when the owner
 abandoned them (2026-09-29) — one retired, and two relay twins, both deleted.
+**Amended by the owner** (2026-09-30): Stage 2 ports eight of the nine; Local
+Native, the ninth, is deferred to #578.
 Each step is its own implementation plan; this spec is the design for the
 whole, not the plan for any one stage.
 
@@ -2642,7 +2651,7 @@ builds that request, and in what order a session starts and ends.
 `LocalNativeClient` reading and writing `useNativeModelStore` inside `connect()`
 moves into its builder, per the rule that model resolution never happens in an
 adapter; Local Native is not yet open to general users, so it carries no
-compatibility burden.
+compatibility burden. (Moved with the port to #578, 2026-09-30.)
 
 ### Parameters and deferred decisions
 
