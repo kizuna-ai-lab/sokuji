@@ -8,7 +8,8 @@
  * re-export it, each keeping the `OpenSocket` its adapter calls (with
  * subprotocols or without). Soniox's own seam stays its own: it rethrows
  * nothing, and the old client's streams read it. F14, the header seam,
- * joins this one when OpenAI Live builds it.
+ * sits beside it in `headerSocket.ts`, built by OpenAI Live and opening
+ * its sockets through this one (Stage 2 OpenAI Live, choice 1).
  */
 export type OpenSocket = (url: string, protocols?: string[]) => WebSocket;
 
