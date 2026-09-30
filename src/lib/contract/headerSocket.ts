@@ -159,7 +159,8 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
           ended.then(() => null),
         ]);
         if (refused) {
-          sent = false;
+          // A refusal is ambiguous on the extension (the worker can die after installing the rule, before answering): the clear
+          // below runs all the same, idempotent on both platforms (Stage 2 OpenAI Live, ruling 7).
           fail(new HeaderSocketError('register', 'The app could not set the socket\'s upgrade headers.', refused.error));
           return;
         }
@@ -177,8 +178,10 @@ export function createHeaderSocket(registrar: () => HeaderRegistrar | null, open
       } finally {
         cancelCap();
         o.signal.removeEventListener('abort', onAbort);
-        // Electron's rule went with the upgrade; the extension's goes now. A registration still in flight is cleared too: each
-        // platform's channel is ordered, so the clear lands after it, and the next leg's registration after the clear.
+        // Electron's rule went with the upgrade; the extension's goes now. A registration still in flight, or one the platform
+        // refused, is cleared too — a refusal may follow the platform installing the rule (the page closing mid-upgrade, or,
+        // on the extension, its worker dying between install and answer): each platform's channel is ordered, so the clear
+        // lands after it, and the next leg's registration after the clear.
         if (sent) platform.clear(rule);
         letGo();
       }

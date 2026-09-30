@@ -22,7 +22,7 @@ describe("the header seam's fake (Stage 2 OpenAI Live, choice 1)", () => {
     expect(seam.registrations[0].cleared).toBe(true);
   });
 
-  it('refuses the next registration once, and holds the next one until it is let go', async () => {
+  it('refuses the next registration once, clearing it too, and holds the next one until it is let go', async () => {
     const seam = fakeHeaderSockets();
     const clock = createVirtualClock(0);
     const signal = new AbortController().signal;
@@ -36,6 +36,6 @@ describe("the header seam's fake (Stage 2 OpenAI Live, choice 1)", () => {
     await flush();
     seam.sockets.last().open();
     await expect(opening).resolves.toBe(seam.sockets.last());
-    expect(seam.registrations.map((r) => r.cleared)).toEqual([false, true]);
+    expect(seam.registrations.map((r) => r.cleared)).toEqual([true, true]);
   });
 });

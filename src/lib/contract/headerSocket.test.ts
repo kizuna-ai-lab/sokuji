@@ -83,17 +83,25 @@ describe('the header seam (F14)', () => {
     }
   });
 
-  it('a registration the platform refuses opens nothing and clears nothing, in fixed words that keep its cause', async () => {
+  it('a registration the platform refuses opens nothing, and its rule is cleared too, before the next leg at the key registers, in fixed words that keep its cause', async () => {
     const h = seam();
-    const opening = h.start();
+    const first = h.start();
+    const second = h.start();
     await flush();
+    expect(h.reg.calls).toEqual(['set api.openai.com/v1/live/']);
     const cause = new Error('ws-headers-set: Invalid arguments');
     h.reg.answer(cause);
-    const error = await opening.catch((e: unknown) => e);
+    const error = await first.catch((e: unknown) => e);
     expect(error).toBeInstanceOf(HeaderSocketError);
     expect(error).toMatchObject({ reason: 'register', message: "The app could not set the socket's upgrade headers.", cause });
     expect(h.sockets.all).toEqual([]);
-    expect(h.reg.calls).toEqual(['set api.openai.com/v1/live/']);
+    await flush();
+    expect(h.reg.calls).toEqual(['set api.openai.com/v1/live/', 'clear api.openai.com/v1/live/', 'set api.openai.com/v1/live/']);
+    // The gate was let go, not stranded on the refused leg: the next leg registers and upgrades.
+    h.reg.answer();
+    await flush();
+    h.sockets.last().open();
+    await expect(second).resolves.toBe(h.sockets.last());
   });
 
   it('an abort before the call registers nothing; during the registration it rejects at once and sends the clear at once — the channel is ordered, so it lands after the set — no socket made', async () => {
