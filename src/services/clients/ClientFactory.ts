@@ -24,9 +24,8 @@ export class ClientFactory {
   ): IClient {
     void model;
     // Legacy callers skip extractCredentials — keep the old façade contract of
-    // rejecting an empty key up front (LOCAL_INFERENCE and LOCAL_NATIVE never
-    // had credentials).
-    if (!apiKey && provider !== Provider.LOCAL_INFERENCE && provider !== Provider.LOCAL_NATIVE) {
+    // rejecting an empty key up front (LOCAL_NATIVE never had credentials).
+    if (!apiKey && provider !== Provider.LOCAL_NATIVE) {
       throw new Error(`API key is required for ${provider} provider`);
     }
     return ProviderConfigFactory.getDescriptor(provider).createClient(

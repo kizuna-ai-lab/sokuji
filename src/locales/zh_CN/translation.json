@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "翻译内容正在字幕浮层中显示",
-    "speechDetected": "[检测到语音]",
     "function": "功能",
     "noChannelConfigured": "开始前请启用麦克风或对方音频。",
     "release": "释放",

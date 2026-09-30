@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "翻訳は字幕オーバーレイに表示されています",
-    "speechDetected": "[音声を検出しました]",
     "function": "関数",
     "noChannelConfigured": "開始する前にマイクまたは相手の音声を有効にしてください。",
     "release": "離す",

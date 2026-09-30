@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Terjemahan ditampilkan di overlay subtitle",
-    "speechDetected": "[Ucapan terdeteksi]",
     "function": "Fungsi",
     "noChannelConfigured": "Aktifkan mikrofon atau audio lawan bicara sebelum memulai.",
     "release": "lepas",

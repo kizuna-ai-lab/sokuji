@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Provider } from '../types/Provider';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
-import { directionKey } from '../lib/local-inference/selection/types';
 import useLogStore from './logStore';
 
 // Force platform detection so environment-gated providers are present in the
@@ -26,16 +25,6 @@ vi.mock('../services/ServiceFactory', () => ({
     })),
   },
 }));
-
-// Mock estimateModelMemoryByDevice so we can control memory budget checks
-const mockEstimateMemory = vi.fn().mockReturnValue({ vramMb: 0, ramMb: 0 });
-vi.mock('../lib/local-inference/modelManifest', async () => {
-  const actual = await vi.importActual('../lib/local-inference/modelManifest');
-  return {
-    ...actual,
-    estimateModelMemoryByDevice: (...args: any[]) => mockEstimateMemory(...args),
-  };
-});
 
 // Import after mocking
 const {
@@ -156,19 +145,6 @@ describe('settingsStore', () => {
       expect(state.validationCache.size).toBe(0);
       expect(state.availableModels).toEqual([]);
       expect(state.isApiKeyValid).toBeNull();
-    });
-  });
-
-  describe('Push-to-Translate persistence', () => {
-    it('persists Push-to-Translate for Local Inference', async () => {
-      const store = useSettingsStore.getState();
-      await store.updateLocalInference({ turnDetectionMode: 'Push-to-Translate' });
-
-      expect(useSettingsStore.getState().localInference.turnDetectionMode).toBe('Push-to-Translate');
-      expect(mockSetSetting).toHaveBeenCalledWith(
-        'settings.localInference.turnDetectionMode',
-        'Push-to-Translate'
-      );
     });
   });
 
@@ -525,128 +501,6 @@ describe('settingsStore', () => {
   });
 });
 
-describe('createParticipantLocalInferenceConfig', () => {
-  // The participant direction (target→source) is a peer of the speaker
-  // direction, not a reversal of it: it resolves from the real WASM manifest
-  // via modelStore.resolve(), driven by real modelStatuses state and a
-  // `selections` argument passed in directly (mirrors how the descriptor
-  // calls it — no settingsStore access inside this function at all).
-  // 'sensevoice-int8' (multilingual ASR) and 'opus-mt-en-jap' (the real
-  // en→ja Opus-MT entry) are real manifest ids.
-  beforeEach(async () => {
-    const { useModelStore } = await import('./modelStore');
-    useModelStore.setState({ modelStatuses: {} });
-  });
-
-  afterEach(async () => {
-    const { useModelStore } = await import('./modelStore');
-    useModelStore.setState({ modelStatuses: {} });
-  });
-
-  it('swaps languages and resolves reverse models', async () => {
-    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
-    const { useModelStore } = await import('./modelStore');
-    useModelStore.setState({
-      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded' },
-    });
-
-    const baseConfig = {
-      provider: 'local_inference' as const,
-      model: 'local-asr-translate',
-      instructions: '',
-      sourceLanguage: 'ja',
-      targetLanguage: 'en',
-      asrModelId: 'sensevoice-int8',
-      translationModelId: 'opus-mt-ja-en',
-      ttsModelId: 'piper-en',
-      ttsSpeakerId: 0,
-      ttsSpeed: 1.0,
-    };
-
-    // Explicit selection for the participant's OWN direction (en→ja) — auto
-    // resolution isn't deterministic here since a cloud translation model is
-    // always "ready" and can outrank a downloaded local one.
-    const result = createParticipantLocalInferenceConfig(baseConfig, {
-      [directionKey('en', 'ja')]: {
-        asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-jap' }, tts: { modelId: '' },
-      },
-    });
-
-    expect(result.success).toBe(true);
-    if (!result.success) throw new Error('unexpected');
-    expect(result.config.sourceLanguage).toBe('en');
-    expect(result.config.targetLanguage).toBe('ja');
-    expect(result.config.asrModelId).toBe('sensevoice-int8');
-    expect(result.config.translationModelId).toBe('opus-mt-en-jap');
-    expect(result.config.ttsModelId).toBeUndefined();
-    expect(result.translationAvailable).toBe(true);
-  });
-
-  it('returns no_asr when no ASR model is available', async () => {
-    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
-    const { useModelStore } = await import('./modelStore');
-    // Nothing downloaded: the reverse direction cannot resolve an ASR model.
-    useModelStore.setState({ modelStatuses: {} });
-
-    const baseConfig = {
-      provider: 'local_inference' as const,
-      model: 'local-asr-translate',
-      instructions: '',
-      sourceLanguage: 'en',
-      targetLanguage: 'ja',
-      asrModelId: 'sensevoice-int8',
-      translationModelId: 'opus-mt-en-jap',
-      ttsModelId: 'piper-ja',
-      ttsSpeakerId: 0,
-      ttsSpeed: 1.0,
-    };
-
-    const result = createParticipantLocalInferenceConfig(baseConfig, {});
-    expect(result.success).toBe(false);
-    if (result.success) throw new Error('unexpected');
-    expect(result.reason).toBe('no_asr');
-  });
-
-  it('returns memory_exceeded when VRAM budget is exceeded', async () => {
-    const { createParticipantLocalInferenceConfig } = await import('./settingsStore');
-    const { useModelStore } = await import('./modelStore');
-    useModelStore.setState({
-      modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded' },
-    });
-
-    const baseConfig = {
-      provider: 'local_inference' as const,
-      model: 'local-asr-translate',
-      instructions: '',
-      sourceLanguage: 'ja',
-      targetLanguage: 'en',
-      asrModelId: 'sensevoice-int8',
-      translationModelId: 'opus-mt-ja-en',
-      ttsModelId: 'piper-en',
-      ttsSpeakerId: 0,
-      ttsSpeed: 1.0,
-    };
-
-    // Set VRAM budget via localStorage override, then simulate models exceeding it
-    localStorage.setItem('debug:vram-budget', '4096');
-    mockEstimateMemory.mockReturnValue({ vramMb: 8000, ramMb: 0 });
-
-    const result = createParticipantLocalInferenceConfig(baseConfig, {
-      [directionKey('en', 'ja')]: {
-        asr: { modelId: 'sensevoice-int8' }, translation: { modelId: 'opus-mt-en-jap' }, tts: { modelId: '' },
-      },
-    });
-    expect(result.success).toBe(false);
-    if (result.success) throw new Error('unexpected');
-    expect(result.reason).toBe('memory_exceeded');
-    expect(result.detail).toContain('VRAM');
-    expect(result.detail).toContain('8000MB');
-
-    localStorage.removeItem('debug:vram-budget');
-    mockEstimateMemory.mockReturnValue({ vramMb: 0, ramMb: 0 });
-  });
-});
-
 describe('updateProviderSlice (public generic action)', () => {
   // No beforeEach reset needed here: unlike the top-level `settingsStore`
   // describe (which resets `provider`/validation fields consumed by
@@ -661,11 +515,9 @@ describe('updateProviderSlice (public generic action)', () => {
     expect(useSettingsStore.getState().localNative.targetLanguage).toBe('ja');
   });
 
-  it('does not bleed into other slices or drop unpatched fields', async () => {
-    const inferenceBefore = useSettingsStore.getState().localInference;
+  it('does not drop unpatched fields', async () => {
     const sourceBefore = useSettingsStore.getState().localNative.sourceLanguage;
     await useSettingsStore.getState().updateProviderSlice('localNative', { targetLanguage: 'ko' });
-    expect(useSettingsStore.getState().localInference).toBe(inferenceBefore);
     expect(useSettingsStore.getState().localNative.sourceLanguage).toBe(sourceBefore);
   });
 
@@ -706,14 +558,13 @@ describe('local_native asrDevice setting', () => {
 describe('getProcessedLocalPrompt', () => {
   beforeEach(() => {
     useSettingsStore.setState({
-      provider: Provider.LOCAL_INFERENCE,
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      provider: Provider.LOCAL_NATIVE,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         sourceLanguage: 'ja',
         targetLanguage: 'en',
         useTemplateMode: true,
         systemPrompt: '',
-        participantSystemPrompt: '',
       },
     });
   });
@@ -730,8 +581,8 @@ describe('getProcessedLocalPrompt', () => {
 
   it('Advanced mode: returns the user speaker prompt verbatim', () => {
     useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         useTemplateMode: false,
         systemPrompt: 'My custom speaker prompt',
       },
@@ -742,8 +593,8 @@ describe('getProcessedLocalPrompt', () => {
 
   it('Advanced mode: empty speaker falls back to default', () => {
     useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         useTemplateMode: false,
         systemPrompt: '',
       },
@@ -752,39 +603,24 @@ describe('getProcessedLocalPrompt', () => {
     expect(result).toBe(buildDefaultLocalPrompt('ja', 'en'));
   });
 
-  it('Advanced mode: empty participant falls back to resolved speaker', () => {
+  it('Advanced mode: the participant takes the speaker prompt (Local Native has none of its own)', () => {
     useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         useTemplateMode: false,
         systemPrompt: 'Speaker says hi',
-        participantSystemPrompt: '',
       },
     });
     const result = useSettingsStore.getState().getProcessedLocalPrompt(true);
     expect(result).toBe('Speaker says hi');
   });
 
-  it('Advanced mode: participant filled returns participant text', () => {
+  it('Advanced mode: an empty prompt falls back to the default in both directions', () => {
     useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
-        useTemplateMode: false,
-        systemPrompt: 'Speaker',
-        participantSystemPrompt: 'Participant',
-      },
-    });
-    const result = useSettingsStore.getState().getProcessedLocalPrompt(true);
-    expect(result).toBe('Participant');
-  });
-
-  it('Advanced mode: empty speaker AND empty participant both fall back to default', () => {
-    useSettingsStore.setState({
-      localInference: {
-        ...useSettingsStore.getState().localInference,
+      localNative: {
+        ...useSettingsStore.getState().localNative,
         useTemplateMode: false,
         systemPrompt: '',
-        participantSystemPrompt: '',
       },
     });
     const speaker = useSettingsStore.getState().getProcessedLocalPrompt(false);

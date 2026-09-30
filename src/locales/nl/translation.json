@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Vertalingen worden weergegeven in de ondertitel-overlay",
-    "speechDetected": "[Spraak gedetecteerd]",
     "function": "Functie",
     "noChannelConfigured": "Schakel de microfoon of Audio van de ander in voordat u begint.",
     "release": "loslaten",

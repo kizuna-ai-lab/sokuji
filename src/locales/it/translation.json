@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Le traduzioni sono visualizzate nella sovrapposizione dei sottotitoli",
-    "speechDetected": "[Voce rilevata]",
     "function": "Funzione",
     "noChannelConfigured": "Attiva il microfono o l'audio dell'altro prima di iniziare.",
     "release": "rilascia",

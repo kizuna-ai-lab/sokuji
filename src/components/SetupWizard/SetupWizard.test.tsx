@@ -84,8 +84,7 @@ const startTourSpy = vi.fn();
 vi.mock('../Tour/TourProvider', () => ({ useTour: () => ({ start: startTourSpy }) }));
 
 import SetupWizard from './SetupWizard';
-import { ProviderConfigFactory } from '../../services/providers/ProviderConfigFactory';
-import { Provider } from '../../types/Provider';
+import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages } from '../../providers/localInference/settings';
 import { matchLanguage } from './languageDefaults';
 import { useProviderStore } from '../../stores/providerStore';
 import { sonioxProvider } from '../../providers/soniox/provider';
@@ -189,7 +188,7 @@ describe('SetupWizard', () => {
     fireEvent.click(screen.getByRole('radio', { name: /Free, offline/ }));
     next();                                           // credentials: nothing to enter offline
     next();                                           // language pair
-    const jaSource = matchLanguage(ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).resolveSourceLanguages(), 'ja');
+    const jaSource = matchLanguage([...localInferenceLanguages.sources(LOCAL_INFERENCE_DEFAULTS)], 'ja');
     // If the local engine offered no Japanese source there would be nothing to
     // assert about the pair; the interface-language assertion above still holds.
     // Labelled by the same sentence Settings prints, not "From"/"To": this
@@ -207,8 +206,8 @@ describe('SetupWizard', () => {
     next();                                           // language pair
     const source = (screen.getByRole('combobox', { name: 'I speak' }) as HTMLSelectElement).value;
     const target = (screen.getByRole('combobox', { name: 'they hear' }) as HTMLSelectElement).value;
-    const sources = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).resolveSourceLanguages();
-    const targets = ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).resolveTargetLanguages(source);
+    const sources = localInferenceLanguages.sources(LOCAL_INFERENCE_DEFAULTS);
+    const targets = localInferenceLanguages.targets(source, LOCAL_INFERENCE_DEFAULTS);
     const sourceName = sources.find((o) => o.value === source)!.name;
     const targetName = targets.find((o) => o.value === target)!.name;
     // The reverse leg reads the pair the other way round: they speak what the

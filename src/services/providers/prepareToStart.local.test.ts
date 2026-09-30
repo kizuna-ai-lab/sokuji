@@ -30,7 +30,7 @@ describe('local prepareToStart', () => {
     signal: new AbortController().signal,
   });
 
-  for (const id of [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE]) {
+  for (const id of [Provider.LOCAL_NATIVE]) {
     it(`${id}: valid revalidation → bare ok`, async () => {
       const d = ProviderConfigFactory.getDescriptor(id);
       const p = ports({ valid: true });

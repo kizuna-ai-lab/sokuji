@@ -13,20 +13,18 @@ import type { SegmentationOffer } from '../../lib/segmentation/segmentationMode'
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { Provider } from '../../types/Provider';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
-import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import en from '../../locales/en/translation.json';
 
 // Map each provider's settingsSliceKey to its per-module default settings slice,
 // so buildSessionConfig can be exercised for every registered provider.
 const DEFAULTS_BY_SLICE: Record<string, unknown> = {
-  localInference: defaultLocalInferenceSettings,
   localNative: defaultLocalNativeSettings,
 };
 
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(2);
+    expect(ids.length).toBe(1);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -53,17 +51,9 @@ describe('descriptor.createClient', () => {
   });
 });
 
-describe('descriptor.extractCredentials', () => {
-  it('local inference needs no credentials', async () => {
-    expect(await ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).extractCredentials({}, {}))
-      .toEqual({ ok: true, primary: '' });
-  });
-});
-
 describe('descriptor.buildSessionConfig', () => {
   it('builds a config whose provider tag matches, for every provider, from defaults', () => {
     const wireTag: Record<string, string> = {
-      local_inference: 'local_inference',
       local_native: 'local_native',
     };
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
@@ -106,7 +96,6 @@ describe('registry invariants', () => {
   // deletion, ruling C1), so every table below names only the providers the
   // old registry still registers.
   const EXPECTED_SLICE_KEYS: Partial<Record<Provider, string>> = {
-    [Provider.LOCAL_INFERENCE]: 'localInference',
     // Registered only under Electron with its gate on — both forced on by
     // this file's environment mock.
     [Provider.LOCAL_NATIVE]: 'localNative',
@@ -122,7 +111,6 @@ describe('registry invariants', () => {
   // Exact expected supportsWebRTC per provider. Relay/twin and non-WebRTC
   // providers must not silently inherit `true` from a base descriptor.
   const EXPECTED_SUPPORTS_WEBRTC: Partial<Record<Provider, boolean>> = {
-    [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
   };
 
@@ -143,9 +131,9 @@ describe('registry invariants', () => {
   });
 
   it('extractCredentials on an empty slice never returns ok (except credential-free providers)', async () => {
-    const credentialFree = new Set([Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE]);
+    const credentialFree = new Set([Provider.LOCAL_NATIVE]);
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if (credentialFree.has(id) || id.startsWith('kizunaai')) continue;
+      if (credentialFree.has(id)) continue;
       const r = await ProviderConfigFactory.getDescriptor(id).extractCredentials({}, {});
       expect(r.ok, id).toBe(false);
     }
@@ -154,20 +142,17 @@ describe('registry invariants', () => {
 
 describe('S1 capability flags', () => {
   const PUSH_GATED: Partial<Record<Provider, string[] | undefined>> = {
-    [Provider.LOCAL_INFERENCE]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.LOCAL_NATIVE]: ['Push-to-Talk', 'Push-to-Translate'],
   };
 
   const TEXT_INPUT: Partial<Record<Provider, boolean | undefined>> = {
-    [Provider.LOCAL_INFERENCE]: true,
     [Provider.LOCAL_NATIVE]: true,
   };
 
   const QUEUES_TEXT: Provider[] = [];
-  const LOCAL_PROMPT: Provider[] = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
+  const LOCAL_PROMPT: Provider[] = [Provider.LOCAL_NATIVE];
 
   const PTT_FINALIZATION: Partial<Record<Provider, { silenceTailFrames?: number; response: string } | undefined>> = {
-    [Provider.LOCAL_INFERENCE]: { silenceTailFrames: 7, response: 'always' },
     [Provider.LOCAL_NATIVE]: { silenceTailFrames: 7, response: 'always' },
   };
 
@@ -178,7 +163,6 @@ describe('S1 capability flags', () => {
     // 1-5 is what slice 3 shipped on the local engines; phase 2 adds Auto,
     // where the VAD utterance is the boundary someone else already decided
     // and the stage only fills the punctuation in.
-    [Provider.LOCAL_INFERENCE]: { pause: false, auto: true, sizes: true },
     [Provider.LOCAL_NATIVE]: { pause: false, auto: true, sizes: true },
   };
 
@@ -190,7 +174,6 @@ describe('S1 capability flags', () => {
   // without turn detection it renders nothing and must not claim to. A2 moved
   // the two pause clients' sliders into the segmentation section.
   const SILENCE_DURATION: Partial<Record<Provider, boolean>> = {
-    [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
   };
 
@@ -333,8 +316,8 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
     const { ClientFactory } = await import('../clients/ClientFactory');
     expect(() => ClientFactory.createClient('m', Provider.PALABRA_AI, ''))
       .toThrow(/API key is required/);
-    // LOCAL_INFERENCE never had credentials — must keep working with ''
-    expect(ClientFactory.createClient('m', Provider.LOCAL_INFERENCE, '')).toBeTruthy();
+    // LOCAL_NATIVE has no credentials — must keep working with ''
+    expect(ClientFactory.createClient('m', Provider.LOCAL_NATIVE, '')).toBeTruthy();
   });
 });
 
@@ -363,8 +346,8 @@ describe('S3 planBothMode', () => {
 });
 
 describe('S4 prepareToStart', () => {
-  it('is declared only where a provider has pre-start work (the locals)', () => {
-    const WITH_HOOK = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
+  it('is declared only where a provider has pre-start work (Local Native)', () => {
+    const WITH_HOOK = [Provider.LOCAL_NATIVE];
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(typeof d.prepareToStart === 'function', `hook presence for ${id}`)

@@ -1207,7 +1207,7 @@ describe('nativeModelStore.resolve', () => {
     expect(useNativeModelStore.getState().resolve('ja', 'en', {}).asr).toBeNull();
   });
 
-  it('applyPrunes writes to the localNative slice, not localInference', async () => {
+  it('applyPrunes writes to the localNative slice', async () => {
     const { useSettingsStore } = await import('./settingsStore');
     const dir = directionKey('ja', 'en');
     useSettingsStore.setState({
@@ -1218,6 +1218,5 @@ describe('nativeModelStore.resolve', () => {
     });
     await useNativeModelStore.getState().applyPrunes([{ direction: dir, stage: 'asr' }]);
     expect(useSettingsStore.getState().localNative.selections[dir].asr.modelId).toBe('');
-    expect(useSettingsStore.getState().localInference.selections[dir]).toBeUndefined();
   });
 });

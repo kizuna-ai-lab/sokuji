@@ -1,6 +1,5 @@
 import { ProviderConfig } from './ProviderConfig';
 import { ProviderDescriptor } from './ProviderDescriptor';
-import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
 import { isLocalNativeEnabled, isElectron } from '../../utils/environment';
@@ -9,18 +8,9 @@ export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
 
   static {
-    // Registration order here defines the order providers appear in the UI
-    // list (the configs Map preserves insertion order). Each provider keeps
-    // its own environment / feature-flag guard. The order is a product
-    // decision (2026-09-12): Kizuna-managed first, then Free, Gemini, Doubao
-    // AST 2.0, the three OpenAI providers, Soniox, OpenAI Compatible, Palabra,
-    // then everything else.
-
-    // 2. Free (local inference) — always available, no API key or flag.
-    ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
-
-    // 9. Everything else.
-    // Native (Electron sidecar) local inference — Electron only, behind feature flag.
+    // Local Native, the one provider the old registry still holds (Stage 2
+    // deletion, ruling 1): Electron only, behind its gate. Every other
+    // provider is the new registry's (`src/providers/registry.ts`).
     if (isElectron() && isLocalNativeEnabled()) {
       ProviderConfigFactory.configs.set(Provider.LOCAL_NATIVE, new LocalNativeProviderConfig());
     }

@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Käännökset näkyvät tekstityspeitossa",
-    "speechDetected": "[Puhe havaittu]",
     "function": "Funktio",
     "noChannelConfigured": "Ota mikrofoni tai toisen ääni käyttöön ennen aloittamista.",
     "release": "vapauta",

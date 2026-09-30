@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Çeviriler altyazı katmanında gösteriliyor",
-    "speechDetected": "[Konuşma algılandı]",
     "function": "İşlev",
     "noChannelConfigured": "Başlamadan önce mikrofonu veya karşı tarafın sesini etkinleştirin.",
     "release": "bırakın",

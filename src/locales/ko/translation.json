@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "번역이 자막 오버레이에 표시되고 있습니다",
-    "speechDetected": "[음성 감지됨]",
     "function": "기능",
     "noChannelConfigured": "시작하기 전에 마이크 또는 상대방 오디오를 활성화하세요.",
     "release": "놓기",

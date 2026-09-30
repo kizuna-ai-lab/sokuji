@@ -26,7 +26,6 @@ import {
   type ModelType,
 } from '../../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, splitDirection, type Stage } from '../../../lib/local-inference/selection/types';
-import { useLocalInferenceSettings, useUpdateLocalInference } from '../../../stores/settingsStore';
 import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
 import type { LanguagePair } from '../../../lib/provider/types';
 import { languageNameFor } from '../engine/languageName';
@@ -57,15 +56,14 @@ interface ModelManagementSectionProps {
    *  pair (the standalone render). */
   direction?: string;
   /**
-   * LocalInference's own `S`/`update`/pair (the new provider contract) —
-   * used instead of the legacy `settingsStore` hooks when given, falling
-   * back to them otherwise so every existing caller (`SimpleSettings`,
-   * `ProviderSpecificSettings`) is unchanged. `pair` carries the source/
-   * target languages `S` no longer does (`providerStore` owns the pair now).
+   * LocalInference's own `S`/`update`/pair (the new provider contract); the
+   * old slice it once fell back to went with the old descriptor (Stage 2
+   * deletion, ruling 3). `pair` carries the source/target languages `S` no
+   * longer does (`providerStore` owns the pair now).
    */
-  settings?: LocalInferenceSettings;
-  update?: (patch: Partial<LocalInferenceSettings>) => void;
-  pair?: LanguagePair;
+  settings: LocalInferenceSettings;
+  update: (patch: Partial<LocalInferenceSettings>) => void;
+  pair: LanguagePair;
 }
 
 // ─── ModelCard ─────────────────────────────────────────────────────────────
@@ -337,27 +335,21 @@ export function ModelManagementSection({
   isSessionActive,
   stageFilter,
   direction,
-  settings: settingsProp,
-  update: updateProp,
+  settings,
+  update,
   pair,
 }: ModelManagementSectionProps) {
   const { t } = useTranslation();
-  // Hooks must run unconditionally, even when `settingsProp`/`updateProp`
-  // override them below.
-  const legacySettings = useLocalInferenceSettings();
-  const legacyUpdate = useUpdateLocalInference();
-  const settings: LocalInferenceSettings = settingsProp ?? legacySettings;
   // Stable identity: the edge-TTS voice auto-select effect holds it in its
   // deps, and a fresh function every render would re-run that effect's write
   // (the 2026-08-23 freeze).
   const updateLocalInference = useCallback(
-    (patch: Partial<LocalInferenceSettings>) => (updateProp ? updateProp(patch) : legacyUpdate(patch)),
-    [updateProp, legacyUpdate],
+    (patch: Partial<LocalInferenceSettings>) => update(patch),
+    [update],
   );
-  // The forward pair: `pair` when given (the new contract — `S` no longer
-  // carries it), else the legacy slice's own fields.
-  const forwardSource = pair?.source ?? legacySettings.sourceLanguage;
-  const forwardTarget = pair?.target ?? legacySettings.targetLanguage;
+  // The forward pair (the new contract — `S` no longer carries it).
+  const forwardSource = pair.source;
+  const forwardTarget = pair.target;
   const statuses = useModelStatuses();
   const downloads = useModelDownloads();
   const downloadErrors = useDownloadErrors();

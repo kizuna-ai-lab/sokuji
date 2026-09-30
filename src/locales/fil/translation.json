@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Ipinapakita ang mga pagsasalin sa subtitle overlay",
-    "speechDetected": "[Nakita ang pagsasalita]",
     "function": "Function",
     "noChannelConfigured": "I-enable ang mikropono o ang audio ng kausap bago magsimula.",
     "release": "bitiwan",

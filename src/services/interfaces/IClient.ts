@@ -74,36 +74,6 @@ export interface BaseSessionConfig {
 }
 
 /**
- * Local inference session configuration
- */
-export interface LocalInferenceSessionConfig extends BaseSessionConfig {
-  provider: 'local_inference';
-  sourceLanguage: string;
-  targetLanguage: string;
-  asrModelId: string;
-  translationModelId?: string;
-  ttsModelId?: string;
-  ttsSpeakerId: number;
-  ttsSpeed: number;
-  edgeTtsVoice?: string;
-  vadThreshold?: number;
-  /** vad-web only; 0 or absent derives it from vadThreshold. Never applies above it. */
-  vadNegativeThreshold?: number;
-  vadMinSilenceDuration?: number;
-  vadMinSpeechDuration?: number;
-  vadMaxSpeechDuration?: number;
-  turnDetectionMode?: 'Auto' | 'Push-to-Talk' | 'Push-to-Translate';
-  /**
-   * Whether the active system prompt expects `<transcript>` wrapping around
-   * the user message. Tracks the actual prompt, not the mode flag: true when
-   * the resolved instructions equal a buildDefaultLocalPrompt output (Simple
-   * mode OR Advanced-mode fallback when the user's textarea is empty); false
-   * when the user provided a custom prompt in Advanced mode.
-   */
-  wrapTranscript?: boolean;
-}
-
-/**
  * Native (Electron sidecar) local inference: ASR → translation (→ optional TTS),
  * served by the Python sidecar over localhost WebSocket. Separate from the WASM
  * LOCAL_INFERENCE provider.
@@ -136,15 +106,11 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
  */
-export function isLocalInferenceSessionConfig(config: SessionConfig): config is LocalInferenceSessionConfig {
-  return config.provider === 'local_inference';
-}
-
 export function isLocalNativeSessionConfig(config: SessionConfig): config is LocalNativeSessionConfig {
   return config.provider === 'local_native';
 }

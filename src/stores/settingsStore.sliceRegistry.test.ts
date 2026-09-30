@@ -28,7 +28,6 @@ const { default: useSettingsStore } = await import('./settingsStore');
 
 /** action name → [sliceKey, sample patch] for the plain (no-special-case) slices */
 const PLAIN: Array<[string, string, Record<string, unknown>]> = [
-  ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
   ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
 ];
 
@@ -62,7 +61,6 @@ describe('provider settings update actions (behavior lock)', () => {
   // resolves, and the failure becomes one panel entry per key. Both failure
   // channels are exercised because the service can produce either.
   const ALL_SLICES: Array<[string, string, Record<string, unknown>]> = [
-    ['updateLocalInference', 'localInference', { ttsSpeed: 1.5 }],
     ['updateLocalNative', 'localNative', { sourceLanguage: 'ja' }],
   ];
 
@@ -113,7 +111,7 @@ describe('provider settings update actions (behavior lock)', () => {
     const s = useSettingsStore.getState() as any;
     // Spot every slice key is a populated object after load.
     for (const sliceKey of [
-      'localInference', 'localNative',
+      'localNative',
     ]) {
       expect(s[sliceKey], sliceKey).toBeTypeOf('object');
       expect(Object.keys(s[sliceKey]).length, sliceKey).toBeGreaterThan(0);

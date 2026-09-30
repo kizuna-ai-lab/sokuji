@@ -8,7 +8,6 @@ import {
   SessionConfig,
   LocalNativeSessionConfig,
 } from '../services/interfaces/IClient';
-import { getManifestEntry } from '../lib/local-inference/modelManifest';
 import type { Stage } from '../lib/local-inference/selection/types';
 import { buildDefaultLocalPrompt } from '../lib/local-inference/prompts';
 import { type NativeReadinessReason } from '../lib/local-inference/native/nativeCatalog';
@@ -29,9 +28,6 @@ import { currentRunPhase } from '../app/runPhase';
 import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 import i18n from '../locales';
-import {
-  LocalInferenceSettings, defaultLocalInferenceSettings,
-} from '../services/providers/LocalInferenceProviderConfig';
 import {
   LocalNativeProviderConfig, LocalNativeSettings, defaultLocalNativeSettings,
 } from '../services/providers/LocalNativeProviderConfig';
@@ -54,13 +50,12 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 }
 
 export type {
-  LocalInferenceSettings, LocalNativeSettings,
+  LocalNativeSettings,
 };
 
 // Union of every provider's settings slice — the return type of
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
-export type ProviderSettingsUnion =
-  | LocalInferenceSettings | LocalNativeSettings;
+export type ProviderSettingsUnion = LocalNativeSettings;
 
 // ==================== Type Definitions ====================
 
@@ -244,7 +239,6 @@ export interface SettingsStore {
   participantSystemInstructions: string;
 
   // Provider-specific settings
-  localInference: LocalInferenceSettings;
   localNative: LocalNativeSettings;
 
   // Validation state
@@ -359,7 +353,6 @@ export interface SettingsStore {
   setParticipantSystemInstructions: (instructions: string) => void;
 
   // Provider settings actions
-  updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
   updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
   /** Generic slice update keyed by descriptor.settingsSliceKey — the write
    *  half of the read path the reactive selectors already use. Same registry
@@ -388,20 +381,9 @@ export interface SettingsStore {
 
 // ==================== Helper Functions ====================
 
-/**
- * Resolve the worker type for a specific translation model id.
- * Returns 'opus-mt' when the id is missing or not in the manifest.
- */
-export function resolveTranslationWorkerTypeForModelId(modelId: string | null | undefined): string {
-  if (!modelId) return 'opus-mt';
-  const entry = getManifestEntry(modelId);
-  if (!entry) return 'opus-mt';
-  return entry.translationWorkerType || (entry.multilingual ? 'qwen' : 'opus-mt');
-}
-
 // Moved beside the descriptors (their caller since the S2 participant-config
 // seam); re-exported here so existing importers keep working.
-export { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from '../services/providers/localParticipantConfig';
+export { createParticipantLocalNativeConfig } from '../services/providers/localParticipantConfig';
 
 /**
  * Back-compat wrapper: the canonical builder now lives on the descriptor
@@ -438,7 +420,6 @@ type SliceUpdateSpec = {
 };
 
 const PROVIDER_SLICE_REGISTRY = {
-  localInference: { defaults: defaultLocalInferenceSettings },
   localNative: { defaults: defaultLocalNativeSettings },
 } satisfies Record<string, SliceUpdateSpec>;
 
@@ -470,7 +451,6 @@ const useSettingsStore = create<SettingsStore>()(
   subscribeWithSelector((set, get) => ({
     // === Initial State ===
     ...defaultCommonSettings,
-    localInference: defaultLocalInferenceSettings,
     localNative: defaultLocalNativeSettings,
 
     isApiKeyValid: null,
@@ -696,7 +676,6 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     // === Provider Settings Actions ===
-    updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
     updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
     updateProviderSlice: (sliceKey, patch) => {
       // hasOwnProperty.call, not `in`: 'toString'/'constructor' must reject, not index the prototype (same idiom as previewSample).
@@ -752,32 +731,6 @@ const useSettingsStore = create<SettingsStore>()(
           isApiKeyValid: ready,
           availableModels: ready ? [{ id: 'native-asr-translate', type: 'realtime' as const, created: 0 }] : [],
           validationMessage: message, isValidating: false,
-        });
-        return { valid: ready, message, validating: false };
-      }
-
-      // Local inference: check model readiness instead of API key.
-      // This is the SINGLE authority for LOCAL_INFERENCE session readiness.
-      if (provider === Provider.LOCAL_INFERENCE) {
-        const { useModelStore } = await import('./modelStore');
-
-        // modelStore owns readiness: it initializes, resolves BOTH the speaker
-        // and participant directions, applies the session-gate table (speaker
-        // ASR/translation block; speaker TTS and the whole participant
-        // direction never do), and returns `notes` — already stashed on
-        // modelStore's `lastResolutionNotes` for Plan 2 to render in place of
-        // the generic message below. resolve() output IS the answer, so there
-        // is nothing left to write back to settings here.
-        const { ready } = await useModelStore.getState().ensureSelectionReady();
-
-        const message = ready ? '' : i18n.t('settings.localInferenceModelsRequired');
-        set({
-          isApiKeyValid: ready,
-          availableModels: ready
-            ? [{ id: 'local-asr-translate', type: 'realtime' as const, created: 0 }]
-            : [],
-          validationMessage: message,
-          isValidating: false,
         });
         return { valid: ready, message, validating: false };
       }
@@ -1023,10 +976,10 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     getProcessedLocalPrompt: (forParticipant = false) => {
-      // Both local providers share this path; read the active slice. LOCAL_NATIVE
-      // has no participant prompt, so its participant case falls back to speaker.
-      const st = get();
-      const s = st.provider === Provider.LOCAL_NATIVE ? st.localNative : st.localInference;
+      // Local Native's slice, the one local slice left (Stage 2 deletion,
+      // ruling 3). It has no participant prompt, so the participant case
+      // takes the speaker's, resolved for the reversed pair.
+      const s = get().localNative;
       const [srcLang, tgtLang] = forParticipant
         ? [s.targetLanguage, s.sourceLanguage]
         : [s.sourceLanguage, s.targetLanguage];
@@ -1034,12 +987,8 @@ const useSettingsStore = create<SettingsStore>()(
       if (s.useTemplateMode) {
         return buildDefaultLocalPrompt(srcLang, tgtLang);
       }
-      // Advanced mode: speaker falls back to default if empty
-      const speakerResolved = s.systemPrompt.trim() || buildDefaultLocalPrompt(srcLang, tgtLang);
-      if (!forParticipant) return speakerResolved;
-      // Participant falls back to resolved speaker if empty
-      const participant = 'participantSystemPrompt' in s ? s.participantSystemPrompt.trim() : '';
-      return participant || speakerResolved;
+      // Advanced mode: an empty prompt falls back to the default.
+      return s.systemPrompt.trim() || buildDefaultLocalPrompt(srcLang, tgtLang);
     },
 
     createSessionConfig: (systemInstructions) => {
@@ -1094,7 +1043,6 @@ export const useUseTemplateMode = () => useSettingsStore((state) => state.useTem
 export const useParticipantSystemInstructions = () => useSettingsStore((state) => state.participantSystemInstructions);
 
 // Provider settings
-export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
 
 // Validation state
@@ -1153,7 +1101,6 @@ export const useSetTemplateSystemInstructions = () => useSettingsStore((state) =
 export const useSetUseTemplateMode = () => useSettingsStore((state) => state.setUseTemplateMode);
 export const useSetParticipantSystemInstructions = () => useSettingsStore((state) => state.setParticipantSystemInstructions);
 
-export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
 export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);
 
 export const useValidateApiKey = () => useSettingsStore((state) => state.validateApiKey);
@@ -1176,11 +1123,6 @@ export const useGetProcessedSystemInstructions = () => useSettingsStore((state) 
 export const useGetProcessedLocalPrompt = () => useSettingsStore((state) => state.getProcessedLocalPrompt);
 export const useCreateSessionConfig = () => useSettingsStore((state) => state.createSessionConfig);
 export const useNavigateToSettings = () => useSettingsStore((state) => state.navigateToSettings);
-
-// Local inference prompt hooks
-export const useLocalSystemPrompt = () => useSettingsStore((state) => state.localInference.systemPrompt);
-export const useLocalParticipantSystemPrompt = () => useSettingsStore((state) => state.localInference.participantSystemPrompt);
-export const useLocalUseTemplateMode = () => useSettingsStore((state) => state.localInference.useTemplateMode);
 
 // Current provider's Speech Mode (turnDetectionMode), or 'Auto' for providers
 // whose settings slice has no turnDetectionMode field (e.g. OpenAI Translate,

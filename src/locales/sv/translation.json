@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Översättningar visas i undertextöverlägget",
-    "speechDetected": "[Tal upptäckt]",
     "function": "Funktion",
     "noChannelConfigured": "Aktivera mikrofon eller den andras ljud innan du börjar.",
     "release": "släpp",

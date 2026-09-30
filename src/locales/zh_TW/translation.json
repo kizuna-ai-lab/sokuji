@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "翻譯內容正在字幕浮層中顯示",
-    "speechDetected": "[偵測到語音]",
     "function": "功能",
     "noChannelConfigured": "開始前請啟用麥克風或對方音訊。",
     "release": "釋放",

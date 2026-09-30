@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "Tłumaczenia są wyświetlane w nakładce napisów",
-    "speechDetected": "[Wykryto mowę]",
     "function": "Funkcja",
     "noChannelConfigured": "Włącz mikrofon lub dźwięk rozmówcy przed rozpoczęciem.",
     "release": "puść",

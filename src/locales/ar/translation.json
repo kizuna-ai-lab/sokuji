@@ -514,7 +514,6 @@
   },
   "mainPanel": {
     "subtitleTakeover": "تظهر الترجمات في طبقة الترجمة العائمة",
-    "speechDetected": "[تم اكتشاف كلام]",
     "function": "وظيفة",
     "noChannelConfigured": "فعّل الميكروفون أو صوت الآخر قبل البدء.",
     "release": "حرر",
