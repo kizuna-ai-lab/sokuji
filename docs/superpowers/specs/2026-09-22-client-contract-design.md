@@ -526,7 +526,9 @@ it has leaked out of it.
 | OpenAI Live | **a continuous stream; there are no turns on the wire**, no commit and no server VAD; `session.input_audio.mute` / `.unmute`, acknowledged `session.input_audio.muted` / `.unmuted` in about 105 ms (U2) | a mute: the pending translation finishes while muted, and a muted session with nothing appended stops billing (U2'); stopping the appends alone does not finish the last sentence (U1); a tap is no stall — two equal usage reports read as one only across 2 s of voiced audio (choice 14) (Stage 2 OpenAI Live, ruling 5). This row's first version — "not needed — release stops the microphone" — was the old client's reading, which U1 contradicts | after the model's own finish (ruling 5) |
 
 **Every one of the twelve can support manual turns correctly.** None is
-incapable; they differ only between immediate and after-silence.
+incapable; they differ only between immediate and after-silence — and, for
+OpenAI Live, after the model's own finish: a mute lets the pending translation
+finish (Stage 2 OpenAI Live, ruling 5).
 
 `SonioxSttStream.finalize()` (`:198`) — "Finalize pending tokens without ending the
 session" — has no caller anywhere. Soniox has no push-to-talk today not because
@@ -1884,7 +1886,8 @@ named for Palabra, for which they were first built.
    item 3, the roadmap's Palabra record].
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
 
-For OpenAI Live it was its folder, one registry line and two order tests; no
+For OpenAI Live it was its folder, one registry line, two order tests and its
+row in the session-side guard's test (`sessionSide.consistency.test.ts`); no
 locale key and no manifest change (`manifest.json:38, 116` already list its
 host and CSP origin). What else it touched was first-user work, not a
 provider's cost: F14 (the seam and its fake, Electron's rules, the extension's
@@ -2005,9 +2008,10 @@ the legs become the conversation only once it is held. `prepare` stays before
 the sources: its override feeds the builds, which must refuse before anything
 opens (Stage 2 Kizuna Soniox, ruling 9).
 
-**Legs start in parallel**, roughly halving startup time. Two legs dialling the
-same host are serialized by the header seam in `src/lib/contract/headerSocket.ts`,
-per host and path (Stage 2 OpenAI Live, choice 1; its survey §6 item 5).
+**Legs start in parallel**, roughly halving startup time. Two legs that open
+their sockets through the header seam are serialized by it
+(`src/lib/contract/headerSocket.ts`), per host and path; plain sockets dial in
+parallel (Stage 2 OpenAI Live, choice 1; its survey §6 item 5).
 
 **Settings are read once per run.** The snapshot removes the two expectation
 guards (`expect`, `expectAtApply`) that exist today because settings could

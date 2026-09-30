@@ -7885,16 +7885,34 @@ Start; each item names what settles it):
     transcript sends a sentence's "." with the next word (source rows would
     still not open with ". ": the lead rule), whether a row ends only at a
     pause of the source pause on English too (ruling 10), and whether rows
-    are left with no translation when the model merges sentences.
+    are left with no translation when the model merges sentences. Then say a
+    sentence with an abbreviation or an ellipsis ("Mr. Smith arrived at
+    noon.", "Well... he left.") in both directions: an English source row
+    keeps its own translation and the next row is not a sentence late (the
+    final review's I1, fixed); a Chinese source whose English translation
+    holds "Mr." — record whether the row is cut after "Mr." (the open
+    question above).
 16. **Optional, U13:** close the app abruptly mid-session (kill it); later,
     compare the account's usage dashboard with the session's last
     `session.usage.updated`.
 17. **Optional, the expiry** (ruling 8): a session left running two hours
     ends with `session.closed` (`expired`) and the run's end, no reconnect.
 
-**Open questions for the owner:** none. The survey's nine are ruled, and the
-review's two by rulings 10 and 11; what the live test finds (the rows' length
-and the run-over above all) may raise new ones.
+**Open questions for the owner:** one, from the final review. The survey's
+nine are ruled, and the plan review's two by rulings 10 and 11; what the live
+test finds (the rows' length and the run-over above all) may raise new ones.
+1. **Should the translation cuts module read abbreviations and ellipses as
+   mid-sentence when it counts a translation's sentences?** The module counts
+   any Latin `.?!` before whitespace (the translation cuts' ruling 1 (iii)),
+   so a translation "Mr. Smith arrived today." is cut after "Mr." when its
+   source owes one sentence: the final review's probe, zh → en, made the rows
+   `…"Mr."` | `"Smith arrived today. He sat down."`. It is the module's own
+   rule, shared with OpenAI Translate and Gemini Live Translate, and changing
+   it changes all three; on OpenAI Translate a source that closes at its
+   arrival pause and the translation's quiet usually hide it. The source side
+   is fixed for Live (the fix round below): a Live source owes the sentences
+   it was cut by. Live-test item 15 now records abbreviations and ellipses in
+   both directions.
 
 **The deletion inventory**, for the plan after the live test (the old code
 stays compiled and unreachable until then):
@@ -7964,7 +7982,8 @@ OpenAI Live, …)":
 5. "A run", "Legs start in parallel": serialized by the header seam, per
    host and path.
 6. "What adding a provider then touches": for OpenAI Live, its folder, one
-   registry line and two order tests; the rest first-user work.
+   registry line, two order tests and its row in the session-side guard's
+   test; the rest first-user work.
 7. "The session request", the reconnect paragraph: one attempt, a 60 s
    grace, the rule registered again; the stall's rule.
 8. L2, the timed-window paragraph: Live states its origins by the cuts and
@@ -8053,12 +8072,14 @@ re-check's two carried Nits):
   expiry, is tried again once (parity with the old client's reconnect): a
   moderation close reconnects once before it fails.
 - **The extension's sweep runs when the browser or the extension starts,**
-  not at every worker wake: a rule left by a worker that died between set
-  and clear stays until then — scoped to the extension, so no page rides it,
-  and the next set at the same host and path reuses its id. The old client's
-  rule 4000 is swept at the same moments (ruling 11); were the old client
-  somehow running, its rule would go only at the next start, which is
-  harmless.
+  not at every worker wake: a rule left by a page closed mid-upgrade (the
+  side panel shut, or its renderer gone, inside the 15 s window) stays until
+  then — scoped to the extension, so no page rides it, and the next set at
+  the same host and path reuses its id. A refused registration is cleared
+  like any other (the final review's M1, fixed), so a worker that died after
+  installing the rule and before answering leaves nothing. The old client's
+  rule 4000 is swept at the same moments (ruling 11), and the generic rules
+  outrank it (`priority: 2`), so a leftover of it never supplies the key.
 - **Keys that differ can still overlap** (choice 1; the review's N4): an
   extension rule for a path also reaches an upgrade under a longer path
   (`/v1/` and `/v1/live/`), and two app windows or extension pages running
@@ -8081,3 +8102,53 @@ re-check's two carried Nits):
   worker's rule is for `www.bing.com`: harmless — the cases read only its id,
   to show the sweep and the id choice leave other blocks alone — and
   transcribed as the plan wrote it (the plan's re-check, Nit).
+- **Three adapter nits, parked** (the final review's M3):
+  - `nativeSocket`'s refusal is recognised by its message's prefix, which
+    couples two modules through a string; `socket.ts` could export a marker
+    (a name or a class) — the plain seam's own change;
+  - before `session.started`, an event other than started, error or closed
+    is framed `session.unknown`, even the five types the adapter names by
+    their own type once live (`session.updated`, …): the Logs read
+    "unknown" for a known event;
+  - an output audio delta that does not decode never advances the output's
+    sample clock, so that connection's karaoke shifts by the lost frame's
+    length: rare (a server frame that will not decode).
+
+**The final review and its fix round** (the whole plan, `b6ee3da3..521cc928`:
+With fixes, 0 Critical / 1 Important / 3 Minor; read in six passes — the
+seam end to end, security, adapter ↔ segments ↔ module ↔ L1/L2, the
+definition against the registry's consumers, the lifecycle under the runner,
+the docs against the code; 62 + 4 focused files passing; probes through the
+real `replay()`, L1 and L2; the controller's rulings):
+- **Important 1** (`bec6b83f`): Live cut its source by `sentenceEnds`, which
+  reads abbreviations, initials and ellipses as mid-sentence, while the cut
+  it made owed the translation the module's own count, which does not — so
+  in English speech one "Mr." or "..." put every later row's translation a
+  sentence late until the translation went quiet, in Live's default
+  direction and mode. The module now takes the count as an option
+  (`countSource`), and Live gives its own; an English-source pairing case
+  pins it. The same disagreement on the translation side is the module's
+  own rule and is the owner's question above.
+- **Minor 1** (`cae9f252`): a refused registration was never cleared, and on
+  the extension a refusal can follow an installed rule (a worker that died
+  before answering); it is cleared like any other now.
+- **Recommendation 2** (`8721ac0a`): the old rule 4000 and a generic rule at
+  the same filter and priority left undefined which `Authorization` is
+  sent; the generic rules take `priority: 2`.
+- **Minor 3, its first nit** (`ccbb0687`): the `session.headers` frame's host
+  and path come from `ruleFor(LIVE_WS_URL)`, not a literal. Its other three
+  are parked, above.
+- **Minor 2** (this record's follow-up): three spec sentences — turns'
+  "immediate and after-silence" now names Live's third; "Legs start in
+  parallel" says only header-seam legs are serialized; "What adding a
+  provider then touches" counts Live's session-side guard row.
+- **The scoped re-review** (`521cc928..ccbb0687`): all four addressed — the
+  reviewer's own probe pairs every scenario now, sentence mode with two
+  sentences a row included, and the translation side's disagreement stays
+  as the open question; focused suites 45 files / 801 tests (the
+  segmentation module, Live, OpenAI Translate, Gemini), 24 / 263 (the seam
+  and Live), the extension 9 / 56, Electron 34 / 477; the full tree at 259.
+  Its two Minor findings, both comments — a finding's label in a comment
+  and a test's name, and the seam's `sent` flag still saying a refused
+  registration is not cleared — the controller fixed (`90dc6511`). The
+  suite after the fix wave: 590 + 1 files, 7 690 + 2 tests.
