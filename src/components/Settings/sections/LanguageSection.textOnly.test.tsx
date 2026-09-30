@@ -43,6 +43,15 @@ vi.mock('../../../services/ServiceFactory', () => ({
   },
 }));
 
+// Local Native registers in the old registry only on Electron with its gate
+// on — the only provider the old section still serves (Stage 2 deletion,
+// ruling 1).
+vi.mock('../../../utils/environment', async (orig) => ({
+  ...(await orig<any>()),
+  isElectron: () => true,
+  isLocalNativeEnabled: () => true,
+}));
+
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { default: useAudioStore } = await import('../../../stores/audioStore');
 const { default: useSessionStore } = await import('../../../stores/sessionStore');
@@ -60,8 +69,8 @@ const renderSection = () =>
 
 describe('LanguageSection — Text Only toggle vs the channel matrix', () => {
   beforeEach(() => {
-    // Gemini: textOnlyCapability 'optional', i.e. the switch is interactive at all.
-    useSettingsStore.setState({ provider: Provider.GEMINI, textOnly: false } as any);
+    // Local Native: textOnlyCapability 'optional', i.e. the switch is interactive at all.
+    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, textOnly: false } as any);
     useAudioStore.setState({ mode: 'speaker' } as any);
     useSessionStore.setState({ lockedMode: null } as any);
   });

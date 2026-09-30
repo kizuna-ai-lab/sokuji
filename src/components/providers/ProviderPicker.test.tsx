@@ -42,8 +42,7 @@ vi.mock('../../utils/supportsBaseSelect', () => ({
 
 // The vendor credit renders through <Trans>, which reads the real i18next
 // singleton directly (context or getI18n()) rather than the useTranslation()
-// hook mocked above — same setup PoweredBy.test.tsx uses to exercise the same
-// i18nKey ('providers.poweredBy').
+// hook mocked above ('providers.poweredBy').
 import '../../locales';
 
 import { fakeProvider } from '../../providers/fake/provider';

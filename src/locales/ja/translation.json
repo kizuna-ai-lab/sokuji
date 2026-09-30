@@ -24,7 +24,6 @@
       "audio": "オーディオ",
       "provider": "プロバイダー"
     },
-    "languageSettings": "言語設定",
     "voice": "音声",
     "voiceSettings": "音声設定",
     "model": "モデル",
@@ -40,7 +39,6 @@
     "autoTempo": "適応的な話速",
     "pushToTalk": "プッシュトゥトーク",
     "pushToTranslate": "プッシュトゥトランスレート",
-    "pushToTranslateNotAvailableInWebrtc": "WebRTC モードでは利用できません。プッシュトゥトランスレートを使用するには WebSocket に切り替えてください。",
     "systemInstructions": "システム指示",
     "speechMode": "音声モード",
     "speechModeAppliesTo": "あなたの声に適用されます。相手の音声は常にセマンティックVADを使用します。",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "セッション中は設定がロックされています。設定を変更するにはセッションを終了してください。",
     "realtimeModelAvailable": "リアルタイムモデルが利用可能です",
     "realtimeModelNotAvailable": "リアルタイムモデルは利用できません",
-    "refreshModels": "利用可能なモデルを更新",
-    "loadingModels": "利用可能なモデルを読み込み中...",
     "modelsFound": "{{count}}個のモデルが利用可能",
     "invalidApiKeyFormat": "APIキーの形式が無効です",
     "volcengineAST2Info": "Doubao AST 2.0 について",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "背景ノイズの除去。\nなし：処理なし、静かな部屋で使用。\n近距離：ヘッドセット/近いマイク用。\n遠距離：エコーのあるスピーカー/会議室用。",
     "systemInstructionsTooltip": "AI翻訳者のカスタム指示。フォーマル/カジュアルなトーン、専門用語の扱い、特定の翻訳スタイルなどの好みを伝えてください。",
-    "transportType": "接続タイプ",
-    "transportTypeTooltip": "WebRTC：低遅延、ほとんどのユーザーにおすすめ。\nWebSocket：制限のあるネットワークでも安定接続。WebRTCが失敗した場合に使用してください。",
-    "websocket": "WebSocket（安定）",
-    "webrtc": "WebRTC（低遅延）",
-    "webrtcVadDisabledTitle": "WebRTCモードではサーバーVADは利用できません",
-    "webrtcVadNotice": "WebRTCモードではサーバーVADは無効になっています。WebRTCでは、サーバーが音声を検出すると自動的にオーディオを切り捨てるため、翻訳が中断されます。",
     "participantInstructions": "相手の指示",
     "participantInstructionsTooltip": "相手の音声を翻訳するためのシステム指示。空欄の場合、上記のメイン指示が使用されます。\n\n重要：メイン指示の言語方向が相手に適さない場合があります。例：あなたが中国語を話し、メイン指示が中国語→日本語に翻訳する場合、相手が日本語を話すと、メイン指示は日本語→日本語と誤って翻訳しようとします。日本語→中国語に翻訳するための別の相手の指示を設定してください。",
     "localTranslationPrompt": "翻訳プロンプト",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "話者が出力言語と同じ言語を話す場合、このモデルは無音になります。混合言語の発話では空白が生じる可能性があります。",
     "translateModelAvailable": "APIキーが検証されました。gpt-realtime-translate が利用可能です。",
     "translateModelNotAvailable": "APIキーは有効ですが、このキーでは gpt-realtime-translate にアクセスできません。",
-    "translateSourceParticipantWarning": "相手の音声の翻訳が機能しない可能性があります — 「自分の言語」がこのプロバイダーのサポートする 13 の出力言語に含まれていません。",
     "participantSectionHeader": "相手の音声",
     "participantSectionDescriptionElectron": "このシステムで再生されている任意のアプリケーションの音声を翻訳します。",
     "participantSectionDescriptionExtension": "アクティブなブラウザタブの音声を翻訳します。元の音声はシステムの既定の出力から再生されます。",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "「両方」モードでセッションを共有",
     "sonioxSharedSessionTooltip": "「両方」モードでは、1 つの Soniox セッションを共有することも、方向ごとに別々のセッションを使うこともできます。\n\n有効:1 つのセッションで両者を翻訳し、声を自動的に区別します——コストと遅延が低くなります。\n\n無効:方向ごとに別々のセッションを使用します——2 人が同時に話すときに安定しますが、コストは約 2 倍になります。\n\n「両方」モードにのみ影響します。",
     "sonioxSharedSessionManagedCost": "Kizuna AI はどちらにも対応しています。無効にすると 2 つのセッションを同時に実行します。1 分あたりの費用が約 2 倍になるため、セッションの残り時間はおよそ半分になり、開始にはより多くの残高が必要です。",
-    "sonioxAutoParticipantWarning": "「自分の言語」を具体的に指定してください——自動検出では、相手の音声をその言語に翻訳できません。",
     "sonioxVocabulary": "カスタム語彙",
     "sonioxVocabularyTooltip": "重要な固有名詞や専門用語の認識に重みを付け、特定の用語の訳し方を導きます。次回のセッションから適用されます。",
     "sonioxVocabularyTerms": "用語",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "アカウントで自動的に認証されました",
-    "fetchingApiKey": "アカウントからAPIキーを取得中...",
     "provider": "AIサービスプロバイダー",
     "apiKeyPlaceholder": "APIキーを入力してください",
     "setupGuide": "セットアップガイド",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "ソース75言語（自動検出）、ターゲット13言語",
-      "vendor": "OpenAI"
+      "description": "ソース75言語（自動検出）、ターゲット13言語"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8言語＋中英双方向 · 話者の声を再現",
-      "vendor": "Doubao"
+      "description": "8言語＋中英双方向 · 話者の声を再現"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60言語、3,600の言語ペア · 自分の声をクローン",
-      "vendor": "Soniox"
+      "description": "60言語、3,600の言語ペア · 自分の声をクローン"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "OpenAI 互換（旧 Realtime）",
-      "description": "OpenAI の旧 beta Realtime プロトコルを使うサードパーティ製エンドポイント。OpenAI 本体には非対応。",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "OpenAI の旧 beta Realtime プロトコルを使うサードパーティ製エンドポイント。OpenAI 本体には非対応。"
     },
     "openai_translate": {
       "name": "OpenAI Translate",

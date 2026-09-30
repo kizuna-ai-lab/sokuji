@@ -1,19 +1,18 @@
 /**
  * Composition smoke tests mounting the REAL ProviderSpecificSettings ->
- * EngineSurface tree, for both local providers — the Task 7 review's carried
- * finding: every engine piece (adapter, EnginePage, EngineSurface, the
- * per-provider Library section) was unit-tested standalone, but nothing
- * proved ProviderSpecificSettings actually wires them together for either
- * provider. Deliberately smoke-level: render + a couple of structural
- * assertions, not a re-test of EnginePage/EngineSection/adapter behavior —
- * each already has its own dedicated test file.
+ * EngineSurface tree for Local Native, the one provider the old panel still
+ * serves (Stage 2 deletion, ruling 1): every engine piece (adapter,
+ * EnginePage, EngineSurface, the Library section) is unit-tested standalone,
+ * and these prove ProviderSpecificSettings wires them together. Deliberately
+ * smoke-level: render + a couple of structural assertions, not a re-test of
+ * EnginePage/EngineSection/adapter behavior — each already has its own
+ * dedicated test file.
  *
- * Follows ProviderSpecificSettings.soniox.test.tsx's mount idiom (real
- * settingsStore/modelStore/nativeModelStore, ServiceFactory mocked, heavy
- * local-provider sections stubbed) combined with StoragePage.test.tsx's
- * interpolating `t()` mock, needed here to tell the two rendered direction
- * headings apart ("日本語 → English" vs "English → 日本語" — resolved
- * language NAMES, not the raw 'ja'/'en' codes, per the languageName spec).
+ * The real settingsStore/nativeModelStore, ServiceFactory mocked, the heavy
+ * Library section stubbed, and StoragePage.test.tsx's interpolating `t()`
+ * mock, needed here to tell the two rendered direction headings apart
+ * ("日本語 → English" vs "English → 日本語" — resolved language NAMES, not
+ * the raw 'ja'/'en' codes, per the languageName spec).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, act, waitFor } from '@testing-library/react';
@@ -62,10 +61,8 @@ vi.mock('../../../utils/environment', async (orig) => ({
   isLocalNativeEnabled: () => true,
 }));
 
-// Heavy Library sections — never rendered by these tests (EngineSurface opens
-// on its overview page, not a pushed Library view), stubbed the way
-// ProviderSpecificSettings.soniox.test.tsx stubs local-provider sections.
-vi.mock('./ModelManagementSection', () => ({ ModelManagementSection: () => null }));
+// The heavy Library section — never rendered by these tests (EngineSurface
+// opens on its overview page, not a pushed Library view).
 vi.mock('./NativeModelManagementSection', () => ({ NativeModelManagementSection: () => null }));
 // EngineSection has its own dedicated test file (EngineSection.test.tsx);
 // stubbed to a marker here so this file only asserts WHERE it renders (moved
@@ -78,47 +75,22 @@ vi.mock('./EngineSection', () => ({
 const { default: useSettingsStore } = await import('../../../stores/settingsStore');
 const { default: useAudioStore } = await import('../../../stores/audioStore');
 const { Provider } = await import('../../../types/Provider');
-const { LocalInferenceProviderConfig } = await import('../../../services/providers/LocalInferenceProviderConfig');
-const { LocalNativeProviderConfig } = await import('../../../services/providers/LocalNativeProviderConfig');
 const { default: ProviderSpecificSettings } = await import('./ProviderSpecificSettings');
-
-const baseProps = {
-  isSessionActive: false,
-  isPreviewExpanded: false,
-  setIsPreviewExpanded: () => {},
-  getProcessedSystemInstructions: () => '',
-  availableModels: [] as any[],
-  loadingModels: false,
-  fetchAvailableModels: async () => {},
-};
 
 function directionHeadings(container: HTMLElement): string[] {
   return Array.from(container.querySelectorAll('.engine-direction__title')).map((el) => el.textContent ?? '');
 }
 
 beforeEach(() => {
-  useSettingsStore.setState({ engineSlotTarget: null });
+  useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE, engineSlotTarget: null });
   // Direction visibility is mode-scoped (2026-08-23): these composition
   // tests assert BOTH legs, so pin 'both' — the store default is 'speaker'.
   useAudioStore.setState({ mode: 'both' } as never);
 });
 
-describe('ProviderSpecificSettings — Engine surface composition (Task 7 review carry-over)', () => {
-  it('LOCAL_INFERENCE: EngineSurface renders with both direction headings, no engine gate', () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
-    const { container } = render(
-      <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
-    );
-    expect(directionHeadings(container)).toEqual(['日本語 → English', 'English → 日本語']);
-    // The WASM adapter carries no `gate` — EngineSection is a native-only concern.
-    expect(container.querySelector('[data-testid="engine-section-gate"]')).toBeNull();
-  });
-
+describe('ProviderSpecificSettings — Engine surface composition', () => {
   it('LOCAL_NATIVE: EngineSurface renders with both direction headings and the EngineSection gate, exactly once', () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_NATIVE });
-    const { container } = render(
-      <ProviderSpecificSettings {...baseProps} config={new LocalNativeProviderConfig().getConfig()} />,
-    );
+    const { container } = render(<ProviderSpecificSettings isSessionActive={false} />);
     expect(directionHeadings(container)).toEqual(['日本語 → English', 'English → 日本語']);
     // Moved into the adapter's `gate` (Task 8) — must render, and only once
     // (the branch's old standalone <EngineSection/> is gone).
@@ -126,11 +98,10 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
   });
 
   it('a set engineSlotTarget in advanced mode flashes that slot row, and clears the signal (Task 10, dropdown form)', () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
     const { container } = render(
-      <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
+      <ProviderSpecificSettings isSessionActive={false} />,
     );
 
     // Dropdown form: nothing expands anymore — the deep link's landing is
@@ -154,11 +125,10 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
   it('re-firing the same slot target re-flashes the row (same chip tapped twice)', () => {
     vi.useFakeTimers();
     try {
-      useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
       useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
       const { container } = render(
-        <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
+        <ProviderSpecificSettings isSessionActive={false} />,
       );
 
       const slot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;
@@ -180,11 +150,10 @@ describe('ProviderSpecificSettings — Engine surface composition (Task 7 review
   });
 
   it('a pushed Library page pops back to the Engine page when a NEW slot target fires', async () => {
-    useSettingsStore.setState({ provider: Provider.LOCAL_INFERENCE });
     useSettingsStore.getState().setEngineSlotTarget({ dir: 'ja→en', stage: 'asr' });
 
     const { container } = render(
-      <ProviderSpecificSettings {...baseProps} config={new LocalInferenceProviderConfig().getConfig()} />,
+      <ProviderSpecificSettings isSessionActive={false} />,
     );
 
     const asrSlot = container.querySelector('.engine-slot[data-slot="ja→en:asr"]')!;

@@ -115,7 +115,7 @@ describe('dynamically-built i18n keys resolve in en', () => {
 });
 
 describe('the powered-by attribution keeps its brand slot', () => {
-  // PoweredBy renders through <Trans components={{ brand: <span/> }}> so the
+  // The credit renders through <Trans components={{ brand: <span/> }}> so the
   // vendor gets its own element and can be typeset a step stronger than the
   // preposition it sits next to. A translation that drops the tag still shows
   // the vendor — it just silently loses the emphasis, which is exactly the kind

@@ -24,7 +24,6 @@
       "audio": "Âm thanh",
       "provider": "Nhà cung cấp"
     },
-    "languageSettings": "Cài đặt ngôn ngữ",
     "voice": "Giọng nói",
     "voiceSettings": "Cài đặt giọng nói",
     "model": "Mô hình",
@@ -40,7 +39,6 @@
     "autoTempo": "Tốc độ nói thích ứng",
     "pushToTalk": "Nhấn để nói",
     "pushToTranslate": "Nhấn để dịch",
-    "pushToTranslateNotAvailableInWebrtc": "Không khả dụng trong chế độ WebRTC. Chuyển sang WebSocket để sử dụng Nhấn để dịch.",
     "systemInstructions": "Hướng dẫn hệ thống",
     "speechMode": "Chế độ giọng nói",
     "speechModeAppliesTo": "Áp dụng cho giọng nói của bạn. Âm thanh đối phương luôn sử dụng VAD ngữ nghĩa.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "Cài đặt bị khóa khi phiên đang hoạt động. Vui lòng kết thúc phiên để thay đổi cài đặt.",
     "realtimeModelAvailable": "Mô hình thời gian thực có sẵn",
     "realtimeModelNotAvailable": "Mô hình thời gian thực không có sẵn",
-    "refreshModels": "Làm mới các mô hình có sẵn",
-    "loadingModels": "Đang tải các mô hình có sẵn...",
     "modelsFound": "{{count}} mô hình có sẵn",
     "invalidApiKeyFormat": "Định dạng khóa API không hợp lệ",
     "volcengineAST2Info": "Thông tin Doubao AST 2.0",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Loại bỏ tiếng ồn nền. \nKhông: Không xử lý, dùng trong phòng yên tĩnh. \nGần: Cho tai nghe/microphone gần. \nXa: Cho loa/phòng hội nghị có tiếng vọng.",
     "systemInstructionsTooltip": "Hướng dẫn tùy chỉnh cho AI dịch. Cho biết sở thích của bạn như giọng điệu trang trọng/thân mật, xử lý thuật ngữ kỹ thuật, hoặc phong cách dịch cụ thể.",
-    "transportType": "Loại kết nối",
-    "transportTypeTooltip": "WebRTC: Độ trễ thấp hơn, được khuyến nghị cho hầu hết người dùng.\nWebSocket: Tương thích tốt hơn với mạng hạn chế. Sử dụng nếu kết nối WebRTC thất bại.",
-    "websocket": "WebSocket (Ổn định)",
-    "webrtc": "WebRTC (Độ trễ thấp)",
-    "webrtcVadDisabledTitle": "VAD máy chủ không khả dụng trong chế độ WebRTC",
-    "webrtcVadNotice": "VAD máy chủ bị tắt trong chế độ WebRTC. Trong WebRTC, máy chủ tự động cắt âm thanh khi phát hiện giọng nói, điều này làm gián đoạn bản dịch.",
     "participantInstructions": "Hướng dẫn cho đối phương",
     "participantInstructionsTooltip": "Hướng dẫn hệ thống để dịch âm thanh đối phương. Nếu để trống, sẽ sử dụng hướng dẫn chính ở trên.\n\nQuan trọng: Hướng dẫn chính của bạn có thể có hướng ngôn ngữ sai đối với đối phương. Ví dụ: Nếu bạn nói tiếng Trung và hướng dẫn chính dịch Trung→Nhật, nhưng đối phương nói tiếng Nhật, hướng dẫn chính sẽ dịch nhầm Nhật→Nhật. Hãy đặt hướng dẫn riêng cho đối phương để dịch Nhật→Trung.",
     "localTranslationPrompt": "Prompt Dịch thuật",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "Mô hình này im lặng khi người nói sử dụng cùng ngôn ngữ với ngôn ngữ đích. Lời nói đa ngôn ngữ có thể có khoảng trống.",
     "translateModelAvailable": "Khóa API đã được xác thực. gpt-realtime-translate có sẵn.",
     "translateModelNotAvailable": "Khóa API hoạt động, nhưng không thể truy cập gpt-realtime-translate với khóa này.",
-    "translateSourceParticipantWarning": "Việc dịch âm thanh đối phương có thể không hoạt động — \"Ngôn ngữ của tôi\" không nằm trong 13 ngôn ngữ đích mà nhà cung cấp này hỗ trợ.",
     "participantSectionHeader": "Âm thanh đối phương",
     "participantSectionDescriptionElectron": "Dịch âm thanh từ bất kỳ ứng dụng nào đang phát trên hệ thống này.",
     "participantSectionDescriptionExtension": "Dịch âm thanh từ tab trình duyệt đang hoạt động. Âm thanh gốc phát qua đầu ra mặc định của hệ thống.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "Phiên dùng chung ở chế độ Cả hai",
     "sonioxSharedSessionTooltip": "Chế độ Cả hai có thể dùng một phiên Soniox chung hoặc một phiên riêng cho mỗi chiều.\n\nBật: một phiên duy nhất dịch cả hai bên với việc tách giọng tự động — chi phí và độ trễ thấp hơn.\n\nTắt: một phiên riêng cho mỗi chiều — đáng tin cậy hơn khi cả hai cùng nói, nhưng chi phí khoảng gấp đôi.\n\nChỉ ảnh hưởng đến chế độ Cả hai.",
     "sonioxSharedSessionManagedCost": "Kizuna AI hỗ trợ cả hai. Tắt sẽ chạy hai phiên cùng lúc — chi phí mỗi phút cao khoảng gấp đôi, nên thời lượng phiên của bạn hết trong khoảng một nửa thời gian và cần số dư cao hơn để bắt đầu.",
-    "sonioxAutoParticipantWarning": "Hãy đặt \"Ngôn ngữ của tôi\" thành một ngôn ngữ cụ thể — với chế độ tự động phát hiện, lời nói của đối phương không thể được dịch sang ngôn ngữ đó.",
     "sonioxVocabulary": "Từ vựng tùy chỉnh",
     "sonioxVocabularyTooltip": "Định hướng việc nhận diện theo các tên riêng và thuật ngữ quan trọng, đồng thời chi phối cách dịch các thuật ngữ cụ thể. Áp dụng từ phiên tiếp theo.",
     "sonioxVocabularyTerms": "Thuật ngữ",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Tự động xác thực qua tài khoản của bạn",
-    "fetchingApiKey": "Đang lấy khóa API từ tài khoản của bạn...",
     "provider": "Nhà cung cấp dịch vụ AI",
     "apiKeyPlaceholder": "Nhập khóa API của bạn",
     "setupGuide": "Hướng dẫn cài đặt",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 ngôn ngữ nguồn (tự động nhận diện), 13 ngôn ngữ đích",
-      "vendor": "OpenAI"
+      "description": "75 ngôn ngữ nguồn (tự động nhận diện), 13 ngôn ngữ đích"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 ngôn ngữ + Trung–Anh hai chiều · giữ nguyên giọng của bạn",
-      "vendor": "Doubao"
+      "description": "8 ngôn ngữ + Trung–Anh hai chiều · giữ nguyên giọng của bạn"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 ngôn ngữ, 3.600 cặp · nhân bản giọng của bạn",
-      "vendor": "Soniox"
+      "description": "60 ngôn ngữ, 3.600 cặp · nhân bản giọng của bạn"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "Tương thích OpenAI (Realtime cũ)",
-      "description": "Điểm cuối bên thứ ba dùng giao thức Realtime beta cũ của OpenAI. Không dành cho chính OpenAI.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "Điểm cuối bên thứ ba dùng giao thức Realtime beta cũ của OpenAI. Không dành cho chính OpenAI."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

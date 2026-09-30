@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Dostawca"
     },
-    "languageSettings": "Ustawienia Językowe",
     "voice": "Głos",
     "voiceSettings": "Ustawienia Głosu",
     "model": "Model",
@@ -40,7 +39,6 @@
     "autoTempo": "Adaptacyjna Szybkość Mowy",
     "pushToTalk": "Naciśnij i mów",
     "pushToTranslate": "Naciśnij i tłumacz",
-    "pushToTranslateNotAvailableInWebrtc": "Niedostępne w trybie WebRTC. Przełącz na WebSocket, aby używać Naciśnij i tłumacz.",
     "systemInstructions": "Instrukcje systemowe",
     "speechMode": "Tryb mowy",
     "speechModeAppliesTo": "Dotyczy Twojego głosu. Dźwięk rozmówcy zawsze używa semantycznego VAD.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "Ustawienia są zablokowane podczas aktywnej sesji. Zakończ sesję, aby zmienić ustawienia.",
     "realtimeModelAvailable": "Model w czasie rzeczywistym jest dostępny",
     "realtimeModelNotAvailable": "Model w czasie rzeczywistym nie jest dostępny",
-    "refreshModels": "Odśwież dostępne modele",
-    "loadingModels": "Ładowanie dostępnych modeli...",
     "modelsFound": "{{count}} modeli dostępnych",
     "invalidApiKeyFormat": "Nieprawidłowy format klucza API",
     "volcengineAST2Info": "Informacje o Doubao AST 2.0",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Ustaw poziom redukcji szumów tła",
     "systemInstructionsTooltip": "Wprowadź instrukcje, aby dostosować zachowanie AI",
-    "transportType": "Typ połączenia",
-    "transportTypeTooltip": "WebRTC: Niższe opóźnienie, zalecane dla większości użytkowników.\nWebSocket: Lepsza kompatybilność z ograniczonymi sieciami. Użyj, jeśli połączenie WebRTC nie powiedzie się.",
-    "websocket": "WebSocket (Stabilny)",
-    "webrtc": "WebRTC (Niskie opóźnienie)",
-    "webrtcVadDisabledTitle": "Serwerowe VAD niedostępne w trybie WebRTC",
-    "webrtcVadNotice": "Serwerowe VAD jest wyłączone w trybie WebRTC. W WebRTC serwer automatycznie obcina dźwięk po wykryciu mowy, co przerywa tłumaczenia.",
     "participantInstructions": "Instrukcje dla rozmówcy",
     "participantInstructionsTooltip": "Instrukcje systemowe do tłumaczenia dźwięku rozmówcy. Jeśli puste, zostaną użyte główne instrukcje powyżej.\n\nWażne: Twoje główne instrukcje mogą mieć niewłaściwy kierunek językowy dla rozmówcy. Przykład: Jeśli mówisz po chińsku, a Twoje główne instrukcje tłumaczą chiński→japoński, ale rozmówca mówi po japońsku, główne instrukcje błędnie próbowałyby tłumaczyć japoński→japoński. Ustaw osobne instrukcje dla rozmówcy, aby tłumaczyć japoński→chiński.",
     "localTranslationPrompt": "Prompt tłumaczenia",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "Model milczy, gdy mówca używa tego samego języka co docelowy. Mowa wielojęzyczna może mieć luki.",
     "translateModelAvailable": "Klucz API zweryfikowany. gpt-realtime-translate jest dostępny.",
     "translateModelNotAvailable": "Klucz API działa, ale gpt-realtime-translate jest niedostępny z tym kluczem.",
-    "translateSourceParticipantWarning": "Tłumaczenie dźwięku rozmówcy może nie działać — „Mój język” nie znajduje się wśród 13 języków docelowych obsługiwanych przez tego dostawcę.",
     "participantSectionHeader": "Dźwięk rozmówcy",
     "participantSectionDescriptionElectron": "Tłumacz dźwięk z dowolnej aplikacji odtwarzanej w tym systemie.",
     "participantSectionDescriptionExtension": "Tłumacz dźwięk z aktywnej karty przeglądarki. Oryginalny dźwięk jest odtwarzany przez domyślne wyjście systemu.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "Współdzielona sesja w trybie Oba",
     "sonioxSharedSessionTooltip": "Tryb Oba może korzystać z jednej współdzielonej sesji Soniox lub z osobnej sesji dla każdego kierunku.\n\nWłączone: jedna sesja tłumaczy obie strony z automatycznym rozdzielaniem głosów — niższy koszt i opóźnienie.\n\nWyłączone: osobna sesja dla każdego kierunku — bardziej niezawodne, gdy obie osoby mówią jednocześnie, ale koszt jest około dwukrotnie wyższy.\n\nWpływa tylko na tryb Oba.",
     "sonioxSharedSessionManagedCost": "Kizuna AI obsługuje oba tryby. Wyłączone uruchamia dwie sesje jednocześnie — około dwa razy większy koszt na minutę, więc limit sesji kończy się mniej więcej o połowę szybciej, a do rozpoczęcia potrzebne jest wyższe saldo.",
-    "sonioxAutoParticipantWarning": "Ustaw „Mój język” na konkretny język — przy automatycznym wykrywaniu mowy rozmówcy nie da się na niego przetłumaczyć.",
     "sonioxVocabulary": "Słownik niestandardowy",
     "sonioxVocabularyTooltip": "Ukierunkowuje rozpoznawanie na ważne nazwy i terminologię branżową oraz wpływa na sposób tłumaczenia określonych terminów. Zaczyna obowiązywać od następnej sesji.",
     "sonioxVocabularyTerms": "Terminy",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatycznie uwierzytelniono za pomocą konta",
-    "fetchingApiKey": "Pobieranie klucza API z Twojego konta...",
     "provider": "Dostawca usług AI",
     "apiKeyPlaceholder": "Wprowadź swój klucz API",
     "setupGuide": "Przewodnik konfiguracji",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 języków źródłowych (wykrywanie automatyczne), 13 docelowych",
-      "vendor": "OpenAI"
+      "description": "75 języków źródłowych (wykrywanie automatyczne), 13 docelowych"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 języków + chiński–angielski dwukierunkowo · zachowuje Twój głos",
-      "vendor": "Doubao"
+      "description": "8 języków + chiński–angielski dwukierunkowo · zachowuje Twój głos"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 języków, 3600 par językowych · sklonuj własny głos",
-      "vendor": "Soniox"
+      "description": "60 języków, 3600 par językowych · sklonuj własny głos"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "Zgodny z OpenAI (starsze Realtime)",
-      "description": "Punkt końcowy innej firmy używający starszego protokołu Realtime beta OpenAI. Nie dla samego OpenAI.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "Punkt końcowy innej firmy używający starszego protokołu Realtime beta OpenAI. Nie dla samego OpenAI."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

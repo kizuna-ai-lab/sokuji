@@ -24,7 +24,6 @@
       "audio": "الصوت",
       "provider": "المزود"
     },
-    "languageSettings": "إعدادات اللغة",
     "voice": "الصوت",
     "voiceSettings": "إعدادات الصوت",
     "model": "النموذج",
@@ -40,7 +39,6 @@
     "autoTempo": "سرعة الكلام التكيفية",
     "pushToTalk": "اضغط للتحدث",
     "pushToTranslate": "اضغط للترجمة",
-    "pushToTranslateNotAvailableInWebrtc": "غير متاح في وضع WebRTC. قم بالتبديل إلى WebSocket لاستخدام اضغط للترجمة.",
     "systemInstructions": "تعليمات النظام",
     "speechMode": "وضع الكلام",
     "speechModeAppliesTo": "ينطبق على صوتك. صوت الآخر يستخدم دائمًا كشف النشاط الصوتي الدلالي.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "الإعدادات مؤمنة أثناء نشاط الجلسة. يرجى إنهاء الجلسة لتعديل الإعدادات.",
     "realtimeModelAvailable": "نموذج الوقت الفعلي متاح",
     "realtimeModelNotAvailable": "نموذج الوقت الفعلي غير متاح",
-    "refreshModels": "تحديث النماذج المتاحة",
-    "loadingModels": "جاري تحميل النماذج المتاحة...",
     "modelsFound": "{{count}} نماذج متاحة",
     "invalidApiKeyFormat": "تنسيق مفتاح API غير صالح",
     "volcengineAST2Info": "معلومات Doubao AST 2.0",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "إزالة ضوضاء الخلفية. \nلا شيء: لا معالجة، استخدم في الغرف الهادئة. \nالمجال القريب: لسماعات الرأس/الميكروفونات القريبة. \nالمجال البعيد: للسماعات/غرف المؤتمرات مع الصدى.",
     "systemInstructionsTooltip": "تعليمات مخصصة لمترجم الذكاء الاصطناعي. أخبره بتفضيلاتك مثل النبرة الرسمية/غير الرسمية، معالجة المصطلحات التقنية، أو أسلوب ترجمة محدد.",
-    "transportType": "نوع الاتصال",
-    "transportTypeTooltip": "WebRTC: تأخير أقل، موصى به لمعظم المستخدمين.\nWebSocket: توافق أفضل مع الشبكات المقيدة. استخدمه إذا فشل اتصال WebRTC.",
-    "websocket": "WebSocket (مستقر)",
-    "webrtc": "WebRTC (تأخير منخفض)",
-    "webrtcVadDisabledTitle": "VAD الخادم غير متاح في وضع WebRTC",
-    "webrtcVadNotice": "VAD الخادم معطّل في وضع WebRTC. في WebRTC، يقطع الخادم الصوت تلقائيًا عند اكتشاف الكلام، مما يقطع الترجمات.",
     "participantInstructions": "تعليمات الآخر",
     "participantInstructionsTooltip": "تعليمات النظام لترجمة صوت الآخر. إذا كانت فارغة، فسيتم استخدام التعليمات الرئيسية أعلاه.\n\nمهم: قد يكون اتجاه اللغة في تعليماتك الرئيسية غير مناسب للآخر. مثال: إذا كنت تتحدث الصينية وكانت تعليماتك الرئيسية تترجم الصينية→اليابانية، لكن الآخر يتحدث اليابانية، فستحاول التعليمات الرئيسية عن طريق الخطأ ترجمة اليابانية→اليابانية. عيّن تعليمات منفصلة للآخر لترجمة اليابانية→الصينية.",
     "localTranslationPrompt": "موجّه الترجمة",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "يبقى هذا النموذج صامتاً عندما يستخدم المتحدث نفس لغة الهدف. قد تحتوي الكلام متعدد اللغات على فجوات.",
     "translateModelAvailable": "تم التحقق من مفتاح API. gpt-realtime-translate متاح.",
     "translateModelNotAvailable": "مفتاح API يعمل، ولكن gpt-realtime-translate غير متاح مع هذا المفتاح.",
-    "translateSourceParticipantWarning": "قد لا تعمل ترجمة صوت الآخر — «لغتي» ليست ضمن اللغات الهدف الـ 13 التي يدعمها هذا المزوّد.",
     "participantSectionHeader": "صوت الآخر",
     "participantSectionDescriptionElectron": "ترجمة الصوت من أي تطبيق يعمل على هذا النظام.",
     "participantSectionDescriptionExtension": "ترجمة الصوت من علامة تبويب المتصفح النشطة. يُشغَّل الصوت الأصلي عبر مخرج النظام الافتراضي.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "جلسة مشتركة في وضع الكل",
     "sonioxSharedSessionTooltip": "يمكن لوضع الكل استخدام جلسة Soniox مشتركة واحدة أو جلسة منفصلة لكل اتجاه.\n\nمُفعّل: جلسة واحدة تترجم كلا الجانبين مع فصل تلقائي للأصوات — تكلفة وزمن استجابة أقل.\n\nمُعطّل: جلسة منفصلة لكل اتجاه — أكثر موثوقية عندما يتحدث الاثنان في الوقت نفسه، لكن التكلفة تقارب الضعف.\n\nيؤثر على وضع الكل فقط.",
     "sonioxSharedSessionManagedCost": "يدعم Kizuna AI كلا الخيارين. يشغّل وضع «معطّل» جلستين في آن واحد — بضعف التكلفة تقريبًا لكل دقيقة، لذا ينفد رصيد جلستك في نحو نصف المدة ويلزم رصيد أعلى للبدء.",
-    "sonioxAutoParticipantWarning": "حدّد «لغتي» بلغة معينة — مع الاكتشاف التلقائي، لا يمكن ترجمة كلام الآخر إليها.",
     "sonioxVocabulary": "مفردات مخصصة",
     "sonioxVocabularyTooltip": "يُرجّح التعرّف على الأسماء والمصطلحات المهمة، ويوجّه طريقة ترجمة مصطلحات معيّنة. يُطبَّق بدءًا من الجلسة التالية.",
     "sonioxVocabularyTerms": "المصطلحات",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "تمت المصادقة تلقائيًا عبر حسابك",
-    "fetchingApiKey": "جاري جلب مفتاح API من حسابك...",
     "provider": "مزوّد خدمة الذكاء الاصطناعي",
     "apiKeyPlaceholder": "أدخل مفتاح API الخاص بك",
     "setupGuide": "دليل الإعداد",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 لغة مصدر (كشف تلقائي)، 13 لغة هدف",
-      "vendor": "OpenAI"
+      "description": "75 لغة مصدر (كشف تلقائي)، 13 لغة هدف"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 لغات + الصينية-الإنجليزية باتجاهين · يحافظ على صوتك",
-      "vendor": "Doubao"
+      "description": "8 لغات + الصينية-الإنجليزية باتجاهين · يحافظ على صوتك"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 لغة، 3,600 زوج لغوي · استنساخ صوتك",
-      "vendor": "Soniox"
+      "description": "60 لغة، 3,600 زوج لغوي · استنساخ صوتك"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "متوافق مع OpenAI (Realtime القديم)",
-      "description": "نقطة نهاية من طرف ثالث تستخدم بروتوكول Realtime التجريبي القديم من OpenAI. ليست مخصصة لـ OpenAI نفسها.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "نقطة نهاية من طرف ثالث تستخدم بروتوكول Realtime التجريبي القديم من OpenAI. ليست مخصصة لـ OpenAI نفسها."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

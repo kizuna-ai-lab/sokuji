@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Provider"
     },
-    "languageSettings": "Taalinstellingen",
     "voice": "Stem",
     "voiceSettings": "Spraakinstellingen",
     "model": "Model",
@@ -40,7 +39,6 @@
     "autoTempo": "Adaptieve Spraaksnelheid",
     "pushToTalk": "Push-to-Talk",
     "pushToTranslate": "Push-to-Translate",
-    "pushToTranslateNotAvailableInWebrtc": "Niet beschikbaar in WebRTC-modus. Schakel naar WebSocket om Push-to-Translate te gebruiken.",
     "systemInstructions": "Systeeminstructies",
     "speechMode": "Spraakmodus",
     "speechModeAppliesTo": "Van toepassing op uw stem. Audio van de ander gebruikt altijd semantische VAD.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "Instellingen zijn vergrendeld tijdens een actieve sessie. Beëindig de sessie om instellingen te wijzigen.",
     "realtimeModelAvailable": "Realtime model is beschikbaar",
     "realtimeModelNotAvailable": "Realtime model is niet beschikbaar",
-    "refreshModels": "Beschikbare modellen vernieuwen",
-    "loadingModels": "Beschikbare modellen laden...",
     "modelsFound": "{{count}} modellen beschikbaar",
     "invalidApiKeyFormat": "Ongeldig API-sleutelformaat",
     "volcengineAST2Info": "Doubao AST 2.0-informatie",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Niveau van achtergrondruisonderdrukking instellen",
     "systemInstructionsTooltip": "Instructies invoeren om het AI-gedrag aan te passen",
-    "transportType": "Verbindingstype",
-    "transportTypeTooltip": "WebRTC: Lagere latentie, aanbevolen voor de meeste gebruikers.\nWebSocket: Betere compatibiliteit met beperkte netwerken. Gebruik dit als de WebRTC-verbinding mislukt.",
-    "websocket": "WebSocket (Stabiel)",
-    "webrtc": "WebRTC (Lage latentie)",
-    "webrtcVadDisabledTitle": "Server-VAD is niet beschikbaar in WebRTC-modus",
-    "webrtcVadNotice": "Server-VAD is uitgeschakeld in WebRTC-modus. In WebRTC kapt de server automatisch audio af bij spraakdetectie, wat vertalingen onderbreekt.",
     "participantInstructions": "Instructies voor de ander",
     "participantInstructionsTooltip": "Systeeminstructies voor het vertalen van de audio van de ander. Indien leeg, worden de hoofdinstructies hierboven gebruikt.\n\nBelangrijk: Uw hoofdinstructies kunnen de verkeerde taalrichting hebben voor de ander. Voorbeeld: Als u Chinees spreekt en uw hoofdinstructies vertalen Chinees→Japans, maar de ander spreekt Japans, zouden de hoofdinstructies onjuist proberen Japans→Japans te vertalen. Stel aparte instructies voor de ander in om Japans→Chinees te vertalen.",
     "localTranslationPrompt": "Vertaalprompt",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "Dit model blijft stil wanneer de spreker dezelfde taal gebruikt als de doeltaal. Gemengde talen kunnen hiaten veroorzaken.",
     "translateModelAvailable": "API-sleutel gevalideerd. gpt-realtime-translate is beschikbaar.",
     "translateModelNotAvailable": "API-sleutel werkt, maar gpt-realtime-translate is niet toegankelijk met deze sleutel.",
-    "translateSourceParticipantWarning": "Het vertalen van de audio van de ander werkt mogelijk niet — 'Mijn taal' staat niet bij de 13 doeltalen die deze provider ondersteunt.",
     "participantSectionHeader": "Audio van de ander",
     "participantSectionDescriptionElectron": "Vertaal audio van elke applicatie die op dit systeem wordt afgespeeld.",
     "participantSectionDescriptionExtension": "Vertaal audio van het actieve browsertabblad. De originele audio wordt afgespeeld via de standaarduitvoer van uw systeem.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "Gedeelde sessie in de modus Beide",
     "sonioxSharedSessionTooltip": "In de modus Beide kan één gedeelde Soniox-sessie voor beide richtingen worden gebruikt, of een aparte sessie per richting.\n\nIngeschakeld: één sessie vertaalt beide kanten met automatische stemscheiding — lagere kosten en latentie.\n\nUitgeschakeld: een aparte sessie per richting — betrouwbaarder wanneer beiden tegelijk praten, maar ongeveer dubbele kosten.\n\nHeeft alleen invloed op de modus Beide.",
     "sonioxSharedSessionManagedCost": "Kizuna AI ondersteunt beide. Uitgeschakeld voert twee sessies tegelijk uit — ongeveer twee keer zoveel kosten per minuut, dus je sessietegoed is in ongeveer de helft van de tijd op en je hebt een hoger saldo nodig om te starten.",
-    "sonioxAutoParticipantWarning": "Stel 'Mijn taal' in op een specifieke taal — met automatische detectie kan de spraak van de ander daar niet naartoe worden vertaald.",
     "sonioxVocabulary": "Aangepast vocabulaire",
     "sonioxVocabularyTooltip": "Stuurt de herkenning richting belangrijke namen en vakjargon en beïnvloedt hoe specifieke termen worden vertaald. Wordt toegepast vanaf de volgende sessie.",
     "sonioxVocabularyTerms": "Termen",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatisch geauthenticeerd via uw account",
-    "fetchingApiKey": "API-sleutel ophalen van uw account...",
     "provider": "AI-serviceprovider",
     "apiKeyPlaceholder": "Voer uw API sleutel in",
     "setupGuide": "Installatiehandleiding",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 brontalen (automatisch herkend), 13 doeltalen",
-      "vendor": "OpenAI"
+      "description": "75 brontalen (automatisch herkend), 13 doeltalen"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 talen + Chinees–Engels tweerichtings · behoudt je stem",
-      "vendor": "Doubao"
+      "description": "8 talen + Chinees–Engels tweerichtings · behoudt je stem"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 talen, 3.600 taalparen · kloon je eigen stem",
-      "vendor": "Soniox"
+      "description": "60 talen, 3.600 taalparen · kloon je eigen stem"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "OpenAI-compatibel (verouderde Realtime)",
-      "description": "Endpoint van derden met OpenAI's oudere beta-Realtime-protocol. Niet voor OpenAI zelf.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "Endpoint van derden met OpenAI's oudere beta-Realtime-protocol. Niet voor OpenAI zelf."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

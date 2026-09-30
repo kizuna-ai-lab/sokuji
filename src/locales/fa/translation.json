@@ -24,7 +24,6 @@
       "audio": "صدا",
       "provider": "ارائه‌دهنده"
     },
-    "languageSettings": "تنظیمات زبان",
     "voice": "صدا",
     "voiceSettings": "تنظیمات صدا",
     "model": "مدل",
@@ -40,7 +39,6 @@
     "autoTempo": "سرعت گفتار تطبیقی",
     "pushToTalk": "فشار و صحبت",
     "pushToTranslate": "فشار و ترجمه",
-    "pushToTranslateNotAvailableInWebrtc": "در حالت WebRTC در دسترس نیست. برای استفاده از فشار و ترجمه به WebSocket تغییر دهید.",
     "systemInstructions": "دستورالعمل‌های سیستم",
     "speechMode": "حالت گفتار",
     "speechModeAppliesTo": "برای صدای شما اعمال می‌شود. صدای طرف مقابل همیشه از VAD معنایی استفاده می‌کند.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "تنظیمات در حین فعال بودن جلسه قفل شده‌اند. لطفاً جلسه را پایان دهید تا تنظیمات را تغییر دهید.",
     "realtimeModelAvailable": "مدل زمان واقعی در دسترس است",
     "realtimeModelNotAvailable": "مدل زمان واقعی در دسترس نیست",
-    "refreshModels": "بروزرسانی مدل‌های موجود",
-    "loadingModels": "بارگذاری مدل‌های موجود...",
     "modelsFound": "{{count}} مدل موجود",
     "invalidApiKeyFormat": "فرمت کلید API نامعتبر",
     "volcengineAST2Info": "اطلاعات Doubao AST 2.0",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "صدای پس‌زمینه را از میکروفن شما برای تشخیص واضح‌تر گفتار کاهش می‌دهد.\nخاموش: بدون پردازش (بهترین برای اتاق‌های آرام).\nخودکار: خودکار با محیط شما تطبیق پیدا می‌کند.\nکم: کاهش نویز خفیف.\nمتوسط: کاهش نویز متوسط.\nزیاد: کاهش نویز قوی (ممکن است کیفیت صدا را تحت تأثیر قرار دهد).",
     "systemInstructionsTooltip": "دستورالعمل‌های سفارشی که به هوش مصنوعی می‌گوید چگونه ترجمه کند. می‌توانید از این برای تعریف سبک ترجمه، سطح رسمیت یا نیازهای خاص استفاده کنید.",
-    "transportType": "نوع اتصال",
-    "transportTypeTooltip": "WebRTC: تأخیر کمتر، برای اکثر کاربران توصیه می‌شود.\nWebSocket: سازگاری بهتر با شبکه‌های محدود. در صورت عدم موفقیت اتصال WebRTC استفاده کنید.",
-    "websocket": "WebSocket (پایدار)",
-    "webrtc": "WebRTC (تأخیر کم)",
-    "webrtcVadDisabledTitle": "VAD سرور در حالت WebRTC در دسترس نیست",
-    "webrtcVadNotice": "VAD سرور در حالت WebRTC غیرفعال است. در WebRTC، سرور هنگام تشخیص گفتار به طور خودکار صدا را قطع می‌کند که ترجمه‌ها را مختل می‌کند.",
     "participantInstructions": "دستورالعمل‌های طرف مقابل",
     "participantInstructionsTooltip": "دستورالعمل‌های سیستمی برای ترجمه صدای طرف مقابل. اگر خالی باشد، از دستورالعمل‌های اصلی بالا استفاده می‌شود.\n\nمهم: ممکن است جهت زبان در دستورالعمل‌های اصلی شما برای طرف مقابل نادرست باشد. مثال: اگر شما چینی صحبت می‌کنید و دستورالعمل‌های اصلی چینی→ژاپنی ترجمه می‌کنند، اما طرف مقابل ژاپنی صحبت می‌کند، دستورالعمل‌های اصلی به اشتباه تلاش می‌کنند ژاپنی→ژاپنی ترجمه کنند. دستورالعمل‌های جداگانه‌ای برای طرف مقابل تنظیم کنید تا ژاپنی→چینی ترجمه شود.",
     "localTranslationPrompt": "پرامپت ترجمه",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "این مدل وقتی گوینده از همان زبان مقصد استفاده می‌کند ساکت می‌ماند. گفتار چندزبانه ممکن است شکاف داشته باشد.",
     "translateModelAvailable": "کلید API تأیید شد. gpt-realtime-translate در دسترس است.",
     "translateModelNotAvailable": "کلید API کار می‌کند، اما با این کلید gpt-realtime-translate در دسترس نیست.",
-    "translateSourceParticipantWarning": "ترجمه صدای طرف مقابل ممکن است کار نکند — «زبان من» جزو ۱۳ زبان مقصدی که این ارائه‌دهنده پشتیبانی می‌کند نیست.",
     "participantSectionHeader": "صدای طرف مقابل",
     "participantSectionDescriptionElectron": "صدای هر برنامه‌ای را که روی این سیستم پخش می‌شود ترجمه کنید.",
     "participantSectionDescriptionExtension": "صدای زبانه فعال مرورگر را ترجمه کنید. صدای اصلی از طریق خروجی پیش‌فرض سیستم شما پخش می‌شود.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "نشست مشترک در حالت هر دو",
     "sonioxSharedSessionTooltip": "حالت هر دو می‌تواند از یک نشست مشترک Soniox یا یک نشست جداگانه برای هر جهت استفاده کند.\n\nفعال: یک نشست هر دو طرف را با جداسازی خودکار صداها ترجمه می‌کند — هزینه و تأخیر کمتر.\n\nغیرفعال: یک نشست جداگانه برای هر جهت — وقتی هر دو هم‌زمان صحبت می‌کنند قابل‌اعتمادتر است، اما هزینه تقریباً دو برابر می‌شود.\n\nفقط بر حالت هر دو تأثیر می‌گذارد.",
     "sonioxSharedSessionManagedCost": "Kizuna AI هر دو را پشتیبانی می‌کند. حالت غیرفعال دو جلسه را همزمان اجرا می‌کند — حدود دو برابر هزینه در هر دقیقه، بنابراین اعتبار جلسه شما در حدود نیمی از زمان تمام می‌شود و برای شروع به موجودی بیشتری نیاز است.",
-    "sonioxAutoParticipantWarning": "«زبان من» را روی یک زبان مشخص تنظیم کنید — با تشخیص خودکار، گفتار طرف مقابل به آن ترجمه نمی‌شود.",
     "sonioxVocabulary": "واژگان سفارشی",
     "sonioxVocabularyTooltip": "تشخیص نام‌ها و اصطلاحات مهم را هدایت می‌کند و بر نحوه ترجمه اصطلاحات خاص تأثیر می‌گذارد. از جلسه بعدی اعمال می‌شود.",
     "sonioxVocabularyTerms": "اصطلاحات",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "به طور خودکار از طریق حساب کاربری شما احراز هویت شده",
-    "fetchingApiKey": "در حال دریافت کلید API از حساب شما...",
     "provider": "ارائه‌دهنده خدمات هوش مصنوعی",
     "apiKeyPlaceholder": "کلید API خود را وارد کنید",
     "setupGuide": "راهنمای راه‌اندازی",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "۷۵ زبان مبدأ (تشخیص خودکار)، ۱۳ زبان مقصد",
-      "vendor": "OpenAI"
+      "description": "۷۵ زبان مبدأ (تشخیص خودکار)، ۱۳ زبان مقصد"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "۸ زبان + چینی–انگلیسی دوطرفه · صدای شما را حفظ می‌کند",
-      "vendor": "Doubao"
+      "description": "۸ زبان + چینی–انگلیسی دوطرفه · صدای شما را حفظ می‌کند"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "۶۰ زبان، ۳۶۰۰ جفت زبانی · شبیه‌سازی صدای خودتان",
-      "vendor": "Soniox"
+      "description": "۶۰ زبان، ۳۶۰۰ جفت زبانی · شبیه‌سازی صدای خودتان"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "سازگار با OpenAI (Realtime قدیمی)",
-      "description": "نقطه پایانی شخص ثالث با پروتکل قدیمی Realtime بتای OpenAI. برای خود OpenAI نیست.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "نقطه پایانی شخص ثالث با پروتکل قدیمی Realtime بتای OpenAI. برای خود OpenAI نیست."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

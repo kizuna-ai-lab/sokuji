@@ -24,7 +24,6 @@
       "audio": "Ääni",
       "provider": "Tarjoaja"
     },
-    "languageSettings": "Kieliasetukset",
     "voice": "Ääni",
     "voiceSettings": "Ääniasetukset",
     "model": "Malli",
@@ -40,7 +39,6 @@
     "autoTempo": "Mukautuva puhenopeus",
     "pushToTalk": "Paina ja puhu",
     "pushToTranslate": "Paina ja käännä",
-    "pushToTranslateNotAvailableInWebrtc": "Ei käytettävissä WebRTC-tilassa. Vaihda WebSocketiin käyttääksesi Paina ja käännä -toimintoa.",
     "systemInstructions": "Järjestelmäohjeet",
     "speechMode": "Puhetila",
     "speechModeAppliesTo": "Koskee omaa ääntäsi. Toisen ääni käyttää aina semanttista VAD:ia.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "Asetukset on lukittu istunnon ollessa aktiivinen. Lopeta istunto muuttaaksesi asetuksia.",
     "realtimeModelAvailable": "Reaaliaikamalli on saatavilla",
     "realtimeModelNotAvailable": "Reaaliaikamalli ei ole saatavilla",
-    "refreshModels": "Päivitä saatavilla olevat mallit",
-    "loadingModels": "Ladataan saatavilla olevia malleja...",
     "modelsFound": "{{count}} mallia saatavilla",
     "invalidApiKeyFormat": "Virheellinen API-avaimen muoto",
     "volcengineAST2Info": "Doubao AST 2.0 -tiedot",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Vähentää taustamelua mikrofonistasi selkeämpää puheen tunnistusta varten.\nPois: Ei käsittelyä (paras hiljaisille huoneille).\nAuto: Mukautuu automaattisesti ympäristöösi.\nMatala: Kevyt melunvaimennus.\nKeski: Kohtalainen melunvaimennus.\nKorkea: Aggressiivinen melunvaimennus (voi vaikuttaa äänen laatuun).",
     "systemInstructionsTooltip": "Mukautetut ohjeet, jotka kertovat tekoälylle kuinka kääntää. Voit käyttää tätä käännöstyylin, muodollisuuden tason tai erityisvaatimusten määrittämiseen.",
-    "transportType": "Yhteystyyppi",
-    "transportTypeTooltip": "WebRTC: Pienempi viive, suositellaan useimmille käyttäjille.\nWebSocket: Parempi yhteensopivuus rajoitettujen verkkojen kanssa. Käytä, jos WebRTC-yhteys epäonnistuu.",
-    "websocket": "WebSocket (Vakaa)",
-    "webrtc": "WebRTC (Matala viive)",
-    "webrtcVadDisabledTitle": "Palvelimen VAD ei ole käytettävissä WebRTC-tilassa",
-    "webrtcVadNotice": "Palvelimen VAD on pois käytöstä WebRTC-tilassa. WebRTC:ssä palvelin katkaisee automaattisesti äänen tunnistaessaan puhetta, mikä keskeyttää käännökset.",
     "participantInstructions": "Toisen ohjeet",
     "participantInstructionsTooltip": "Järjestelmäohjeet toisen äänen kääntämiseen. Jos tyhjä, käytetään yllä olevia pääohjeita.\n\nTärkeää: Pääohjeillasi voi olla väärä kielisuunta toiselle. Esimerkki: Jos puhut kiinaa ja pääohjeesi kääntävät kiina→japani, mutta toinen puhuu japania, pääohjeet yrittäisivät virheellisesti kääntää japani→japani. Aseta erilliset toisen ohjeet kääntääksesi japani→kiina.",
     "localTranslationPrompt": "Käännösprompt",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "Malli on hiljaa, kun puhuja käyttää samaa kieltä kuin kohde. Monikielisessä puheessa voi olla aukkoja.",
     "translateModelAvailable": "API-avain vahvistettu. gpt-realtime-translate on käytettävissä.",
     "translateModelNotAvailable": "API-avain toimii, mutta gpt-realtime-translate ei ole käytettävissä tällä avaimella.",
-    "translateSourceParticipantWarning": "Toisen äänen kääntäminen ei välttämättä toimi — 'Minun kieleni' ei ole niiden 13 kohdekielen joukossa, joita tämä palveluntarjoaja tukee.",
     "participantSectionHeader": "Toisen ääni",
     "participantSectionDescriptionElectron": "Käännä ääni mistä tahansa tässä järjestelmässä toistettavasta sovelluksesta.",
     "participantSectionDescriptionExtension": "Käännä ääni aktiivisesta selainvälilehdestä. Alkuperäinen ääni toistetaan järjestelmäsi oletuslähdön kautta.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "Jaettu istunto Molemmat-tilassa",
     "sonioxSharedSessionTooltip": "Molemmat-tila voi käyttää yhtä jaettua Soniox-istuntoa tai erillistä istuntoa kumpaankin suuntaan.\n\nKäytössä: yksi istunto kääntää molemmat puolet automaattisella äänten erottelulla — pienemmät kustannukset ja viive.\n\nPois käytöstä: erillinen istunto kumpaankin suuntaan — luotettavampi, kun molemmat puhuvat yhtä aikaa, mutta noin kaksinkertainen kustannus.\n\nVaikuttaa vain Molemmat-tilaan.",
     "sonioxSharedSessionManagedCost": "Kizuna AI tukee molempia. Kun jaettu istunto on pois käytöstä, kaksi istuntoa on käynnissä samanaikaisesti — noin kaksinkertainen hinta minuutissa, joten istuntosi saldo loppuu noin puolessa ajassa ja aloittamiseen tarvitaan suurempi saldo.",
-    "sonioxAutoParticipantWarning": "Aseta 'Minun kieleni' tietyksi kieleksi — automaattisella tunnistuksella toisen puhetta ei voi kääntää siihen.",
     "sonioxVocabulary": "Mukautettu sanasto",
     "sonioxVocabularyTooltip": "Ohjaa tunnistusta tärkeiden nimien ja erikoistermien suuntaan ja vaikuttaa siihen, miten tietyt termit käännetään. Otetaan käyttöön vasta seuraavasta istunnosta alkaen.",
     "sonioxVocabularyTerms": "Termit",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automaattisesti todennettu tilisi kautta",
-    "fetchingApiKey": "Haetaan API-avainta tililtäsi...",
     "provider": "Tekoälypalvelun tarjoaja",
     "apiKeyPlaceholder": "Syötä API-avaimesi",
     "setupGuide": "Asennusopas",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 lähdekieltä (tunnistetaan automaattisesti), 13 kohdekieltä",
-      "vendor": "OpenAI"
+      "description": "75 lähdekieltä (tunnistetaan automaattisesti), 13 kohdekieltä"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 kieltä + kiina–englanti kaksisuuntaisesti · säilyttää äänesi",
-      "vendor": "Doubao"
+      "description": "8 kieltä + kiina–englanti kaksisuuntaisesti · säilyttää äänesi"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi",
-      "vendor": "Soniox"
+      "description": "60 kieltä, 3600 kieliparia · kloonaa oma äänesi"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "OpenAI-yhteensopiva (vanha Realtime)",
-      "description": "Kolmannen osapuolen päätepiste, joka käyttää OpenAI:n vanhaa beta-Realtime-protokollaa. Ei OpenAI:lle itselleen.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "Kolmannen osapuolen päätepiste, joka käyttää OpenAI:n vanhaa beta-Realtime-protokollaa. Ei OpenAI:lle itselleen."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

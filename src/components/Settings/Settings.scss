@@ -456,48 +456,6 @@
       .select-dropdown {
         flex: 1;
       }
-
-      .refresh-models-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: vars.$bg-control;
-        border: 1px solid vars.$border-default;
-        border-radius: vars.$radius-sm;
-        color: vars.$text-secondary;
-        cursor: pointer;
-        padding: 0 12px;
-        transition: all 0.2s;
-        white-space: nowrap;
-        min-width: 40px;
-
-        span {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: vars.$font-title;
-          transition: transform 0.5s ease;
-          transform-origin: center center;
-
-          svg {
-            display: block;
-            transform-origin: center center;
-          }
-
-          &.loading {
-            animation: spin 1s linear infinite;
-          }
-        }
-
-        &:hover:not(:disabled) {
-          background-color: vars.$bg-elevated;
-          border-color: vars.$border-strong;
-        }
-
-        &:disabled {
-          @include vars.disabled-state;
-        }
-      }
     }
 
     // Range slider
@@ -681,16 +639,7 @@
       }
     }
 
-    // Loading and info messages
-    .loading-status {
-      margin-top: 8px;
-      padding: 6px 10px;
-      border-radius: vars.$radius-sm;
-      font-size: vars.$font-caption;
-      background-color: vars.$color-info-bg;
-      color: vars.$color-info;
-    }
-
+    // Info messages
     .models-info {
       margin-top: 8px;
       padding: 6px 10px;
@@ -1756,42 +1705,7 @@
   }
 }
 
-// Endpoint input styles
-.endpoint-input-group {
-  margin-bottom: 12px;
-
-  .endpoint-input {
-    width: 100%;
-    box-sizing: border-box;
-    background: vars.$bg-control;
-    border: 1px solid vars.$border-default;
-    color: vars.$text-primary;
-    padding: 8px 10px;
-    border-radius: vars.$radius-sm;
-    font-size: vars.$font-title;
-    transition: all vars.$transition-fast;
-
-    &:focus {
-      outline: none;
-      border-color: vars.$color-primary;
-      background: vars.$bg-control;
-    }
-
-    &:disabled {
-      @include vars.disabled-state;
-      background-color: vars.$bg-surface;
-      color: vars.$text-disabled;
-    }
-
-    &::placeholder {
-      color: vars.$text-disabled;
-    }
-  }
-}
-
-// PalabraAI credentials group (Client ID + Client Secret), and any provider's
-// credential choice (F4; `CredentialForm`), which reuses it.
-.palabraai-credentials-group,
+// A provider's credential choice (F4; `CredentialForm`).
 .credential-choice-group {
   display: flex;
   flex-direction: column;

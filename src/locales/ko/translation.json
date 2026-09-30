@@ -24,7 +24,6 @@
       "audio": "오디오",
       "provider": "제공자"
     },
-    "languageSettings": "언어 설정",
     "voice": "음성",
     "voiceSettings": "음성 설정",
     "model": "모델",
@@ -40,7 +39,6 @@
     "autoTempo": "적응형 말하기 속도",
     "pushToTalk": "푸시 투 토크",
     "pushToTranslate": "푸시 투 트랜슬레이트",
-    "pushToTranslateNotAvailableInWebrtc": "WebRTC 모드에서는 사용할 수 없습니다. 푸시 투 트랜슬레이트를 사용하려면 WebSocket으로 전환하세요.",
     "systemInstructions": "시스템 지시사항",
     "speechMode": "음성 모드",
     "speechModeAppliesTo": "내 음성에 적용됩니다. 상대방 오디오는 항상 의미론적 VAD를 사용합니다.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "세션이 활성 상태일 때 설정이 잠깁니다. 설정을 수정하려면 세션을 종료하세요.",
     "realtimeModelAvailable": "실시간 모델을 사용할 수 있습니다",
     "realtimeModelNotAvailable": "실시간 모델을 사용할 수 없습니다",
-    "refreshModels": "사용 가능한 모델 새로고침",
-    "loadingModels": "사용 가능한 모델 로딩 중...",
     "modelsFound": "{{count}}개의 모델 사용 가능",
     "invalidApiKeyFormat": "API 키 형식이 올바르지 않습니다",
     "volcengineAST2Info": "Doubao AST 2.0 정보",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "배경 소음 제거. \n없음: 처리 없음, 조용한 방에서 사용. \n근거리: 헤드셋/가까운 마이크용. \n원거리: 에코가 있는 스피커/회의실용.",
     "systemInstructionsTooltip": "AI 번역기를 위한 사용자 지정 지침. 격식/비격식 톤, 기술 용어 처리 또는 특정 번역 스타일과 같은 선호 사항을 알려주세요.",
-    "transportType": "연결 유형",
-    "transportTypeTooltip": "WebRTC: 지연 시간이 낮으며 대부분의 사용자에게 권장됩니다.\nWebSocket: 제한된 네트워크에서도 안정적으로 연결됩니다. WebRTC 연결이 실패하면 사용하세요.",
-    "websocket": "WebSocket (안정적)",
-    "webrtc": "WebRTC (저지연)",
-    "webrtcVadDisabledTitle": "WebRTC 모드에서는 서버 VAD를 사용할 수 없습니다",
-    "webrtcVadNotice": "WebRTC 모드에서 서버 VAD가 비활성화됩니다. WebRTC에서는 서버가 음성을 감지하면 자동으로 오디오를 잘라 번역이 중단됩니다.",
     "participantInstructions": "상대방 지시",
     "participantInstructionsTooltip": "상대방 오디오 번역을 위한 시스템 지시입니다. 비어 있으면 위의 기본 지시가 사용됩니다.\n\n중요: 기본 지시의 언어 방향이 상대방에게 적합하지 않을 수 있습니다. 예: 내가 중국어를 말하고 기본 지시가 중국어→일본어로 번역하지만, 상대방이 일본어를 말하면 기본 지시가 일본어→일본어로 잘못 번역하려고 합니다. 일본어→중국어로 번역하기 위한 별도의 상대방 지시를 설정하세요.",
     "localTranslationPrompt": "번역 프롬프트",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "화자가 대상 언어와 같은 언어를 사용할 때, 이 모델은 침묵을 유지합니다. 혼합 언어 발화에서는 공백이 생길 수 있습니다.",
     "translateModelAvailable": "API 키 검증 완료. gpt-realtime-translate 사용 가능.",
     "translateModelNotAvailable": "API 키는 유효하지만 현재 키로 gpt-realtime-translate에 접근할 수 없습니다.",
-    "translateSourceParticipantWarning": "상대방 오디오 번역이 작동하지 않을 수 있습니다 — 내 언어가 이 제공업체가 지원하는 13개 대상 언어에 없습니다.",
     "participantSectionHeader": "상대방 오디오",
     "participantSectionDescriptionElectron": "이 시스템에서 재생 중인 모든 애플리케이션의 오디오를 번역합니다.",
     "participantSectionDescriptionExtension": "활성 브라우저 탭의 오디오를 번역합니다. 원본 오디오는 시스템 기본 출력으로 재생됩니다.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "모두 모드에서 세션 공유",
     "sonioxSharedSessionTooltip": "모두 모드에서는 하나의 Soniox 세션을 공유하거나 방향별로 별도의 세션을 사용할 수 있습니다.\n\n활성화됨: 하나의 세션이 양쪽을 번역하고 음성을 자동으로 구분합니다 — 비용과 지연이 낮아집니다.\n\n비활성화: 방향별로 별도의 세션을 사용합니다 — 두 사람이 동시에 말할 때 더 안정적이지만 비용은 약 2배입니다.\n\n모두 모드에만 적용됩니다.",
     "sonioxSharedSessionManagedCost": "Kizuna AI는 두 가지 모두 지원합니다. 사용 안 함은 두 개의 세션을 동시에 실행합니다. 분당 비용이 약 2배이므로 세션 사용 가능 시간이 약 절반으로 줄고, 시작하려면 더 많은 잔액이 필요합니다.",
-    "sonioxAutoParticipantWarning": "내 언어를 특정 언어로 지정하세요 — 자동 감지에서는 상대방의 음성을 그 언어로 번역할 수 없습니다.",
     "sonioxVocabulary": "맞춤 어휘",
     "sonioxVocabularyTooltip": "중요한 이름과 전문 용어 쪽으로 인식에 가중치를 두고, 특정 용어의 번역 방식을 유도합니다. 다음 세션부터 적용됩니다.",
     "sonioxVocabularyTerms": "용어",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "계정을 통해 자동으로 인증됨",
-    "fetchingApiKey": "계정에서 API 키를 가져오는 중...",
     "provider": "AI 서비스 제공자",
     "apiKeyPlaceholder": "API 키를 입력하세요",
     "setupGuide": "설정 가이드",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "소스 75개 언어(자동 감지), 타깃 13개 언어",
-      "vendor": "OpenAI"
+      "description": "소스 75개 언어(자동 감지), 타깃 13개 언어"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8개 언어 + 중–영 양방향 · 화자 목소리 유지",
-      "vendor": "Doubao"
+      "description": "8개 언어 + 중–영 양방향 · 화자 목소리 유지"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60개 언어, 3,600개 언어 쌍 · 내 목소리 클론",
-      "vendor": "Soniox"
+      "description": "60개 언어, 3,600개 언어 쌍 · 내 목소리 클론"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "OpenAI 호환 (레거시 Realtime)",
-      "description": "OpenAI의 구 beta Realtime 프로토콜을 사용하는 서드파티 엔드포인트. OpenAI 자체용이 아닙니다.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "OpenAI의 구 beta Realtime 프로토콜을 사용하는 서드파티 엔드포인트. OpenAI 자체용이 아닙니다."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

@@ -24,7 +24,6 @@
       "audio": "Ses",
       "provider": "Sağlayıcı"
     },
-    "languageSettings": "Dil Ayarları",
     "voice": "Ses",
     "voiceSettings": "Ses Ayarları",
     "model": "Model",
@@ -40,7 +39,6 @@
     "autoTempo": "Uyarlanabilir Konuşma Hızı",
     "pushToTalk": "Bas-Konuş",
     "pushToTranslate": "Bas-Çevir",
-    "pushToTranslateNotAvailableInWebrtc": "WebRTC modunda kullanılamaz. Bas-Çevir kullanmak için WebSocket'e geçin.",
     "systemInstructions": "Sistem talimatları",
     "speechMode": "Konuşma Modu",
     "speechModeAppliesTo": "Sizin sesinize uygulanır. Karşı tarafın sesi her zaman anlamsal VAD kullanır.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "Oturum aktifken ayarlar kilitlenir. Ayarları değiştirmek için lütfen oturumu sonlandırın.",
     "realtimeModelAvailable": "Gerçek zamanlı model kullanılabilir",
     "realtimeModelNotAvailable": "Gerçek zamanlı model kullanılamıyor",
-    "refreshModels": "Mevcut modelleri yenile",
-    "loadingModels": "Mevcut modeller yükleniyor...",
     "modelsFound": "{{count}} model mevcut",
     "invalidApiKeyFormat": "Geçersiz API anahtarı formatı",
     "volcengineAST2Info": "Doubao AST 2.0 Bilgileri",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Daha net konuşma tanıma için mikrofonunuzdan arka plan gürültüsünü azaltır.\nKapalı: İşleme yok (sessiz odalar için en iyisi).\nOtomatik: Ortamınıza otomatik olarak uyum sağlar.\nDüşük: Hafif gürültü azaltma.\nOrta: Ilımlı gürültü azaltma.\nYüksek: Agresif gürültü azaltma (ses kalitesini etkileyebilir).",
     "systemInstructionsTooltip": "AI'ya nasıl çeviri yapacağını söyleyen özel talimatlar. Bunu çeviri stilini, resmiyet düzeyini veya özel gereksinimleri tanımlamak için kullanabilirsiniz.",
-    "transportType": "Bağlantı Türü",
-    "transportTypeTooltip": "WebRTC: Daha düşük gecikme, çoğu kullanıcı için önerilir.\nWebSocket: Kısıtlı ağlarla daha iyi uyumluluk. WebRTC bağlantısı başarısız olursa kullanın.",
-    "websocket": "WebSocket (Kararlı)",
-    "webrtc": "WebRTC (Düşük Gecikme)",
-    "webrtcVadDisabledTitle": "Sunucu VAD WebRTC modunda kullanılamaz",
-    "webrtcVadNotice": "WebRTC modunda sunucu VAD devre dışıdır. WebRTC'de sunucu konuşma algıladığında sesi otomatik olarak keser, bu da çevirileri kesintiye uğratır.",
     "participantInstructions": "Karşı taraf talimatları",
     "participantInstructionsTooltip": "Karşı tarafın sesini çevirmek için sistem talimatları. Boşsa, yukarıdaki ana talimatlar kullanılacaktır.\n\nÖnemli: Ana talimatlarınız karşı taraf için yanlış dil yönüne sahip olabilir. Örnek: Çince konuşuyorsanız ve ana talimatlarınız Çince→Japonca çeviriyorsa, ancak karşı taraf Japonca konuşuyorsa, ana talimatlar yanlışlıkla Japonca→Japonca çevirmeye çalışır. Japonca→Çince çevirmek için ayrı karşı taraf talimatları belirleyin.",
     "localTranslationPrompt": "Çeviri Prompt'u",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "Konuşmacı hedef dille aynı dili kullandığında model sessiz kalır. Karışık dilli konuşmalarda boşluklar olabilir.",
     "translateModelAvailable": "API anahtarı doğrulandı. gpt-realtime-translate kullanılabilir.",
     "translateModelNotAvailable": "API anahtarı çalışıyor ancak bu anahtarla gpt-realtime-translate erişilebilir değil.",
-    "translateSourceParticipantWarning": "Karşı tarafın sesinin çevrilmesi çalışmayabilir — \"Benim dilim\", bu sağlayıcının desteklediği 13 hedef dil arasında değil.",
     "participantSectionHeader": "Karşı tarafın sesi",
     "participantSectionDescriptionElectron": "Bu sistemde çalan herhangi bir uygulamadan gelen sesi çevirin.",
     "participantSectionDescriptionExtension": "Etkin tarayıcı sekmesinden gelen sesi çevirin. Orijinal ses, sistem varsayılan çıkışınızdan çalar.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "Her ikisi modunda paylaşılan oturum",
     "sonioxSharedSessionTooltip": "Her ikisi modu, tek bir paylaşılan Soniox oturumu veya her yön için ayrı bir oturum kullanabilir.\n\nEtkin: tek bir oturum her iki tarafı otomatik ses ayrımıyla çevirir — daha düşük maliyet ve gecikme.\n\nDevre dışı: her yön için ayrı bir oturum — iki kişi aynı anda konuştuğunda daha güvenilir, ancak maliyeti yaklaşık iki katı.\n\nYalnızca Her ikisi modunu etkiler.",
     "sonioxSharedSessionManagedCost": "Kizuna AI her ikisini de destekler. Devre dışı, aynı anda iki oturum çalıştırır — dakika başına yaklaşık iki katı maliyet, bu yüzden oturum süreniz yaklaşık yarı sürede biter ve başlamak için daha yüksek bakiye gerekir.",
-    "sonioxAutoParticipantWarning": "\"Benim dilim\" için belirli bir dil seçin — otomatik algılamayla karşı tarafın konuşması o dile çevrilemez.",
     "sonioxVocabulary": "Özel Kelime Dağarcığı",
     "sonioxVocabularyTooltip": "Tanımayı önemli adlara ve terimlere doğru yönlendirir ve belirli terimlerin nasıl çevrileceğine yön verir. Bir sonraki oturumdan itibaren geçerli olur.",
     "sonioxVocabularyTerms": "Terimler",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Hesabınız üzerinden otomatik olarak doğrulandı",
-    "fetchingApiKey": "API anahtarı hesabınızdan alınıyor...",
     "provider": "Yapay zeka hizmet sağlayıcısı",
     "apiKeyPlaceholder": "API anahtarınızı girin",
     "setupGuide": "Kurulum kılavuzu",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 kaynak dil (otomatik algılama), 13 hedef dil",
-      "vendor": "OpenAI"
+      "description": "75 kaynak dil (otomatik algılama), 13 hedef dil"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 dil + Çince–İngilizce çift yönlü · sesinizi korur",
-      "vendor": "Doubao"
+      "description": "8 dil + Çince–İngilizce çift yönlü · sesinizi korur"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın",
-      "vendor": "Soniox"
+      "description": "60 dil, 3.600 dil çifti · kendi sesinizi klonlayın"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "OpenAI uyumlu (eski Realtime)",
-      "description": "OpenAI'nin eski beta Realtime protokolünü kullanan üçüncü taraf uç noktası. OpenAI'nin kendisi için değil.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "OpenAI'nin eski beta Realtime protokolünü kullanan üçüncü taraf uç noktası. OpenAI'nin kendisi için değil."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

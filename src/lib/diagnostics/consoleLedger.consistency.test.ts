@@ -170,7 +170,9 @@ const LEDGER: Record<string, number> = {
   'src/components/Auth/ForgotPasswordForm.tsx': 2,
   'src/components/Settings/sections/HelpSection.tsx': 2,
   'src/components/Settings/sections/ModelManagementSection.tsx': 2,
-  'src/components/Settings/sections/ProviderSpecificSettings.tsx': 2,
+  // ProviderSpecificSettings.tsx's row (2) is gone, not lowered to 0: both of
+  // its calls sat in the other providers' branches, which the Stage 2
+  // deletion removed; the Local Native branch it keeps has none.
   'src/components/Auth/SignInForm.tsx': 1,
   'src/components/Auth/SignUpForm.tsx': 1,
   // AdvancedSettings.tsx's row (1) is gone, not lowered to 0: its one call

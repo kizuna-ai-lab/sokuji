@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Penyedia"
     },
-    "languageSettings": "Tetapan Bahasa",
     "voice": "Suara",
     "voiceSettings": "Tetapan Suara",
     "model": "Model",
@@ -40,7 +39,6 @@
     "autoTempo": "Kelajuan Pertuturan Adaptif",
     "pushToTalk": "Tekan untuk Bercakap",
     "pushToTranslate": "Tekan untuk Terjemah",
-    "pushToTranslateNotAvailableInWebrtc": "Tidak tersedia dalam mod WebRTC. Tukar ke WebSocket untuk menggunakan Tekan untuk Terjemah.",
     "systemInstructions": "Arahan sistem",
     "speechMode": "Mod Pertuturan",
     "speechModeAppliesTo": "Digunakan untuk suara anda. Audio pihak lain sentiasa menggunakan VAD semantik.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "Tetapan dikunci semasa sesi aktif. Sila tamatkan sesi untuk mengubah tetapan.",
     "realtimeModelAvailable": "Model masa nyata tersedia",
     "realtimeModelNotAvailable": "Model masa nyata tidak tersedia",
-    "refreshModels": "Segar semula model yang tersedia",
-    "loadingModels": "Memuatkan model yang tersedia...",
     "modelsFound": "{{count}} model tersedia",
     "invalidApiKeyFormat": "Format kunci API tidak sah",
     "volcengineAST2Info": "Maklumat Doubao AST 2.0",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Tetapkan tahap pengurangan hingar latar belakang",
     "systemInstructionsTooltip": "Masukkan arahan untuk menyesuaikan kelakuan AI",
-    "transportType": "Jenis Sambungan",
-    "transportTypeTooltip": "WebRTC: Kependaman lebih rendah, disyorkan untuk kebanyakan pengguna.\nWebSocket: Keserasian lebih baik dengan rangkaian terhad. Gunakan jika sambungan WebRTC gagal.",
-    "websocket": "WebSocket (Stabil)",
-    "webrtc": "WebRTC (Kependaman Rendah)",
-    "webrtcVadDisabledTitle": "VAD Pelayan tidak tersedia dalam mod WebRTC",
-    "webrtcVadNotice": "VAD Pelayan dinyahaktifkan dalam mod WebRTC. Dalam WebRTC, pelayan secara automatik memotong audio apabila mengesan pertuturan, yang mengganggu terjemahan.",
     "participantInstructions": "Arahan untuk pihak lain",
     "participantInstructionsTooltip": "Arahan sistem untuk menterjemah audio pihak lain. Jika kosong, arahan utama di atas akan digunakan.\n\nPenting: Arahan utama anda mungkin mempunyai arah bahasa yang salah untuk pihak lain. Contoh: Jika anda bercakap bahasa Cina dan arahan utama anda menterjemah Cina→Jepun, tetapi pihak lain bercakap bahasa Jepun, arahan utama akan tersalah cuba menterjemah Jepun→Jepun. Tetapkan arahan pihak lain yang berasingan untuk menterjemah Jepun→Cina.",
     "localTranslationPrompt": "Prompt Terjemahan",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "Model ini senyap apabila penutur menggunakan bahasa yang sama dengan sasaran. Pertuturan berbilang bahasa mungkin mempunyai jurang.",
     "translateModelAvailable": "Kunci API disahkan. gpt-realtime-translate tersedia.",
     "translateModelNotAvailable": "Kunci API berfungsi, tetapi gpt-realtime-translate tidak boleh diakses dengan kunci ini.",
-    "translateSourceParticipantWarning": "Terjemahan audio pihak lain mungkin tidak berfungsi — \"Bahasa saya\" tiada dalam 13 bahasa sasaran yang disokong penyedia ini.",
     "participantSectionHeader": "Audio pihak lain",
     "participantSectionDescriptionElectron": "Terjemahkan audio daripada mana-mana aplikasi yang dimainkan pada sistem ini.",
     "participantSectionDescriptionExtension": "Terjemahkan audio daripada tab pelayar aktif. Audio asal dimainkan melalui output lalai sistem anda.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "Sesi dikongsi dalam mod Kedua-duanya",
     "sonioxSharedSessionTooltip": "Mod Kedua-duanya boleh menggunakan satu sesi Soniox yang dikongsi atau sesi berasingan bagi setiap arah.\n\nDidayakan: satu sesi menterjemah kedua-dua belah pihak dengan pemisahan suara automatik — kos dan kependaman lebih rendah.\n\nDilumpuhkan: sesi berasingan bagi setiap arah — lebih boleh dipercayai apabila kedua-duanya bercakap serentak, tetapi kosnya kira-kira dua kali ganda.\n\nHanya menjejaskan mod Kedua-duanya.",
     "sonioxSharedSessionManagedCost": "Kizuna AI menyokong kedua-duanya. Dilumpuhkan menjalankan dua sesi serentak — kira-kira dua kali ganda kos seminit, jadi peruntukan sesi anda habis dalam kira-kira separuh masa dan baki yang lebih tinggi diperlukan untuk bermula.",
-    "sonioxAutoParticipantWarning": "Tetapkan \"Bahasa saya\" kepada bahasa tertentu — dengan pengesanan automatik, pertuturan pihak lain tidak dapat diterjemah ke bahasa itu.",
     "sonioxVocabulary": "Perbendaharaan Kata Tersuai",
     "sonioxVocabularyTooltip": "Mencondongkan pengecaman ke arah nama dan istilah penting, serta memandu cara istilah tertentu diterjemahkan. Berkuat kuasa mulai sesi seterusnya.",
     "sonioxVocabularyTerms": "Istilah",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Disahkan secara automatik melalui akaun anda",
-    "fetchingApiKey": "Mendapatkan kunci API daripada akaun anda...",
     "provider": "Penyedia perkhidmatan AI",
     "apiKeyPlaceholder": "Masukkan kunci API anda",
     "setupGuide": "Panduan persediaan",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 bahasa sumber (kesan automatik), 13 bahasa sasaran",
-      "vendor": "OpenAI"
+      "description": "75 bahasa sumber (kesan automatik), 13 bahasa sasaran"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 bahasa + Cina–Inggeris dua hala · mengekalkan suara anda",
-      "vendor": "Doubao"
+      "description": "8 bahasa + Cina–Inggeris dua hala · mengekalkan suara anda"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 bahasa, 3,600 pasangan · klon suara anda sendiri",
-      "vendor": "Soniox"
+      "description": "60 bahasa, 3,600 pasangan · klon suara anda sendiri"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "Serasi OpenAI (Realtime lama)",
-      "description": "Titik akhir pihak ketiga yang menggunakan protokol Realtime beta lama OpenAI. Bukan untuk OpenAI sendiri.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "Titik akhir pihak ketiga yang menggunakan protokol Realtime beta lama OpenAI. Bukan untuk OpenAI sendiri."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

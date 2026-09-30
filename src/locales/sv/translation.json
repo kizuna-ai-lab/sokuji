@@ -24,7 +24,6 @@
       "audio": "Ljud",
       "provider": "Leverantör"
     },
-    "languageSettings": "Språkinställningar",
     "voice": "Röst",
     "voiceSettings": "Röstinställningar",
     "model": "Modell",
@@ -40,7 +39,6 @@
     "autoTempo": "Adaptiv Talhastighet",
     "pushToTalk": "Push-to-Talk",
     "pushToTranslate": "Push-to-Translate",
-    "pushToTranslateNotAvailableInWebrtc": "Inte tillgängligt i WebRTC-läge. Växla till WebSocket för att använda Push-to-Translate.",
     "systemInstructions": "Systeminstruktioner",
     "speechMode": "Talläge",
     "speechModeAppliesTo": "Gäller din röst. Den andras ljud använder alltid semantisk VAD.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "Inställningar kan inte ändras under en aktiv session",
     "realtimeModelAvailable": "Realtidsmodell tillgänglig",
     "realtimeModelNotAvailable": "Realtidsmodell ej tillgänglig",
-    "refreshModels": "Uppdatera tillgängliga modeller",
-    "loadingModels": "Laddar tillgängliga modeller...",
     "modelsFound": "{{count}} modeller tillgängliga",
     "invalidApiKeyFormat": "Ogiltigt API-nyckelformat",
     "volcengineAST2Info": "Doubao AST 2.0-information",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Ställ in nivå för bakgrundsbrusreducering",
     "systemInstructionsTooltip": "Ange instruktioner för att anpassa AI-beteendet",
-    "transportType": "Anslutningstyp",
-    "transportTypeTooltip": "WebRTC: Lägre latens, rekommenderas för de flesta användare.\nWebSocket: Bättre kompatibilitet med begränsade nätverk. Använd om WebRTC-anslutningen misslyckas.",
-    "websocket": "WebSocket (Stabil)",
-    "webrtc": "WebRTC (Låg latens)",
-    "webrtcVadDisabledTitle": "Server-VAD är inte tillgänglig i WebRTC-läge",
-    "webrtcVadNotice": "Server-VAD är inaktiverat i WebRTC-läge. I WebRTC klipper servern automatiskt av ljud vid taligenkänning, vilket avbryter översättningar.",
     "participantInstructions": "Instruktioner för den andra",
     "participantInstructionsTooltip": "Systeminstruktioner för att översätta den andras ljud. Om tom används huvudinstruktionerna ovan.\n\nViktigt: Dina huvudinstruktioner kan ha fel språkriktning för den andra. Exempel: Om du talar kinesiska och dina huvudinstruktioner översätter kinesiska→japanska, men den andra talar japanska, skulle huvudinstruktionerna felaktigt försöka översätta japanska→japanska. Ställ in separata instruktioner för den andra för att översätta japanska→kinesiska.",
     "localTranslationPrompt": "Översättningsprompt",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "Modellen är tyst när talaren använder samma språk som målspråket. Blandspråklig tal kan ha luckor.",
     "translateModelAvailable": "API-nyckel validerad. gpt-realtime-translate är tillgänglig.",
     "translateModelNotAvailable": "API-nyckeln fungerar, men gpt-realtime-translate är inte tillgänglig med den här nyckeln.",
-    "translateSourceParticipantWarning": "Översättning av den andras ljud kanske inte fungerar — 'Mitt språk' finns inte bland de 13 målspråk som den här leverantören stöder.",
     "participantSectionHeader": "Den andras ljud",
     "participantSectionDescriptionElectron": "Översätt ljud från valfri applikation som spelas upp på detta system.",
     "participantSectionDescriptionExtension": "Översätt ljud från den aktiva webbläsarfliken. Originalljudet spelas upp via systemets standardutgång.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "Delad session i läget Båda",
     "sonioxSharedSessionTooltip": "Läget Båda kan använda en delad Soniox-session eller en separat session per riktning.\n\nAktiverad: en enda session översätter båda sidor med automatisk röstseparation — lägre kostnad och latens.\n\nInaktiverad: en separat session per riktning — mer tillförlitlig när båda talar samtidigt, men ungefär dubbel kostnad.\n\nPåverkar endast läget Båda.",
     "sonioxSharedSessionManagedCost": "Kizuna AI stöder båda. Inaktiverad kör två sessioner samtidigt — ungefär dubbla kostnaden per minut, så din sessionstid tar slut på ungefär halva tiden och det krävs ett högre saldo för att starta.",
-    "sonioxAutoParticipantWarning": "Ange ett specifikt språk för 'Mitt språk' — med automatisk identifiering kan den andras tal inte översättas dit.",
     "sonioxVocabulary": "Anpassat ordförråd",
     "sonioxVocabularyTooltip": "Styr igenkänningen mot viktiga namn och fackterminologi och påverkar hur specifika termer översätts. Gäller från nästa session.",
     "sonioxVocabularyTerms": "Termer",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Automatiskt autentiserad via ditt konto",
-    "fetchingApiKey": "Hämtar API-nyckel från ditt konto...",
     "provider": "AI-tjänsteleverantör",
     "apiKeyPlaceholder": "Ange din API nyckel",
     "setupGuide": "Installationsguide",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 källspråk (identifieras automatiskt), 13 målspråk",
-      "vendor": "OpenAI"
+      "description": "75 källspråk (identifieras automatiskt), 13 målspråk"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 språk + kinesiska–engelska dubbelriktat · behåller din röst",
-      "vendor": "Doubao"
+      "description": "8 språk + kinesiska–engelska dubbelriktat · behåller din röst"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 språk, 3600 språkpar · klona din egen röst",
-      "vendor": "Soniox"
+      "description": "60 språk, 3600 språkpar · klona din egen röst"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "OpenAI-kompatibel (äldre Realtime)",
-      "description": "Tredjepartsslutpunkt som använder OpenAI:s äldre beta-Realtime-protokoll. Inte för OpenAI själv.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "Tredjepartsslutpunkt som använder OpenAI:s äldre beta-Realtime-protokoll. Inte för OpenAI själv."
     },
     "openai_translate": {
       "name": "OpenAI Translate",

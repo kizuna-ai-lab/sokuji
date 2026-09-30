@@ -24,7 +24,6 @@
       "audio": "音频",
       "provider": "提供商"
     },
-    "languageSettings": "语言设置",
     "voice": "语音",
     "voiceSettings": "语音设置",
     "model": "模型",
@@ -40,7 +39,6 @@
     "autoTempo": "自适应语速",
     "pushToTalk": "按住说话",
     "pushToTranslate": "按住翻译",
-    "pushToTranslateNotAvailableInWebrtc": "在 WebRTC 模式下不可用。请切换到 WebSocket 以使用按住翻译。",
     "systemInstructions": "系统指令",
     "speechMode": "语音模式",
     "speechModeAppliesTo": "适用于您的语音。对方音频始终使用语义 VAD。",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "会话激活时设置已锁定。请结束会话以修改设置。",
     "realtimeModelAvailable": "实时模型可用",
     "realtimeModelNotAvailable": "实时模型不可用",
-    "refreshModels": "刷新可用模型",
-    "loadingModels": "正在加载可用模型...",
     "modelsFound": "找到{{count}}个模型",
     "invalidApiKeyFormat": "API密钥格式无效",
     "volcengineAST2Info": "豆包同声传译 2.0 信息",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "背景噪音消除。\n无：不处理，在安静房间使用。\n近场：用于耳机/近距离麦克风。\n远场：用于有回声的扬声器/会议室。",
     "systemInstructionsTooltip": "AI翻译器的自定义指令。告诉它您的偏好，如正式/随意的语调、技术术语处理或特定的翻译风格。",
-    "transportType": "连接类型",
-    "transportTypeTooltip": "WebRTC：延迟更低，推荐大多数用户使用。\nWebSocket：网络兼容性更好，适合受限网络环境。如果 WebRTC 连接失败可切换使用。",
-    "websocket": "WebSocket（稳定）",
-    "webrtc": "WebRTC（低延迟）",
-    "webrtcVadDisabledTitle": "WebRTC 模式下不支持服务器 VAD",
-    "webrtcVadNotice": "WebRTC 模式下服务器 VAD 已禁用。在 WebRTC 模式中，服务器检测到语音时会自动截断音频输出，这会导致翻译被中断。",
     "participantInstructions": "对方指令",
     "participantInstructionsTooltip": "用于翻译对方音频的系统指令。留空则使用上方的主指令。\n\n注意：主指令中的语言方向可能与对方不符。例如：如果您说中文、主指令翻译中文→日语，但对方说日语，使用主指令会错误地尝试翻译日语→日语。请设置单独的对方指令来翻译日语→中文。",
     "localTranslationPrompt": "翻译提示词",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "当说话人使用与目标相同的语言时，该模型会保持沉默。混合语言场景可能会有片段缺失。",
     "translateModelAvailable": "API key 验证成功。gpt-realtime-translate 可用。",
     "translateModelNotAvailable": "API key 有效，但当前 key 没有 gpt-realtime-translate 访问权限。",
-    "translateSourceParticipantWarning": "翻译对方音频可能无法工作——「我的语言」不在该服务商支持的 13 个目标语言里。",
     "participantSectionHeader": "对方音频",
     "participantSectionDescriptionElectron": "翻译此系统上任何正在播放的应用程序的音频。",
     "participantSectionDescriptionExtension": "翻译当前浏览器标签页的音频。原始音频通过系统默认输出播放。",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "「两者」模式下共享会话",
     "sonioxSharedSessionTooltip": "「两者」模式可以用一个共享的 Soniox 会话，也可以每个方向各用一个独立会话。\n\n已启用：单个会话同时翻译双方，并自动区分声音——成本和延迟更低。\n\n禁用：每个方向各一个独立会话——两人同时说话时更可靠，但成本约为两倍。\n\n仅影响「两者」模式。",
     "sonioxSharedSessionManagedCost": "Kizuna AI 两种方式都支持。关闭后会同时运行两个会话——每分钟成本约为两倍，因此可用会话时长大约减半，开始会话所需的余额也更高。",
-    "sonioxAutoParticipantWarning": "请把「我的语言」设为具体语言——使用自动检测时，无法把对方的语音翻译成它。",
     "sonioxVocabulary": "自定义词表",
     "sonioxVocabularyTooltip": "使识别偏向重要人名和专业术语，并引导特定术语的译法。将在下次会话生效。",
     "sonioxVocabularyTerms": "术语",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "已通过您的账户自动认证",
-    "fetchingApiKey": "正在从您的账户获取API密钥...",
     "provider": "AI服务提供商",
     "apiKeyPlaceholder": "输入您的API密钥",
     "setupGuide": "设置指南",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 种源语言（自动识别），13 种目标语言",
-      "vendor": "OpenAI"
+      "description": "75 种源语言（自动识别），13 种目标语言"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 种语言 + 中英双向 · 保留您的声音",
-      "vendor": "豆包"
+      "description": "8 种语言 + 中英双向 · 保留您的声音"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 种语言，3,600 个语言对 · 可克隆您自己的声音",
-      "vendor": "Soniox"
+      "description": "60 种语言，3,600 个语言对 · 可克隆您自己的声音"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "OpenAI 兼容（旧版 Realtime）",
-      "description": "使用 OpenAI 旧版 beta Realtime 协议的第三方端点。不适用于 OpenAI 官方。",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "使用 OpenAI 旧版 beta Realtime 协议的第三方端点。不适用于 OpenAI 官方。"
     },
     "openai_translate": {
       "name": "OpenAI Translate",

@@ -24,7 +24,6 @@
       "audio": "অডিও",
       "provider": "প্রদানকারী"
     },
-    "languageSettings": "ভাষা সেটিংস",
     "voice": "কণ্ঠস্বর",
     "voiceSettings": "ভয়েস সেটিংস",
     "model": "মডেল",
@@ -40,7 +39,6 @@
     "autoTempo": "অভিযোজিত বক্তৃতার গতি",
     "pushToTalk": "পুশ-টু-টক",
     "pushToTranslate": "পুশ-টু-ট্রান্সলেট",
-    "pushToTranslateNotAvailableInWebrtc": "WebRTC মোডে উপলব্ধ নয়। পুশ-টু-ট্রান্সলেট ব্যবহার করতে WebSocket-এ স্যুইচ করুন।",
     "systemInstructions": "সিস্টেম নির্দেশনা",
     "speechMode": "স্পিচ মোড",
     "speechModeAppliesTo": "আপনার কণ্ঠস্বরে প্রযোজ্য। অন্যের অডিও সবসময় সিমান্টিক VAD ব্যবহার করে।",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "সক্রিয় সেশনের সময় সেটিংস পরিবর্তন করা যাবে না",
     "realtimeModelAvailable": "রিয়েল-টাইম মডেল উপলব্ধ",
     "realtimeModelNotAvailable": "রিয়েল-টাইম মডেল উপলব্ধ নয়",
-    "refreshModels": "উপলব্ধ মডেল রিফ্রেশ করুন",
-    "loadingModels": "উপলব্ধ মডেল লোড হচ্ছে...",
     "modelsFound": "{{count}}টি মডেল উপলব্ধ",
     "invalidApiKeyFormat": "অবৈধ API কী ফরম্যাট",
     "volcengineAST2Info": "Doubao AST 2.0 তথ্য",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "স্পষ্ট স্পিচ রিকগনিশনের জন্য আপনার মাইক্রোফোন থেকে পটভূমির শব্দ কমায়।\nবন্ধ: কোন প্রক্রিয়াকরণ নেই (শান্ত রুমের জন্য সেরা)।\nস্বয়ংক্রিয়: আপনার পরিবেশে স্বয়ংক্রিয়ভাবে মানিয়ে নেয়।\nনিম্ন: হালকা শব্দ হ্রাস।\nমধ্যম: মাঝারি শব্দ হ্রাস।\nউচ্চ: আক্রমণাত্মক শব্দ হ্রাস (কণ্ঠস্বরের মান প্রভাবিত করতে পারে)।",
     "systemInstructionsTooltip": "কাস্টম নির্দেশনা যা AI কে কীভাবে অনুবাদ করতে হবে তা বলে। আপনি অনুবাদ শৈলী, আনুষ্ঠানিকতার স্তর বা নির্দিষ্ট প্রয়োজনীয়তা সংজ্ঞায়িত করতে এটি ব্যবহার করতে পারেন।",
-    "transportType": "সংযোগের ধরন",
-    "transportTypeTooltip": "WebRTC: কম বিলম্ব, বেশিরভাগ ব্যবহারকারীদের জন্য প্রস্তাবিত।\nWebSocket: সীমাবদ্ধ নেটওয়ার্কের সাথে ভালো সামঞ্জস্য। WebRTC সংযোগ ব্যর্থ হলে ব্যবহার করুন।",
-    "websocket": "WebSocket (স্থিতিশীল)",
-    "webrtc": "WebRTC (কম বিলম্ব)",
-    "webrtcVadDisabledTitle": "WebRTC মোডে সার্ভার VAD উপলব্ধ নয়",
-    "webrtcVadNotice": "WebRTC মোডে সার্ভার VAD অক্ষম। WebRTC-তে, সার্ভার কথা শনাক্ত করলে স্বয়ংক্রিয়ভাবে অডিও কেটে দেয়, যা অনুবাদ ব্যাহত করে।",
     "participantInstructions": "অন্যের জন্য নির্দেশ",
     "participantInstructionsTooltip": "অন্যের অডিও অনুবাদ করার জন্য সিস্টেম নির্দেশ। খালি থাকলে উপরের প্রধান নির্দেশ ব্যবহার করা হবে।\n\nগুরুত্বপূর্ণ: আপনার প্রধান নির্দেশে অন্যের জন্য ভাষার দিক ভুল হতে পারে। উদাহরণ: আপনি যদি চীনা বলেন এবং প্রধান নির্দেশ চীনা→জাপানি অনুবাদ করে, কিন্তু অন্য জাপানি বলে, তাহলে প্রধান নির্দেশ ভুলভাবে জাপানি→জাপানি অনুবাদ করার চেষ্টা করবে। জাপানি→চীনা অনুবাদের জন্য অন্যের জন্য আলাদা নির্দেশ সেট করুন।",
     "localTranslationPrompt": "অনুবাদ প্রম্পট",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "যখন বক্তা লক্ষ্যের সাথে একই ভাষা ব্যবহার করেন, তখন এই মডেল নীরব থাকে। মিশ্র ভাষার বক্তব্যে ফাঁক থাকতে পারে।",
     "translateModelAvailable": "API কী যাচাই করা হয়েছে। gpt-realtime-translate উপলব্ধ।",
     "translateModelNotAvailable": "API কী কাজ করে, কিন্তু এই কী দিয়ে gpt-realtime-translate অ্যাক্সেস করা যায় না।",
-    "translateSourceParticipantWarning": "অন্যের অডিও অনুবাদ কাজ নাও করতে পারে — \"আমার ভাষা\" এই সরবরাহকারীর সমর্থিত ১৩টি লক্ষ্য ভাষার মধ্যে নেই।",
     "participantSectionHeader": "অন্যের অডিও",
     "participantSectionDescriptionElectron": "এই সিস্টেমে চলমান যেকোনো অ্যাপ্লিকেশন থেকে অডিও অনুবাদ করুন।",
     "participantSectionDescriptionExtension": "সক্রিয় ব্রাউজার ট্যাব থেকে অডিও অনুবাদ করুন। মূল অডিও আপনার সিস্টেমের ডিফল্ট আউটপুটের মাধ্যমে চলে।",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "উভয় মোডে ভাগ করা সেশন",
     "sonioxSharedSessionTooltip": "উভয় মোড একটি ভাগ করা Soniox সেশন বা প্রতিটি দিকের জন্য পৃথক সেশন ব্যবহার করতে পারে।\n\nসক্রিয়: একটি সেশন স্বয়ংক্রিয় বক্তা পৃথকীকরণের সাথে উভয় পক্ষ অনুবাদ করে — কম খরচ ও বিলম্ব।\n\nনিষ্ক্রিয়: প্রতিটি দিকের জন্য পৃথক সেশন — উভয়ে একসাথে কথা বললে বেশি নির্ভরযোগ্য, তবে খরচ প্রায় দ্বিগুণ।\n\nশুধুমাত্র উভয় মোডকে প্রভাবিত করে।",
     "sonioxSharedSessionManagedCost": "Kizuna AI দুটোই সমর্থন করে। নিষ্ক্রিয় থাকলে একসঙ্গে দুটি সেশন চলে — প্রতি মিনিটে প্রায় দ্বিগুণ খরচ, তাই আপনার সেশনের সময় প্রায় অর্ধেক সময়েই ফুরিয়ে যায় এবং শুরু করতে বেশি ব্যালেন্স লাগে।",
-    "sonioxAutoParticipantWarning": "\"আমার ভাষা\" একটি নির্দিষ্ট ভাষায় সেট করুন — স্বয়ংক্রিয় সনাক্তকরণে অন্যের কথা সেই ভাষায় অনুবাদ করা যায় না।",
     "sonioxVocabulary": "কাস্টম শব্দভাণ্ডার",
     "sonioxVocabularyTooltip": "গুরুত্বপূর্ণ নাম ও পরিভাষার শনাক্তকরণে ঝোঁক তৈরি করে এবং নির্দিষ্ট শব্দ কীভাবে অনুবাদ হবে তা নির্দেশ করে। এটি পরবর্তী সেশন থেকে কার্যকর হবে।",
     "sonioxVocabularyTerms": "শব্দ",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "আপনার অ্যাকাউন্টের মাধ্যমে স্বয়ংক্রিয়ভাবে প্রমাণীকৃত",
-    "fetchingApiKey": "আপনার অ্যাকাউন্ট থেকে API কী আনা হচ্ছে...",
     "provider": "AI পরিষেবা প্রদানকারী",
     "apiKeyPlaceholder": "আপনার API কী প্রবেশ করান",
     "setupGuide": "সেটআপ গাইড",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "৭৫টি উৎস ভাষা (স্বয়ংক্রিয় শনাক্ত), ১৩টি লক্ষ্য ভাষা",
-      "vendor": "OpenAI"
+      "description": "৭৫টি উৎস ভাষা (স্বয়ংক্রিয় শনাক্ত), ১৩টি লক্ষ্য ভাষা"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "৮টি ভাষা + চীনা-ইংরেজি দ্বিমুখী · আপনার কণ্ঠ বজায় রাখে",
-      "vendor": "Doubao"
+      "description": "৮টি ভাষা + চীনা-ইংরেজি দ্বিমুখী · আপনার কণ্ঠ বজায় রাখে"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "৬০টি ভাষা, ৩,৬০০ জোড়া · নিজের কণ্ঠ ক্লোন করুন",
-      "vendor": "Soniox"
+      "description": "৬০টি ভাষা, ৩,৬০০ জোড়া · নিজের কণ্ঠ ক্লোন করুন"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "OpenAI সামঞ্জস্যপূর্ণ (লিগ্যাসি Realtime)",
-      "description": "OpenAI-এর পুরনো beta Realtime প্রোটোকল ব্যবহারকারী তৃতীয় পক্ষের এন্ডপয়েন্ট। OpenAI-এর নিজস্ব API-এর জন্য নয়।",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "OpenAI-এর পুরনো beta Realtime প্রোটোকল ব্যবহারকারী তৃতীয় পক্ষের এন্ডপয়েন্ট। OpenAI-এর নিজস্ব API-এর জন্য নয়।"
     },
     "openai_translate": {
       "name": "OpenAI Translate",

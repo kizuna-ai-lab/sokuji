@@ -24,7 +24,6 @@
       "audio": "เสียง",
       "provider": "ผู้ให้บริการ"
     },
-    "languageSettings": "การตั้งค่าภาษา",
     "voice": "เสียง",
     "voiceSettings": "การตั้งค่าเสียง",
     "model": "โมเดล",
@@ -40,7 +39,6 @@
     "autoTempo": "ความเร็วในการพูดแบบปรับได้",
     "pushToTalk": "กดเพื่อพูด",
     "pushToTranslate": "กดเพื่อแปล",
-    "pushToTranslateNotAvailableInWebrtc": "ไม่พร้อมใช้งานในโหมด WebRTC สลับไปใช้ WebSocket เพื่อใช้กดเพื่อแปล",
     "systemInstructions": "คำสั่งระบบ",
     "speechMode": "โหมดการพูด",
     "speechModeAppliesTo": "ใช้กับเสียงของคุณ เสียงอีกฝ่ายจะใช้ VAD เชิงความหมายเสมอ",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "การตั้งค่าถูกล็อกขณะที่เซสชันทำงานอยู่ กรุณาสิ้นสุดเซสชันเพื่อแก้ไขการตั้งค่า",
     "realtimeModelAvailable": "โมเดลแบบเรียลไทม์พร้อมใช้งาน",
     "realtimeModelNotAvailable": "โมเดลแบบเรียลไทม์ไม่พร้อมใช้งาน",
-    "refreshModels": "รีเฟรชโมเดลที่มีอยู่",
-    "loadingModels": "กำลังโหลดโมเดลที่ใช้ได้...",
     "modelsFound": "มีโมเดล {{count}} ตัวที่ใช้ได้",
     "invalidApiKeyFormat": "รูปแบบคีย์ API ไม่ถูกต้อง",
     "volcengineAST2Info": "ข้อมูล Doubao AST 2.0",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "ลดเสียงรบกวนพื้นหลังจากไมโครโฟนของคุณเพื่อการจดจำเสียงพูดที่ชัดเจนขึ้น\nปิด: ไม่มีการประมวลผล (ดีที่สุดสำหรับห้องที่เงียบ)\nอัตโนมัติ: ปรับตามสภาพแวดล้อมของคุณโดยอัตโนมัติ\nต่ำ: การลดเสียงรบกวนเบาๆ\nปานกลาง: การลดเสียงรบกวนระดับกลาง\nสูง: การลดเสียงรบกวนอย่างแข็งแกร่ง (อาจส่งผลต่อคุณภาพเสียง)",
     "systemInstructionsTooltip": "คำสั่งที่กำหนดเองที่บอก AI ว่าจะแปลอย่างไร คุณสามารถใช้สิ่งนี้เพื่อกำหนดสไตล์การแปล ระดับความเป็นทางการ หรือข้อกำหนดเฉพาะ",
-    "transportType": "ประเภทการเชื่อมต่อ",
-    "transportTypeTooltip": "WebRTC: ความหน่วงต่ำ แนะนำสำหรับผู้ใช้ส่วนใหญ่\nWebSocket: เข้ากันได้ดีกับเครือข่ายที่มีข้อจำกัด ใช้หาก WebRTC เชื่อมต่อไม่สำเร็จ",
-    "websocket": "WebSocket (เสถียร)",
-    "webrtc": "WebRTC (ความหน่วงต่ำ)",
-    "webrtcVadDisabledTitle": "Server VAD ไม่พร้อมใช้งานในโหมด WebRTC",
-    "webrtcVadNotice": "Server VAD ถูกปิดใช้งานในโหมด WebRTC ใน WebRTC เซิร์ฟเวอร์จะตัดเสียงอัตโนมัติเมื่อตรวจจับคำพูด ซึ่งจะขัดจังหวะการแปล",
     "participantInstructions": "คำแนะนำสำหรับอีกฝ่าย",
     "participantInstructionsTooltip": "คำแนะนำระบบสำหรับแปลเสียงอีกฝ่าย หากว่างเปล่า จะใช้คำแนะนำหลักด้านบน\n\nสำคัญ: คำแนะนำหลักของคุณอาจมีทิศทางภาษาที่ไม่ถูกต้องสำหรับอีกฝ่าย ตัวอย่าง: หากคุณพูดภาษาจีนและคำแนะนำหลักแปลจีน→ญี่ปุ่น แต่อีกฝ่ายพูดภาษาญี่ปุ่น คำแนะนำหลักจะพยายามแปลญี่ปุ่น→ญี่ปุ่นอย่างผิดพลาด ตั้งค่าคำแนะนำแยกสำหรับอีกฝ่ายเพื่อแปลญี่ปุ่น→จีน",
     "localTranslationPrompt": "พร้อมต์การแปล",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "โมเดลนี้จะเงียบเมื่อผู้พูดใช้ภาษาเดียวกับภาษาปลายทาง คำพูดที่ผสมหลายภาษาอาจมีช่องว่าง",
     "translateModelAvailable": "ตรวจสอบ API key สำเร็จ gpt-realtime-translate พร้อมใช้งาน",
     "translateModelNotAvailable": "API key ใช้งานได้ แต่ไม่สามารถเข้าถึง gpt-realtime-translate ด้วย key นี้",
-    "translateSourceParticipantWarning": "การแปลเสียงอีกฝ่ายอาจใช้งานไม่ได้ — \"ภาษาของฉัน\" ไม่อยู่ใน 13 ภาษาปลายทางที่ผู้ให้บริการนี้รองรับ",
     "participantSectionHeader": "เสียงอีกฝ่าย",
     "participantSectionDescriptionElectron": "แปลเสียงจากแอปพลิเคชันใดก็ตามที่กำลังเล่นบนระบบนี้",
     "participantSectionDescriptionExtension": "แปลเสียงจากแท็บเบราว์เซอร์ที่ใช้งานอยู่ เสียงต้นฉบับจะเล่นผ่านเอาต์พุตเริ่มต้นของระบบ",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "เซสชันที่ใช้ร่วมกันในโหมดทั้งคู่",
     "sonioxSharedSessionTooltip": "โหมดทั้งคู่สามารถใช้เซสชัน Soniox ร่วมกันหนึ่งเซสชัน หรือใช้เซสชันแยกกันสำหรับแต่ละทิศทาง\n\nเปิดใช้งาน: เซสชันเดียวแปลทั้งสองฝ่ายพร้อมแยกเสียงอัตโนมัติ — ต้นทุนและความหน่วงต่ำกว่า\n\nปิดใช้งาน: เซสชันแยกสำหรับแต่ละทิศทาง — เชื่อถือได้มากกว่าเมื่อทั้งสองฝ่ายพูดพร้อมกัน แต่มีต้นทุนราวสองเท่า\n\nมีผลกับโหมดทั้งคู่เท่านั้น",
     "sonioxSharedSessionManagedCost": "Kizuna AI รองรับทั้งสองแบบ ปิดใช้งานจะรันสองเซสชันพร้อมกัน — ค่าใช้จ่ายต่อนาทีราวสองเท่า เวลาเซสชันที่ใช้ได้จึงหมดเร็วขึ้นราวครึ่งหนึ่ง และต้องมียอดคงเหลือมากขึ้นจึงจะเริ่มได้",
-    "sonioxAutoParticipantWarning": "โปรดตั้ง \"ภาษาของฉัน\" เป็นภาษาที่เจาะจง — เมื่อใช้การตรวจจับอัตโนมัติ จะไม่สามารถแปลเสียงพูดของอีกฝ่ายเป็นภาษานั้นได้",
     "sonioxVocabulary": "คำศัพท์ที่กำหนดเอง",
     "sonioxVocabularyTooltip": "โน้มการจดจำไปทางชื่อและศัพท์เฉพาะที่สำคัญ และชี้นำวิธีการแปลคำศัพท์เฉพาะ มีผลตั้งแต่เซสชันถัดไป",
     "sonioxVocabularyTerms": "คำศัพท์",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "ตรวจสอบสิทธิ์อัตโนมัติผ่านบัญชีของคุณ",
-    "fetchingApiKey": "กำลังดึง API key จากบัญชีของคุณ...",
     "provider": "ผู้ให้บริการ AI",
     "apiKeyPlaceholder": "ป้อน API key ของคุณ",
     "setupGuide": "คู่มือการตั้งค่า",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 ภาษาต้นทาง (ตรวจจับอัตโนมัติ), 13 ภาษาปลายทาง",
-      "vendor": "OpenAI"
+      "description": "75 ภาษาต้นทาง (ตรวจจับอัตโนมัติ), 13 ภาษาปลายทาง"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 ภาษา + จีน–อังกฤษสองทาง · คงเสียงของคุณไว้",
-      "vendor": "Doubao"
+      "description": "8 ภาษา + จีน–อังกฤษสองทาง · คงเสียงของคุณไว้"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 ภาษา 3,600 คู่ภาษา · โคลนเสียงของคุณเอง",
-      "vendor": "Soniox"
+      "description": "60 ภาษา 3,600 คู่ภาษา · โคลนเสียงของคุณเอง"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "เข้ากันได้กับ OpenAI (Realtime รุ่นเก่า)",
-      "description": "เอ็นด์พอยต์ของบุคคลที่สามที่ใช้โปรโตคอล Realtime เบต้ารุ่นเก่าของ OpenAI ไม่ใช่สำหรับ OpenAI เอง",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "เอ็นด์พอยต์ของบุคคลที่สามที่ใช้โปรโตคอล Realtime เบต้ารุ่นเก่าของ OpenAI ไม่ใช่สำหรับ OpenAI เอง"
     },
     "openai_translate": {
       "name": "OpenAI Translate",

@@ -24,7 +24,6 @@
       "audio": "Audio",
       "provider": "Proveedor"
     },
-    "languageSettings": "Configuración de Idioma",
     "voice": "Voz",
     "voiceSettings": "Configuración de Voz",
     "model": "Modelo",
@@ -40,7 +39,6 @@
     "autoTempo": "Velocidad de Habla Adaptativa",
     "pushToTalk": "Pulsar para hablar",
     "pushToTranslate": "Pulsar para traducir",
-    "pushToTranslateNotAvailableInWebrtc": "No disponible en modo WebRTC. Cambie a WebSocket para usar Pulsar para traducir.",
     "systemInstructions": "Instrucciones del sistema",
     "speechMode": "Modo de habla",
     "speechModeAppliesTo": "Se aplica a tu voz. El audio del otro siempre usa VAD semántico.",
@@ -86,8 +84,6 @@
     "sessionActiveNotice": "La configuración está bloqueada mientras la sesión está activa. Termina la sesión para modificar la configuración.",
     "realtimeModelAvailable": "El modelo en tiempo real está disponible",
     "realtimeModelNotAvailable": "El modelo en tiempo real no está disponible",
-    "refreshModels": "Actualizar modelos disponibles",
-    "loadingModels": "Cargando modelos disponibles...",
     "modelsFound": "{{count}} modelos disponibles",
     "invalidApiKeyFormat": "Formato de clave API no válido",
     "volcengineAST2Info": "Información de Doubao AST 2.0",
@@ -137,12 +133,6 @@
     "transcriptKeywordsPlaceholder": "Sokuji, Kizuna AI, PulseAudio",
     "noiseReductionTooltip": "Eliminación de ruido de fondo. \nNinguno: Sin procesamiento, usar en habitaciones silenciosas. \nCampo cercano: Para auriculares/micrófonos cercanos. \nCampo lejano: Para altavoces/salas de conferencias con eco.",
     "systemInstructionsTooltip": "Instrucciones personalizadas para el traductor de IA. Dile tus preferencias como tono formal/informal, manejo de términos técnicos, o estilo de traducción específico.",
-    "transportType": "Tipo de conexión",
-    "transportTypeTooltip": "WebRTC: Menor latencia, recomendado para la mayoría de usuarios.\nWebSocket: Mejor compatibilidad con redes restrictivas. Úsalo si la conexión WebRTC falla.",
-    "websocket": "WebSocket (Estable)",
-    "webrtc": "WebRTC (Baja latencia)",
-    "webrtcVadDisabledTitle": "VAD del servidor no disponible en modo WebRTC",
-    "webrtcVadNotice": "El VAD del servidor está deshabilitado en modo WebRTC. En WebRTC, el servidor corta automáticamente el audio al detectar habla, lo que interrumpe las traducciones.",
     "participantInstructions": "Instrucciones para el otro",
     "participantInstructionsTooltip": "Instrucciones del sistema para traducir el audio del otro. Si está vacío, se usarán las instrucciones principales de arriba.\n\nImportante: Sus instrucciones principales pueden tener la dirección de idioma incorrecta para el otro. Ejemplo: Si usted habla chino y sus instrucciones principales traducen chino→japonés, pero el otro habla japonés, las instrucciones principales intentarían traducir incorrectamente japonés→japonés. Configure instrucciones separadas para el otro para traducir japonés→chino.",
     "localTranslationPrompt": "Prompt de Traducción",
@@ -207,7 +197,6 @@
     "translateInfoBanner": "Este modelo permanece en silencio cuando el hablante usa el mismo idioma que el destino. El habla mixta puede tener vacíos.",
     "translateModelAvailable": "Clave API validada. gpt-realtime-translate está disponible.",
     "translateModelNotAvailable": "La clave API funciona, pero gpt-realtime-translate no es accesible con esta clave.",
-    "translateSourceParticipantWarning": "La traducción del audio del otro puede no funcionar — «Mi idioma» no está entre los 13 idiomas de destino que admite este proveedor.",
     "participantSectionHeader": "Audio del otro",
     "participantSectionDescriptionElectron": "Traduce el audio de cualquier aplicación que se reproduzca en este sistema.",
     "participantSectionDescriptionExtension": "Traduce el audio de la pestaña activa del navegador. El audio original se reproduce por la salida predeterminada de tu sistema.",
@@ -224,7 +213,6 @@
     "sonioxSharedSession": "Sesión compartida en el modo Ambos",
     "sonioxSharedSessionTooltip": "El modo Ambos puede usar una sola sesión de Soniox compartida o una sesión independiente por dirección.\n\nHabilitado: una sola sesión traduce ambos lados con separación automática de voces — menor costo y latencia.\n\nDeshabilitado: una sesión independiente por dirección — más fiable cuando ambos hablan a la vez, pero con el doble de costo aproximadamente.\n\nSolo afecta al modo Ambos.",
     "sonioxSharedSessionManagedCost": "Kizuna AI admite ambas opciones. Cuando está deshabilitado, se ejecutan dos sesiones a la vez: alrededor del doble de coste por minuto, así que tu tiempo de sesión se agota en aproximadamente la mitad y hace falta más saldo para empezar.",
-    "sonioxAutoParticipantWarning": "Fija «Mi idioma» en un idioma concreto: con la detección automática no se puede traducir la voz del otro a ese idioma.",
     "sonioxVocabulary": "Vocabulario personalizado",
     "sonioxVocabularyTooltip": "Inclina el reconocimiento hacia nombres y términos importantes, y orienta cómo se traducen términos específicos. Se aplica a partir de la próxima sesión.",
     "sonioxVocabularyTerms": "Términos",
@@ -312,7 +300,6 @@
   },
   "simpleSettings": {
     "autoAuthenticated": "Autenticado automáticamente a través de tu cuenta",
-    "fetchingApiKey": "Obteniendo la clave API de tu cuenta...",
     "provider": "Proveedor de servicios de IA",
     "apiKeyPlaceholder": "Ingresa tu clave API",
     "setupGuide": "Guía de configuración",
@@ -461,18 +448,15 @@
   "providers": {
     "kizunaai_openai_translate": {
       "name": "KizunaAI",
-      "description": "75 idiomas de origen (detección automática), 13 de destino",
-      "vendor": "OpenAI"
+      "description": "75 idiomas de origen (detección automática), 13 de destino"
     },
     "kizunaai_volcengine_ast2": {
       "name": "KizunaAI",
-      "description": "8 idiomas + chino-inglés bidireccional · conserva tu voz",
-      "vendor": "Doubao"
+      "description": "8 idiomas + chino-inglés bidireccional · conserva tu voz"
     },
     "kizunaai_soniox": {
       "name": "KizunaAI",
-      "description": "60 idiomas, 3.600 pares · clona tu propia voz",
-      "vendor": "Soniox"
+      "description": "60 idiomas, 3.600 pares · clona tu propia voz"
     },
     "openai": {
       "name": "OpenAI Realtime",
@@ -484,8 +468,7 @@
     },
     "openaiCompatible": {
       "name": "Compatible con OpenAI (Realtime heredado)",
-      "description": "Endpoint de terceros que usa el antiguo protocolo Realtime beta de OpenAI. No sirve para OpenAI.",
-      "customEndpointPlaceholder": "https://your-api-endpoint.com"
+      "description": "Endpoint de terceros que usa el antiguo protocolo Realtime beta de OpenAI. No sirve para OpenAI."
     },
     "openai_translate": {
       "name": "OpenAI Translate",
