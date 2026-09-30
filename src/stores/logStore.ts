@@ -26,7 +26,7 @@ export interface EventData {
     | 'session.notify_failed'
     | 'participant.warning'
     | 'participant.info'
-    // OpenAI server events (shared between beta and GA)
+    // OpenAI server events
     | 'session.created' | 'session.updated'
     | 'conversation.created'
     | 'conversation.item.created' | 'conversation.item.deleted' | 'conversation.item.truncated'
@@ -40,7 +40,7 @@ export interface EventData {
     | 'response.function_call_arguments.delta' | 'response.function_call_arguments.done'
     | 'rate_limits.updated'
     | 'error'
-    // GA-only event names (OpenAI direct)
+    // OpenAI's output events
     | 'response.output_text.delta' | 'response.output_text.done'
     | 'response.output_audio.delta' | 'response.output_audio.done'
     | 'response.output_audio_transcript.delta' | 'response.output_audio_transcript.done'
@@ -149,7 +149,7 @@ export interface LogEntry {
   type?: 'info' | 'success' | 'warning' | 'error' | 'token';
   events?: EventData[]; // For storing all events (single or grouped)
   source?: RealtimeEventSource; // To identify if it's a client or server event
-  eventType?: string; // The type of the event (e.g., 'session.created', 'response.text.delta')
+  eventType?: string; // The type of the event (e.g., 'session.created', 'response.output_text.delta')
   groupingKey?: string; // Custom grouping key for specific event types
   /**
    * How many events this entry has grouped in total. `events` keeps only the

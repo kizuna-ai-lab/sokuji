@@ -41,8 +41,8 @@ export type ClientOptions = {
    *
    * Absent or disabled means today's behaviour exactly: a client that receives
    * no runtime never seals and never calls a model. Clients never construct
-   * one — MainPanel owns the single instance (useSegmentationRuntime) so no
-   * client has to import a store.
+   * one, so no client imports a store; the old session start that passed one
+   * in is gone until #578 ports Local Native (Stage 2 deletion, ruling 1).
    */
   segmentation?: SegmentationRuntime | null;
   /**
@@ -84,12 +84,12 @@ export interface ParticipantNotice {
 }
 
 export interface ParticipantSessionResult {
-  /** null ⇒ this provider cannot run a participant leg right now; MainPanel
-   *  maps null to the participant-skip path (splitParticipantFailure =
-   *  'no-participant-config'). */
+  /** null ⇒ this provider cannot run a participant leg right now; the old
+   *  session start skipped the participant leg on null. That start is gone
+   *  until #578 ports Local Native (Stage 2 deletion, ruling 1). */
   config: SessionConfig | null;
-  /** User-facing participant.error/.warning/.info events. Emitting them is
-   *  MainPanel's job (side effects stay in the component). */
+  /** User-facing participant.error/.warning/.info events, for the caller to
+   *  emit (side effects stay out of the descriptor). */
   notices: ParticipantNotice[];
 }
 
@@ -132,9 +132,9 @@ export interface PreparePorts {
   sessionShape: { speakerWillStart: boolean; participantWillStart: boolean; textOnly: boolean };
   /** null clears the phase (a hook's finally). */
   onPhase: (phase: InitPhase | null) => void;
-  /** Start cancellation. No caller aborts today — MainPanel supplies a live
-   *  controller per Start and S6's abort path is the intended aborter; a hook
-   *  must still honor it (result discarded silently once fired). */
+  /** Start cancellation. Nothing supplies one since the old session start
+   *  went (Stage 2 deletion, ruling 1); a hook must still honor it (result
+   *  discarded silently once fired). */
   signal: AbortSignal;
 }
 
@@ -158,10 +158,10 @@ export interface ProviderDescriptor {
   /** i18n namespace under `providers.*`; defaults to getConfig().id. */
   readonly i18nKey?: string;
   /** True when the CLIENT owns audio capture over WebRTC transport
-   *  (MediaStreamTrack) and MainPanel must not start the native recorder.
-   *  NOT "can run over webrtc": PalabraAI always runs webrtc transport yet
-   *  declares false, because its capture path is appendInputAudio. See
-   *  capabilities.forcedTransport for transport selection. */
+   *  (MediaStreamTrack), so the session start must not start the native
+   *  recorder. Local Native, the one descriptor left, declares false (Stage 2
+   *  deletion, ruling 1). See capabilities.forcedTransport for transport
+   *  selection. */
   readonly supportsWebRTC: boolean;
 
   /** Slice keys a user must fill for extractCredentials to succeed (spec §1.8).
@@ -231,11 +231,13 @@ export interface ProviderDescriptor {
   reversesDirectionViaSourceLanguage(model: string | null | undefined): boolean;
 
   /**
-   * Optional async pre-start hook, awaited by MainPanel FIRST in the connect
-   * sequence (before the no-channel guard, any audio init, any client).
-   * ok:false blocks Start with the display-ready message; a REJECTED promise
-   * is treated as ok:false with a generic message (MainPanel catches and
-   * logs); once ports.signal fires the result is discarded silently.
+   * Optional async pre-start hook, for the session start to await FIRST in
+   * the connect sequence (before the no-channel guard, any audio init, any
+   * client). ok:false blocks Start with the display-ready message; a REJECTED
+   * promise counts as ok:false with a generic message; once ports.signal
+   * fires the result is discarded silently. Nothing awaits it since the old
+   * session start went, until #578 ports Local Native (Stage 2 deletion,
+   * ruling 1).
    */
   prepareToStart?(slice: unknown, ports: PreparePorts): Promise<PrepareOutcome>;
 }
