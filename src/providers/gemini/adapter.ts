@@ -1,7 +1,7 @@
 /**
  * Gemini on the new contract (spec: "L0 — the client contract"), ported
- * from `GeminiClient` (`src/services/clients/GeminiClient.ts`, still
- * compiled and unreachable) without its SDK session, its items or its
+ * from `GeminiClient` (`src/services/clients/GeminiClient.ts`, deleted
+ * since) without its SDK session, its items or its
  * display bookkeeping: one leg, one Live connection over `wire.ts`, the
  * server's content through `GeminiTurns` to segments. A lost connection is
  * resumed with the server's handle, or opened fresh when it issued none
