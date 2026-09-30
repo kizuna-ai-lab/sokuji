@@ -22,7 +22,7 @@ import {
   type StartRequest,
 } from '../../lib/contract/adapter';
 import { framePayload } from '../../lib/contract/framePayload';
-import { HeaderSocketError, platformHeaderSocket, type OpenHeaderSocket } from '../../lib/contract/headerSocket';
+import { HeaderSocketError, platformHeaderSocket, ruleFor, type OpenHeaderSocket } from '../../lib/contract/headerSocket';
 import { WS_OPEN } from '../../lib/contract/socket';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import type { LiveConfig } from './config';
@@ -71,7 +71,7 @@ export const CONNECTION_LOST = 'The connection to OpenAI was lost and could not 
 /** Refusals the user can act on: an end that follows one, or a reconnect refused so, fails in its words (ruling 6). */
 const ACTIONABLE = new Set(['auth', 'rate_limit']);
 /** Where the rule the seam installs applies: the Logs name it, never a value. */
-const RULE = { host: 'api.openai.com', path: '/v1/live/' };
+const RULE = ruleFor(LIVE_WS_URL, { set: {} });
 
 export interface LiveAdapterDeps {
   /** The header seam (F14): the platform's in the app, `fakeHeaderSockets().open` in tests. */
