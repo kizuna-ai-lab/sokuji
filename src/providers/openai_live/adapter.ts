@@ -1,7 +1,7 @@
 /**
  * OpenAI Live on the new contract (spec: "L0 — the client contract"), ported
- * from `OpenAILiveClient` (`src/services/clients/`, compiled until the
- * deletion after the live test) without its items, ids, karaoke bookkeeping
+ * from `OpenAILiveClient` (`src/services/clients/`, deleted since)
+ * without its items, ids, karaoke bookkeeping
  * or segmentation stage: one leg, one WebSocket to the Live endpoint, opened
  * through the header seam with a Bearer header and no `Origin` (F14; ruling
  * 7). The start resolves on `session.started`, within a bound, and a refused

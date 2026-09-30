@@ -39,10 +39,11 @@ export function ruleProblem(message) {
 }
 
 /**
- * The old OpenAI Live client's rule (`OPENAI_LIVE_DNR_RULE_ID` in
- * background.js): the same filter, the same initiator. One its client left
- * behind would hold an old key and reach the new upgrade, so the sweep takes it
- * too (Stage 2 OpenAI Live, ruling 11).
+ * The old OpenAI Live client's rule id, gone from background.js with that
+ * client (Stage 2 deletion, ruling 2): the same filter, the same initiator.
+ * One a profile upgraded from an old build still holds would carry an old key
+ * and reach the new upgrade, so the sweep takes it too (Stage 2 OpenAI Live,
+ * ruling 11).
  */
 export const OLD_LIVE_RULE_ID = 4000;
 
@@ -81,8 +82,8 @@ export function buildRule(existing, message, runtimeId) {
   if (id === undefined) return null;
   return {
     id,
-    // Above the old Live rule (4000) at the same filter (`||api.openai.com/v1/live/`), so a leftover of it — left by a client
-    // now unreachable — never supplies the key; nothing else competes at this filter (Stage 2 OpenAI Live, ruling 11).
+    // Above the old Live rule (4000) at the same filter (`||api.openai.com/v1/live/`), so a leftover of it — left by the old
+    // client, deleted since — never supplies the key; nothing else competes at this filter (Stage 2 OpenAI Live, ruling 11).
     priority: 2,
     action: {
       type: 'modifyHeaders',

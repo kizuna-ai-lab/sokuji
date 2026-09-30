@@ -43,7 +43,6 @@ describe('provider list order', () => {
       Provider.VOLCENGINE_AST2,
       Provider.OPENAI,
       Provider.OPENAI_TRANSLATE,
-      Provider.OPENAI_LIVE,
       Provider.SONIOX,
       Provider.OPENAI_COMPATIBLE,
       Provider.PALABRA_AI,

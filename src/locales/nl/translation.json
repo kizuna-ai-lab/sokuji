@@ -631,7 +631,6 @@
     "sonioxTtsSegmentLost": "Een deel van de gesproken vertaling kon niet worden afgespeeld. Transcriptie en tekstvertaling werken gewoon door.",
     "sonioxSegmentEnded": "Dit segment is beëindigd — tik op ‘Sessie starten’ om door te gaan.",
     "sonioxConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan.",
-    "openaiLiveConnectionLost": "De verbinding is verbroken — tik zo op ‘Sessie starten’ om door te gaan.",
     "sonioxVoiceClipMissing": "Dit apparaat heeft geen stemopname, dus deze sessie gebruikt een preset-stem. Neem er een op in Instellingen om hier met uw eigen stem te spreken.",
     "sonioxVoicePoolBusy": "Alle plekken voor aangepaste stemmen zijn op dit moment bezet, dus deze sessie gebruikt een preset-stem. Uw eigen stem wordt de volgende keer weer gebruikt.",
     "sonioxVoiceBuildFailed": "Uw aangepaste stem kon niet worden gebouwd, dus deze sessie gebruikt een preset-stem. Probeer een duidelijkere opname te maken in Instellingen.",

@@ -53,10 +53,4 @@ describe('the background worker: the generic upgrade header rules', () => {
     expect(background).toContain('chrome.runtime.onStartup.addListener(() => { void wsHeadersSweep(); });');
     expect(background).toContain('chrome.runtime.onInstalled.addListener(() => { void wsHeadersSweep(); });');
   });
-
-  it("leaves the old OpenAI Live pair as it was: it goes with the old client", () => {
-    expect(background).toContain("if (message.type === 'OPENAI_LIVE_SET_HEADERS') {");
-    expect(background).toContain("if (message.type === 'OPENAI_LIVE_CLEAR_HEADERS') {");
-    expect(background).toContain('const OPENAI_LIVE_DNR_RULE_ID = 4000;');
-  });
 });

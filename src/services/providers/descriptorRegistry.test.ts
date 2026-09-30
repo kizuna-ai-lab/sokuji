@@ -26,7 +26,6 @@ import { VolcengineAST2Client } from '../clients/VolcengineAST2Client';
 import { defaultOpenAISettings } from './OpenAIProviderConfig';
 import { defaultOpenAICompatibleSettings } from './OpenAICompatibleProviderConfig';
 import { defaultOpenAITranslateSettings } from './OpenAITranslateProviderConfig';
-import { defaultOpenAILiveSettings } from './OpenAILiveProviderConfig';
 import { defaultGeminiSettings } from './GeminiProviderConfig';
 import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultVolcengineAST2Settings } from './VolcengineAST2ProviderConfig';
@@ -46,7 +45,6 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
   openai: defaultOpenAISettings,
   openaiCompatible: defaultOpenAICompatibleSettings,
   openaiTranslate: defaultOpenAITranslateSettings,
-  openaiLive: defaultOpenAILiveSettings,
   gemini: defaultGeminiSettings,
   palabraai: defaultPalabraAISettings,
   volcengineAST2: defaultVolcengineAST2Settings,
@@ -61,7 +59,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(13);
+    expect(ids.length).toBe(12);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -217,7 +215,6 @@ describe('descriptor.buildSessionConfig', () => {
     // Expected wire tags (kizuna twins reuse their base tag; compatible uses 'openai').
     const wireTag: Record<string, string> = {
       openai: 'openai', openai_compatible: 'openai', openai_translate: 'openai_translate',
-      openai_live: 'openai_live',
       gemini: 'gemini', palabraai: 'palabraai',
       volcengine_ast2: 'volcengine_ast2', local_inference: 'local_inference',
       local_native: 'local_native',
@@ -269,18 +266,19 @@ describe('registry invariants', () => {
   // Exact expected settingsSliceKey per provider. A typo'd slice key (e.g. a
   // provider silently falling back to a differently-cased or misspelled key)
   // must fail this table lookup loudly, not just pass a generic typeof check.
-  const EXPECTED_SLICE_KEYS: Record<Provider, string> = {
+  // Partial: the enum keeps ids whose old descriptors are gone (Stage 2
+  // deletion, ruling C1), so every table below names only the providers the
+  // old registry still registers.
+  const EXPECTED_SLICE_KEYS: Partial<Record<Provider, string>> = {
     [Provider.OPENAI]: 'openai',
     [Provider.OPENAI_COMPATIBLE]: 'openaiCompatible',
     [Provider.OPENAI_TRANSLATE]: 'openaiTranslate',
-    [Provider.OPENAI_LIVE]: 'openaiLive',
     [Provider.GEMINI]: 'gemini',
     [Provider.PALABRA_AI]: 'palabraai',
     [Provider.VOLCENGINE_AST2]: 'volcengineAST2',
     [Provider.LOCAL_INFERENCE]: 'localInference',
-    // Registered only under Electron (isElectron() gate), so the availability
-    // loops below never see it in jsdom — the row satisfies Record<Provider,…>
-    // completeness and documents the expected key.
+    // Registered only under Electron with its gate on — both forced on by
+    // this file's environment mock.
     [Provider.LOCAL_NATIVE]: 'localNative',
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: 'kizunaOpenaiTranslate',
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: 'kizunaVolcengineAst2',
@@ -300,11 +298,10 @@ describe('registry invariants', () => {
   // the kizuna OpenAI-translate twin extends OpenAITranslateProviderConfig
   // but always routes through the WebSocket relay, so it must report false —
   // see KizunaAIOpenAITranslateProviderConfig for why).
-  const EXPECTED_SUPPORTS_WEBRTC: Record<Provider, boolean> = {
+  const EXPECTED_SUPPORTS_WEBRTC: Partial<Record<Provider, boolean>> = {
     [Provider.OPENAI]: true,
     [Provider.OPENAI_COMPATIBLE]: true,
     [Provider.OPENAI_TRANSLATE]: true,
-    [Provider.OPENAI_LIVE]: false,
     [Provider.GEMINI]: false,
     [Provider.PALABRA_AI]: false,
     [Provider.VOLCENGINE_AST2]: false,
@@ -343,7 +340,7 @@ describe('registry invariants', () => {
 });
 
 describe('S1 capability flags', () => {
-  const PUSH_GATED: Record<Provider, string[] | undefined> = {
+  const PUSH_GATED: Partial<Record<Provider, string[] | undefined>> = {
     [Provider.OPENAI]: ['Disabled', 'Push-to-Translate'],
     [Provider.OPENAI_COMPATIBLE]: ['Disabled', 'Push-to-Translate'], // inherited from OpenAI via ...base
     [Provider.GEMINI]: ['Push-to-Talk', 'Push-to-Translate'],
@@ -352,21 +349,19 @@ describe('S1 capability flags', () => {
     [Provider.VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: ['Push-to-Talk', 'Push-to-Translate'], // twin spread
     [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.OPENAI_LIVE]: undefined,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
     [Provider.SONIOX]: undefined,
     [Provider.KIZUNA_AI_SONIOX]: undefined,
     [Provider.PALABRA_AI]: undefined,
   };
 
-  const TEXT_INPUT: Record<Provider, boolean | undefined> = {
+  const TEXT_INPUT: Partial<Record<Provider, boolean | undefined>> = {
     [Provider.OPENAI]: true,
     [Provider.OPENAI_COMPATIBLE]: true, // inherited
     [Provider.GEMINI]: true,
     [Provider.LOCAL_INFERENCE]: true,
     [Provider.LOCAL_NATIVE]: true,
     [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.OPENAI_LIVE]: undefined,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
     [Provider.SONIOX]: undefined,
     [Provider.KIZUNA_AI_SONIOX]: undefined,
@@ -378,7 +373,7 @@ describe('S1 capability flags', () => {
   const QUEUES_TEXT: Provider[] = [Provider.OPENAI, Provider.OPENAI_COMPATIBLE];
   const LOCAL_PROMPT: Provider[] = [Provider.LOCAL_INFERENCE, Provider.LOCAL_NATIVE];
 
-  const PTT_FINALIZATION: Record<Provider, { silenceTailFrames?: number; response: string } | undefined> = {
+  const PTT_FINALIZATION: Partial<Record<Provider, { silenceTailFrames?: number; response: string } | undefined>> = {
     [Provider.LOCAL_INFERENCE]: { silenceTailFrames: 7, response: 'always' },
     [Provider.LOCAL_NATIVE]: { silenceTailFrames: 7, response: 'always' },
     [Provider.VOLCENGINE_AST2]: { silenceTailFrames: 5, response: 'server-decides' },
@@ -387,7 +382,6 @@ describe('S1 capability flags', () => {
     [Provider.OPENAI]: undefined,
     [Provider.OPENAI_COMPATIBLE]: undefined,
     [Provider.OPENAI_TRANSLATE]: undefined,
-    [Provider.OPENAI_LIVE]: undefined,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: undefined,
     [Provider.SONIOX]: undefined,
     [Provider.KIZUNA_AI_SONIOX]: undefined,
@@ -396,13 +390,10 @@ describe('S1 capability flags', () => {
 
   // The segmentation offer of every provider, resolved — the default already
   // filled in — because that is the answer the mode resolvers act on. This
-  // table IS the specification (segmentation design, Amendment A2): a
-  // provider added later inherits the default, and the only place that shows
-  // up is the row this Record forces whoever adds it to write.
-  const SEGMENTATION: Record<Provider, SegmentationOffer> = {
+  // table IS the specification (segmentation design, Amendment A2).
+  const SEGMENTATION: Partial<Record<Provider, SegmentationOffer>> = {
     // Their own silence timers cut the bubble, and the user tunes them, so
     // Auto here would be the pause mode wearing another name.
-    [Provider.OPENAI_LIVE]: { pause: true, auto: false, sizes: true },
     [Provider.OPENAI_TRANSLATE]: { pause: true, auto: false, sizes: true },
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: { pause: true, auto: false, sizes: true }, // twin spread
     [Provider.GEMINI]: { pause: true, auto: false, sizes: true },
@@ -441,14 +432,13 @@ describe('S1 capability flags', () => {
   // without turn detection it renders nothing and must not claim to. A2 moved
   // the two pause clients' sliders into the segmentation section, which is
   // what emptied it on OpenAI Live and OpenAI Translate.
-  const SILENCE_DURATION: Record<Provider, boolean> = {
+  const SILENCE_DURATION: Partial<Record<Provider, boolean>> = {
     [Provider.OPENAI]: true,
     [Provider.OPENAI_COMPATIBLE]: true, // inherited via ...base
     [Provider.VOLCENGINE_AST2]: false,
     [Provider.KIZUNA_AI_VOLCENGINE_AST2]: false, // twin spread
     [Provider.OPENAI_TRANSLATE]: false,
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: false, // twin spread
-    [Provider.OPENAI_LIVE]: false,
     [Provider.GEMINI]: false,
     [Provider.PALABRA_AI]: false,
     [Provider.SONIOX]: false,
@@ -548,12 +538,11 @@ describe('S1 capability flags', () => {
     }
   });
 
-  // The private fields each pause client keeps its two timers in. Four
-  // providers offer By pause and their clients name the pair differently —
-  // this map is the only place that knows, so the invariant below can be a
-  // loop rather than four copies of the same assertion.
+  // The private fields each pause client keeps its two timers in. The
+  // providers that offer By pause name the pair differently — this map is the
+  // only place that knows, so the invariant below can be a loop rather than a
+  // copy of the same assertion per provider.
   const PAUSE_FIELDS: Partial<Record<Provider, [source: string, translation: string]>> = {
-    [Provider.OPENAI_LIVE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
     [Provider.OPENAI_TRANSLATE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
     [Provider.KIZUNA_AI_OPENAI_TRANSLATE]: ['userSilenceTimeoutMs', 'assistantSilenceTimeoutMs'],
     [Provider.GEMINI]: ['inputSegmentSilenceMs', 'assistantSegmentSilenceMs'],
@@ -745,15 +734,9 @@ describe('S3 reversesDirectionViaSourceLanguage', () => {
     expect(d.reversesDirectionViaSourceLanguage('')).toBe(false);
   });
 
-  it('true for OpenAI Live regardless of model — it has no language fields, so the swapped template is the whole direction', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.OPENAI_LIVE);
-    expect(d.reversesDirectionViaSourceLanguage('gpt-live-1')).toBe(true);
-    expect(d.reversesDirectionViaSourceLanguage(undefined)).toBe(true);
-  });
-
   it('false for every other descriptor, any model', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
-      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI, Provider.OPENAI_LIVE].includes(id)) continue;
+      if ([Provider.SONIOX, Provider.KIZUNA_AI_SONIOX, Provider.GEMINI].includes(id)) continue;
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.reversesDirectionViaSourceLanguage(TRANSLATE), `${id}`).toBe(false);
       expect(d.reversesDirectionViaSourceLanguage(undefined), `${id}`).toBe(false);

@@ -631,7 +631,6 @@
     "sonioxTtsSegmentLost": "Ein Teil der gesprochenen Übersetzung konnte nicht wiedergegeben werden. Transkription und Textübersetzung sind nicht betroffen.",
     "sonioxSegmentEnded": "Dieser Abschnitt ist beendet — tippen Sie auf „Sitzung starten“, um fortzufahren.",
     "sonioxConnectionLost": "Die Verbindung wurde unterbrochen — tippen Sie gleich auf „Sitzung starten“, um fortzufahren.",
-    "openaiLiveConnectionLost": "Die Verbindung wurde unterbrochen — tippen Sie gleich auf „Sitzung starten“, um fortzufahren.",
     "sonioxVoiceClipMissing": "Auf diesem Gerät liegt keine Sprachaufnahme vor, daher verwendet diese Sitzung eine voreingestellte Stimme. Nehmen Sie eine in den Einstellungen auf, um hier mit Ihrer eigenen Stimme zu sprechen.",
     "sonioxVoicePoolBusy": "Alle Plätze für eigene Stimmen sind gerade belegt, daher verwendet diese Sitzung eine voreingestellte Stimme. Ihre eigene Stimme wird beim nächsten Mal wieder verwendet.",
     "sonioxVoiceBuildFailed": "Ihre eigene Stimme konnte nicht erstellt werden, daher verwendet diese Sitzung eine voreingestellte Stimme. Versuchen Sie, in den Einstellungen eine klarere Aufnahme zu machen.",

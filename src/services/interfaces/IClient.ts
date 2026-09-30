@@ -139,20 +139,6 @@ export interface OpenAITranslateSessionConfig extends BaseSessionConfig {
 }
 
 /**
- * GPT-Live-1 interpreter session (Live API primary WebSocket). Every field is
- * fixed at session.start; `instructions` is the rendered interpreter template
- * and carries the language pair, which is why the pair is also kept here for
- * the UI and the participant swap.
- */
-export interface OpenAILiveSessionConfig extends BaseSessionConfig {
-  provider: 'openai_live';
-  sourceLanguage?: string;
-  targetLanguage: string;
-  // Client-side utterance segmentation is the global pause pair now (A2); it
-  // reaches the client through ClientOptions, not through here.
-}
-
-/**
  * Gemini-specific session configuration
  */
 export interface GeminiSessionConfig extends BaseSessionConfig {
@@ -318,7 +304,7 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | OpenAILiveSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = OpenAISessionConfig | OpenAITranslateSessionConfig | GeminiSessionConfig | PalabraAISessionConfig | VolcengineAST2SessionConfig | SonioxSessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
@@ -332,10 +318,6 @@ export function isOpenAISessionConfig(config: unknown): config is OpenAISessionC
 
 export function isOpenAITranslateSessionConfig(config: SessionConfig): config is OpenAITranslateSessionConfig {
   return config.provider === 'openai_translate';
-}
-
-export function isOpenAILiveSessionConfig(config: SessionConfig): config is OpenAILiveSessionConfig {
-  return config.provider === 'openai_live';
 }
 
 export function isGeminiSessionConfig(config: SessionConfig): config is GeminiSessionConfig {

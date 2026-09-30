@@ -42,9 +42,6 @@ import {
   LEGACY_TRANSLATE_TRANSCRIPT_MODEL,
 } from '../services/providers/OpenAITranslateProviderConfig';
 import {
-  OpenAILiveSettings, defaultOpenAILiveSettings,
-} from '../services/providers/OpenAILiveProviderConfig';
-import {
   GeminiSettings, defaultGeminiSettings,
 } from '../services/providers/GeminiProviderConfig';
 import {
@@ -85,7 +82,7 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 
 export type {
   OpenAISettings, OpenAICompatibleSettings, OpenAICompatibleSettingsBase,
-  OpenAITranslateSettings, OpenAILiveSettings, GeminiSettings, PalabraAISettings,
+  OpenAITranslateSettings, GeminiSettings, PalabraAISettings,
   VolcengineAST2Settings, LocalInferenceSettings,
   LocalNativeSettings, SonioxSettings,
 };
@@ -94,7 +91,7 @@ export type {
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
 export type ProviderSettingsUnion =
   | OpenAISettings | GeminiSettings | OpenAICompatibleSettings | PalabraAISettings
-  | OpenAITranslateSettings | OpenAILiveSettings
+  | OpenAITranslateSettings
   | VolcengineAST2Settings | LocalInferenceSettings | LocalNativeSettings | SonioxSettings;
 
 // ==================== Type Definitions ====================
@@ -287,7 +284,6 @@ export interface SettingsStore {
   openaiCompatible: OpenAICompatibleSettings;
   palabraai: PalabraAISettings;
   openaiTranslate: OpenAITranslateSettings;
-  openaiLive: OpenAILiveSettings;
   volcengineAST2: VolcengineAST2Settings;
   soniox: SonioxSettings;
   kizunaOpenaiTranslate: OpenAITranslateSettings;
@@ -417,7 +413,6 @@ export interface SettingsStore {
   updateOpenAICompatible: (settings: Partial<OpenAICompatibleSettings>) => void;
   updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateOpenAITranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
-  updateOpenAILive: (settings: Partial<OpenAILiveSettings>) => Promise<void>;
   updateVolcengineAST2: (settings: Partial<VolcengineAST2Settings>) => void;
   updateSoniox: (settings: Partial<SonioxSettings>) => void;
   updateKizunaOpenaiTranslate: (settings: Partial<OpenAITranslateSettings>) => Promise<void>;
@@ -653,7 +648,6 @@ const PROVIDER_SLICE_REGISTRY = {
   openaiCompatible: { defaults: defaultOpenAICompatibleSettings, transformPatch: forceWebrtcTurnDetectionOff },
   palabraai: { defaults: defaultPalabraAISettings },
   openaiTranslate: { defaults: defaultOpenAITranslateSettings },
-  openaiLive: { defaults: defaultOpenAILiveSettings },
   volcengineAST2: { defaults: defaultVolcengineAST2Settings },
   soniox: { defaults: defaultSonioxSettings },
   // Relay twins authenticate through the relay with a short-lived Better Auth
@@ -702,7 +696,6 @@ const useSettingsStore = create<SettingsStore>()(
     openaiCompatible: defaultOpenAICompatibleSettings,
     palabraai: defaultPalabraAISettings,
     openaiTranslate: defaultOpenAITranslateSettings,
-    openaiLive: defaultOpenAILiveSettings,
     volcengineAST2: defaultVolcengineAST2Settings,
     soniox: defaultSonioxSettings,
     kizunaOpenaiTranslate: defaultKizunaOpenaiTranslateSettings,
@@ -750,13 +743,12 @@ const useSettingsStore = create<SettingsStore>()(
       const service = ServiceFactory.getSettingsService();
       await service.setSetting('settings.common.provider', provider);
 
-      // Silent prefill: when first switching to OPENAI_TRANSLATE or OPENAI_LIVE
-      // and its key is empty while the OpenAI provider already has one, copy it
-      // across so the user doesn't have to re-paste. After the copy the keys are
+      // Silent prefill: when first switching to OPENAI_TRANSLATE and its key
+      // is empty while the OpenAI provider already has one, copy it across so
+      // the user doesn't have to re-paste. After the copy the keys are
       // independent — later edits to either won't propagate to the other.
       const prefillSlice =
         provider === Provider.OPENAI_TRANSLATE ? 'openaiTranslate'
-        : provider === Provider.OPENAI_LIVE ? 'openaiLive'
         : null;
       if (prefillSlice && !prior[prefillSlice].apiKey && prior.openai.apiKey) {
         const openaiKey = prior.openai.apiKey;
@@ -969,7 +961,6 @@ const useSettingsStore = create<SettingsStore>()(
     updateOpenAICompatible: (settings) => updateProviderSlice(set, 'openaiCompatible', settings),
     updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
     updateOpenAITranslate: (settings) => updateProviderSlice(set, 'openaiTranslate', settings),
-    updateOpenAILive: (settings) => updateProviderSlice(set, 'openaiLive', settings),
     updateVolcengineAST2: (settings) => updateProviderSlice(set, 'volcengineAST2', settings),
     updateSoniox: (settings) => updateProviderSlice(set, 'soniox', settings),
     updateKizunaOpenaiTranslate: (settings) => updateProviderSlice(set, 'kizunaOpenaiTranslate', settings),
@@ -1193,10 +1184,6 @@ const useSettingsStore = create<SettingsStore>()(
                   // Translate locks model server-side; settings shape has
                   // no `model` field, so the auto-select is intentionally
                   // a no-op here.
-                  break;
-                case Provider.OPENAI_LIVE:
-                  // Live runs the fixed gpt-live-1; the slice has no `model`
-                  // field, so there is nothing to auto-select.
                   break;
               }
               console.info(`[Sokuji] Model "${currentModel || '(empty)'}" not available, auto-selected "${latestModel}"`);
@@ -1537,7 +1524,6 @@ export const useGeminiSettings = () => useSettingsStore((state) => state.gemini)
 export const useOpenAICompatibleSettings = () => useSettingsStore((state) => state.openaiCompatible);
 export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useOpenAITranslateSettings = () => useSettingsStore((state) => state.openaiTranslate);
-export const useOpenAILiveSettings = () => useSettingsStore((state) => state.openaiLive);
 export const useVolcengineAST2Settings = () => useSettingsStore((state) => state.volcengineAST2);
 export const useSonioxSettings = () => useSettingsStore((state) => state.soniox);
 export const useKizunaOpenaiTranslateSettings = () => useSettingsStore((state) => state.kizunaOpenaiTranslate);
@@ -1621,7 +1607,6 @@ export const useUpdateGemini = () => useSettingsStore((state) => state.updateGem
 export const useUpdateOpenAICompatible = () => useSettingsStore((state) => state.updateOpenAICompatible);
 export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateOpenAITranslate = () => useSettingsStore((state) => state.updateOpenAITranslate);
-export const useUpdateOpenAILive = () => useSettingsStore((state) => state.updateOpenAILive);
 export const useUpdateVolcengineAST2 = () => useSettingsStore((state) => state.updateVolcengineAST2);
 export const useUpdateSoniox = () => useSettingsStore((state) => state.updateSoniox);
 export const useUpdateKizunaOpenaiTranslate = () => useSettingsStore((state) => state.updateKizunaOpenaiTranslate);
