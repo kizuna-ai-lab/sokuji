@@ -61,6 +61,8 @@ export default defineConfig(({ mode }) => {
         targets: [
           // Content scripts and background (vanilla JS, no bundling needed)
           { src: 'background/background.js', dest: '.' },
+          // Its generic upgrade header rules, which it imports as a module.
+          { src: 'background/wsHeaderRule.js', dest: '.' },
           { src: 'content/content.js', dest: '.' },
           { src: 'content/zoom-content.js', dest: '.' },
           { src: 'content/subtitle-overlay-content.js', dest: '.' },

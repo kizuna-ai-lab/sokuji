@@ -8,6 +8,8 @@
 // globalThis.SOKUJI_PLATFORMS before any of our handlers fire. The generated
 // file is emitted to the build root next to background.js (see vite.config.ts).
 import './platforms.generated.js';
+// The generic upgrade header rules, as pure functions: copied beside this file at build (vite.config.ts).
+import { buildRule, isExtensionPage, ruleIdsFor, ruleProblem, sweepIds } from './wsHeaderRule.js';
 
 // Uninstall feedback URL - hosted on backend
 const UNINSTALL_FEEDBACK_BASE_URL = 'https://sokuji.kizuna.ai/uninstall-feedback';
@@ -445,6 +447,50 @@ async function openaiLiveClearDNRHeaders() {
   return run;
 }
 
+// ─── Generic WebSocket upgrade header rules ─────────────────────────────────
+// One message pair for every provider whose upgrade needs a header a browser
+// cannot set (wsHeaderRule.js): a rule per host and path, scoped to the
+// extension's own pages, removed as soon as the upgrade is made (Stage 2
+// OpenAI Live, ruling 7; choice 3). Chained on the shared dnrUpdatePromise and
+// never left rejected. The per-provider pairs above go with their old clients.
+async function wsHeadersSet(message) {
+  // Validate before touching the shared chain.
+  const problem = ruleProblem(message);
+  if (problem) throw new Error(`WS headers: ${problem}`);
+  const run = dnrUpdatePromise.then(async () => {
+    const rule = buildRule(await chrome.declarativeNetRequest.getDynamicRules(), message, chrome.runtime.id);
+    if (!rule) throw new Error('WS headers: no rule id is free');
+    await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [rule.id], addRules: [rule] });
+    // The filter, never a header value.
+    console.debug('[Sokuji] [Background] WS header rule registered:', rule.condition.urlFilter);
+  });
+  // The shared chain must never stay rejected; the caller still sees the failure via `run`.
+  dnrUpdatePromise = run.catch(() => {});
+  return run;
+}
+
+async function wsHeadersClear(message) {
+  const run = dnrUpdatePromise.then(async () => {
+    const ids = ruleIdsFor(await chrome.declarativeNetRequest.getDynamicRules(), message.host, message.path);
+    if (ids.length > 0) await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids });
+  });
+  dnrUpdatePromise = run.catch(() => {});
+  return run;
+}
+
+// Dynamic rules outlive a browser restart: one a crash left installed goes when the browser or the extension next starts,
+// and so does the old OpenAI Live client's, which nothing else will clear once that client is gone (ruling 11).
+function wsHeadersSweep() {
+  const run = dnrUpdatePromise.then(async () => {
+    const ids = sweepIds(await chrome.declarativeNetRequest.getDynamicRules());
+    if (ids.length > 0) await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ids });
+  });
+  dnrUpdatePromise = run.catch(() => {});
+  return run.catch((error) => console.error('[Sokuji] [Background] Failed to sweep WS header rules:', error));
+}
+chrome.runtime.onStartup.addListener(() => { void wsHeadersSweep(); });
+chrome.runtime.onInstalled.addListener(() => { void wsHeadersSweep(); });
+
 // ─── Bing Translator declarativeNetRequest header injection ───────────────────
 // Bing Translator's /ttranslatev3 endpoint requires browser-like headers or it
 // returns 403/empty responses. We inject them via declarativeNetRequest so the
@@ -599,6 +645,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .then(() => sendResponse({ success: true }))
       .catch((error) => {
         console.error('[Sokuji] [Background] Failed to clear OpenAI Live DNR headers:', error);
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  }
+
+  // Generic WebSocket upgrade header rules: from the extension's own pages alone.
+  if (message.type === 'WS_HEADERS_SET' || message.type === 'WS_HEADERS_CLEAR') {
+    if (!isExtensionPage(sender, chrome.runtime.id, chrome.runtime.getURL(''))) {
+      sendResponse({ success: false, error: 'Sender is not an extension page' });
+      return false;
+    }
+    (message.type === 'WS_HEADERS_SET' ? wsHeadersSet(message) : wsHeadersClear(message))
+      .then(() => sendResponse({ success: true }))
+      .catch((error) => {
+        console.error('[Sokuji] [Background] Failed to update WS header rules:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;
