@@ -30,9 +30,6 @@ import {ApiKeyValidationResult} from '../services/interfaces/ISettingsService';
 import {Provider, ProviderType} from '../types/Provider';
 import i18n from '../locales';
 import {
-  PalabraAISettings, defaultPalabraAISettings,
-} from '../services/providers/PalabraAIProviderConfig';
-import {
   LocalInferenceSettings, defaultLocalInferenceSettings,
 } from '../services/providers/LocalInferenceProviderConfig';
 import {
@@ -57,14 +54,12 @@ function msgForNativeReason(reason: NativeReadinessReason): string {
 }
 
 export type {
-  PalabraAISettings,
   LocalInferenceSettings, LocalNativeSettings,
 };
 
 // Union of every provider's settings slice — the return type of
 // getCurrentProviderSettings, resolved dynamically via the active descriptor.
 export type ProviderSettingsUnion =
-  | PalabraAISettings
   | LocalInferenceSettings | LocalNativeSettings;
 
 // ==================== Type Definitions ====================
@@ -249,7 +244,6 @@ export interface SettingsStore {
   participantSystemInstructions: string;
 
   // Provider-specific settings
-  palabraai: PalabraAISettings;
   localInference: LocalInferenceSettings;
   localNative: LocalNativeSettings;
 
@@ -365,7 +359,6 @@ export interface SettingsStore {
   setParticipantSystemInstructions: (instructions: string) => void;
 
   // Provider settings actions
-  updatePalabraAI: (settings: Partial<PalabraAISettings>) => void;
   updateLocalInference: (settings: Partial<LocalInferenceSettings>) => void;
   updateLocalNative: (settings: Partial<LocalNativeSettings>) => void;
   /** Generic slice update keyed by descriptor.settingsSliceKey — the write
@@ -394,46 +387,6 @@ export interface SettingsStore {
 }
 
 // ==================== Helper Functions ====================
-
-/** Migrate persisted PalabraAI language codes that the API rejects.
- *  Palabra validates source_language and target_language against two separate
- *  enums, and a code outside them fails the whole set_task — the session connects
- *  and then translates nothing. We shipped four such codes: Vietnamese was spelled
- *  `vn` as a target (the API wants `vi`), and `ba`/`eo`/`ia` were offered as
- *  sources though Palabra never supported them. Removing them from the dropdowns
- *  does nothing for a user who already picked one, since the stored value survives
- *  and the select just renders blank. `vn` has a correct equivalent, so rewrite it;
- *  the three sources don't, so fall back to the default. */
-export function migrateRejectedPalabraLanguages(
-  slice: { sourceLanguage: string; targetLanguage: string },
-): { sourceLanguage: string; targetLanguage: string } {
-  const UNSUPPORTED_SOURCES = new Set(['ba', 'eo', 'ia']);
-  return {
-    sourceLanguage: UNSUPPORTED_SOURCES.has(slice.sourceLanguage)
-      ? defaultPalabraAISettings.sourceLanguage
-      : slice.sourceLanguage,
-    targetLanguage: slice.targetLanguage === 'vn' ? 'vi' : slice.targetLanguage,
-  };
-}
-
-/**
- * Decide the auth mode for a persisted Palabra slice that predates authMode.
- * storedAuthMode is the RAW stored value probed with an empty-string sentinel
- * (loadProviderSettings merges defaults per key, so the merged slice cannot
- * distinguish "never stored" from "stored 'platform'"). A user with legacy
- * credentials who never chose a mode keeps working in app mode; everyone
- * else gets the platform default.
- */
-export function migratePalabraAuthMode(
-  storedAuthMode: string,
-  slice: Pick<PalabraAISettings, 'clientId' | 'clientSecret'>
-): Partial<Pick<PalabraAISettings, 'authMode'>> {
-  if (storedAuthMode === 'app' || storedAuthMode === 'platform') return {};
-  // Trimmed, to mirror extractCredentials: whitespace-only credentials are
-  // rejected there, so pinning them to app mode would strand the user.
-  if (slice.clientId?.trim() || slice.clientSecret?.trim()) return { authMode: 'app' };
-  return { authMode: 'platform' };
-}
 
 /**
  * Resolve the worker type for a specific translation model id.
@@ -485,7 +438,6 @@ type SliceUpdateSpec = {
 };
 
 const PROVIDER_SLICE_REGISTRY = {
-  palabraai: { defaults: defaultPalabraAISettings },
   localInference: { defaults: defaultLocalInferenceSettings },
   localNative: { defaults: defaultLocalNativeSettings },
 } satisfies Record<string, SliceUpdateSpec>;
@@ -518,7 +470,6 @@ const useSettingsStore = create<SettingsStore>()(
   subscribeWithSelector((set, get) => ({
     // === Initial State ===
     ...defaultCommonSettings,
-    palabraai: defaultPalabraAISettings,
     localInference: defaultLocalInferenceSettings,
     localNative: defaultLocalNativeSettings,
 
@@ -745,7 +696,6 @@ const useSettingsStore = create<SettingsStore>()(
     },
 
     // === Provider Settings Actions ===
-    updatePalabraAI: (settings) => updateProviderSlice(set, 'palabraai', settings),
     updateLocalInference: (settings) => updateProviderSlice(set, 'localInference', settings),
     updateLocalNative: (settings) => updateProviderSlice(set, 'localNative', settings),
     updateProviderSlice: (sliceKey, patch) => {
@@ -974,17 +924,6 @@ const useSettingsStore = create<SettingsStore>()(
           ] as const),
         )) as Partial<SettingsStore>;
 
-        // Drop persisted PalabraAI language codes the API rejects, so an existing
-        // user isn't left on a pair whose set_task fails validation.
-        const palabraSlice = loadedSlices.palabraai as PalabraAISettings | undefined;
-        if (palabraSlice) {
-          Object.assign(palabraSlice, migrateRejectedPalabraLanguages(palabraSlice));
-          // authMode predates some persisted slices; probe the raw stored value so a
-          // default-injected 'platform' isn't mistaken for a user choice.
-          const storedAuthMode = await service.getSetting('settings.palabraai.authMode', '');
-          Object.assign(palabraSlice, migratePalabraAuthMode(storedAuthMode, palabraSlice));
-        }
-
         set({
           provider: validProvider,
           uiLanguage,
@@ -1155,7 +1094,6 @@ export const useUseTemplateMode = () => useSettingsStore((state) => state.useTem
 export const useParticipantSystemInstructions = () => useSettingsStore((state) => state.participantSystemInstructions);
 
 // Provider settings
-export const usePalabraAISettings = () => useSettingsStore((state) => state.palabraai);
 export const useLocalInferenceSettings = () => useSettingsStore((state) => state.localInference);
 export const useLocalNativeSettings = () => useSettingsStore((state) => state.localNative);
 
@@ -1215,7 +1153,6 @@ export const useSetTemplateSystemInstructions = () => useSettingsStore((state) =
 export const useSetUseTemplateMode = () => useSettingsStore((state) => state.setUseTemplateMode);
 export const useSetParticipantSystemInstructions = () => useSettingsStore((state) => state.setParticipantSystemInstructions);
 
-export const useUpdatePalabraAI = () => useSettingsStore((state) => state.updatePalabraAI);
 export const useUpdateLocalInference = () => useSettingsStore((state) => state.updateLocalInference);
 export const useUpdateLocalNative = () => useSettingsStore((state) => state.updateLocalNative);
 

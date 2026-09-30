@@ -11,7 +11,6 @@ import useLogStore from './logStore';
 vi.mock('../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  isPalabraAIEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
 }));

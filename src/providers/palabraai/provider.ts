@@ -19,7 +19,7 @@ const adapter = createPalabraAdapter();
  * and its socket takes its credential in the query, so it runs on every
  * platform, and the extension's CSP already lists `*.palabra.ai`: no
  * manifest or background change. Released last, after Soniox, unflagged
- * (ruling 14): `VITE_ENABLE_PALABRA_AI` is the old code's, and goes with it.
+ * (ruling 14): `VITE_ENABLE_PALABRA_AI` was the old code's, and went with it.
  */
 export const palabraProvider: Provider<PalabraSettings, PalabraCredentials, PalabraConfig> & { id: 'palabraai' } = {
   id: 'palabraai',

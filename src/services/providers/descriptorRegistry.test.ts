@@ -1,11 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-// Force the remaining provider gates on — Kizuna/Palabra/Local-Native feature
-// flags plus Electron/Extension platform detection — so ALL descriptors register
-// regardless of build env.
+// Force the Local Native gate on, plus Electron platform detection, so every
+// descriptor registers regardless of build env.
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
-  isKizunaAIEnabled: () => true,
-  isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
@@ -15,7 +12,6 @@ import { resolveSegmentationOffer } from './ProviderConfig';
 import type { SegmentationOffer } from '../../lib/segmentation/segmentationMode';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import { Provider } from '../../types/Provider';
-import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import en from '../../locales/en/translation.json';
@@ -23,7 +19,6 @@ import en from '../../locales/en/translation.json';
 // Map each provider's settingsSliceKey to its per-module default settings slice,
 // so buildSessionConfig can be exercised for every registered provider.
 const DEFAULTS_BY_SLICE: Record<string, unknown> = {
-  palabraai: defaultPalabraAISettings,
   localInference: defaultLocalInferenceSettings,
   localNative: defaultLocalNativeSettings,
 };
@@ -31,7 +26,7 @@ const DEFAULTS_BY_SLICE: Record<string, unknown> = {
 describe('provider registry descriptors', () => {
   it('returns a descriptor for every available provider', () => {
     const ids = ProviderConfigFactory.getAvailableProviders();
-    expect(ids.length).toBe(3);
+    expect(ids.length).toBe(2);
     for (const id of ids) {
       const d = ProviderConfigFactory.getDescriptor(id);
       expect(d.getConfig().id).toBe(id);
@@ -58,34 +53,7 @@ describe('descriptor.createClient', () => {
   });
 });
 
-describe('descriptor.validateAndFetchModels', () => {
-  it('rejects incomplete credentials with the provider-specific message', async () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
-    const r = await d.validateAndFetchModels({ ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' });
-    expect(r.validation.valid).toBe(false);
-    expect(r.validation.message).toMatch(/Client ID and Client Secret/);
-    expect(r.models).toEqual([]);
-  });
-
-});
-
 describe('descriptor.extractCredentials', () => {
-  it('normalizes each provider credential shape', async () => {
-    const cases: Array<[Provider, object, { primary: string; secret?: string; endpoint?: string }]> = [
-      [Provider.PALABRA_AI, { clientId: 'id', clientSecret: 'sec' }, { primary: 'id', secret: 'sec' }],
-    ];
-    for (const [id, slice, want] of cases) {
-      const got = await ProviderConfigFactory.getDescriptor(id).extractCredentials(slice, {});
-      expect(got).toEqual({ ok: true, ...want });
-    }
-  });
-
-  it('two-field providers report both-required when either is missing', async () => {
-    const r = await ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI)
-      .extractCredentials({ clientId: 'id', clientSecret: '' }, {});
-    expect(r).toEqual({ ok: false, missing: 'Both Client ID and Client Secret are required for Palabra AI' });
-  });
-
   it('local inference needs no credentials', async () => {
     expect(await ProviderConfigFactory.getDescriptor(Provider.LOCAL_INFERENCE).extractCredentials({}, {}))
       .toEqual({ ok: true, primary: '' });
@@ -95,7 +63,6 @@ describe('descriptor.extractCredentials', () => {
 describe('descriptor.buildSessionConfig', () => {
   it('builds a config whose provider tag matches, for every provider, from defaults', () => {
     const wireTag: Record<string, string> = {
-      palabraai: 'palabraai',
       local_inference: 'local_inference',
       local_native: 'local_native',
     };
@@ -139,7 +106,6 @@ describe('registry invariants', () => {
   // deletion, ruling C1), so every table below names only the providers the
   // old registry still registers.
   const EXPECTED_SLICE_KEYS: Partial<Record<Provider, string>> = {
-    [Provider.PALABRA_AI]: 'palabraai',
     [Provider.LOCAL_INFERENCE]: 'localInference',
     // Registered only under Electron with its gate on — both forced on by
     // this file's environment mock.
@@ -156,7 +122,6 @@ describe('registry invariants', () => {
   // Exact expected supportsWebRTC per provider. Relay/twin and non-WebRTC
   // providers must not silently inherit `true` from a base descriptor.
   const EXPECTED_SUPPORTS_WEBRTC: Partial<Record<Provider, boolean>> = {
-    [Provider.PALABRA_AI]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
   };
@@ -191,13 +156,11 @@ describe('S1 capability flags', () => {
   const PUSH_GATED: Partial<Record<Provider, string[] | undefined>> = {
     [Provider.LOCAL_INFERENCE]: ['Push-to-Talk', 'Push-to-Translate'],
     [Provider.LOCAL_NATIVE]: ['Push-to-Talk', 'Push-to-Translate'],
-    [Provider.PALABRA_AI]: undefined,
   };
 
   const TEXT_INPUT: Partial<Record<Provider, boolean | undefined>> = {
     [Provider.LOCAL_INFERENCE]: true,
     [Provider.LOCAL_NATIVE]: true,
-    [Provider.PALABRA_AI]: undefined,
   };
 
   const QUEUES_TEXT: Provider[] = [];
@@ -206,7 +169,6 @@ describe('S1 capability flags', () => {
   const PTT_FINALIZATION: Partial<Record<Provider, { silenceTailFrames?: number; response: string } | undefined>> = {
     [Provider.LOCAL_INFERENCE]: { silenceTailFrames: 7, response: 'always' },
     [Provider.LOCAL_NATIVE]: { silenceTailFrames: 7, response: 'always' },
-    [Provider.PALABRA_AI]: undefined,
   };
 
   // The segmentation offer of every provider, resolved — the default already
@@ -218,11 +180,6 @@ describe('S1 capability flags', () => {
     // and the stage only fills the punctuation in.
     [Provider.LOCAL_INFERENCE]: { pause: false, auto: true, sizes: true },
     [Provider.LOCAL_NATIVE]: { pause: false, auto: true, sizes: true },
-
-    // A server decides the outer boundary, and phase 2 can cut inside it.
-    // Palabra writes text only. Auto stays what it always was — keep the
-    // server's segment.
-    [Provider.PALABRA_AI]: { pause: false, auto: true, sizes: true },
   };
 
   const DEFAULT_OFFER: SegmentationOffer = { pause: false, auto: true, sizes: false };
@@ -233,7 +190,6 @@ describe('S1 capability flags', () => {
   // without turn detection it renders nothing and must not claim to. A2 moved
   // the two pause clients' sliders into the segmentation section.
   const SILENCE_DURATION: Partial<Record<Provider, boolean>> = {
-    [Provider.PALABRA_AI]: false,
     [Provider.LOCAL_INFERENCE]: false,
     [Provider.LOCAL_NATIVE]: false,
   };
@@ -345,14 +301,10 @@ describe('S1 capability flags', () => {
     }
   });
 
-  it('forcedTransport only on PalabraAI, and it names a real transport', () => {
+  it('declares no forcedTransport: Palabra, the one that did, went with its old code', () => {
     for (const id of ProviderConfigFactory.getAvailableProviders()) {
       const caps = ProviderConfigFactory.getDescriptor(id).getConfig().capabilities;
-      if (id === Provider.PALABRA_AI) {
-        expect(caps.forcedTransport, `forcedTransport for ${id}`).toBe('webrtc');
-      } else {
-        expect(caps.forcedTransport, `no forcedTransport for ${id}`).toBeUndefined();
-      }
+      expect(caps.forcedTransport, `no forcedTransport for ${id}`).toBeUndefined();
     }
   });
 });
@@ -377,33 +329,6 @@ describe('legacy façade credential guards (deprecated ClientOperations/ClientFa
   // façades accept raw positional args — they must keep the old contract of
   // rejecting incomplete credentials instead of reaching provider clients
   // with `secret: undefined`.
-  // PalabraAI is no longer a synchronous two-field guard: a missing `secret` is
-  // the documented signal for platform-mode (API key) credentials (see
-  // PalabraAIProviderConfig.toPalabraCredentials), so a legacy caller passing
-  // only a primary now reaches the real validateApiKey network call instead of
-  // being rejected up front. Mock fetch so that call still fails deterministically.
-  it('PalabraAI treats a missing secret as a platform API key, not a guard failure', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: false,
-      status: 401,
-      json: async () => ({ error: { message: 'Unauthorized' } }),
-    } as unknown as Response);
-    try {
-      const { ClientOperations } = await import('../ClientOperations');
-      const r = await ClientOperations.validateApiKeyAndFetchModels('primary-only', Provider.PALABRA_AI);
-      expect(fetchSpy).toHaveBeenCalled();
-      expect(r.validation.valid).toBe(false);
-      // Unlike the guard-rejection cases above, credential *shape* was accepted
-      // (creds.ok === true), so validateAndFetchModels still returns the static
-      // model list — only `validation` reflects the failed network check.
-      expect(r.models).toHaveLength(1);
-    } finally {
-      // Without the finally, a failing expect leaks the global fetch mock into
-      // every later test in this file.
-      fetchSpy.mockRestore();
-    }
-  });
-
   it('ClientFactory.createClient rejects an empty apiKey for credentialed providers', async () => {
     const { ClientFactory } = await import('../clients/ClientFactory');
     expect(() => ClientFactory.createClient('m', Provider.PALABRA_AI, ''))

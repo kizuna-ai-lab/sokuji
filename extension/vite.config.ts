@@ -75,10 +75,6 @@ export default defineConfig(({ mode }) => {
           { src: 'icons', dest: '.' },
           // Worklets
           {
-            src: '../src/services/worklets/pcm-audio-worklet-processor.js',
-            dest: 'worklets',
-          },
-          {
             src: '../src/services/worklets/audio-recorder-worklet-processor.js',
             dest: 'worklets',
           },
@@ -168,9 +164,6 @@ export default defineConfig(({ mode }) => {
       // `featureGateForwarding.consistency.test.ts` fails when one is missing.
       'import.meta.env.VITE_ENABLE_KIZUNA_AI': JSON.stringify(
         envVal('VITE_ENABLE_KIZUNA_AI', 'false', 'true')
-      ),
-      'import.meta.env.VITE_ENABLE_PALABRA_AI': JSON.stringify(
-        envVal('VITE_ENABLE_PALABRA_AI', 'false')
       ),
       // The flagged providers a release offers (D19), one comma-separated
       // list. Dev builds offer every flagged provider in code, so there is no

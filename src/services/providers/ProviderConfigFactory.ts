@@ -1,10 +1,9 @@
 import { ProviderConfig } from './ProviderConfig';
 import { ProviderDescriptor } from './ProviderDescriptor';
-import { PalabraAIProviderConfig } from './PalabraAIProviderConfig';
 import { LocalInferenceProviderConfig } from './LocalInferenceProviderConfig';
 import { LocalNativeProviderConfig } from './LocalNativeProviderConfig';
 import { Provider, ProviderType } from '../../types/Provider';
-import { isPalabraAIEnabled, isLocalNativeEnabled, isElectron } from '../../utils/environment';
+import { isLocalNativeEnabled, isElectron } from '../../utils/environment';
 
 export class ProviderConfigFactory {
   private static configs: Map<ProviderType, ProviderDescriptor> = new Map();
@@ -19,11 +18,6 @@ export class ProviderConfigFactory {
 
     // 2. Free (local inference) — always available, no API key or flag.
     ProviderConfigFactory.configs.set(Provider.LOCAL_INFERENCE, new LocalInferenceProviderConfig());
-
-    // 8. Palabra AI — behind its feature flag.
-    if (isPalabraAIEnabled()) {
-      ProviderConfigFactory.configs.set(Provider.PALABRA_AI, new PalabraAIProviderConfig());
-    }
 
     // 9. Everything else.
     // Native (Electron sidecar) local inference — Electron only, behind feature flag.

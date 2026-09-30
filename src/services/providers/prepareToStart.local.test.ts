@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,

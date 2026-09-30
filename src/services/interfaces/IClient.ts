@@ -74,22 +74,6 @@ export interface BaseSessionConfig {
 }
 
 /**
- * PalabraAI-specific session configuration
- */
-export interface PalabraAISessionConfig extends BaseSessionConfig {
-  provider: 'palabraai';
-  sourceLanguage: string;
-  targetLanguage: string;
-  voiceId: string;
-  segmentConfirmationSilenceThreshold: number;
-  sentenceSplitterEnabled: boolean;
-  translatePartialTranscriptions: boolean;
-  desiredQueueLevelMs: number;
-  maxQueueLevelMs: number;
-  autoTempo: boolean;
-}
-
-/**
  * Local inference session configuration
  */
 export interface LocalInferenceSessionConfig extends BaseSessionConfig {
@@ -152,15 +136,11 @@ export interface LocalNativeSessionConfig extends BaseSessionConfig {
 /**
  * Union type for all possible session configurations
  */
-export type SessionConfig = PalabraAISessionConfig | LocalInferenceSessionConfig | LocalNativeSessionConfig;
+export type SessionConfig = LocalInferenceSessionConfig | LocalNativeSessionConfig;
 
 /**
  * Type guards for session configurations
  */
-export function isPalabraAISessionConfig(config: SessionConfig): config is PalabraAISessionConfig {
-  return config.provider === 'palabraai';
-}
-
 export function isLocalInferenceSessionConfig(config: SessionConfig): config is LocalInferenceSessionConfig {
   return config.provider === 'local_inference';
 }

@@ -142,8 +142,9 @@ export function getApiUrl(): string {
  * Uses Vite's `DEV` flag (true whenever the build is not a production
  * build/serve) rather than comparing `MODE` to the literal string
  * 'development' — vitest runs with MODE === 'test', which must count as
- * "development" here or every feature-flagged provider silently vanishes
- * from ProviderConfigFactory's registry in any unmocked test.
+ * "development" here or, in any unmocked test, every flagged provider
+ * silently leaves the registry's offer (`isPresent`) and Local Native the
+ * old registry.
  * Extension builds rely on `extension/vite.config.ts` explicitly defining
  * `import.meta.env.DEV` as `mode === 'development'`, so `DEV` stays
  * equivalent to the old MODE check there too.
@@ -176,23 +177,6 @@ export function isKizunaAIEnabled(): boolean {
   // In production, check for explicit environment variable
   // Default to false if not set
   return import.meta.env.VITE_ENABLE_KIZUNA_AI === 'true';
-}
-
-/**
- * Check if Palabra AI features should be enabled
- * @returns true if Palabra AI features should be shown
- *
- * In development mode: always returns true
- * In production mode: returns false (unless explicitly enabled via VITE_ENABLE_PALABRA_AI env var)
- */
-export function isPalabraAIEnabled(): boolean {
-  // In development mode, always show Palabra AI features
-  if (isDevelopmentMode()) {
-    return true;
-  }
-
-  // In production, check for explicit environment variable
-  return import.meta.env.VITE_ENABLE_PALABRA_AI === 'true';
 }
 
 /**
@@ -239,8 +223,9 @@ export function isLocalNativeEnabled(): boolean {
 /**
  * The flagged providers a release offers (D19): `VITE_ENABLED_PROVIDERS`, a
  * comma-separated list of provider ids. It gates providers in the new
- * registry (`src/providers/registry.ts`) only; the per-provider gates above
- * keep gating `ProviderConfigFactory` until those providers move over.
+ * registry (`src/providers/registry.ts`) only. The old registry's one gate
+ * left, `isLocalNativeEnabled` above, gates Local Native's old path (Stage 2
+ * deletion, rulings 1 and 6).
  * Development builds offer every flagged provider regardless (see
  * `isPresent`).
  */

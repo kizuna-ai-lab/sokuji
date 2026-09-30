@@ -63,20 +63,6 @@ export interface EventData {
     // session.close handshake
     | 'session.start' | 'session.close'
     | 'session.connection_lost'
-    // PalabraAI-specific request types (client → server)
-    | 'set_task'
-    | 'end_task'
-    | 'get_task'
-    | 'pause_task'
-    | 'tts_task'
-    | 'input_audio_data'
-    // PalabraAI-specific response types (server → client)
-    | 'partial_transcription'
-    | 'partial_translated_transcription'
-    | 'validated_transcription'
-    | 'translated_transcription'
-    | 'output_audio_data'
-    | 'current_task'
     // Sentence segmentation stage — diagnostics only, counts and durations,
     // never transcript text. They ride the events stream (which LogsPanel shows
     // and 'copy logs' exports) rather than the plain error/warning entries
@@ -402,39 +388,6 @@ const useLogStore = create<LogStore>(
       // frames could share.
       else if (eventType === 'transcription.partial' || eventType === 'translation.partial' || eventType === 'audio.output') {
         groupingKey = eventType;
-      }
-      // PalabraAI-specific grouping (the old client's names; they go with it)
-      else if (eventType === 'partial_transcription') {
-        // Group PalabraAI partial transcription events together
-        groupingKey = 'palabraai_partial_transcription';
-      }
-      else if (eventType === 'partial_translated_transcription') {
-        // Group PalabraAI partial translated transcription events together
-        groupingKey = 'palabraai_partial_translated_transcription';
-      }
-      else if (eventType === 'validated_transcription') {
-        // Group PalabraAI validated transcription events together
-        groupingKey = 'palabraai_validated_transcription';
-      }
-      else if (eventType === 'translated_transcription') {
-        // Group PalabraAI translated transcription events together
-        groupingKey = 'palabraai_translated_transcription';
-      }
-      else if (eventType === 'output_audio_data') {
-        // Group PalabraAI output audio data events together
-        groupingKey = 'palabraai_output_audio_data';
-      }
-      else if (eventType === 'input_audio_data') {
-        // Group PalabraAI input audio data events together
-        groupingKey = 'palabraai_input_audio_data';
-      }
-      else if (eventType === 'set_task' || eventType === 'end_task' || eventType === 'get_task' || eventType === 'pause_task' || eventType === 'tts_task') {
-        // Group PalabraAI task management events together
-        groupingKey = 'palabraai_task_management';
-      }
-      else if (eventType === 'current_task') {
-        // Group PalabraAI current task response events together
-        groupingKey = 'palabraai_current_task';
       }
       // Doubao AST 2.0's grouping: the adapter's `domain.event` frames, under
       // the keys its old client's names had (Stage 2 Volcengine AST2,

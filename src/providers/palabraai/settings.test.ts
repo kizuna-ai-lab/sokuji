@@ -24,7 +24,7 @@ const DOC_TARGETS = [
 ];
 const DOC_HIDDEN_TARGETS = ['en-au', 'en-ca', 'zh'];
 
-/** The API's own validator enums, captured from a VALIDATION_ERROR's `desc` on 2026-07-30 (`palabraLanguageCodes.test.ts`, which leaves with the old code). */
+/** The API's own validator enums, captured from a VALIDATION_ERROR's `desc` on 2026-07-30 (`palabraLanguageCodes.test.ts`, which left with the old code). */
 const API_SOURCE_LANGUAGES = new Set([
   'af', 'am', 'ar', 'as', 'auto', 'az', 'be', 'bg', 'bn', 'bs', 'ca', 'ceb', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'eu', 'fa', 'fi', 'fil', 'fr', 'ga', 'gl', 'gu',
   'ha', 'he', 'hi', 'hr', 'hu', 'hy', 'id', 'ig', 'is', 'it', 'ja', 'jv', 'ka', 'kk', 'km', 'kn', 'ko', 'ku', 'ky', 'lb', 'lg', 'ln', 'lo', 'lt', 'lv', 'mi', 'mk', 'ml',

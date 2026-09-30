@@ -9,7 +9,6 @@ async function allProviders(): Promise<Provider[]> {
   vi.doMock('../../utils/environment', async (orig) => ({
     ...(await orig<any>()),
     isKizunaAIEnabled: () => true,
-    isPalabraAIEnabled: () => true,
     isLocalNativeEnabled: () => true,
     isElectron: () => true,
     isExtension: () => false,
@@ -32,7 +31,6 @@ describe('provider list order', () => {
 
     expect(ids).toEqual([
       Provider.LOCAL_INFERENCE,
-      Provider.PALABRA_AI,
       Provider.LOCAL_NATIVE,
     ]);
   });
@@ -45,7 +43,6 @@ describe('provider list order', () => {
     vi.doMock('../../utils/environment', async (orig) => ({
       ...(await orig<any>()),
       isKizunaAIEnabled: () => false,
-      isPalabraAIEnabled: () => false,
       isLocalNativeEnabled: () => false,
       isElectron: () => false,
       isExtension: () => false,

@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 vi.mock('../../utils/environment', async (orig) => ({
   ...(await orig<any>()),
   isKizunaAIEnabled: () => true,
-  isPalabraAIEnabled: () => true,
   isLocalNativeEnabled: () => true,
   isElectron: () => true,
   isExtension: () => false,
@@ -16,7 +15,6 @@ vi.mock('./localParticipantConfig', () => ({
 
 import { ProviderConfigFactory } from './ProviderConfigFactory';
 import { Provider } from '../../types/Provider';
-import { defaultPalabraAISettings } from './PalabraAIProviderConfig';
 import { defaultLocalInferenceSettings } from './LocalInferenceProviderConfig';
 import { defaultLocalNativeSettings } from './LocalNativeProviderConfig';
 import { createParticipantLocalInferenceConfig, createParticipantLocalNativeConfig } from './localParticipantConfig';
@@ -54,44 +52,6 @@ const BASE = {
   ttsModelId: 'piper-en',
   ttsVariant: 'int8',
 } as unknown as LocalNativeSessionConfig;
-
-describe('participant config: direction lives in config fields', () => {
-  it('palabraai swaps sourceLanguage/targetLanguage', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
-    const slice = { ...defaultPalabraAISettings, sourceLanguage: 'en', targetLanguage: 'es-mx' };
-    const base = d.buildSessionConfig(slice, 'i') as { sourceLanguage?: string; targetLanguage?: string };
-    const c = d.buildParticipantSessionConfig(slice, 'i', shell).config as { sourceLanguage?: string; targetLanguage?: string };
-    expect(c.sourceLanguage).toBe(base.targetLanguage);
-    expect(c.targetLanguage).toBe(base.sourceLanguage);
-  });
-});
-
-describe('participant config: reversed pairs the provider catalog cannot run', () => {
-  it('palabraai rejects a reversed target from the five source-only codes (eu is not a valid target)', () => {
-    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
-    const slice = { ...defaultPalabraAISettings, sourceLanguage: 'eu', targetLanguage: 'ja' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).toBeNull();
-    expect(notices).toHaveLength(1);
-    expect(notices[0].channel).toBe('error');
-    expect(notices[0].message).toContain('eu');
-    expect(notices[0].message).toContain('ja');
-  });
-
-  it('palabraai accepts a reversed target that exactly matches a TARGET_LANGUAGES entry (es)', () => {
-    // Pins the exact-match arm of the guard (`t.value === newTarget`) — 'es'
-    // has its own entry in TARGET_LANGUAGES. The split('-')[0] arm described
-    // in PalabraAIProviderConfig's guard comment is currently unreachable
-    // defensive cover for future suffixed-only target entries: every source
-    // code in today's catalog either matches exactly or is one of the five
-    // excluded source-only codes (eu, ga, mn, mt, ug).
-    const d = ProviderConfigFactory.getDescriptor(Provider.PALABRA_AI);
-    const slice = { ...defaultPalabraAISettings, sourceLanguage: 'es', targetLanguage: 'ja' };
-    const { config, notices } = d.buildParticipantSessionConfig(slice, 'i', shell);
-    expect(config).not.toBeNull();
-    expect(notices).toEqual([]);
-  });
-});
 
 describe('participant config: local providers (mocked helpers)', () => {
   beforeEach(() => {

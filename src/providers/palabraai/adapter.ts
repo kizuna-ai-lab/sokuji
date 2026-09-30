@@ -1,8 +1,8 @@
 /**
  * Palabra AI on the new contract (spec: "L0 — the client contract"),
  * written from scratch over WebSocket — the old LiveKit client
- * (`src/services/clients/PalabraAIClient.ts`, still compiled until the
- * deletion plan) is not ported (the owner, 2026-09-29). One leg, one socket.
+ * (`src/services/clients/PalabraAIClient.ts`, deleted since) is not
+ * ported (the owner, 2026-09-29). One leg, one socket.
  * The platform key dials the streaming endpoint straight; the legacy app
  * pair first creates a REST session and dials its address with the
  * publisher token, and deletes that session — its own, no other — when the
